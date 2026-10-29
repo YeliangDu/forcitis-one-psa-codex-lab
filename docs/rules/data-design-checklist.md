@@ -1,112 +1,112 @@
-# 数据设计检查清单 — FORCITIS one（DATA_DESIGN_CHECKLIST）
+# Data design checklist — FORCITIS one (DATA_DESIGN_CHECKLIST)
 
-以下 §14、§14.1、§14.2、§14.3 节号不变；正文中「本手册」指本文件。
+Section numbers §14, §14.1, §14.2, §14.3 and every item id are stable; cite them. "This handbook" in the text means this file.
 
-## 14. DDD 检查清单（用户 2026-10-14：「全部在 1a 做，并建 DDD 检查清单 (Recommended)」）
+## 14. DDD checklist
 
-适用范围：全部实现（业务代码与表结构）及其复审（`scripts/review/PROMPT.md`）。复审对每一项都要给出「符合」或「问题加证据（文件:行）」。
+Scope: every implementation (business code and schema) and its review (`scripts/review/PROMPT.md`). The review answers each item with "meets" or "problem + evidence (file:line)". (intent: user 2026-10-14「全部在 1a 做，并建 DDD 检查清单 (Recommended)」)
 
-| # | 检查项 | 判定标准 |
+| # | Item | Criterion |
 |---|---|---|
-| 1 | 聚合边界 | 一个事务只修改一个聚合；跨聚合协作只能经领域事件或按 ID 查询，不得在同一事务里修改两个聚合 |
-| 2 | 状态机在聚合内 | 合法转换表放在领域对象里，只能通过领域方法改变状态，非法转换抛出领域异常；application / infrastructure 层与 SQL 都不得直接写状态（有守护） |
-| 3 | 事件由聚合产生 | 状态转换时由聚合记录领域事件，应用层在同一事务内交给 Modulith 事件发布登记表；事件是不可变 record，负载只含 ID 与值对象；在事件目录中登记 |
-| 4 | 并发 | 可变聚合都带 version（乐观锁），或使用带前置状态条件的更新 |
-| 5 | 法人与期间维度 | 会进入过账、或受「法人 × 期间」闸门约束的聚合，必须携带 LegalEntityId（及 AccountingPeriod）；来源不确定时失败，不得默认 |
-| 6 | 按 ID 引用 | 聚合之间只按类型化 ID 引用，不持有对方对象；跨模块标识不用裸 String / long |
-| 7 | 值对象 | 金额、工时、期间、编号等用值对象；校验放在构造处 |
-| 8 | 防腐层 | 外部系统只出现在 platform.integration 的适配器内；领域里没有供应商名或老系统形状（LegacyShapeTest） |
-| 9 | 读模型 | 查询用的投影（合并待办、组织浏览等）只读，不写聚合；查询接口与命令接口分开 |
-| 10 | 错误链 | 领域异常 → ErrorCode → ProblemDetail 一条链；错误码在 terms.yaml 中登记 |
-| 11 | 上下文映射 | 模块间关系（上下游、ACL、发布语言、共享内核）与 architecture/module-dependencies.txt 一致，并登记在架构文档中 |
-| 12 | 统一语言 | 类、方法、表、列、事件、错误码、界面文字都使用 terms.yaml 中的用语；新词以提议术语登记 |
+| 1 | Aggregate boundary | One transaction changes one aggregate; aggregates work together only through domain events or lookups by id, never by changing two aggregates in one transaction |
+| 2 | State machine inside the aggregate | The table of legal transitions lives in the domain object; state changes only through domain methods; an illegal transition throws a domain exception; application, infrastructure and SQL never write the state directly (guarded) |
+| 3 | Events come from the aggregate | The aggregate records the domain event on a transition; the application hands it to the Modulith event publication registry in the same transaction; events are immutable records whose payload holds only ids and value objects; every event is in the event catalogue |
+| 4 | Concurrency | Every mutable aggregate has a `version` (optimistic lock), or uses an update conditioned on the previous state |
+| 5 | Legal entity and period | An aggregate that is posted, or gated by "legal entity × period", carries a `LegalEntityId` (and `AccountingPeriod`); when the source is uncertain it fails, never defaults |
+| 6 | Reference by id | Aggregates refer to each other only by typed id, never hold each other's objects; identifiers across modules are never bare `String` / `long` |
+| 7 | Value objects | Amounts, hours, periods, numbers and the like are value objects, validated where they are built |
+| 8 | Anti-corruption layer | External systems appear only in adapters of `platform.integration`; the domain has no vendor names and no legacy shapes (`LegacyShapeTest`) |
+| 9 | Read models | Query projections (merged inbox, org browsing, ...) are read-only and never write an aggregate; query interfaces are separate from command interfaces |
+| 10 | Error chain | Domain exception → `ErrorCode` → `ProblemDetail` is one chain; error codes are registered in `terms.yaml` |
+| 11 | Context map | The relations between modules (upstream/downstream, ACL, published language, shared kernel) match `architecture/module-dependencies.txt` and are recorded in the architecture docs |
+| 12 | Ubiquitous language | Classes, methods, tables, columns, events, error codes and UI text use the terms of `terms.yaml`; a new word is registered as a proposed term |
 
-**已登记的例外**（psa-coordinator 2026-10-14 接受）：
-- 第 1 项：`organization.workforce` 的 `BeginSyncRun` / `ApplySourceSnapshot` 在开始新的同步运行时，会在同一事务内放行被取代的 HELD 记录、关闭被遗弃的 RUNNING 记录（涉及多条 `SyncRun`）。理由：这些都是同一类型的运维记录，拆成异步会留下「两条同步同时运行」的并发窗口。
-- 第 1 项：`cost.timesheet` 的 `SubmitTimesheet` 在工时单首次提交时，同一事务内创建工时单并向编号服务取号（涉及 `Timesheet` 与 `NumberingRule` 的计数器）。理由：编号与单据同生同灭，拆开会留下空号或重号；被改的计数器只有一次原子取号，事件信封的 `relatedAggregates` 列出它，登记在 `architecture/multi-aggregate-exceptions.txt`，由 `SingleAggregateGuardTest` 守护。
-- 第 1 项（另一条）：`organization.workforce` 的 `ApplySourceSnapshot` 在同一事务内写 `SyncRun`（运行结果）与组织快照（one-coordinator 2026-10-15 接受，整合复审 INT-DDD-H2）。理由：运行结果与快照同生同灭，分开提交会出现「快照已更新但运行记为失败」或反之的不一致；登记于 `backend/architecture/multi-aggregate-exceptions.txt`，事件带 relatedAggregates。
-- 第 1 项：`platform.integration` 的 `ConfirmSourceReference` 在确认来源对照时，同一事务内关闭旧的已确认行并确认新行（两个 `SourceReference` 实例）。理由：ADR-0033 第 2 项第 1 条要求同一事务，否则会出现无编码或双编码的时点；与 `BeginSyncRun` 同类，是同一类型的两个实例，`SingleAggregateGuardTest` 按聚合类型计数，不需要登记到 `architecture/multi-aggregate-exceptions.txt`；`SourceReferenceConfirmed` 的 `relatedAggregates` 带被取代行的 ID（one-coordinator 2026-10-15 接受，#139 复审 M3）。
+**Registered exceptions** (accepted by psa-coordinator 2026-10-14 unless noted):
+- Item 1: `organization.workforce` `BeginSyncRun` / `ApplySourceSnapshot`, when a new sync run starts, release the superseded HELD records and close abandoned RUNNING records in the same transaction (several `SyncRun`s). Reason: they are operational records of one type; making it asynchronous leaves a window in which two syncs run at once.
+- Item 1: `cost.timesheet` `SubmitTimesheet`, on the first submission, creates the timesheet and takes a number from the numbering service in one transaction (`Timesheet` and the `NumberingRule` counter). Reason: the number and the document live and die together; splitting them leaves gaps or duplicates. The counter changes by one atomic take; the event envelope lists it in `relatedAggregates`; registered in `architecture/multi-aggregate-exceptions.txt`, guarded by `SingleAggregateGuardTest`.
+- Item 1 (second entry): `organization.workforce` `ApplySourceSnapshot` writes the `SyncRun` (its result) and the org snapshot in one transaction (one-coordinator 2026-10-15, integration review INT-DDD-H2). Reason: the run result and the snapshot live and die together; committing them apart gives "snapshot updated but run failed" or the reverse. Registered in `backend/architecture/multi-aggregate-exceptions.txt`; the event carries `relatedAggregates`.
+- Item 1: `platform.integration` `ConfirmSourceReference` closes the old confirmed row and confirms the new one in one transaction (two `SourceReference` instances). Reason: ADR-0033 item 2 rule 1 requires one transaction, or there is a moment with no code or with two codes. Like `BeginSyncRun` these are two instances of one type; `SingleAggregateGuardTest` counts by aggregate type, so it needs no line in `architecture/multi-aggregate-exceptions.txt`; `SourceReferenceConfirmed` carries the id of the superseded row in `relatedAggregates` (one-coordinator 2026-10-15, review of #139 M3).
 
-**须落成守护的复审项**（用户 2026-10-14 对 1a 大修原因分析的五条建议答「采纳」；由 Phase 1a 实现，未实现前由复审逐项检查）：
-- G-T1　一个 `@Transactional` 应用服务只写一个聚合的仓储；例外须在上方「已登记的例外」中登记，守护读取该登记。
-- G-T2　生产代码不得出现法人、组织单元、员工等维度 ID 的写死值或默认值（例如 `LegalEntityId.of(1)`、配置默认值）；来源不确定时失败。
-- G-T3　测试只访问本模块的 schema：测试中的 SQL 与 `JdbcTemplate` 调用不得读写其他模块的表，跨模块效果只经对方 api 或事件断言。
-- G-T4　`contract.md` 条款与 ADR 本阶段交付条款到测试的对照（§13）完整，无缺漏。
+**Review items to be turned into guards** (user 2026-10-14 adopted the five suggestions of the 1a rework analysis; checked by review until implemented):
+- G-T1 A `@Transactional` application service writes the repository of one aggregate only; exceptions are registered above, and the guard reads that register.
+- G-T2 Production code has no hard-coded or default ids of dimensions such as legal entity, org unit or employee (e.g. `LegalEntityId.of(1)`, a configuration default); when the source is uncertain it fails.
+- G-T3 Tests touch only their own module's schema: SQL and `JdbcTemplate` calls in tests never read or write another module's tables; effects across modules are asserted only through that module's api or events.
+- G-T4 The mapping from `contract.md` clauses and the ADR clauses delivered in this phase to tests (§13) is complete.
 
-### 14.1 数据架构检查清单（用户 2026-10-14：问「这些表符合olap、oltp、dama的核心思想吗？这么检查对吗？」后选「做，并把能自动化的变成守护 (Recommended)」）
+### 14.1 Data architecture checklist
 
-**原则**（用户 2026-10-15：「数据设计新系统要有自己的规则，旧系统只做参考。新系统要符合 ddd、dama、oltp、olap 等领域的核心思想」）：数据设计以本节 D1–D16 与 §14 为准；老系统与外部系统的数据形状只作理解行为的证据，不作设计依据。复审发现「照来源表结构、主键或编码设计」的，按缺陷处理；基线开放期内直接改基线。
+**Principle** (user 2026-10-15:「数据设计新系统要有自己的规则，旧系统只做参考。新系统要符合 ddd、dama、oltp、olap 等领域的核心思想」): data design follows D1–D16 of this section and §14; the data shapes of the legacy and external systems are only evidence for understanding behaviour, never a design basis. A review finding of "designed after the source table, its key or its codes" is a defect; while the baseline is open, fix the baseline directly.
 
-与 §14 同样适用于每波复审：对每张新增或修改的表逐项给出「符合」或「问题 + 证据（迁移文件:行、代码文件:行）」。基线与示例见 `docs/data/data-scorecard.md`；标「守护」的由 `DataArchitectureTest` / `DdlNamingTest` 自动检查（规格见该文件 §4），其余靠复审。
+Like §14, applied in every review wave: for each new or changed table, answer each item with "meets" or "problem + evidence (migration:line, code:line)". Baseline and examples: `docs/data/data-scorecard.md`. Items marked as guarded are checked by `DataArchitectureTest` / `DdlNamingTest` (specification in that file, §4); the rest by review. (intent: user 2026-10-14 chose「做，并把能自动化的变成守护 (Recommended)」)
 
-| # | 检查项 | 判定标准 | 守护 |
+| # | Item | Criterion | Check |
 |---|---|---|---|
-| D1 | 范式与冗余 | 第三范式；派生值不存，若作为投影存储，则登记为投影、可重算并有对账；不把多个值拼成一个字符串 | 部分（D9） |
-| D2 | 键与约束 | 主键、唯一、同 schema 外键齐全（跨 schema 只按 ID 引用、不建外键）；能落成约束的数据质量规则（范围、枚举、成对、互斥）都落成约束 | 部分（D6） |
-| D3 | 表与聚合边界 | 一个聚合的表在同一 schema；没有被两个聚合共用的表；子表随根写入 | 复审 |
-| D4 | 并发 | 可变表有 `version`，或登记为带前置条件的更新 | 守护（D1） |
-| D5 | 类型 | 状态列有 `CHECK`；时间点为 `timestamptz`；金额与币种成对；带单位的数量用类别词 | 已有守护 |
-| D6 | 维度的生效区间 | 会被分析或授权按日期引用的维度（法人、组织单元、任职、部门 → 法人、员工 → 法人等）有生效日、失效日与防重叠约束；变化只追加新版本 | 守护（D2） |
-| D7 | 业务行的分析字段 | 业务单据或事实行带法人、业务日期、单据编号；迁入行可经 `legacy_numbers` 追到原单号；用到可配置规则时记规则版本（EVENT_ANALYTICS_FIELDS §6 第 8 条） | 守护（D7） |
-| D8 | 只追加与冲销 | 事实、审计、版本表只追加，更正靠冲销或新版本；数据库层禁止 UPDATE / DELETE | 已有守护（G34） |
-| D9 | 不在交易表上跑分析 | 交易表只服务交易与按索引分页的列表；汇总、趋势、跨期对比走 `reporting`（ADR-0025） | 复审 |
-| D10 | 数据定义 | 表注释写明含义、粒度（每 … 一行）与要点，列注释齐全；用语取自 `terms.yaml` | 守护（D3） |
-| D11 | 主数据归属 | 每张表的记录系统与同步方向与 COLUMN_OWNERSHIP、ADR-0021 / 0026 / 0027 一致；外部来源只经 `platform.integration` | 复审 |
-| D12 | 保留与清理 | 保留期在 GUIDING_PRINCIPLES §6 登记并经用户认可；非永久的有清理或归档作业 | 守护（D4） |
-| D13 | 敏感分级 | 个人信息、口令、密钥、会话、收件人等登记在 `data-classification.txt`；不进分析层明细；依据《个人信息保护法》与 GB/T 35273-2020（用户 2026-10-15 采纳，ADR-0041，FRAMEWORKS §9（intent 195827）） | 守护（D5） |
-| D14 | 血缘 | 每张表在数据访问注册表中登记来源（新建 / A8 / 老系统表 / 迁入）与对照方式 | 守护（D8） |
-| D15 | 配置版本化 | 配置类（编号规则、口径、DMN、参数）按版本只追加，带生效日与确认人，不追溯（§12.2） | 守护（D10） |
-| D16 | 自有标识与值域 | 新系统的数据设计从规格、规则卡、ADR 与 `terms.yaml` 出发，老系统与外部系统（A8、老系统库、U8C 等）的表结构、主键、编码、状态取值只作参考证据：所有自有表主键为 UUIDv7（RFC 9562，用户 2026-10-15 采纳，ADR-0041，FRAMEWORKS §9（intent 195827）；用户「主键统一」；排序用业务时间列，不用 ID）；外部 ID 只作来源对照列（唯一，限定来源系统），只在同步防腐层使用；外部状态码、类型码在防腐层映射为新系统自有枚举，不直接入库；表、列的拆分与粒度按本系统的聚合与分析需要定，不按来源表照搬；例外：按时间分区的只追加审计表主键为（UUIDv7 ID，分区键），见 ADR-0048（用户 2026-10-16 批准） | 部分（主键类型守护；其余复审） |
-| D17 | 主数据默认版本化 | 见下方「D17 细则」 | 守护（G-D11，K-2 同期实现，工作日历按 ADR-0072 提前；实现前复审逐表检查） |
-| D18 | DDL 设计原则 | 符合 NAMING_STANDARD §2.4a 十条（业务唯一约束、外键与查询路径索引、空值与默认值、删除语义、代码格式与文本长度、枚举演进、jsonb 边界、大表分区规划、上线后迁移安全、高频更新行） | 部分（见 §2.4a 各条） |
-| D19 | 查询路径性能（用户 2026-10-15：对原则核对 B 的待决项答「全部按推荐 (Recommended)」） | 每条列表 / 查询路径在数据访问注册表登记过滤列、排序列与预期行数，有索引覆盖（NAMING_STANDARD §2.4a 第 2 条）；语句数不随行数增长、结果集有上限、延迟在预算内（GUIDING_PRINCIPLES §7a R-P1–R-P3）；读外部来源的路径有超时与降级（§14.3 I2、I7） | 部分（G-P2、G-P3，待实现） |
+| D1 | Normal form and redundancy | Third normal form; derived values are not stored, or if stored as a projection they are registered as a projection, can be recomputed and are reconciled; never several values packed into one string | partly (D9) |
+| D2 | Keys and constraints | Primary, unique and same-schema foreign keys are complete (across schemas only by id, no foreign key); every data quality rule that can be a constraint (range, enumeration, pairing, exclusion) is one | partly (D6) |
+| D3 | Tables and aggregate boundary | The tables of one aggregate are in one schema; no table is shared by two aggregates; child tables are written with their root | review |
+| D4 | Concurrency | Mutable tables have `version`, or are registered as conditioned updates | guard (D1) |
+| D5 | Types | Status columns have a `CHECK`; points in time are `timestamptz`; amount and currency come in pairs; quantities with a unit use a class word | guarded |
+| D6 | Validity periods of dimensions | Dimensions that analysis or authorisation reference by date (legal entity, org unit, assignment, department → legal entity, employee → legal entity, ...) have effective-from, effective-to and a no-overlap constraint; changes only append new versions | guard (D2) |
+| D7 | Analysis fields on business rows | Business documents and fact rows carry legal entity, business date and document number; migrated rows can be traced to the original number through `legacy_numbers`; a configurable rule in use is recorded with its version (EVENT_ANALYTICS_FIELDS §6 item 8) | guard (D7) |
+| D8 | Append-only and reversal | Fact, audit and version tables are append-only; corrections are reversals or new versions; the database forbids UPDATE / DELETE | guarded (G34) |
+| D9 | No analysis on transaction tables | Transaction tables serve transactions and index-paged lists only; totals, trends and period comparisons go to `reporting` (ADR-0025) | review |
+| D10 | Data definition | The table comment states meaning, grain ("one row per ...") and key points; every column has a comment; words come from `terms.yaml` | guard (D3) |
+| D11 | Master data ownership | Each table's system of record and sync direction match COLUMN_OWNERSHIP and ADR-0021 / 0026 / 0027; external sources only through `platform.integration` | review |
+| D12 | Retention and purge | The retention period is registered in GUIDING_PRINCIPLES §6 and accepted by the user; anything not permanent has a purge or archive job | guard (D4) |
+| D13 | Sensitivity classes | Personal data, passwords, secrets, sessions, recipients and the like are registered in `data-classification.txt` and never reach detail rows of the analysis layer; basis: the Personal Information Protection Law and GB/T 35273-2020 (user 2026-10-15, ADR-0041, FRAMEWORKS §9 (intent 195827)) | guard (D5) |
+| D14 | Lineage | Every table records its source (new / A8 / legacy table / migrated) and mapping in the data access registry | guard (D8) |
+| D15 | Configuration versioning | Configuration (numbering rules, measures, DMN, parameters) is versioned append-only, with effective date and confirmer, never retroactive (§12.2) | guard (D10) |
+| D16 | Own identifiers and value domains | Data design starts from specifications, rule cards, ADRs and `terms.yaml`; the tables, keys, codes and status values of the legacy and external systems (A8, the legacy database, U8C, ...) are evidence only. Every own table's primary key is a UUIDv7 (RFC 9562; user 2026-10-15, ADR-0041, FRAMEWORKS §9 (intent 195827); user「主键统一」; order by business time columns, never by id). External ids are only source mapping columns (unique, qualified by source system) used only in the sync anti-corruption layer. External status and type codes are mapped to own enums in the anti-corruption layer, never stored as they are. Tables and columns are split and grained by this system's aggregates and analysis needs, not copied from the source. Exception: time-partitioned append-only audit tables have the key (UUIDv7 id, partition key), see ADR-0048 (user 2026-10-16) | partly (key type guarded; the rest review) |
+| D17 | Master data versioned by default | See "D17 details" below | guard (G-D11, built with K-2; the work calendar earlier per ADR-0072; review table by table until then) |
+| D18 | DDL design principles | Meets the ten rules of NAMING_STANDARD §2.4a (business unique constraints, indexes for foreign keys and query paths, nulls and defaults, delete semantics, code formats and text lengths, enum evolution, jsonb boundary, partitioning of large tables, migration safety after go-live, hot rows) | partly (see each rule of §2.4a) |
+| D19 | Query path performance | Each list or query path registers its filter columns, sort columns and expected row count in the data access registry and is covered by an index (NAMING_STANDARD §2.4a rule 2); the number of statements does not grow with rows, result sets are bounded, latency is within budget (GUIDING_PRINCIPLES §7a R-P1–R-P3); paths reading external sources have timeouts and degradation (§14.3 I2, I7) | partly (G-P2, G-P3, planned) |
 
-**D17 细则**（用户 2026-10-15：「哪些主数据要版本化，检查下一次性改到位，后续新主数据要版本化」）：
-1. **判定**：每张表在数据访问注册表登记数据类别——交易、事实、审计、技术、主数据（被单据、事实或授权按 ID 引用的业务实体及其关系，如员工、组织单元、法人、客户、项目、授权关系）、参考数据（受控代码表，如职级、业务线、科目）、配置（参数、模板、决策表、日历、费率）。拿不准按更严的一类。
-2. **默认版本化**，三选一：
-   - 维度型：按 D6 写法（生效日 / 失效日左闭右开、`EXCLUDE USING gist` 防重叠、只追加、只许关闭不许改写、UUIDv7 主键），注册表写明生效依据是同步观察日（`OBSERVED`）还是业务声明日（`DECLARED`）；授权、身份绑定等按时刻检查的关系用 `timestamptz` 区间。
-   - 配置型：按 D15 / §12.2（版本只追加、生效日、作者、确认人、确认时间、决定出处 `decision_ref`、不追溯）。
-   - 不需要：在注册表写理由与出处，理由只限四类——只由迁移维护（git 即版本）；单一状态且审计能完整还原；安全凭据不得留历史；个人信息最小化只留当前值。豁免清单只减不增，新增须引用户 intent 或 ADR。
-3. **列覆盖**：维度型当前表的每个非技术列，要么进版本表，要么在注册表逐列写不进版本的理由。
-4. **一张版本表一个来源、一个负责人**：外部同步的列与新系统自有的列分表，不让两个来源写同一行。
-5. **当前值**：外部快照保留同事务写入的当前投影并有一致性测试；新系统自有、可未来生效的，根表不存可版本化的列，按业务日期取当时有效版本；授权取未关闭的行；查询日期早于最早版本时失败告警，不回退到最早版本。
-6. **使用方记版本**：单据或事实用到版本化配置（编号规则、日历、税率、费率、映射）时，保存所用版本的 ID（D7）。
-7. **关系**：D6 / D15 规定形状，D17 规定哪些表必须属于其一，D16 规定标识；统一走 K-2 时态基座；工作日历例外：按 K-2 形状先行实现，时点为首次生产与 K-2 取早（ADR-0072）。§13「数据模型先行」的逐表打分加 D17 一栏，新阶段主数据在表结构 PR 中就做好版本化。
-8. **已定口径**（用户 2026-10-15）：工作日历按配置型版本化，新版本「业务管理员四眼确认」；法人代码「禁止修改」，细化为「未发过号前可更正，发号后禁改」，更名只改名称走版本；客户与供应商「共用往来单位身份，角色分开」（1b 规格据此）。
+**D17 details** (user 2026-10-15:「哪些主数据要版本化，检查下一次性改到位，后续新主数据要版本化」):
+1. **Classification**: every table registers its data class in the data access registry: transaction, fact, audit, technical, master data (business entities and their relations referenced by id from documents, facts or authorisation, such as employee, org unit, legal entity, customer, project, authorisation relations), reference data (controlled code tables such as grade, business line, account) or configuration (parameters, templates, decision tables, calendars, rates). When unsure, take the stricter class.
+2. **Versioned by default**, one of three:
+   - Dimension: written as D6 (effective-from / effective-to half-open, `EXCLUDE USING gist` against overlap, append-only, close but never rewrite, UUIDv7 key); the registry states whether validity comes from the sync observation date (`OBSERVED`) or a declared business date (`DECLARED`); relations checked at an instant, such as authorisation or identity binding, use `timestamptz` ranges.
+   - Configuration: per D15 / §12.2 (versions append-only, effective date, author, confirmer, confirmation time, decision source `decision_ref`, never retroactive).
+   - Not needed: the registry states the reason and its source, and the reason is one of four: maintained only by migrations (git is the version); a single state the audit can fully reconstruct; security credentials must keep no history; data minimisation keeps only the current value of personal data. The exemption list only shrinks; a new entry must cite a user intent or an ADR.
+3. **Column coverage**: every non-technical column of the current table of a dimension is either in the version table or has a per-column reason in the registry.
+4. **One source and one owner per version table**: columns synced from outside and columns owned by this system are in separate tables; two sources never write one row.
+5. **Current value**: an external snapshot keeps a current projection written in the same transaction, with a consistency test; for own data that may take effect in the future, the root table holds no versionable column and reads take the version valid on the business date; authorisation takes the open rows; a query date before the earliest version fails with an alert and never falls back to the earliest version.
+6. **Users record the version**: a document or fact that uses versioned configuration (numbering rule, calendar, tax rate, rate, mapping) stores the id of the version used (D7).
+7. **Relations**: D6 / D15 define the shapes, D17 which tables must take one of them, D16 the identifiers; all go through the K-2 temporal base. Work calendar exception: built first in the K-2 shape, at the earlier of first production and K-2 (ADR-0072). The table-by-table score of §13 "data model first" gets a D17 column; master data of a new phase is versioned already in its schema PR.
+8. **Decided** (user 2026-10-15): the work calendar is versioned as configuration, a new version needs「业务管理员四眼确认」; the legal entity code is「禁止修改」, refined to "correctable until a number has been issued, locked after"; a rename changes only the name, through a version; customers and suppliers「共用往来单位身份，角色分开」(the 1b specification follows this).
 
-### 14.2 迁入检查清单（用户 2026-10-15：对 DDL 审计、原则核对 A / B 其余待决项答「全部按推荐 (Recommended)」）
+### 14.2 Migration checklist
 
-适用于每个有历史数据迁入的阶段：迁入规格评审、迁入代码的每波复审、切换前检查。决定在 ADR-0036（历史数据迁入）与 ADR-0033（自有标识与来源对照），本表只列检查项；对每一项给出「符合」或「问题 + 证据」。守护见 `docs/rules/naming-standard.md` §4「待实现的守护」G-MG1–G-MG12。M1–M10 为现行规则（ADR-0036 已采纳），M11 随 ADR-0071 采纳；M6、M9 的拒收登记、处置与核对分列口径按 ADR-0071 第 5 条。
+Applies to every phase that migrates historical data: migration specification review, every review wave of migration code, and the pre-cutover check. The decisions are in ADR-0036 (historical data migration) and ADR-0033 (own identifiers and source mapping); this table lists only the checks. Answer each with "meets" or "problem + evidence". Guards: `docs/rules/naming-standard.md` §4, planned guards G-MG1–G-MG12. M1–M10 are in force (ADR-0036 adopted); M11 comes with ADR-0071; for M6 and M9, rejection register, disposition and reconciliation columns follow ADR-0071 item 5. (intent: user 2026-10-15「全部按推荐 (Recommended)」)
 
-| # | 检查项 | 判定标准 |
+| # | Item | Criterion |
 |---|---|---|
-| M1 | 迁入规格 | 每个阶段一份：迁入对象清单、来源表与列、字段与取值映射、过滤条件、预计行数、核对口径；在 §13「数据模型先行」的表结构评审中一并评审 |
-| M2 | 读取登记 | 迁入读取的表与列已在读取列登记中按「用途 = 迁入 / 对账」登记，并标敏感级别（ADR-0037 第 6 项第 1 条、§5「迁入读取授权」）；规格引用登记行；不引用凭据列拒绝清单中的列 |
-| M3 | 模块、通道与进程 | 迁入编排模块只依赖集成层与目标 BC 的 api、不被依赖；抽取只在集成层迁入适配器（运行时只读账号、任务前重跑只读校验、按主键分批低峰）；装载只经目标 BC `api` 的迁入用例；迁入入口每 BC 一个、只被编排模块调用、`Propagation.MANDATORY`；离线进程不加载定时作业、ShedLock、Flowable 执行器、事件监听与出站投递 worker；迁入角色按 ADR-0036 第 1 条逐项授权（无 DDL、不能写事件发布登记）、计入连接预算、时间窗外 `NOLOGIN` |
-| M4 | 标识与编号 | 新行主键为 UUIDv7；老 ID 只登记在来源对照（ADR-0033）；单据编号列存原编号作展示号，不取新号、不耗计数器；以 `legacy_numbers` 为准，两者一致（ADR-0036 第 2、4 条） |
-| M5 | 批次、暂存、试提交与提交 | 批次挂在来源对照上，业务表不加批次列；一份暂存（Flyway 固定表，带来源键、摘要与核对所需来源取值，按 D13 分级）；试提交用同一个迁入入口并回滚（领域校验逐行拒收，数据库约束首处失败）；核对通过后分块提交并复核；先迁原行后迁冲销行（ADR-0036 第 3、7 条） |
-| M6 | 拒收 | 不合格行进拒收登记并带原因代码，不静默跳过；处置经应用内带权限的操作录入，提交前每条拒收都有处置；超范围法人一律拒收（ADR-0036 第 7 条） |
-| M7 | 无副作用与订阅方 | 迁入不发布领域事件、不发通知、不向外部推送、不耗编号计数器、不启动流程实例；`accounting.ledger` 不为迁入事实生成分录；迁入规格按当时的事件目录重列内部订阅方，有状态派生的由迁入用例同步写或生效后重建；在途审批的单据按 ADR-0036 U-4（ADR-0036 第 5 条） |
-| M8 | 权责事实、历史期间与迁入占用 | 权责事实经 `operations.facts` 的迁入过账通道写入「历史期间」（终态）或开放期间；批次在 `accounting.period` 登记迁入占用，有「提交中」占用的期间不得关账，锁顺序先期间行后占用行；已按业务关账的期间按 ADR-0036 U-1（ADR-0036 第 6 条） |
-| M9 | 核对 | 来源 = 暂存将提交 + 拒收（按处置分列）；来源侧按主键分段聚合并查漂移，与暂存按期间 × 法人 × 对象类型至少比对行数、金额合计（收入确认含税 / 不含税 / 税额）、来源 ID 摘要与按来源单号的行数金额，差异清单自动输出；零差异或财务经应用内操作签字后批次才能提交（ADR-0036 第 8 条） |
-| M10 | 演练、失败与审计 | dev 至少一次完整演练（含暂存续跑、试提交拒收、提交中断续提、整批冲销后以新批次重跑）；整批冲销只用于提交阶段与生效后，是生效后纠错的唯一路径，冲销前先处理下游引用；不按数据库时间点恢复；审计按批次记录（ADR-0036 第 9–11 条） |
-| M11 | 迁入质量检查 | 迁入规格逐类引用 `MQ-*` 规则并写规则集版本、组数与 Q5 总工时估算；Q1 至 Q5 有执行记录（Q5 固定随机种子并留样本清单）；发现进同一差异清单，有状态、负责人与期限；规范化只按登记的 `MQ-N` 规则并留痕；记录级「批准不迁」不超上限并有业务影响签字；提交与生效门槛按 ADR-0071 第 6 条；演练完整执行五层（ADR-0071） |
+| M1 | Migration specification | One per phase: objects to migrate, source tables and columns, field and value mapping, filters, expected row counts, reconciliation measures; reviewed together with the schema review of §13 "data model first" |
+| M2 | Read registration | The tables and columns migration reads are registered in the read-column register with purpose "migration / reconciliation" and a sensitivity class (ADR-0037 item 6 rule 1, §5 "migration read authorisation"); the specification cites the register rows; no column on the credential-column deny list is used |
+| M3 | Module, channel and process | The migration orchestration module depends only on the integration layer and the target BC's api, and nothing depends on it; extraction only in the integration layer's migration adapter (read-only account at run time, read-only check rerun before each job, batches by primary key, off-peak); loading only through the migration use case of the target BC's `api`; one migration entry per BC, called only by the orchestration module, `Propagation.MANDATORY`; the offline process loads no scheduled jobs, ShedLock, Flowable executor, event listeners or outbound delivery workers; the migration role is granted item by item per ADR-0036 item 1 (no DDL, cannot write the event publication registry), counts against the connection budget, and is `NOLOGIN` outside its time window |
+| M4 | Identifiers and numbers | New rows have UUIDv7 keys; old ids are registered only in the source mapping (ADR-0033); the document number column stores the original number as display number, takes no new number and uses no counter; `legacy_numbers` is authoritative and the two agree (ADR-0036 items 2, 4) |
+| M5 | Batch, staging, trial and commit | The batch hangs on the source mapping; business tables get no batch column; one staging area (fixed Flyway tables with source key, digest and the source values reconciliation needs, classified per D13); the trial commit uses the same migration entry and rolls back (domain validation rejects row by row, database constraints stop at the first failure); after reconciliation passes, commit in chunks and verify; original rows before reversal rows (ADR-0036 items 3, 7) |
+| M6 | Rejection | Rows that fail go to the rejection register with a reason code, never skipped silently; dispositions are entered through an authorised in-app operation; before commit every rejection has a disposition; a legal entity out of scope is always rejected (ADR-0036 item 7) |
+| M7 | No side effects; subscribers | Migration publishes no domain events, sends no notifications, pushes nothing outside, uses no numbering counter and starts no process instance; `accounting.ledger` makes no entries for migrated facts; the specification lists the internal subscribers of the event catalogue of the time, and stateful derivations are written by the migration use case in step or rebuilt after go-live; documents in approval follow ADR-0036 U-4 (ADR-0036 item 5) |
+| M8 | Accrual facts, historical periods and migration claims | Accrual facts are written through the migration posting channel of `operations.facts` into a "historical period" (final) or an open period; the batch registers its migration claim in `accounting.period`; a period with a claim "committing" cannot be closed; lock order is the period row before the claim row; periods already closed in the business follow ADR-0036 U-1 (ADR-0036 item 6) |
+| M9 | Reconciliation | Source = staging to commit + rejections (by disposition); the source side aggregates by primary key segments and checks drift; compared with staging per period × legal entity × object type, at least row count, amount totals (revenue: tax-inclusive / tax-exclusive / tax), digest of source ids, and rows and amounts per source number; the difference list is produced automatically; a batch commits only with zero difference or with finance's sign-off through an in-app operation (ADR-0036 item 8) |
+| M10 | Rehearsal, failure and audit | At least one full rehearsal in dev (staging resume, trial rejections, interrupted commit resumed, full-batch reversal then rerun as a new batch); full-batch reversal is used only during commit and after go-live, and is the only way to correct after go-live, after the downstream references are handled; no point-in-time database restore; audit per batch (ADR-0036 items 9–11) |
+| M11 | Migration quality checks | The specification cites the `MQ-*` rules per class and states the rule set version, group count and the Q5 effort estimate; Q1 to Q5 have execution records (Q5 with a fixed random seed and a kept sample list); findings go to the same difference list with status, owner and due date; normalisation only by registered `MQ-N` rules, with a trail; record-level "approved not to migrate" stays within its cap and has a business impact sign-off; commit and go-live gates per ADR-0071 item 6; rehearsals run all five layers (ADR-0071) |
 
-### 14.3 外部集成检查清单（用户 2026-10-15：对原则核对 A 的待决项答「全部按推荐 (Recommended)」）
+### 14.3 External integration checklist
 
-适用于每个对外集成（A8 视图、老系统视图、致远验票、企业微信，以及后续的 U8C、分贝通等）：设计评审、每波复审、上线前检查。每个集成在集成登记册 `backend/architecture/integration-register.yaml`（待建，由 G-I2 校验与代码一致）中登记一条：系统、方向、适配器、超时、重试、去重键、不可用时的行为、频控、对账方式、负责会话。现有四个集成在首次部署前入册，以后的集成接入时入册。守护见 `docs/rules/naming-standard.md` §4「待实现的守护」G-I1–G-I5。
+Applies to every external integration (A8 views, legacy views, Seeyon ticket check, WeCom, and later U8C, Fenbeitong, ...): design review, every review wave, and the pre-go-live check. Each integration has one entry in the integration register `backend/architecture/integration-register.yaml` (to be built; G-I2 checks it against the code): system, direction, adapter, timeouts, retries, deduplication key, behaviour when unavailable, rate limit, reconciliation, owning session. The four existing integrations are registered before the first deployment; later ones when they are added. Guards: `docs/rules/naming-standard.md` §4, planned guards G-I1–G-I5. (intent: user 2026-10-15「全部按推荐 (Recommended)」)
 
-| # | 检查项 | 判定标准 |
+| # | Item | Criterion |
 |---|---|---|
-| I1 | 只在适配器 | 外部调用只出现在集成层适配器；领域与应用层没有外部系统名与外部数据形状 |
-| I2 | 超时 | 每次调用都有连接超时、读取（查询）超时与锁等待超时（SQL Server 来源设 `LOCK_TIMEOUT`）；外部只读数据库：查询超时 ≤ 2 s、套接字超时 ≤ 5 s。用户请求路径上的外部调用单次总预算 ≤ 3 s，**总预算优先于套接字超时**：适配器按剩余预算设置本次超时（取套接字超时与剩余预算的较小者），预算用尽即按 I7 降级；登录路径另受端到端 ≤ 2 s 约束（GUIDING_PRINCIPLES §7a R-P1），登录路径上的外部调用（如验票）预算取 2 s 减去服务端处理时间 |
-| I3 | 不在事务中调外部 | 数据库事务内不调用外部系统；向外写一律经发件箱与可靠投递（GUIDING_PRINCIPLES §7） |
-| I4 | 重试 | 只重试幂等调用；指数退避加 ±20 % 抖动；次数与间隔是配置项，不写死；用尽进死信并告警 |
-| I5 | 去重 | 出站投递带去重键；入站回调按对方的消息 ID 去重 |
-| I6 | 冷却 | 用户路径上同一来源连续失败 3 次后冷却 60 s，冷却期内直接按 I7 降级，期满放行一次探测；不引入熔断框架 |
-| I7 | 不可用时的行为 | 登记册写明来源不可用时的业务行为，界面有提示；已定：老待办来源不可用时显示横幅，新系统的待办照常显示 |
-| I8 | 同步 | 同步类集成有运行记录、缩水保护（数量大幅下降时中止待放行）与每日对账 |
-| I9 | 监控 | 每个集成有可用性指标、死信数与对账差异（GUIDING_PRINCIPLES §11 O-4），告警按事件（O-6） |
-| I10 | 日志 | 按 GUIDING_PRINCIPLES §11 O-2、O-3：一次故障只记一次带堆栈的 `ERROR`，恢复记 `INFO`；不记原始响应、URL 查询串与凭据 |
-| I11 | 频控 | 遵守对方的频率限制，限速在适配器内实现；企业微信的频控与重复卡片错误码实测后填入登记册，此前接受少量重复通知 |
-| I12 | 故障演练 | 在 dev 用故障注入（挂起端口、`WAITFOR` 挂住视图、返回错误）验证超时、冷却与降级；每个集成上线前至少演练一次 |
+| I1 | Only in adapters | External calls appear only in integration adapters; domain and application have no external system names or external data shapes |
+| I2 | Timeouts | Every call has a connect timeout, a read (query) timeout and a lock wait timeout (`LOCK_TIMEOUT` for SQL Server sources); external read-only databases: query timeout ≤ 2 s, socket timeout ≤ 5 s. On a user request path the total budget of external calls is ≤ 3 s per request, and **the total budget wins over the socket timeout**: the adapter sets each call's timeout to the smaller of the socket timeout and the remaining budget, and degrades per I7 when the budget is spent; the login path is also bound by end-to-end ≤ 2 s (GUIDING_PRINCIPLES §7a R-P1), so an external call on it (e.g. ticket check) gets 2 s minus the server's own processing time |
+| I3 | No external calls in a transaction | No external system is called inside a database transaction; every outbound write goes through the outbox and reliable delivery (GUIDING_PRINCIPLES §7) |
+| I4 | Retries | Only idempotent calls are retried; exponential backoff with ±20 % jitter; count and interval are configuration, never hard-coded; when exhausted, dead letter and alert |
+| I5 | Deduplication | Outbound deliveries carry a deduplication key; inbound callbacks are deduplicated by the sender's message id |
+| I6 | Cool-down | On user paths, after 3 consecutive failures of one source, cool down for 60 s and degrade per I7 during it; when it ends let one probe through; no circuit-breaker framework |
+| I7 | Behaviour when unavailable | The register states the business behaviour when the source is unavailable, and the UI shows a notice; decided: when the legacy inbox source is unavailable a banner is shown and the new system's tasks show as usual |
+| I8 | Sync | Sync integrations have run records, shrink protection (a large drop in count stops the run and holds it for release) and a daily reconciliation |
+| I9 | Monitoring | Each integration has an availability metric, a dead-letter count and reconciliation differences (GUIDING_PRINCIPLES §11 O-4); alerts per incident (O-6) |
+| I10 | Logging | Per GUIDING_PRINCIPLES §11 O-2, O-3: one `ERROR` with stack trace per failure, `INFO` on recovery; never log raw responses, URL query strings or credentials |
+| I11 | Rate limits | Honour the other side's rate limits, implemented in the adapter; WeCom's rate limit and duplicate-card error codes are measured and entered in the register; until then a few duplicate notifications are accepted |
+| I12 | Failure drills | In dev, verify timeouts, cool-down and degradation with fault injection (hung port, a view held with `WAITFOR`, error responses); each integration is drilled at least once before go-live |
