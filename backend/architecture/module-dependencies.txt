@@ -16,8 +16,7 @@ platform.audit -> platform.integration
 platform.eventing -> platform.identity
 # ADR-0060 section 1: platform.file -> integration now (migration batch, scanner and bucket ports); audit, identity and scheduling land with the units that use them.
 platform.file -> platform.integration, platform.audit
-# R-1b P2 recheck M-1: platform.identity -> platform.web only for the marker platform.web.NotFromQuery on CallerUserIdResolver (ModuleDependencyTest narrows it).
-platform.identity -> organization.workforce, platform.integration, platform.audit, platform.web
+platform.identity -> organization.workforce, platform.integration, platform.audit
 platform.idempotency ->
 platform.integration ->
 platform.numbering -> platform.identity, organization.workforce, platform.integration

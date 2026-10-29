@@ -1,4 +1,4 @@
-package com.forcitis.one.platform.approval.infrastructure.notification;
+package com.forcitis.one.platform.approval.application;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

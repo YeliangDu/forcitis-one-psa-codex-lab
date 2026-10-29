@@ -1,15 +1,10 @@
 package com.forcitis.one.platform.file.web;
 
 import com.forcitis.one.kernel.InvalidRequestException;
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.file.api.FileError;
 import com.forcitis.one.platform.file.api.FileId;
-import com.forcitis.one.platform.file.api.FileSubject;
-import com.forcitis.one.platform.file.api.FileSubjectKind;
-import com.forcitis.one.platform.file.api.Lineage;
-import com.forcitis.one.platform.file.api.StoreRequest;
 import com.forcitis.one.platform.file.application.GetUploadStatus;
-import com.forcitis.one.platform.file.application.StoreContent;
+import com.forcitis.one.platform.file.application.UploadFile;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -42,10 +37,10 @@ import org.springframework.web.bind.annotation.RestController;
 class PlatformFileController {
     static final int MAX_NAME_LENGTH = 255;
 
-    private final ObjectProvider<StoreContent> store;
+    private final ObjectProvider<UploadFile> store;
     private final ObjectProvider<GetUploadStatus> status;
 
-    PlatformFileController(ObjectProvider<StoreContent> store, ObjectProvider<GetUploadStatus> status) {
+    PlatformFileController(ObjectProvider<UploadFile> store, ObjectProvider<GetUploadStatus> status) {
         this.store = store;
         this.status = status;
     }
@@ -56,29 +51,28 @@ class PlatformFileController {
             requestBody = @RequestBody(required = true, content = @Content(mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE,
                     schema = @Schema(type = "string", format = "binary"))))
     ResponseEntity<StoredFileResponse> store(HttpServletRequest request,
-            @RequestHeader(HttpHeaders.CONTENT_DISPOSITION) String disposition, UserId caller) throws IOException {
-        StoreContent storeContent = store.getIfAvailable();
-        if (storeContent == null) {
+            @RequestHeader(HttpHeaders.CONTENT_DISPOSITION) String disposition) throws IOException {
+        UploadFile upload = store.getIfAvailable();
+        if (upload == null) {
             throw FileError.PLATFORM_FILE_SCAN_UNAVAILABLE.refusal("file upload is not switched on");
         }
         String name = originalName(disposition);
         String mediaType = declaredMediaType(request.getContentType());
         try (InputStream content = request.getInputStream()) {
-            StoredFileResponse stored = StoredFileResponse.of(storeContent.store(new StoreRequest(content, name, mediaType,
-                    new FileSubject(FileSubjectKind.USER, caller.value().toString()), new Lineage.FirstVersion())));
+            StoredFileResponse stored = StoredFileResponse.of(upload.execute(content, name, mediaType));
             return ResponseEntity.created(URI.create("/api/v1/platform/files/" + stored.fileId())).body(stored);
         }
     }
 
     @GetMapping("/{fileId}")
     @PreAuthorize(FilePermissions.READ)
-    FileStatusResponse status(@PathVariable UUID fileId, UserId caller) {
+    FileStatusResponse status(@PathVariable UUID fileId) {
         GetUploadStatus getStatus = status.getIfAvailable();
         if (getStatus == null) {
             throw FileError.PLATFORM_FILE_NOT_FOUND.refusal("file service is not switched on");
         }
         FileId id = new FileId(fileId);
-        return new FileStatusResponse(fileId, getStatus.execute(id, caller.value()));
+        return new FileStatusResponse(fileId, getStatus.execute(id));
     }
 
     /** The last path segment only: a client may send a full path, and the name is used again when the file is downloaded. */

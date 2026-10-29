@@ -128,9 +128,13 @@ class AuditArchiveJob implements SmartInitializingSingleton {
         if (online.isEmpty()) {
             return;
         }
-        long archived = jdbc.sql("select coalesce(sum(entry_count), 0) from platform_audit.audit_archive_batches where to_char(first_entry_created_at at time zone 'UTC', 'YYYYMM') in (:online)")
+        long archived = jdbc.sql("""
+                select coalesce(sum(entry_count), 0) from platform_audit.audit_archive_batches where to_char(first_entry_created_at at time zone 'UTC', 'YYYYMM') in (:online)
+                """)
                 .param("online", online).query(Long.class).single();
-        long upToTheLast = jdbc.sql("select count(*) from platform_audit.audit_entries where (created_at, id) <= (:at, :id)")
+        long upToTheLast = jdbc.sql("""
+                select count(*) from platform_audit.audit_entries where (created_at, id) <= (:at, :id)
+                """)
                 .param("at", last.get().createdAt()).param("id", last.get().entryId()).query(Long.class).single();
         if (archived != upToTheLast) {
             reconciliationFailures.increment();
@@ -143,7 +147,9 @@ class AuditArchiveJob implements SmartInitializingSingleton {
     }
 
     private Optional<Position> position() {
-        return jdbc.sql("select last_entry_created_at, last_entry_id from platform_audit.audit_archive_batches order by last_entry_created_at desc, last_entry_id desc limit 1")
+        return jdbc.sql("""
+                select last_entry_created_at, last_entry_id from platform_audit.audit_archive_batches order by last_entry_created_at desc, last_entry_id desc limit 1
+                """)
                 .query((rs, n) -> new Position(rs.getTimestamp("last_entry_created_at"), rs.getObject("last_entry_id", UUID.class))).optional();
     }
 
@@ -152,7 +158,13 @@ class AuditArchiveJob implements SmartInitializingSingleton {
         while (true) {
             Optional<Position> last = position();
             String after = last.isPresent() ? " where (created_at, id) > (:at, :id)" : "";
-            var select = jdbc.sql("select " + String.join(", ", COLUMNS) + " from platform_audit.audit_entries" + after + " order by created_at, id limit :batch");
+            var select = jdbc.sql("""
+                    select
+                    """ + String.join(", ", COLUMNS) + """
+                             from platform_audit.audit_entries
+                            """ + after + """
+                                     order by created_at, id limit :batch
+                                    """);
             if (last.isPresent()) {
                 select = select.param("at", last.get().createdAt()).param("id", last.get().entryId());
             }

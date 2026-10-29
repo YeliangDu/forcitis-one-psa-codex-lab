@@ -18,7 +18,9 @@ class JdbcAuditPartitions implements AuditPartitions {
 
     @Override
     public boolean exists(YearMonth month) {
-        return Boolean.TRUE.equals(jdbc.sql("select to_regclass(:name) is not null")
+        return Boolean.TRUE.equals(jdbc.sql("""
+                select to_regclass(:name) is not null
+                """)
                 .param("name", "platform_audit.audit_entries_p" + month.format(MONTH)).query(Boolean.class).single());
     }
 }

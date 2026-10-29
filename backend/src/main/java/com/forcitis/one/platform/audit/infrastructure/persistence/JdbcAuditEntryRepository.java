@@ -5,12 +5,12 @@ import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.platform.audit.domain.AuditEntryRepository;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.time.OffsetDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -59,7 +59,7 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
                                 :reason, :before, :after)
                         """)
                 .param("id", id)
-                .param("createdAt", Timestamp.from(createdAt))
+                .param("createdAt", OffsetDateTime.ofInstant(createdAt, ZoneOffset.UTC))
                 .param("action", entry.action())
                 .param("actor", entry.actorId() == null ? null : entry.actorId().value(), Types.OTHER)
                 .param("onBehalfOf", entry.onBehalfOfId() == null ? null : entry.onBehalfOfId().value(), Types.OTHER)
@@ -96,7 +96,7 @@ class JdbcAuditEntryRepository implements AuditEntryRepository {
                         on conflict (event_id, created_at) do nothing
                         """)
                 .param("id", ids.next())
-                .param("createdAt", Timestamp.from(createdAt))
+                .param("createdAt", OffsetDateTime.ofInstant(createdAt, ZoneOffset.UTC))
                 .param("action", entry.action())
                 .param("actor", entry.actorId() == null ? null : entry.actorId().value(), Types.OTHER)
                 .param("onBehalfOf", entry.onBehalfOfId() == null ? null : entry.onBehalfOfId().value(), Types.OTHER)

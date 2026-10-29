@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.InvalidRequestException;
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.file.api.FileError;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -62,15 +61,15 @@ class PlatformFileControllerTest {
     @DisplayName("with the file service switched off an upload is 'unavailable' and a status is 'not found': nothing is accepted without the malware gate")
     void offMeansNothingIsAccepted() {
         StaticListableBeanFactory none = new StaticListableBeanFactory();
-        PlatformFileController off = new PlatformFileController(none.getBeanProvider(com.forcitis.one.platform.file.application.StoreContent.class),
+        PlatformFileController off = new PlatformFileController(none.getBeanProvider(com.forcitis.one.platform.file.application.UploadFile.class),
                 none.getBeanProvider(com.forcitis.one.platform.file.application.GetUploadStatus.class));
 
-        assertThatThrownBy(() -> off.store(null, "attachment; filename=\"a.pdf\"", new UserId(UUID.randomUUID()))).isInstanceOfSatisfying(DomainException.class,
+        assertThatThrownBy(() -> off.store(null, "attachment; filename=\"a.pdf\"")).isInstanceOfSatisfying(DomainException.class,
                 refusal -> {
                     assertThat(refusal.errorCode()).isEqualTo(FileError.PLATFORM_FILE_SCAN_UNAVAILABLE);
                     assertThat(refusal.kind()).isEqualTo(ErrorKind.UNAVAILABLE);
                 });
-        assertThatThrownBy(() -> off.status(UUID.randomUUID(), new UserId(UUID.randomUUID()))).isInstanceOfSatisfying(DomainException.class,
+        assertThatThrownBy(() -> off.status(UUID.randomUUID())).isInstanceOfSatisfying(DomainException.class,
                 refusal -> assertThat(refusal.errorCode()).isEqualTo(FileError.PLATFORM_FILE_NOT_FOUND));
     }
 }

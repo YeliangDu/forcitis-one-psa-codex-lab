@@ -182,6 +182,8 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
                 .isEqualTo(body(missingUnit).path("errorCode").asString());
         assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("organization.workforce.legal-entity-attribution.denied"))
                 .extracting(AuditEntry::subject).containsExactlyInAnyOrder(AuditSubject.of(AuditSubjectKind.ORG_UNIT, UUID.fromString(unit(20))), AuditSubject.of(AuditSubjectKind.EMPLOYEE, UUID.fromString(employee(902))));
+        assertThat(recordedIndependently()).filteredOn(entry -> entry.action().equals("organization.workforce.legal-entity-attribution.denied"))
+                .as("each refusal is audited as the person who asked").extracting(AuditEntry::actorId).containsOnly(TestAccounts.account(26));
     }
 
     @Test

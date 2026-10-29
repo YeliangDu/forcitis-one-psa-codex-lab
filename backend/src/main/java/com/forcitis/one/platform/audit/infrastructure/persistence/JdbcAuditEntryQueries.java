@@ -15,19 +15,23 @@ import com.forcitis.one.platform.audit.domain.OwnLoginRecordPage;
 import com.forcitis.one.platform.audit.domain.OwnLoginRecords;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 @Repository
 class JdbcAuditEntryQueries implements AuditEntryQueries {
 
-    private static final String COLUMNS = "id, created_at, action, actor_id, on_behalf_of_id, subject_kind, subject_id, detail, source_address, outcome_kind, login_method_kind, change_reason, before_text, after_text, correlation_id";
+    private static final String COLUMNS = """
+            id, created_at, action, actor_id, on_behalf_of_id, subject_kind, subject_id, detail, source_address, outcome_kind,
+            login_method_kind, change_reason, before_text, after_text, correlation_id
+            """;
 
     private final JdbcClient jdbc;
 
@@ -39,7 +43,11 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
     public AuditPage findPage(AuditFilter filter, AuditPageMark after, int limit) {
         Map<String, Object> params = new HashMap<>();
         String where = after(where(filter, params), after, params);
-        List<AuditRecord> items = jdbc.sql("select " + COLUMNS + " from platform_audit.audit_entries" + where + """
+        List<AuditRecord> items = jdbc.sql("""
+                select
+                """ + COLUMNS + """
+                         from platform_audit.audit_entries
+                        """ + where + """
 
                          order by created_at desc, id desc
                          limit :limit
@@ -56,7 +64,11 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
     @Override
     public List<AuditRecord> findLatest(AuditFilter filter, int limit) {
         Map<String, Object> params = new HashMap<>();
-        return jdbc.sql("select " + COLUMNS + " from platform_audit.audit_entries" + where(filter, params)
+        return jdbc.sql("""
+                select
+                """ + COLUMNS + """
+                         from platform_audit.audit_entries
+                        """ + where(filter, params)
                 + " order by created_at desc, id desc limit :limit")
                 .params(params).param("limit", limit).query((rs, n) -> row(rs)).list();
     }
@@ -77,7 +89,7 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
                          limit :limit
                         """)
                 .params(params)
-                .query((rs, n) -> new OwnLoginRecord(new AuditEntryId(rs.getObject("id", UUID.class)), rs.getTimestamp("created_at").toInstant(),
+                .query((rs, n) -> new OwnLoginRecord(new AuditEntryId(rs.getObject("id", UUID.class)), rs.getObject("created_at", OffsetDateTime.class).toInstant(),
                         rs.getString("action"), outcome(rs), rs.getString("source_address"), rs.getString("login_method_kind")))
                 .list();
         if (items.size() <= limit) {
@@ -92,7 +104,7 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
         if (after == null) {
             return where;
         }
-        params.put("afterAt", Timestamp.from(after.createdAt()));
+        params.put("afterAt", OffsetDateTime.ofInstant(after.createdAt(), ZoneOffset.UTC));
         params.put("afterId", after.entryId().value());
         return where + (where.isEmpty() ? " where " : " and ") + "created_at <= :afterAt and (created_at, id) < (:afterAt, :afterId)";
     }
@@ -134,17 +146,17 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
         }
         if (query.from() != null) {
             conditions.add("created_at >= :from");
-            params.put("from", Timestamp.from(query.from()));
+            params.put("from", OffsetDateTime.ofInstant(query.from(), ZoneOffset.UTC));
         }
         if (query.to() != null) {
             conditions.add("created_at < :to");
-            params.put("to", Timestamp.from(query.to()));
+            params.put("to", OffsetDateTime.ofInstant(query.to(), ZoneOffset.UTC));
         }
         return conditions.isEmpty() ? "" : " where " + String.join(" and ", conditions);
     }
 
     private static AuditRecord row(ResultSet rs) throws SQLException {
-        return new AuditRecord(new AuditEntryId(rs.getObject("id", UUID.class)), rs.getTimestamp("created_at").toInstant(), rs.getString("action"),
+        return new AuditRecord(new AuditEntryId(rs.getObject("id", UUID.class)), rs.getObject("created_at", OffsetDateTime.class).toInstant(), rs.getString("action"),
                 userId(rs, "actor_id"), userId(rs, "on_behalf_of_id"),
                 new AuditSubject(AuditSubjectKind.valueOf(rs.getString("subject_kind")), rs.getObject("subject_id", UUID.class)), rs.getString("detail"),
                 rs.getString("source_address"), outcome(rs), rs.getString("login_method_kind"), rs.getString("change_reason"),

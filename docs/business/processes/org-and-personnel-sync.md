@@ -141,7 +141,7 @@ flowchart TD
 - 取人时点：新系统在 Flowable `TASK_CREATED` 时解析一次（`BE/platform/approval/infrastructure/flowable/EngineWiring.java:45`、`TaskAssignmentListener.java:35-94`）。
 
 **(c) 审批与业务单据的状态归属、协作事件**
-- 新系统：审批引擎只管流程实例与任务状态，业务单据状态归各业务 BC；审批结果以类型化事件通知业务 BC（C1a-12 「类型化结果事件」，`DOC/AI_NATIVE_SPEC.md:29`）。1a 无业务单据接入。已有事件：`TaskAssigned`、`TaskClaimed`（`BE/platform/approval/events/TaskAssigned.java:10`、`TaskClaimed.java:7`），监听方是通知（`BE/platform/approval/infrastructure/notification/TaskNotifier.java:39`、`:60`）。
+- 新系统：审批引擎只管流程实例与任务状态，业务单据状态归各业务 BC；审批结果以类型化事件通知业务 BC（C1a-12 「类型化结果事件」，`DOC/AI_NATIVE_SPEC.md:29`）。1a 无业务单据接入。已有事件：`TaskAssigned`、`TaskClaimed`（`BE/platform/approval/events/TaskAssigned.java:10`、`TaskClaimed.java:7`），监听方是通知（`BE/platform/approval/application/TaskNotifier.java:39`、`:60`）。
 - 组织变更对在途审批：1a 代码里 `OrgSnapshotChanged` 唯一监听方是 identity（`HandleOrgSnapshotChange.java:33`）；approval 不监听，已创建的任务不重新指派，离职者手上的在途任务没有转交或转管理员的触发点。规格未写这一环（RULE-250/253/254 只覆盖创建时取人）。
 - 老系统：审批结果经 `topic-bpm-approval-task-result` 回写 fst，至少一次，业务状态由 fst 持有（`DOC/phase1a/INTERFACES.md:163`，M1；`BpmApprovalTaskResultProducer.java`）；在途任务同样在创建时取人，老用户缓存按 1 分钟 TTL 或刷新消息更新。
 
