@@ -296,10 +296,14 @@ def main_checkout_gate_test():
     print("main_checkout_gate self-test: ok")
 
 def renamed_test():  # ── pre_commit ──
-    """卡 #736 第 8 项（用户 intent 2026-10-28-171648）与 #754：one-coordinator→one-leader、one-1a-par→one-dev-par→one-dev-org。新名在 sessions.config、有会话文件；
+    """#744：会话名随角色（one-lead、one-design、one-platform、one-dev-<bc>）。新名在 sessions.config；
     旧名只留在 aliases（指向新名），不再是会话；合入队列的分支归属（gapscan.load_owners）只读 policy.json，新旧分支前缀都归到新名。"""
     sessions, root = policy("sessions"), Path(ROOT)
-    for new, olds, role in (("one-leader", ("one-coordinator",), "lead"), ("one-dev-org", ("one-1a-par", "one-dev-par"), "dev")):
+    assert set(sessions["config"]) == {"one-lead", "one-design", "one-platform", "one-dev-org"}, sorted(sessions["config"])
+    for new, olds, role in (("one-lead", ("one-leader", "one-coordinator", "one-rules"), "lead"),
+                            ("one-design", ("one-architecture", "one-data", "one-glossary", "one-arch-finance"), "design"),
+                            ("one-platform", ("one-ops", "one-merge", "one-quality"), "platform"),
+                            ("one-dev-org", ("one-1a-admin", "one-platform-file", "one-1a-par", "one-dev-par"), "dev")):
         assert sessions["config"][new]["role"] == role and new in sessions["config_sources"] and all(sessions["aliases"][old] == new for old in olds), new
         for old in olds:
             assert old not in sessions["config"] and old not in sessions["config_sources"], old  # #752: the session profile files are gone; the session is its config entry
@@ -308,7 +312,8 @@ def renamed_test():  # ── pre_commit ──
     sys.path.insert(0, str(root / "scripts" / "merge"))
     import gapscan
     owners = gapscan.load_owners()
-    assert all(gapscan.author_session(b, owners) == o for b, o in (("claude/one-coordinator-x", "one-leader"), ("claude/one-leader-x", "one-leader"), ("claude/one-1a-par-x", "one-dev-org"), ("claude/one-dev-org-x", "one-dev-org")))
+    assert all(gapscan.author_session(b, owners) == o for b, o in (("claude/one-coordinator-x", "one-lead"), ("claude/one-leader-3f1c09", "one-lead"), ("claude/one-lead-x", "one-lead"), ("claude/one-1a-par-x", "one-dev-org"), ("claude/one-dev-org-x", "one-dev-org"),
+                                                               ("claude/one-ops-744-x", "one-platform"), ("claude/one-platform-810-x", "one-platform"), ("claude/one-platform-file-x", "one-dev-org"), ("claude/one-architecture-812-x", "one-design")))
 
 def pre_commit_test():
     """.pre-commit-config.yaml 只挂 gitleaks 与主检出守护（卡 #736：提交时不按路径拆守护文件；#742：commit_msg_gate 的 Session 追加已删）。"""

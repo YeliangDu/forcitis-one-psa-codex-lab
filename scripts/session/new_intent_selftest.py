@@ -5,7 +5,7 @@ import contextlib, glob, json, os, shutil, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 ROOT = os.path.join(HERE, "..", "..")
-GOOD = ["--session=one-ops", "--category=流程", "--owner=one-ops", "--paths=scripts/ci,docs/decisions", "--supersedes=无"]
+GOOD = ["--session=one-platform", "--category=流程", "--owner=one-platform", "--paths=scripts/ci,docs/decisions", "--supersedes=无"]
 TEXT = ["用户原话", "落点说明"]
 
 
@@ -71,9 +71,9 @@ def main():
         assert len(first) == 1, first
         text = open(first[0], encoding="utf-8").read()
         assert all(f"## {s}\n" in text for s in ("原话", "落点", "类别", "负责会话", "影响路径")), text
-        assert "## 类别\n\n流程\n\n## 负责会话\n\none-ops\n\n## 影响路径\n\nscripts/ci、docs/decisions\n" in text, text
+        assert "## 类别\n\n流程\n\n## 负责会话\n\none-platform\n\n## 影响路径\n\nscripts/ci、docs/decisions\n" in text, text
         assert "## 取代" not in text, "「无」不写取代节"
-        code, out = run(tree, swap(swap(swap(swap(GOOD, "category", "授权"), "paths", "无"), "supersedes", os.path.basename(first[0])), "owner", "one-leader") + ["--date=2026-01-02"])
+        code, out = run(tree, swap(swap(swap(swap(GOOD, "category", "授权"), "paths", "无"), "supersedes", os.path.basename(first[0])), "owner", "one-lead") + ["--date=2026-01-02"])
         assert code == 0, out
         second = [f for f in glob.glob(os.path.join(mod, "*.md")) if f != first[0]][0]
         text = open(second, encoding="utf-8").read()
@@ -82,14 +82,15 @@ def main():
         assert code == 0 and "## 规则\n\nRULE-1、ABC-RULE-22\n" in open(sorted(glob.glob(os.path.join(mod, "2026-01-03-*.md")))[0], encoding="utf-8").read(), out
         code, out = run(tree, GOOD + ["--rules=rule-1"])
         assert code != 0 and "--rules" in out, "规则号格式不合应拒"
-        for owner in ("one-leader", "one-dev-org", "one-merge", "one-glossary"):
+        for owner in ("one-lead", "one-design", "one-platform", "one-dev-org"):
             code, out = run(tree, swap(GOOD, "owner", owner))
             assert code == 0, f"{owner} 应认：{out}"
-        for old, new in (("one-rules", "one-leader"), ("one-arch-finance", "one-architecture"), ("one-coordinator", "one-leader"), ("one-1a-par", "one-dev-org"), ("one-dev-par", "one-dev-org")):   # O23b、卡 #736：旧名经别名放行，片段写现名
+        for old, new in (("one-rules", "one-lead"), ("one-arch-finance", "one-design"), ("one-coordinator", "one-lead"), ("one-1a-par", "one-dev-org"), ("one-dev-par", "one-dev-org"),
+                         ("one-leader", "one-lead"), ("one-glossary", "one-design"), ("one-ops", "one-platform"), ("one-merge", "one-platform"), ("one-platform-file", "one-dev-org")):   # O23b、#736、#744：旧名经别名放行，片段写现名
             assert fragment_owner(mod, lambda: run(tree, swap(GOOD, "owner", old))) == new, f"--owner={old} 应经别名写成 {new}"
         dev = os.path.join(tree, "docs", "rules", "roles", "dev.md")
         open(dev, "w", encoding="utf-8").write(open(dev, encoding="utf-8").read().replace("## 过渡映射\n", "## 过渡映射\n- one-ghost 担任\n", 1))
-        for name in ("one-ghost", "one-dev-zz", "one-lead"):   # 只在 roles/ 过渡映射里的名字、第四批新名都不在 sessions.config，应拒
+        for name in ("one-ghost", "one-dev-zz", "one-leadx"):   # 只在 roles/ 过渡映射里的名字、未登记名都不在 sessions.config，应拒
             code, out = run(tree, swap(GOOD, "owner", name))
             assert code != 0 and "--owner" in out, f"未登记名 {name} 应拒：{out[:200]}"
         with alias_to_nobody(tree):
