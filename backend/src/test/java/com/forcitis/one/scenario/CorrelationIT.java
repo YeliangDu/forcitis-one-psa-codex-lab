@@ -1,5 +1,6 @@
 package com.forcitis.one.scenario;
 
+import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
@@ -45,7 +46,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -59,9 +59,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** One HTTP request: the event it publishes, the handler that runs on it, the deliveries both queue and the outbound call share one correlation id. */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
@@ -69,7 +66,6 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @AutoConfigureMockMvc
 @Import(CorrelationIT.Probe.class)
 @ExtendWith(OutputCaptureExtension.class)
-@Testcontainers
 class CorrelationIT {
 
     static final com.forcitis.one.platform.integration.api.DeliverySubject PROBE_REQUEST = com.forcitis.one.platform.integration.api.DeliverySubject.of(
@@ -100,11 +96,12 @@ class CorrelationIT {
     @MockitoBean
     RoleDirectory roleDirectory;
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = TestPostgres.container()
-            .withInitScript("init-schemas.sql")
-            .withUrlParam("currentSchema", "platform_approval");
+    static final TestDatabase postgres = TestPostgres.database(CorrelationIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     MockMvc mvc;

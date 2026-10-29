@@ -3,6 +3,7 @@ package com.forcitis.one.platform.numbering;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.audit.api.AuditLog;
@@ -17,17 +18,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /** SEC-1021-COO-01: only a migration may write a template version without an author; the application's own account cannot, so four eyes cannot be skipped by inserting an authorless version. */
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         "spring.datasource.hikari.connection-timeout=2000"})
-@Testcontainers
 class RuleVersionSourceIT {
     @MockitoBean
     OrgDirectory orgDirectory;
@@ -44,11 +42,12 @@ class RuleVersionSourceIT {
     @MockitoBean
     com.forcitis.one.organization.workforce.api.LegalEntityDirectory legalEntityDirectory;
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = TestPostgres.container()
-            .withInitScript("init-schemas.sql")
-            .withUrlParam("currentSchema", "platform_approval");
+    static final TestDatabase postgres = TestPostgres.database(RuleVersionSourceIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final String INSERT = "insert into platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text,"
             + " reset_policy, start_value, effective_from_date, author_id, authored_at, status, source_kind, confirmed_by, confirmed_at)"

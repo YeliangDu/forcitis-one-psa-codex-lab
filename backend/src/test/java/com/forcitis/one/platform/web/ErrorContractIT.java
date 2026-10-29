@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.web;
 
+import com.forcitis.one.TestDatabase;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static com.forcitis.one.platform.approval.OrdinarySessions.user;
@@ -20,12 +21,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -33,9 +35,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -46,7 +45,6 @@ import tools.jackson.databind.json.JsonMapper;
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         "forcitis.platform.approval.assignment.process-administrator-user-id=9001", "spring.datasource.hikari.connection-timeout=2000"})
 @AutoConfigureMockMvc
-@Testcontainers
 class ErrorContractIT {
     @MockitoBean
     OrgDirectory orgDirectory;
@@ -60,11 +58,12 @@ class ErrorContractIT {
     @MockitoBean
     AuditLog auditLog;
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = TestPostgres.container()
-            .withInitScript("init-schemas.sql")
-            .withUrlParam("currentSchema", "platform_approval");
+    static final TestDatabase postgres = TestPostgres.database(ErrorContractIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     MockMvc mvc;

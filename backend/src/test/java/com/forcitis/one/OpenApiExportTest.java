@@ -30,19 +30,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.SerializationFeature;
@@ -52,7 +50,6 @@ import tools.jackson.databind.SerializationFeature;
         "spring.datasource.hikari.connection-timeout=2000",
         "spring.flyway.locations=classpath:db/migration,classpath:db/testdata"})
 @AutoConfigureMockMvc
-@Testcontainers
 class OpenApiExportTest {
     @MockitoBean
     OrgDirectory orgDirectory;
@@ -66,11 +63,12 @@ class OpenApiExportTest {
     @MockitoBean
     AuditLog auditLog;
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = TestPostgres.container()
-            .withInitScript("init-schemas.sql")
-            .withUrlParam("currentSchema", "platform_approval");
+    static final TestDatabase postgres = TestPostgres.database(OpenApiExportTest.class, TestPostgres.MIGRATED_TESTDATA).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     @Autowired
     MockMvc mvc;

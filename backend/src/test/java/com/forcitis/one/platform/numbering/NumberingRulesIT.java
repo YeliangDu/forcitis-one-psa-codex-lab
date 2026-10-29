@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.numbering;
 
+import com.forcitis.one.TestDatabase;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -36,23 +37,20 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         "spring.datasource.hikari.connection-timeout=2000"})
 @AutoConfigureMockMvc
-@Testcontainers
 class NumberingRulesIT {
     @MockitoBean
     OrgDirectory orgDirectory;
@@ -69,11 +67,12 @@ class NumberingRulesIT {
     @MockitoBean
     com.forcitis.one.organization.workforce.api.LegalEntityDirectory legalEntityDirectory;
 
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer postgres = TestPostgres.container()
-            .withInitScript("init-schemas.sql")
-            .withUrlParam("currentSchema", "platform_approval");
+    static final TestDatabase postgres = TestPostgres.database(NumberingRulesIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
 
     static final String RULES = "/api/v1/platform/numbering-rules";
     static final String LEGACY = "/api/v1/platform/legacy-numbers";
