@@ -72,6 +72,8 @@ rule "只在生产上跑的取证工具缺模块、缺名字或缺同目录文�
 run "evidence tools: imports resolve" python3 -I scripts/ci/evidence_imports.py
 rule "剧本或卡模板超长、缺节、点名不存在的路径或授权替用户拍板" "按输出的规则号改 rules/playbooks/ 或 .github/ISSUE_TEMPLATE/card.md"
 run "playbooks and the card template are well-formed" python3 -I scripts/guards/check_playbooks.py
+rule "policy.json rules/start 里有数值键没有脚本读（上限看似生效、实则无人执行）" "按输出的 PK 规则号删键，或让需要它的检查读它"
+run "every numeric policy.json rules/start key has a reader" python3 -I scripts/guards/policy_keys_read.py
 rule "dev 与 prod 建库脚本、参考 DDL 不一致，生产库结构与测试不同" "改 dev-db 脚本后运行 ops/runbooks/sql/render-prod-sql.sh 重新生成 prod-db"
 run "database scripts aligned" python3 -I scripts/guards/db_scripts_aligned.py
 
