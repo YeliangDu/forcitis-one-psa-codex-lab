@@ -21,7 +21,6 @@ import com.forcitis.one.platform.numbering.domain.TemplateVersion;
 import com.forcitis.one.platform.numbering.domain.VersionStatus;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Clock;
 import java.time.Instant;
@@ -50,7 +49,9 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
 
     @Override
     public Optional<NumberingRule> findActive(DocumentTypeCode type) {
-        return jdbc.sql(HEADS + " where t.code = :type")
+        return jdbc.sql(HEADS + """
+                 where t.code = :type
+                """)
                 .param("type", type.value())
                 .query(HEAD_MAPPER)
                 .optional().map(head -> rule(head, versionsOf(type.value())));
@@ -58,12 +59,17 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
 
     @Override
     public List<NumberingRule> findAllActive() {
-        List<Head> heads = jdbc.sql(HEADS + " order by t.code").query(HEAD_MAPPER).list();
+        List<Head> heads = jdbc.sql(HEADS + """
+                 order by t.code
+                """).query(HEAD_MAPPER).list();
         return heads.stream().map(head -> rule(head, versionsOf(head.type().code().value()))).toList();
     }
 
-    private static final String HEADS = "select r.numbering_rule_id, r.version, r.event_count, " + JdbcDocumentTypeRegistry.COLUMNS
-            + " from platform_numbering.numbering_rules r join platform_numbering.document_types t on t.document_type_id = r.document_type_id";
+    private static final String HEADS = """
+            select r.numbering_rule_id, r.version, r.event_count,
+            """ + JdbcDocumentTypeRegistry.COLUMNS + """
+              from platform_numbering.numbering_rules r join platform_numbering.document_types t on t.document_type_id = r.document_type_id
+            """;
 
     private static final RowMapper<Head> HEAD_MAPPER = (rs, n) -> new Head(new NumberingRuleId(rs.getObject("numbering_rule_id", UUID.class)),
             JdbcDocumentTypeRegistry.MAPPER.mapRow(rs, n), rs.getLong("version"), rs.getLong("event_count"));
@@ -115,7 +121,9 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
 
     @Override
     public boolean hasCounterFor(LegalEntityId legalEntityId) {
-        return jdbc.sql("select exists (select 1 from platform_numbering.numbering_counters where legal_entity_id = :le)")
+        return jdbc.sql("""
+                select exists (select 1 from platform_numbering.numbering_counters where legal_entity_id = :le)
+                """)
                 .param("le", legalEntityId.value()).query(Boolean.class).single();
     }
 
@@ -128,7 +136,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
                         """)
                 .param("type", rule.documentType().value())
                 .param("next", rule.versionAfterSave()).param("eventSequence", rule.eventSequenceAfterSave()).param("version", rule.version())
-                .param("updatedAt", Timestamp.from(clock.instant()))
+                .param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .update();
         if (updated != 1) {
             throw concurrentUpdate(rule);
@@ -168,7 +176,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
                 .param("confirmedAt", changed.confirmedAt() == null ? null : OffsetDateTime.ofInstant(changed.confirmedAt(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("financeBy", changed.financeConfirmedBy() == null ? null : changed.financeConfirmedBy().value(), Types.OTHER)
                 .param("financeAt", changed.financeConfirmedAt() == null ? null : OffsetDateTime.ofInstant(changed.financeConfirmedAt(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE)
-                .param("type", rule.documentType().value()).param("number", changed.number()).param("before", before.name()).param("updatedAt", Timestamp.from(clock.instant()))
+                .param("type", rule.documentType().value()).param("number", changed.number()).param("before", before.name()).param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .update();
         if (updated != 1) {
             throw concurrentUpdate(rule);
@@ -195,7 +203,7 @@ class JdbcNumberingRuleRepository implements NumberingRuleRepository {
                 .param("le", scope.legalEntity() == null ? null : scope.legalEntity().value(), Types.OTHER)
                 .param("period", periodKey)
                 .param("start", startValue)
-                .param("updatedAt", Timestamp.from(clock.instant()))
+                .param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .query((rs, n) -> new ReservedValue(rs.getLong("last_value"), new NumberingCounterId(rs.getObject("numbering_counter_id", UUID.class))))
                 .single();
     }

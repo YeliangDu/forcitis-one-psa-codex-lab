@@ -9,6 +9,7 @@ import com.forcitis.one.organization.attendance.domain.WorkCalendarYearRecord;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.LocalDate;
 import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -37,9 +38,11 @@ class JdbcWorkCalendarQueries implements WorkCalendarQueries {
     }
 
     private List<CalendarDay> days(UUID yearId) {
-        return jdbc.sql("select calendar_date, day_kind from organization_attendance.work_calendar_days where work_calendar_year_id = :id order by calendar_date")
+        return jdbc.sql("""
+                select calendar_date, day_kind from organization_attendance.work_calendar_days where work_calendar_year_id = :id order by calendar_date
+                """)
                 .param("id", yearId)
-                .query((rs, n) -> new CalendarDay(rs.getDate("calendar_date").toLocalDate(), DayKind.valueOf(rs.getString("day_kind")))).list();
+                .query((rs, n) -> new CalendarDay(rs.getObject("calendar_date", LocalDate.class), DayKind.valueOf(rs.getString("day_kind")))).list();
     }
 
     @Override

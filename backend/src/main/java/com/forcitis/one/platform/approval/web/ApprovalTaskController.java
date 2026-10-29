@@ -76,7 +76,7 @@ class ApprovalTaskController {
     @PreAuthorize(SIGNED_IN)
     ResponseEntity<TaskDetailResponse> get(@PathVariable UUID taskId) {
         TaskDetail detail = getTaskDetail.execute(new ApprovalTaskId(taskId), currentUser.userId());
-        return ResponseEntity.ok().eTag("\"" + detail.version() + "\"").body(TaskDetailResponse.of(detail));
+        return ResponseEntity.ok().eTag(ExpectedVersion.etag(detail.version())).body(TaskDetailResponse.of(detail));
     }
 
     @PostMapping(path = "/{taskId}:claim")

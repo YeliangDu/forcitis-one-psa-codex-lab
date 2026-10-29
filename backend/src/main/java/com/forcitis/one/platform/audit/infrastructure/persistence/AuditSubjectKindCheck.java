@@ -40,7 +40,9 @@ class AuditSubjectKindCheck implements SmartInitializingSingleton {
     @Override
     public void afterSingletonsInstantiated() {
         Map<String, Row> rows = new HashMap<>();
-        jdbc.sql("select code, status, has_object, effective_from_date from platform_audit.audit_subject_kinds")
+        jdbc.sql("""
+                select code, status, has_object, effective_from_date from platform_audit.audit_subject_kinds
+                """)
                 .query((rs, n) -> rows.put(rs.getString("code"), new Row(rs.getString("status"), rs.getBoolean("has_object"),
                         rs.getObject("effective_from_date", LocalDate.class)))).list();
         List<String> problems = problems(rows, List.of(AuditSubjectKind.values()), LocalDate.ofInstant(clock.instant(), clock.getZone()));

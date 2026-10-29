@@ -10,12 +10,13 @@ import com.forcitis.one.organization.attendance.api.DayKind;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarKey;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarRepository;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarYear;
-import java.sql.Date;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.time.LocalDate;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -48,9 +49,11 @@ class JdbcWorkCalendarRepository implements WorkCalendarRepository {
     }
 
     private List<CalendarDay> days(UUID yearId) {
-        return jdbc.sql("select calendar_date, day_kind from organization_attendance.work_calendar_days where work_calendar_year_id = :id order by calendar_date")
+        return jdbc.sql("""
+                select calendar_date, day_kind from organization_attendance.work_calendar_days where work_calendar_year_id = :id order by calendar_date
+                """)
                 .param("id", yearId)
-                .query((rs, n) -> new CalendarDay(rs.getDate("calendar_date").toLocalDate(), DayKind.valueOf(rs.getString("day_kind")))).list();
+                .query((rs, n) -> new CalendarDay(rs.getObject("calendar_date", LocalDate.class), DayKind.valueOf(rs.getString("day_kind")))).list();
     }
 
     @Override
@@ -75,19 +78,21 @@ class JdbcWorkCalendarRepository implements WorkCalendarRepository {
                             update organization_attendance.work_calendar_years set version = :next, event_count = :eventSequence, updated_at = :updatedAt
                              where id = :id and version = :version
                             """)
-                    .param("next", calendarYear.versionAfterSave()).param("eventSequence", calendarYear.eventSequenceAfterSave()).param("id", id).param("version", calendarYear.version()).param("updatedAt", Timestamp.from(clock.instant()))
+                    .param("next", calendarYear.versionAfterSave()).param("eventSequence", calendarYear.eventSequenceAfterSave()).param("id", id).param("version", calendarYear.version()).param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                     .update();
             if (updated != 1) {
                 throw conflict(key);
             }
-            jdbc.sql("delete from organization_attendance.work_calendar_days where work_calendar_year_id = :id").param("id", id).update();
+            jdbc.sql("""
+                    delete from organization_attendance.work_calendar_days where work_calendar_year_id = :id
+                    """).param("id", id).update();
         }
         for (CalendarDay day : calendarYear.days()) {
             jdbc.sql("""
                             insert into organization_attendance.work_calendar_days (id, work_calendar_year_id, calendar_date, day_kind)
                             values (:dayId, :id, :date, :kind)
                             """)
-                    .param("dayId", ids.next()).param("id", id).param("date", Date.valueOf(day.calendarDate())).param("kind", day.dayKind().name()).update();
+                    .param("dayId", ids.next()).param("id", id).param("date", day.calendarDate()).param("kind", day.dayKind().name()).update();
         }
     }
 

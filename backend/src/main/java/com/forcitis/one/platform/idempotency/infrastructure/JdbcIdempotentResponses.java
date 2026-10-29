@@ -3,12 +3,13 @@ package com.forcitis.one.platform.idempotency.infrastructure;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.IdempotentResponses;
 import com.forcitis.one.kernel.UserId;
-import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 import tools.jackson.core.type.TypeReference;
@@ -38,13 +39,13 @@ class JdbcIdempotentResponses implements IdempotentResponses {
                          where user_id = :user and idempotency_key = :key
                            and (expires_at <= :now or (response_number is null and updated_at <= :staleBefore))
                         """)
-                .param("user", userId.value()).param("key", key).param("now", Timestamp.from(now)).param("staleBefore", Timestamp.from(now.minus(reclaimAfter))).update();
+                .param("user", userId.value()).param("key", key).param("now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC)).param("staleBefore", OffsetDateTime.ofInstant(now.minus(reclaimAfter), ZoneOffset.UTC)).update();
         return jdbc.sql("""
                         insert into platform_idempotency.idempotent_responses (idempotent_response_id, user_id, idempotency_key, request_hash, expires_at, created_at, updated_at)
                         values (:id, :user, :key, :hash, :expires, :now, :now) on conflict do nothing
                         """)
-                .param("id", ids.next()).param("user", userId.value()).param("key", key).param("hash", requestHash).param("expires", Timestamp.from(expiresAt))
-                .param("now", Timestamp.from(now)).update() == 1;
+                .param("id", ids.next()).param("user", userId.value()).param("key", key).param("hash", requestHash).param("expires", OffsetDateTime.ofInstant(expiresAt, ZoneOffset.UTC))
+                .param("now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC)).update() == 1;
     }
 
     @Override
@@ -68,24 +69,30 @@ class JdbcIdempotentResponses implements IdempotentResponses {
                          where user_id = :user and idempotency_key = :key and response_number is null
                         """)
                 .param("number", responseNumber).param("name", responseName, java.sql.Types.VARCHAR).param("text", responseText)
-                .param("headers", json.writeValueAsString(responseHeaders)).param("updatedAt", Timestamp.from(clock.instant()))
+                .param("headers", json.writeValueAsString(responseHeaders)).param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .param("user", userId.value()).param("key", key).update();
     }
 
     @Override
     public void release(UserId userId, String key) {
-        jdbc.sql("delete from platform_idempotency.idempotent_responses where user_id = :user and idempotency_key = :key and response_number is null")
+        jdbc.sql("""
+                delete from platform_idempotency.idempotent_responses where user_id = :user and idempotency_key = :key and response_number is null
+                """)
                 .param("user", userId.value()).param("key", key).update();
     }
 
     @Override
     public void holdUntilExpiry(UserId userId, String key) {
-        jdbc.sql("update platform_idempotency.idempotent_responses set updated_at = expires_at where user_id = :user and idempotency_key = :key and response_number is null")
+        jdbc.sql("""
+                update platform_idempotency.idempotent_responses set updated_at = expires_at where user_id = :user and idempotency_key = :key and response_number is null
+                """)
                 .param("user", userId.value()).param("key", key).update();
     }
 
     @Override
     public int purgeExpired(Instant now) {
-        return jdbc.sql("delete from platform_idempotency.idempotent_responses where expires_at <= :now").param("now", Timestamp.from(now)).update();
+        return jdbc.sql("""
+                delete from platform_idempotency.idempotent_responses where expires_at <= :now
+                """).param("now", OffsetDateTime.ofInstant(now, ZoneOffset.UTC)).update();
     }
 }

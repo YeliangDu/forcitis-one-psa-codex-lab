@@ -23,6 +23,10 @@ import com.forcitis.one.platform.file.api.StoreRequest;
 import com.forcitis.one.platform.file.api.StoreResult;
 import com.forcitis.one.platform.file.application.GetUploadStatus;
 import com.forcitis.one.platform.file.application.StoreContent;
+import org.springframework.context.annotation.Bean;
+import org.springframework.boot.test.context.TestConfiguration;
+import com.forcitis.one.platform.file.application.UploadFile;
+import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import com.forcitis.one.platform.integration.api.WecomGateway;
@@ -78,6 +82,15 @@ class PlatformFileEndpointsIT {
 
     @MockitoBean
     GetUploadStatus getUploadStatus;
+
+    /** The file service is off in this context; the real upload use case runs on the mocked store, so the uploader comes from the session. */
+    @TestConfiguration(proxyBeanMethods = false)
+    static class Upload {
+        @Bean
+        UploadFile uploadFile(StoreContent storeContent, CurrentUser currentUser) {
+            return new UploadFile(storeContent, currentUser);
+        }
+    }
 
     static final TestDatabase postgres = TestPostgres.database(PlatformFileEndpointsIT.class, TestPostgres.MIGRATED_TESTDATA).withUrlParam("currentSchema", "platform_approval");
 
@@ -210,8 +223,8 @@ class PlatformFileEndpointsIT {
     void statusOfAnUpload() throws Exception {
         UUID id = UUID.randomUUID();
         UUID other = UUID.randomUUID();
-        when(getUploadStatus.execute(new FileId(id), TestAccounts.account(1).value())).thenReturn(FileStatus.QUARANTINED);
-        when(getUploadStatus.execute(new FileId(other), TestAccounts.account(1).value())).thenThrow(FileError.PLATFORM_FILE_NOT_FOUND.refusal("not yours"));
+        when(getUploadStatus.execute(new FileId(id))).thenReturn(FileStatus.QUARANTINED);
+        when(getUploadStatus.execute(new FileId(other))).thenThrow(FileError.PLATFORM_FILE_NOT_FOUND.refusal("not yours"));
 
         MvcResult own = mvc.perform(get(FILES + "/" + id).with(member(Permission.Codes.PLATFORM_FILE_FILE_READ))).andReturn();
         MvcResult foreign = mvc.perform(get(FILES + "/" + other).with(member(Permission.Codes.PLATFORM_FILE_FILE_READ))).andReturn();
