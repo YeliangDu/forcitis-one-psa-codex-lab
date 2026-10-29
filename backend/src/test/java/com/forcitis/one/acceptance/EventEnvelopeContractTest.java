@@ -93,7 +93,7 @@ class EventEnvelopeContractTest {
     @Test
     @DisplayName("R-1b P5 build_asyncapi.py 与 EVENT_ANALYTICS_FIELDS.md：生成脚本的信封定义无 source，分析字段文档不再列 source 行")
     void theGeneratorAndTheFieldListDropSource() throws IOException {
-        String generator = Files.readString(EVENTS.resolve("build_asyncapi.py"));
+        String generator = Files.readString(Path.of("../scripts/codegen/build_asyncapi.py"));
         assertThat(generator).doesNotContain("'source'").doesNotContain("\"source\"").contains("'format': 'uuid'");
         String fields = Files.readString(Path.of("../docs/modernization/proposals/EVENT_ANALYTICS_FIELDS.md"));
         assertThat(fields).as("the source field and its parts").doesNotContain("`source`").doesNotContain("source.system").doesNotContain("source.documentRef")

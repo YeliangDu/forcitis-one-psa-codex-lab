@@ -37,7 +37,6 @@ READ_BY_BUILDS = (
     # read by scripts/release (deploy gate, release bundle); their self-tests run in ci
     "docs/modernization/phase1a/infra/deploy_gate.json",
     "docs/modernization/phase1a/infra/PREDEPLOY_CHECKLIST.md",
-    "docs/modernization/phase1a/infra/runbooks/files/",
     "docs/modernization/phase1a/infra/runbooks/prod-approvals.txt",
     # DataArchitectureTest runs the V11 part of the c3/c9 verify scripts against a container database (also checked by db_scripts_aligned.py)
     "docs/modernization/phase1a/infra/runbooks/sql/",
@@ -79,7 +78,6 @@ READ_BY_ALWAYS_RUN_CHECKS = (
     "docs/modernization/rulings/",
     # scripts/ci/evidence_imports.py (light.sh) parses the production evidence tools
     "docs/modernization/phase1a/infra/handoff/B-5-dba/tools/",
-    "docs/modernization/phase1a/infra/runbooks/scripts/",
     # deleted by #742; scripts/merge/mq.py still names it: its conflict auto-resolve finds no build_all.py and settles nothing (that code goes in #742's cleanup PR)
     "docs/modernization/build_all.py",
 )

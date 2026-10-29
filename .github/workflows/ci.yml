@@ -277,7 +277,7 @@ jobs:
             echo "$PWD" >> "$GITHUB_PATH"
           fi
       - run: gitleaks git --redact --no-banner --exit-code 1 .
-      # 发布与部署脚本读取 ci.yml、部署前清单、部署门输入 deploy_gate.json、prod-approvals.txt 与 runbooks/files；只改与它们无关的文档时跳过下面两步
+      # 发布与部署脚本读取 ci.yml、部署前清单、部署门输入 deploy_gate.json、prod-approvals.txt 与 tools/ops/ecs/files；只改与它们无关的文档时跳过下面两步
       - name: release scripts or what they read changed?
         id: change
         env:

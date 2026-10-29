@@ -129,7 +129,7 @@ class EventCatalogueTest {
         assertThat(composed.get("asyncapi")).isEqualTo("3.0.0");
         Map<String, Map<String, Object>> fromFragments = fragmentMessages();
         Map<String, Map<String, Object>> messages = (Map<String, Map<String, Object>>) ((Map<String, Object>) composed.get("components")).get("messages");
-        assertThat(new TreeSet<>(messages.keySet())).as("run python3 docs/modernization/events/build_asyncapi.py").isEqualTo(new TreeSet<>(fromFragments.keySet()));
+        assertThat(new TreeSet<>(messages.keySet())).as("run python3 scripts/codegen/build_asyncapi.py").isEqualTo(new TreeSet<>(fromFragments.keySet()));
         fromFragments.forEach((name, message) -> assertThat(messages.get(name).get("x-event")).as(name).isEqualTo(message.get("x-event")));
         Map<String, Object> channels = (Map<String, Object>) composed.get("channels");
         Set<String> addresses = new TreeSet<>();
