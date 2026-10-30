@@ -19,7 +19,8 @@ import org.springframework.test.context.DynamicPropertySource;
  * #931 IMP-1030-PAR-C1, user ruling of 2026-10-30 (decision fragment 2026-10-30-142845-one-lead (也发, 只发可用的, 算已走, 不能), PR #940;
  * ADR-0068 items 1.6, 2.3, 2.4). A released future-dated administrator separation (command PENDING, hold RELEASED) (2) counts as leaving when a later
  * release counts the remaining available super administrators, at the release only (the interface refuses at 0, the operations command is then
- * allowed); (3) can be withdrawn before its date; (4) is not retained before its date: it can be neither the releaser of the interface nor the
+ * allowed); (3) can be withdrawn before its date (not part of the user ruling: it follows from ADR-0068 item 1.6, pending commands
+ * can be withdrawn, and the separation_holds trigger, a hold leaves only HELD, so it stays RELEASED); (4) is not retained before its date: it can be neither the releaser of the interface nor the
  * operator or the witness of the operations command. Cases at entry and at the due-date job are left out on purpose: the count is unobservable there.
  */
 class ReleasedPendingSeparationIT extends FutureHoldSupport {
@@ -88,7 +89,7 @@ class ReleasedPendingSeparationIT extends FutureHoldSupport {
     // ---- point 3: withdrawing a released, still-PENDING separation ----
 
     @Test
-    @DisplayName("#931 用户裁定点 3（ADR-0068 第 1 条第 6 项）：撤回已放行、仍 PENDING 的离职（生效日前）：命令路径 HELD、PENDING、WITHDRAWN；暂停记录路径只有 HELD、RELEASED 且整行不变（放行列不动）；生效日及日作业之后此人仍在职；一条 EmployeeSeparated 都没有；一条撤回审计；不再发卡；撤回后 A 不再算离开，B 的将来日放行得以通过")
+    @DisplayName("#931 ADR-0068 第 1 条第 6 项与 separation_holds 触发器（非用户裁定）：撤回已放行、仍 PENDING 的离职（生效日前）：命令路径 HELD、PENDING、WITHDRAWN；暂停记录路径只有 HELD、RELEASED 且整行不变（放行列不动）；生效日及日作业之后此人仍在职；一条 EmployeeSeparated 都没有；一条撤回审计；不再发卡；撤回后 A 不再算离开，B 的将来日放行得以通过")
     void aReleasedPendingSeparationCanBeWithdrawn() throws Exception {
         Staff a = administrator();
         Staff b = administrator();

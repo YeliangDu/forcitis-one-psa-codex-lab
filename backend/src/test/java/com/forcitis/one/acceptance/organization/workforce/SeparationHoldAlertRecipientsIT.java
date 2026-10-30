@@ -22,7 +22,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * ruling of 2026-10-30 on #931 (decision fragment 2026-10-30-142845-one-lead (也发, 只发可用的, 算已走, 不能), PR #940): one WeCom card per
  * release through platform.integration's {@code WecomGateway.send(WecomCard)} with exact recipients (security invariant I-6), operations
  * through the existing {@code ALERT organization.workforce ...} error log line. Recipients are the usable super_admin and security_auditor holders:
- * account enabled, employed today, not in the HELD set, not a released-pending leaver, and not the separating person; the releaser is a recipient when
+ * account enabled, employed today, not in the HELD set, and not the separating person; the releaser is a recipient when
  * they hold either role; a person with both roles is named once. The card subject id equals the hold id (agreed 暂名, a technical detail). The gateway
  * is the outbound double; the release, the roles and the pool are real.
  */
@@ -50,7 +50,7 @@ class SeparationHoldAlertRecipientsIT extends FutureHoldSupport {
     }
 
     @Test
-    @DisplayName("#931 ADR-0068 第 2 条第 3 项、ADR-0028 决定 4：放行后剩余 1 名超管：恰好一张企业微信卡，收件人恰为其他超管、全部安全审计员持有人（含放行人，其持有该角色）；不含离职人、不含同批待放行的另一名超管、不含已停用账号的超管与审计员、不含离职已生效但账号仍启用的原超管与原审计员（ruling #931 点 1：可用 = 账号启用且今天在职）、不含无这两种角色的人（人事专员）；卡内标明剩余 1 名；运维仍有 ALERT organization.workforce 日志行")
+    @DisplayName("#931 ADR-0068 第 2 条第 3 项、ADR-0028 决定 4：放行后剩余 1 名超管：恰好一张企业微信卡，收件人恰为其他超管、全部安全审计员持有人（含放行人，其持有该角色）；不含离职人、不含同批待放行的另一名超管、不含已停用账号的超管与审计员、不含离职已生效但账号仍启用的原超管与原审计员（用户裁定 2026-10-30-142845：可用 = 账号启用且今天在职）、不含无这两种角色的人（人事专员）；卡内标明剩余 1 名；运维仍有 ALERT organization.workforce 日志行")
     void oneRemainingAlertsTheOtherAdministratorsAndAuditors() throws Exception {
         Staff leaver = administrator();
         Staff stays = administrator();
