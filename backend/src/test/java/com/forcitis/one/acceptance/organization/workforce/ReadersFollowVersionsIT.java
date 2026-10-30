@@ -14,8 +14,11 @@ import com.forcitis.one.organization.workforce.api.EmploymentVerdict;
 import com.forcitis.one.organization.workforce.api.LoginLookup;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.jayway.jsonpath.JsonPath;
+import com.forcitis.one.kernel.Uuids;
 import java.sql.Connection;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -81,6 +84,10 @@ class ReadersFollowVersionsIT extends PersonnelCommandSupport {
         setToday(due.minusDays(1));
         assertThat(profile(person).orgUnitId().value()).as("the day before").isEqualTo(unit);
         assertThat(directory.findSupervisor(employeeIdOf(person))).as("the day before").isEmpty();
+        clock.set(due.minusDays(1).atTime(23, 30).atZone(BUSINESS_ZONE).toInstant());
+        assertThat(profile(person).orgUnitId().value()).as("23:30 the day before in the business zone").isEqualTo(unit);
+        clock.set(due.atTime(0, 30).atZone(BUSINESS_ZONE).toInstant());
+        assertThat(profile(person).orgUnitId().value()).as("00:30 on the date in the business zone, still the day before in UTC").isEqualTo(other);
         setToday(due);
         assertThat(profile(person).orgUnitId().value()).as("on the date, job not run").isEqualTo(other);
         assertThat(directory.findSupervisor(employeeIdOf(person)).map(EmployeeId::value)).as("on the date, job not run").contains(leader);
@@ -123,6 +130,7 @@ class ReadersFollowVersionsIT extends PersonnelCommandSupport {
         correct(person, TODAY.minusDays(10), null, true);
         enter(person, REGULARIZE, TODAY);
         snapshotForgets(person);
+        freshSnapshot();
 
         Optional<EmployeeProfile> seen = directory.findEmployee(employeeIdOf(person));
 
@@ -130,7 +138,8 @@ class ReadersFollowVersionsIT extends PersonnelCommandSupport {
         assertThat(seen.get().employmentStatus()).isEqualTo(EmploymentStatus.EMPLOYED);
         assertThat(seen.get().orgUnitId().value()).isEqualTo(unit);
         assertThat(seen.get().feeEarner()).isTrue();
-        assertThat(directory.employmentOf(employeeIdOf(person))).as("the snapshot says separated, the versions say employed").isNotEqualTo(EmploymentVerdict.SEPARATED);
+        assertThat(directory.employmentOf(employeeIdOf(person))).as("the snapshot says separated and is current, the versions say employed")
+                .isEqualTo(EmploymentVerdict.EMPLOYED);
     }
 
     @Test
@@ -147,6 +156,8 @@ class ReadersFollowVersionsIT extends PersonnelCommandSupport {
         assertThat(directory.findEmployee(employeeIdOf(leader)).map(EmployeeProfile::employmentStatus)).as("absent or not employed")
                 .isNotEqualTo(Optional.of(EmploymentStatus.EMPLOYED));
         assertThat(directory.findSupervisor(employeeIdOf(subordinate))).as("a separated leader is nobody's supervisor").isEmpty();
+        assertThat(rows("select employment_status from employees where id = ?", stored(leader)).get(0).get("employment_status"))
+                .as("the snapshot still says employed").isEqualTo(EMPLOYED);
     }
 
     @Test
@@ -160,8 +171,9 @@ class ReadersFollowVersionsIT extends PersonnelCommandSupport {
         separate(leader, lastWorkingDay);
 
         setToday(lastWorkingDay);
+        freshSnapshot();
         assertThat(directory.findSupervisor(employeeIdOf(subordinate)).map(EmployeeId::value)).as("on the last working day").contains(leader);
-        assertThat(directory.employmentOf(employeeIdOf(leader))).isNotEqualTo(EmploymentVerdict.SEPARATED);
+        assertThat(directory.employmentOf(employeeIdOf(leader))).as("on the last working day, snapshot current").isEqualTo(EmploymentVerdict.EMPLOYED);
         setToday(lastWorkingDay.plusDays(1));
         assertThat(directory.findSupervisor(employeeIdOf(subordinate))).as("the day after, job not run").isEmpty();
         assertThat(directory.employmentOf(employeeIdOf(leader))).isEqualTo(EmploymentVerdict.SEPARATED);
@@ -174,7 +186,7 @@ class ReadersFollowVersionsIT extends PersonnelCommandSupport {
         employee(leader, unit, null);
         UUID person = newEmployeeId();
         employee(person, unit, leader);
-        snapshotFeeEarner(person, true);
+        setSnapshotFeeEarner(person, true);
         UUID gone = newEmployeeId();
         employee(gone, unit, null);
         snapshotSeparated(gone);
@@ -213,6 +225,42 @@ class ReadersFollowVersionsIT extends PersonnelCommandSupport {
         assertThat(JsonPath.<String>read(current.getContentAsString(), "$.orgUnitId")).isEqualTo(other.toString());
     }
 
+    @Test
+    @DisplayName("#958 one-design 数据设计第 4 条（尚未任职）：有员工版本、当天没有任职版本的人，目录查不到，不回落到快照的部门")
+    void aPersonWithAnEmployeeVersionButNoAssignmentVersionIsNotYetAssigned() throws Exception {
+        UUID person = newEmployeeId();
+        employee(person, unit, null);
+        migratedEmployeeVersion(person, SINCE);
+
+        assertThat(directory.findEmployee(employeeIdOf(person))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("#958 one-design 数据设计第 4 条（按人：任意一条员工版本即按版本读）：快照列为在职、只有未来员工版本的人（提前登记），今天不按在职读出")
+    void onlyFutureVersionsStillMeanReadFromVersions() throws Exception {
+        UUID person = newEmployeeId();
+        employee(person, unit, null);
+        migratedEmployeeVersion(person, TODAY.plusDays(5));
+        freshSnapshot();
+
+        assertThat(directory.findEmployee(employeeIdOf(person))).isEmpty();
+        assertThat(directory.employmentOf(employeeIdOf(person))).isNotEqualTo(EmploymentVerdict.EMPLOYED);
+    }
+
+    @Test
+    @DisplayName("#958 one-design 数据设计第 4 条（无版本的领导按快照）：有版本者的直属领导只在快照里且快照写离职时，查不到直属领导")
+    void aSnapshotLeaderSeparatedInTheSnapshotIsNobodysSupervisor() throws Exception {
+        UUID leader = newEmployeeId();
+        employee(leader, unit, null);
+        UUID subordinate = employed(REGULAR);
+        correct(subordinate, TODAY.minusDays(10), leader, false);
+        assertThat(directory.findSupervisor(employeeIdOf(subordinate)).map(EmployeeId::value)).as("before").contains(leader);
+
+        snapshotSeparated(leader);
+
+        assertThat(directory.findSupervisor(employeeIdOf(subordinate))).isEmpty();
+    }
+
     // ---- helpers ----
 
     private EmployeeProfile profile(UUID person) {
@@ -228,7 +276,7 @@ class ReadersFollowVersionsIT extends PersonnelCommandSupport {
         fields.put(EFFECTIVE_DATE, effective);
         fields.put(TARGET_ORG_UNIT_ID, toUnit);
         if (reportsTo != null) {
-            fields.put(TARGET_REPORTS_TO_EMPLOYEE_ID, employeeIdOf(reportsTo).value());
+            fields.put(TARGET_REPORTS_TO_EMPLOYEE_ID, reportsTo);
         }
         return commands().enter(fields);
     }
@@ -241,9 +289,27 @@ class ReadersFollowVersionsIT extends PersonnelCommandSupport {
         fields.put(EFFECTIVE_DATE, from);
         fields.put(IS_TARGET_FEE_EARNER, feeEarner);
         if (reportsTo != null) {
-            fields.put(TARGET_REPORTS_TO_EMPLOYEE_ID, employeeIdOf(reportsTo).value());
+            fields.put(TARGET_REPORTS_TO_EMPLOYEE_ID, reportsTo);
         }
         return commands().enter(fields);
+    }
+
+    /** One migrated employed version from the day on, with no assignment version (the shape #960 forbids, here to pin the reading rule). */
+    private void migratedEmployeeVersion(UUID person, LocalDate from) throws Exception {
+        OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, """
+                    insert into employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+                      employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
+                      change_channel_kind, created_at, updated_at)
+                    values (?, ?, ?, 0, 'EMPLOYED', 'REGULAR', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""",
+                    Uuids.timeOrdered(NOW), stored(person), from, from, at, at);
+        }
+    }
+
+    /** A successful sync run that ends now: the snapshot counts as current, so an employment verdict of NOT_LISTED or SNAPSHOT_UNAVAILABLE is a real answer. */
+    private void freshSnapshot() throws Exception {
+        syncRun("SUCCEEDED", clock.instant().minusSeconds(120), clock.instant().minusSeconds(60));
     }
 
     private UUID snapshotUnit(UUID person) throws Exception {
@@ -254,7 +320,7 @@ class ReadersFollowVersionsIT extends PersonnelCommandSupport {
         return (boolean) rows("select is_fee_earner from employees where id = ?", stored(person)).get(0).get("is_fee_earner");
     }
 
-    private void snapshotFeeEarner(UUID person, boolean value) throws Exception {
+    private void setSnapshotFeeEarner(UUID person, boolean value) throws Exception {
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, "update employees set is_fee_earner = ? where id = ?", value, stored(person));
         }
