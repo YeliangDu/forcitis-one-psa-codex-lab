@@ -2,11 +2,18 @@ package com.forcitis.one.acceptance.organization.workforce;
 
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
+import com.forcitis.one.cost.timesheet.api.TimesheetId;
+import com.forcitis.one.cost.timesheet.api.TimesheetStatus;
+import com.forcitis.one.cost.timesheet.application.SubmitTimesheet;
+import com.forcitis.one.cost.timesheet.application.SubmitTimesheetCommand;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.Hours;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -36,7 +43,9 @@ import org.springframework.test.context.DynamicPropertySource;
  * #873 IMP-1030-PAR-B4 (ADR-0068 section 3, lines 104 to 110): unpaid leave is a flag on the employee version, not a third employment
  * status. The person keeps account, sessions and explicit grants (login admission and session principal, the first two of the five
  * in-service checks), is skipped when approval assignees are resolved (the third), and a holder of a two-person or an ADR-0009 sensitive role
- * gets a 「敏感角色复核」. The timesheet submission check (the fourth) has no HTTP entry and no stated outcome; the report lists it as a doubt.
+ * gets a 「敏感角色复核」. The timesheet submission check (the fourth) follows the user decision of 2026-10-30 (Q2 = 丙): during unpaid leave a
+ * timesheet may be submitted only for days before the leave starts. The timesheet module has no HTTP entry, so its submit use case is
+ * called in the session of the person, as the other timesheet acceptance tests do.
  */
 class UnpaidLeaveInServiceChecksIT extends SeparationHoldSupport {
 
@@ -54,6 +63,9 @@ class UnpaidLeaveInServiceChecksIT extends SeparationHoldSupport {
 
     @Autowired
     ApprovalProcesses approvals;
+
+    @Autowired
+    SubmitTimesheet submitTimesheet;
 
     private void startLeave(Staff who) throws Exception {
         actIn(hr);
@@ -186,5 +198,72 @@ class UnpaidLeaveInServiceChecksIT extends SeparationHoldSupport {
         startLeave(administrator);
 
         assertThat(reviewsAbout(administrator.userId())).isNotEmpty();
+    }
+
+    // ---- timesheet submission (user decision 2026-10-30, Q2 = 丙) ----
+
+    /** The days of the timesheet cases (all within the days a timesheet may still be entered): leave from L, ending on E. */
+    static final LocalDate BEFORE_LEAVE = TODAY.minusDays(6);
+    static final LocalDate L = TODAY.minusDays(5);
+    static final LocalDate DURING_LEAVE = TODAY.minusDays(4);
+    static final LocalDate LAST_LEAVE_DAY = TODAY.minusDays(3);
+    static final LocalDate E = TODAY.minusDays(2);
+
+    private Staff timesheetProjectManager;
+
+    /** A worker, a project manager, the calendar and the confirmed timesheet numbering rule. */
+    private Staff workerForTimesheets() throws Exception {
+        Staff maintainer = account("org_data_admin", "business_admin");
+        maintainWorkCalendar(maintainer.session());
+        confirmSeededNumberingRule("TIMESHEET", maintainer.session());
+        timesheetProjectManager = account();
+        return account();
+    }
+
+    private void leave(String kind, Staff who, LocalDate effective) throws Exception {
+        actIn(hr);
+        assertThat(commandStatus(enter(who.employeeId(), kind, effective))).isEqualTo(EFFECTIVE);
+    }
+
+    private void submit(Staff worker, LocalDate day) {
+        actInSession(worker.session());
+        TimesheetStatus status = submitTimesheet.execute(new SubmitTimesheetCommand(new TimesheetId(UUID.randomUUID()), day, Hours.of("8"),
+                employeeIdOf(timesheetProjectManager.employeeId()))).status();
+        assertThat(status).isEqualTo(TimesheetStatus.SUBMITTED);
+    }
+
+    private void assertRefused(Staff worker, LocalDate day) throws Exception {
+        assertThatThrownBy(() -> submit(worker, day)).as("submission for " + day + " during the unpaid leave").isInstanceOf(DomainException.class)
+                .satisfies(failure -> assertThat(isPermissionRefusal(failure)).as("a refusal about the leave, not about rights: " + failure).isFalse());
+        try (java.sql.Connection timesheets = schemaConnection("cost_timesheet")) {
+            assertThat(query(timesheets, "select 1 from timesheets where employee_id = ? and work_date = ?", stored(worker.employeeId()), day))
+                    .as("no timesheet row for " + day).isEmpty();
+        }
+    }
+
+    @Test
+    @DisplayName("#873 ADR-0068 第 3 条（行 110 的 SubmitTimesheet）、用户决定 2026-10-30 Q2=丙：停薪留职自 L 起：可为 L 之前的日期提交工时单；为 L 当天、休假期间的某天、最后一个休假日提交都被拒（不是权限拒绝），不留工时单行")
+    void duringTheLeaveOnlyDaysBeforeItsStartCanBeSubmitted() throws Exception {
+        Staff worker = workerForTimesheets();
+        leave(UNPAID_LEAVE_START, worker, L);
+
+        submit(worker, BEFORE_LEAVE);
+
+        assertRefused(worker, L);
+        assertRefused(worker, DURING_LEAVE);
+        assertRefused(worker, LAST_LEAVE_DAY);
+    }
+
+    @Test
+    @DisplayName("#873 ADR-0068 第 3 条（行 110）、用户决定 2026-10-30 Q2=丙 边界：停薪留职自 L 起、E 日结束：结束日 E 起可再提交（E 当天可以），E 之前的最后一个休假日仍被拒")
+    void afterTheLeaveEndsTimesheetsCanBeSubmittedAgain() throws Exception {
+        Staff worker = workerForTimesheets();
+        leave(UNPAID_LEAVE_START, worker, L);
+        leave(UNPAID_LEAVE_END, worker, E);
+
+        assertRefused(worker, LAST_LEAVE_DAY);
+        submit(worker, E);
+        submit(worker, E.plusDays(1));
+        submit(worker, BEFORE_LEAVE);
     }
 }
