@@ -148,7 +148,7 @@ final class PersonnelCommandsProbe {
         call(service, withdraw, fields);
     }
 
-    private Object call(Object target, Method method, Map<String, Object> fields) {
+    Object call(Object target, Method method, Map<String, Object> fields) {
         Class<?> parameter = method.getParameterTypes()[0];
         List<String> components = names(parameter);
         for (String name : fields.keySet()) {
