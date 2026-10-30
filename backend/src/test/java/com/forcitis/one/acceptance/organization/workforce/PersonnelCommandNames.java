@@ -82,4 +82,22 @@ final class PersonnelCommandNames {
     static final String EVENT_REINSTATED = "EmployeeReinstated";
     static final List<String> ALL_COMMAND_EVENTS = List.of("EmployeeHired", EVENT_REGULARIZED, EVENT_TRANSFERRED, EVENT_SEPARATED, EVENT_REINSTATED,
             "SeparationHeld", "SeparationHoldReleased", "EmployeeCorrected");
+
+    // ---- #873 (IMP-1030-PAR-B4): single release of a separation hold (ADR-0068 item 2.3) and the roles around it ----
+
+    /** The release use case has no HTTP surface either; it is the bean named SeparationHolds in the same api package (暂名). */
+    static final String HOLDS_API_TYPE = "SeparationHolds";
+    static final String RELEASE_METHOD = "release";
+    static final String RELEASE_PARAMETER = "ReleaseSeparationHold";
+    /** Components of ReleaseSeparationHold: the hold and the reason. The releaser is the signed-in caller (ADR-0068 item 2.3), never a component. */
+    static final String SEPARATION_HOLD_ID = "separationHoldId";
+
+    static final String RELEASED = "RELEASED";
+    static final String CHANNEL_INTERFACE = "INTERFACE";
+    static final String RELEASE_PERMISSION = "organization.workforce:separation-hold:approve";
+    static final String SUPER_ADMIN = "super_admin";
+    static final String SECURITY_AUDITOR = "security_auditor";
+    static final String AUDIT_HOLD_RELEASED = "organization.workforce.separation-hold.released";
+    static final String EVENT_HELD = "SeparationHeld";
+    static final String EVENT_HOLD_RELEASED = "SeparationHoldReleased";
 }
