@@ -86,14 +86,6 @@ class JdbcSyncRunQueries implements SyncRunQueries {
     }
 
     @Override
-    public int countHeldRowsOfHeldRuns() {
-        return jdbc.sql("""
-                select count(*) from organization_workforce.sync_run_held_separations h
-                  join organization_workforce.sync_runs r on r.id = h.sync_run_id where r.status = 'HELD'
-                """).query(Integer.class).single();
-    }
-
-    @Override
     public Optional<Integer> findLatestEmployedWithoutWecomCount() {
         return jdbc.sql("""
                 select employed_without_wecom_count from organization_workforce.sync_runs

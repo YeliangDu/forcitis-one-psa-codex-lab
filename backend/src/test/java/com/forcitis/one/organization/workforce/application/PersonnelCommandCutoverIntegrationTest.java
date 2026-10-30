@@ -1,7 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -15,7 +14,6 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.UUID;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
-/** #933: the cut-over to personnel commands: the due-date job takes ordinary commands too, a separation entered over HTTP reaches identity, and the go-live check on the old sync's held rows. */
+/** #933: the cut-over to personnel commands: the due-date job takes ordinary commands too, a separation entered over HTTP reaches identity. */
 class PersonnelCommandCutoverIntegrationTest extends WorkforceIntegrationSupport {
     static final String COMMANDS = "/api/v1/organization/personnel-commands";
 
@@ -35,14 +33,6 @@ class PersonnelCommandCutoverIntegrationTest extends WorkforceIntegrationSupport
 
     @Autowired
     PersonnelCommandDueJob dueJob;
-
-    @Autowired
-    SyncHeldRowsCheck heldRowsCheck;
-
-    @AfterEach
-    void leaveNoHeldRun() {
-        VersionTables.truncate(jdbc, "truncate table organization_workforce.sync_runs cascade");
-    }
 
     private static RequestPostProcessor hr() {
         return user(Uuids.timeOrdered(Clock.systemUTC()).toString()).authorities(() -> "organization.workforce:personnel-command:create");
@@ -107,31 +97,5 @@ class PersonnelCommandCutoverIntegrationTest extends WorkforceIntegrationSupport
                  where p.listener_id like 'com.forcitis.one.platform.identity.%' and p.event_type like '%.EmployeeSeparated' and p.completion_date is not null
                    and p.serialized_event like :command
                 """).param("command", "%" + command + "%").query(Long.class).single()).isPositive());
-    }
-
-    @Test
-    @DisplayName("#933 the go-live check passes with no held-separation row of a HELD run, and ignores rows of runs that are no longer HELD")
-    void checkPassesWithoutHeldRows() {
-        PersonnelSeedSupport.Person person = PersonnelSeedSupport.employed(jdbc, clock, "CO-3");
-        heldRun("RELEASED", person.employee());
-
-        heldRowsCheck.verify();
-    }
-
-    @Test
-    @DisplayName("#933 the go-live check refuses while a held-separation row of a HELD run remains, and says how many")
-    void checkRefusesWithHeldRows() {
-        PersonnelSeedSupport.Person person = PersonnelSeedSupport.employed(jdbc, clock, "CO-4");
-        heldRun("HELD", person.employee());
-
-        assertThatThrownBy(heldRowsCheck::verify).isInstanceOf(IllegalStateException.class).hasMessageContaining("1 held-separation row");
-    }
-
-    private void heldRun(String status, UUID employee) {
-        UUID run = Uuids.timeOrdered(clock);
-        jdbc.sql("insert into organization_workforce.sync_runs (id, trigger_kind, status, started_at, created_at, updated_at, version, event_count) values (:id, 'SCHEDULED', :status, now(), now(), now(), 0, 0)")
-                .param("id", run).param("status", status).update();
-        jdbc.sql("insert into organization_workforce.sync_run_held_separations (sync_run_held_separation_id, sync_run_id, employee_id) values (:id, :run, :employee)")
-                .param("id", Uuids.timeOrdered(clock)).param("run", run).param("employee", employee).update();
     }
 }

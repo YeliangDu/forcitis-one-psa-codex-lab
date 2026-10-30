@@ -27,11 +27,11 @@ class WorkforceConfigurationTest {
     }
 
     @Test
-    @DisplayName("the sync has no switch (the scheduled run is stopped) and the short-name refresh is off unless switched on; the connections they read live in platform.integration")
+    @DisplayName("the sync and the short-name refresh are off unless switched on; the connections they read live in platform.integration")
     void safeDefaults() throws IOException {
         Properties p = load();
 
-        assertThat(p.containsKey("forcitis.organization.workforce.sync.enabled")).as(GuardMessage.of("ADR-0068 item 2.5 C / #933", "the workforce sync has a switch again: the scheduled run was stopped for good", "remove forcitis.organization.workforce.sync.enabled; personnel commands are the only writer of employees")).isFalse();
+        assertThat(p.getProperty("forcitis.organization.workforce.sync.enabled")).as(GuardMessage.of("org-and-personnel-sync", "the workforce sync is not off by default", "set forcitis.organization.workforce.sync.enabled to ${WORKFORCE_SYNC_ENABLED:false}")).isEqualTo("${WORKFORCE_SYNC_ENABLED:false}");
         assertThat(p.getProperty("forcitis.organization.workforce.short-name.enabled")).as(GuardMessage.of("org-and-personnel-sync", "the short-name refresh is not off by default", "set forcitis.organization.workforce.short-name.enabled to ${WORKFORCE_SHORT_NAME_ENABLED:false}")).isEqualTo("${WORKFORCE_SHORT_NAME_ENABLED:false}");
         assertThat(Files.readString(CONFIG)).as(GuardMessage.of("CS-1.3 / CS-6.5", "the workforce properties hold a connection or credential setting", "keep connections and credentials in platform_integration.properties as environment placeholders; workforce reads through platform.integration")).doesNotContain("jdbc:").doesNotContain("password").doesNotContain("username");
     }
