@@ -111,8 +111,9 @@ class SeparationLockOrderTest {
     @DisplayName("IMP-1030-PAR-B6 releasing a hold takes the separation lock before the employee row")
     void releasingLocksTheDecisionFirst() {
         SeparationReview review = mock(SeparationReview.class);
-        SeparationHoldService service = new SeparationHoldService(commands, new PersonnelPlans(ids), review, mock(LegalEntityResolutionSources.class), mock(AuditLog.class),
-                mock(DomainEvents.class), currentUser, ids, clock, zone);
+        SeparationHoldService service = new SeparationHoldService(commands, review,
+                new HeldSeparationRelease(commands, new PersonnelPlans(ids), mock(LegalEntityResolutionSources.class), mock(AuditLog.class), mock(DomainEvents.class), ids, zone),
+                currentUser, clock);
         heldSeparation();
         SeparationHold hold = SeparationHold.restore(HOLD, COMMAND, EMPLOYEE, HoldStatus.HELD, 0, null, null, null, null);
         when(commands.findHold(HOLD)).thenReturn(java.util.Optional.of(hold));

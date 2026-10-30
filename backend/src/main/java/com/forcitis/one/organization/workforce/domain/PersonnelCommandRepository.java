@@ -1,11 +1,11 @@
 package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.EmployeeId;
-import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.api.SeparationHoldId;
+import com.forcitis.one.kernel.event.ActorType;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -61,7 +61,7 @@ public interface PersonnelCommandRepository {
     /** Writes the status and the release columns the hold holds, if the stored version is still the one it was loaded with. */
     void updateHold(SeparationHold hold, Instant at, long loadedVersion);
 
-    void insertTransition(String aggregateType, UUID aggregateId, long sequence, @Nullable String from, String to, UserId actor, LocalDate day, Instant at,
+    void insertTransition(String aggregateType, UUID aggregateId, long sequence, @Nullable String from, String to, ActorType actorType, UUID actorId, LocalDate day, Instant at,
                           PersonnelCommandId command, UUID correlation);
 
     void saveEventSequence(EmployeeId employee, long sequence);
