@@ -178,6 +178,35 @@ class UnpaidLeaveStartFloorIT extends UnpaidLeaveStartFloorSupport {
         assertThat(recipientsOf(card)).containsExactlyInAnyOrderElementsOf(wecomIdsOf(stays, releaser));
     }
 
+    // ---- security_auditor-only holder: literal reading of the card (the count is of available super administrators after the start) ----
+
+    @Test
+    @DisplayName("#943 字面读法：只持 security_auditor 的人开始停薪，可用超管为 0：被拒（422 + 约定码），什么都不写")
+    void anAuditorOnlyHolderIsRefusedWhenNoAdministratorIsAvailable() throws Exception {
+        Staff onlyAuditor = auditor();
+        Staff disabled = administrator();
+        disableAccount(disabled);
+
+        assertRefusedAndNothingWritten(onlyAuditor, TODAY);
+    }
+
+    @Test
+    @DisplayName("#943 字面读法：只持 security_auditor 的人开始停薪，可用超管恰为 1：被接受，一张卡（PERSONNEL_COMMAND + 命令 id + UNPAID_LEAVE_START_ALERT），收件人为该超管与其他审计员、不含本人；ALERT 行")
+    void anAuditorOnlyHolderStartingLeaveWithOneAdministratorAlerts() throws Exception {
+        Staff onlyAuditor = auditor();
+        Staff otherAuditor = auditor();
+        Staff admin = administrator();
+        forgetCards();
+        int mark = logMark();
+
+        UUID command = startLeave(onlyAuditor, TODAY);
+
+        assertThat(commandStatus(command)).isEqualTo(EFFECTIVE);
+        WecomCard card = theAlertOf(command);
+        assertThat(recipientsOf(card)).containsExactlyInAnyOrderElementsOf(wecomIdsOf(admin, otherAuditor));
+        assertAlertLine(alertsSince(mark));
+    }
+
     // ---- 2 or more remain, ordinary employees: nothing changes ----
 
     @Test
