@@ -19,6 +19,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.LocalDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +42,17 @@ class IssueDocumentNumber implements DocumentNumbers {
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public IssuedNumber next(DocumentTypeCode type, LegalEntityId legalEntity, LocalDate businessDate) {
+        return issue(type, legalEntity, businessDate);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public IssuedNumber nextGlobal(DocumentTypeCode type, LocalDate businessDate) {
+        return issue(type, null, businessDate);
+    }
+
+    /** legalEntity is null for nextGlobal: the template must then have no {LE}. */
+    private IssuedNumber issue(DocumentTypeCode type, @Nullable LegalEntityId legalEntity, LocalDate businessDate) {
         NumberingRule rule = rules.findActive(type)
                 .orElseThrow(() -> new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_NOT_FOUND, ErrorKind.UNPROCESSABLE,
                         "No active numbering rule for " + type));
@@ -49,10 +61,14 @@ class IssueDocumentNumber implements DocumentNumbers {
                     "document type " + type + " is not in force on " + businessDate);
         }
         TemplateVersion template = rule.inForceOn(businessDate).orElseThrow(() -> notConfirmed(type, businessDate));
-        LegalEntityCode legalEntityCode = legalEntities.lockActiveCode(legalEntity)
+        if (legalEntity == null && template.pattern().usesLegalEntityCode()) {
+            throw new DomainException(NumberingError.PLATFORM_NUMBERING_RULE_INVALID, ErrorKind.UNPROCESSABLE,
+                    "the template of " + type + " has {LE}, but no legal entity was given: a number without a legal entity needs a template without it");
+        }
+        LegalEntityCode legalEntityCode = legalEntity == null ? null : legalEntities.lockActiveCode(legalEntity)
                 .orElseThrow(() -> new DomainException(NumberingError.PLATFORM_NUMBERING_LEGAL_ENTITY_UNAVAILABLE, ErrorKind.UNPROCESSABLE,
                         "Legal entity " + legalEntity.value() + " does not exist or is deactivated"));
-        CounterScope counterScope = template.pattern().usesLegalEntityCode() ? CounterScope.ofLegalEntity(legalEntity) : CounterScope.GLOBAL;
+        CounterScope counterScope = legalEntity != null && template.pattern().usesLegalEntityCode() ? CounterScope.ofLegalEntity(legalEntity) : CounterScope.GLOBAL;
         String periodKey = template.pattern().resetPolicy().periodKey(businessDate);
         ReservedValue reserved = rules.reserveNext(type, counterScope, periodKey, template.startValue());
         return new IssuedNumber(new DocumentNumber(template.pattern().render(rule.type().numberCode().orElse(null), template.pattern().usesLegalEntityCode() ? legalEntityCode : null, businessDate, reserved.value())),

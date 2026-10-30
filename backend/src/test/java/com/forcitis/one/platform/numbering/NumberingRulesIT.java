@@ -128,7 +128,7 @@ class NumberingRulesIT {
     void ruleListShowsTheDefaultQuoteTemplateAsPending() throws Exception {
         mvc.perform(get(RULES).with(READER))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items.length()").value(3))
+                .andExpect(jsonPath("$.items.length()").value(4))
                 .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:4}"))
                 .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].resetPolicy").value("MONTHLY"))
                 .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].documentTypeCode").value("QT"))
@@ -205,6 +205,73 @@ class NumberingRulesIT {
         assertThatThrownBy(() -> jdbc.sql("insert into platform_numbering.numbering_counters (numbering_counter_id, document_type_id, counter_scope_kind, legal_entity_id, period_key, last_value)"
                 + " values (uuidv7(), (select document_type_id from platform_numbering.document_types where code = 'TIMESHEET'), 'GLOBAL', null, '20270506', 1)").update())
                 .as("a second row for the shared counter is refused although its legal entity is null").hasMessageContaining("uk_numbering_counters_document_type_legal_entity_period");
+    }
+
+    private String issueGlobal(DocumentTypeCode type, LocalDate day) {
+        return tx.execute(status -> numbers.nextGlobal(type, day).value());
+    }
+
+    @Test
+    @DisplayName("#963 the employee code type starts on {TYPE}{seq:6}, pending confirmation: nextGlobal issues nothing until it is confirmed")
+    void employeeCodeIsNotIssuedBeforeTheTemplateIsConfirmed() {
+        assertThat(jdbc.sql("select template_text || '/' || reset_policy || '/' || status from platform_numbering.numbering_rule_versions v join platform_numbering.numbering_rules r using (numbering_rule_id)"
+                + " join platform_numbering.document_types t using (document_type_id) where t.code = 'EMPLOYEE'").query(String.class).single()).isEqualTo("{TYPE}{seq:6}/NEVER/PENDING_CONFIRMATION");
+        assertThatThrownBy(() -> issueGlobal(new DocumentTypeCode("EMPLOYEE"), LocalDate.of(2026, 10, 30)))
+                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> assertThat(e.errorCode())
+                        .isEqualTo(com.forcitis.one.platform.numbering.api.NumberingError.PLATFORM_NUMBERING_RULE_NOT_CONFIRMED));
+        assertThat(jdbc.sql("select count(*) from platform_numbering.numbering_counters").query(Long.class).single()).as("a refused issue leaves no counter").isZero();
+    }
+
+    @Test
+    @DisplayName("#963 once confirmed, nextGlobal issues EMP000001, EMP000002 ... from one counter that no date or legal entity splits, and a rollback gives the number back")
+    void confirmedEmployeeCodesAreUniqueAndGapless() {
+        inForce("EMPLOYEE");
+        DocumentTypeCode employee = new DocumentTypeCode("EMPLOYEE");
+
+        assertThat(issueGlobal(employee, LocalDate.of(2026, 10, 30))).isEqualTo("EMP000001");
+        assertThat(issueGlobal(employee, LocalDate.of(2027, 1, 2))).as("a later year does not restart it").isEqualTo("EMP000002");
+        assertThatThrownBy(() -> tx.execute(status -> {
+            numbers.nextGlobal(employee, LocalDate.of(2026, 10, 30));
+            throw new IllegalStateException("the hire is refused after the number was taken");
+        })).isInstanceOf(IllegalStateException.class);
+        assertThat(issueGlobal(employee, LocalDate.of(2026, 10, 30))).as("the rolled-back number is issued again, no gap").isEqualTo("EMP000003");
+        assertThat(jdbc.sql("select count(*) from platform_numbering.numbering_counters where document_type_id = (select document_type_id from platform_numbering.document_types where code = 'EMPLOYEE')")
+                .query(Long.class).single()).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("#963 nextGlobal refuses a template with {LE} (PLATFORM_NUMBERING_RULE_INVALID) and issues no number; next still needs a legal entity")
+    void nextGlobalRefusesATemplateWithTheLegalEntityToken() {
+        inForce("EMPLOYEE", "QUOTE");
+        NumberingFixtures.useTemplate(jdbc, "EMPLOYEE", "{TYPE}-{LE}-{seq:6}", "NEVER");
+
+        assertThatThrownBy(() -> issueGlobal(new DocumentTypeCode("EMPLOYEE"), LocalDate.of(2026, 10, 30)))
+                .isInstanceOfSatisfying(com.forcitis.one.kernel.DomainException.class, e -> assertThat(e.errorCode())
+                        .isEqualTo(com.forcitis.one.platform.numbering.api.NumberingError.PLATFORM_NUMBERING_RULE_INVALID));
+        assertThat(jdbc.sql("select count(*) from platform_numbering.numbering_counters").query(Long.class).single()).isZero();
+        assertThat(issue(new DocumentTypeCode("QUOTE"), LE1, LocalDate.of(2026, 10, 14))).as("the legal-entity entry is unchanged").isEqualTo("QT-FST-202610-0001");
+    }
+
+    @Test
+    @DisplayName("#963 two employee codes taken at once are different")
+    void concurrentEmployeeCodesAreDifferent() throws Exception {
+        inForce("EMPLOYEE");
+        DocumentTypeCode employee = new DocumentTypeCode("EMPLOYEE");
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(8);
+        try {
+            java.util.List<java.util.concurrent.Future<String>> futures = new java.util.ArrayList<>();
+            for (int i = 0; i < 24; i++) {
+                futures.add(pool.submit(() -> issueGlobal(employee, LocalDate.of(2026, 10, 30))));
+            }
+            java.util.Set<String> seen = new java.util.TreeSet<>();
+            for (java.util.concurrent.Future<String> f : futures) {
+                seen.add(f.get());
+            }
+            assertThat(seen).hasSize(24).first().isEqualTo("EMP000001");
+            assertThat(seen).last().isEqualTo("EMP000024");
+        } finally {
+            pool.shutdownNow();
+        }
     }
 
     @Test
