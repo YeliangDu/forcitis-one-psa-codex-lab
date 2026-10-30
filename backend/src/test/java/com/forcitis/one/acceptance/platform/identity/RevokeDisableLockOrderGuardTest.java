@@ -30,14 +30,20 @@ class RevokeDisableLockOrderGuardTest {
         return LOCK.matcher(source).find() && (source.contains("SEPARATION_LOCK_KEY") || source.contains("separation-decision"));
     }
 
+    /** The type is used and its review(...) or usableAdministrators(...) is called; the lock key constant alone is not a call. */
+    static boolean callsTheReview(String source) {
+        String withoutKey = source.replace("SeparationReview.SEPARATION_LOCK_KEY", "").replace("SEPARATION_LOCK_KEY", "");
+        return withoutKey.contains("SeparationReview") && Pattern.compile("\\.(review|usableAdministrators)\\s*\\(").matcher(withoutKey).find();
+    }
+
     /** Problems of one class: no SeparationReview, or a method with a row lock before its advisory lock. */
     static List<String> problems(String name, String source) {
         List<String> found = new ArrayList<>();
         if (!takesTheSeparationLock(source)) {
             return found;
         }
-        if (!source.contains("SeparationReview")) {
-            found.add(name + " takes the separation lock but does not call SeparationReview");
+        if (!callsTheReview(source)) {
+            found.add(name + " takes the separation lock but does not call review(...) / usableAdministrators(...) on a SeparationReview");
         }
         List<Integer> starts = new ArrayList<>();
         Matcher member = MEMBER_START.matcher(source);
@@ -70,8 +76,10 @@ class RevokeDisableLockOrderGuardTest {
     @DisplayName("#732B guard self-test: the scanner flags a class without SeparationReview and a method that locks a row before the advisory lock, and passes the right order")
     void theScannerFlagsTheWrongShapes() {
         String key = "select pg_advisory_xact_lock(hashtextextended(:key, 0))";
-        String wrong = "class A {\n    void m() {\n        sql(\"select 1 from user_accounts for update\");\n        sql(\"" + key + "\"); SEPARATION_LOCK_KEY; SeparationReview r;\n    }\n}\n";
-        String right = "class A {\n    void m() {\n        sql(\"" + key + "\"); SEPARATION_LOCK_KEY; SeparationReview r;\n        sql(\"select 1 from user_accounts for update\");\n    }\n}\n";
+        String wrong = "class A {\n    void m() {\n        sql(\"select 1 from user_accounts for update\");\n        sql(\"" + key + "\"); SEPARATION_LOCK_KEY; SeparationReview r; r.review(a, b);\n    }\n}\n";
+        String right = "class A {\n    void m() {\n        sql(\"" + key + "\"); SEPARATION_LOCK_KEY; SeparationReview r; r.review(a, b);\n        sql(\"select 1 from user_accounts for update\");\n    }\n}\n";
+        String keyOnly = "class A {\n    void m() {\n        sql(\"" + key + "\"); String k = SeparationReview.SEPARATION_LOCK_KEY;\n    }\n}\n";
+        assertThat(problems("A", keyOnly)).as("a reference to the key only is not a call of the review").hasSize(1);
         String noReview = "class A {\n    void m() {\n        sql(\"" + key + "\"); SEPARATION_LOCK_KEY;\n    }\n}\n";
         assertThat(problems("A", wrong)).hasSize(1);
         assertThat(problems("A", right)).isEmpty();

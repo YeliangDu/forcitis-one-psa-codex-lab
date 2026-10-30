@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.acceptance.RowRuleProbe;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,8 +42,31 @@ class RevokeDisableDeliveryRowRulesIT {
     void newValuesAreAcceptedAndOldOnesKept() throws SQLException {
         db.accepted(INSERT, row("ACCOUNT_ROLE_GRANT", "ROLE_REVOCATION_NOTICE", null));
         db.accepted(INSERT, row("USER_ACCOUNT", "ACCOUNT_DISABLE_NOTICE", UUID.randomUUID()));
-        db.accepted(INSERT, row("SEPARATION_HOLD", "SEPARATION_HOLD_NOTICE", null));
-        db.accepted(INSERT, row("APPROVAL_TASK", "TASK_ASSIGNED", null));
+        for (String kind : MAIN_KINDS) {
+            for (String purpose : MAIN_PURPOSES) {
+                db.accepted(INSERT, row(kind, purpose, null));
+            }
+        }
+    }
+
+    /** The values on main before this card (V20261014133000 and V20261030150100): the new CHECKs must keep every one (they may add more). */
+    private static final List<String> MAIN_KINDS = List.of("APPROVAL_TASK", "APPROVAL_INSTANCE", "SEPARATION_HOLD");
+    private static final List<String> MAIN_PURPOSES = List.of("TASK_ASSIGNED", "TASK_TRANSFERRED", "TASK_REASSIGNED", "TASK_OVERDUE", "TASK_ESCALATED",
+            "APPROVAL_COMPLETED", "SEPARATION_HOLD_NOTICE");
+
+    @Test
+    @DisplayName("#732B DD C merge order: the CHECK value lists, read from the catalogue, contain every value main has (3 kinds, 7 purposes) as well as the new ones")
+    void checkListsAreSupersetsOfMain() throws SQLException {
+        String kinds = String.valueOf(db.column("select pg_get_constraintdef(oid) from pg_constraint where conname = 'ck_outbound_deliveries_subject_kind'").get(0));
+        String purposes = String.valueOf(db.column("select pg_get_constraintdef(oid) from pg_constraint where conname = 'ck_outbound_deliveries_purpose_kind'").get(0));
+        for (String kind : MAIN_KINDS) {
+            assertThat(kinds).contains("'" + kind + "'");
+        }
+        for (String purpose : MAIN_PURPOSES) {
+            assertThat(purposes).contains("'" + purpose + "'");
+        }
+        assertThat(kinds).contains("'ACCOUNT_ROLE_GRANT'", "'USER_ACCOUNT'");
+        assertThat(purposes).contains("'ROLE_REVOCATION_NOTICE'", "'ACCOUNT_DISABLE_NOTICE'");
     }
 
     @Test

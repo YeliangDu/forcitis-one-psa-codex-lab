@@ -105,14 +105,18 @@ class RevokeDisableLockOrderIT extends RevokeDisableFloorSupport {
         }
     }
 
-    @Test
-    @DisplayName("#732B lock order: a hold release racing two revokes of the 2 available super_admins: the release is always done, exactly one revoke is refused, never 0 left; no deadlock; 10 rounds, both start orders")
-    void aHoldReleaseRacingRevokesGivesASerialOutcome() throws Exception {
+    /**
+     * Listener independence (rv953 item 7): each round's leaver has a hold dated after today. Released, it is PENDING: no EmployeeSeparated is
+     * published and no grant is closed until the date, so the count cannot depend on when the asynchronous listener runs. The leaver is counted
+     * gone only because the release says so (released-pending, ADR-0068 item 2.3), which is the same in every interleaving. Leavers are also
+     * retired at the end of each round.
+     */
+    private void releaseRacing(boolean disables) throws Exception {
         Desk desk = desk();
         Person releaser = auditor();
         for (int round = 0; round < ROUNDS; round++) {
             Person leaver = admin();
-            UUID hold = hold(leaver);
+            UUID hold = holdForTheFuture(leaver);
             Person x = admin();
             Person y = admin();
             actIn(releaser);
@@ -122,15 +126,27 @@ class RevokeDisableLockOrderIT extends RevokeDisableFloorSupport {
                         release(releaser, hold);
                         return "released";
                     },
-                    () -> revoke(desk.requester(), desk.confirmer(), x, SUPER_ADMIN),
-                    () -> revoke(desk.confirmer(), desk.requester(), y, SUPER_ADMIN)));
+                    () -> disables ? disable(desk.requester(), x) : revoke(desk.requester(), desk.confirmer(), x, SUPER_ADMIN),
+                    () -> disables ? disable(desk.confirmer(), y) : revoke(desk.confirmer(), desk.requester(), y, SUPER_ADMIN)));
 
             assertThat(results.get(0)).isEqualTo("released");
             assertThat(holdStatus(hold)).as("round " + round).isEqualTo("RELEASED");
             assertOneDoneOneRefused((Outcome) results.get(1), (Outcome) results.get(2));
             assertThat(availableAmong(x, y)).as("round " + round + ": never 0").isEqualTo(1);
-            retire(x, y);
+            retire(x, y, leaver);
         }
+    }
+
+    @Test
+    @DisplayName("#732B lock order: a hold release racing two revokes of the 2 available super_admins: the release is always done, exactly one revoke is refused, never 0 left; no deadlock; 10 rounds, both start orders; future-dated leaver so the count does not wait for the listener")
+    void aHoldReleaseRacingRevokesGivesASerialOutcome() throws Exception {
+        releaseRacing(false);
+    }
+
+    @Test
+    @DisplayName("#732B lock order: a hold release racing two disables of the 2 available super_admins: the release is always done, exactly one disable is refused, never 0 left; no deadlock; 10 rounds, both start orders")
+    void aHoldReleaseRacingDisablesGivesASerialOutcome() throws Exception {
+        releaseRacing(true);
     }
 
     // ---- the order of the locks (ruling 2(a) binding condition), seen from the database ----
