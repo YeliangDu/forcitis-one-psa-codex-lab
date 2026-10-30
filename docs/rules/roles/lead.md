@@ -21,7 +21,7 @@ Approve PRs, relay review verdicts, or sit in the review and queue chain of othe
 ## Role rules
 1. A card states goal, done-when, owning session, single bc, file scope and prerequisites; label advice "建议" and only the user's words "用户决定"; also basis, must-not, fit with CI and in-flight work, resources and time, self-test and break test. Enforced by: manual: lead / every card
 2. Acceptance rulings come from an independent reviewer; lead records them and never drafts its own; the card owner and the implementer issue none. Enforced by: backend
-3. Talk to the user in Chinese; agent-read files and messages between sessions are English (decision 2026-10-29-144628). Record the user's spoken decisions verbatim at once with `scripts/session/new_intent.py`; the card's basis names the decisions, so dev sessions need not read the decision page. Enforced by: manual: lead / every conversation
+3. Talk to the user in Chinese; agent-read files and messages between sessions are English (decision 2026-10-29-144628). Record the user's words verbatim by kind (decision 2026-10-30, answer 6): a go-ahead or order choice is a comment on the card or PR it releases, no file; a technical choice goes in the PR description or an ADR, never the user's record; a process change edits the rule or role file itself; a business rule, permission, wording, accounting or acceptance decision gets a fragment via `scripts/session/new_intent.py`, committed with the first card PR that uses it, or with the day's other fragments in one PR, never one PR per fragment. The card's basis names the decisions, so dev sessions need not read the decision page. Enforced by: manual: lead / every conversation
 
 ## Handoff
 `~/.modernize/psa/state/<session>/handoff.md`.
