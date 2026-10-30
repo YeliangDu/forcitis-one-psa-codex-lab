@@ -194,39 +194,99 @@ class SeparationClosesGrantsIT extends GrantStoreSupport {
         assertThat(profileStatus(stays)).isEqualTo(200);
     }
 
-    @Test
-    @DisplayName("ADR-0068 第 2 条第 2 项、ADR-0055 第 3 项第 3 条（待放行期间不关闭）：此人有一条待放行（HELD）的离职命令、没有 EmployeeSeparated：授予不关闭、会话仍在")
-    void aHeldSeparationClosesNothing() throws Exception {
-        SignedIn held = person("super_admin", "business_admin");
-        List<Grant> before = grants(held.userId());
+    /** Writes a separation command of the person and its hold straight into the workforce schema, as the held / released-pending states leave them; no event is published. */
+    private void writeSeparation(SignedIn person, String commandStatus, String holdStatus, LocalDate effectiveDate) throws Exception {
         java.time.OffsetDateTime at = java.time.OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC);
         UUID command = newCommandId();
         try (java.sql.Connection workforce = schemaConnection("organization_workforce")) {
             try (java.sql.PreparedStatement insert = workforce.prepareStatement("""
                     insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
-                    values (?, ?, 'SEPARATE', ?, 'HELD', ?, ?, ?)""")) {
+                    values (?, ?, 'SEPARATE', ?, ?, ?, ?, ?)""")) {
                 insert.setObject(1, command);
-                insert.setObject(2, stored(held.employeeId()));
-                insert.setObject(3, TODAY.plusDays(10));
-                insert.setObject(4, at);
-                insert.setObject(5, held.userId());
-                insert.setObject(6, at);
+                insert.setObject(2, stored(person.employeeId()));
+                insert.setObject(3, effectiveDate);
+                insert.setString(4, commandStatus);
+                insert.setObject(5, at);
+                insert.setObject(6, person.userId());
+                insert.setObject(7, at);
                 insert.executeUpdate();
             }
-            try (java.sql.PreparedStatement insert = workforce.prepareStatement(
-                    "insert into separation_holds (separation_hold_id, personnel_command_id, employee_id, status, created_at, updated_at) values (?, ?, ?, 'HELD', ?, ?)")) {
+            boolean released = "RELEASED".equals(holdStatus);
+            try (java.sql.PreparedStatement insert = workforce.prepareStatement("""
+                    insert into separation_holds (separation_hold_id, personnel_command_id, employee_id, status, released_at, released_by, release_reason,
+                           release_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""")) {
                 insert.setObject(1, newCommandId());
                 insert.setObject(2, command);
-                insert.setObject(3, stored(held.employeeId()));
-                insert.setObject(4, at);
-                insert.setObject(5, at);
+                insert.setObject(3, stored(person.employeeId()));
+                insert.setString(4, holdStatus);
+                insert.setObject(5, released ? at : null);
+                insert.setObject(6, released ? person.userId() : null);
+                insert.setString(7, released ? "synthetic release" : null);
+                insert.setString(8, released ? "INTERFACE" : null);
+                insert.setObject(9, at);
+                insert.setObject(10, at);
                 insert.executeUpdate();
             }
         }
+    }
 
+    private void assertNothingClosesWhile(SignedIn person, List<Grant> before) {
         org.awaitility.Awaitility.await().during(Duration.ofSeconds(3)).atMost(Duration.ofSeconds(8)).untilAsserted(() -> {
-            assertThat(grants(held.userId())).isEqualTo(before);
-            assertThat(profileStatus(held)).isEqualTo(200);
+            assertThat(grants(person.userId())).isEqualTo(before);
+            assertThat(profileStatus(person)).isEqualTo(200);
         });
+    }
+
+    @Test
+    @DisplayName("0034-G4-02 等价 ADR-0068 第 2 条第 2 项、ADR-0055 第 3 项第 3 条：此人有一条待放行（HELD）的离职命令、没有 EmployeeSeparated：授予不关闭、会话仍在")
+    void aHeldSeparationClosesNothing() throws Exception {
+        SignedIn held = person("super_admin", "business_admin");
+        List<Grant> before = grants(held.userId());
+
+        writeSeparation(held, "HELD", "HELD", TODAY.plusDays(10));
+
+        assertNothingClosesWhile(held, before);
+    }
+
+    @Test
+    @DisplayName("0034-G4-02 等价 ADR-0068 第 15 条第 3 项与 #732 裁定：已放行但生效日在将来（命令 PENDING、放行记录 RELEASED）、尚无 EmployeeSeparated：授予不关闭、会话仍在；事件到达后才关闭")
+    void aReleasedSeparationWaitingForItsDateClosesNothingUntilTheEvent() throws Exception {
+        SignedIn waiting = person("super_admin", "business_admin");
+        List<Grant> before = grants(waiting.userId());
+
+        writeSeparation(waiting, "PENDING", "RELEASED", TODAY.plusDays(10));
+
+        assertNothingClosesWhile(waiting, before);
+        publishSeparated(waiting.employeeId(), newCommandId(), TODAY.plusDays(10));
+        awaitNoOpenGrants(waiting.userId());
+    }
+
+    @Test
+    @DisplayName("ADR-0055 第 3 项第 4 条、ADR-0068 第 2 条第 3 项：唯一可用超管的离职由人事侧判定与放行；EmployeeSeparated 到达时 identity 照关他的全部授予（含 super_admin），身份侧不设下限拒绝")
+    void theLastAvailableSuperAdminIsClosedWithoutAnIdentityRefusal() throws Exception {
+        SignedIn last = person("super_admin");
+        for (Grant other : grantsOfOtherSuperAdmins(last.userId())) {
+            closeGrant(other.id(), other.from().isAfter(NOW) ? other.from() : NOW);
+        }
+        assertThat(openGrants(last.userId())).extracting(Grant::roleCode).contains("super_admin");
+
+        publishSeparated(last.employeeId(), newCommandId(), HR_DATE);
+
+        awaitNoOpenGrants(last.userId());
+        assertThat(grants(last.userId())).allMatch(g -> "SEPARATION".equals(g.cause()));
+    }
+
+    private List<Grant> grantsOfOtherSuperAdmins(UUID except) throws java.sql.SQLException {
+        List<Grant> found = new java.util.ArrayList<>();
+        try (java.sql.Connection identity = schemaConnection("platform_identity"); java.sql.PreparedStatement select = identity.prepareStatement(
+                "select distinct g.user_id from account_role_grants g join roles r on r.role_id = g.role_id where r.code = 'super_admin' and g.effective_to_at is null and g.user_id <> ?")) {
+            select.setObject(1, except);
+            try (java.sql.ResultSet rs = select.executeQuery()) {
+                while (rs.next()) {
+                    found.addAll(grants(rs.getObject(1, UUID.class), "super_admin").stream().filter(Grant::open).toList());
+                }
+            }
+        }
+        return found;
     }
 }

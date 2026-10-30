@@ -92,4 +92,77 @@ class CurrentGrantPredicateGuardTest {
         assertThat(spellings("JoinedLines.java", "class A { String q = \"where g.effective_to_at\"\n    + \" is\"\n    + \" null\"; }")).hasSize(1).noneMatch(Spelling::inConstant);
         assertThat(spellings("Clean.java", "class Clean { static final String CURRENT = \"\"\"\n effective_to_at is null\n \"\"\"; }")).allMatch(Spelling::inConstant);
     }
+
+    // ---- every SQL text that reads the grant or role version tables ----
+
+    /** Files that may read the tables without the predicate constant, each with its reason (ADR-0034 decision 4 items 3 and 5). */
+    static final java.util.Map<String, String> ALLOWED_READERS = java.util.Map.of("AuthorizationHistory.java",
+            "the read-only as-of restore: it reads by a range test at a moment, not the current rows");
+    static final Pattern TOUCHES = Pattern.compile("\\b(?:account_role_grants|role_versions)\\b", Pattern.CASE_INSENSITIVE);
+    static final Pattern WRITER = Pattern.compile("\\b(?:insert\\s+into|update|delete\\s+from|lock\\s+table)\\b", Pattern.CASE_INSENSITIVE);
+    static final Pattern SELECT = Pattern.compile("\\bselect\\b", Pattern.CASE_INSENSITIVE);
+    static final Pattern CONSTANT_NAME = Pattern.compile("static\\s+final\\s+String\\s+(\\w+)\\s*=[^;]*effective_to_at\\s+(?:is\\s+null|isnull|is\\s+not\\s+distinct\\s+from\\s+null)",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+
+    static String withoutComments(String source) {
+        return source.replaceAll("(?s)/\\*.*?\\*/", " ").replaceAll("(?m)^\\s*//.*$", " ");
+    }
+
+    /** The statements (cut at semicolons, adjacent literals joined) that touch either table, read it, and neither use the constant nor sit in an allowed file. */
+    static List<String> unguardedReads(String fileName, String rawSource, String constantName) {
+        if (ALLOWED_READERS.containsKey(fileName)) {
+            return List.of();
+        }
+        List<String> found = new ArrayList<>();
+        Pattern reference = Pattern.compile("\\b" + Pattern.quote(constantName) + "\\b");
+        for (String statement : CONCATENATION.matcher(withoutComments(rawSource)).replaceAll("").split(";")) {
+            if (statement.contains("\"") && TOUCHES.matcher(statement).find() && (SELECT.matcher(statement).find() || !WRITER.matcher(statement).find())
+                    && !reference.matcher(statement).find()) {
+                found.add(fileName + ": " + statement.strip().replaceAll("\\s+", " "));
+            }
+        }
+        return found;
+    }
+
+    @Test
+    @DisplayName("0034-G3-03 / ADR-0034 第 4 项第 3 条（行 412）：src/main 中触及 account_role_grants、role_versions 的每条读取 SQL 都引用那个谓词常量，或在写明理由的白名单文件（AuthorizationHistory）里；没有谓词的读取、coalesce 写法都被拦下")
+    void everyReadOfTheTablesUsesTheConstantOrIsAllowed() throws IOException {
+        String constantName = null;
+        List<String> sources = new ArrayList<>();
+        List<String> names = new ArrayList<>();
+        try (Stream<Path> files = Files.walk(MAIN)) {
+            for (Path file : files.filter(f -> f.toString().endsWith(".java")).toList()) {
+                String source = Files.readString(file);
+                sources.add(source);
+                names.add(file.getFileName().toString());
+                Matcher declared = CONSTANT_NAME.matcher(CONCATENATION.matcher(withoutComments(source)).replaceAll(""));
+                if (declared.find()) {
+                    constantName = declared.group(1);
+                }
+            }
+        }
+        assertThat(constantName).as("the predicate constant (a static final String holding effective_to_at is null) exists").isNotNull();
+        List<String> unguarded = new ArrayList<>();
+        for (int i = 0; i < sources.size(); i++) {
+            unguarded.addAll(unguardedReads(names.get(i), sources.get(i), constantName));
+        }
+        assertThat(unguarded).as("reads of the grant or role version tables without the predicate constant").isEmpty();
+    }
+
+    @Test
+    @DisplayName("0034-G3-03 守护能拦：没有谓词的读取、coalesce 写法的读取被发现；引用常量的读取、写入语句、白名单文件不被误报")
+    void theReadGuardCatchesAReadWithoutThePredicate() {
+        String none = "class A { String q = \"select user_id from account_role_grants where role_id = :r\"; }";
+        String coalesce = "class A { String q = \"select 1 from account_role_grants g where coalesce(g.effective_to_at, 'infinity') > :t\"; }";
+        String versions = "class A { String q = \"select permission_codes from role_versions where role_id = :r\"; }";
+        String guarded = "class A { String q = \"select 1 from account_role_grants g where g.user_id = :u and \" + CURRENT_GRANTS; }";
+        String writer = "class A { String i = \"insert into account_role_grants (a) values (:a)\"; String u = \"update account_role_grants set updated_at = :t where account_role_grant_id = :id\"; }";
+
+        assertThat(unguardedReads("A.java", none, "CURRENT_GRANTS")).hasSize(1);
+        assertThat(unguardedReads("A.java", coalesce, "CURRENT_GRANTS")).hasSize(1);
+        assertThat(unguardedReads("A.java", versions, "CURRENT_GRANTS")).hasSize(1);
+        assertThat(unguardedReads("A.java", guarded, "CURRENT_GRANTS")).isEmpty();
+        assertThat(unguardedReads("A.java", writer, "CURRENT_GRANTS")).isEmpty();
+        assertThat(unguardedReads("AuthorizationHistory.java", coalesce, "CURRENT_GRANTS")).isEmpty();
+    }
 }

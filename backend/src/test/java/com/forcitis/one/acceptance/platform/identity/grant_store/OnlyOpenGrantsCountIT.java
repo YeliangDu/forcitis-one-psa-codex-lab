@@ -22,8 +22,13 @@ import org.springframework.test.context.DynamicPropertySource;
 /**
  * #732 part A: 0034-G3-01 and G3-02 (ADR-0034 decision 4 items 1 and 2, DD sign-off section D). Every read of "who holds what" sees the open
  * grants only, whatever the injected clock reads against the row times: the open row is current even when the reading clock is behind its
- * start, and a closed row is never valid even when the clock is behind its end. Readers reached here: the session's permissions, the account
- * view, the occupancy check of role delete, the administrator mode entry, and the I-12 self check.
+ * start, and a closed row is never valid even when the clock is behind its end.
+ * <p>
+ * The 17 readers of ADR-0034 line 405 to 410. Reached here: SessionPrincipals and GetCurrentUserProfile (session permissions), GetUserAccount (account
+ * view), DeleteRole (occupancy), UpdateRole (I-12 self check), EnterAdministratorMode, RoleHolders (through the occupancy check). Reached elsewhere:
+ * ReconcileEmergencyAdmins (SingleOperatorEmergencyMinimumIT), AdministratorSeparationReview (the RevokeDisable floor tests), ReplaceAccountRoles
+ * (GrantsReplacedByDifferenceIT, the diff only sees open rows). NOT covered: PrivilegeCeiling, the I-12 self check of ReplaceAccountRoles and of
+ * DeleteRole, EmergencyBinding, LoginAsEmergencyAdmin, LoginWithSignedTicket, ForceUserLogout, OrgUnitScopes, roleIsSensitive.
  */
 class OnlyOpenGrantsCountIT extends GrantStoreSupport {
 

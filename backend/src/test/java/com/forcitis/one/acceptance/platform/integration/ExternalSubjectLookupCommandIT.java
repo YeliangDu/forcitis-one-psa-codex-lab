@@ -119,6 +119,11 @@ class ExternalSubjectLookupCommandIT extends AccountsAcceptanceSupport {
                     rows.add(rs.getInt(1));
                 }
             }
+            // the old account_roles count was "roles held": the grant store needs the total (history) and the open rows (held) both
+            try (PreparedStatement open = identity.prepareStatement("select count(*) from account_role_grants where effective_to_at is null"); ResultSet rs = open.executeQuery()) {
+                rs.next();
+                rows.add(rs.getInt(1));
+            }
         }
         return rows;
     }

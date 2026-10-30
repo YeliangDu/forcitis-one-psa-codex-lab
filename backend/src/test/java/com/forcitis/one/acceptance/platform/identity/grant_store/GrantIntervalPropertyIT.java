@@ -101,7 +101,9 @@ class GrantIntervalPropertyIT extends GrantStoreSupport {
             List<Grant> rows = grants(target.userId(), roles.get(r));
             assertThat(rows.stream().filter(Grant::open).count()).as("seed %d %s: at most one open row", seed, roles.get(r)).isLessThanOrEqualTo(1);
             assertThat(rows).as("seed %d %s: no inverted interval", seed, roles.get(r)).allSatisfy(row -> assertThat(row.open() || !row.to().isBefore(row.from())).isTrue());
-            assertThat(rows.stream().map(row -> new Interval(row.from(), row.to())).toList()).as("seed %d %s: rows", seed, roles.get(r)).isEqualTo(model.get(r));
+            // equal starts are possible (a zero-length row and the next one); the order between them is not specified, so compare as multisets
+            assertThat(rows.stream().map(row -> new Interval(row.from(), row.to())).toList()).as("seed %d %s: rows", seed, roles.get(r))
+                    .containsExactlyInAnyOrderElementsOf(model.get(r));
             for (Interval row : model.get(r)) {
                 for (Instant edge : new Instant[] {row.from(), row.to()}) {
                     if (edge != null) {
