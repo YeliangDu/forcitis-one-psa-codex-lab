@@ -311,4 +311,114 @@ class RevokeDisableFloorIT extends RevokeDisableFloorSupport {
         assertThat(holds(a, SUPER_ADMIN)).isFalse();
         assertThat(grantsOf(a, SUPER_ADMIN).get(0).get("revocation_cause_kind")).isEqualTo("OPERATIONS");
     }
+
+    // ---- decision 172337: an entered, not yet started unpaid-leave start counts as gone ----
+
+    @Test
+    @DisplayName("#732B decision 172337 revoke: A and B are the only available super administrators and B has an entered future UNPAID_LEAVE_START: revoking A is refused, nothing written")
+    void revokeIsRefusedWhenTheOtherHasAFutureUnpaidLeave() throws Exception {
+        Desk desk = desk();
+        Person a = admin();
+        Person b = admin();
+        enterFutureUnpaidLeave(b);
+        forgetCards();
+        int mark = logMark();
+
+        Outcome outcome = revoke(desk.requester(), desk.confirmer(), a, SUPER_ADMIN);
+
+        assertRefusedByTheFloor(outcome);
+        assertThat(snapshot(a)).isEqualTo(outcome.beforeApply());
+        assertThat(holds(a, SUPER_ADMIN)).isTrue();
+        assertNothingSent(mark);
+    }
+
+    @Test
+    @DisplayName("#732B decision 172337 revoke: with a third super administrator C the same revoke is done, one card (ROLE_REVOCATION_NOTICE) to C among the recipients, one ALERT")
+    void revokeWithAThirdIsDoneWithACard() throws Exception {
+        Desk desk = desk();
+        Person a = admin();
+        Person b = admin();
+        Person c = admin();
+        enterFutureUnpaidLeave(b);
+        forgetCards();
+        int mark = logMark();
+
+        assertDone(revoke(desk.requester(), desk.confirmer(), a, SUPER_ADMIN));
+
+        List<Card> cards = cardsAfterwards(1);
+        assertThat(cards).hasSize(1);
+        assertThat(cards.get(0).purpose()).isEqualTo(ROLE_REVOCATION_NOTICE);
+        assertThat(cards.get(0).recipients()).contains(c.wecomId());
+        assertThat(alertsSince(mark)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("#732B decision 172337 disable: A and B only, B has an entered future UNPAID_LEAVE_START: disabling A is refused, nothing written")
+    void disableIsRefusedWhenTheOtherHasAFutureUnpaidLeave() throws Exception {
+        Desk desk = desk();
+        Person a = admin();
+        Person b = admin();
+        enterFutureUnpaidLeave(b);
+        forgetCards();
+        int mark = logMark();
+
+        Outcome outcome = disable(desk.requester(), a);
+
+        assertRefusedByTheFloor(outcome);
+        assertThat(snapshot(a)).isEqualTo(outcome.beforeApply());
+        assertThat(accountStatus(a)).isEqualTo("ENABLED");
+        assertNothingSent(mark);
+    }
+
+    @Test
+    @DisplayName("#732B decision 172337 disable: with a third super administrator C the same disable is done, one card (ACCOUNT_DISABLE_NOTICE) to C among the recipients, one ALERT")
+    void disableWithAThirdIsDoneWithACard() throws Exception {
+        Desk desk = desk();
+        Person a = admin();
+        Person b = admin();
+        Person c = admin();
+        enterFutureUnpaidLeave(b);
+        forgetCards();
+        int mark = logMark();
+
+        assertDone(disable(desk.requester(), a));
+
+        List<Card> cards = cardsAfterwards(1);
+        assertThat(cards).hasSize(1);
+        assertThat(cards.get(0).purpose()).isEqualTo(ACCOUNT_DISABLE_NOTICE);
+        assertThat(cards.get(0).recipients()).contains(c.wecomId());
+        assertThat(alertsSince(mark)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("#732B decision 172337: a withdrawn future unpaid-leave start does not count: with A and B only, revoking A is done with one card and an ALERT")
+    void aWithdrawnFutureUnpaidLeaveDoesNotCountForRevoke() throws Exception {
+        Desk desk = desk();
+        Person a = admin();
+        Person b = admin();
+        withdrawCommand(enterFutureUnpaidLeave(b));
+        forgetCards();
+        int mark = logMark();
+
+        assertDone(revoke(desk.requester(), desk.confirmer(), a, SUPER_ADMIN));
+
+        assertThat(cardsAfterwards(1)).hasSize(1);
+        assertThat(alertsSince(mark)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("#732B decision 172337: a withdrawn future unpaid-leave start does not count: with A and B only, disabling A is done with one card and an ALERT")
+    void aWithdrawnFutureUnpaidLeaveDoesNotCountForDisable() throws Exception {
+        Desk desk = desk();
+        Person a = admin();
+        Person b = admin();
+        withdrawCommand(enterFutureUnpaidLeave(b));
+        forgetCards();
+        int mark = logMark();
+
+        assertDone(disable(desk.requester(), a));
+
+        assertThat(cardsAfterwards(1)).hasSize(1);
+        assertThat(alertsSince(mark)).hasSize(1);
+    }
 }

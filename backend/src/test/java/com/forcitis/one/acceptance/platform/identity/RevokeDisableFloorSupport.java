@@ -271,6 +271,21 @@ abstract class RevokeDisableFloorSupport extends AccountsAcceptanceSupport {
         return holdOf(command);
     }
 
+    /** Enters an unpaid-leave start dated after today (entered, not started) for the person; the command is PENDING. Answers the command id. */
+    protected UUID enterFutureUnpaidLeave(Person person) throws Exception {
+        actIn(hr);
+        UUID command = personnelCommands.enter(new EnterPersonnelCommand(employeeIdOf(person.employeeId()), PersonnelCommandKind.UNPAID_LEAVE_START,
+                DUE, null, null, null, null, null, null)).value();
+        assertThat(commandStatus(command)).as("an unpaid-leave start in the future waits for its date").isEqualTo("PENDING");
+        return command;
+    }
+
+    protected void withdrawCommand(UUID command) throws Exception {
+        actIn(hr);
+        personnelCommands.withdraw(new com.forcitis.one.organization.workforce.api.WithdrawPersonnelCommand(
+                new com.forcitis.one.organization.workforce.api.PersonnelCommandId(command), REASON));
+    }
+
     protected UUID holdOf(UUID command) throws SQLException {
         List<Map<String, Object>> found = workforce("select separation_hold_id from separation_holds where personnel_command_id = ?", command);
         assertThat(found).hasSize(1);
