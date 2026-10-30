@@ -1,7 +1,7 @@
 # 由 panorama/scan_aggregates.py 生成，勿手改
 meta:
-  count: 16
-  code_only: 5
+  count: 17
+  code_only: 6
   registry_only: 0
   both: 11
   sources:
@@ -114,6 +114,41 @@ aggregates:
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected
   - organization.workforce.LegalEntityAttributionEnded
+  events_in_module:
+  - organization.workforce.EmployeeCorrected
+  - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeRegistered
+  - organization.workforce.EmployeeRegularized
+  - organization.workforce.EmployeeReinstated
+  - organization.workforce.EmployeeSeparated
+  - organization.workforce.EmployeeTransferred
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgSnapshotChanged
+  - organization.workforce.SeparationHeld
+  - organization.workforce.SeparationHoldReleased
+  - organization.workforce.SyncRunFailed
+  - organization.workforce.SyncRunHeld
+  - organization.workforce.SyncRunHoldReleased
+  - organization.workforce.SyncRunReleased
+  - organization.workforce.SyncRunSucceeded
+- id: organization.workforce/PersonnelCommand
+  bc: organization.workforce
+  root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/PersonnelCommand.java
+  source:
+  - code
+  tables: []
+  commands:
+  - NeverHold
+  - PersonnelCommandService
+  - PersonnelPlans
+  events: []
   events_in_module:
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired

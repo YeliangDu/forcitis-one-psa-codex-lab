@@ -77,7 +77,7 @@ tables:
       command_id: the id of whatever command caused the change (ADR-0058 decision 8), not only personnel commands; the log keeps it when the command row is purged
     retention: {policy: PERMANENT}  # 未决：这些行属于被清除的员工，purge_employee_history 批次要一并删除（W2 第 8 节，清理作业另批），到时改本条保留期
     lineage: {source: NEW}
-    writers: []
+    writers: [organization.workforce]
   organization_attendance.work_calendar_years:
     role: AGGREGATE_ROOT
     aggregate: WorkCalendarYear
@@ -155,7 +155,7 @@ tables:
     retention: {policy: PERMANENT}  # 个人任职史版本表：离职满 10 年删除该员工的行（RETENTION_PROPOSAL 第 16 行，W2 第 8 节清理通道另批）
     lineage: {source: NEW}
     references: {corrected_from_version_id: organization_workforce.employee_versions}
-    writers: []
+    writers: [organization.workforce]
   organization_workforce.personnel_commands:
     role: AGGREGATE_CHILD
     aggregate: Employee
@@ -164,7 +164,7 @@ tables:
     business_key: [personnel_command_id]
     retention: {policy: PERMANENT}  # 个人任职史随员工清除：离职满 10 年由 purge_employee_history 删除（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
-    writers: []
+    writers: [organization.workforce]
   organization_workforce.separation_holds:
     role: AGGREGATE_CHILD
     aggregate: Employee
@@ -175,7 +175,7 @@ tables:
       employee_id: carried by the composite foreign key fk_separation_holds_command (personnel_command_id, employee_id), which also pins it to the command's employee
     retention: {policy: PERMANENT}  # 与 personnel_commands 相同：随员工清除，离职满 10 年由 purge_employee_history 删除（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
-    writers: []
+    writers: [organization.workforce]
   # Columns of org_units left out of the versions on purpose: sort_order (only orders siblings for display, nothing reads it by date), short_name (not a source column:
   # a cross-source column refreshed daily from the old system, valid until DA-8 lands, ADR-0033 item 2.6), revoked_at (follows from the start of the REVOKED version),
   # last_sync_run_id (moves to the change set with split a).

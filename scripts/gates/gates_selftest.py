@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import types
 from pathlib import Path
@@ -323,7 +324,7 @@ def pre_commit_test():
     print("pre_commit self-test: ok")
 
 FAKE = "fake-prod-db.example.invalid"  # ── install ── fictitious production host, put on the temporary repository's origin/main table only
-ENTRIES = {"PreToolUse": ["scripts/gates/pre_tool_dispatch.py"], "SessionStart": ["scripts/hooks/git_ceiling_env.sh"]}  # the start sheet hangs on the tool library (O23a)
+ENTRIES = {"PreToolUse": ["scripts/gates/pre_tool_dispatch.py"], "SessionStart": ["scripts/hooks/git_ceiling_env.sh", "scripts/hooks/stop_language.py"], "Stop": ["scripts/hooks/stop_language.py"]}  # the start sheet hangs on the tool library (O23a)
 SHELLS = ("/bin/sh", "/bin/bash")
 FIRST_ONLY = """#!/bin/bash
 read -r line
@@ -358,11 +359,11 @@ def settings_self_test():
     verify = ('V="$CLAUDE_PROJECT_DIR"/scripts/gates/hooks_manifest.sh; if [ -x "$V" ]; then "$V" --check ' + link + "; "
               'else echo "【钩子告警】核对不了已装钩子（$V 缺失或不可执行）"; fi; ')  # runs from the session's repository, not from current (O7 final M2)
     hooks = settings["hooks"]
-    assert "Stop" not in hooks and "node_ready" not in raw and "stop_check" not in raw and "clear_session" not in raw, "#752: no hook points at the retired tools (stop_check, the clear_session gate)"
-    assert sorted(hooks) == ["PreToolUse", "SessionStart"], sorted(hooks)
+    assert "node_ready" not in raw and "stop_check" not in raw and "clear_session" not in raw, "#752: no hook points at the retired tools (stop_check, the clear_session gate)"
+    assert sorted(hooks) == ["PreToolUse", "SessionStart", "Stop"], sorted(hooks)  # #900: Stop carries only the language rule, no retired tool
     assert [g["matcher"] for g in hooks["PreToolUse"]] == ["|".join(COMMAND_TOOLS + (LAUNCH_TOOL,))], "PreToolUse: only the production-write gate on the tools that run commands (#752 retired the clear_session gate)"
     assert json.dumps([*COMMAND_TOOLS, LAUNCH_TOOL]) in hooks["PreToolUse"][0]["hooks"][0]["command"], "the mount's own pre-filter names the same tools"
-    assert [g["matcher"] for g in hooks["SessionStart"]] == ["startup|clear|compact|resume", "startup|clear|compact"]
+    assert [g["matcher"] for g in hooks["SessionStart"]] == ["startup|clear|compact|resume", "startup|clear|compact", "compact|resume"]
     sheet = hooks["SessionStart"].pop(1)["hooks"]
     assert len(sheet) == 1 and sheet[0]["type"] == "command" and sheet[0]["timeout"] == 15, sheet
     sheet = sheet[0]["command"]
@@ -387,6 +388,10 @@ def settings_self_test():
     assert gate[2] == 120 and gate[1].endswith("exit 2") and "/usr/bin/python3 -I -c" in gate[1], "the gate mount: when the gate fails its own pre-filter decides, refusing by default (H4, C3)"
     tables = ['os.path.expanduser("~/' + gates["install_dir"][2:] + "/" + gates["install_current_link"] + '/scripts/gates/prod_targets.json")', '"scripts/gates/prod_targets.json"']  # #736: the same feature table, installed and the project's
     assert all(t in gate[1] for t in tables) and "far=" not in gate[1] and "ok=set" not in gate[1] and "not t or" in gate[1], "pre-filter reads the feature table, fails closed without one"
+    for flag, event in (("--stop", "Stop"), ("--session-start", "SessionStart")):  # #900: the language rule fails open (exit 0, no output) and is cut at 5 s
+        hook = hooks[event][-1]["hooks"][0]
+        assert hook["command"].endswith(f'/usr/bin/python3 -I "$H" {flag}; exit 0') and "exit 2" not in hook["command"] and hook["timeout"] == 5, (event, hook)
+    assert hooks["Stop"][0].get("matcher") is None and len(hooks["Stop"]) == 1
     ceiling = commands["scripts/hooks/git_ceiling_env.sh"]
     assert ceiling[1].endswith("; exit 0") and "【钩子告警】" in ceiling[1] and "exit 2" not in ceiling[1] and ceiling[2] == 10, ceiling
     # an installed target without its exec bit never runs (O6 review item 1); the tool library's start sheet runs through python3, so it needs none
@@ -529,8 +534,8 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         r = install("--switch", absent)
         assert r.returncode == 1 and "没有已装的版本" in r.stderr and points_to() == a, (absent, r.stderr)
     # 4b. two installs of one commit at once both succeed (the loser finds the directory ready) and leave current right (O7 first review, suggestion 2)
-    for _ in range(3):
-        runs = [subprocess.Popen([os.path.join(repo, "scripts/gates/install.sh"), b], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env, cwd=tmp) for _ in range(4)]
+    for _ in range(10):  # one round of four lost the race once on main (run 40975901039); eight at once for ten rounds makes the old install.sh fail most runs
+        runs = [subprocess.Popen([os.path.join(repo, "scripts/gates/install.sh"), b], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env, cwd=tmp) for _ in range(8)]
         outs = [(p.wait(timeout=120), p.stderr.read()) for p in runs]
         assert all(code == 0 for code, _ in outs) and points_to() == b and not leftovers(), (outs, points_to(), leftovers())
     # 4c. that fallback, deterministically: the target directory is locked (chflags uchg), so neither rename works. A target matching the fresh unpack counts as
@@ -550,7 +555,41 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         finally:
             subprocess.run(["chflags", "nouchg", target], check=True)
         assert r.returncode == code and points_to() == b and not leftovers() and (code == 0 or "放不进" in r.stderr), (files, r.returncode, r.stderr)
-    assert install(b).returncode == 0 and install("--switch", a).returncode == 0 and points_to() == a
+    assert install(b).returncode == 0
+    # 4d. the race of 4b, deterministically (#879): when install.sh looks, the target is another commit's files (a rival's half-done replacement), locked so the
+    #     rename fails; the rival finishes half a second after the installer's copy is read-only. The installer must wait for that, not give up on the first look. chflags is macOS/BSD.
+    if shutil.which("chflags"):
+        good = os.path.join(tmp, "good-" + b)
+        shutil.copytree(target, good, symlinks=True)
+        writable(good)  # a read-only directory cannot be renamed into another parent
+        writable(target)
+        shutil.rmtree(target)
+        shutil.copytree(os.path.join(hooks, a), target, symlinks=True)
+        subprocess.run(["chflags", "uchg", target], check=True)
+        rival_errors = []
+        def rival():
+            try:
+                deadline = time.time() + 60
+                while time.time() < deadline and not any(n.startswith(".tmp.") and not os.access(os.path.join(hooks, n), os.W_OK) for n in os.listdir(hooks)):
+                    time.sleep(0.01)  # the installer has unpacked and made its copy read-only: its next step is the rename
+                time.sleep(0.5)
+                subprocess.run(["chflags", "nouchg", target], check=True)
+                writable(target)
+                shutil.rmtree(target)
+                os.rename(good, target)
+            except Exception as e:  # a thread's exception would otherwise vanish and the test pass on a path it never took
+                rival_errors.append(e)
+        t = threading.Thread(target=rival)
+        t.start()
+        try:
+            r = install(b)
+        finally:
+            t.join()
+        assert not rival_errors, rival_errors
+        assert r.returncode == 0 and points_to() == b and not leftovers(), ("a target that becomes ready within the wait is taken", r.returncode, r.stderr)
+    else:
+        print("install self-test: 没有 chflags，跳过 4d")
+    assert install("--switch", a).returncode == 0 and points_to() == a
     # 5. a failing self-check leaves current and the install directory as they were
     for broken in (fail_open, refuses_all, passes_writes, not_exec):
         r = install(broken)

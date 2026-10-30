@@ -1,0 +1,18 @@
+# 人事专员角色（one-design 2026-10-30，#871 / #872；lead 定角色代码，用户决定 docs/decisions/2026-10-30-005221-one-lead-人事专员.md）。角色代码格式同 platform-identity-b31-roles.yaml：小写 snake。「人事」取 personnel，与人事命令 personnel_command 一致；全称不缩写（命名规范 N3-L2）。
+terms:
+- id: personnel_specialist
+  zh: 人事专员
+  en: PersonnelSpecialist
+  snake: personnel_specialist
+  kind: role
+  bc: platform.identity
+  scope: domain
+  definition: 系统角色 personnel_specialist：录入与撤回人事命令（入职、转正、调岗、离职、复职、更正、停薪留职开始与结束），持有权限 organization.workforce:personnel-command:create；撤回须持有录入权限（ADR-0068 第 1 条第 6 项）
+  standard_ref:
+  - docs/decisions/2026-10-30-005221-one-lead-人事专员.md
+  - ADR-0068 第 1 条第 6 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 由 #872 播种；验收见 #871

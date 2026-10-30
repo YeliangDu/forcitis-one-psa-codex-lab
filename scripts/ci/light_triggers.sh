@@ -53,6 +53,7 @@ t_guards|file_lines (self-test)|python3 -I scripts/guards/file_lines.py --self-t
 t_guards|null_marked (self-test)|python3 -I scripts/guards/null_marked.py --self-test
 t_evidence_imports|evidence tools: imports resolve (self-test)|python3 -I scripts/ci/evidence_imports.py --self-test
 t_gates|gates (gates_selftest.py)|python3 scripts/gates/gates_selftest.py
+t_gates|stop_language (self-test)|python3 -I scripts/hooks/stop_language.py --self-test
 t_session|build_decisions (self-test)|python3 scripts/session/build_decisions.py --self-test
 t_session|new_intent_selftest (self-test)|python3 scripts/session/new_intent_selftest.py --self-test
 t_new_adr|new_adr (self-test)|python3 tools/docs/new_adr.py --self-test
