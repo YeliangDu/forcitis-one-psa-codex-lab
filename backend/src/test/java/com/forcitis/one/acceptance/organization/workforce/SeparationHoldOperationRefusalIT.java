@@ -20,7 +20,9 @@ import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * #877 IMP-1030-PAR-B8 (cases of #876; ADR-0068 item 2.4, lines 93 to 97; ADR-0030 and ADR-0055 decision 3 item 4): everything the command refuses,
- * each time before any change. Operator and witness must be two different existing employees, the reason is 1 to 500 characters and not blank,
+ * each time before any change. The command runs only when releasing leaves 0 available super administrators, and operator and witness must both
+ * stay, that is be locally employed and not in the HELD set (the user's ruling of 2026-10-30 on #877, decision fragment 2026-10-30-131322). Operator
+ * and witness must be two different existing employees, the reason is 1 to 500 characters and not blank,
  * the hold must exist and be HELD, the audit partition of the month must exist (the precedent of {@code Nits1OperationsCommandsAuditPartitionIT}),
  * and the single operator mode of ADR-0030 does not apply (the production state is the mode off).
  */
@@ -249,5 +251,60 @@ class SeparationHoldOperationRefusalIT extends SeparationHoldOperationSupport {
         Result result = run(withStray);
 
         assertRefusedUnchanged(result, held, before, null);
+    }
+
+    @ParameterizedTest(name = "[{index}] {0} remaining")
+    @ValueSource(ints = {1, 2})
+    @DisplayName("#877 用户裁定 2026-10-30-131322（决定片段，ADR-0068 第 2 条第 4 项）：放行后仍剩 1 名或 2 名可用超管时运维命令拒绝（退出码 1），提示改走界面单条放行；库内无变化，不写放行审计")
+    void refusesWhenAdministratorsWouldRemain(int remaining) throws Exception {
+        Scenario scenario = heldWithRemaining(remaining - 1);
+        Pair pair = twoPeople();
+        Snapshot before = snapshot(scenario.held());
+
+        Result result = release(scenario.held(), pair, REASON_TEXT);
+
+        assertRefusedUnchanged(result, scenario.held(), before, REFUSED);
+        assertThat(POINTS_TO_INTERFACE.matcher(result.err()).find()).as("points to the release on the interface, in: " + result.err()).isTrue();
+        assertThat(releaseAuditOf(scenario.held().employee())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("#877 用户裁定 2026-10-30-131322（决定片段，ADR-0068 第 2 条第 4 项）：待放行的离职人本人当操作人或见证人被拒（退出码 1），库内无变化")
+    void theHeldLeaverCannotAttest() throws Exception {
+        Held held = heldWithNoneRemaining();
+        UUID other = employed(REGULAR);
+        Snapshot before = snapshot(held);
+
+        assertRefusedUnchanged(run(line(held.hold(), REASON_TEXT, held.employee(), other)), held, before, REFUSED);
+        assertRefusedUnchanged(run(line(held.hold(), REASON_TEXT, other, held.employee())), held, before, REFUSED);
+    }
+
+    @Test
+    @DisplayName("#877 用户裁定 2026-10-30-131322（决定片段，ADR-0068 第 2 条第 4 项）：另一名待放行者当操作人或见证人被拒（退出码 1）：留任须不在待放行名单中；两条暂停记录都不变")
+    void anotherHeldPersonCannotAttest() throws Exception {
+        Held held = heldWithNoneRemaining();
+        Held alsoHeld = heldSeparation(administrator());
+        UUID other = employed(REGULAR);
+        Snapshot before = snapshot(held);
+        Snapshot alsoBefore = snapshot(alsoHeld);
+
+        assertRefusedUnchanged(run(line(held.hold(), REASON_TEXT, other, alsoHeld.employee())), held, before, REFUSED);
+        assertRefusedUnchanged(run(line(held.hold(), REASON_TEXT, alsoHeld.employee(), other)), held, before, REFUSED);
+        assertThat(snapshot(alsoHeld)).isEqualTo(alsoBefore);
+    }
+
+    @Test
+    @DisplayName("#877 用户裁定 2026-10-30-131322（决定片段，ADR-0068 第 2 条第 4 项）：已离职（本地不在职）的员工当操作人或见证人被拒（退出码 1），库内无变化")
+    void aSeparatedEmployeeCannotAttest() throws Exception {
+        Held held = heldWithNoneRemaining();
+        UUID former = employed(REGULAR);
+        actIn(hr);
+        separate(former, LAST_DAY);
+        assertThat(employmentOn(former, TODAY)).as("the former employee is separated").isEqualTo(SEPARATED);
+        UUID other = employed(REGULAR);
+        Snapshot before = snapshot(held);
+
+        assertRefusedUnchanged(run(line(held.hold(), REASON_TEXT, former, other)), held, before, REFUSED);
+        assertRefusedUnchanged(run(line(held.hold(), REASON_TEXT, other, former)), held, before, REFUSED);
     }
 }

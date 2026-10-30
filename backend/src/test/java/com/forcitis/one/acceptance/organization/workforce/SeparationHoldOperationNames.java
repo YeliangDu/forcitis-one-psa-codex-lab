@@ -38,6 +38,9 @@ final class SeparationHoldOperationNames {
     /** The audit of the single operator mode of identity: a workforce release must never write it (ADR-0068 item 2.4, line 96). */
     static final String SINGLE_OPERATOR_AUDIT_PREFIX = "platform.identity.single-operator-mode";
 
+    /** The refusal when 1 or more available super administrators would remain points to the release on the interface (user ruling 2026-10-30). */
+    static final Pattern POINTS_TO_INTERFACE = Pattern.compile("(?i)interface|\\bUI\\b|界面");
+
     /** The remaining available super administrators after the release, as a field of the audit detail ("remaining ...: 0"). */
     static final Pattern REMAINING_ZERO = Pattern.compile("(?is)(remaining|剩余)\\D{0,40}0(\\D|$)");
     /** The session or route field of the audit says the release came from the ops command (ADR-0068 item 2.3 line 91 has the session mode; for this path the card says session/route = ops command). 暂名 */
