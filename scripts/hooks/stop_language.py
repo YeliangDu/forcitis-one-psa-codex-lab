@@ -148,10 +148,13 @@ def self_test():
         sys.stdout = real
     assert out.getvalue() == "", "unreadable input fails open"
     long_text = (english + "\n```\n" + "x = 1\n" * 200 + "```\n") * 100  # about 100 KB
-    started = time.perf_counter()
-    assert verdict(long_text)
-    elapsed = time.perf_counter() - started
-    assert elapsed < 0.05, f"verdict on {len(long_text)} characters took {elapsed:.3f}s"
+    times = []
+    for _ in range(7):  # the fastest of several runs: a loaded runner preempts single runs (0.177 s seen on CI, #900), but slow code is slow in every run
+        started = time.perf_counter()
+        assert verdict(long_text)
+        times.append(time.perf_counter() - started)
+    elapsed = min(times)
+    assert elapsed < 0.05, f"verdict on {len(long_text)} characters took {elapsed:.3f}s at best of {len(times)}"
     print(f"stop_language self-test: ok ({len(long_text)} characters judged in {elapsed * 1000:.0f} ms)")
 
 
