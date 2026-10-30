@@ -46,7 +46,8 @@ class NodeAssignmentTest {
         ProcessAdministrator administrator = mock(ProcessAdministrator.class);
         AccountEmployees accounts = mock(AccountEmployees.class);
         SimpleMeterRegistry meters = new SimpleMeterRegistry();
-        NodeAssignment assignment = new NodeAssignment(org, roles, administrator, meters, accounts);
+        NodeAssignment assignment = new NodeAssignment(org, roles, administrator, meters, accounts, java.time.Clock.fixed(java.time.Instant.parse("2026-11-02T02:00:00Z"), java.time.ZoneOffset.UTC),
+                new com.forcitis.one.kernel.BusinessZone(java.time.ZoneId.of("Asia/Shanghai")));
         ListAppender<ILoggingEvent> logged = new ListAppender<>();
         logged.start();
         Logger logger = (Logger) LoggerFactory.getLogger(NodeAssignment.class);

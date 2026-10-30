@@ -44,6 +44,12 @@ final class ExportedSnapshot implements OrgDirectory, RoleDirectory {
         return Optional.empty();
     }
 
+    /** An export carries no leave flag (it predates the flag), so nobody in a replay is on leave. */
+    @Override
+    public boolean isOnUnpaidLeave(EmployeeId employeeId, java.time.LocalDate day) {
+        return false;
+    }
+
     @Override
     public EmploymentVerdict employmentOf(EmployeeId employeeId) {
         return findEmployee(employeeId).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED ? EmploymentVerdict.EMPLOYED : EmploymentVerdict.SEPARATED)

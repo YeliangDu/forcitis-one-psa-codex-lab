@@ -150,6 +150,22 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: error__cost_timesheet_on_unpaid_leave
+  zh: 停薪留职期间不能提交工时单
+  en: CostTimesheetOnUnpaidLeave
+  snake: cost_timesheet_on_unpaid_leave
+  kind: error_code
+  bc: cost.timesheet
+  scope: domain
+  definition: 填报人在该工作日处于停薪留职，不能为这一天提交工时单；停薪留职开始之前的日子照常可提交（用户决定 2026-10-30，ADR-0068 第 3 条，422）
+  standard_ref:
+  - ADR-0068 第 3 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1030-PAR-B5（#874）
+
 common_words:
 - revise
 - revised

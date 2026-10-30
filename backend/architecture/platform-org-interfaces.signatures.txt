@@ -186,6 +186,7 @@ organization.workforce::api organization.workforce.api.LoginLookup$ByWecomUser p
 organization.workforce::api organization.workforce.api.LoginLookup$ByWecomUser public kernel.WecomUserId organization.workforce.api.LoginLookup$ByWecomUser.wecomUserId()
 organization.workforce::api organization.workforce.api.LoginLookup$ByWecomUser public organization.workforce.api.LoginLookup$ByWecomUser(kernel.WecomUserId)
 organization.workforce::api organization.workforce.api.LoginLookup$ByWecomUser public static final record organization.workforce.api.LoginLookup$ByWecomUser
+organization.workforce::api organization.workforce.api.OrgDirectory public abstract boolean organization.workforce.api.OrgDirectory.isOnUnpaidLeave(kernel.EmployeeId,java.time.LocalDate)
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract interface organization.workforce.api.OrgDirectory
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract java.util.List<organization.workforce.api.OrgUnitId> organization.workforce.api.OrgDirectory.findAncestors(organization.workforce.api.OrgUnitId)
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract java.util.Optional<kernel.EmployeeId> organization.workforce.api.OrgDirectory.findOrgUnitHead(organization.workforce.api.OrgUnitId)

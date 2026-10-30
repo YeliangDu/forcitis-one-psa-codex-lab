@@ -77,9 +77,11 @@ public class SubmitTimesheet {
                 return view(timesheet, false);
             }
             requireEmployed(command.projectManager());
+            requireNotOnLeave(employee, command.workDate());
             timesheet.revise(employee, command.workDate(), command.hours(), command.projectManager());
         } else {
             requireEmployed(command.projectManager());
+            requireNotOnLeave(employee, command.workDate());
             OrgUnitId orgUnit = org.findEmployee(employee).map(profile -> profile.orgUnitId()).orElseThrow(
                     () -> TimesheetError.COST_TIMESHEET_EMPLOYEE_UNKNOWN.refusal("User " + employee.value() + " is not in the organisation"));
             LegalEntityId legalEntity = legalEntities.on(employee, command.workDate());
@@ -95,6 +97,13 @@ public class SubmitTimesheet {
         repository.save(timesheet);
         events.publish(timesheet);
         return view(timesheet, false);
+    }
+
+    /** During unpaid leave a timesheet may be submitted only for days before the leave starts (user decision 2026-10-30, ADR-0068 section 3): no timesheet for a day that was a leave day. */
+    private void requireNotOnLeave(EmployeeId employee, LocalDate workDate) {
+        if (org.isOnUnpaidLeave(employee, workDate)) {
+            throw TimesheetError.COST_TIMESHEET_ON_UNPAID_LEAVE.refusal("The employee is on unpaid leave on " + workDate + ", so no timesheet can be submitted for that day");
+        }
     }
 
     private void requireEmployed(EmployeeId projectManager) {

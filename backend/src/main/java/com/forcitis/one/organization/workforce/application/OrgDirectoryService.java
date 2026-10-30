@@ -12,6 +12,8 @@ import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
 import com.forcitis.one.organization.workforce.domain.StaffEmployee;
+import com.forcitis.one.organization.workforce.domain.UnpaidLeaveQueries;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
@@ -22,9 +24,11 @@ class OrgDirectoryService implements OrgDirectory {
     private final RegisterEmployeeOnLogin registerOnLogin;
     private final RegisterEmployeeOnLoginName registerOnLoginName;
     private final SnapshotFreshness freshness;
+    private final UnpaidLeaveQueries leaves;
 
     OrgDirectoryService(OrgSnapshotQueries snapshots, RegisterEmployeeOnLogin registerOnLogin,
-                        RegisterEmployeeOnLoginName registerOnLoginName, SnapshotFreshness freshness) {
+                        RegisterEmployeeOnLoginName registerOnLoginName, SnapshotFreshness freshness, UnpaidLeaveQueries leaves) {
+        this.leaves = leaves;
         this.freshness = freshness;
         this.snapshots = snapshots;
         this.registerOnLogin = registerOnLogin;
@@ -42,6 +46,11 @@ class OrgDirectoryService implements OrgDirectory {
             case LoginLookup.ByWecomUser wecom -> findEmployeeByWecomUser(wecom.wecomUserId());
             case LoginLookup.ByLoginName login -> findEmployeeByLoginName(login.loginName());
         };
+    }
+
+    @Override
+    public boolean isOnUnpaidLeave(EmployeeId employeeId, LocalDate day) {
+        return leaves.isOnLeave(employeeId, day);
     }
 
     @Override
