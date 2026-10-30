@@ -153,14 +153,6 @@ public final class PersonnelCommand extends AggregateRoot {
         appliedAt = due ? Objects.requireNonNull(at, "at") : null;
     }
 
-    /** A pending separation that the due-date job judges must be held again on its day (ADR-0068 item 2.2): it waits for a release like one held at entry. */
-    public void holdWhenDue() {
-        if (kind != PersonnelCommandKind.SEPARATE) {
-            throw invalid("only a separation can be held");
-        }
-        status = CommandStatus.MACHINE.require(status, CommandStatus.HELD, WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL);
-    }
-
     /** A pending command whose day has come takes effect (the due-date job; its versions were written when it was entered or released). */
     public void dueEffect(Instant at, LocalDate today) {
         if (effectiveDate.isAfter(today)) {
