@@ -11,6 +11,7 @@ export const ERROR_MESSAGES: Readonly<Record<ErrorCode, string | null>> = {
   COST_TIMESHEET_NOT_OWNER: '只有工时单的发起人可以执行这个操作',
   COST_TIMESHEET_ON_UNPAID_LEAVE: '停薪留职的工作日期不能填报工时单',
   COST_TIMESHEET_PROJECT_MANAGER_INVALID: '项目经理无效',
+  COST_TIMESHEET_PROJECT_MANAGER_ON_UNPAID_LEAVE: '项目经理停薪留职，不能审批这个工作日期的工时单',
   COST_TIMESHEET_PROJECT_MANAGER_UNKNOWN: '项目经理不存在',
   COST_TIMESHEET_RESULT_PENDING: '审批结果正在处理，请稍后刷新',
   COST_TIMESHEET_WORK_DATE_DUPLICATE: '这个工作日期已有工时单，不能重复创建',
