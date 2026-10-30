@@ -145,9 +145,10 @@ aggregates:
   - code
   tables: []
   commands:
-  - NeverHold
+  - AdministratorHoldCheck
   - PersonnelCommandService
   - PersonnelPlans
+  - SeparationHoldService
   events: []
   events_in_module:
   - organization.workforce.EmployeeCorrected

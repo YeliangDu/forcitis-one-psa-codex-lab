@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdGenerator;
+import com.forcitis.one.kernel.SeparationReview;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -17,6 +18,7 @@ import com.forcitis.one.organization.workforce.domain.HoldStatus;
 import com.forcitis.one.organization.workforce.domain.SeparationHold;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
+import com.forcitis.one.organization.workforce.domain.ReleaseChannelKind;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
 import com.forcitis.one.organization.workforce.domain.PersonnelHistory;
 import com.forcitis.one.organization.workforce.domain.ChangeSource;
@@ -33,10 +35,12 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -57,6 +61,17 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
     @Override
     public boolean lockEmployee(EmployeeId employee) {
         return jdbc.sql("select 1 from organization_workforce.employees where id = :id for update").param("id", employee.value()).query(Integer.class).optional().isPresent();
+    }
+
+    @Override
+    public void lockSeparationDecisions() {
+        jdbc.sql("select pg_advisory_xact_lock(hashtextextended(:key, 0))").param("key", SeparationReview.SEPARATION_LOCK_KEY).query().singleRow();
+    }
+
+    @Override
+    public Set<EmployeeId> heldEmployees() {
+        return new HashSet<>(jdbc.sql("select employee_id from organization_workforce.separation_holds where status = 'HELD'")
+                .query((rs, n) -> new EmployeeId(rs.getObject("employee_id", UUID.class))).list());
     }
 
     @Override
@@ -233,34 +248,65 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
     @Override
     public void update(PersonnelCommand c, long loadedVersion) {
         int updated = jdbc.sql("""
-                update organization_workforce.personnel_commands set status = :status, withdrawn_at = :at, withdrawn_by = :by, withdrawal_reason = :reason,
+                update organization_workforce.personnel_commands set status = :status, applied_at = :appliedAt, withdrawn_at = :at, withdrawn_by = :by, withdrawal_reason = :reason,
                        updated_at = :now, version = :version
                  where personnel_command_id = :id and version = :loaded
                 """)
-                .param("status", c.status().name()).param("at", at(c.withdrawnAt()), Types.TIMESTAMP_WITH_TIMEZONE)
+                .param("status", c.status().name()).param("appliedAt", at(c.appliedAt()), Types.TIMESTAMP_WITH_TIMEZONE)
+                .param("at", at(c.withdrawnAt()), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("by", c.withdrawnBy() == null ? null : c.withdrawnBy().value(), Types.OTHER).param("reason", c.withdrawalReason(), Types.VARCHAR)
-                .param("now", at(c.withdrawnAt())).param("version", loadedVersion + 1).param("id", c.id().value()).param("loaded", loadedVersion).update();
+                .param("now", at(c.withdrawnAt() != null ? c.withdrawnAt() : c.appliedAt())).param("version", loadedVersion + 1).param("id", c.id().value()).param("loaded", loadedVersion).update();
         if (updated != 1) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE, ErrorKind.CONFLICT, "the command was changed by someone else");
         }
     }
 
+    private static final String HOLD_COLUMNS = """
+            select separation_hold_id, personnel_command_id, employee_id, status, version, released_at, released_by, release_reason, release_channel_kind
+              from organization_workforce.separation_holds
+            """;
+
+    private static SeparationHold hold(ResultSet rs) throws SQLException {
+        OffsetDateTime released = rs.getObject("released_at", OffsetDateTime.class);
+        UUID by = rs.getObject("released_by", UUID.class);
+        String channel = rs.getString("release_channel_kind");
+        return SeparationHold.restore(new SeparationHoldId(rs.getObject("separation_hold_id", UUID.class)),
+                new PersonnelCommandId(rs.getObject("personnel_command_id", UUID.class)), new EmployeeId(rs.getObject("employee_id", UUID.class)),
+                HoldStatus.valueOf(rs.getString("status")), rs.getLong("version"), released == null ? null : released.toInstant(), by == null ? null : new UserId(by),
+                rs.getString("release_reason"), channel == null ? null : ReleaseChannelKind.valueOf(channel));
+    }
+
     @Override
     public Optional<SeparationHold> holdOf(PersonnelCommandId command) {
-        return jdbc.sql("select separation_hold_id, status, version from organization_workforce.separation_holds where personnel_command_id = :id")
-                .param("id", command.value())
-                .query((rs, n) -> new SeparationHold(new SeparationHoldId(rs.getObject("separation_hold_id", UUID.class)), HoldStatus.valueOf(rs.getString("status")),
-                        rs.getLong("version"))).optional();
+        return jdbc.sql(HOLD_COLUMNS + " where personnel_command_id = :id").param("id", command.value()).query((rs, n) -> hold(rs)).optional();
+    }
+
+    @Override
+    public Optional<SeparationHold> findHold(SeparationHoldId id) {
+        return jdbc.sql(HOLD_COLUMNS + " where separation_hold_id = :id").param("id", id.value()).query((rs, n) -> hold(rs)).optional();
+    }
+
+    @Override
+    public void insertHold(SeparationHold hold, Instant at) {
+        jdbc.sql("""
+                insert into organization_workforce.separation_holds (separation_hold_id, personnel_command_id, employee_id, status, created_at, updated_at, version)
+                values (:id, :command, :employee, :status, :at, :at, :version)
+                """)
+                .param("id", hold.id().value()).param("command", hold.commandId().value()).param("employee", hold.employeeId().value())
+                .param("status", hold.status().name()).param("at", at(at)).param("version", hold.version()).update();
     }
 
     @Override
     public void updateHold(SeparationHold hold, Instant at, long loadedVersion) {
         int updated = jdbc.sql("""
-                update organization_workforce.separation_holds set status = :status, updated_at = :at, version = :version
+                update organization_workforce.separation_holds set status = :status, released_at = :releasedAt, released_by = :releasedBy,
+                       release_reason = :reason, release_channel_kind = :channel, updated_at = :at, version = :version
                  where separation_hold_id = :id and version = :loaded
                 """)
-                .param("status", hold.status().name()).param("at", at(at)).param("version", hold.version()).param("id", hold.id().value())
-                .param("loaded", loadedVersion).update();
+                .param("status", hold.status().name()).param("releasedAt", at(hold.releasedAt()), Types.TIMESTAMP_WITH_TIMEZONE)
+                .param("releasedBy", hold.releasedBy() == null ? null : hold.releasedBy().value(), Types.OTHER).param("reason", hold.releaseReason(), Types.VARCHAR)
+                .param("channel", hold.releaseChannel() == null ? null : hold.releaseChannel().name(), Types.VARCHAR).param("at", at(at))
+                .param("version", hold.version()).param("id", hold.id().value()).param("loaded", loadedVersion).update();
         if (updated != 1) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE, ErrorKind.CONFLICT, "the hold was changed by someone else");
         }
