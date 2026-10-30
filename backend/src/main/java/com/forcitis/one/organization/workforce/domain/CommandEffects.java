@@ -10,7 +10,7 @@ import java.util.function.Predicate;
 /**
  * What each kind of command sets on the two version tables (ADR-0068 item 1.3, W2 design section 3), by column name. A column a command does
  * not name is not its business: it keeps whatever the timeline holds. A separation also ends the assignment, which is not a column and is
- * handled by {@link VersionPlanner#truncate}.
+ * handled by {@link VersionPlanner#endAt}.
  */
 public final class CommandEffects {
     public static final String EMPLOYMENT = "employment_status";
@@ -95,11 +95,12 @@ public final class CommandEffects {
         };
     }
 
-    /** Whether the command writes the employee table, the assignment table, or ends the assignment. */
+    /** A hire or a reinstatement starts rows on a day that no current row covers. */
     public static boolean coversEmptyDay(PersonnelCommand c) {
         return c.kind() == PersonnelCommandKind.HIRE || c.kind() == PersonnelCommandKind.REINSTATE;
     }
 
+    /** A separation ends the assignment instead of changing a column of it. */
     public static boolean endsAssignment(PersonnelCommand c) {
         return c.kind() == PersonnelCommandKind.SEPARATE;
     }

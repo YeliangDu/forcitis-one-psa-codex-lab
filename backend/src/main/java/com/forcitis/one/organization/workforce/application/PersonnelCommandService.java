@@ -51,8 +51,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 class PersonnelCommandService implements PersonnelCommands {
     static final String PERMISSION = "organization.workforce:personnel-command:create";
-    static final String AUDIT_ENTERED = "organization.workforce.personnel-command.entered";
-    static final String AUDIT_WITHDRAWN = "organization.workforce.personnel-command.withdrawn";
     private static final String COMMAND = "PersonnelCommand";
     private static final String HOLD = "SeparationHold";
 
@@ -96,10 +94,12 @@ class PersonnelCommandService implements PersonnelCommands {
         requireTargetsExist(command);
         PersonnelHistory history = commands.load(employee);
         PersonnelCommandRules.check(command, history);
+        // B6 seam (ADR-0068 item 2): a held separation must also leave out its separated versions now and void the future one when released late;
+        // withdraw() below reverts versions only for a pending command, so B6 handles both ends here.
         if (command.kind() == PersonnelCommandKind.SEPARATE && holdCheck.holds(command)) {
             command.holdAtEntry();
         }
-        AuditEntryId auditEntry = audit.record(new AuditEntry(AUDIT_ENTERED, by, null, AuditSubject.of(AuditSubjectKind.EMPLOYEE, employee.value()),
+        AuditEntryId auditEntry = audit.record(new AuditEntry("organization.workforce.personnel-command.entered", by, null, AuditSubject.of(AuditSubjectKind.EMPLOYEE, employee.value()),
                 "command " + command.id() + " " + command.kind() + " effective " + command.effectiveDate()));
         commands.insert(command);
         commands.insertTransition(COMMAND, command.id().value(), command.version(), null, command.status().name(), by, today, now, command.id(), correlation());
@@ -108,7 +108,9 @@ class PersonnelCommandService implements PersonnelCommands {
         }
         if (command.status() == CommandStatus.EFFECTIVE && !(command.kind() == PersonnelCommandKind.CORRECTION && command.effectiveDate().isAfter(today))) {
             VersionRow assignmentBefore = history.currentAssignmentRows().stream().filter(r -> r.covers(command.effectiveDate().minusDays(1))).findFirst().orElse(null);
-            command.recordEffect(assignmentBefore, legalEntityOn(employee, command.effectiveDate()));
+            // A separation's envelope names the entity of the last day the employee was employed: on the effective day itself the assignment has just ended.
+            LocalDate entityDay = command.kind() == PersonnelCommandKind.SEPARATE ? command.effectiveDate().minusDays(1) : command.effectiveDate();
+            command.recordEffect(assignmentBefore, legalEntityOn(employee, entityDay));
             if (command.hasPendingEvents()) {
                 events.publish(command);
                 commands.saveEventSequence(employee, command.eventSequenceAfterSave());
@@ -139,7 +141,7 @@ class PersonnelCommandService implements PersonnelCommands {
         commands.update(command, loadedVersion);
         commands.insertTransition(COMMAND, command.id().value(), loadedVersion + 1, before.name(), command.status().name(), by, today, now, command.id(), correlation());
         commands.holdOf(command.id()).ifPresent(hold -> withdrawHold(hold, command, by, today, now));
-        audit.record(new AuditEntry(AUDIT_WITHDRAWN, by, null, AuditSubject.of(AuditSubjectKind.EMPLOYEE, command.employeeId().value()),
+        audit.record(new AuditEntry("organization.workforce.personnel-command.withdrawn", by, null, AuditSubject.of(AuditSubjectKind.EMPLOYEE, command.employeeId().value()),
                 "command " + command.id() + " " + command.kind() + "; reason: " + command.withdrawalReason()));
     }
 
