@@ -182,6 +182,15 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
         SecurityContextHolder.setContext(context);
     }
 
+    /** For worker threads of a concurrency test: the caller set by {@link #actIn} is this thread's caller too (security contexts are per thread). */
+    protected void actAsTheCallerOnThisThread() {
+        if (acting == null) {
+            SecurityContextHolder.clearContext();
+        } else {
+            SecurityContextHolder.setContext(acting);
+        }
+    }
+
     /** Nobody is signed in for the next api calls. */
     protected void actAsNobody() {
         acting = null;
@@ -374,7 +383,7 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
 
     // ---- jdbc ----
 
-    private static List<Map<String, Object>> query(Connection connection, String sql, Object... args) throws SQLException {
+    protected static List<Map<String, Object>> query(Connection connection, String sql, Object... args) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             for (int i = 0; i < args.length; i++) {
                 statement.setObject(i + 1, args[i]);
