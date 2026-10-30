@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import types
 from pathlib import Path
@@ -550,7 +551,35 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         finally:
             subprocess.run(["chflags", "nouchg", target], check=True)
         assert r.returncode == code and points_to() == b and not leftovers() and (code == 0 or "放不进" in r.stderr), (files, r.returncode, r.stderr)
-    assert install(b).returncode == 0 and install("--switch", a).returncode == 0 and points_to() == a
+    assert install(b).returncode == 0
+    # 4d. the race of 4b, deterministically (#879): when install.sh looks, the target is another commit's files (a rival's half-done replacement), locked so the
+    #     rename fails; the rival finishes half a second after the installer's copy is read-only. The installer must wait for that, not give up on the first look. chflags is macOS/BSD.
+    if shutil.which("chflags"):
+        good = os.path.join(tmp, "good-" + b)
+        shutil.copytree(target, good, symlinks=True)
+        writable(target)
+        shutil.rmtree(target)
+        shutil.copytree(os.path.join(hooks, a), target, symlinks=True)
+        subprocess.run(["chflags", "uchg", target], check=True)
+        def rival():
+            deadline = time.time() + 60
+            while time.time() < deadline and not any(n.startswith(".tmp.") and not os.access(os.path.join(hooks, n), os.W_OK) for n in os.listdir(hooks)):
+                time.sleep(0.01)  # the installer has unpacked and made its copy read-only: its next step is the rename
+            time.sleep(0.5)
+            subprocess.run(["chflags", "nouchg", target], check=True)
+            writable(target)
+            shutil.rmtree(target)
+            os.rename(good, target)
+        t = threading.Thread(target=rival)
+        t.start()
+        try:
+            r = install(b)
+        finally:
+            t.join()
+        assert r.returncode == 0 and points_to() == b and not leftovers(), ("a target that becomes ready within the wait is taken", r.returncode, r.stderr)
+    else:
+        print("install self-test: 没有 chflags，跳过 4d")
+    assert install("--switch", a).returncode == 0 and points_to() == a
     # 5. a failing self-check leaves current and the install directory as they were
     for broken in (fail_open, refuses_all, passes_writes, not_exec):
         r = install(broken)
