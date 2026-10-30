@@ -12,6 +12,7 @@ import tempfile
 import threading
 import time
 
+import driftscan_selftest
 import gapscan_selftest
 
 LOG_LINE = re.compile(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d\d:\d\d [A-Z-]+ pr=#(\d+|-) run=(\d+|-) elapsed=\d+s( .*)?$")
@@ -167,7 +168,7 @@ def run(mq):
     try:
         with tempfile.TemporaryDirectory() as d:
             fake_gh(d, [])   # nothing in the self-test reaches the real gh: an unknown call exits 97
-            for case in (_units, _flow, _release, _pause, _runner, _queue, _remove_busy, _head_changed, _gh_commands, _git, _docs_tiers, gapscan_selftest.run):
+            for case in (_units, _flow, _release, _pause, _runner, _queue, _remove_busy, _head_changed, _gh_commands, _git, _docs_tiers, gapscan_selftest.run, driftscan_selftest.run_with_mq):
                 case(mq, d)
     finally:
         for k, v in old.items():
