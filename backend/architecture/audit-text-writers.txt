@@ -47,3 +47,4 @@ src/main/java/com/forcitis/one/platform/identity/infrastructure/security/Session
 src/main/java/com/forcitis/one/platform/identity/infrastructure/startup/SingleOperatorModeStartup.java | 1 | 20 | NONE
 src/main/java/com/forcitis/one/platform/file/infrastructure/audit/BindingAuditLog.java | 5 | 23 | SURROGATE
 src/main/java/com/forcitis/one/platform/file/infrastructure/audit/StoreAuditLog.java | 6 | 22 | POSSIBLE
+src/main/java/com/forcitis/one/organization/workforce/application/PersonnelCommandService.java | 2 | 4,16 | POSSIBLE

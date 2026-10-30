@@ -1,0 +1,52 @@
+package com.forcitis.one.organization.workforce.domain;
+
+import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
+import com.forcitis.one.organization.workforce.api.PositionId;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Optional;
+import java.util.UUID;
+import org.jspecify.annotations.Nullable;
+
+/** Storage of personnel commands, their version rows, their transitions and the hold a held separation carries. Every method joins the caller's transaction. */
+public interface PersonnelCommandRepository {
+
+    /** Locks the employee row for the rest of the transaction; false when there is no such employee. */
+    boolean lockEmployee(EmployeeId employee);
+
+    boolean orgUnitExists(OrgUnitId orgUnit);
+
+    boolean positionExists(PositionId position);
+
+    boolean employeeExists(EmployeeId employee);
+
+    /** The employee's event sequence, which a command that takes effect continues. */
+    long eventSequence(EmployeeId employee);
+
+    PersonnelHistory load(EmployeeId employee);
+
+    Optional<PersonnelCommand> find(PersonnelCommandId id);
+
+    void insert(PersonnelCommand command);
+
+    /** Writes the status and the withdrawal columns the aggregate holds, if the stored version is still the one it was loaded with. */
+    void update(PersonnelCommand command, long loadedVersion);
+
+    /**
+     * Supersedes the rows of the plan and appends its rows, in that order; closed_at of an appended row that has an end is the given instant.
+     * The rows are superseded by {@code command} (the one that caused the plan).
+     */
+    void insertVersions(EmployeeId employee, VersionTable table, VersionPlan plan, PersonnelCommandId command, Instant at);
+
+    Optional<SeparationHold> holdOf(PersonnelCommandId command);
+
+    void updateHold(SeparationHold hold, Instant at, long loadedVersion);
+
+    void insertTransition(String aggregateType, UUID aggregateId, long sequence, @Nullable String from, String to, UserId actor, LocalDate day, Instant at,
+                          PersonnelCommandId command, UUID correlation);
+
+    void saveEventSequence(EmployeeId employee, long sequence);
+}
