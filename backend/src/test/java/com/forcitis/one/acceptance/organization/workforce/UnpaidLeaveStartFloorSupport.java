@@ -65,6 +65,16 @@ abstract class UnpaidLeaveStartFloorSupport extends FutureHoldSupport {
         return id;
     }
 
+    /**
+     * The command-entered audit entries, read from the table: counting through the audit search would itself write a searched entry and move
+     * the total count below.
+     */
+    private int enteredAuditEntries() throws Exception {
+        try (Connection audit = schemaConnection("platform_audit")) {
+            return ((Number) query(audit, "select count(*) as n from audit_entries where action = '" + AUDIT_ENTERED + "'").get(0).get("n")).intValue();
+        }
+    }
+
     /** All audit entries of the database, of any action and written in any transaction. */
     private long allAuditEntries() throws Exception {
         try (Connection audit = schemaConnection("platform_audit")) {
@@ -78,7 +88,7 @@ abstract class UnpaidLeaveStartFloorSupport extends FutureHoldSupport {
         try (Connection integration = schemaConnection("platform_integration")) {
             deliveries = (long) query(integration, "select count(*) as n from outbound_deliveries").get(0).get("n");
         }
-        return new FloorSnapshot(all, commandCount(who.employeeId()), allVersions(EMPLOYEE_VERSIONS, who.employeeId()).size(), auditCount(AUDIT_ENTERED), allAuditEntries(), deliveries,
+        return new FloorSnapshot(all, commandCount(who.employeeId()), allVersions(EMPLOYEE_VERSIONS, who.employeeId()).size(), enteredAuditEntries(), allAuditEntries(), deliveries,
                 cards().size());
     }
 
