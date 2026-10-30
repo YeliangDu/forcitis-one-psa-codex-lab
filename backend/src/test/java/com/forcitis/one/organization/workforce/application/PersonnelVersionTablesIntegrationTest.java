@@ -120,13 +120,12 @@ class PersonnelVersionTablesIntegrationTest extends WorkforceIntegrationSupport 
     }
 
     @Test
-    @DisplayName("W2 PR-B a held separation can be withdrawn but cannot go back to pending")
+    @DisplayName("W2 PR-B, #931 a held separation can go to pending (released before its date, ruling on #732) and be withdrawn from there")
     void heldCommandMovesOnlyForward() {
         String where = " where personnel_command_id = " + COMMAND;
         jdbc.sql("update organization_workforce.personnel_commands set status = 'HELD', updated_at = now()" + where).update();
 
-        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.personnel_commands set status = 'PENDING'" + where).update())
-                .hasMessageContaining("cannot move");
+        assertThat(jdbc.sql("update organization_workforce.personnel_commands set status = 'PENDING', updated_at = now()" + where).update()).isEqualTo(1);
         assertThat(jdbc.sql("update organization_workforce.personnel_commands set status = 'WITHDRAWN', withdrawn_at = now(), withdrawn_by = " + USER
                 + ", withdrawal_reason = 'not leaving', updated_at = now()" + where).update()).isEqualTo(1);
     }
