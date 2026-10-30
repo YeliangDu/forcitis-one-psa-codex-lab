@@ -34,11 +34,12 @@ class SystemRoleDeclarationTest {
     }
 
     @Test
-    @DisplayName("card 7.2 / 0034-G8-02 the declaration holds the six system roles with the fixed ids 019a…101 to …106 at revision 1, super_admin the only administrative one")
-    void theSixSystemRoles() {
+    @DisplayName("card 7.2 / 0034-G8-02 the declaration holds the seven system roles with the fixed ids 019a…101 to …107 at revision 1, super_admin the only administrative one")
+    void theSevenSystemRoles() {
         assertThat(SystemRoleDeclaration.CURRENT.roles()).extracting(role -> role.roleId().value().toString()).containsExactly(
                 "019a0000-0000-7000-8000-000000000101", "019a0000-0000-7000-8000-000000000102", "019a0000-0000-7000-8000-000000000103",
-                "019a0000-0000-7000-8000-000000000104", "019a0000-0000-7000-8000-000000000105", "019a0000-0000-7000-8000-000000000106");
+                "019a0000-0000-7000-8000-000000000104", "019a0000-0000-7000-8000-000000000105", "019a0000-0000-7000-8000-000000000106",
+                "019a0000-0000-7000-8000-000000000107");
         assertThat(SystemRoleDeclaration.CURRENT.roles()).allSatisfy(role -> assertThat(role.revisionNumber()).isEqualTo(1));
         assertThat(SystemRoleDeclaration.CURRENT.roles()).filteredOn(DeclaredRole::administrative).extracting(role -> role.code().value())
                 .containsExactly("super_admin");

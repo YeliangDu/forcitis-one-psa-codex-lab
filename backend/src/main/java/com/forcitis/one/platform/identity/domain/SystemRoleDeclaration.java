@@ -24,7 +24,8 @@ public record SystemRoleDeclaration(List<DeclaredRole> roles) {
      * super_admin is the reserved code (RULE-340/345); employee is the default role granted once when an account is opened (RULE-344);
      * process_administrator receives the tasks nobody can be found for (D-1a-61); org_data_admin, business_admin and security_auditor
      * are the system business roles of ADR-0027 sections 2 and 3, with ADR-0028 (security_auditor releases a separation hold) and
-     * RULE-385 (org_data_admin corrects a legal entity attribution).
+     * RULE-385 (org_data_admin corrects a legal entity attribution);
+     * personnel_specialist (人事专员, user decision 2026-10-30) enters and withdraws personnel commands (ADR-0068 item 1.6).
      */
     public static final SystemRoleDeclaration CURRENT = new SystemRoleDeclaration(List.of(
             declared("019a0000-0000-7000-8000-000000000101", "super_admin", "超级管理员", AccessScopeKind.ALL, true),
@@ -41,7 +42,9 @@ public record SystemRoleDeclaration(List<DeclaredRole> roles) {
             declared("019a0000-0000-7000-8000-000000000105", "business_admin", "业务管理员", AccessScopeKind.SELF, false,
                     Codes.PLATFORM_NUMBERING_RULE_READ, Codes.PLATFORM_NUMBERING_RULE_APPROVE, Codes.PLATFORM_INTEGRATION_SOURCE_REFERENCE_APPROVE),
             declared("019a0000-0000-7000-8000-000000000106", "security_auditor", "安全审计员", AccessScopeKind.ALL, false,
-                    Codes.PLATFORM_AUDIT_ENTRY_READ, Codes.PLATFORM_AUDIT_ENTRY_EXPORT, Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE)));
+                    Codes.PLATFORM_AUDIT_ENTRY_READ, Codes.PLATFORM_AUDIT_ENTRY_EXPORT, Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE),
+            declared("019a0000-0000-7000-8000-000000000107", "personnel_specialist", "人事专员", AccessScopeKind.ALL, false,
+                    Codes.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_CREATE)));
 
     /** The revision every role of the first declaration carries (card 7.2: 声明修订号 1). */
     static final int FIRST_REVISION = 1;

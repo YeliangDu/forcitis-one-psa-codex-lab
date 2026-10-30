@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import types
 from pathlib import Path
@@ -533,8 +534,8 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         r = install("--switch", absent)
         assert r.returncode == 1 and "没有已装的版本" in r.stderr and points_to() == a, (absent, r.stderr)
     # 4b. two installs of one commit at once both succeed (the loser finds the directory ready) and leave current right (O7 first review, suggestion 2)
-    for _ in range(3):
-        runs = [subprocess.Popen([os.path.join(repo, "scripts/gates/install.sh"), b], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env, cwd=tmp) for _ in range(4)]
+    for _ in range(10):  # one round of four lost the race once on main (run 40975901039); eight at once for ten rounds makes the old install.sh fail most runs
+        runs = [subprocess.Popen([os.path.join(repo, "scripts/gates/install.sh"), b], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env, cwd=tmp) for _ in range(8)]
         outs = [(p.wait(timeout=120), p.stderr.read()) for p in runs]
         assert all(code == 0 for code, _ in outs) and points_to() == b and not leftovers(), (outs, points_to(), leftovers())
     # 4c. that fallback, deterministically: the target directory is locked (chflags uchg), so neither rename works. A target matching the fresh unpack counts as
@@ -554,7 +555,41 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         finally:
             subprocess.run(["chflags", "nouchg", target], check=True)
         assert r.returncode == code and points_to() == b and not leftovers() and (code == 0 or "放不进" in r.stderr), (files, r.returncode, r.stderr)
-    assert install(b).returncode == 0 and install("--switch", a).returncode == 0 and points_to() == a
+    assert install(b).returncode == 0
+    # 4d. the race of 4b, deterministically (#879): when install.sh looks, the target is another commit's files (a rival's half-done replacement), locked so the
+    #     rename fails; the rival finishes half a second after the installer's copy is read-only. The installer must wait for that, not give up on the first look. chflags is macOS/BSD.
+    if shutil.which("chflags"):
+        good = os.path.join(tmp, "good-" + b)
+        shutil.copytree(target, good, symlinks=True)
+        writable(good)  # a read-only directory cannot be renamed into another parent
+        writable(target)
+        shutil.rmtree(target)
+        shutil.copytree(os.path.join(hooks, a), target, symlinks=True)
+        subprocess.run(["chflags", "uchg", target], check=True)
+        rival_errors = []
+        def rival():
+            try:
+                deadline = time.time() + 60
+                while time.time() < deadline and not any(n.startswith(".tmp.") and not os.access(os.path.join(hooks, n), os.W_OK) for n in os.listdir(hooks)):
+                    time.sleep(0.01)  # the installer has unpacked and made its copy read-only: its next step is the rename
+                time.sleep(0.5)
+                subprocess.run(["chflags", "nouchg", target], check=True)
+                writable(target)
+                shutil.rmtree(target)
+                os.rename(good, target)
+            except Exception as e:  # a thread's exception would otherwise vanish and the test pass on a path it never took
+                rival_errors.append(e)
+        t = threading.Thread(target=rival)
+        t.start()
+        try:
+            r = install(b)
+        finally:
+            t.join()
+        assert not rival_errors, rival_errors
+        assert r.returncode == 0 and points_to() == b and not leftovers(), ("a target that becomes ready within the wait is taken", r.returncode, r.stderr)
+    else:
+        print("install self-test: 没有 chflags，跳过 4d")
+    assert install("--switch", a).returncode == 0 and points_to() == a
     # 5. a failing self-check leaves current and the install directory as they were
     for broken in (fail_open, refuses_all, passes_writes, not_exec):
         r = install(broken)

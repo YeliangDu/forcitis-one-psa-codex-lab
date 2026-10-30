@@ -103,6 +103,7 @@ Needs the W2 common set (command FK, superseded pair, `closed_at`, ...) before a
 - Second escalation level (ADR-0073:74: "两项授权同时写进权限矩阵"): confirmed by the user (Q3 a): the same permission granted to the migration business owner during migration and to `business_admin` after go-live — see Q3.
 - Not allowed to decide: the drafter (database CHECK, section 5.2); anyone whose own legal entity, or whose org unit chain's, is being changed, and the employee themself (application checks, ADR-0073:69).
 - One person who is the finance head of both legal entities (Q1 a) decides each row separately; the rows stay two decisions with two audit entries.
+- **No deputies** (user 2026-10-30, 「采纳」 via lead): a finance head's absence is covered by escalation (section 4 levels 2–3), not by a deputy who may decide.
 - Third escalation level "财务负责人" (ADR-0073:74) is read as the same `legal_entity_finance_head` of the row's legal entity, plus the monthly red light; there is no group-level finance role in the glossary.
 
 ## 7. Events and audit

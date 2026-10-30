@@ -24,8 +24,8 @@ class IdentityBaselineConstraintsIntegrationTest extends IdentityIntegrationTest
     void id07ReservedCode() {
         refused(() -> insertRole("Super_Admin", "CUSTOM"), "ck_roles_reserved_code");
         refused(() -> insertRole("super_admin", "CUSTOM"), "ck_roles_reserved_code");
-        assertThat(jdbc.sql("select count(*) from platform_identity.roles where kind = 'SYSTEM' and code in ('super_admin', 'employee', 'process_administrator', 'org_data_admin', 'business_admin', 'security_auditor')")
-                .query(Long.class).single()).as("the declared system roles, written by the start-up reconciliation, pass").isEqualTo(6);
+        assertThat(jdbc.sql("select count(*) from platform_identity.roles where kind = 'SYSTEM' and code in ('super_admin', 'employee', 'process_administrator', 'org_data_admin', 'business_admin', 'personnel_specialist', 'security_auditor')")
+                .query(Long.class).single()).as("the declared system roles, written by the start-up reconciliation, pass").isEqualTo(7);
         insertRole("Role.editor-1_a", "CUSTOM");
     }
 

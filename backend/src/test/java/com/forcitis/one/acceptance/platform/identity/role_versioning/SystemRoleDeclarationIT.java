@@ -22,7 +22,9 @@ import org.junit.jupiter.api.Test;
  * rows 0034-G8-01 (空库启动建出六个系统角色，role_id 等于声明中的固定值，版本 1 记声明修订号、渠道 SEED；重启不新增版本；修订号更小告警不写；
  * 相等而内容不同启动失败；两实例同时启动结果相同；对账先于 ApplicationRunner、事件监听与重投、定时任务、HTTP 就绪) and 0034-G8-02 (种子转声明对照：
  * 改前基线迁移后的「角色 → 权限码」与改后对账后的当前版本逐码相等), with card 7.2 (六个 role_id 沿用 019a0000-0000-7000-8000-000000000101 至 …106，
- * 声明修订号 1). Observed only from outside: the child process's outcome and output, and the rows of platform_identity.
+ * 声明修订号 1). Since #872 the declaration also holds a seventh system role, 人事专员 personnel_specialist (lead decision 2026-10-30 on the
+ * user decision of 2026-10-30 named 人事专员), holding organization.workforce:personnel-command:create; it is not in the 「改前」 seed, so
+ * SEED stays the six and the role is checked on its own. Observed only from outside: the child process's outcome and output, and the rows of platform_identity.
  */
 class SystemRoleDeclarationIT {
 
@@ -47,6 +49,10 @@ class SystemRoleDeclarationIT {
                     "platform.integration:source-reference:approve", "platform.numbering:numbering-rule:approve", "platform.numbering:numbering-rule:read")),
             new SeededRole("019a0000-0000-7000-8000-000000000106", "security_auditor", "安全审计员", "ALL", false, List.of(
                     "organization.workforce:separation-hold:approve", "platform.audit:audit-entry:export", "platform.audit:audit-entry:read")));
+
+    /** The seventh system role, declared by #872; its role_id is the declaration's choice and is not pinned here. */
+    static final String PERSONNEL_SPECIALIST = "personnel_specialist";
+    static final String PERSONNEL_COMMAND_CREATE = "organization.workforce:personnel-command:create";
 
     static final String VERSIONS = """
             select role_version_id::text, version_number, effective_to_at is null, change_channel_kind, declaration_revision_number, recorded_by,
@@ -91,6 +97,22 @@ class SystemRoleDeclarationIT {
         }
     }
 
+    /** The 人事专员 role: SYSTEM, not administrative, holding the entry permission, with exactly one current SEED version 1 of revision 1. */
+    private static void assertPersonnelSpecialistSeeded(String database) throws SQLException {
+        List<List<Object>> role = rows(database, "select role_id::text, kind, is_administrative from platform_identity.roles where code = ?", PERSONNEL_SPECIALIST);
+        assertThat(role).as("the declared role %s", PERSONNEL_SPECIALIST).hasSize(1);
+        assertThat(role.getFirst().subList(1, 3)).as("kind and is_administrative of %s", PERSONNEL_SPECIALIST).isEqualTo(List.of("SYSTEM", false));
+        List<List<Object>> versions = versionsOf(database, (String) role.getFirst().getFirst());
+        assertThat(versions).as("%s has exactly one version", PERSONNEL_SPECIALIST).hasSize(1);
+        List<Object> version = versions.getFirst();
+        assertThat(List.of(version.get(1), version.get(2), version.get(3), version.get(4))).as("number, current, channel and revision of %s", PERSONNEL_SPECIALIST)
+                .isEqualTo(List.of(1, true, "SEED", 1));
+        assertThat(version.get(5)).as("recorded_by of a SEED version").isNull();
+        assertThat(version.get(6)).as("authorization_request_id of a SEED version").isNull();
+        assertThat(((List<?>) version.get(11)).stream().map(String::valueOf).toList()).as("permission codes of %s", PERSONNEL_SPECIALIST)
+                .contains(PERSONNEL_COMMAND_CREATE);
+    }
+
     /** A newer SEED version of the employee role written straight into the database: closes version 1 and opens version 2 without one of its codes. */
     private static void writeSeedVersionTwo(String database, int revision) throws SQLException {
         execute(database, """
@@ -107,31 +129,33 @@ class SystemRoleDeclarationIT {
     }
 
     @Test
-    @DisplayName("0034-G8-01 空库启动：建出六个系统角色（role_id 为声明固定值 019a…101 至 …106、kind SYSTEM、编码与是否管理员角色同声明），每个恰有版本 1：当前、渠道 SEED、声明修订号 1、无记录人、无授权申请")
+    @DisplayName("0034-G8-01 空库启动：建出七个系统角色——六个沿用基线种子（role_id 为声明固定值 019a…101 至 …106、kind SYSTEM、编码与是否管理员角色同声明）加人事专员 personnel_specialist（#872），每个恰有版本 1：当前、渠道 SEED、声明修订号 1、无记录人、无授权申请")
     void anEmptyDatabaseGetsTheSixSystemRoles() throws Exception {
         Outcome outcome = firstStart();
 
         assertThat(outcome.started()).as(outcome.output()).isTrue();
         String database = SystemRoleDeclarationEnvironment.FIRST_DATABASE;
-        List<List<Object>> roles = rows(database, "select role_id::text, code, kind, is_administrative from platform_identity.roles order by role_id");
+        List<List<Object>> roles = rows(database, "select role_id::text, code, kind, is_administrative from platform_identity.roles where code <> ? order by role_id",
+                PERSONNEL_SPECIALIST);
         List<List<Object>> expected = new ArrayList<>();
         for (SeededRole role : SEED) {
             expected.add(List.of(role.roleId(), role.code(), "SYSTEM", role.administrative()));
         }
-        assertThat(roles).as("the roles a start on an empty database writes").isEqualTo(expected);
+        assertThat(roles).as("the roles a start on an empty database writes, besides personnel_specialist").isEqualTo(expected);
         assertOneSeedVersion(database);
+        assertPersonnelSpecialistSeeded(database);
     }
 
     @Test
-    @DisplayName("0034-G8-01 对账时点：最早阶段的生命周期 bean 启动时（先于 Web 服务器、调度器、事件监听容器）与第一个 ApplicationRunner 运行时，六个系统角色都已有当前 SEED 版本")
+    @DisplayName("0034-G8-01 对账时点：最早阶段的生命周期 bean 启动时（先于 Web 服务器、调度器、事件监听容器）与第一个 ApplicationRunner 运行时，七个系统角色都已有当前 SEED 版本")
     void theReconciliationIsDoneBeforeAnythingElseRuns() throws Exception {
         Outcome outcome = firstStart();
 
         assertThat(outcome.started()).as(outcome.output()).isTrue();
         assertThat(outcome.linesWith(SystemRoleDeclarationLauncher.PROBE + " " + SystemRoleDeclarationLauncher.LIFECYCLE))
-                .as(outcome.output()).singleElement().asString().endsWith(" open-seed-versions=6");
+                .as(outcome.output()).singleElement().asString().endsWith(" open-seed-versions=7");
         assertThat(outcome.linesWith(SystemRoleDeclarationLauncher.PROBE + " " + SystemRoleDeclarationLauncher.RUNNER))
-                .as(outcome.output()).singleElement().asString().endsWith(" open-seed-versions=6");
+                .as(outcome.output()).singleElement().asString().endsWith(" open-seed-versions=7");
     }
 
     @Test
@@ -160,7 +184,7 @@ class SystemRoleDeclarationIT {
     }
 
     @Test
-    @DisplayName("0034-G8-01 声明不变时重启：启动成功，六个系统角色仍各只有版本 1，版本 ID 不变")
+    @DisplayName("0034-G8-01 声明不变时重启：启动成功，七个系统角色仍各只有版本 1，版本 ID 不变")
     void aRestartAddsNoVersion() throws Exception {
         String database = migratedDatabase("forcitis_one_roles_restart");
         Outcome first = launch(database);
@@ -227,7 +251,7 @@ class SystemRoleDeclarationIT {
     }
 
     @Test
-    @DisplayName("0034-G8-01 两个实例同时在无角色数据的库上启动：都启动成功，结果与单实例相同（六个系统角色，各恰有版本 1）")
+    @DisplayName("0034-G8-01 两个实例同时在无角色数据的库上启动：都启动成功，结果与单实例相同（七个系统角色，各恰有版本 1）")
     void twoInstancesStartingTogetherEndAlike() throws Exception {
         String database = migratedDatabase("forcitis_one_roles_together");
         Outcome warmUp = launch(database);
@@ -242,8 +266,9 @@ class SystemRoleDeclarationIT {
 
         assertThat(a.started()).as(a.output()).isTrue();
         assertThat(b.started()).as(b.output()).isTrue();
-        assertThat(rows(database, "select count(*) from platform_identity.roles").getFirst().getFirst()).isEqualTo(6L);
+        assertThat(rows(database, "select count(*) from platform_identity.roles").getFirst().getFirst()).isEqualTo(7L);
         assertOneSeedVersion(database);
+        assertPersonnelSpecialistSeeded(database);
     }
 
     private static Outcome start(String database) {

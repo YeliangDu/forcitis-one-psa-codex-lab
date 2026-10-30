@@ -29,8 +29,9 @@ public final class SystemRoleDeclarationLauncher {
     static final String OPEN_SEED_VERSIONS = """
             select count(*) from platform_identity.role_versions
              where effective_to_at is null and change_channel_kind = 'SEED'
-               and role_id in ('019a0000-0000-7000-8000-000000000101', '019a0000-0000-7000-8000-000000000102', '019a0000-0000-7000-8000-000000000103',
-                               '019a0000-0000-7000-8000-000000000104', '019a0000-0000-7000-8000-000000000105', '019a0000-0000-7000-8000-000000000106')""";
+               and (role_id in ('019a0000-0000-7000-8000-000000000101', '019a0000-0000-7000-8000-000000000102', '019a0000-0000-7000-8000-000000000103',
+                               '019a0000-0000-7000-8000-000000000104', '019a0000-0000-7000-8000-000000000105', '019a0000-0000-7000-8000-000000000106')
+                    or role_id in (select role_id from platform_identity.roles where code = 'personnel_specialist'))""";
 
     private SystemRoleDeclarationLauncher() {
     }

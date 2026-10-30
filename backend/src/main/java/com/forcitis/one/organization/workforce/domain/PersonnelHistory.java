@@ -1,0 +1,29 @@
+package com.forcitis.one.organization.workforce.domain;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Everything the rules and the timeline need about one employee, read after the employee row is locked: every version row of both tables (superseded
+ * ones too, they are the ancestors of re-appended rows) and every command that is not withdrawn.
+ */
+public record PersonnelHistory(List<VersionRow> employeeRows, List<VersionRow> assignmentRows, List<PersonnelCommand> commands,
+                               Map<UUID, PersonnelCommand> lookup) {
+
+    public List<VersionRow> currentEmployeeRows() {
+        return current(employeeRows);
+    }
+
+    public List<VersionRow> currentAssignmentRows() {
+        return current(assignmentRows);
+    }
+
+    private static List<VersionRow> current(List<VersionRow> rows) {
+        return rows.stream().filter(row -> !row.superseded()).toList();
+    }
+
+    public VersionRow row(UUID id) {
+        return java.util.stream.Stream.concat(employeeRows.stream(), assignmentRows.stream()).filter(r -> r.id().equals(id)).findFirst().orElseThrow();
+    }
+}

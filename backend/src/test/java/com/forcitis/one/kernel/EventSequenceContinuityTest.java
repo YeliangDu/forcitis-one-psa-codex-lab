@@ -130,6 +130,17 @@ class EventSequenceContinuityTest {
     }
 
     @Test
+    @DisplayName("PersonnelCommand: events are numbered 1..n, continuing the employee's sequence")
+    void personnelCommand() {
+        checkMany(() -> com.forcitis.one.organization.workforce.domain.PersonnelCommand.enter(
+                        new com.forcitis.one.organization.workforce.api.PersonnelCommandId(TestIds.uuid(1)),
+                        new com.forcitis.one.organization.workforce.api.EnterPersonnelCommand(new EmployeeId(TestIds.uuid(2)),
+                                com.forcitis.one.organization.workforce.api.PersonnelCommandKind.REGULARIZE, TODAY, null, null, null, null, null, null),
+                        new UserId(TestIds.uuid(3)), NOW, TODAY, 7),
+                List.of(c -> c.recordEffect(null, null), c -> c.withdraw(new UserId(TestIds.uuid(3)), "synthetic", NOW), c -> c.withdraw(new UserId(TestIds.uuid(3)), " ", NOW)));
+    }
+
+    @Test
     @DisplayName("SyncRun: events are numbered 1..n")
     void syncRun() {
         RunStats stats = new RunStats(1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0);
