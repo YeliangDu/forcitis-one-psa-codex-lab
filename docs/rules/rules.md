@@ -44,7 +44,7 @@ The user decides (intent 2026-10-28-215645): business scope and order; business 
 
 Lead and sessions decide within the baseline, lead reports results to the user daily: code, architecture and ADRs, tests, scripts, CI, process, tools, rules and harness, and other reversible technical choices; check pstack's principles and playbooks first.
 
-Only lead asks the user, in the conversation, with options and a recommendation; record the user's spoken decision verbatim with new_intent at once. Anything that contradicts a recorded decision word for word: stop and tell lead. Pushing, opening PRs and triggering CI are standing permissions unless the card limits them; authors may turn on Auto-fix for their own PR, never auto-merge; app-level standing permissions and gaps left by hooks are not user authorization.
+Only lead asks the user, in the conversation, with options and a recommendation; record the user's words verbatim as `docs/rules/roles/lead.md` rule 3 sorts them (business rules via new_intent, batched; go-aheads as comments). Anything that contradicts a recorded decision word for word: stop and tell lead. Pushing, opening PRs and triggering CI are standing permissions unless the card limits them; authors may turn on Auto-fix for their own PR, never auto-merge; app-level standing permissions and gaps left by hooks are not user authorization.
 
 ## ⑩ Models
 Enforced by: manual: lead / every dispatch
