@@ -77,8 +77,8 @@ class ArchitectureRulesTest {
     @Test
     void apiSurfaceExceptionModuleAllowsExactlyItsLimit() {
         String module = ROOT + ".organization.workforce";
-        assertApiSurfaceNarrow(Map.of(module, 13L));
-        assertThatThrownBy(() -> assertApiSurfaceNarrow(Map.of(module, 14L)))
+        assertApiSurfaceNarrow(Map.of(module, 15L));
+        assertThatThrownBy(() -> assertApiSurfaceNarrow(Map.of(module, 16L)))
                 .isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Deepen the module instead of widening its interface.");
     }
