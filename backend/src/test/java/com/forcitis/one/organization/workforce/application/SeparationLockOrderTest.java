@@ -131,6 +131,22 @@ class SeparationLockOrderTest {
     }
 
     @Test
+    @DisplayName("#933 the due-date step takes the separation lock before the employee row, whatever the kind of the command")
+    void dueStepLocksTheDecisionFirst() {
+        ApplyDueCommand due = new ApplyDueCommand(commands, mock(LegalEntityResolutionSources.class), mock(DomainEvents.class), ids, clock, zone);
+        PersonnelCommand pending = PersonnelCommand.restore(COMMAND, EMPLOYEE, PersonnelCommandKind.REGULARIZE, LocalDate.of(2026, 11, 2), CommandStatus.PENDING,
+                null, null, null, null, null, USER, NOW, null, 0, 0);
+        when(commands.find(COMMAND)).thenReturn(java.util.Optional.of(pending));
+
+        due.execute(COMMAND);
+
+        InOrder order = inOrder(commands);
+        order.verify(commands).lockSeparationDecisions();
+        order.verify(commands).lockEmployee(EMPLOYEE);
+        order.verify(commands).update(any(), any(), anyLong());
+    }
+
+    @Test
     @DisplayName("#931 the notice at one remaining leaves out the held only: an administrator released and waiting for the date is still told")
     void theNoticeLeavesOutOnlyTheHeld() {
         SeparationReview review = mock(SeparationReview.class);
