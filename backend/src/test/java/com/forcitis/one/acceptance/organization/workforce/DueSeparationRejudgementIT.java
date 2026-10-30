@@ -130,7 +130,7 @@ class DueSeparationRejudgementIT extends FutureHoldSupport {
     }
 
     @Test
-    @DisplayName("#967 设计（离职人按最后工作日判）、ADR-0068 第 3 条：最后工作日在停薪留职的离职人不是可用管理员，生效日复判不暂停")
+    @DisplayName("#967 设计（离职人按最后工作日判）、ADR-0068 第 3 条：停薪留职恰从最后工作日开始的离职人不是可用管理员，生效日复判不暂停")
     void aLeaverOnUnpaidLeaveOnTheLastWorkingDayIsNotHeld() throws Exception {
         administrator();
         administrator();
@@ -139,10 +139,11 @@ class DueSeparationRejudgementIT extends FutureHoldSupport {
         Map<String, Object> leave = new HashMap<>();
         leave.put(EMPLOYEE_ID, leaver.employeeId());
         leave.put(COMMAND_KIND, UNPAID_LEAVE_START);
-        leave.put(EFFECTIVE_DATE, TODAY.plusDays(2));
+        leave.put(EFFECTIVE_DATE, DUE.minusDays(1));
         commands().enter(leave);
         UUID command = pendingSeparationOf(leaver);
         grantByOperations(leaver.employeeId(), SUPER_ADMIN);
+        assertThat(onUnpaidLeaveOn(leaver.employeeId(), DUE.minusDays(2))).as("not on leave the day before: only the last working day decides").isFalse();
         assertThat(onUnpaidLeaveOn(leaver.employeeId(), DUE.minusDays(1))).as("on leave on the last working day").isTrue();
 
         setToday(DUE);
