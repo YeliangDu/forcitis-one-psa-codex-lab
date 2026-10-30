@@ -187,7 +187,7 @@ abstract class SeparationHoldOperationSupport extends SeparationHoldSupport {
         return auditQuery(null, null, AUDIT_HOLD_RELEASED).stream().filter(entry -> employee.toString().equals(String.valueOf(entry.get("subjectId")))).toList();
     }
 
-    protected static LocalDate longAgo() {
+    protected static LocalDate farFuture() {
         return TODAY.plusYears(10);
     }
 }

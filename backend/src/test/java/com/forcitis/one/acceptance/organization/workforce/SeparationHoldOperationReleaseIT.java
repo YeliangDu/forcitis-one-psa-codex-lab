@@ -43,7 +43,7 @@ class SeparationHoldOperationReleaseIT extends SeparationHoldOperationSupport {
     }
 
     @Test
-    @DisplayName("#877 ADR-0068 第 2 条第 4 项（行 95）、第 1 条第 8 项（行 67）：放行发生在三天后：离职版本仍从原生效日起（前后版本衔接，历史只作废不删除），命令生效日不变")
+    @DisplayName("#877 ADR-0068 第 2 条第 4 项（行 95）、第 1 条第 8 项（行 68 补登）、第 2 条第 3 项（行 89 不重判）：放行发生在三天后：离职版本仍从原生效日起（前后版本衔接，历史只作废不删除），命令生效日不变")
     void aLaterReleaseIsWrittenBackAtTheOriginalDate() throws Exception {
         Held held = heldWithNoneRemaining();
         Pair pair = twoPeople();

@@ -115,7 +115,7 @@ class SeparationHoldOperationRefusalIT extends SeparationHoldOperationSupport {
         assertRefusedUnchanged(unknownWitness, held, before, REFUSED);
     }
 
-    @ParameterizedTest(name = "[{index}] reason of {0} characters")
+    @ParameterizedTest(name = "[{index}] case {0} (0 empty, 1 whitespace only, otherwise that many characters)")
     @ValueSource(ints = {0, 1, 501, 1000})
     @DisplayName("#877 ADR-0068 第 2 条第 1 项（行 79）、附件 DDL ck_separation_holds_release_reason：原因为空串、全空白（空格、制表、换行）、超过 500 个字被拒，库内无变化")
     void aBlankOrOverlongReasonIsRefused(int length) throws Exception {
@@ -204,7 +204,7 @@ class SeparationHoldOperationRefusalIT extends SeparationHoldOperationSupport {
         Held held = heldWithNoneRemaining();
         Pair pair = twoPeople();
         Snapshot before = snapshot(held);
-        setToday(longAgo());
+        setToday(farFuture());
         YearMonth month = YearMonth.from(clock.instant().atOffset(ZoneOffset.UTC));
 
         Result result = release(held, pair, REASON_TEXT);
