@@ -38,6 +38,12 @@ class SystemRoleRaisedRevisionIT {
         return rows(database, VERSIONS, roleId);
     }
 
+    /** The versions of the seventh system role, found by its code because its role_id is the declaration's choice (#872). */
+    private static List<List<Object>> personnelSpecialistVersions(String database) throws SQLException {
+        return rows(database, "select v.version_number, v.effective_to_at is null, v.permission_codes, v.declaration_revision_number from platform_identity.role_versions v"
+                + " join platform_identity.roles r on r.role_id = v.role_id where r.code = 'personnel_specialist' order by v.version_number");
+    }
+
     private static Map<String, List<List<Object>>> allVersions(String database) throws SQLException {
         Map<String, List<List<Object>>> all = new LinkedHashMap<>();
         for (SeededRole role : SystemRoleDeclarationIT.SEED) {
@@ -51,12 +57,14 @@ class SystemRoleRaisedRevisionIT {
     }
 
     @Test
-    @DisplayName("0034-G8-01 修订号提高：声明中员工角色为修订 2 且定义不同，启动后员工角色恰有两个版本，版本 1 在版本 2 开始时刻关闭且内容原样，版本 2 当前、渠道 SEED、修订号 2、内容逐项等于声明、无记录人无授权申请、有理由与审计条目；其他五个角色不变；再次以同一声明启动不再新增版本")
+    @DisplayName("0034-G8-01 修订号提高：声明中员工角色为修订 2 且定义不同，启动后员工角色恰有两个版本，版本 1 在版本 2 开始时刻关闭且内容原样，版本 2 当前、渠道 SEED、修订号 2、内容逐项等于声明、无记录人无授权申请、有理由与审计条目；其他五个基线角色与人事专员 personnel_specialist 不变；再次以同一声明启动不再新增版本")
     void aHigherRevisionAppendsASeedVersion() throws Exception {
         String database = migratedDatabase("forcitis_one_roles_raised");
         Outcome first = launch(database);
         assertThat(first.started()).as(first.output()).isTrue();
         Map<String, List<List<Object>>> before = allVersions(database);
+        List<List<Object>> personnelSpecialistBefore = personnelSpecialistVersions(database);
+        assertThat(personnelSpecialistBefore).as("the first start wrote version 1 of personnel_specialist").hasSize(1);
         assertThat(before.get(EMPLOYEE)).as("the first start wrote version 1 only").hasSize(1);
 
         Outcome raised = launch(database, RaisedDeclarationLauncher.class);
@@ -114,7 +122,10 @@ class SystemRoleRaisedRevisionIT {
                 assertThat(after.get(role.roleId())).as("%s was declared unchanged: no version written, none closed", role.code()).isEqualTo(before.get(role.roleId()));
             }
         }
-        assertThat(rows(database, "select count(*) from platform_identity.roles").getFirst().getFirst()).as("no role row added").isEqualTo(6L);
+        assertThat(personnelSpecialistVersions(database)).as("personnel_specialist was declared unchanged: no version written, none closed")
+                .isEqualTo(personnelSpecialistBefore);
+        // Seven system roles since #872 declared 人事专员 personnel_specialist (lead decision 2026-10-30): the six of the baseline seed and that one.
+        assertThat(rows(database, "select count(*) from platform_identity.roles").getFirst().getFirst()).as("no role row added").isEqualTo(7L);
 
         Outcome again = launch(database, RaisedDeclarationLauncher.class);
         assertThat(again.started()).as(again.output()).isTrue();
