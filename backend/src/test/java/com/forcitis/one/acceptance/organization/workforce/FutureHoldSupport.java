@@ -146,6 +146,11 @@ abstract class FutureHoldSupport extends SeparationHoldSupport {
         return captured.getAllValues();
     }
 
+    /** The cards about one release: only those whose subject is the hold under test (other cards of the gateway are none of this test's business). */
+    protected List<WecomCard> cardsFor(UUID hold) {
+        return cards().stream().filter(card -> card.subject().id().equals(hold)).toList();
+    }
+
     /** The WeCom user ids on the card, sorted; duplicates are kept, so that "once, not twice" can be asserted. */
     protected static List<String> recipientsOf(WecomCard card) {
         List<String> ids = new ArrayList<>();

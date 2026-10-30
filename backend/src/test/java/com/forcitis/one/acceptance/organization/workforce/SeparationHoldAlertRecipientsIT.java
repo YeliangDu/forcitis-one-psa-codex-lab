@@ -42,8 +42,8 @@ class SeparationHoldAlertRecipientsIT extends FutureHoldSupport {
         }
     }
 
-    private WecomCard theOneCard() {
-        List<WecomCard> sent = cards();
+    private WecomCard theOneCard(UUID hold) {
+        List<WecomCard> sent = cardsFor(hold);
         assertThat(sent).as("one card for the one release (cards: " + sent + ")").hasSize(1);
         return sent.getFirst();
     }
@@ -67,7 +67,7 @@ class SeparationHoldAlertRecipientsIT extends FutureHoldSupport {
 
         releaseAs(releaser, held.hold(), REASON_TEXT);
 
-        WecomCard card = theOneCard();
+        WecomCard card = theOneCard(held.hold());
         assertThat(recipientsOf(card)).as("exact recipients").containsExactlyInAnyOrderElementsOf(wecomIdsOf(stays, releaser, anotherAuditor));
         assertThat(recipientsOf(card)).as("not the separating person, the other held administrator, disabled accounts or the 人事专员")
                 .doesNotContainAnyElementsOf(wecomIdsOf(leaver, alsoHeld, disabledAdministrator, disabledAuditor, hr));
@@ -88,12 +88,12 @@ class SeparationHoldAlertRecipientsIT extends FutureHoldSupport {
 
         releaseAs(releaser, held.hold(), REASON_TEXT);
 
-        WecomCard card = theOneCard();
+        WecomCard card = theOneCard(held.hold());
         assertThat(recipientsOf(card)).containsExactlyInAnyOrderElementsOf(wecomIdsOf(both, releaser));
         assertThat(recipientsOf(card)).as("once, not once per role").doesNotHaveDuplicates();
         Staff another = auditor();
         assertThatThrownBy(() -> releaseAs(another, held.hold(), "synthetic: again")).isInstanceOf(RuntimeException.class);
-        assertThat(cards()).as("the refused second release sends nothing").hasSize(1);
+        assertThat(cardsFor(held.hold())).as("the refused second release sends nothing").hasSize(1);
     }
 
     @Test
@@ -107,7 +107,7 @@ class SeparationHoldAlertRecipientsIT extends FutureHoldSupport {
 
         releaseAs(inMode, held.hold(), REASON_TEXT);
 
-        WecomCard card = theOneCard();
+        WecomCard card = theOneCard(held.hold());
         assertThat(recipientsOf(card)).containsExactlyInAnyOrderElementsOf(wecomIdsOf(stays));
     }
 
@@ -121,7 +121,7 @@ class SeparationHoldAlertRecipientsIT extends FutureHoldSupport {
 
         releaseAs(scenario.releaser(), scenario.held().hold(), REASON_TEXT);
 
-        assertThat(cards()).as("no alert when two remain").isEmpty();
+        assertThat(cardsFor(scenario.held().hold())).as("no alert when two remain").isEmpty();
         assertThat(alertsSince(mark)).isEmpty();
         assertThat(commandStatus(scenario.held().command())).isEqualTo(EFFECTIVE);
     }
@@ -136,7 +136,7 @@ class SeparationHoldAlertRecipientsIT extends FutureHoldSupport {
 
         assertThatThrownBy(() -> releaseAs(releaser, held.hold(), REASON_TEXT)).isInstanceOf(RuntimeException.class);
 
-        assertThat(cards()).isEmpty();
+        assertThat(cardsFor(held.hold())).isEmpty();
         assertThat(holdStatus(held.hold())).isEqualTo(HELD);
         assertThat(commandStatus(held.command())).isEqualTo(HELD);
     }
@@ -153,13 +153,13 @@ class SeparationHoldAlertRecipientsIT extends FutureHoldSupport {
         releaseAs(releaser, held.hold(), REASON_TEXT);
 
         assertThat(commandStatus(held.command())).isEqualTo(PENDING);
-        WecomCard card = theOneCard();
+        WecomCard card = theOneCard(held.hold());
         assertThat(recipientsOf(card)).containsExactlyInAnyOrderElementsOf(wecomIdsOf(stays, releaser));
 
         setToday(DUE);
         runDueJob();
 
         assertThat(commandStatus(held.command())).isEqualTo(EFFECTIVE);
-        assertThat(cards()).as("the alert belongs to the release, not to the job").hasSize(1);
+        assertThat(cardsFor(held.hold())).as("the alert belongs to the release, not to the job").hasSize(1);
     }
 }

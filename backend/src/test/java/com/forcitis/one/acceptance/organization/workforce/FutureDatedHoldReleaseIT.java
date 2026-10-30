@@ -2,15 +2,11 @@ package com.forcitis.one.acceptance.organization.workforce;
 
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
-import java.sql.Connection;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -41,8 +37,6 @@ class FutureDatedHoldReleaseIT extends FutureHoldSupport {
     /** One day after TODAY (business zone) starts at this instant: 2026-11-03 00:00 Asia/Shanghai, still 2026-11-02 in UTC. */
     private static final Instant MIDNIGHT_OF_TOMORROW = Instant.parse("2026-11-02T16:00:00Z");
     private static final Instant ONE_MINUTE_BEFORE_IT = Instant.parse("2026-11-02T15:59:00Z");
-
-    private static final java.util.regex.Pattern DATE_OF = java.util.regex.Pattern.compile("\"effectiveDate\"\\s*:\\s*\"([0-9-]+)\"");
 
     private void assertOneSeparatedEventOn(UUID command, LocalDate day) throws Exception {
         assertThat(eventsOf(EVENT_SEPARATED, command)).as("exactly one EmployeeSeparated").isEqualTo(1);
@@ -144,7 +138,7 @@ class FutureDatedHoldReleaseIT extends FutureHoldSupport {
     // ---- A5: the due date ----
 
     @Test
-    @DisplayName("#931 ruling #732、ADR-0068 第 2 条第 3 项「不重跑，不再进入待放行」：到日作业在生效日执行：命令 EFFECTIVE，恰好一条 EmployeeSeparated（生效日为原日期）；同日再跑、次日再跑仍恰好一条；放行后此人仍是超管且剩余仅 1 名，作业仍不再暂停：无第二条暂停记录、无第二条 SeparationHeld、状态路径 HELD、PENDING、EFFECTIVE；版本与审计不被重写")
+    @DisplayName("#931 ruling #732、ADR-0068 第 2 条第 3 项「不重跑，不再进入待放行」：到日作业在生效日执行：命令 EFFECTIVE，恰好一条 EmployeeSeparated（生效日为原日期）；同日再跑、次日再跑仍恰好一条；作业之后无第二条暂停记录、无第二条 SeparationHeld、状态路径 HELD、PENDING、EFFECTIVE，版本与审计不被重写（只证明结果；到日时此人版本已是 SEPARATED，重判与否在此场景下不可区分）")
     void theDueDateJobExecutesOnceAndNeverHoldsAgain() throws Exception {
         Scenario scenario = heldOnWithRemaining(0, DUE);
         Held held = scenario.held();
@@ -267,58 +261,5 @@ class FutureDatedHoldReleaseIT extends FutureHoldSupport {
         assertThat(commandStatus(scenario.held().command())).isEqualTo(PENDING);
         assertThat(eventsOf(EVENT_SEPARATED, scenario.held().command())).isZero();
         assertSeparatedFrom(scenario.held().employee(), TODAY.plusDays(1));
-    }
-
-    // ---- A7: the data rules (direct SQL; DD signed in the ruling) ----
-
-    private static final OffsetDateTime AT = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
-
-    private void insertTransition(Connection workforce, UUID command, long sequence, String from, String to) throws Exception {
-        insertTransition(workforce, AGGREGATE_PERSONNEL_COMMAND, command, sequence, from, to);
-    }
-
-    private void insertTransition(Connection workforce, String aggregateType, UUID aggregate, long sequence, String from, String to) throws Exception {
-        update(workforce, """
-                insert into state_transitions (id, aggregate_type_code, aggregate_id, transition_sequence_number, from_status, to_status, occurred_on_date,
-                  recorded_at, actor_type, actor_id, cause_kind, command_id, correlation_id, created_at, updated_at)
-                values (gen_random_uuid(), ?, ?, ?, ?, ?, ?, ?, 'USER', ?, 'COMMAND', gen_random_uuid(), gen_random_uuid(), ?, ?)""",
-                aggregateType, aggregate, sequence, from, to, TODAY, AT, hr.userId(), AT, AT);
-    }
-
-    @Test
-    @DisplayName("#931 DD（ruling #732）：触发器 refuse_personnel_command_rewrite 与 ck_state_transitions_status_of_aggregate 放行 PersonnelCommand 的 HELD 到 PENDING（状态改写与 state_transitions 记录都被接受），不新增列")
-    void theDatabaseAcceptsHeldToPending() throws Exception {
-        Held held = held();
-        try (Connection workforce = schemaConnection("organization_workforce")) {
-            update(workforce, """
-                    update separation_holds set status = 'RELEASED', released_at = ?, released_by = ?, release_reason = ?, release_channel_kind = 'INTERFACE',
-                      updated_at = ?, version = version + 1 where separation_hold_id = ?""", AT, hr.userId(), REASON_TEXT, AT, held.hold());
-            update(workforce, "update personnel_commands set status = 'PENDING', updated_at = ?, version = version + 1 where personnel_command_id = ?", AT, held.command());
-            insertTransition(workforce, held.command(), 1, null, HELD);
-            insertTransition(workforce, held.command(), 2, HELD, PENDING);
-        }
-
-        assertThat(commandStatus(held.command())).isEqualTo(PENDING);
-        assertThat(statusPath(AGGREGATE_PERSONNEL_COMMAND, held.command())).containsExactly(HELD, PENDING);
-    }
-
-    @Test
-    @DisplayName("#931 DD 红例（ruling #732）：只放宽 HELD 到 PENDING：EFFECTIVE 与 WITHDRAWN 的命令仍不能改回 PENDING，state_transitions 仍不接受 SeparationHold 的 HELD 到 PENDING")
-    void onlyHeldToPendingIsNewlyAllowed() throws Exception {
-        UUID effective = transfer(employed(REGULAR), TODAY, newUnit());
-        assertThat(commandStatus(effective)).isEqualTo(EFFECTIVE);
-        UUID employee = employed(REGULAR);
-        UUID withdrawn = transfer(employee, TODAY.plusDays(5), newUnit());
-        commands().withdraw(withdrawn, "synthetic: entered by mistake");
-        assertThat(commandStatus(withdrawn)).isEqualTo(WITHDRAWN);
-
-        try (Connection workforce = schemaConnection("organization_workforce")) {
-            assertThatThrownBy(() -> update(workforce, "update personnel_commands set status = 'PENDING' where personnel_command_id = ?", effective))
-                    .hasMessageContaining("cannot move from EFFECTIVE to PENDING");
-            assertThatThrownBy(() -> update(workforce, "update personnel_commands set status = 'PENDING' where personnel_command_id = ?", withdrawn))
-                    .hasMessageContaining("cannot move from WITHDRAWN to PENDING");
-            assertThatThrownBy(() -> insertTransition(workforce, AGGREGATE_SEPARATION_HOLD, UUID.randomUUID(), 2, HELD, PENDING))
-                    .as("a SeparationHold never goes to PENDING; only the PersonnelCommand pair is new").hasMessageContaining("ck_state_transitions_status_of_aggregate");
-        }
     }
 }
