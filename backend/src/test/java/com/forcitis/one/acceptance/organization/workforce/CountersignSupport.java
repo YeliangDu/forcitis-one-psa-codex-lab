@@ -27,7 +27,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
  * Ground of the #894 tests (design note of #878; ADR-0073 item 3). Three legal entities (E1 is the world's), one unit attributed to each
- * (plus a second unit of E1), a finance head per entity, a second 人事专员 and an organisation data administrator. Employees either carry
+ * (plus a second unit of E1), a finance head per entity (bound by legal_entity_versions.finance_head_employee_id) and an organisation data administrator; further 人事专员 are made on demand by {@link #specialist}. Employees either carry
  * their own attribution to E1 ({@link #employed}) or only inherit the legal entity of their unit ({@link #inheriting}); the cost legal
  * entity is the own attribution first, else the unit chain (ADR-0073 item 3.4). The 人事专员 {@code hr} drafts everything.
  */
@@ -99,7 +99,7 @@ abstract class CountersignSupport extends SeparationHoldSupport {
         return id;
     }
 
-    /** A finance head: employed, holds the finance head role and is bound to the given legal entities (the binding is a 暂名, see CountersignNames). */
+    /** A finance head: employed, holds the finance head role and is the finance head of the given legal entities (one-design ruling, #893 DD amendment 2, see CountersignNames). */
     protected Staff head(UUID... entities) throws Exception {
         Staff who = account(FINANCE_HEAD_ROLE);
         for (UUID entity : entities) {
@@ -113,17 +113,25 @@ abstract class CountersignSupport extends SeparationHoldSupport {
      * repeats code, name and status and names the person is appended (legal_entity_versions is append-only; ruling of 2026-10-30).
      */
     protected void bind(Staff who, UUID entity) throws SQLException {
+        bindFrom(who, entity, TODAY);
+    }
+
+    /** As {@link #bind} but the new head holds the version from the given day (a later day leaves today's head in force until then). */
+    protected void bindFrom(Staff who, UUID entity, LocalDate from) throws SQLException {
         try (Connection workforce = schemaConnection("organization_workforce")) {
             Map<String, Object> open = query(workforce, "select * from " + LEGAL_ENTITY_VERSIONS + " where legal_entity_id = ? and effective_to_date is null", entity).get(0);
-            update(workforce, "update " + LEGAL_ENTITY_VERSIONS + " set effective_to_date = ? where legal_entity_version_id = ?", TODAY, open.get("legal_entity_version_id"));
+            update(workforce, "update " + LEGAL_ENTITY_VERSIONS + " set effective_to_date = ? where legal_entity_version_id = ?", from, open.get("legal_entity_version_id"));
             update(workforce, "insert into " + LEGAL_ENTITY_VERSIONS + " (legal_entity_version_id, legal_entity_id, effective_from_date, revision_number, code, name, status, "
-                    + FINANCE_HEAD_COLUMN + ") values (?, ?, ?, ?, ?, ?, ?, ?)", Uuids.timeOrdered(NOW), entity, TODAY, ((Number) open.get("revision_number")).intValue() + 1,
+                    + FINANCE_HEAD_COLUMN + ") values (?, ?, ?, ?, ?, ?, ?, ?)", Uuids.timeOrdered(NOW), entity, from, ((Number) open.get("revision_number")).intValue() + 1,
                     open.get("code"), open.get("name"), open.get("status"), stored(who.employeeId()));
         }
     }
 
     /** Raises the escalation level of a request directly in the schema (the trigger allows increases; the reminder job is card E). */
     protected void escalateTo(UUID command, String kind, UUID entity, int level) throws SQLException {
+        if (level == 0) {
+            return;
+        }
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, "update " + COUNTERSIGNS + " set escalation_level = ? where attribution_countersign_id = ?", (short) level, requestId(command, kind, entity));
         }

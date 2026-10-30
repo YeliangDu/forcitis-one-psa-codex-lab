@@ -46,7 +46,7 @@ final class CountersignNames {
     // Permission and roles (note section 6; user answers Q1 and Q3).
     static final String APPROVE_PERMISSION = "organization.workforce:legal-entity-attribution:approve";
     static final String FINANCE_HEAD_ROLE = "legal_entity_finance_head";
-    /** Q3 (user 2026-10-30): after go-live the escalated person is the business administrator, who may countersign any request. */
+    /** Q3 (user 2026-10-30): after go-live the escalated person is the business administrator, who may countersign a request of any legal entity once its escalation level is at least 2 (not below). */
     static final String ESCALATED_ROLE = "business_admin";
     /**
      * Ruling of one-design (W2/data owner, 2026-10-30): the finance head of a legal entity is a versioned column on the workforce table

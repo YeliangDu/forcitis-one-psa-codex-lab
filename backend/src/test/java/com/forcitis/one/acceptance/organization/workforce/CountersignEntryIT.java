@@ -4,6 +4,8 @@ import static com.forcitis.one.acceptance.organization.workforce.CountersignName
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
@@ -12,8 +14,9 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -158,8 +161,7 @@ class CountersignEntryIT extends CountersignSupport {
         }
         CountersignProbe probe = countersignsAs(headE1);
         for (List<String> deciding : List.of(probe.approveComponents(), probe.rejectComponents())) {
-            assertThat(deciding).contains(COUNTERSIGN_ID);
-            assertThat(deciding).noneMatch(component -> CALLER_MUST_NOT_SUPPLY.stream().anyMatch(word -> component.toLowerCase(java.util.Locale.ROOT).contains(word)));
+            assertThat(deciding).as("only the request and the reason; the decider is the signed-in caller").containsExactlyInAnyOrder(COUNTERSIGN_ID, REASON);
         }
     }
 
@@ -167,9 +169,9 @@ class CountersignEntryIT extends CountersignSupport {
     @DisplayName("#894 note #878 第 10 条第 10 项、ADR-0073 第 3 条第 2 项（行 54）：目标法人不在法人表内或已停用，被拒：不留命令行、不留请求行")
     void aTargetOutsideTheEntitiesOrInactiveIsRefused() throws Exception {
         UUID inactive = createLegalEntity(orgAdmin.session(), newLegalEntityCode("CD"), "Synthetic inactive entity");
-        try (java.sql.Connection workforce = schemaConnection("organization_workforce")) {
-            update(workforce, "update legal_entities set status = 'INACTIVE' where id = ?", inactive);
-        }
+        MockHttpServletResponse deactivated = mvc.perform(put(LEGAL_ENTITIES + "/" + inactive).header("If-Match", "\"0\"").with(csrf()).with(session(orgAdmin.session()))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Synthetic inactive entity\",\"status\":\"INACTIVE\"}")).andReturn().getResponse();
+        assertThat(deactivated.getStatus()).as("deactivating through the public path (a version is appended): " + deactivated.getContentAsString()).isEqualTo(200);
         UUID employee = employed(REGULAR);
         actIn(hr);
 
@@ -194,7 +196,9 @@ class CountersignEntryIT extends CountersignSupport {
         commands().withdraw(waiting.command(), "synthetic: replaced");
         UUID later = transfer(waiting.employee(), DAY.plusDays(1), unitE1b);
 
-        assertThat(Set.of(command(earlier).get("status"), command(unrelated).get("status"), command(later).get("status"))).containsExactly(PENDING);
+        assertThat(command(earlier).get("status")).isEqualTo(PENDING);
+        assertThat(command(unrelated).get("status")).isEqualTo(PENDING);
+        assertThat(command(later).get("status")).isEqualTo(PENDING);
     }
 
     @Test

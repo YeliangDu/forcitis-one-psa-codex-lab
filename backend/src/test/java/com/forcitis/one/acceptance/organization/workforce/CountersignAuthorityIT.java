@@ -23,7 +23,7 @@ import org.springframework.test.context.DynamicPropertySource;
 /**
  * #894 IMP-1030-FC-C, design note of #878 section 10 item 6 and section 6 (ADR-0073 item 3.6 lines 71 and 74; ADR-0027 item 2.2; user
  * answers Q1 and Q3 of 2026-10-30; playbook acceptance step 5): who may decide a request. Holders are real sessions: roles are granted by
- * the operations command and the account signs in. The finance head is bound to a legal entity (a 暂名, see CountersignNames); the
+ * the operations command and the account signs in. The finance head of an entity is the finance_head_employee_id of its legal_entity_versions row valid today (one-design ruling, #893 DD amendment 2); the
  * escalated person (Q3) holds the permission without a binding.
  */
 class CountersignAuthorityIT extends CountersignSupport {
@@ -97,22 +97,109 @@ class CountersignAuthorityIT extends CountersignSupport {
 
     @ParameterizedTest(name = "escalation level {0}")
     @ValueSource(ints = {2, 3})
-    @DisplayName("#894 用户答复 Q3（2026-10-30）、one-design 裁定：该行升级到等级 2 时业务管理员可决定，不必是该法人的财务负责人，决定人记为其账号；等级 3 时该法人的财务负责人仍可决定（没有新的决定人）；另一行（等级 0）业务管理员仍不能决定")
+    @DisplayName("#894 用户答复 Q3（2026-10-30）、one-design 裁定：该行升级等级不低于 2（含 3）时业务管理员可决定，不必是该法人的财务负责人，决定人记为其账号；另一行（等级 0）业务管理员仍不能决定")
     void theEscalatedPersonMayDecideFromLevelTwo(int level) throws Exception {
         Awaiting waiting = crossEntityTransfer(DAY);
         escalateTo(waiting.command(), KIND_CHANGE, e1, level);
         Staff escalated = account(ESCALATED_ROLE);
 
-        if (level == 2) {
-            approve(escalated, waiting.command(), KIND_CHANGE, e1);
-            assertThat(request(waiting.command(), KIND_CHANGE, e1).get("decided_by")).isEqualTo(escalated.userId());
-            assertThat(refusal(() -> approve(escalated, waiting.command(), KIND_CHANGE, e2))).as("the other row is still at level 0").isNotNull();
-        } else {
-            approve(headE1, waiting.command(), KIND_CHANGE, e1);
-            assertThat(request(waiting.command(), KIND_CHANGE, e1).get("decided_by")).isEqualTo(headE1.userId());
-        }
-        assertThat(decision(waiting.command(), KIND_CHANGE, e1)).isEqualTo(APPROVED);
+        approve(escalated, waiting.command(), KIND_CHANGE, e1);
+
+        assertThat(request(waiting.command(), KIND_CHANGE, e1).get("decided_by")).isEqualTo(escalated.userId());
+        assertThat(refusal(() -> approve(escalated, waiting.command(), KIND_CHANGE, e2))).as("the other row is still at level 0").isNotNull();
         assertThat(commandStatus(waiting.command())).isEqualTo(AWAITING);
+    }
+
+    @ParameterizedTest(name = "escalation level {0}")
+    @ValueSource(ints = {0, 1, 2, 3})
+    @DisplayName("#894 one-design 裁定、ADR-0073 第 3 条第 6 项（行 74）：该法人的财务负责人在升级等级 0 至 3 都可决定（等级 3 没有新的决定人）")
+    void theRowsOwnHeadDecidesAtEveryLevel(int level) throws Exception {
+        Awaiting waiting = crossEntityTransfer(DAY);
+        escalateTo(waiting.command(), KIND_CHANGE, e1, level);
+
+        approve(headE1, waiting.command(), KIND_CHANGE, e1);
+
+        assertThat(request(waiting.command(), KIND_CHANGE, e1).get("decided_by")).isEqualTo(headE1.userId());
+    }
+
+    // ---- reject and WITHDRAWAL rows follow the same decider rule (playbook step 5) ----
+
+    private Awaiting rowsOf(String kind) throws Exception {
+        Awaiting waiting = crossEntityTransfer(DAY);
+        if (kind.equals(KIND_WITHDRAWAL)) {
+            approveBoth(waiting.command());
+            actIn(hr);
+            commands().withdraw(waiting.command(), "synthetic: plan changed");
+        }
+        return waiting;
+    }
+
+    private void assertDecisionRefused(Staff who, Awaiting waiting, String kind, UUID entity, boolean reject) throws Exception {
+        Throwable failure = refusal(() -> {
+            if (reject) {
+                reject(who, waiting.command(), kind, entity, "synthetic: not allowed");
+            } else {
+                approve(who, waiting.command(), kind, entity);
+            }
+        });
+        assertThat(failure).as((reject ? "reject " : "approve ") + kind + " of " + entity).isNotNull();
+        assertThat(isPermissionRefusal(failure)).as(String.valueOf(failure)).isTrue();
+        assertThat(request(waiting.command(), kind, entity).get("decision_kind")).as("the row is still open").isNull();
+    }
+
+    @ParameterizedTest(name = "{0} rows")
+    @ValueSource(strings = {KIND_CHANGE, KIND_WITHDRAWAL})
+    @DisplayName("#894 note #878 第 6 节、第 10 条第 6 项、验收手册第 5 步（越权、跨范围）：拒签以及撤回请求行的批准、拒签，与批准 CHANGE 行同一决定人规则：不持权限的账号、持权限但不是该行法人负责人的人（另一法人负责人）、等级低于 2 的业务管理员都被拒，行仍未决")
+    void rejectionsAndWithdrawalRowsFollowTheSameRule(String kind) throws Exception {
+        Awaiting waiting = rowsOf(kind);
+        Staff nobody = account();
+        Staff escalated = account(ESCALATED_ROLE);
+
+        for (boolean reject : new boolean[] {true, false}) {
+            assertDecisionRefused(nobody, waiting, kind, e1, reject);
+            assertDecisionRefused(headE3, waiting, kind, e1, reject);
+            assertDecisionRefused(headE2, waiting, kind, e1, reject);
+            assertDecisionRefused(escalated, waiting, kind, e1, reject);
+        }
+        assertThat(commandStatus(waiting.command())).isIn(AWAITING, PENDING);
+    }
+
+    @Test
+    @DisplayName("#894 note #878 第 6 节、第 10 条第 6 项（权限与负责人两个条件缺一不可）：是该法人当前版本的财务负责人但没有会签权限（角色被收回或从未授予）的人，批准与拒签都被拒，请求仍未决")
+    void beingTheRecordedHeadWithoutThePermissionIsNotEnough() throws Exception {
+        Awaiting waiting = crossEntityTransfer(DAY);
+        Staff recordedOnly = account("personnel_specialist");
+        bind(recordedOnly, e1);
+
+        assertDecisionRefused(recordedOnly, waiting, KIND_CHANGE, e1, false);
+        assertDecisionRefused(recordedOnly, waiting, KIND_CHANGE, e1, true);
+    }
+
+    @Test
+    @DisplayName("#894 note #878 第 6 节、#893 数据设计修订 2（取今天有效的版本）、验收手册第 5 步（边界）：负责人换人后，原负责人（版本已关闭）批准与拒签都被拒、新负责人可决定")
+    void aFormerHeadCannotDecideAndTheNewOneCan() throws Exception {
+        Awaiting waiting = crossEntityTransfer(DAY);
+        Staff successor = head(e1);
+
+        assertDecisionRefused(headE1, waiting, KIND_CHANGE, e1, false);
+        assertDecisionRefused(headE1, waiting, KIND_CHANGE, e1, true);
+        approve(successor, waiting.command(), KIND_CHANGE, e1);
+
+        assertThat(request(waiting.command(), KIND_CHANGE, e1).get("decided_by")).isEqualTo(successor.userId());
+    }
+
+    @Test
+    @DisplayName("#894 #893 数据设计修订 2（取今天有效的版本）边界：明天才起任的新负责人今天不能决定，今天在任的负责人仍可决定")
+    void aHeadWhoStartsTomorrowCannotDecideToday() throws Exception {
+        Awaiting waiting = crossEntityTransfer(DAY);
+        Staff future = account(FINANCE_HEAD_ROLE);
+        bindFrom(future, e1, TODAY.plusDays(1));
+
+        assertDecisionRefused(future, waiting, KIND_CHANGE, e1, false);
+        assertDecisionRefused(future, waiting, KIND_CHANGE, e1, true);
+        approve(headE1, waiting.command(), KIND_CHANGE, e1);
+
+        assertThat(request(waiting.command(), KIND_CHANGE, e1).get("decided_by")).isEqualTo(headE1.userId());
     }
 
     @Test
