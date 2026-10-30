@@ -113,20 +113,19 @@ abstract class SeparationHoldSupport extends PersonnelCommandSupport {
         return (String) command(command).get("status");
     }
 
-    /** A held separation of {@code leaver}, a releaser who is not in the held set, and the administrators left after the leaver. */
+    /** A held separation of {@code leaver}, a releaser who is not in the held set, and the administrator who stays. */
     protected record Scenario(Held held, Staff leaver, Staff releaser, Staff stays) {
     }
 
     /**
-     * S1 is separated, S2 is held; {@code extra} more administrators join afterwards; S3 stays. Released, S2 leaves 1 + extra available
-     * administrators (S3 and the extra ones). The releaser is a security auditor, who is no administrator and so does not change the count.
+     * S2 is separated and so held (every separation of a super administrator is held, ADR-0055 decision 3 item 3); S3 stays and
+     * {@code extra} more administrators join afterwards. Released, S2 leaves 1 + extra available administrators. The releaser is a security
+     * auditor, who is no administrator and so does not change the count.
      */
     protected Scenario heldWithRemaining(int extra) throws Exception {
-        Staff s1 = administrator();
         Staff s2 = administrator();
         Staff s3 = administrator();
         Staff releaser = auditor();
-        assertThat(commandStatus(separateAsHr(s1))).isEqualTo(EFFECTIVE);
         Held held = heldSeparation(s2);
         for (int i = 0; i < extra; i++) {
             administrator();

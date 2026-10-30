@@ -34,24 +34,6 @@ class UnpaidLeaveAdministratorCountIT extends SeparationHoldSupport {
     }
 
     @Test
-    @DisplayName("#873 ADR-0068 第 3 条（行 107、110）、第 2 条第 2 项（行 83）：停薪留职的超管不算可用超管：三名超管中 S2 停薪留职，S1 离职剩下可用的只有 S3 一名，被暂停；停薪留职命令本身直接生效、此人账号与超管授予保留")
-    void anAdministratorOnLeaveIsNotAvailableWhenAnotherIsSeparated() throws Exception {
-        Staff s1 = administrator();
-        Staff s2 = administrator();
-        Staff s3 = administrator();
-        leave(UNPAID_LEAVE_START, s2);
-        assertThat(onUnpaidLeaveOn(s2.employeeId(), TODAY)).isTrue();
-        assertThat(employmentOn(s2.employeeId(), TODAY)).as("on leave is still employed").isEqualTo(EMPLOYED);
-
-        UUID command = separateAsHr(s1);
-
-        assertThat(commandStatus(command)).as("only S3 is available, fewer than two").isEqualTo(HELD);
-        assertThat(employmentOn(s1.employeeId(), TODAY)).isEqualTo(EMPLOYED);
-        assertThat(employmentOn(s3.employeeId(), TODAY)).isEqualTo(EMPLOYED);
-        assertThat(profileStatus(s2)).as("the leave keeps the session").isEqualTo(200);
-    }
-
-    @Test
     @DisplayName("#873 ADR-0068 第 3 条（行 107）、第 2 条第 3 项（行 90）：放行时停薪留职的超管不计入剩余可用超管：S3 停薪留职后放行 S2 的暂停剩余 0 名，界面拒绝；S3 结束停薪留职后剩余 1 名，放行成功并告警")
     void anAdministratorOnLeaveIsNotCountedAtRelease() throws Exception {
         Scenario scenario = heldWithRemaining(0);
@@ -97,17 +79,21 @@ class UnpaidLeaveAdministratorCountIT extends SeparationHoldSupport {
     }
 
     @Test
-    @DisplayName("#873 ADR-0068 第 3 条（行 107）边界：停薪留职结束后超管重新计入可用超管：三名超管中 S2 先停薪留职再结束，S1 离职剩下两名，不暂停")
+    @DisplayName("#873 ADR-0068 第 3 条（行 107）边界、第 2 条第 3 项（行 90）：停薪留职结束后超管重新计入可用超管：S2 先停薪留职再结束，放行 S1 的暂停时剩余 S2、S3 两名，不告警；停薪留职命令本身直接生效、不被暂停，账号与会话保留")
     void anAdministratorBackFromLeaveIsAvailableAgain() throws Exception {
         Staff s1 = administrator();
         Staff s2 = administrator();
         administrator();
+        Staff releaser = auditor();
+        Held held = heldSeparation(s1);
         leave(UNPAID_LEAVE_START, s2);
+        assertThat(profileStatus(s2)).as("the leave keeps the session").isEqualTo(200);
         leave(UNPAID_LEAVE_END, s2);
+        int mark = logMark();
 
-        UUID command = separateAsHr(s1);
+        releaseAs(releaser, held.hold(), REASON_TEXT);
 
-        assertThat(commandStatus(command)).isEqualTo(EFFECTIVE);
         assertThat(employmentOn(s1.employeeId(), TODAY)).isEqualTo(SEPARATED);
+        assertThat(alertsSince(mark)).as("two remain: no alert").isEmpty();
     }
 }

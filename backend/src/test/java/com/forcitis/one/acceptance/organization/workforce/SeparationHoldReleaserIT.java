@@ -32,12 +32,10 @@ class SeparationHoldReleaserIT extends SeparationHoldSupport {
         postgres.register(registry);
     }
 
-    /** S1 separated, S2 held, S3 stays: a hold whose release would leave one administrator, so the count is no reason to refuse. */
+    /** S2 held, S3 stays: a hold whose release would leave one administrator, so the count is no reason to refuse. */
     private Held oneHold() throws Exception {
-        Staff s1 = administrator();
         Staff s2 = administrator();
         administrator();
-        assertThat(commandStatus(separateAsHr(s1))).isEqualTo(EFFECTIVE);
         return heldSeparation(s2);
     }
 
@@ -48,13 +46,11 @@ class SeparationHoldReleaserIT extends SeparationHoldSupport {
     }
 
     @Test
-    @DisplayName("#873 ADR-0068 第 2 条第 2 项（行 84）、ADR-0028 决定 4：放行人本人也在待放行中时不算留任：S1 离职、S2 与 S3 先后被暂停，S3（同持安全审计员角色，有权限）放行 S2 的暂停被拒；另一名不在集合中的审计员可以放行 S2 的暂停")
+    @DisplayName("#873 ADR-0068 第 2 条第 2 项（行 84）、ADR-0028 决定 4：放行人本人也在待放行中时不算留任：S2 与 S3 先后被暂停，S3（同持安全审计员角色，有权限）放行 S2 的暂停被拒；另一名不在集合中的审计员可以放行 S2 的暂停")
     void aReleaserWhoIsHeldHimselfIsNotRetained() throws Exception {
-        Staff s1 = administrator();
         Staff s2 = administrator();
         Staff s3 = administrator(SECURITY_AUDITOR);
         Staff outsider = auditor();
-        assertThat(commandStatus(separateAsHr(s1))).isEqualTo(EFFECTIVE);
         Held second = heldSeparation(s2);
         Held third = heldSeparation(s3);
         administrator();

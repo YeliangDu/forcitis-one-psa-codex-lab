@@ -50,11 +50,12 @@ class SeparationHoldDecisionIT extends SeparationHoldSupport {
     }
 
     @RepeatedTest(8)
-    @DisplayName("#873 ADR-0068 第 2 条第 2 项（行 80 至 85）、附件守护规则 2：三名超管中两人的离职命令在两个线程、两个事务里同时录入：串行，第二条在锁内看到第一条的结果而被暂停（恰一条已生效、一条待放行），两边都不报错，剩下两名在职超管")
-    void twoConcurrentSeparationsOfAdministratorsSerialiseAndTheSecondIsHeld() throws Exception {
+    @DisplayName("#873 ADR-0068 第 2 条第 2 项（行 80 至 85）、ADR-0055 决定 3 第 3 项、附件守护规则 2：三名超管中两人的离职命令在两个线程、两个事务里同时录入：串行，两条都被暂停（各有一条 HELD 暂停记录，两人仍在职、不发 EmployeeSeparated），两边都不报错；再逐条放行，已在待放行中的人不算可用，故每次剩余 1 名并告警，两条都放行成功")
+    void twoConcurrentSeparationsOfAdministratorsSerialiseAndBothAreHeld() throws Exception {
         Staff first = administrator();
         Staff second = administrator();
         Staff stays = administrator();
+        Staff releaser = auditor();
         actIn(hr);
         PersonnelCommandsProbe probe = commands();
         CountDownLatch ready = new CountDownLatch(2);
@@ -75,21 +76,24 @@ class SeparationHoldDecisionIT extends SeparationHoldSupport {
             threads.shutdownNow();
         }
 
-        List<String> statuses = List.of(commandStatus(commands.get(0)), commandStatus(commands.get(1)));
-        assertThat(statuses).as("one separation runs, the one that came second is held").containsExactlyInAnyOrder(EFFECTIVE, HELD);
-        UUID heldCommand = commands.get(statuses.indexOf(HELD));
-        UUID effectiveCommand = commands.get(statuses.indexOf(EFFECTIVE));
-        Staff heldPerson = statuses.get(0).equals(HELD) ? first : second;
-        Staff gonePerson = heldPerson == first ? second : first;
-        assertThat(employmentOn(heldPerson.employeeId(), TODAY)).isEqualTo(EMPLOYED);
-        assertThat(employmentOn(gonePerson.employeeId(), TODAY)).isEqualTo(SEPARATED);
+        List<Staff> leavers = List.of(first, second);
+        for (int i = 0; i < 2; i++) {
+            assertThat(commandStatus(commands.get(i))).isEqualTo(HELD);
+            assertThat(holdStatus(holdIdOf(commands.get(i)))).isEqualTo(HELD);
+            assertThat(employmentOn(leavers.get(i).employeeId(), TODAY)).isEqualTo(EMPLOYED);
+            assertThat(eventsOf(EVENT_SEPARATED, commands.get(i))).isZero();
+            assertThat(eventsOf(EVENT_HELD, commands.get(i))).isEqualTo(1);
+        }
+        assertThat(rows("select 1 from " + SEPARATION_HOLDS + " where personnel_command_id in (?, ?)", commands.get(0), commands.get(1))).hasSize(2);
+        for (int i = 0; i < 2; i++) {
+            int mark = logMark();
+
+            releaseAs(releaser, holdIdOf(commands.get(i)), REASON_TEXT);
+
+            assertThat(alertsSince(mark)).as("the other held person is not available, so one remains: an alert").isNotEmpty();
+            assertThat(employmentOn(leavers.get(i).employeeId(), TODAY)).isEqualTo(SEPARATED);
+        }
         assertThat(employmentOn(stays.employeeId(), TODAY)).isEqualTo(EMPLOYED);
-        assertThat(rows("select 1 from " + SEPARATION_HOLDS + " where personnel_command_id in (?, ?)", commands.get(0), commands.get(1)))
-                .as("exactly one hold, for the held command").hasSize(1);
-        assertThat(holdStatus(holdIdOf(heldCommand))).isEqualTo(HELD);
-        assertThat(eventsOf(EVENT_SEPARATED, effectiveCommand)).isEqualTo(1);
-        assertThat(eventsOf(EVENT_HELD, heldCommand)).isEqualTo(1);
-        assertThat(eventsOf(EVENT_SEPARATED, heldCommand)).isZero();
     }
 
     @Test
@@ -135,19 +139,35 @@ class SeparationHoldDecisionIT extends SeparationHoldSupport {
     }
 
     @Test
-    @DisplayName("#873 ADR-0068 第 2 条第 2 项（行 83）、ADR-0055 决定 3 第 4 项边界：三名超管中一人离职，剩下两名，不少于两名，不暂停：命令直接生效，没有暂停记录")
-    void leavingTwoAdministratorsBehindIsNotHeld() throws Exception {
+    @DisplayName("#873 ADR-0055 决定 3 第 3 项（lead 裁定 ADR-0028 决定 1 保留）：离职人与可用超管持有人有交集即暂停，与剩余多少无关：三名超管中一人离职，剩下两名，仍被暂停，无 EmployeeSeparated")
+    void aSuperAdminSeparationIsHeldEvenWhenTwoRemain() throws Exception {
         Staff leaver = administrator();
         administrator();
         administrator();
 
         UUID command = separateAsHr(leaver);
 
-        assertThat(commandStatus(command)).isEqualTo(EFFECTIVE);
-        assertThat(employmentOn(leaver.employeeId(), TODAY)).isEqualTo(SEPARATED);
-        assertThat(rows("select 1 from " + SEPARATION_HOLDS + " where personnel_command_id = ?", command)).isEmpty();
-        assertThat(eventsOf(EVENT_SEPARATED, command)).isEqualTo(1);
-        assertThat(eventsOf(EVENT_HELD, command)).isZero();
+        assertThat(commandStatus(command)).isEqualTo(HELD);
+        assertThat(employmentOn(leaver.employeeId(), TODAY)).isEqualTo(EMPLOYED);
+        assertThat(holdStatus(holdIdOf(command))).isEqualTo(HELD);
+        assertThat(eventsOf(EVENT_SEPARATED, command)).isZero();
+        assertThat(eventsOf(EVENT_HELD, command)).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("#873 ADR-0055 决定 3 第 3 项、ADR-0028 决定 1（安全审计员持有人有交集即暂停）：只持安全审计员角色（非超管）的人离职同样被暂停，即使有三名超管在")
+    void anAuditorOnlySeparationIsHeld() throws Exception {
+        Staff leaver = auditor();
+        administrator();
+        administrator();
+        administrator();
+
+        UUID command = separateAsHr(leaver);
+
+        assertThat(commandStatus(command)).isEqualTo(HELD);
+        assertThat(employmentOn(leaver.employeeId(), TODAY)).isEqualTo(EMPLOYED);
+        assertThat(holdStatus(holdIdOf(command))).isEqualTo(HELD);
+        assertThat(eventsOf(EVENT_SEPARATED, command)).isZero();
     }
 
     @Test
@@ -165,21 +185,20 @@ class SeparationHoldDecisionIT extends SeparationHoldSupport {
     }
 
     @Test
-    @DisplayName("#873 ADR-0068 第 2 条第 2 项（行 83、84）：已在待放行中的人不算剩余可用超管：S1 离职生效、S2 被暂停后，新进一名 S4，S3 的离职剩下 S4 一人（S2 不计），被暂停；若把 S2 算作可用则剩两名而放行，所以此条证明集合被排除")
-    void thoseAlreadyHeldAreNotCountedAsAvailable() throws Exception {
+    @DisplayName("#873 ADR-0068 第 2 条第 2 项（行 83、84）、第 3 项（行 90）：已在待放行中的人不算剩余可用超管：只有 S1、S2 两名超管且都被暂停，放行 S1 时剩余 0 名（S2 在集合中不计；若计入则剩 1 名而放行），界面拒绝")
+    void thoseAlreadyHeldAreNotCountedAtRelease() throws Exception {
         Staff s1 = administrator();
         Staff s2 = administrator();
-        Staff s3 = administrator();
-        assertThat(commandStatus(separateAsHr(s1))).isEqualTo(EFFECTIVE);
+        Staff releaser = auditor();
+        Held first = heldSeparation(s1);
         heldSeparation(s2);
-        administrator();
 
-        UUID third = separateAsHr(s3);
+        Throwable refused = org.assertj.core.api.Assertions.catchThrowable(() -> releaseAs(releaser, first.hold(), REASON_TEXT));
 
-        assertThat(commandStatus(third)).as("S2 is held and so is not an available administrator").isEqualTo(HELD);
-        assertThat(employmentOn(s3.employeeId(), TODAY)).isEqualTo(EMPLOYED);
-        assertThat(rows("select 1 from " + SEPARATION_HOLDS + " where status = 'HELD' and employee_id in (?, ?)", stored(s2.employeeId()), stored(s3.employeeId())))
-                .hasSize(2);
+        assertThat(refused).isInstanceOf(RuntimeException.class);
+        assertThat(isPermissionRefusal(refused)).isFalse();
+        assertThat(holdStatus(first.hold())).isEqualTo(HELD);
+        assertThat(employmentOn(s1.employeeId(), TODAY)).isEqualTo(EMPLOYED);
     }
 
     @Test
