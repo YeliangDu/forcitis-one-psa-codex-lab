@@ -85,7 +85,7 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
     private List<Integer> identityRows() throws SQLException {
         List<Integer> rows = new ArrayList<>();
         try (Connection identity = schemaConnection("platform_identity")) {
-            for (String table : List.of("user_accounts", "account_roles", "emergency_admins", "authorization_requests")) {
+            for (String table : List.of("user_accounts", "account_role_grants", "emergency_admins", "authorization_requests")) {
                 try (PreparedStatement count = identity.prepareStatement("select count(*) from " + table); ResultSet rs = count.executeQuery()) {
                     rs.next();
                     rows.add(rs.getInt(1));

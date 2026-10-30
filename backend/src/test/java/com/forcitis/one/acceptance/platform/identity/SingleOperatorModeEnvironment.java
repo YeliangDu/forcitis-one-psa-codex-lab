@@ -148,7 +148,8 @@ final class SingleOperatorModeEnvironment {
 
     /** What a start of the application can write: grants, emergency accounts, audit entries, scheduler locks and the process engine's tables. */
     static List<Long> footprint(String database) throws SQLException {
-        return List.of(count(database, "platform_identity.account_roles", null), count(database, "platform_identity.emergency_admins", null),
+        return List.of(count(database, "platform_identity.account_role_grants", null), count(database, "platform_identity.account_role_grants", "effective_to_at is null"),
+                count(database, "platform_identity.emergency_admins", null),
                 count(database, "platform_identity.user_accounts", null), count(database, "platform_audit.audit_entries", null),
                 count(database, "platform_scheduling.scheduler_locks", null), engineTables(database));
     }

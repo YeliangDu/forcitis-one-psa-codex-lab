@@ -63,7 +63,7 @@ class SingleColumnPrimaryKeysIT extends AcceptanceSupport {
     }
 
     @Test
-    @DisplayName("R-1b P5 RULING-P5-D12：account_roles、role_versions（取代已退役的 role_permissions，ADR-0034-IMPL 卡 7.2）、sync_run_held_separations 的主键是单列 uuid；原键的列成为命名唯一约束")
+    @DisplayName("R-1b P5 RULING-P5-D12：role_versions（取代已退役的 role_permissions，ADR-0034-IMPL 卡 7.2）、sync_run_held_separations 的主键是单列 uuid（account_roles 已随 #732 删除，见下一条）；原键的列成为命名唯一约束")
     void theThreeTablesHaveASingleUuidKeyAndTheirOldKeyIsUnique() throws Exception {
         List<String> wrong = new ArrayList<>();
         try (Connection catalogue = schemaConnection("public")) {
@@ -84,5 +84,17 @@ class SingleColumnPrimaryKeysIT extends AcceptanceSupport {
         }
 
         assertThat(wrong).isEmpty();
+    }
+
+    @Test
+    @DisplayName("#732（接替 account_roles 一行）：account_roles 已删除；唯一授予表 account_role_grants 的主键是单列 uuid")
+    void theGrantStoreHasASingleUuidKeyAndAccountRolesIsGone() throws Exception {
+        try (Connection catalogue = schemaConnection("public")) {
+            assertThat(typeOf(catalogue, "platform_identity", "account_roles", "user_id")).as("account_roles no longer exists").isNull();
+            List<String> keys = columnsOf(catalogue, "platform_identity", "account_role_grants", true);
+            assertThat(keys).hasSize(1);
+            assertThat(keys.getFirst()).doesNotContain(",");
+            assertThat(typeOf(catalogue, "platform_identity", "account_role_grants", keys.getFirst())).isEqualTo("uuid");
+        }
     }
 }

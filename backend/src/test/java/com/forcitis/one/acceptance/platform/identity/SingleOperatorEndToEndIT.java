@@ -63,8 +63,8 @@ class SingleOperatorEndToEndIT extends AccountsAcceptanceSupport {
 
     private long rolesHeld(UUID employee, String roleCode) throws Exception {
         try (Connection identity = schemaConnection("platform_identity"); PreparedStatement count = identity.prepareStatement("""
-                select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id
-                 join platform_identity.user_accounts ua on ua.user_id = ar.user_id where ua.employee_id = ? and r.code = ?""")) {
+                select count(*) from platform_identity.account_role_grants ar join platform_identity.roles r on r.role_id = ar.role_id
+                 join platform_identity.user_accounts ua on ua.user_id = ar.user_id where ua.employee_id = ? and r.code = ? and ar.effective_to_at is null""")) {
             count.setObject(1, stored(employee));
             count.setString(2, roleCode);
             try (ResultSet rs = count.executeQuery()) {
