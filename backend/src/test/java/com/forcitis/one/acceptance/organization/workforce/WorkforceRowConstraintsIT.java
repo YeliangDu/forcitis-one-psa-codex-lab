@@ -199,7 +199,9 @@ class WorkforceRowConstraintsIT extends AccountsAcceptanceSupport {
     @DisplayName("DATA-REPAIR-workforce WF-09：任职版本的直属领导指向不存在的员工被 fk_assignment_versions_reports_to_employee_id 拒绝，指向存在的员工通过")
     void wf09AssignmentVersionReportsTo() throws SQLException {
         refusedBy(() -> assignmentVersion(null, UUID.randomUUID().toString()), FOREIGN_KEY_VIOLATION, "fk_assignment_versions_reports_to_employee_id");
-        assignmentVersion(null, person.toString());
+        UUID leader = newEmployeeId();
+        employee(leader, unit, null);
+        assignmentVersion(null, leader.toString());
     }
 
     @Test
