@@ -1,7 +1,7 @@
 # 法人归属会签（ADR-0073 第 3 条第 6 项；设计 docs/architecture/proposals/legal-entity-countersign.md，#878；one-design 2026-10-30，#898）。
 # 同名异义：ADR-0073 原文称「会签」「财务会签」，与 platform.approval 的「会签」countersign（节点上每位审批人都通过才算通过，RULE-248/273）不同：
 # 这里是一名（或前后两个法人各一名）法人财务负责人对一条命令的批准或拒签，不经审批流程（ADR-0073 备选方案：会签走审批流程会成环）。
-# 本 bc 用不同的中英文名「法人归属会签」AttributionCountersign，不复用 countersign；两名不同，不能列 homonyms，在两处 note 互注。中文名待用户确认（#898）。
+# 本 bc 用不同的中英文名「法人归属会签」AttributionCountersign，不复用 countersign；两名不同，不能列 homonyms，在两处 note 互注。中英文名用户已确认（2026-10-30「按建议改」：待会签改为「待法人归属会签」，会签请求已失效改为「法人归属会签已失效」，其余四项按提议）。
 terms:
 - id: attribution_countersign
   zh: 法人归属会签
@@ -18,11 +18,12 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）
   note: 与 platform.approval 的 countersign「会签」同名异义（中英文名不同，不列 homonyms，在此互注）；表 attribution_countersigns（#893）
-- id: awaiting_countersign
-  zh: 待会签
-  en: AwaitingCountersign
-  snake: awaiting_countersign
+- id: awaiting_attribution_countersign
+  zh: 待法人归属会签
+  en: AwaitingAttributionCountersign
+  snake: awaiting_attribution_countersign
   kind: state
   bc: organization.workforce
   scope: domain
@@ -34,7 +35,8 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: 状态值 AWAITING_COUNTERSIGN；「会签」在此指法人归属会签，不是 platform.approval 的会签
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）
+  note: 状态值 AWAITING_ATTRIBUTION_COUNTERSIGN（随用户确认的名称，原暂名 AWAITING_COUNTERSIGN 不再用）；「会签」在此指法人归属会签，不是 platform.approval 的会签
 - id: cost_legal_entity
   zh: 成本法人
   en: CostLegalEntity
@@ -50,6 +52,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）
   note: 会签判据即命令生效日前后的成本法人是否变化
 - id: change_legal_entity
   zh: 变更法人归属
@@ -65,6 +68,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）
   note: 命令种类值 CHANGE_LEGAL_ENTITY
 - id: employee_legal_entity_changed
   zh: 员工法人归属已变更
@@ -80,11 +84,12 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）
   note: ADR-0073 暂名「法人归属已变更」；事件名为聚合名 Employee 加过去式业务动词
-- id: countersign_lapsed
-  zh: 会签请求已失效
-  en: CountersignLapsed
-  snake: countersign_lapsed
+- id: attribution_countersign_lapsed
+  zh: 法人归属会签已失效
+  en: AttributionCountersignLapsed
+  snake: attribution_countersign_lapsed
   kind: state
   bc: organization.workforce
   scope: domain
@@ -95,4 +100,5 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）
   note: 决定值 LAPSED；与 APPROVED 批准、REJECTED 拒签并列

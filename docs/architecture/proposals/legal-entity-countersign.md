@@ -15,7 +15,7 @@ Scope: the personnel-command side (`personnel_commands`, `employee_legal_entitie
 
 | Fact | Source |
 |---|---|
-| `personnel_commands` has no `target_legal_entity_id`, no `CHANGE_LEGAL_ENTITY`, no `AWAITING_COUNTERSIGN` | baseline `V20261014131000__organization_workforce_baseline.sql`:573-616; contract A Q2 |
+| `personnel_commands` has no `target_legal_entity_id`, no `CHANGE_LEGAL_ENTITY`, no `AWAITING_ATTRIBUTION_COUNTERSIGN` | baseline `V20261014131000__organization_workforce_baseline.sql`:573-616; contract A Q2 |
 | `org_structure_commands` does not exist; `personnel_commands.org_structure_command_id` has no FK yet | baseline :585, :647; W2 §9 |
 | `employee_legal_entities` has no W2 common set (no command FK, no `superseded_at`) | baseline :292-307 |
 | Role 法人财务负责人 `legal_entity_finance_head` is per legal entity: "跨法人事项须另行写明由哪个法人的财务负责人承担" | `docs/glossary/terms.yaml` (id `legal_entity_finance_head`) |
@@ -34,7 +34,7 @@ Scope: the personnel-command side (`personnel_commands`, `employee_legal_entitie
 | If Q1 = both legal entities' heads sign | the column sets double again | one row per legal entity |
 | Deadline and escalation job (ADR-0073:74) | scans command rows by status, and needs a second rule for withdrawal requests | scans open request rows only |
 | Org-structure commands (card F) | the same columns repeated on a second table | the same table gains `org_structure_command_id` (exactly one of the two) |
-| Invariant "status leaves AWAITING_COUNTERSIGN only with every required decision" | in-row CHECK | cross-row, so application guard + behaviour test (same pattern as ADR-0068 1.5 cross-row rules) |
+| Invariant "status leaves AWAITING_ATTRIBUTION_COUNTERSIGN only with every required decision" | in-row CHECK | cross-row, so application guard + behaviour test (same pattern as ADR-0068 1.5 cross-row rules) |
 
 Choice: **B**. The number of signatures per command varies with Q1 and with withdrawal, and the job needs one queue. A keeps one invariant in-row but grows columns for each variation. This differs from the wording of ADR-0073 §4; §4 defers the shape to the data sign-off ("由 one-data 签发"), which is this role now, so it is a shape choice inside the ADR, reported to lead as a deviation call.
 
@@ -42,23 +42,23 @@ Choice: **B**. The number of signatures per command varies with Q1 and with with
 
 ## 4. State machine (personnel command)
 
-Statuses: `PENDING`, `HELD`, `EFFECTIVE`, `WITHDRAWN` (ADR-0068 1.4) plus `AWAITING_COUNTERSIGN`.
+Statuses: `PENDING`, `HELD`, `EFFECTIVE`, `WITHDRAWN` (ADR-0068 1.4) plus `AWAITING_ATTRIBUTION_COUNTERSIGN`.
 
 | From | To | When |
 |---|---|---|
-| (entry) | `AWAITING_COUNTERSIGN` | the employee's cost legal entity on the effective date differs before and after the command (ADR-0073:59), for any kind (`TRANSFER`, `CHANGE_LEGAL_ENTITY`, `CORRECTION`, ...). No version rows are written yet (ADR-0073 守护 1: "未会签不写版本"). In the same transaction the **required set** of `CHANGE` requests is created, computed from the basis and Q1 (one row per legal entity whose head must sign), never inferred from rows that happen to exist |
+| (entry) | `AWAITING_ATTRIBUTION_COUNTERSIGN` | the employee's cost legal entity on the effective date differs before and after the command (ADR-0073:59), for any kind (`TRANSFER`, `CHANGE_LEGAL_ENTITY`, `CORRECTION`, ...). No version rows are written yet (ADR-0073 守护 1: "未会签不写版本"). In the same transaction the **required set** of `CHANGE` requests is created, computed from the basis and Q1 (one row per legal entity whose head must sign), never inferred from rows that happen to exist |
 | (entry) | `PENDING` / `EFFECTIVE` / `HELD` | as ADR-0068 when the cost legal entity does not change |
-| `AWAITING_COUNTERSIGN` | `PENDING` or `EFFECTIVE` | every row of the required set is `APPROVED`; in the transaction of the last approval: lock the employee root, re-check after-separation, one-per-day, effective-date (closed period) and cost-legal-entity rules (ADR-0073:73), then write all versions of the command (employee legal entity, and for `TRANSFER` the assignment versions); `EFFECTIVE` when the effective date ≤ today |
-| `AWAITING_COUNTERSIGN` | `WITHDRAWN` | a `CHANGE` request is `REJECTED` with a reason; or an approval's re-check fails — then that request is recorded `REJECTED` with the re-check reason ("不满足即拒签", ADR-0073:73, and 拒签 → 已撤回, :72); or the drafter withdraws (:72). In the same transaction every other open request of the command becomes `LAPSED` |
+| `AWAITING_ATTRIBUTION_COUNTERSIGN` | `PENDING` or `EFFECTIVE` | every row of the required set is `APPROVED`; in the transaction of the last approval: lock the employee root, re-check after-separation, one-per-day, effective-date (closed period) and cost-legal-entity rules (ADR-0073:73), then write all versions of the command (employee legal entity, and for `TRANSFER` the assignment versions); `EFFECTIVE` when the effective date ≤ today |
+| `AWAITING_ATTRIBUTION_COUNTERSIGN` | `WITHDRAWN` | a `CHANGE` request is `REJECTED` with a reason; or an approval's re-check fails — then that request is recorded `REJECTED` with the re-check reason ("不满足即拒签", ADR-0073:73, and 拒签 → 已撤回, :72); or the drafter withdraws (:72). In the same transaction every other open request of the command becomes `LAPSED` |
 | `PENDING` (countersigned) | `WITHDRAWN` | every row of the `WITHDRAWAL` request set (same legal entities as the `CHANGE` set) is `APPROVED`; versions superseded as ADR-0068 1.6 |
 | `PENDING` (countersigned) | `PENDING` | a `WITHDRAWAL` request is `REJECTED`: the command stands, its other open `WITHDRAWAL` rows become `LAPSED`; a new withdrawal may be requested later (S1) |
 | `PENDING` (countersigned) | `EFFECTIVE` | effective date reached; open `WITHDRAWAL` rows become `LAPSED` (user Q2 a); undo afterwards only by a countersigned `CORRECTION` |
 
-**No later command while one awaits countersign** (user Q4 a, 2026-10-30): while an employee has an `AWAITING_COUNTERSIGN` command, entering a command for that employee with a later effective date is refused (same shape as "离职之后", ADR-0068 1.5). Reason: versions of the awaiting command are not written, so a later command would be judged without it; when the awaiting command is approved and back-written, the later command's re-appended version could switch the cost legal entity back with no countersign and no event (review rv887a M3). Earlier-dated commands are allowed; the approval re-check then catches a changed basis.
+**No later command while one awaits countersign** (user Q4 a, 2026-10-30): while an employee has an `AWAITING_ATTRIBUTION_COUNTERSIGN` command, entering a command for that employee with a later effective date is refused (same shape as "离职之后", ADR-0068 1.5). Reason: versions of the awaiting command are not written, so a later command would be judged without it; when the awaiting command is approved and back-written, the later command's re-appended version could switch the cost legal entity back with no countersign and no event (review rv887a M3). Earlier-dated commands are allowed; the approval re-check then catches a changed basis.
 
 **Drafter** (ADR-0073:69 with the later user decision of 2026-10-30 named 人事专员): for personnel commands the drafter is the 人事专员 who entered the command; ADR-0073:69 names 组织数据管理员 for drafting, which still holds for org-structure commands (card F). Entry is refused when the drafter's own legal entity or their own org unit chain's legal entity would change (ADR-0027 2.2).
 
-Unchanged: `HELD` is only for `SEPARATE`, which never changes a legal entity by itself. `CORRECTION` that changes a legal entity is exempt from "correction is immediate" (ADR-0073:75). The one-open-command-per-day index includes `AWAITING_COUNTERSIGN` (ADR-0073:73). Each transition writes workforce `state_transitions` (`PersonnelCommand`).
+Unchanged: `HELD` is only for `SEPARATE`, which never changes a legal entity by itself. `CORRECTION` that changes a legal entity is exempt from "correction is immediate" (ADR-0073:75). The one-open-command-per-day index includes `AWAITING_ATTRIBUTION_COUNTERSIGN` (ADR-0073:73). Each transition writes workforce `state_transitions` (`PersonnelCommand`).
 
 Countersign request: `OPEN → APPROVED | REJECTED | LAPSED`. `LAPSED` = closed without a decision because the command left the state that needed it (withdrawn, rejected through another row, or the effective date reached for `WITHDRAWAL`); any kind may lapse, so the deadline job never chases a request of a finished command. `state_transitions` aggregate type `AttributionCountersign`.
 
@@ -68,11 +68,11 @@ The columns below hold for every answer to Q1–Q4: Q1 changes how many request 
 
 ### 5.1 `personnel_commands` (change in the baseline while it is open, else a new migration)
 
-- `command_kind` adds `CHANGE_LEGAL_ENTITY`; `status` adds `AWAITING_COUNTERSIGN`; trigger transitions add the rows of section 4.
+- `command_kind` adds `CHANGE_LEGAL_ENTITY`; `status` adds `AWAITING_ATTRIBUTION_COUNTERSIGN`; trigger transitions add the rows of section 4.
 - `target_legal_entity_id uuid` → `legal_entities (id) ON DELETE RESTRICT`; partial FK index. CHECK: required for `CHANGE_LEGAL_ENTITY` (and no other target column); allowed for `TRANSFER` and `CORRECTION`; null for every other kind. The five-entity scope (ADR-0022) and ACTIVE status are application checks (the set lives in `legal_entities`).
-- Countersign basis (ADR-0073:58), written at entry, never changed: `countersign_previous_legal_entity_id uuid`, `countersign_new_legal_entity_id uuid`, both FK to `legal_entities`. CHECKs: the two are null together; when set they differ; `status <> 'AWAITING_COUNTERSIGN' OR countersign_new_legal_entity_id IS NOT NULL`. They are content columns, so the append-only trigger already refuses changing them.
-- `ck_personnel_commands_correction_immediate` becomes: `CORRECTION` is `EFFECTIVE` or (it carries a countersign basis and is `AWAITING_COUNTERSIGN` / `WITHDRAWN`).
-- `uk_personnel_commands_open_per_day` predicate becomes `status IN ('PENDING', 'HELD', 'AWAITING_COUNTERSIGN')`.
+- Countersign basis (ADR-0073:58), written at entry, never changed: `countersign_previous_legal_entity_id uuid`, `countersign_new_legal_entity_id uuid`, both FK to `legal_entities`. CHECKs: the two are null together; when set they differ; `status <> 'AWAITING_ATTRIBUTION_COUNTERSIGN' OR countersign_new_legal_entity_id IS NOT NULL`. They are content columns, so the append-only trigger already refuses changing them.
+- `ck_personnel_commands_correction_immediate` becomes: `CORRECTION` is `EFFECTIVE` or (it carries a countersign basis and is `AWAITING_ATTRIBUTION_COUNTERSIGN` / `WITHDRAWN`).
+- `uk_personnel_commands_open_per_day` predicate becomes `status IN ('PENDING', 'HELD', 'AWAITING_ATTRIBUTION_COUNTERSIGN')`.
 - New `uk_personnel_commands_id_employee_drafter UNIQUE (personnel_command_id, employee_id, created_by)`, the target of the drafter FK below.
 
 ### 5.2 New `attribution_countersigns`
@@ -133,14 +133,14 @@ User answers (relayed by lead, 2026-10-30): **Q1 (a)** both the previous and the
 
 ## 10. Acceptance cases (for the independent test engineer, card C)
 
-1. A `TRANSFER` across legal entities enters `AWAITING_COUNTERSIGN`; one inside a legal entity does not; a `TRANSFER` whose org unit chain changes the cost legal entity without `target_legal_entity_id` enters it too; the caller cannot pass a cost legal entity (ADR-0073:59).
+1. A `TRANSFER` across legal entities enters `AWAITING_ATTRIBUTION_COUNTERSIGN`; one inside a legal entity does not; a `TRANSFER` whose org unit chain changes the cost legal entity without `target_legal_entity_id` enters it too; the caller cannot pass a cost legal entity (ADR-0073:59).
 2. No version row (employee legal entity or assignment) exists while awaiting; after approval all are written in the approval transaction, at the original effective date.
 3. Approval with effective date ≤ today → `EFFECTIVE` and `EmployeeLegalEntityChanged` once; future → `PENDING`, no event yet.
 4. Reject needs a reason → `WITHDRAWN`, no versions, no event, the other open rows `LAPSED`; drafter withdrawal while awaiting → `WITHDRAWN`, all rows `LAPSED`; the deadline job never reminds on a lapsed row.
 5. Withdrawal of a countersigned `PENDING` command opens a `WITHDRAWAL` request set; approval of all supersedes the versions; a rejection keeps the command `PENDING` and a second withdrawal request is possible; the date passing lapses open rows (per Q2).
 6. Decider = drafter refused by the database even when the application records another requester (named CHECK through the drafter FK); decider whose own or chain's legal entity changes refused; drafter whose own or chain's legal entity would change refused at entry; a holder without `legal-entity-attribution:approve` refused; the escalated role per Q3.
 7. Approval re-checks under the employee lock: a second command entered for the same day meanwhile, a separation entered meanwhile, or a cost legal entity that changed meanwhile → that request `REJECTED` with the reason and the command `WITHDRAWN` (concurrency test, two threads). A later-dated command entered while one awaits countersign is refused (Q4 a), so no back-written approval can switch the legal entity back without countersign.
-12. An `AWAITING_COUNTERSIGN` command always has its full required set at entry; with one row approved and another still open the command stays awaiting (no vacuous "all approved").
+12. An `AWAITING_ATTRIBUTION_COUNTERSIGN` command always has its full required set at entry; with one row approved and another still open the command stays awaiting (no vacuous "all approved").
 8. Effective date in a closed period of an affected legal entity refused at entry and at approval (ADR-0073:61, ADR-0016).
 9. `CORRECTION` that changes a legal entity waits for countersign and is subject to one-per-day.
 10. Target legal entity outside the five or inactive refused.
