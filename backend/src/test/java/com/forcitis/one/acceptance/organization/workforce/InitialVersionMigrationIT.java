@@ -6,8 +6,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.kernel.Uuids;
+import java.sql.Connection;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -201,5 +205,95 @@ class InitialVersionMigrationIT extends InitialVersionMigrationSupport {
         String name = (String) rows("select display_name from employees where id = ?", stored(person)).get(0).get("display_name");
         assertThat(auditQuery(null, null, AUDIT_MIGRATED)).isNotEmpty().allSatisfy(entry -> assertThat(entry.values())
                 .noneMatch(value -> value != null && (value.toString().contains(text(person)) || value.toString().contains(name))));
+    }
+
+    @Test
+    @DisplayName("#960 数据设计第 3 节：收费员工标记取快照（快照为否则迁入为否）")
+    void aNonFeeEarnerStaysANonFeeEarner() throws Exception {
+        UUID person = snapshotPerson(false, null);
+        migrate();
+        List<Map<String, Object>> versions = currentVersions(EMPLOYEE_VERSIONS, person);
+        assertThat(versions).hasSize(1);
+        assertThat(versions.get(0).get("is_fee_earner")).isEqualTo(false);
+    }
+
+    @Test
+    @DisplayName("#960 数据设计第 4 节：已有任职版本的人即使与快照不一致也一行不动")
+    void anAssignmentThatDiffersFromTheSnapshotIsKept() throws Exception {
+        UUID person = snapshotPerson(false, null);
+        syncAssignmentVersion(person, LocalDate.of(2026, 3, 1), null);
+        UUID other = newUnit();
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update assignments set org_unit_id = ? where employee_id = ?", stored(other), stored(person));
+        }
+        List<Map<String, Object>> before = allVersions(ASSIGNMENT_VERSIONS, person);
+        migrate();
+        assertThat(allVersions(ASSIGNMENT_VERSIONS, person)).isEqualTo(before);
+    }
+
+    @Test
+    @DisplayName("#960 数据设计第 4 节：补写的任职版本取快照的岗位")
+    void theBackFilledAssignmentCarriesThePosition() throws Exception {
+        UUID person = snapshotPerson(false, null);
+        UUID position = newPosition();
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update assignments set position_id = ? where employee_id = ?", position, stored(person));
+        }
+        migrate();
+        List<Map<String, Object>> assignments = currentVersions(ASSIGNMENT_VERSIONS, person);
+        assertThat(assignments).hasSize(1);
+        assertThat(assignments.get(0).get("position_id")).isEqualTo(position);
+    }
+
+    @Test
+    @DisplayName("#960 数据设计第 5 节与运维命令形状：每次运行的审计记计数、操作人与见证人")
+    void theAuditCarriesCountsAndTheTwoPeople() throws Exception {
+        snapshotPerson(false, null);
+        UUID operator = employed(REGULAR);
+        UUID witness = employed(REGULAR);
+        Result result = migrate(operator, witness);
+        assertThat(result.exitCode()).as(result.text()).isEqualTo(DONE);
+        List<Map<String, Object>> entries = auditQuery(null, null, AUDIT_MIGRATED);
+        assertThat(entries).anySatisfy(entry -> {
+            String detail = String.valueOf(entry.get("detail"));
+            assertThat(detail).contains(text(operator)).contains(text(witness)).containsPattern("\\d");
+        });
+    }
+
+    @Test
+    @DisplayName("#960 数据设计第 3 节（范围：任意渠道的员工版本即跳过）：只有人事命令版本的人一行不动，运行成功")
+    void aPersonWithOnlyCommandVersionsIsKept() throws Exception {
+        UUID person = snapshotPerson(false, null);
+        UUID command = Uuids.timeOrdered(NOW);
+        OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, """
+                    insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
+                    values (?, ?, 'SEPARATE', ?, 'HELD', ?, ?, ?)""", command, stored(person), TODAY.plusDays(10), at, hr.userId(), at);
+            update(workforce, """
+                    insert into employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+                      employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
+                      change_channel_kind, change_command_id, version_audit_entry_id, created_at, updated_at)
+                    values (?, ?, ?, 0, 'EMPLOYED', 'PROBATION', false, false, ?, 'DECLARED', 'COMMAND', ?, ?, ?, ?)""",
+                    Uuids.timeOrdered(NOW), stored(person), TODAY.minusDays(5), TODAY.minusDays(5), command, UUID.randomUUID(), at, at);
+        }
+        List<Map<String, Object>> before = allVersions(EMPLOYEE_VERSIONS, person);
+        Result result = migrate();
+        assertThat(result.exitCode()).as(result.text()).isEqualTo(DONE);
+        assertThat(allVersions(EMPLOYEE_VERSIONS, person)).isEqualTo(before);
+    }
+
+    @Test
+    @DisplayName("#960 数据设计第 3 节（S 等于 L）：离职日正好是左边界时只写一条离职版本")
+    void aSeparationOnTheLeftEdgeGivesOneSeparatedRow() throws Exception {
+        UUID person = snapshotPerson(false, null);
+        syncAssignmentVersion(person, LocalDate.of(2026, 3, 1), null);
+        snapshotSeparated(person, Instant.parse("2026-03-01T02:00:00Z"));
+        Result result = migrate();
+        assertThat(result.exitCode()).as(result.text()).isEqualTo(DONE);
+        List<Map<String, Object>> versions = allVersions(EMPLOYEE_VERSIONS, person);
+        assertThat(versions).hasSize(1);
+        assertThat(versions.get(0).get("employment_status")).isEqualTo(SEPARATED);
+        assertThat(versions.get(0).get("effective_from_date")).isEqualTo(LocalDate.of(2026, 3, 1));
     }
 }

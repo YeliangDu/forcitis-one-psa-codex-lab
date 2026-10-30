@@ -44,4 +44,16 @@ class InitialVersionMigrationRefusalIT extends InitialVersionMigrationSupport {
         assertThat(currentVersions(EMPLOYEE_VERSIONS, person)).isEmpty();
         assertThat(auditCount(AUDIT_MIGRATED)).isEqualTo(audited);
     }
+
+    @Test
+    @DisplayName("#960 运维命令形状：操作人或见证人不是员工时拒绝，不写任何版本行")
+    void aWitnessWhoIsNoEmployeeIsRefused() throws Exception {
+        UUID person = snapshotPerson(false, null);
+        UUID operator = employed(REGULAR);
+        long rows = versionRowCount();
+        Result result = migrate(operator, UUID.fromString("01900000-0000-7000-8000-0000000fffff"));
+        assertThat(result.exitCode()).as(result.text()).isEqualTo(REFUSED);
+        assertThat(versionRowCount()).isEqualTo(rows);
+        assertThat(currentVersions(EMPLOYEE_VERSIONS, person)).isEmpty();
+    }
 }
