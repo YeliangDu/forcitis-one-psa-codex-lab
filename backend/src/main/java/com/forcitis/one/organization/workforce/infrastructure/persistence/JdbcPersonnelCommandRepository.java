@@ -163,23 +163,32 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
                 .param("createdAt", at(c.createdAt())).param("createdBy", c.createdBy().value()).param("version", c.version()).update();
     }
 
+    private static final String CLOSE_EMPLOYEE = "update organization_workforce.employee_versions set effective_to_date = :to, closed_at = :at, updated_at = :at"
+            + " where employee_version_id = :id";
+    private static final String CLOSE_ASSIGNMENT = "update organization_workforce.assignment_versions set effective_to_date = :to, closed_at = :at, updated_at = :at"
+            + " where assignment_version_id = :id";
+    private static final String SUPERSEDE_EMPLOYEE = "update organization_workforce.employee_versions set superseded_at = :at, superseding_command_id = :command,"
+            + " updated_at = :at where employee_version_id = :id";
+    private static final String SUPERSEDE_ASSIGNMENT = "update organization_workforce.assignment_versions set superseded_at = :at, superseding_command_id = :command,"
+            + " updated_at = :at where assignment_version_id = :id";
+    private static final String REVISION_EMPLOYEE = "select coalesce(max(revision_number) + 1, 0) from organization_workforce.employee_versions"
+            + " where employee_id = :employee and effective_from_date = :from";
+    private static final String REVISION_ASSIGNMENT = "select coalesce(max(revision_number) + 1, 0) from organization_workforce.assignment_versions"
+            + " where employee_id = :employee and effective_from_date = :from";
+
     @Override
     public void insertVersions(EmployeeId employee, VersionTable table, VersionPlan plan, PersonnelCommandId command, Instant at) {
+        boolean employeeTable = table == VersionTable.EMPLOYEE;
         for (VersionPlan.Close close : plan.closes()) {
-            jdbc.sql("update organization_workforce." + table.tableName() + " set effective_to_date = :to, closed_at = :at, updated_at = :at where "
-                    + (table == VersionTable.EMPLOYEE ? "employee_version_id" : "assignment_version_id") + " = :id")
-                    .param("to", close.to()).param("at", at(at)).param("id", close.id()).update();
+            jdbc.sql(employeeTable ? CLOSE_EMPLOYEE : CLOSE_ASSIGNMENT).param("to", close.to()).param("at", at(at)).param("id", close.id()).update();
         }
         for (UUID id : plan.supersede()) {
-            jdbc.sql("update organization_workforce." + table.tableName() + " set superseded_at = :at, superseding_command_id = :command, updated_at = :at where "
-                    + (table == VersionTable.EMPLOYEE ? "employee_version_id" : "assignment_version_id") + " = :id")
-                    .param("at", at(at)).param("command", command.value()).param("id", id).update();
+            jdbc.sql(employeeTable ? SUPERSEDE_EMPLOYEE : SUPERSEDE_ASSIGNMENT).param("at", at(at)).param("command", command.value()).param("id", id).update();
         }
         for (VersionPlan.NewRow row : plan.inserts()) {
-            int revision = jdbc.sql("select coalesce(max(revision_number) + 1, 0) from organization_workforce." + table.tableName()
-                    + " where employee_id = :employee and effective_from_date = :from")
+            int revision = jdbc.sql(employeeTable ? REVISION_EMPLOYEE : REVISION_ASSIGNMENT)
                     .param("employee", employee.value()).param("from", row.from()).query(Integer.class).single();
-            if (table == VersionTable.EMPLOYEE) {
+            if (employeeTable) {
                 insertEmployeeVersion(employee, row, revision, at);
             } else {
                 insertAssignmentVersion(employee, row, revision, at);

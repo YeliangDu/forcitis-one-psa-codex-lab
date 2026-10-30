@@ -555,7 +555,7 @@ terms:
   status: proposed
   note: IMP-1030-PAR-B3（#872）
 - id: regularize
-  zh: 转正
+  zh: 转正命令
   en: Regularize
   snake: regularize
   kind: command
@@ -570,7 +570,7 @@ terms:
   status: proposed
   note: IMP-1030-PAR-B3（#872）
 - id: reinstate
-  zh: 复职
+  zh: 复职命令
   en: Reinstate
   snake: reinstate
   kind: command
@@ -585,7 +585,7 @@ terms:
   status: proposed
   note: IMP-1030-PAR-B3（#872）
 - id: separate
-  zh: 离职
+  zh: 离职命令
   en: Separate
   snake: separate
   kind: command
