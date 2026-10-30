@@ -118,7 +118,11 @@ class OrgDirectoryService implements OrgDirectory {
         return snapshots.findAncestors(orgUnitId);
     }
 
-    /** A person the personnel commands have versions for is read from those versions by today; everyone else from the snapshot, as before the commands existed. */
+    /**
+     * A person who has employee versions is read from those versions by today; everyone else from the snapshot, as before the commands existed. Only the
+     * personnel commands write versions in this phase, so this is the stop-gap the C batch replaces together with the snapshot path (a version of any channel
+     * wins over the snapshot status, so initial migrated versions must not be loaded while the sync still writes the snapshot).
+     */
     private EmploymentStatus statusOf(StaffEmployee staff) {
         return versions.employmentOn(staff.employeeId(), zone.today(clock)).orElse(staff.employee().employmentStatus());
     }

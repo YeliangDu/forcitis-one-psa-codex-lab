@@ -20,8 +20,8 @@ import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A personnel command (ADR-0068 item 1): what to do to one employee from one business day on. The row is append-only; only the status and the
- * withdrawal columns ever change, and the status moves by {@link CommandStatus#MACHINE}. The target components are the ones the kind needs and
+ * A personnel command (ADR-0068 item 1): what to do to one employee from one business day on. The row is append-only; only the status, the
+ * application time and the withdrawal columns ever change, and the status moves by {@link CommandStatus#MACHINE}. The target components are the ones the kind needs and
  * only those, the same shapes the table's CHECK constraints hold. The event sequence it carries is the employee's: a command that takes effect
  * publishes an event whose envelope is about the employee (item 1.9).
  */
