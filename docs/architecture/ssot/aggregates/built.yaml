@@ -569,7 +569,7 @@ aggregates:
   - ConfigureNumberingRule
   - ConfirmNumberingRule
   - ConfirmNumberingRuleByFinance
-  - IssueDocumentNumber
+  - NumberIssuance
   - NumberingRuleViews
   events:
   - platform.numbering.NumberingRuleConfirmationGiven
