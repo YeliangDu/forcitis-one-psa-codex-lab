@@ -34,7 +34,7 @@ public interface SeparationReview {
      * business day (ADR-0068 section 3). separatedAdministrators are those of the separating who are available holders of super_admin or the
      * security auditor role; actorRetained says that the releaser is an available holder of one of the two, not separating and not in the
      * held set; remainingAdministrators counts the available super_admin holders left after the separation, leaving out the separating and the held;
-     * noticeRecipients are the available holders of super_admin or of the security auditor role left out the same way, each once: the people to tell
+     * noticeRecipients are the available holders of super_admin or of the security auditor role left out the separating only (the caller leaves out the held), each once: the people to tell
      * when one super administrator remains.
      */
     record Verdict(Set<EmployeeId> separatedAdministrators, boolean actorRetained, int remainingAdministrators, String sessionMode, String reason,

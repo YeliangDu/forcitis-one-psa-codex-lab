@@ -77,7 +77,7 @@ class SeparationHoldService implements SeparationHolds {
                 + (verdict.sessionMode().isEmpty() ? "none" : verdict.sessionMode()) + "; command: " + command.id() + "; hold: " + hold.id()
                 + "; remaining super_admin: " + verdict.remainingAdministrators());
         if (verdict.remainingAdministrators() == 1) {
-            notice.remainingOne(hold, verdict.noticeRecipients(), by);
+            notice.remainingOne(hold, verdict.noticeRecipients(), commands.heldEmployees(), by);
         }
     }
 

@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 /**
  * The notice when a release leaves exactly one available super administrator (ADR-0068 item 2.3, ADR-0028 decision 4; user decision 2026-10-30):
  * one WeCom card per release to the usable super_admin and security_auditor holders, each once, without the separating person and without the
- * leaving (held, or released and waiting for the date); the releaser is among them when they hold either role. Operations is reached through the
+ * held; one released and waiting for the date is still in service and is told; the releaser is among them when they hold either role. Operations is reached through the
  * ALERT log line. The card is queued in the release transaction and sent after commit.
  */
 @Component
@@ -35,10 +35,13 @@ class SeparationHoldNotice {
         this.wecom = wecom;
     }
 
-    void remainingOne(SeparationHold hold, Set<EmployeeId> people, UserId releasedBy) {
+    void remainingOne(SeparationHold hold, Set<EmployeeId> usable, Set<EmployeeId> held, UserId releasedBy) {
         LOG.error("ALERT organization.workforce separation hold {} released by user {}: only 1 available super_admin remains", hold.id(), releasedBy.value());
         List<WecomUserId> recipients = new ArrayList<>();
-        for (EmployeeId person : people) {
+        for (EmployeeId person : usable) {
+            if (held.contains(person)) {
+                continue;
+            }
             directory.findEmployee(person).map(profile -> profile.wecomUserId()).ifPresent(recipients::add);
         }
         if (recipients.isEmpty()) {

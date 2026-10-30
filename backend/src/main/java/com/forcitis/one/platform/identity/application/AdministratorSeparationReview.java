@@ -63,7 +63,6 @@ class AdministratorSeparationReview implements SeparationReview {
         remaining.removeAll(held);
         Set<EmployeeId> noticeRecipients = new HashSet<>(everyone);
         noticeRecipients.removeAll(separating);
-        noticeRecipients.removeAll(held);
         EmployeeId releasingEmployee = releaser == null ? null : accountEmployees.employeeOf(releaser).orElse(null);
         boolean retained = releasingEmployee != null && !separating.contains(releasingEmployee) && !held.contains(releasingEmployee)
                 && everyone.contains(releasingEmployee);

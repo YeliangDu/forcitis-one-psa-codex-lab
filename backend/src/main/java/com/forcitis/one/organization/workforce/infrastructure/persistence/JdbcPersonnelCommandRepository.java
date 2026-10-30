@@ -79,6 +79,12 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
     }
 
     @Override
+    public Set<EmployeeId> heldEmployees() {
+        return new HashSet<>(jdbc.sql("select employee_id from organization_workforce.separation_holds where status = 'HELD'")
+                .query((rs, n) -> new EmployeeId(rs.getObject("employee_id", UUID.class))).list());
+    }
+
+    @Override
     public List<PersonnelCommandId> releasedSeparationsDue(LocalDate day) {
         return jdbc.sql("""
                 select c.personnel_command_id from organization_workforce.personnel_commands c
