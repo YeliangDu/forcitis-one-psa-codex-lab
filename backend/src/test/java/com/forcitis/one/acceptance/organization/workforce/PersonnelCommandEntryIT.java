@@ -192,6 +192,21 @@ class PersonnelCommandEntryIT extends PersonnelCommandSupport {
     }
 
     @Test
+    @DisplayName("#871 W2 第 3.4 节、用户决定 2026-10-30 Q8：命令写入的任职版本必须有岗位；迁入的任职没有岗位、调岗命令也不给岗位时，调岗被拒，不留命令行、不写任何版本行")
+    void aTransferThatWouldLeaveAnAssignmentWithoutAPositionIsRefused() throws Exception {
+        UUID employee = employedWithoutPosition(REGULAR);
+        UUID elsewhere = newUnit();
+        List<Map<String, Object>> assignments = allVersions(ASSIGNMENT_VERSIONS, employee);
+        List<Map<String, Object>> employeeVersions = allVersions(EMPLOYEE_VERSIONS, employee);
+
+        assertThatThrownBy(() -> transfer(employee, TODAY.minusDays(3), elsewhere)).isInstanceOf(com.forcitis.one.kernel.DomainException.class);
+
+        assertThat(commandCount(employee)).as("no command row").isZero();
+        assertThat(allVersions(ASSIGNMENT_VERSIONS, employee)).as("no assignment version written or superseded").isEqualTo(assignments);
+        assertThat(allVersions(EMPLOYEE_VERSIONS, employee)).isEqualTo(employeeVersions);
+    }
+
+    @Test
     @DisplayName("#871 契约 Q7：录入写审计（暂名 entered），生效才发布领域事件；待生效命令不发布；生效的命令发布恰一次")
     void entryIsAuditedAndOnlyTakingEffectPublishes() throws Exception {
         UUID employee = employed(PROBATION);
