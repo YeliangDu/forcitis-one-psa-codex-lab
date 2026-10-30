@@ -12,6 +12,7 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.PositionId;
+import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -140,6 +141,22 @@ public final class PersonnelCommand extends AggregateRoot {
         }
         status = CommandStatus.HELD;
         appliedAt = null;
+    }
+
+    /** A held separation is released: it takes effect now, at its original effective date (ADR-0068 item 2.3). */
+    public void releaseHeld(Instant at) {
+        status = CommandStatus.MACHINE.require(status, CommandStatus.EFFECTIVE, WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL);
+        appliedAt = Objects.requireNonNull(at, "at");
+    }
+
+    /** Records that the separation was held instead of taking effect (ADR-0068 item 2.2); the employee stays employed and no separation is published. */
+    public void recordHeld(SeparationHoldId hold, @Nullable LegalEntityId legalEntity) {
+        record(PersonnelCommandEvents.held(this, hold, legalEntity));
+    }
+
+    /** Records the release of the hold; released by is empty when the operations command released it. */
+    public void recordReleased(SeparationHoldId hold, @Nullable UserId releasedBy, @Nullable LegalEntityId legalEntity) {
+        record(PersonnelCommandEvents.released(this, hold, releasedBy, legalEntity));
     }
 
     /** Takes a pending or held command back; the reason is 1 to 500 characters and not blank (ADR-0068 item 1.6). */

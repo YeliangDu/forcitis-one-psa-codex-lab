@@ -12,6 +12,7 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.PositionId;
+import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.organization.workforce.events.EmployeeCorrected;
 import com.forcitis.one.organization.workforce.events.EmployeeHired;
@@ -19,6 +20,8 @@ import com.forcitis.one.organization.workforce.events.EmployeeRegularized;
 import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
 import com.forcitis.one.organization.workforce.events.EmployeeTransferred;
+import com.forcitis.one.organization.workforce.events.SeparationHeld;
+import com.forcitis.one.organization.workforce.events.SeparationHoldReleased;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -98,5 +101,33 @@ class PersonnelCommandEventsTest {
         PersonnelCommand leave = command(PersonnelCommandKind.UNPAID_LEAVE_START, request(PersonnelCommandKind.UNPAID_LEAVE_START, DAY, null, null, null, null, null));
         leave.recordEffect(null, null);
         assertThat(leave.hasPendingEvents()).isFalse();
+    }
+
+    @Test
+    @DisplayName("IMP-1030-PAR-B6 (ADR-0068 item 2): a held separation records SeparationHeld and a release records SeparationHoldReleased, both about the employee and dated by the original effective date")
+    void aHoldAndItsReleaseAreEventsOfTheEmployee() {
+        PersonnelCommand separation = command(PersonnelCommandKind.SEPARATE, request(PersonnelCommandKind.SEPARATE, null, DAY.minusDays(1), null, null, null, null));
+        SeparationHoldId hold = new SeparationHoldId(UUID.fromString("019a0000-0000-7000-8000-0000000000e1"));
+        separation.holdAtEntry();
+
+        separation.recordHeld(hold, null);
+        assertThat(separation.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(SeparationHeld.class, e -> {
+            assertThat(e.separationHoldId()).isEqualTo(hold);
+            assertThat(e.effectiveDate()).isEqualTo(DAY);
+            assertThat(e.envelope().aggregateType()).isEqualTo("Employee");
+        });
+
+        UserId releaser = new UserId(UUID.fromString("019a0000-0000-7000-8000-0000000000bb"));
+        separation.releaseHeld(NOW);
+        separation.recordEffect(null, null);
+        separation.recordReleased(hold, releaser, null);
+        List<DomainEvent> events = separation.drainEvents(TestEnvelopes.INSTANCE);
+        assertThat(events).hasSize(2);
+        assertThat(events.get(0)).isInstanceOf(EmployeeSeparated.class);
+        assertThat(events.get(1)).isInstanceOfSatisfying(SeparationHoldReleased.class, e -> {
+            assertThat(e.releasedBy()).isEqualTo(releaser);
+            assertThat(e.effectiveDate()).as("the original effective date").isEqualTo(DAY);
+        });
+        assertThat(events.get(1).envelope().aggregateVersion()).as("numbered after the separation event").isEqualTo(events.get(0).envelope().aggregateVersion() + 1);
     }
 }
