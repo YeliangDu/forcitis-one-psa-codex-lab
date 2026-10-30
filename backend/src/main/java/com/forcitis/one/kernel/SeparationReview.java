@@ -11,7 +11,7 @@ public interface SeparationReview {
 
     /**
      * The text of the transaction-level advisory lock (pg_advisory_xact_lock(hashtextextended(key, 0))) that every transaction taking part in
-     * the administrator-separation decision takes first: executing a separation, releasing a hold, withdrawing a held command (ADR-0068 item 2.2).
+     * the administrator-separation decision takes first: entering a separation or an unpaid-leave start, releasing a hold, withdrawing a held command (ADR-0068 item 2.2; #943).
      * Workforce and identity are in different schemas, so the key lives here and no table holds it.
      */
     String SEPARATION_LOCK_KEY = "com.forcitis.one.kernel.SeparationReview.separation-decision";
@@ -19,7 +19,7 @@ public interface SeparationReview {
     /**
      * releaser is the account releasing a held run, null for a scheduled run; the implementation finds the releaser's employee to set
      * against the separating ones. sessionMode is the mode of the releaser's session, empty text when there is no releaser or no
-     * signed-in session. held are the employees whose separation is held at this moment, or released and waiting for its date: they still are employed, but they do not
+     * signed-in session. held are the employees already counted as gone (the caller's one count): separation held, or released and waiting for its date, or an unpaid-leave start entered and not yet started: they still are employed, but they do not
      * count as available administrators for the remainder, nor as the retained releaser (ADR-0068 item 2.2, 2.3).
      */
     Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser);
