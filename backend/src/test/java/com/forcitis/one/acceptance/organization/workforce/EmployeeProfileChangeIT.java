@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -37,6 +39,7 @@ class EmployeeProfileChangeIT extends EmployeeHireSupport {
     void aChangeTakesEffectImmediatelyAndIsAudited() throws Exception {
         UUID person = employed(REGULAR);
         String code = (String) root(person).get("employee_code");
+        String oldName = (String) root(person).get("display_name");
         Counts before = counts();
         int audited = auditCount(AUDIT_PROFILE_CHANGED);
         String wecom = syntheticWecom("rebind");
@@ -51,6 +54,13 @@ class EmployeeProfileChangeIT extends EmployeeHireSupport {
         assertThat(root.get("employee_code")).as("never changes").isEqualTo(code);
         assertThat(auditCount(AUDIT_PROFILE_CHANGED)).isEqualTo(audited + 1);
         assertThat(counts()).as("current values only: no version, no command").isEqualTo(before);
+        List<Map<String, Object>> entries = auditEntriesBy(hr.userId(), AUDIT_PROFILE_CHANGED).stream()
+                .filter(entry -> text(person).equals(entry.get("subjectId"))).toList();
+        assertThat(entries).as("one entry about this employee, the caller as actor").hasSize(1);
+        Map<String, Object> entry = entries.get(0);
+        assertThat((String) entry.get("beforeText")).as("W2 section 3.1 item 4: the L2 old value").contains(oldName);
+        assertThat((String) entry.get("afterText")).as("the L2 new value").contains("Synthetic renamed");
+        assertThat(entry.values()).as("the employee code (L3) is never written to the audit").noneMatch(value -> value != null && value.toString().contains(code));
     }
 
     @Test
@@ -60,11 +70,20 @@ class EmployeeProfileChangeIT extends EmployeeHireSupport {
         Map<String, Object> rootBefore = root(person);
         int audited = auditCount(AUDIT_PROFILE_CHANGED);
 
-        Throwable failure = catchThrowable(() -> change(person, "Synthetic too soon", "MALE", null, null, TODAY.plusDays(1)));
+        String name = (String) rootBefore.get("display_name");
+        String wecom = (String) rootBefore.get("wecom_user_id");
+        String gender = (String) rootBefore.get("gender");
+        String email = (String) rootBefore.get("email");
+        change(person, name, gender, email, wecom, TODAY);
+        Map<String, Object> same = root(person);
+        assertThat(same.get("display_name")).as("the same profile dated today is accepted").isEqualTo(name);
+        int auditedToday = auditCount(AUDIT_PROFILE_CHANGED);
 
-        assertThat(failure).isInstanceOf(DomainException.class);
-        assertThat(root(person)).isEqualTo(rootBefore);
-        assertThat(auditCount(AUDIT_PROFILE_CHANGED)).isEqualTo(audited);
+        Throwable failure = catchThrowable(() -> change(person, "Synthetic too soon", gender, email, wecom, TODAY.plusDays(1)));
+
+        assertThat(failure).as("only the date differs from an accepted change").isInstanceOf(DomainException.class);
+        assertThat(root(person).get("display_name")).isEqualTo(name);
+        assertThat(auditCount(AUDIT_PROFILE_CHANGED)).isEqualTo(auditedToday);
     }
 
     @Test
@@ -103,23 +122,58 @@ class EmployeeProfileChangeIT extends EmployeeHireSupport {
     @Test
     @DisplayName("#959 W2 第 3.1 节第①条：工号发号后不可改——档案修改没有工号参数")
     void theChangeHasNoEmployeeCode() {
-        assertThat(commands().changeComponents()).doesNotContain(EMPLOYEE_CODE);
+        assertThat(commands().changeComponents()).noneMatch(name -> name.toLowerCase(java.util.Locale.ROOT).contains("code"));
+    }
+
+    @ParameterizedTest(name = "role {0}")
+    @ValueSource(strings = {"super_admin", "org_data_admin", "business_admin", "security_auditor", "process_administrator", "employee"})
+    @DisplayName("#959 卡（权限：人事专员）、验收手册第 5 步（越权）：不持有人事专员角色的每个种子角色（含超级管理员、组织数据管理员、业务管理员）改档案被拒，员工根不变、不写审计")
+    void everyOtherSeededRoleIsRefused(String role) throws Exception {
+        UUID person = employed(REGULAR);
+        Staff other = role.equals("employee") ? staff() : staff(role);
+        assertChangeRefused(person, other);
     }
 
     @Test
-    @DisplayName("#959 卡（权限：人事专员）、验收手册第 5 步：只有默认员工角色的账号、无人登录时改档案被拒，员工根不变、不写审计")
-    void onlyThePersonnelSpecialistChangesAProfile() throws Exception {
+    @DisplayName("#959 验收手册第 5 步（无人登录、多角色）：无人登录被拒；同时持有两个非人事专员角色仍被拒；人事专员兼另一角色照常可改，审计的操作人是其账号")
+    void nobodyAndTwoRoles() throws Exception {
         UUID person = employed(REGULAR);
+        assertChangeRefused(person, null);
+        assertChangeRefused(person, staff("org_data_admin", "business_admin"));
+
+        Staff both = staff(PERSONNEL_SPECIALIST_ROLE, "org_data_admin");
+        actIn(both);
+        change(person, "Synthetic by two roles", null, null, null, TODAY);
+
+        assertThat(root(person).get("display_name")).isEqualTo("Synthetic by two roles");
+        assertThat(auditEntriesBy(both.userId(), AUDIT_PROFILE_CHANGED)).as("audited with the caller as actor").isNotEmpty();
+    }
+
+    @Test
+    @DisplayName("#959 用户 Q1：改档案时保留本人已持有的企业微信账号不算重复，照常生效")
+    void keepingOnesOwnWecomUserIdIsNotADuplicate() throws Exception {
+        UUID person = employed(REGULAR);
+        String own = (String) root(person).get("wecom_user_id");
+
+        change(person, "Synthetic keeps wecom", null, null, own, TODAY);
+
+        assertThat(root(person).get("display_name")).isEqualTo("Synthetic keeps wecom");
+        assertThat(root(person).get("wecom_user_id")).isEqualTo(own);
+    }
+
+    /** The change by this caller (null: nobody signed in) is refused for the caller's rights; the root and the audit stay as they were. */
+    private void assertChangeRefused(UUID person, Staff caller) throws Exception {
         Map<String, Object> rootBefore = root(person);
         int audited = auditCount(AUDIT_PROFILE_CHANGED);
+        if (caller == null) {
+            actAsNobody();
+        } else {
+            actIn(caller);
+        }
 
-        actIn(staff());
-        Throwable byStaff = catchThrowable(() -> change(person, "Synthetic intruder", null, null, null, TODAY));
-        actAsNobody();
-        Throwable byNobody = catchThrowable(() -> change(person, "Synthetic intruder", null, null, null, TODAY));
+        Throwable failure = catchThrowable(() -> change(person, "Synthetic intruder", null, null, null, TODAY));
 
-        assertThat(isPermissionRefusal(byStaff)).as(String.valueOf(byStaff)).isTrue();
-        assertThat(isPermissionRefusal(byNobody)).as(String.valueOf(byNobody)).isTrue();
+        assertThat(isPermissionRefusal(failure)).as(String.valueOf(failure)).isTrue();
         assertThat(root(person)).isEqualTo(rootBefore);
         assertThat(auditCount(AUDIT_PROFILE_CHANGED)).isEqualTo(audited);
     }

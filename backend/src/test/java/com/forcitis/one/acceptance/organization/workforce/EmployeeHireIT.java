@@ -13,6 +13,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -65,12 +67,18 @@ class EmployeeHireIT extends EmployeeHireSupport {
         assertThat(assignments).hasSize(1);
         assertThat(fromStored(assignments.get(0).get("org_unit_id"))).isEqualTo(unit);
         assertThat(assignments.get(0).get("change_command_id")).isEqualTo(command);
+        assertThat(rows("select column_name from information_schema.columns where table_schema = 'organization_workforce' and table_name = ?", COMMANDS))
+                .as("ADR-0068 item 1.5: the command row stores no name, email or gender").extracting(r -> r.get("column_name"))
+                .doesNotContain("display_name", "email", "gender", "wecom_user_id", "employee_code");
+        String code = (String) root.get("employee_code");
+        assertThat(auditEntriesBy(hr.userId(), "organization.workforce")).as("the hire is audited, and no entry carries the employee code (L3)").isNotEmpty()
+                .allSatisfy(entry -> assertThat(entry.values()).noneMatch(value -> value != null && value.toString().contains(code)));
     }
 
     @Test
     @DisplayName("#959 用户 Q2：工号不由调用方提供——入职入口没有工号参数；两次入职得到两个不同的系统工号")
     void theCallerNeverSuppliesTheEmployeeCode() throws Exception {
-        assertThat(commands().enterComponents()).as("EnterPersonnelCommand").doesNotContain(EMPLOYEE_CODE);
+        assertThat(commands().enterComponents()).as("EnterPersonnelCommand").noneMatch(name -> name.toLowerCase(java.util.Locale.ROOT).contains("code"));
 
         String first = (String) root(employeeOf(hire("Synthetic first", null, null, null))).get("employee_code");
         String second = (String) root(employeeOf(hire("Synthetic second", null, null, null))).get("employee_code");
@@ -112,10 +120,11 @@ class EmployeeHireIT extends EmployeeHireSupport {
         }
     }
 
-    @Test
-    @DisplayName("#959 卡（权限：人事专员）：只有默认员工角色的账号为新人入职被拒，不留任何行")
-    void onlyThePersonnelSpecialistHires() throws Exception {
-        actIn(staff());
+    @ParameterizedTest(name = "role {0}")
+    @ValueSource(strings = {"super_admin", "org_data_admin", "business_admin", "security_auditor", "process_administrator", "employee"})
+    @DisplayName("#959 卡（权限：人事专员）、验收手册第 5 步（越权）：不持有人事专员角色的每个种子角色为新人入职被拒，不留任何行")
+    void onlyThePersonnelSpecialistHires(String role) throws Exception {
+        actIn(role.equals("employee") ? staff() : staff(role));
         Counts before = counts();
 
         Throwable failure = catchThrowable(() -> hire("Synthetic unauthorised", null, null, null));
