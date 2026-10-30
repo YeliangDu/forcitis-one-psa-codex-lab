@@ -9,7 +9,11 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
+import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
+import com.forcitis.one.organization.workforce.events.SeparationHeld;
+import com.forcitis.one.organization.workforce.events.SeparationHoldReleased;
+import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
@@ -32,6 +36,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * #932 acceptance: identity carries out the separation effects of ADR-0055 decision 3 item 2 when the local personnel command takes effect,
  * that is when workforce publishes EmployeeSeparated (docs/architecture/events/workforce.yaml; ADR-0068 item 2.5 C), and not before.
  * The grant store is still account_roles here; #732 re-points the subscriber to account_role_grants.
+ * Not asserted: the cache eviction of 3.2 (not observable once every session is revoked) and the revocation_separation_command_id
+ * column of 3.5 (it lives in account_role_grants, #732).
  */
 @DisplayName("#932 EmployeeSeparated closes the access of the separated person (ADR-0055 3.2, ADR-0068 2.5)")
 class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTest {
@@ -72,6 +78,12 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
                  where p.listener_id like 'com.forcitis.one.platform.identity.%' and p.event_type = :type and p.completion_date is null
                    and p.serialized_event like :event
                 """).param("type", EmployeeSeparated.class.getName()).param("event", "%" + event.envelope().eventId() + "%").query(Long.class).single();
+    }
+
+    /** Publications of this event not yet completed by any listener; the registry row is written at commit, so 0 after a delivery means every listener is done. */
+    private long incomplete(DomainEvent event) {
+        return jdbc.sql("select count(*) from platform_integration.event_publication p where p.completion_date is null and p.serialized_event like :event")
+                .param("event", "%" + event.envelope().eventId() + "%").query(Long.class).single();
     }
 
     private long roles(long id) {
@@ -271,6 +283,44 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
         await().atMost(DELIVERY).untilAsserted(() -> assertThat(sessions(1006)).isZero());
         await().atMost(DELIVERY).untilAsserted(() -> assertThat(emergencyEnabled(1006)).isFalse());
         await().atMost(DELIVERY).untilAsserted(() -> assertThat(browserIdentifiers(1006)).isZero());
+    }
+
+    @Test
+    @DisplayName("#932 nothing before the event, held path: a held separation (SeparationHeld) and its release for a future date (SeparationHoldReleased, HELD -> PENDING) leave the administrator employed, so grants, session, emergency account and identifiers stay (ADR-0068 2.2, ADR-0055 3.3); only EmployeeSeparated closes them")
+    void heldAndReleasedButNotYetDueChangeNothing() throws Exception {
+        String session = loginWithWecom(1010);
+        createAccount(1010, "super_admin", "org_data_admin");
+        registerEmergencyAdmin(1010, "breakglass-g");
+        browserIdentifier(1010);
+        EmployeeId employee = TestAccounts.employee(1010);
+        PersonnelCommandId command = new PersonnelCommandId(UUID.randomUUID());
+        SeparationHoldId hold = new SeparationHoldId(UUID.randomUUID());
+        LocalDate due = LocalDate.of(2027, 1, 1);
+        SeparationHeld held = new SeparationHeld(TestEnvelopes.of("organization.workforce.SeparationHeld", "Employee", employee.value()), command, employee, due, hold);
+        SeparationHoldReleased released = new SeparationHoldReleased(TestEnvelopes.of("organization.workforce.SeparationHoldReleased", "Employee", employee.value()),
+                command, employee, due, hold, new UserId(UUID.randomUUID()));
+
+        tx.executeWithoutResult(status -> events.publishEvent(held));
+        tx.executeWithoutResult(status -> events.publishEvent(released));
+        await().atMost(DELIVERY).untilAsserted(() -> {
+            assertThat(incomplete(held)).isZero();
+            assertThat(incomplete(released)).isZero();
+        });
+
+        assertThat(roles(1010)).as("held, then released for a future date: still employed").isEqualTo(3);
+        assertThat(sessions(1010)).isEqualTo(1);
+        assertThat(status(session)).isEqualTo(200);
+        assertThat(emergencyEnabled(1010)).isTrue();
+        assertThat(browserIdentifiers(1010)).isEqualTo(1);
+        assertThat(recorded()).filteredOn(e -> e.action().equals(ROLE_REVOKED)).isEmpty();
+        assertThat(domainEvents.of(EmergencyAdminDisabled.class)).isEmpty();
+
+        deliver(new EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", employee.value()), command, employee, due));
+
+        await().atMost(DELIVERY).untilAsserted(() -> assertThat(roles(1010)).isZero());
+        await().atMost(DELIVERY).untilAsserted(() -> assertThat(emergencyEnabled(1010)).isFalse());
+        await().atMost(DELIVERY).untilAsserted(() -> assertThat(sessions(1010)).isZero());
+        await().atMost(DELIVERY).untilAsserted(() -> assertThat(browserIdentifiers(1010)).isZero());
     }
 
     @Test
