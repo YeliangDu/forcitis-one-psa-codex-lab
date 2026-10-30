@@ -68,6 +68,16 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: []
+  organization_workforce.state_transitions:
+    role: LOG_APPEND_ONLY
+    mutability: APPEND_ONLY
+    business_key: [aggregate_id, transition_sequence_number]
+    fk_exceptions:
+      legal_entity_id: a log row must outlive any row it names; the legal entity is a dated attribution of the employee, read from employee_legal_entities, not a parent of the transition
+      command_id: the id of whatever command caused the change (ADR-0058 decision 8), not only personnel commands; the log keeps it when the command row is purged
+    retention: {policy: PERMANENT}  # 未决：这些行属于被清除的员工，purge_employee_history 批次要一并删除（W2 第 8 节，清理作业另批），到时改本条保留期
+    lineage: {source: NEW}
+    writers: []
   organization_attendance.work_calendar_years:
     role: AGGREGATE_ROOT
     aggregate: WorkCalendarYear
@@ -153,6 +163,17 @@ tables:
     condition: 状态只按 PENDING 到 EFFECTIVE、WITHDRAWN、HELD 以及 HELD 到 EFFECTIVE、WITHDRAWN 前进，时刻列由空变非空一次，内容列不变（触发器 tg_personnel_commands_append_only，ADR-0068 第 1 条）
     business_key: [personnel_command_id]
     retention: {policy: PERMANENT}  # 个人任职史随员工清除：离职满 10 年由 purge_employee_history 删除（W2 第 8 节，清理作业另批）
+    lineage: {source: NEW}
+    writers: []
+  organization_workforce.separation_holds:
+    role: AGGREGATE_CHILD
+    aggregate: Employee
+    mutability: CONDITIONAL_UPDATE
+    condition: 状态只按 HELD 到 RELEASED、WITHDRAWN 前进，放行四列由空变非空一次，其余列不变（触发器 tg_separation_holds_append_only，ADR-0068 第 1.5、2.1 条）
+    business_key: [separation_hold_id]
+    fk_exceptions:
+      employee_id: carried by the composite foreign key fk_separation_holds_command (personnel_command_id, employee_id), which also pins it to the command's employee
+    retention: {policy: PERMANENT}  # 与 personnel_commands 相同：随员工清除，离职满 10 年由 purge_employee_history 删除（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
     writers: []
   # Columns of org_units left out of the versions on purpose: sort_order (only orders siblings for display, nothing reads it by date), short_name (not a source column:

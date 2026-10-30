@@ -39,7 +39,7 @@ class SeparationHoldTablesIntegrationTest extends WorkforceIntegrationSupport {
 
     private void hold(String id, String commandId, String employeeId, String status, String releasedBy, String reason, String channel) {
         jdbc.sql("insert into organization_workforce.separation_holds (separation_hold_id, personnel_command_id, employee_id, status, released_at, released_by,"
-                + " release_reason, release_channel, created_at, updated_at) values (" + id + ", " + commandId + ", " + employeeId + ", '" + status + "', "
+                + " release_reason, release_channel_kind, created_at, updated_at) values (" + id + ", " + commandId + ", " + employeeId + ", '" + status + "', "
                 + (status.equals("RELEASED") ? "now()" : "null") + ", " + releasedBy + ", " + (reason == null ? "null" : "'" + reason + "'") + ", "
                 + (channel == null ? "null" : "'" + channel + "'") + ", now(), now())").update();
     }
@@ -79,7 +79,7 @@ class SeparationHoldTablesIntegrationTest extends WorkforceIntegrationSupport {
     void releasedByFollowsTheChannel() {
         assertThatThrownBy(() -> hold(HOLD, COMMAND, EMPLOYEE, "RELEASED", "null", "approved", "INTERFACE")).hasMessageContaining("ck_separation_holds_released_by");
         assertThatThrownBy(() -> hold(HOLD, COMMAND, EMPLOYEE, "RELEASED", USER, "approved", "OPERATIONS_COMMAND")).hasMessageContaining("ck_separation_holds_released_by");
-        assertThatThrownBy(() -> hold(HOLD, COMMAND, EMPLOYEE, "RELEASED", USER, "approved", "MANUAL")).hasMessageContaining("ck_separation_holds_release_channel");
+        assertThatThrownBy(() -> hold(HOLD, COMMAND, EMPLOYEE, "RELEASED", USER, "approved", "MANUAL")).hasMessageContaining("ck_separation_holds_release_channel_kind");
         hold(HOLD, COMMAND, EMPLOYEE, "RELEASED", USER, "approved", "INTERFACE");
         assertThat(count("separation_holds")).isEqualTo(1);
     }
@@ -88,7 +88,7 @@ class SeparationHoldTablesIntegrationTest extends WorkforceIntegrationSupport {
     @DisplayName("IMP-1030-PAR-B1 an operations command release stores no account")
     void operationsReleaseHasNoAccount() {
         hold(HOLD, COMMAND, EMPLOYEE, "RELEASED", "null", "approved", "OPERATIONS_COMMAND");
-        assertThat(jdbc.sql("select released_by from organization_workforce.separation_holds").query(String.class).single()).isNull();
+        assertThat(jdbc.sql("select released_by is null from organization_workforce.separation_holds").query(Boolean.class).single()).isTrue();
     }
 
     @Test
@@ -113,10 +113,10 @@ class SeparationHoldTablesIntegrationTest extends WorkforceIntegrationSupport {
                 .hasMessageContaining("only the status and release columns");
 
         assertThat(jdbc.sql("update organization_workforce.separation_holds set status = 'RELEASED', released_at = now(), released_by = " + USER
-                + ", release_reason = 'approved', release_channel = 'INTERFACE', updated_at = now(), version = version + 1" + where).update()).isEqualTo(1);
+                + ", release_reason = 'approved', release_channel_kind = 'INTERFACE', updated_at = now(), version = version + 1" + where).update()).isEqualTo(1);
         assertThatThrownBy(() -> jdbc.sql("update organization_workforce.separation_holds set release_reason = 'changed'" + where).update()).hasMessageContaining("is set once");
         assertThatThrownBy(() -> jdbc.sql("update organization_workforce.separation_holds set status = 'HELD', released_at = null, released_by = null,"
-                + " release_reason = null, release_channel = null" + where).update()).hasMessageContaining("cannot move");
+                + " release_reason = null, release_channel_kind = null" + where).update()).hasMessageContaining("cannot move");
         assertThatThrownBy(() -> jdbc.sql("update organization_workforce.separation_holds set status = 'WITHDRAWN'" + where).update()).hasMessageContaining("cannot move");
     }
 
@@ -160,13 +160,12 @@ class SeparationHoldTablesIntegrationTest extends WorkforceIntegrationSupport {
     @Test
     @DisplayName("IMP-1030-PAR-B1 a personnel command's transitions are the pairs of its state machine, a separation hold's are HELD then RELEASED or WITHDRAWN")
     void legalTransitions() {
-        long sequence = 0;
         for (String[] pair : new String[][] {{null, "PENDING"}, {null, "HELD"}, {null, "EFFECTIVE"}, {"PENDING", "EFFECTIVE"}, {"PENDING", "WITHDRAWN"},
                 {"PENDING", "HELD"}, {"HELD", "EFFECTIVE"}, {"HELD", "WITHDRAWN"}}) {
-            transition("PersonnelCommand", COMMAND, ++sequence, pair[0], pair[1]);
+            transition("PersonnelCommand", "gen_random_uuid()", pair[0] == null ? 1 : 2, pair[0], pair[1]);
         }
         for (String[] pair : new String[][] {{null, "HELD"}, {"HELD", "RELEASED"}, {"HELD", "WITHDRAWN"}}) {
-            transition("SeparationHold", HOLD, ++sequence, pair[0], pair[1]);
+            transition("SeparationHold", "gen_random_uuid()", pair[0] == null ? 1 : 2, pair[0], pair[1]);
         }
         assertThat(count("state_transitions")).isEqualTo(11);
     }
@@ -181,7 +180,7 @@ class SeparationHoldTablesIntegrationTest extends WorkforceIntegrationSupport {
             assertThatThrownBy(() -> transition("SeparationHold", HOLD, 2, pair[0], pair[1])).as("SeparationHold " + pair[0] + " to " + pair[1]).isInstanceOf(Exception.class);
         }
         assertThatThrownBy(() -> transition("Employee", COMMAND, 1, null, "HELD")).hasMessageContaining("ck_state_transitions_aggregate_type_code");
-        assertThatThrownBy(() -> transition("PersonnelCommand", COMMAND, 1, null, "HELD".concat("X"))).hasMessageContaining("ck_state_transitions_to_status");
+        assertThatThrownBy(() -> transition("PersonnelCommand", COMMAND, 1, null, "HELDX")).hasMessageContaining("ck_state_transitions_status_of_aggregate");
         assertThatThrownBy(() -> transition("PersonnelCommand", COMMAND, 2, "SUSPENDED", "HELD")).hasMessageContaining("ck_state_transitions_from_status");
     }
 
@@ -191,7 +190,7 @@ class SeparationHoldTablesIntegrationTest extends WorkforceIntegrationSupport {
         transition("PersonnelCommand", COMMAND, 1, null, "PENDING");
         assertThatThrownBy(() -> transition("PersonnelCommand", COMMAND, 1, "PENDING", "HELD"))
                 .hasMessageContaining("uk_state_transitions_aggregate_id_transition_sequence_number");
-        assertThatThrownBy(() -> transition("PersonnelCommand", COMMAND, 2, "PENDING", "PENDING")).hasMessageContaining("ck_state_transitions_statuses_differ");
+        assertThatThrownBy(() -> transition("PersonnelCommand", COMMAND, 2, "PENDING", "PENDING")).hasMessageContaining("violates check constraint");
         assertThatThrownBy(() -> jdbc.sql("insert into organization_workforce.state_transitions (id, aggregate_type_code, aggregate_id, transition_sequence_number,"
                 + " from_status, to_status, occurred_on_date, recorded_at, actor_type, actor_id, cause_kind, correlation_id, created_at, updated_at) values (gen_random_uuid(),"
                 + " 'PersonnelCommand', " + COMMAND + ", 2, 'PENDING', 'HELD', date '2026-11-01', timestamptz '2026-11-01 08:00+08', 'USER', " + USER + ", 'COMMAND',"
