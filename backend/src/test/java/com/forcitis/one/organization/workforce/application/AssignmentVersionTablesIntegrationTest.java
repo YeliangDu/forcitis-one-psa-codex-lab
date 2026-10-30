@@ -74,7 +74,7 @@ class AssignmentVersionTablesIntegrationTest extends WorkforceIntegrationSupport
     }
 
     @Test
-    @DisplayName("IMP-1030-PAR-B2 channel and command id come together; a command row needs an audit entry; the channel is one of two")
+    @DisplayName("IMP-1030-PAR-B2 channel and command id come together; a command row needs an audit entry and a position; the channel is one of two")
     void commandColumnsFollowTheChannel() {
         assertThatThrownBy(() -> version(V1, "2026-01-01", null, "change_channel_kind", "'COMMAND'", "version_audit_entry_id", AUDIT, "position_id", POSITION))
                 .hasMessageContaining("ck_assignment_versions_command");
@@ -82,6 +82,8 @@ class AssignmentVersionTablesIntegrationTest extends WorkforceIntegrationSupport
                 .hasMessageContaining("ck_assignment_versions_command");
         assertThatThrownBy(() -> version(V1, "2026-01-01", null, "change_channel_kind", "'COMMAND'", "change_command_id", COMMAND, "position_id", POSITION))
                 .hasMessageContaining("ck_assignment_versions_audit");
+        assertThatThrownBy(() -> version(V1, "2026-01-01", null, "change_channel_kind", "'COMMAND'", "change_command_id", COMMAND, "version_audit_entry_id", AUDIT))
+                .hasMessageContaining("ck_assignment_versions_command_position");
         assertThatThrownBy(() -> version(V1, "2026-01-01", null, "change_channel_kind", "'SYNC'")).hasMessageContaining("ck_assignment_versions_change_channel_kind");
     }
 

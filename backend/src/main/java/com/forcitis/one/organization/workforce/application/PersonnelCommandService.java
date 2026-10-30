@@ -16,6 +16,7 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.PersonnelCommands;
 import com.forcitis.one.organization.workforce.api.WithdrawPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
+import com.forcitis.one.organization.workforce.domain.CommandEffects;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolution;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolutionSources;
@@ -101,9 +102,11 @@ class PersonnelCommandService implements PersonnelCommands {
         }
         AuditEntryId auditEntry = audit.record(new AuditEntry("organization.workforce.personnel-command.entered", by, null, AuditSubject.of(AuditSubjectKind.EMPLOYEE, employee.value()),
                 "command " + command.id() + " " + command.kind() + " effective " + command.effectiveDate()));
+        Map<VersionTable, VersionPlan> plans = timelines.forEntry(command, history, auditEntry);
+        requireCommandRowsCarryAPosition(plans);
         commands.insert(command);
         commands.insertTransition(COMMAND, command.id().value(), command.version(), null, command.status().name(), by, today, now, command.id(), correlation());
-        for (Map.Entry<VersionTable, VersionPlan> plan : timelines.forEntry(command, history, auditEntry).entrySet()) {
+        for (Map.Entry<VersionTable, VersionPlan> plan : plans.entrySet()) {
             commands.insertVersions(employee, plan.getKey(), plan.getValue(), command.id(), now);
         }
         if (command.status() == CommandStatus.EFFECTIVE && !(command.kind() == PersonnelCommandKind.CORRECTION && command.effectiveDate().isAfter(today))) {
@@ -156,6 +159,18 @@ class PersonnelCommandService implements PersonnelCommands {
     /** The envelope carries the employee's legal entity on the effective date (contract question Q6); none resolvable means the envelope has none. */
     private @Nullable LegalEntityId legalEntityOn(EmployeeId employee, LocalDate day) {
         return LegalEntityResolution.resolve(legalEntities, employee, day).orElse(null);
+    }
+
+    /**
+     * An assignment row a command writes carries a position (user decision 2026-10-30; ck_assignment_versions_command_position). A transfer by
+     * department only keeps the position of the row it follows; when that row has none, the command must name one, and it is refused before anything is written.
+     */
+    private static void requireCommandRowsCarryAPosition(Map<VersionTable, VersionPlan> plans) {
+        VersionPlan assignments = plans.get(VersionTable.ASSIGNMENT);
+        if (assignments != null && assignments.inserts().stream().anyMatch(row -> row.source().command() && row.values().get(CommandEffects.POSITION) == null)) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_ALLOWED, ErrorKind.UNPROCESSABLE,
+                    "the assignment would have no position; the previous assignment has none, so the command must name one");
+        }
     }
 
     private void requireTargetsExist(PersonnelCommand command) {

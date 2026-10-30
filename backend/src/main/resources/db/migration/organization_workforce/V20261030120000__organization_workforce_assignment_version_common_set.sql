@@ -20,6 +20,7 @@ ALTER TABLE organization_workforce.assignment_versions
     ADD CONSTRAINT ck_assignment_versions_change_channel_kind CHECK (change_channel_kind IN ('COMMAND', 'MIGRATION')),
     ADD CONSTRAINT ck_assignment_versions_command CHECK ((change_channel_kind = 'COMMAND') = (change_command_id IS NOT NULL)),
     ADD CONSTRAINT ck_assignment_versions_audit CHECK (change_channel_kind <> 'COMMAND' OR version_audit_entry_id IS NOT NULL),
+    ADD CONSTRAINT ck_assignment_versions_command_position CHECK (change_channel_kind <> 'COMMAND' OR position_id IS NOT NULL),
     ADD CONSTRAINT ck_assignment_versions_closed CHECK ((effective_to_date IS NULL) = (closed_at IS NULL)),
     ADD CONSTRAINT ck_assignment_versions_superseded CHECK ((superseded_at IS NULL) = (superseding_command_id IS NULL)),
     ADD CONSTRAINT ck_assignment_versions_reports_to_not_self CHECK (reports_to_employee_id IS DISTINCT FROM employee_id);
