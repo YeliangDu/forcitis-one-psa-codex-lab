@@ -139,7 +139,9 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
                 "role=org_data_admin cause=separation");
         assertThat(recorded()).filteredOn(e -> e.action().equals(ROLE_REVOKED))
                 .allSatisfy(e -> assertThat(e.subject()).isEqualTo(AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, accountOf(1001))));
-        assertThat(recorded()).extracting(AuditEntry::action).contains("platform.identity.session.revoked");
+        assertThat(recorded()).filteredOn(e -> e.action().equals("platform.identity.session.revoked"))
+                .as("the session revocation names the separated account").isNotEmpty()
+                .allSatisfy(e -> assertThat(e.subject()).isEqualTo(AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, accountOf(1001))));
         assertThat(sessions(1001)).isZero();
         assertThat(status(victim)).as("the separated person's session no longer works").isEqualTo(401);
         assertThat(emergencyEnabled(1001)).isFalse();
@@ -174,10 +176,11 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
     }
 
     @Test
-    @DisplayName("#932 a separated person whose account holds no role still loses the sessions and the browser identifiers")
+    @DisplayName("#932 a separated person whose account holds no role still loses the sessions, the browser identifiers and the emergency account (ADR-0055 3.2 puts no condition on roles held)")
     void accountWithoutRoles() throws Exception {
         String session = loginWithWecom(1004);
         browserIdentifier(1004);
+        registerEmergencyAdmin(1004, "breakglass-f");
         jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = :id)")
                 .param("id", TestAccounts.employee(1004).value()).update();
 
@@ -185,7 +188,36 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
 
         await().atMost(DELIVERY).untilAsserted(() -> assertThat(browserIdentifiers(1004)).isZero());
         await().atMost(DELIVERY).untilAsserted(() -> assertThat(sessions(1004)).isZero());
+        await().atMost(DELIVERY).untilAsserted(() -> assertThat(emergencyEnabled(1004)).isFalse());
         assertThat(status(session)).isEqualTo(401);
+        assertThat(domainEvents.of(EmergencyAdminDisabled.class)).singleElement().satisfies(e -> {
+            assertThat(e.userId()).isEqualTo(new UserId(accountOf(1004)));
+            assertThat(e.cause()).isEqualTo(EmergencyAdminDisableCause.SEPARATION);
+        });
+    }
+
+    @Test
+    @DisplayName("#932 idempotency is per event, not per person: after a reinstatement reopened grants, a second separation (new command, new eventId) closes them again (workforce.yaml idempotencyKey eventId; ADR-0068 1.5, ADR-0055 3.6)")
+    void aSecondSeparationClosesAgain() throws Exception {
+        createAccount(1009, "employee", "org_data_admin");
+        deliver(separated(1009, LocalDate.of(2026, 9, 1)));
+        await().atMost(DELIVERY).untilAsserted(() -> assertThat(roles(1009)).isZero());
+        // The reinstatement opens the base grant again (ADR-0055 3.6); the person signs in and is recognised by a browser again.
+        String session = loginWithWecom(1009);
+        createAccount(1009, "employee");
+        browserIdentifier(1009);
+        assertThat(roles(1009)).isEqualTo(1);
+        long revokedBefore = recorded().stream().filter(e -> e.action().equals(ROLE_REVOKED)).count();
+
+        EmployeeSeparated second = separated(1009, LocalDate.of(2026, 10, 15));
+        deliver(second);
+
+        await().atMost(DELIVERY).untilAsserted(() -> assertThat(roles(1009)).as("the second separation closes the reopened grant").isZero());
+        await().atMost(DELIVERY).untilAsserted(() -> assertThat(sessions(1009)).isZero());
+        await().atMost(DELIVERY).untilAsserted(() -> assertThat(browserIdentifiers(1009)).isZero());
+        assertThat(status(session)).isEqualTo(401);
+        assertThat(recorded().stream().filter(e -> e.action().equals(ROLE_REVOKED)).count() - revokedBefore).as("one audit for the reopened grant").isEqualTo(1);
+        await().atMost(DELIVERY).untilAsserted(() -> assertThat(identityIncomplete(second)).isZero());
     }
 
     @Test
@@ -214,7 +246,7 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
     }
 
     @Test
-    @DisplayName("#932 nothing before the event: while a future-dated separation is pending the person keeps grants, sessions, emergency account and identifiers; the event on the due date closes them")
+    @DisplayName("#932 nothing before the person's own event: a pending (future-dated or held) separation publishes nothing (ADR-0068 1.9), so the person keeps grants, sessions, emergency account and identifiers while other people's events are handled; their own event closes them")
     void nothingBeforeTheEvent() throws Exception {
         String session = loginWithWecom(1006);
         createAccount(1006, "super_admin");
