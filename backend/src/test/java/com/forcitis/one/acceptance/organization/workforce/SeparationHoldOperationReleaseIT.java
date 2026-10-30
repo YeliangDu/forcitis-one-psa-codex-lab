@@ -57,7 +57,7 @@ class SeparationHoldOperationReleaseIT extends SeparationHoldOperationSupport {
     }
 
     @Test
-    @DisplayName("#877 ADR-0068 第 2 条第 3 项（行 91）、第 4 项（行 79「操作人与见证人只记审计」）：审计 organization.workforce.separation-hold.released 一条，主体为被放行员工（EMPLOYEE），内容含操作人、见证人、原因、命令 ID、暂停记录 ID、剩余可用超管数 0 与运维命令途径")
+    @DisplayName("#877 ADR-0068 第 2 条第 3 项（行 91）、第 1 项（行 79「操作人与见证人只记审计」）：审计 organization.workforce.separation-hold.released 一条，主体为被放行员工（EMPLOYEE），内容含操作人、见证人、原因、命令 ID、暂停记录 ID、剩余可用超管数 0 与运维命令途径")
     void theAuditCarriesOperatorWitnessReasonAndIds() throws Exception {
         Held held = heldWithNoneRemaining();
         Pair pair = twoPeople();
@@ -122,5 +122,25 @@ class SeparationHoldOperationReleaseIT extends SeparationHoldOperationSupport {
         assertThat(again.exitCode()).as(again.text()).isEqualTo(REFUSED);
         assertThat(snapshot(held)).isEqualTo(afterFirst);
         assertThat(releaseAuditOf(held.employee())).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("#877 ADR-0068 第 2 条第 2 项（行 83「不计集合中的人」）、用户裁定 2026-10-30-131322（只在剩 0 名时执行）：两名超管都在待放行中时，运维命令放行其中一人成功（退出码 0）：另一名待放行者不算可用超管，审计记剩余 0；另一条暂停记录仍为 HELD")
+    void releasesWhenEveryOtherAdministratorIsHeld() throws Exception {
+        Held held = heldWithNoneRemaining();
+        Held alsoHeld = heldSeparation(administrator());
+        Pair pair = twoPeople();
+        int versionsBefore = allVersions(EMPLOYEE_VERSIONS, held.employee()).size();
+
+        Result result = release(held, pair, REASON_TEXT);
+
+        assertThat(result.exitCode()).as(result.text()).isEqualTo(DONE);
+        assertExecutedAtTheOriginalDate(held, versionsBefore);
+        List<Map<String, Object>> entries = releaseAuditOf(held.employee());
+        assertThat(entries).hasSize(1);
+        String detail = String.valueOf(entries.getFirst().get("detail"));
+        assertThat(REMAINING_ZERO.matcher(detail).find()).as("remaining available super administrators (0) in: " + detail).isTrue();
+        assertThat(holdStatus(alsoHeld.hold())).isEqualTo(HELD);
+        assertThat(employmentOn(alsoHeld.employee(), TODAY)).isEqualTo(EMPLOYED);
     }
 }

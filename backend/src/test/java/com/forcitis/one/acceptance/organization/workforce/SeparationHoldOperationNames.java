@@ -43,6 +43,6 @@ final class SeparationHoldOperationNames {
 
     /** The remaining available super administrators after the release, as a field of the audit detail ("remaining ...: 0"). */
     static final Pattern REMAINING_ZERO = Pattern.compile("(?is)(remaining|剩余)\\D{0,40}0(\\D|$)");
-    /** The session or route field of the audit says the release came from the ops command (ADR-0068 item 2.3 line 91 has the session mode; for this path the card says session/route = ops command). 暂名 */
+    /** The session or route field of the audit says the release came from the ops command (ADR-0068 item 2.3 line 91 has the session mode; for this path ADR-0068 line 95 says 途径记为运维命令). 暂名 */
     static final Pattern ROUTE_OPERATIONS = Pattern.compile("(?i)operations[ _-]?command");
 }

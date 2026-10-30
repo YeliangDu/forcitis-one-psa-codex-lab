@@ -162,7 +162,7 @@ class SeparationHoldOperationRefusalIT extends SeparationHoldOperationSupport {
     }
 
     @Test
-    @DisplayName("#877 ADR-0068 第 2 条第 1 项（行 77、79）：已被界面放行的暂停记录再用运维命令放行被拒（退出码 1）：放行人、时间、事件与审计都不变")
+    @DisplayName("#877 ADR-0068 第 2 条第 1 项（行 78、79）：已被界面放行的暂停记录再用运维命令放行被拒（退出码 1）：放行人、时间、事件与审计都不变")
     void aHoldReleasedOnTheInterfaceIsRefused() throws Exception {
         Scenario scenario = heldWithRemaining(1);
         releaseAs(scenario.releaser(), scenario.held().hold(), REASON_TEXT);
@@ -208,10 +208,13 @@ class SeparationHoldOperationRefusalIT extends SeparationHoldOperationSupport {
         Snapshot before = snapshot(held);
         setToday(farFuture());
         YearMonth month = YearMonth.from(clock.instant().atOffset(ZoneOffset.UTC));
+        Result result;
+        try {
+            result = release(held, pair, REASON_TEXT);
+        } finally {
+            setToday(TODAY);
+        }
 
-        Result result = release(held, pair, REASON_TEXT);
-
-        setToday(TODAY);
         assertThat(result.exitCode()).as(result.text()).isEqualTo(REFUSED);
         assertThat(result.err()).startsWith("refused:").contains(month.toString()).contains("resident application").doesNotContain("no partition of relation");
         assertThat(snapshot(held)).isEqualTo(before);
@@ -280,7 +283,7 @@ class SeparationHoldOperationRefusalIT extends SeparationHoldOperationSupport {
     }
 
     @Test
-    @DisplayName("#877 用户裁定 2026-10-30-131322（决定片段，ADR-0068 第 2 条第 4 项）：另一名待放行者当操作人或见证人被拒（退出码 1）：留任须不在待放行名单中；两条暂停记录都不变")
+    @DisplayName("#877 用户裁定 2026-10-30-131322（决定片段，ADR-0068 第 2 条第 4 项）：另一名待放行者当操作人或见证人被拒（退出码 1）：留任须不在待放行名单中；两条暂停记录都不变；对照：换两名留任员工即放行（退出码 0，另一名待放行超管不算可用）")
     void anotherHeldPersonCannotAttest() throws Exception {
         Held held = heldWithNoneRemaining();
         Held alsoHeld = heldSeparation(administrator());
@@ -291,6 +294,9 @@ class SeparationHoldOperationRefusalIT extends SeparationHoldOperationSupport {
         assertRefusedUnchanged(run(line(held.hold(), REASON_TEXT, other, alsoHeld.employee())), held, before, REFUSED);
         assertRefusedUnchanged(run(line(held.hold(), REASON_TEXT, alsoHeld.employee(), other)), held, before, REFUSED);
         assertThat(snapshot(alsoHeld)).isEqualTo(alsoBefore);
+        Result control = release(held, new Pair(other, employed(REGULAR)), REASON_TEXT);
+        assertThat(control.exitCode()).as("control: the same hold with two who stay is released, so the refusals above were about the held person, not the count (the other held administrator is not available), " + control.text())
+                .isEqualTo(DONE);
     }
 
     @Test
@@ -306,5 +312,25 @@ class SeparationHoldOperationRefusalIT extends SeparationHoldOperationSupport {
 
         assertRefusedUnchanged(run(line(held.hold(), REASON_TEXT, former, other)), held, before, REFUSED);
         assertRefusedUnchanged(run(line(held.hold(), REASON_TEXT, other, former)), held, before, REFUSED);
+    }
+
+    @Test
+    @DisplayName("#877 用户裁定 2026-10-30-131322（两人都须留任）、ADR-0068 第 3 条（行 107「停薪留职…不算留任」）：停薪留职的员工当操作人或见证人被拒（退出码 1），库内无变化；对照：停薪留职结束后同一人当操作人即放行（退出码 0）")
+    void aPersonOnUnpaidLeaveCannotAttest() throws Exception {
+        Held held = heldWithNoneRemaining();
+        UUID onLeave = employed(REGULAR);
+        actIn(hr);
+        assertThat(commandStatus(enter(onLeave, UNPAID_LEAVE_START, TODAY.minusDays(3)))).isEqualTo(EFFECTIVE);
+        assertThat(onUnpaidLeaveOn(onLeave, TODAY)).as("the person is on unpaid leave today").isTrue();
+        UUID other = employed(REGULAR);
+        Snapshot before = snapshot(held);
+
+        assertRefusedUnchanged(run(line(held.hold(), REASON_TEXT, onLeave, other)), held, before, REFUSED);
+        assertRefusedUnchanged(run(line(held.hold(), REASON_TEXT, other, onLeave)), held, before, REFUSED);
+
+        actIn(hr);
+        assertThat(commandStatus(enter(onLeave, UNPAID_LEAVE_END, TODAY.minusDays(1)))).isEqualTo(EFFECTIVE);
+        Result control = release(held, new Pair(onLeave, other), REASON_TEXT);
+        assertThat(control.exitCode()).as("control: back from leave the same person may attest, " + control.text()).isEqualTo(DONE);
     }
 }
