@@ -113,11 +113,11 @@ class SeparationLockOrderTest {
         SeparationReview review = mock(SeparationReview.class);
         SeparationHoldService service = new SeparationHoldService(commands, review,
                 new HeldSeparationRelease(commands, new PersonnelPlans(ids), mock(LegalEntityResolutionSources.class), mock(AuditLog.class), mock(DomainEvents.class), ids, zone),
-                currentUser, clock);
+                mock(SeparationHoldAlert.class), currentUser, clock);
         heldSeparation();
         SeparationHold hold = SeparationHold.restore(HOLD, COMMAND, EMPLOYEE, HoldStatus.HELD, 0, null, null, null, null);
         when(commands.findHold(HOLD)).thenReturn(java.util.Optional.of(hold));
-        when(commands.heldEmployees()).thenReturn(Set.of(EMPLOYEE));
+        when(commands.leavingEmployees()).thenReturn(Set.of(EMPLOYEE));
         when(review.review(any(), any(), any())).thenReturn(new SeparationReview.Verdict(Set.of(), false, 0, "", ""));
 
         assertThatThrownBy(() -> service.release(new ReleaseSeparationHold(HOLD, "synthetic: confirmed"))).as("refused later: the releaser is not retained")
@@ -127,6 +127,6 @@ class SeparationLockOrderTest {
         order.verify(commands).lockSeparationDecisions();
         order.verify(commands).lockEmployee(EMPLOYEE);
         verify(commands, never()).updateHold(any(), any(), anyLong());
-        verify(commands, never()).update(any(), anyLong());
+        verify(commands, never()).update(any(), any(), anyLong());
     }
 }

@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * The release of a held separation by the two-person operations command (ADR-0068 item 2.4), the way out when the interface refuses because no
  * available super administrator would remain. It runs only when releasing leaves none, and only with an operator and a witness who stay: locally
- * employed, not held, not on unpaid leave (user ruling 2026-10-30, decision fragment 2026-10-30-131322); when one or more would remain, the
+ * employed, not leaving (held, or released and waiting for the date), not on unpaid leave (user ruling 2026-10-30, decision fragment 2026-10-30-131322); when one or more would remain, the
  * single release in the interface is the path. It takes the same separation lock as every other part of the decision and writes the same facts as the
  * interface release, with the system as actor and no releasing account.
  */
@@ -62,24 +62,24 @@ class ReleaseSeparationHoldByOperations {
         long holdVersion = hold.version();
         long commandVersion = command.version();
         hold.releaseByOperations(reason, now);
-        Set<EmployeeId> held = commands.heldEmployees();
-        int remaining = review.review(List.of(employee), held, null).remainingAdministrators();
+        Set<EmployeeId> leaving = commands.leavingEmployees();
+        int remaining = review.review(List.of(employee), leaving, null).remainingAdministrators();
         if (remaining > 0) {
             throw refused(remaining + " available super_admin would remain: release this hold with the single release in the interface, not with this command");
         }
         LocalDate today = zone.dateOf(now);
-        requireRetained(attestation.operator(), "operator", held, today);
-        requireRetained(attestation.witness(), "witness", held, today);
+        requireRetained(attestation.operator(), "operator", leaving, today);
+        requireRetained(attestation.witness(), "witness", leaving, today);
         release.execute(command, commandVersion, hold, holdVersion, HeldSeparationRelease.Releaser.operations(SystemActors.idOf(SYSTEM_ACTOR)), now,
                 "reason: " + hold.releaseReason().replaceAll("\\p{Cntrl}", " ") + "; route: operations command; operatorId=" + attestation.operator()
                         + " witnessId=" + attestation.witness() + "; command: " + command.id() + "; hold: " + hold.id() + "; remaining super_admin: " + remaining);
     }
 
-    /** Retained: locally employed, not in the held set and not on unpaid leave (ADR-0068 section 3). */
-    private void requireRetained(EmployeeId person, String role, Set<EmployeeId> held, LocalDate today) {
+    /** Retained: locally employed, not leaving and not on unpaid leave (ADR-0068 section 3; a released separation waiting for its date is leaving). */
+    private void requireRetained(EmployeeId person, String role, Set<EmployeeId> leaving, LocalDate today) {
         boolean employed = directory.findEmployee(person).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false);
-        if (held.contains(person) || !employed || directory.isOnUnpaidLeave(person, today)) {
-            throw refused("the " + role + " does not stay: they must be locally employed, not held and not on unpaid leave");
+        if (leaving.contains(person) || !employed || directory.isOnUnpaidLeave(person, today)) {
+            throw refused("the " + role + " does not stay: they must be locally employed, not leaving and not on unpaid leave");
         }
     }
 

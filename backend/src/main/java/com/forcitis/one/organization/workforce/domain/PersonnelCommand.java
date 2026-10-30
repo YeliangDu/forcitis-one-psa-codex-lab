@@ -143,8 +143,22 @@ public final class PersonnelCommand extends AggregateRoot {
         appliedAt = null;
     }
 
-    /** A held separation is released: it takes effect now, at its original effective date (ADR-0068 item 2.3). */
-    public void releaseHeld(Instant at) {
+    /**
+     * A held separation is released (ADR-0068 item 2.3): it takes effect now when its original effective date is not after today, otherwise it waits
+     * as pending for the due-date job. Either way it is written at the original date and never held again.
+     */
+    public void releaseHeld(Instant at, LocalDate today) {
+        boolean due = !effectiveDate.isAfter(today);
+        status = CommandStatus.MACHINE.require(status, due ? CommandStatus.EFFECTIVE : CommandStatus.PENDING, WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL);
+        appliedAt = due ? Objects.requireNonNull(at, "at") : null;
+    }
+
+    /** A pending command whose day has come takes effect (the due-date job; its versions were written when it was entered or released). */
+    public void takeEffect(Instant at, LocalDate today) {
+        if (effectiveDate.isAfter(today)) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_ALLOWED, ErrorKind.CONFLICT,
+                    "a command takes effect on its effective date, not before");
+        }
         status = CommandStatus.MACHINE.require(status, CommandStatus.EFFECTIVE, WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL);
         appliedAt = Objects.requireNonNull(at, "at");
     }

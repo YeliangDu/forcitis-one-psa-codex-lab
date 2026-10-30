@@ -73,6 +73,16 @@ class AdministratorSeparationReview implements SeparationReview {
         return new Verdict(separatedAdministrators, retained, remaining.size(), releaser == null ? "" : session.modeIfSignedIn().map(Enum::name).orElse(""), reason);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Set<EmployeeId> usableAdministrators(Set<EmployeeId> excluded) {
+        LocalDate today = zone.dateOf(clock.instant());
+        Set<EmployeeId> usable = usableHolders(Role.SUPER_ADMIN, today);
+        usable.addAll(usableHolders(Role.SECURITY_AUDITOR, today));
+        usable.removeAll(excluded);
+        return usable;
+    }
+
     /** Enabled holders who are employed and not on unpaid leave that day: a person on leave counts neither as retained nor as an available administrator (ADR-0068 section 3). */
     private Set<EmployeeId> usableHolders(RoleCode role, LocalDate today) {
         Set<EmployeeId> usable = new HashSet<>();

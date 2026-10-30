@@ -19,10 +19,16 @@ public interface SeparationReview {
     /**
      * releaser is the account releasing a held run, null for a scheduled run; the implementation finds the releaser's employee to set
      * against the separating ones. sessionMode is the mode of the releaser's session, empty text when there is no releaser or no
-     * signed-in session. held are the employees whose separation is held at this moment: they still are employed, but they do not
-     * count as available administrators for the remainder, nor as the retained releaser (ADR-0068 item 2.2).
+     * signed-in session. held are the employees whose separation is held at this moment, or released and waiting for its date: they still are employed, but they do not
+     * count as available administrators for the remainder, nor as the retained releaser (ADR-0068 item 2.2, 2.3).
      */
     Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser);
+
+    /**
+     * The employees to tell when exactly one available super administrator remains: the enabled, employed, not-on-leave holders of super_admin or of
+     * the security auditor role (each once), without those in excluded (the separating person and the leaving).
+     */
+    Set<EmployeeId> usableAdministrators(Set<EmployeeId> excluded);
 
     /** The sync path has no held set. */
     default Verdict review(List<EmployeeId> separating, UserId releaser) {

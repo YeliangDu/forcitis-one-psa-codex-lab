@@ -70,9 +70,22 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
     }
 
     @Override
-    public Set<EmployeeId> heldEmployees() {
-        return new HashSet<>(jdbc.sql("select employee_id from organization_workforce.separation_holds where status = 'HELD'")
+    public Set<EmployeeId> leavingEmployees() {
+        return new HashSet<>(jdbc.sql("""
+                select h.employee_id from organization_workforce.separation_holds h
+                join organization_workforce.personnel_commands c on c.personnel_command_id = h.personnel_command_id
+                where h.status = 'HELD' or (h.status = 'RELEASED' and c.status = 'PENDING')""")
                 .query((rs, n) -> new EmployeeId(rs.getObject("employee_id", UUID.class))).list());
+    }
+
+    @Override
+    public List<PersonnelCommandId> releasedSeparationsDue(LocalDate day) {
+        return jdbc.sql("""
+                select c.personnel_command_id from organization_workforce.personnel_commands c
+                join organization_workforce.separation_holds h on h.personnel_command_id = c.personnel_command_id
+                where c.status = 'PENDING' and h.status = 'RELEASED' and c.effective_date <= :day
+                order by c.effective_date, c.personnel_command_id""")
+                .param("day", day).query((rs, n) -> new PersonnelCommandId(rs.getObject("personnel_command_id", UUID.class))).list();
     }
 
     @Override
@@ -247,7 +260,7 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
     }
 
     @Override
-    public void update(PersonnelCommand c, long loadedVersion) {
+    public void update(PersonnelCommand c, Instant at, long loadedVersion) {
         int updated = jdbc.sql("""
                 update organization_workforce.personnel_commands set status = :status, applied_at = :appliedAt, withdrawn_at = :at, withdrawn_by = :by, withdrawal_reason = :reason,
                        updated_at = :now, version = :version
@@ -256,7 +269,7 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
                 .param("status", c.status().name()).param("appliedAt", at(c.appliedAt()), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("at", at(c.withdrawnAt()), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("by", c.withdrawnBy() == null ? null : c.withdrawnBy().value(), Types.OTHER).param("reason", c.withdrawalReason(), Types.VARCHAR)
-                .param("now", at(c.withdrawnAt() != null ? c.withdrawnAt() : c.appliedAt())).param("version", loadedVersion + 1).param("id", c.id().value()).param("loaded", loadedVersion).update();
+                .param("now", at(at)).param("version", loadedVersion + 1).param("id", c.id().value()).param("loaded", loadedVersion).update();
         if (updated != 1) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE, ErrorKind.CONFLICT, "the command was changed by someone else");
         }
