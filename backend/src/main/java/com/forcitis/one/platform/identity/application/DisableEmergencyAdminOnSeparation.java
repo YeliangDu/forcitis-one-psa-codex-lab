@@ -7,6 +7,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
+import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
 import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
 import com.forcitis.one.platform.identity.api.EmergencyAdminDisableCause;
 import com.forcitis.one.platform.identity.domain.EmergencyAdmin;
@@ -46,6 +47,14 @@ class DisableEmergencyAdminOnSeparation {
             for (EmployeeId separated : SeparatedPeople.in(event, directory)) {
                 accountEmployees.accountOf(separated).ifPresent(this::disable);
             }
+        }
+    }
+
+    @ApplicationModuleListener
+    void on(EmployeeSeparated event) {
+        try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null),
+                "platform.identity.separation")) {
+            accountEmployees.accountOf(event.employeeId()).ifPresent(this::disable);
         }
     }
 
