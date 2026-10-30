@@ -85,7 +85,8 @@ public final class PersonnelCommand extends AggregateRoot {
             }
             effective = require(request.effectiveDate(), "the effective date");
         }
-        CommandStatus status = effective.isAfter(today) ? CommandStatus.PENDING : CommandStatus.EFFECTIVE;
+        // A correction is immediate whatever its day (ck_personnel_commands_correction_immediate); it never waits.
+        CommandStatus status = kind != PersonnelCommandKind.CORRECTION && effective.isAfter(today) ? CommandStatus.PENDING : CommandStatus.EFFECTIVE;
         PersonnelCommand command = new PersonnelCommand(id, require(request.employeeId(), "the employee"), kind, effective, status, request.targetOrgUnitId(),
                 request.targetPositionId(), request.targetReportsToEmployeeId(), request.isTargetFeeEarner(), request.targetEmploymentPhaseKind(), createdBy, now,
                 status == CommandStatus.EFFECTIVE ? now : null, 0, employeeEventSequence);
@@ -111,9 +112,14 @@ public final class PersonnelCommand extends AggregateRoot {
                     throw invalid("a " + kind + " names the department, the position, the fee-earner flag and the phase");
                 }
             }
-            case TRANSFER, CORRECTION -> {
-                if (targets == 0 || targetEmploymentPhaseKind != null && kind == PersonnelCommandKind.TRANSFER) {
-                    throw invalid("a " + kind + " names what changes: department, position, manager or fee-earner flag");
+            case TRANSFER -> {
+                if (targets == 0 || targetEmploymentPhaseKind != null) {
+                    throw invalid("a TRANSFER names what changes: department, position, manager or fee-earner flag");
+                }
+            }
+            case CORRECTION -> {
+                if (targets + count(targetEmploymentPhaseKind) == 0) {
+                    throw invalid("a CORRECTION names what it corrects: department, position, manager, fee-earner flag or phase");
                 }
             }
             case REGULARIZE, SEPARATE, UNPAID_LEAVE_START, UNPAID_LEAVE_END -> {

@@ -22,6 +22,28 @@ public final class PersonnelCommandRules {
         requireDayFree(command, others);
         requireSeparationOrder(command, others);
         requireStateOnTheDay(command, history.currentEmployeeRows());
+        requireCorrectionOpenEnded(command, history);
+    }
+
+    /**
+     * A correction runs from its day to the end of time (W2 owner ruling on #872): what it carries must be the same in every current version from that
+     * day on. A later version, from an effective or a pending command, that changed the attribute is first dealt with by its own correction.
+     */
+    private static void requireCorrectionOpenEnded(PersonnelCommand command, PersonnelHistory history) {
+        if (command.kind() != PersonnelCommandKind.CORRECTION) {
+            return;
+        }
+        requireConstant(CommandEffects.assignmentValues(command).keySet(), history.currentAssignmentRows(), command.effectiveDate(), row -> true);
+        requireConstant(CommandEffects.employeeValues(command).keySet(), history.currentEmployeeRows(), command.effectiveDate(), CommandEffects.employeeFilter(command));
+    }
+
+    private static void requireConstant(java.util.Set<String> columns, List<VersionRow> rows, LocalDate from, java.util.function.Predicate<VersionRow> filter) {
+        List<VersionRow> affected = rows.stream().filter(r -> r.endsAfter(from)).filter(filter).toList();
+        for (String column : columns) {
+            if (affected.stream().map(r -> r.values().get(column)).distinct().count() > 1) {
+                throw refused("a later version changes " + column + " after " + from + "; correct those commands first");
+            }
+        }
     }
 
     private static void requireDayFree(PersonnelCommand command, List<PersonnelCommand> others) {

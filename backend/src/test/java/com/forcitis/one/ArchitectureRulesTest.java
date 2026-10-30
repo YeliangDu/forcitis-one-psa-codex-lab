@@ -29,8 +29,8 @@ class ArchitectureRulesTest {
     static final int MAX_API_METHODS_PER_MODULE = 12;
     // 登记例外：模块 -> {上限, 出处}；全局上限不抬，新增例外须有出处并经 one-architecture 裁定
     static final Map<String, ApiLimitException> API_LIMIT_EXCEPTIONS = Map.of(
-            ROOT + ".organization.workforce", new ApiLimitException(13,
-                    "NITS-1 项⑤；one-coordinator 同意；one-architecture 裁定 2026-10-17"),
+            ROOT + ".organization.workforce", new ApiLimitException(15,
+                    "NITS-1 项⑤；one-coordinator 同意；one-architecture 裁定 2026-10-17；人事命令 enter/withdraw（ADR-0068 第 1 条）one-design 裁定 2026-10-30 #872"),
             ROOT + ".platform.integration", new ApiLimitException(17,
                     "ADR-0060 检测与业务文件桶端口；one-architecture 裁定 2026-10-21；到期：ADR-0069 D2 合入"));
 

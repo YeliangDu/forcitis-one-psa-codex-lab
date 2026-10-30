@@ -106,7 +106,7 @@ class PersonnelCommandService implements PersonnelCommands {
         for (Map.Entry<VersionTable, VersionPlan> plan : timelines.forEntry(command, history, auditEntry).entrySet()) {
             commands.insertVersions(employee, plan.getKey(), plan.getValue(), command.id(), now);
         }
-        if (command.status() == CommandStatus.EFFECTIVE) {
+        if (command.status() == CommandStatus.EFFECTIVE && !(command.kind() == PersonnelCommandKind.CORRECTION && command.effectiveDate().isAfter(today))) {
             VersionRow assignmentBefore = history.currentAssignmentRows().stream().filter(r -> r.covers(command.effectiveDate().minusDays(1))).findFirst().orElse(null);
             command.recordEffect(assignmentBefore, legalEntityOn(employee, command.effectiveDate()));
             if (command.hasPendingEvents()) {
