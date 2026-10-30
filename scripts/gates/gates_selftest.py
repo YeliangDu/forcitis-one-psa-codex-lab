@@ -557,25 +557,31 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
     if shutil.which("chflags"):
         good = os.path.join(tmp, "good-" + b)
         shutil.copytree(target, good, symlinks=True)
+        writable(good)  # a read-only directory cannot be renamed into another parent
         writable(target)
         shutil.rmtree(target)
         shutil.copytree(os.path.join(hooks, a), target, symlinks=True)
         subprocess.run(["chflags", "uchg", target], check=True)
+        rival_errors = []
         def rival():
-            deadline = time.time() + 60
-            while time.time() < deadline and not any(n.startswith(".tmp.") and not os.access(os.path.join(hooks, n), os.W_OK) for n in os.listdir(hooks)):
-                time.sleep(0.01)  # the installer has unpacked and made its copy read-only: its next step is the rename
-            time.sleep(0.5)
-            subprocess.run(["chflags", "nouchg", target], check=True)
-            writable(target)
-            shutil.rmtree(target)
-            os.rename(good, target)
+            try:
+                deadline = time.time() + 60
+                while time.time() < deadline and not any(n.startswith(".tmp.") and not os.access(os.path.join(hooks, n), os.W_OK) for n in os.listdir(hooks)):
+                    time.sleep(0.01)  # the installer has unpacked and made its copy read-only: its next step is the rename
+                time.sleep(0.5)
+                subprocess.run(["chflags", "nouchg", target], check=True)
+                writable(target)
+                shutil.rmtree(target)
+                os.rename(good, target)
+            except Exception as e:  # a thread's exception would otherwise vanish and the test pass on a path it never took
+                rival_errors.append(e)
         t = threading.Thread(target=rival)
         t.start()
         try:
             r = install(b)
         finally:
             t.join()
+        assert not rival_errors, rival_errors
         assert r.returncode == 0 and points_to() == b and not leftovers(), ("a target that becomes ready within the wait is taken", r.returncode, r.stderr)
     else:
         print("install self-test: 没有 chflags，跳过 4d")
