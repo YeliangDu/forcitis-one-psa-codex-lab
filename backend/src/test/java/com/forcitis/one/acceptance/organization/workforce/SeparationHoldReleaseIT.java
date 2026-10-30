@@ -31,6 +31,20 @@ class SeparationHoldReleaseIT extends SeparationHoldSupport {
         postgres.register(registry);
     }
 
+    /**
+     * W2 design section 3.4 (W-17): executing a separation closes the open assignment version in the same transaction, at the separation
+     * version's first day — so the current assignment rows follow each other without gap and the last one ends on that day.
+     */
+    private static void assertAssignmentEndsAtTheSeparation(List<Map<String, Object>> current, LocalDate separationDay) {
+        assertThat(current).isNotEmpty();
+        for (int i = 1; i < current.size(); i++) {
+            assertThat(current.get(i - 1).get("effective_to_date")).as("row " + (i - 1) + " ends where row " + i + " starts")
+                    .isEqualTo(current.get(i).get("effective_from_date"));
+        }
+        assertThat(current.get(current.size() - 1).get("effective_to_date")).as("the last assignment row ends on the separation day")
+                .isEqualTo(separationDay);
+    }
+
     private void assertExecutedAtTheOriginalDate(Scenario scenario, int versionsBefore) throws Exception {
         Held held = scenario.held();
         Map<String, Object> hold = hold(held.hold());
@@ -50,7 +64,7 @@ class SeparationHoldReleaseIT extends SeparationHoldSupport {
         assertThat(separated.get("effective_from_date")).as("written back at the original date, not at the day of the release").isEqualTo(TODAY);
         assertThat(inForceOn(current, TODAY.minusDays(1)).get("employment_status")).isEqualTo(EMPLOYED);
         assertThat(allVersions(EMPLOYEE_VERSIONS, held.employee())).as("history is superseded, never deleted").hasSizeGreaterThanOrEqualTo(versionsBefore);
-        assertContiguous(currentVersions(ASSIGNMENT_VERSIONS, held.employee()));
+        assertAssignmentEndsAtTheSeparation(currentVersions(ASSIGNMENT_VERSIONS, held.employee()), TODAY);
         assertThat(commandCount(held.employee())).as("the command is not entered again").isEqualTo(1);
         assertThat(rows("select 1 from " + SEPARATION_HOLDS + " where employee_id = ?", stored(held.employee()))).as("and does not go to HELD again").hasSize(1);
         assertThat(statusPath(AGGREGATE_PERSONNEL_COMMAND, held.command())).endsWith(HELD, EFFECTIVE).containsOnlyOnce(HELD);
