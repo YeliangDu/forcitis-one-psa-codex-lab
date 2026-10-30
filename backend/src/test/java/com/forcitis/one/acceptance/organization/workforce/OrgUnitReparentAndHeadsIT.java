@@ -85,6 +85,24 @@ class OrgUnitReparentAndHeadsIT extends OrgStructureCommandSupport {
     }
 
     @Test
+    @DisplayName("#906 one-design ruling 2026-10-30 #906（按整条时间线校验，rv917x M1 之后的细化）第 1 条：两条不同生效日的调整上级合起来成环时，后录的一条被拒（按今天的树校验或只按生效日校验的实现都不能通过），不留命令行；不成环的照常")
+    void twoLaterReparentsThatTogetherFormACycleAreRefused() throws Exception {
+        UUID x = seedUnit(null);
+        UUID y = seedUnit(null);
+        UUID p = seedUnit(null);
+        UUID q = seedUnit(null);
+        unitCommand(REPARENT, x, TODAY.plusDays(5), TARGET_PARENT_ORG_UNIT_ID, y);
+        unitCommand(REPARENT, q, TODAY.plusDays(2), TARGET_PARENT_ORG_UNIT_ID, p);
+        long commands = orgCommandCount();
+
+        assertRefused(() -> unitCommand(REPARENT, y, TODAY.plusDays(2), TARGET_PARENT_ORG_UNIT_ID, x));
+        assertRefused(() -> unitCommand(REPARENT, p, TODAY.plusDays(5), TARGET_PARENT_ORG_UNIT_ID, q));
+
+        assertThat(orgCommandCount()).isEqualTo(commands);
+        assertThat(unitCommand(REPARENT, y, TODAY.plusDays(2), TARGET_PARENT_ORG_UNIT_ID, p)).as("a parent outside the subtree is fine").isNotNull();
+    }
+
+    @Test
     @DisplayName("#906 ADR-0068 第 4 条、附件 ck_org_structure_commands_head_columns：指定负责人：版本的负责人是该员工，其他属性（含区域应收负责人）沿用；发一次「部门负责人已指定」；员工须存在、必填、不带其余内容")
     void assigningAHead() throws Exception {
         UUID target = seedUnit(null);

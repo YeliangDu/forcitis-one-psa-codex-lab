@@ -166,8 +166,9 @@ class PositionCommandsIT extends OrgStructureCommandSupport {
         assertThat(positionOn(position, day).get("status")).isEqualTo(DISABLED);
         assertThat(orgEventsOf(first)).isZero();
         assertRefused(() -> positionCommand(DISABLE, position, day));
-        assertThat(positionCommand(DISABLE, position, day.plusDays(1))).as("another day").isNotNull();
+        UUID another = targetPositionOf(createPosition(TODAY.minusDays(1), code(), "Another position"));
+        assertThat(positionCommand(DISABLE, another, day)).as("another position, the same day").isNotNull();
         List<Map<String, Object>> open = rows("select 1 from " + ORG_COMMANDS + " where target_position_id = ? and status = 'PENDING'", stored(position));
-        assertThat(open).hasSize(2);
+        assertThat(open).hasSize(1);
     }
 }

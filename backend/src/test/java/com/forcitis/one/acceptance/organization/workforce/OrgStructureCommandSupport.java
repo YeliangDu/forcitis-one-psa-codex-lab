@@ -42,11 +42,14 @@ abstract class OrgStructureCommandSupport extends PersonnelCommandSupport {
     protected Staff orgAdmin;
 
     @Override
-    protected Staff buildPersonnelSpecialist() {
+    protected Staff buildPersonnelSpecialist() throws Exception {
         try {
             return super.buildPersonnelSpecialist();
-        } catch (Exception | AssertionError notSeededYet) {
-            return null;
+        } catch (Exception | AssertionError failure) {
+            if (String.valueOf(failure.getMessage()).contains("PLATFORM_IDENTITY_ROLE_NOT_FOUND")) {
+                return null;
+            }
+            throw failure;
         }
     }
 
@@ -110,7 +113,7 @@ abstract class OrgStructureCommandSupport extends PersonnelCommandSupport {
 
     /** The entry is refused for its content (a business refusal, not a failure of the system). */
     protected static void assertRefused(org.assertj.core.api.ThrowableAssert.ThrowingCallable entry) {
-        assertThatThrownBy(entry).isInstanceOf(DomainException.class);
+        assertThatThrownBy(entry).isInstanceOfAny(DomainException.class, OrgStructureCommandsProbe.TypeRefused.class);
     }
 
     // ---- seeds ----
@@ -201,7 +204,17 @@ abstract class OrgStructureCommandSupport extends PersonnelCommandSupport {
 
     /** ADR-0068 item 4 and the #905 DD: the rows chain and every step is one the lifecycle allows (PENDING to IN_PROGRESS only for merges). */
     protected void assertLawfulOrgLifecycle(List<Map<String, Object>> steps, String lastStatus) {
-        Map<String, List<String>> allowed = Map.of(PENDING, List.of(IN_PROGRESS, EFFECTIVE, WITHDRAWN), IN_PROGRESS, List.of(EFFECTIVE));
+        assertLifecycle(steps, lastStatus, false);
+    }
+
+    /** As {@link #assertLawfulOrgLifecycle}, for a MERGE: the only kind that goes through IN_PROGRESS (ck_org_structure_commands_in_progress_kind). */
+    protected void assertLawfulMergeLifecycle(List<Map<String, Object>> steps, String lastStatus) {
+        assertLifecycle(steps, lastStatus, true);
+    }
+
+    private void assertLifecycle(List<Map<String, Object>> steps, String lastStatus, boolean merge) {
+        Map<String, List<String>> allowed = merge ? Map.of(PENDING, List.of(IN_PROGRESS, EFFECTIVE, WITHDRAWN), IN_PROGRESS, List.of(EFFECTIVE))
+                : Map.of(PENDING, List.of(EFFECTIVE, WITHDRAWN));
         assertThat(steps).isNotEmpty();
         String previous = null;
         long sequence = -1;

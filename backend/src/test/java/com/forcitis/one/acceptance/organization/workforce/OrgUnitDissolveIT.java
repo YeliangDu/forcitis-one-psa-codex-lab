@@ -100,6 +100,41 @@ class OrgUnitDissolveIT extends OrgStructureCommandSupport {
     }
 
     @Test
+    @DisplayName("#906 one-design ruling 2026-10-30 #906（按整条时间线校验，rv917x M1 之后的细化）第 3 条：已录入将来撤销的单元之下，新建单元、或把单元挂上来（新下级在撤销日当天或之后为 ACTIVE）被拒，不留命令行")
+    void nothingActiveMayBeAddedBelowAUnitThatWillBeDissolved() throws Exception {
+        UUID parent = seedUnit(null);
+        UUID mover = seedUnit(null);
+        unitCommand(DISSOLVE, parent, TODAY.plusDays(5));
+        long commands = orgCommandCount();
+
+        assertRefused(() -> createUnit(TODAY.plusDays(7), TARGET_PARENT_ORG_UNIT_ID, parent));
+        assertRefused(() -> createUnit(TODAY.plusDays(3), TARGET_PARENT_ORG_UNIT_ID, parent));
+        assertRefused(() -> unitCommand(REPARENT, mover, TODAY.plusDays(7), TARGET_PARENT_ORG_UNIT_ID, parent));
+        assertRefused(() -> unitCommand(REPARENT, mover, TODAY.plusDays(2), TARGET_PARENT_ORG_UNIT_ID, parent));
+
+        assertThat(orgCommandCount()).isEqualTo(commands);
+    }
+
+    @Test
+    @DisplayName("#906 one-design ruling 2026-10-30 #906（按整条时间线校验，rv917x M1 之后的细化）第 2 条：撤销也要看已录入、更晚到达的下级单元和在职员工：现在还空，但已录入将来某天有下级挂上来或有人调入的单元，更早日期的撤销被拒")
+    void aDissolveSeesArrivalsThatAreAlreadyEntered() throws Exception {
+        UUID withChildComing = seedUnit(null);
+        UUID withPersonComing = seedUnit(null);
+        UUID child = seedUnit(null);
+        UUID person = employedIn(seedUnit(null), REGULAR, true);
+        unitCommand(REPARENT, child, TODAY.plusDays(6), TARGET_PARENT_ORG_UNIT_ID, withChildComing);
+        actInSpecialist();
+        transfer(person, TODAY.plusDays(6), withPersonComing);
+        actIn(orgAdmin);
+        long commands = orgCommandCount();
+
+        assertRefused(() -> unitCommand(DISSOLVE, withChildComing, TODAY.plusDays(3)));
+        assertRefused(() -> unitCommand(DISSOLVE, withPersonComing, TODAY.plusDays(3)));
+
+        assertThat(orgCommandCount()).isEqualTo(commands);
+    }
+
+    @Test
     @DisplayName("#906 ADR-0068 第 1 条第 8 项（行 65 至 66）：将来生效的撤销保持 PENDING，REVOKED 版本已写入；今天读仍有效，生效日起读已撤销；不发事件")
     void aFutureDissolveStaysPending() throws Exception {
         UUID empty = seedUnit(null);

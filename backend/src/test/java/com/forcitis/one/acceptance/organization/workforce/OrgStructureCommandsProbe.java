@@ -25,6 +25,13 @@ import org.springframework.util.ClassUtils;
  */
 final class OrgStructureCommandsProbe {
 
+    /** An illegal value for an enum-typed component: the api's type cannot even be built, which counts as the api refusing it. */
+    static final class TypeRefused extends RuntimeException {
+        TypeRefused(String message) {
+            super(message);
+        }
+    }
+
     private final Object service;
     private final Class<?> contract;
     private final Function<UUID, EmployeeId> employeeIds;
@@ -163,7 +170,12 @@ final class OrgStructureCommandsProbe {
             return value;
         }
         if (type.isEnum() && value instanceof String name) {
-            return Enum.valueOf((Class<? extends Enum>) type, name);
+            try {
+                return Enum.valueOf((Class<? extends Enum>) type, name);
+            } catch (IllegalArgumentException notAConstant) {
+                // The type itself refuses the value: that is a refusal at the api boundary, not for the probe to decide.
+                throw new TypeRefused(type.getName() + " has no constant " + name);
+            }
         }
         if (value instanceof UUID uuid) {
             if (type == EmployeeId.class) {

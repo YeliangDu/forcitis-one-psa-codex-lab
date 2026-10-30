@@ -97,7 +97,7 @@ class OrgStructureCommandPermissionIT extends OrgStructureCommandSupport {
     }
 
     @ParameterizedTest(name = "role {0}")
-    @ValueSource(strings = {PERSONNEL_SPECIALIST_ROLE, "super_admin", "business_admin", "security_auditor", "employee"})
+    @ValueSource(strings = {PERSONNEL_SPECIALIST_ROLE, "super_admin", "business_admin", "security_auditor", "process_administrator", "employee"})
     @DisplayName("#906 ADR-0073 第 2 条第 4 项：撤回与预演合并同样须持有该权限：其他角色撤回被拒（命令仍待生效、无撤回人、不写撤回审计），预演被拒")
     void everyOtherSeededRoleIsRefusedWhenWithdrawingOrPreviewing(String role) throws Exception {
         UUID target = seedUnit(null);

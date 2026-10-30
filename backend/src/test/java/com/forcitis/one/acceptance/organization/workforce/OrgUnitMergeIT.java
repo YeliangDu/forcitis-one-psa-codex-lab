@@ -128,7 +128,7 @@ class OrgUnitMergeIT extends OrgStructureCommandSupport {
         assertThat(unitOfEmployee(people.get(0), day)).isEqualTo(merged);
         assertRefused(() -> unitCommand(SET_ATTRIBUTES, merged, day, TARGET_NAME, "Same day as the merge"));
         assertRefused(() -> enterMerge(day));
-        assertThat(unitCommand(SET_ATTRIBUTES, merged, day.plusDays(1), TARGET_NAME, "Another day")).isNotNull();
+        assertThat(unitCommand(SET_ATTRIBUTES, merged, day.minusDays(1), TARGET_NAME, "Renamed before the merge")).as("an earlier day").isNotNull();
     }
 
     @Test
@@ -153,7 +153,7 @@ class OrgUnitMergeIT extends OrgStructureCommandSupport {
         assertThat(row.get("transferred_employee_count")).isEqualTo(3);
         assertThat(row.get("applied_at")).isEqualTo(NOW);
         List<Map<String, Object>> steps = transitions(AGGREGATE_ORG_COMMAND, merge);
-        assertLawfulOrgLifecycle(steps, EFFECTIVE);
+        assertLawfulMergeLifecycle(steps, EFFECTIVE);
         assertThat(steps).as("through IN_PROGRESS").anyMatch(step -> IN_PROGRESS.equals(step.get("to_status")));
         List<Map<String, Object>> transfers = transfersOf(merge);
         assertThat(transfers).hasSize(3).allSatisfy(transfer -> {
@@ -227,7 +227,7 @@ class OrgUnitMergeIT extends OrgStructureCommandSupport {
         for (Map<String, Object> transfer : transfers) {
             assertThat(eventsOf(EVENT_TRANSFERRED, (UUID) transfer.get("personnel_command_id"))).isEqualTo(1);
         }
-        assertLawfulOrgLifecycle(transitions(AGGREGATE_ORG_COMMAND, merge), EFFECTIVE);
+        assertLawfulMergeLifecycle(transitions(AGGREGATE_ORG_COMMAND, merge), EFFECTIVE);
 
         catchThrowable(() -> orgCommands().executeMerge(merge));
         assertThat(transfersOf(merge)).as("a rerun of a finished merge moves nobody again").hasSize(3);
@@ -248,6 +248,45 @@ class OrgUnitMergeIT extends OrgStructureCommandSupport {
         assertThat(orgCommandCount()).isEqualTo(commands);
         unitCommand(REPARENT, child, TODAY, TARGET_PARENT_ORG_UNIT_ID, receiving);
         assertThat(enterMerge(TODAY)).as("the children were reparented first").isNotNull();
+    }
+
+    @Test
+    @DisplayName("#906 one-design ruling 2026-10-30 #906（按整条时间线校验，rv917x M1 之后的细化）第 3 条、用户决定 2026-10-30（「推荐」：有在职下级单元的单元不能合并）：已录入合并之后，把下级单元挂到被并入单元之下（调整上级在合并日前后、或新建）在录入时被拒")
+    void noChildMayBeAddedBelowAUnitWithAMergeEntered() throws Exception {
+        peopleInTheMergedUnit(0, REGULAR);
+        UUID mover = seedUnit(null);
+        enterMerge(TODAY.plusDays(4));
+        long commands = orgCommandCount();
+
+        assertRefused(() -> unitCommand(REPARENT, mover, TODAY.plusDays(2), TARGET_PARENT_ORG_UNIT_ID, merged));
+        assertRefused(() -> unitCommand(REPARENT, mover, TODAY.plusDays(6), TARGET_PARENT_ORG_UNIT_ID, merged));
+        assertRefused(() -> createUnit(TODAY.plusDays(3), TARGET_PARENT_ORG_UNIT_ID, merged));
+
+        assertThat(orgCommandCount()).isEqualTo(commands);
+    }
+
+    @Test
+    @DisplayName("#906 one-design ruling 2026-10-30 #906（按整条时间线校验，rv917x M1 之后的细化）第 4 条、用户决定 2026-10-30（「推荐」）：执行时再校验：录入合并之后（例如同步写入）有下级单元挂到被并入单元之下，executeMerge 被拒，合并仍 PENDING、没有调岗、被并入单元不撤销")
+    void executionChecksTheChildrenAgain() throws Exception {
+        List<UUID> people = peopleInTheMergedUnit(2, REGULAR);
+        UUID child = seedUnit(receiving);
+        UUID merge = enterMerge(TODAY);
+        java.time.OffsetDateTime at = java.time.OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC);
+        try (java.sql.Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update org_unit_versions set effective_to_date = ?, closed_at = ?, updated_at = ? where org_unit_id = ? and effective_to_date is null", TODAY, at, at, stored(child));
+            update(workforce, """
+                    insert into org_unit_versions (org_unit_version_id, org_unit_id, effective_from_date, name, parent_org_unit_id, status, region_kind,
+                      is_delivery_unit, created_at, updated_at) values (?, ?, ?, ?, ?, 'ACTIVE', 'HEADQUARTERS', false, ?, ?)""",
+                    com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(child), TODAY, seededName(child), stored(merged), at, at);
+        }
+
+        assertRefused(() -> orgCommands().executeMerge(merge));
+
+        assertThat(orgCommand(merge).get("status")).isEqualTo(PENDING);
+        assertThat(transfersOf(merge)).isEmpty();
+        assertThat(unitOfEmployee(people.get(0), TODAY)).isEqualTo(merged);
+        assertThat(unitOn(merged, TODAY).get("status")).isEqualTo(ACTIVE);
+        assertThat(eventsOf(EVENT_MERGED, merge)).isZero();
     }
 
     @Test
