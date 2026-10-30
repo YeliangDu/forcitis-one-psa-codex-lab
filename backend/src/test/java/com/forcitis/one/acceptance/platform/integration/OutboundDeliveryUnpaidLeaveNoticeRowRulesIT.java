@@ -9,10 +9,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * #943 (DD sign-off on the card): the delivery subject kind PERSONNEL_COMMAND and the purpose UNPAID_LEAVE_START_ALERT are CHECK values of
+ * #943 (DD sign-off on the card): the delivery subject kind PERSONNEL_COMMAND and the purpose UNPAID_LEAVE_START_NOTICE are CHECK values of
  * outbound_deliveries (subject_id = the personnel command id); the values already on main stay; unknown values are still refused, each by its own CHECK.
  */
-class OutboundDeliveryUnpaidLeaveAlertRowRulesIT {
+class OutboundDeliveryUnpaidLeaveNoticeRowRulesIT {
 
     private static final String SUBJECT_CHECK = "ck_outbound_deliveries_subject_kind";
     private static final String PURPOSE_CHECK = "ck_outbound_deliveries_purpose_kind";
@@ -36,9 +36,9 @@ class OutboundDeliveryUnpaidLeaveAlertRowRulesIT {
     }
 
     @Test
-    @DisplayName("#943 a CARD row about a PERSONNEL_COMMAND with purpose UNPAID_LEAVE_START_ALERT is accepted")
+    @DisplayName("#943 a CARD row about a PERSONNEL_COMMAND with purpose UNPAID_LEAVE_START_NOTICE is accepted")
     void theUnpaidLeaveAlertCardIsAccepted() throws Exception {
-        db.accepted(CARD, card("PERSONNEL_COMMAND", "UNPAID_LEAVE_START_ALERT"));
+        db.accepted(CARD, card("PERSONNEL_COMMAND", "UNPAID_LEAVE_START_NOTICE"));
     }
 
     @Test
@@ -52,7 +52,7 @@ class OutboundDeliveryUnpaidLeaveAlertRowRulesIT {
     @DisplayName("#943 an unknown subject kind is refused by ck_outbound_deliveries_subject_kind, an unknown purpose by ck_outbound_deliveries_purpose_kind")
     void unknownValuesAreRefused() throws Exception {
         db.checkRefused(SUBJECT_CHECK, CARD, card("PERSONNEL_COMMANDS", "TASK_ASSIGNED"));
-        db.checkRefused(PURPOSE_CHECK, CARD, card("APPROVAL_TASK", "UNPAID_LEAVE_START_ALERTS"));
+        db.checkRefused(PURPOSE_CHECK, CARD, card("APPROVAL_TASK", "UNPAID_LEAVE_START_NOTICES"));
         db.checkRefused(SUBJECT_CHECK, CARD, card("UNKNOWN_KIND", "TASK_ASSIGNED"));
         db.checkRefused(PURPOSE_CHECK, CARD, card("APPROVAL_TASK", "UNKNOWN_PURPOSE"));
     }

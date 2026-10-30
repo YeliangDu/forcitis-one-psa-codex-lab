@@ -23,7 +23,7 @@ abstract class UnpaidLeaveStartFloorSupport extends FutureHoldSupport {
 
     protected static final String NOT_ALLOWED_CODE = "ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_ALLOWED";
     protected static final String ALERT_SUBJECT_KIND = "PERSONNEL_COMMAND";
-    protected static final String ALERT_PURPOSE = "UNPAID_LEAVE_START_ALERT";
+    protected static final String ALERT_PURPOSE = "UNPAID_LEAVE_START_NOTICE";
     /** An entered, not yet started leave. */
     protected static final LocalDate LATER = TODAY.plusDays(5);
 

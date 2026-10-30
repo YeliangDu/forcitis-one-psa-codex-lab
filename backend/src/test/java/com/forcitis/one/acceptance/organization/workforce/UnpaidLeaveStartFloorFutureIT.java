@@ -37,7 +37,7 @@ class UnpaidLeaveStartFloorFutureIT extends UnpaidLeaveStartFloorSupport {
     }
 
     @Test
-    @DisplayName("#943 未来日 (2)：另有第三名超管 C：A 的未来停薪被接受，剩 1（C）：恰一张卡（PERSONNEL_COMMAND + 该命令 id + UNPAID_LEAVE_START_ALERT），收件人含 C，不含 A；ALERT 行")
+    @DisplayName("#943 未来日 (2)：另有第三名超管 C：A 的未来停薪被接受，剩 1（C）：恰一张卡（PERSONNEL_COMMAND + 该命令 id + UNPAID_LEAVE_START_NOTICE），收件人含 C，不含 A；ALERT 行")
     void aThirdAdministratorMakesTheFutureStartAcceptedWithAnAlert() throws Exception {
         Staff a = administrator();
         Staff b = administrator();

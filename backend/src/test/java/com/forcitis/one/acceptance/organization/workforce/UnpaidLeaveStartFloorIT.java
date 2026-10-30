@@ -106,7 +106,7 @@ class UnpaidLeaveStartFloorIT extends UnpaidLeaveStartFloorSupport {
     // ---- 1 remains: accepted and alert ----
 
     @Test
-    @DisplayName("#943 剩 1：命令被接受并生效；恰好一张企业微信卡：subject 为 PERSONNEL_COMMAND + 该命令 id + UNPAID_LEAVE_START_ALERT；收件人恰为可用的其他超管与审计员（各一次）；不含开始停薪的人、停用账号的超管与审计员、待放行离职的超管、人事专员；卡内无姓名等个人信息；有 ALERT organization.workforce 日志行")
+    @DisplayName("#943 剩 1：命令被接受并生效；恰好一张企业微信卡：subject 为 PERSONNEL_COMMAND + 该命令 id + UNPAID_LEAVE_START_NOTICE；收件人恰为可用的其他超管与审计员（各一次）；不含开始停薪的人、停用账号的超管与审计员、待放行离职的超管、人事专员；卡内无姓名等个人信息；有 ALERT organization.workforce 日志行")
     void oneRemainingAlertsTheUsableHolders() throws Exception {
         Staff leaving = administrator();
         Staff stays = administrator();
@@ -191,7 +191,7 @@ class UnpaidLeaveStartFloorIT extends UnpaidLeaveStartFloorSupport {
     }
 
     @Test
-    @DisplayName("#943 字面读法：只持 security_auditor 的人开始停薪，可用超管恰为 1：被接受，一张卡（PERSONNEL_COMMAND + 命令 id + UNPAID_LEAVE_START_ALERT），收件人为该超管与其他审计员、不含本人；ALERT 行")
+    @DisplayName("#943 字面读法：只持 security_auditor 的人开始停薪，可用超管恰为 1：被接受，一张卡（PERSONNEL_COMMAND + 命令 id + UNPAID_LEAVE_START_NOTICE），收件人为该超管与其他审计员、不含本人；ALERT 行")
     void anAuditorOnlyHolderStartingLeaveWithOneAdministratorAlerts() throws Exception {
         Staff onlyAuditor = auditor();
         Staff otherAuditor = auditor();
