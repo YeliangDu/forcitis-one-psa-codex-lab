@@ -129,4 +129,24 @@ class SeparationLockOrderTest {
         verify(commands, never()).updateHold(any(), any(), anyLong());
         verify(commands, never()).update(any(), any(), anyLong());
     }
+
+    @Test
+    @DisplayName("#931 the notice at one remaining leaves out the held only: an administrator released and waiting for the date is still told")
+    void theNoticeLeavesOutOnlyTheHeld() {
+        SeparationReview review = mock(SeparationReview.class);
+        SeparationHoldNotice notice = mock(SeparationHoldNotice.class);
+        SeparationHoldService service = new SeparationHoldService(commands, review, mock(HeldSeparationRelease.class), notice, currentUser, clock);
+        EmployeeId held = new EmployeeId(UUID.fromString("019a0000-0000-7000-8000-000000000002"));
+        EmployeeId waiting = new EmployeeId(UUID.fromString("019a0000-0000-7000-8000-000000000003"));
+        EmployeeId stays = new EmployeeId(UUID.fromString("019a0000-0000-7000-8000-000000000004"));
+        heldSeparation();
+        when(commands.findHold(HOLD)).thenReturn(java.util.Optional.of(SeparationHold.restore(HOLD, COMMAND, EMPLOYEE, HoldStatus.HELD, 0, null, null, null, null)));
+        when(commands.heldEmployees()).thenReturn(Set.of(held));
+        when(commands.heldOrReleasedEmployees()).thenReturn(Set.of(held, waiting));
+        when(review.review(any(), any(), any())).thenReturn(new SeparationReview.Verdict(Set.of(EMPLOYEE), true, 1, "", "", Set.of(held, waiting, stays)));
+
+        service.release(new ReleaseSeparationHold(HOLD, "synthetic: confirmed"));
+
+        verify(notice).remainingOne(any(), org.mockito.ArgumentMatchers.eq(Set.of(held, waiting, stays)), org.mockito.ArgumentMatchers.eq(Set.of(held)), org.mockito.ArgumentMatchers.eq(USER));
+    }
 }
