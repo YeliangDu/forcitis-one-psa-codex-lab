@@ -120,6 +120,21 @@ def self_test():
         finally:
             sys.stdout = real
         assert bool(out.getvalue()) == blocked and (not blocked or json.loads(out.getvalue())["decision"] == "block"), (payload.keys(), out.getvalue())
+    import os
+    import tempfile
+    with tempfile.TemporaryDirectory() as d:  # no last_assistant_message: the transcript's last assistant entry is read
+        for text, blocked in ((english, True), (chinese, False)):
+            path = os.path.join(d, "t.jsonl")
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(json.dumps({"type": "user", "message": {"content": "x"}}) + "\n" + json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": text}]}}) + "\n")
+            out = io.StringIO()
+            real = sys.stdout
+            sys.stdout = out
+            try:
+                stop(io.StringIO(json.dumps({"transcript_path": path})))
+            finally:
+                sys.stdout = real
+            assert bool(out.getvalue()) == blocked, ("transcript fallback", blocked, out.getvalue())
     out = io.StringIO()
     real = sys.stdout
     sys.stdout = out
