@@ -2,7 +2,7 @@ package com.forcitis.one.organization.workforce.api;
 
 /**
  * Entering and withdrawing personnel commands (ADR-0068 item 1). Both need organization.workforce:personnel-command:create, checked before anything
- * about the content. There is no REST endpoint and no due-date job in this phase (card #872); callers are other modules and the tests.
+ * about the content.
  */
 public interface PersonnelCommands {
 
