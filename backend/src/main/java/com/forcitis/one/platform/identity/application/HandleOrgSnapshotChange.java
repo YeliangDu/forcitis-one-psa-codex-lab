@@ -83,7 +83,8 @@ public class HandleOrgSnapshotChange {
         }
     }
 
-    private void separate(UserId userId, String reason) {
+    /** Also reached from HandleEmployeeSeparated, which enters the same actor scope. */
+    void separate(UserId userId, String reason) {
         revokeRoles(userId);
         sessions.revokeAll(userId);
         revokeBrowserIdentifiers.execute(userId);
