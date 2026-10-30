@@ -4,5 +4,6 @@ package com.forcitis.one.platform.integration.api;
 public enum DeliverySubjectKind {
     APPROVAL_TASK,
     APPROVAL_INSTANCE,
-    SEPARATION_HOLD
+    SEPARATION_HOLD,
+    PERSONNEL_COMMAND
 }

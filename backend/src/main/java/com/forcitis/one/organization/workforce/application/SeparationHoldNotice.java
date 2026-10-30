@@ -9,7 +9,6 @@ import com.forcitis.one.platform.integration.api.DeliveryPurpose;
 import com.forcitis.one.platform.integration.api.DeliverySubject;
 import com.forcitis.one.platform.integration.api.WecomCard;
 import com.forcitis.one.platform.integration.api.WecomGateway;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -37,13 +36,7 @@ class SeparationHoldNotice {
 
     void remainingOne(SeparationHold hold, Set<EmployeeId> usable, Set<EmployeeId> held, UserId releasedBy) {
         LOG.error("ALERT organization.workforce separation hold {} released by user {}: only 1 available super_admin remains", hold.id(), releasedBy.value());
-        List<WecomUserId> recipients = new ArrayList<>();
-        for (EmployeeId person : usable) {
-            if (held.contains(person)) {
-                continue;
-            }
-            directory.findEmployee(person).map(profile -> profile.wecomUserId()).ifPresent(recipients::add);
-        }
+        List<WecomUserId> recipients = RemainingOneCard.recipients(directory, usable, held);
         if (recipients.isEmpty()) {
             LOG.error("ALERT organization.workforce separation hold {} card reaches nobody: no usable administrator has a WeCom user id", hold.id());
             return;

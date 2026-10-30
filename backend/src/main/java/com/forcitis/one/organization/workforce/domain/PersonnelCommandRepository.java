@@ -27,10 +27,11 @@ public interface PersonnelCommandRepository {
     void lockSeparationDecisions();
 
     /**
-     * The administrators who count as leaving: those whose separation is held, and those whose separation was released before its date and still waits
-     * as pending, whatever the date (user ruling 2026-10-30, ADR-0068 item 2.3). They are no available administrators and not retained (read under the lock).
+     * The one count of who has already gone when the remaining available administrators are counted (user decision 2026-10-30 「统一都算已走」, ADR-0068
+     * items 2.2 and 2.3): those whose separation is held, those whose separation was released and still waits as pending, whatever the date, and those
+     * whose unpaid-leave start was entered and has not started. They are no available administrators and not retained (read under the lock).
      */
-    Set<EmployeeId> heldOrReleasedEmployees();
+    Set<EmployeeId> leavingEmployees();
 
     /** The employees whose separation is held at this moment (read under the lock). */
     Set<EmployeeId> heldEmployees();
