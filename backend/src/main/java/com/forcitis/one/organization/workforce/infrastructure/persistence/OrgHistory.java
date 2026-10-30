@@ -88,7 +88,7 @@ final class OrgHistory {
         Map<UUID, Values> open = new HashMap<>();
         jdbc.sql("""
                         select employee_id, effective_from_date, revision_number, org_unit_id, position_id, reports_to_employee_id
-                          from organization_workforce.assignment_versions where effective_to_date is null and employee_id in (:ids)
+                          from organization_workforce.assignment_versions where effective_to_date is null and superseded_at is null and employee_id in (:ids)
                         """)
                 .param("ids", assignments.stream().map(a -> a.employeeId().value()).toList())
                 .query((rs, n) -> open.put(rs.getObject("employee_id", UUID.class), new Values(new OrgUnitId(rs.getObject("org_unit_id", UUID.class)),
@@ -105,7 +105,7 @@ final class OrgHistory {
             if (before != null) {
                 jdbc.sql("""
                         update organization_workforce.assignment_versions set effective_to_date = :day, closed_at = :closedAt
-                         where employee_id = :id and effective_to_date is null
+                         where employee_id = :id and effective_to_date is null and superseded_at is null
                         """)
                         .param("id", a.employeeId().value()).param("day", day).param("closedAt", OffsetDateTime.ofInstant(now, ZoneOffset.UTC)).update();
             }
