@@ -52,7 +52,7 @@ abstract class UnpaidLeaveStartFloorSupport extends FutureHoldSupport {
 
     // ---- what a refusal must leave behind: nothing ----
 
-    protected record Snapshot(long commands, long personCommands, int employeeVersions, int entered, long allAuditEntries, long deliveries, int cards) {
+    protected record FloorSnapshot(long commands, long personCommands, int employeeVersions, int entered, long allAuditEntries, long deliveries, int cards) {
     }
 
     /** Every employed person this test made, for the check that a card names nobody. */
@@ -72,13 +72,13 @@ abstract class UnpaidLeaveStartFloorSupport extends FutureHoldSupport {
         }
     }
 
-    protected Snapshot snapshot(Staff who) throws Exception {
+    protected FloorSnapshot snapshot(Staff who) throws Exception {
         long all = (long) rows("select count(*) as n from " + COMMANDS).get(0).get("n");
         long deliveries;
         try (Connection integration = schemaConnection("platform_integration")) {
             deliveries = (long) query(integration, "select count(*) as n from outbound_deliveries").get(0).get("n");
         }
-        return new Snapshot(all, commandCount(who.employeeId()), allVersions(EMPLOYEE_VERSIONS, who.employeeId()).size(), auditCount(AUDIT_ENTERED), allAuditEntries(), deliveries,
+        return new FloorSnapshot(all, commandCount(who.employeeId()), allVersions(EMPLOYEE_VERSIONS, who.employeeId()).size(), auditCount(AUDIT_ENTERED), allAuditEntries(), deliveries,
                 cards().size());
     }
 
@@ -104,7 +104,7 @@ abstract class UnpaidLeaveStartFloorSupport extends FutureHoldSupport {
     protected void assertRefusedAndNothingWritten(Staff who, LocalDate effective) throws Exception {
         forgetCards();
         actIn(hr);
-        Snapshot before = snapshot(who);
+        FloorSnapshot before = snapshot(who);
         int mark = logMark();
 
         Throwable refused = catchThrowable(() -> enter(who.employeeId(), UNPAID_LEAVE_START, effective));
