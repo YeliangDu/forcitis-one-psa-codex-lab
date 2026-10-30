@@ -11,7 +11,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-/** #933: the due-date job takes every pending command whose day has come, released separations and ordinary commands alike; held, withdrawn and done ones are not pending. */
+/** #933: the due-date job takes the pending commands whose day has come: ordinary ones and separations with a released hold; a never-held separation waits for #967, and held, withdrawn and done ones are not pending. */
 class DueCommandsQueryIntegrationTest extends WorkforceIntegrationSupport {
     static final String USER = "'019a0000-0000-7000-8000-0000000000aa'";
     static final LocalDate DAY = LocalDate.of(2026, 11, 3);
