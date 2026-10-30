@@ -2,7 +2,7 @@
 """Language rule (CLAUDE.md baseline 6, #900): every session talks to the user in Chinese.
 
 --stop           Stop hook. Reads the turn's last assistant message, drops code, URLs, paths and identifiers, and blocks the turn when the
-                 remaining prose is mainly not Chinese. No model call, no network; fails open (any error: no output, exit 0).
+                 remaining prose is mainly not Chinese. No model call, no network; fails open (any error: no output, exit 0). An unclosed code fence hides everything after it (fails open).
 --session-start  SessionStart (compact, resume): prints one line re-stating the rule, since a summary drops it.
 --self-test      Red and green cases plus timing on a long message.
 """
@@ -18,29 +18,26 @@ REMINDER = "【语言】对用户的文字一律用中文（代码、命令、�
 
 FENCE = re.compile(r"(?m)^[ \t]*(```|~~~).*?(?:^[ \t]*\1[^\n]*$|\Z)", re.S)
 INLINE = re.compile(r"`[^`\n]*`")
-LINK_TARGET = re.compile(r"\]\([^)\s]*\)")
-URL = re.compile(r"\b[a-zA-Z][a-zA-Z0-9+.-]*://\S+")
 CJK = re.compile(r"[㐀-䶿一-鿿豈-﫿]")
 EDGE = ".,;:!?\"'()[]{}<>*_“”‘’，。；：！？（）、"
 WORD = re.compile(r"[A-Za-z]+")
 
 
 def identifier_like(token):
-    """A token that names code, not prose: digits, path or call punctuation inside, an inner capital, or all capitals."""
+    """A token that names code, not prose: digits, path, URL or call punctuation inside, or an inner capital (CamelCase, all capitals). URLs, paths and
+    link targets are one whitespace-free token each, so this rule drops them."""
     t = token.strip(EDGE)
     if not t or not WORD.search(t):
         return True
     if any(c in t for c in "_/\\.:#@=<>()[]{}~|$%&+") or any(c.isdigit() for c in t):
         return True
-    return t.isupper() or any(c.isupper() for c in t[1:])
+    return any(c.isupper() for c in t[1:])
 
 
 def shares(text):
     """(CJK characters, Latin letters in prose tokens) of `text` once code-like material is removed."""
     text = FENCE.sub(" ", text)
     text = INLINE.sub(" ", text)
-    text = LINK_TARGET.sub("] ", text)
-    text = URL.sub(" ", text)
     cjk = len(CJK.findall(text))
     latin = 0
     for token in CJK.sub(" ", text).split():
@@ -106,6 +103,12 @@ def self_test():
             "english with code block": english + "\n```\nls\n```", "english with chinese heading": "## 结果\n" + english}
     greens = {"chinese with identifiers": chinese, "code only": code_only, "empty": "", "short ack": "Done. PR 912 opened.", "table": table,
               "chinese with english terms": chinese_with_english_terms, "english identifiers in chinese": "已改 scripts/hooks/stop_language.py，见 PR #912，运行 python3 -I x.py --self-test 全绿，用时不到一秒，没有别的改动。"}
+    padding = "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda"  # 60 English letters: with a stripping step off, these greens turn red
+    greens.update({"long inline code": f"好了 `{padding}`", "camel case": "好了 FooBar BazQux QuuxCorge GraultGarply WaldoFred PlughXyzzy ThudAlpha ReadMe",
+                   "all capitals": "好了 ABCDEFGH IJKLMNOP QRSTUVWX YZABCDEF GHIJKLMN OPQRSTUV", "snake case": "好了 snake_case_word_name another_long_name third_name_here fourth_name_too",
+                   "paths": "好了 see/the/long/path/to/some/file/name src/main/java/com/example/Thing and other/path/names/here", "dotted": "好了 gates_selftest.py install.sh stop_language.py light_triggers.sh settings.json",
+                   "url": "好了 https://git.example.invalid/the/quick/brown/fox/jumps/over/the/lazy/dog/pull/912", "link": "好了 [docs](docs/the/quick/brown/fox/jumps/over/lazy/dog/readme-file-name)",
+                   "digits": "好了 abc123def xyz789ghi pqr456stu vwx012yza bcd345efg hij678klm nop901qrs"})
     for name, text in reds.items():
         assert verdict(text), ("should block", name, shares(text))
     for name, text in greens.items():
@@ -123,10 +126,11 @@ def self_test():
     import os
     import tempfile
     with tempfile.TemporaryDirectory() as d:  # no last_assistant_message: the transcript's last assistant entry is read
-        for text, blocked in ((english, True), (chinese, False)):
+        for texts, blocked in (((chinese, english), True), ((english, chinese), False)):  # only the last assistant entry counts
             path = os.path.join(d, "t.jsonl")
             with open(path, "w", encoding="utf-8") as f:
-                f.write(json.dumps({"type": "user", "message": {"content": "x"}}) + "\n" + json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": text}]}}) + "\n")
+                for text in texts:
+                    f.write(json.dumps({"type": "user", "message": {"content": "x"}}) + "\n" + json.dumps({"type": "assistant", "message": {"content": [{"type": "text", "text": text}]}}) + "\n")
             out = io.StringIO()
             real = sys.stdout
             sys.stdout = out
