@@ -2,8 +2,8 @@
 
 - Card: #878 (DES-1030-PAR-FC), parent #738. Author: one-design, 2026-10-30. Base: origin/main.
 - Basis: ADR-0073 §3 and §4, ADR-0068 §1 and §15, W2 design (`docs/data/w2-employee-position-versioning-design.md`) §2 and §3.6, ADR-0027 item 2.2, ADR-0072 (work calendar), ADR-0022 (the five legal entities).
-- Status: proposal. Business questions Q1–Q4 go to the user through lead.
-- Data design: **not signed in this note**. The shapes in section 5 are the proposal for card B; one-design signs them on card B (`docs/data/data-design-gate.md` §1.3 line format) after Q1–Q4 are answered. No conditional pass.
+- Status: proposal; business questions Q1–Q4 **answered by the user 2026-10-30** (relayed by lead): Q1 (a), Q2 (a), Q3 (a), Q4 (a) — section 9. Cards A–G (section 8) are opened by lead.
+- Data design: **not signed in this note**. The shapes in section 5 are the proposal for card B; one-design signs them on card B (`docs/data/data-design-gate.md` §1.3 line format). No conditional pass.
 
 ## 1. The one thing to decide
 
@@ -52,9 +52,9 @@ Statuses: `PENDING`, `HELD`, `EFFECTIVE`, `WITHDRAWN` (ADR-0068 1.4) plus `AWAIT
 | `AWAITING_COUNTERSIGN` | `WITHDRAWN` | a `CHANGE` request is `REJECTED` with a reason; or an approval's re-check fails — then that request is recorded `REJECTED` with the re-check reason ("不满足即拒签", ADR-0073:73, and 拒签 → 已撤回, :72); or the drafter withdraws (:72). In the same transaction every other open request of the command becomes `LAPSED` |
 | `PENDING` (countersigned) | `WITHDRAWN` | every row of the `WITHDRAWAL` request set (same legal entities as the `CHANGE` set) is `APPROVED`; versions superseded as ADR-0068 1.6 |
 | `PENDING` (countersigned) | `PENDING` | a `WITHDRAWAL` request is `REJECTED`: the command stands, its other open `WITHDRAWAL` rows become `LAPSED`; a new withdrawal may be requested later (S1) |
-| `PENDING` (countersigned) | `EFFECTIVE` | effective date reached; open `WITHDRAWAL` rows become `LAPSED` (Q2) |
+| `PENDING` (countersigned) | `EFFECTIVE` | effective date reached; open `WITHDRAWAL` rows become `LAPSED` (user Q2 a); undo afterwards only by a countersigned `CORRECTION` |
 
-**No later command while one awaits countersign** (Q4, recommended rule): while an employee has an `AWAITING_COUNTERSIGN` command, entering a command for that employee with a later effective date is refused (same shape as "离职之后", ADR-0068 1.5). Reason: versions of the awaiting command are not written, so a later command would be judged without it; when the awaiting command is approved and back-written, the later command's re-appended version could switch the cost legal entity back with no countersign and no event (review rv887a M3). Earlier-dated commands are allowed; the approval re-check then catches a changed basis.
+**No later command while one awaits countersign** (user Q4 a, 2026-10-30): while an employee has an `AWAITING_COUNTERSIGN` command, entering a command for that employee with a later effective date is refused (same shape as "离职之后", ADR-0068 1.5). Reason: versions of the awaiting command are not written, so a later command would be judged without it; when the awaiting command is approved and back-written, the later command's re-appended version could switch the cost legal entity back with no countersign and no event (review rv887a M3). Earlier-dated commands are allowed; the approval re-check then catches a changed basis.
 
 **Drafter** (ADR-0073:69 with the later user decision of 2026-10-30 named 人事专员): for personnel commands the drafter is the 人事专员 who entered the command; ADR-0073:69 names 组织数据管理员 for drafting, which still holds for org-structure commands (card F). Entry is refused when the drafter's own legal entity or their own org unit chain's legal entity would change (ADR-0027 2.2).
 
@@ -83,7 +83,7 @@ The columns below hold for every answer to Q1–Q4: Q1 changes how many request 
 | `personnel_command_id uuid NOT NULL`, `employee_id uuid NOT NULL`, `drafted_by uuid NOT NULL` | composite FK `fk_attribution_countersigns_command` → `personnel_commands (personnel_command_id, employee_id, created_by)` `ON DELETE RESTRICT`: the drafter is the command's own `created_by`, enforced by the database, not copied by the application; card F makes the command columns nullable and adds `org_structure_command_id` with an exactly-one CHECK |
 | `request_kind text NOT NULL` | `CHANGE`, `WITHDRAWAL` |
 | `request_sequence_number smallint NOT NULL` | 1 for `CHANGE`; 1, 2, ... for successive `WITHDRAWAL` requests (a rejected withdrawal may be asked again, S1) |
-| `legal_entity_id uuid NOT NULL` | whose finance head decides (Q1); FK `legal_entities` |
+| `legal_entity_id uuid NOT NULL` | whose finance head decides: one row for the previous and one for the new cost legal entity (user Q1 a); FK `legal_entities` |
 | `requested_at timestamptz NOT NULL`, `requested_by uuid NOT NULL` | equals `drafted_by` for `CHANGE`; the withdrawer for `WITHDRAWAL`; account id, no FK |
 | `due_on_date date NOT NULL` | 3 working days per ADR-0072 calendar, Monday–Friday with an alert when the year is unconfirmed (ADR-0073:74) |
 | `decision_kind text` | `APPROVED`, `REJECTED`, `LAPSED` |
@@ -100,7 +100,7 @@ Needs the W2 common set (command FK, superseded pair, `closed_at`, ...) before a
 ## 6. Permission and holders
 
 - Permission `organization.workforce:legal-entity-attribution:approve` (resource = the `LegalEntityAttribution` aggregate the change writes, ADR-0073:55; action `approve` from the standard set; covers approve and reject, as `separation-hold:approve` covers release). Held by `legal_entity_finance_head`.
-- Second escalation level (ADR-0073:74: "两项授权同时写进权限矩阵"): read here as the same permission granted to the migration business owner during migration and to `business_admin` after go-live — see Q3.
+- Second escalation level (ADR-0073:74: "两项授权同时写进权限矩阵"): confirmed by the user (Q3 a): the same permission granted to the migration business owner during migration and to `business_admin` after go-live — see Q3.
 - Not allowed to decide: the drafter (database CHECK, section 5.2); anyone whose own legal entity, or whose org unit chain's, is being changed, and the employee themself (application checks, ADR-0073:69).
 - One person who is the finance head of both legal entities (Q1 a) decides each row separately; the rows stay two decisions with two audit entries.
 - Third escalation level "财务负责人" (ADR-0073:74) is read as the same `legal_entity_finance_head` of the row's legal entity, plus the monthly red light; there is no group-level finance role in the glossary.
@@ -115,14 +115,16 @@ Needs the W2 common set (command FK, superseded pair, `closed_at`, ...) before a
 | | Type | Content | Prerequisites |
 |---|---|---|---|
 | A | impl | `employee_legal_entities` W2 common set + command FKs (like #880) | DD on the card |
-| B | impl | section 5.1 and 5.2 tables, `state_transitions` pairs, ops grants, registries | Q1–Q4 answered; DD signed on card B |
+| B | impl | section 5.1 and 5.2 tables, `state_transitions` pairs, ops grants, registries | DD signed on card B |
 | C | acceptance | cases of section 10 | B's DD |
 | D | impl | entry decision, countersign / reject / withdraw use cases, permission seed, events, audit | A, B, C, #872 |
 | E | impl | deadline, reminder and escalation job (`@Scheduled` + `@SchedulerLock`, ADR-0072 calendar) + its acceptance | D |
 | F | design → impl | org-structure side: `ASSIGN_LEGAL_ENTITY`, merge exemption CHECK, `org_structure_command_id` on `attribution_countersigns` | `org_structure_commands` card (ADR-0068 §4) |
 | G | glossary | GitHub Issue for the homonym 会签 (`platform.approval` countersign vs finance countersign); proposed terms: 待会签, 成本法人, 法人归属已变更, attribution countersign | none |
 
-## 9. Business questions for the user (through lead)
+## 9. Business questions for the user (through lead) — answered 2026-10-30
+
+User answers (relayed by lead, 2026-10-30): **Q1 (a)** both the previous and the new legal entity's finance heads countersign, either may reject; **Q2 (a)** an open withdrawal request lapses on the effective date, undo by a countersigned correction; **Q3 (a)** the escalated persons may countersign; **Q4 (a)** later-dated commands are refused while one awaits countersign. The options as asked:
 
 - **Q1 Whose finance head countersigns a cross-entity change?** The role is per legal entity and the glossary says cross-entity matters must name which. (a) both the previous and the new legal entity's heads, either may reject — recommended: the cost leaves one set of books and enters another; (b) only the new entity's head; (c) only the previous entity's head.
 - **Q2 A countersigned future-dated command whose withdrawal is awaiting finance when the effective date arrives.** Versions are already written, so by ADR-0068 1.8 the change is in force on that date whatever the job does. (a) the withdrawal request lapses on that date and the drafter uses a `CORRECTION` (itself countersigned) — recommended, no hidden pending state; (b) the change is held back until finance decides — needs superseding the versions on the effective date and contradicts "判断不依赖作业".
