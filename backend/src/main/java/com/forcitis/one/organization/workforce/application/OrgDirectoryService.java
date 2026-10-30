@@ -12,8 +12,10 @@ import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
 import com.forcitis.one.organization.workforce.domain.StaffEmployee;
-import com.forcitis.one.organization.workforce.domain.UnpaidLeaveQueries;
+import com.forcitis.one.organization.workforce.domain.EmployeeVersionQueries;
 import java.time.LocalDate;
+import com.forcitis.one.kernel.BusinessZone;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
@@ -24,11 +26,15 @@ class OrgDirectoryService implements OrgDirectory {
     private final RegisterEmployeeOnLogin registerOnLogin;
     private final RegisterEmployeeOnLoginName registerOnLoginName;
     private final SnapshotFreshness freshness;
-    private final UnpaidLeaveQueries leaves;
+    private final EmployeeVersionQueries versions;
+    private final Clock clock;
+    private final BusinessZone zone;
 
     OrgDirectoryService(OrgSnapshotQueries snapshots, RegisterEmployeeOnLogin registerOnLogin,
-                        RegisterEmployeeOnLoginName registerOnLoginName, SnapshotFreshness freshness, UnpaidLeaveQueries leaves) {
-        this.leaves = leaves;
+                        RegisterEmployeeOnLoginName registerOnLoginName, SnapshotFreshness freshness, EmployeeVersionQueries versions, Clock clock, BusinessZone zone) {
+        this.versions = versions;
+        this.clock = clock;
+        this.zone = zone;
         this.freshness = freshness;
         this.snapshots = snapshots;
         this.registerOnLogin = registerOnLogin;
@@ -37,7 +43,7 @@ class OrgDirectoryService implements OrgDirectory {
 
     @Override
     public Optional<EmployeeProfile> findEmployee(EmployeeId employeeId) {
-        return snapshots.findStaff(employeeId).map(OrgDirectoryService::profile);
+        return snapshots.findStaff(employeeId).map(this::profile);
     }
 
     @Override
@@ -50,13 +56,13 @@ class OrgDirectoryService implements OrgDirectory {
 
     @Override
     public boolean isOnUnpaidLeave(EmployeeId employeeId, LocalDate day) {
-        return leaves.isOnLeave(employeeId, day);
+        return versions.isOnLeave(employeeId, day);
     }
 
     @Override
     public EmploymentVerdict employmentOf(EmployeeId employeeId) {
         Optional<StaffEmployee> staff = snapshots.findStaff(employeeId);
-        if (staff.isPresent() && staff.get().employee().employmentStatus() != EmploymentStatus.EMPLOYED) {
+        if (staff.isPresent() && statusOf(staff.get()) != EmploymentStatus.EMPLOYED) {
             return EmploymentVerdict.SEPARATED;
         }
         if (!freshness.isCurrent()) {
@@ -68,7 +74,7 @@ class OrgDirectoryService implements OrgDirectory {
     private Optional<EmployeeProfile> findEmployeeByWecomUser(WecomUserId wecomUserId) {
         return snapshots.findStaffByWecomUser(wecomUserId)
                 .or(() -> registerOnLogin.execute(wecomUserId))
-                .map(OrgDirectoryService::profile);
+                .map(this::profile);
     }
 
     private Optional<EmployeeProfile> findEmployeeByLoginName(String loginName) {
@@ -78,7 +84,7 @@ class OrgDirectoryService implements OrgDirectory {
         String key = loginName.trim();
         return snapshots.findStaffByLoginName(key)
                 .or(() -> registerOnLoginName.execute(key))
-                .map(OrgDirectoryService::profile);
+                .map(this::profile);
     }
 
     @Override
@@ -112,8 +118,17 @@ class OrgDirectoryService implements OrgDirectory {
         return snapshots.findAncestors(orgUnitId);
     }
 
-    private static EmployeeProfile profile(StaffEmployee staff) {
+    /**
+     * A person who has employee versions is read from those versions by today; everyone else from the snapshot, as before the commands existed. Only the
+     * personnel commands write versions in this phase, so this is the stop-gap the C batch replaces together with the snapshot path (a version of any channel
+     * wins over the snapshot status, so initial migrated versions must not be loaded while the sync still writes the snapshot).
+     */
+    private EmploymentStatus statusOf(StaffEmployee staff) {
+        return versions.employmentOn(staff.employeeId(), zone.today(clock)).orElse(staff.employee().employmentStatus());
+    }
+
+    private EmployeeProfile profile(StaffEmployee staff) {
         return new EmployeeProfile(staff.employeeId(), staff.employee().displayName(), staff.assignment().orgUnitId(),
-                staff.employee().wecomUserId(), staff.employee().employmentStatus(), staff.employee().feeEarner());
+                staff.employee().wecomUserId(), statusOf(staff), staff.employee().feeEarner());
     }
 }

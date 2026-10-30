@@ -14,6 +14,7 @@ import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.PersonnelCommands;
+import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.WithdrawPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
@@ -87,6 +88,9 @@ class PersonnelCommandService implements PersonnelCommands {
         LocalDate today = zone.dateOf(now);
         UserId by = currentUser.userId();
         EmployeeId employee = request.employeeId();
+        if (request.commandKind() == PersonnelCommandKind.SEPARATE) {
+            commands.lockSeparationDecisions();
+        }
         if (!commands.lockEmployee(employee)) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID, ErrorKind.UNPROCESSABLE, "the employee does not exist");
         }
@@ -94,21 +98,27 @@ class PersonnelCommandService implements PersonnelCommands {
         requireTargetsExist(command);
         PersonnelHistory history = commands.load(employee);
         PersonnelCommandRules.check(command, history);
-        // B6 seam (ADR-0068 item 2): a held separation must also leave out its separated versions now and void the future one when released late;
-        // withdraw() below reverts versions only for a pending command, so B6 handles both ends here.
-        if (command.kind() == PersonnelCommandKind.SEPARATE && holdCheck.holds(command)) {
+        boolean held = command.kind() == PersonnelCommandKind.SEPARATE && holdCheck.holds(command);
+        if (held) {
             command.holdAtEntry();
         }
         AuditEntryId auditEntry = audit.record(new AuditEntry("organization.workforce.personnel-command.entered", by, null, AuditSubject.of(AuditSubjectKind.EMPLOYEE, employee.value()),
                 "command " + command.id() + " " + command.kind() + " effective " + command.effectiveDate()));
-        Map<VersionTable, VersionPlan> plans = timelines.forEntry(command, history, auditEntry);
+        Map<VersionTable, VersionPlan> plans = held ? Map.of() : timelines.forEntry(command, history, auditEntry);
         PersonnelCommandRules.requirePositionOnCommandRows(plans.get(VersionTable.ASSIGNMENT));
         commands.insert(command);
         commands.insertTransition(COMMAND, command.id().value(), command.version(), null, command.status().name(), by, today, now, command.id(), correlation());
         for (Map.Entry<VersionTable, VersionPlan> plan : plans.entrySet()) {
             commands.insertVersions(employee, plan.getKey(), plan.getValue(), command.id(), now);
         }
-        if (command.status() == CommandStatus.EFFECTIVE && !(command.kind() == PersonnelCommandKind.CORRECTION && command.effectiveDate().isAfter(today))) {
+        if (held) {
+            SeparationHold hold = SeparationHold.of(new SeparationHoldId(ids.next()), command);
+            commands.insertHold(hold, now);
+            commands.insertTransition(HOLD, hold.id().value(), hold.version(), null, hold.status().name(), by, today, now, command.id(), correlation());
+            command.recordHeld(hold.id(), legalEntityOn(employee, command.effectiveDate().minusDays(1)));
+            events.publish(command);
+            commands.saveEventSequence(employee, command.eventSequenceAfterSave());
+        } else if (command.status() == CommandStatus.EFFECTIVE && !(command.kind() == PersonnelCommandKind.CORRECTION && command.effectiveDate().isAfter(today))) {
             VersionRow assignmentBefore = history.currentAssignmentRows().stream().filter(r -> r.covers(command.effectiveDate().minusDays(1))).findFirst().orElse(null);
             // A separation's envelope names the entity of the last day the employee was employed: on the effective day itself the assignment has just ended.
             LocalDate entityDay = command.kind() == PersonnelCommandKind.SEPARATE ? command.effectiveDate().minusDays(1) : command.effectiveDate();
@@ -129,6 +139,9 @@ class PersonnelCommandService implements PersonnelCommands {
         LocalDate today = zone.dateOf(now);
         UserId by = currentUser.userId();
         PersonnelCommand found = commands.find(request.personnelCommandId()).orElseThrow(PersonnelCommandService::notFound);
+        if (found.kind() == PersonnelCommandKind.SEPARATE) {
+            commands.lockSeparationDecisions();
+        }
         commands.lockEmployee(found.employeeId());
         PersonnelCommand command = commands.find(request.personnelCommandId()).orElseThrow(PersonnelCommandService::notFound);
         long loadedVersion = command.version();

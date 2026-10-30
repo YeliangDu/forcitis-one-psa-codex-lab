@@ -5,9 +5,11 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PositionId;
+import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
@@ -16,6 +18,15 @@ public interface PersonnelCommandRepository {
 
     /** Locks the employee row for the rest of the transaction; false when there is no such employee. */
     boolean lockEmployee(EmployeeId employee);
+
+    /**
+     * Takes the transaction-level advisory lock every part of the administrator-separation decision takes first: entering a separation, releasing a
+     * hold, withdrawing a held command (ADR-0068 item 2.2). It is taken before any employee row, so all of them lock in one order.
+     */
+    void lockSeparationDecisions();
+
+    /** The employees whose separation is held at this moment (read under the lock). */
+    Set<EmployeeId> heldEmployees();
 
     boolean orgUnitExists(OrgUnitId orgUnit);
 
@@ -32,7 +43,7 @@ public interface PersonnelCommandRepository {
 
     void insert(PersonnelCommand command);
 
-    /** Writes the status and the withdrawal columns the aggregate holds, if the stored version is still the one it was loaded with. */
+    /** Writes the status, the application time and the withdrawal columns the aggregate holds, if the stored version is still the one it was loaded with. */
     void update(PersonnelCommand command, long loadedVersion);
 
     /**
@@ -43,6 +54,11 @@ public interface PersonnelCommandRepository {
 
     Optional<SeparationHold> holdOf(PersonnelCommandId command);
 
+    Optional<SeparationHold> findHold(SeparationHoldId id);
+
+    void insertHold(SeparationHold hold, Instant at);
+
+    /** Writes the status and the release columns the hold holds, if the stored version is still the one it was loaded with. */
     void updateHold(SeparationHold hold, Instant at, long loadedVersion);
 
     void insertTransition(String aggregateType, UUID aggregateId, long sequence, @Nullable String from, String to, UserId actor, LocalDate day, Instant at,

@@ -46,6 +46,7 @@ categories:
   - organization.workforce.SyncRunHeld
   - organization.workforce.SyncRunHoldReleased
   - organization.workforce.SyncRunReleased
+  - organization.workforce.separation-hold.released
   - organization.workforce.sync-run.released
 - name: 人事命令
   actions:

@@ -1,10 +1,12 @@
 package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.PendingEvent;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PositionId;
+import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.organization.workforce.events.EmployeeCorrected;
 import com.forcitis.one.organization.workforce.events.EmployeeHired;
@@ -12,6 +14,8 @@ import com.forcitis.one.organization.workforce.events.EmployeeRegularized;
 import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
 import com.forcitis.one.organization.workforce.events.EmployeeTransferred;
+import com.forcitis.one.organization.workforce.events.SeparationHeld;
+import com.forcitis.one.organization.workforce.events.SeparationHoldReleased;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -40,6 +44,16 @@ final class PersonnelCommandEvents {
             case TRANSFER -> transferred(c, assignmentBefore, legalEntity);
             case UNPAID_LEAVE_START, UNPAID_LEAVE_END -> null;
         });
+    }
+
+    static PendingEvent held(PersonnelCommand c, SeparationHoldId hold, @Nullable LegalEntityId legalEntity) {
+        return (envelopes, sequence) -> new SeparationHeld(envelopes.wrap(draft("SeparationHeld", c, legalEntity, sequence)), c.id(), c.employeeId(),
+                c.effectiveDate(), hold);
+    }
+
+    static PendingEvent released(PersonnelCommand c, SeparationHoldId hold, @Nullable UserId releasedBy, @Nullable LegalEntityId legalEntity) {
+        return (envelopes, sequence) -> new SeparationHoldReleased(envelopes.wrap(draft("SeparationHoldReleased", c, legalEntity, sequence)), c.id(),
+                c.employeeId(), c.effectiveDate(), hold, releasedBy);
     }
 
     private static PendingEvent transferred(PersonnelCommand c, @Nullable VersionRow before, @Nullable LegalEntityId legalEntity) {
