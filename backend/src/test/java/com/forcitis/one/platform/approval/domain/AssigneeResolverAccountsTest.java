@@ -35,7 +35,7 @@ class AssigneeResolverAccountsTest {
 
     final OrgDirectory org = mock(OrgDirectory.class);
     final RoleDirectory roles = mock(RoleDirectory.class);
-    final AssigneeResolver resolver = new AssigneeResolver(org, roles, Set.of(), TestAccounts.everyoneHasOne());
+    final AssigneeResolver resolver = new AssigneeResolver(org, roles, Set.of(), TestAccounts.everyoneHasOne(), java.time.LocalDate.of(2026, 11, 2));
 
     AssigneeResolverAccountsTest() {
         for (long employee : new long[] {1001, 1002, 1003}) {

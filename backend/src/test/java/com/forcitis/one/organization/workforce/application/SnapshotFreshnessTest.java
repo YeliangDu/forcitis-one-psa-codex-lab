@@ -112,7 +112,8 @@ class SnapshotFreshnessTest {
         SyncRunQueries history = mock(SyncRunQueries.class);
         when(history.findLastSucceededAt()).thenReturn(Optional.of(lastSucceeded));
         return new OrgDirectoryService(snapshots, mock(RegisterEmployeeOnLogin.class), mock(RegisterEmployeeOnLoginName.class),
-                new SnapshotFreshness(history, Clock.fixed(NOW, ZoneOffset.UTC), Duration.ofMinutes(10), EVERY_FIVE_MINUTES));
+                new SnapshotFreshness(history, Clock.fixed(NOW, ZoneOffset.UTC), Duration.ofMinutes(10), EVERY_FIVE_MINUTES),
+                mock(com.forcitis.one.organization.workforce.domain.UnpaidLeaveQueries.class));
     }
 
     private static StaffEmployee staff(EmploymentStatus status) {
