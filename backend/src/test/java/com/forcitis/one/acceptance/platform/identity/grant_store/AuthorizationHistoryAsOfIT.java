@@ -62,7 +62,7 @@ class AuthorizationHistoryAsOfIT extends GrantStoreSupport {
         List<Object> found = new ArrayList<>();
         for (String name : context.getBeanDefinitionNames()) {
             Class<?> type = context.getType(name);
-            if (type != null && type.getSimpleName().equals("AuthorizationHistory")) {
+            if (type != null && org.springframework.util.ClassUtils.getUserClass(type).getSimpleName().equals("AuthorizationHistory")) {
                 found.add(context.getBean(name));
             }
         }
@@ -81,7 +81,7 @@ class AuthorizationHistoryAsOfIT extends GrantStoreSupport {
     }
 
     private Method asOfMethod(Object history) {
-        List<Method> candidates = Arrays.stream(history.getClass().getMethods()).filter(m -> !Modifier.isStatic(m.getModifiers()) && m.getDeclaringClass() != Object.class)
+        List<Method> candidates = Arrays.stream(org.springframework.util.ClassUtils.getUserClass(history.getClass()).getMethods()).filter(m -> !Modifier.isStatic(m.getModifiers()) && m.getDeclaringClass() != Object.class)
                 .filter(m -> m.getParameterCount() == 2 && m.getReturnType() != void.class)
                 .filter(m -> (isUser(m.getParameterTypes()[0]) && isMoment(m.getParameterTypes()[1])) || (isMoment(m.getParameterTypes()[0]) && isUser(m.getParameterTypes()[1])))
                 .toList();
@@ -212,18 +212,57 @@ class AuthorizationHistoryAsOfIT extends GrantStoreSupport {
         assertThat(alertsSince(mark)).as("an ALERT is written").isNotEmpty();
     }
 
+    /** Row counts and content hashes of every platform_identity table except the framework session tables, and the audit entry total. */
+    private java.util.Map<String, String> snapshot() throws Exception {
+        java.util.Map<String, String> state = new java.util.TreeMap<>();
+        try (java.sql.Connection identity = schemaConnection("platform_identity"); java.sql.Statement tables = identity.createStatement();
+             java.sql.ResultSet names = tables.executeQuery("select table_name from information_schema.tables where table_schema = 'platform_identity' and table_type = 'BASE TABLE'")) {
+            List<String> all = new ArrayList<>();
+            while (names.next()) {
+                all.add(names.getString(1));
+            }
+            for (String table : all) {
+                if (table.startsWith("sessions")) {
+                    continue;
+                }
+                try (java.sql.Statement count = identity.createStatement(); java.sql.ResultSet rs = count.executeQuery(
+                        "select count(*) || ' ' || md5(coalesce(string_agg(t::text, '|' order by t::text), '')) from platform_identity." + table + " t")) {
+                    rs.next();
+                    state.put("platform_identity." + table, rs.getString(1));
+                }
+            }
+        }
+        try (java.sql.Connection audit = schemaConnection("platform_audit"); java.sql.Statement count = audit.createStatement();
+             java.sql.ResultSet rs = count.executeQuery("select count(*) from audit_entries")) {
+            rs.next();
+            state.put("platform_audit.audit_entries", rs.getString(1));
+        }
+        return state;
+    }
+
+    /** The snapshot once nothing is still being written by listeners of earlier steps (two equal reads apart). */
+    private java.util.Map<String, String> settledSnapshot() throws Exception {
+        java.util.concurrent.atomic.AtomicReference<java.util.Map<String, String>> last = new java.util.concurrent.atomic.AtomicReference<>(snapshot());
+        await().atMost(Duration.ofSeconds(15)).pollDelay(Duration.ofMillis(500)).pollInterval(Duration.ofMillis(500)).until(() -> {
+            java.util.Map<String, String> next = snapshot();
+            return next.equals(last.getAndSet(next));
+        });
+        return last.get();
+    }
+
     @Test
-    @DisplayName("DD 签发 D：按时刻还原只读，不写任何行（授予行、审计条数不变）")
+    @DisplayName("DD 签发 D：按时刻还原只读，不写任何行：成功与失败（早于全部记录）两种调用前后，identity 每张表（会话表除外）的行数与内容摘要、审计条目总数都不变")
     void theRestoreWritesNothing() throws Throwable {
         SignedIn target = person("business_admin");
-        List<Grant> before = grants(target.userId());
-        long total = grantRows();
-        long audits = auditCount(REVOKED_ACTION);
+        java.util.Map<String, String> before = settledSnapshot();
 
         restore(target.userId(), NOW.plusSeconds(1));
+        try {
+            restore(target.userId(), Instant.parse("2000-01-01T00:00:00Z"));
+        } catch (RuntimeException expectedFailure) {
+            // the failure itself is G6-02's; here only that it writes nothing
+        }
 
-        assertThat(grants(target.userId())).isEqualTo(before);
-        assertThat(grantRows()).isEqualTo(total);
-        assertThat(auditCount(REVOKED_ACTION)).isEqualTo(audits);
+        assertThat(settledSnapshot()).isEqualTo(before);
     }
 }

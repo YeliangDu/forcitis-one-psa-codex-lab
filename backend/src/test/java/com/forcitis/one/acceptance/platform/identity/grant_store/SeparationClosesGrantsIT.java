@@ -179,4 +179,54 @@ class SeparationClosesGrantsIT extends GrantStoreSupport {
         });
         assertThat(alertsSince(mark)).isEmpty();
     }
+
+    @Test
+    @DisplayName("ADR-0034 第 3 项第 1、4 条（不得做：只认本人的 EmployeeSeparated）：另一名员工的 EmployeeSeparated 到达，此人的授予行、会话、应急账号原样不动")
+    void anotherEmployeesEventLeavesThePersonAlone() throws Exception {
+        SignedIn stays = person("super_admin", "business_admin");
+        SignedIn leaves = person("business_admin");
+        List<Grant> before = grants(stays.userId());
+
+        publishSeparated(leaves.employeeId(), newCommandId(), HR_DATE);
+
+        awaitNoOpenGrants(leaves.userId());
+        assertThat(grants(stays.userId())).isEqualTo(before);
+        assertThat(profileStatus(stays)).isEqualTo(200);
+    }
+
+    @Test
+    @DisplayName("ADR-0068 第 2 条第 2 项、ADR-0055 第 3 项第 3 条（待放行期间不关闭）：此人有一条待放行（HELD）的离职命令、没有 EmployeeSeparated：授予不关闭、会话仍在")
+    void aHeldSeparationClosesNothing() throws Exception {
+        SignedIn held = person("super_admin", "business_admin");
+        List<Grant> before = grants(held.userId());
+        java.time.OffsetDateTime at = java.time.OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC);
+        UUID command = newCommandId();
+        try (java.sql.Connection workforce = schemaConnection("organization_workforce")) {
+            try (java.sql.PreparedStatement insert = workforce.prepareStatement("""
+                    insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
+                    values (?, ?, 'SEPARATE', ?, 'HELD', ?, ?, ?)""")) {
+                insert.setObject(1, command);
+                insert.setObject(2, stored(held.employeeId()));
+                insert.setObject(3, TODAY.plusDays(10));
+                insert.setObject(4, at);
+                insert.setObject(5, held.userId());
+                insert.setObject(6, at);
+                insert.executeUpdate();
+            }
+            try (java.sql.PreparedStatement insert = workforce.prepareStatement(
+                    "insert into separation_holds (separation_hold_id, personnel_command_id, employee_id, status, created_at, updated_at) values (?, ?, ?, 'HELD', ?, ?)")) {
+                insert.setObject(1, newCommandId());
+                insert.setObject(2, command);
+                insert.setObject(3, stored(held.employeeId()));
+                insert.setObject(4, at);
+                insert.setObject(5, at);
+                insert.executeUpdate();
+            }
+        }
+
+        org.awaitility.Awaitility.await().during(Duration.ofSeconds(3)).atMost(Duration.ofSeconds(8)).untilAsserted(() -> {
+            assertThat(grants(held.userId())).isEqualTo(before);
+            assertThat(profileStatus(held)).isEqualTo(200);
+        });
+    }
 }

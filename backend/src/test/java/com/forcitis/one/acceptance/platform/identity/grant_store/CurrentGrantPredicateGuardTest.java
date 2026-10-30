@@ -15,21 +15,24 @@ import org.junit.jupiter.api.Test;
 
 /**
  * #732 part A, 0034-G3-03 (ADR-0034 decision 4 items 1 and 2: every reader of "current" goes through one predicate constant in the repository,
- * none writes its own). Text guard over src/main/java: the test "effective_to_at is null" (case, spacing and a table alias left open) may be
+ * none writes its own; the forms "is null", "isnull", "is not distinct from null" and literals joined with + are all read). Text guard over src/main/java: the test "effective_to_at is null" (case, spacing and a table alias left open) may be
  * spelled only inside one static final String constant declaration, and that constant exists exactly once. Table names in SQL elsewhere do not
  * matter; the as-of read model uses a range test, not this one. An injected hand-written predicate is shown to be caught.
  */
 class CurrentGrantPredicateGuardTest {
 
     static final Path MAIN = Path.of("src/main/java");
-    static final Pattern IS_NULL = Pattern.compile("effective_to_at\\s+is\\s+null", Pattern.CASE_INSENSITIVE);
+    static final Pattern IS_NULL = Pattern.compile("effective_to_at\\s+(?:is\\s+null|isnull|is\\s+not\\s+distinct\\s+from\\s+null)", Pattern.CASE_INSENSITIVE);
+    /** Adjacent string literals joined with + ("a " + "b"), so that a split spelling is read as one. */
+    static final Pattern CONCATENATION = Pattern.compile("\"\\s*\\+\\s*\"");
     /** A constant declaration statement: from "static final String NAME =" up to its closing semicolon (text blocks and concatenation included). */
     static final Pattern CONSTANT = Pattern.compile("static\\s+final\\s+String\\s+\\w+\\s*=[^;]*;", Pattern.DOTALL);
 
     record Spelling(String where, boolean inConstant) {
     }
 
-    static List<Spelling> spellings(String name, String source) {
+    static List<Spelling> spellings(String name, String rawSource) {
+        String source = CONCATENATION.matcher(rawSource).replaceAll("");
         List<int[]> constants = new ArrayList<>();
         Matcher constant = CONSTANT.matcher(source);
         while (constant.find()) {
@@ -83,6 +86,10 @@ class CurrentGrantPredicateGuardTest {
 
         assertThat(found).hasSize(3);
         assertThat(found.stream().filter(s -> !s.inConstant())).hasSize(2);
+        assertThat(spellings("Isnull.java", "class A { String q = \"select 1 where g.effective_to_at isnull\"; }")).hasSize(1).noneMatch(Spelling::inConstant);
+        assertThat(spellings("Distinct.java", "class A { String q = \"where effective_to_at IS NOT DISTINCT FROM null\"; }")).hasSize(1).noneMatch(Spelling::inConstant);
+        assertThat(spellings("Joined.java", "class A { String q = \"where g.effective_to_at \" + \"is null\"; }")).hasSize(1).noneMatch(Spelling::inConstant);
+        assertThat(spellings("JoinedLines.java", "class A { String q = \"where g.effective_to_at\"\n    + \" is\"\n    + \" null\"; }")).hasSize(1).noneMatch(Spelling::inConstant);
         assertThat(spellings("Clean.java", "class Clean { static final String CURRENT = \"\"\"\n effective_to_at is null\n \"\"\"; }")).allMatch(Spelling::inConstant);
     }
 }
