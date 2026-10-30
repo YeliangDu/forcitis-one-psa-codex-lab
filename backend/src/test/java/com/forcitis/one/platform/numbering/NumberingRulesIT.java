@@ -92,6 +92,9 @@ class NumberingRulesIT {
     DocumentNumbers numbers;
 
     @Autowired
+    com.forcitis.one.platform.numbering.api.GlobalDocumentNumbers globalNumbers;
+
+    @Autowired
     RegisterLegacyNumbers register;
 
     @Autowired
@@ -208,7 +211,7 @@ class NumberingRulesIT {
     }
 
     private String issueGlobal(DocumentTypeCode type, LocalDate day) {
-        return tx.execute(status -> numbers.nextGlobal(type, day).value());
+        return tx.execute(status -> globalNumbers.nextGlobal(type, day).value());
     }
 
     @Test
@@ -231,7 +234,7 @@ class NumberingRulesIT {
         assertThat(issueGlobal(employee, LocalDate.of(2026, 10, 30))).isEqualTo("EMP000001");
         assertThat(issueGlobal(employee, LocalDate.of(2027, 1, 2))).as("a later year does not restart it").isEqualTo("EMP000002");
         assertThatThrownBy(() -> tx.execute(status -> {
-            numbers.nextGlobal(employee, LocalDate.of(2026, 10, 30));
+            globalNumbers.nextGlobal(employee, LocalDate.of(2026, 10, 30));
             throw new IllegalStateException("the hire is refused after the number was taken");
         })).isInstanceOf(IllegalStateException.class);
         assertThat(issueGlobal(employee, LocalDate.of(2026, 10, 30))).as("the rolled-back number is issued again, no gap").isEqualTo("EMP000003");
