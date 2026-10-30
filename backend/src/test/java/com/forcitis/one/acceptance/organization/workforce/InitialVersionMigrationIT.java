@@ -181,19 +181,21 @@ class InitialVersionMigrationIT extends InitialVersionMigrationSupport {
     @DisplayName("#960 完成标准（重跑无变化）与 14.2 M7：第二次运行成功、两张版本表逐行不变；两次运行都不发领域事件；每次运行写一条审计，审计不含被迁入者的 ID 与姓名")
     void aRerunChangesNothingAndNothingIsPublished() throws Exception {
         UUID person = snapshotPerson(true, null);
+        // Operator and witness of both runs are seeded first: seeding attributes them to a legal entity, which publishes events of its own.
+        UUID firstOperator = employed(REGULAR);
+        UUID firstWitness = employed(REGULAR);
+        UUID secondOperator = employed(REGULAR);
+        UUID secondWitness = employed(REGULAR);
         long events = publishedEvents();
         int audited = auditCount(AUDIT_MIGRATED);
 
-        Result first = migrate();
+        Result first = migrate(firstOperator, firstWitness);
         List<Map<String, Object>> afterFirst = everyVersionRow();
-        Result second = migrate();
+        Result second = migrate(secondOperator, secondWitness);
 
         assertThat(first.exitCode()).as(first.text()).isEqualTo(DONE);
         assertThat(second.exitCode()).as(second.text()).isEqualTo(DONE);
-        List<Map<String, Object>> afterSecond = everyVersionRow();
-        // The second run's operator and witness are new seeded people (with versions): every row of the first state is still there unchanged.
-        assertThat(afterSecond).containsAll(afterFirst);
-        assertThat(afterSecond.size() - afterFirst.size()).as("only the new operator's and witness's seeded rows").isEqualTo(4);
+        assertThat(everyVersionRow()).as("the rerun changes no row").isEqualTo(afterFirst);
         assertThat(publishedEvents()).isEqualTo(events);
         assertThat(auditCount(AUDIT_MIGRATED)).isEqualTo(audited + 2);
         String name = (String) rows("select display_name from employees where id = ?", stored(person)).get(0).get("display_name");
