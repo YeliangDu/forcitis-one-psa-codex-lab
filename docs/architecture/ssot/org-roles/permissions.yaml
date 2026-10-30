@@ -1,7 +1,7 @@
 # 正本，直接编辑（原生成脚本已随 #742 删除）
 meta:
-  permissions: 29
-  system_roles: 7
+  permissions: 30
+  system_roles: 8
 permissions:
 - name: TIMESHEET_SUBMIT
   code: cost.timesheet:timesheet:submit
@@ -153,30 +153,36 @@ permissions:
   resource: legal-entity
   action: update
   source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:29
+- name: ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_CREATE
+  code: organization.workforce:personnel-command:create
+  module: organization.workforce
+  resource: personnel-command
+  action: create
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:30
 - name: ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE
   code: organization.workforce:legal-entity-attribution-correction:create
   module: organization.workforce
   resource: legal-entity-attribution-correction
   action: create
-  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:30
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:31
 - name: ORGANIZATION_ATTENDANCE_WORK_CALENDAR_READ
   code: organization.attendance:work-calendar:read
   module: organization.attendance
   resource: work-calendar
   action: read
-  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:31
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:32
 - name: ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE
   code: organization.attendance:work-calendar:update
   module: organization.attendance
   resource: work-calendar
   action: update
-  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:32
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:33
 - name: ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE
   code: organization.attendance:locked-day:update
   module: organization.attendance
   resource: locked-day
   action: update
-  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:33
+  source: backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java:34
 system_roles:
 - code: super_admin
   name: 超级管理员
@@ -186,7 +192,7 @@ system_roles:
   is_administrative: true
   permission_codes: []
   source: code
-  source_location: backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:30
+  source_location: backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:31
   permission_sources: {}
 - code: employee
   name: 员工
@@ -201,18 +207,18 @@ system_roles:
   - platform.file:file:create
   - platform.file:file:read
   source: code
-  source_location: backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:31
+  source_location: backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:32
   permission_sources:
     platform.approval:task:read:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:32
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:33
     platform.approval:task:approve:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:32
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:33
     platform.audit:own-login-record:read:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:32
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:33
     platform.file:file:create:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:33
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:34
     platform.file:file:read:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:33
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:34
 - code: process_administrator
   name: 流程管理员
   kind: SYSTEM
@@ -221,7 +227,7 @@ system_roles:
   is_administrative: false
   permission_codes: []
   source: code
-  source_location: backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:34
+  source_location: backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:35
   permission_sources: {}
 - code: org_data_admin
   name: 组织数据管理员
@@ -242,30 +248,30 @@ system_roles:
   - platform.numbering:numbering-rule:read
   - platform.numbering:numbering-rule:update
   source: code
-  source_location: backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:35
+  source_location: backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:36
   permission_sources:
     organization.workforce:org-unit:read:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:36
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:37
     organization.workforce:sync-run:read:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:36
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:37
     organization.workforce:sync-run:execute:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:36
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:37
     organization.workforce:legal-entity:update:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:37
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:38
     organization.attendance:work-calendar:read:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:37
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:38
     organization.attendance:work-calendar:update:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:38
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:39
     organization.attendance:locked-day:update:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:38
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:39
     platform.numbering:numbering-rule:read:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:39
-    platform.numbering:numbering-rule:update:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:39
-    platform.integration:source-reference:update:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:39
-    organization.workforce:legal-entity-attribution-correction:create:
     - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:40
+    platform.numbering:numbering-rule:update:
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:40
+    platform.integration:source-reference:update:
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:40
+    organization.workforce:legal-entity-attribution-correction:create:
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:41
 - code: business_admin
   name: 业务管理员
   kind: SYSTEM
@@ -277,14 +283,14 @@ system_roles:
   - platform.numbering:numbering-rule:approve
   - platform.numbering:numbering-rule:read
   source: code
-  source_location: backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:41
+  source_location: backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:42
   permission_sources:
     platform.numbering:numbering-rule:read:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:42
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:43
     platform.numbering:numbering-rule:approve:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:42
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:43
     platform.integration:source-reference:approve:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:42
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:43
 - code: security_auditor
   name: 安全审计员
   kind: SYSTEM
@@ -296,14 +302,27 @@ system_roles:
   - platform.audit:audit-entry:export
   - platform.audit:audit-entry:read
   source: code
-  source_location: backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:43
+  source_location: backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:44
   permission_sources:
     platform.audit:audit-entry:read:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:44
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:45
     platform.audit:audit-entry:export:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:44
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:45
     organization.workforce:separation-hold:approve:
-    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:44
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:45
+- code: personnel_specialist
+  name: 人事专员
+  kind: SYSTEM
+  status: ENABLED
+  access_scope: ALL
+  is_administrative: false
+  permission_codes:
+  - organization.workforce:personnel-command:create
+  source: code
+  source_location: backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:46
+  permission_sources:
+    organization.workforce:personnel-command:create:
+    - backend/src/main/java/com/forcitis/one/platform/identity/domain/SystemRoleDeclaration.java:47
 - code: administrator-mode
   name: 管理员模式
   source: code
