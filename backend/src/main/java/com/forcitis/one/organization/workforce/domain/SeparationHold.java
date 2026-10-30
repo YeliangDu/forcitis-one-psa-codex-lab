@@ -59,6 +59,15 @@ public final class SeparationHold {
 
     /** Releases a held hold in the interface; a hold that is already released or withdrawn is refused. */
     public void release(UserId by, @Nullable String reason, Instant at) {
+        markReleased(Objects.requireNonNull(by, "by"), reason, at, ReleaseChannelKind.INTERFACE);
+    }
+
+    /** Releases a held hold by the two-person operations command: no account releases it, operator and witness are only audited (ADR-0068 item 2.4). */
+    public void releaseByOperations(@Nullable String reason, Instant at) {
+        markReleased(null, reason, at, ReleaseChannelKind.OPERATIONS_COMMAND);
+    }
+
+    private void markReleased(@Nullable UserId by, @Nullable String reason, Instant at, ReleaseChannelKind channel) {
         if (reason == null || reason.isBlank() || reason.length() > MAX_REASON_LENGTH) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED, ErrorKind.INVALID,
                     "a release needs a reason of 1 to " + MAX_REASON_LENGTH + " characters that is not blank");
@@ -70,9 +79,9 @@ public final class SeparationHold {
         status = HoldStatus.MACHINE.require(status, HoldStatus.RELEASED, WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL);
         version = version + 1;
         releasedAt = at;
-        releasedBy = Objects.requireNonNull(by, "by");
+        releasedBy = by;
         releaseReason = reason;
-        releaseChannel = ReleaseChannelKind.INTERFACE;
+        releaseChannel = channel;
     }
 
     public SeparationHoldId id() {

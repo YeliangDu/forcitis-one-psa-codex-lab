@@ -37,3 +37,4 @@ platform.numbering.counter.capacity.check | 2f073d56-6f12-5145-b01b-ed9cf06a8b00
 platform.file.one-time-link-holder | af5fd2b9-1c66-5f5a-9803-ffe3839894a6 | platform.file | 一次性链接持有人上传与提交关联的状态转换操作者（ADR-0058，one-data 签发 P1）
 platform.file.platform-module-call | 9dd1c4f7-f0ad-54c9-8190-62e09e87ee8f | platform.file | 平台模块（签章服务等）调用写入、关联、封存的状态转换操作者
 platform.file.staging.expire | 18a840ca-d8f0-5830-8e12-1bcd5ecad2f3 | platform.file | 作业：临时区到期未关联的文件置「未关联已过期」
+organization.workforce.operations | e932d608-3a2e-5738-a568-d9f1cb73233c | organization.workforce | 运维命令（workforce-operations 档案）：release-separation-hold 放行待放行离职的状态转换操作者与事件信封 actorId

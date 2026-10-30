@@ -28,6 +28,7 @@ import com.forcitis.one.organization.workforce.domain.VersionTable;
 import com.forcitis.one.platform.audit.api.AuditEntryId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import com.forcitis.one.kernel.event.ActorType;
 import java.sql.Types;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -313,15 +314,15 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
     }
 
     @Override
-    public void insertTransition(String aggregateType, UUID aggregateId, long sequence, @Nullable String from, String to, UserId actor, LocalDate day, Instant at,
+    public void insertTransition(String aggregateType, UUID aggregateId, long sequence, @Nullable String from, String to, ActorType actorType, UUID actorId, LocalDate day, Instant at,
                                  PersonnelCommandId command, UUID correlation) {
         jdbc.sql("""
                 insert into organization_workforce.state_transitions (id, aggregate_type_code, aggregate_id, transition_sequence_number, from_status, to_status,
                        occurred_on_date, recorded_at, actor_type, actor_id, cause_kind, command_id, correlation_id, created_at, updated_at)
-                values (:id, :type, :aggregate, :sequence, :from, :to, :day, :at, 'USER', :actor, 'COMMAND', :command, :correlation, :at, :at)
+                values (:id, :type, :aggregate, :sequence, :from, :to, :day, :at, :actorType, :actor, 'COMMAND', :command, :correlation, :at, :at)
                 """)
                 .param("id", ids.next()).param("type", aggregateType).param("aggregate", aggregateId).param("sequence", sequence)
-                .param("from", from, Types.VARCHAR).param("to", to).param("day", day).param("at", at(at)).param("actor", actor.value())
+                .param("from", from, Types.VARCHAR).param("to", to).param("day", day).param("at", at(at)).param("actorType", actorType.name()).param("actor", actorId)
                 .param("command", command.value()).param("correlation", correlation).update();
     }
 

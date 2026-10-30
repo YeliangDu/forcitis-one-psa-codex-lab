@@ -332,6 +332,14 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 - **告警走 C-7 的日志告警规则**：本节与管理模式的告警都是一行 `ALERT platform.identity …` 的日志（结构化日志，见 §8），由 SLS 按 `ALERT` 关键字匹配后发往 A-5 指定的接收人；应用本身不直接发消息。涉及的告警：进入管理模式、退出或自然到期、应急登录、结束超级管理员或安全审计员的会话、应急账号因离职被停用、本地离职放行（日志规则随离职命令实施卡核对，不再匹配同步放行日志）。
 - 管理员离职按本地离职命令独立放行（ADR-0055 决定 3）：可用超级管理员少于 2 名仍暂停；留任超级管理员在管理模式、或安全审计员在普通会话填理由，只放行该条离职，不重跑同步，其余人事变更不受阻。旧同步放行接口撤销，新接口与日志按实施卡核对。**恢复路径**：可先用本节的 `grant-role --role-code=super_admin` 给留任人员授予超级管理员（双人在场、写审计）；放行后为 0 名只能走双人在场、写审计的运维命令，为 1 名须告警。已生效的授予关闭与审计保留，不靠恢复同步改写历史。
 - 开通人和被开通人都记入审计（`platform.identity.operations.*`）。
+- **放行待放行离职的运维命令 `release-separation-hold`**（#877，ADR-0068 第 2 条第 4 项；组织 workforce 自己的入口，档案 `workforce-operations`，不用 `identity-operations`）：只在放行后可用超级管理员剩 0 名时执行，剩 1 名或更多时拒绝并提示改走界面单条放行。同一个 jar，一次一个命令，做完进程结束，端口与 F-12 的注意事项同上：
+  ```
+  java -jar forcitis-one.jar --spring.profiles.include=workforce-operations --operation=release-separation-hold \
+       --separation-hold-id=<暂停记录 ID> --reason=<原因，1 至 500 字> --operator=<操作人员工 ID> --witness=<见证人员工 ID>
+  ```
+  - **双人在场且都须留任**：`--operator` 与 `--witness` 必填，为两个不同的、已存在的员工，且都须本地在职、不在待放行名单中、不在停薪留职；见证人始终必填，没有单人模式。违反则拒绝（退出码 1），库内无任何变化。
+  - 效果与界面放行相同：离职自原生效日起生效、不重判；暂停记录记为 `OPERATIONS_COMMAND` 放行、放行账号为空，状态转换与事件的操作者是系统主体 `organization.workforce.operations`；审计 `organization.workforce.separation-hold.released` 一条，`detail` 含原因、途径、`operatorId=`、`witnessId=`、命令 ID、暂停记录 ID 与剩余超管数 0。先取与离职、界面放行、撤回同一把咨询锁。
+  - 退出码：0 已放行；1 被拒绝（含当月审计分区不存在，需先启动常驻应用建分区）；2 用法错误（缺参数、未知选项、ID 格式不对）。
 - 剧本见 `runbooks/C-5-first-admins.md`（待按本节对齐）。
 
 ## 7. 首次部署步骤（dev）

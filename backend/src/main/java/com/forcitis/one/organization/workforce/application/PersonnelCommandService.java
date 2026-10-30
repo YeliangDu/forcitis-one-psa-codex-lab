@@ -9,6 +9,7 @@ import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
+import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
@@ -107,14 +108,14 @@ class PersonnelCommandService implements PersonnelCommands {
         Map<VersionTable, VersionPlan> plans = held ? Map.of() : timelines.forEntry(command, history, auditEntry);
         PersonnelCommandRules.requirePositionOnCommandRows(plans.get(VersionTable.ASSIGNMENT));
         commands.insert(command);
-        commands.insertTransition(COMMAND, command.id().value(), command.version(), null, command.status().name(), by, today, now, command.id(), correlation());
+        commands.insertTransition(COMMAND, command.id().value(), command.version(), null, command.status().name(), ActorType.USER, by.value(), today, now, command.id(), correlation());
         for (Map.Entry<VersionTable, VersionPlan> plan : plans.entrySet()) {
             commands.insertVersions(employee, plan.getKey(), plan.getValue(), command.id(), now);
         }
         if (held) {
             SeparationHold hold = SeparationHold.of(new SeparationHoldId(ids.next()), command);
             commands.insertHold(hold, now);
-            commands.insertTransition(HOLD, hold.id().value(), hold.version(), null, hold.status().name(), by, today, now, command.id(), correlation());
+            commands.insertTransition(HOLD, hold.id().value(), hold.version(), null, hold.status().name(), ActorType.USER, by.value(), today, now, command.id(), correlation());
             command.recordHeld(hold.id(), legalEntityOn(employee, command.effectiveDate().minusDays(1)));
             events.publish(command);
             commands.saveEventSequence(employee, command.eventSequenceAfterSave());
@@ -156,7 +157,7 @@ class PersonnelCommandService implements PersonnelCommands {
             }
         }
         commands.update(command, loadedVersion);
-        commands.insertTransition(COMMAND, command.id().value(), loadedVersion + 1, before.name(), command.status().name(), by, today, now, command.id(), correlation());
+        commands.insertTransition(COMMAND, command.id().value(), loadedVersion + 1, before.name(), command.status().name(), ActorType.USER, by.value(), today, now, command.id(), correlation());
         commands.holdOf(command.id()).ifPresent(hold -> withdrawHold(hold, command, by, today, now));
         audit.record(new AuditEntry("organization.workforce.personnel-command.withdrawn", by, null, AuditSubject.of(AuditSubjectKind.EMPLOYEE, command.employeeId().value()),
                 "command " + command.id() + " " + command.kind() + "; reason: " + command.withdrawalReason().replaceAll("\\p{Cntrl}", " ")));
@@ -167,7 +168,7 @@ class PersonnelCommandService implements PersonnelCommands {
         String before = hold.status().name();
         hold.withdraw();
         commands.updateHold(hold, now, loadedVersion);
-        commands.insertTransition(HOLD, hold.id().value(), hold.version(), before, hold.status().name(), by, today, now, command.id(), correlation());
+        commands.insertTransition(HOLD, hold.id().value(), hold.version(), before, hold.status().name(), ActorType.USER, by.value(), today, now, command.id(), correlation());
     }
 
     /** The envelope carries the employee's legal entity on the effective date (contract question Q6); none resolvable means the envelope has none. */

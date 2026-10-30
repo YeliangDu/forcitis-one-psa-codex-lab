@@ -146,8 +146,10 @@ aggregates:
   tables: []
   commands:
   - AdministratorHoldCheck
+  - HeldSeparationRelease
   - PersonnelCommandService
   - PersonnelPlans
+  - ReleaseSeparationHoldByOperations
   - SeparationHoldService
   events: []
   events_in_module:
