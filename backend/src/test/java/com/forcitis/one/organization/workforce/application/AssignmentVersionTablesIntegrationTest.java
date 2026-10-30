@@ -27,6 +27,7 @@ class AssignmentVersionTablesIntegrationTest extends WorkforceIntegrationSupport
         jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values (" + EMPLOYEE
                 + ", 'E-01', 'name', 'EMPLOYED')").update();
         jdbc.sql("insert into organization_workforce.org_units (id, name, status) values (" + UNIT + ", 'unit', 'ACTIVE')").update();
+        jdbc.sql("insert into organization_workforce.positions (id, name, status) values (" + POSITION + ", 'position', 'ACTIVE')").update();
         command(COMMAND, 0);
         command(LATER_COMMAND, 1);
     }
@@ -63,7 +64,6 @@ class AssignmentVersionTablesIntegrationTest extends WorkforceIntegrationSupport
     void channelAndCommandGoTogether() {
         version(V1, "2026-01-01", null);
         assertThat(jdbc.sql("select change_channel_kind from " + TABLE).query(String.class).single()).isEqualTo("MIGRATION");
-        jdbc.sql("delete from " + TABLE).update();
     }
 
     @Test
@@ -98,8 +98,6 @@ class AssignmentVersionTablesIntegrationTest extends WorkforceIntegrationSupport
     @DisplayName("IMP-1030-PAR-B2 the command and the corrected-from references must exist")
     void referencesMustExist() {
         String unknown = "'019a0000-0000-7000-8000-00000000ffff'";
-        assertThatThrownBy(() -> version(V1, "2026-01-01", null, commandRow("change_command_id", unknown)))
-                .isInstanceOf(Exception.class);
         assertThatThrownBy(() -> version(V1, "2026-01-01", null, "change_channel_kind", "'COMMAND'", "change_command_id", unknown, "version_audit_entry_id", AUDIT, "position_id", POSITION))
                 .hasMessageContaining("fk_assignment_versions_change_command_id");
         assertThatThrownBy(() -> version(V1, "2026-01-01", null, "superseded_at", "now()", "superseding_command_id", unknown))
