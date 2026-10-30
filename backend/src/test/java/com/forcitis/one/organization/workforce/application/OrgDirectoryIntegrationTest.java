@@ -103,22 +103,43 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
                 .as("the employee announced EmployeeRegistered once").isEqualTo(1);
     }
 
-    @Test
-    @DisplayName("#958 login miss: a known employee who is not in post by versions (not yet assigned or separated by command) is not registered again from a source that still lists them")
-    void aKnownEmployeeNotInPostByVersionsIsNotRegisteredAgain() {
-        synced();
+    private void notYetInPost(long person) {
+        java.time.LocalDate start = java.time.LocalDate.ofInstant(clock.instant(), java.time.ZoneOffset.UTC).plusDays(30);
         jdbc.sql("""
                 insert into organization_workforce.employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
                   employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind, change_channel_kind, created_at, updated_at)
-                values (gen_random_uuid(), ?, current_date + 30, 0, 'EMPLOYED', 'REGULAR', false, false, current_date + 30, 'LEGACY_HR_RECORD', 'MIGRATION', now(), now())
-                """).param(TestAccounts.employee(2).value()).update();
+                values (gen_random_uuid(), ?, ?, 0, 'EMPLOYED', 'REGULAR', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', now(), now())
+                """).param(TestAccounts.employee(person).value()).param(start).param(start).update();
+    }
+
+    @Test
+    @DisplayName("#958 login miss: a known employee not in post by versions (not yet assigned, separated by command) is not registered again from a source that still lists them, by WeCom user id or login name")
+    void aKnownEmployeeNotInPostByVersionsIsNotRegisteredAgain() {
+        synced();
+        notYetInPost(2);
         orgSource.singleLookupResult = List.of(person(2, 3, 101L, 1L, "13900000002", "wx-2"));
         int assignmentVersions = count("assignment_versions");
+        String loginName = jdbc.sql("select login_name from organization_workforce.employees where id = " + sqlEmployee(2)).query(String.class).single();
 
         assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-2")))).isEmpty();
+        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByLoginName(loginName))).isEmpty();
 
         assertThat(orgSource.singleLookups.get()).as("the source is not asked").isZero();
         assertThat(count("assignment_versions")).as("nothing is written").isEqualTo(assignmentVersions);
+    }
+
+    @Test
+    @DisplayName("#958 login miss: the source gives a known employee not in post by versions another key than the stored one: still not registered again, not admitted as employed")
+    void aKnownEmployeeUnderAChangedKeyIsNotRegisteredAgain() {
+        synced();
+        notYetInPost(2);
+        jdbc.sql("update organization_workforce.employees set wecom_user_id = 'wx-2-old', login_name = 'old-login' where id = " + sqlEmployee(2)).update();
+        orgSource.singleLookupResult = List.of(person(2, 3, 101L, 1L, "13900000002", "wx-2"));
+        long registered = events.stream(EmployeeRegistered.class).count();
+
+        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-2")))).isEmpty();
+
+        assertThat(events.stream(EmployeeRegistered.class).count()).as("no second EmployeeRegistered").isEqualTo(registered);
     }
 
     @Test

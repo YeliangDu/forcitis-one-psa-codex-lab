@@ -78,7 +78,7 @@ class OrgDirectoryService implements OrgDirectory {
 
     private Optional<EmployeeProfile> findEmployeeByWecomUser(WecomUserId wecomUserId) {
         return snapshots.findStaffByWecomUser(wecomUserId)
-                .or(() -> snapshots.findEmployeeIdsByWecomUser(wecomUserId).isEmpty() ? registerOnLogin.execute(wecomUserId) : Optional.empty())
+                .or(() -> snapshots.findEmployeeIdsByWecomUser(wecomUserId).isEmpty() ? registerOnLogin.execute(wecomUserId).flatMap(registered -> snapshots.findStaff(registered.employeeId())) : Optional.empty())
                 .map(this::profile);
     }
 
@@ -88,7 +88,7 @@ class OrgDirectoryService implements OrgDirectory {
         }
         String key = loginName.trim();
         return snapshots.findStaffByLoginName(key)
-                .or(() -> snapshots.findEmployeeIdsByLoginName(key).isEmpty() ? registerOnLoginName.execute(key) : Optional.empty())
+                .or(() -> snapshots.findEmployeeIdsByLoginName(key).isEmpty() ? registerOnLoginName.execute(key).flatMap(registered -> snapshots.findStaff(registered.employeeId())) : Optional.empty())
                 .map(this::profile);
     }
 
