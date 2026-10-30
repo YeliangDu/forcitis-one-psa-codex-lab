@@ -104,6 +104,24 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
+    @DisplayName("#958 login miss: a known employee who is not in post by versions (not yet assigned or separated by command) is not registered again from a source that still lists them")
+    void aKnownEmployeeNotInPostByVersionsIsNotRegisteredAgain() {
+        synced();
+        jdbc.sql("""
+                insert into organization_workforce.employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+                  employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind, change_channel_kind, created_at, updated_at)
+                values (gen_random_uuid(), ?, current_date + 30, 0, 'EMPLOYED', 'REGULAR', false, false, current_date + 30, 'LEGACY_HR_RECORD', 'MIGRATION', now(), now())
+                """).param(TestAccounts.employee(2).value()).update();
+        orgSource.singleLookupResult = List.of(person(2, 3, 101L, 1L, "13900000002", "wx-2"));
+        int assignmentVersions = count("assignment_versions");
+
+        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-2")))).isEmpty();
+
+        assertThat(orgSource.singleLookups.get()).as("the source is not asked").isZero();
+        assertThat(count("assignment_versions")).as("nothing is written").isEqualTo(assignmentVersions);
+    }
+
+    @Test
     @DisplayName("login miss: an unknown WeCom user id asks the same the source view for this one person, registers them and audits it")
     void loginMissRegistersTheNewHire() {
         synced();
