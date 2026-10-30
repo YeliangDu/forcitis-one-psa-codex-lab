@@ -187,11 +187,16 @@ tables:
     lineage: {source: ORG_SOURCE}
     references: {regional_receivables_manager_id: organization_workforce.employees}
     writers: [organization.workforce]
+  # D17 rule 2: effective basis DECLARED (ADR-0068 item 6). Trigger tg_assignment_versions_append_only (ADR-0068 15.1, W2 design 2): the closing pair
+  # (effective_to_date, closed_at) and the superseding pair (superseded_at, superseding_command_id) go from null to non-null once, a superseded row may be
+  # open or closed, nothing else changes, nothing is deleted.
   organization_workforce.assignment_versions:
     role: DIMENSION_VERSIONED
     mutability: APPEND_ONLY
+    condition: 关闭列对与作废列对各只能由空变非空一次，已关闭的行也可被作废，其余列不变，不删除（触发器 tg_assignment_versions_append_only，ADR-0068 15.1，W2 设计第 2 节）
     retention: {policy: PERMANENT}
     lineage: {source: ORG_SOURCE}
+    references: {corrected_from_version_id: organization_workforce.assignment_versions}
     writers: [organization.workforce]
   organization_workforce.sync_runs:
     role: AGGREGATE_ROOT
