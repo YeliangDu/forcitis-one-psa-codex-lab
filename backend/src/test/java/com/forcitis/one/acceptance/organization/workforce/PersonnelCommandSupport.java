@@ -101,6 +101,19 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
 
     /** An employed person with migrated initial versions from {@link #SINCE}, attributed to the world's legal entity. */
     protected UUID employed(String phase) throws Exception {
+        return employed(phase, true);
+    }
+
+    /**
+     * The migrated assignment version carries a position by default: a COMMAND-channel assignment row must have one (user decision of
+     * 2026-10-30, Q8; W2 section 3.4), so a transfer that names only a unit copies it. Without a position the row is a legacy one.
+     */
+    protected UUID employedWithoutPosition(String phase) throws Exception {
+        return employed(phase, false);
+    }
+
+    private UUID employed(String phase, boolean withPosition) throws Exception {
+        UUID position = withPosition ? newPosition() : null;
         UUID id = newEmployeeId();
         employee(id, unit, null);
         try (Connection workforce = schemaConnection("organization_workforce")) {
@@ -116,9 +129,9 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
             if (!query(workforce, "select 1 as present from information_schema.columns where table_schema = 'organization_workforce' and table_name = ? and column_name = ?",
                     ASSIGNMENT_VERSIONS, "change_channel_kind").isEmpty()) {
                 update(workforce, """
-                    insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, change_channel_kind,
-                      created_at, updated_at) values (?, ?, ?, ?, 'MIGRATION', ?, ?)""",
-                    Uuids.timeOrdered(NOW), stored(id), SINCE, stored(unit), OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC),
+                    insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
+                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""",
+                    Uuids.timeOrdered(NOW), stored(id), SINCE, stored(unit), position, OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC),
                     OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC));
             }
         }
