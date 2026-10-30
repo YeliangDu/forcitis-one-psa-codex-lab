@@ -8,6 +8,10 @@ ALTER TABLE organization_workforce.assignment_versions
     ADD COLUMN superseded_at timestamptz,
     ADD COLUMN superseding_command_id uuid,
     ADD COLUMN corrected_from_version_id uuid;
+-- 已关闭的行补写关闭时刻（取最后更新时间），再加关闭列对的检查约束；补写要在旧触发器拆掉之后、新触发器建好之前，旧触发器不放行已关闭行的改动。
+DROP TRIGGER tg_assignment_versions_append_only ON organization_workforce.assignment_versions;
+DROP TRIGGER tg_assignment_versions_append_only_truncate ON organization_workforce.assignment_versions;
+UPDATE organization_workforce.assignment_versions SET closed_at = updated_at WHERE effective_to_date IS NOT NULL;
 ALTER TABLE organization_workforce.assignment_versions
     ADD CONSTRAINT fk_assignment_versions_change_command_id FOREIGN KEY (change_command_id) REFERENCES organization_workforce.personnel_commands (personnel_command_id) ON DELETE RESTRICT,
     ADD CONSTRAINT fk_assignment_versions_superseding_command_id FOREIGN KEY (superseding_command_id) REFERENCES organization_workforce.personnel_commands (personnel_command_id) ON DELETE RESTRICT,
@@ -59,8 +63,6 @@ BEGIN
     RETURN NEW;
 END $$;
 COMMENT ON FUNCTION organization_workforce.refuse_assignment_version_rewrite() IS '任职版本只追加的触发器：关闭列与作废列各只放行由空变非空一次，作废开放行与已关闭行都放行，其余列除更新时间外不变，任何行不能删或清空';
-DROP TRIGGER tg_assignment_versions_append_only ON organization_workforce.assignment_versions;
-DROP TRIGGER tg_assignment_versions_append_only_truncate ON organization_workforce.assignment_versions;
 CREATE TRIGGER tg_assignment_versions_append_only BEFORE UPDATE OR DELETE ON organization_workforce.assignment_versions
     FOR EACH ROW EXECUTE FUNCTION organization_workforce.refuse_assignment_version_rewrite();
 CREATE TRIGGER tg_assignment_versions_append_only_truncate BEFORE TRUNCATE ON organization_workforce.assignment_versions
