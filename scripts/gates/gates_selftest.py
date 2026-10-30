@@ -529,8 +529,8 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         r = install("--switch", absent)
         assert r.returncode == 1 and "没有已装的版本" in r.stderr and points_to() == a, (absent, r.stderr)
     # 4b. two installs of one commit at once both succeed (the loser finds the directory ready) and leave current right (O7 first review, suggestion 2)
-    for _ in range(3):
-        runs = [subprocess.Popen([os.path.join(repo, "scripts/gates/install.sh"), b], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env, cwd=tmp) for _ in range(4)]
+    for _ in range(10):  # one round of four lost the race once on main (run 40975901039); eight at once for ten rounds makes the old install.sh fail most runs
+        runs = [subprocess.Popen([os.path.join(repo, "scripts/gates/install.sh"), b], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env, cwd=tmp) for _ in range(8)]
         outs = [(p.wait(timeout=120), p.stderr.read()) for p in runs]
         assert all(code == 0 for code, _ in outs) and points_to() == b and not leftovers(), (outs, points_to(), leftovers())
     # 4c. that fallback, deterministically: the target directory is locked (chflags uchg), so neither rename works. A target matching the fresh unpack counts as
