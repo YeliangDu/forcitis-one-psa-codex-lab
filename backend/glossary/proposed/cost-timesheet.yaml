@@ -165,6 +165,21 @@ terms:
   forbidden: []
   status: proposed
   note: IMP-1030-PAR-B5（#874）
+- id: error__cost_timesheet_project_manager_on_unpaid_leave
+  zh: 项目经理停薪留职不能审批
+  en: CostTimesheetProjectManagerOnUnpaidLeave
+  snake: cost_timesheet_project_manager_on_unpaid_leave
+  kind: error_code
+  bc: cost.timesheet
+  scope: domain
+  definition: 所选项目经理在该工作日处于停薪留职，不能审批这张工时单，提交即被拒绝，不再交给管理员处理（用户决定 2026-10-30，ADR-0068 第 3 条，422）
+  standard_ref:
+  - ADR-0068 第 3 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1030-PAR-B5c（#926）
 
 common_words:
 - revise
