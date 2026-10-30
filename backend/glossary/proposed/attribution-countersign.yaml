@@ -1,0 +1,104 @@
+# 法人归属会签（ADR-0073 第 3 条第 6 项；设计 docs/architecture/proposals/legal-entity-countersign.md，#878；one-design 2026-10-30，#898）。
+# 同名异义：ADR-0073 原文称「会签」「财务会签」，与 platform.approval 的「会签」countersign（节点上每位审批人都通过才算通过，RULE-248/273）不同：
+# 这里是一名（或前后两个法人各一名）法人财务负责人对一条命令的批准或拒签，不经审批流程（ADR-0073 备选方案：会签走审批流程会成环）。
+# 本 bc 用不同的中英文名「法人归属会签」AttributionCountersign，不复用 countersign；两名不同，不能列 homonyms，在两处 note 互注。中英文名用户已确认（2026-10-30「按建议改」：待会签改为「待法人归属会签」，会签请求已失效改为「法人归属会签已失效」，其余四项按提议）。
+terms:
+- id: attribution_countersign
+  zh: 法人归属会签
+  en: AttributionCountersign
+  snake: attribution_countersign
+  kind: entity
+  bc: organization.workforce
+  scope: domain
+  definition: 改变员工成本法人的人事命令须由变更前、变更后两个法人的法人财务负责人各自批准或拒签的请求，变更请求任一方拒签即撤回命令，撤回请求被拒签则命令仍待生效；每个请求一行（变更或撤回，每个法人一行），属员工聚合
+  standard_ref:
+  - ADR-0073 第 3 条第 6 项
+  - 用户 2026-10-30 答复（两个法人的财务负责人都会签，任一方可拒签）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）
+  note: 与 platform.approval 的 countersign「会签」同名异义（中英文名不同，不列 homonyms，在此互注）；表 attribution_countersigns（#893）
+- id: awaiting_attribution_countersign
+  zh: 待法人归属会签
+  en: AwaitingAttributionCountersign
+  snake: awaiting_attribution_countersign
+  kind: state
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令的状态：命令改变员工的成本法人，已登记、尚待法人归属会签；此期间不写任何版本，不得录入该员工生效日更晚的命令
+  standard_ref:
+  - ADR-0073 第 3 条第 6 项
+  - 用户 2026-10-30 答复（等会签期间拒绝生效日更晚的命令）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）
+  note: 状态值 AWAITING_ATTRIBUTION_COUNTERSIGN（随用户确认的名称，原暂名 AWAITING_COUNTERSIGN 不再用）；「会签」在此指法人归属会签，不是 platform.approval 的会签
+- id: cost_legal_entity
+  zh: 成本法人
+  en: CostLegalEntity
+  snake: cost_legal_entity
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 员工在某日成本归集所属的法人：员工单独指定的法人优先，没有才取其当日任职组织单元沿部门链向上第一个有法人归属的单元；由组织人事内部按日计算，不接受调用方传入
+  standard_ref:
+  - ADR-0073 第 3 条第 4 项
+  - ADR-0026 第 5 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）
+  note: 会签判据即命令生效日前后的成本法人是否变化
+- id: change_legal_entity
+  zh: 变更法人归属
+  en: ChangeLegalEntity
+  snake: change_legal_entity
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令种类之一：为员工单独指定法人（写员工法人归属期间），目标法人须在五家之内；改变成本法人时进待会签
+  standard_ref:
+  - ADR-0073 第 3 条第 2 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）
+  note: 命令种类值 CHANGE_LEGAL_ENTITY
+- id: employee_legal_entity_changed
+  zh: 员工法人归属已变更
+  en: EmployeeLegalEntityChanged
+  snake: employee_legal_entity_changed
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令生效且员工的成本法人随之变化：负载为命令 ID、员工 ID、生效日、变更前与变更后的成本法人；任何种类的命令（含调岗）改变成本法人都发布
+  standard_ref:
+  - ADR-0073 影响面（法人归属已变更）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）
+  note: ADR-0073 暂名「法人归属已变更」；事件名为聚合名 Employee 加过去式业务动词
+- id: attribution_countersign_lapsed
+  zh: 法人归属会签已失效
+  en: AttributionCountersignLapsed
+  snake: attribution_countersign_lapsed
+  kind: state
+  bc: organization.workforce
+  scope: domain
+  definition: 法人归属会签请求的状态：命令已离开需要它的状态而未经决定即关闭：命令已撤回（含另一法人拒签变更请求），撤回请求被另一法人拒签（命令仍待生效，同批其余撤回请求失效），或撤回请求到生效日仍未决定；逾期作业不再提醒
+  standard_ref:
+  - 用户 2026-10-30 答复（撤回请求到生效日失效，以经会签的更正撤销）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）
+  note: 决定值 LAPSED；与 APPROVED 批准、REJECTED 拒签并列
