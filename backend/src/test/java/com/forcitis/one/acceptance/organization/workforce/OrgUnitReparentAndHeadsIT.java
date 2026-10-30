@@ -18,8 +18,8 @@ import org.springframework.test.context.DynamicPropertySource;
 /**
  * #906 IMP-1030-ORG-F2a (ADR-0068 item 4: reparent, assign head, assign regional receivables manager; attachment columns and checks;
  * ADR-0073 item 2.3 for the one-open-command-per-unit-and-day rule). People in the units keep their individually attributed legal
- * entity, so no cost legal entity changes and none of these commands needs a countersign (F4a covers that). A reparent that would put a
- * unit below its own descendant is not covered: no source decides it (card report, doubt 1).
+ * entity, so no cost legal entity changes and none of these commands needs a countersign (F4a covers that). A reparent into the unit's own
+ * subtree is refused (one-design ruling 2026-10-30 #906).
  */
 class OrgUnitReparentAndHeadsIT extends OrgStructureCommandSupport {
 
@@ -64,6 +64,24 @@ class OrgUnitReparentAndHeadsIT extends OrgStructureCommandSupport {
 
         assertThat(orgCommandCount()).isEqualTo(commands);
         assertThat(fromStored(unitOn(target, TODAY).get("parent_org_unit_id"))).isEqualTo(parent);
+    }
+
+    @Test
+    @DisplayName("#906 one-design ruling 2026-10-30 #906（树规则）：调整上级的新上级是本单元自己或生效日在其下的任一单元（子、孙）时被拒（成环）；挂到不在其下的单元可以；不留命令行")
+    void aReparentUnderItsOwnSubtreeIsRefused() throws Exception {
+        UUID top = seedUnit(null);
+        UUID child = seedUnit(top);
+        UUID grandchild = seedUnit(child);
+        UUID elsewhere = seedUnit(null);
+        long commands = orgCommandCount();
+
+        assertRefused(() -> unitCommand(REPARENT, top, TODAY, TARGET_PARENT_ORG_UNIT_ID, top));
+        assertRefused(() -> unitCommand(REPARENT, top, TODAY, TARGET_PARENT_ORG_UNIT_ID, child));
+        assertRefused(() -> unitCommand(REPARENT, top, TODAY.plusDays(3), TARGET_PARENT_ORG_UNIT_ID, grandchild));
+
+        assertThat(orgCommandCount()).isEqualTo(commands);
+        assertThat(unitCommand(REPARENT, top, TODAY, TARGET_PARENT_ORG_UNIT_ID, elsewhere)).isNotNull();
+        assertThat(fromStored(unitOn(grandchild, TODAY).get("parent_org_unit_id"))).isEqualTo(child);
     }
 
     @Test

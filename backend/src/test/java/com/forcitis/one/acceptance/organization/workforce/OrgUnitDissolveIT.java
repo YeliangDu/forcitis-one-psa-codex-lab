@@ -20,7 +20,7 @@ import org.springframework.test.context.DynamicPropertySource;
 /**
  * #906 IMP-1030-ORG-F2a (ADR-0068 item 4 and the column notes of its attachment; the third answer of the fourth round: DISSOLVE writes
  * REVOKED): dissolving an org unit is refused while the unit still has employed people, and allowed when it is empty. People who have
- * separated do not count. Whether a unit with child units may be dissolved is not decided in the sources and is not asserted.
+ * separated do not count. A unit with an ACTIVE child unit cannot be dissolved (one-design ruling 2026-10-30 #906).
  */
 class OrgUnitDissolveIT extends OrgStructureCommandSupport {
 
@@ -80,6 +80,23 @@ class OrgUnitDissolveIT extends OrgStructureCommandSupport {
 
         assertRefused(() -> unitCommand(DISSOLVE, formerlyOccupied, TODAY));
         assertThat(unitCommand(DISSOLVE, formerlyOccupied, TODAY.plusDays(21))).as("after the second separation the unit is empty").isNotNull();
+    }
+
+    @Test
+    @DisplayName("#906 one-design ruling 2026-10-30 #906（树规则）：没有在职员工但在那天仍有 ACTIVE 下级单元的单元，撤销被拒；下级撤销或调走之后可以撤销")
+    void aUnitWithActiveChildrenCannotBeDissolved() throws Exception {
+        UUID parent = seedUnit(null);
+        UUID child = seedUnit(parent);
+        long commands = orgCommandCount();
+
+        assertRefused(() -> unitCommand(DISSOLVE, parent, TODAY));
+        assertRefused(() -> unitCommand(DISSOLVE, parent, TODAY.plusDays(5)));
+
+        assertThat(orgCommandCount()).isEqualTo(commands);
+        assertThat(unitOn(parent, TODAY).get("status")).isEqualTo(ACTIVE);
+        unitCommand(DISSOLVE, child, TODAY);
+        assertThat(unitCommand(DISSOLVE, parent, TODAY)).as("the child is revoked on that day").isNotNull();
+        assertThat(unitOn(parent, TODAY).get("status")).isEqualTo(REVOKED);
     }
 
     @Test

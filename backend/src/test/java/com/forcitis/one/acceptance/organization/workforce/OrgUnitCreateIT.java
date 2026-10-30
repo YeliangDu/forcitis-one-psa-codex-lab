@@ -36,7 +36,7 @@ class OrgUnitCreateIT extends OrgStructureCommandSupport {
     @Test
     @DisplayName("#906 ADR-0068 第 4 条、附件「组织结构命令」列说明：新建无上级的根组织单元：命令 ID 为服务端的 UUIDv7、录入人为调用者；目标组织单元行同事务建好；写入首个版本（COMMAND 渠道、指向本命令、当天起开放），区域与交付单元标记取命令所带")
     void creatingARootUnit() throws Exception {
-        UUID command = createUnit(TODAY, TARGET_CODE, "NEW-" + UUID.randomUUID().toString().substring(0, 8), TARGET_NAME, "Synthetic root unit", TARGET_REGION_KIND, REGIONAL,
+        UUID command = createUnit(TODAY, TARGET_CODE, "NEW-" + UUID.randomUUID().toString().substring(0, 8), TARGET_NAME, "Synthetic root unit", TARGET_SHORT_NAME, "Root", TARGET_REGION_KIND, REGIONAL,
                 TARGET_IS_DELIVERY_UNIT, true);
 
         assertThat(command.version()).as("UUIDv7").isEqualTo(7);
@@ -54,6 +54,7 @@ class OrgUnitCreateIT extends OrgStructureCommandSupport {
         Map<String, Object> first = versions.get(0);
         assertThat(first.get("name")).isEqualTo("Synthetic root unit");
         assertThat(first.get("code")).isEqualTo(row.get("target_code"));
+        assertThat(first.get("short_name")).as("one-design ruling 2026-10-30 #906").isEqualTo("Root");
         assertThat(first.get("parent_org_unit_id")).isNull();
         assertThat(first.get("status")).isEqualTo(ACTIVE);
         assertThat(first.get("region_kind")).isEqualTo(REGIONAL);

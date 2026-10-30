@@ -75,8 +75,8 @@ class OrgStructureCommandPermissionIT extends OrgStructureCommandSupport {
     }
 
     @ParameterizedTest(name = "role {0}")
-    @ValueSource(strings = {PERSONNEL_SPECIALIST_ROLE, "business_admin", "security_auditor", "process_administrator", "employee"})
-    @DisplayName("#906 ADR-0073 第 2 条第 4 项、验收手册第 5 步：不持有该权限的账号（人事专员、其他管理员角色、只有默认员工角色的人）录入组织单元与岗位命令被拒，不留命令行、单元、岗位，不写审计")
+    @ValueSource(strings = {PERSONNEL_SPECIALIST_ROLE, "super_admin", "business_admin", "security_auditor", "process_administrator", "employee"})
+    @DisplayName("#906 one-design ruling 2026-10-30 #906（super_admin 无业务权限，ADR-0028 第 5 项）、ADR-0073 第 2 条第 4 项、验收手册第 5 步：不持有该权限的账号（人事专员、其他管理员角色、只有默认员工角色的人）录入组织单元与岗位命令被拒，不留命令行、单元、岗位，不写审计")
     void everyOtherSeededRoleIsRefusedWhenEntering(String role) throws Exception {
         UUID target = seedUnit(null);
         Staff other = role.equals("employee") ? staff() : staff(role);
@@ -97,7 +97,7 @@ class OrgStructureCommandPermissionIT extends OrgStructureCommandSupport {
     }
 
     @ParameterizedTest(name = "role {0}")
-    @ValueSource(strings = {PERSONNEL_SPECIALIST_ROLE, "business_admin", "security_auditor", "employee"})
+    @ValueSource(strings = {PERSONNEL_SPECIALIST_ROLE, "super_admin", "business_admin", "security_auditor", "employee"})
     @DisplayName("#906 ADR-0073 第 2 条第 4 项：撤回与预演合并同样须持有该权限：其他角色撤回被拒（命令仍待生效、无撤回人、不写撤回审计），预演被拒")
     void everyOtherSeededRoleIsRefusedWhenWithdrawingOrPreviewing(String role) throws Exception {
         UUID target = seedUnit(null);

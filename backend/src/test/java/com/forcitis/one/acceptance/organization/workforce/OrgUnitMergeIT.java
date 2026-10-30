@@ -63,6 +63,12 @@ class OrgUnitMergeIT extends OrgStructureCommandSupport {
         return rows("select * from personnel_commands where org_structure_command_id = ? order by employee_id", merge);
     }
 
+    /** One-design ruling 2026-10-30 #906: completing a merge publishes OrgUnitMerged only, not OrgUnitDissolved. */
+    private void assertNoDissolvedEvent(UUID merge) throws Exception {
+        assertThat(eventsOf(EVENT_ORG_UNIT_DISSOLVED, merge)).isZero();
+        assertThat(eventsOf(EVENT_ORG_UNIT_DISSOLVED, merged)).isZero();
+    }
+
     private long writtenRows() throws Exception {
         return orgCommandCount() + (long) rows("select count(*) as n from personnel_commands").get(0).get("n") + unitVersions(merged).size() + unitVersions(receiving).size()
                 + (long) rows("select count(*) as n from state_transitions").get(0).get("n") + (long) rows("select count(*) as n from assignment_versions").get(0).get("n");
@@ -113,6 +119,8 @@ class OrgUnitMergeIT extends OrgStructureCommandSupport {
 
         assertThat(orgCommand(merge).get("status")).isEqualTo(PENDING);
         assertThat(orgCommand(merge).get("command_kind")).isEqualTo(MERGE);
+        assertThat(orgCommand(merge).get("affected_employee_count")).as("one-design ruling 2026-10-30 #906: counts are null while PENDING").isNull();
+        assertThat(orgCommand(merge).get("transferred_employee_count")).isNull();
         assertThat(fromStored(orgCommand(merge).get("target_org_unit_id"))).isEqualTo(merged);
         assertThat(fromStored(orgCommand(merge).get("merge_into_org_unit_id"))).isEqualTo(receiving);
         assertThat(unitVersions(merged).size() + unitVersions(receiving).size()).isEqualTo(versions);
@@ -166,6 +174,7 @@ class OrgUnitMergeIT extends OrgStructureCommandSupport {
         assertThat(unitOn(merged, TODAY.minusDays(1)).get("status")).isEqualTo(ACTIVE);
         assertThat(unitOn(receiving, TODAY).get("status")).isEqualTo(ACTIVE);
         assertThat(eventsOf(EVENT_MERGED, merge)).isEqualTo(1);
+        assertNoDissolvedEvent(merge);
     }
 
     @Test
@@ -214,6 +223,7 @@ class OrgUnitMergeIT extends OrgStructureCommandSupport {
         assertThat(unitOfEmployee(stuck, day)).isEqualTo(receiving);
         assertThat(unitOn(merged, day).get("status")).isEqualTo(REVOKED);
         assertThat(eventsOf(EVENT_MERGED, merge)).isEqualTo(1);
+        assertNoDissolvedEvent(merge);
         for (Map<String, Object> transfer : transfers) {
             assertThat(eventsOf(EVENT_TRANSFERRED, (UUID) transfer.get("personnel_command_id"))).isEqualTo(1);
         }
@@ -222,6 +232,22 @@ class OrgUnitMergeIT extends OrgStructureCommandSupport {
         catchThrowable(() -> orgCommands().executeMerge(merge));
         assertThat(transfersOf(merge)).as("a rerun of a finished merge moves nobody again").hasSize(3);
         assertThat(eventsOf(EVENT_MERGED, merge)).isEqualTo(1);
+        assertNoDissolvedEvent(merge);
+    }
+
+    @Test
+    @DisplayName("#906 one-design ruling 2026-10-30 #906（树规则）：被并入单元在那天有 ACTIVE 下级单元时合并被拒（人事先调整下级的上级）；下级调走后可以合并；不留命令行")
+    void aUnitWithActiveChildrenCannotBeMerged() throws Exception {
+        peopleInTheMergedUnit(0, REGULAR);
+        UUID child = seedUnit(merged);
+        long commands = orgCommandCount();
+
+        assertRefused(() -> enterMerge(TODAY));
+        assertRefused(() -> enterMerge(TODAY.plusDays(4)));
+
+        assertThat(orgCommandCount()).isEqualTo(commands);
+        unitCommand(REPARENT, child, TODAY, TARGET_PARENT_ORG_UNIT_ID, receiving);
+        assertThat(enterMerge(TODAY)).as("the children were reparented first").isNotNull();
     }
 
     @Test
@@ -239,6 +265,7 @@ class OrgUnitMergeIT extends OrgStructureCommandSupport {
         assertThat(transfersOf(merge)).isEmpty();
         assertThat(unitOn(merged, TODAY).get("status")).isEqualTo(REVOKED);
         assertThat(eventsOf(EVENT_MERGED, merge)).isEqualTo(1);
+        assertNoDissolvedEvent(merge);
     }
 
     @Test

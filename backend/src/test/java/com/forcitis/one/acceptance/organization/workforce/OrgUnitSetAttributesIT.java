@@ -19,8 +19,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * #906 IMP-1030-ORG-F2a (ADR-0073 item 2: SET_ATTRIBUTES; W2 section 2 for the void-and-append of a back-dated effective date). One
  * command expresses one whole adjustment of name, short name, region kind and delivery flag, at least one of them; registering it
  * writes the org_unit_versions row, and a past effective date supersedes and re-appends instead of rewriting. The closed-period check
- * of item 2.2 has no module to ask yet and is not covered. The short name has no column on org_unit_versions in the #904 sign-off; it is
- * asserted on the command row only.
+ * of item 2.2 has no module to ask yet and is not covered. The short name is a column of org_unit_versions (ADR-0068 item 15.4; one-design ruling 2026-10-30 #906, DD amendment of #904).
  */
 class OrgUnitSetAttributesIT extends OrgStructureCommandSupport {
 
@@ -32,7 +31,7 @@ class OrgUnitSetAttributesIT extends OrgStructureCommandSupport {
     }
 
     @Test
-    @DisplayName("#906 ADR-0073 第 2 条第 1 项：一条调整属性命令一次改名称、简称、区域、交付单元标记，只有一条命令行；新版本带新值、其余（上级）沿用，前一版本在生效日关闭；发一次「组织单元属性已调整」")
+    @DisplayName("#906 one-design ruling 2026-10-30 #906（简称进版本行）、ADR-0073 第 2 条第 1 项：一条调整属性命令一次改名称、简称、区域、交付单元标记，只有一条命令行；新版本带新值、其余（上级）沿用，前一版本在生效日关闭；发一次「组织单元属性已调整」")
     void oneCommandChangesSeveralAttributes() throws Exception {
         UUID parent = seedUnit(null);
         UUID target = seedUnit(parent);
@@ -51,6 +50,7 @@ class OrgUnitSetAttributesIT extends OrgStructureCommandSupport {
         assertThat(now.get("name")).isEqualTo("Renamed unit");
         assertThat(now.get("region_kind")).isEqualTo(REGIONAL);
         assertThat(now.get("is_delivery_unit")).isEqualTo(true);
+        assertThat(now.get("short_name")).as("one-design ruling 2026-10-30 #906: the short name is on the version row").isEqualTo("Short");
         assertThat(fromStored(now.get("parent_org_unit_id"))).as("untouched attributes are carried").isEqualTo(parent);
         assertThat(now.get("status")).isEqualTo(ACTIVE);
         assertThat(now.get("change_org_structure_command_id")).isEqualTo(command);
@@ -103,7 +103,7 @@ class OrgUnitSetAttributesIT extends OrgStructureCommandSupport {
     }
 
     @Test
-    @DisplayName("#906 ADR-0073 第 2 条第 2 项、W2 第 2 节「补登与更正怎么做」：补登过去的生效日：不改写已有行，被拆开的区间作废并按原内容与原来源重新追加（迁入行仍是迁入渠道），受影响的行指向本命令作废，当前事实首尾相接；中间的后续命令原样保留")
+    @DisplayName("#906 one-design ruling 2026-10-30 #906、ADR-0073 第 2 条第 2 项、W2 第 2 节第 2、3 步：补登过去的生效日：不改写已有行，被拆开的区间作废并按原内容与原来源重新追加（迁入行仍是迁入渠道），受影响的行指向本命令作废，当前事实首尾相接；中间的后续命令原样保留")
     void aBackDatedAdjustmentSupersedesAndAppends() throws Exception {
         UUID target = seedUnit(null);
         UUID later = unitCommand(SET_ATTRIBUTES, target, TODAY.minusDays(10), TARGET_NAME, "Name B");
@@ -122,14 +122,19 @@ class OrgUnitSetAttributesIT extends OrgStructureCommandSupport {
         Map<String, Object> beforeAll = unitOn(target, TODAY.minusDays(25));
         assertThat(beforeAll.get("region_kind")).as("before the back-dated day nothing changed").isEqualTo(HEADQUARTERS);
         assertThat(beforeAll.get("name")).isEqualTo(seededName(target));
-        assertThat(beforeAll.get("change_channel_kind")).as("a migrated fact stays migrated when it is split and re-appended (W2 section 2)").isEqualTo("MIGRATION");
+        assertThat(beforeAll.get("change_channel_kind")).as("one-design ruling 2026-10-30 #906, W2 section 2 step 3: unchanged content keeps its original source").isEqualTo("MIGRATION");
+        assertThat(beforeAll.get("change_org_structure_command_id")).isNull();
         Map<String, Object> between = unitOn(target, TODAY.minusDays(15));
         assertThat(between.get("region_kind")).isEqualTo(REGIONAL);
         assertThat(between.get("name")).isEqualTo(seededName(target));
-        assertThat(between.get("change_org_structure_command_id")).isEqualTo(backDated);
+        assertThat(between.get("change_org_structure_command_id")).as("changed content takes the back-dating command").isEqualTo(backDated);
+        assertThat(between.get("change_channel_kind")).isEqualTo("COMMAND");
+        assertThat(superseded.stream().map(row -> row.get("org_unit_version_id"))).as("and points at the row it replaced").contains(between.get("corrected_from_version_id"));
         Map<String, Object> afterLater = unitOn(target, TODAY);
         assertThat(afterLater.get("name")).as("the later command's adjustment is kept").isEqualTo("Name B");
         assertThat(afterLater.get("region_kind")).as("and the back-dated attribute reaches today").isEqualTo(REGIONAL);
+        assertThat(afterLater.get("change_org_structure_command_id")).as("the mixed row now carries the back-dated attribute").isEqualTo(backDated);
+        assertThat(superseded.stream().map(row -> row.get("org_unit_version_id"))).contains(afterLater.get("corrected_from_version_id"));
         assertThat(current).anyMatch(row -> TODAY.minusDays(10).equals(row.get("effective_from_date")));
         assertThat(orgCommand(later).get("status")).as("the later command is not touched").isEqualTo(EFFECTIVE);
         assertThat(all).as("the first command's rows are still on record").anyMatch(row -> later.equals(row.get("change_org_structure_command_id")));
