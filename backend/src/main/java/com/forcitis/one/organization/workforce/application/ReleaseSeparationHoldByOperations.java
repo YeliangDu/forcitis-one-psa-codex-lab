@@ -62,7 +62,7 @@ class ReleaseSeparationHoldByOperations {
         long holdVersion = hold.version();
         long commandVersion = command.version();
         hold.releaseByOperations(reason, now);
-        Set<EmployeeId> leaving = commands.leavingEmployees();
+        Set<EmployeeId> leaving = commands.excludedEmployees();
         int remaining = review.review(List.of(employee), leaving, null).remainingAdministrators();
         if (remaining > 0) {
             throw refused(remaining + " available super_admin would remain: release this hold with the single release in the interface, not with this command");

@@ -31,7 +31,7 @@ public interface PersonnelCommandRepository {
      * items 2.2 and 2.3): those whose separation is held, those whose separation was released and still waits as pending, whatever the date, and those
      * whose unpaid-leave start was entered and has not started. They are no available administrators and not retained (read under the lock).
      */
-    Set<EmployeeId> leavingEmployees();
+    Set<EmployeeId> excludedEmployees();
 
     /** The employees whose separation is held at this moment (read under the lock). */
     Set<EmployeeId> heldEmployees();

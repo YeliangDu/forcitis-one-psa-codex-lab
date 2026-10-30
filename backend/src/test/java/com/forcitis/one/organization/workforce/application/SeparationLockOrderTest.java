@@ -117,7 +117,7 @@ class SeparationLockOrderTest {
         heldSeparation();
         SeparationHold hold = SeparationHold.restore(HOLD, COMMAND, EMPLOYEE, HoldStatus.HELD, 0, null, null, null, null);
         when(commands.findHold(HOLD)).thenReturn(java.util.Optional.of(hold));
-        when(commands.leavingEmployees()).thenReturn(Set.of(EMPLOYEE));
+        when(commands.excludedEmployees()).thenReturn(Set.of(EMPLOYEE));
         when(review.review(any(), any(), any())).thenReturn(new SeparationReview.Verdict(Set.of(), false, 0, "", "", Set.of()));
 
         assertThatThrownBy(() -> service.release(new ReleaseSeparationHold(HOLD, "synthetic: confirmed"))).as("refused later: the releaser is not retained")
@@ -142,7 +142,7 @@ class SeparationLockOrderTest {
         heldSeparation();
         when(commands.findHold(HOLD)).thenReturn(java.util.Optional.of(SeparationHold.restore(HOLD, COMMAND, EMPLOYEE, HoldStatus.HELD, 0, null, null, null, null)));
         when(commands.heldEmployees()).thenReturn(Set.of(held));
-        when(commands.leavingEmployees()).thenReturn(Set.of(held, waiting));
+        when(commands.excludedEmployees()).thenReturn(Set.of(held, waiting));
         when(review.review(any(), any(), any())).thenReturn(new SeparationReview.Verdict(Set.of(EMPLOYEE), true, 1, "", "", Set.of(held, waiting, stays)));
 
         service.release(new ReleaseSeparationHold(HOLD, "synthetic: confirmed"));
