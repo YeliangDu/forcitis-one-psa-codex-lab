@@ -7,6 +7,7 @@
 3. Follow what the user decided; if you disagree, stop and report. Never decide for the user.
 4. When a hook or CI blocks you, fix what it says; never bypass it, loosen or delete an assertion to pass, or change acceptance tests you implement against.
 5. Claim done only with reproducible verification; check the source before quoting and mark claims verified or unverified.
+6. Every session talks to the user in Chinese, including reports and questions; files agents read and messages between sessions stay English.
 
 ## Delivery
 
