@@ -103,7 +103,7 @@ class PersonnelCommandService implements PersonnelCommands {
         AuditEntryId auditEntry = audit.record(new AuditEntry("organization.workforce.personnel-command.entered", by, null, AuditSubject.of(AuditSubjectKind.EMPLOYEE, employee.value()),
                 "command " + command.id() + " " + command.kind() + " effective " + command.effectiveDate()));
         Map<VersionTable, VersionPlan> plans = timelines.forEntry(command, history, auditEntry);
-        requireCommandRowsCarryAPosition(plans);
+        requireCommandRowsHaveAPosition(plans);
         commands.insert(command);
         commands.insertTransition(COMMAND, command.id().value(), command.version(), null, command.status().name(), by, today, now, command.id(), correlation());
         for (Map.Entry<VersionTable, VersionPlan> plan : plans.entrySet()) {
@@ -165,7 +165,7 @@ class PersonnelCommandService implements PersonnelCommands {
      * An assignment row a command writes carries a position (user decision 2026-10-30; ck_assignment_versions_command_position). A transfer by
      * department only keeps the position of the row it follows; when that row has none, the command must name one, and it is refused before anything is written.
      */
-    private static void requireCommandRowsCarryAPosition(Map<VersionTable, VersionPlan> plans) {
+    private static void requireCommandRowsHaveAPosition(Map<VersionTable, VersionPlan> plans) {
         VersionPlan assignments = plans.get(VersionTable.ASSIGNMENT);
         if (assignments != null && assignments.inserts().stream().anyMatch(row -> row.source().command() && row.values().get(CommandEffects.POSITION) == null)) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_ALLOWED, ErrorKind.UNPROCESSABLE,
