@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.Uuids;
+import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.SystemActors;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
@@ -27,9 +28,10 @@ import org.springframework.transaction.annotation.Transactional;
  * EmployeeSeparated is published, once. Its versions were written at the release and are not touched; it is never judged or held again. Nothing
  * else changes: a command that is not pending any more (withdrawn meanwhile, or already done) is left as it is.
  */
+@SystemActorName("organization.workforce.personnel.command.due")
 @Component
 public class ApplyDueSeparation {
-    private static final String ACTOR = "organization.workforce.personnel-command.due";
+    private static final String ACTOR = ApplyDueSeparation.class.getAnnotation(SystemActorName.class).value();
     private static final String COMMAND = "PersonnelCommand";
 
     private final PersonnelCommandRepository commands;
@@ -53,7 +55,7 @@ public class ApplyDueSeparation {
     public void execute(PersonnelCommandId id) {
         Instant now = clock.instant();
         LocalDate today = zone.dateOf(now);
-        try (WorkContext.Scope scope = WorkContext.enter(Uuids.timeOrdered(clock), null, "organization.workforce.personnel-command.due")) {
+        try (WorkContext.Scope scope = WorkContext.enter(Uuids.timeOrdered(clock), null, ACTOR)) {
             commands.lockSeparationDecisions();
             Optional<PersonnelCommand> found = commands.find(id);
             if (found.isEmpty()) {
@@ -65,10 +67,11 @@ public class ApplyDueSeparation {
                 return;
             }
             long loaded = command.version();
-            command.takeEffect(now, today);
+            String before = command.status().name();
+            command.dueEffect(now, today);
             commands.update(command, now, loaded);
             UUID actor = SystemActors.idOf(ACTOR);
-            commands.insertTransition(COMMAND, command.id().value(), loaded + 1, CommandStatus.PENDING.name(), command.status().name(), ActorType.SYSTEM, actor, today, now,
+            commands.insertTransition(COMMAND, command.id().value(), loaded + 1, before, command.status().name(), ActorType.SYSTEM, actor, today, now,
                     command.id(), WorkContext.correlationId().orElseGet(ids::next));
             LegalEntityId legalEntity = LegalEntityResolution.resolve(legalEntities, command.employeeId(), command.effectiveDate().minusDays(1)).orElse(null);
             command.recordEffect(null, legalEntity);

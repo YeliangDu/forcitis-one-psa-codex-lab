@@ -70,7 +70,7 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
     }
 
     @Override
-    public Set<EmployeeId> leavingEmployees() {
+    public Set<EmployeeId> heldOrReleasedEmployees() {
         return new HashSet<>(jdbc.sql("""
                 select h.employee_id from organization_workforce.separation_holds h
                 join organization_workforce.personnel_commands c on c.personnel_command_id = h.personnel_command_id

@@ -1,8 +1,7 @@
-package com.forcitis.one.organization.workforce.infrastructure.scheduling;
+package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
-import com.forcitis.one.organization.workforce.application.ApplyDueSeparation;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
 import java.time.Clock;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
@@ -33,7 +32,7 @@ public class PersonnelCommandDueJob {
     }
 
     @Scheduled(cron = "0 5 0 * * *", zone = "Asia/Shanghai")
-    @SchedulerLock(name = "organization.workforce.personnel-command.due", lockAtMostFor = "PT10M")
+    @SchedulerLock(name = "organization.workforce.personnel.command.due", lockAtMostFor = "PT10M")
     public void run() {
         for (PersonnelCommandId command : commands.releasedSeparationsDue(zone.dateOf(clock.instant()))) {
             try {

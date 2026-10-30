@@ -34,16 +34,16 @@ class SeparationHoldService implements SeparationHolds {
     private final PersonnelCommandRepository commands;
     private final SeparationReview review;
     private final HeldSeparationRelease release;
-    private final SeparationHoldAlert alert;
+    private final SeparationHoldNotice notice;
     private final CurrentUser currentUser;
     private final Clock clock;
 
-    SeparationHoldService(PersonnelCommandRepository commands, SeparationReview review, HeldSeparationRelease release, SeparationHoldAlert alert, CurrentUser currentUser,
+    SeparationHoldService(PersonnelCommandRepository commands, SeparationReview review, HeldSeparationRelease release, SeparationHoldNotice notice, CurrentUser currentUser,
                           Clock clock) {
         this.commands = commands;
         this.review = review;
         this.release = release;
-        this.alert = alert;
+        this.notice = notice;
         this.currentUser = currentUser;
         this.clock = clock;
     }
@@ -64,7 +64,7 @@ class SeparationHoldService implements SeparationHolds {
         long holdVersion = hold.version();
         long commandVersion = command.version();
         hold.release(by, request.reason(), now);
-        Set<EmployeeId> leaving = commands.leavingEmployees();
+        Set<EmployeeId> leaving = commands.heldOrReleasedEmployees();
         SeparationReview.Verdict verdict = review.review(List.of(employee), leaving, by);
         if (!verdict.actorRetained()) {
             throw refused("the releaser is not a retained administrator: not an available holder, held, or on unpaid leave");
@@ -77,7 +77,7 @@ class SeparationHoldService implements SeparationHolds {
                 + (verdict.sessionMode().isEmpty() ? "none" : verdict.sessionMode()) + "; command: " + command.id() + "; hold: " + hold.id()
                 + "; remaining super_admin: " + verdict.remainingAdministrators());
         if (verdict.remainingAdministrators() == 1) {
-            alert.remainingOne(hold, employee, leaving, by);
+            notice.remainingOne(hold, verdict.noticeRecipients(), by);
         }
     }
 

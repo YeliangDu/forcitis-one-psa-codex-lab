@@ -154,7 +154,7 @@ public final class PersonnelCommand extends AggregateRoot {
     }
 
     /** A pending command whose day has come takes effect (the due-date job; its versions were written when it was entered or released). */
-    public void takeEffect(Instant at, LocalDate today) {
+    public void dueEffect(Instant at, LocalDate today) {
         if (effectiveDate.isAfter(today)) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_ALLOWED, ErrorKind.CONFLICT,
                     "a command takes effect on its effective date, not before");

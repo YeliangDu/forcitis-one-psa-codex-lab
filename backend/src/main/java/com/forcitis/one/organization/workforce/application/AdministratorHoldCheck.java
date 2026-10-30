@@ -27,7 +27,7 @@ class AdministratorHoldCheck implements SeparationHoldCheck {
 
     @Override
     public boolean holds(PersonnelCommand separation) {
-        Set<EmployeeId> leaving = commands.leavingEmployees();
+        Set<EmployeeId> leaving = commands.heldOrReleasedEmployees();
         return !review.review(List.of(separation.employeeId()), leaving, null).separatedAdministrators().isEmpty();
     }
 }

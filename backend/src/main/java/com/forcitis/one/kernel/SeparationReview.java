@@ -24,12 +24,6 @@ public interface SeparationReview {
      */
     Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser);
 
-    /**
-     * The employees to tell when exactly one available super administrator remains: the enabled, employed, not-on-leave holders of super_admin or of
-     * the security auditor role (each once), without those in excluded (the separating person and the leaving).
-     */
-    Set<EmployeeId> usableAdministrators(Set<EmployeeId> excluded);
-
     /** The sync path has no held set. */
     default Verdict review(List<EmployeeId> separating, UserId releaser) {
         return review(separating, Set.of(), releaser);
@@ -39,11 +33,15 @@ public interface SeparationReview {
      * An available holder is an enabled holder of the role who is employed (explicitly, in the organisation snapshot) and not on unpaid leave on the
      * business day (ADR-0068 section 3). separatedAdministrators are those of the separating who are available holders of super_admin or the
      * security auditor role; actorRetained says that the releaser is an available holder of one of the two, not separating and not in the
-     * held set; remainingAdministrators counts the available super_admin holders left after the separation, leaving out the separating and the held.
+     * held set; remainingAdministrators counts the available super_admin holders left after the separation, leaving out the separating and the held;
+     * noticeRecipients are the available holders of super_admin or of the security auditor role left out the same way, each once: the people to tell
+     * when one super administrator remains.
      */
-    record Verdict(Set<EmployeeId> separatedAdministrators, boolean actorRetained, int remainingAdministrators, String sessionMode, String reason) {
+    record Verdict(Set<EmployeeId> separatedAdministrators, boolean actorRetained, int remainingAdministrators, String sessionMode, String reason,
+                   Set<EmployeeId> noticeRecipients) {
         public Verdict {
             separatedAdministrators = Set.copyOf(separatedAdministrators);
+            noticeRecipients = Set.copyOf(noticeRecipients);
         }
     }
 }

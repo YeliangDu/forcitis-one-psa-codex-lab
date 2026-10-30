@@ -30,7 +30,7 @@ public interface PersonnelCommandRepository {
      * The administrators who count as leaving: those whose separation is held, and those whose separation was released before its date and still waits
      * as pending, whatever the date (user ruling 2026-10-30, ADR-0068 item 2.3). They are no available administrators and not retained (read under the lock).
      */
-    Set<EmployeeId> leavingEmployees();
+    Set<EmployeeId> heldOrReleasedEmployees();
 
     /** The pending separations whose hold was released and whose effective date is not after the day, oldest first. */
     List<PersonnelCommandId> releasedSeparationsDue(LocalDate day);

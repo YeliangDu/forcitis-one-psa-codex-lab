@@ -61,6 +61,9 @@ class AdministratorSeparationReview implements SeparationReview {
         Set<EmployeeId> remaining = new HashSet<>(superAdministrators);
         remaining.removeAll(separating);
         remaining.removeAll(held);
+        Set<EmployeeId> noticeRecipients = new HashSet<>(everyone);
+        noticeRecipients.removeAll(separating);
+        noticeRecipients.removeAll(held);
         EmployeeId releasingEmployee = releaser == null ? null : accountEmployees.employeeOf(releaser).orElse(null);
         boolean retained = releasingEmployee != null && !separating.contains(releasingEmployee) && !held.contains(releasingEmployee)
                 && everyone.contains(releasingEmployee);
@@ -70,17 +73,8 @@ class AdministratorSeparationReview implements SeparationReview {
                 : "";
         String reason = separatedAdministrators.isEmpty() ? "" : separatedAdministrators.size() + " separated person(s) hold super_admin or security_auditor" + shortage
                 + "; another holder must confirm";
-        return new Verdict(separatedAdministrators, retained, remaining.size(), releaser == null ? "" : session.modeIfSignedIn().map(Enum::name).orElse(""), reason);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public Set<EmployeeId> usableAdministrators(Set<EmployeeId> excluded) {
-        LocalDate today = zone.dateOf(clock.instant());
-        Set<EmployeeId> usable = usableHolders(Role.SUPER_ADMIN, today);
-        usable.addAll(usableHolders(Role.SECURITY_AUDITOR, today));
-        usable.removeAll(excluded);
-        return usable;
+        return new Verdict(separatedAdministrators, retained, remaining.size(), releaser == null ? "" : session.modeIfSignedIn().map(Enum::name).orElse(""), reason,
+                noticeRecipients);
     }
 
     /** Enabled holders who are employed and not on unpaid leave that day: a person on leave counts neither as retained nor as an available administrator (ADR-0068 section 3). */

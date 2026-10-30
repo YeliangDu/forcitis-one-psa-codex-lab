@@ -146,6 +146,7 @@ aggregates:
   tables: []
   commands:
   - AdministratorHoldCheck
+  - ApplyDueSeparation
   - HeldSeparationRelease
   - PersonnelCommandService
   - PersonnelPlans
