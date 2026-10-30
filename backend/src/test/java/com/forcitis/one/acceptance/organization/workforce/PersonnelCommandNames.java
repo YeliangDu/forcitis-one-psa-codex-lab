@@ -58,7 +58,7 @@ final class PersonnelCommandNames {
     // Permission (ADR-0068 item 1.6: one permission enters and withdraws; code format bc:resource:action, 暂名).
     static final String PERMISSION = "organization.workforce:personnel-command:create";
 
-    /** The seeded system role of the 人事专员 (lead decision 2026-10-30; user decision docs/decisions/2026-10-30-005221): holds PERMISSION. */
+    /** The seeded system role of the 人事专员 (lead decision 2026-10-30; user decision of 2026-10-30, the decision file named 人事专员): holds PERMISSION. */
     static final String PERSONNEL_SPECIALIST_ROLE = "personnel_specialist";
 
     // Audit (ADR-0068 item 1.6 gives the withdrawn name; the entered name is a 暂名 by analogy).
