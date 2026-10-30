@@ -55,6 +55,16 @@ class UnpaidLeaveStartFloorFutureIT extends UnpaidLeaveStartFloorSupport {
     }
 
     @Test
+    @DisplayName("#943 未来日 (3)：A、B 仅有的可用超管，B 已录未来停薪；为 A 录今天生效的停薪也被拒（决定 161703 + 163419：今天与未来同一规则），什么都不写")
+    void aFutureStartOfAnotherCountsAsGoneForATodayStart() throws Exception {
+        Staff a = administrator();
+        Staff b = administrator();
+        startAccepted(b, LATER);
+
+        assertRefusedAndNothingWritten(a, TODAY);
+    }
+
+    @Test
     @DisplayName("#943 未来日 (4)：自己已录的未来停薪不对自己重复扣：A、B 可用，A 已录未来停薪；A 再录今天生效的停薪，只扣 A 一次，剩 B 一名：被接受并发卡，而不是剩 0 被拒")
     void ownFutureStartIsNotCountedTwice() throws Exception {
         Staff a = administrator();
