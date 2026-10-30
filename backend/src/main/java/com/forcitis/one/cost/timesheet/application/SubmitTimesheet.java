@@ -77,10 +77,12 @@ public class SubmitTimesheet {
                 return view(timesheet, false);
             }
             requireEmployed(command.projectManager());
+            requireManagerNotOnLeave(command.projectManager(), command.workDate());
             requireNotOnLeave(employee, command.workDate());
             timesheet.revise(employee, command.workDate(), command.hours(), command.projectManager());
         } else {
             requireEmployed(command.projectManager());
+            requireManagerNotOnLeave(command.projectManager(), command.workDate());
             requireNotOnLeave(employee, command.workDate());
             OrgUnitId orgUnit = org.findEmployee(employee).map(profile -> profile.orgUnitId()).orElseThrow(
                     () -> TimesheetError.COST_TIMESHEET_EMPLOYEE_UNKNOWN.refusal("User " + employee.value() + " is not in the organisation"));
@@ -103,6 +105,14 @@ public class SubmitTimesheet {
     private void requireNotOnLeave(EmployeeId employee, LocalDate workDate) {
         if (org.isOnUnpaidLeave(employee, workDate)) {
             throw TimesheetError.COST_TIMESHEET_ON_UNPAID_LEAVE.refusal("The employee is on unpaid leave on " + workDate + ", so no timesheet can be submitted for that day");
+        }
+    }
+
+    /** A project manager on unpaid leave on the work date cannot review it, so the timesheet is refused now instead of falling to the administrator in the approval (user decision 2026-10-30). */
+    private void requireManagerNotOnLeave(EmployeeId projectManager, LocalDate workDate) {
+        if (org.isOnUnpaidLeave(projectManager, workDate)) {
+            throw TimesheetError.COST_TIMESHEET_PROJECT_MANAGER_ON_UNPAID_LEAVE.refusal("User " + projectManager.value() + " is on unpaid leave on " + workDate
+                    + ", so cannot review the timesheet");
         }
     }
 
