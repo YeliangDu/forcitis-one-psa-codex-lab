@@ -805,3 +805,163 @@ CREATE TRIGGER tg_personnel_commands_append_only BEFORE UPDATE OR DELETE ON orga
     FOR EACH ROW EXECUTE FUNCTION organization_workforce.refuse_personnel_command_rewrite();
 CREATE TRIGGER tg_personnel_commands_append_only_truncate BEFORE TRUNCATE ON organization_workforce.personnel_commands
     FOR EACH STATEMENT EXECUTE FUNCTION organization_workforce.refuse_personnel_command_rewrite();
+
+-- IMP-1030-PAR-B1（ADR-0068 第 1.5、2.1 条；one-design 签发 #870 评论 6511427973）：待放行离职。建在人事命令表之后（对它有复合外键）。
+CREATE TABLE organization_workforce.separation_holds (
+    separation_hold_id   uuid        NOT NULL,
+    personnel_command_id uuid        NOT NULL,
+    employee_id          uuid        NOT NULL,
+    status               text        NOT NULL,
+    released_at          timestamptz,
+    released_by          uuid,
+    release_reason       text,
+    release_channel_kind      text,
+    created_at           timestamptz NOT NULL,
+    updated_at           timestamptz NOT NULL,
+    version              bigint      NOT NULL DEFAULT 0,
+    CONSTRAINT pk_separation_holds PRIMARY KEY (separation_hold_id),
+    CONSTRAINT uk_separation_holds_personnel_command_id UNIQUE (personnel_command_id),
+    CONSTRAINT fk_separation_holds_command FOREIGN KEY (personnel_command_id, employee_id)
+        REFERENCES organization_workforce.personnel_commands (personnel_command_id, employee_id) ON DELETE RESTRICT,
+    CONSTRAINT ck_separation_holds_status CHECK (status IN ('HELD', 'RELEASED', 'WITHDRAWN')),
+    CONSTRAINT ck_separation_holds_released CHECK ((status = 'RELEASED') = (released_at IS NOT NULL)),
+    CONSTRAINT ck_separation_holds_release_columns CHECK (
+        (released_at IS NULL) = (release_reason IS NULL) AND (released_at IS NULL) = (release_channel_kind IS NULL)),
+    CONSTRAINT ck_separation_holds_release_channel_kind
+        CHECK (release_channel_kind IS NULL OR release_channel_kind IN ('INTERFACE', 'OPERATIONS_COMMAND')),
+    CONSTRAINT ck_separation_holds_released_by CHECK (
+        (release_channel_kind IS NOT DISTINCT FROM 'INTERFACE') = (released_by IS NOT NULL)),
+    CONSTRAINT ck_separation_holds_release_reason CHECK (release_reason IS NULL
+        OR (char_length(release_reason) BETWEEN 1 AND 500 AND btrim(release_reason) <> ''))
+);
+CREATE INDEX ix_separation_holds_held ON organization_workforce.separation_holds (employee_id) WHERE status = 'HELD';
+COMMENT ON TABLE organization_workforce.separation_holds IS '待放行离职：管理员离职在入口检查时被留住的那条离职命令的放行状态，只追加；留住的集合是剩余超管计算的排除集合（ADR-0068 第 1.5、2.1 条）。粒度：每条被留住的离职命令一行';
+COMMENT ON COLUMN organization_workforce.separation_holds.separation_hold_id IS '待放行离职 ID（UUIDv7，由应用层生成）';
+COMMENT ON COLUMN organization_workforce.separation_holds.personnel_command_id IS '人事命令 ID：被留住的离职命令；一条命令至多一行';
+COMMENT ON COLUMN organization_workforce.separation_holds.employee_id IS '员工 ID：与命令的员工一致，由复合外键保证';
+COMMENT ON COLUMN organization_workforce.separation_holds.status IS '状态：HELD 待放行 / RELEASED 已放行 / WITHDRAWN 已撤回（命令被撤回时随之）；只能由 HELD 改为后两者';
+COMMENT ON COLUMN organization_workforce.separation_holds.released_at IS '放行时刻；为空表示尚未放行（待放行或已撤回）；有值当且仅当状态为已放行';
+COMMENT ON COLUMN organization_workforce.separation_holds.released_by IS '放行人（用户账号 ID，跨 schema 只存 ID）；为空表示经运维命令放行（操作人与见证人只在审计里，ADR-0068 第 2.1 条）或尚未放行；接口放行必填';
+COMMENT ON COLUMN organization_workforce.separation_holds.release_reason IS '放行原因（1 至 500 字）；为空表示尚未放行';
+COMMENT ON COLUMN organization_workforce.separation_holds.release_channel_kind IS '放行渠道：INTERFACE 接口 / OPERATIONS_COMMAND 运维命令；为空表示尚未放行';
+COMMENT ON COLUMN organization_workforce.separation_holds.created_at IS '创建时间';
+COMMENT ON COLUMN organization_workforce.separation_holds.updated_at IS '更新时间';
+COMMENT ON COLUMN organization_workforce.separation_holds.version IS '乐观锁版本';
+
+-- 待放行离职只追加：状态只能由 HELD 改为 RELEASED 或 WITHDRAWN，放行四列各只能由空变非空一次，其余列除更新时间与版本外不变；DELETE 只放行表属主。
+CREATE FUNCTION organization_workforce.refuse_separation_hold_rewrite() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
+DECLARE
+    owner_name name;
+    column_name text;
+BEGIN
+    IF TG_OP = 'TRUNCATE' THEN
+        RAISE EXCEPTION 'separation holds are append-only: truncate on %.% is refused', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF TG_OP = 'DELETE' THEN
+        SELECT pg_get_userbyid(relowner) INTO owner_name FROM pg_class WHERE oid = TG_RELID;
+        IF current_user <> owner_name THEN
+            RAISE EXCEPTION 'separation holds are append-only: delete on %.% is refused', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
+        END IF;
+        RETURN OLD;
+    END IF;
+    IF NEW.status <> OLD.status AND NOT (OLD.status = 'HELD' AND NEW.status IN ('RELEASED', 'WITHDRAWN')) THEN
+        RAISE EXCEPTION 'separation hold status cannot move from % to %', OLD.status, NEW.status USING ERRCODE = 'restrict_violation';
+    END IF;
+    FOREACH column_name IN ARRAY ARRAY['released_at', 'released_by', 'release_reason', 'release_channel_kind'] LOOP
+        IF (to_jsonb(OLD) -> column_name) <> 'null'::jsonb AND (to_jsonb(NEW) -> column_name) IS DISTINCT FROM (to_jsonb(OLD) -> column_name) THEN
+            RAISE EXCEPTION 'column % of %.% is set once and cannot change', column_name, TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
+        END IF;
+    END LOOP;
+    IF (to_jsonb(NEW) - 'status' - 'released_at' - 'released_by' - 'release_reason' - 'release_channel_kind' - 'updated_at' - 'version')
+            <> (to_jsonb(OLD) - 'status' - 'released_at' - 'released_by' - 'release_reason' - 'release_channel_kind' - 'updated_at' - 'version') THEN
+        RAISE EXCEPTION 'only the status and release columns of %.% can change', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
+    END IF;
+    RETURN NEW;
+END $$;
+COMMENT ON FUNCTION organization_workforce.refuse_separation_hold_rewrite() IS '待放行离职只追加的触发器：状态只放行 HELD 到 RELEASED、WITHDRAWN，放行四列只放行由空变非空一次，其余列除更新时间与版本外不变，DELETE 只放行表属主，TRUNCATE 拒绝';
+CREATE TRIGGER tg_separation_holds_append_only BEFORE UPDATE OR DELETE ON organization_workforce.separation_holds
+    FOR EACH ROW EXECUTE FUNCTION organization_workforce.refuse_separation_hold_rewrite();
+CREATE TRIGGER tg_separation_holds_append_only_truncate BEFORE TRUNCATE ON organization_workforce.separation_holds
+    FOR EACH STATEMENT EXECUTE FUNCTION organization_workforce.refuse_separation_hold_rewrite();
+
+-- IMP-1030-PAR-B1（ADR-0058 决定 8、ADR-0075，ADR-0068 第 2.1 条）：人事命令与待放行离职的状态转换记录，形状同 organization_administration.state_transitions。
+CREATE TABLE organization_workforce.state_transitions (
+    id                      uuid        NOT NULL,
+    aggregate_type_code     text        NOT NULL CONSTRAINT ck_state_transitions_aggregate_type_code CHECK (aggregate_type_code IN ('PersonnelCommand', 'SeparationHold')),
+    aggregate_id            uuid        NOT NULL,
+    transition_sequence_number bigint   NOT NULL,
+    from_status             text,
+    to_status               text        NOT NULL,
+    occurred_on_date        date        NOT NULL,
+    recorded_at             timestamptz NOT NULL,
+    legal_entity_id         uuid,
+    actor_type              text        NOT NULL,
+    actor_id                uuid        NOT NULL,
+    cause_kind              text        NOT NULL,
+    command_id              uuid,
+    event_id                uuid,
+    correlation_id          uuid        NOT NULL,
+    reverses_transition_id  uuid,
+    created_at              timestamptz NOT NULL,
+    updated_at              timestamptz NOT NULL,
+    CONSTRAINT pk_state_transitions PRIMARY KEY (id),
+    CONSTRAINT uk_state_transitions_aggregate_id_transition_sequence_number UNIQUE (aggregate_id, transition_sequence_number),
+    CONSTRAINT uk_state_transitions_id_aggregate_id UNIQUE (id, aggregate_id),
+    CONSTRAINT fk_state_transitions_reverses_transition_id FOREIGN KEY (reverses_transition_id, aggregate_id)
+        REFERENCES organization_workforce.state_transitions (id, aggregate_id) ON DELETE RESTRICT,
+    CONSTRAINT ck_state_transitions_from_status CHECK (from_status IN ('PENDING', 'HELD')),
+    CONSTRAINT ck_state_transitions_to_status CHECK (to_status IN ('PENDING', 'HELD', 'EFFECTIVE', 'WITHDRAWN', 'RELEASED')),
+    CONSTRAINT ck_state_transitions_transition_sequence_number CHECK (transition_sequence_number >= 0),
+    CONSTRAINT ck_state_transitions_statuses_differ CHECK (from_status IS DISTINCT FROM to_status),
+    CONSTRAINT ck_state_transitions_first CHECK (from_status IS NOT NULL OR cause_kind = 'MIGRATION' OR transition_sequence_number <= 1),
+    CONSTRAINT ck_state_transitions_actor_type CHECK (actor_type IN ('USER', 'SYSTEM')),
+    CONSTRAINT ck_state_transitions_cause_kind CHECK (cause_kind IN ('COMMAND', 'REVERSAL', 'CORRECTION', 'MIGRATION', 'SYSTEM_JOB')),
+    CONSTRAINT ck_state_transitions_trigger CHECK (num_nonnulls(command_id, event_id) <= 1
+        AND (cause_kind <> 'COMMAND' OR command_id IS NOT NULL)
+        AND (cause_kind <> 'SYSTEM_JOB' OR command_id IS NULL)
+        AND (cause_kind <> 'MIGRATION' OR num_nonnulls(command_id, event_id) = 0)),
+    CONSTRAINT ck_state_transitions_reversal CHECK ((cause_kind IN ('REVERSAL', 'CORRECTION')) = (reverses_transition_id IS NOT NULL)),
+    CONSTRAINT ck_state_transitions_migration CHECK (cause_kind <> 'MIGRATION' OR from_status IS NULL),
+    CONSTRAINT ck_state_transitions_status_of_aggregate CHECK (coalesce(
+        (aggregate_type_code = 'PersonnelCommand'
+            AND ((from_status IS NULL AND to_status IN ('PENDING', 'HELD', 'EFFECTIVE'))
+                 OR (from_status = 'PENDING' AND to_status IN ('EFFECTIVE', 'WITHDRAWN', 'HELD'))
+                 OR (from_status = 'HELD' AND to_status IN ('EFFECTIVE', 'WITHDRAWN'))))
+        OR (aggregate_type_code = 'SeparationHold'
+            AND ((from_status IS NULL AND to_status = 'HELD')
+                 OR (from_status = 'HELD' AND to_status IN ('RELEASED', 'WITHDRAWN')))), false)),
+    CONSTRAINT ck_state_transitions_times CHECK (created_at = recorded_at AND updated_at = recorded_at)
+);
+CREATE INDEX ix_state_transitions_legal_entity_id_occurred_on_date ON organization_workforce.state_transitions (legal_entity_id, occurred_on_date) WHERE legal_entity_id IS NOT NULL;
+CREATE INDEX ix_state_transitions_recorded_at ON organization_workforce.state_transitions (recorded_at, id);
+CREATE FUNCTION organization_workforce.refuse_transition_rewrite() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+    IF TG_OP = 'DELETE' AND current_user = (SELECT pg_get_userbyid(c.relowner) FROM pg_class c WHERE c.oid = TG_RELID) THEN
+        RETURN OLD;
+    END IF;
+    RAISE EXCEPTION 'state transitions are append-only: % on %.% is refused', lower(TG_OP), TG_TABLE_SCHEMA, TG_TABLE_NAME
+        USING ERRCODE = 'restrict_violation';
+END $$;
+CREATE TRIGGER tg_state_transitions_append_only BEFORE UPDATE OR DELETE ON organization_workforce.state_transitions
+    FOR EACH ROW EXECUTE FUNCTION organization_workforce.refuse_transition_rewrite();
+CREATE TRIGGER tg_state_transitions_append_only_truncate BEFORE TRUNCATE ON organization_workforce.state_transitions
+    FOR EACH STATEMENT EXECUTE FUNCTION organization_workforce.refuse_transition_rewrite();
+COMMENT ON TABLE organization_workforce.state_transitions IS '状态转换记录：本 schema 各状态持有者每次状态变更一行，只追加，回退也正向记（ADR-0058、ADR-0075）。粒度：每次状态变更一行';
+COMMENT ON COLUMN organization_workforce.state_transitions.id IS '状态转换 ID（UUIDv7）';
+COMMENT ON COLUMN organization_workforce.state_transitions.aggregate_type_code IS '聚合类型代码：状态持有者的类型，本基线有 PersonnelCommand（人事命令）与 SeparationHold（待放行离职）；两者都是员工聚合内带自己状态机的实体，后续卡随各自状态机追加';
+COMMENT ON COLUMN organization_workforce.state_transitions.aggregate_id IS '聚合 ID：状态持有者自己的 ID，PersonnelCommand 取 personnel_command_id，SeparationHold 取 separation_hold_id，无外键（多态主体）';
+COMMENT ON COLUMN organization_workforce.state_transitions.transition_sequence_number IS '转换序号：本次变更之后该状态持有者行自己的 version，与该行同事务递增；严格递增、唯一、允许跳号（ADR-0075 决定 5）';
+COMMENT ON COLUMN organization_workforce.state_transitions.from_status IS '原状态：为空表示新建或迁入的初始状态；取值为本 schema 各状态机的状态并集，合法流转见 ck_state_transitions_status_of_aggregate：PersonnelCommand 为空到待生效、待放行、已生效，待生效到已生效、已撤回、待放行，待放行到已生效、已撤回；SeparationHold 为空到待放行，待放行到已放行、已撤回';
+COMMENT ON COLUMN organization_workforce.state_transitions.to_status IS '新状态：PENDING 待生效 / HELD 待放行 / EFFECTIVE 已生效 / WITHDRAWN 已撤回 / RELEASED 已放行（仅待放行离职）';
+COMMENT ON COLUMN organization_workforce.state_transitions.occurred_on_date IS '发生日期：业务日期（Asia/Shanghai）';
+COMMENT ON COLUMN organization_workforce.state_transitions.recorded_at IS '记录时间：注入时钟';
+COMMENT ON COLUMN organization_workforce.state_transitions.legal_entity_id IS '法人主体 ID：为空表示该转换不携带法人主体（员工所属法人按日期从 employee_legal_entities 读取，不在本表重复）';
+COMMENT ON COLUMN organization_workforce.state_transitions.actor_type IS '操作者类型：USER 用户 / SYSTEM 系统操作者（作业、事件监听按 system-actors.txt 登记的系统操作者）';
+COMMENT ON COLUMN organization_workforce.state_transitions.actor_id IS '操作人 ID：用户 ID 或系统操作者 UUIDv5';
+COMMENT ON COLUMN organization_workforce.state_transitions.cause_kind IS '起因：COMMAND / REVERSAL / CORRECTION / MIGRATION / SYSTEM_JOB';
+COMMENT ON COLUMN organization_workforce.state_transitions.command_id IS '命令 ID：为空表示不是命令触发';
+COMMENT ON COLUMN organization_workforce.state_transitions.event_id IS '事件 ID：为空表示不是事件触发';
+COMMENT ON COLUMN organization_workforce.state_transitions.correlation_id IS '关联号：同一请求或作业的一串变更共用';
+COMMENT ON COLUMN organization_workforce.state_transitions.reverses_transition_id IS '抵消的转换 ID：为空表示不是冲销或更正';
+COMMENT ON COLUMN organization_workforce.state_transitions.created_at IS '创建时间（恒等于记录时间）';
+COMMENT ON COLUMN organization_workforce.state_transitions.updated_at IS '更新时间（恒等于记录时间）';

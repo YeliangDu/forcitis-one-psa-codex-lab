@@ -40,6 +40,9 @@ unit test (ci.yml), the nightly the full ci: together they are the alarm for a m
 Gap scan. Every 30 minutes the runner looks at all open pull requests, whether or not the queue is empty (scripts/merge/gapscan.py): conflict, red CI, approved but not queued (a comment `调度批准入队 head <sha>`), no commit or comment for an hour.
 It cannot message a session: a GAPS line in the log and <queue dir>/gaps.md say who owns what (branch [claude/]<session>-... -> session, names from policy.json sessions.config), the session watching the log forwards it. The same pull request and reason is reported once in 4 hours.
 
+Drift check. At start and every 24 hours the runner runs scripts/merge/driftscan.py (report only): dropped pull requests, worktree markers, a runner older than main, absent card owners, a stale lead handoff.
+One DRIFT line in the log when there are new findings, the full list in <queue dir>/drift.md; the same finding is reported once in 24 hours. Run `driftscan.py` by hand for the list now.
+
 Queue file: one pull request number per line, optionally "<n> after=<m>[,<m>...]" (`mq.py enqueue <n> --after <m>`: n is not started until every m is MERGED, whatever lane either is in; WAIT-DEP in the log
 while it waits and again every hour, HOLD when a dependency was closed unmerged;
 `once <n>` does not look at dependencies; after deploying this version restart the running runner first: an older runner does not understand "after=" lines and never starts them, and its enqueue would drop the dependency; a dependency cycle is refused at enqueue), anything else is kept as it is. Every change goes through flock on <queue>.lock and an atomic replace (temporary file, then rename), so an enqueue can no longer be
@@ -59,6 +62,7 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import driftscan   # noqa: E402
 import gapscan   # noqa: E402
 import post_review   # noqa: E402  (the machine-read header of a review: one parser for the poster and the queue)
 from mq_github import Gh, SignalError, sh, update_over_ssh   # noqa: E402,F401  (the GitHub and git side)
@@ -819,11 +823,26 @@ def run_scan(proc, directory, every=gapscan.SCAN_EVERY, first=60, stop=lambda: F
             proc.log.event("ERROR", None, None, None, f"gap scan: {type(e).__name__}: {e}")
 
 
+def run_drift(proc, directory, every=driftscan.EVERY, first=30, stop=lambda: False, src=None):
+    """The drift check thread: first after `first` seconds (runner start), then every `every`. Nothing a check raises ends the thread."""
+    wait = first
+    while not stop():
+        proc.sleep(wait)
+        if stop():
+            break
+        wait = every
+        try:
+            driftscan.scan(src or driftscan.Live(), proc.queue, directory, proc.log)
+        except (Exception, SystemExit) as e:
+            proc.log.event("ERROR", None, None, None, f"drift check: {type(e).__name__}: {e}")
+
+
 def run_loop(proc, idle=60, stop=lambda: False, directory=None):
     """Both lanes, each in its own thread, until stop(); with a queue directory also the gap scan."""
     threads = [threading.Thread(target=run_lane, args=(proc, lane, idle, stop), name=f"mq-{lane}", daemon=True) for lane in LANES]
     if directory:
         threads.append(threading.Thread(target=run_scan, args=(proc, directory), kwargs=dict(stop=stop), name="mq-gap-scan", daemon=True))
+        threads.append(threading.Thread(target=run_drift, args=(proc, directory), kwargs=dict(stop=stop), name="mq-drift", daemon=True))
     for t in threads:
         t.start()
     for t in threads:

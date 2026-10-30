@@ -132,6 +132,9 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_numbering.document_types FRO
 
 -- 人事命令只追加（ADR-0068 第 1 条 7）：触发器之外，运行角色也不持有 DELETE 与 TRUNCATE；离职满 10 年的清除经属主的 SECURITY DEFINER 函数。
 REVOKE DELETE, TRUNCATE ON organization_workforce.personnel_commands FROM one_dev_app;
+-- 待放行离职与人事状态转换（IMP-1030-PAR-B1）：待放行离职同人事命令，状态转换只追加，运行角色只留 SELECT、INSERT。
+REVOKE DELETE, TRUNCATE ON organization_workforce.separation_holds FROM one_dev_app;
+REVOKE UPDATE, DELETE, TRUNCATE ON organization_workforce.state_transitions FROM one_dev_app;
 
 -- 角色版本与授权申请的自定义部门（F-1 #728；数据访问注册表 AGGREGATE_CHILD / APPEND_ONLY）：明细随父行同事务插入，触发器拒改删；
 -- 运行角色也不持有 DELETE 与 TRUNCATE。不是版本表，不进上面的版本表清单（DataArchitectureTest 核对该清单只含 DIMENSION_VERSIONED）。

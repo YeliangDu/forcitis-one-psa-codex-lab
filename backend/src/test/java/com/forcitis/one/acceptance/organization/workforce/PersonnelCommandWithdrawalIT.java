@@ -151,7 +151,7 @@ class PersonnelCommandWithdrawalIT extends PersonnelCommandSupport {
 
         assertThat(command(held.command()).get("status")).isEqualTo(WITHDRAWN);
         assertThat(holdStatus(held.hold())).isEqualTo(WITHDRAWN);
-        Map<String, Object> hold = rows("select released_at, released_by, release_reason, release_channel from " + SEPARATION_HOLDS + " where separation_hold_id = ?", held.hold()).get(0);
+        Map<String, Object> hold = rows("select released_at, released_by, release_reason, release_channel_kind from " + SEPARATION_HOLDS + " where separation_hold_id = ?", held.hold()).get(0);
         assertThat(hold.values()).as("a withdrawn hold was never released").containsOnlyNulls();
         Object commandTransaction = rows("select xmin::text as tx from " + COMMANDS + " where personnel_command_id = ?", held.command()).get(0).get("tx");
         Object holdTransaction = rows("select xmin::text as tx from " + SEPARATION_HOLDS + " where separation_hold_id = ?", held.hold()).get(0).get("tx");
