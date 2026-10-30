@@ -7926,7 +7926,7 @@ terms:
   aliases: []
   forbidden: []
   status: approved
-  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#countersign，R3-AP-71）
+  note: 用语确认第三轮转正式（原提议 platform-approval.yaml#countersign，R3-AP-71）；与 organization.workforce 的法人归属会签 attribution_countersign（ADR-0073 原文也称「会签」）同名异义，中英文名不同，不列 homonyms，在此互注（#898）
   confirmed: 2026-10-15（用户，用语确认第三轮）
   scope: domain
 - id: withdraw
