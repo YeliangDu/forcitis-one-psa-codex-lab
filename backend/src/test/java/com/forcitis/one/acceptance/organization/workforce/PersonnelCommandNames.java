@@ -98,6 +98,13 @@ final class PersonnelCommandNames {
     static final String SUPER_ADMIN = "super_admin";
     static final String SECURITY_AUDITOR = "security_auditor";
     static final String AUDIT_HOLD_RELEASED = "organization.workforce.separation-hold.released";
+    /**
+     * The key text of the one advisory lock every separation entry, single release and withdrawal of a held command takes first
+     * (ADR-0068 item 2.2, line 81: {@code pg_advisory_xact_lock(hashtextextended(<key>, 0))}, "键文本为 kernel 常量"). Agreed: a public static
+     * String field of this name in this kernel class; looked up by reflection, missing = fail.
+     */
+    static final String LOCK_KEY_CLASS = "com.forcitis.one.kernel.SeparationReview";
+    static final String LOCK_KEY_FIELD = "SEPARATION_LOCK_KEY";
     static final String EVENT_HELD = "SeparationHeld";
     static final String EVENT_HOLD_RELEASED = "SeparationHoldReleased";
 }

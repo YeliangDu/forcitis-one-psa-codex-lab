@@ -133,6 +133,11 @@ abstract class SeparationHoldSupport extends PersonnelCommandSupport {
         return new Scenario(held, s2, releaser, s3);
     }
 
+    /** The session-mode field of an audit detail with the given value ("session mode: X", "sessionMode":"X"); not the word inside another field name. */
+    static java.util.regex.Pattern sessionModePattern(String mode) {
+        return java.util.regex.Pattern.compile("(?i)session[ _-]?mode\\W{1,6}" + mode + "\\b");
+    }
+
     // ---- reading ----
 
     /** The employment status of the current facts on the day, or null when no current row covers it. */

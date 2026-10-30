@@ -127,7 +127,8 @@ class SeparationHoldReleaseIT extends SeparationHoldSupport {
         assertThat(String.valueOf(entry.get("subjectKind"))).isEqualTo("EMPLOYEE");
         assertThat(String.valueOf(entry.get("subjectId"))).isEqualTo(scenario.held().employee().toString());
         assertThat(detail).as("reason").contains(REASON_TEXT);
-        assertThat(detail).as("session mode").containsIgnoringCase(modeToken);
+        assertThat(detail).as("session mode field in: " + detail).containsPattern(SeparationHoldSupport.sessionModePattern(modeToken));
+        assertThat(detail).as("and not the other mode").doesNotContainPattern(SeparationHoldSupport.sessionModePattern(modeToken.equals("ORDINARY") ? "ADMINISTRATOR" : "ORDINARY"));
         assertThat(detail).as("command id").contains(scenario.held().command().toString());
         assertThat(detail).as("hold id").contains(scenario.held().hold().toString());
         assertThat(REMAINING_ONE.matcher(detail).find()).as("remaining available super administrators (1) in: " + detail).isTrue();
@@ -158,6 +159,7 @@ class SeparationHoldReleaseIT extends SeparationHoldSupport {
     @Test
     @DisplayName("#873 ADR-0068 第 2 条第 1 项（行 79）、附件守护规则 2「放行只能一次」：已放行的暂停记录再放行被拒：不再执行、不再发事件、不再写审计，放行人与放行时间不变")
     void aHoldIsReleasedOnlyOnce() throws Exception {
+        int audited = auditCount(AUDIT_HOLD_RELEASED);
         Scenario scenario = heldWithRemaining(1);
         releaseAs(scenario.releaser(), scenario.held().hold(), REASON_TEXT);
         Map<String, Object> first = hold(scenario.held().hold());
@@ -169,7 +171,7 @@ class SeparationHoldReleaseIT extends SeparationHoldSupport {
         assertThat(eventsOf(EVENT_SEPARATED, scenario.held().command())).isEqualTo(1);
         assertThat(eventsOf(EVENT_HOLD_RELEASED, scenario.held().command())).isEqualTo(1);
         assertThat(releaseAuditBy(scenario.releaser())).hasSize(1);
-        assertThat(auditCount(AUDIT_HOLD_RELEASED)).isEqualTo(1);
+        assertThat(auditCount(AUDIT_HOLD_RELEASED)).as("one entry for the one release, none for the refused second").isEqualTo(audited + 1);
     }
 
     @Test

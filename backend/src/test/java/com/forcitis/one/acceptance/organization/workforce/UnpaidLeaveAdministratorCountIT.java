@@ -60,6 +60,7 @@ class UnpaidLeaveAdministratorCountIT extends SeparationHoldSupport {
     @Test
     @DisplayName("#873 ADR-0068 第 3 条（行 107）、第 2 条第 2 项（行 84）：停薪留职的人不算留任：持有放行权限的审计员停薪留职期间放行被拒（不是权限拒绝），结束后可以放行")
     void aReleaserOnLeaveIsNotRetained() throws Exception {
+        int audited = auditCount(AUDIT_HOLD_RELEASED);
         Scenario scenario = heldWithRemaining(1);
         leave(UNPAID_LEAVE_START, scenario.releaser());
 
@@ -68,7 +69,7 @@ class UnpaidLeaveAdministratorCountIT extends SeparationHoldSupport {
         assertThat(refused).isInstanceOf(RuntimeException.class);
         assertThat(isPermissionRefusal(refused)).as("the permission is held; the person is not retained: " + refused).isFalse();
         assertThat(holdStatus(scenario.held().hold())).isEqualTo(HELD);
-        assertThat(auditCount(AUDIT_HOLD_RELEASED)).isZero();
+        assertThat(auditCount(AUDIT_HOLD_RELEASED)).isEqualTo(audited);
 
         leave(UNPAID_LEAVE_END, scenario.releaser());
 
@@ -76,6 +77,22 @@ class UnpaidLeaveAdministratorCountIT extends SeparationHoldSupport {
 
         assertThat(holdStatus(scenario.held().hold())).isEqualTo(RELEASED);
         assertThat(hold(scenario.held().hold()).get("released_by")).isEqualTo(scenario.releaser().userId());
+    }
+
+    @Test
+    @DisplayName("#873 ADR-0068 第 3 条（行 107）、ADR-0028 决定 1（lead 裁定：交集只取「可用」持有人）：停薪留职的超管不是可用超管，他离职、另有两名可用超管时不暂停：命令直接生效，此人离职")
+    void anAdministratorOnLeaveIsSeparatedWithoutAHold() throws Exception {
+        Staff onLeave = administrator();
+        administrator();
+        administrator();
+        leave(UNPAID_LEAVE_START, onLeave);
+
+        UUID command = separateAsHr(onLeave);
+
+        assertThat(commandStatus(command)).isEqualTo(EFFECTIVE);
+        assertThat(employmentOn(onLeave.employeeId(), TODAY)).isEqualTo(SEPARATED);
+        assertThat(rows("select 1 from " + SEPARATION_HOLDS + " where personnel_command_id = ?", command)).isEmpty();
+        assertThat(eventsOf(EVENT_SEPARATED, command)).isEqualTo(1);
     }
 
     @Test

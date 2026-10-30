@@ -48,6 +48,7 @@ class SeparationHoldReleaserIT extends SeparationHoldSupport {
     @Test
     @DisplayName("#873 ADR-0068 第 2 条第 2 项（行 84）、ADR-0028 决定 4：放行人本人也在待放行中时不算留任：S2 与 S3 先后被暂停，S3（同持安全审计员角色，有权限）放行 S2 的暂停被拒；另一名不在集合中的审计员可以放行 S2 的暂停")
     void aReleaserWhoIsHeldHimselfIsNotRetained() throws Exception {
+        int audited = auditCount(AUDIT_HOLD_RELEASED);
         Staff s2 = administrator();
         Staff s3 = administrator(SECURITY_AUDITOR);
         Staff outsider = auditor();
@@ -61,7 +62,7 @@ class SeparationHoldReleaserIT extends SeparationHoldSupport {
         assertThat(isPermissionRefusal(refused)).as("S3 holds the permission through the security auditor role; he is refused as a held person").isFalse();
         assertStillHeld(second);
         assertStillHeld(third);
-        assertThat(auditCount(AUDIT_HOLD_RELEASED)).isZero();
+        assertThat(auditCount(AUDIT_HOLD_RELEASED)).isEqualTo(audited);
 
         releaseAs(outsider, second.hold(), REASON_TEXT);
 
@@ -91,6 +92,7 @@ class SeparationHoldReleaserIT extends SeparationHoldSupport {
     @Test
     @DisplayName("#873 ADR-0068 第 2 条第 3 项（行 88）、ADR-0009、ADR-0028 决定 3（提权）：没有 separation-hold:approve 的人放行一律被拒（权限拒绝）：人事专员（有录入权限）、组织数据管理员、只有默认角色的员工、普通会话里的超管、未登录；每次拒绝后暂停记录仍为 HELD，无放行审计")
     void everyoneWithoutThePermissionIsRefused() throws Exception {
+        int audited = auditCount(AUDIT_HOLD_RELEASED);
         Held held = oneHold();
         List<Staff> callers = new ArrayList<>();
         callers.add(hr);
@@ -109,7 +111,7 @@ class SeparationHoldReleaserIT extends SeparationHoldSupport {
 
         assertThat(isPermissionRefusal(nobody)).as("nobody signed in: " + nobody).isTrue();
         assertStillHeld(held);
-        assertThat(auditCount(AUDIT_HOLD_RELEASED)).isZero();
+        assertThat(auditCount(AUDIT_HOLD_RELEASED)).isEqualTo(audited);
         assertThat(eventsOf(EVENT_HOLD_RELEASED, held.command())).isZero();
     }
 
@@ -159,6 +161,7 @@ class SeparationHoldReleaserIT extends SeparationHoldSupport {
     @Test
     @DisplayName("#873 ADR-0068 第 2 条第 1 项（行 79，附件 DDL ck_separation_holds_release_reason）、第 3 项（行 90）边界：放行原因为空、全空白、501 个字都被拒，暂停记录仍为 HELD；500 个字接受并原样落库")
     void theReasonIsOneToFiveHundredCharactersAndNotBlank() throws Exception {
+        int audited = auditCount(AUDIT_HOLD_RELEASED);
         Held held = oneHold();
         Staff releaser = auditor();
         List<String> refusedReasons = new ArrayList<>(Arrays.asList(null, "", " ", "  \t ", "\n", "r".repeat(501)));
@@ -169,7 +172,7 @@ class SeparationHoldReleaserIT extends SeparationHoldSupport {
             assertThat(isPermissionRefusal(refused)).isFalse();
             assertStillHeld(held);
         }
-        assertThat(auditCount(AUDIT_HOLD_RELEASED)).isZero();
+        assertThat(auditCount(AUDIT_HOLD_RELEASED)).isEqualTo(audited);
 
         releaseAs(releaser, held.hold(), "r".repeat(500));
 

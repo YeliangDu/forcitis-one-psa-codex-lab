@@ -24,9 +24,11 @@ import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * #873 IMP-1030-PAR-B4 (ADR-0068 item 2.2, lines 80 to 85, and item 1.8, line 67; ADR-0055 decision 3 items 3 and 4): the hold decision is made
- * when a SEPARATE of an administrator is entered, inside the one lock that every separation takes. Fewer than two available super
- * administrators left, not counting the leaver and not counting anybody already held, means the command is held: it goes to HELD with a
- * HELD hold, the person stays employed and no EmployeeSeparated is published. Each test builds its own pool of administrators (the count
+ * when a SEPARATE of an administrator is entered, inside the one lock that every separation takes (the lock itself is {@link SeparationHoldLockIT}).
+ * Lead ruling on ADR-0028 decision 1 as kept by ADR-0055 decision 3 items 3 and 4: a separation is held when the leaver is one of the
+ * available super administrator or security auditor holders, or when fewer than two available super administrators would be left, not
+ * counting the leaver and not counting anybody already held. A held command goes to HELD with a HELD hold, the person stays employed and
+ * no EmployeeSeparated is published. Each test builds its own pool of administrators (the count
  * is global), see {@link SeparationHoldSupport}.
  */
 class SeparationHoldDecisionIT extends SeparationHoldSupport {
@@ -50,8 +52,8 @@ class SeparationHoldDecisionIT extends SeparationHoldSupport {
     }
 
     @RepeatedTest(8)
-    @DisplayName("#873 ADR-0068 第 2 条第 2 项（行 80 至 85）、ADR-0055 决定 3 第 3 项、附件守护规则 2：三名超管中两人的离职命令在两个线程、两个事务里同时录入：串行，两条都被暂停（各有一条 HELD 暂停记录，两人仍在职、不发 EmployeeSeparated），两边都不报错；再逐条放行，已在待放行中的人不算可用，故每次剩余 1 名并告警，两条都放行成功")
-    void twoConcurrentSeparationsOfAdministratorsSerialiseAndBothAreHeld() throws Exception {
+    @DisplayName("#873 ADR-0068 第 2 条第 2 项（行 80 至 85）、ADR-0055 决定 3 第 3 项：三名超管中两人的离职命令在两个线程、两个事务里同时录入：两边都不报错（无死锁、无并发冲突），两条都被暂停（该判定只看离职人自己，所以本条证明不了锁，锁见 SeparationHoldLockIT）（各有一条 HELD 暂停记录，两人仍在职、不发 EmployeeSeparated），两边都不报错；再逐条放行，已在待放行中的人不算可用，故每次剩余 1 名并告警，两条都放行成功")
+    void twoConcurrentSeparationsOfAdministratorsBothEndHeldWithoutError() throws Exception {
         Staff first = administrator();
         Staff second = administrator();
         Staff stays = administrator();
