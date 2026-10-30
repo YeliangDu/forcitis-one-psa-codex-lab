@@ -65,6 +65,25 @@ class UnpaidLeaveStartFloorFutureIT extends UnpaidLeaveStartFloorSupport {
     }
 
     @Test
+    @DisplayName("#943 对抗 anyleave：B 已录的未来停薪被撤回（WITHDRAWN）后不再算走：A、B 仅有的可用超管，A 开始停薪剩 B 一名：被接受并发卡（不是被拒），收件人为 B")
+    void aWithdrawnFutureStartDoesNotCount() throws Exception {
+        Staff a = administrator();
+        Staff b = administrator();
+        UUID entered = startAccepted(b, LATER);
+        actIn(hr);
+        commands().withdraw(entered, "synthetic: the leave is cancelled");
+        assertThat(commandStatus(entered)).isEqualTo(WITHDRAWN);
+        forgetCards();
+        int mark = logMark();
+
+        UUID command = startLeave(a, TODAY);
+
+        assertThat(commandStatus(command)).isEqualTo(EFFECTIVE);
+        assertThat(recipientsOf(theAlertOf(command))).containsExactlyInAnyOrderElementsOf(wecomIdsOf(b));
+        assertAlertLine(alertsSince(mark));
+    }
+
+    @Test
     @DisplayName("#943 未来日 (4)：自己已录的未来停薪不对自己重复扣：A、B 可用，A 已录未来停薪；A 再录今天生效的停薪，只扣 A 一次，剩 B 一名：被接受并发卡，而不是剩 0 被拒")
     void ownFutureStartIsNotCountedTwice() throws Exception {
         Staff a = administrator();

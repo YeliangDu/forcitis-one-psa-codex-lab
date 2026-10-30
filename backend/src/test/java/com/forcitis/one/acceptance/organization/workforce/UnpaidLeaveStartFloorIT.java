@@ -163,6 +163,25 @@ class UnpaidLeaveStartFloorIT extends UnpaidLeaveStartFloorSupport {
     }
 
     @Test
+    @DisplayName("#943 对抗 anyleave：B 的停薪留职已结束（开始与结束都已生效）不再算走：A、B 仅有的可用超管，A 开始停薪剩 B 一名：被接受并发卡（不是被拒），收件人为 B")
+    void anEndedLeaveOfAnotherDoesNotCount() throws Exception {
+        Staff a = administrator();
+        Staff b = administrator();
+        actIn(hr);
+        assertThat(commandStatus(enter(b.employeeId(), UNPAID_LEAVE_START, TODAY.minusDays(3)))).isEqualTo(EFFECTIVE);
+        assertThat(commandStatus(enter(b.employeeId(), UNPAID_LEAVE_END, TODAY.minusDays(1)))).isEqualTo(EFFECTIVE);
+        assertThat(onUnpaidLeaveOn(b.employeeId(), TODAY)).isFalse();
+        forgetCards();
+        int mark = logMark();
+
+        UUID command = startLeave(a, TODAY);
+
+        assertThat(commandStatus(command)).isEqualTo(EFFECTIVE);
+        assertThat(recipientsOf(theAlertOf(command))).containsExactlyInAnyOrderElementsOf(wecomIdsOf(b));
+        assertAlertLine(alertsSince(mark));
+    }
+
+    @Test
     @DisplayName("#943 剩 1 / 边界：已放行待生效离职的超管计数算已走、但仍收通知（决定 142845 只排除待放行者）：A 开始停薪，剩 1 名（第三名）：接受并发卡，收件人含已放行待生效的人")
     void aReleasedPendingAdministratorCountsAsGoneButIsStillARecipient() throws Exception {
         Staff a = administrator();
