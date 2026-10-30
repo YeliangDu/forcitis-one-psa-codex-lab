@@ -35,7 +35,7 @@ class SeparationHoldReleaseIT extends SeparationHoldSupport {
         Held held = scenario.held();
         Map<String, Object> hold = hold(held.hold());
         assertThat(hold.get("status")).isEqualTo(RELEASED);
-        assertThat(hold.get("release_channel")).isEqualTo(CHANNEL_INTERFACE);
+        assertThat(hold.get("release_channel_kind")).isEqualTo(CHANNEL_INTERFACE);
         assertThat(hold.get("released_by")).as("the releaser is the signed-in account").isEqualTo(scenario.releaser().userId());
         assertThat(hold.get("release_reason")).isEqualTo(REASON_TEXT);
         assertThat(hold.get("released_at")).isNotNull();
