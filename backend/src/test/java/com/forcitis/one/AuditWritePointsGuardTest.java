@@ -22,7 +22,7 @@ class AuditWritePointsGuardTest {
     static final Path REGISTER = Path.of("architecture/audit-text-writers.txt");
     static final Path DEFINITION = Path.of("src/main/java/com/forcitis/one/platform/audit/api/AuditEntry.java");
     static final Set<String> PERSONAL_DATA = Set.of("NONE", "SURROGATE", "POSSIBLE");
-    static final int LAST_ROW = 23;
+    static final int LAST_ROW = 25;
     static final Pattern WRITE = Pattern.compile("new\\s+AuditEntry\\s*\\(|\\.withChange\\s*\\(");
 
     record Writer(int writes, String rows, String personalData) {
@@ -115,7 +115,7 @@ class AuditWritePointsGuardTest {
             changeTexts(source.getValue()).forEach(wrong -> problems.add(source.getKey() + " writes a before or after text: " + wrong));
         }
         assertThat(problems).as(GuardMessage.of("DATA-REPAIR-timesheet-audit TB-01", "a file writes an audit entry without a register line, with another number of write places, or with a before or after text", "register the file in " + REGISTER + " with its row of the allowed-content table and write count, or delete a stale line, and pass the literal null as before and after text of withChange")).isEmpty();
-        assertThat(register).as("the card counted 35 files, rows 20 and 21 add the start-up audit and the relaxation mark of the single operator mode, RevokeRoleByOperations is a writer of row 15, row 22 adds the file service gate and row 23 its links, holds and reads, ADR-0034-IMPL PR-2 adds RoleVersionAudit (rows 4 and 6: ids, enum names and clock readings of role versions), F-1 #728 adds CreateRole (grant.refused for a two-person role's scope: reason code, scope kind and org unit ids), IMP-1030-PAR-B3 #872 adds PersonnelCommandService (rows 4 and 16: ids, enum names, dates and the withdrawal reason typed by a person). " + GuardMessage.of("DATA-REPAIR-timesheet-audit TB-01", "the number of registered audit writers changed", "update the expected count here only together with the allowed-content row of the new writer")).hasSize(43);
+        assertThat(register).as("the card counted 35 files, rows 20 and 21 add the start-up audit and the relaxation mark of the single operator mode, RevokeRoleByOperations is a writer of row 15, row 22 adds the file service gate and row 23 its links, holds and reads, ADR-0034-IMPL PR-2 adds RoleVersionAudit (rows 4 and 6: ids, enum names and clock readings of role versions), F-1 #728 adds CreateRole (grant.refused for a two-person role's scope: reason code, scope kind and org unit ids), IMP-1030-PAR-B3 #872 adds PersonnelCommandService (rows 24 and 25: the ids, kind and date of an entry, and the withdrawal reason typed by a person with control characters replaced). " + GuardMessage.of("DATA-REPAIR-timesheet-audit TB-01", "the number of registered audit writers changed", "update the expected count here only together with the allowed-content row of the new writer")).hasSize(43);
     }
 
     @Test
@@ -152,7 +152,7 @@ class AuditWritePointsGuardTest {
         List<String> problems = new ArrayList<>();
         assertThat(parse(List.of("# c", "", "A.java | 1 | 1,2 | POSSIBLE"), problems)).containsOnlyKeys("A.java");
         assertThat(problems).isEmpty();
-        for (String bad : List.of("A.java | 1 | 1", "A.java | 1 | 24 | NONE", "A.java | 1 | 0 | NONE", "A.java | 1 | 1 | SECRET", "A.java | 0 | 1 | NONE",
+        for (String bad : List.of("A.java | 1 | 1", "A.java | 1 | 26 | NONE", "A.java | 1 | 0 | NONE", "A.java | 1 | 1 | SECRET", "A.java | 0 | 1 | NONE",
                 "A.java | x | 1 | NONE", "A.java | 1 | | NONE")) {
             List<String> one = new ArrayList<>();
             assertThat(parse(List.of(bad), one)).as(bad).isEmpty();
