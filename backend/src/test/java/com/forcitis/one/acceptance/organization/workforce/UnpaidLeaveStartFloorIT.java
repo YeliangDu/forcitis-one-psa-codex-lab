@@ -163,8 +163,8 @@ class UnpaidLeaveStartFloorIT extends UnpaidLeaveStartFloorSupport {
     }
 
     @Test
-    @DisplayName("#943 剩 1 / 边界：已放行待生效离职的超管算已走：A 开始停薪，剩 1 名（第三名）：接受并发卡，收件人不含已放行待生效的人")
-    void aReleasedPendingAdministratorIsNotARecipient() throws Exception {
+    @DisplayName("#943 剩 1 / 边界：已放行待生效离职的超管计数算已走、但仍收通知（决定 142845 只排除待放行者）：A 开始停薪，剩 1 名（第三名）：接受并发卡，收件人含已放行待生效的人")
+    void aReleasedPendingAdministratorCountsAsGoneButIsStillARecipient() throws Exception {
         Staff a = administrator();
         Staff stays = administrator();
         Staff leaving = administrator();
@@ -175,7 +175,7 @@ class UnpaidLeaveStartFloorIT extends UnpaidLeaveStartFloorSupport {
         UUID command = startLeave(a, TODAY);
 
         WecomCard card = theAlertOf(command);
-        assertThat(recipientsOf(card)).containsExactlyInAnyOrderElementsOf(wecomIdsOf(stays, releaser));
+        assertThat(recipientsOf(card)).containsExactlyInAnyOrderElementsOf(wecomIdsOf(stays, releaser, leaving));
     }
 
     // ---- security_auditor-only holder: literal reading of the card (the count is of available super administrators after the start) ----
