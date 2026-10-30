@@ -27,7 +27,10 @@ expect() {  # expect <路径> <应触发的模式名…>：每个模式逐个核
 base=x
 expect scripts/gates/install.sh t_shell t_gates
 expect tools/ops/Runner_Watch.SH t_shell t_runner_watch
-expect backend/src/test/java/com/forcitis/one/a/FooTest.java t_unit_classes
+expect backend/src/test/java/com/forcitis/one/a/FooTest.java t_unit_classes t_error_catalogue
+expect backend/src/main/java/com/forcitis/one/a/api/AError.java t_error_catalogue
+expect frontend/packages/core/src/error-messages.ts t_error_catalogue
+expect scripts/ci/error_catalogue.py t_error_catalogue t_error_catalogue_tool
 expect x/notes.txt
 expect x/install.sh.bak
 expect x/scripts/guards/ci_git.py
