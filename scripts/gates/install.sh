@@ -5,7 +5,7 @@
 #   每次都从 git 重新解包，已装目录被改坏了也就此修好（O7 终审 M1）。回退不用本脚本（定稿 4.5，intent 2026-10-24-001330）：current 保持批一所装
 #   版本不动，靠第 ④ 步 git revert 恢复旧 settings.json 与 run_from_main；演练里的「切回」是切回上一个 flow-v2 版本。
 # install_dir 与链接名取本仓库 policy.json 的 gates.install_dir、gates.install_current_link；环境变量 HOOKS_INSTALL_DIR 优先（自测用临时目录）。
-# 先校验参数再建目录；解包进临时目录，写校验和清单（hooks_manifest.sh），自检，chmod -R a-w，旧目录改名后放入新目录再删旧的；并发装同一提交时放入失败
+# 先校验参数再建目录；解包进临时目录，写校验和清单（hooks_manifest.sh），自检，chmod -R a-w，旧目录改名后放入新目录再删旧的；并发装同一提交时放入失败（短暂重试，别人正好把已装目录挪开的那一瞬间也算）
 # 而目录已就绪（与自己的清单、也与刚解包的清单一致）照常切换。current 用「临时链接再 rename 覆盖」原子切换（目标只会是 40 位 sha，不会自环；current 是目录时先挪开）。失败不动 current、不留半成品，退出 1。
 # shellcheck disable=SC2015  # `a && b || fail`: fail on either, on purpose
 set -u -o pipefail
@@ -50,7 +50,14 @@ check "$tmp" || fail "版本 $sha 自检不过（入口缺失、分发器不放�
 chmod -R a-w "$tmp" || fail "设不了只读：$tmp"
 old="$tmp.old"
 [ ! -e "$dir/$sha" ] && [ ! -L "$dir/$sha" ] || rename "$dir/$sha" "$old" 2>/dev/null  # 悬空链接也挪开；并发装同一提交时可能已被另一次安装挪走：交给下一步判断
-rename "$tmp" "$dir/$sha" 2>/dev/null || ready "$dir/$sha" || { { [ -e "$old" ] || [ -L "$old" ]; } && rename "$old" "$dir/$sha"; fail "放不进 $dir/$sha"; }
+# 并发装同一提交时，另一次安装正好把已装目录挪开、还没放入新的：这一瞬间 rename 因目录存在而失败、ready 又因目录不存在而失败（#879）。短暂重试，目录总会回来或空出来
+placed=""
+for _ in $(seq 30); do
+  rename "$tmp" "$dir/$sha" 2>/dev/null && placed=1 && break
+  ready "$dir/$sha" && placed=1 && break
+  sleep 0.1
+done
+[ -n "$placed" ] || { { [ -e "$old" ] || [ -L "$old" ]; } && rename "$old" "$dir/$sha"; fail "放不进 $dir/$sha"; }
 drop "$tmp"
 tmp=""
 [ ! -e "$old" ] && [ ! -L "$old" ] || drop "$old"
