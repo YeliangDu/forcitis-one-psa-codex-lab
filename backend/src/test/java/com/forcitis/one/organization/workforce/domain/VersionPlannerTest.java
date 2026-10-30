@@ -1,7 +1,9 @@
 package com.forcitis.one.organization.workforce.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.platform.audit.api.AuditEntryId;
 import java.time.LocalDate;
@@ -204,6 +206,32 @@ class VersionPlannerTest {
             assertThat(n.to()).isNull();
             assertThat(n.values()).isEqualTo(open.values());
         });
+    }
+
+    @Test
+    @DisplayName("IMP-1030-PAR-B3 taking back a command whose position a later command relies on would leave that command's row without a position, and is refused")
+    void revertingAPositionALaterCommandReliesOnIsRefused() {
+        Set<String> columns = Set.of("unit", "position");
+        Function<VersionRow, Set<String>> setters = r -> r.source().command() ? (r.source().equals(BY_LATER) ? Set.of("unit") : columns) : Set.of("unit", "position");
+        LocalDate first = LocalDate.of(2026, 11, 10);
+        LocalDate second = LocalDate.of(2026, 11, 20);
+        VersionRow migrated = new VersionRow(UUID.fromString("019a0000-0000-7000-8000-000000000001"), START, first, valuesOf("A", null), ChangeSource.MIGRATION, null, false);
+        VersionRow byFirst = new VersionRow(UUID.fromString("019a0000-0000-7000-8000-000000000002"), first, second, valuesOf("B", "P"), BY_COMMAND, migrated.id(), false);
+        VersionRow bySecond = new VersionRow(UUID.fromString("019a0000-0000-7000-8000-000000000003"), second, null, valuesOf("C", "P"), BY_LATER, byFirst.id(), false);
+
+        VersionPlan undo = VersionPlanner.revert(List.of(migrated, byFirst, bySecond), id -> migrated, COMMAND, first, columns, r -> true, setters, this::next);
+
+        assertThatThrownBy(() -> PersonnelCommandRules.requirePositionOnCommandRows(undo)).isInstanceOf(DomainException.class);
+        VersionPlan harmless = VersionPlanner.revert(List.of(migrated, byFirst), id -> migrated, COMMAND, first, columns, r -> true, setters, this::next);
+        PersonnelCommandRules.requirePositionOnCommandRows(harmless);
+        PersonnelCommandRules.requirePositionOnCommandRows(null);
+    }
+
+    private static Map<String, Object> valuesOf(String unit, String position) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("unit", unit);
+        values.put("position", position);
+        return values;
     }
 
     private static VersionRow fromNew(VersionPlan.NewRow n) {

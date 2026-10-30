@@ -7,6 +7,7 @@ import com.forcitis.one.organization.workforce.api.WorkforceError;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The rules that span rows (ADR-0068 item 1.5), checked after the employee row is locked and before anything is written; the database holds only
@@ -115,6 +116,17 @@ public final class PersonnelCommandRules {
             }
             default -> {
             }
+        }
+    }
+
+    /**
+     * An assignment row a command writes carries a position (user decision 2026-10-30; ck_assignment_versions_command_position). A transfer by department
+     * only keeps the position of the row it follows, and taking a command back restores earlier values over later rows; where that would leave a row a
+     * command wrote without a position, the call is refused, and since the whole call is one transaction nothing of it stays.
+     */
+    public static void requirePositionOnCommandRows(@Nullable VersionPlan assignments) {
+        if (assignments != null && assignments.inserts().stream().anyMatch(row -> row.source().command() && row.values().get(CommandEffects.POSITION) == null)) {
+            throw refused("an assignment row written by a command needs a position; name one on the command, or withdraw the later command that relies on it first");
         }
     }
 
