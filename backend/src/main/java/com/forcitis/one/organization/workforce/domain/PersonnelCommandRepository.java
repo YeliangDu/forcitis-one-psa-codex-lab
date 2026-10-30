@@ -8,6 +8,7 @@ import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.kernel.event.ActorType;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -25,8 +26,17 @@ public interface PersonnelCommandRepository {
      */
     void lockSeparationDecisions();
 
+    /**
+     * The administrators who count as leaving: those whose separation is held, and those whose separation was released before its date and still waits
+     * as pending, whatever the date (user ruling 2026-10-30, ADR-0068 item 2.3). They are no available administrators and not retained (read under the lock).
+     */
+    Set<EmployeeId> heldOrReleasedEmployees();
+
     /** The employees whose separation is held at this moment (read under the lock). */
     Set<EmployeeId> heldEmployees();
+
+    /** The pending separations whose hold was released and whose effective date is not after the day, oldest first. */
+    List<PersonnelCommandId> releasedSeparationsDue(LocalDate day);
 
     boolean orgUnitExists(OrgUnitId orgUnit);
 
@@ -44,7 +54,7 @@ public interface PersonnelCommandRepository {
     void insert(PersonnelCommand command);
 
     /** Writes the status, the application time and the withdrawal columns the aggregate holds, if the stored version is still the one it was loaded with. */
-    void update(PersonnelCommand command, long loadedVersion);
+    void update(PersonnelCommand command, Instant at, long loadedVersion);
 
     /**
      * Supersedes the rows of the plan and appends its rows, in that order; closed_at of an appended row that has an end is the given instant.

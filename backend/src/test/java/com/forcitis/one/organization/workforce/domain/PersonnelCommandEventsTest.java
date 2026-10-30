@@ -118,7 +118,7 @@ class PersonnelCommandEventsTest {
         });
 
         UserId releaser = new UserId(UUID.fromString("019a0000-0000-7000-8000-0000000000bb"));
-        separation.releaseHeld(NOW);
+        separation.releaseHeld(NOW, DAY);
         separation.recordEffect(null, null);
         separation.recordReleased(hold, releaser, null);
         List<DomainEvent> events = separation.drainEvents(TestEnvelopes.INSTANCE);

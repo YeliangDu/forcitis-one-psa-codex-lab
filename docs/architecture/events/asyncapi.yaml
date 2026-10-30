@@ -4936,3 +4936,7 @@ x-system-actors:
   actorId: e932d608-3a2e-5738-a568-d9f1cb73233c
   module: organization.workforce
   description: 运维命令（workforce-operations 档案）：release-separation-hold 放行待放行离职的状态转换操作者与事件信封 actorId
+- name: organization.workforce.personnel.command.due
+  actorId: eb80b90a-6a1a-5c08-80c6-e90e0edc980c
+  module: organization.workforce
+  description: '作业：到日执行已放行的将来日离职（暂名，#931；一般待生效命令的到日执行是 #933）'
