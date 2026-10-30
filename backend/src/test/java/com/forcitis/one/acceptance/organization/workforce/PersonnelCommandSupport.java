@@ -313,7 +313,8 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
 
     /** ADR-0068 item 1.4: the rows chain (each starts where the last ended) and every step is one the lifecycle allows. */
     protected void assertLawfulLifecycle(List<Map<String, Object>> steps, String lastStatus) {
-        Map<String, List<String>> allowed = Map.of(PENDING, List.of(EFFECTIVE, WITHDRAWN, HELD), HELD, List.of(EFFECTIVE, WITHDRAWN));
+        // HELD -> PENDING: a release before the effective date (one-design ruling on #732, 2026-10-30; card #931).
+        Map<String, List<String>> allowed = Map.of(PENDING, List.of(EFFECTIVE, WITHDRAWN, HELD), HELD, List.of(EFFECTIVE, WITHDRAWN, PENDING));
         assertThat(steps).isNotEmpty();
         String previous = null;
         long sequence = -1;
