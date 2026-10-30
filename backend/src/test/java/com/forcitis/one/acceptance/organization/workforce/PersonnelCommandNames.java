@@ -107,4 +107,17 @@ final class PersonnelCommandNames {
     static final String LOCK_KEY_FIELD = "SEPARATION_LOCK_KEY";
     static final String EVENT_HELD = "SeparationHeld";
     static final String EVENT_HOLD_RELEASED = "SeparationHoldReleased";
+
+    // ---- #931 (IMP-1030-PAR-C1): future-dated release goes PENDING; alert recipients (ruling on #732, 2026-10-30; ADR-0068 items 1.8, 2.3; ADR-0028 item 4) ----
+
+    /**
+     * 暂名 (doubt, one-design to confirm): the due-date job of ADR-0068 item 1.8 ("workforce self-declared @Scheduled + @SchedulerLock") has no name yet.
+     * Agreed for the #931 tests: a Spring bean whose class is named DUE_JOB_TYPE, with a public no-argument method DUE_JOB_METHOD. What these tests
+     * pin is only the job's handling of released future-dated separations: executes them on (not before) the effective date in the business day
+     * zone, exactly once however often it runs, never re-holds them, never touches a still-HELD or WITHDRAWN command. The general due-date contract
+     * for ordinary commands (a future TRANSFER or REGULARIZE becoming EFFECTIVE) and the job's lock order belong to C3's acceptance, not here.
+     * The tests call the method directly, never through the scheduler or the lock, and with nobody signed in.
+     */
+    static final String DUE_JOB_TYPE = "PersonnelCommandDueJob";
+    static final String DUE_JOB_METHOD = "run";
 }

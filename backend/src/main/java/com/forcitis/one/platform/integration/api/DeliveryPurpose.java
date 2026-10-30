@@ -7,7 +7,8 @@ public enum DeliveryPurpose {
     TASK_REASSIGNED(DeliverySubjectKind.APPROVAL_TASK, true),
     TASK_OVERDUE(DeliverySubjectKind.APPROVAL_TASK, false),
     TASK_ESCALATED(DeliverySubjectKind.APPROVAL_TASK, false),
-    APPROVAL_COMPLETED(DeliverySubjectKind.APPROVAL_INSTANCE, false);
+    APPROVAL_COMPLETED(DeliverySubjectKind.APPROVAL_INSTANCE, false),
+    SEPARATION_HOLD_NOTICE(DeliverySubjectKind.SEPARATION_HOLD, false);
 
     private final DeliverySubjectKind subjectKind;
     private final boolean perEvent;

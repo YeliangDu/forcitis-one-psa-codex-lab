@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 /**
  * A separation is held when the leaver is an available super_admin or security auditor holder (ADR-0028 decision 1 as kept by ADR-0055 decision 3
  * items 3 and 4; lead ruling on #873). The decision is made under the separation lock the caller already holds: it reads the held set, asks the
- * review with the leaver and that set, and holds when the leaver is among the available administrators. Anyone already held is not counted
+ * review with the leaver and that set, and holds when the leaver is among the available administrators. Anyone already held, or released and waiting for the date, is not counted
  * as available for the remainder (ADR-0068 item 2.2), so two concurrent separations of the last administrators both end held.
  */
 @Component
@@ -27,7 +27,7 @@ class AdministratorHoldCheck implements SeparationHoldCheck {
 
     @Override
     public boolean holds(PersonnelCommand separation) {
-        Set<EmployeeId> held = commands.heldEmployees();
-        return !review.review(List.of(separation.employeeId()), held, null).separatedAdministrators().isEmpty();
+        Set<EmployeeId> leaving = commands.heldOrReleasedEmployees();
+        return !review.review(List.of(separation.employeeId()), leaving, null).separatedAdministrators().isEmpty();
     }
 }

@@ -19,6 +19,7 @@ import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.WithdrawPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
+import com.forcitis.one.organization.workforce.domain.HoldStatus;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolution;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolutionSources;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
@@ -156,9 +157,10 @@ class PersonnelCommandService implements PersonnelCommands {
                 commands.insertVersions(command.employeeId(), plan.getKey(), plan.getValue(), command.id(), now);
             }
         }
-        commands.update(command, loadedVersion);
+        commands.update(command, now, loadedVersion);
         commands.insertTransition(COMMAND, command.id().value(), loadedVersion + 1, before.name(), command.status().name(), ActorType.USER, by.value(), today, now, command.id(), correlation());
-        commands.holdOf(command.id()).ifPresent(hold -> withdrawHold(hold, command, by, today, now));
+        // A released hold stays released when its still pending command is withdrawn: the release was decided.
+        commands.holdOf(command.id()).filter(hold -> hold.status() == HoldStatus.HELD).ifPresent(hold -> withdrawHold(hold, command, by, today, now));
         audit.record(new AuditEntry("organization.workforce.personnel-command.withdrawn", by, null, AuditSubject.of(AuditSubjectKind.EMPLOYEE, command.employeeId().value()),
                 "command " + command.id() + " " + command.kind() + "; reason: " + command.withdrawalReason().replaceAll("\\p{Cntrl}", " ")));
     }

@@ -15,33 +15,35 @@ import com.forcitis.one.organization.workforce.domain.SeparationHold;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Set;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * The single release of a held separation (ADR-0068 item 2.3). It takes the separation lock first, then asks the review with the held set: a releaser
- * who is not retained (not an available administrator, held themself, or on leave) and a release that would leave no available super administrator are
- * refused; one left is allowed with an alert. The command then takes effect at its original date through the version mechanism, and
- * the hold, the transitions, the audit entry and the two events are written in the same transaction. It is never held again.
+ * who is not retained (not an available administrator, leaving themself, or on leave) and a release that would leave no available super administrator are
+ * refused; one left is allowed with an alert. The held set counts, besides the held, every administrator whose separation was released and still waits
+ * for its date. The versions are written at the original date and the command takes effect now or, when that date is later, waits for the due-date job;
+ * the hold, the transitions, the audit entry and the events are written in the same transaction. It is never held again.
  */
 @Component
 class SeparationHoldService implements SeparationHolds {
     static final String PERMISSION = "organization.workforce:separation-hold:approve";
-    private static final Logger LOG = LoggerFactory.getLogger(SeparationHoldService.class);
 
     private final PersonnelCommandRepository commands;
     private final SeparationReview review;
     private final HeldSeparationRelease release;
+    private final SeparationHoldNotice notice;
     private final CurrentUser currentUser;
     private final Clock clock;
 
-    SeparationHoldService(PersonnelCommandRepository commands, SeparationReview review, HeldSeparationRelease release, CurrentUser currentUser, Clock clock) {
+    SeparationHoldService(PersonnelCommandRepository commands, SeparationReview review, HeldSeparationRelease release, SeparationHoldNotice notice, CurrentUser currentUser,
+                          Clock clock) {
         this.commands = commands;
         this.review = review;
         this.release = release;
+        this.notice = notice;
         this.currentUser = currentUser;
         this.clock = clock;
     }
@@ -62,7 +64,8 @@ class SeparationHoldService implements SeparationHolds {
         long holdVersion = hold.version();
         long commandVersion = command.version();
         hold.release(by, request.reason(), now);
-        SeparationReview.Verdict verdict = review.review(List.of(employee), commands.heldEmployees(), by);
+        Set<EmployeeId> leaving = commands.heldOrReleasedEmployees();
+        SeparationReview.Verdict verdict = review.review(List.of(employee), leaving, by);
         if (!verdict.actorRetained()) {
             throw refused("the releaser is not a retained administrator: not an available holder, held, or on unpaid leave");
         }
@@ -74,7 +77,7 @@ class SeparationHoldService implements SeparationHolds {
                 + (verdict.sessionMode().isEmpty() ? "none" : verdict.sessionMode()) + "; command: " + command.id() + "; hold: " + hold.id()
                 + "; remaining super_admin: " + verdict.remainingAdministrators());
         if (verdict.remainingAdministrators() == 1) {
-            LOG.error("ALERT organization.workforce separation hold {} released by user {}: only 1 available super_admin remains", hold.id(), by.value());
+            notice.remainingOne(hold, verdict.noticeRecipients(), commands.heldEmployees(), by);
         }
     }
 

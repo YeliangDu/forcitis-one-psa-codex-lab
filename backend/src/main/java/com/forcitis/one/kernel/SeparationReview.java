@@ -19,8 +19,8 @@ public interface SeparationReview {
     /**
      * releaser is the account releasing a held run, null for a scheduled run; the implementation finds the releaser's employee to set
      * against the separating ones. sessionMode is the mode of the releaser's session, empty text when there is no releaser or no
-     * signed-in session. held are the employees whose separation is held at this moment: they still are employed, but they do not
-     * count as available administrators for the remainder, nor as the retained releaser (ADR-0068 item 2.2).
+     * signed-in session. held are the employees whose separation is held at this moment, or released and waiting for its date: they still are employed, but they do not
+     * count as available administrators for the remainder, nor as the retained releaser (ADR-0068 item 2.2, 2.3).
      */
     Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser);
 
@@ -33,11 +33,15 @@ public interface SeparationReview {
      * An available holder is an enabled holder of the role who is employed (explicitly, in the organisation snapshot) and not on unpaid leave on the
      * business day (ADR-0068 section 3). separatedAdministrators are those of the separating who are available holders of super_admin or the
      * security auditor role; actorRetained says that the releaser is an available holder of one of the two, not separating and not in the
-     * held set; remainingAdministrators counts the available super_admin holders left after the separation, leaving out the separating and the held.
+     * held set; remainingAdministrators counts the available super_admin holders left after the separation, leaving out the separating and the held;
+     * noticeRecipients are the available holders of super_admin or of the security auditor role left out the separating only (the caller leaves out the held), each once: the people to tell
+     * when one super administrator remains.
      */
-    record Verdict(Set<EmployeeId> separatedAdministrators, boolean actorRetained, int remainingAdministrators, String sessionMode, String reason) {
+    record Verdict(Set<EmployeeId> separatedAdministrators, boolean actorRetained, int remainingAdministrators, String sessionMode, String reason,
+                   Set<EmployeeId> noticeRecipients) {
         public Verdict {
             separatedAdministrators = Set.copyOf(separatedAdministrators);
+            noticeRecipients = Set.copyOf(noticeRecipients);
         }
     }
 }
