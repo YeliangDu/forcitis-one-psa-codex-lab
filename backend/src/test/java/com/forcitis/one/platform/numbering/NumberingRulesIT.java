@@ -256,6 +256,15 @@ class NumberingRulesIT {
     }
 
     @Test
+    @DisplayName("#963 nextGlobal outside a transaction is refused, as next is: the counter must roll back with the caller's write")
+    void nextGlobalNeedsTheCallersTransaction() {
+        inForce("EMPLOYEE");
+        assertThatThrownBy(() -> globalNumbers.nextGlobal(new DocumentTypeCode("EMPLOYEE"), LocalDate.of(2026, 10, 30)))
+                .isInstanceOf(org.springframework.transaction.IllegalTransactionStateException.class);
+        assertThat(jdbc.sql("select count(*) from platform_numbering.numbering_counters").query(Long.class).single()).as("nothing was counted").isZero();
+    }
+
+    @Test
     @DisplayName("#963 two employee codes taken at once are different")
     void concurrentEmployeeCodesAreDifferent() throws Exception {
         inForce("EMPLOYEE");
