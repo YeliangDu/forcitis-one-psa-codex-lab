@@ -153,7 +153,7 @@ class PersonnelCommandEntryIT extends PersonnelCommandSupport {
     }
 
     @Test
-    @DisplayName("#871 ADR-0068 第 3 条（行 43）：停薪留职开始、结束只改员工版本的 is_on_unpaid_leave，在职状态不变，任职版本一行不动")
+    @DisplayName("#871 ADR-0068 第 1 条第 3 项（行 43）及第 3 条（行 104 起）：停薪留职开始、结束只改员工版本的 is_on_unpaid_leave，在职状态不变，任职版本一行不动")
     void unpaidLeaveSetsTheFlagOnEmployeeVersionsOnly() throws Exception {
         UUID employee = employed(REGULAR);
         List<Map<String, Object>> assignmentsBefore = allVersions(ASSIGNMENT_VERSIONS, employee);

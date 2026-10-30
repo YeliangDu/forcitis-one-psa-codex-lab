@@ -4,7 +4,7 @@ import java.util.List;
 
 /**
  * #871 (IMP-1030-PAR-B2): every name the personnel command implementation must match, in one place so that a glossary rename
- * changes only this file. There is no REST endpoint and no due-date job in this phase (ADR-0068 item 1.8, card #872), so the entry
+ * changes only this file. There is no REST endpoint and no due-date job in this phase (ADR-0068 item 2.5, line 99; card #872), so the entry
  * point is a Spring bean whose type, or one of whose interfaces, is {@link #API_TYPE} in {@link #API_PACKAGE}; see
  * {@link PersonnelCommandsProbe}. Names marked 暂名 come from the ADR and are listed as doubts in the card report.
  */
@@ -57,6 +57,9 @@ final class PersonnelCommandNames {
 
     // Permission (ADR-0068 item 1.6: one permission enters and withdraws; code format bc:resource:action, 暂名).
     static final String PERMISSION = "organization.workforce:personnel-command:create";
+
+    /** The seeded system role of the 人事专员 (lead decision 2026-10-30; user decision docs/decisions/2026-10-30-005221): holds PERMISSION. */
+    static final String PERSONNEL_SPECIALIST_ROLE = "personnel_specialist";
 
     // Audit (ADR-0068 item 1.6 gives the withdrawn name; the entered name is a 暂名 by analogy).
     static final String AUDIT_ENTERED = "organization.workforce.personnel-command.entered";

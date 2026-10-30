@@ -2,12 +2,15 @@ package com.forcitis.one.acceptance.organization.workforce;
 
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.platform.identity.api.SessionRoles;
+import com.jayway.jsonpath.JsonPath;
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -24,13 +27,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
@@ -58,6 +63,7 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
     }
 
     protected Staff hr;
+    private SecurityContext acting;
 
     @BeforeEach
     void buildTheWorld() throws Exception {
@@ -68,11 +74,16 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
         grantByOperations(admin, "org_data_admin");
         administrator = signIn(admin);
         legalEntity = createLegalEntity(administrator, newLegalEntityCode("PC"), "Synthetic personnel command entity");
-        hr = staff();
-        actAsHolder(hr);
+        hr = staff(PERSONNEL_SPECIALIST_ROLE);
+        actIn(hr);
     }
 
     protected PersonnelCommandsProbe commands() {
+        if (acting == null) {
+            SecurityContextHolder.clearContext();
+        } else {
+            SecurityContextHolder.setContext(acting);
+        }
         return PersonnelCommandsProbe.of(context, AccountsAcceptanceSupport::employeeIdOf);
     }
 
@@ -131,20 +142,36 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
 
     // ---- acting ----
 
-    /** The holder of the personnel command permission and nothing else, acting with the login's account as the principal. */
-    protected void actAsHolder(Staff who) {
-        actWith(who, PERMISSION);
+    /**
+     * The caller of the next api calls is this person, in the production session of their login (the roles they were granted decide the
+     * permissions). MockMvc calls made by the helpers (attribution, audit queries) clear the thread's security context, so the context is
+     * kept here and set again just before every api call, see {@link #commands()}.
+     */
+    protected void actIn(Staff who) throws Exception {
+        MockHttpServletResponse current = mvc.perform(get("/api/v1/platform/sessions:current").with(session(who.session()))).andReturn().getResponse();
+        assertThat(current.getStatus()).as("the session's own profile: " + current.getContentAsString()).isEqualTo(200);
+        List<GrantedAuthority> authorities = new ArrayList<>();
+        for (String code : JsonPath.<List<String>>read(current.getContentAsString(), "$.permissionCodes")) {
+            authorities.add(new SimpleGrantedAuthority(code));
+        }
+        if ("ORDINARY".equals(JsonPath.<String>read(current.getContentAsString(), "$.mode"))) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + SessionRoles.ORDINARY));
+        }
+        // The stored context of a login carries no authorities (the session filter fills them in per HTTP request), and the api is called in
+        // process: so the production authentication of the login is kept and given the permissions the production path resolved from the roles.
+        actInSession(who.session());
+        Authentication login = SecurityContextHolder.getContext().getAuthentication();
+        Method refresh = login.getClass().getDeclaredMethod("withAuthorities", java.util.Collection.class, boolean.class);
+        refresh.setAccessible(true);
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication((Authentication) refresh.invoke(login, authorities, true));
+        acting = context;
+        SecurityContextHolder.setContext(context);
     }
 
-    /** The account acts with exactly these permission codes plus the ordinary session role (what a user with several roles carries). */
-    protected void actWith(Staff who, String... permissions) {
-        List<GrantedAuthority> authorities = new ArrayList<>();
-        authorities.add(new SimpleGrantedAuthority("ROLE_" + SessionRoles.ORDINARY));
-        for (String permission : permissions) {
-            authorities.add(new SimpleGrantedAuthority(permission));
-        }
-        SecurityContextHolder.setContext(new org.springframework.security.core.context.SecurityContextImpl(
-                UsernamePasswordAuthenticationToken.authenticated(who.userId().toString(), null, authorities)));
+    /** Nobody is signed in for the next api calls. */
+    protected void actAsNobody() {
+        acting = null;
     }
 
     // ---- entering ----
@@ -285,16 +312,24 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
         assertThat(previous).isEqualTo(lastStatus);
     }
 
-    /** Events of the type that mention the command, from the event registry, waiting for none: they are written in the publishing transaction. */
+    /**
+     * Distinct published events of the type that mention the command (by envelope event id: the registry keeps one row per listener, so a
+     * new subscriber must not change the count). They are written in the publishing transaction, so nothing is awaited.
+     */
     protected int eventsOf(String eventType, UUID command) throws SQLException {
-        int count = 0;
+        java.util.Set<String> events = new java.util.HashSet<>();
+        java.util.regex.Pattern eventId = java.util.regex.Pattern.compile("\"eventId\"\\s*:\\s*\"([^\"]+)\"");
         try (Connection registry = schemaConnection("platform_integration")) {
             for (String table : List.of("event_publication", "event_publication_archive")) {
-                count += ((Number) query(registry, "select count(*) as n from " + table + " where event_type like ? and serialized_event like ?",
-                        "%." + eventType, "%" + command + "%").get(0).get("n")).intValue();
+                for (Map<String, Object> row : query(registry, "select serialized_event from " + table + " where event_type like ? and serialized_event like ?",
+                        "%." + eventType, "%" + command + "%")) {
+                    String json = (String) row.get("serialized_event");
+                    java.util.regex.Matcher found = eventId.matcher(json);
+                    events.add(found.find() ? found.group(1) : json);
+                }
             }
         }
-        return count;
+        return events.size();
     }
 
     protected int allCommandEventsOf(UUID command) throws SQLException {

@@ -6,20 +6,18 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
-import com.forcitis.one.platform.identity.api.Permission;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * #871 IMP-1030-PAR-B2 (ADR-0068 item 1.6 line 59; user decision 2026-10-30 「人事专员」; playbook acceptance step 5): one permission,
- * {@code PersonnelCommandNames.PERMISSION}, enters and withdraws personnel commands. Holders are accounts carrying that permission; the
- * others are real sessions of the seeded roles. Data scope (which employees) is out of scope (#729, #730).
+ * {@code PersonnelCommandNames.PERMISSION}, held by the seeded role {@code PERSONNEL_SPECIALIST_ROLE}, enters and withdraws personnel commands. Holders and others alike are real sessions: the role is granted
+ * by the operations command and the account signs in, so the role-to-permission binding is exercised. Data scope (which employees) is out of scope (#729, #730).
  */
 class PersonnelCommandPermissionIT extends PersonnelCommandSupport {
 
@@ -38,7 +36,7 @@ class PersonnelCommandPermissionIT extends PersonnelCommandSupport {
     }
 
     @Test
-    @DisplayName("#871 ADR-0068 第 1 条第 6 项（行 59）、用户决定「人事专员」：持有人事命令权限的账号可以录入并撤回；撤回审计的操作人是该账号")
+    @DisplayName("#871 ADR-0068 第 1 条第 6 项（行 59）、用户决定「人事专员」：被授予人事专员角色（personnel_specialist）并真实登录的账号可以录入并撤回；撤回审计的操作人是该账号")
     void theHolderCanEnterAndWithdraw() throws Exception {
         UUID employee = employed(PROBATION);
 
@@ -57,7 +55,7 @@ class PersonnelCommandPermissionIT extends PersonnelCommandSupport {
         Staff other = role.equals("employee") ? staff() : staff(role);
         long commands = commandCount(employee);
         int audited = auditCount(AUDIT_ENTERED);
-        actInSession(other.session());
+        actIn(other);
 
         Throwable failure = catchThrowable(() -> enter(employee, REGULARIZE, TODAY.plusDays(7)));
 
@@ -71,7 +69,7 @@ class PersonnelCommandPermissionIT extends PersonnelCommandSupport {
         UUID command = enter(employed(PROBATION), REGULARIZE, TODAY.plusDays(7));
         Staff other = role.equals("employee") ? staff() : staff(role);
         int audited = auditCount(AUDIT_WITHDRAWN);
-        actInSession(other.session());
+        actIn(other);
 
         Throwable failure = catchThrowable(() -> commands().withdraw(command, "synthetic: not allowed"));
 
@@ -91,23 +89,22 @@ class PersonnelCommandPermissionIT extends PersonnelCommandSupport {
         int audited = auditCount(AUDIT_ENTERED);
         Staff nobody = staff();
 
-        actWith(nobody);
+        actIn(nobody);
         assertEnterRefused(catchThrowable(() -> enter(employee, REGULARIZE, TODAY.plusDays(8))), employee, commands, audited);
         assertThat(isPermissionRefusal(catchThrowable(() -> commands().withdraw(command, "synthetic: no rights")))).isTrue();
 
-        SecurityContextHolder.clearContext();
+        actAsNobody();
         assertEnterRefused(catchThrowable(() -> enter(employee, REGULARIZE, TODAY.plusDays(8))), employee, commands, audited);
         assertThat(isPermissionRefusal(catchThrowable(() -> commands().withdraw(command, "synthetic: no session")))).isTrue();
         assertThat(command(command).get("status")).isEqualTo(PENDING);
     }
 
     @Test
-    @DisplayName("#871 验收手册第 5 步（多角色）：同时持有人事命令权限和另一个角色的账号照常可录入、撤回；同时持有两个都没有该权限的真实角色（组织数据管理员加安全审计员）仍被拒")
+    @DisplayName("#871 验收手册第 5 步（多角色）：同时持有人事专员角色和另一个角色（真实授予、真实登录会话）的账号照常可录入、撤回；同时持有两个都没有该权限的真实角色（组织数据管理员加安全审计员）仍被拒")
     void aUserWithTwoRoles() throws Exception {
         UUID employee = employed(PROBATION);
-        Staff both = staff();
-        actWith(both, PERMISSION, Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ, Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE,
-                Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE);
+        Staff both = staff(PERSONNEL_SPECIALIST_ROLE, "org_data_admin");
+        actIn(both);
 
         UUID command = enter(employee, REGULARIZE, TODAY.plusDays(7));
         commands().withdraw(command, "synthetic: holder with another role");
@@ -116,7 +113,7 @@ class PersonnelCommandPermissionIT extends PersonnelCommandSupport {
         Staff neither = staff("org_data_admin", "security_auditor");
         long commands = commandCount(employee);
         int audited = auditCount(AUDIT_ENTERED);
-        actInSession(neither.session());
+        actIn(neither);
         assertEnterRefused(catchThrowable(() -> enter(employee, REGULARIZE, TODAY.plusDays(9))), employee, commands, audited);
     }
 
@@ -124,7 +121,7 @@ class PersonnelCommandPermissionIT extends PersonnelCommandSupport {
     @DisplayName("#871 越权（验收手册第 5 步）：持有放行待放行离职权限（安全审计员）的账号不能撤回待放行命令，命令与暂停记录都保持待放行")
     void thePermissionToReleaseAHoldIsNotThePermissionToWithdraw() throws Exception {
         Held held = held();
-        actInSession(staff("security_auditor").session());
+        actIn(staff("security_auditor"));
 
         Throwable failure = catchThrowable(() -> commands().withdraw(held.command(), "synthetic: auditor tries"));
 
@@ -137,7 +134,7 @@ class PersonnelCommandPermissionIT extends PersonnelCommandSupport {
     @DisplayName("#871 越权：权限判断先于业务校验，无权限的人对不存在的命令和对存在的命令得到同一种拒绝，不能借此探测命令是否存在；无权限的人用不存在的员工录入也只得到权限拒绝")
     void theRightsAreCheckedBeforeTheContentSoNothingLeaks() throws Exception {
         UUID existing = enter(employed(PROBATION), REGULARIZE, TODAY.plusDays(7));
-        actInSession(staff("org_data_admin").session());
+        actIn(staff("org_data_admin"));
 
         Throwable forExisting = catchThrowable(() -> commands().withdraw(existing, "synthetic: probing"));
         Throwable forAbsent = catchThrowable(() -> commands().withdraw(UUID.randomUUID(), "synthetic: probing"));

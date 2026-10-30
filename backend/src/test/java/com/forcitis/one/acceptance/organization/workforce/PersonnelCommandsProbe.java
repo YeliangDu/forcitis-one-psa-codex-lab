@@ -43,14 +43,16 @@ final class PersonnelCommandsProbe {
             if (type == null) {
                 continue;
             }
+            if (type.getSimpleName().equals(API_TYPE)) {
+                seen.add(type.getName());
+            }
             Class<?> contract = contractOf(ClassUtils.getUserClass(type));
             if (contract != null) {
-                seen.add(contract.getName());
                 return new PersonnelCommandsProbe(context.getBean(name), recordMethod(contract, ENTER_METHOD, ENTER_PARAMETER),
                         recordMethod(contract, WITHDRAW_METHOD, WITHDRAW_PARAMETER), employeeIds);
             }
         }
-        throw new AssertionError("ADR-0068 item 1.6: no bean of a type named " + API_TYPE + " in " + API_PACKAGE + " " + seen);
+        throw new AssertionError("ADR-0068 item 1.6: no bean of a type named " + API_TYPE + " in " + API_PACKAGE + " (same-named types elsewhere: " + seen + ")");
     }
 
     private static Class<?> contractOf(Class<?> type) {
