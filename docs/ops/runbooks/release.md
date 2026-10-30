@@ -150,6 +150,7 @@ Actions artifact 只用于同一次 release 运行中两个作业之间的传递
   - 「只增不删不改名」的守护由 1a 在迁移基线 PR 中实现（复审 M-6），在那之前靠审查，PR 中写明「上一版本兼容」；
   - 回切到不认识新迁移的旧版本时，安装器打警告并照常切换；Flyway 默认的 `ignoreMigrationPatterns=*:future` 容忍未来版本的迁移。
 - **首次部署**另需建 Flowable 引擎表：首次在凭据目录再放 `flowable.database-schema-update`（内容 `true`）、`spring.datasource.username`、`spring.datasource.password`（迁移账号）与 `spring.datasource.url`（带 `&currentSchema=platform_approval`，C-3 风险项）；**非首次安装时目录中出现任何 `spring.datasource.*` 或 `flowable.database-schema-update` 文件，安装器拒绝运行**。首次部署成功并跑完 C-3 的 V8 后删除这几项。
+- **人事命令切换的上线前预检**（卡 #933，ADR-0068 第 2 条第 5 项 C）：这一版停掉旧的组织同步定时作业，人事改由本地人事命令维护。应用启动时（含迁移进程与各运维命令进程）检查 `organization_workforce.sync_run_held_separations` 中所属运行仍为 `HELD` 的行数；不为 0 就拒绝启动，日志写明行数。这些离职是旧同步扣下的，新版本没有任何东西会再执行它们。部署这一版之前，先在仍运行的旧版本上处理完：`GET /api/v1/organization/sync-runs?status=HELD` 列出，逐个 `POST /api/v1/organization/sync-runs/{id}:release` 放行（须持 `organization.workforce:separation-hold:approve`），放行后该运行不再是 `HELD`；确需丢弃某个运行时先问 one-design，不在库里直接改数据。预检行数为 0 才发布。
 
 ## 5. 服务器文件的变更
 

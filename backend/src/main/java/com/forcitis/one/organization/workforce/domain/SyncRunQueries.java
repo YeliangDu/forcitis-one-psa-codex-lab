@@ -22,6 +22,9 @@ public interface SyncRunQueries {
 
     int countHeld();
 
+    /** The held-separation rows of runs that are still HELD: separations the old sync kept back and nobody has released or dropped. */
+    int countHeldRowsOfHeldRuns();
+
     /** Runs waiting for a person, oldest first. */
     List<SyncRunRecord> findHeld();
 

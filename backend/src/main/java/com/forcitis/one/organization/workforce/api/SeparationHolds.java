@@ -2,7 +2,7 @@ package com.forcitis.one.organization.workforce.api;
 
 /**
  * The single release of a held separation (ADR-0068 item 2.3). Needs organization.workforce:separation-hold:approve, checked before the content;
- * a releaser who is not retained, or a release that would leave no available super administrator, is refused. There is no endpoint in this phase.
+ * a releaser who is not retained, or a release that would leave no available super administrator, is refused.
  */
 public interface SeparationHolds {
 

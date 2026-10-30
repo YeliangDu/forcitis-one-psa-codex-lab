@@ -88,12 +88,11 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
     }
 
     @Override
-    public List<PersonnelCommandId> releasedSeparationsDue(LocalDate day) {
+    public List<PersonnelCommandId> pendingDue(LocalDate day) {
         return jdbc.sql("""
-                select c.personnel_command_id from organization_workforce.personnel_commands c
-                join organization_workforce.separation_holds h on h.personnel_command_id = c.personnel_command_id
-                where c.status = 'PENDING' and h.status = 'RELEASED' and c.effective_date <= :day
-                order by c.effective_date, c.personnel_command_id""")
+                select personnel_command_id from organization_workforce.personnel_commands
+                where status = 'PENDING' and effective_date <= :day
+                order by effective_date, personnel_command_id""")
                 .param("day", day).query((rs, n) -> new PersonnelCommandId(rs.getObject("personnel_command_id", UUID.class))).list();
     }
 
