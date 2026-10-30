@@ -117,6 +117,10 @@ else run "OneSql.java read only (self-test)" java "$onesql" --self-test "$onesql
 # shellcheck disable=SC2016  # the rule text shows $VAR literally
 rule '$VAR 后紧跟全角字符，bash 3.2 下 set -u 即崩' '把 $VAR 写成 ${VAR}'
 run "shell: no \$VAR right before non-ASCII" var_before_non_ascii
+# 后端新增错误码而前端文案表没加：CI 的前端类型检查才红（#888），本机只读源码对一遍
+rule "后端错误码与前端文案表（error-messages.ts）不一致，CI 的前端类型检查会红" "照输出：后端新增的错误码在文案表里加一条（没有专属文案写 null）；表里多出的删掉"
+if touches "$t_error_catalogue"; then run "error_catalogue (backend error codes vs frontend table)" python3 -I scripts/ci/error_catalogue.py .
+else skip "error_catalogue (backend error codes vs frontend table)" "相关路径没改（按改动触发）"; fi
 # 验收测试改了就跑全部免容器单测（CLAUDE.md 交付第 2 步）；export-openapi 绑在 process-test-classes 上要起容器，所以用 test-compile surefire:test
 rule "改了验收测试却没跑守护类，要等 20 分钟的队列才发现" "按输出修失败的测试类；或本机先跑 bash scripts/codegen/generate_api.sh 生成产物"
 if ! touches "$t_acceptance"; then skip "surefire guard classes (acceptance changed)" "相关路径没改（按改动触发）"
