@@ -18,12 +18,13 @@ import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * #931 IMP-1030-PAR-C1 part (b) (ADR-0068 item 2.3, line 91; ADR-0028 decision 4): when exactly one available super administrator remains after
- * a release, the alert reaches the other super administrators, the security auditor holders and operations. Channel (decision by one-design,
- * the design owner; 暂名, doubt to confirm): the people are reached by ONE WeCom card per release through platform.integration's
- * {@code WecomGateway.send(WecomCard)} with exact recipients (I-6), operations through the existing {@code ALERT organization.workforce ...}
- * error log line. Recipients are every usable (account enabled, employed) super_admin and security_auditor holder except the separating
- * person and everybody else in the held set; the releaser is included when they hold one of the roles (doubt). A person with both roles is
- * named once. The gateway is the outbound double; the release, the roles and the pool are real.
+ * a release, the alert reaches the other super administrators, the security auditor holders and operations. Channel and recipients follow the user's
+ * ruling of 2026-10-30 on #931 (decision fragment 2026-10-30-142845-one-lead (也发, 只发可用的, 算已走, 不能), PR #940): one WeCom card per
+ * release through platform.integration's {@code WecomGateway.send(WecomCard)} with exact recipients (security invariant I-6), operations
+ * through the existing {@code ALERT organization.workforce ...} error log line. Recipients are the usable super_admin and security_auditor holders:
+ * account enabled, employed today, not in the HELD set, not a released-pending leaver, and not the separating person; the releaser is a recipient when
+ * they hold either role; a person with both roles is named once. The card subject id equals the hold id (agreed 暂名, a technical detail). The gateway
+ * is the outbound double; the release, the roles and the pool are real.
  */
 class SeparationHoldAlertRecipientsIT extends FutureHoldSupport {
 
@@ -49,7 +50,7 @@ class SeparationHoldAlertRecipientsIT extends FutureHoldSupport {
     }
 
     @Test
-    @DisplayName("#931 ADR-0068 第 2 条第 3 项、ADR-0028 决定 4：放行后剩余 1 名超管：恰好一张企业微信卡，收件人恰为其他超管、全部安全审计员持有人（含放行人，其持有该角色）；不含离职人、不含同批待放行的另一名超管、不含已停用账号的超管与审计员、不含无这两种角色的人（人事专员）；卡内标明剩余 1 名；运维仍有 ALERT organization.workforce 日志行")
+    @DisplayName("#931 ADR-0068 第 2 条第 3 项、ADR-0028 决定 4：放行后剩余 1 名超管：恰好一张企业微信卡，收件人恰为其他超管、全部安全审计员持有人（含放行人，其持有该角色）；不含离职人、不含同批待放行的另一名超管、不含已停用账号的超管与审计员、不含离职已生效但账号仍启用的原超管与原审计员（ruling #931 点 1：可用 = 账号启用且今天在职）、不含无这两种角色的人（人事专员）；卡内标明剩余 1 名；运维仍有 ALERT organization.workforce 日志行")
     void oneRemainingAlertsTheOtherAdministratorsAndAuditors() throws Exception {
         Staff leaver = administrator();
         Staff stays = administrator();
@@ -58,6 +59,13 @@ class SeparationHoldAlertRecipientsIT extends FutureHoldSupport {
         Staff alsoHeld = administrator();
         Staff disabledAdministrator = administrator();
         Staff disabledAuditor = auditor();
+        Staff formerAdministrator = administrator();
+        Staff formerAuditor = auditor();
+        // Their separations are in effect, their accounts are still enabled (identity is not wired to EmployeeSeparated before C2/C3).
+        releaseAs(releaser, heldSeparation(formerAdministrator).hold(), REASON_TEXT);
+        releaseAs(releaser, heldSeparation(formerAuditor).hold(), REASON_TEXT);
+        assertThat(employmentOn(formerAdministrator.employeeId(), TODAY)).isEqualTo(SEPARATED);
+        assertThat(employmentOn(formerAuditor.employeeId(), TODAY)).isEqualTo(SEPARATED);
         Held held = heldSeparation(leaver);
         heldSeparation(alsoHeld);
         disableAccount(disabledAdministrator);
@@ -69,8 +77,8 @@ class SeparationHoldAlertRecipientsIT extends FutureHoldSupport {
 
         WecomCard card = theOneCard(held.hold());
         assertThat(recipientsOf(card)).as("exact recipients").containsExactlyInAnyOrderElementsOf(wecomIdsOf(stays, releaser, anotherAuditor));
-        assertThat(recipientsOf(card)).as("not the separating person, the other held administrator, disabled accounts or the 人事专员")
-                .doesNotContainAnyElementsOf(wecomIdsOf(leaver, alsoHeld, disabledAdministrator, disabledAuditor, hr));
+        assertThat(recipientsOf(card)).as("not the separating person, the other held administrator, disabled accounts, former holders with an enabled account, or the 人事专员")
+                .doesNotContainAnyElementsOf(wecomIdsOf(leaver, alsoHeld, disabledAdministrator, disabledAuditor, formerAdministrator, formerAuditor, hr));
         assertThat(REMAINING_ONE.matcher(card.title() + " " + card.description()).find()).as("the card names the remaining count (1): " + card.title() + " / " + card.description()).isTrue();
         assertThat(card.subject().id()).as("one card per release: the subject is the hold (暂名, doubt)").isEqualTo(held.hold());
         assertThat(alertsSince(mark)).as("operations: the ALERT log line").anySatisfy(line -> assertThat(line).startsWith("ALERT organization.workforce"));

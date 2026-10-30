@@ -25,7 +25,7 @@ import org.springframework.util.ClassUtils;
  * {@link PersonnelCommandNames#DUE_JOB_TYPE}), and the WeCom cards handed to the gateway. The gateway is the outbound double of every
  * acceptance test (an external system, not the path under test); the hold, the release, the job, the tables and the events are all real.
  */
-abstract class FutureHoldSupport extends SeparationHoldSupport {
+abstract class FutureHoldSupport extends SeparationHoldOperationSupport {
 
     /** The original effective date of the future-dated separations: after every date the tests move the clock to before the job runs. */
     protected static final LocalDate DUE = TODAY.plusDays(10);
