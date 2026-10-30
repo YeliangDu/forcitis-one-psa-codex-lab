@@ -142,7 +142,7 @@ class PersonnelCommandService implements PersonnelCommands {
         commands.insertTransition(COMMAND, command.id().value(), loadedVersion + 1, before.name(), command.status().name(), by, today, now, command.id(), correlation());
         commands.holdOf(command.id()).ifPresent(hold -> withdrawHold(hold, command, by, today, now));
         audit.record(new AuditEntry("organization.workforce.personnel-command.withdrawn", by, null, AuditSubject.of(AuditSubjectKind.EMPLOYEE, command.employeeId().value()),
-                "command " + command.id() + " " + command.kind() + "; reason: " + command.withdrawalReason()));
+                "command " + command.id() + " " + command.kind() + "; reason: " + command.withdrawalReason().replaceAll("\\p{Cntrl}", " ")));
     }
 
     private void withdrawHold(SeparationHold hold, PersonnelCommand command, UserId by, LocalDate today, Instant now) {
