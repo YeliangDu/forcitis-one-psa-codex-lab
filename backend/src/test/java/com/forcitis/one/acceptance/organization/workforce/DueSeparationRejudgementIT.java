@@ -62,6 +62,9 @@ class DueSeparationRejudgementIT extends FutureHoldSupport {
                     assertThat(row.get("employment_status")).isEqualTo(SEPARATED);
                     assertThat(row.get("superseded_at")).isNotNull();
                 });
+        List<Map<String, Object>> assignments = currentVersions(ASSIGNMENT_VERSIONS, leaver.employeeId());
+        assertContiguous(assignments);
+        assertThat(inForceOn(assignments, DUE)).as("the assignment closed at the separation day is reopened").isNotNull();
         assertThat(holdRows(command)).isEqualTo(1);
         assertThat(holdStatus(holdIdOf(command))).isEqualTo(HELD);
         assertThat(eventsOf(EVENT_HELD, command)).isEqualTo(1);
