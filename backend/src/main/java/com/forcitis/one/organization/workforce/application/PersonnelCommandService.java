@@ -10,7 +10,6 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.DomainEvents;
-import com.forcitis.one.organization.workforce.api.EmployeeLegalEntities;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
@@ -18,6 +17,8 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommands;
 import com.forcitis.one.organization.workforce.api.WithdrawPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
+import com.forcitis.one.organization.workforce.domain.LegalEntityResolution;
+import com.forcitis.one.organization.workforce.domain.LegalEntityResolutionSources;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRules;
@@ -58,7 +59,7 @@ class PersonnelCommandService implements PersonnelCommands {
     private final PersonnelCommandRepository commands;
     private final PersonnelPlans timelines;
     private final SeparationHoldCheck holdCheck;
-    private final EmployeeLegalEntities legalEntities;
+    private final LegalEntityResolutionSources legalEntities;
     private final AuditLog audit;
     private final DomainEvents events;
     private final CurrentUser currentUser;
@@ -66,7 +67,7 @@ class PersonnelCommandService implements PersonnelCommands {
     private final Clock clock;
     private final BusinessZone zone;
 
-    PersonnelCommandService(PersonnelCommandRepository commands, PersonnelPlans timelines, SeparationHoldCheck holdCheck, EmployeeLegalEntities legalEntities,
+    PersonnelCommandService(PersonnelCommandRepository commands, PersonnelPlans timelines, SeparationHoldCheck holdCheck, LegalEntityResolutionSources legalEntities,
                             AuditLog audit, DomainEvents events, CurrentUser currentUser, IdGenerator ids, Clock clock, BusinessZone zone) {
         this.commands = commands;
         this.timelines = timelines;
@@ -152,14 +153,7 @@ class PersonnelCommandService implements PersonnelCommands {
 
     /** The envelope carries the employee's legal entity on the effective date (contract question Q6); none resolvable means the envelope has none. */
     private @Nullable LegalEntityId legalEntityOn(EmployeeId employee, LocalDate day) {
-        try {
-            return legalEntities.on(employee, day);
-        } catch (DomainException unresolved) {
-            if (unresolved.errorCode() == WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED) {
-                return null;
-            }
-            throw unresolved;
-        }
+        return LegalEntityResolution.resolve(legalEntities, employee, day).orElse(null);
     }
 
     private void requireTargetsExist(PersonnelCommand command) {

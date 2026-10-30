@@ -7,18 +7,25 @@ import java.util.Map;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
-/** What one command does to one version table: the rows it supersedes and the rows it appends, in the order they must be written (W2 design section 2). */
-public record VersionPlan(List<UUID> supersede, List<NewRow> inserts) {
+/**
+ * What one command does to one version table, in the order it must be written (W2 design section 2): the open rows it closes where the change
+ * starts, the rows it supersedes, and the rows it inserts.
+ */
+public record VersionPlan(List<Close> closes, List<UUID> supersede, List<NewRow> inserts) {
 
-    /** A row to inserts. correctedFrom is the superseded row it replaces, empty for a row that fills a gap. */
+    /** An open row that ends on a day: the ordinary way a later change follows the row in force. */
+    public record Close(UUID id, LocalDate to) {
+    }
+
+    /** A row to insert. correctedFrom is the superseded row it replaces, empty for a row that follows a closed one or fills a gap. */
     public record NewRow(UUID id, LocalDate from, @Nullable LocalDate to, Map<String, Object> values, ChangeSource source, @Nullable UUID correctedFrom) {
     }
 
     public static VersionPlan empty() {
-        return new VersionPlan(new ArrayList<>(), new ArrayList<>());
+        return new VersionPlan(new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
     }
 
     public boolean isEmpty() {
-        return supersede.isEmpty() && inserts.isEmpty();
+        return closes.isEmpty() && supersede.isEmpty() && inserts.isEmpty();
     }
 }

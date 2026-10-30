@@ -13,9 +13,10 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import org.jspecify.annotations.Nullable;
 
 /**
- * The supersede-and-inserts mechanism of W2 design section 2 for one version table of one employee. Rows are never edited: a change supersedes the
+ * The supersede-and-insert mechanism of W2 design section 2 for one version table of one employee. Rows are never edited: a change supersedes the
  * rows whose values change and appends rows covering the same days, so a row split by the change comes back as two rows, the part the change does
  * not touch under its old source. A command sets some columns from its day on until the first later row that sets the same column itself
  * ({@code setters}); columns are followed one by one, so a back-dated transfer does not undo a later one.
@@ -55,6 +56,11 @@ public final class VersionPlanner {
             if (next.equals(row.values())) {
                 continue;
             }
+            if (row.from().isBefore(day) && row.to() == null) {
+                plan.closes().add(new VersionPlan.Close(row.id(), day));
+                plan.inserts().add(new VersionPlan.NewRow(ids.get(), day, null, next, source, null));
+                continue;
+            }
             plan.supersede().add(row.id());
             if (row.from().isBefore(day)) {
                 plan.inserts().add(new VersionPlan.NewRow(ids.get(), row.from(), day, row.values(), row.source(), row.id()));
@@ -69,11 +75,15 @@ public final class VersionPlanner {
         return plan;
     }
 
-    /** A separation ends the assignment: rows from the day on are superseded and the row that spans it comes back ending on the day. */
+    /** A separation ends the assignment: the open row that spans the day is closed on it, rows from the day on are superseded. */
     public static VersionPlan endAt(List<VersionRow> current, LocalDate at, Supplier<UUID> ids) {
         VersionPlan plan = VersionPlan.empty();
         for (VersionRow row : sorted(current)) {
             if (!row.endsAfter(at)) {
+                continue;
+            }
+            if (row.from().isBefore(at) && row.to() == null) {
+                plan.closes().add(new VersionPlan.Close(row.id(), at));
                 continue;
             }
             plan.supersede().add(row.id());
@@ -135,7 +145,23 @@ public final class VersionPlanner {
             ChangeSource source = origin != null && mine ? origin.source() : row.source();
             plan.inserts().add(new VersionPlan.NewRow(ids.get(), row.from(), row.to(), next, source, row.id()));
         }
+        reopenBefore(plan, rows, before, day, ids);
         return plan;
+    }
+
+    /** A row the command only inserted leaves a hole where it closed the row before it; that row comes back open, or up to the next row. */
+    private static void reopenBefore(VersionPlan plan, List<VersionRow> rows, @Nullable VersionRow before, LocalDate day, Supplier<UUID> ids) {
+        if (before == null || !day.equals(before.to()) || plan.supersede().contains(before.id())) {
+            return;
+        }
+        boolean coveredAfter = plan.inserts().stream().anyMatch(n -> !day.isBefore(n.from()) && (n.to() == null || day.isBefore(n.to())))
+                || rows.stream().anyMatch(r -> !plan.supersede().contains(r.id()) && r.covers(day));
+        if (coveredAfter) {
+            return;
+        }
+        LocalDate next = rows.stream().filter(r -> !plan.supersede().contains(r.id()) && r.from().isAfter(day)).map(VersionRow::from).findFirst().orElse(null);
+        plan.supersede().add(before.id());
+        plan.inserts().add(new VersionPlan.NewRow(ids.get(), before.from(), next, before.values(), before.source(), before.id()));
     }
 
     private static List<VersionRow> sorted(List<VersionRow> rows) {

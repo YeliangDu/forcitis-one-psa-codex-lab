@@ -46,24 +46,41 @@ class VersionPlannerTest {
     }
 
     @Test
-    @DisplayName("IMP-1030-PAR-B3 a change in the middle of a row supersedes it and appends the untouched part under the old source and the changed part under the command")
-    void aChangeSplitsTheRowItLandsIn() {
+    @DisplayName("IMP-1030-PAR-B3 a change that follows the open row closes it on the day and inserts the new row; nothing is superseded")
+    void aChangeAfterTheOpenRowClosesIt() {
         VersionRow migrated = row(1, START, null, "A", ChangeSource.MIGRATION);
 
         VersionPlan plan = VersionPlanner.apply(List.of(migrated), toUnit(LocalDate.of(2026, 8, 1), "B"), BY_COMMAND, setters(), this::next);
 
-        assertThat(plan.supersede()).containsExactly(migrated.id());
+        assertThat(plan.supersede()).isEmpty();
+        assertThat(plan.closes()).containsExactly(new VersionPlan.Close(migrated.id(), LocalDate.of(2026, 8, 1)));
+        assertThat(plan.inserts()).singleElement().satisfies(changed -> {
+            assertThat(changed.from()).isEqualTo(LocalDate.of(2026, 8, 1));
+            assertThat(changed.to()).isNull();
+            assertThat(changed.values().get("unit")).isEqualTo("B");
+            assertThat(changed.source()).isEqualTo(BY_COMMAND);
+            assertThat(changed.correctedFrom()).isNull();
+        });
+    }
+
+    @Test
+    @DisplayName("IMP-1030-PAR-B3 a change in the middle of a closed row supersedes it and inserts the untouched part under the old source and the changed part under the command")
+    void aChangeSplitsTheClosedRowItLandsIn() {
+        VersionRow closed = row(1, START, LocalDate.of(2026, 10, 1), "A", ChangeSource.MIGRATION);
+
+        VersionPlan plan = VersionPlanner.apply(List.of(closed), toUnit(LocalDate.of(2026, 8, 1), "B"), BY_COMMAND, setters(), this::next);
+
+        assertThat(plan.supersede()).containsExactly(closed.id());
         assertThat(plan.inserts()).hasSize(2);
         assertThat(plan.inserts().get(0)).satisfies(untouched -> {
             assertThat(untouched.from()).isEqualTo(START);
             assertThat(untouched.to()).isEqualTo(LocalDate.of(2026, 8, 1));
             assertThat(untouched.values().get("unit")).isEqualTo("A");
             assertThat(untouched.source()).isEqualTo(ChangeSource.MIGRATION);
-            assertThat(untouched.correctedFrom()).isEqualTo(migrated.id());
+            assertThat(untouched.correctedFrom()).isEqualTo(closed.id());
         });
         assertThat(plan.inserts().get(1)).satisfies(changed -> {
-            assertThat(changed.from()).isEqualTo(LocalDate.of(2026, 8, 1));
-            assertThat(changed.to()).isNull();
+            assertThat(changed.to()).isEqualTo(LocalDate.of(2026, 10, 1));
             assertThat(changed.values().get("unit")).isEqualTo("B");
             assertThat(changed.source()).isEqualTo(BY_COMMAND);
         });
@@ -128,23 +145,46 @@ class VersionPlannerTest {
     @Test
     @DisplayName("IMP-1030-PAR-B3 taking a command out restores the earlier value, gives the pieces it wrote the source of the rows they came from, and supersedes what it only inserted")
     void revertRestoresWhatWasThere() {
-        VersionRow migrated = row(1, START, null, "A", ChangeSource.MIGRATION);
-        VersionPlan entry = VersionPlanner.apply(List.of(migrated), toUnit(LocalDate.of(2026, 8, 1), "B"), BY_COMMAND, setters(), this::next);
+        LocalDate day = LocalDate.of(2026, 8, 1);
+        VersionRow closed = row(1, START, LocalDate.of(2026, 10, 1), "A", ChangeSource.MIGRATION);
+        VersionPlan entry = VersionPlanner.apply(List.of(closed), toUnit(day, "B"), BY_COMMAND, setters(), this::next);
         VersionRow head = fromNew(entry.inserts().get(0));
-        VersionRow tail = fromNew(entry.inserts().get(1));
+        VersionRow middle = fromNew(entry.inserts().get(1));
 
-        VersionPlan undo = VersionPlanner.revert(List.of(head, tail), id -> migrated, COMMAND, LocalDate.of(2026, 8, 1), UNIT, r -> true, setters(), this::next);
+        VersionPlan undo = VersionPlanner.revert(List.of(head, middle), id -> closed, COMMAND, day, UNIT, r -> true, setters(), this::next);
 
-        assertThat(undo.supersede()).containsExactly(tail.id());
+        assertThat(undo.supersede()).containsExactly(middle.id());
         assertThat(undo.inserts()).singleElement().satisfies(n -> {
             assertThat(n.values().get("unit")).isEqualTo("A");
             assertThat(n.source()).isEqualTo(ChangeSource.MIGRATION);
-            assertThat(n.from()).isEqualTo(LocalDate.of(2026, 8, 1));
+            assertThat(n.from()).isEqualTo(day);
+            assertThat(n.to()).isEqualTo(LocalDate.of(2026, 10, 1));
         });
-        VersionPlan inserted = VersionPlanner.revert(List.of(new VersionRow(next(), START, null, Map.of("unit", "B"), BY_COMMAND, null, false)), id -> migrated,
+    }
+
+    @Test
+    @DisplayName("IMP-1030-PAR-B3 taking out a change that closed the open row reopens that row, and a row the command only inserted is not replaced")
+    void revertReopensTheRowItClosed() {
+        LocalDate day = LocalDate.of(2026, 8, 1);
+        VersionRow open = row(1, START, null, "A", ChangeSource.MIGRATION);
+        VersionPlan entry = VersionPlanner.apply(List.of(open), toUnit(day, "B"), BY_COMMAND, setters(), this::next);
+        VersionRow closed = new VersionRow(open.id(), START, day, open.values(), ChangeSource.MIGRATION, null, false);
+        VersionRow tail = fromNew(entry.inserts().getFirst());
+
+        VersionPlan undo = VersionPlanner.revert(List.of(closed, tail), id -> open, COMMAND, day, UNIT, r -> true, setters(), this::next);
+
+        assertThat(undo.supersede()).containsExactlyInAnyOrder(tail.id(), closed.id());
+        assertThat(undo.inserts()).singleElement().satisfies(n -> {
+            assertThat(n.from()).isEqualTo(START);
+            assertThat(n.to()).isNull();
+            assertThat(n.values().get("unit")).isEqualTo("A");
+            assertThat(n.source()).isEqualTo(ChangeSource.MIGRATION);
+            assertThat(n.correctedFrom()).isEqualTo(closed.id());
+        });
+        VersionPlan hire = VersionPlanner.revert(List.of(new VersionRow(next(), START, null, Map.of("unit", "B"), BY_COMMAND, null, false)), id -> open,
                 COMMAND, START, UNIT, r -> true, setters(), this::next);
-        assertThat(inserted.inserts()).as("a row the command only inserted is not replaced").isEmpty();
-        assertThat(inserted.supersede()).hasSize(1);
+        assertThat(hire.inserts()).as("a row the command only inserted, with nothing before it, is not replaced").isEmpty();
+        assertThat(hire.supersede()).hasSize(1);
     }
 
     @Test
@@ -154,11 +194,11 @@ class VersionPlannerTest {
         LocalDate end = LocalDate.of(2026, 11, 3);
 
         VersionPlan ended = VersionPlanner.endAt(List.of(open), end, this::next);
-        VersionRow closed = fromNew(ended.inserts().getFirst());
+        VersionRow closed = new VersionRow(open.id(), START, end, open.values(), ChangeSource.MIGRATION, null, false);
         VersionPlan reopened = VersionPlanner.reopenAt(List.of(closed), end, this::next);
 
-        assertThat(ended.supersede()).containsExactly(open.id());
-        assertThat(closed.to()).isEqualTo(end);
+        assertThat(ended.closes()).containsExactly(new VersionPlan.Close(open.id(), end));
+        assertThat(ended.supersede()).isEmpty();
         assertThat(reopened.supersede()).containsExactly(closed.id());
         assertThat(reopened.inserts()).singleElement().satisfies(n -> {
             assertThat(n.to()).isNull();

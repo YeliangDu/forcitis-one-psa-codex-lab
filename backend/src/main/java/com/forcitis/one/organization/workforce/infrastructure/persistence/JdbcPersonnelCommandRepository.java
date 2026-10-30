@@ -165,6 +165,11 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
 
     @Override
     public void insertVersions(EmployeeId employee, VersionTable table, VersionPlan plan, PersonnelCommandId command, Instant at) {
+        for (VersionPlan.Close close : plan.closes()) {
+            jdbc.sql("update organization_workforce." + table.tableName() + " set effective_to_date = :to, closed_at = :at, updated_at = :at where "
+                    + (table == VersionTable.EMPLOYEE ? "employee_version_id" : "assignment_version_id") + " = :id")
+                    .param("to", close.to()).param("at", at(at)).param("id", close.id()).update();
+        }
         for (UUID id : plan.supersede()) {
             jdbc.sql("update organization_workforce." + table.tableName() + " set superseded_at = :at, superseding_command_id = :command, updated_at = :at where "
                     + (table == VersionTable.EMPLOYEE ? "employee_version_id" : "assignment_version_id") + " = :id")
