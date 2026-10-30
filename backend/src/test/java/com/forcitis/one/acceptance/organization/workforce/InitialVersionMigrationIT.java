@@ -20,7 +20,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * #960 (one-design DD on #960, issue comment 6529863330; W2 design sections 2, 3.2, 4 and 6; checklist 14.2 M7): after the initial
  * migration every employee has exactly one current employee version in force today, consistent with the snapshot; a rerun changes
  * nothing; people who already hold versions keep them row for row. The employment phase of migrated employed people is the user's
- * fallback answer (「一律记正式」, fragment 190150), pinned in one case only so that it can follow the A8 evidence if it lands.
+ * fallback answer (「一律记正式」, fragment 190150), pinned in one case only so that it can follow the source-system evidence if it lands.
  */
 class InitialVersionMigrationIT extends InitialVersionMigrationSupport {
 
@@ -64,7 +64,7 @@ class InitialVersionMigrationIT extends InitialVersionMigrationSupport {
     }
 
     @Test
-    @DisplayName("#960 用户兜底答复「一律记正式」（fragment 190150；A8 转正证据到达后只改本例）：迁入的在职版本雇佣阶段为 REGULAR")
+    @DisplayName("#960 用户兜底答复「一律记正式」（fragment 190150；来源系统的转正取证到达后只改本例）：迁入的在职版本雇佣阶段为 REGULAR")
     void migratedEmployedPeopleAreRegular() throws Exception {
         UUID person = snapshotPerson(false, null);
 
