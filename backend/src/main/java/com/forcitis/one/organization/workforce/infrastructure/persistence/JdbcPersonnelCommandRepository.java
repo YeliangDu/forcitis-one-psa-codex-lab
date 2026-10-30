@@ -70,11 +70,14 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
     }
 
     @Override
-    public Set<EmployeeId> heldOrReleasedEmployees() {
+    public Set<EmployeeId> excludedEmployees() {
         return new HashSet<>(jdbc.sql("""
                 select h.employee_id from organization_workforce.separation_holds h
                 join organization_workforce.personnel_commands c on c.personnel_command_id = h.personnel_command_id
-                where h.status = 'HELD' or (h.status = 'RELEASED' and c.status = 'PENDING')""")
+                where h.status = 'HELD' or (h.status = 'RELEASED' and c.status = 'PENDING')
+                union
+                select employee_id from organization_workforce.personnel_commands
+                where command_kind = 'UNPAID_LEAVE_START' and status = 'PENDING'""")
                 .query((rs, n) -> new EmployeeId(rs.getObject("employee_id", UUID.class))).list());
     }
 

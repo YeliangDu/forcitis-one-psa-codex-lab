@@ -152,6 +152,8 @@ aggregates:
   - PersonnelPlans
   - ReleaseSeparationHoldByOperations
   - SeparationHoldService
+  - UnpaidLeaveStartFloor
+  - UnpaidLeaveStartNotice
   events: []
   events_in_module:
   - organization.workforce.EmployeeCorrected

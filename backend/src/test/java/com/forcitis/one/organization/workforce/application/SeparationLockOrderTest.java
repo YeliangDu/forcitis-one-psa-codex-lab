@@ -79,7 +79,7 @@ class SeparationLockOrderTest {
     @Test
     @DisplayName("IMP-1030-PAR-B6 entering a separation takes the separation lock before the employee row")
     void enteringLocksTheDecisionFirst() {
-        PersonnelCommandService service = new PersonnelCommandService(commands, new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(LegalEntityResolutionSources.class),
+        PersonnelCommandService service = new PersonnelCommandService(commands, new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class),
                 mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone);
         when(commands.eventSequence(EMPLOYEE)).thenReturn(0L);
         when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), Map.of()));
@@ -95,7 +95,7 @@ class SeparationLockOrderTest {
     @Test
     @DisplayName("IMP-1030-PAR-B6 withdrawing a held separation takes the separation lock before the employee row")
     void withdrawingLocksTheDecisionFirst() {
-        PersonnelCommandService service = new PersonnelCommandService(commands, new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(LegalEntityResolutionSources.class),
+        PersonnelCommandService service = new PersonnelCommandService(commands, new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class),
                 mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone);
         heldSeparation();
         when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), Map.of()));
@@ -117,7 +117,7 @@ class SeparationLockOrderTest {
         heldSeparation();
         SeparationHold hold = SeparationHold.restore(HOLD, COMMAND, EMPLOYEE, HoldStatus.HELD, 0, null, null, null, null);
         when(commands.findHold(HOLD)).thenReturn(java.util.Optional.of(hold));
-        when(commands.heldOrReleasedEmployees()).thenReturn(Set.of(EMPLOYEE));
+        when(commands.excludedEmployees()).thenReturn(Set.of(EMPLOYEE));
         when(review.review(any(), any(), any())).thenReturn(new SeparationReview.Verdict(Set.of(), false, 0, "", "", Set.of()));
 
         assertThatThrownBy(() -> service.release(new ReleaseSeparationHold(HOLD, "synthetic: confirmed"))).as("refused later: the releaser is not retained")
@@ -142,7 +142,7 @@ class SeparationLockOrderTest {
         heldSeparation();
         when(commands.findHold(HOLD)).thenReturn(java.util.Optional.of(SeparationHold.restore(HOLD, COMMAND, EMPLOYEE, HoldStatus.HELD, 0, null, null, null, null)));
         when(commands.heldEmployees()).thenReturn(Set.of(held));
-        when(commands.heldOrReleasedEmployees()).thenReturn(Set.of(held, waiting));
+        when(commands.excludedEmployees()).thenReturn(Set.of(held, waiting));
         when(review.review(any(), any(), any())).thenReturn(new SeparationReview.Verdict(Set.of(EMPLOYEE), true, 1, "", "", Set.of(held, waiting, stays)));
 
         service.release(new ReleaseSeparationHold(HOLD, "synthetic: confirmed"));

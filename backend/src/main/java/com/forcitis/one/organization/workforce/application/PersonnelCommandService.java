@@ -7,6 +7,7 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.SeparationReview;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
@@ -49,7 +50,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Entering and withdrawing personnel commands (ADR-0068 item 1). One transaction holds the employee row locked, the cross-row rules, the command,
  * the version rows (W2 design sections 0 and 2), the transitions, the audit entry and, when the command takes effect, the event. The permission is
- * checked before anything about the content is read. Two methods, like the other adapters of an api interface in this module.
+ * checked before anything about the content is read. A start of unpaid leave takes the separation lock and passes the administrator floor. Two methods, like the other adapters of an api interface in this module.
  */
 @Component
 class PersonnelCommandService implements PersonnelCommands {
@@ -60,6 +61,7 @@ class PersonnelCommandService implements PersonnelCommands {
     private final PersonnelCommandRepository commands;
     private final PersonnelPlans timelines;
     private final SeparationHoldCheck holdCheck;
+    private final UnpaidLeaveStartFloor leaveFloor;
     private final LegalEntityResolutionSources legalEntities;
     private final AuditLog audit;
     private final DomainEvents events;
@@ -68,11 +70,12 @@ class PersonnelCommandService implements PersonnelCommands {
     private final Clock clock;
     private final BusinessZone zone;
 
-    PersonnelCommandService(PersonnelCommandRepository commands, PersonnelPlans timelines, SeparationHoldCheck holdCheck, LegalEntityResolutionSources legalEntities,
-                            AuditLog audit, DomainEvents events, CurrentUser currentUser, IdGenerator ids, Clock clock, BusinessZone zone) {
+    PersonnelCommandService(PersonnelCommandRepository commands, PersonnelPlans timelines, SeparationHoldCheck holdCheck, UnpaidLeaveStartFloor leaveFloor,
+                            LegalEntityResolutionSources legalEntities, AuditLog audit, DomainEvents events, CurrentUser currentUser, IdGenerator ids, Clock clock, BusinessZone zone) {
         this.commands = commands;
         this.timelines = timelines;
         this.holdCheck = holdCheck;
+        this.leaveFloor = leaveFloor;
         this.legalEntities = legalEntities;
         this.audit = audit;
         this.events = events;
@@ -90,7 +93,7 @@ class PersonnelCommandService implements PersonnelCommands {
         LocalDate today = zone.dateOf(now);
         UserId by = currentUser.userId();
         EmployeeId employee = request.employeeId();
-        if (request.commandKind() == PersonnelCommandKind.SEPARATE) {
+        if (request.commandKind() == PersonnelCommandKind.SEPARATE || request.commandKind() == PersonnelCommandKind.UNPAID_LEAVE_START) {
             commands.lockSeparationDecisions();
         }
         if (!commands.lockEmployee(employee)) {
@@ -100,6 +103,7 @@ class PersonnelCommandService implements PersonnelCommands {
         requireTargetsExist(command);
         PersonnelHistory history = commands.load(employee);
         PersonnelCommandRules.check(command, history);
+        SeparationReview.@Nullable Verdict leaveVerdict = command.kind() == PersonnelCommandKind.UNPAID_LEAVE_START ? leaveFloor.check(command) : null;
         boolean held = command.kind() == PersonnelCommandKind.SEPARATE && holdCheck.holds(command);
         if (held) {
             command.holdAtEntry();
@@ -129,6 +133,9 @@ class PersonnelCommandService implements PersonnelCommands {
                 events.publish(command);
                 commands.saveEventSequence(employee, command.eventSequenceAfterSave());
             }
+        }
+        if (leaveVerdict != null) {
+            leaveFloor.announce(command, leaveVerdict, by);
         }
         return command.id();
     }
