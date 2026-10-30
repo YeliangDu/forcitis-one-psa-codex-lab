@@ -82,7 +82,7 @@ terms:
   kind: domain_event
   bc: organization.workforce
   scope: domain
-  definition: 撤销组织单元的组织结构命令已生效（单元须已无在职员工）；合并完成时被并入方也以此撤销
+  definition: 撤销组织单元的组织结构命令已生效（单元须已无在职员工与启用的下级单元）；合并完成时被并入方的撤销不发本事件，只发「组织单元已合并」
   standard_ref:
   - ADR-0068 第 4 条
   confidence: medium
