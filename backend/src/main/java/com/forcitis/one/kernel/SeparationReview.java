@@ -30,9 +30,10 @@ public interface SeparationReview {
     }
 
     /**
-     * separatedAdministrators are those of the separating who hold super_admin or the security auditor role; actorRetained says
-     * that the releaser is an enabled holder of one of the two, explicitly employed in the organisation snapshot and not separating;
-     * remainingAdministrators counts the usable super_admin holders left after the separation.
+     * An available holder is an enabled holder of the role who is employed (explicitly, in the organisation snapshot) and not on unpaid leave on the
+     * business day (ADR-0068 section 3). separatedAdministrators are those of the separating who are available holders of super_admin or the
+     * security auditor role; actorRetained says that the releaser is an available holder of one of the two, not separating and not in the
+     * held set; remainingAdministrators counts the available super_admin holders left after the separation, leaving out the separating and the held.
      */
     record Verdict(Set<EmployeeId> separatedAdministrators, boolean actorRetained, int remainingAdministrators, String sessionMode, String reason) {
         public Verdict {

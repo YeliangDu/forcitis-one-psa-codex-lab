@@ -9,7 +9,7 @@ export const ERROR_MESSAGES: Readonly<Record<ErrorCode, string | null>> = {
   COST_TIMESHEET_EMPLOYEE_UNKNOWN: null,
   COST_TIMESHEET_NOT_FOUND: '工时单不存在',
   COST_TIMESHEET_NOT_OWNER: '只有工时单的发起人可以执行这个操作',
-  COST_TIMESHEET_ON_UNPAID_LEAVE: '停薪留职后不能为这个工作日期填报工时单',
+  COST_TIMESHEET_ON_UNPAID_LEAVE: '停薪留职的工作日期不能填报工时单',
   COST_TIMESHEET_PROJECT_MANAGER_INVALID: '项目经理无效',
   COST_TIMESHEET_PROJECT_MANAGER_UNKNOWN: '项目经理不存在',
   COST_TIMESHEET_RESULT_PENDING: '审批结果正在处理，请稍后刷新',

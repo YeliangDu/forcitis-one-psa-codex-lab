@@ -27,7 +27,7 @@ final class TimesheetApproverReplay {
         ExportedSnapshot snapshot = new ExportedSnapshot(export.snapshot());
         java.util.Set<UserId> administrator = export.processAdministratorUserId() == null ? java.util.Set.of() : java.util.Set.of(ExportedAccounts.account(export.processAdministratorUserId()));
         AssigneeResolver resolver = new AssigneeResolver(snapshot, snapshot, administrator, new ExportedAccounts(),
-                java.time.LocalDate.EPOCH);
+                java.time.LocalDate.EPOCH); // an export carries no leave flag, so the day is irrelevant
         Set<Long> hardCoded = new HashSet<>(export.legacyFallbackUserIds());
 
         Map<ReplayVerdict, Integer> verdicts = new EnumMap<>(ReplayVerdict.class);
