@@ -29,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * The due-date step for one pending command (ADR-0068 items 1.8 and 2.3): on its effective date it becomes effective and its event, if the kind has
  * one, is published, once. Its versions were written when it was entered or released and are not touched; a separation is never judged or held again.
+ * The job hands over only separations with a released hold: the due-day re-judgement of an unreleased one (ADR-0068 item 2.2) is card #967's, until then
+ * such a separation is left alone.
  * Nothing else changes: a command that is not pending any more (withdrawn meanwhile, or already done) is left as it is. Every command takes the
  * separation lock first, the order of the entry and the release, so the due day never interleaves with a decision that counts who has gone.
  */

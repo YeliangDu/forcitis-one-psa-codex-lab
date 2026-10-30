@@ -42,7 +42,7 @@ class DueCommandsQueryIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @DisplayName("#933 every pending command whose day has come is due, whatever its kind or hold; held, withdrawn and effective ones, and later days, are not")
+    @DisplayName("#933 every pending command whose day has come is due, a separation only with a released hold (the re-judgement of the others is #967); held, withdrawn and effective ones, and later days, are not")
     void everyPendingCommandIsDue() {
         UUID released = pendingCommand(1, "SEPARATE", DAY, "PENDING", "RELEASED");
         UUID ordinary = pendingCommand(2, "REGULARIZE", DAY.minusDays(2), "PENDING", null);
@@ -50,6 +50,7 @@ class DueCommandsQueryIntegrationTest extends WorkforceIntegrationSupport {
         pendingCommand(4, "SEPARATE", DAY, "HELD", "HELD");
         pendingCommand(5, "REGULARIZE", DAY, "WITHDRAWN", null);
         pendingCommand(6, "REGULARIZE", DAY, "EFFECTIVE", null);
+        pendingCommand(7, "SEPARATE", DAY, "PENDING", null);
 
         assertThat(commands.pendingDue(DAY)).containsExactly(new PersonnelCommandId(ordinary), new PersonnelCommandId(released));
         assertThat(commands.pendingDue(DAY.plusDays(1))).hasSize(3);
