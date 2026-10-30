@@ -49,12 +49,14 @@ final class CountersignNames {
     /** Q3 (user 2026-10-30): after go-live the escalated person is the business administrator, who may countersign any request. */
     static final String ESCALATED_ROLE = "business_admin";
     /**
-     * 暂名 (doubt): how a finance head is bound to a legal entity. The identity role model scopes by org unit only (access_scope_kind), so
-     * the binding is agreed as a row in this workforce table; the test fixture writes it and nothing else about it is asserted.
+     * Ruling of one-design (W2/data owner, 2026-10-30): the finance head of a legal entity is a versioned column on the workforce table
+     * legal_entity_versions (FK to the employee, valid by date like the other version columns, same pattern as org_unit_versions.head_employee_id).
+     * A decider must hold the permission and be this column's employee in the version valid today; the fixture writes it, nothing else is asserted.
      */
-    static final String FINANCE_HEADS = "legal_entity_finance_heads";
-    static final String FINANCE_HEAD_LEGAL_ENTITY_COLUMN = "legal_entity_id";
-    static final String FINANCE_HEAD_EMPLOYEE_COLUMN = "employee_id";
+    static final String LEGAL_ENTITY_VERSIONS = "legal_entity_versions";
+    static final String FINANCE_HEAD_COLUMN = "finance_head_employee_id";
+    /** Ruling (user Q3, ADR-0073 line 74): the escalated role may decide a row only from this escalation level on; levels 0 and 1 are refused. */
+    static final int ESCALATED_FROM_LEVEL = 2;
 
     // Audit (note section 7) and event.
     static final String AUDIT_REQUESTED = "organization.workforce.attribution-countersign.requested";

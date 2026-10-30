@@ -84,18 +84,35 @@ class CountersignAuthorityIT extends CountersignSupport {
         assertRefusedAndUntouched(unbound, waiting, e2, true);
     }
 
-    @Test
-    @DisplayName("#894 用户答复 Q3（2026-10-30）、ADR-0073 第 3 条第 6 项（行 74）：投产后升级到的业务管理员持会签权限，不必绑定法人：可批准任一法人的请求，决定人记为其账号")
-    void theEscalatedPersonMayDecideAnyRequest() throws Exception {
+    @ParameterizedTest(name = "escalation level {0}")
+    @ValueSource(ints = {0, 1})
+    @DisplayName("#894 用户答复 Q3（2026-10-30）、ADR-0073 第 3 条第 6 项（行 74）、one-design 裁定：升级到的业务管理员只有在该行升级等级不低于 2 时才可决定；等级 0、1 时批准被拒，请求仍未决")
+    void theEscalatedPersonIsRefusedBelowLevelTwo(int level) throws Exception {
         Awaiting waiting = crossEntityTransfer(DAY);
+        escalateTo(waiting.command(), KIND_CHANGE, e1, level);
         Staff escalated = account(ESCALATED_ROLE);
 
-        approve(escalated, waiting.command(), KIND_CHANGE, e1);
-        approve(escalated, waiting.command(), KIND_CHANGE, e2);
+        assertRefusedAndUntouched(escalated, waiting, e1, true);
+    }
 
-        assertThat(commandStatus(waiting.command())).isEqualTo(PENDING);
-        assertThat(request(waiting.command(), KIND_CHANGE, e1).get("decided_by")).isEqualTo(escalated.userId());
-        assertThat(request(waiting.command(), KIND_CHANGE, e2).get("decided_by")).isEqualTo(escalated.userId());
+    @ParameterizedTest(name = "escalation level {0}")
+    @ValueSource(ints = {2, 3})
+    @DisplayName("#894 用户答复 Q3（2026-10-30）、one-design 裁定：该行升级到等级 2 时业务管理员可决定，不必是该法人的财务负责人，决定人记为其账号；等级 3 时该法人的财务负责人仍可决定（没有新的决定人）；另一行（等级 0）业务管理员仍不能决定")
+    void theEscalatedPersonMayDecideFromLevelTwo(int level) throws Exception {
+        Awaiting waiting = crossEntityTransfer(DAY);
+        escalateTo(waiting.command(), KIND_CHANGE, e1, level);
+        Staff escalated = account(ESCALATED_ROLE);
+
+        if (level == 2) {
+            approve(escalated, waiting.command(), KIND_CHANGE, e1);
+            assertThat(request(waiting.command(), KIND_CHANGE, e1).get("decided_by")).isEqualTo(escalated.userId());
+            assertThat(refusal(() -> approve(escalated, waiting.command(), KIND_CHANGE, e2))).as("the other row is still at level 0").isNotNull();
+        } else {
+            approve(headE1, waiting.command(), KIND_CHANGE, e1);
+            assertThat(request(waiting.command(), KIND_CHANGE, e1).get("decided_by")).isEqualTo(headE1.userId());
+        }
+        assertThat(decision(waiting.command(), KIND_CHANGE, e1)).isEqualTo(APPROVED);
+        assertThat(commandStatus(waiting.command())).isEqualTo(AWAITING);
     }
 
     @Test
@@ -118,7 +135,7 @@ class CountersignAuthorityIT extends CountersignSupport {
     }
 
     @Test
-    @DisplayName("#894 note #878 第 6 节、第 10 条第 6 项、ADR-0073 第 3 条第 6 项（行 71）（多角色）：既是人事专员又是 E1 财务负责人的人，不能会签自己起草的命令（应用拒绝）；E1 的另一位负责人和 E2 的负责人批准后命令照常转待生效")
+    @DisplayName("#894 note #878 第 6 节、第 10 条第 6 项、ADR-0073 第 3 条第 6 项（行 71）（多角色）：既是人事专员又是 E1 财务负责人的人，不能会签自己起草的命令（应用拒绝）；该行升级到等级 2 后由业务管理员批准、E2 的负责人批准后命令照常转待生效")
     void aSpecialistWhoIsAlsoAHeadCannotDecideTheirOwnCommand() throws Exception {
         Staff both = specialist(FINANCE_HEAD_ROLE);
         bind(both, e1);
@@ -128,7 +145,8 @@ class CountersignAuthorityIT extends CountersignSupport {
         Awaiting waiting = new Awaiting(employee, command, DAY);
 
         assertRefusedAndUntouched(both, waiting, e1, false);
-        approve(headE1, command, KIND_CHANGE, e1);
+        escalateTo(command, KIND_CHANGE, e1, ESCALATED_FROM_LEVEL);
+        approve(account(ESCALATED_ROLE), command, KIND_CHANGE, e1);
         approve(headE2, command, KIND_CHANGE, e2);
 
         assertThat(commandStatus(command)).isEqualTo(PENDING);

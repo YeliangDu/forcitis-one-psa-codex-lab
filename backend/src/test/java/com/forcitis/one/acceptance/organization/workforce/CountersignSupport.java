@@ -108,10 +108,24 @@ abstract class CountersignSupport extends SeparationHoldSupport {
         return who;
     }
 
+    /**
+     * Makes the person the finance head of the entity from today on: the open version of the entity is closed today and a new one that
+     * repeats code, name and status and names the person is appended (legal_entity_versions is append-only; ruling of 2026-10-30).
+     */
     protected void bind(Staff who, UUID entity) throws SQLException {
         try (Connection workforce = schemaConnection("organization_workforce")) {
-            update(workforce, "insert into " + FINANCE_HEADS + " (" + FINANCE_HEAD_LEGAL_ENTITY_COLUMN + ", " + FINANCE_HEAD_EMPLOYEE_COLUMN + ") values (?, ?)",
-                    entity, stored(who.employeeId()));
+            Map<String, Object> open = query(workforce, "select * from " + LEGAL_ENTITY_VERSIONS + " where legal_entity_id = ? and effective_to_date is null", entity).get(0);
+            update(workforce, "update " + LEGAL_ENTITY_VERSIONS + " set effective_to_date = ? where legal_entity_version_id = ?", TODAY, open.get("legal_entity_version_id"));
+            update(workforce, "insert into " + LEGAL_ENTITY_VERSIONS + " (legal_entity_version_id, legal_entity_id, effective_from_date, revision_number, code, name, status, "
+                    + FINANCE_HEAD_COLUMN + ") values (?, ?, ?, ?, ?, ?, ?, ?)", Uuids.timeOrdered(NOW), entity, TODAY, ((Number) open.get("revision_number")).intValue() + 1,
+                    open.get("code"), open.get("name"), open.get("status"), stored(who.employeeId()));
+        }
+    }
+
+    /** Raises the escalation level of a request directly in the schema (the trigger allows increases; the reminder job is card E). */
+    protected void escalateTo(UUID command, String kind, UUID entity, int level) throws SQLException {
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update " + COUNTERSIGNS + " set escalation_level = ? where attribution_countersign_id = ?", (short) level, requestId(command, kind, entity));
         }
     }
 
