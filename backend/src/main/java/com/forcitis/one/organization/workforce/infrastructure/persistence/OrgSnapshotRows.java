@@ -16,7 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
 
-/** The SELECTs and row mappers of the org snapshot, shared by the repository (loading for a sync) and the queries (browsing). */
+/** The SELECTs and row mappers of the org snapshot: the repository loads the snapshot rows for a sync, the queries browse as of a business day. */
 final class OrgSnapshotRows {
     private OrgSnapshotRows() {
     }
@@ -27,6 +27,7 @@ final class OrgSnapshotRows {
               from organization_workforce.org_units
             """;
 
+    /** The snapshot rows as the sync wrote them; for the sync's own comparison only, readers use SELECT_STAFF_ON_DAY. */
     static final String SELECT_STAFF = """
             select e.id, e.employee_code, e.display_name, e.login_name, e.email, e.gender, e.wecom_user_id,
                    e.employment_status, e.is_fee_earner,
