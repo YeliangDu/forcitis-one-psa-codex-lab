@@ -85,7 +85,8 @@ class WecomUserIdWritersRevokeIT extends WorkforceIntegrationSupport {
         SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(TestAccounts.account(9001L).value().toString(), "x",
                 SYNC_RUN_EXECUTE));
         try {
-            release.execute(held, "synthetic: source checked by hand");
+            assertThat(release.execute(held, "synthetic: source checked by hand")).as("premise: the release applies the source")
+                    .isInstanceOf(com.forcitis.one.organization.workforce.application.ReleaseResult.Released.class);
         } finally {
             SecurityContextHolder.clearContext();
         }

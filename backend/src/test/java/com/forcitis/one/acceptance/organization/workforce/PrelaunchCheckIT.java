@@ -13,6 +13,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -34,6 +35,20 @@ class PrelaunchCheckIT extends InitialVersionMigrationSupport {
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
         postgres.register(registry);
+    }
+
+    /** Each case starts with no sync run, so one case's runs never decide another's answer. */
+    @BeforeEach
+    void noSyncRuns() throws SQLException {
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "delete from sync_run_held_separations");
+            update(workforce, "delete from sync_runs");
+        }
+    }
+
+    /** The count as a token of its own, not a digit inside an id. */
+    private static String countToken(int count) {
+        return "(?s).*(?<![0-9A-Za-z-])" + count + "(?![0-9A-Za-z-]).*";
     }
 
     private Result check() {
@@ -89,7 +104,9 @@ class PrelaunchCheckIT extends InitialVersionMigrationSupport {
         Result result = check();
 
         assertThat(result.exitCode()).as(result.text()).isEqualTo(1);
-        assertThat(result.out() + result.err()).as("a clear message: which run, how many rows, and that it is held").contains(held.toString(), "2", "HELD");
+        String message = result.out() + result.err();
+        assertThat(message).as("a clear message: which run and that it is held").contains(held.toString(), "HELD");
+        assertThat(message.replace(held.toString(), "")).as("and how many rows (2) as a number of its own").matches(countToken(2));
     }
 
     @Test
@@ -110,14 +127,19 @@ class PrelaunchCheckIT extends InitialVersionMigrationSupport {
     }
 
     @Test
-    @DisplayName("#961 上线前检查只读：通过与拒绝两次运行都不改同步运行、扣留行、员工行，也不写 workforce 审计")
+    @DisplayName("#961 上线前检查只读：通过（无扣留行，退出码 0）与拒绝（有 HELD 运行的扣留行，退出码 1）两次运行都不改同步运行、扣留行、员工行，也不写 workforce 审计")
     void theCheckWritesNothing() throws Exception {
+        syncRunIn("SUCCEEDED");
+        List<Long> passingBefore = counts();
+        Result passing = check();
+        assertThat(passing.exitCode()).as(passing.text()).isZero();
+        assertThat(counts()).isEqualTo(passingBefore);
+
         UUID held = syncRunIn("HELD");
         heldSeparation(held, employed(REGULAR));
-        List<Long> before = counts();
-
-        check();
-
-        assertThat(counts()).isEqualTo(before);
+        List<Long> refusingBefore = counts();
+        Result refusing = check();
+        assertThat(refusing.exitCode()).as(refusing.text()).isEqualTo(1);
+        assertThat(counts()).isEqualTo(refusingBefore);
     }
 }
