@@ -343,3 +343,12 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/OrgCountersignSupport.java
     reason: '#893 签发列名 escalation_level 改为 escalation_level_number（#893 命名裁定 comment 6589791372 第 1 项）；两个夹具的 SQL 列名与 CountersignEntryIT:75 断言读的行键随之改名，写入值与期望值 0 不变，未增删或放宽任何断言、用例'
     ref: "commits 489647736 (#895 acceptance) and 9547f9239 (#910 acceptance); review-escalation-rename-sonnet.md"
+  - id: RULING-LEAD-20261102-03
+    date: 2026-11-02
+    ruled_by: independent sonnet reviewer rv934m (dispatched by one-test, given only the two files at base, both parents and the merge), recorded by one-lead
+    implementer: one-dev-org
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/SingleColumnPrimaryKeysIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/P5Names.java
+    reason: '#1018（#934）合入 main 的冲突解决：结果正好是两边各自已接受的删除之和（#934 删 sync_run_held_separations，#732 删 account_roles 并以新测试替代），外加 List.<String[]>of 编译修复与方法名、DisplayName、javadoc 随之改写；循环断言逐字不变，未放松或多删用例'
+    ref: "merge commit 1073683476b5775b963c529d27151212796db4bd (PR #1018); review-934-merge-sonnet.md"
