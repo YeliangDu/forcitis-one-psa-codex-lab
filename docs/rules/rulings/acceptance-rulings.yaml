@@ -333,3 +333,12 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/CountersignEntryIT.java
     reason: 合入 main 后两类同时静态导入 CountersignNames.* 与 PersonnelCommandNames.*，裸名 CORRECTION 有歧义编译不过；限定为 CountersignNames.CORRECTION，两常量值同为 "CORRECTION"，断言、期望值、用例、夹具均未改，只修编译
     ref: "#894 acceptance branch, commit 19c80042e; review-894-compile-fix-sonnet.md"
+  - id: RULING-LEAD-20261102-03
+    date: 2026-11-02
+    ruled_by: independent sonnet reviewer rv934m (dispatched by one-test, given only the two files at base, both parents and the merge), recorded by one-lead
+    implementer: one-dev-org
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/SingleColumnPrimaryKeysIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/P5Names.java
+    reason: '#1018（#934）合入 main 的冲突解决：结果正好是两边各自已接受的删除之和（#934 删 sync_run_held_separations，#732 删 account_roles 并以新测试替代），外加 List.<String[]>of 编译修复与方法名、DisplayName、javadoc 随之改写；循环断言逐字不变，未放松或多删用例'
+    ref: "merge commit 1073683476b5775b963c529d27151212796db4bd (PR #1018); review-934-merge-sonnet.md"
