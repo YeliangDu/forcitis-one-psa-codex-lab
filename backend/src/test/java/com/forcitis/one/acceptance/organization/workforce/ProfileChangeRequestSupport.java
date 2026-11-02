@@ -24,7 +24,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
  */
 abstract class ProfileChangeRequestSupport extends EmployeeHireSupport {
 
-    // Names of the note (section 5) and the DD sign-off.
+    // Names of the note (section 5), the DD sign-off and one-design's HTTP ruling on #980 (comment 6591359266).
     static final String REQUESTS = "employee_profile_change_requests";
     static final String REQUESTS_PATH = "/api/v1/organization/employee-profile-change-requests";
     static final String PENDING_CODE = "ORGANIZATION_WORKFORCE_PROFILE_CHANGE_PENDING";
@@ -51,8 +51,16 @@ abstract class ProfileChangeRequestSupport extends EmployeeHireSupport {
     }
 
     protected MockHttpServletResponse confirm(Staff caller, UUID request) throws Exception {
-        return mvc.perform(post(REQUESTS_PATH + "/" + request + ":confirm").header("If-Match", "\"0\"").with(csrf()).with(session(caller.session())))
-                .andReturn().getResponse();
+        return confirmWith(caller, request, "\"0\"");
+    }
+
+    /** :confirm with the given If-Match value (null leaves the header out); one-design ruling on #980 comment 6591359266 item 1. */
+    protected MockHttpServletResponse confirmWith(Staff caller, UUID request, String ifMatch) throws Exception {
+        var call = post(REQUESTS_PATH + "/" + request + ":confirm").with(csrf()).with(session(caller.session()));
+        if (ifMatch != null) {
+            call = call.header("If-Match", ifMatch);
+        }
+        return mvc.perform(call).andReturn().getResponse();
     }
 
     protected MockHttpServletResponse reject(Staff caller, UUID request, String reason) throws Exception {

@@ -47,7 +47,7 @@ class ProfileChangeRequestDecisionIT extends ProfileChangeRequestSupport {
         }
         assertThat(request(request).get("request_status")).isEqualTo("PENDING");
 
-        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE), request).getStatus()).isBetween(200, 204);
+        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE), request).getStatus()).isEqualTo(200);
         assertThat(request(request).get("request_status")).isEqualTo("CONFIRMED");
     }
 
@@ -62,7 +62,7 @@ class ProfileChangeRequestDecisionIT extends ProfileChangeRequestSupport {
 
         MockHttpServletResponse answer = confirm(second, request);
 
-        assertThat(answer.getStatus()).as(answer.getContentAsString()).isBetween(200, 204);
+        assertThat(answer.getStatus()).as(answer.getContentAsString()).isEqualTo(200);
         Map<String, Object> root = root(subject.employeeId());
         assertThat(root.get("display_name")).isEqualTo("Synthetic confirmed name");
         assertThat(root.get("wecom_user_id")).isEqualTo(moved);
@@ -134,7 +134,7 @@ class ProfileChangeRequestDecisionIT extends ProfileChangeRequestSupport {
 
         assertThat(reject(second, request, null).getStatus()).isEqualTo(400);
         assertThat(request(request).get("request_status")).isEqualTo("PENDING");
-        assertThat(reject(second, request, "synthetic: not this person").getStatus()).isBetween(200, 204);
+        assertThat(reject(second, request, "synthetic: not this person").getStatus()).isEqualTo(200);
 
         assertThat(request(request).get("request_status")).isEqualTo("REJECTED");
         assertThat(request(request).get("decision_reason")).isEqualTo("synthetic: not this person");
@@ -148,10 +148,10 @@ class ProfileChangeRequestDecisionIT extends ProfileChangeRequestSupport {
     void decidedRequestsTakeNoFurtherDecision() throws Exception {
         Staff a = privileged();
         UUID confirmed = requested(hr, a.employeeId(), "Synthetic decided one", syntheticWecom("d1"));
-        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE), confirmed).getStatus()).isBetween(200, 204);
+        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE), confirmed).getStatus()).isEqualTo(200);
         Staff b = privileged();
         UUID rejected = requested(hr, b.employeeId(), "Synthetic decided two", syntheticWecom("d2"));
-        assertThat(reject(staff(PERSONNEL_SPECIALIST_ROLE), rejected, "synthetic: no").getStatus()).isBetween(200, 204);
+        assertThat(reject(staff(PERSONNEL_SPECIALIST_ROLE), rejected, "synthetic: no").getStatus()).isEqualTo(200);
         Staff c = privileged();
         UUID voided = requested(hr, c.employeeId(), "Synthetic decided three", syntheticWecom("d3"));
         try (Connection workforce = schemaConnection("organization_workforce")) {
@@ -183,6 +183,46 @@ class ProfileChangeRequestDecisionIT extends ProfileChangeRequestSupport {
         assertThat(listed.getStatus()).as(listed.getContentAsString()).isEqualTo(200);
         assertThat(JsonPath.<List<String>>read(listed.getContentAsString(), "$.items[*].requestId")).contains(request.toString());
 
-        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE, "org_data_admin"), request).getStatus()).isBetween(200, 204);
+        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE, "org_data_admin"), request).getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    @DisplayName("#980 one-design HTTP 裁定（#980 comment 6591359266 第 1 项）：确认不带 If-Match 答 428，版本不符（\"7\"）答 412；两次都不改请求、不改档案；带 \"0\" 再确认答 200 并带 ETag")
+    void confirmationNeedsTheVersion() throws Exception {
+        Staff subject = privileged();
+        UUID request = requested(hr, subject.employeeId(), "Synthetic versioned", syntheticWecom("version"));
+        Map<String, Object> before = root(subject.employeeId());
+        Staff second = staff(PERSONNEL_SPECIALIST_ROLE);
+
+        assertThat(confirmWith(second, request, null).getStatus()).isEqualTo(428);
+        assertThat(confirmWith(second, request, "\"7\"").getStatus()).isEqualTo(412);
+        assertThat(request(request).get("request_status")).isEqualTo("PENDING");
+        assertThat(root(subject.employeeId())).isEqualTo(before);
+
+        MockHttpServletResponse confirmed = confirm(second, request);
+        assertThat(confirmed.getStatus()).as(confirmed.getContentAsString()).isEqualTo(200);
+        assertThat(confirmed.getHeader("ETag")).as("the request resource answers with its ETag").isNotBlank();
+        assertThat(request(request).get("request_status")).isEqualTo("CONFIRMED");
+    }
+
+    @Test
+    @DisplayName("#980 one-design HTTP 裁定（第 2 项）：拒绝理由空白或 501 字答 400 PLATFORM_WEB_REQUEST_INVALID，错误不回显理由文字，请求仍待复核；1 个字和 500 个字被接受（边界）")
+    void theRejectReasonIsCheckedWithoutEcho() throws Exception {
+        Staff second = staff(PERSONNEL_SPECIALIST_ROLE);
+        UUID request = requested(hr, privileged().employeeId(), "Synthetic reason bounds", syntheticWecom("bounds"));
+        String tooLong = "echo-marker-" + "x".repeat(489);
+
+        for (String bad : new String[] {"   ", tooLong}) {
+            MockHttpServletResponse answer = reject(second, request, bad);
+            assertThat(answer.getStatus()).as(answer.getContentAsString()).isEqualTo(400);
+            assertThat(codeOf(answer)).isEqualTo("PLATFORM_WEB_REQUEST_INVALID");
+            assertThat(answer.getContentAsString()).doesNotContain("echo-marker-");
+        }
+        assertThat(request(request).get("request_status")).isEqualTo("PENDING");
+
+        assertThat(reject(second, request, "x").getStatus()).as("1 character").isEqualTo(200);
+        UUID another = requested(hr, privileged().employeeId(), "Synthetic reason five hundred", syntheticWecom("bounds500"));
+        assertThat(reject(second, another, "y".repeat(500)).getStatus()).as("500 characters").isEqualTo(200);
+        assertThat(request(another).get("decision_reason")).isEqualTo("y".repeat(500));
     }
 }

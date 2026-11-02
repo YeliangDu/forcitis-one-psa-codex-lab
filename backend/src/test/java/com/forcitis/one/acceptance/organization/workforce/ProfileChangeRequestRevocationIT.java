@@ -58,7 +58,7 @@ class ProfileChangeRequestRevocationIT extends ProfileChangeRequestSupport {
         assertThat(request(request).get("request_status")).isEqualTo("PENDING");
 
         reset(access);
-        assertThat(confirm(second, request).getStatus()).isBetween(200, 204);
+        assertThat(confirm(second, request).getStatus()).isEqualTo(200);
         assertThat(request(request).get("request_status")).isEqualTo("CONFIRMED");
     }
 }

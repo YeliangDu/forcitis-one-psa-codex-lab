@@ -135,7 +135,7 @@ class ProfileChangeRequestEntryIT extends ProfileChangeRequestSupport {
         assertThat(reject(hr, request, null).getStatus()).as("a reason is required").isEqualTo(400);
         MockHttpServletResponse withdrawn = reject(hr, request, "synthetic: typed the wrong id");
 
-        assertThat(withdrawn.getStatus()).as(withdrawn.getContentAsString()).isBetween(200, 204);
+        assertThat(withdrawn.getStatus()).as(withdrawn.getContentAsString()).isEqualTo(200);
         assertThat(request(request).get("request_status")).isEqualTo("REJECTED");
         assertThat(fromStored(request(request).get("decided_by"))).isEqualTo(hr.userId());
         assertThat(auditCount(AUDIT_REJECTED)).isEqualTo(rejectedAudits + 1);
@@ -148,14 +148,14 @@ class ProfileChangeRequestEntryIT extends ProfileChangeRequestSupport {
         Staff subject = privileged();
         UUID clear = requested(hr, subject.employeeId(), "Synthetic cleared", null);
         Staff second = staff(PERSONNEL_SPECIALIST_ROLE);
-        assertThat(confirm(second, clear).getStatus()).isBetween(200, 204);
+        assertThat(confirm(second, clear).getStatus()).isEqualTo(200);
         assertThat(root(subject.employeeId()).get("wecom_user_id")).isNull();
 
         setToday(TODAY.plusDays(30));
         Staff caller = staff(PERSONNEL_SPECIALIST_ROLE);
         UUID waiting = requested(caller, subject.employeeId(), "Synthetic day 30", syntheticWecom("day30"));
         assertThat(request(waiting).get("base_wecom_user_id")).as("a fill-in caught by the 30-day rule has an empty base").isNull();
-        assertThat(reject(caller, waiting, "synthetic: try again tomorrow").getStatus()).isBetween(200, 204);
+        assertThat(reject(caller, waiting, "synthetic: try again tomorrow").getStatus()).isEqualTo(200);
 
         setToday(TODAY.plusDays(31));
         MockHttpServletResponse dayThirtyOne = changeOver(staff(PERSONNEL_SPECIALIST_ROLE), subject.employeeId(), "Synthetic day 31", syntheticWecom("day31"));
@@ -172,7 +172,7 @@ class ProfileChangeRequestEntryIT extends ProfileChangeRequestSupport {
 
         Staff rejectedClear = privileged();
         UUID clear = requested(hr, rejectedClear.employeeId(), "Synthetic clear asked", null);
-        assertThat(reject(staff(PERSONNEL_SPECIALIST_ROLE), clear, "synthetic: no").getStatus()).isBetween(200, 204);
+        assertThat(reject(staff(PERSONNEL_SPECIALIST_ROLE), clear, "synthetic: no").getStatus()).isEqualTo(200);
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, "update employees set wecom_user_id = null where id = ?", stored(rejectedClear.employeeId()));
         }
