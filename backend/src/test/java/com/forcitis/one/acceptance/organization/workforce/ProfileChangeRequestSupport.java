@@ -64,9 +64,18 @@ abstract class ProfileChangeRequestSupport extends EmployeeHireSupport {
     }
 
     protected MockHttpServletResponse reject(Staff caller, UUID request, String reason) throws Exception {
+        return rejectWith(caller, request, reason, "\"0\"");
+    }
+
+    protected MockHttpServletResponse rejectWith(Staff caller, UUID request, String reason, String ifMatch) throws Exception {
         String body = reason == null ? "{}" : "{\"reason\":\"" + reason + "\"}";
-        return mvc.perform(post(REQUESTS_PATH + "/" + request + ":reject").header("If-Match", "\"0\"").with(csrf()).with(session(caller.session()))
+        return mvc.perform(post(REQUESTS_PATH + "/" + request + ":reject").header("If-Match", ifMatch).with(csrf()).with(session(caller.session()))
                 .contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse();
+    }
+
+    /** The If-Match value of the request as it is now (a decided request is no longer version 0; review rv1059a). */
+    protected String currentVersionOf(UUID request) throws SQLException {
+        return "\"" + request(request).get("version") + "\"";
     }
 
     protected MockHttpServletResponse listPending(Staff caller) throws Exception {

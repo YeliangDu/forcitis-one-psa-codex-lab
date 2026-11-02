@@ -177,6 +177,19 @@ class ProfileChangeRequestEntryIT extends ProfileChangeRequestSupport {
             update(workforce, "update employees set wecom_user_id = null where id = ?", stored(rejectedClear.employeeId()));
         }
         assertThat(changeOver(hr, rejectedClear.employeeId(), "Synthetic filled after rejection", syntheticWecom("after-rejected")).getStatus()).isEqualTo(200);
+
+        Staff voidedClear = privileged();
+        UUID voided = requested(hr, voidedClear.employeeId(), "Synthetic clear to void", null);
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update employees set display_name = 'Synthetic renamed elsewhere' where id = ?", stored(voidedClear.employeeId()));
+        }
+        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE), voided).getStatus()).isEqualTo(409);
+        assertThat(request(voided).get("request_status")).as("premise: the clear request is voided").isEqualTo("VOIDED");
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update employees set wecom_user_id = null where id = ?", stored(voidedClear.employeeId()));
+        }
+        assertThat(changeOver(hr, voidedClear.employeeId(), "Synthetic filled after void", syntheticWecom("after-voided")).getStatus())
+                .as("a fill-in after a VOIDED clear request is one person (rv1059a M2)").isEqualTo(200);
     }
 
     @Test

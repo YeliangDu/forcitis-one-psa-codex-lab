@@ -140,7 +140,7 @@ class ProfileChangeRequestDecisionIT extends ProfileChangeRequestSupport {
         assertThat(request(request).get("decision_reason")).isEqualTo("synthetic: not this person");
         assertUntouched(subject, before, identifiers);
         assertThat(auditCount(AUDIT_REJECTED)).isEqualTo(rejectedAudits + 1);
-        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE), request).getStatus()).isEqualTo(409);
+        assertThat(confirmWith(staff(PERSONNEL_SPECIALIST_ROLE), request, currentVersionOf(request)).getStatus()).isEqualTo(409);
     }
 
     @Test
@@ -162,8 +162,8 @@ class ProfileChangeRequestDecisionIT extends ProfileChangeRequestSupport {
         Staff third = staff(PERSONNEL_SPECIALIST_ROLE);
         for (UUID decided : List.of(confirmed, rejected, voided)) {
             Map<String, Object> row = request(decided);
-            assertThat(confirm(third, decided).getStatus()).as("confirm " + decided).isEqualTo(409);
-            assertThat(reject(third, decided, "synthetic: late").getStatus()).as("reject " + decided).isEqualTo(409);
+            assertThat(confirmWith(third, decided, currentVersionOf(decided)).getStatus()).as("confirm " + decided).isEqualTo(409);
+            assertThat(rejectWith(third, decided, "synthetic: late", currentVersionOf(decided)).getStatus()).as("reject " + decided).isEqualTo(409);
             assertThat(request(decided)).isEqualTo(row);
         }
     }
