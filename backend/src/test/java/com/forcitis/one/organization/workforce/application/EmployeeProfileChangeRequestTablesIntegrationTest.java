@@ -68,7 +68,7 @@ class EmployeeProfileChangeRequestTablesIntegrationTest extends WorkforceIntegra
         refused("ck_employee_profile_change_requests_decision_reason", insert(EMPLOYEE, "REJECTED", ", decided_by, decided_at, decision_reason", ", " + CONFIRMER + ", now(), ' '"));
         refused("ck_employee_profile_change_requests_decision_reason", insert(EMPLOYEE, "CONFIRMED", ", decided_by, decided_at, decision_reason", ", " + CONFIRMER + ", now(), 'x'"));
         refused("ck_employee_profile_change_requests_display_name", insert(EMPLOYEE, "PENDING", "", "").replace("base_display_name, base_wecom_user_id, display_name", "base_display_name, base_wecom_user_id, display_name").replace("'name', 'old', 'name'", "'name', 'old', ' '"));
-        refused("ck_employee_profile_change_requests_gender", insert(EMPLOYEE, "PENDING", ", gender_kind", ", 'OTHER'"));
+        refused("ck_employee_profile_change_requests_gender", insert(EMPLOYEE, "PENDING", ", gender_code", ", 'OTHER'"));
     }
 
     @Test

@@ -50,8 +50,8 @@ organization_workforce.employee_versions.is_fee_earner | INTERNAL | PI | 用途�
 organization_workforce.employee_versions.employment_start_date | INTERNAL | PI | 用途：员工入职日期，满周年查询用；个人信息 PI
 organization_workforce.employee_profile_change_requests.base_display_name | INTERNAL | PI | 用途：申请时的姓名，确认时比对档案；访问级别与档案同列一致
 organization_workforce.employee_profile_change_requests.display_name | INTERNAL | PI | 用途：拟改的姓名，确认后写入档案；访问级别与档案同列一致
-organization_workforce.employee_profile_change_requests.base_gender_kind | INTERNAL | PI | 用途：申请时的性别，确认时比对档案；访问级别与档案同列一致
-organization_workforce.employee_profile_change_requests.gender_kind | INTERNAL | PI | 用途：拟改的性别，确认后写入档案；访问级别与档案同列一致
+organization_workforce.employee_profile_change_requests.base_gender_code | INTERNAL | PI | 用途：申请时的性别，确认时比对档案；访问级别与档案同列一致
+organization_workforce.employee_profile_change_requests.gender_code | INTERNAL | PI | 用途：拟改的性别，确认后写入档案；访问级别与档案同列一致
 organization_workforce.employee_profile_change_requests.base_email_address | INTERNAL | PI | 用途：申请时的企业邮箱，确认时比对档案；访问级别与档案同列一致
 organization_workforce.employee_profile_change_requests.email_address | INTERNAL | PI | 用途：拟改的企业邮箱，确认后写入档案；访问级别与档案同列一致
 organization_workforce.employee_profile_change_requests.base_wecom_user_id | INTERNAL | PI | 用途：申请时的企业微信用户 ID，确认时比对档案；访问级别与档案同列一致
