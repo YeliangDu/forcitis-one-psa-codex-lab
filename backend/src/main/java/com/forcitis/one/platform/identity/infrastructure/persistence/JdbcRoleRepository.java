@@ -204,10 +204,7 @@ class JdbcRoleRepository implements RoleRepository {
         Optional<CurrentVersion> current = currentVersion(declared.roleId());
         Instant from = nextStart(declared.roleId(), now);
         current.ifPresent(version -> updateToReplace(version.id(), from));
-        int number = jdbc.sql("""
-                select coalesce(max(version_number), 0) + 1 from platform_identity.role_versions where role_id = :id
-                """)
-                .param("id", declared.roleId().value()).query(Integer.class).single();
+        int number = current.map(version -> version.number() + 1).orElse(1);
         insertVersion(declared.roleId(), number, from, now, declared.definition(), RoleChange.seed(declared.revisionNumber()),
                 current.map(version -> version.definition().customOrgUnits()).orElse(Set.of()));
         int updated = jdbc.sql("""
@@ -236,11 +233,8 @@ class JdbcRoleRepository implements RoleRepository {
             return new DeclarationResult(DeclarationOutcome.CONFLICTING, null);
         }
         Optional<CurrentVersion> current = currentVersion(declared.roleId());
-        int stored = jdbc.sql("""
-                select coalesce(max(declaration_revision_number), 0) from platform_identity.role_versions where role_id = :id
-                """)
-                .param("id", declared.roleId().value()).query(Integer.class).single();
-        Integer highest = stored == 0 ? null : stored;
+        // A system role is frozen (only SEED versions), so the current version carries the highest declaration revision and the number is the latest.
+        Integer highest = current.map(CurrentVersion::declarationRevisionNumber).orElse(null);
         DeclarationOutcome outcome = declared.outcome(current.map(CurrentVersion::definition).orElse(null),
                 current.filter(v -> v.channel() == ChangeChannel.SEED).map(CurrentVersion::declarationRevisionNumber).orElse(null), highest);
         return new DeclarationResult(outcome, highest);

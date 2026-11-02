@@ -27,8 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ChangeAccountStatus {
 
-    private static final String DISABLED = "platform.identity.account.disabled";
-
     private final AccountRepository accounts;
     private final SessionRevocation revocation;
     private final AccessCache cache;
@@ -73,7 +71,7 @@ public class ChangeAccountStatus {
                 if (open.stream().anyMatch(grant -> grant.roleCode().equals(Role.SUPER_ADMIN) || grant.roleCode().equals(Role.SECURITY_AUDITOR))) {
                     judgement = floor.judge(userId, open.stream().anyMatch(grant -> grant.roleCode().equals(Role.SUPER_ADMIN)));
                 }
-                disabledEntry = audit.record(new AuditEntry(DISABLED, currentUser.userId(), null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
+                disabledEntry = audit.record(new AuditEntry("platform.identity.account.disabled", currentUser.userId(), null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
                         "the account was disabled"));
             }
             accounts.save(account);

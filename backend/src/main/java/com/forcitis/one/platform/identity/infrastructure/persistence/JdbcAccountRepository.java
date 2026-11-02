@@ -158,6 +158,12 @@ class JdbcAccountRepository implements AccountRepository {
             jdbc.sql("""
                     select role_id from platform_identity.roles where role_id = :role for share
                     """).param("role", opening.roleId().value()).query(UUID.class).optional();
+            boolean live = jdbc.sql("""
+                    select exists (select 1 from platform_identity.role_versions where role_id = :role and %s)
+                    """.formatted(Validity.CURRENT)).param("role", opening.roleId().value()).query(Boolean.class).single();
+            if (!live) {
+                throw new DomainException(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND, ErrorKind.NOT_FOUND, "role " + opening.roleId().value() + " was deleted");
+            }
             jdbc.sql("""
                     insert into platform_identity.account_role_grants (account_role_grant_id, user_id, role_id, effective_from_at, granted_by, grant_channel_kind,
                            grant_authorization_request_id, grant_audit_entry_id, created_at, updated_at)

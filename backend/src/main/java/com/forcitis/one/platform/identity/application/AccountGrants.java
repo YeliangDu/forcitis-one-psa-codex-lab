@@ -10,6 +10,7 @@ import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.identity.api.AccountRoleGrantId;
 import com.forcitis.one.platform.identity.api.AuthorizationRequestId;
+import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
@@ -37,29 +38,24 @@ import org.springframework.stereotype.Component;
 @Component
 class AccountGrants {
 
-    static final String GRANTED = "platform.identity.account.role.granted";
-    static final String REVOKED = "platform.identity.account.role.revoked";
-    static final String OPERATIONS_GRANTED = "platform.identity.operations.account.role.granted";
-    static final String OPERATIONS_REVOKED = "platform.identity.operations.account.role.revoked";
-
     /** Who acts and under which channel and cause the rows are written; note is added to every audit text. */
     record Origin(GrantChannel channel, RevocationCause cause, @Nullable UserId actor, @Nullable AuthorizationRequestId request,
-                  @Nullable PersonnelCommandId separationCommand, String grantedAction, String revokedAction, String note) {
+                  @Nullable PersonnelCommandId separationCommand, boolean operations, String note) {
 
         static Origin manual(UserId actor, @Nullable AuthorizationRequestId request) {
-            return new Origin(GrantChannel.MANUAL, RevocationCause.MANUAL, actor, request, null, GRANTED, REVOKED, "");
+            return new Origin(GrantChannel.MANUAL, RevocationCause.MANUAL, actor, request, null, false, "");
         }
 
         static Origin defaultRole() {
-            return new Origin(GrantChannel.DEFAULT_ROLE, RevocationCause.MANUAL, null, null, null, GRANTED, REVOKED, "");
+            return new Origin(GrantChannel.DEFAULT_ROLE, RevocationCause.MANUAL, null, null, null, false, "");
         }
 
         static Origin operations(OperationAttestation attestation) {
-            return new Origin(GrantChannel.OPERATIONS, RevocationCause.OPERATIONS, null, null, null, OPERATIONS_GRANTED, OPERATIONS_REVOKED, attestation.describe());
+            return new Origin(GrantChannel.OPERATIONS, RevocationCause.OPERATIONS, null, null, null, true, attestation.describe());
         }
 
         static Origin separation(PersonnelCommandId command) {
-            return new Origin(GrantChannel.MANUAL, RevocationCause.SEPARATION, null, null, command, GRANTED, REVOKED, "");
+            return new Origin(GrantChannel.MANUAL, RevocationCause.SEPARATION, null, null, command, false, "");
         }
     }
 
@@ -94,8 +90,8 @@ class AccountGrants {
         List<GrantClosing> closed = new ArrayList<>();
         for (HeldGrant grant : open) {
             if (!wanted.contains(grant.roleId())) {
-                AuditEntryId entry = audit.record(new AuditEntry(origin.revokedAction(), origin.actor(), null, subject,
-                        text(origin, "grant=" + grant.id() + " role=" + grant.roleCode().value() + " cause=" + origin.cause())));
+                AuditEntryId entry = audit.record(revokedEntry(origin, subject,
+                        text(origin, grant.id(), grant.roleCode(), "cause=" + origin.cause())));
                 closed.add(new GrantClosing(grant.id(), origin.cause(), origin.cause() == RevocationCause.MANUAL ? origin.actor() : null, origin.request(),
                         origin.separationCommand(), entry));
             }
@@ -104,9 +100,9 @@ class AccountGrants {
         for (RoleId role : wanted) {
             if (!held.contains(role)) {
                 AccountRoleGrantId id = new AccountRoleGrantId(ids.next());
-                RoleCode code = roles.findById(role).orElseThrow(() -> new IllegalStateException("role " + role.value() + " vanished")).code();
-                AuditEntryId entry = audit.record(new AuditEntry(origin.grantedAction(), origin.actor(), null, subject,
-                        text(origin, "grant=" + id + " role=" + code.value() + " channel=" + origin.channel())));
+                RoleCode code = roles.findById(role).orElseThrow(() -> IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND.refusal("role " + role.value() + " was deleted")).code();
+                AuditEntryId entry = audit.record(grantedEntry(origin, subject,
+                        text(origin, id, code, "channel=" + origin.channel())));
                 opened.add(new GrantOpening(id, role, origin.channel(), origin.channel() == GrantChannel.MANUAL ? origin.actor() : null, origin.request(), entry));
             }
         }
@@ -117,7 +113,18 @@ class AccountGrants {
         return changes;
     }
 
-    private String text(Origin origin, String what) {
-        return (origin.note().isEmpty() ? "" : origin.note() + " ") + what + " at=" + clock.instant();
+    private static AuditEntry revokedEntry(Origin origin, AuditSubject subject, String detail) {
+        return origin.operations() ? new AuditEntry("platform.identity.operations.account.role.revoked", origin.actor(), null, subject, detail)
+                : new AuditEntry("platform.identity.account.role.revoked", origin.actor(), null, subject, detail);
+    }
+
+    private static AuditEntry grantedEntry(Origin origin, AuditSubject subject, String detail) {
+        return origin.operations() ? new AuditEntry("platform.identity.operations.account.role.granted", origin.actor(), null, subject, detail)
+                : new AuditEntry("platform.identity.account.role.granted", origin.actor(), null, subject, detail);
+    }
+
+    /** The operations commands keep their audit text (the attestation and the role) as it was; the other acts name the grant row, the cause or channel and the actual clock. */
+    private String text(Origin origin, AccountRoleGrantId grant, RoleCode role, String how) {
+        return origin.operations() ? origin.note() + " role=" + role.value() : "grant=" + grant + " role=" + role.value() + " " + how + " at=" + clock.instant();
     }
 }

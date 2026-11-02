@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
 /**
- * Reads roles with their current version (ADR-0034 decision 1 item 2: current = effective_to_at is null) and that version's custom org
+ * Reads roles with their current version (ADR-0034 decision 1 item 2: current = the row not yet closed, see Validity) and that version's custom org
  * units (ADR-0034 section 5), the units of all roles read in one more statement. A role without a current version (a deleted role) is
  * never read. A permission code the catalogue does not know or has deprecated is left out of the role and alerted; the other codes of the
  * version still count and nothing is thrown (decision 1 item 3, fail-closed).
