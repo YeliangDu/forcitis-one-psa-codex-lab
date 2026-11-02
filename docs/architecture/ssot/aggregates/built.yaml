@@ -86,7 +86,6 @@ aggregates:
   - organization.workforce.LegalEntityDeactivated
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
-  - organization.workforce.OrgSnapshotChanged
   - organization.workforce.SeparationHeld
   - organization.workforce.SeparationHoldReleased
 - id: organization.workforce/LegalEntityAttribution
@@ -125,7 +124,6 @@ aggregates:
   - organization.workforce.LegalEntityDeactivated
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
-  - organization.workforce.OrgSnapshotChanged
   - organization.workforce.SeparationHeld
   - organization.workforce.SeparationHoldReleased
 - id: organization.workforce/PersonnelCommand
@@ -161,7 +159,6 @@ aggregates:
   - organization.workforce.LegalEntityDeactivated
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
-  - organization.workforce.OrgSnapshotChanged
   - organization.workforce.SeparationHeld
   - organization.workforce.SeparationHoldReleased
 - id: organization.workforce/RegisteredEmployee
@@ -190,7 +187,6 @@ aggregates:
   - organization.workforce.LegalEntityDeactivated
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
-  - organization.workforce.OrgSnapshotChanged
   - organization.workforce.SeparationHeld
   - organization.workforce.SeparationHoldReleased
 - id: platform.approval/ApprovalRequest
@@ -397,7 +393,7 @@ aggregates:
   - EmergencyBinding
   - GetUserAccount
   - GrantRoleByOperations
-  - HandleOrgSnapshotChange
+  - HandleEmployeeSeparated
   - LoginAdmission
   - LoginAsEmergencyAdmin
   - ReconcileEmergencyAdmins

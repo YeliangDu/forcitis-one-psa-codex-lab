@@ -1,49 +1,6 @@
 # 事件目录分片（AsyncAPI 3 的 components.messages）：本模块的事件由 build_asyncapi.py 合成 asyncapi.yaml
 components:
   messages:
-    OrgSnapshotChanged:
-      name: OrgSnapshotChanged
-      title: 组织快照因同步发生变化
-      payload:
-        type: object
-        properties:
-          changedEmployees:
-            type: array
-            items:
-              type: string
-              x-type: EmployeeId
-              format: uuid
-          separatedEmployees:
-            type: array
-            items:
-              type: string
-              x-type: EmployeeId
-              format: uuid
-          changedOrgUnits:
-            type: array
-            items:
-              type: string
-              x-type: OrgUnitId
-              format: uuid
-          effectiveFrom:
-            type: string
-            x-type: LocalDate
-            description: 变化从哪一天起生效（含）；组织源不给变更日期，取快照截止日
-      x-event:
-        eventType: organization.workforce.OrgSnapshotChanged
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.OrgSnapshotChanged
-        aggregate: SyncRun
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers:
-        - platform.identity
-        - platform.audit
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 快照截止日：同步运行开始当天（Asia/Shanghai），即读取组织源快照的业务日；effectiveFrom 在负载
-        audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.domain.SyncedFieldsContractTest
     LegalEntityRegistered:
       name: LegalEntityRegistered
       title: 法人新增

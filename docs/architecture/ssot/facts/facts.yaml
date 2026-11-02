@@ -1119,7 +1119,6 @@ not_facts:
   reason: 配置变更，非业务里程碑
 - name: 组织快照与法人事件（10 条）
   events:
-  - organization.workforce.OrgSnapshotChanged
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
   - organization.workforce.LegalEntityActivated

@@ -20,7 +20,7 @@ import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.modulith.events.ApplicationModuleListener;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 
 /**
  * The local personnel command took effect (ADR-0068 item 2.5 C): the person loses every role, session and browser identifier (ADR-0027 section 1;
@@ -29,8 +29,8 @@ import org.springframework.stereotype.Service;
  * so session revocation does not depend on it.
  */
 @SystemActorName("platform.identity.separation")
-@Service
-public class HandleEmployeeSeparated {
+@Component
+class HandleEmployeeSeparated {
 
     private static final String ACTOR = HandleEmployeeSeparated.class.getAnnotation(SystemActorName.class).value();
     private static final int MAX_ATTEMPTS = 3;

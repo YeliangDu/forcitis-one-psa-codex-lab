@@ -226,11 +226,6 @@ channels:
     messages:
       TimesheetApprovalWithdrawn:
         $ref: '#/components/messages/TimesheetApprovalWithdrawn'
-  orgSnapshotChanged:
-    address: organization.workforce.OrgSnapshotChanged
-    messages:
-      OrgSnapshotChanged:
-        $ref: '#/components/messages/OrgSnapshotChanged'
   legalEntityRegistered:
     address: organization.workforce.LegalEntityRegistered
     messages:
@@ -975,27 +970,6 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/timesheetApprovalWithdrawn/messages/TimesheetApprovalWithdrawn'
-  publishOrgSnapshotChanged:
-    action: send
-    channel:
-      $ref: '#/channels/orgSnapshotChanged'
-    summary: organization.workforce 发布
-    messages:
-    - $ref: '#/channels/orgSnapshotChanged/messages/OrgSnapshotChanged'
-  handleOrgSnapshotChangedInPlatformIdentity:
-    action: receive
-    channel:
-      $ref: '#/channels/orgSnapshotChanged'
-    summary: platform.identity 消费
-    messages:
-    - $ref: '#/channels/orgSnapshotChanged/messages/OrgSnapshotChanged'
-  handleOrgSnapshotChangedInPlatformAudit:
-    action: receive
-    channel:
-      $ref: '#/channels/orgSnapshotChanged'
-    summary: platform.audit 消费
-    messages:
-    - $ref: '#/channels/orgSnapshotChanged/messages/OrgSnapshotChanged'
   publishLegalEntityRegistered:
     action: send
     channel:
@@ -3716,57 +3690,6 @@ components:
               value:
                 type: string
             description: 撤销原因
-    OrgSnapshotChanged:
-      name: OrgSnapshotChanged
-      title: 组织快照因同步发生变化
-      x-event:
-        eventType: organization.workforce.OrgSnapshotChanged
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.OrgSnapshotChanged
-        aggregate: SyncRun
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers:
-        - platform.identity
-        - platform.audit
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 快照截止日：同步运行开始当天（Asia/Shanghai），即读取组织源快照的业务日；effectiveFrom 在负载
-        audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.domain.SyncedFieldsContractTest
-      payload:
-        type: object
-        required:
-        - envelope
-        - changedEmployees
-        - separatedEmployees
-        - changedOrgUnits
-        - effectiveFrom
-        properties:
-          envelope:
-            $ref: '#/components/schemas/EventEnvelope'
-          changedEmployees:
-            type: array
-            items:
-              type: string
-              x-type: EmployeeId
-              format: uuid
-          separatedEmployees:
-            type: array
-            items:
-              type: string
-              x-type: EmployeeId
-              format: uuid
-          changedOrgUnits:
-            type: array
-            items:
-              type: string
-              x-type: OrgUnitId
-              format: uuid
-          effectiveFrom:
-            type: string
-            x-type: LocalDate
-            description: 变化从哪一天起生效（含）；组织源不给变更日期，取快照截止日
     LegalEntityRegistered:
       name: LegalEntityRegistered
       title: 法人新增

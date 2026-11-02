@@ -1884,28 +1884,6 @@ by_event:
     noConsumer: 暂无消费方：分析层 L1 的工时累积快照将订阅；现在就发布，是因为撤销时刻只在发生当时可记录，事后补不回
   missing_fields: []
   source: docs/architecture/events/timesheet.yaml:259
-- event_type: organization.workforce.OrgSnapshotChanged
-  title: 组织快照因同步发生变化
-  description: null
-  publisher: organization.workforce
-  x-event:
-    eventType: organization.workforce.OrgSnapshotChanged
-    version: 1
-    class: com.forcitis.one.organization.workforce.events.OrgSnapshotChanged
-    aggregate: SyncRun
-    idempotencyKey: eventId
-    publisher: organization.workforce
-    consumers:
-    - platform.identity
-    - platform.audit
-    delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-    formsFact: false
-    businessDate: 快照截止日：同步运行开始当天（Asia/Shanghai），即读取组织源快照的业务日；effectiveFrom 在负载
-    audit: audited
-    publisherTest: com.forcitis.one.organization.workforce.domain.SyncedFieldsContractTest
-  missing_fields:
-  - description
-  source: docs/architecture/events/workforce.yaml:155
 - event_type: organization.workforce.LegalEntityRegistered
   title: 法人新增
   description: null
