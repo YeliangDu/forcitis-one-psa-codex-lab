@@ -391,6 +391,7 @@ aggregates:
   - registry
   tables:
   - platform_identity.account_role_grants
+  - platform_identity.handled_personnel_commands
   - platform_identity.user_accounts
   commands:
   - AccountGrants
