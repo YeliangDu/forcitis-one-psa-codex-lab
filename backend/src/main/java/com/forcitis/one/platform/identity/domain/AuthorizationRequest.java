@@ -11,6 +11,7 @@ import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.events.AuthorizationConfirmed;
 import com.forcitis.one.platform.identity.events.AuthorizationRejected;
+import com.forcitis.one.platform.identity.events.AuthorizationVoided;
 import com.forcitis.one.platform.identity.events.AuthorizationOpened;
 import java.time.Instant;
 import java.util.List;
@@ -26,6 +27,7 @@ public final class AuthorizationRequest extends AggregateRoot {
 
     public static final StateMachine<AuthorizationRequestStatus> MACHINE = StateMachine.of(AuthorizationRequestStatus.class)
             .allow(AuthorizationRequestStatus.PENDING, AuthorizationRequestStatus.CONFIRMED, AuthorizationRequestStatus.REJECTED)
+            .allow(AuthorizationRequestStatus.CONFIRMED, AuthorizationRequestStatus.VOIDED)
             .build();
 
     private final AuthorizationRequestId requestId;
@@ -36,6 +38,7 @@ public final class AuthorizationRequest extends AggregateRoot {
     private final @Nullable RoleId roleId;
     private final Set<String> roleCodes;
     private final @Nullable RoleDraft draft;
+    private final AuthorizationBase base;
     private final AuthorizationRequestStatus loadedStatus;
     private AuthorizationRequestStatus status;
     private @Nullable UserId decidedBy;
@@ -44,7 +47,7 @@ public final class AuthorizationRequest extends AggregateRoot {
 
     private AuthorizationRequest(AuthorizationRequestId requestId, AuthorizationRequestKind kind, UserId requestedBy, Instant requestedAt,
             @Nullable UserId subjectUser, @Nullable RoleId roleId, Set<String> roleCodes, @Nullable RoleDraft draft,
-            AuthorizationRequestStatus status, @Nullable UserId decidedBy, @Nullable Instant decidedAt, boolean stored, long version,
+            AuthorizationBase base, AuthorizationRequestStatus status, @Nullable UserId decidedBy, @Nullable Instant decidedAt, boolean stored, long version,
             long eventSequence) {
         super(version, eventSequence);
         this.requestId = Objects.requireNonNull(requestId, "requestId");
@@ -55,6 +58,7 @@ public final class AuthorizationRequest extends AggregateRoot {
         this.roleId = roleId;
         this.roleCodes = Set.copyOf(roleCodes);
         this.draft = draft;
+        this.base = Objects.requireNonNull(base, "base");
         this.status = Objects.requireNonNull(status, "status");
         this.loadedStatus = status;
         this.decidedBy = decidedBy;
@@ -62,25 +66,27 @@ public final class AuthorizationRequest extends AggregateRoot {
         this.stored = stored;
     }
 
-    public static AuthorizationRequest replaceRoles(AuthorizationRequestId id, UserId requestedBy, Instant at, UserId subject, Set<String> roleCodes) {
-        return opened(new AuthorizationRequest(id, AuthorizationRequestKind.REPLACE_ROLES, requestedBy, at, subject, null, roleCodes, null,
+    public static AuthorizationRequest replaceRoles(AuthorizationRequestId id, UserId requestedBy, Instant at, UserId subject, Set<String> roleCodes,
+            AuthorizationBase base) {
+        return opened(new AuthorizationRequest(id, AuthorizationRequestKind.REPLACE_ROLES, requestedBy, at, subject, null, roleCodes, null, base,
                 AuthorizationRequestStatus.PENDING, null, null, false, 0, 0));
     }
 
     public static AuthorizationRequest createRole(AuthorizationRequestId id, UserId requestedBy, Instant at, RoleDraft draft) {
         return opened(new AuthorizationRequest(id, AuthorizationRequestKind.CREATE_ROLE, requestedBy, at, null, null, Set.of(), draft,
-                AuthorizationRequestStatus.PENDING, null, null, false, 0, 0));
+                AuthorizationBase.NONE, AuthorizationRequestStatus.PENDING, null, null, false, 0, 0));
     }
 
-    public static AuthorizationRequest updateRole(AuthorizationRequestId id, UserId requestedBy, Instant at, RoleId role, RoleDraft draft) {
-        return opened(new AuthorizationRequest(id, AuthorizationRequestKind.UPDATE_ROLE, requestedBy, at, null, role, Set.of(), draft,
+    public static AuthorizationRequest updateRole(AuthorizationRequestId id, UserId requestedBy, Instant at, RoleId role, RoleDraft draft,
+            AuthorizationBase base) {
+        return opened(new AuthorizationRequest(id, AuthorizationRequestKind.UPDATE_ROLE, requestedBy, at, null, role, Set.of(), draft, base,
                 AuthorizationRequestStatus.PENDING, null, null, false, 0, 0));
     }
 
     public static AuthorizationRequest restore(AuthorizationRequestId id, AuthorizationRequestKind kind, UserId requestedBy, Instant requestedAt,
-            @Nullable UserId subjectUser, @Nullable RoleId roleId, Set<String> roleCodes, @Nullable RoleDraft draft, String status,
-            @Nullable UserId decidedBy, @Nullable Instant decidedAt, long version, long eventSequence) {
-        return new AuthorizationRequest(id, kind, requestedBy, requestedAt, subjectUser, roleId, roleCodes, draft,
+            @Nullable UserId subjectUser, @Nullable RoleId roleId, Set<String> roleCodes, @Nullable RoleDraft draft, AuthorizationBase base,
+            String status, @Nullable UserId decidedBy, @Nullable Instant decidedAt, long version, long eventSequence) {
+        return new AuthorizationRequest(id, kind, requestedBy, requestedAt, subjectUser, roleId, roleCodes, draft, base,
                 AuthorizationRequestStatus.valueOf(status), decidedBy, decidedAt, true, version, eventSequence);
     }
 
@@ -105,6 +111,12 @@ public final class AuthorizationRequest extends AggregateRoot {
         this.decidedBy = by;
         this.decidedAt = at;
         record((envelopes, version) -> new AuthorizationConfirmed(envelopes.wrap(draft("AuthorizationConfirmed", version)), requestId, by));
+    }
+
+    /** The base moved between the request and its execution: nothing is applied and the request ends here, kept as it was decided. */
+    public void markVoided() {
+        this.status = MACHINE.require(status, AuthorizationRequestStatus.VOIDED, IdentityError.PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_PENDING);
+        record((envelopes, version) -> new AuthorizationVoided(envelopes.wrap(draft("AuthorizationVoided", version)), requestId));
     }
 
     public void reject(UserId by, Instant at) {
@@ -152,6 +164,10 @@ public final class AuthorizationRequest extends AggregateRoot {
 
     public @Nullable RoleDraft roleDraft() {
         return draft;
+    }
+
+    public AuthorizationBase base() {
+        return base;
     }
 
     public AuthorizationRequestStatus status() {

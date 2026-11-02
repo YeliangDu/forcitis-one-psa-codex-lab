@@ -19,7 +19,7 @@ CI（`.github/workflows/ci.yml`、`generated-docs.yml`）全部跑在本机自�
 
 - 一个 PR 有 4 个作业（backend、frontend、gitleaks、assertion drift），正好占满 4 个 runner；两个 PR 同时到会排队。不要把作业再拆细。
 - Maven 用共享的 `~/.m2`，pnpm 用共享的 store（`pnpm install --prefer-offline`）。两者对并发读写安全；依赖变更后的首次运行会下载。不使用 `actions/cache`，本机上传下载更慢。
-- backend 作业运行 `scripts/ci/backend_verify.sh`：先编译，再同时运行 surefire 与 failsafe，各 4 个 fork，不带 jacoco 代理（CI 不读覆盖率，本地 `./mvnw verify` 仍生成报告）（`backend/pom.xml` 的 `test.forks`，`-Dtest.forks=1` 恢复串行）。
+- backend 作业运行 `scripts/ci/backend_verify.sh`：先编译，再同时运行 surefire 与 failsafe（CI 里 surefire 2 个 fork，failsafe 4 个：surefire 约 1.5 分钟跑完，failsafe 是关键路径，代码车道同一时刻只有一个重后端作业，4 个 fork 不与别的重作业争；本机实测 failsafe 2 个 fork 405/407 秒、4 个 fork 296/250 秒，#1034），不带 jacoco 代理（CI 不读覆盖率，本地 `./mvnw verify` 仍生成报告）（`backend/pom.xml` 的 `test.forks`，failsafe 另有 `it.forks`，默认同 `test.forks`；`-Dtest.forks=1` 恢复串行）。
 - 测试容器（postgres:18）由 Testcontainers 的 ryuk（`testcontainers/ryuk:0.14.0`）在 JVM 退出时回收；作业开始前若本机没有这两个镜像会先拉取。查残留：`docker ps`，应只剩与 CI 无关的常驻容器。
 
 ## 重步骤何时跑（合并队列标签 `queued`）
@@ -59,7 +59,7 @@ runner 程序会在 GitHub 发布新版本后自动更新自己；需要手动�
 
 ## SQL Server 集成测试（profile legacy-it）
 
-`*MssqlIT` 只在 `-Plegacy-it` 下编译和运行（ADR-0037 守护第 5 组）。`relevant_change.py` 另输出 `legacy_it`：改到 `platform/integration`、`platform/approval/infrastructure/legacy` 的源码与测试、`acceptance/platform/integration`、`*MssqlIT` 直接引用的类与文件（`TestImages.java`、`kernel/WecomUserId.java`、`SEEYON_VIEWS.sql` 等，自检扫描 `*MssqlIT.java` 的 import 与相对路径，漏列即失败）、`backend/architecture/` 的 `test-images.txt` 与 `external-read-registry.yaml`、`backend/pom.xml`、B-5 交接包的 `.sql`、`scripts/ci/legacy_it.sh`、`ci.yml` 与 `nightly-legacy-it.yml` 时，backend 作业末尾多跑 `scripts/ci/legacy_it.sh`（超时 30 分钟）。push 到 main 与前一次推送比较，比较不了时照跑；因 `ci.yml` 的并发组会取消同一分支上未完成的运行，连续合并时中间一次可能漏跑，由 PR 门禁与每夜全量兜底。
+`*MssqlIT` 只在 `-Plegacy-it` 下编译和运行（ADR-0037 守护第 5 组）。`relevant_change.py` 另输出 `legacy_it`：改到 `platform/integration`、`platform/approval/infrastructure/legacy` 的源码与测试、`acceptance/platform/integration`、`*MssqlIT` 直接引用的类与文件（`TestImages.java`、`kernel/WecomUserId.java`、`SEEYON_VIEWS.sql` 等，自检扫描 `*MssqlIT.java` 的 import 与相对路径，漏列即失败）、`backend/architecture/` 的 `test-images.txt` 与 `external-read-registry.yaml`、`backend/pom.xml`、B-5 交接包的 `.sql`、`scripts/ci/legacy_it.sh`、`ci.yml` 与 `nightly-legacy-it.yml` 时，backend 作业多跑 `scripts/ci/legacy_it.sh`（超时 30 分钟）。它在同一 backend 作业内、同一提交的第二份检出（`$RUNNER_TEMP/legacy-it`，自己的 target 与报告目录）里与 surefire、failsafe 并行（#1034，约省 3 分钟），作业末尾的 `SQL Server integration tests (profile legacy-it)` 步骤等它跑完并以它的退出码判成败，所以结果仍在必需检查 `backend verify` 之内；作业失败或取消时 `stop the SQL Server tests if they are still running` 步骤清掉它的进程与检出。push 到 main 与前一次推送比较，比较不了时照跑；因 `ci.yml` 的并发组会取消同一分支上未完成的运行，连续合并时中间一次可能漏跑，由 PR 门禁与每夜全量兜底。
 
 只跑 `*MssqlIT` 与 ADR 原文的 `verify -Plegacy-it` 等价：该 profile 只比默认构建多编译并运行 `*MssqlIT`，其余测试与同一作业里的默认全量运行相同，不必重跑。
 

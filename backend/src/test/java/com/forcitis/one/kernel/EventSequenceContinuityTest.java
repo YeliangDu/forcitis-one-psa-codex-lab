@@ -117,7 +117,8 @@ class EventSequenceContinuityTest {
     @DisplayName("AuthorizationRequest: events are numbered 1..n")
     void authorizationRequest() {
         checkMany(() -> com.forcitis.one.platform.identity.domain.AuthorizationRequest.replaceRoles(
-                        new com.forcitis.one.platform.identity.api.AuthorizationRequestId(java.util.UUID.randomUUID()), TestAccounts.account(1), NOW, TestAccounts.account(2), Set.of("employee")),
+                        new com.forcitis.one.platform.identity.api.AuthorizationRequestId(java.util.UUID.randomUUID()), TestAccounts.account(1), NOW, TestAccounts.account(2), Set.of("employee"),
+                        new com.forcitis.one.platform.identity.domain.AuthorizationBase(1L, List.of())),
                 List.of(r -> r.confirm(TestAccounts.account(3), NOW), r -> r.reject(TestAccounts.account(4), NOW)));
     }
 

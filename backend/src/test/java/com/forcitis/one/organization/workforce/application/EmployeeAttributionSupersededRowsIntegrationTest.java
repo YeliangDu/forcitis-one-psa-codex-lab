@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 /** IMP-1030-FC-A (#892): the attribution repository reads and closes the current employee period only; a superseded row of the same day is neither a period nor touched. */
 class EmployeeAttributionSupersededRowsIntegrationTest extends WorkforceIntegrationSupport {
     static final UUID EMPLOYEE = UUID.fromString("019a0000-0000-7000-8000-000000000001");
-    static final UUID LEGAL_ENTITY = UUID.fromString("019a0000-0000-7000-8000-0000000000e1");
+    static final UUID LEGAL_ENTITY = UUID.fromString("019a0000-0000-7000-8000-0000000000e2");
     static final UUID COMMAND = UUID.fromString("019a0000-0000-7000-8000-0000000000c1");
     static final UUID SUPERSEDED_ROW = UUID.fromString("019a0000-0000-7000-8000-0000000000d1");
     static final UUID CURRENT_ROW = UUID.fromString("019a0000-0000-7000-8000-0000000000d2");
@@ -27,7 +27,7 @@ class EmployeeAttributionSupersededRowsIntegrationTest extends WorkforceIntegrat
     @DisplayName("IMP-1030-FC-A a superseded period of the same day is not read as a period and is not closed with the current one")
     void supersededRowsAreLeftAlone() {
         jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values (:id, 'E-01', 'name', 'EMPLOYED')").param("id", EMPLOYEE).update();
-        jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (:id, 'ABC', 'entity', 'ACTIVE') on conflict do nothing").param("id", LEGAL_ENTITY).update();
+        jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (:id, 'ZQA', 'entity', 'ACTIVE') on conflict (id) do nothing").param("id", LEGAL_ENTITY).update();
         jdbc.sql("insert into organization_workforce.legal_entity_attributions (attribution_id, employee_id, version, event_count) values (gen_random_uuid(), :id, 1, 1)").param("id", EMPLOYEE).update();
         jdbc.sql("insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)"
                 + " values (:command, :id, 'REGULARIZE', date '2026-11-01', 'PENDING', now(), gen_random_uuid(), now())").param("command", COMMAND).param("id", EMPLOYEE).update();
