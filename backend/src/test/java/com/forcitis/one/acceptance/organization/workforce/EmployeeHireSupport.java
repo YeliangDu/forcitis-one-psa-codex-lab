@@ -2,10 +2,24 @@ package com.forcitis.one.acceptance.organization.workforce;
 
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+
+import com.forcitis.one.platform.integration.api.WecomGateway;
+import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.sql.Connection;
+import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 /**
  * Ground of the #959 tests: a HIRE of a new person through the personnel command entry (no employee id, the profile as components, no
@@ -69,5 +83,34 @@ abstract class EmployeeHireSupport extends PersonnelCommandSupport {
 
     protected static String syntheticWecom(String tag) {
         return "synthetic-" + tag + "-" + UUID.randomUUID().toString().substring(0, 8);
+    }
+
+    /** The profile change by the current caller: the whole new profile; a null component is left out. */
+    protected void change(UUID person, String displayName, String gender, String email, String wecomUserId, LocalDate effective) {
+        Map<String, Object> fields = new HashMap<>();
+        fields.put(EMPLOYEE_ID, person);
+        fields.put(DISPLAY_NAME, displayName);
+        fields.put(GENDER, gender);
+        fields.put(EMAIL, email);
+        fields.put(WECOM_USER_ID, wecomUserId);
+        fields.put(EFFECTIVE_DATE, effective);
+        fields.values().removeIf(java.util.Objects::isNull);
+        commands().changeProfile(fields);
+    }
+
+    /** A WeCom code that WeCom answers with this WeCom user id (whoever it is bound to now). */
+    protected String wecomCodeOf(String wecomUserId) throws ReflectiveOperationException {
+        String code = "acceptance-wecom-" + UUID.randomUUID();
+        Method resolve = Arrays.stream(WecomGateway.class.getMethods()).filter(m -> m.getName().equals("resolveWecomUserId")).findFirst().orElseThrow();
+        Class<?> type = (Class<?>) ((ParameterizedType) resolve.getGenericReturnType()).getActualTypeArguments()[0];
+        Object answered = type.getDeclaredConstructor(String.class).newInstance(wecomUserId);
+        when(wecomGateway.resolveWecomUserId(eq(code), any())).thenAnswer(call -> Optional.of(answered));
+        return code;
+    }
+
+    /** The raw WeCom login (mini program entry) with this code. */
+    protected MockHttpServletResponse wecomLogin(String code) throws Exception {
+        return mvc.perform(post(WECOM_LOGIN).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"" + code + "\",\"entry\":\"MINI_PROGRAM\"}")).andReturn().getResponse();
     }
 }

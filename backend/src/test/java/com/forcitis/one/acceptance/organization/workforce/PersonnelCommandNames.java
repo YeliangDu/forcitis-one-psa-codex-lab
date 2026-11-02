@@ -137,6 +137,11 @@ final class PersonnelCommandNames {
     static final String CHANGE_METHOD = "change";
     static final String CHANGE_PARAMETER = "ChangeEmployeeProfile";
     static final String AUDIT_PROFILE_CHANGED = "organization.workforce.employee-profile.changed";
+    /**
+     * 暂名 (one-design, #959 follow-up of 2026-11-02): the error of a rebind or clear of a non-empty WeCom user id of an employee whose account
+     * holds any role beyond employee; until the second-person flow exists (a later card) such a change is refused with this code.
+     */
+    static final String WECOM_CHANGE_NOT_ALLOWED = "ORGANIZATION_WORKFORCE_WECOM_USER_ID_CHANGE_NOT_ALLOWED";
 
     /** 暂名 (one-design DD on #959): the numbering document type of employee codes and its seeded default template {TYPE}{seq:6}, never reset. */
     static final String EMPLOYEE_DOCUMENT_TYPE = "EMPLOYEE";
