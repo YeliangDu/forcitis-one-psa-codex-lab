@@ -73,7 +73,7 @@ BEGIN
     END IF;
     RETURN NEW;
 END $$;
-COMMENT ON FUNCTION organization_workforce.refuse_personnel_command_rewrite() IS '人事命令只追加的触发器：状态按 PENDING 到 EFFECTIVE、WITHDRAWN、HELD，HELD 到 EFFECTIVE、WITHDRAWN、PENDING，待法人归属会签到 PENDING、EFFECTIVE、WITHDRAWN 前进（转入待法人归属会签只在建立时），时刻列只放行由空变非空一次，内容列不变，DELETE 只放行表属主，TRUNCATE 拒绝';
+COMMENT ON FUNCTION organization_workforce.refuse_personnel_command_rewrite() IS '人事命令只追加的触发器：状态按 PENDING 到 EFFECTIVE、WITHDRAWN、HELD，HELD 到 EFFECTIVE、WITHDRAWN、PENDING（放行原生效日在将来的待放行离职），待法人归属会签到 PENDING、EFFECTIVE、WITHDRAWN 前进（转入待法人归属会签只在建立时），时刻列只放行由空变非空一次，内容列不变，DELETE 只放行表属主，TRUNCATE 拒绝';
 
 -- 2. 法人归属会签表：每个会签请求（按命令、请求种类、法人）一行。
 CREATE TABLE organization_workforce.attribution_countersigns (
@@ -155,7 +155,7 @@ BEGIN
         RETURN OLD;
     END IF;
     FOREACH column_name IN ARRAY ARRAY['decision_kind', 'decided_at', 'decided_by', 'decision_reason', 'decision_audit_entry_id'] LOOP
-        IF (to_jsonb(OLD) -> column_name) <> 'null'::jsonb AND (to_jsonb(NEW) -> column_name) IS DISTINCT FROM (to_jsonb(OLD) -> column_name) THEN
+        IF (OLD.decision_kind IS NOT NULL OR (to_jsonb(OLD) -> column_name) <> 'null'::jsonb) AND (to_jsonb(NEW) -> column_name) IS DISTINCT FROM (to_jsonb(OLD) -> column_name) THEN
             RAISE EXCEPTION 'column % of %.% is set once and cannot change', column_name, TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
         END IF;
     END LOOP;

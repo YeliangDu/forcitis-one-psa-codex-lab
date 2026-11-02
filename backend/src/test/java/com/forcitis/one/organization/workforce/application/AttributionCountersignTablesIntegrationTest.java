@@ -25,6 +25,7 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
     static final String COMMAND = "'019a0000-0000-7000-8000-00000000a1c1'";
     static final String OTHER_COMMAND = "'019a0000-0000-7000-8000-00000000a1c2'";
     static final String UNIT = "'019a0000-0000-7000-8000-00000000a1b1'";
+    static final String POSITION = "'019a0000-0000-7000-8000-00000000a1d1'";
     static final String CS = "organization_workforce.attribution_countersigns";
     static final String PC = "organization_workforce.personnel_commands";
 
@@ -40,6 +41,7 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
                     + "', 'name', 'EMPLOYED') on conflict do nothing").update();
         }
         jdbc.sql("insert into organization_workforce.org_units (id, name, status) values (" + UNIT + ", 'unit', 'ACTIVE') on conflict do nothing").update();
+        jdbc.sql("insert into organization_workforce.positions (id, name, status) values (" + POSITION + ", 'position', 'ACTIVE') on conflict do nothing").update();
         jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (" + ENTITY_A + ", 'QZFCA', 'entity a', 'ACTIVE') on conflict do nothing").update();
         jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (" + ENTITY_B + ", 'QZFCB', 'entity b', 'ACTIVE') on conflict do nothing").update();
     }
@@ -96,10 +98,20 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
         refused("ck_personnel_commands_legal_entity_columns", commandSql(OTHER_COMMAND, OTHER_EMPLOYEE, "CHANGE_LEGAL_ENTITY", "PENDING", "", ""));
         refused("ck_personnel_commands_legal_entity_columns", commandSql(OTHER_COMMAND, OTHER_EMPLOYEE, "CHANGE_LEGAL_ENTITY", "PENDING", ", target_legal_entity_id, target_org_unit_id", ", " + ENTITY_B + ", " + UNIT));
         refused("ck_personnel_commands_legal_entity_columns", commandSql(OTHER_COMMAND, OTHER_EMPLOYEE, "CHANGE_LEGAL_ENTITY", "PENDING", ", target_legal_entity_id, is_target_fee_earner", ", " + ENTITY_B + ", true"));
+        refused("ck_personnel_commands_legal_entity_columns", commandSql(OTHER_COMMAND, OTHER_EMPLOYEE, "CHANGE_LEGAL_ENTITY", "PENDING", ", target_legal_entity_id, target_position_id", ", " + ENTITY_B + ", " + POSITION));
+        refused("ck_personnel_commands_legal_entity_columns", commandSql(OTHER_COMMAND, OTHER_EMPLOYEE, "CHANGE_LEGAL_ENTITY", "PENDING", ", target_legal_entity_id, target_reports_to_employee_id", ", " + ENTITY_B + ", " + EMPLOYEE));
+        refused("ck_personnel_commands_legal_entity_columns", commandSql(OTHER_COMMAND, OTHER_EMPLOYEE, "CHANGE_LEGAL_ENTITY", "PENDING", ", target_legal_entity_id, target_employment_phase_kind", ", " + ENTITY_B + ", 'REGULAR'"));
         refused("ck_personnel_commands_legal_entity_columns", commandSql(OTHER_COMMAND, OTHER_EMPLOYEE, "SEPARATE", "PENDING", ", target_legal_entity_id", ", " + ENTITY_B));
         refused("ck_personnel_commands_legal_entity_columns", commandSql(OTHER_COMMAND, OTHER_EMPLOYEE, "REGULARIZE", "PENDING", ", target_legal_entity_id", ", " + ENTITY_B));
         refused("ck_personnel_commands_legal_entity_columns", commandSql(OTHER_COMMAND, OTHER_EMPLOYEE, "UNPAID_LEAVE_START", "PENDING", ", is_target_on_unpaid_leave, target_legal_entity_id", ", true, " + ENTITY_B));
         command(OTHER_COMMAND, OTHER_EMPLOYEE, "TRANSFER", "PENDING", ", target_org_unit_id, target_legal_entity_id", ", " + UNIT + ", " + ENTITY_B);
+        String hireColumns = ", target_org_unit_id, target_position_id, is_target_fee_earner, target_employment_phase_kind, target_legal_entity_id";
+        String hireValues = ", " + UNIT + ", " + POSITION + ", true, 'PROBATION', " + ENTITY_B;
+        day = "date '2026-12-10'";
+        command("gen_random_uuid()", OTHER_EMPLOYEE, "HIRE", "PENDING", hireColumns, hireValues);
+        day = "date '2026-12-11'";
+        command("gen_random_uuid()", OTHER_EMPLOYEE, "REINSTATE", "PENDING", hireColumns, hireValues);
+        day = "date '2026-12-01'";
         day = "date '2026-12-20'";
         refused("fk_personnel_commands_target_legal_entity_id", commandSql("gen_random_uuid()", OTHER_EMPLOYEE, "CHANGE_LEGAL_ENTITY", "PENDING", ", target_legal_entity_id", ", gen_random_uuid()"));
     }
@@ -122,6 +134,12 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
     void correctionAndOpenPerDay() {
         command(COMMAND, EMPLOYEE, "CORRECTION", "EFFECTIVE", ", applied_at", ", now()");
         refused("ck_personnel_commands_correction_immediate", commandSql(OTHER_COMMAND, OTHER_EMPLOYEE, "CORRECTION", "PENDING", "", ""));
+        String withdrawn = ", withdrawn_at, withdrawn_by, withdrawal_reason";
+        String withdrawnValues = ", now(), " + DRAFTER + ", 'no'";
+        refused("ck_personnel_commands_correction_immediate", commandSql(OTHER_COMMAND, OTHER_EMPLOYEE, "CORRECTION", "WITHDRAWN", withdrawn, withdrawnValues));
+        day = "date '2026-12-05'";
+        command("gen_random_uuid()", OTHER_EMPLOYEE, "CORRECTION", "WITHDRAWN", ", target_legal_entity_id" + BASIS_COLUMNS + withdrawn, ", " + ENTITY_B + BASIS + withdrawnValues);
+        day = "date '2026-12-01'";
         refused("ck_personnel_commands_correction_immediate", commandSql(OTHER_COMMAND, OTHER_EMPLOYEE, "CORRECTION", "AWAITING_ATTRIBUTION_COUNTERSIGN", ", target_legal_entity_id", ", " + ENTITY_B));
         command(OTHER_COMMAND, OTHER_EMPLOYEE, "CORRECTION", "AWAITING_ATTRIBUTION_COUNTERSIGN", ", target_legal_entity_id" + BASIS_COLUMNS, ", " + ENTITY_B + BASIS);
         day = "date '2026-12-02'";
@@ -203,6 +221,9 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
         refused("ck_attribution_countersigns_not_drafter", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 1, ENTITY_A, OTHER_USER, withdrawalByOther, ", 'APPROVED', now(), " + OTHER_USER + ", gen_random_uuid()"));
         jdbc.sql(countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 1, ENTITY_A, OTHER_USER, withdrawalByOther, ", 'APPROVED', now(), " + DECIDER + ", gen_random_uuid()")).update();
         refused("ck_attribution_countersigns_decision", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 2, ENTITY_A, OTHER_USER, ", decision_kind", ", 'APPROVED'"));
+        refused("ck_attribution_countersigns_decision", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 2, ENTITY_A, OTHER_USER, ", decision_kind, decided_by", ", 'APPROVED', " + DECIDER));
+        refused("ck_attribution_countersigns_decision", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 2, ENTITY_A, OTHER_USER, ", decision_kind, decided_at, decided_by", ", 'APPROVED', now(), " + DECIDER));
+        refused("ck_attribution_countersigns_decision", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 2, ENTITY_A, OTHER_USER, ", decision_audit_entry_id", ", gen_random_uuid()"));
         refused("ck_attribution_countersigns_decision", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 2, ENTITY_A, OTHER_USER, ", decided_at, decided_by", ", now(), " + DECIDER));
         refused("ck_attribution_countersigns_decision", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 2, ENTITY_A, OTHER_USER, ", decision_kind, decided_at, decision_audit_entry_id", ", 'APPROVED', now(), gen_random_uuid()"));
         refused("ck_attribution_countersigns_decision", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 2, ENTITY_A, OTHER_USER, ", decision_kind, decided_at, decided_by, decision_audit_entry_id",
@@ -211,8 +232,12 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
         refused("ck_attribution_countersigns_reason", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 3, ENTITY_A, OTHER_USER, withdrawalByOther, ", 'REJECTED', now(), " + DECIDER + ", gen_random_uuid()"));
         refused("ck_attribution_countersigns_reason", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 3, ENTITY_A, OTHER_USER, withdrawalByOther + ", decision_reason", ", 'REJECTED', now(), " + DECIDER + ", gen_random_uuid(), ' '"));
         refused("ck_attribution_countersigns_reason", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 3, ENTITY_A, OTHER_USER, ", decision_reason", ", 'a reason before any decision'"));
+        refused("ck_attribution_countersigns_reason", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 3, ENTITY_A, OTHER_USER, withdrawalByOther + ", decision_reason", ", 'REJECTED', now(), " + DECIDER + ", gen_random_uuid(), ''"));
+        refused("ck_attribution_countersigns_reason", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 3, ENTITY_A, OTHER_USER, withdrawalByOther + ", decision_reason", ", 'REJECTED', now(), " + DECIDER + ", gen_random_uuid(), '" + "x".repeat(501) + "'"));
+        jdbc.sql(countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 3, ENTITY_A, OTHER_USER, withdrawalByOther + ", decision_reason", ", 'REJECTED', now(), " + DECIDER + ", gen_random_uuid(), '" + "x".repeat(500) + "'")).update();
         refused("ck_attribution_countersigns_decision_kind", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 3, ENTITY_A, OTHER_USER, withdrawalByOther, ", 'MAYBE', now(), " + DECIDER + ", gen_random_uuid()"));
-        refused("ck_attribution_countersigns_escalation_level", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 3, ENTITY_A, OTHER_USER, ", escalation_level_number", ", 4"));
+        refused("ck_attribution_countersigns_escalation_level_number", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 4, ENTITY_A, OTHER_USER, ", escalation_level_number", ", 4"));
+        refused("ck_attribution_countersigns_escalation_level_number", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 4, ENTITY_A, OTHER_USER, ", escalation_level_number", ", -1"));
         countersign("CHANGE", 1, ENTITY_B, ", escalation_level_number", ", 3");
     }
 
@@ -236,6 +261,7 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
         assertThatThrownBy(() -> bump("decided_by = " + OTHER_USER, "legal_entity_id = " + ENTITY_A)).hasMessageContaining("set once");
         assertThatThrownBy(() -> bump("decision_audit_entry_id = gen_random_uuid()", "legal_entity_id = " + ENTITY_A)).hasMessageContaining("set once");
         assertThatThrownBy(() -> bump("escalation_level_number = 3", "legal_entity_id = " + ENTITY_A)).hasMessageContaining("can only increase");
+        assertThatThrownBy(() -> bump("decision_reason = 'added later'", "legal_entity_id = " + ENTITY_A)).hasMessageContaining("set once");
         assertThatThrownBy(() -> bump("decision_kind = 'APPROVED'", "legal_entity_id = " + ENTITY_B)).hasMessageContaining("ck_attribution_countersigns_decision");
         bump("decision_kind = 'REJECTED', decided_at = now(), decided_by = " + DECIDER + ", decision_audit_entry_id = gen_random_uuid(), decision_reason = 'no'", "legal_entity_id = " + ENTITY_B);
     }
@@ -256,6 +282,7 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
                 s.execute("reset role");
             }
         }
+        assertThatThrownBy(() -> jdbc.sql("truncate " + CS).update()).hasMessageContaining("truncate").hasMessageContaining("append-only");
         assertThat(jdbc.sql("select count(*) from pg_trigger where tgname = 'tg_attribution_countersigns_append_only_truncate' and (tgtype & 32) <> 0").query(Integer.class).single()).isEqualTo(1);
         assertThat(jdbc.sql("delete from " + CS).update()).isEqualTo(1);
     }
