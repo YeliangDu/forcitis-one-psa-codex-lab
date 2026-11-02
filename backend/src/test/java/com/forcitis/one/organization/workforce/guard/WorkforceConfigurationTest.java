@@ -36,20 +36,11 @@ class WorkforceConfigurationTest {
     }
 
     @Test
-    @DisplayName("the sync cron (read by the freshness judgement, #934 removes it) is every 5 minutes, the short names once a day, the shrink guard allows a 20 % drop")
+    @DisplayName("the short names refresh once a day")
     void periods() throws IOException {
-        Properties p = load();
-        CronExpression sync = CronExpression.parse(p.getProperty("forcitis.organization.workforce.sync.cron"));
-        CronExpression names = CronExpression.parse(p.getProperty("forcitis.organization.workforce.short-name.cron"));
-
-        LocalDateTime first = sync.next(LocalDateTime.of(2026, 10, 14, 9, 0, 1));
-        LocalDateTime second = sync.next(first);
-        LocalDateTime third = sync.next(second);
-        assertThat(java.time.Duration.between(first, second)).as(GuardMessage.of("org-and-personnel-sync", "the sync cron does not run every 5 minutes", "set forcitis.organization.workforce.sync.cron to a 5-minute period")).isEqualTo(java.time.Duration.ofMinutes(5));
-        assertThat(java.time.Duration.between(second, third)).as(GuardMessage.of("org-and-personnel-sync", "the sync cron does not run every 5 minutes", "set forcitis.organization.workforce.sync.cron to a 5-minute period")).isEqualTo(java.time.Duration.ofMinutes(5));
+        CronExpression names = CronExpression.parse(load().getProperty("forcitis.organization.workforce.short-name.cron"));
         LocalDateTime day1 = names.next(LocalDateTime.of(2026, 10, 14, 0, 0));
         assertThat(java.time.Duration.between(day1, names.next(day1))).as(GuardMessage.of("org-and-personnel-sync", "the short-name cron does not run once a day", "set forcitis.organization.workforce.short-name.cron to a daily period")).isEqualTo(java.time.Duration.ofHours(24));
-        assertThat(p.getProperty("forcitis.organization.workforce.sync.max-drop-percent")).as(GuardMessage.of("org-and-personnel-sync", "the shrink guard does not allow a 20 % drop", "set forcitis.organization.workforce.sync.max-drop-percent to 20, or change the rule in the process document first")).isEqualTo("20");
     }
 
     @Test
@@ -58,8 +49,7 @@ class WorkforceConfigurationTest {
         Class<?> local = Class.forName("com.forcitis.one.organization.workforce.web.WorkforcePermissions");
         for (String[] pair : new String[][] {
                 {"ORG_UNIT_READ", Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ},
-                {"SYNC_RUN_READ", Permission.Codes.ORGANIZATION_WORKFORCE_SYNC_RUN_READ},
-                {"SYNC_RUN_EXECUTE", Permission.Codes.ORGANIZATION_WORKFORCE_SYNC_RUN_EXECUTE},
+                {"ORG_RECONCILIATION_EXECUTE", Permission.Codes.ORGANIZATION_WORKFORCE_ORG_RECONCILIATION_EXECUTE},
                 {"SEPARATION_HOLD_APPROVE", Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE},
                 {"PERSONNEL_COMMAND_CREATE", Permission.Codes.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_CREATE},
                 {"LEGAL_ENTITY_UPDATE", Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE},
@@ -68,7 +58,7 @@ class WorkforceConfigurationTest {
             field.setAccessible(true);
             assertThat(field.get(null)).as(GuardMessage.of("org-and-personnel-sync", "WorkforcePermissions." + pair[0] + " differs from the code in platform.identity Permission.Codes", "set the constant in organization.workforce.web.WorkforcePermissions to the same string as the Permission.Codes constant")).isEqualTo(pair[1]);
         }
-        assertThat(local.getDeclaredFields()).filteredOn(f -> f.getType() == String.class).as(GuardMessage.of("org-and-personnel-sync", "WorkforcePermissions has another number of permission codes than this test checks", "add the new code to the pairs of this test and compare it with Permission.Codes, then update the count")).hasSize(7);
+        assertThat(local.getDeclaredFields()).filteredOn(f -> f.getType() == String.class).as(GuardMessage.of("org-and-personnel-sync", "WorkforcePermissions has another number of permission codes than this test checks", "add the new code to the pairs of this test and compare it with Permission.Codes, then update the count")).hasSize(6);
     }
 
     @Test
@@ -77,8 +67,8 @@ class WorkforceConfigurationTest {
         String application = "com.forcitis.one.organization.workforce.application.";
         for (String[] triple : new String[][] {
                 {"OrgUnitVisibility", "ORG_UNIT_READ", Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ},
-                {"ReleaseSyncRun", "SYNC_RUN_EXECUTE", Permission.Codes.ORGANIZATION_WORKFORCE_SYNC_RUN_EXECUTE},
-                {"ReleaseSyncRun", "SEPARATION_HOLD_APPROVE", Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE},
+                {"SeparationHoldService", "PERMISSION", Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE},
+                {"PersonnelCommandService", "PERMISSION", Permission.Codes.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_CREATE},
                 {"CorrectLegalEntityAttribution", "PERMISSION", Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE}}) {
             Field field = Class.forName(application + triple[0]).getDeclaredField(triple[1]);
             field.setAccessible(true);

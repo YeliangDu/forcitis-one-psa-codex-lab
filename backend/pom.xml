@@ -8,12 +8,9 @@
          Single list, also read by acceptance_reports.py and legacy_it.sh; includes the OrgSourceWorldSupport subclasses. -->
     <legacy.it.acceptance>
       com/forcitis/one/acceptance/platform/integration/A8SourceFlagsIT.java,
-      com/forcitis/one/acceptance/platform/integration/EmployeeCodeConcurrentSyncIT.java,
       com/forcitis/one/acceptance/platform/integration/LegacyReferencesIT.java,
-      com/forcitis/one/acceptance/platform/integration/NegativeSourceIdIT.java,
       com/forcitis/one/acceptance/platform/integration/ReadOnlyAccountCheckIT.java,
       com/forcitis/one/acceptance/platform/integration/ReadOnlyVerificationCommandIT.java,
-      com/forcitis/one/acceptance/platform/integration/SourceIdMatchingIT.java,
       com/forcitis/one/acceptance/platform/integration/StalledExternalSourceIT.java
     </legacy.it.acceptance>
     <integration.reports>${project.build.directory}/failsafe-reports</integration.reports>

@@ -71,7 +71,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
     @Override
     public void saveRegisteredEmployee(RegisteredEmployee registered, Instant now) {
         LocalDate day = zone.dateOf(now);
-        upsertStaff(registered.staff(), OffsetDateTime.ofInstant(now, ZoneOffset.UTC));
+        insertStaff(registered.staff(), OffsetDateTime.ofInstant(now, ZoneOffset.UTC));
         history.recordAssignments(List.of(registered.staff().assignment()), day, now);
         jdbc.sql("""
                 update organization_workforce.employees set event_count = :sequence where id = :id
@@ -87,7 +87,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 .query(Long.class).optional().orElse(0L);
     }
 
-    private void upsertStaff(StaffEmployee s, OffsetDateTime now) {
+    private void insertStaff(StaffEmployee s, OffsetDateTime now) {
         Employee e = s.employee();
         Assignment a = s.assignment();
         jdbc.sql("""
@@ -95,13 +95,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                        wecom_user_id, employment_status, is_fee_earner, separated_at, created_at, updated_at, event_count)
                 values (:id, :code, :name, :login, :email, :gender, :wecom, :status, :feeEarner,
                         case when cast(:status as text) = 'SEPARATED' then cast(:now as timestamptz) end, :now, :now, 0)
-                on conflict (id) do update set display_name = excluded.display_name,
-                       login_name = excluded.login_name, email = excluded.email, gender = excluded.gender,
-                       wecom_user_id = excluded.wecom_user_id, employment_status = excluded.employment_status,
-                       is_fee_earner = excluded.is_fee_earner,
-                       separated_at = case when excluded.employment_status = 'SEPARATED'
-                                           then coalesce(employees.separated_at, excluded.updated_at) end,
-                       updated_at = excluded.updated_at, version = employees.version + 1
+                on conflict (id) do nothing
                 """)
                 .param("id", e.employeeId().value()).param("code", e.employeeCode()).param("name", e.displayName())
                 .param("login", e.loginName()).param("email", e.email()).param("gender", e.gender() == null ? null : e.gender().name())
@@ -112,9 +106,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 insert into organization_workforce.assignments (employee_id, org_unit_id, position_id, reports_to_employee_id,
                        created_at, updated_at)
                 values (:employee, :orgUnit, :position, :reportsTo, :now, :now)
-                on conflict (employee_id) do update set org_unit_id = excluded.org_unit_id, position_id = excluded.position_id,
-                       reports_to_employee_id = excluded.reports_to_employee_id, updated_at = excluded.updated_at,
-                       version = assignments.version + 1
+                on conflict (employee_id) do nothing
                 """)
                 .param("employee", a.employeeId().value()).param("orgUnit", a.orgUnitId().value())
                 .param("position", a.positionId() == null ? null : a.positionId().value())

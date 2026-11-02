@@ -103,7 +103,7 @@ class OperationsProfileSmokeTest {
                 "--spring.datasource.url=" + POSTGRES.getJdbcUrl() + "&sslmode=require", "--spring.flyway.enabled=true", "--spring.datasource.username=" + POSTGRES.getUsername(),
                 "--spring.datasource.password=" + POSTGRES.getPassword(), "--spring.datasource.hikari.connection-timeout=2000",
                 "--flowable.database-schema-update=true", "--spring.flyway.create-schemas=true", "--forcitis.cost.timesheet.consumed-events.enabled=false",
-                "--forcitis.platform.approval.process-archive.enabled=false", "--forcitis.organization.workforce.sync-purge.enabled=false",
+                "--forcitis.platform.approval.process-archive.enabled=false",
                 "--forcitis.platform.integration.outbound-purge.enabled=false", "--forcitis.platform.integration.archive-store.enabled=false",
                 "--forcitis.platform.audit.archive.enabled=false", "--forcitis.platform.approval.process-administrator-required=false", "--forcitis.platform.identity.sso.enabled=false",
                 "--forcitis.platform.identity.emergency.totp-encryption-key=" + Base64.getEncoder().encodeToString(random(32)),

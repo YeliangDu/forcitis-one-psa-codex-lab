@@ -329,11 +329,8 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         });
         assertThat(directory.findOrgUnit(unitId(4))).get().satisfies(u -> assertThat(u.active()).isFalse());
 
-        orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)),
-                List.of(head(2, 1), manager(2, 2)), List.of(post(100), post(101)),
-                List.of(person(1, 2, 100L, null), person(2, 3, 101L, 1L), person(3, 3, 101L, 2L)));
-        SnapshotSeeder.seed(jdbc, orgSource.snapshot);
-        assertThat(jdbc.sql("select status from organization_workforce.org_units where id = " + sqlOrgUnit(4)).query(String.class).single()).isEqualTo("REVOKED");
+        // Since #934 nothing revokes a unit the source dropped; the row is put in the revoked state directly to check the profile.
+        jdbc.sql("update organization_workforce.org_units set status = 'REVOKED', revoked_at = now() where id = " + sqlOrgUnit(4)).update();
         assertThat(directory.findOrgUnit(unitId(4))).get().satisfies(u -> assertThat(u.active()).isFalse());
         assertThat(directory.findOrgUnit(unitId(404))).isEmpty();
     }

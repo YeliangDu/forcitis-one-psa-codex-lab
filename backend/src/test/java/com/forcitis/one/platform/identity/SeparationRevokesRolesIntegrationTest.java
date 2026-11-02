@@ -53,7 +53,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     TotpSecretVault vault;
 
     private UUID publish(List<EmployeeId> changed, List<EmployeeId> separated) {
-        OrgSnapshotChanged event = new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", TestIds.uuid(1)), changed, separated,
+        OrgSnapshotChanged event = new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "OrgSnapshot", TestIds.uuid(1)), changed, separated,
                 List.of(), java.time.LocalDate.of(2026, 10, 15));
         tx.executeWithoutResult(status -> events.publishEvent(event));
         return event.envelope().eventId();

@@ -33,27 +33,24 @@ public final class SnapshotSeeder {
                     .param("id", p.positionId().value()).param("code", p.code()).param("name", p.name())
                     .param("sortOrder", p.sortOrder()).param("status", p.status().name()).param("now", now).update();
         }
+        // Units, people and assignments refer to each other: rows first, then the references, so the order of the source does not matter.
         for (OrgUnit u : rows.orgUnits()) {
             jdbc.sql("""
                     insert into organization_workforce.org_units (id, code, name, parent_org_unit_id, sort_order, status, head_employee_id,
                            regional_receivables_manager_id, region_category, is_delivery_unit, short_name, revoked_at, created_at, updated_at)
-                    values (:id, :code, :name, :parent, :sortOrder, :status, :head, :manager, :category, :delivery, :shortName,
+                    values (:id, :code, :name, null, :sortOrder, :status, null, null, :category, :delivery, :shortName,
                             case when cast(:status as text) = 'REVOKED' then cast(:now as timestamptz) end, :now, :now)
-                    on conflict (id) do update set code = excluded.code, name = excluded.name, parent_org_unit_id = excluded.parent_org_unit_id,
-                           sort_order = excluded.sort_order, status = excluded.status, head_employee_id = excluded.head_employee_id,
-                           regional_receivables_manager_id = excluded.regional_receivables_manager_id, region_category = excluded.region_category,
+                    on conflict (id) do update set code = excluded.code, name = excluded.name,
+                           sort_order = excluded.sort_order, status = excluded.status, region_category = excluded.region_category,
                            is_delivery_unit = excluded.is_delivery_unit, revoked_at = excluded.revoked_at
                     """)
-                    .param("id", u.orgUnitId().value()).param("code", u.code()).param("name", u.name())
-                    .param("parent", u.parentOrgUnitId() == null ? null : u.parentOrgUnitId().value()).param("sortOrder", u.sortOrder())
-                    .param("status", u.status().name()).param("head", u.headEmployeeId() == null ? null : u.headEmployeeId().value())
-                    .param("manager", u.regionalReceivablesManagerId() == null ? null : u.regionalReceivablesManagerId().value())
+                    .param("id", u.orgUnitId().value()).param("code", u.code()).param("name", u.name()).param("sortOrder", u.sortOrder())
+                    .param("status", u.status().name())
                     .param("category", u.regionCategory() == null ? null : u.regionCategory().name()).param("delivery", u.deliveryUnit())
                     .param("shortName", u.shortName()).param("now", now).update();
         }
         for (StaffEmployee s : rows.staff()) {
             Employee e = s.employee();
-            Assignment a = s.assignment();
             jdbc.sql("""
                     insert into organization_workforce.employees (id, employee_code, display_name, login_name, email, gender, wecom_user_id,
                            employment_status, is_fee_earner, separated_at, created_at, updated_at, event_count)
@@ -67,6 +64,9 @@ public final class SnapshotSeeder {
                     .param("login", e.loginName()).param("email", e.email()).param("gender", e.gender() == null ? null : e.gender().name())
                     .param("wecom", e.wecomUserId() == null ? null : e.wecomUserId().value())
                     .param("status", e.employmentStatus().name()).param("feeEarner", e.feeEarner()).param("now", now).update();
+        }
+        for (StaffEmployee s : rows.staff()) {
+            Assignment a = s.assignment();
             jdbc.sql("""
                     insert into organization_workforce.assignments (employee_id, org_unit_id, position_id, reports_to_employee_id, created_at, updated_at)
                     values (:employee, :orgUnit, :position, :reportsTo, :now, :now)
@@ -76,6 +76,16 @@ public final class SnapshotSeeder {
                     .param("employee", a.employeeId().value()).param("orgUnit", a.orgUnitId().value())
                     .param("position", a.positionId() == null ? null : a.positionId().value())
                     .param("reportsTo", a.reportsToEmployeeId() == null ? null : a.reportsToEmployeeId().value()).param("now", now).update();
+        }
+        for (OrgUnit u : rows.orgUnits()) {
+            jdbc.sql("""
+                    update organization_workforce.org_units set parent_org_unit_id = :parent, head_employee_id = :head, regional_receivables_manager_id = :manager
+                     where id = :id
+                    """)
+                    .param("id", u.orgUnitId().value())
+                    .param("parent", u.parentOrgUnitId() == null ? null : u.parentOrgUnitId().value(), java.sql.Types.OTHER)
+                    .param("head", u.headEmployeeId() == null ? null : u.headEmployeeId().value(), java.sql.Types.OTHER)
+                    .param("manager", u.regionalReceivablesManagerId() == null ? null : u.regionalReceivablesManagerId().value(), java.sql.Types.OTHER).update();
         }
     }
 }

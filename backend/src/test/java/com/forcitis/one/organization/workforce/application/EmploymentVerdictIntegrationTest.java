@@ -18,12 +18,12 @@ class EmploymentVerdictIntegrationTest extends WorkforceIntegrationSupport {
     OrgDirectory directory;
 
     @Test
-    @DisplayName("P2 recheck L-5 employmentOf on the database: no sync yet or a stale snapshot is unavailable, except for a person it lists as separated")
-    void theVerdictFollowsTheSyncRuns() {
+    @DisplayName("P2 recheck L-5 employmentOf on the database: the snapshot row decides employed, separated or not listed; since #934 the snapshot has no age, so the verdict does not lapse")
+    void theVerdictFollowsTheSnapshot() {
         EmployeeId employed = TestAccounts.employee(1);
         EmployeeId leaver = TestAccounts.employee(10);
         EmployeeId unknown = TestAccounts.employee(999);
-        assertThat(directory.employmentOf(employed)).isEqualTo(EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
+        assertThat(directory.employmentOf(employed)).as("an empty snapshot lists nobody").isEqualTo(EmploymentVerdict.NOT_LISTED);
 
         orgSource.snapshot = tree(person(1, 2, 100L, null), person(2, 2, 100L, null), person(3, 2, 100L, null), person(4, 2, 100L, null),
                 person(5, 2, 100L, null), person(6, 2, 100L, null), person(7, 2, 100L, null), person(8, 2, 100L, null),
@@ -40,8 +40,8 @@ class EmploymentVerdictIntegrationTest extends WorkforceIntegrationSupport {
 
         clock.advance(Duration.ofMinutes(11));
 
-        assertThat(directory.employmentOf(employed)).isEqualTo(EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
+        assertThat(directory.employmentOf(employed)).isEqualTo(EmploymentVerdict.EMPLOYED);
         assertThat(directory.employmentOf(leaver)).isEqualTo(EmploymentVerdict.SEPARATED);
-        assertThat(directory.employmentOf(unknown)).isEqualTo(EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
+        assertThat(directory.employmentOf(unknown)).isEqualTo(EmploymentVerdict.NOT_LISTED);
     }
 }

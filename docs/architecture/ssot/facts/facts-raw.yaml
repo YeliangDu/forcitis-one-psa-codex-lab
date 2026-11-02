@@ -1884,115 +1884,6 @@ by_event:
     noConsumer: 暂无消费方：分析层 L1 的工时累积快照将订阅；现在就发布，是因为撤销时刻只在发生当时可记录，事后补不回
   missing_fields: []
   source: docs/architecture/events/timesheet.yaml:259
-- event_type: organization.workforce.SyncRunSucceeded
-  title: 组织同步成功
-  description: null
-  publisher: organization.workforce
-  x-event:
-    eventType: organization.workforce.SyncRunSucceeded
-    version: 1
-    class: com.forcitis.one.organization.workforce.events.SyncRunSucceeded
-    aggregate: SyncRun
-    idempotencyKey: eventId
-    publisher: organization.workforce
-    consumers: []
-    delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-    formsFact: false
-    businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-    audit: 'not-audited: 每 5 分钟一次的同步会淹没审计记录；同步记录表本身就是它的记录，中止、失败、放行仍然审计'
-    publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
-    noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
-  missing_fields:
-  - description
-  source: docs/architecture/events/workforce.yaml:5
-- event_type: organization.workforce.SyncRunHeld
-  title: 组织同步被缩水保护中止
-  description: null
-  publisher: organization.workforce
-  x-event:
-    eventType: organization.workforce.SyncRunHeld
-    version: 1
-    class: com.forcitis.one.organization.workforce.events.SyncRunHeld
-    aggregate: SyncRun
-    idempotencyKey: eventId
-    publisher: organization.workforce
-    consumers:
-    - platform.audit
-    delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-    formsFact: false
-    businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-    audit: audited
-    publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
-    noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
-  missing_fields:
-  - description
-  source: docs/architecture/events/workforce.yaml:30
-- event_type: organization.workforce.SyncRunFailed
-  title: 组织同步失败
-  description: null
-  publisher: organization.workforce
-  x-event:
-    eventType: organization.workforce.SyncRunFailed
-    version: 1
-    class: com.forcitis.one.organization.workforce.events.SyncRunFailed
-    aggregate: SyncRun
-    idempotencyKey: eventId
-    publisher: organization.workforce
-    consumers:
-    - platform.audit
-    delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-    formsFact: false
-    businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-    audit: audited
-    publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
-    noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
-  missing_fields:
-  - description
-  source: docs/architecture/events/workforce.yaml:56
-- event_type: organization.workforce.SyncRunReleased
-  title: 被中止的同步已由管理员放行或被后续成功同步取代
-  description: null
-  publisher: organization.workforce
-  x-event:
-    eventType: organization.workforce.SyncRunReleased
-    version: 1
-    class: com.forcitis.one.organization.workforce.events.SyncRunReleased
-    aggregate: SyncRun
-    idempotencyKey: eventId
-    publisher: organization.workforce
-    consumers:
-    - platform.audit
-    delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-    formsFact: false
-    businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-    audit: audited
-    publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
-    noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
-  missing_fields:
-  - description
-  source: docs/architecture/events/workforce.yaml:82
-- event_type: organization.workforce.SyncRunHoldReleased
-  title: 被暂停的同步的一类暂停已被有权的人解除，另一类仍在时运行保持暂停
-  description: null
-  publisher: organization.workforce
-  x-event:
-    eventType: organization.workforce.SyncRunHoldReleased
-    version: 1
-    class: com.forcitis.one.organization.workforce.events.SyncRunHoldReleased
-    aggregate: SyncRun
-    idempotencyKey: eventId
-    publisher: organization.workforce
-    consumers:
-    - platform.audit
-    delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-    formsFact: false
-    businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-    audit: audited
-    publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
-    noConsumer: 暂无消费方：放行告警（告警通道待用户指定）将订阅；现在就发布，是因为放行只在发生当时有告警价值，事后补不回
-  missing_fields:
-  - description
-  source: docs/architecture/events/workforce.yaml:118
 - event_type: organization.workforce.OrgSnapshotChanged
   title: 组织快照因同步发生变化
   description: null
@@ -2011,7 +1902,7 @@ by_event:
     formsFact: false
     businessDate: 快照截止日：同步运行开始当天（Asia/Shanghai），即读取组织源快照的业务日；effectiveFrom 在负载
     audit: audited
-    publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
+    publisherTest: com.forcitis.one.organization.workforce.domain.SyncedFieldsContractTest
   missing_fields:
   - description
   source: docs/architecture/events/workforce.yaml:155

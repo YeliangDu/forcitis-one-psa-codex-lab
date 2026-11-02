@@ -28,7 +28,6 @@ describe('应用外壳与登录状态', () => {
     expect(screen.getByRole('menuitem', { name: '待办' })).toBeInTheDocument();
     expect(await screen.findByText('系统管理')).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: '编号规则' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: '同步记录' })).toBeInTheDocument();
     expect(screen.queryByText('组织浏览')).not.toBeInTheDocument();
   });
 

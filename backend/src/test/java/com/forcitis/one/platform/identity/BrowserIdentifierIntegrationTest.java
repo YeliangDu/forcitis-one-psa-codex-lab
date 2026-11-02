@@ -235,7 +235,7 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
         assertThat(storedIdentifiers(1001)).isPositive();
         com.forcitis.one.kernel.EmployeeId separated = TestAccounts.employee(1001);
         var snapshot = new com.forcitis.one.organization.workforce.events.OrgSnapshotChanged(
-                TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", TestIds.uuid(1)), List.of(), List.of(separated),
+                TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "OrgSnapshot", TestIds.uuid(1)), List.of(), List.of(separated),
                 List.of(), java.time.LocalDate.of(2026, 10, 15));
 
         tx.executeWithoutResult(status -> events.publishEvent(snapshot));
@@ -252,7 +252,7 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
         jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").update();
         assertThat(storedIdentifiers(1001)).isPositive();
         var snapshot = new com.forcitis.one.organization.workforce.events.OrgSnapshotChanged(
-                TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", TestIds.uuid(2)), List.of(),
+                TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "OrgSnapshot", TestIds.uuid(2)), List.of(),
                 List.of(TestAccounts.employee(1001)), List.of(), java.time.LocalDate.of(2026, 10, 15));
 
         tx.executeWithoutResult(status -> events.publishEvent(snapshot));

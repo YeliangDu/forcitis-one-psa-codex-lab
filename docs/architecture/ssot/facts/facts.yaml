@@ -1117,13 +1117,8 @@ not_facts:
   - platform.numbering.NumberingRuleReconfigured
   - platform.numbering.NumberingRuleConfirmationGiven
   reason: 配置变更，非业务里程碑
-- name: 组织同步与法人事件（15 条）
+- name: 组织快照与法人事件（10 条）
   events:
-  - organization.workforce.SyncRunSucceeded
-  - organization.workforce.SyncRunHeld
-  - organization.workforce.SyncRunFailed
-  - organization.workforce.SyncRunReleased
-  - organization.workforce.SyncRunHoldReleased
   - organization.workforce.OrgSnapshotChanged
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed

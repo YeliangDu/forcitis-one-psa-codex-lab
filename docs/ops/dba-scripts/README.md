@@ -68,7 +68,7 @@ FORCITIS one 只读这两个库（ADR-0037：全库只读；运行时仍经下�
 
 ## 回滚
 
-- A8：先由运维关闭 `INTEGRATION_SEEYON_VIEWS_ENABLED`、`WORKFORCE_SYNC_ENABLED` 并重启应用，再执行 `a8-90-rollback.sql`。
+- A8：先由运维关闭 `INTEGRATION_SEEYON_VIEWS_ENABLED` 并重启应用，再执行 `a8-90-rollback.sql`。
 - 老系统：先由运维清空 `FORCITIS_PLATFORM_INTEGRATION_LEGACY_INBOX_URL`、关闭 `INTEGRATION_LEGACY_ENABLED` 与 `WORKFORCE_SHORT_NAME_ENABLED` 并重启，再执行 `legacy-90-rollback.sql`。合并待办此时只显示新系统待办。
 
 ## 验收标准
