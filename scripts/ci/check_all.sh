@@ -35,9 +35,9 @@ units() {  # 改动范围内的免容器单测（含守护类）；前置条件�
 }
 
 # shellcheck disable=SC2329  # called through step "$@"
-frontend_typecheck() {  # 前端有改动（CI 的前端 verify 在其中会红）：类型检查，约 6 秒；后端错误码与前端文案表的同步由 light.sh 的 error_catalogue 查（#914）
+frontend_typecheck() {  # 前端有改动（CI 的前端 verify 在其中会红）：类型检查约 6 秒 + 文案词表 check:copy 约 0.5 秒（#1011：error-messages.ts 用了未登记词，本机没查到）；后端错误码与前端文案表的同步由 light.sh 的 error_catalogue 查（#914）
   [ -d frontend/node_modules ] || { echo "本机没有前端依赖：先跑 cd frontend && pnpm install --frozen-lockfile --prefer-offline" >&2; return 1; }
-  (cd frontend && pnpm run typecheck)
+  (cd frontend && pnpm run typecheck && pnpm run check:copy)
 }
 
 list_changed "$work/changed_all" || { echo "check_all.sh：列不出改动的文件" >&2; exit 2; }
@@ -45,7 +45,7 @@ changed=$work/changed_all
 step "light.sh (base $base)" bash scripts/ci/light.sh "$base"
 step "gitleaks ($base..HEAD)" secrets
 step "container-free unit and guard classes for the change range" units
-if touches '^frontend/'; then step "frontend typecheck (frontend/ changed)" frontend_typecheck; fi
+if touches '^frontend/'; then step "frontend typecheck + check:copy (frontend/ changed)" frontend_typecheck; fi
 echo
 printf '%s\n' "${results[@]}"
 exit "$failed"
