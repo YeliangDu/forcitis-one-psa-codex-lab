@@ -42,8 +42,7 @@ class DataArchitectureTest {
     static final Pattern GRAIN = Pattern.compile(".*粒度：每.+(一行|一条).*", Pattern.DOTALL);
     static final Pattern DURATION = Pattern.compile("\\d+[dy]");
     static final Pattern DELIMITED = Pattern.compile("逗号|竖线|分号|分隔|拼接");
-    static final Pattern SENSITIVE_PERSON = Pattern.compile("(^|_)(display_name|login_name|wecom|recipient|account_name|principal|employee_code)(_|$)");
-    static final Set<String> ROLES = Set.of("AGGREGATE_ROOT", "AGGREGATE_CHILD", "BUSINESS_DOCUMENT", "DIMENSION_VERSIONED", "SNAPSHOT", "CONFIG",
+        static final Set<String> ROLES = Set.of("AGGREGATE_ROOT", "AGGREGATE_CHILD", "BUSINESS_DOCUMENT", "DIMENSION_VERSIONED", "SNAPSHOT", "CONFIG",
             "CONFIG_VERSIONED", "LOG_APPEND_ONLY", "QUEUE", "ONE_TIME", "LINEAGE", "COUNTER", "IDEMPOTENCY", "FRAMEWORK", "PLACEHOLDER");
     static final Set<String> MUTABILITY = Set.of("MUTABLE", "CONDITIONAL_UPDATE", "REPLACE_SET", "APPEND_ONLY", "INSERT_DELETE", "MIGRATION_ONLY", "FRAMEWORK");
     static final Set<String> TIMELESS = Set.of("PERMANENT", "BUSINESS_RECORD", "CURRENT_STATE", "FRAMEWORK");
@@ -268,7 +267,7 @@ class DataArchitectureTest {
         }
     }
 
-    static List<Violation> violations(Map<String, Table> tables, Map<String, Entry> registry, Map<String, String> classification, Set<String> lockNames) {
+    static List<Violation> violations(Map<String, Table> tables, Map<String, Entry> registry, Map<String, ClassificationRegister.Row> classification, Set<String> lockNames) {
         List<Violation> v = new ArrayList<>();
         for (Table t : tables.values()) {
             Entry e = entryOf(registry, t.name);
@@ -378,10 +377,11 @@ class DataArchitectureTest {
         }
     }
 
-    private static void d5(List<Violation> v, Table t, Map<String, String> classification) {
+    private static void d5(List<Violation> v, Table t, Map<String, ClassificationRegister.Row> classification) {
         for (String column : t.columns.keySet()) {
-            if (SENSITIVE_PERSON.matcher(column).find() && !column.endsWith("_count") && !classification.containsKey(t.name + "." + column)) {
-                v.add(new Violation("D5", t.name, column, "a personal-data column is classified in architecture/data-classification.txt"));
+            ClassificationRegister.Row row = classification.get(t.name + "." + column);
+            if (ClassificationRegister.PERSON_NAME.matcher(column).find() && !column.endsWith("_count") && (row == null || !row.personal() && !row.exempt())) {
+                v.add(new Violation("D5", t.name, column, "a personal-data column is registered in architecture/data-classification.txt with the mark PI or SPI (or an exemption row with its reason)"));
             }
         }
     }
@@ -897,12 +897,12 @@ class DataArchitectureTest {
                 decided.put(parts[0], parts[1]);
             }
         }
-        Map<String, String> classification = DdlNamingTest.readClassification();
+        Map<String, ClassificationRegister.Row> classification = DdlNamingTest.readClassification();
         List<String> problems = new ArrayList<>();
         for (String column : tables.get("platform_audit.audit_entries").columns.keySet()) {
             if (!decided.containsKey(column)) {
                 problems.add("audit_entries." + column + " is not in architecture/archive-columns.txt: decide whether the archive carries it");
-            } else if ("ARCHIVE".equals(decided.get(column)) && "RESTRICTED".equals(classification.get("platform_audit.audit_entries." + column))) {
+            } else if ("ARCHIVE".equals(decided.get(column)) && classification.containsKey("platform_audit.audit_entries." + column) && "RESTRICTED".equals(classification.get("platform_audit.audit_entries." + column).level())) {
                 problems.add("audit_entries." + column + " is RESTRICTED and cannot be archived");
             }
         }
@@ -961,7 +961,7 @@ class DataArchitectureTest {
     }
 
     /** Tables with a column named employee_code or registered as the employee code in the data classification. */
-    static Set<String> tablesCarryingTheEmployeeCode(Connection c, Map<String, String> classification) throws SQLException {
+    static Set<String> tablesCarryingTheEmployeeCode(Connection c, Map<String, ?> classification) throws SQLException {
         Set<String> tables = new TreeSet<>();
         try (var select = c.prepareStatement("""
                 select table_schema || '.' || table_name from information_schema.columns

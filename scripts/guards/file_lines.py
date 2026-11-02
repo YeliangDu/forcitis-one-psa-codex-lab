@@ -25,7 +25,7 @@ OVER = {  # path -> (registered lines, reason); shrink only
         (1424, "acceptance test: only the test engineer splits it (CLAUDE.md baseline 4)"),
     "scripts/release/remote_install.sh": (1083, "release script on a guarded path: split in its own reviewed PR"),
     "backend/src/test/java/com/forcitis/one/DataArchitectureTest.java": (1054, "guard test: split by rule family in its own PR"),
-    "backend/src/test/java/com/forcitis/one/DdlNamingTest.java": (1029, "guard test: split by rule family in its own PR"),
+    "backend/src/test/java/com/forcitis/one/DdlNamingTest.java": (1004, "guard test: split by rule family in its own PR"),
 }
 
 
