@@ -13,9 +13,7 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.kernel.event.DomainEvent;
-import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.events.EmployeeRegistered;
-import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.integration.api.WecomEntry;
@@ -49,12 +47,6 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
 
     private void publish(DomainEvent event) {
         tx.executeWithoutResult(status -> events.publishEvent(event));
-    }
-
-    private static EmployeeSeparated separated(long id) {
-        EmployeeId employee = TestAccounts.employee(id);
-        return new EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", employee.value()),
-                new PersonnelCommandId(UUID.randomUUID()), employee, LocalDate.of(2026, 10, 14));
     }
 
     private static EmployeeRegistered registered(long id) {
