@@ -34,7 +34,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
- * #896 IMP-1030-FC-E acceptance (ADR-0073 item 3.6; note legal-entity-countersign.md sections 4, 6 and 10 item 11; one-design rulings on #896
+ * #896 IMP-1030-FC-E acceptance (recipients of levels 2 and 3: user answers A a and B a of 2026-11-02, recorded on #896) (ADR-0073 item 3.6; note legal-entity-countersign.md sections 4, 6 and 10 item 11; one-design rulings on #896
  * comment 6589848860): the deadline, reminder and escalation job. Open countersign rows (CHANGE and WITHDRAWAL) are seeded through the #893
  * schema with a stored due_on_date; the job (AttributionCountersignDeadlineJob#runOnce, driven at a set clock) raises a row to the highest
  * level due on the business date T, strictly after: level 1 when T is after the due date, level 2 when T is after the 2nd working day after
@@ -321,5 +321,44 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
         runOn(LocalDate.of(2027, 1, 2));
         assertThat(levelOf(row)).as("12-31 and 2027-01-01 (Mon–Fri fallback) are the two working days after the due date").isEqualTo(2);
         assertThat(noticesOf(row)).hasSize(2);
+    }
+
+    /** The notice of the row sent on the run of the day, after the cards of earlier runs were forgotten. */
+    private WecomCard noticeOnRun(UUID row, LocalDate day) {
+        Mockito.clearInvocations(wecomGateway);
+        runOn(day);
+        List<WecomCard> sent = noticesOf(row);
+        assertThat(sent).as("one notice on " + day).hasSize(1);
+        return sent.get(0);
+    }
+
+    @Test
+    @DisplayName("#896 用户答复 A（a，2026-11-02，#896 记录）：第 2 级提醒发给业务管理员角色的持有人（不按日期切换），不发给该法人的财务负责人，也不发给起草人")
+    void levelTwoGoesToTheBusinessAdministrators() throws Exception {
+        UUID first = employed(REGULAR);
+        UUID second = employed(REGULAR);
+        grantByOperations(first, "business_admin");
+        grantByOperations(second, "business_admin");
+        UUID row = openChangeRow(DUE);
+        runOn(DUE.plusDays(1));
+
+        WecomCard levelTwo = noticeOnRun(row, LocalDate.of(2026, 11, 12));
+
+        assertThat(levelOf(row)).isEqualTo(2);
+        assertThat(recipientsOf(levelTwo)).contains(wecomUserIdOf(first), wecomUserIdOf(second))
+                .doesNotContain(wecomUserIdOf(headE1), wecomUserIdOf(hr.employeeId()));
+    }
+
+    @Test
+    @DisplayName("#896 用户答复 B（a，2026-11-02，#896 记录）：第 3 级提醒再发给该法人今天版本的财务负责人（没有集团级财务角色），只发给他")
+    void levelThreeGoesToTheFinanceHeadAgain() throws Exception {
+        UUID row = openChangeRow(DUE);
+        runOn(DUE.plusDays(1));
+        runOn(LocalDate.of(2026, 11, 12));
+
+        WecomCard levelThree = noticeOnRun(row, LocalDate.of(2026, 11, 14));
+
+        assertThat(levelOf(row)).isEqualTo(3);
+        assertThat(recipientsOf(levelThree)).containsExactly(wecomUserIdOf(headE1));
     }
 }
