@@ -60,6 +60,14 @@ class OrgDirectoryService implements OrgDirectory {
     }
 
     @Override
+    public Optional<EmploymentStatus> employmentOn(EmployeeId employeeId, LocalDate day) {
+        if (versions.hasVersions(employeeId)) {
+            return versions.employmentOn(employeeId, day);
+        }
+        return snapshots.findStaff(employeeId).map(staff -> staff.employee().employmentStatus());
+    }
+
+    @Override
     public EmploymentVerdict employmentOf(EmployeeId employeeId) {
         if (versions.hasVersions(employeeId)) {
             return versions.employmentOn(employeeId, zone.today(clock))

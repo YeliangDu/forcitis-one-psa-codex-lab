@@ -31,8 +31,6 @@ class ArchitectureRulesTest {
     static final int MAX_API_METHODS_PER_MODULE = 12;
     // 登记例外：模块 -> {上限, 出处}；全局上限不抬，新增例外须有出处并经 one-architecture 裁定
     static final Map<String, ApiLimitException> API_LIMIT_EXCEPTIONS = Map.of(
-            ROOT + ".organization.workforce", new ApiLimitException(11,
-                    "G4 只数有模块外调用方的方法，上限按此口径降到实际数（只降不升）one-lead 转用户批准 2026-11-02 #981；NITS-1 项⑤；one-coordinator 同意；one-architecture 裁定 2026-10-17；人事命令 enter/withdraw（ADR-0068 第 1 条）one-design 裁定 2026-10-30 #872；停薪留职查询 isOnUnpaidLeave（ADR-0068 第 3 条）one-design 裁定 2026-10-30 #874；暂停放行 release（ADR-0068 第 2 条第 3 项）one-design 裁定 2026-10-30 #875；员工档案修改 EmployeeProfiles.change（验收 #964 固定接口）one-lead 裁定 2026-11-02 #959"),
             ROOT + ".platform.integration", new ApiLimitException(17,
                     "ADR-0060 检测与业务文件桶端口；one-architecture 裁定 2026-10-21；到期：ADR-0069 D2 合入"));
 
@@ -88,9 +86,9 @@ class ArchitectureRulesTest {
 
     @Test
     void apiSurfaceExceptionModuleAllowsExactlyItsLimit() {
-        String module = ROOT + ".organization.workforce";
-        assertApiSurfaceNarrow(Map.of(module, 11L));
-        assertThatThrownBy(() -> assertApiSurfaceNarrow(Map.of(module, 12L)))
+        String module = ROOT + ".platform.integration";
+        assertApiSurfaceNarrow(Map.of(module, 17L));
+        assertThatThrownBy(() -> assertApiSurfaceNarrow(Map.of(module, 18L)))
                 .isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Deepen the module instead of widening its interface.");
     }

@@ -30,4 +30,10 @@ class AdministratorHoldCheck implements SeparationHoldCheck {
         Set<EmployeeId> leaving = commands.excludedEmployees();
         return !review.review(List.of(separation.employeeId()), leaving, null).separatedAdministrators().isEmpty();
     }
+
+    @Override
+    public boolean holdsOnDueDay(PersonnelCommand separation) {
+        Set<EmployeeId> leaving = commands.excludedEmployees();
+        return !review.review(List.of(separation.employeeId()), leaving, null, separation.effectiveDate().minusDays(1)).separatedAdministrators().isEmpty();
+    }
 }
