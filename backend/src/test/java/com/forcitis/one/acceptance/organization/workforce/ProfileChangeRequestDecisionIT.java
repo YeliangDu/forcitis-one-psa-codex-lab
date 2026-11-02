@@ -225,4 +225,69 @@ class ProfileChangeRequestDecisionIT extends ProfileChangeRequestSupport {
         assertThat(reject(second, another, "y".repeat(500)).getStatus()).as("500 characters").isEqualTo(200);
         assertThat(request(another).get("decision_reason")).isEqualTo("y".repeat(500));
     }
+
+    @Test
+    @DisplayName("#980 完成标准 7（rv1059x M3：基准里的企业微信账号变了也算基准变化）：请求后该员工的企业微信账号被其他途径改了（直接写库）：确认答 409、VOIDED BASE_CHANGED，什么都不写")
+    void aMovedBaseWecomIdVoids() throws Exception {
+        Staff subject = privileged();
+        UUID request = requested(hr, subject.employeeId(), "Synthetic base wecom moved", syntheticWecom("wanted"));
+        String elsewhere = syntheticWecom("elsewhere");
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update employees set wecom_user_id = ? where id = ?", elsewhere, stored(subject.employeeId()));
+        }
+
+        MockHttpServletResponse answer = confirm(staff(PERSONNEL_SPECIALIST_ROLE), request);
+
+        assertThat(answer.getStatus()).as(answer.getContentAsString()).isEqualTo(409);
+        assertThat(request(request).get("request_status")).isEqualTo("VOIDED");
+        assertThat(request(request).get("void_reason_kind")).isEqualTo("BASE_CHANGED");
+        assertThat(root(subject.employeeId()).get("wecom_user_id")).isEqualTo(elsewhere);
+    }
+
+    @Test
+    @DisplayName("#980 第 5 条第 3 项「拒绝：另一人（同确认人规则）或请求人撤回」（rv1059x M4）：被改档案的人自己（持人事命令权限）不能拒绝（403 确认人代码），请求仍待复核")
+    void theSubjectCannotReject() throws Exception {
+        Staff subject = staff(PERSONNEL_SPECIALIST_ROLE);
+        UUID request = requested(hr, subject.employeeId(), "Synthetic subject rejects", syntheticWecom("veto"));
+
+        MockHttpServletResponse answer = reject(subject, request, "synthetic: I refuse");
+
+        assertThat(answer.getStatus()).as(answer.getContentAsString()).isEqualTo(403);
+        assertThat(codeOf(answer)).isEqualTo(CONFIRMER_CODE);
+        assertThat(request(request).get("request_status")).isEqualTo("PENDING");
+    }
+
+    @Test
+    @DisplayName("#980 第 3 节「整份档案一起等」（rv1059x 建议 1）：提议里改了邮箱，确认后邮箱一并写入；另一请求后邮箱被其他途径改了，确认答 409、VOIDED BASE_CHANGED")
+    void theWholeProfileIncludesTheEmail() throws Exception {
+        Staff subject = privileged();
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update employees set email = 'synthetic-old@example.invalid' where id = ?", stored(subject.employeeId()));
+        }
+        MockHttpServletResponse asked = changeOver(hr, subject.employeeId(), "Synthetic with email", "synthetic-new@example.invalid", syntheticWecom("mail"));
+        assertThat(asked.getStatus()).as(asked.getContentAsString()).isEqualTo(202);
+        UUID request = UUID.fromString(JsonPath.read(asked.getContentAsString(), "$.requestId"));
+
+        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE), request).getStatus()).isEqualTo(200);
+        assertThat(root(subject.employeeId()).get("email")).isEqualTo("synthetic-new@example.invalid");
+
+        Staff other = privileged();
+        UUID second = requested(hr, other.employeeId(), "Synthetic email base", syntheticWecom("mail-base"));
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update employees set email = 'synthetic-moved@example.invalid' where id = ?", stored(other.employeeId()));
+        }
+        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE), second).getStatus()).isEqualTo(409);
+        assertThat(request(second).get("void_reason_kind")).isEqualTo("BASE_CHANGED");
+    }
+
+    @Test
+    @DisplayName("#980 one-design HTTP 裁定第 1 项（rv1059x 建议 2）：拒绝同样要 If-Match：不带答 428，版本不符答 412，请求仍待复核")
+    void rejectionNeedsTheVersion() throws Exception {
+        UUID request = requested(hr, privileged().employeeId(), "Synthetic reject versioned", syntheticWecom("reject-version"));
+        Staff second = staff(PERSONNEL_SPECIALIST_ROLE);
+
+        assertThat(rejectWith(second, request, "synthetic: no", null).getStatus()).isEqualTo(428);
+        assertThat(rejectWith(second, request, "synthetic: no", "\"7\"").getStatus()).isEqualTo(412);
+        assertThat(request(request).get("request_status")).isEqualTo("PENDING");
+    }
 }

@@ -37,9 +37,16 @@ abstract class ProfileChangeRequestSupport extends EmployeeHireSupport {
 
     /** The profile change through :change-profile by the caller: the whole new profile (gender and email left out). */
     protected MockHttpServletResponse changeOver(Staff caller, UUID person, String displayName, String wecomUserId) throws Exception {
+        return changeOver(caller, person, displayName, null, wecomUserId);
+    }
+
+    /** As {@link #changeOver(Staff, UUID, String, String)} with an email in the proposed profile (null leaves it out). */
+    protected MockHttpServletResponse changeOver(Staff caller, UUID person, String displayName, String email, String wecomUserId) throws Exception {
         String wecom = wecomUserId == null ? "null" : "\"" + wecomUserId + "\"";
+        String mail = email == null ? "" : ",\"email\":\"" + email + "\"";
         return mvc.perform(post("/api/v1/organization/employees/" + text(person) + ":change-profile").with(csrf()).with(session(caller.session()))
-                .contentType(MediaType.APPLICATION_JSON).content("{\"displayName\":\"" + displayName + "\",\"wecomUserId\":" + wecom + ",\"effectiveDate\":\"" + TODAY + "\"}"))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"displayName\":\"" + displayName + "\",\"wecomUserId\":" + wecom + mail
+                        + ",\"effectiveDate\":\"" + TODAY + "\"}"))
                 .andReturn().getResponse();
     }
 
@@ -69,8 +76,11 @@ abstract class ProfileChangeRequestSupport extends EmployeeHireSupport {
 
     protected MockHttpServletResponse rejectWith(Staff caller, UUID request, String reason, String ifMatch) throws Exception {
         String body = reason == null ? "{}" : "{\"reason\":\"" + reason + "\"}";
-        return mvc.perform(post(REQUESTS_PATH + "/" + request + ":reject").header("If-Match", ifMatch).with(csrf()).with(session(caller.session()))
-                .contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse();
+        var call = post(REQUESTS_PATH + "/" + request + ":reject").with(csrf()).with(session(caller.session())).contentType(MediaType.APPLICATION_JSON).content(body);
+        if (ifMatch != null) {
+            call = call.header("If-Match", ifMatch);
+        }
+        return mvc.perform(call).andReturn().getResponse();
     }
 
     /** The If-Match value of the request as it is now (a decided request is no longer version 0; review rv1059a). */
@@ -83,7 +93,7 @@ abstract class ProfileChangeRequestSupport extends EmployeeHireSupport {
     }
 
     protected static String codeOf(MockHttpServletResponse response) throws Exception {
-        return JsonPath.read(response.getContentAsString(), "$.code");
+        return JsonPath.read(response.getContentAsString(), "$.errorCode");
     }
 
     // ---- reading ----

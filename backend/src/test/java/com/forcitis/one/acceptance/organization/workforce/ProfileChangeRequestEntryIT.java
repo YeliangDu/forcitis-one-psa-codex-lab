@@ -205,4 +205,22 @@ class ProfileChangeRequestEntryIT extends ProfileChangeRequestSupport {
         assertThat(listPending(outsider).getStatus()).isEqualTo(403);
         assertThat(request(request).get("request_status")).isEqualTo("PENDING");
     }
+
+    @Test
+    @DisplayName("#980 完成标准 16（rv1059x M5：30 天从确认那天算，不从请求那天算）：请求在今天、第 5 天才确认清空；第 35 天（确认后第 30 天）补填仍须第二人，第 36 天一人即可")
+    void theThirtyDaysCountFromTheConfirmation() throws Exception {
+        Staff subject = privileged();
+        UUID clear = requested(hr, subject.employeeId(), "Synthetic cleared later", null);
+        setToday(TODAY.plusDays(5));
+        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE), clear).getStatus()).isEqualTo(200);
+
+        setToday(TODAY.plusDays(35));
+        Staff caller = staff(PERSONNEL_SPECIALIST_ROLE);
+        UUID waiting = requested(caller, subject.employeeId(), "Synthetic day 35", syntheticWecom("day35"));
+        assertThat(reject(caller, waiting, "synthetic: tomorrow").getStatus()).isEqualTo(200);
+
+        setToday(TODAY.plusDays(36));
+        MockHttpServletResponse dayThirtySix = changeOver(staff(PERSONNEL_SPECIALIST_ROLE), subject.employeeId(), "Synthetic day 36", syntheticWecom("day36"));
+        assertThat(dayThirtySix.getStatus()).as(dayThirtySix.getContentAsString()).isEqualTo(200);
+    }
 }
