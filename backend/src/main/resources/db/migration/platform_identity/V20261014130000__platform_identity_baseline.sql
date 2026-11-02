@@ -265,7 +265,7 @@ CREATE TABLE platform_identity.authorization_requests (
     permission_codes  text[]      NOT NULL DEFAULT '{}',
     base_account_version_number bigint,
     base_role_version_ids       uuid[]      NOT NULL DEFAULT '{}',
-    request_status    text        NOT NULL CHECK (request_status IN ('PENDING', 'CONFIRMED', 'REJECTED')),
+    request_status    text        NOT NULL,
     decided_by        uuid,
     decided_at        timestamptz,
     version           bigint      NOT NULL DEFAULT 0,
@@ -273,6 +273,9 @@ CREATE TABLE platform_identity.authorization_requests (
     created_at        timestamptz NOT NULL DEFAULT now(),
     updated_at        timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_authorization_requests PRIMARY KEY (request_id),
+    CONSTRAINT ck_authorization_requests_request_status CHECK (request_status IN ('PENDING', 'CONFIRMED', 'REJECTED', 'VOIDED')),
+    CONSTRAINT ck_authorization_requests_base CHECK ((request_kind = 'REPLACE_ROLES') = (base_account_version_number IS NOT NULL)
+        AND (request_kind <> 'UPDATE_ROLE' OR cardinality(base_role_version_ids) = 1) AND (request_kind <> 'CREATE_ROLE' OR cardinality(base_role_version_ids) = 0)),
     CONSTRAINT ck_authorization_requests_two_people CHECK (decided_by IS NULL OR (decided_by <> requested_by AND decided_by IS DISTINCT FROM subject_user_id) OR request_status = 'REJECTED')
 );
 COMMENT ON TABLE platform_identity.authorization_requests IS '授权申请：授予敏感权限、或把角色改成含敏感权限，先建申请，另一人确认后由监听器执行。粒度：每个申请一行';
@@ -290,7 +293,7 @@ COMMENT ON COLUMN platform_identity.authorization_requests.access_scope_kind IS 
 COMMENT ON COLUMN platform_identity.authorization_requests.permission_codes IS '角色的完整权限码集合：CREATE_ROLE、UPDATE_ROLE 才有';
 COMMENT ON COLUMN platform_identity.authorization_requests.base_account_version_number IS '基准账号版本：账号授权申请记申请时 user_accounts.version；为空表示不是账号授权申请';
 COMMENT ON COLUMN platform_identity.authorization_requests.base_role_version_ids IS '基准角色版本：申请时相关角色的当前 role_version_id；账号授权申请为申请后集合与当时持有集合中每个角色，角色修改申请为该角色一个；新建角色为空数组（列名见待裁定 A-3）';
-COMMENT ON COLUMN platform_identity.authorization_requests.request_status IS '申请状态：PENDING 待确认 / CONFIRMED 已确认并交监听器执行 / REJECTED 已拒绝';
+COMMENT ON COLUMN platform_identity.authorization_requests.request_status IS '申请状态：PENDING 待确认 / CONFIRMED 已确认并交监听器执行 / REJECTED 已拒绝 / VOIDED 已作废：确认后执行前发现基准（账号版本或相关角色版本）已变，什么都没有执行';
 COMMENT ON COLUMN platform_identity.authorization_requests.decided_by IS '确认人或拒绝人用户 ID；确认人不是申请人，也不是受益人';
 COMMENT ON COLUMN platform_identity.authorization_requests.decided_at IS '确认或拒绝的时间';
 COMMENT ON COLUMN platform_identity.authorization_requests.version IS '乐观锁版本';

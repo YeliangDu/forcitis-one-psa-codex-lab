@@ -46,8 +46,9 @@ final class CustomOrgUnitRows implements AutoCloseable {
 
     static final String REQUEST_INSERT = """
             insert into platform_identity.authorization_requests (request_id, request_kind, requested_by, requested_at, subject_user_id, role_id, role_codes,
-                   new_role_code, role_name, is_enabled, access_scope_kind, permission_codes, request_status, decided_by, decided_at, created_at, updated_at)
-            values (?, ?, ?, ?::timestamptz, null, null, '{}'::text[], null, ?, true, ?, '{}'::text[], ?, ?, ?::timestamptz, ?::timestamptz, ?::timestamptz)""";
+                   new_role_code, role_name, is_enabled, access_scope_kind, permission_codes, base_account_version_number, base_role_version_ids, request_status,
+                   decided_by, decided_at, created_at, updated_at)
+            values (?, ?, ?, ?::timestamptz, null, null, '{}'::text[], null, ?, true, ?, '{}'::text[], ?, ?::uuid[], ?, ?, ?::timestamptz, ?::timestamptz, ?::timestamptz)""";
 
     static final String ROLE_VERSION_UNIT_INSERT = """
             insert into platform_identity.role_version_custom_org_units (role_version_custom_org_unit_id, role_version_id, org_unit_id,
@@ -97,7 +98,11 @@ final class CustomOrgUnitRows implements AutoCloseable {
     UUID request(String kind, String status, String scopeKind) throws SQLException {
         UUID id = UUID.randomUUID();
         boolean decided = !"PENDING".equals(status);
-        setup(REQUEST_INSERT, id, kind, UUID.randomUUID(), T0, uniqueName(), scopeKind, status, decided ? UUID.randomUUID() : null, decided ? T1 : null, T0, T0);
+        // ck_authorization_requests_base (#938): an account request carries a base account version, a role change exactly one base role version
+        Long baseAccountVersion = "REPLACE_ROLES".equals(kind) ? 0L : null;
+        String baseRoleVersions = "UPDATE_ROLE".equals(kind) ? "{" + UUID.randomUUID() + "}" : "{}";
+        setup(REQUEST_INSERT, id, kind, UUID.randomUUID(), T0, uniqueName(), scopeKind, baseAccountVersion, baseRoleVersions, status,
+                decided ? UUID.randomUUID() : null, decided ? T1 : null, T0, T0);
         return id;
     }
 

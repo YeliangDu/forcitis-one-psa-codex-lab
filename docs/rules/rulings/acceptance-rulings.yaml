@@ -324,3 +324,31 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/organization/administration/README.md
     reason: 卡 C（IMP-1022-ADM-01）迁移使 DRAFT 不落库、条目表新增必填列 is_system_only；卡 A 的 ADM-A-46/48/49/50 去 DRAFT 或降为 SQLSTATE，条目夹具显式给 is_system_only=false；不删用例，ADM-A-35 至 44、61 断言原样；PR 改断言栏单列
     ref: docs/rules/rulings/coord-2026-10-23.md
+  - id: RULING-LEAD-20261102-01
+    date: 2026-11-02
+    ruled_by: independent sonnet reviewer rv894c (dispatched by one-test, given only the diff), recorded by one-lead
+    implementer: one-test
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/CountersignApprovalIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/CountersignEntryIT.java
+    reason: 合入 main 后两类同时静态导入 CountersignNames.* 与 PersonnelCommandNames.*，裸名 CORRECTION 有歧义编译不过；限定为 CountersignNames.CORRECTION，两常量值同为 "CORRECTION"，断言、期望值、用例、夹具均未改，只修编译
+    ref: "#894 acceptance branch, commit 19c80042e; review-894-compile-fix-sonnet.md"
+  - id: RULING-LEAD-20261102-02
+    date: 2026-11-02
+    ruled_by: independent sonnet reviewer rvEsc (dispatched by one-test, given only the diffs), recorded by one-lead
+    implementer: one-test
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/CountersignSupport.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/CountersignEntryIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/OrgCountersignSupport.java
+    reason: '#893 签发列名 escalation_level 改为 escalation_level_number（#893 命名裁定 comment 6589791372 第 1 项）；两个夹具的 SQL 列名与 CountersignEntryIT:75 断言读的行键随之改名，写入值与期望值 0 不变，未增删或放宽任何断言、用例'
+    ref: "commits 489647736 (#895 acceptance) and 9547f9239 (#910 acceptance); review-escalation-rename-sonnet.md"
+  - id: RULING-LEAD-20261102-03
+    date: 2026-11-02
+    ruled_by: independent sonnet reviewer rv934m (dispatched by one-test, given only the two files at base, both parents and the merge), recorded by one-lead
+    implementer: one-dev-org
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/SingleColumnPrimaryKeysIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/P5Names.java
+    reason: '#1018（#934）合入 main 的冲突解决：结果正好是两边各自已接受的删除之和（#934 删 sync_run_held_separations，#732 删 account_roles 并以新测试替代），外加 List.<String[]>of 编译修复与方法名、DisplayName、javadoc 随之改写；循环断言逐字不变，未放松或多删用例'
+    ref: "merge commit 1073683476b5775b963c529d27151212796db4bd (PR #1018); review-934-merge-sonnet.md"

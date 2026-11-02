@@ -29,10 +29,12 @@ public class ConfirmAuthorizationRequest {
     private final AccountRepository accounts;
     private final ReplaceAccountRoles replaceRoles;
     private final AdministratorFloor floor;
+    private final AuthorizationVoiding voiding;
 
     ConfirmAuthorizationRequest(CurrentUser currentUser, AuthorizationRequestRepository requests, DomainEvents events, Clock clock,
-            AccountRepository accounts, ReplaceAccountRoles replaceRoles, AdministratorFloor floor) {
+            AccountRepository accounts, ReplaceAccountRoles replaceRoles, AdministratorFloor floor, AuthorizationVoiding voiding) {
         this.replaceRoles = replaceRoles;
+        this.voiding = voiding;
         this.floor = floor;
         this.accounts = accounts;
         this.currentUser = currentUser;
@@ -51,13 +53,16 @@ public class ConfirmAuthorizationRequest {
             floor.lockDecisions();
         }
         request.confirm(by, clock.instant(), accounts.find(by).map(UserAccount::roles).orElse(Set.of()));
-        requests.save(request);
-        events.publish(request);
         if (replacesRoles) {
-            AdminOutcome<Long> applied = replaceRoles.applyConfirmed(request.subjectUser(), request.roleCodes(), request.requestedBy(), request.requestId());
-            if (applied instanceof AdminOutcome.Refused<Long> refused) {
+            AdminOutcome<Boolean> applied = replaceRoles.applyConfirmed(request.subjectUser(), request.roleCodes(), request);
+            if (applied instanceof AdminOutcome.Refused<Boolean> refused) {
                 throw refused.error().refusal("the confirmed role change could not be applied");
             }
+            if (applied instanceof AdminOutcome.Done<Boolean> done && !done.value()) {
+                voiding.voidRequest(request);
+            }
         }
+        requests.save(request);
+        events.publish(request);
     }
 }
