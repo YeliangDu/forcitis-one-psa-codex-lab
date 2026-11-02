@@ -14,6 +14,7 @@ import time
 
 import driftscan_selftest
 import gapscan_selftest
+import mq_label_selftest
 
 LOG_LINE = re.compile(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d\d:\d\d [A-Z-]+ pr=#(\d+|-) run=(\d+|-) elapsed=\d+s( .*)?$")
 HEAVY = "backend verify (Modulith + ArchUnit guardrails + integration tests)", "frontend verify (typecheck + lint guardrails F1-F14 + structure + build)"
@@ -168,7 +169,7 @@ def run(mq):
     try:
         with tempfile.TemporaryDirectory() as d:
             fake_gh(d, [])   # nothing in the self-test reaches the real gh: an unknown call exits 97
-            for case in (_units, _flow, _release, _pause, _runner, _queue, _remove_busy, _head_changed, _gh_commands, _git, _docs_tiers, gapscan_selftest.run, driftscan_selftest.run_with_mq):
+            for case in (_units, _flow, _release, _pause, _runner, _queue, _remove_busy, _head_changed, _gh_commands, _git, _docs_tiers, mq_label_selftest.run, gapscan_selftest.run, driftscan_selftest.run_with_mq):
                 case(mq, d)
     finally:
         for k, v in old.items():
@@ -774,7 +775,7 @@ def _remove_busy(mq, d):
     with contextlib.suppress(OSError):
         proc.release(316)
     assert 316 not in proc.busy
-    gh = FakeGh(); gh.add(317, rounds=[dict(pending=1, checks=green())])
+    gh = FakeGh(); gh.add(317, rounds=[dict(pending=2, checks=green())])
     seen, holder = [], {}
     proc, q6, log, _ = _proc(mq, d, "cb8", gh, [], on_sleep=lambda s: seen.append(dict(holder["q"].working())))
     holder["q"] = q6
