@@ -137,23 +137,23 @@ class JdbcRoleRepository implements RoleRepository {
         Instant now = clock.instant();
         CurrentVersion current = lockCurrent(role);
         boolean held = jdbc.sql("""
-                select exists (select 1 from platform_identity.account_roles where role_id = :id)
-                """)
+                select exists (select 1 from platform_identity.account_role_grants where role_id = :id and %s)
+                """.formatted(Validity.CURRENT))
                 .param("id", role.roleId().value()).query(Boolean.class).single();
         if (held) {
             throw IdentityError.PLATFORM_IDENTITY_ROLE_IN_USE.refusal("role " + role.roleId().value() + " is still held by accounts");
         }
         Instant to = jdbc.sql("""
-                select greatest(:now, effective_from_at) from platform_identity.role_versions where role_version_id = :version
-                """)
+                select greatest(:now, effective_from_at) from platform_identity.role_versions where role_version_id = :version and %s
+                """.formatted(Validity.CURRENT))
                 .param("now", at(now)).param("version", current.id().value())
                 .query((rs, n) -> rs.getObject(1, OffsetDateTime.class).toInstant()).single();
         AuditEntryId entry = audit.closed(role.roleId(), current.id(), current.number(), deletedBy, to, now);
         int closed = jdbc.sql("""
                         update platform_identity.role_versions
                            set effective_to_at = :to, updated_at = :to, closed_by = :closedBy, closure_reason = :reason, closure_audit_entry_id = :entry
-                         where role_version_id = :version and effective_to_at is null
-                        """)
+                         where role_version_id = :version and %s
+                        """.formatted(Validity.CURRENT))
                 .param("to", at(to)).param("closedBy", deletedBy.value()).param("reason", reason).param("entry", entry.value())
                 .param("version", current.id().value())
                 .update();
@@ -275,8 +275,8 @@ class JdbcRoleRepository implements RoleRepository {
         return jdbc.sql("""
                         select role_version_id, version_number, role_name, role_status, access_scope_kind, permission_codes, change_channel_kind,
                                declaration_revision_number
-                          from platform_identity.role_versions where role_id = :id and effective_to_at is null
-                        """)
+                          from platform_identity.role_versions where role_id = :id and %s
+                        """.formatted(Validity.CURRENT))
                 .param("id", roleId.value())
                 .query((rs, n) -> new Stored(new RoleVersionId(rs.getObject("role_version_id", UUID.class)), rs.getInt("version_number"),
                         rs.getString("role_name"), RoleStatus.valueOf(rs.getString("role_status")), AccessScopeKind.valueOf(rs.getString("access_scope_kind")),
@@ -287,11 +287,11 @@ class JdbcRoleRepository implements RoleRepository {
                         RoleRows.customOrgUnits(jdbc, List.of(stored.id())).getOrDefault(stored.id(), Set.of())), stored.channel(), stored.revision()));
     }
 
-    /** ADR-0034 decision 1 item 6: never before the current version's start, nor before the latest end of the role's versions. */
+    /** ADR-0034 decision 1 item 6: never before the current version's start; that version began no earlier than any earlier one ended, so the latest end is covered. */
     private Instant nextStart(RoleId roleId, Instant now) {
         return jdbc.sql("""
-                        select greatest(:now, max(effective_from_at), max(effective_to_at)) from platform_identity.role_versions where role_id = :id
-                        """)
+                        select greatest(:now, max(effective_from_at)) from platform_identity.role_versions where role_id = :id and %s
+                        """.formatted(Validity.CURRENT))
                 .param("now", at(now)).param("id", roleId.value())
                 .query((rs, n) -> rs.getObject(1, OffsetDateTime.class).toInstant()).single();
     }
@@ -300,8 +300,8 @@ class JdbcRoleRepository implements RoleRepository {
     private void updateToReplace(RoleVersionId current, Instant at) {
         int closed = jdbc.sql("""
                         update platform_identity.role_versions set effective_to_at = :at, updated_at = :at
-                         where role_version_id = :version and effective_to_at is null
-                        """)
+                         where role_version_id = :version and %s
+                        """.formatted(Validity.CURRENT))
                 .param("at", at(at)).param("version", current.value())
                 .update();
         if (closed != 1) {
@@ -359,8 +359,8 @@ class JdbcRoleRepository implements RoleRepository {
         return jdbc.sql("""
                         select exists (select 1 from platform_identity.role_versions
                                         where lower(role_name) = lower(:name) and role_id <> :id
-                                          and (effective_to_at is null or (effective_to_at > :from and effective_to_at > effective_from_at)))
-                        """)
+                                          and (%s or (effective_to_at > :from and effective_to_at > effective_from_at)))
+                        """.formatted(Validity.CURRENT))
                 .param("name", name).param("id", roleId.value()).param("from", at(from)).query(Boolean.class).single();
     }
 

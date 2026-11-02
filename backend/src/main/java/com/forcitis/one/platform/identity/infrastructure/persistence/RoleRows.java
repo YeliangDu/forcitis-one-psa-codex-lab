@@ -33,9 +33,7 @@ final class RoleRows {
     private static final Logger LOG = LoggerFactory.getLogger(RoleRows.class);
 
     /** The only way identity reads the current version of a role: the join every role read goes through. */
-    static final String CURRENT_VERSION = """
-            join platform_identity.role_versions v on v.role_id = r.role_id and v.effective_to_at is null
-            """;
+    static final String CURRENT_VERSION = "join platform_identity.role_versions v on v.role_id = r.role_id and v." + Validity.CURRENT + "\n";
 
     private static final String COLUMNS = """
             r.role_id, r.code, r.kind, r.is_administrative, r.version, r.event_count,

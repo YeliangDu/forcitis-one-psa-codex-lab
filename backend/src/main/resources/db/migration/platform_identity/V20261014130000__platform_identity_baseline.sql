@@ -69,25 +69,6 @@ COMMENT ON FUNCTION platform_identity.refuse_role_identity_change() IS '角色�
 CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.roles
     FOR EACH ROW EXECUTE FUNCTION platform_identity.refuse_role_identity_change();
 
--- 账号仍持有的角色不得被删除：删角色时由外键拒绝，而不是悄悄把账号的授权带走。
-CREATE TABLE platform_identity.account_roles (
-    account_role_id uuid   NOT NULL,
-    user_id    uuid        NOT NULL REFERENCES platform_identity.user_accounts (user_id) ON DELETE CASCADE,
-    role_id    uuid        NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    CONSTRAINT pk_account_roles PRIMARY KEY (account_role_id),
-    CONSTRAINT uk_account_roles_user_id_role_id UNIQUE (user_id, role_id),
-    CONSTRAINT fk_account_roles_role_id FOREIGN KEY (role_id) REFERENCES platform_identity.roles (role_id) ON DELETE RESTRICT
-);
-CREATE INDEX ix_account_roles_role ON platform_identity.account_roles (role_id);
-COMMENT ON TABLE platform_identity.account_roles IS '账号—角色：整组替换（RULE-346）；默认角色只在建档时显式授予一次（RULE-344）；离职时全部删除（ADR-0027）。粒度：每个账号的每个角色一行';
-COMMENT ON COLUMN platform_identity.account_roles.account_role_id IS '账号角色 ID（UUIDv7）';
-COMMENT ON COLUMN platform_identity.account_roles.user_id IS '用户 ID';
-COMMENT ON COLUMN platform_identity.account_roles.role_id IS '角色 ID';
-COMMENT ON COLUMN platform_identity.account_roles.created_at IS '创建时间';
-COMMENT ON COLUMN platform_identity.account_roles.updated_at IS '更新时间';
-
 CREATE TABLE platform_identity.navigation_items (
     item_id         uuid        PRIMARY KEY,
     parent_item_id  uuid        REFERENCES platform_identity.navigation_items (item_id),

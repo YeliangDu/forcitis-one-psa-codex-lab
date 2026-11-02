@@ -2,33 +2,74 @@ package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.SystemActorName;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
+import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
+import com.forcitis.one.platform.audit.api.AuditEntry;
+import com.forcitis.one.platform.audit.api.AuditLog;
+import com.forcitis.one.platform.audit.api.AuditOutcome;
+import com.forcitis.one.platform.audit.api.AuditSubject;
+import com.forcitis.one.platform.audit.api.AuditSubjectKind;
+import com.forcitis.one.platform.identity.domain.AccountRepository;
+import java.util.Set;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
 /**
- * The local personnel command took effect (ADR-0068 item 2.5 C): the person loses every role, session and browser identifier, as when a
- * snapshot shows them separated. Workforce judged the last-administrator floor before publishing, so nothing is refused here; a person
- * without an account is a no-op, and a repeated delivery finds nothing left to close.
+ * The local personnel command took effect (ADR-0068 item 2.5 C; ADR-0055 decision 3 item 2): in one transaction every open grant of the person is closed
+ * (cause SEPARATION, the command of the event, an audit entry per grant written back), every session and browser identifier ends and the cache is
+ * evicted; the emergency account follows in its own transaction. Workforce judged the last-administrator floor before publishing, so nothing is refused
+ * here; a person without an account is a no-op, and a repeated delivery finds nothing left to close.
  */
 @SystemActorName("platform.identity.separation")
 @Component
 class HandleEmployeeSeparated {
 
-    private final HandleOrgSnapshotChange separation;
-    private final AccountEmployees accountEmployees;
+    private static final String ACTOR = HandleEmployeeSeparated.class.getAnnotation(SystemActorName.class).value();
 
-    HandleEmployeeSeparated(HandleOrgSnapshotChange separation, AccountEmployees accountEmployees) {
-        this.separation = separation;
+    private final AccountEmployees accountEmployees;
+    private final AccountRepository accounts;
+    private final AccountGrants grants;
+    private final DomainEvents events;
+    private final SessionRegistry sessions;
+    private final RevokeBrowserIdentifiers revokeBrowserIdentifiers;
+    private final AccessCache cache;
+    private final AuditLog audit;
+
+    HandleEmployeeSeparated(AccountEmployees accountEmployees, AccountRepository accounts, AccountGrants grants, DomainEvents events, SessionRegistry sessions,
+            RevokeBrowserIdentifiers revokeBrowserIdentifiers, AccessCache cache, AuditLog audit) {
         this.accountEmployees = accountEmployees;
+        this.accounts = accounts;
+        this.grants = grants;
+        this.events = events;
+        this.sessions = sessions;
+        this.revokeBrowserIdentifiers = revokeBrowserIdentifiers;
+        this.cache = cache;
+        this.audit = audit;
     }
 
     @ApplicationModuleListener
     void on(EmployeeSeparated event) {
-        try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null),
-                "platform.identity.separation")) {
-            accountEmployees.accountOf(event.employeeId()).ifPresent(account -> separation.separate(account, "separated by personnel command"));
+        try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null), ACTOR)) {
+            accountEmployees.accountOf(event.employeeId()).ifPresent(account -> separate(account, event.personnelCommandId()));
         }
+    }
+
+    private void separate(UserId userId, PersonnelCommandId command) {
+        accounts.findForUpdate(userId).ifPresent(account -> {
+            if (!account.roles().isEmpty()) {
+                grants.replace(account, Set.of(), AccountGrants.Origin.separation(command));
+                account.recordSeparation();
+                accounts.save(account);
+                events.publish(account);
+            }
+        });
+        sessions.revokeAll(userId);
+        revokeBrowserIdentifiers.execute(userId);
+        cache.evict(userId);
+        audit.record(new AuditEntry("platform.identity.session.revoked", null, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
+                "separated by personnel command").withTrace(null, AuditOutcome.SUCCEEDED, null));
     }
 }
