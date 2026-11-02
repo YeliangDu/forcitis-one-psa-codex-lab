@@ -26,7 +26,7 @@ class AuthorizationRequestTest {
     static final UserId OTHER = TestAccounts.account(3);
 
     static AuthorizationRequest request() {
-        return AuthorizationRequest.replaceRoles(new AuthorizationRequestId(UUID.randomUUID()), REQUESTER, AT, RECIPIENT, Set.of("security_auditor"));
+        return AuthorizationRequest.replaceRoles(new AuthorizationRequestId(UUID.randomUUID()), REQUESTER, AT, RECIPIENT, Set.of("security_auditor"), new AuthorizationBase(1L, java.util.List.of()));
     }
 
     private static IdentityError refusal(Runnable action) {
@@ -52,6 +52,21 @@ class AuthorizationRequestTest {
         assertThat(refusal(() -> request.reject(OTHER, AT))).isEqualTo(IdentityError.PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_PENDING);
         assertThat(request.drainEvents(TestEnvelopes.INSTANCE)).satisfiesExactly(e -> assertThat(e).isInstanceOf(AuthorizationOpened.class),
                 e -> assertThat(e).isInstanceOf(AuthorizationConfirmed.class));
+    }
+
+    @Test
+    void onlyAConfirmedRequestCanBeVoided() {
+        AuthorizationRequest request = request();
+
+        assertThat(refusal(request::markVoided)).isEqualTo(IdentityError.PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_PENDING);
+        request.confirm(OTHER, AT);
+        request.markVoided();
+
+        assertThat(request.status()).isEqualTo(AuthorizationRequestStatus.VOIDED);
+        assertThat(request.decidedBy()).as("the confirmation stays on record").isEqualTo(OTHER);
+        assertThat(request.drainEvents(TestEnvelopes.INSTANCE)).satisfiesExactly(e -> assertThat(e).isInstanceOf(AuthorizationOpened.class),
+                e -> assertThat(e).isInstanceOf(AuthorizationConfirmed.class), e -> assertThat(e).isInstanceOf(com.forcitis.one.platform.identity.events.AuthorizationVoided.class));
+        assertThat(refusal(request::markVoided)).isEqualTo(IdentityError.PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_PENDING);
     }
 
     @Test

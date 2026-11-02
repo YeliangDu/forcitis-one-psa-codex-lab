@@ -27,6 +27,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -356,6 +358,17 @@ class JdbcRoleRepository implements RoleRepository {
                                           and (%s or (effective_to_at > :from and effective_to_at > effective_from_at)))
                         """.formatted(Validity.CURRENT))
                 .param("name", name).param("id", roleId.value()).param("from", at(from)).query(Boolean.class).single();
+    }
+
+    @Override
+    public Set<RoleVersionId> stillCurrent(Collection<RoleVersionId> versions) {
+        if (versions.isEmpty()) {
+            return Set.of();
+        }
+        return new HashSet<>(jdbc.sql("""
+                select role_version_id from platform_identity.role_versions where role_version_id in (:versions) and %s
+                """.formatted(Validity.CURRENT)).param("versions", versions.stream().map(RoleVersionId::value).toList())
+                .query((rs, n) -> new RoleVersionId(rs.getObject(1, UUID.class))).list());
     }
 
     private static OffsetDateTime at(Instant instant) {

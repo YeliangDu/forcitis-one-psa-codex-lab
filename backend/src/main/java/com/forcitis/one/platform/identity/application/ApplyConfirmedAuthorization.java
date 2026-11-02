@@ -2,7 +2,10 @@ package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.WorkContext;
+import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequest;
+import com.forcitis.one.platform.identity.domain.AuthorizationRequestKind;
+import com.forcitis.one.platform.identity.domain.AuthorizationRequestStatus;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequestRepository;
 import com.forcitis.one.platform.identity.events.AuthorizationConfirmed;
 import org.slf4j.Logger;
@@ -20,8 +23,13 @@ class ApplyConfirmedAuthorization {
     private final AuthorizationRequestRepository requests;
     private final CreateRole createRole;
     private final UpdateRole updateRole;
+    private final AuthorizationVoiding voiding;
+    private final DomainEvents events;
 
-    ApplyConfirmedAuthorization(AuthorizationRequestRepository requests, CreateRole createRole, UpdateRole updateRole) {
+    ApplyConfirmedAuthorization(AuthorizationRequestRepository requests, CreateRole createRole, UpdateRole updateRole,
+            AuthorizationVoiding voiding, DomainEvents events) {
+        this.voiding = voiding;
+        this.events = events;
         this.requests = requests;
         this.createRole = createRole;
         this.updateRole = updateRole;
@@ -32,6 +40,15 @@ class ApplyConfirmedAuthorization {
         AuthorizationRequest request = requests.find(event.requestId()).orElseThrow();
         try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null),
                 "platform.identity.authorization")) {
+            if (request.status() != AuthorizationRequestStatus.CONFIRMED) {
+                return;
+            }
+            if (request.kind() != AuthorizationRequestKind.REPLACE_ROLES && voiding.moved(request, null)) {
+                voiding.voidRequest(request);
+                requests.save(request);
+                events.publish(request);
+                return;
+            }
             AdminOutcome<?> outcome = switch (request.kind()) {
                 case REPLACE_ROLES -> null;
                 case CREATE_ROLE -> createRole.applyConfirmed(toCommand(request), request.requestedBy(), request.requestId());

@@ -3,8 +3,11 @@ package com.forcitis.one.platform.identity.domain;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleId;
+import com.forcitis.one.platform.identity.api.RoleVersionId;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Roles with their current version (ADR-0034 decision 1): a role whose last version was closed (a deleted role) is not found and not
@@ -18,6 +21,9 @@ public interface RoleRepository {
     Optional<Role> findByCode(RoleCode code);
 
     List<Role> findAll();
+
+    /** Those of the versions that are still the current version of their role (a replaced or closed version is not). */
+    Set<RoleVersionId> stillCurrent(Collection<RoleVersionId> versions);
 
     /**
      * Writes the role row and its version 1. Throws RoleRuleException(DUPLICATE_CODE) when any role, deleted ones included, has the code

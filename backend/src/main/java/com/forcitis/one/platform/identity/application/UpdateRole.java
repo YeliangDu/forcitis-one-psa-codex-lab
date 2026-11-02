@@ -85,7 +85,8 @@ public class UpdateRole {
                 if (!ceiling.mayRequest(role.permissionCodes(), role.administrative())) {
                     return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED);
                 }
-                return new AdminOutcome.Awaiting<>(gate.openUpdateRole(caller, role.roleId(), draft(role, command)).value().toString());
+                return new AdminOutcome.Awaiting<>(gate.openUpdateRole(caller, role.roleId(), draft(role, command),
+                        new com.forcitis.one.platform.identity.domain.AuthorizationBase(null, java.util.List.of(java.util.Objects.requireNonNull(existing.get().roleVersionId())))).value().toString());
             }
             if (!ceiling.mayGrant(role.permissionCodes(), role.administrative())) {
                 return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED);
