@@ -146,7 +146,7 @@ aggregates:
   tables: []
   commands:
   - AdministratorHoldCheck
-  - ApplyDueSeparation
+  - ApplyDueCommand
   - HeldSeparationRelease
   - PersonnelCommandService
   - PersonnelPlans
@@ -569,7 +569,7 @@ aggregates:
   - ConfigureNumberingRule
   - ConfirmNumberingRule
   - ConfirmNumberingRuleByFinance
-  - IssueDocumentNumber
+  - NumberIssuance
   - NumberingRuleViews
   events:
   - platform.numbering.NumberingRuleConfirmationGiven

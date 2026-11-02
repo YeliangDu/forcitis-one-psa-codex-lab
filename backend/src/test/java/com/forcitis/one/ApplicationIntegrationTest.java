@@ -260,12 +260,13 @@ class ApplicationIntegrationTest {
 
     @Test
     void adminCanRedefineRulesButInvalidPatternsAreRejected() throws Exception {
+        LocalDate effectiveFrom = LocalDate.now().plusDays(1);
         var admin = user(TestAccounts.account(9).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE);
         mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(admin).header("If-Match", ruleVersion("JOURNAL_VOUCHER"))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"JV-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1,\"effectiveFrom\":\"" + LocalDate.now().plusDays(1) + "\"}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"JV-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1,\"effectiveFrom\":\"" + effectiveFrom + "\"}"))
                 .andExpect(status().isUnprocessableContent());
         mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(admin).header("If-Match", ruleVersion("JOURNAL_VOUCHER"))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"PZ{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":500,\"effectiveFrom\":\"" + LocalDate.now().plusDays(1) + "\"}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"PZ{LE}-{yyyyMM}-{seq:5}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":500,\"effectiveFrom\":\"" + effectiveFrom + "\"}"))
                 .andExpect(status().isOk()).andExpect(header().exists("ETag"));
         mvc.perform(post("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER:confirm").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"templateVersion\":2}")
                         .with(user(TestAccounts.account(10).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE)))
@@ -273,9 +274,9 @@ class ApplicationIntegrationTest {
         mvc.perform(post("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER:confirm-finance").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{\"templateVersion\":2}")
                         .with(user(TestAccounts.account(11).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE)))
                 .andExpect(status().isOk());
-        assertThat(issue(new DocumentTypeCode("JOURNAL_VOUCHER"), LE1, LocalDate.of(2026, 11, 1))).isEqualTo("PZFST-202611-00500");
+        assertThat(issue(new DocumentTypeCode("JOURNAL_VOUCHER"), LE1, effectiveFrom)).isEqualTo(String.format("PZFST-%d%02d-00500", effectiveFrom.getYear(), effectiveFrom.getMonthValue()));
         mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(user(TestAccounts.account(8).value().toString()).authorities(() -> Permission.Codes.TIMESHEET_SUBMIT))
-                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"X{seq:2}\",\"resetPolicy\":\"NEVER\",\"startValue\":1,\"effectiveFrom\":\"" + LocalDate.now().plusDays(1) + "\"}"))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"X{seq:2}\",\"resetPolicy\":\"NEVER\",\"startValue\":1,\"effectiveFrom\":\"" + effectiveFrom + "\"}"))
                 .andExpect(status().isForbidden());
     }
 

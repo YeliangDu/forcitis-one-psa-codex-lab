@@ -6,6 +6,8 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import com.forcitis.one.organization.workforce.domain.OrgUnit;
 import com.forcitis.one.organization.workforce.domain.StaffEmployee;
+import com.forcitis.one.kernel.BusinessZone;
+import java.time.Clock;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -17,16 +19,20 @@ import org.springframework.stereotype.Repository;
 @Repository
 class JdbcOrgSnapshotQueries implements OrgSnapshotQueries {
     private final JdbcClient jdbc;
+    private final Clock clock;
+    private final BusinessZone zone;
 
-    JdbcOrgSnapshotQueries(JdbcClient jdbc) {
+    JdbcOrgSnapshotQueries(JdbcClient jdbc, Clock clock, BusinessZone zone) {
         this.jdbc = jdbc;
+        this.clock = clock;
+        this.zone = zone;
     }
 
     @Override
     public Optional<StaffEmployee> findStaff(EmployeeId employeeId) {
-        return jdbc.sql(OrgSnapshotRows.SELECT_STAFF + """
-                 where e.id = :id
-                """).param("id", employeeId.value()).query((rs, n) -> OrgSnapshotRows.staff(rs)).optional();
+        return jdbc.sql(OrgSnapshotRows.SELECT_STAFF_ON_DAY + """
+                 and s.id = :id
+                """).param("day", zone.today(clock)).param("id", employeeId.value()).query((rs, n) -> OrgSnapshotRows.staff(rs)).optional();
     }
 
     @Override
@@ -39,18 +45,18 @@ class JdbcOrgSnapshotQueries implements OrgSnapshotQueries {
 
     @Override
     public Optional<StaffEmployee> findStaffByWecomUser(WecomUserId wecomUserId) {
-        return jdbc.sql(OrgSnapshotRows.SELECT_STAFF + """
-                 where e.wecom_user_id = :wecom order by (e.employment_status = 'EMPLOYED') desc, e.updated_at desc limit 1
+        return jdbc.sql(OrgSnapshotRows.SELECT_STAFF_ON_DAY + """
+                 and s.wecom_user_id = :wecom order by (s.employment_status = 'EMPLOYED') desc, s.updated_at desc limit 1
                 """)
-                .param("wecom", wecomUserId.value()).query((rs, n) -> OrgSnapshotRows.staff(rs)).optional();
+                .param("day", zone.today(clock)).param("wecom", wecomUserId.value()).query((rs, n) -> OrgSnapshotRows.staff(rs)).optional();
     }
 
     @Override
     public Optional<StaffEmployee> findStaffByLoginName(String loginName) {
-        return jdbc.sql(OrgSnapshotRows.SELECT_STAFF + """
-                 where e.login_name = :login order by (e.employment_status = 'EMPLOYED') desc, e.updated_at desc limit 1
+        return jdbc.sql(OrgSnapshotRows.SELECT_STAFF_ON_DAY + """
+                 and s.login_name = :login order by (s.employment_status = 'EMPLOYED') desc, s.updated_at desc limit 1
                 """)
-                .param("login", loginName).query((rs, n) -> OrgSnapshotRows.staff(rs)).optional();
+                .param("day", zone.today(clock)).param("login", loginName).query((rs, n) -> OrgSnapshotRows.staff(rs)).optional();
     }
 
     @Override

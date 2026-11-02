@@ -30,6 +30,7 @@ final class PersonnelCommandNames {
     static final String LAST_WORKING_DAY = "lastWorkingDay";
     static final String TARGET_ORG_UNIT_ID = "targetOrgUnitId";
     static final String TARGET_POSITION_ID = "targetPositionId";
+    static final String TARGET_REPORTS_TO_EMPLOYEE_ID = "targetReportsToEmployeeId";
     static final String IS_TARGET_FEE_EARNER = "isTargetFeeEarner";
     static final String TARGET_EMPLOYMENT_PHASE_KIND = "targetEmploymentPhaseKind";
     static final String PERSONNEL_COMMAND_ID = "personnelCommandId";
@@ -44,6 +45,7 @@ final class PersonnelCommandNames {
     static final String TRANSFER = "TRANSFER";
     static final String SEPARATE = "SEPARATE";
     static final String REINSTATE = "REINSTATE";
+    static final String CORRECTION = "CORRECTION";
     static final String UNPAID_LEAVE_START = "UNPAID_LEAVE_START";
     static final String UNPAID_LEAVE_END = "UNPAID_LEAVE_END";
     static final String PENDING = "PENDING";
