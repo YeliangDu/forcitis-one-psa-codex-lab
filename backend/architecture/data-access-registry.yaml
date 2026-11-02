@@ -263,8 +263,10 @@ tables:
     role: DIMENSION_VERSIONED
     aggregate: LegalEntityAttribution
     mutability: APPEND_ONLY
+    condition: 关闭列对与作废列对各只能由空变非空一次，已关闭的行也可被作废，其余列不变，不删除（触发器 tg_employee_legal_entities_append_only，W2 设计第 2、3.6 节）
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
+    references: {corrected_from_version_id: organization_workforce.employee_legal_entities, change_command_id: organization_workforce.personnel_commands, superseding_command_id: organization_workforce.personnel_commands}
     writers: [organization.workforce]
   organization_workforce.legal_entity_attribution_corrections:
     role: LOG_APPEND_ONLY
