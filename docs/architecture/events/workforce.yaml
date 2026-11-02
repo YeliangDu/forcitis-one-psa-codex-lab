@@ -696,13 +696,13 @@ components:
         idempotencyKey: eventId
         publisher: organization.workforce
         consumers:
+        - platform.identity
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 人事业务生效日（effectiveDate）：复职命令的生效日
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
-        noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
     EmployeeCorrected:
       name: EmployeeCorrected
       title: 员工人事已更正
