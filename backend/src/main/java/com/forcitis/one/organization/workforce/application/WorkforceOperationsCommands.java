@@ -13,12 +13,14 @@ import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.stereotype.Component;
 
 /**
- * The one-shot operations commands of workforce (ADR-0068 item 2.4): {@code release-separation-hold}, the release of a held separation when no
- * available super administrator would remain. It needs --separation-hold-id, --reason, --operator and a different --witness; the witness is always
+ * The one-shot operations commands of workforce: {@code release-separation-hold} (ADR-0068 item 2.4), the release of a held separation when no
+ * available super administrator would remain, needs --separation-hold-id, --reason, --operator and a different --witness; {@code migrate-initial-versions}
+ * (#960), the one-time migration of the sync snapshot into the version tables, needs only --operator and --witness. The witness is always
  * required. Exit code, as identity's OperationsCommands: 0 done, 1 refused, 2 wrong usage. Runs with the profile workforce-operations.
  */
 @Component
@@ -26,34 +28,50 @@ public class WorkforceOperationsCommands {
 
     static final String OPERATION = "operation";
     static final String RELEASE_SEPARATION_HOLD = "release-separation-hold";
+    static final String MIGRATE_INITIAL_VERSIONS = "migrate-initial-versions";
     static final String HOLD_ID = "separation-hold-id";
     static final String REASON = "reason";
     static final String OPERATOR = "operator";
     static final String WITNESS = "witness";
     private static final Set<String> OWN_OPTIONS = Set.of(OPERATION, HOLD_ID, REASON, OPERATOR, WITNESS);
+    private static final Set<String> MIGRATE_OPTIONS = Set.of(OPERATION, OPERATOR, WITNESS);
 
     private final ReleaseSeparationHoldByOperations releaseHold;
+    private final MigrateInitialVersions migrateVersions;
     private final EmployeeExistence employees;
     private final AuditPartitions auditPartitions;
     private final Clock clock;
 
-    WorkforceOperationsCommands(ReleaseSeparationHoldByOperations releaseHold, EmployeeExistence employees, AuditPartitions auditPartitions, Clock clock) {
+    WorkforceOperationsCommands(ReleaseSeparationHoldByOperations releaseHold, MigrateInitialVersions migrateVersions, EmployeeExistence employees, AuditPartitions auditPartitions, Clock clock) {
         this.releaseHold = releaseHold;
+        this.migrateVersions = migrateVersions;
         this.employees = employees;
         this.auditPartitions = auditPartitions;
         this.clock = clock;
     }
 
     public int run(ApplicationArguments arguments, PrintStream out, PrintStream err) {
-        if (!RELEASE_SEPARATION_HOLD.equals(single(arguments, OPERATION))) {
+        String operation = single(arguments, OPERATION);
+        boolean release = RELEASE_SEPARATION_HOLD.equals(operation);
+        if (!release && !MIGRATE_INITIAL_VERSIONS.equals(operation)) {
             err.println("usage: --operation=" + RELEASE_SEPARATION_HOLD + " --" + HOLD_ID + "=<id> --" + REASON + "=<text> --" + OPERATOR
+                    + "=<employee id> --" + WITNESS + "=<employee id>   or   --operation=" + MIGRATE_INITIAL_VERSIONS + " --" + OPERATOR
                     + "=<employee id> --" + WITNESS + "=<employee id>");
             return 2;
         }
         try (WorkContext.Scope scope = WorkContext.enter(Uuids.timeOrdered(clock), null, "organization.workforce.operations")) {
-            rejectUnknownOptions(arguments);
-            SeparationHoldId hold = holdId(arguments);
-            String reason = required(arguments, REASON);
+            rejectUnknownOptions(arguments, release);
+            Function<WorkforceOperationAttestation, String> action;
+            if (release) {
+                SeparationHoldId hold = holdId(arguments);
+                String reason = required(arguments, REASON);
+                action = attested -> {
+                    releaseHold.execute(attested, hold, reason);
+                    return "separation hold released";
+                };
+            } else {
+                action = attested -> "initial versions migrated: " + migrateVersions.execute(attested);
+            }
             WorkforceOperationAttestation attestation = WorkforceOperationAttestation.of(single(arguments, OPERATOR), single(arguments, WITNESS));
             YearMonth month = YearMonth.from(clock.instant().atOffset(ZoneOffset.UTC));
             if (!auditPartitions.exists(month)) {
@@ -64,8 +82,7 @@ public class WorkforceOperationsCommands {
             if (!employees.exists(attestation.operator()) || !employees.exists(attestation.witness())) {
                 throw WorkforceOperationAttestation.required();
             }
-            releaseHold.execute(attestation, hold, reason);
-            out.println("separation hold released");
+            out.println(action.apply(attestation));
             return 0;
         } catch (DomainException refused) {
             err.println("refused: " + refused.errorCode().code() + " - " + refused.getMessage());
@@ -77,13 +94,14 @@ public class WorkforceOperationsCommands {
     }
 
     /** A misspelt own option must not read as an absent witness; configuration options (dotted or environment-style names) are Spring's and pass. */
-    private static void rejectUnknownOptions(ApplicationArguments arguments) {
+    private static void rejectUnknownOptions(ApplicationArguments arguments, boolean release) {
         if (!arguments.getNonOptionArgs().isEmpty()) {
             throw new IllegalArgumentException("unexpected argument; options are written --name=value");
         }
         for (String name : arguments.getOptionNames()) {
             boolean configuration = name.contains(".") || name.matches("[A-Z][A-Z0-9_]*");
-            if (!OWN_OPTIONS.contains(name) && (!configuration || OWN_OPTIONS.contains(name.toLowerCase(Locale.ROOT).replace('_', '-')))) {
+            Set<String> own = release ? OWN_OPTIONS : MIGRATE_OPTIONS;
+            if (!own.contains(name) && (!configuration || OWN_OPTIONS.contains(name.toLowerCase(Locale.ROOT).replace('_', '-')))) {
                 throw new IllegalArgumentException("unknown option --" + name);
             }
         }

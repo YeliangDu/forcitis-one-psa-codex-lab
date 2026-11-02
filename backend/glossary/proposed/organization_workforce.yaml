@@ -690,6 +690,21 @@ terms:
   forbidden: []
   status: proposed
   note: 入职建员工并可改档案（#959）
+- id: error__organization_workforce_initial_version_migration_refused
+  zh: 初始迁入被拒绝
+  en: OrganizationWorkforceInitialVersionMigrationRefused
+  snake: organization_workforce_initial_version_migration_refused
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 有进行中的同步时，现有员工初始迁入版本表的运维命令被拒绝（422）
+  standard_ref:
+  - one-design 数据设计签发（#960 评论 6529863330）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 迁入命令 migrate-initial-versions（#960）
 common_words:
 - listed
 - lookup

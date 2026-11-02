@@ -11,6 +11,7 @@ src/main/java/com/forcitis/one/organization/workforce/application/EmployeeProfil
 src/main/java/com/forcitis/one/organization/workforce/application/GetLegalEntityAttribution.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/organization/workforce/application/GetOrgUnit.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/organization/workforce/application/HeldSeparationRelease.java | 1 | 17 | POSSIBLE
+src/main/java/com/forcitis/one/organization/workforce/application/MigrateInitialVersions.java | 1 | 15 | SURROGATE
 src/main/java/com/forcitis/one/organization/workforce/application/OwnAttributionGuard.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/organization/workforce/application/PersonnelCommandService.java | 2 | 24,25 | POSSIBLE
 src/main/java/com/forcitis/one/organization/workforce/application/RecordSyncRunRelease.java | 1 | 17 | POSSIBLE
