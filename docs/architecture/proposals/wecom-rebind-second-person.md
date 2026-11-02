@@ -2,7 +2,7 @@
 
 - Card: #980, parent #738. Author: one-design, 2026-11-02. Base: origin/main.
 - Basis: user intent `docs/decisions/2026-11-02-124650-one-lead-企业微信账号改绑防冒用-三道都加.md` (three guards: no change of one's own record; rebind or clear of a set WeCom user id on an account with a role beyond `employee` needs a second person; any change revokes the employee's sessions and browser identifiers; fill-in from empty stays one person). #959 (PR #974) shipped guard ② fail-closed as a refusal.
-- Status: proposal. Two business questions (Q1, Q2, section 7) go to the user through lead.
+- Status: proposal; business questions Q1 and Q2 **answered by the user 2026-11-02: Q1 (a), Q2 (a)** (`docs/decisions/2026-11-02-165203-one-lead-Q1a-Q2a.md`), folded in below.
 - Data design: not signed in this note; the table in section 4 is signed on the impl card (`docs/data/data-design-gate.md` §1.3).
 
 ## 1. The one thing to decide
@@ -44,7 +44,7 @@ Table `organization_workforce.employee_profile_change_requests`, one row per req
 | `employee_id` | uuid NOT NULL | FK employees; subject |
 | `requested_by` | uuid NOT NULL | user id of the requester |
 | `requested_at` | timestamptz NOT NULL | |
-| `base_display_name`, `base_gender`, `base_email`, `base_wecom_user_id` | as the profile columns | profile at request time (the base); `base_wecom_user_id` NOT NULL (only a set id needs a second person) |
+| `base_display_name`, `base_gender`, `base_email`, `base_wecom_user_id` | as the profile columns | profile at request time (the base); `base_wecom_user_id` is NULL only for a fill-in caught by the 30-day rule (Q2) |
 | `display_name`, `gender`, `email`, `wecom_user_id` | as the profile columns | proposed profile; `wecom_user_id` NULL = clear |
 | `request_status` | text NOT NULL | named CHECK `PENDING / CONFIRMED / REJECTED / VOIDED` |
 | `decided_by`, `decided_at` | uuid, timestamptz | |
@@ -58,9 +58,9 @@ State machine: `PENDING → CONFIRMED` (applied), `PENDING → REJECTED`, `PENDI
 
 ## 5. Behaviour
 
-1. **Change** (`:change-profile`, unchanged path and permission). All existing checks run first (own record, lock, no-op, text, WeCom id taken). If the WeCom id moves from a set value (rebind or clear) and the account holds a role beyond `employee`: no write, no revocation; a `PENDING` request is stored and the call answers **202** with `{requestId}`; audit `organization.workforce.employee-profile.change-requested`. While a request is pending, **any** profile change of that employee answers 409 `ORGANIZATION_WORKFORCE_PROFILE_CHANGE_PENDING` (it would only void the request); the requester withdraws first. Otherwise (no WeCom move, fill-in from empty, or employee-only account) the one-person path stays as today (200).
+1. **Change** (`:change-profile`, unchanged path and permission). All existing checks run first (own record, lock, no-op, text, WeCom id taken). A change **needs a second person** when the account holds a role beyond `employee` and either the WeCom id moves from a set value (rebind or clear), or (user Q2 a) it is a fill-in from empty within 30 days after a clear of this employee's WeCom id was confirmed by a second person: the business date of the fill-in ≤ the business date of that confirmation + 30 days (`BusinessZone`), read from the latest `CONFIRMED` request of the employee whose proposed `wecom_user_id` is NULL. In that case: no write, no revocation; a `PENDING` request is stored and the call answers **202** with `{requestId}`; audit `organization.workforce.employee-profile.change-requested`. While a request is pending, **any** profile change of that employee answers 409 `ORGANIZATION_WORKFORCE_PROFILE_CHANGE_PENDING` (it would only void the request); the requester withdraws first. Otherwise (no WeCom move, a fill-in outside the 30-day rule, or an employee-only account) the one-person path stays as today (200).
    The whole proposed profile waits, not only the WeCom part: splitting would half-apply one edit. A screen that wants a name fix applied at once submits it as a separate change first.
-2. **Confirm** (`POST /api/v1/organization/employee-profile-change-requests/{id}:confirm`, same permission). Refused 403 `ORGANIZATION_WORKFORCE_PROFILE_CHANGE_CONFIRMER_NOT_ALLOWED` when the caller is the requester or the subject employee's own account. In one transaction: lock the employee, then the request (the same order in reject and withdraw); a request no longer `PENDING` answers 409 and changes nothing; if the current profile ≠ base → `VOIDED BASE_CHANGED`; if the proposed WeCom id is now held by another employee → `VOIDED WECOM_USER_ID_TAKEN`. A void is a returned outcome (as identity's `AdminOutcome.Refused`, `RoleController.java`:117), not a thrown exception, so the VOIDED status and its `...change-voided` audit commit; the call answers 409 with the reason. Otherwise write the profile, `revokeSessions` (③), status `CONFIRMED`, audit `organization.workforce.employee-profile.changed` with the confirmer as actor and the requester and request id in the detail, with before/after text. If revocation fails the transaction rolls back: profile unchanged, request still `PENDING`.
+2. **Confirm** (`POST /api/v1/organization/employee-profile-change-requests/{id}:confirm`, same permission; user Q1 a: any other holder of the personnel-command permission). Refused 403 `ORGANIZATION_WORKFORCE_PROFILE_CHANGE_CONFIRMER_NOT_ALLOWED` when the caller is the requester or the subject employee's own account. In one transaction: lock the employee, then the request (the same order in reject and withdraw); a request no longer `PENDING` answers 409 and changes nothing; if the current profile ≠ base → `VOIDED BASE_CHANGED`; if the proposed WeCom id is now held by another employee → `VOIDED WECOM_USER_ID_TAKEN`. A void is a returned outcome (as identity's `AdminOutcome.Refused`, `RoleController.java`:117), not a thrown exception, so the VOIDED status and its `...change-voided` audit commit; the call answers 409 with the reason. Otherwise write the profile, `revokeSessions` (③), status `CONFIRMED`, audit `organization.workforce.employee-profile.changed` with the confirmer as actor and the requester and request id in the detail, with before/after text. If revocation fails the transaction rolls back: profile unchanged, request still `PENDING`.
 3. **Reject** (`...:reject`, same permission, reason required): by another person (same confirmer rule) or by the requester as a withdrawal; `REJECTED`, audit `...change-rejected` naming who; profile and sessions untouched.
 4. **List** (`GET /api/v1/organization/employee-profile-change-requests?status=PENDING`): cursor page. **No employee data scope exists yet** (section 2): like `:change-profile` today, every holder of the permission sees every request. When an employee scope is added, it applies to change-profile and these endpoints together; that is not this card.
 5. **Privilege is judged at request time.** If the account gains a role while a one-person change is in flight, the narrow race of the #959 review stays; this card does not widen it. At confirmation there is already a second person, so no re-check.
@@ -70,7 +70,7 @@ State machine: `PENDING → CONFIRMED` (applied), `PENDING → REJECTED`, `PENDI
 
 1. Rebind of a set WeCom id on an account with a role beyond `employee` answers 202 with a request id; profile, sessions and browser identifiers unchanged; one PENDING request; one `change-requested` audit entry.
 2. Clear (to empty) of a set WeCom id on such an account: same as 1.
-3. Employee-only account, and fill-in from empty on any account: one person as today (applied at once, sessions revoked) — regression of #959.
+3. Employee-only account, and fill-in from empty outside the 30-day rule: one person as today (applied at once, sessions revoked) — regression of #959.
 4. A change that does not move the WeCom id on a privileged account applies at once without a request.
 5. The requester cannot confirm (403 with the confirmer code; their reject is a withdrawal, line 13); the subject employee's own account cannot confirm (403); a third holder of the permission can.
 6. Confirmation applies the whole proposed profile, revokes the subject's sessions and browser identifiers in the same transaction (a failure in revocation leaves the profile unchanged and the request PENDING), and writes one changed entry with the confirmer as actor and the requester in the detail.
@@ -83,21 +83,19 @@ State machine: `PENDING → CONFIRMED` (applied), `PENDING → REJECTED`, `PENDI
 13. Requester withdrawal: the requester may reject their own pending request (reason required); afterwards a new change can be made.
 14. Confirming or rejecting a request that is already CONFIRMED, REJECTED or VOIDED answers 409 and changes nothing.
 15. Audit entries are written: `change-requested` on 1 and 2, `change-rejected` on 9 and 13, `change-voided` on 7 and 8 (the VOIDED status survives the 409).
+16. (Q2) On a privileged account, a fill-in from empty on the 30th day after a confirmed clear answers 202 and waits; on the 31st day it is one person (200); a fill-in after a one-person clear (the account then held only `employee`) is one person; a fill-in after a REJECTED or VOIDED clear request is one person.
+17. (Q1) A holder of the personnel-command permission other than the requester and the subject can confirm; with only the requester and the subject holding it, the request stays PENDING (no other confirmer exists).
 
-## 7. Business questions for the user (via lead)
+## 7. Business questions — answered (user 2026-11-02, Q1 a, Q2 a)
 
-**Q1. Who may be the second person?**
-- (a) Any other holder of the personnel-command permission (人事专员) — **recommended**: the same people who make the change today, mirrors I-12 (any other administrator). Only the confirmer check in 5.2 is needed. Cost: with two specialists, a request about one of them can never be confirmed (requester and subject are both excluded); a third holder of the permission is then needed.
-- (b) Only a super administrator — stronger, but conflicts with I-11 (a super administrator holds no business permission in a normal session and cannot do business work in administrator mode); it works only if the super administrator also holds the personnel permission, otherwise I-11 must change, which is a separate decision. A lockout also waits on a rarely online person.
-- (c) The person's line manager — knows the person, but does not hold the permission: the confirm and reject endpoints need a different authorisation (the caller is the subject's manager on the workforce reporting line), and the manager is the person most easily asked by the requester.
-
-**Q2. Clear, then fill in alone?** By the user's rules a clear of a privileged person's WeCom id needs a second person, but a later fill-in from empty is one person. So A requests a clear, C confirms it (C sees only "clear"), and A then fills in an id A controls on their own: in effect a rebind the second person never saw. Options: (a) **recommended**: on an account with a role beyond `employee`, a fill-in also needs a second person when the id was cleared by a confirmed request in the last 30 days; (b) keep the user's rule as is and accept the gap; (c) every fill-in on such an account needs a second person (reverses part of the 2026-11-02 decision).
+- **Q1 → (a)**: the second person is any other holder of the personnel-command permission (人事专员); the requester and the subject cannot confirm. Known cost kept: with only two such holders, a request about one of them cannot be confirmed until a third holds the permission.
+- **Q2 → (a)**: on an account with a role beyond `employee`, a fill-in from empty within 30 days after a clear confirmed by a second person also needs a second person (amends the "fill-in stays one person" rule of 2026-11-02-124650 for that window). Rejected options: (b) accept the gap; (c) every fill-in on such an account needs a second person.
 
 ## 8. Out of scope
 
 - Session and browser-identifier revocation logic itself (identity, unchanged).
 - Stopping the org sync (#961).
-- Fill-in from empty on a privileged account (user decision: one person).
+- Fill-in from empty on a privileged account outside the 30-day window (user decision: one person).
 - Any change to identity's `authorization_requests`.
 
 ## 9. Cards after this note
