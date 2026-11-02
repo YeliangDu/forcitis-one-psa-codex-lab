@@ -361,7 +361,7 @@ class JdbcRoleRepository implements RoleRepository {
     }
 
     @Override
-    public Set<RoleVersionId> stillCurrent(Collection<RoleVersionId> versions) {
+    public Set<RoleVersionId> currentVersions(Collection<RoleVersionId> versions) {
         if (versions.isEmpty()) {
             return Set.of();
         }

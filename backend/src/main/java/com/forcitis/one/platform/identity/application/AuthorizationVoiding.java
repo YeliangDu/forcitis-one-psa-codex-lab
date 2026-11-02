@@ -31,7 +31,7 @@ class AuthorizationVoiding {
         if (base.accountVersion() != null && !base.accountVersion().equals(accountVersion)) {
             return true;
         }
-        return !roles.stillCurrent(base.roleVersions()).containsAll(base.roleVersions());
+        return !roles.currentVersions(base.roleVersions()).containsAll(base.roleVersions());
     }
 
     /** Ends the request VOIDED and writes the audit entry; the caller saves and publishes the request. */

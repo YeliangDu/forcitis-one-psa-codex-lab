@@ -23,7 +23,7 @@ public interface RoleRepository {
     List<Role> findAll();
 
     /** Those of the versions that are still the current version of their role (a replaced or closed version is not). */
-    Set<RoleVersionId> stillCurrent(Collection<RoleVersionId> versions);
+    Set<RoleVersionId> currentVersions(Collection<RoleVersionId> versions);
 
     /**
      * Writes the role row and its version 1. Throws RoleRuleException(DUPLICATE_CODE) when any role, deleted ones included, has the code
