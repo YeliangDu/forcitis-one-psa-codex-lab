@@ -538,7 +538,6 @@ class Processor:
                         self.log.event("CONFLICT", n, None, since, "back to the author (text conflict with main)")
                         return "CONFLICT"
                     return self.hold(n, None, since, "the update could not be pushed")
-                self.sleep(30)
                 v = self.await_new_head(n, v, since)
                 new_ci_seen = self.await_new_ci(n, v, since)
             else:
@@ -549,7 +548,6 @@ class Processor:
             if "queued" not in v["labels"]:
                 if self.gh.label(n, "queued", True):
                     self.log.event("LABEL-QUEUED", n, None, since)
-                self.sleep(20)
             checks = self.wait_checks(n, since)
             if checks is None:
                 return self.hold(n, None, since, f"CI still pending after {self.ci_timeout // 60} minutes")
@@ -618,6 +616,9 @@ class Processor:
                     if moved > 6:
                         return self.hold(n, None, since, f"main moved {moved} times while this pull request waited for its merge")
                     continue
+                if (self.gh.view(n) or {}).get("merge") == "BLOCKED":   # a label added after `queued` starts an all-skipped run that hides the green required checks (#977): take `queued` off, the next round puts it back and so starts a run of its own
+                    self.gh.label(n, "queued", False)
+                    self.log.event("RELABEL", n, None, since, "merge blocked with the checks green: `queued` taken off and put back")
                 refused += 1
                 if refused >= 5:
                     return self.hold(n, None, since, f"merge refused {refused} times")
