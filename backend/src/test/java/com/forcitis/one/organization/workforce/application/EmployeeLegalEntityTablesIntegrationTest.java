@@ -24,7 +24,7 @@ class EmployeeLegalEntityTablesIntegrationTest extends WorkforceIntegrationSuppo
     @BeforeEach
     void anEmployeeItsRootAndTwoCommands() {
         jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values (" + EMPLOYEE + ", 'E-01', 'name', 'EMPLOYED')").update();
-        jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (" + LEGAL_ENTITY + ", 'ABC', 'entity', 'ACTIVE') on conflict do nothing").update();
+        jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (" + LEGAL_ENTITY + ", 'ZQE', 'entity', 'ACTIVE') on conflict (id) do nothing").update();
         jdbc.sql("insert into organization_workforce.legal_entity_attributions (attribution_id, employee_id) values (gen_random_uuid(), " + EMPLOYEE + ")").update();
         command(COMMAND, 0);
         command(LATER_COMMAND, 1);
