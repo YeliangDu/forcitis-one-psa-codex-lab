@@ -141,7 +141,7 @@ class CountersignApprovalIT extends CountersignSupport {
     void aCorrectionTakesEffectWhenApproved() throws Exception {
         UUID employee = employed(REGULAR);
         actIn(hr);
-        UUID correction = enterChange(employee, CORRECTION, TODAY.minusDays(5), e2);
+        UUID correction = enterChange(employee, CountersignNames.CORRECTION, TODAY.minusDays(5), e2);
 
         approveBoth(correction);
 

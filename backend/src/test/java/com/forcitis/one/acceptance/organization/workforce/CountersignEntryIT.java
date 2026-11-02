@@ -208,7 +208,7 @@ class CountersignEntryIT extends CountersignSupport {
         LocalDate past = TODAY.minusDays(5);
         actIn(hr);
 
-        UUID correction = enterChange(employee, CORRECTION, past, e2);
+        UUID correction = enterChange(employee, CountersignNames.CORRECTION, past, e2);
 
         Map<String, Object> row = command(correction);
         assertThat(row.get("status")).as("not EFFECTIVE at once").isEqualTo(AWAITING);
