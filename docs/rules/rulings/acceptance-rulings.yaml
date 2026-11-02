@@ -333,6 +333,16 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/CountersignEntryIT.java
     reason: 合入 main 后两类同时静态导入 CountersignNames.* 与 PersonnelCommandNames.*，裸名 CORRECTION 有歧义编译不过；限定为 CountersignNames.CORRECTION，两常量值同为 "CORRECTION"，断言、期望值、用例、夹具均未改，只修编译
     ref: "#894 acceptance branch, commit 19c80042e; review-894-compile-fix-sonnet.md"
+  - id: RULING-LEAD-20261102-02
+    date: 2026-11-02
+    ruled_by: independent sonnet reviewer rvEsc (dispatched by one-test, given only the diffs), recorded by one-lead
+    implementer: one-test
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/CountersignSupport.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/CountersignEntryIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/OrgCountersignSupport.java
+    reason: '#893 签发列名 escalation_level 改为 escalation_level_number（#893 命名裁定 comment 6589791372 第 1 项）；两个夹具的 SQL 列名与 CountersignEntryIT:75 断言读的行键随之改名，写入值与期望值 0 不变，未增删或放宽任何断言、用例'
+    ref: "commits 489647736 (#895 acceptance) and 9547f9239 (#910 acceptance); review-escalation-rename-sonnet.md"
   - id: RULING-LEAD-20261102-03
     date: 2026-11-02
     ruled_by: independent sonnet reviewer rv934m (dispatched by one-test, given only the two files at base, both parents and the merge), recorded by one-lead
