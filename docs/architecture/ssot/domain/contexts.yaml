@@ -29,7 +29,7 @@ contexts:
   legacy_bc: 工时与投入有效性 BC
   evidence: 老仓库 00_战略设计/04-限界上下文清单.md L34；02-子域划分.md 02 L133-137；ADR-0017 对照表
 - id: organization.attendance
-  zh: 工作日历与标准工时 BC
+  zh: 考勤与休假 BC
   subdomain: organization
   kind: business
   status: built
@@ -44,7 +44,7 @@ contexts:
   kind: business
   status: planned
   schema: organization_leave
-  blueprint_bc: B-27
+  blueprint_bc: null
   legacy_bc: null
   basis: adr
   adr:
@@ -421,7 +421,7 @@ contexts:
   evidence: 老仓库 00_战略设计/04-限界上下文清单.md L52；02-子域划分.md 02 L180-189；ADR-0017 对照表
   note: 子域 slug 待定：老文档 knowledge_management，ADR-0017 写作 km
 - id: organization.payroll
-  zh: 薪酬 BC
+  zh: 假勤薪酬 BC
   subdomain: organization
   kind: business
   status: planned
