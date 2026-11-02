@@ -5,7 +5,7 @@ import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
-/** The three rows the numbering baseline registers, for tests that build a rule without a database. */
+/** The four rows the numbering baseline registers, for tests that build a rule without a database. */
 public final class SeededDocumentTypes {
 
     private SeededDocumentTypes() {
@@ -16,6 +16,7 @@ public final class SeededDocumentTypes {
             case "QUOTE" -> entry(1, code, "QT", "presales.opportunity", false);
             case "TIMESHEET" -> entry(2, code, "TS", "cost.timesheet", false);
             case "JOURNAL_VOUCHER" -> entry(3, code, "JV", "accounting.ledger", true);
+            case "EMPLOYEE" -> entry(4, code, "EMP", "organization.workforce", false);
             default -> throw new IllegalArgumentException("not a seeded document type: " + code);
         };
     }

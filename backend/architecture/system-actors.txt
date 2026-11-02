@@ -25,7 +25,7 @@ platform.identity.authorization | 39e3e313-517f-55c7-add4-a4c531b5831a | platfor
 platform.identity.credential.purge | fca6f0b7-8fb1-594c-aa7b-c1b3eaeca283 | platform.identity | 作业：清理过期的一次性凭据
 platform.identity.emergency.admin.check | 99dc9df0-233b-5089-99e2-5e286ac8f761 | platform.identity | 作业：应急账号每日核对
 platform.identity.operations | 26758f3f-e27f-55a8-9789-834245457756 | platform.identity | 运维命令（identity-operations 档案）
-platform.identity.separation | 1da01607-dce4-5fbc-9490-f0ae7628d6d1 | platform.identity | 离职处理：HandleOrgSnapshotChange、DisableEmergencyAdminOnSeparation、RevokeBrowserIdentifiersOnSeparation
+platform.identity.separation | 1da01607-dce4-5fbc-9490-f0ae7628d6d1 | platform.identity | 离职处理：HandleOrgSnapshotChange、HandleEmployeeSeparated、DisableEmergencyAdminOnSeparation、RevokeBrowserIdentifiersOnSeparation
 platform.identity.session.purge | 7f82e786-478f-594a-a1ff-ad168fbc4775 | platform.identity | 作业：清理过期会话
 platform.identity.system-role-declaration | 964051ef-678b-59d2-ab64-f99acf3f520f | platform.identity | 启动对账 SystemRoleReconciliation：按系统角色声明写入或修订系统角色的 SEED 版本（ADR-0034 第 1 项第 7 条）
 platform.integration.event.cleanup | d13191e2-64c8-5e5f-b615-64bb2a3dbae8 | platform.integration | 作业：清理事件发布登记
@@ -37,3 +37,5 @@ platform.numbering.counter.capacity.check | 2f073d56-6f12-5145-b01b-ed9cf06a8b00
 platform.file.one-time-link-holder | af5fd2b9-1c66-5f5a-9803-ffe3839894a6 | platform.file | 一次性链接持有人上传与提交关联的状态转换操作者（ADR-0058，one-data 签发 P1）
 platform.file.platform-module-call | 9dd1c4f7-f0ad-54c9-8190-62e09e87ee8f | platform.file | 平台模块（签章服务等）调用写入、关联、封存的状态转换操作者
 platform.file.staging.expire | 18a840ca-d8f0-5830-8e12-1bcd5ecad2f3 | platform.file | 作业：临时区到期未关联的文件置「未关联已过期」
+organization.workforce.operations | e932d608-3a2e-5738-a568-d9f1cb73233c | organization.workforce | 运维命令（workforce-operations 档案）：release-separation-hold 放行待放行离职的状态转换操作者与事件信封 actorId
+organization.workforce.personnel.command.due | eb80b90a-6a1a-5c08-80c6-e90e0edc980c | organization.workforce | 作业：到日执行已放行的将来日离职（暂名，#931；一般待生效命令的到日执行是 #933）

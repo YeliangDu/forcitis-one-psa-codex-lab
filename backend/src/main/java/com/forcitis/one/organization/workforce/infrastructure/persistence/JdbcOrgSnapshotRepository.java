@@ -8,7 +8,7 @@ import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.Assignment;
 import com.forcitis.one.organization.workforce.domain.Employee;
-import com.forcitis.one.organization.workforce.domain.Gender;
+import com.forcitis.one.organization.workforce.api.Gender;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshot;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
 import com.forcitis.one.organization.workforce.domain.OrgUnit;
@@ -99,14 +99,14 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
         for (StaffEmployee s : changes.staff()) {
             upsertStaff(s, at);
         }
-        history.recordAssignments(changes.staff().stream().map(StaffEmployee::assignment).toList(), snapshotDate);
+        history.recordAssignments(changes.staff().stream().map(StaffEmployee::assignment).toList(), snapshotDate, now);
     }
 
     @Override
     public void saveRegisteredEmployee(RegisteredEmployee registered, Instant now) {
         LocalDate day = zone.dateOf(now);
         upsertStaff(registered.staff(), OffsetDateTime.ofInstant(now, ZoneOffset.UTC));
-        history.recordAssignments(List.of(registered.staff().assignment()), day);
+        history.recordAssignments(List.of(registered.staff().assignment()), day, now);
         jdbc.sql("""
                 update organization_workforce.employees set event_count = :sequence where id = :id
                 """)

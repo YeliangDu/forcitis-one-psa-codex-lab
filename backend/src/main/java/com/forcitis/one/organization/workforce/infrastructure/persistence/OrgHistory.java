@@ -4,7 +4,10 @@ import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.Assignment;
 import com.forcitis.one.organization.workforce.domain.OrgUnit;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -76,7 +79,7 @@ final class OrgHistory {
         }
     }
 
-    void recordAssignments(List<Assignment> assignments, LocalDate day) {
+    void recordAssignments(List<Assignment> assignments, LocalDate day, Instant now) {
         if (assignments.isEmpty()) {
             return;
         }
@@ -85,7 +88,7 @@ final class OrgHistory {
         Map<UUID, Values> open = new HashMap<>();
         jdbc.sql("""
                         select employee_id, effective_from_date, revision_number, org_unit_id, position_id, reports_to_employee_id
-                          from organization_workforce.assignment_versions where effective_to_date is null and employee_id in (:ids)
+                          from organization_workforce.assignment_versions where effective_to_date is null and superseded_at is null and employee_id in (:ids)
                         """)
                 .param("ids", assignments.stream().map(a -> a.employeeId().value()).toList())
                 .query((rs, n) -> open.put(rs.getObject("employee_id", UUID.class), new Values(new OrgUnitId(rs.getObject("org_unit_id", UUID.class)),
@@ -101,9 +104,10 @@ final class OrgHistory {
             int revision = revisionFor(before == null ? null : before.open(), day);
             if (before != null) {
                 jdbc.sql("""
-                        update organization_workforce.assignment_versions set effective_to_date = :day where employee_id = :id and effective_to_date is null
+                        update organization_workforce.assignment_versions set effective_to_date = :day, closed_at = :closedAt
+                         where employee_id = :id and effective_to_date is null and superseded_at is null
                         """)
-                        .param("id", a.employeeId().value()).param("day", day).update();
+                        .param("id", a.employeeId().value()).param("day", day).param("closedAt", OffsetDateTime.ofInstant(now, ZoneOffset.UTC)).update();
             }
             jdbc.sql("""
                             insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id,

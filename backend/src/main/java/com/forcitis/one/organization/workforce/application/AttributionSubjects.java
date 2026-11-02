@@ -22,7 +22,7 @@ class AttributionSubjects {
     AttributionSubject require(AttributionKind kind, UUID subjectId) {
         boolean known = switch (kind) {
             case ORG_UNIT -> snapshot.findOrgUnit(new OrgUnitId(subjectId)).isPresent();
-            case EMPLOYEE -> snapshot.findStaff(new EmployeeId(subjectId)).isPresent();
+            case EMPLOYEE -> snapshot.employeeExists(new EmployeeId(subjectId));
         };
         if (!known) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND, ErrorKind.NOT_FOUND,

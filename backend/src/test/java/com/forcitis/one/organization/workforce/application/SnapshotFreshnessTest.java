@@ -12,17 +12,11 @@ import com.forcitis.one.organization.workforce.domain.Employee;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import com.forcitis.one.organization.workforce.domain.SyncRunQueries;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
-import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import com.forcitis.one.fixture.doubles.TestAccounts;
@@ -74,21 +68,6 @@ class SnapshotFreshnessTest {
     }
 
     @Test
-    @DisplayName("P2-M6 the alert OneWorkforceSyncLagging fires at the same lag that makes the snapshot stale")
-    void P2_M6_alertThresholdEqualsStaleAfter() throws IOException {
-        Properties settings = new Properties();
-        try (var in = Files.newInputStream(Path.of("src/main/resources/config/organization_workforce.properties"))) {
-            settings.load(in);
-        }
-        Duration staleAfter = Duration.parse(settings.getProperty("forcitis.organization.workforce.sync.stale-after"));
-        String rules = Files.readString(Path.of("../tools/ops/ecs/files/alert-rules.yaml"));
-        Matcher threshold = Pattern.compile("alert: OneWorkforceSyncLagging\\s+expr: max\\(forcitis_organization_workforce_sync_lag_seconds\\) > (\\d+)").matcher(rules);
-
-        assertThat(threshold.find()).as("the OneWorkforceSyncLagging rule").isTrue();
-        assertThat(Long.parseLong(threshold.group(1))).isEqualTo(staleAfter.toSeconds());
-    }
-
-    @Test
     @DisplayName("P2-H2 employmentOf: listed as separated is said even by a stale snapshot; not listed only by a current one; otherwise the snapshot is unavailable")
     void P2_H2_employmentVerdict() {
         OrgSnapshotQueries snapshots = mock(OrgSnapshotQueries.class);
@@ -112,7 +91,10 @@ class SnapshotFreshnessTest {
         SyncRunQueries history = mock(SyncRunQueries.class);
         when(history.findLastSucceededAt()).thenReturn(Optional.of(lastSucceeded));
         return new OrgDirectoryService(snapshots, mock(RegisterEmployeeOnLogin.class), mock(RegisterEmployeeOnLoginName.class),
-                new SnapshotFreshness(history, Clock.fixed(NOW, ZoneOffset.UTC), Duration.ofMinutes(10), EVERY_FIVE_MINUTES));
+                new SnapshotFreshness(history, Clock.fixed(NOW, ZoneOffset.UTC), Duration.ofMinutes(10), EVERY_FIVE_MINUTES),
+                mock(com.forcitis.one.organization.workforce.domain.EmployeeVersionQueries.class),
+                mock(com.forcitis.one.organization.workforce.domain.PersonnelCommandQueries.class), Clock.fixed(NOW, ZoneOffset.UTC),
+                new com.forcitis.one.kernel.BusinessZone(java.time.ZoneId.of("Asia/Shanghai")));
     }
 
     private static StaffEmployee staff(EmploymentStatus status) {

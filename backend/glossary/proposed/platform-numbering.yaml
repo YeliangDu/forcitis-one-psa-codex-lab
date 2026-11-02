@@ -114,6 +114,24 @@ terms:
   until: "R-2a，生产前：DocumentTypeCodeTest 改为读 document_type_code 的取值后删除本条"
   owner: "one-1a-next-3"
   note: 例 JV-FST-202610-0001；模板待管理员确认
+- id: emp
+  zh: 员工工号单据类型代码
+  en: Emp
+  snake: emp
+  kind: value_object
+  bc: platform.numbering
+  scope: domain
+  definition: 员工工号（DocumentType.EMPLOYEE）的单据类型代码 EMP，暂名；模板 {TYPE}{seq:6}，不含法人，全局一个计数；待业务管理员确认前入职不发号（#963）
+  standard_ref:
+  - ADR-0010 可配置的业务编号
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: deprecated
+  replaced_by: document_type_code
+  until: "R-2a，生产前：DocumentTypeCodeTest 改为读 document_type_code 的取值后删除本条"
+  owner: "one-platform"
+  note: 例 EMP000001；暂名待业务管理员确认
 - id: error__platform_numbering_single_operator_mode_required
   zh: 须开启单人运维模式
   en: PlatformNumberingSingleOperatorModeRequired

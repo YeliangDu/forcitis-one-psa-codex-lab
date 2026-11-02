@@ -31,7 +31,9 @@ class AdministratorSeparationReviewAccountsTest {
     final AccountRepository accounts = mock(AccountRepository.class);
     final OrgDirectory directory = mock(OrgDirectory.class);
     final SessionContext session = mock(SessionContext.class);
-    final AdministratorSeparationReview review = new AdministratorSeparationReview(accounts, directory, session, TestAccounts.everyoneHasOne(), () -> false);
+    final AdministratorSeparationReview review = new AdministratorSeparationReview(accounts, directory, session, TestAccounts.everyoneHasOne(), () -> false,
+            java.time.Clock.fixed(java.time.Instant.parse("2026-11-02T02:00:00Z"), java.time.ZoneOffset.UTC),
+            new com.forcitis.one.kernel.BusinessZone(java.time.ZoneId.of("Asia/Shanghai")));
 
     AdministratorSeparationReviewAccountsTest() {
         for (long employee : new long[] {1001, 1002, 1003}) {
@@ -40,6 +42,7 @@ class AdministratorSeparationReviewAccountsTest {
         }
         when(accounts.findEnabledHolders(Role.SUPER_ADMIN)).thenReturn(Set.of(TestAccounts.account(1001), TestAccounts.account(1002)));
         when(accounts.findEnabledHolders(Role.SECURITY_AUDITOR)).thenReturn(Set.of(TestAccounts.account(1003)));
+        when(directory.availabilityOn(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(com.forcitis.one.organization.workforce.api.Availability.AVAILABLE);
         when(session.modeIfSignedIn()).thenReturn(Optional.empty());
     }
 
@@ -78,5 +81,41 @@ class AdministratorSeparationReviewAccountsTest {
         });
 
         assertThat(reviewing(List.of(), null).remainingAdministrators()).isEqualTo(1);
+    }
+
+    private static final java.time.LocalDate TODAY = java.time.LocalDate.of(2026, 11, 2);
+
+    @Test
+    @DisplayName("IMP-1030-PAR-B5 (ADR-0068 section 3, the fifth in-service check): an administrator on unpaid leave is no available super_admin and no retained releaser, but is still employed")
+    void aPersonOnUnpaidLeaveIsNeitherAvailableNorRetained() {
+        when(directory.availabilityOn(TestAccounts.employee(1002), TODAY)).thenReturn(new com.forcitis.one.organization.workforce.api.Availability(true, false, false));
+        when(directory.availabilityOn(TestAccounts.employee(1003), TODAY)).thenReturn(new com.forcitis.one.organization.workforce.api.Availability(true, false, false));
+
+        SeparationReview.Verdict verdict = reviewing(List.of(TestAccounts.employee(1001), TestAccounts.employee(1002)), TestAccounts.account(1003));
+
+        assertThat(verdict.separatedAdministrators()).as("1002 on leave is not available: only 1001 is held back").containsExactly(TestAccounts.employee(1001));
+        assertThat(verdict.remainingAdministrators()).as("nobody available remains").isZero();
+        assertThat(verdict.actorRetained()).as("the releaser 1003 is on leave: not retained").isFalse();
+        assertThat(reviewing(List.of(), null).remainingAdministrators()).as("only 1001 counts while 1002 is on leave").isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("IMP-1030-PAR-B5 (ADR-0068 item 2.2): people whose separation is held do not count as the remainder, and a releaser who is held is not retained")
+    void theHeldSetIsLeftOutOfTheRemainderAndTheReleaser() {
+        Set<EmployeeId> held = Set.of(TestAccounts.employee(1002));
+
+        SeparationReview.Verdict verdict = review.review(List.of(TestAccounts.employee(1001)), held, TestAccounts.account(1002));
+
+        assertThat(verdict.remainingAdministrators()).as("1001 leaves, 1002 is held: nobody remains").isZero();
+        assertThat(verdict.actorRetained()).as("the releaser 1002 is in the held set").isFalse();
+        assertThat(review.review(List.of(TestAccounts.employee(1001)), held, TestAccounts.account(1003)).actorRetained()).as("the auditor is not held").isTrue();
+        assertThat(review.review(List.of(TestAccounts.employee(1001)), TestAccounts.account(1003)).remainingAdministrators())
+                .as("the two-argument form is the sync path: no held set").isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("IMP-1030-PAR-B5 (ADR-0068 item 2.2): the lock key is one non-blank kernel constant")
+    void theLockKeyIsAKernelConstant() {
+        assertThat(SeparationReview.SEPARATION_LOCK_KEY).isNotBlank().startsWith("com.forcitis.one.kernel.SeparationReview");
     }
 }

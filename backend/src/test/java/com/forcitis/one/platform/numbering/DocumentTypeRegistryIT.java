@@ -62,9 +62,9 @@ class DocumentTypeRegistryIT {
     JdbcClient jdbc;
 
     @Test
-    @DisplayName("the three seeded types are in force")
+    @DisplayName("the four seeded types are in force")
     void seededTypesAreInForce() {
-        for (String code : new String[] {"QUOTE", "TIMESHEET", "JOURNAL_VOUCHER"}) {
+        for (String code : new String[] {"QUOTE", "TIMESHEET", "JOURNAL_VOUCHER", "EMPLOYEE"}) {
             assertThatCode(() -> documentTypes.requireInForce(new DocumentTypeCode(code), DAY)).doesNotThrowAnyException();
         }
     }

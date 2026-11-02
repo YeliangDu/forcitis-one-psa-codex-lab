@@ -161,22 +161,22 @@ class SeparationHoldTablesIntegrationTest extends WorkforceIntegrationSupport {
     @DisplayName("IMP-1030-PAR-B1 a personnel command's transitions are the pairs of its state machine, a separation hold's are HELD then RELEASED or WITHDRAWN")
     void legalTransitions() {
         for (String[] pair : new String[][] {{null, "PENDING"}, {null, "HELD"}, {null, "EFFECTIVE"}, {"PENDING", "EFFECTIVE"}, {"PENDING", "WITHDRAWN"},
-                {"PENDING", "HELD"}, {"HELD", "EFFECTIVE"}, {"HELD", "WITHDRAWN"}}) {
+                {"PENDING", "HELD"}, {"HELD", "EFFECTIVE"}, {"HELD", "WITHDRAWN"}, {"HELD", "PENDING"}}) {
             transition("PersonnelCommand", "gen_random_uuid()", pair[0] == null ? 1 : 2, pair[0], pair[1]);
         }
         for (String[] pair : new String[][] {{null, "HELD"}, {"HELD", "RELEASED"}, {"HELD", "WITHDRAWN"}}) {
             transition("SeparationHold", "gen_random_uuid()", pair[0] == null ? 1 : 2, pair[0], pair[1]);
         }
-        assertThat(count("state_transitions")).isEqualTo(11);
+        assertThat(count("state_transitions")).isEqualTo(12);
     }
 
     @Test
     @DisplayName("IMP-1030-PAR-B1 a transition outside the pairs of its type is refused, and so is an unknown type")
     void illegalTransitions() {
-        for (String[] pair : new String[][] {{null, "WITHDRAWN"}, {null, "RELEASED"}, {"PENDING", "RELEASED"}, {"EFFECTIVE", "PENDING"}, {"WITHDRAWN", "PENDING"}, {"HELD", "PENDING"}}) {
+        for (String[] pair : new String[][] {{null, "WITHDRAWN"}, {null, "RELEASED"}, {"PENDING", "RELEASED"}, {"EFFECTIVE", "PENDING"}, {"WITHDRAWN", "PENDING"}}) {
             assertThatThrownBy(() -> transition("PersonnelCommand", COMMAND, 2, pair[0], pair[1])).as("PersonnelCommand " + pair[0] + " to " + pair[1]).isInstanceOf(Exception.class);
         }
-        for (String[] pair : new String[][] {{null, "PENDING"}, {null, "RELEASED"}, {null, "EFFECTIVE"}, {"HELD", "EFFECTIVE"}, {"RELEASED", "HELD"}, {"PENDING", "HELD"}}) {
+        for (String[] pair : new String[][] {{null, "PENDING"}, {null, "RELEASED"}, {null, "EFFECTIVE"}, {"HELD", "EFFECTIVE"}, {"RELEASED", "HELD"}, {"PENDING", "HELD"}, {"HELD", "PENDING"}}) {
             assertThatThrownBy(() -> transition("SeparationHold", HOLD, 2, pair[0], pair[1])).as("SeparationHold " + pair[0] + " to " + pair[1]).isInstanceOf(Exception.class);
         }
         assertThatThrownBy(() -> transition("Employee", COMMAND, 1, null, "HELD")).hasMessageContaining("ck_state_transitions_aggregate_type_code");

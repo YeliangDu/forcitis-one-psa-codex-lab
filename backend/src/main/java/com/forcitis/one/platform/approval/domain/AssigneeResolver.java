@@ -11,6 +11,7 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import java.util.ArrayList;
+import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
@@ -24,9 +25,15 @@ public final class AssigneeResolver {
     private final RoleDirectory roles;
     private final Set<UserId> administrators;
     private final AccountEmployees accountEmployees;
+    private final LocalDate today;
 
-    /** administrators may be empty: then an empty candidate set is UNRESOLVED instead of routed. */
-    public AssigneeResolver(OrgDirectory org, RoleDirectory roles, Set<UserId> administrators, AccountEmployees accountEmployees) {
+    /**
+     * administrators may be empty: then an empty candidate set is UNRESOLVED instead of routed. today is the business day the candidates are
+     * resolved for: a person on unpaid leave that day is skipped, like a separated one (ADR-0068 section 3); the resolver itself reads no clock.
+     */
+    public AssigneeResolver(OrgDirectory org, RoleDirectory roles, Set<UserId> administrators, AccountEmployees accountEmployees,
+            LocalDate today) {
+        this.today = today;
         this.org = org;
         this.roles = roles;
         this.accountEmployees = accountEmployees;
@@ -195,6 +202,6 @@ public final class AssigneeResolver {
     }
 
     private boolean isEmployed(EmployeeId user) {
-        return org.findEmployee(user).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false);
+        return org.findEmployee(user).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false) && !org.availabilityOn(user, today).onUnpaidLeave();
     }
 }

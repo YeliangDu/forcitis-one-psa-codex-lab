@@ -81,9 +81,21 @@
         "model": "sonnet",
         "permission_mode": "bypassPermissions",
         "remote_control": true
+      },
+      "one-dev-identity": {
+        "role": "dev",
+        "model": "sonnet",
+        "permission_mode": "bypassPermissions",
+        "remote_control": true
+      },
+      "one-test": {
+        "role": "test",
+        "model": "opus",
+        "permission_mode": "bypassPermissions",
+        "remote_control": true
       }
     },
-    "_说明": "config 是会话清单：键即会话名，按角色取名 one-lead、one-design、one-platform，开发会话 one-dev-<bc>；role 指 docs/rules/roles/ 的角色文件；effort 是目标值。会话由各工作区的会话标记认定（#856，工具库 start_sheet --set），不按目录名、分支名或旧名推断。"
+    "_说明": "config 是会话清单：键即会话名，按角色取名 one-lead、one-design、one-test、one-platform，开发会话 one-dev-<bc>；role 指 docs/rules/roles/ 的角色文件；effort 是目标值。会话由各工作区的会话标记认定（#856，工具库 start_sheet --set），不按目录名、分支名或旧名推断。"
   },
   "tools_lib": {
     "dir": "~/.modernize/psa/tools/one-session",

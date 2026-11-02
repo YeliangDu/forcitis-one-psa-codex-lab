@@ -2,6 +2,8 @@ package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.organization.workforce.domain.PersonnelCommandQueries;
+import com.forcitis.one.organization.workforce.api.Availability;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentVerdict;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
@@ -12,6 +14,10 @@ import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
 import com.forcitis.one.organization.workforce.domain.StaffEmployee;
+import com.forcitis.one.organization.workforce.domain.EmployeeVersionQueries;
+import java.time.LocalDate;
+import com.forcitis.one.kernel.BusinessZone;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
@@ -22,9 +28,17 @@ class OrgDirectoryService implements OrgDirectory {
     private final RegisterEmployeeOnLogin registerOnLogin;
     private final RegisterEmployeeOnLoginName registerOnLoginName;
     private final SnapshotFreshness freshness;
+    private final EmployeeVersionQueries versions;
+    private final Clock clock;
+    private final BusinessZone zone;
+    private final PersonnelCommandQueries commands;
 
     OrgDirectoryService(OrgSnapshotQueries snapshots, RegisterEmployeeOnLogin registerOnLogin,
-                        RegisterEmployeeOnLoginName registerOnLoginName, SnapshotFreshness freshness) {
+                        RegisterEmployeeOnLoginName registerOnLoginName, SnapshotFreshness freshness, EmployeeVersionQueries versions, PersonnelCommandQueries commands, Clock clock, BusinessZone zone) {
+        this.commands = commands;
+        this.versions = versions;
+        this.clock = clock;
+        this.zone = zone;
         this.freshness = freshness;
         this.snapshots = snapshots;
         this.registerOnLogin = registerOnLogin;
@@ -33,7 +47,7 @@ class OrgDirectoryService implements OrgDirectory {
 
     @Override
     public Optional<EmployeeProfile> findEmployee(EmployeeId employeeId) {
-        return snapshots.findStaff(employeeId).map(OrgDirectoryService::profile);
+        return snapshots.findStaff(employeeId).map(this::profile);
     }
 
     @Override
@@ -45,7 +59,25 @@ class OrgDirectoryService implements OrgDirectory {
     }
 
     @Override
+    public Availability availabilityOn(EmployeeId employeeId, LocalDate day) {
+        return new Availability(versions.isOnLeave(employeeId, day), commands.isHeld(employeeId), commands.isLeaving(employeeId));
+    }
+
+    @Override
+    public Optional<EmploymentStatus> employmentOn(EmployeeId employeeId, LocalDate day) {
+        if (versions.hasVersions(employeeId)) {
+            return versions.employmentOn(employeeId, day);
+        }
+        return snapshots.findStaff(employeeId).map(staff -> staff.employee().employmentStatus());
+    }
+
+    @Override
     public EmploymentVerdict employmentOf(EmployeeId employeeId) {
+        if (versions.hasVersions(employeeId)) {
+            return versions.employmentOn(employeeId, zone.today(clock))
+                    .map(status -> status == EmploymentStatus.EMPLOYED ? EmploymentVerdict.EMPLOYED : EmploymentVerdict.SEPARATED)
+                    .orElse(EmploymentVerdict.NOT_LISTED);
+        }
         Optional<StaffEmployee> staff = snapshots.findStaff(employeeId);
         if (staff.isPresent() && staff.get().employee().employmentStatus() != EmploymentStatus.EMPLOYED) {
             return EmploymentVerdict.SEPARATED;
@@ -58,8 +90,8 @@ class OrgDirectoryService implements OrgDirectory {
 
     private Optional<EmployeeProfile> findEmployeeByWecomUser(WecomUserId wecomUserId) {
         return snapshots.findStaffByWecomUser(wecomUserId)
-                .or(() -> registerOnLogin.execute(wecomUserId))
-                .map(OrgDirectoryService::profile);
+                .or(() -> snapshots.findEmployeeIdsByWecomUser(wecomUserId).isEmpty() ? registerOnLogin.execute(wecomUserId).flatMap(registered -> snapshots.findStaff(registered.employeeId())) : Optional.empty())
+                .map(this::profile);
     }
 
     private Optional<EmployeeProfile> findEmployeeByLoginName(String loginName) {
@@ -68,8 +100,8 @@ class OrgDirectoryService implements OrgDirectory {
         }
         String key = loginName.trim();
         return snapshots.findStaffByLoginName(key)
-                .or(() -> registerOnLoginName.execute(key))
-                .map(OrgDirectoryService::profile);
+                .or(() -> snapshots.findEmployeeIdsByLoginName(key).isEmpty() ? registerOnLoginName.execute(key).flatMap(registered -> snapshots.findStaff(registered.employeeId())) : Optional.empty())
+                .map(this::profile);
     }
 
     @Override
@@ -103,7 +135,7 @@ class OrgDirectoryService implements OrgDirectory {
         return snapshots.findAncestors(orgUnitId);
     }
 
-    private static EmployeeProfile profile(StaffEmployee staff) {
+    private EmployeeProfile profile(StaffEmployee staff) {
         return new EmployeeProfile(staff.employeeId(), staff.employee().displayName(), staff.assignment().orgUnitId(),
                 staff.employee().wecomUserId(), staff.employee().employmentStatus(), staff.employee().feeEarner());
     }

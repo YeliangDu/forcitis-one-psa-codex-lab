@@ -668,9 +668,9 @@ roles:
   - super_admin
   host_category: 人力资源（本企业员工，IT）
   bears: []
-  evidence: 词表 administrator：持 super_admin 或管理员角色的人。系统角色表仅有 super_admin（is_administrative）；任务所说代码定义的 administrator-mode 未列入 permissions.yaml，是否同属需确认。
+  evidence: 词表 administrator：持 super_admin 或管理员角色的人。系统角色表仅有 super_admin（is_administrative）；任务所说代码定义的 administrator-mode 不是系统角色（权限正本为 backend/src/main/java/com/forcitis/one/platform/identity/api/Permission.java，系统角色为 domain/SystemRoleDeclaration.java，管理员模式权限为 domain/AdministratorMode.java）。
   ruling: one-architecture 2026-10-21 按 ADR-0026 D-7、D-10：super_admin 是系统角色，本身不带业务或平台权限，只是进入管理模式的资格（EnterAdministratorMode.java:76 不持有即拒绝）；管理员模式是持有者再次验证后同一会话的限时状态（1 小时，权限集合 AdministratorMode.PERMISSIONS），不是角色。登记为一个
-    ROLE 绑定 super_admin；permissions.yaml 中 administrator-mode 只用于统计权限持有，不作 ROLE 的 system_roles。
+    ROLE 绑定 super_admin；管理员模式的权限集合见 AdministratorMode.PERMISSIONS（platform/identity/domain/AdministratorMode.java），不作 ROLE 的 system_roles。
 - id: ROLE-54
   name: 流程管理员
   aliases:

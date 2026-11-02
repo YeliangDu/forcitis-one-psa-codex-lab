@@ -35,9 +35,11 @@ class AccountProvisioning {
     private final String defaultRole;
     private final IdGenerator ids;
     private final OrgDirectory directory;
+    private final AccountGrants grants;
 
-    AccountProvisioning(AccountRepository accounts, RoleRepository roles, DomainEvents events, IdGenerator ids, OrgDirectory directory,
+    AccountProvisioning(AccountRepository accounts, RoleRepository roles, DomainEvents events, IdGenerator ids, OrgDirectory directory, AccountGrants grants,
             @Value("${forcitis.platform.identity.default-role}") String defaultRole) {
+        this.grants = grants;
         this.ids = ids;
         this.directory = directory;
         this.accounts = accounts;
@@ -72,6 +74,7 @@ class AccountProvisioning {
         if (accounts.insertIfAbsent(opened)) {
             try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null),
                     ACTOR)) {
+                grants.replace(opened, Set.of(initial), AccountGrants.Origin.defaultRole());
                 events.publish(opened);
             }
         }

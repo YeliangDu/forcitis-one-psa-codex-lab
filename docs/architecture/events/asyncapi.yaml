@@ -657,13 +657,6 @@ operations:
     summary: platform.identity 发布
     messages:
     - $ref: '#/channels/accountDisabled/messages/AccountDisabled'
-  handleAccountDisabledInPlatformAudit:
-    action: receive
-    channel:
-      $ref: '#/channels/accountDisabled'
-    summary: platform.audit 消费
-    messages:
-    - $ref: '#/channels/accountDisabled/messages/AccountDisabled'
   publishAccountRolesReplaced:
     action: send
     channel:
@@ -1224,6 +1217,13 @@ operations:
     summary: organization.workforce 发布
     messages:
     - $ref: '#/channels/employeeHired/messages/EmployeeHired'
+  handleEmployeeHiredInPlatformIdentity:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeHired'
+    summary: platform.identity 消费
+    messages:
+    - $ref: '#/channels/employeeHired/messages/EmployeeHired'
   handleEmployeeHiredInPlatformAudit:
     action: receive
     channel:
@@ -1264,6 +1264,13 @@ operations:
     channel:
       $ref: '#/channels/employeeSeparated'
     summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/employeeSeparated/messages/EmployeeSeparated'
+  handleEmployeeSeparatedInPlatformIdentity:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeSeparated'
+    summary: platform.identity 消费
     messages:
     - $ref: '#/channels/employeeSeparated/messages/EmployeeSeparated'
   handleEmployeeSeparatedInPlatformAudit:
@@ -2692,12 +2699,11 @@ components:
         aggregate: UserAccount
         idempotencyKey: eventId
         publisher: platform.identity
-        consumers:
-        - platform.audit
+        consumers: []
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
+        audit: 'not-audited: account.disabled 同事务直写：通知卡要用该条审计条目的 ID（#732）'
         publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
         noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
       payload:
@@ -2737,6 +2743,8 @@ components:
         - envelope
         - userId
         - roleIds
+        - openedGrantIds
+        - closedGrantIds
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -2751,6 +2759,20 @@ components:
               type: string
               format: uuid
               x-type: RoleId
+          openedGrantIds:
+            type: array
+            description: 本次变更新开的角色授予行 ID
+            items:
+              type: string
+              format: uuid
+              x-type: AccountRoleGrantId
+          closedGrantIds:
+            type: array
+            description: 本次变更关闭的角色授予行 ID
+            items:
+              type: string
+              format: uuid
+              x-type: AccountRoleGrantId
     AccountSeparated:
       name: AccountSeparated
       title: 账号因本人离职而收回全部角色
@@ -4395,13 +4417,13 @@ components:
         idempotencyKey: eventId
         publisher: organization.workforce
         consumers:
+        - platform.identity
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 人事业务生效日（effectiveDate）：入职命令的生效日
         audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
-        noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
       payload:
         type: object
         required:
@@ -4443,7 +4465,7 @@ components:
         formsFact: false
         businessDate: 人事业务生效日（effectiveDate）：转正命令的生效日
         audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
         noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
       payload:
         type: object
@@ -4486,7 +4508,7 @@ components:
         formsFact: false
         businessDate: 人事业务生效日（effectiveDate）：调岗命令的生效日
         audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
         noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项），F-1 订阅（ADR-0068 第 5 条）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
       payload:
         type: object
@@ -4560,13 +4582,13 @@ components:
         idempotencyKey: eventId
         publisher: organization.workforce
         consumers:
+        - platform.identity
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 人事业务生效日（effectiveDate）：离职命令的生效日，即最后工作日的次日
         audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
-        noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项），F-1 订阅（ADR-0068 第 5 条）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
       payload:
         type: object
         required:
@@ -4608,7 +4630,7 @@ components:
         formsFact: false
         businessDate: 人事业务生效日（effectiveDate）：复职命令的生效日
         audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
         noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
       payload:
         type: object
@@ -4651,7 +4673,7 @@ components:
         formsFact: false
         businessDate: 人事业务生效日：更正命令的生效日（负载不带，信封带）
         audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
         noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项），F-1 订阅（ADR-0068 第 5 条）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
       payload:
         type: object
@@ -4700,7 +4722,7 @@ components:
         formsFact: false
         businessDate: 人事业务生效日（effectiveDate）：被暂停的离职命令的生效日
         audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
         noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
       payload:
         type: object
@@ -4749,7 +4771,7 @@ components:
         formsFact: false
         businessDate: 人事业务生效日（effectiveDate）：被放行的离职命令原定的生效日
         audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.PersonnelCommandContractTest
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
         noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
       payload:
         type: object
@@ -4880,7 +4902,7 @@ x-system-actors:
 - name: platform.identity.separation
   actorId: 1da01607-dce4-5fbc-9490-f0ae7628d6d1
   module: platform.identity
-  description: 离职处理：HandleOrgSnapshotChange、DisableEmergencyAdminOnSeparation、RevokeBrowserIdentifiersOnSeparation
+  description: 离职处理：HandleOrgSnapshotChange、HandleEmployeeSeparated、DisableEmergencyAdminOnSeparation、RevokeBrowserIdentifiersOnSeparation
 - name: platform.identity.session.purge
   actorId: 7f82e786-478f-594a-a1ff-ad168fbc4775
   module: platform.identity
@@ -4925,3 +4947,11 @@ x-system-actors:
   actorId: 18a840ca-d8f0-5830-8e12-1bcd5ecad2f3
   module: platform.file
   description: 作业：临时区到期未关联的文件置「未关联已过期」
+- name: organization.workforce.operations
+  actorId: e932d608-3a2e-5738-a568-d9f1cb73233c
+  module: organization.workforce
+  description: 运维命令（workforce-operations 档案）：release-separation-hold 放行待放行离职的状态转换操作者与事件信封 actorId
+- name: organization.workforce.personnel.command.due
+  actorId: eb80b90a-6a1a-5c08-80c6-e90e0edc980c
+  module: organization.workforce
+  description: '作业：到日执行已放行的将来日离职（暂名，#931；一般待生效命令的到日执行是 #933）'

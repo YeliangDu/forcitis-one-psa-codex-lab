@@ -101,6 +101,19 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
                 .flatMap(p -> findEmployee(p.id()));
     }
 
+    /** Who is on unpaid leave, for the tests that skip them. */
+    public final java.util.Set<EmployeeId> onLeave = new java.util.HashSet<>();
+
+    @Override
+    public com.forcitis.one.organization.workforce.api.Availability availabilityOn(EmployeeId employeeId, java.time.LocalDate day) {
+        return new com.forcitis.one.organization.workforce.api.Availability(onLeave.contains(employeeId), false, false);
+    }
+
+    @Override
+    public java.util.Optional<EmploymentStatus> employmentOn(EmployeeId employeeId, java.time.LocalDate day) {
+        return findEmployee(employeeId).map(e -> e.employmentStatus());
+    }
+
     @Override
     public com.forcitis.one.organization.workforce.api.EmploymentVerdict employmentOf(EmployeeId employeeId) {
         return findEmployee(employeeId).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED

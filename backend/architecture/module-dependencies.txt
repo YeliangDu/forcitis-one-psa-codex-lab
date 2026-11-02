@@ -10,6 +10,7 @@ cost.timesheet -> organization.workforce, platform.approval, platform.identity, 
 # B-31 (IMP-1021-ADM-01, B31_CONSTRUCTION_DESIGN section 2.4): workforce (api, events), approval (api, events), numbering, audit and file (api). Not platform.scheduling (own @Scheduled jobs, CONVENTIONS section 5); accounting.fixedasset and the signing service join with the first code that uses them.
 organization.administration -> organization.workforce, platform.approval, platform.audit, platform.file, platform.numbering
 organization.attendance -> platform.audit
+# #959 (one-design DD on #959 section 2): kernel.GlobalDocumentNumberSource is asked by organization.workforce (a hire numbers the employee code) and implemented by platform.numbering, which depends on organization.workforce; an edge workforce -> numbering would close a cycle (ModularityTest G1).
 organization.workforce -> platform.audit, platform.integration
 platform.approval -> platform.identity, organization.workforce, platform.integration, platform.audit, organization.attendance, platform.numbering
 platform.audit -> platform.integration

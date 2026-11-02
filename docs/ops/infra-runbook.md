@@ -332,6 +332,37 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 - **告警走 C-7 的日志告警规则**：本节与管理模式的告警都是一行 `ALERT platform.identity …` 的日志（结构化日志，见 §8），由 SLS 按 `ALERT` 关键字匹配后发往 A-5 指定的接收人；应用本身不直接发消息。涉及的告警：进入管理模式、退出或自然到期、应急登录、结束超级管理员或安全审计员的会话、应急账号因离职被停用、本地离职放行（日志规则随离职命令实施卡核对，不再匹配同步放行日志）。
 - 管理员离职按本地离职命令独立放行（ADR-0055 决定 3）：可用超级管理员少于 2 名仍暂停；留任超级管理员在管理模式、或安全审计员在普通会话填理由，只放行该条离职，不重跑同步，其余人事变更不受阻。旧同步放行接口撤销，新接口与日志按实施卡核对。**恢复路径**：可先用本节的 `grant-role --role-code=super_admin` 给留任人员授予超级管理员（双人在场、写审计）；放行后为 0 名只能走双人在场、写审计的运维命令，为 1 名须告警。已生效的授予关闭与审计保留，不靠恢复同步改写历史。
 - 开通人和被开通人都记入审计（`platform.identity.operations.*`）。
+- **放行待放行离职的运维命令 `release-separation-hold`**（#877，ADR-0068 第 2 条第 4 项；组织 workforce 自己的入口，档案 `workforce-operations`，不用 `identity-operations`）：只在放行后可用超级管理员剩 0 名时执行，剩 1 名或更多时拒绝并提示改走界面单条放行。同一个 jar，一次一个命令，做完进程结束，端口与 F-12 的注意事项同上：
+  ```
+  java -jar forcitis-one.jar --spring.profiles.include=workforce-operations --operation=release-separation-hold \
+       --separation-hold-id=<暂停记录 ID> --reason=<原因，1 至 500 字> --operator=<操作人员工 ID> --witness=<见证人员工 ID>
+  ```
+  - **双人在场且都须留任**：`--operator` 与 `--witness` 必填，为两个不同的、已存在的员工，且都须本地在职、不在待放行名单中、不在停薪留职；见证人始终必填，没有单人模式。违反则拒绝（退出码 1），库内无任何变化。
+  - 效果与界面放行相同：离职自原生效日起生效、不重判；暂停记录记为 `OPERATIONS_COMMAND` 放行、放行账号为空，状态转换与事件的操作者是系统主体 `organization.workforce.operations`；审计 `organization.workforce.separation-hold.released` 一条，`detail` 含原因、途径、`operatorId=`、`witnessId=`、命令 ID、暂停记录 ID 与剩余超管数 0。先取与离职、界面放行、撤回同一把咨询锁。
+  - 退出码：0 已放行；1 被拒绝（含当月审计分区不存在，需先启动常驻应用建分区）；2 用法错误（缺参数、未知选项、ID 格式不对）。
+- **一次性迁入命令 `migrate-initial-versions`**（#960，one-design 数据设计签发于 #960 评论；档案同 `workforce-operations`）：把本库同步快照里还没有任何员工版本的人，按当前状态写成 MIGRATION 版本，让同步停掉后所有读取方都读版本表。不用 Flyway：必须可重跑且重跑不写行，且生产只走发布闸门，不在部署时静默执行。
+  ```
+  java -jar forcitis-one.jar --spring.profiles.include=workforce-operations --operation=migrate-initial-versions \
+       --operator=<操作人员工 ID> --witness=<见证人员工 ID>
+  ```
+  - **运行时机**：只在同步不再写快照之后运行（#957 之后）；命令自己检查同步已停：有进行中的同步，或 15 分钟内（三个调度周期）开始过任何同步，都拒绝（退出码 1）；所以要先停调度，等 15 分钟再运行。操作人与见证人必填，为两个不同的已存在员工（不要求留任）。
+  - 每人写什么：没有任何员工版本的人（任意渠道、任意日期）写一条（已离职且离职日晚于左边界时两条）；左边界取最早未作废任职版本的生效日，没有则取运行当天；在职者雇佣阶段一律记正式（用户答复），入职日未知（左截断），非停薪留职，收费标记取快照；离职日取 `separated_at` 的业务日期，是同步观察到离职的日期，不是人事离职日。有快照任职但无任职版本的人补一条任职版本；已有版本的人（含命令版本）一行不动，与快照不一致的任职只计数不覆盖。
+  - 副作用：一个事务、逐人先锁员工行；不发领域事件、不发通知、不改授予；审计 `organization.workforce.initial-versions.migrated` 一条，只含操作人、见证人 ID 与计数（新增在职、离职人数，补写任职版本数，因已有版本跳过数，任职与快照不一致数）。
+- **上线前检查 `prelaunch-check`**（#961，ADR-0055 第 2、5 条；档案同 `workforce-operations`）：只读，不要操作人和见证人，不写库、不写审计。组织同步不再被调度（#961），状态为 HELD 的同步运行下若还有扣留的离职行，没人再能靠定时同步放行它们，所以上线前必须清零。
+  ```
+  java -jar forcitis-one.jar --spring.profiles.include=workforce-operations --operation=prelaunch-check
+  ```
+  - 退出码：0 通过（没有 HELD 运行下的扣留离职行）；1 拒绝，每个有扣留行的 HELD 运行输出一行 `refused: sync run <运行 ID> is HELD and holds <N> separation rows`，先在界面逐条放行再重跑；2 用法错误。已放行（RELEASED）运行下残留的行、没有扣留行的 HELD 运行都不拦。
+  - **HELD 运行的处置（#1008）**：`OneWorkforceSyncHeld` 告警或 `prelaunch-check` 退出码 1 都指向 HELD 运行。组织同步不再被调度，HELD 运行不会自行消失，也不会有新的同步运行产生；`OneWorkforceSyncLagging` 告警已撤，同步停止本身不告警。
+    1. 组织来源在该环境开启、界面可用：由组织数据管理员在界面逐条放行所列运行，再重跑 `prelaunch-check`，须为 0。
+    2. 组织来源在该环境已关闭（界面无法放行）：运维不得直接改库、不得重新打开调度来放行。把 `prelaunch-check` 输出的每行 `refused: …` 原样交组织数据管理员和 lead，由其裁定该运行下的扣留离职行（放行，或确认作废）并给出书面结论，在此之前该环境不得继续后续上线步骤，尤其不得运行 `migrate-initial-versions`。
+    3. 裁定落地后重跑 `prelaunch-check`，退出码 0 才继续；在此期间 `OneWorkforceSyncHeld` 保持告警，属预期，不静默。
+- **#960 迁入命令的运维步骤（一次性，由运维在发布闸门放行后执行，开发会话不执行）**：
+  1. 发布含 #961 的版本，确认没有任何实例的调度再跑组织同步（`SnapshotSyncNotScheduledIT` 守护；`WORKFORCE_SYNC_ENABLED` 已不再有作用）。
+  2. 运行 `prelaunch-check`，退出码须为 0；为 1 则先放行所列运行再重跑。
+  3. 等最近一次同步运行过去 15 分钟，再运行 `migrate-initial-versions`（命令自己也会检查）。
+  4. 核对命令输出的计数与审计 `organization.workforce.initial-versions.migrated`；`assignmentsDifferingFromSnapshot` 不为 0 时交人事核对，不要重跑覆盖。命令可重跑且重跑不写行。
+  - 退出码：0 完成（重跑也是 0，计数为 0）；1 被拒绝（缺见证人、两人相同或不是员工、同步未停、当月审计分区不存在）；2 用法错误。dev 只走正常路径跑；生产由发布闸门执行，不在本卡内运行。
 - 剧本见 `runbooks/C-5-first-admins.md`（待按本节对齐）。
 
 ## 7. 首次部署步骤（dev）

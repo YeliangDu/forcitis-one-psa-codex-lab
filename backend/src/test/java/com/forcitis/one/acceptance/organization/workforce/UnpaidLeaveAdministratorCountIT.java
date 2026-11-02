@@ -36,8 +36,14 @@ class UnpaidLeaveAdministratorCountIT extends SeparationHoldSupport {
     @Test
     @DisplayName("#873 ADR-0068 第 3 条（行 107）、第 2 条第 3 项（行 90）：放行时停薪留职的超管不计入剩余可用超管：S3 停薪留职后放行 S2 的暂停剩余 0 名，界面拒绝；S3 结束停薪留职后剩余 1 名，放行成功并告警")
     void anAdministratorOnLeaveIsNotCountedAtRelease() throws Exception {
-        Scenario scenario = heldWithRemaining(0);
-        leave(UNPAID_LEAVE_START, scenario.stays());
+        // The leave starts before S2's separation is held: while S2 is still available, S3's leave leaves one available super admin, so the
+        // unpaid-leave floor (#943, decisions 151103 and 172337) accepts it; started after the hold it would leave none and be refused.
+        // Same people and the same state at the release as heldWithRemaining(0) followed by the leave.
+        Staff s2 = administrator();
+        Staff s3 = administrator();
+        Staff releaser = auditor();
+        leave(UNPAID_LEAVE_START, s3);
+        Scenario scenario = new Scenario(heldSeparation(s2), s2, releaser, s3);
 
         Throwable refused = catchThrowable(() -> releaseAs(scenario.releaser(), scenario.held().hold(), REASON_TEXT));
 
