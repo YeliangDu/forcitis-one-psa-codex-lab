@@ -84,6 +84,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
     @org.junit.jupiter.api.AfterEach
     void removeTheReaderAccount() {
         jdbc.sql("update platform_identity.account_role_grants set effective_to_at = greatest(now(), effective_from_at), revocation_cause_kind = 'OPERATIONS', revocation_audit_entry_id = uuidv7(), updated_at = now() where effective_to_at is null and user_id = (select user_id from platform_identity.user_accounts where employee_id = " + sqlEmployee(9002) + ")").update();
+        com.forcitis.one.platform.identity.TestRoles.deleteAllGrants(jdbc);
         jdbc.sql("delete from platform_identity.user_accounts where employee_id in (" + sqlEmployee(9001) + ", " + sqlEmployee(9002) + ", " + sqlEmployee(9003) + ")").update();
     }
 

@@ -51,9 +51,10 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     @Autowired
     TotpSecretVault vault;
 
-    private void publish(EmployeeId separated) {
+    private UUID publish(EmployeeId separated) {
         var event = new com.forcitis.one.organization.workforce.events.EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", separated.value()), new com.forcitis.one.organization.workforce.api.PersonnelCommandId(java.util.UUID.randomUUID()), separated, java.time.LocalDate.of(2026, 10, 15));
         tx.executeWithoutResult(status -> events.publishEvent(event));
+        return event.envelope().eventId();
     }
 
     private long roleCount(long userId) {
@@ -121,13 +122,13 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("P2-H3 a person without an account is a quiet no-op: once the separation listener has handled the event, no account is opened, no role and no session is revoked (R-1b P2: there is no account id to name)")
     void P2_H3_noAccountIsOpenedForASeparatedPersonWithout() {
-        UUID published = publish(List.of(), List.of(TestAccounts.employee(5555)));
+        UUID published = publish(TestAccounts.employee(5555));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(jdbc.sql("""
                 select count(*) from (select listener_id, completion_date, serialized_event from platform_integration.event_publication
                                       union all
                                       select listener_id, completion_date, serialized_event from platform_integration.event_publication_archive) p
-                 where p.listener_id like '%HandleOrgSnapshotChange%' and p.completion_date is not null and p.serialized_event like :event
+                 where p.listener_id like '%HandleEmployeeSeparated%' and p.completion_date is not null and p.serialized_event like :event
                 """).param("event", "%" + published + "%").query(Long.class).single()).isEqualTo(1));
         assertThat(count("user_accounts")).isZero();
         assertThat(count("account_role_grants where effective_to_at is null")).isZero();
