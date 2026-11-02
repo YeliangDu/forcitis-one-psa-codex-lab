@@ -72,7 +72,7 @@ class CountersignEntryIT extends CountersignSupport {
             assertThat(row.get("drafted_by")).isEqualTo(hr.userId());
             assertThat(row.get("requested_by")).isEqualTo(hr.userId());
             assertThat(row.get("employee_id")).isEqualTo(stored(waiting.employee()));
-            assertThat(row.get("escalation_level")).isEqualTo(0);
+            assertThat(row.get("escalation_level_number")).isEqualTo(0);
             assertThat((LocalDate) row.get("due_on_date")).isAfter(TODAY);
         });
         assertThat(requests).extracting(row -> transitionsOf(row)).allSatisfy(path -> assertThat(path).containsExactly(OPEN));

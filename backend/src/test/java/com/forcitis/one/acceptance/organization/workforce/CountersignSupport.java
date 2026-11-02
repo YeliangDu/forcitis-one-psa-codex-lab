@@ -133,7 +133,7 @@ abstract class CountersignSupport extends SeparationHoldSupport {
             return;
         }
         try (Connection workforce = schemaConnection("organization_workforce")) {
-            update(workforce, "update " + COUNTERSIGNS + " set escalation_level = ? where attribution_countersign_id = ?", (short) level, requestId(command, kind, entity));
+            update(workforce, "update " + COUNTERSIGNS + " set escalation_level_number = ? where attribution_countersign_id = ?", (short) level, requestId(command, kind, entity));
         }
     }
 
