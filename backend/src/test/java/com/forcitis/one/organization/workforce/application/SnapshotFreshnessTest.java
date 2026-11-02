@@ -92,7 +92,8 @@ class SnapshotFreshnessTest {
         when(history.findLastSucceededAt()).thenReturn(Optional.of(lastSucceeded));
         return new OrgDirectoryService(snapshots, mock(RegisterEmployeeOnLogin.class), mock(RegisterEmployeeOnLoginName.class),
                 new SnapshotFreshness(history, Clock.fixed(NOW, ZoneOffset.UTC), Duration.ofMinutes(10), EVERY_FIVE_MINUTES),
-                mock(com.forcitis.one.organization.workforce.domain.EmployeeVersionQueries.class), Clock.fixed(NOW, ZoneOffset.UTC),
+                mock(com.forcitis.one.organization.workforce.domain.EmployeeVersionQueries.class),
+                mock(com.forcitis.one.organization.workforce.domain.PersonnelCommandQueries.class), Clock.fixed(NOW, ZoneOffset.UTC),
                 new com.forcitis.one.kernel.BusinessZone(java.time.ZoneId.of("Asia/Shanghai")));
     }
 

@@ -39,7 +39,7 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
         }
         jdbc.sql("insert into organization_workforce.positions (id, name, status) values (" + POSITION + ", 'position', 'ACTIVE')").update();
         jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values (" + EMPLOYEE + ", 'E-1', 'name', 'EMPLOYED')").update();
-        jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (" + LEGAL_ENTITY + ", 'ABC', 'entity', 'ACTIVE') on conflict do nothing").update();
+        jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (" + LEGAL_ENTITY + ", 'ZQO', 'entity', 'ACTIVE') on conflict (id) do nothing").update();
     }
 
     /** Inserts a command with the given extra columns; the target is the unit unless the columns say otherwise. */

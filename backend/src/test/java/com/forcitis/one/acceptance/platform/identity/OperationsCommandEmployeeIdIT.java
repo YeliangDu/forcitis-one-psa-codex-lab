@@ -85,11 +85,16 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
     private List<Integer> identityRows() throws SQLException {
         List<Integer> rows = new ArrayList<>();
         try (Connection identity = schemaConnection("platform_identity")) {
-            for (String table : List.of("user_accounts", "account_roles", "emergency_admins", "authorization_requests")) {
+            for (String table : List.of("user_accounts", "account_role_grants", "emergency_admins", "authorization_requests")) {
                 try (PreparedStatement count = identity.prepareStatement("select count(*) from " + table); ResultSet rs = count.executeQuery()) {
                     rs.next();
                     rows.add(rs.getInt(1));
                 }
+            }
+            // the old account_roles count was "roles held": the grant store needs the total (history) and the open rows (held) both
+            try (PreparedStatement open = identity.prepareStatement("select count(*) from account_role_grants where effective_to_at is null"); ResultSet rs = open.executeQuery()) {
+                rs.next();
+                rows.add(rs.getInt(1));
             }
         }
         return rows;

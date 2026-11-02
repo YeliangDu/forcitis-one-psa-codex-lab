@@ -1,0 +1,9 @@
+-- IMP-1030-PAR-C5（#732）：撤销或停用使可用超管只剩 1 名时的通知卡（ADR-0068 第 2.2、2.3 条；用户决定 2026-10-30 「加，同离职一样」）。
+-- 对象类别新增 ACCOUNT_ROLE_GRANT（对象 ID 为被关闭的角色授予 ID）、USER_ACCOUNT（对象 ID 为用户 ID）；用途新增 ROLE_REVOCATION_NOTICE、ACCOUNT_DISABLE_NOTICE。保留 main 上已有的全部取值。
+ALTER TABLE platform_integration.outbound_deliveries DROP CONSTRAINT ck_outbound_deliveries_subject_kind;
+ALTER TABLE platform_integration.outbound_deliveries ADD CONSTRAINT ck_outbound_deliveries_subject_kind CHECK (subject_kind IN ('APPROVAL_TASK', 'APPROVAL_INSTANCE', 'SEPARATION_HOLD', 'PERSONNEL_COMMAND', 'ACCOUNT_ROLE_GRANT', 'USER_ACCOUNT'));
+ALTER TABLE platform_integration.outbound_deliveries DROP CONSTRAINT ck_outbound_deliveries_purpose_kind;
+ALTER TABLE platform_integration.outbound_deliveries ADD CONSTRAINT ck_outbound_deliveries_purpose_kind CHECK (purpose_kind IN ('TASK_ASSIGNED', 'TASK_TRANSFERRED', 'TASK_REASSIGNED', 'TASK_OVERDUE', 'TASK_ESCALATED', 'APPROVAL_COMPLETED', 'SEPARATION_HOLD_NOTICE', 'UNPAID_LEAVE_START_NOTICE', 'ROLE_REVOCATION_NOTICE', 'ACCOUNT_DISABLE_NOTICE'));
+COMMENT ON COLUMN platform_integration.outbound_deliveries.subject_kind IS '对象类别 / 对象 ID：被记录或被投递的业务对象的类别与自有 ID。对象类别：APPROVAL_TASK 审批任务 / APPROVAL_INSTANCE 审批实例 / SEPARATION_HOLD 待放行离职 / PERSONNEL_COMMAND 人事命令 / ACCOUNT_ROLE_GRANT 角色授予 / USER_ACCOUNT 用户账号';
+COMMENT ON COLUMN platform_integration.outbound_deliveries.purpose_kind IS '投递用途：一张卡为什么发。TASK_ASSIGNED 任务指派 / TASK_TRANSFERRED 任务转交 / TASK_REASSIGNED 任务改派 / TASK_OVERDUE 任务超时 / TASK_ESCALATED 任务升级 / APPROVAL_COMPLETED 审批完成 / SEPARATION_HOLD_NOTICE 放行后仅剩 1 名超管的通知 / UNPAID_LEAVE_START_NOTICE 停薪留职开始后仅剩 1 名超管的通知 / ROLE_REVOCATION_NOTICE 撤销管理员角色授予后仅剩 1 名超管的通知 / ACCOUNT_DISABLE_NOTICE 停用管理员账号后仅剩 1 名超管的通知';
+COMMENT ON COLUMN platform_integration.outbound_deliveries.trigger_event_id IS '触发事件 ID：同一对象、同一用途可因多次事件重发时（转交、改派）取触发事件的 ID；账号停用取该次停用的审计条目 ID，其余为空';

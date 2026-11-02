@@ -16,9 +16,10 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
- * R-1b P5 RULING-P5-D12 (ADR-0033 section 1 item 2, "same for the old tables that are still there when R-1b merges"): account_roles,
- * role_versions (which took over from the retired role_permissions in ADR-0034-IMPL PR-2a) and sync_run_held_separations get a single uuid primary key, and the columns of their former key become a named
- * unique constraint. Read from the catalogue of the migrated database.
+ * R-1b P5 RULING-P5-D12 (ADR-0033 section 1 item 2, "same for the old tables that are still there when R-1b merges"): role_versions
+ * (which took over from the retired role_permissions in ADR-0034-IMPL PR-2a) and sync_run_held_separations get a single uuid primary key, and the columns of their former key become a named
+ * unique constraint. account_roles, the third table of the ruling, was dropped by #732; the grant store account_role_grants is checked in its own
+ * method. Read from the catalogue of the migrated database.
  */
 class SingleColumnPrimaryKeysIT extends AcceptanceSupport {
 
@@ -63,8 +64,8 @@ class SingleColumnPrimaryKeysIT extends AcceptanceSupport {
     }
 
     @Test
-    @DisplayName("R-1b P5 RULING-P5-D12：account_roles、role_versions（取代已退役的 role_permissions，ADR-0034-IMPL 卡 7.2）、sync_run_held_separations 的主键是单列 uuid；原键的列成为命名唯一约束")
-    void theThreeTablesHaveASingleUuidKeyAndTheirOldKeyIsUnique() throws Exception {
+    @DisplayName("R-1b P5 RULING-P5-D12：role_versions（取代已退役的 role_permissions，ADR-0034-IMPL 卡 7.2）、sync_run_held_separations 的主键是单列 uuid（account_roles 已随 #732 删除，见下一条）；原键的列成为命名唯一约束")
+    void theTwoTablesHaveASingleUuidKeyAndTheirOldKeyIsUnique() throws Exception {
         List<String> wrong = new ArrayList<>();
         try (Connection catalogue = schemaConnection("public")) {
             for (String[] table : P5Names.REKEYED_TABLES) {
@@ -84,5 +85,17 @@ class SingleColumnPrimaryKeysIT extends AcceptanceSupport {
         }
 
         assertThat(wrong).isEmpty();
+    }
+
+    @Test
+    @DisplayName("#732（接替 account_roles 一行）：account_roles 已删除；唯一授予表 account_role_grants 的主键是单列 uuid")
+    void theGrantStoreHasASingleUuidKeyAndAccountRolesIsGone() throws Exception {
+        try (Connection catalogue = schemaConnection("public")) {
+            assertThat(typeOf(catalogue, "platform_identity", "account_roles", "user_id")).as("account_roles no longer exists").isNull();
+            List<String> keys = columnsOf(catalogue, "platform_identity", "account_role_grants", true);
+            assertThat(keys).hasSize(1);
+            assertThat(keys.getFirst()).doesNotContain(",");
+            assertThat(typeOf(catalogue, "platform_identity", "account_role_grants", keys.getFirst())).isEqualTo("uuid");
+        }
     }
 }

@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
-/** After the second person confirmed: the grant or the role change takes effect in its own transaction. A failure stays visible and is redelivered. */
+/** After the second person confirmed: a role definition change takes effect in its own transaction (a role replacement was applied by the confirmation itself). A failure stays visible and is redelivered. */
 @SystemActorName("platform.identity.authorization")
 @Component
 class ApplyConfirmedAuthorization {
@@ -18,13 +18,11 @@ class ApplyConfirmedAuthorization {
     private static final Logger log = LoggerFactory.getLogger(ApplyConfirmedAuthorization.class);
 
     private final AuthorizationRequestRepository requests;
-    private final ReplaceAccountRoles replaceRoles;
     private final CreateRole createRole;
     private final UpdateRole updateRole;
 
-    ApplyConfirmedAuthorization(AuthorizationRequestRepository requests, ReplaceAccountRoles replaceRoles, CreateRole createRole, UpdateRole updateRole) {
+    ApplyConfirmedAuthorization(AuthorizationRequestRepository requests, CreateRole createRole, UpdateRole updateRole) {
         this.requests = requests;
-        this.replaceRoles = replaceRoles;
         this.createRole = createRole;
         this.updateRole = updateRole;
     }
@@ -35,7 +33,7 @@ class ApplyConfirmedAuthorization {
         try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null),
                 "platform.identity.authorization")) {
             AdminOutcome<?> outcome = switch (request.kind()) {
-                case REPLACE_ROLES -> replaceRoles.applyConfirmed(request.subjectUser(), request.roleCodes());
+                case REPLACE_ROLES -> null;
                 case CREATE_ROLE -> createRole.applyConfirmed(toCommand(request), request.requestedBy(), request.requestId());
                 case UPDATE_ROLE -> updateRole.applyConfirmed(request.roleId(), toCommand(request), request.requestedBy(), request.requestId());
             };

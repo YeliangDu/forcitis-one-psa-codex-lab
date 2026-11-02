@@ -77,7 +77,7 @@ class SyncLockoutGuardIntegrationTest extends IdentityIntegrationTest {
         }
         syncWith(everyone);
         awaitListeners();
-        jdbc.sql("delete from platform_identity.account_roles").update();
+        com.forcitis.one.platform.identity.TestRoles.deleteAllGrants(jdbc);
         jdbc.sql("delete from platform_identity.user_accounts").update();
         for (long id : new long[] {1, 2, 3, 7, 9}) {
             knownEmployee(id, EmploymentStatus.EMPLOYED);

@@ -135,7 +135,7 @@ class AdministratorModeIntegrationTest extends IdentityIntegrationTest {
         createAccount(9, "super_admin", "employee");
         String elevated = cookie(enterAdministratorMode(loginWithWecom(9), 9), "SESSION");
         assertThat(status("/api/v1/platform/roles", elevated)).isEqualTo(200);
-        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(9) + ") and role_id = (select role_id from platform_identity.roles where code = 'super_admin')").update();
+        jdbc.sql("update platform_identity.account_role_grants set effective_to_at = greatest(now(), effective_from_at), revocation_cause_kind = 'OPERATIONS', revocation_audit_entry_id = uuidv7(), updated_at = now() where effective_to_at is null and user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(9) + ") and role_id = (select role_id from platform_identity.roles where code = 'super_admin')").update();
 
         clock.advance(Duration.ofSeconds(61));
 

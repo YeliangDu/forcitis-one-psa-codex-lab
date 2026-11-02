@@ -50,14 +50,14 @@ class Nits1OperationsCommandsAuditPartitionIT extends IdentityIntegrationTest {
         createAccount(7);
         YearMonth month = withoutPartition();
         long accounts = count("user_accounts");
-        long roles = count("account_roles");
+        long roles = count("account_role_grants where effective_to_at is null");
 
         Result result = run(grant());
 
         assertThat(result.exitCode()).isEqualTo(1);
         assertThat(result.err()).startsWith("refused:").contains(month.toString()).contains("resident application").doesNotContain("no partition of relation");
         assertThat(count("user_accounts")).isEqualTo(accounts);
-        assertThat(count("account_roles")).isEqualTo(roles);
+        assertThat(count("account_role_grants where effective_to_at is null")).isEqualTo(roles);
         assertThat(recorded()).isEmpty();
         assertThat(recordedIndependently()).isEmpty();
         assertThat(jdbc.sql("select count(*) from pg_class where relname = ?").param("audit_entries_p" + month.toString().replace("-", "")).query(Long.class).single())

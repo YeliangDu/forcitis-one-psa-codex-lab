@@ -42,6 +42,7 @@ class AdministratorSeparationReviewAccountsTest {
         }
         when(accounts.findEnabledHolders(Role.SUPER_ADMIN)).thenReturn(Set.of(TestAccounts.account(1001), TestAccounts.account(1002)));
         when(accounts.findEnabledHolders(Role.SECURITY_AUDITOR)).thenReturn(Set.of(TestAccounts.account(1003)));
+        when(directory.availabilityOn(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(com.forcitis.one.organization.workforce.api.Availability.AVAILABLE);
         when(session.modeIfSignedIn()).thenReturn(Optional.empty());
     }
 
@@ -87,8 +88,8 @@ class AdministratorSeparationReviewAccountsTest {
     @Test
     @DisplayName("IMP-1030-PAR-B5 (ADR-0068 section 3, the fifth in-service check): an administrator on unpaid leave is no available super_admin and no retained releaser, but is still employed")
     void aPersonOnUnpaidLeaveIsNeitherAvailableNorRetained() {
-        when(directory.isOnUnpaidLeave(TestAccounts.employee(1002), TODAY)).thenReturn(true);
-        when(directory.isOnUnpaidLeave(TestAccounts.employee(1003), TODAY)).thenReturn(true);
+        when(directory.availabilityOn(TestAccounts.employee(1002), TODAY)).thenReturn(new com.forcitis.one.organization.workforce.api.Availability(true, false, false));
+        when(directory.availabilityOn(TestAccounts.employee(1003), TODAY)).thenReturn(new com.forcitis.one.organization.workforce.api.Availability(true, false, false));
 
         SeparationReview.Verdict verdict = reviewing(List.of(TestAccounts.employee(1001), TestAccounts.employee(1002)), TestAccounts.account(1003));
 

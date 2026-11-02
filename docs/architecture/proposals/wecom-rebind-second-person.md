@@ -101,4 +101,4 @@ State machine: `PENDING → CONFIRMED` (applied), `PENDING → REJECTED`, `PENDI
 ## 9. Cards after this note
 
 - Impl (one-dev-org): table, three use cases, two endpoints, error codes, audit registrations, OpenAPI; DD signed on that card before code.
-- Acceptance (one-design test agent): section 6 lines, after the schema PR merges.
+- Acceptance (one-test): section 6 lines, after the schema PR merges.

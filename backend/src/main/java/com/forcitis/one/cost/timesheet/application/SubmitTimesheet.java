@@ -103,14 +103,14 @@ public class SubmitTimesheet {
 
     /** During unpaid leave a timesheet may be submitted only for days before the leave starts (user decision 2026-10-30, ADR-0068 section 3): no timesheet for a day that was a leave day. */
     private void requireNotOnLeave(EmployeeId employee, LocalDate workDate) {
-        if (org.isOnUnpaidLeave(employee, workDate)) {
+        if (org.availabilityOn(employee, workDate).onUnpaidLeave()) {
             throw TimesheetError.COST_TIMESHEET_ON_UNPAID_LEAVE.refusal("The employee is on unpaid leave on " + workDate + ", so no timesheet can be submitted for that day");
         }
     }
 
     /** A project manager on unpaid leave on the work date cannot review it, so the timesheet is refused now instead of falling to the administrator in the approval (user decision 2026-10-30). */
     private void requireManagerNotOnLeave(EmployeeId projectManager, LocalDate workDate) {
-        if (org.isOnUnpaidLeave(projectManager, workDate)) {
+        if (org.availabilityOn(projectManager, workDate).onUnpaidLeave()) {
             throw TimesheetError.COST_TIMESHEET_PROJECT_MANAGER_ON_UNPAID_LEAVE.refusal("User " + projectManager.value() + " is on unpaid leave on " + workDate
                     + ", so cannot review the timesheet");
         }

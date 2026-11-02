@@ -144,7 +144,7 @@ class OperationsProfileSmokeTest {
 
         assertThat(finished.exitCode()).isZero();
         assertThat(finished.anyScheduledTask()).isFalse();
-        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(7) + ") and r.code = 'business_admin'")
+        assertThat(jdbc.sql("select count(*) from platform_identity.account_role_grants ar join platform_identity.roles r on r.role_id = ar.role_id where ar.effective_to_at is null and ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(7) + ") and r.code = 'business_admin'")
                 .query(Long.class).single()).isEqualTo(1);
         long waiting = jdbc.sql("select count(*) from platform_integration.event_publication where event_type like '%AccountRolesReplaced'").query(Long.class).single();
         long delivered = jdbc.sql("select count(*) from platform_integration.event_publication_archive where event_type like '%AccountRolesReplaced'").query(Long.class).single();

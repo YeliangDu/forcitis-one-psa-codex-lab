@@ -35,7 +35,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * #932 acceptance: identity carries out the separation effects of ADR-0055 decision 3 item 2 when the local personnel command takes effect,
  * that is when workforce publishes EmployeeSeparated (docs/architecture/events/workforce.yaml; ADR-0068 item 2.5 C), and not before.
- * The grant store is still account_roles here; #732 re-points the subscriber to account_role_grants.
+ * The grant store is account_role_grants: the subscriber closes the open rows and the rows stay.
  * Not asserted: the cache eviction of 3.2 (not observable once every session is revoked) and the revocation_separation_command_id
  * column of 3.5 (it lives in account_role_grants, #732).
  */
@@ -87,12 +87,12 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
     }
 
     private long roles(long id) {
-        return jdbc.sql("select count(*) from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = :id)")
+        return jdbc.sql("select count(*) from platform_identity.account_role_grants where effective_to_at is null and user_id = (select user_id from platform_identity.user_accounts where employee_id = :id)")
                 .param("id", TestAccounts.employee(id).value()).query(Long.class).single();
     }
 
     private long holdersOf(String code) {
-        return jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where lower(r.code) = :code")
+        return jdbc.sql("select count(*) from platform_identity.account_role_grants ar join platform_identity.roles r on r.role_id = ar.role_id where ar.effective_to_at is null and lower(r.code) = :code")
                 .param("code", code).query(Long.class).single();
     }
 
@@ -141,14 +141,16 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
         accessCache.evictAll();
         assertThat(roles(1001)).as("fixture: employee, super_admin, security_auditor, org_data_admin").isEqualTo(4);
 
+        long grantRows = count("account_role_grants");
         deliver(separated(1001, LocalDate.of(2026, 10, 15)));
 
         await().atMost(DELIVERY).untilAsserted(() -> assertThat(roles(1001)).isZero());
+        assertThat(count("account_role_grants")).as("closed, never deleted: the grant total is unchanged").isEqualTo(grantRows);
         await().atMost(DELIVERY).untilAsserted(() -> assertThat(domainEvents.of(EmergencyAdminDisabled.class)).hasSize(1));
         await().atMost(DELIVERY).untilAsserted(() -> assertThat(browserIdentifiers(1001)).isZero());
-        assertThat(recorded()).filteredOn(e -> e.action().equals(ROLE_REVOKED)).extracting(AuditEntry::detail).containsExactlyInAnyOrder(
-                "role=employee cause=separation", "role=super_admin cause=separation", "role=security_auditor cause=separation",
-                "role=org_data_admin cause=separation");
+        assertThat(recorded()).filteredOn(e -> e.action().equals(ROLE_REVOKED)).extracting(e -> e.detail().replaceAll("^grant=\\S+ (role=\\S+ cause=SEPARATION) at=\\S+$", "$1")).containsExactlyInAnyOrder(
+                "role=employee cause=SEPARATION", "role=super_admin cause=SEPARATION", "role=security_auditor cause=SEPARATION",
+                "role=org_data_admin cause=SEPARATION");
         assertThat(recorded()).filteredOn(e -> e.action().equals(ROLE_REVOKED))
                 .allSatisfy(e -> assertThat(e.subject()).isEqualTo(AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, accountOf(1001))));
         assertThat(recorded()).filteredOn(e -> e.action().equals("platform.identity.session.revoked"))
@@ -193,7 +195,7 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
         String session = loginWithWecom(1004);
         browserIdentifier(1004);
         registerEmergencyAdmin(1004, "breakglass-f");
-        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = :id)")
+        jdbc.sql("update platform_identity.account_role_grants set effective_to_at = greatest(now(), effective_from_at), revocation_cause_kind = 'OPERATIONS', revocation_audit_entry_id = uuidv7(), updated_at = now() where effective_to_at is null and user_id = (select user_id from platform_identity.user_accounts where employee_id = :id)")
                 .param("id", TestAccounts.employee(1004).value()).update();
 
         deliver(separated(1004, LocalDate.of(2026, 10, 15)));
@@ -348,7 +350,7 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
         await().atMost(DELIVERY).untilAsserted(() -> assertThat(identityCompletions(event)).isPositive());
         assertThat(identityIncomplete(event)).isZero();
         assertThat(count("user_accounts")).isZero();
-        assertThat(count("account_roles")).isZero();
+        assertThat(count("account_role_grants where effective_to_at is null")).isZero();
         assertThat(recorded()).noneMatch(e -> e.action().equals(ROLE_REVOKED) || e.action().equals("platform.identity.session.revoked"));
     }
 }

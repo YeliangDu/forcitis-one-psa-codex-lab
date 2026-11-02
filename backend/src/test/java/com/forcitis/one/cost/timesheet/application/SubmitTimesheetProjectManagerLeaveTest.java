@@ -57,6 +57,7 @@ class SubmitTimesheetProjectManagerLeaveTest {
     final LegalEntityId legalEntity = new LegalEntityId(TestIds.uuid(1));
 
     SubmitTimesheetProjectManagerLeaveTest() {
+        when(directory.availabilityOn(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(com.forcitis.one.organization.workforce.api.Availability.AVAILABLE);
         CurrentUser currentUser = mock(CurrentUser.class);
         when(currentUser.userId()).thenReturn(ACCOUNT);
         when(currentUser.employeeId()).thenReturn(EMPLOYEE);
@@ -74,7 +75,7 @@ class SubmitTimesheetProjectManagerLeaveTest {
     @Test
     @DisplayName("IMP-1030-PAR-B5c a project manager on unpaid leave on the work date: the timesheet is refused with its own code and nothing is saved")
     void aManagerOnLeaveIsRefused() {
-        when(directory.isOnUnpaidLeave(MANAGER, DAY)).thenReturn(true);
+        when(directory.availabilityOn(MANAGER, DAY)).thenReturn(new com.forcitis.one.organization.workforce.api.Availability(true, false, false));
 
         assertThatThrownBy(() -> submit.execute(new SubmitTimesheetCommand(ID, DAY, Hours.of("8"), MANAGER)))
                 .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(TimesheetError.COST_TIMESHEET_PROJECT_MANAGER_ON_UNPAID_LEAVE));
@@ -84,11 +85,11 @@ class SubmitTimesheetProjectManagerLeaveTest {
     @Test
     @DisplayName("IMP-1030-PAR-B5c the check is by the work date: a manager on leave on another day does not stop this one (before the leave starts, after it ends)")
     void theLeaveIsReadForTheWorkDate() {
-        when(directory.isOnUnpaidLeave(MANAGER, DAY.plusDays(5))).thenReturn(true);
+        when(directory.availabilityOn(MANAGER, DAY.plusDays(5))).thenReturn(new com.forcitis.one.organization.workforce.api.Availability(true, false, false));
 
         submit.execute(new SubmitTimesheetCommand(ID, DAY, Hours.of("8"), MANAGER));
 
         verify(timesheets).save(any());
-        verify(directory).isOnUnpaidLeave(MANAGER, DAY);
+        verify(directory).availabilityOn(MANAGER, DAY);
     }
 }
