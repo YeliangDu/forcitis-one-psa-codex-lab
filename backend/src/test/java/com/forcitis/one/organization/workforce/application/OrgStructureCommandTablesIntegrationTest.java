@@ -28,15 +28,18 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
     @Autowired
     DataSource dataSource;
 
+    String day = "date '2026-11-10'";
+
     @BeforeEach
     void targets() {
-        VersionTables.truncate(jdbc, "truncate table organization_workforce.state_transitions, organization_workforce.personnel_commands");
+        day = "date '2026-11-10'";
+        VersionTables.truncate(jdbc, "truncate table organization_workforce.state_transitions");
         for (String id : new String[] {UNIT, OTHER_UNIT}) {
             jdbc.sql("insert into organization_workforce.org_units (id, name, status) values (" + id + ", 'unit', 'ACTIVE')").update();
         }
         jdbc.sql("insert into organization_workforce.positions (id, name, status) values (" + POSITION + ", 'position', 'ACTIVE')").update();
         jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values (" + EMPLOYEE + ", 'E-1', 'name', 'EMPLOYED')").update();
-        jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (" + LEGAL_ENTITY + ", 'ABC', 'entity', 'ACTIVE')").update();
+        jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (" + LEGAL_ENTITY + ", 'ABC', 'entity', 'ACTIVE') on conflict do nothing").update();
     }
 
     /** Inserts a command with the given extra columns; the target is the unit unless the columns say otherwise. */
@@ -44,7 +47,7 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
         String target = targetKind.equals("ORG_UNIT") ? "target_org_unit_id" : "target_position_id";
         String targetId = targetKind.equals("ORG_UNIT") ? UNIT : POSITION;
         jdbc.sql("insert into organization_workforce.org_structure_commands (org_structure_command_id, command_kind, target_kind, " + target + ", effective_date, status,"
-                + " created_at, created_by, updated_at" + extraColumns + ") values (" + id + ", '" + kind + "', '" + targetKind + "', " + targetId + ", date '2026-11-10', '" + status
+                + " created_at, created_by, updated_at" + extraColumns + ") values (" + id + ", '" + kind + "', '" + targetKind + "', " + targetId + ", " + day + ", '" + status
                 + "', now(), " + USER + ", now()" + extraValues + ")").update();
     }
 
@@ -60,7 +63,9 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
     @DisplayName("IMP-1030-ORG-F1 every org unit kind has a passing row, RENAME and a position SET_ATTRIBUTES are refused")
     void commandKindsPerTarget() {
         pending(COMMAND, "CREATE", ", target_name, target_is_delivery_unit", ", 'n', false");
-        pending("gen_random_uuid()", "DISSOLVE", ", effective_date", ", date '2026-11-11'");
+        day = "date '2026-11-11'";
+        pending("gen_random_uuid()", "DISSOLVE", "", "");
+        day = "date '2026-11-10'";
         List<String[]> kinds = List.of(
                 new String[] {"SET_ATTRIBUTES", ", target_name", ", 'new'"},
                 new String[] {"REPARENT", ", target_parent_org_unit_id", ", " + OTHER_UNIT},
@@ -68,14 +73,16 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
                 new String[] {"ASSIGN_RECEIVABLES_MANAGER", ", target_receivables_manager_employee_id", ", " + EMPLOYEE},
                 new String[] {"ASSIGN_LEGAL_ENTITY", ", target_legal_entity_id", ", " + LEGAL_ENTITY},
                 new String[] {"MERGE", ", merge_into_org_unit_id", ", " + OTHER_UNIT});
-        int day = 12;
+        int dayOfMonth = 12;
         for (String[] kind : kinds) {
             jdbc.sql("insert into organization_workforce.org_structure_commands (org_structure_command_id, command_kind, target_kind, target_org_unit_id, effective_date, status,"
-                    + " created_at, created_by, updated_at" + kind[1] + ") values (gen_random_uuid(), '" + kind[0] + "', 'ORG_UNIT', " + UNIT + ", date '2026-11-" + day++
+                    + " created_at, created_by, updated_at" + kind[1] + ") values (gen_random_uuid(), '" + kind[0] + "', 'ORG_UNIT', " + UNIT + ", date '2026-11-" + dayOfMonth++
                     + "', 'PENDING', now(), " + USER + ", now()" + kind[2] + ")").update();
         }
         command("gen_random_uuid()", "CREATE", "POSITION", "PENDING", ", target_name", ", 'p'");
+        day = "date '2026-11-11'";
         command("gen_random_uuid()", "DISABLE", "POSITION", "PENDING", "", "");
+        day = "date '2026-11-10'";
         refused("ck_org_structure_commands_command_kind", () -> pending("gen_random_uuid()", "RENAME", ", target_name", ", 'x'"));
         refused("ck_org_structure_commands_command_kind", () -> command("gen_random_uuid()", "SET_ATTRIBUTES", "POSITION", "PENDING", ", target_name", ", 'x'"));
         refused("ck_org_structure_commands_command_kind", () -> command("gen_random_uuid()", "DISSOLVE", "POSITION", "PENDING", "", ""));
@@ -97,11 +104,14 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
     @DisplayName("IMP-1030-ORG-F1 SET_ATTRIBUTES needs one attribute and no relation target; the create-only columns stay out of other kinds")
     void setAttributesColumns() {
         pending("gen_random_uuid()", "SET_ATTRIBUTES", ", target_short_name", ", 'short'");
-        pending("gen_random_uuid()", "SET_ATTRIBUTES", ", effective_date, target_is_delivery_unit", ", date '2026-11-11', true");
-        pending("gen_random_uuid()", "SET_ATTRIBUTES", ", effective_date, target_region_kind", ", date '2026-11-12', 'REGIONAL'");
+        day = "date '2026-11-11'";
+        pending("gen_random_uuid()", "SET_ATTRIBUTES", ", target_is_delivery_unit", ", true");
+        day = "date '2026-11-12'";
+        pending("gen_random_uuid()", "SET_ATTRIBUTES", ", target_region_kind", ", 'REGIONAL'");
+        day = "date '2026-11-10'";
         refused("ck_org_structure_commands_set_attributes_columns", () -> pending("gen_random_uuid()", "SET_ATTRIBUTES", "", ""));
         refused("ck_org_structure_commands_set_attributes_columns", () -> pending("gen_random_uuid()", "SET_ATTRIBUTES", ", target_name, target_head_employee_id", ", 'n', " + EMPLOYEE));
-        refused("ck_org_structure_commands_set_attributes_columns", () -> pending("gen_random_uuid()", "SET_ATTRIBUTES", ", target_name, target_legal_entity_id", ", 'n', " + LEGAL_ENTITY));
+        refused("ck_org_structure_commands_legal_entity_columns", () -> pending("gen_random_uuid()", "SET_ATTRIBUTES", ", target_name, target_legal_entity_id", ", 'n', " + LEGAL_ENTITY));
         refused("ck_org_structure_commands_create_only_columns", () -> pending("gen_random_uuid()", "SET_ATTRIBUTES", ", target_name, target_code", ", 'n', 'C1'"));
         refused("ck_org_structure_commands_create_only_columns", () -> pending("gen_random_uuid()", "REPARENT", ", target_parent_org_unit_id, target_is_delivery_unit", ", " + OTHER_UNIT + ", true"));
         refused("ck_org_structure_commands_create_only_columns", () -> pending("gen_random_uuid()", "REPARENT", ", target_parent_org_unit_id, target_region_kind", ", " + OTHER_UNIT + ", 'REGIONAL'"));
@@ -115,7 +125,7 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
         refused("ck_org_structure_commands_unit_attributes", () -> command("gen_random_uuid()", "CREATE", "POSITION", "PENDING", ", target_name, target_is_delivery_unit", ", 'n', false"));
         refused("ck_org_structure_commands_unit_attributes", () -> command("gen_random_uuid()", "CREATE", "POSITION", "PENDING", ", target_name, target_region_kind", ", 'n', 'REGIONAL'"));
         refused("ck_org_structure_commands_create_columns", () -> command("gen_random_uuid()", "CREATE", "POSITION", "PENDING", ", target_name, target_short_name", ", 'n', 's'"));
-        refused("ck_org_structure_commands_create_columns", () -> command("gen_random_uuid()", "CREATE", "POSITION", "PENDING", ", target_name, target_legal_entity_id", ", 'n', " + LEGAL_ENTITY));
+        refused("ck_org_structure_commands_legal_entity_columns", () -> command("gen_random_uuid()", "CREATE", "POSITION", "PENDING", ", target_name, target_legal_entity_id", ", 'n', " + LEGAL_ENTITY));
         refused("ck_org_structure_commands_create_columns", () -> pending("gen_random_uuid()", "CREATE", ", target_name, target_is_delivery_unit, target_head_employee_id", ", 'n', false, " + EMPLOYEE));
         pending("gen_random_uuid()", "CREATE", ", target_name, target_is_delivery_unit, target_code, target_region_kind, target_legal_entity_id, target_parent_org_unit_id",
                 ", 'n', true, 'C1', 'HEADQUARTERS', " + LEGAL_ENTITY + ", " + OTHER_UNIT);
@@ -171,7 +181,7 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
     @Test
     @DisplayName("IMP-1030-ORG-F1 status values, IN_PROGRESS only for MERGE, applied_at and withdrawal columns follow the status")
     void statusColumns() {
-        refused("ck_org_structure_commands_status", () -> pending("gen_random_uuid()", "DISSOLVE", ", withdrawn_at", ", now()"));
+        refused("ck_org_structure_commands_withdrawn", () -> pending("gen_random_uuid()", "DISSOLVE", ", withdrawn_at", ", now()"));
         refused("ck_org_structure_commands_status", () -> command("gen_random_uuid()", "DISSOLVE", "ORG_UNIT", "DONE", "", ""));
         refused("ck_org_structure_commands_in_progress_kind", () -> command("gen_random_uuid()", "DISSOLVE", "ORG_UNIT", "IN_PROGRESS", "", ""));
         refused("ck_org_structure_commands_applied", () -> command("gen_random_uuid()", "DISSOLVE", "ORG_UNIT", "EFFECTIVE", "", ""));
@@ -268,7 +278,7 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
         assertThatThrownBy(() -> bump("status = 'IN_PROGRESS'")).hasMessageContaining("ck_org_structure_commands_merge_progress");
         bump("status = 'IN_PROGRESS', affected_employee_count = 2, transferred_employee_count = 0");
         bump("transferred_employee_count = 1");
-        assertThatThrownBy(() -> bump("transferred_employee_count = 0")).hasMessageContaining("only increase");
+        assertThatThrownBy(() -> bump("transferred_employee_count = 0")).hasMessageContaining("can only increase");
         assertThatThrownBy(() -> bump("affected_employee_count = 5")).hasMessageContaining("is set once");
         assertThatThrownBy(() -> bump("status = 'WITHDRAWN', withdrawn_at = now(), withdrawn_by = " + USER + ", withdrawal_reason = 'stop'")).hasMessageContaining("cannot move");
         assertThatThrownBy(() -> bump("status = 'PENDING', affected_employee_count = null, transferred_employee_count = null")).hasMessageContaining("cannot move");
@@ -293,16 +303,18 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
         bump("status = 'PENDING'");
         assertThatThrownBy(() -> bump("status = 'AWAITING_ATTRIBUTION_COUNTERSIGN'")).hasMessageContaining("cannot move");
         bump("status = 'EFFECTIVE', applied_at = now()");
-        command(OTHER_COMMAND, "ASSIGN_LEGAL_ENTITY", "ORG_UNIT", "AWAITING_ATTRIBUTION_COUNTERSIGN", ", effective_date, target_legal_entity_id", ", date '2026-11-30', " + LEGAL_ENTITY);
+        day = "date '2026-11-30'";
+        command(OTHER_COMMAND, "ASSIGN_LEGAL_ENTITY", "ORG_UNIT", "AWAITING_ATTRIBUTION_COUNTERSIGN", ", target_legal_entity_id", ", " + LEGAL_ENTITY);
         jdbc.sql("update organization_workforce.org_structure_commands set status = 'WITHDRAWN', withdrawn_at = now(), withdrawn_by = " + USER
                 + ", withdrawal_reason = 'no', updated_at = now(), version = version + 1 where org_structure_command_id = " + OTHER_COMMAND).update();
-        pending("gen_random_uuid()", "ASSIGN_LEGAL_ENTITY", ", effective_date, target_legal_entity_id", ", date '2026-12-05', " + LEGAL_ENTITY);
+        day = "date '2026-12-05'";
+        pending("gen_random_uuid()", "ASSIGN_LEGAL_ENTITY", ", target_legal_entity_id", ", " + LEGAL_ENTITY);
         assertThatThrownBy(() -> jdbc.sql("update organization_workforce.org_structure_commands set status = 'AWAITING_ATTRIBUTION_COUNTERSIGN', updated_at = now()"
                 + " where status = 'PENDING' and effective_date = date '2026-12-05'").update()).hasMessageContaining("cannot move");
     }
 
     @Test
-    @DisplayName("IMP-1030-ORG-F1 the runtime account cannot delete or truncate commands; the table owner may delete")
+    @DisplayName("IMP-1030-ORG-F1 the runtime account cannot delete commands, TRUNCATE has its trigger; the table owner may delete")
     void deleteAndTruncateAreOwnerOnly() throws SQLException {
         pending(COMMAND, "DISSOLVE", "", "");
         try (Connection c = dataSource.getConnection(); Statement s = c.createStatement()) {
@@ -311,13 +323,15 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
             s.execute("grant select, insert, update, delete, truncate on organization_workforce.org_structure_commands to " + OPERATOR_ROLE);
             s.execute("set role " + OPERATOR_ROLE);
             try {
-                for (String statement : List.of("delete from organization_workforce.org_structure_commands", "truncate organization_workforce.org_structure_commands")) {
+                for (String statement : List.of("delete from organization_workforce.org_structure_commands")) {
                     assertThatThrownBy(() -> s.execute(statement)).as(statement).hasMessageContaining("append-only");
                 }
             } finally {
                 s.execute("reset role");
             }
         }
+        // A TRUNCATE on this table is stopped by the FK check of the tables that reference it before any trigger runs, so the trigger is checked as defined.
+        assertThat(jdbc.sql("select count(*) from pg_trigger where tgname = 'tg_org_structure_commands_append_only_truncate' and (tgtype & 32) <> 0").query(Integer.class).single()).isEqualTo(1);
         assertThat(jdbc.sql("delete from organization_workforce.org_structure_commands").update()).isEqualTo(1);
     }
 
