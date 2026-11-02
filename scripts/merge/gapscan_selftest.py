@@ -54,7 +54,7 @@ def run(mq, d):
     assert slept[:3] == [60, 1800, 1800] and len(calls) == 3 and any("gap scan: RuntimeError: boom" in l for l in log.lines), "scans on its own clock and survives a failing scan"
     # the owner comes from policy.json sessions.config alone (#856: no aliases); an old or unknown name is reported, not guessed
     owners = gapscan.load_owners()
-    for branch, owner in (("claude/one-dev-org-753", "one-dev-org"), ("claude/one-platform-810-x", "one-platform"), ("claude/one-lead-822-x", "one-lead"),
+    for branch, owner in (("claude/one-dev-org-753", "one-dev-org"), ("claude/one-dev-identity-9", "one-dev-identity"), ("claude/one-platform-810-x", "one-platform"), ("claude/one-lead-822-x", "one-lead"),
                           ("claude/one-design-860-x", "one-design"), ("claude/one-ops-744-x", "?(claude/one-ops-744-x)"),
                           ("claude/one-architecture-812-x", "?(claude/one-architecture-812-x)"), ("claude/one-opsx-1", "?(claude/one-opsx-1)")):
         assert gapscan.author_session(branch, owners) == owner, (branch, gapscan.author_session(branch, owners))
