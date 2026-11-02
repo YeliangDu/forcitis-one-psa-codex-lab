@@ -157,8 +157,8 @@ class OldSyncRemovedIT {
     static final String RECONCILE_CODE = "organization.workforce:org-reconciliation:execute";
 
     @Test
-    @DisplayName("#934 裁定 4：组织对账保留并改名：接口 /api/v1/organization/org-reconciliations:run 存在；权限目录有在用的 organization.workforce:org-reconciliation:execute，组织数据管理员的系统角色当前版本持有它")
-    void theReconciliationIsKeptUnderItsNewName() throws SQLException {
+    @DisplayName("#934 裁定 4：组织对账保留并改名：接口 /api/v1/organization/org-reconciliations:run 存在；权限目录有在用的 organization.workforce:org-reconciliation:execute")
+    void theReconciliationIsKeptUnderItsNewName() {
         RequestMappingHandlerMapping mapping = context.getBean("requestMappingHandlerMapping", RequestMappingHandlerMapping.class);
         List<String> paths = new ArrayList<>();
         for (RequestMappingInfo info : mapping.getHandlerMethods().keySet()) {
@@ -173,10 +173,7 @@ class OldSyncRemovedIT {
 
         assertThat(paths).as("the reconciliation endpoint").contains(RECONCILE_PATH);
         assertThat(live).as("the reconciliation permission in the catalogue, live").containsExactly(RECONCILE_CODE);
-        assertThat(rows("""
-                select code from platform_identity.role_versions v join platform_identity.roles r on r.role_id = v.role_id
-                 where r.code = 'org_data_admin' and v.effective_to_at is null and '%s' = any (v.permission_codes)""".formatted(RECONCILE_CODE)))
-                .as("org_data_admin's current version holds the reconciliation permission (same grants as the code it replaces)").containsExactly("org_data_admin");
+        // Who holds it (org_data_admin, as the sync run codes it replaces) is pinned by the role declaration's own acceptance, SystemRoleDeclarationIT.
     }
 
     @Test
