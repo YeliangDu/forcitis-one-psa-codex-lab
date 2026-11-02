@@ -66,6 +66,12 @@ class WecomUserIdWritersRevokeIT extends WorkforceIntegrationSupport {
         return jdbc.sql("select wecom_user_id from organization_workforce.employees where id = ?").param(employee.value()).query(String.class).optional();
     }
 
+    /** Row existence apart from the column: wecomOf answers empty both for a missing row and for a cleared (NULL) id. */
+    private boolean employeeRowExists(long sourceId) {
+        EmployeeId employee = SourceTerms.person(person(sourceId, 2, 100L, null).personId());
+        return jdbc.sql("select count(*) from organization_workforce.employees where id = ?").param(employee.value()).query(Long.class).single() == 1;
+    }
+
     private boolean revoked(long sourceId) {
         EmployeeId employee = SourceTerms.person(person(sourceId, 2, 100L, null).personId());
         return Mockito.mockingDetails(access).getInvocations().stream()
@@ -74,8 +80,8 @@ class WecomUserIdWritersRevokeIT extends WorkforceIntegrationSupport {
 
     /** The invariant: the employee's set WeCom user id is unchanged, or its change revoked the employee's sessions. */
     private void unchangedOrRevoked(long sourceId, String before) {
+        assertThat(employeeRowExists(sourceId)).as("premise: the employee row is there").isTrue();
         Optional<String> after = wecomOf(sourceId);
-        assertThat(after).as("premise: the employee row is there").isPresent();
         if (!before.equals(after.orElse(null))) {
             assertThat(revoked(sourceId)).as("employee " + sourceId + ": WeCom user id moved from " + before + " to " + after + " without revoking the sessions").isTrue();
         }
