@@ -11,7 +11,6 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
-import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.identity.api.EmergencyAdminDisableCause;
 import com.forcitis.one.platform.identity.domain.EmergencyAdmin;
@@ -52,15 +51,14 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     @Autowired
     TotpSecretVault vault;
 
-    private UUID publish(List<EmployeeId> changed, List<EmployeeId> separated) {
-        OrgSnapshotChanged event = new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", TestIds.uuid(1)), changed, separated,
-                List.of(), java.time.LocalDate.of(2026, 10, 15));
+    private UUID publish(EmployeeId separated) {
+        var event = new com.forcitis.one.organization.workforce.events.EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", separated.value()), new com.forcitis.one.organization.workforce.api.PersonnelCommandId(java.util.UUID.randomUUID()), separated, java.time.LocalDate.of(2026, 10, 15));
         tx.executeWithoutResult(status -> events.publishEvent(event));
         return event.envelope().eventId();
     }
 
     private long roleCount(long userId) {
-        return jdbc.sql("select count(*) from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = :id)").param("id", TestAccounts.employee(userId).value()).query(Long.class).single();
+        return jdbc.sql("select count(*) from platform_identity.account_role_grants where effective_to_at is null and user_id = (select user_id from platform_identity.user_accounts where employee_id = :id)").param("id", TestAccounts.employee(userId).value()).query(Long.class).single();
     }
 
     private void registerEmergencyAdmin(long userId, String name) {
@@ -77,9 +75,11 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
         registerEmergencyAdmin(1002, "breakglass-b");
         accessCache.evictAll();
 
-        publish(List.of(), List.of(TestAccounts.employee(1001)));
+        long grantRows = count("account_role_grants");
+        publish(TestAccounts.employee(1001));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(roleCount(1001)).isZero());
+        assertThat(count("account_role_grants")).as("closed, never deleted: the grant total is unchanged").isEqualTo(grantRows);
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(domainEvents.of(EmergencyAdminDisabled.class)).hasSize(1));
         assertThat(roleCount(1002)).as("nobody else is touched").isEqualTo(1);
         assertThat(jdbc.sql("select is_enabled from platform_identity.emergency_admins where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").query(Boolean.class).single()).isFalse();
@@ -87,8 +87,8 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
         assertThat(jdbc.sql("select count(*) from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").query(Long.class).single()).isZero();
         assertThat(jdbc.sql("select count(*) from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1002) + ")").query(Long.class).single()).isEqualTo(1);
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.account.role.revoked"))
-                .extracting(AuditEntry::detail)
-                .containsExactlyInAnyOrder("role=employee cause=separation", "role=org_data_admin cause=separation", "role=super_admin cause=separation");
+                .extracting(entry -> entry.detail().replaceAll("^grant=\\S+ (role=\\S+ cause=SEPARATION) at=\\S+$", "$1"))
+                .containsExactlyInAnyOrder("role=employee cause=SEPARATION", "role=org_data_admin cause=SEPARATION", "role=super_admin cause=SEPARATION");
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.account.role.revoked"))
                 .allSatisfy(entry -> assertThat(entry.subject()).isEqualTo(AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, accountOf(1001))));
         assertThat(recorded()).extracting(AuditEntry::action).contains("platform.identity.session.revoked");
@@ -96,6 +96,8 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
             assertThat(e.userId()).isEqualTo(new com.forcitis.one.kernel.UserId(accountOf(1001)));
             assertThat(e.roleIds()).isEmpty();
         });
+        assertThat(domainEvents.of(com.forcitis.one.platform.identity.events.AccountSeparated.class)).singleElement()
+                .satisfies(e -> assertThat(e.userId()).isEqualTo(new com.forcitis.one.kernel.UserId(accountOf(1001))));
         assertThat(domainEvents.of(EmergencyAdminDisabled.class)).singleElement().satisfies(e -> {
             assertThat(e.userId()).isEqualTo(new com.forcitis.one.kernel.UserId(accountOf(1001)));
             assertThat(e.cause()).isEqualTo(EmergencyAdminDisableCause.SEPARATION);
@@ -105,25 +107,14 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("a person reported as no longer employed in a change event is handled the same way")
-    void changedPersonWhoIsNoLongerEmployedLosesTheRoles() throws Exception {
-        knownEmployee(1003, EmploymentStatus.SEPARATED);
-        createAccount(1003, "employee", "business_admin");
-
-        publish(List.of(TestAccounts.employee(1003)), List.of());
-
-        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(roleCount(1003)).isZero());
-    }
-
-    @Test
     @DisplayName("an event delivered again changes nothing and fails nothing")
     void deliveringTheEventTwiceIsHarmless() {
         createAccount(1004, "employee");
         registerEmergencyAdmin(1004, "breakglass-c");
 
-        publish(List.of(), List.of(TestAccounts.employee(1004)));
+        publish(TestAccounts.employee(1004));
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(roleCount(1004)).isZero());
-        publish(List.of(), List.of(TestAccounts.employee(1004)));
+        publish(TestAccounts.employee(1004));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
                 assertThat(recorded().stream().filter(e -> e.action().equals("platform.identity.session.revoked")).count()).isEqualTo(2));
@@ -135,16 +126,16 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("P2-H3 a person without an account is a quiet no-op: once the separation listener has handled the event, no account is opened, no role and no session is revoked (R-1b P2: there is no account id to name)")
     void P2_H3_noAccountIsOpenedForASeparatedPersonWithout() {
-        UUID published = publish(List.of(), List.of(TestAccounts.employee(5555)));
+        UUID published = publish(TestAccounts.employee(5555));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(jdbc.sql("""
                 select count(*) from (select listener_id, completion_date, serialized_event from platform_integration.event_publication
                                       union all
                                       select listener_id, completion_date, serialized_event from platform_integration.event_publication_archive) p
-                 where p.listener_id like '%HandleOrgSnapshotChange%' and p.completion_date is not null and p.serialized_event like :event
+                 where p.listener_id like '%HandleEmployeeSeparated%' and p.completion_date is not null and p.serialized_event like :event
                 """).param("event", "%" + published + "%").query(Long.class).single()).isEqualTo(1));
         assertThat(count("user_accounts")).isZero();
-        assertThat(count("account_roles")).isZero();
+        assertThat(count("account_role_grants where effective_to_at is null")).isZero();
         assertThat(recorded()).noneMatch(e -> e.action().equals("platform.identity.session.revoked"));
     }
 

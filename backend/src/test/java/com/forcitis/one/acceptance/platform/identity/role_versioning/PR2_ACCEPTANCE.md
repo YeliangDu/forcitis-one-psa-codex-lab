@@ -20,7 +20,7 @@ cd backend
 | 0034-G1-06 | `RoleIdentityImmutableIT#identityColumnsCannotChange` | 卡 §4 G1-06；7.2 触发器 `refuse_role_identity_change`；ADR 第 1 项第 1 条、守护第 1 条 |
 | 0034-G1-06 | `RoleIdentityImmutableIT#versionAndEventCountChange` | 卡 §4 G1-06「改 version、event_count 成功」；ADR 第 1 项第 1 条 |
 | 0034-G1-06 / 7.2 | `RoleIdentityImmutableIT#rolesKeepsOnlyItsIdentity` | 卡 7.2（移出三列、删 `uq_roles_name`、保留 `uq_roles_code` 与两条 CHECK、触发器） |
-| 0034-G1-06 / 7.2 | `RoleIdentityImmutableIT#rolePermissionsRetiresAccountRolesStays` | 卡 7.2「删除整张 role_permissions」「不得出现 account_roles 的变化」 |
+| 0034-G1-06 / 7.2 | `RoleIdentityImmutableIT#rolePermissionsAndAccountRolesAreRetired`（#732 起 account_roles 已删，断言改为表不存在、account_role_grants 存在） | 卡 7.2「删除整张 role_permissions」「不得出现 account_roles 的变化」 |
 | 0034-G2-03（角色版本部分） | `RoleVersionIntervalPropertyIT#roleVersionsFollowTheReplay`（3 个固定种子） | 卡 §4 G2-03；ADR 守护第 2 条性质测试、第 1 项第 4–6 条、第 4 项第 3 条 |
 | 0034-G5-03 | `RoleVersionWritesIT#aVersionNeverStartsBeforeTheCurrentOneWhenTheClockGoesBack` | 卡 §4 G5-03；ADR 第 1 项第 6 条、守护第 5 条 |
 | 0034-G7-03 | `RoleVersionWritesIT#everyChangeAddsExactlyOneVersionAndNoChangeAddsNone` | 卡 §4 G7-03；ADR 第 1 项第 2、4 条、守护第 7 条 |
@@ -106,7 +106,7 @@ cd backend
 ## 需实现方改的守护（G9、G10，单独提交、PR 正文单列）
 
 - G9 `SingleAggregateGuardTest`：该测试本身没有表到聚合的映射；映射在 `data-access-registry.yaml` 的 `aggregate:`（`role_versions → Role` 已在，PR-2 把 `writers: []` 改 `[platform.identity]`，删 `role_permissions` 条目）与 `aggregates.yaml`（卡 3.3 所指 `docs/architecture/ddd/aggregates.yaml` 在本检出中未找到，待核）。`multi-aggregate-exceptions.txt` 不变；启动对账逐角色提交。
-- G10：`ddl-naming-baseline.txt` 删 :17 `roles.access_scope`、:46 `role_permissions…fkey`、:61 `uq_roles_name`（:39 `account_roles` 留 PR-3；:47 `roles_pkey`、:60 `uq_roles_code` 保留）；`unversioned-table-writes.txt` 删 :18（`role_permissions`），`role_versions` 写入按需登记理由；`RepositoryWriteGuardTest`、`TimeSourceGuardTest`（新 SQL 无数据库时钟、`:now` 为参数）、`PrimaryKeyTypeGuardTest`（`primary-key-exemptions.txt` 头注提及 `role_permissions`）、`MustAuditActionsTest`（`role-version.opened/closed`、Role 事件 `@NotAudited`，A-6）、`GlossaryTest`（提议术语）、`SystemActorCatalogueTest`（`system-actors.txt` 加启动对账的系统操作者）、`DataArchitectureTest`（registry writers）全绿。
+- G10：`ddl-naming-baseline.txt` 删 :17 `roles.access_scope`、:46 `role_permissions…fkey`、:61 `uq_roles_name`（:39 `account_roles` 已随 #732 删除；:47 `roles_pkey`、:60 `uq_roles_code` 保留）；`unversioned-table-writes.txt` 删 :18（`role_permissions`），`role_versions` 写入按需登记理由；`RepositoryWriteGuardTest`、`TimeSourceGuardTest`（新 SQL 无数据库时钟、`:now` 为参数）、`PrimaryKeyTypeGuardTest`（`primary-key-exemptions.txt` 头注提及 `role_permissions`）、`MustAuditActionsTest`（`role-version.opened/closed`、Role 事件 `@NotAudited`，A-6）、`GlossaryTest`（提议术语）、`SystemActorCatalogueTest`（`system-actors.txt` 加启动对账的系统操作者）、`DataArchitectureTest`（registry writers）全绿。
 
 ## 待实现方与调度确认
 

@@ -2,6 +2,8 @@ package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.organization.workforce.domain.PersonnelCommandQueries;
+import com.forcitis.one.organization.workforce.api.Availability;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentVerdict;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
@@ -29,9 +31,11 @@ class OrgDirectoryService implements OrgDirectory {
     private final EmployeeVersionQueries versions;
     private final Clock clock;
     private final BusinessZone zone;
+    private final PersonnelCommandQueries commands;
 
     OrgDirectoryService(OrgSnapshotQueries snapshots, RegisterEmployeeOnLogin registerOnLogin,
-                        RegisterEmployeeOnLoginName registerOnLoginName, SnapshotFreshness freshness, EmployeeVersionQueries versions, Clock clock, BusinessZone zone) {
+                        RegisterEmployeeOnLoginName registerOnLoginName, SnapshotFreshness freshness, EmployeeVersionQueries versions, PersonnelCommandQueries commands, Clock clock, BusinessZone zone) {
+        this.commands = commands;
         this.versions = versions;
         this.clock = clock;
         this.zone = zone;
@@ -55,8 +59,8 @@ class OrgDirectoryService implements OrgDirectory {
     }
 
     @Override
-    public boolean isOnUnpaidLeave(EmployeeId employeeId, LocalDate day) {
-        return versions.isOnLeave(employeeId, day);
+    public Availability availabilityOn(EmployeeId employeeId, LocalDate day) {
+        return new Availability(versions.isOnLeave(employeeId, day), commands.isHeld(employeeId), commands.isLeaving(employeeId));
     }
 
     @Override

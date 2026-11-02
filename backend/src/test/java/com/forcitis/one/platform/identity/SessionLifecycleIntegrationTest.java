@@ -197,12 +197,13 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("RULE-363/366 OrgSnapshotChanged: separated people lose every session at once")
+    @DisplayName("RULE-363/366 EmployeeSeparated: separated people lose every session at once")
     void separationEventRevokesSessions() throws Exception {
         String victim = loginWithWecom(1001);
         String other = loginWithWecom(1002);
 
-        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", TestIds.uuid(1)), List.of(), List.of(TestAccounts.employee(1001)), List.of(), LocalDate.of(2026, 10, 14)));
+        var separated = TestAccounts.employee(1001);
+        tx.executeWithoutResult(status -> events.publishEvent(new com.forcitis.one.organization.workforce.events.EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", separated.value()), new com.forcitis.one.organization.workforce.api.PersonnelCommandId(java.util.UUID.randomUUID()), separated, java.time.LocalDate.of(2026, 10, 15))));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(
                 jdbc.sql("select count(*) from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").query(Long.class).single()).isZero());
@@ -222,13 +223,17 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(count("user_accounts")).isEqualTo(1));
         assertThat(jdbc.sql("select employee_id from platform_identity.user_accounts").query(UUID.class).single()).isEqualTo(TestAccounts.employee(2001).value());
         assertThat(jdbc.sql("""
-                select r.code from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id
-                 where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :employee)
+                select r.code from platform_identity.account_role_grants ar join platform_identity.roles r on r.role_id = ar.role_id
+                 where ar.effective_to_at is null and ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :employee)
                 """).param("employee", TestAccounts.employee(2001).value()).query(String.class).list()).containsExactly("employee");
 
-        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(2001) + ")").update();
+        jdbc.sql("update platform_identity.account_role_grants set effective_to_at = greatest(now(), effective_from_at), revocation_cause_kind = 'OPERATIONS', revocation_audit_entry_id = uuidv7(), updated_at = now() where effective_to_at is null and user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(2001) + ")").update();
+        long grantRows = count("account_role_grants");
         publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", TestIds.uuid(1)), List.of(TestAccounts.employee(2001)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
-        await().during(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> assertThat(count("account_roles")).isZero());
+        await().during(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+            assertThat(count("account_role_grants where effective_to_at is null")).isZero();
+            assertThat(count("account_role_grants")).as("a removed default role is not given back and no row is deleted").isEqualTo(grantRows);
+        });
     }
 
     @Test
