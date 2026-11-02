@@ -110,6 +110,11 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
     }
 
     @Override
+    public java.util.Optional<EmploymentStatus> employmentOn(EmployeeId employeeId, java.time.LocalDate day) {
+        return findEmployee(employeeId).map(e -> e.employmentStatus());
+    }
+
+    @Override
     public com.forcitis.one.organization.workforce.api.EmploymentVerdict employmentOf(EmployeeId employeeId) {
         return findEmployee(employeeId).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED
                 ? com.forcitis.one.organization.workforce.api.EmploymentVerdict.EMPLOYED

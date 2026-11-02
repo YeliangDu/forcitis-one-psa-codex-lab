@@ -38,8 +38,8 @@ public interface PersonnelCommandRepository {
     Set<EmployeeId> heldEmployees();
 
     /**
-     * The pending commands whose effective date is not after the day, oldest first. A separation counts only with a released hold: an unreleased one is
-     * not judged again on its day yet (card #967), so the job leaves it alone. A held separation is not pending until it is released.
+     * The pending commands whose effective date is not after the day, oldest first. A separation that was never held counts too: it is judged
+     * on its day (#967). A held separation is not pending until it is released.
      */
     List<PersonnelCommandId> pendingDue(LocalDate day);
 

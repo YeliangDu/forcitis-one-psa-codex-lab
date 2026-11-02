@@ -133,7 +133,7 @@ class SeparationLockOrderTest {
     @Test
     @DisplayName("#933 the due-date step takes the separation lock before the employee row, whatever the kind of the command")
     void dueStepLocksTheDecisionFirst() {
-        ApplyDueCommand due = new ApplyDueCommand(commands, mock(LegalEntityResolutionSources.class), mock(DomainEvents.class), ids, clock, zone);
+        ApplyDueCommand due = new ApplyDueCommand(commands, new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(LegalEntityResolutionSources.class), mock(DomainEvents.class), ids, clock, zone);
         PersonnelCommand pending = PersonnelCommand.restore(COMMAND, EMPLOYEE, PersonnelCommandKind.REGULARIZE, LocalDate.of(2026, 11, 2), CommandStatus.PENDING,
                 null, null, null, null, null, USER, NOW, null, 0, 0);
         when(commands.find(COMMAND)).thenReturn(java.util.Optional.of(pending));

@@ -228,6 +228,7 @@ organization.workforce::api organization.workforce.api.OrgDirectory public abstr
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract java.util.Optional<kernel.EmployeeId> organization.workforce.api.OrgDirectory.findSupervisor(kernel.EmployeeId)
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract java.util.Optional<organization.workforce.api.EmployeeProfile> organization.workforce.api.OrgDirectory.findEmployee(kernel.EmployeeId)
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract java.util.Optional<organization.workforce.api.EmployeeProfile> organization.workforce.api.OrgDirectory.findEmployeeByLogin(organization.workforce.api.LoginLookup)
+organization.workforce::api organization.workforce.api.OrgDirectory public abstract java.util.Optional<organization.workforce.api.EmploymentStatus> organization.workforce.api.OrgDirectory.employmentOn(kernel.EmployeeId,java.time.LocalDate)
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract java.util.Optional<organization.workforce.api.OrgUnitProfile> organization.workforce.api.OrgDirectory.findOrgUnit(organization.workforce.api.OrgUnitId)
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract organization.workforce.api.EmploymentVerdict organization.workforce.api.OrgDirectory.employmentOf(kernel.EmployeeId)
 organization.workforce::api organization.workforce.api.OrgUnitId component value: java.util.UUID
