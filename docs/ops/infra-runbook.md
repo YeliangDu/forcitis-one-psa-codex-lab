@@ -348,6 +348,20 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
   - **运行时机**：只在同步不再写快照之后运行（#957 之后）；命令自己检查同步已停：有进行中的同步，或 15 分钟内（三个调度周期）开始过任何同步，都拒绝（退出码 1）；所以要先停调度，等 15 分钟再运行。操作人与见证人必填，为两个不同的已存在员工（不要求留任）。
   - 每人写什么：没有任何员工版本的人（任意渠道、任意日期）写一条（已离职且离职日晚于左边界时两条）；左边界取最早未作废任职版本的生效日，没有则取运行当天；在职者雇佣阶段一律记正式（用户答复），入职日未知（左截断），非停薪留职，收费标记取快照；离职日取 `separated_at` 的业务日期，是同步观察到离职的日期，不是人事离职日。有快照任职但无任职版本的人补一条任职版本；已有版本的人（含命令版本）一行不动，与快照不一致的任职只计数不覆盖。
   - 副作用：一个事务、逐人先锁员工行；不发领域事件、不发通知、不改授予；审计 `organization.workforce.initial-versions.migrated` 一条，只含操作人、见证人 ID 与计数（新增在职、离职人数，补写任职版本数，因已有版本跳过数，任职与快照不一致数）。
+- **上线前检查 `prelaunch-check`**（#961，ADR-0055 第 2、5 条；档案同 `workforce-operations`）：只读，不要操作人和见证人，不写库、不写审计。组织同步不再被调度（#961），状态为 HELD 的同步运行下若还有扣留的离职行，没人再能靠定时同步放行它们，所以上线前必须清零。
+  ```
+  java -jar forcitis-one.jar --spring.profiles.include=workforce-operations --operation=prelaunch-check
+  ```
+  - 退出码：0 通过（没有 HELD 运行下的扣留离职行）；1 拒绝，每个有扣留行的 HELD 运行输出一行 `refused: sync run <运行 ID> is HELD and holds <N> separation rows`，先在界面逐条放行再重跑；2 用法错误。已放行（RELEASED）运行下残留的行、没有扣留行的 HELD 运行都不拦。
+  - **HELD 运行的处置（#1008）**：`OneWorkforceSyncHeld` 告警或 `prelaunch-check` 退出码 1 都指向 HELD 运行。组织同步不再被调度，HELD 运行不会自行消失，也不会有新的同步运行产生；`OneWorkforceSyncLagging` 告警已撤，同步停止本身不告警。
+    1. 组织来源在该环境开启、界面可用：由组织数据管理员在界面逐条放行所列运行，再重跑 `prelaunch-check`，须为 0。
+    2. 组织来源在该环境已关闭（界面无法放行）：运维不得直接改库、不得重新打开调度来放行。把 `prelaunch-check` 输出的每行 `refused: …` 原样交组织数据管理员和 lead，由其裁定该运行下的扣留离职行（放行，或确认作废）并给出书面结论，在此之前该环境不得继续后续上线步骤，尤其不得运行 `migrate-initial-versions`。
+    3. 裁定落地后重跑 `prelaunch-check`，退出码 0 才继续；在此期间 `OneWorkforceSyncHeld` 保持告警，属预期，不静默。
+- **#960 迁入命令的运维步骤（一次性，由运维在发布闸门放行后执行，开发会话不执行）**：
+  1. 发布含 #961 的版本，确认没有任何实例的调度再跑组织同步（`SnapshotSyncNotScheduledIT` 守护；`WORKFORCE_SYNC_ENABLED` 已不再有作用）。
+  2. 运行 `prelaunch-check`，退出码须为 0；为 1 则先放行所列运行再重跑。
+  3. 等最近一次同步运行过去 15 分钟，再运行 `migrate-initial-versions`（命令自己也会检查）。
+  4. 核对命令输出的计数与审计 `organization.workforce.initial-versions.migrated`；`assignmentsDifferingFromSnapshot` 不为 0 时交人事核对，不要重跑覆盖。命令可重跑且重跑不写行。
   - 退出码：0 完成（重跑也是 0，计数为 0）；1 被拒绝（缺见证人、两人相同或不是员工、同步未停、当月审计分区不存在）；2 用法错误。dev 只走正常路径跑；生产由发布闸门执行，不在本卡内运行。
 - 剧本见 `runbooks/C-5-first-admins.md`（待按本节对齐）。
 

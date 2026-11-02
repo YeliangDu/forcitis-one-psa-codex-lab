@@ -10,7 +10,7 @@ import org.springframework.scheduling.support.CronExpression;
 import org.springframework.stereotype.Component;
 
 /**
- * Stale is the sync lag the operations alert OneWorkforceSyncLagging fires on: no successful run for longer than staleAfter. It must leave
+ * Stale is a snapshot with no successful run for longer than staleAfter (the lag alert is retired with the schedule, #1008). It must leave
  * room for at least two sync runs and stay within an hour, so one missed run is not stale and a broken source is noticed the same day.
  */
 @Component

@@ -71,7 +71,7 @@ ALWAYS_RUN_READERS = (
 )
 # developer tools that name docs paths but are no CI step: they are not readers. scripts/gates/ holds the local hooks (the gates and their installer);
 # its gates_selftest.py does run in CI, but through scripts/ci/light.sh on every event, so a doc only it names needs no further tier
-LOCAL_ONLY = ("scripts/hooks/", "scripts/gates/")
+LOCAL_ONLY = ("scripts/hooks/", "scripts/gates/", "scripts/guards/build_adr_current.py")   # the last one is a generator run by hand, no CI step
 
 # read only by checks that run unconditionally (scripts/ci/light.sh in the backend job on every event, the gitleaks job); docs read by scripts/release must be listed in READ_BY_BUILDS
 READ_BY_ALWAYS_RUN_CHECKS = (
@@ -212,7 +212,7 @@ def referenced_docs_paths(root):
 
 def uncovered_reads(root):
     """Docs paths named by a source that may not run when they change; ALWAYS_RUN_READERS run on every event, so what they read needs no tier."""
-    return sorted({f"{rel}: {path}" for rel, path in referenced_docs_paths(root) if rel not in ALWAYS_RUN_READERS and not is_covered(path)})
+    return sorted({f"{rel}: {path}" for rel, path in referenced_docs_paths(root) if rel not in ALWAYS_RUN_READERS and not rel.startswith(LOCAL_ONLY) and not is_covered(path)})
 
 
 GUARDED_READER_DIRS = {"scripts/release/": "release"}

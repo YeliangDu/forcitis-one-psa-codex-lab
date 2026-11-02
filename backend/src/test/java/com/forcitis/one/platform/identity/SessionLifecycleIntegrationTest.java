@@ -228,8 +228,12 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
                 """).param("employee", TestAccounts.employee(2001).value()).query(String.class).list()).containsExactly("employee");
 
         jdbc.sql("update platform_identity.account_role_grants set effective_to_at = greatest(now(), effective_from_at), revocation_cause_kind = 'OPERATIONS', revocation_audit_entry_id = uuidv7(), updated_at = now() where effective_to_at is null and user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(2001) + ")").update();
+        long grantRows = count("account_role_grants");
         publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "SyncRun", TestIds.uuid(1)), List.of(TestAccounts.employee(2001)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
-        await().during(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> assertThat(count("account_role_grants where effective_to_at is null")).isZero());
+        await().during(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> {
+            assertThat(count("account_role_grants where effective_to_at is null")).isZero();
+            assertThat(count("account_role_grants")).as("a removed default role is not given back and no row is deleted").isEqualTo(grantRows);
+        });
     }
 
     @Test

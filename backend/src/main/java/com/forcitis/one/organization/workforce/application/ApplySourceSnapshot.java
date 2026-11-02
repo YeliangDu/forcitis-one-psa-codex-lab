@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.kernel.EmployeeAccountAccess;
 import com.forcitis.one.kernel.SeparationReview;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.BusinessZone;
@@ -42,17 +43,19 @@ public class ApplySourceSnapshot {
     private final SyncRunRepository runs;
     private final DomainEvents events;
     private final SeparationReview separations;
+    private final EmployeeAccountAccess access;
     private final Clock clock;
     private final BusinessZone businessZone;
     private final int maxDropPercent;
 
     ApplySourceSnapshot(OrgSnapshotRepository snapshots, SyncRunRepository runs, DomainEvents events, SeparationReview separations,
-                        Clock clock, BusinessZone businessZone,
+                        EmployeeAccountAccess access, Clock clock, BusinessZone businessZone,
                         @Value("${forcitis.organization.workforce.sync.max-drop-percent:20}") int maxDropPercent) {
         this.snapshots = snapshots;
         this.runs = runs;
         this.events = events;
         this.separations = separations;
+        this.access = access;
         this.clock = clock;
         this.businessZone = businessZone;
         this.maxDropPercent = maxDropPercent;
@@ -103,6 +106,7 @@ public class ApplySourceSnapshot {
                     syncRunId.value(), verdict.reason());
         }
         snapshots.save(changes, syncRunId, now, snapshotDate);
+        revokeWhereWecomUserIdMoved(current, changes);
         runs.saveDiffs(syncRunId, changes.diffs());
         run.succeed(now, changes.stats(), changes.change(), snapshotDate);
         runs.save(run);
@@ -115,6 +119,17 @@ public class ApplySourceSnapshot {
             }
         }
         return new SyncResult(syncRunId, run.status(), null, List.copyOf(changes.separatedEmployees()));
+    }
+
+    /** The WeCom user id is the login binding: an employee whose set id the source moved or cleared loses the sessions made under the old one (#980). */
+    private void revokeWhereWecomUserIdMoved(OrgSnapshot current, Reconciliation changes) {
+        var before = current.staffById();
+        for (var staff : changes.staff()) {
+            var was = before.get(staff.employeeId());
+            if (was != null && was.employee().wecomUserId() != null && !was.employee().wecomUserId().equals(staff.employee().wecomUserId())) {
+                access.revokeSessions(staff.employeeId());
+            }
+        }
     }
 
     /** While an earlier run is still held it is refreshed instead, so a stuck hold adds no row every five minutes. */
