@@ -127,7 +127,7 @@ terms:
   forbidden: []
   status: proposed
   confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: ''
+  note: 「合并」在此指组织单元合并（命令种类 MERGE，人员经调动转入承接单元，不改劳动合同）；ADR-0079 不变量 14 的「合并」指用人单位合并，两者不同
 - id: org_unit_reparented
   zh: 组织单元上级已调整
   en: OrgUnitReparented
