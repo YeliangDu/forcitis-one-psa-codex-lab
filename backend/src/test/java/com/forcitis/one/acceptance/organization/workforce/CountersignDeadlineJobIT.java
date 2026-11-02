@@ -42,7 +42,9 @@ import org.springframework.test.context.DynamicPropertySource;
  * one step), a repeated run sends nothing. Working days come from the row's legal entity calendar; a year that is not maintained counts
  * Monday to Friday and the run still completes. Decided and LAPSED rows are never touched, and the job never decides anything.
  *
- * <p>Fixed dates (TODAY is Monday 2026-11-02): the 2026 calendar has a holiday on Tuesday 2026-11-10; 2027 is not maintained.
+ * <p>Fixed dates (TODAY is Monday 2026-11-02): the 2026 calendar has a holiday on Tuesday 2026-11-10; 2027 is not maintained. Rows are
+ * requested on 11-02 but carry the stored due date 11-06, not the 11-05 the entry rule would give: on purpose, the job reads the stored
+ * due_on_date and never recomputes it (ruling item 6; due_on_date at entry is #895's).
  */
 class CountersignDeadlineJobIT extends PersonnelCommandSupport {
 
@@ -59,6 +61,8 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
     static final String SUBJECT_KIND = "ATTRIBUTION_COUNTERSIGN";
     static final String COUNTERSIGNS = "attribution_countersigns";
     static final String AWAITING = "AWAITING_ATTRIBUTION_COUNTERSIGN";
+    /** one-design naming ruling on #893 (comment 6589791372, item 1) and the #896 ruling item 2. */
+    static final String LEVEL = "escalation_level_number";
 
     private static final LocalDate DUE = LocalDate.of(2026, 11, 6);
     private static final LocalDate HOLIDAY = LocalDate.of(2026, 11, 10);
@@ -127,6 +131,18 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
         return command;
     }
 
+    /** A CHANGE_LEGAL_ENTITY from E1 to E2 that was countersigned (both CHANGE rows APPROVED) and is PENDING: a withdrawal request follows such a command. */
+    private UUID countersignedCommand() throws Exception {
+        UUID command = awaitingCommand();
+        for (UUID entity : List.of(legalEntity, e2)) {
+            decide(openRow(command, "CHANGE", entity, DUE.minusDays(10)), "APPROVED", null);
+        }
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update personnel_commands set status = 'PENDING', updated_at = ? where personnel_command_id = ?", at, command);
+        }
+        return command;
+    }
+
     /** An open request row of the command for the entity with the stored due date (requested by the drafter, sequence 1). */
     private UUID openRow(UUID command, String kind, UUID entity, LocalDate due) throws SQLException {
         UUID id = Uuids.timeOrdered(NOW);
@@ -172,7 +188,7 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
     }
 
     private int levelOf(UUID row) throws SQLException {
-        return ((Number) rows("select escalation_level from " + COUNTERSIGNS + " where attribution_countersign_id = ?", row).get(0).get("escalation_level")).intValue();
+        return ((Number) rows("select " + LEVEL + " from " + COUNTERSIGNS + " where attribution_countersign_id = ?", row).get(0).get(LEVEL)).intValue();
     }
 
     private Map<String, Object> row(UUID row) throws SQLException {
@@ -226,11 +242,11 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
     }
 
     @Test
-    @DisplayName("#896 one-design 裁定第 2 项（工作日按法人日历，节假日不算）：到期日 11-06（周五）后的工作日是 11-09、11-11（11-10 为节假日）、11-12、11-13：11-11 仍是第 1 级；11-12 升第 2 级；11-13 不变；11-14 升第 3 级；每级一条提醒且三级用途各不相同；之后（12-31）没有第 4 级、不再提醒")
+    @DisplayName("#896 one-design 裁定第 2 项（工作日按法人日历，节假日不算）：到期日 11-06（周五）后的工作日是 11-09、11-11（11-10 为节假日）、11-12、11-13：11-11 仍是第 1 级；11-12 升第 2 级；11-13 不变；11-14 升第 3 级；第 1、3 级各发一条提醒且用途不同（第 2 级的提醒见其收件人用例）；之后（12-31）没有第 4 级、不再提醒")
     void levelsTwoAndThreeCountWorkingDaysOfTheCalendar() throws Exception {
         UUID row = openChangeRow(DUE);
 
-        runOn(DUE.plusDays(1));
+        String levelOne = purposeOf(noticeOnRun(row, DUE.plusDays(1)));
         runOn(LocalDate.of(2026, 11, 11));
         assertThat(levelOf(row)).as("the holiday 11-10 does not count, so 11-11 is only the 2nd working day").isEqualTo(1);
 
@@ -238,14 +254,13 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
         assertThat(levelOf(row)).isEqualTo(2);
         runOn(LocalDate.of(2026, 11, 13));
         assertThat(levelOf(row)).isEqualTo(2);
-        runOn(LocalDate.of(2026, 11, 14));
+        String levelThree = purposeOf(noticeOnRun(row, LocalDate.of(2026, 11, 14)));
         assertThat(levelOf(row)).isEqualTo(3);
+        assertThat(levelThree).as("each level its own purpose_kind").isNotEqualTo(levelOne);
+        Mockito.clearInvocations(wecomGateway);
         runOn(LocalDate.of(2026, 12, 31));
         assertThat(levelOf(row)).as("no level 4").isEqualTo(3);
-
-        List<WecomCard> notices = noticesOf(row);
-        assertThat(notices).as("one notice per level reached").hasSize(3);
-        assertThat(notices.stream().map(CountersignDeadlineJobIT::purposeOf).distinct()).as("each level its own purpose_kind").hasSize(3);
+        assertThat(noticesOf(row)).as("nothing after level 3").isEmpty();
     }
 
     @Test
@@ -271,7 +286,7 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
     @Test
     @DisplayName("#896 one-design 裁定第 6 项：撤回请求（WITHDRAWAL）的未决行同样逐级提醒；已批准、已拒签、已失效的行（到期日早已过去）从不被改动、从不提醒；作业从不做决定：升到第 3 级后请求仍未决、命令仍待会签")
     void withdrawalRowsCountAndDecidedRowsAreNeverTouched() throws Exception {
-        UUID withdrawal = openRow(awaitingCommand(), "WITHDRAWAL", e2, DUE);
+        UUID withdrawal = openRow(countersignedCommand(), "WITHDRAWAL", e2, DUE);
         UUID approved = openChangeRow(DUE.minusDays(20));
         UUID rejected = openChangeRow(DUE.minusDays(20));
         UUID lapsed = openChangeRow(DUE.minusDays(20));
@@ -294,28 +309,33 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
     }
 
     @Test
-    @DisplayName("#896 one-design 裁定第 3 项（今天版本的财务负责人）：E1 的负责人从今天起换人后，第 1 级提醒只发给新负责人，不发给前任；E2 的行发给 E2 的负责人")
+    @DisplayName("#896 one-design 裁定第 3 项（今天版本的财务负责人）：E1 的负责人从今天起换人后，第 1 级提醒只发给当天在任的新负责人，不发给前任，也不发给日后才接任的人；E2 的行发给 E2 的负责人")
     void theReminderGoesToTodaysFinanceHead() throws Exception {
         UUID successor = employed(REGULAR);
         UUID rowE1 = openChangeRow(DUE);
         UUID rowE2 = openRow(awaitingCommand(), "CHANGE", e2, DUE);
         setToday(DUE.plusDays(1));
         bindFinanceHead(successor, legalEntity, DUE.plusDays(1));
+        UUID later = employed(REGULAR);
+        bindFinanceHead(later, legalEntity, DUE.plusDays(3));
         UUID headE2 = fromStored(rows("select finance_head_employee_id from legal_entity_versions where legal_entity_id = ? and effective_to_date is null", e2)
                 .get(0).get("finance_head_employee_id"));
 
         runOn(DUE.plusDays(1));
 
-        assertThat(noticesOf(rowE1)).singleElement().satisfies(card -> assertThat(recipientsOf(card)).containsExactly(wecomUserIdOf(successor)));
+        assertThat(noticesOf(rowE1)).as("the head in force on the day, not the newest version").singleElement()
+                .satisfies(card -> assertThat(recipientsOf(card)).containsExactly(wecomUserIdOf(successor)));
         assertThat(noticesOf(rowE2)).singleElement().satisfies(card -> assertThat(recipientsOf(card)).containsExactly(wecomUserIdOf(headE2)));
     }
 
     @Test
-    @DisplayName("#896 ADR-0073 第 3 条第 6 款「次年日历未确认按周一至周五计、不让作业失败」、one-design 裁定第 5 项：到期日 2026-12-30，2027 年未维护：12-31 后的工作日按周一至周五算（2027-01-01 周五算工作日），所以 2027-01-02 跑一次即升到第 2 级；作业正常结束，不跳过该行")
+    @DisplayName("#896 ADR-0073 第 3 条第 6 款「次年日历未确认按周一至周五计、不让作业失败」、one-design 裁定第 5 项：到期日 2026-12-30，2027 年未维护：12-31 后的工作日按周一至周五算（2027-01-01 周五算工作日），所以 2027-01-02 跑一次即升到第 2 级；作业正常结束、不跳过该行，并有 ALERT 告警行")
     void anUnmaintainedYearCountsMondayToFridayAndTheRunCompletes() throws Exception {
         UUID row = openChangeRow(LocalDate.of(2026, 12, 30));
+        int mark = logMark();
 
         runOn(LocalDate.of(2027, 1, 1));
+        assertThat(alertsSince(mark)).as("the unmaintained year raises the ADR-0072 item 6 alert (ADR-0073 line 74 「并告警」)").isNotEmpty();
         assertThat(levelOf(row)).isEqualTo(1);
 
         runOn(LocalDate.of(2027, 1, 2));
@@ -333,7 +353,7 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
     }
 
     @Test
-    @DisplayName("#896 用户答复 A（a，2026-11-02，#896 记录）：第 2 级提醒发给业务管理员角色的持有人（不按日期切换），不发给该法人的财务负责人，也不发给起草人")
+    @DisplayName("#896 用户答复 A（a，2026-11-02，#896 记录）：第 2 级提醒发给每一位业务管理员角色的持有人（不按日期切换；迁入业务负责人授权尚无，等迁移卡），不发给该法人的财务负责人，也不发给起草人；同级再跑不再发")
     void levelTwoGoesToTheBusinessAdministrators() throws Exception {
         UUID first = employed(REGULAR);
         UUID second = employed(REGULAR);
@@ -342,11 +362,18 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
         UUID row = openChangeRow(DUE);
         runOn(DUE.plusDays(1));
 
-        WecomCard levelTwo = noticeOnRun(row, LocalDate.of(2026, 11, 12));
+        Mockito.clearInvocations(wecomGateway);
+        runOn(LocalDate.of(2026, 11, 12));
 
         assertThat(levelOf(row)).isEqualTo(2);
-        assertThat(recipientsOf(levelTwo)).contains(wecomUserIdOf(first), wecomUserIdOf(second))
-                .doesNotContain(wecomUserIdOf(headE1), wecomUserIdOf(hr.employeeId()));
+        List<WecomCard> levelTwo = noticesOf(row);
+        assertThat(levelTwo.stream().map(CountersignDeadlineJobIT::purposeOf).distinct()).as("all of one purpose, the level-2 one").hasSize(1);
+        List<String> reached = levelTwo.stream().flatMap(card -> recipientsOf(card).stream()).toList();
+        assertThat(reached).as("every business_admin holder is notified (one-design amendment, #896 comment 6590086619)")
+                .contains(wecomUserIdOf(first), wecomUserIdOf(second)).doesNotContain(wecomUserIdOf(headE1), wecomUserIdOf(hr.employeeId()));
+        Mockito.clearInvocations(wecomGateway);
+        runOn(LocalDate.of(2026, 11, 13));
+        assertThat(noticesOf(row)).as("a later run at the same level notifies nobody again").isEmpty();
     }
 
     @Test
