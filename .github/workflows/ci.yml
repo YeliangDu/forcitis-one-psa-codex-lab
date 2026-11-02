@@ -160,12 +160,12 @@ jobs:
           for class in ${CLASSES//,/ }; do ls target/surefire-reports/TEST-*."$class".xml >/dev/null 2>&1 || { echo "$class produced no report: it did not run" >&2; exit 1; }; done
       - name: surefire and failsafe, side by side
         if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
-        # Two forks per plugin (four test JVMs per runner instead of eight): the runners share one Docker Desktop (docs/ops/ci-runners.md)
+        # surefire: two forks, done in ~1.5 min; failsafe (the long pole, ~6.7 min) gets four: the code lane runs one heavy backend job at a time, so its forks no longer compete with another heavy job (docs/ops/ci-runners.md, #1034)
         env:
           BACKEND_WATCHDOG_SECONDS: '1500'
           # this run's api-contract job exported and asserted OpenAPI for this very checkout; backend_verify.sh does not export it again
           OPENAPI_EXPORTED_FOR: ${{ github.sha }}
-        run: scripts/ci/backend_verify.sh -Dtest.forks=2 -Dtest.fork.timeout=1800
+        run: scripts/ci/backend_verify.sh -Dtest.forks=2 -Dit.forks=4 -Dtest.fork.timeout=1800
       - name: every acceptance test class produced a surefire or failsafe report
         if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         # Check the default invocation before explicit -Dit.test reruns can add SQL Server reports.
