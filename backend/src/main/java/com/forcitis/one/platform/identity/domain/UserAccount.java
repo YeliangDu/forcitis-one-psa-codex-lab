@@ -5,6 +5,7 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.StateMachine;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
+import com.forcitis.one.platform.identity.api.AccountRoleGrantId;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.events.AccountDisabled;
@@ -27,10 +28,11 @@ public final class UserAccount extends AggregateRoot {
     private final UserId userId;
     private final EmployeeId employeeId;
     private final AccountStatus loadedStatus;
-    private final Set<RoleId> loadedRoles;
     private final boolean stored;
     private AccountStatus status;
     private Set<RoleId> roles;
+    private List<AccountRoleGrantId> openedGrants = List.of();
+    private List<AccountRoleGrantId> closedGrants = List.of();
 
     private UserAccount(UserId userId, EmployeeId employeeId, AccountStatus status, Set<RoleId> roles, boolean stored, long version,
             long eventSequence) {
@@ -40,7 +42,6 @@ public final class UserAccount extends AggregateRoot {
         this.status = Objects.requireNonNull(status, "status");
         this.loadedStatus = status;
         this.roles = Set.copyOf(roles);
-        this.loadedRoles = this.roles;
         this.stored = stored;
     }
 
@@ -73,10 +74,6 @@ public final class UserAccount extends AggregateRoot {
 
     public Set<RoleId> roles() {
         return roles;
-    }
-
-    public boolean rolesChanged() {
-        return !roles.equals(loadedRoles);
     }
 
     public boolean isStored() {
@@ -115,7 +112,14 @@ public final class UserAccount extends AggregateRoot {
         }
         this.roles = Set.copyOf(roleIds);
         List<RoleId> ordered = orderedRoles();
-        record((envelopes, version) -> new AccountRolesReplaced(envelopes.wrap(draft("AccountRolesReplaced", version)), userId, ordered));
+        record((envelopes, version) -> new AccountRolesReplaced(envelopes.wrap(draft("AccountRolesReplaced", version)), userId, ordered, openedGrants,
+                closedGrants));
+    }
+
+    /** The grant rows the repository wrote for the roles just replaced; the event names them, so call this before the events are published. */
+    public void grantsWritten(GrantChanges changes) {
+        this.openedGrants = changes.opened().stream().map(GrantOpening::id).toList();
+        this.closedGrants = changes.closed().stream().map(GrantClosing::id).toList();
     }
 
     /** The person is no longer with the company: no role stays, whatever the roles were. An account without roles has nothing to record. */

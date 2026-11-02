@@ -80,6 +80,19 @@ organization.workforce::api organization.workforce.api.AttributionSubjectId publ
 organization.workforce::api organization.workforce.api.AttributionSubjectId public java.lang.String organization.workforce.api.AttributionSubjectId.toString()
 organization.workforce::api organization.workforce.api.AttributionSubjectId public java.util.UUID organization.workforce.api.AttributionSubjectId.value()
 organization.workforce::api organization.workforce.api.AttributionSubjectId public organization.workforce.api.AttributionSubjectId(java.util.UUID)
+organization.workforce::api organization.workforce.api.Availability component leaving: boolean
+organization.workforce::api organization.workforce.api.Availability component onUnpaidLeave: boolean
+organization.workforce::api organization.workforce.api.Availability component separationHeld: boolean
+organization.workforce::api organization.workforce.api.Availability extends java.lang.Record
+organization.workforce::api organization.workforce.api.Availability public boolean organization.workforce.api.Availability.leaving()
+organization.workforce::api organization.workforce.api.Availability public boolean organization.workforce.api.Availability.onUnpaidLeave()
+organization.workforce::api organization.workforce.api.Availability public boolean organization.workforce.api.Availability.separationHeld()
+organization.workforce::api organization.workforce.api.Availability public final boolean organization.workforce.api.Availability.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.Availability public final int organization.workforce.api.Availability.hashCode()
+organization.workforce::api organization.workforce.api.Availability public final java.lang.String organization.workforce.api.Availability.toString()
+organization.workforce::api organization.workforce.api.Availability public final record organization.workforce.api.Availability
+organization.workforce::api organization.workforce.api.Availability public organization.workforce.api.Availability(boolean,boolean,boolean)
+organization.workforce::api organization.workforce.api.Availability public static final organization.workforce.api.Availability organization.workforce.api.Availability.AVAILABLE
 organization.workforce::api organization.workforce.api.ChangeEmployeeProfile component displayName: java.lang.String
 organization.workforce::api organization.workforce.api.ChangeEmployeeProfile component effectiveDate: java.time.LocalDate
 organization.workforce::api organization.workforce.api.ChangeEmployeeProfile component email: java.lang.String
@@ -213,7 +226,6 @@ organization.workforce::api organization.workforce.api.LoginLookup$ByWecomUser p
 organization.workforce::api organization.workforce.api.LoginLookup$ByWecomUser public kernel.WecomUserId organization.workforce.api.LoginLookup$ByWecomUser.wecomUserId()
 organization.workforce::api organization.workforce.api.LoginLookup$ByWecomUser public organization.workforce.api.LoginLookup$ByWecomUser(kernel.WecomUserId)
 organization.workforce::api organization.workforce.api.LoginLookup$ByWecomUser public static final record organization.workforce.api.LoginLookup$ByWecomUser
-organization.workforce::api organization.workforce.api.OrgDirectory public abstract boolean organization.workforce.api.OrgDirectory.isOnUnpaidLeave(kernel.EmployeeId,java.time.LocalDate)
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract interface organization.workforce.api.OrgDirectory
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract java.util.List<organization.workforce.api.OrgUnitId> organization.workforce.api.OrgDirectory.findAncestors(organization.workforce.api.OrgUnitId)
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract java.util.Optional<kernel.EmployeeId> organization.workforce.api.OrgDirectory.findOrgUnitHead(organization.workforce.api.OrgUnitId)
@@ -223,6 +235,7 @@ organization.workforce::api organization.workforce.api.OrgDirectory public abstr
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract java.util.Optional<organization.workforce.api.EmployeeProfile> organization.workforce.api.OrgDirectory.findEmployeeByLogin(organization.workforce.api.LoginLookup)
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract java.util.Optional<organization.workforce.api.EmploymentStatus> organization.workforce.api.OrgDirectory.employmentOn(kernel.EmployeeId,java.time.LocalDate)
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract java.util.Optional<organization.workforce.api.OrgUnitProfile> organization.workforce.api.OrgDirectory.findOrgUnit(organization.workforce.api.OrgUnitId)
+organization.workforce::api organization.workforce.api.OrgDirectory public abstract organization.workforce.api.Availability organization.workforce.api.OrgDirectory.availabilityOn(kernel.EmployeeId,java.time.LocalDate)
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract organization.workforce.api.EmploymentVerdict organization.workforce.api.OrgDirectory.employmentOf(kernel.EmployeeId)
 organization.workforce::api organization.workforce.api.OrgUnitId component value: java.util.UUID
 organization.workforce::api organization.workforce.api.OrgUnitId extends java.lang.Record

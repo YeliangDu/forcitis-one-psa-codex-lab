@@ -221,7 +221,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("ADR-0027 1.2 the bound person must hold super_admin right now")
     void boundPersonMustHoldSuperAdmin() throws Exception {
-        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(7) + ")").update();
+        jdbc.sql("update platform_identity.account_role_grants set effective_to_at = greatest(now(), effective_from_at), revocation_cause_kind = 'OPERATIONS', revocation_audit_entry_id = uuidv7(), updated_at = now() where effective_to_at is null and user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(7) + ")").update();
 
         MvcResult result = login("breakglass", PASSWORD, code());
 
@@ -286,7 +286,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         String session = cookie(login("breakglass", PASSWORD, code()), "SESSION");
         assertThat(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn().getResponse()
                 .getStatus()).isEqualTo(200);
-        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(7) + ")").update();
+        jdbc.sql("update platform_identity.account_role_grants set effective_to_at = greatest(now(), effective_from_at), revocation_cause_kind = 'OPERATIONS', revocation_audit_entry_id = uuidv7(), updated_at = now() where effective_to_at is null and user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(7) + ")").update();
 
         clock.advance(Duration.ofSeconds(61));
 

@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <parent><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-parent</artifactId><version>4.1.1</version></parent>
   <groupId>com.forcitis</groupId><artifactId>forcitis-one</artifactId><version>${revision}</version>
-  <properties><revision>0.0.1</revision><java.version>25</java.version><spring-modulith.version>2.1.1</spring-modulith.version><shedlock.version>7.10.1</shedlock.version><error-prone.version>2.50.0</error-prone.version><nullaway.version>0.14.2</nullaway.version><argLine></argLine><test.forks>4</test.forks><test.fork.timeout>0</test.fork.timeout><test.jvm>-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -Xshare:auto -Duser.timezone=UTC</test.jvm>
+  <properties><revision>0.0.1</revision><java.version>25</java.version><spring-modulith.version>2.1.1</spring-modulith.version><shedlock.version>7.10.1</shedlock.version><error-prone.version>2.50.0</error-prone.version><nullaway.version>0.14.2</nullaway.version><argLine></argLine><test.forks>4</test.forks><it.forks>${test.forks}</it.forks><test.fork.timeout>0</test.fork.timeout><test.jvm>-XX:TieredStopAtLevel=1 -XX:+UseSerialGC -Xshare:auto -Duser.timezone=UTC</test.jvm>
     <!-- QUAL-CARD-H, user decision 2026-10-17: SQL Server runs on relevant paths and nightly.
          Single list, also read by acceptance_reports.py and legacy_it.sh; includes the OrgSourceWorldSupport subclasses. -->
     <legacy.it.acceptance>
@@ -117,7 +117,7 @@
         </executions>
       </plugin>
       <!-- *IT classes (Testcontainers) run in the integration-test phase; surefire only runs *Test (Boot parent) - added by platform.approval -->
-      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-failsafe-plugin</artifactId><configuration><excludes><exclude>${legacy.it.acceptance}</exclude><exclude>**/*MssqlIT.java</exclude><exclude>**/*$*</exclude></excludes><reportsDirectory>${integration.reports}</reportsDirectory><summaryFile>${integration.reports}/failsafe-summary.xml</summaryFile><forkCount>${test.forks}</forkCount><reuseForks>true</reuseForks><argLine>@{argLine} ${test.jvm}</argLine><forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds><forkedProcessTimeoutInSeconds>${test.fork.timeout}</forkedProcessTimeoutInSeconds></configuration></plugin>
+      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-failsafe-plugin</artifactId><configuration><excludes><exclude>${legacy.it.acceptance}</exclude><exclude>**/*MssqlIT.java</exclude><exclude>**/*$*</exclude></excludes><reportsDirectory>${integration.reports}</reportsDirectory><summaryFile>${integration.reports}/failsafe-summary.xml</summaryFile><forkCount>${it.forks}</forkCount><reuseForks>true</reuseForks><argLine>@{argLine} ${test.jvm}</argLine><forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds><forkedProcessTimeoutInSeconds>${test.fork.timeout}</forkedProcessTimeoutInSeconds></configuration></plugin>
       <!-- At JVM exit the cached Spring contexts close after Testcontainers stopped the database; each waits for its connection timeout, so a fork with many contexts needs more than the default 30 s to leave. -->
       <!-- every test class owns its Testcontainers database, so classes run in parallel JVMs: ./mvnw verify -Dtest.forks=1 restores serial runs -->
       <!-- test.fork.timeout: total seconds a reused fork may run (0 = no limit); CI sets it so a hung fork is killed, after its watchdog took thread dumps -->

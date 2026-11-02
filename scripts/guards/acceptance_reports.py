@@ -248,11 +248,20 @@ def configuration_self_test(root):
     assert 'sleep "${BACKEND_WATCHDOG_SECONDS:-1500}"' in script and 'Thread.print -l' in script and 'status=124' in script, "QUAL-CARD-H-R2-2: SQL Server must dump hung forks and fail before the fork timeout"
     ci = Path(root, ".github/workflows/ci.yml").read_text()
     report_step = ci.index("- name: every acceptance test class produced")
-    rerun_step = ci.index("- name: SQL Server integration tests (profile legacy-it)")   # #742: the repeat step is gone; the SQL Server step is the run that adds reports after the default one
+    rerun_step = ci.index("- name: SQL Server integration tests (profile legacy-it)")   # #742: the repeat step is gone; since #1034 this step only waits for the SQL Server run (started earlier, in its own checkout) and fails the job
     assert report_step < rerun_step and "acceptance_reports.py --tier default" in ci[report_step:rerun_step], "QUAL-CARD-H-R2-7: default reports must be checked before explicit reruns"
-    sql_step = ci.split("- name: SQL Server integration tests (profile legacy-it)", 1)[1].split("\n      - ", 1)[0]
-    assert "run: scripts/ci/legacy_it.sh -Dtest.forks=2 -Dtest.fork.timeout=1800" in sql_step, "QUAL-CARD-H-R2-2: SQL Server must use two bounded forks"
-    assert "BACKEND_WATCHDOG_SECONDS: '1500'" in sql_step and "timeout-minutes: 30" in sql_step, "QUAL-CARD-H-R2-2: watchdog must run before the step deadline"
+    sql_step = ci.split("- name: SQL Server integration tests (profile legacy-it)", 1)[1].split("\n      - ", 1)[0]   # the step that waits for the run and fails the job (#1034: the run itself starts beside surefire and failsafe)
+    start_step = ci.split("- name: start the SQL Server tests beside surefire and failsafe (profile legacy-it)", 1)[1].split("\n      - ", 1)[0]
+    sql_step = "\n".join(line for line in sql_step.split("\n") if not line.startswith("      #"))   # comment lines between steps belong to no step
+    launch = """nohup bash -c 'cd "$1" && scripts/ci/legacy_it.sh -Dtest.forks=2 -Dtest.fork.timeout=1800; echo $? > "$2"' _ "$legacy" "$RUNNER_TEMP/legacy-it.rc" > "$RUNNER_TEMP/legacy-it.log" 2>&1 &"""
+    assert launch in start_step and start_step.count("legacy_it.sh") == 1, "QUAL-CARD-H-R2-2: SQL Server must run legacy_it.sh with two bounded forks, in the second checkout, its exit status written to the rc file"
+    assert "BACKEND_WATCHDOG_SECONDS: '1500'" in start_step and "\n        timeout-minutes: 30\n" in sql_step + "\n", "QUAL-CARD-H-R2-2: watchdog must run before the step deadline"
+    assert 'git worktree add --detach -q "$legacy" HEAD' in start_step and sql_step.rstrip().endswith('test "$(cat "$LEGACY_IT_RC")" = 0'), "#1034: the SQL Server run has its own checkout, and its status is the last command of the waiting step"
+    gate = "        if: steps.change.outputs.legacy_it == 'true' && steps.heavy.outputs.run == 'true'\n"
+    assert gate in start_step + "\n" and gate in sql_step + "\n", "#1034: the SQL Server run is started and awaited under the same condition"
+    assert not any(x in step for step in (start_step, sql_step) for x in ("continue-on-error", "|| true", "||true")), "#1034: neither the start nor the waiting step may swallow a failure"
+    assert ci.index("- name: stop the SQL Server tests if they are still running") > ci.index("name: test-reports"), "#1034: the second checkout is removed after the failure upload reads its reports"
+    assert ci.index("- name: start the SQL Server tests beside") < ci.index("- name: surefire and failsafe, side by side"), "#1034: the SQL Server run starts before surefire and failsafe so that they overlap"
     nightly = Path(root, ".github/workflows/nightly-legacy-it.yml").read_text()
     assert "scripts/ci/backend_verify.sh -Plegacy-it" in nightly and "acceptance_reports.py --tier full" in nightly, "nightly must run and check both tiers"
 

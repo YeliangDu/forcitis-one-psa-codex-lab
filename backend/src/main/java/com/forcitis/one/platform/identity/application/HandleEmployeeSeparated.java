@@ -1,98 +1,66 @@
 package com.forcitis.one.platform.identity.application;
 
-import com.forcitis.one.platform.audit.api.AuditSubject;
-import com.forcitis.one.platform.audit.api.AuditSubjectKind;
-import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.AccountEmployees;
-import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
-import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditLog;
-import com.forcitis.one.platform.audit.api.AuditOutcome;
-import com.forcitis.one.platform.identity.api.IdentityError;
-import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
-import com.forcitis.one.platform.identity.domain.UserAccount;
-import java.util.Comparator;
-import java.util.Optional;
 import java.util.Set;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
 /**
- * The local personnel command took effect (ADR-0068 item 2.5 C): the person loses every role, session and browser identifier (ADR-0027 section 1;
- * RULE-363); the emergency account is disabled by DisableEmergencyAdminOnSeparation, which listens to the same event in its own transaction. Workforce judged the last-administrator floor
- * before publishing, so nothing is refused here; a person without an account is a no-op. The per-request check (SessionPrincipals) holds even if this event is late or lost,
- * so session revocation does not depend on it.
+ * The local personnel command took effect (ADR-0068 item 2.5 C; ADR-0055 decision 3 item 2): in one transaction every open grant of the person is closed
+ * (cause SEPARATION, the command of the event, an audit entry per grant written back), every session and browser identifier ends and the cache is
+ * evicted; the emergency account follows in its own transaction. Workforce judged the last-administrator floor before publishing, so nothing is refused
+ * here; a person without an account is a no-op, and a repeated delivery finds nothing left to close.
  */
 @SystemActorName("platform.identity.separation")
 @Component
 class HandleEmployeeSeparated {
 
     private static final String ACTOR = HandleEmployeeSeparated.class.getAnnotation(SystemActorName.class).value();
-    private static final int MAX_ATTEMPTS = 3;
 
-    private final AccountRepository accounts;
-    private final SessionRegistry sessions;
-    private final AccessCache cache;
-    private final AuditLog audit;
-    private final DomainEvents events;
-    private final RevokeBrowserIdentifiers revokeBrowserIdentifiers;
     private final AccountEmployees accountEmployees;
+    private final AccountRepository accounts;
+    private final AccountGrants grants;
+    private final DomainEvents events;
+    private final SessionRevocation revocation;
+    private final RevokeBrowserIdentifiers revokeBrowserIdentifiers;
+    private final AccessCache cache;
 
-    HandleEmployeeSeparated(AccountRepository accounts,
-            SessionRegistry sessions, AccessCache cache, AuditLog audit, DomainEvents events,
-            RevokeBrowserIdentifiers revokeBrowserIdentifiers, AccountEmployees accountEmployees) {
+    HandleEmployeeSeparated(AccountEmployees accountEmployees, AccountRepository accounts, AccountGrants grants, DomainEvents events, SessionRevocation revocation,
+            RevokeBrowserIdentifiers revokeBrowserIdentifiers, AccessCache cache) {
         this.accountEmployees = accountEmployees;
-        this.revokeBrowserIdentifiers = revokeBrowserIdentifiers;
         this.accounts = accounts;
-        this.sessions = sessions;
-        this.cache = cache;
-        this.audit = audit;
+        this.grants = grants;
         this.events = events;
+        this.revocation = revocation;
+        this.revokeBrowserIdentifiers = revokeBrowserIdentifiers;
+        this.cache = cache;
     }
 
     @ApplicationModuleListener
     void on(EmployeeSeparated event) {
         try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null), ACTOR)) {
-            accountEmployees.accountOf(event.employeeId()).ifPresent(account -> separate(account, "separated by personnel command"));
+            accountEmployees.accountOf(event.employeeId()).ifPresent(account -> separate(account, event.personnelCommandId()));
         }
     }
 
-    private void separate(UserId userId, String reason) {
-        revokeRoles(userId);
-        sessions.revokeAll(userId);
+    private void separate(UserId userId, PersonnelCommandId command) {
+        accounts.findForUpdate(userId).ifPresent(account -> {
+            if (!account.roles().isEmpty()) {
+                account.recordSeparation();
+                grants.replace(account, Set.of(), AccountGrants.Origin.separation(command));
+                accounts.save(account);
+                events.publish(account);
+            }
+        });
+        revocation.revokeAll(userId, "separated by personnel command");
         revokeBrowserIdentifiers.execute(userId);
         cache.evict(userId);
-        audit.record(new AuditEntry("platform.identity.session.revoked", null, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()), reason)
-                .withTrace(null, AuditOutcome.SUCCEEDED, null));
-    }
-
-    /** The account may be written by the listener that opens it at the same moment: the loser reads again instead of leaving the event undelivered. */
-    private void revokeRoles(UserId userId) {
-        for (int attempt = 1; ; attempt++) {
-            Optional<UserAccount> found = accounts.find(userId);
-            if (found.isEmpty() || found.get().roles().isEmpty()) {
-                return;
-            }
-            UserAccount account = found.get();
-            Set<RoleCode> held = accounts.findAssignedRoleCodes(userId);
-            account.recordSeparation();
-            try {
-                accounts.save(account);
-            } catch (DomainException conflict) {
-                if (attempt >= MAX_ATTEMPTS || conflict.errorCode() != IdentityError.PLATFORM_IDENTITY_CONCURRENT_UPDATE) {
-                    throw conflict;
-                }
-                continue;
-            }
-            events.publish(account);
-            held.stream().map(RoleCode::value).sorted(Comparator.naturalOrder()).forEach(code -> audit.record(new AuditEntry(
-                    "platform.identity.account.role.revoked", null, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()), "role=" + code + " cause=separation")));
-            return;
-        }
     }
 }

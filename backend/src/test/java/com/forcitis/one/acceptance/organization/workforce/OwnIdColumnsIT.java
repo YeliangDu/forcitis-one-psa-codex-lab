@@ -87,7 +87,13 @@ class OwnIdColumnsIT extends AcceptanceSupport {
     static final List<String[]> NATURAL_KEYS = List.of(
             new String[] {"org_unit_versions", "uk_org_unit_versions_revision", "org_unit_id,effective_from_date,revision_number"},
             new String[] {"assignment_versions", "uk_assignment_versions_revision", "employee_id,effective_from_date,revision_number"},
-            new String[] {"org_unit_legal_entities", "uk_org_unit_legal_entities_effective_from", "org_unit_id,effective_from_date"},
+            new String[] {"org_unit_legal_entities", "uk_org_unit_legal_entities_effective_from", "org_unit_id,effective_from_date"});
+
+    /**
+     * table, partial unique index, its columns in order: natural keys of attribution period tables that took the W2 common set (W2 design
+     * section 3.6, #892): no revision number, so the key is unique among the rows not superseded.
+     */
+    static final List<String[]> CURRENT_ROW_NATURAL_KEYS = List.<String[]>of(
             new String[] {"employee_legal_entities", "uk_employee_legal_entities_effective_from", "employee_id,effective_from_date"});
 
     /** table, index, leading column (DDL-06). */
@@ -178,6 +184,40 @@ class OwnIdColumnsIT extends AcceptanceSupport {
         }
 
         assertThat(wrong).as("natural keys that are not unique constraints over the old key columns").isEmpty();
+    }
+
+    @Test
+    @DisplayName("R-1b P3b DDL-01 与 W2 第 3.6 节（#892）：员工法人归属期间表的自然键改为只管未作废行的部分唯一索引 uk_employee_legal_entities_effective_from (employee_id, effective_from_date) WHERE superseded_at IS NULL")
+    void theNaturalKeysOfVersionedPeriodsStayUniqueAmongCurrentRows() throws Exception {
+        List<String> wrong = new ArrayList<>();
+        try (Connection catalogue = schemaConnection("public")) {
+            for (String[] key : CURRENT_ROW_NATURAL_KEYS) {
+                try (PreparedStatement select = catalogue.prepareStatement("""
+                        select string_agg(a.attname, ',' order by k.ordinality), bool_and(i.indisunique), max(pg_get_expr(i.indpred, i.indrelid))
+                          from pg_index i
+                          join pg_class x on x.oid = i.indexrelid
+                          join pg_class t on t.oid = i.indrelid
+                          join pg_namespace n on n.oid = t.relnamespace
+                          cross join lateral unnest(i.indkey) with ordinality as k(attnum, ordinality)
+                          join pg_attribute a on a.attrelid = t.oid and a.attnum = k.attnum
+                         where n.nspname = ? and t.relname = ? and x.relname = ?""")) {
+                    select.setString(1, WORKFORCE);
+                    select.setString(2, key[0]);
+                    select.setString(3, key[1]);
+                    try (ResultSet rs = select.executeQuery()) {
+                        rs.next();
+                        String columns = rs.getString(1);
+                        boolean unique = rs.getBoolean(2);
+                        String predicate = rs.getString(3);
+                        if (!key[2].equals(columns) || !unique || predicate == null || !predicate.replaceAll("[()\\s]", "").equals("superseded_atISNULL")) {
+                            wrong.add(key[0] + ": " + key[1] + " = " + columns + " unique=" + unique + " where " + predicate);
+                        }
+                    }
+                }
+            }
+        }
+
+        assertThat(wrong).as("natural keys of versioned period tables that are not unique among the rows not superseded").isEmpty();
     }
 
     @Test

@@ -233,9 +233,7 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
         confirmedIdentifier(1002, null);
         assertThat(storedIdentifiers(1001)).isPositive();
         com.forcitis.one.kernel.EmployeeId separated = TestAccounts.employee(1001);
-        var snapshot = new com.forcitis.one.organization.workforce.events.EmployeeSeparated(
-                TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", separated.value()),
-                new com.forcitis.one.organization.workforce.api.PersonnelCommandId(java.util.UUID.randomUUID()), separated, java.time.LocalDate.of(2026, 10, 15));
+        var snapshot = new com.forcitis.one.organization.workforce.events.EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", separated.value()), new com.forcitis.one.organization.workforce.api.PersonnelCommandId(java.util.UUID.randomUUID()), separated, java.time.LocalDate.of(2026, 10, 15));
 
         tx.executeWithoutResult(status -> events.publishEvent(snapshot));
         org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(storedIdentifiers(1001)).isZero());
@@ -248,12 +246,10 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
     @DisplayName("B3-R1 a separated person whose account holds no role loses the browser identifiers too")
     void separationWithoutRolesInvalidates() throws Exception {
         confirmedIdentifier(1001, null);
-        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").update();
+        jdbc.sql("update platform_identity.account_role_grants set effective_to_at = greatest(now(), effective_from_at), revocation_cause_kind = 'OPERATIONS', revocation_audit_entry_id = uuidv7(), updated_at = now() where effective_to_at is null and user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").update();
         assertThat(storedIdentifiers(1001)).isPositive();
-        var snapshot = new com.forcitis.one.organization.workforce.events.EmployeeSeparated(
-                TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", TestAccounts.employee(1001).value()),
-                new com.forcitis.one.organization.workforce.api.PersonnelCommandId(java.util.UUID.randomUUID()), TestAccounts.employee(1001),
-                java.time.LocalDate.of(2026, 10, 15));
+        var separated = TestAccounts.employee(1001);
+        var snapshot = new com.forcitis.one.organization.workforce.events.EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", separated.value()), new com.forcitis.one.organization.workforce.api.PersonnelCommandId(java.util.UUID.randomUUID()), separated, java.time.LocalDate.of(2026, 10, 15));
 
         tx.executeWithoutResult(status -> events.publishEvent(snapshot));
 

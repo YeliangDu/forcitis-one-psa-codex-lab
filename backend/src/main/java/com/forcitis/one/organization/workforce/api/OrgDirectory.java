@@ -14,8 +14,8 @@ public interface OrgDirectory {
     /** Whether one employee is employed today, judged from their versions or, without versions, from the snapshot row. */
     EmploymentVerdict employmentOf(EmployeeId employeeId);
 
-    /** True when the employee has an employed version flagged unpaid leave on that business day (ADR-0068 section 3); a person on leave is still employed, but counts neither as available nor as retained. */
-    boolean isOnUnpaidLeave(EmployeeId employeeId, LocalDate day);
+    /** Unpaid leave that day (a person on leave is still employed, but counts neither as available nor as retained, ADR-0068 section 3), and whether the person is held or leaving. */
+    Availability availabilityOn(EmployeeId employeeId, LocalDate day);
 
     /**
      * The employment status on that business day: for an employee with versions the status of the version in force that day, empty when none covers it;
