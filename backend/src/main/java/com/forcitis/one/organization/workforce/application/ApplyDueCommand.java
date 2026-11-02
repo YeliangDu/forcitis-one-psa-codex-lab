@@ -22,10 +22,6 @@ import com.forcitis.one.organization.workforce.domain.SeparationHoldCheck;
 import com.forcitis.one.organization.workforce.domain.VersionPlan;
 import com.forcitis.one.organization.workforce.domain.VersionRow;
 import com.forcitis.one.organization.workforce.domain.VersionTable;
-import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditLog;
-import com.forcitis.one.platform.audit.api.AuditSubject;
-import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -58,19 +54,17 @@ public class ApplyDueCommand {
     private final PersonnelCommandRepository commands;
     private final PersonnelPlans timelines;
     private final SeparationHoldCheck holdCheck;
-    private final AuditLog audit;
     private final LegalEntityResolutionSources legalEntities;
     private final DomainEvents events;
     private final IdGenerator ids;
     private final Clock clock;
     private final BusinessZone zone;
 
-    ApplyDueCommand(PersonnelCommandRepository commands, PersonnelPlans timelines, SeparationHoldCheck holdCheck, AuditLog audit,
+    ApplyDueCommand(PersonnelCommandRepository commands, PersonnelPlans timelines, SeparationHoldCheck holdCheck,
                     LegalEntityResolutionSources legalEntities, DomainEvents events, IdGenerator ids, Clock clock, BusinessZone zone) {
         this.commands = commands;
         this.timelines = timelines;
         this.holdCheck = holdCheck;
-        this.audit = audit;
         this.legalEntities = legalEntities;
         this.events = events;
         this.ids = ids;
@@ -127,8 +121,6 @@ public class ApplyDueCommand {
         long loaded = command.version();
         String before = command.status().name();
         command.holdOnDueDay();
-        audit.record(new AuditEntry("organization.workforce.separation.held-on-due-day", null, null,
-                AuditSubject.of(AuditSubjectKind.EMPLOYEE, command.employeeId().value()), "command " + command.id() + " effective " + command.effectiveDate()));
         for (Map.Entry<VersionTable, VersionPlan> plan : timelines.forWithdrawal(command, commands.load(command.employeeId())).entrySet()) {
             commands.insertVersions(command.employeeId(), plan.getKey(), plan.getValue(), command.id(), now);
         }

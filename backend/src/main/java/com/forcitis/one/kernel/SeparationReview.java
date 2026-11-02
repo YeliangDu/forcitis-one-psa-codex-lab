@@ -3,6 +3,7 @@ package com.forcitis.one.kernel;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Asked before a sync run turns people into separated ones. Implemented by whoever owns administrator access, so that a wrong
@@ -23,14 +24,16 @@ public interface SeparationReview {
      * signed-in session. held are the employees already counted as gone (the caller's one count): separation held, or released and waiting for its date, or an unpaid-leave start entered and not yet started: they still are employed, but they do not
      * count as available administrators for the remainder, nor as the retained releaser (ADR-0068 item 2.2, 2.3).
      */
-    Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser);
+    default Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser) {
+        return review(separating, held, releaser, null);
+    }
 
     /**
      * The same judgement for the due-day re-judgement of a future-dated separation (ADR-0068 item 2.2, #967): the separating are available when they are
      * holders now and were employed and not on unpaid leave on {@code separatingDay}, their last working day; everyone else (remaining, retained releaser,
-     * notice recipients) is judged as of today. The grant is always read as it is now. The three-argument method is this one with the separating judged today.
+     * notice recipients) is judged as of today. The grant is always read as it is now. A null day judges the separating today, as the three-argument method does.
      */
-    Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser, LocalDate separatingDay);
+    Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser, @Nullable LocalDate separatingDay);
 
     /** The sync path has no held set. */
     default Verdict review(List<EmployeeId> separating, UserId releaser) {

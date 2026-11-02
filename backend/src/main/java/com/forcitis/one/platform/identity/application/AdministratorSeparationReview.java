@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -50,14 +51,10 @@ class AdministratorSeparationReview implements SeparationReview {
     }
 
     @Override
-    public Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser) {
-        return review(separating, held, releaser, zone.dateOf(clock.instant()));
-    }
-
-    @Override
     @Transactional(readOnly = true)
-    public Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser, LocalDate separatingDay) {
+    public Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser, @Nullable LocalDate nullableSeparatingDay) {
         LocalDate today = zone.dateOf(clock.instant());
+        LocalDate separatingDay = nullableSeparatingDay == null ? today : nullableSeparatingDay;
         Set<EmployeeId> superAdministrators = usableHolders(Role.SUPER_ADMIN, today, separating, separatingDay);
         Set<EmployeeId> everyone = new HashSet<>(superAdministrators);
         everyone.addAll(usableHolders(Role.SECURITY_AUDITOR, today, separating, separatingDay));
