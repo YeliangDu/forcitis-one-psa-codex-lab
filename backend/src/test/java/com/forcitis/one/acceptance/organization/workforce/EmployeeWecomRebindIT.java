@@ -3,7 +3,9 @@ package com.forcitis.one.acceptance.organization.workforce;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
@@ -20,6 +22,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -44,11 +47,11 @@ class EmployeeWecomRebindIT extends EmployeeHireSupport {
     @Test
     @DisplayName("#959 用户 2026-11-02 第①道：人事专员改自己的档案被拒（只改姓名也拒、兼另一角色也拒），员工根、会话、审计都不变")
     void nobodyChangesTheirOwnRecord() throws Exception {
-        assertRefusedUnchanged(hr, hr.employeeId(), "Synthetic self", wecomOf(hr));
-        assertRefusedUnchanged(hr, hr.employeeId(), "Synthetic self", syntheticWecom("self-moved"));
+        assertRefusedUnchanged(hr, hr, "Synthetic self", wecomOf(hr));
+        assertRefusedUnchanged(hr, hr, "Synthetic self", syntheticWecom("self-moved"));
 
         Staff both = staff(PERSONNEL_SPECIALIST_ROLE, "org_data_admin");
-        assertRefusedUnchanged(both, both.employeeId(), "Synthetic self two roles", wecomOf(both));
+        assertRefusedUnchanged(both, both, "Synthetic self two roles", wecomOf(both));
 
         Staff other = staff();
         actIn(hr);
@@ -66,17 +69,38 @@ class EmployeeWecomRebindIT extends EmployeeHireSupport {
         actIn(hr);
         Throwable ownRecord = catchThrowable(() -> change(hr.employeeId(), "Synthetic self", null, null, wecomOf(hr), TODAY));
         ErrorCode self = ownRecord instanceof DomainException domain ? domain.errorCode() : null;
+        ErrorCode tooEarly = errorOf(() -> change(staff().employeeId(), "Synthetic too early", null, null, null, TODAY.plusDays(1)));
 
-        Throwable rebind = assertRefusedUnchanged(hr, privileged.employeeId(), "Synthetic rebound", syntheticWecom("rebind-" + role));
-        Throwable clear = assertRefusedUnchanged(hr, privileged.employeeId(), "Synthetic cleared", null);
+        Throwable rebind = assertRefusedUnchanged(hr, privileged, "Synthetic rebound", syntheticWecom("rebind-" + role));
+        Throwable clear = assertRefusedUnchanged(hr, privileged, "Synthetic cleared", null);
 
         for (Throwable failure : new Throwable[] {rebind, clear}) {
             assertThat(failure).as(String.valueOf(failure)).isInstanceOf(DomainException.class);
             ErrorCode code = ((DomainException) failure).errorCode();
             assertThat(code).as("an error of its own: not the duplicate refusal").isNotEqualTo(taken);
             assertThat(code).as("an error of its own: not the own-record refusal").isNotEqualTo(self);
+            assertThat(code).as("an error of its own: not the refusal of an invalid change (a future date)").isNotEqualTo(tooEarly);
         }
         assertThat(((DomainException) rebind).errorCode()).as("rebind and clear are the same control").isEqualTo(((DomainException) clear).errorCode());
+    }
+
+    @Test
+    @DisplayName("#959 用户 2026-11-02 第②道「普通员工以外的任何角色」：自定义角色的持有人、以及账号上没有 employee 角色行的超级管理员，企业微信账号改绑同样被拒，错误与种子角色时相同")
+    void aCustomRoleOrAnAdminWithoutTheEmployeeRoleCountsAsPrivileged() throws Exception {
+        ErrorCode seeded = ((DomainException) assertRefusedUnchanged(hr, staff("org_data_admin"), "Synthetic rebound", syntheticWecom("seeded"))).errorCode();
+
+        Staff custom = staff(customRole());
+        Throwable customRefusal = assertRefusedUnchanged(hr, custom, "Synthetic rebound", syntheticWecom("custom"));
+        assertThat(customRefusal).as(String.valueOf(customRefusal)).isInstanceOf(DomainException.class);
+        assertThat(((DomainException) customRefusal).errorCode()).isEqualTo(seeded);
+
+        Staff admin = staff("super_admin");
+        try (Connection identity = schemaConnection("platform_identity")) {
+            update(identity, "delete from account_roles where user_id = ? and role_id = (select role_id from roles where code = 'employee')", admin.userId());
+        }
+        Throwable adminRefusal = assertRefusedUnchanged(hr, admin, "Synthetic rebound", syntheticWecom("admin-only"));
+        assertThat(adminRefusal).as(String.valueOf(adminRefusal)).isInstanceOf(DomainException.class);
+        assertThat(((DomainException) adminRefusal).errorCode()).isEqualTo(seeded);
     }
 
     @Test
@@ -122,21 +146,43 @@ class EmployeeWecomRebindIT extends EmployeeHireSupport {
         browserIdentifier(person);
         browserIdentifier(bystander);
         String rebound = syntheticWecom("rebound");
+        Staff secondLogin = new Staff(person.employeeId(), signIn(person.employeeId()));
         actIn(hr);
 
         change(person.employeeId(), (String) root(person.employeeId()).get("display_name"), null, null, rebound, TODAY);
 
         assertThat(root(person.employeeId()).get("wecom_user_id")).isEqualTo(rebound);
         assertThat(profileStatus(person)).as("the employee's session is revoked").isIn(401, 403);
+        assertThat(profileStatus(secondLogin)).as("every session of the employee is revoked, not one").isIn(401, 403);
         assertThat(browserIdentifiers(person)).as("the employee's browser identifiers are gone").isZero();
         assertThat(profileStatus(bystander)).as("someone else's session stays").isEqualTo(200);
         assertThat(profileStatus(hr)).as("the caller's session stays").isEqualTo(200);
         assertThat(browserIdentifiers(bystander)).as("someone else's browser identifier stays").isEqualTo(1);
 
-        MockHttpServletResponse oldLogin = wecomLogin(wecomCodeOf(old));
-        assertThat(oldLogin.getStatus() != 200 || !text(person.userId()).equals(String.valueOf(JsonPath.read(oldLogin.getContentAsString(), "$.userId"))))
-                .as("the old WeCom user id no longer opens the account: " + oldLogin.getStatus()).isTrue();
+        assertOldLoginClosed(old, person);
         assertThat(signInWith(wecomCodeOf(rebound), person.employeeId()).userId()).as("the new WeCom user id opens the same account").isEqualTo(person.userId());
+    }
+
+    @Test
+    @DisplayName("#959 用户 2026-11-02 第③道：只有普通员工角色的人，人事专员一人可清空其企业微信账号；清空也是改动，同事务作废该员工全部会话与浏览器标识，别人的不动；旧企业微信账号再登录打不开该账号")
+    void aClearRevokesTheEmployeesSessionsAndTheOldWecomLogin() throws Exception {
+        Staff person = staff();
+        Staff bystander = staff();
+        String old = wecomOf(person);
+        browserIdentifier(person);
+        browserIdentifier(bystander);
+        Staff secondLogin = new Staff(person.employeeId(), signIn(person.employeeId()));
+        actIn(hr);
+
+        change(person.employeeId(), (String) root(person.employeeId()).get("display_name"), null, null, null, TODAY);
+
+        assertThat(root(person.employeeId()).get("wecom_user_id")).isNull();
+        assertThat(profileStatus(person)).as("the employee's session is revoked").isIn(401, 403);
+        assertThat(profileStatus(secondLogin)).as("every session of the employee is revoked, not one").isIn(401, 403);
+        assertThat(browserIdentifiers(person)).as("the employee's browser identifiers are gone").isZero();
+        assertThat(profileStatus(bystander)).as("someone else's session stays").isEqualTo(200);
+        assertThat(browserIdentifiers(bystander)).as("someone else's browser identifier stays").isEqualTo(1);
+        assertOldLoginClosed(old, person);
     }
 
     @Test
@@ -145,13 +191,13 @@ class EmployeeWecomRebindIT extends EmployeeHireSupport {
         Staff admin = staff("super_admin");
         String own = wecomOf(hr);
 
-        assertRefusedUnchanged(hr, hr.employeeId(), "Synthetic moved away", syntheticWecom("moved-away"));
-        assertRefusedUnchanged(hr, admin.employeeId(), "Synthetic takeover", own);
-        assertRefusedUnchanged(hr, admin.employeeId(), "Synthetic takeover", null);
+        assertRefusedUnchanged(hr, hr, "Synthetic moved away", syntheticWecom("moved-away"));
+        assertRefusedUnchanged(hr, admin, "Synthetic takeover", own);
+        assertRefusedUnchanged(hr, admin, "Synthetic takeover", null);
 
         Staff accomplice = staff(PERSONNEL_SPECIALIST_ROLE);
-        assertRefusedUnchanged(accomplice, hr.employeeId(), "Synthetic moved by accomplice", syntheticWecom("moved-by-accomplice"));
-        assertRefusedUnchanged(accomplice, hr.employeeId(), "Synthetic cleared by accomplice", null);
+        assertRefusedUnchanged(accomplice, hr, "Synthetic moved by accomplice", syntheticWecom("moved-by-accomplice"));
+        assertRefusedUnchanged(accomplice, hr, "Synthetic cleared by accomplice", null);
 
         assertThat(signInWith(wecomCodeOf(own), hr.employeeId()).userId()).as("the specialist's WeCom login opens only their own account").isEqualTo(hr.userId());
     }
@@ -177,13 +223,15 @@ class EmployeeWecomRebindIT extends EmployeeHireSupport {
     }
 
     /**
-     * The change by this caller is refused; the root, the employee's session and browser identifiers and the audit stay as they were.
-     * The refusal is returned.
+     * The change by this caller of the target's profile is refused; the target's root, session and browser identifiers, the caller's
+     * session and the audit stay as they were. The refusal is returned.
      */
-    private Throwable assertRefusedUnchanged(Staff caller, UUID person, String displayName, String wecomUserId) throws Exception {
+    private Throwable assertRefusedUnchanged(Staff caller, Staff target, String displayName, String wecomUserId) throws Exception {
+        browserIdentifier(target);
+        UUID person = target.employeeId();
         Map<String, Object> rootBefore = root(person);
         int audited = auditCount(AUDIT_PROFILE_CHANGED);
-        long identifiers = browserIdentifiersOfEmployee(person);
+        long identifiers = browserIdentifiers(target);
         actIn(caller);
 
         Throwable failure = catchThrowable(() -> change(person, displayName, null, null, wecomUserId, TODAY));
@@ -191,9 +239,28 @@ class EmployeeWecomRebindIT extends EmployeeHireSupport {
         assertThat(failure).as("refused").isNotNull();
         assertThat(root(person)).as("the root is unchanged").isEqualTo(rootBefore);
         assertThat(auditCount(AUDIT_PROFILE_CHANGED)).isEqualTo(audited);
-        assertThat(browserIdentifiersOfEmployee(person)).as("no browser identifier revoked").isEqualTo(identifiers);
+        assertThat(profileStatus(target)).as("the target's session stays").isEqualTo(200);
+        assertThat(browserIdentifiers(target)).as("no browser identifier of the target revoked").isEqualTo(identifiers);
         assertThat(profileStatus(caller)).as("the caller's session stays").isEqualTo(200);
         return failure;
+    }
+
+    /** A custom role (no permission codes) made through the role use case by a super_admin in administrator mode; returns its code. */
+    private String customRole() throws Exception {
+        Staff administrator = staff("super_admin");
+        String code = "wecom_custom_" + UUID.randomUUID().toString().substring(0, 8);
+        MockHttpServletResponse created = mvc.perform(post("/api/v1/platform/roles").with(csrf()).with(session(administratorMode(administrator.session())))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"" + code + "\",\"name\":\"Synthetic custom " + code + "\",\"enabled\":true,\"accessScope\":\"SELF\",\"permissionCodes\":[]}"))
+                .andReturn().getResponse();
+        assertThat(created.getStatus()).as(created.getContentAsString()).isEqualTo(201);
+        return code;
+    }
+
+    private void assertOldLoginClosed(String oldWecomUserId, Staff person) throws Exception {
+        MockHttpServletResponse oldLogin = wecomLogin(wecomCodeOf(oldWecomUserId));
+        assertThat(oldLogin.getStatus() != 200 || !text(person.userId()).equals(String.valueOf(JsonPath.read(oldLogin.getContentAsString(), "$.userId"))))
+                .as("the old WeCom user id no longer opens the account: " + oldLogin.getStatus()).isTrue();
     }
 
     private ErrorCode errorOf(ThrowingRunnable call) throws Exception {
@@ -227,15 +294,5 @@ class EmployeeWecomRebindIT extends EmployeeHireSupport {
         try (Connection identity = schemaConnection("platform_identity")) {
             return (long) query(identity, "select count(*) as n from browser_identifiers where user_id = ?", who.userId()).get(0).get("n");
         }
-    }
-
-    private long browserIdentifiersOfEmployee(UUID employee) throws Exception {
-        long total = 0;
-        for (UUID account : accountsOfEmployee(employee)) {
-            try (Connection identity = schemaConnection("platform_identity")) {
-                total += (long) query(identity, "select count(*) as n from browser_identifiers where user_id = ?", account).get(0).get("n");
-            }
-        }
-        return total;
     }
 }
