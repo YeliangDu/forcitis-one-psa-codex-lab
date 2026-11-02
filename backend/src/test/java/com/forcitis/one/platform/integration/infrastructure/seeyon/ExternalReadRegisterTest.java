@@ -79,13 +79,15 @@ class ExternalReadRegisterTest {
     }
 
     @Test
-    @DisplayName("R-1b-0 外部读取登记守护自检：缺字段、未知字段、非法用途（含 RECONCILIATION）、非法库与对象、敏感列登记为 INTERNAL、跨行的行都被报出")
+    @DisplayName("R-1b-0 外部读取登记守护自检：缺字段、未知字段、非法用途（含 RECONCILIATION）、非法库与对象、敏感列登记为 INTERNAL、个人信息列登记为 PUBLIC、跨行的行都被报出")
     void injectedBadRowsAreFound() throws IOException {
         List<String> lines = new ArrayList<>(List.of("databases: [a8_db]", "columns:",
                 "  - { database: a8_db, object: dbo.ORG_UNIT, column: TYPE, source: dbo.ORG_UNIT.TYPE, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }",
                 "  - { database: a8_db, object: dbo.ORG_UNIT, column: CODE, source: dbo.ORG_UNIT.CODE, category: ORG_UNIT, sensitivity: INTERNAL }",
                 "  - { database: a8_db, object: dbo.ORG_UNIT, column: NAME, source: dbo.ORG_UNIT.NAME, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RECONCILIATION }",
                 "  - { database: a8_db, object: dbo.ORG_MEMBER, column: EMAIL, source: dbo.ORG_MEMBER.EMAIL, category: EMPLOYEE, sensitivity: INTERNAL, purpose: MIGRATION }",
+                "  - { database: a8_db, object: dbo.ORG_MEMBER, column: MOBILE, source: dbo.ORG_MEMBER.MOBILE, category: EMPLOYEE, sensitivity: INTERNAL, purpose: MIGRATION }",
+                "  - { database: a8_db, object: dbo.ORG_MEMBER, column: GENDER, source: dbo.ORG_MEMBER.GENDER, category: EMPLOYEE, sensitivity: PUBLIC, purpose: MIGRATION }",
                 "  - { database: other_db, object: ORG_UNIT, column: ID, source: ORG_UNIT.ID, category: 财务, sensitivity: SECRET, purpose: MIGRATION_TIE_OUT, note: x }"));
 
         List<Row> rows = ExternalReadRegister.rows(lines);
@@ -96,9 +98,11 @@ class ExternalReadRegisterTest {
         assertThat(ExternalReadRegister.problems(rows.get(0), databases)).isEmpty();
         assertThat(problems).anyMatch(p -> p.contains(":4 lacks purpose"));
         assertThat(problems).anyMatch(p -> p.contains(":5 purpose RECONCILIATION"));
-        assertThat(problems).anyMatch(p -> p.contains(":6 column EMAIL looks sensitive"));
-        assertThat(problems).anyMatch(p -> p.contains(":7 has unknown fields [note]"));
-        List<String> sixth = ExternalReadRegister.problems(new Row(7, Map.<String, Object>of("database", "other_db", "object", "ORG_UNIT", "column", "ID",
+        assertThat(problems).noneMatch(p -> p.contains(":6 "));
+        assertThat(problems).anyMatch(p -> p.contains(":7 column MOBILE looks sensitive"));
+        assertThat(problems).anyMatch(p -> p.contains(":8 column GENDER looks personal"));
+        assertThat(problems).anyMatch(p -> p.contains(":9 has unknown fields [note]"));
+        List<String> sixth = ExternalReadRegister.problems(new Row(9, Map.<String, Object>of("database", "other_db", "object", "ORG_UNIT", "column", "ID",
                 "source", "ORG_UNIT.ID", "category", "财务", "sensitivity", "SECRET", "purpose", "MIGRATION_TIE_OUT")), databases);
         assertThatThrownBy(() -> ExternalReadRegister.databases(List.of("columns: []"))).hasMessageContaining("no databases list");
         assertThat(sixth).anyMatch(p -> p.contains("database other_db")).anyMatch(p -> p.contains("object ORG_UNIT"))
@@ -155,14 +159,18 @@ class ExternalReadRegisterTest {
     }
 
     @Test
-    @DisplayName("R-1b-0 登记的个人信息列与落到的自有列敏感级别一致（data-classification.txt）")
+    @DisplayName("R-1b-0 登记的个人信息列与落到的自有列访问级别一致、且自有列带个人信息标记（data-classification.txt，ADR-0043 两维）")
     void sensitivityMatchesTheOwnColumns() throws IOException {
         Map<String, List<String>> levels = new TreeMap<>();
+        Map<String, String> marks = new TreeMap<>();
         for (String line : Files.readAllLines(CLASSIFICATION)) {
             String[] f = line.split("\\|");
             if (!line.startsWith("#") && f.length >= 2) {
                 String column = f[0].trim();
                 levels.computeIfAbsent(column.substring(column.indexOf('.') + 1), k -> new ArrayList<>()).add(f[1].trim());
+                if (f.length >= 3) {
+                    marks.put(column.substring(column.indexOf('.') + 1), f[2].trim());
+                }
             }
         }
         Map<String, String> registered = new TreeMap<>();
@@ -172,6 +180,7 @@ class ExternalReadRegisterTest {
             assertThat(levels.get(own)).as("own column %s is classified once", own).hasSize(1);
             assertThat(registered).as("%s is registered", read).containsKey(read);
             assertThat(registered.get(read)).as("%s lands in %s", read, own).isEqualTo(levels.get(own).getFirst());
+            assertThat(marks.get(own)).as("%s lands in %s, which must carry the personal-information mark", read, own).isIn("PI", "SPI");
         });
     }
 
