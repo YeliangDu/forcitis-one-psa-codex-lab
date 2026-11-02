@@ -36,17 +36,12 @@ groups:
         annotations:
           summary: 出站投递（企业微信卡片）进入死信
 
-      # 3 组织同步延迟或中止（P2）：超过 2 个周期（10 分钟）无成功，或缩水保护挂起
-      - alert: OneWorkforceSyncLagging
-        expr: max(forcitis_organization_workforce_sync_lag_seconds) > 600
-        labels: { severity: P2, channel: ONE_ALERT_P2 }
-        annotations:
-          summary: 组织同步超过 10 分钟没有成功
+      # 3 组织同步挂起（P2）：同步已不再被调度（#961），不再有「延迟」告警；只在存在被缩水保护扣留的运行时告警，处置见 docs/ops/infra-runbook.md「HELD 运行」
       - alert: OneWorkforceSyncHeld
         expr: max(forcitis_organization_workforce_sync_held_runs) > 0
         labels: { severity: P2, channel: ONE_ALERT_P2 }
         annotations:
-          summary: 组织同步被缩水保护挂起，等待组织数据管理员放行
+          summary: 存在被缩水保护扣留（HELD）的组织同步运行，须按运维手册处置
 
       # 4 作业失败（P3，只进看板与 P2 群汇总）：Spring 定时任务观测；Flowable 死信任务数暂无指标（CROSSCHECK 第 13 条）
       - alert: OneScheduledTaskFailed
