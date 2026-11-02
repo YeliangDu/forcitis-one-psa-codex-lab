@@ -1,8 +1,10 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeAccountAccess;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.ChangeEmployeeProfile;
@@ -17,6 +19,7 @@ import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Objects;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,10 +35,15 @@ class EmployeeProfileService implements EmployeeProfiles {
     private final PersonnelCommandRepository employees;
     private final AuditLog audit;
     private final CurrentUser currentUser;
+    private final AccountEmployees accountEmployees;
+    private final EmployeeAccountAccess access;
     private final Clock clock;
     private final BusinessZone zone;
 
-    EmployeeProfileService(PersonnelCommandRepository employees, AuditLog audit, CurrentUser currentUser, Clock clock, BusinessZone zone) {
+    EmployeeProfileService(PersonnelCommandRepository employees, AuditLog audit, CurrentUser currentUser, AccountEmployees accountEmployees, EmployeeAccountAccess access,
+                           Clock clock, BusinessZone zone) {
+        this.accountEmployees = accountEmployees;
+        this.access = access;
         this.employees = employees;
         this.audit = audit;
         this.currentUser = currentUser;
@@ -54,6 +62,9 @@ class EmployeeProfileService implements EmployeeProfiles {
                     "a profile change takes effect at once; a later effective date is refused");
         }
         UserId by = currentUser.userId();
+        if (accountEmployees.employeeOf(by).filter(request.employeeId()::equals).isPresent()) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_OWN_PROFILE_CHANGE_FORBIDDEN, ErrorKind.FORBIDDEN, "nobody changes their own employee record");
+        }
         if (!employees.lockEmployee(request.employeeId())) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_NOT_FOUND, ErrorKind.NOT_FOUND, "no such employee");
         }
@@ -63,10 +74,19 @@ class EmployeeProfileService implements EmployeeProfiles {
         if (change == null) {
             return;
         }
-        if (after.wecomUserId() != null && !after.wecomUserId().equals(before.wecomUserId()) && employees.wecomUserIdHeld(after.wecomUserId(), request.employeeId())) {
+        boolean wecomChanged = !Objects.equals(after.wecomUserId(), before.wecomUserId());
+        // The WeCom user id is the login binding: moving or clearing one that is set, on an account with a role beyond employee, needs a second person (a later card); until then it is refused.
+        if (wecomChanged && before.wecomUserId() != null && !access.holdsOnlyEmployeeRole(request.employeeId())) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_WECOM_USER_ID_CHANGE_NOT_ALLOWED, ErrorKind.FORBIDDEN,
+                    "the WeCom user id of an account with a role beyond employee is not changed by one person");
+        }
+        if (after.wecomUserId() != null && wecomChanged && employees.wecomUserIdHeld(after.wecomUserId(), request.employeeId())) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_WECOM_USER_ID_TAKEN, ErrorKind.UNPROCESSABLE, "the WeCom user id belongs to another employee");
         }
         employees.updateProfile(request.employeeId(), after, now);
+        if (wecomChanged) {
+            access.revokeSessions(request.employeeId());
+        }
         audit.record(new AuditEntry("organization.workforce.employee-profile.changed", by, null, AuditSubject.of(AuditSubjectKind.EMPLOYEE, request.employeeId().value()), "profile changed")
                 .withChange("profile change", change.beforeText(), change.afterText()));
     }

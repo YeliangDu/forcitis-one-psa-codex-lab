@@ -660,6 +660,36 @@ terms:
   forbidden: []
   status: proposed
   note: 入职建员工并可改档案（#959）
+- id: error__organization_workforce_wecom_user_id_change_not_allowed
+  zh: 企业微信账号不允许一人改动
+  en: OrganizationWorkforceWecomUserIdChangeNotAllowed
+  snake: organization_workforce_wecom_user_id_change_not_allowed
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 账号持有普通员工以外角色的员工，其已有的企业微信账号改绑或清空须两人经办，目前一律拒收（403）
+  standard_ref:
+  - 用户决定 2026-11-02（企业微信账号改绑防冒用）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 入职建员工并可改档案（#959）
+- id: error__organization_workforce_own_profile_change_forbidden
+  zh: 不能修改本人档案
+  en: OrganizationWorkforceOwnProfileChangeForbidden
+  snake: organization_workforce_own_profile_change_forbidden
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 任何人不得修改自己的员工档案（403）
+  standard_ref:
+  - 用户决定 2026-11-02（企业微信账号改绑防冒用）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 入职建员工并可改档案（#959）
 common_words:
 - listed
 - lookup
