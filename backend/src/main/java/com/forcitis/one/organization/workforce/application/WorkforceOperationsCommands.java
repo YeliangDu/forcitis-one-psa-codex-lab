@@ -20,8 +20,9 @@ import org.springframework.stereotype.Component;
 /**
  * The one-shot operations commands of workforce: {@code release-separation-hold} (ADR-0068 item 2.4), the release of a held separation when no
  * available super administrator would remain, needs --separation-hold-id, --reason, --operator and a different --witness; {@code migrate-initial-versions}
- * (#960), the one-time migration of the sync snapshot into the version tables, needs only --operator and --witness. The witness is always
- * required. Exit code, as identity's OperationsCommands: 0 done, 1 refused, 2 wrong usage. Runs with the profile workforce-operations.
+ * (#960), the one-time migration of the sync snapshot into the version tables, needs only --operator and --witness; {@code prelaunch-check}
+ * (#961), the read-only go-live check that refuses while a held sync run holds separations, takes no operator or witness. The witness is
+ * otherwise always required. Exit code, as identity's OperationsCommands: 0 done, 1 refused, 2 wrong usage. Runs with the profile workforce-operations.
  */
 @Component
 public class WorkforceOperationsCommands {
@@ -29,6 +30,7 @@ public class WorkforceOperationsCommands {
     static final String OPERATION = "operation";
     static final String RELEASE_SEPARATION_HOLD = "release-separation-hold";
     static final String MIGRATE_INITIAL_VERSIONS = "migrate-initial-versions";
+    static final String PRELAUNCH_CHECK = "prelaunch-check";
     static final String HOLD_ID = "separation-hold-id";
     static final String REASON = "reason";
     static final String OPERATOR = "operator";
@@ -38,13 +40,15 @@ public class WorkforceOperationsCommands {
 
     private final ReleaseSeparationHoldByOperations releaseHold;
     private final MigrateInitialVersions migrateVersions;
+    private final PrelaunchCheck prelaunchCheck;
     private final EmployeeExistence employees;
     private final AuditPartitions auditPartitions;
     private final Clock clock;
 
-    WorkforceOperationsCommands(ReleaseSeparationHoldByOperations releaseHold, MigrateInitialVersions migrateVersions, EmployeeExistence employees, AuditPartitions auditPartitions, Clock clock) {
+    WorkforceOperationsCommands(ReleaseSeparationHoldByOperations releaseHold, MigrateInitialVersions migrateVersions, PrelaunchCheck prelaunchCheck, EmployeeExistence employees, AuditPartitions auditPartitions, Clock clock) {
         this.releaseHold = releaseHold;
         this.migrateVersions = migrateVersions;
+        this.prelaunchCheck = prelaunchCheck;
         this.employees = employees;
         this.auditPartitions = auditPartitions;
         this.clock = clock;
@@ -52,11 +56,14 @@ public class WorkforceOperationsCommands {
 
     public int run(ApplicationArguments arguments, PrintStream out, PrintStream err) {
         String operation = single(arguments, OPERATION);
+        if (PRELAUNCH_CHECK.equals(operation)) {
+            return prelaunch(arguments, out, err);
+        }
         boolean release = RELEASE_SEPARATION_HOLD.equals(operation);
         if (!release && !MIGRATE_INITIAL_VERSIONS.equals(operation)) {
             err.println("usage: --operation=" + RELEASE_SEPARATION_HOLD + " --" + HOLD_ID + "=<id> --" + REASON + "=<text> --" + OPERATOR
                     + "=<employee id> --" + WITNESS + "=<employee id>   or   --operation=" + MIGRATE_INITIAL_VERSIONS + " --" + OPERATOR
-                    + "=<employee id> --" + WITNESS + "=<employee id>");
+                    + "=<employee id> --" + WITNESS + "=<employee id>   or   --operation=" + PRELAUNCH_CHECK);
             return 2;
         }
         try (WorkContext.Scope scope = WorkContext.enter(Uuids.timeOrdered(clock), null, "organization.workforce.operations")) {
@@ -93,14 +100,33 @@ public class WorkforceOperationsCommands {
         }
     }
 
+    private int prelaunch(ApplicationArguments arguments, PrintStream out, PrintStream err) {
+        try {
+            rejectUnknownOptions(arguments, false, Set.of(OPERATION));
+        } catch (IllegalArgumentException wrongUsage) {
+            err.println("wrong usage: " + wrongUsage.getMessage());
+            return 2;
+        }
+        var refusals = prelaunchCheck.refusals();
+        if (refusals.isEmpty()) {
+            out.println("pre-launch check passed: no HELD sync run holds separations");
+            return 0;
+        }
+        refusals.forEach(line -> err.println("refused: " + line));
+        return 1;
+    }
+
     /** A misspelt own option must not read as an absent witness; configuration options (dotted or environment-style names) are Spring's and pass. */
     private static void rejectUnknownOptions(ApplicationArguments arguments, boolean release) {
+        rejectUnknownOptions(arguments, release, release ? OWN_OPTIONS : MIGRATE_OPTIONS);
+    }
+
+    private static void rejectUnknownOptions(ApplicationArguments arguments, boolean release, Set<String> own) {
         if (!arguments.getNonOptionArgs().isEmpty()) {
             throw new IllegalArgumentException("unexpected argument; options are written --name=value");
         }
         for (String name : arguments.getOptionNames()) {
             boolean configuration = name.contains(".") || name.matches("[A-Z][A-Z0-9_]*");
-            Set<String> own = release ? OWN_OPTIONS : MIGRATE_OPTIONS;
             if (!own.contains(name) && (!configuration || OWN_OPTIONS.contains(name.toLowerCase(Locale.ROOT).replace('_', '-')))) {
                 throw new IllegalArgumentException("unknown option --" + name);
             }

@@ -141,9 +141,11 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
         accessCache.evictAll();
         assertThat(roles(1001)).as("fixture: employee, super_admin, security_auditor, org_data_admin").isEqualTo(4);
 
+        long grantRows = count("account_role_grants");
         deliver(separated(1001, LocalDate.of(2026, 10, 15)));
 
         await().atMost(DELIVERY).untilAsserted(() -> assertThat(roles(1001)).isZero());
+        assertThat(count("account_role_grants")).as("closed, never deleted: the grant total is unchanged").isEqualTo(grantRows);
         await().atMost(DELIVERY).untilAsserted(() -> assertThat(domainEvents.of(EmergencyAdminDisabled.class)).hasSize(1));
         await().atMost(DELIVERY).untilAsserted(() -> assertThat(browserIdentifiers(1001)).isZero());
         assertThat(recorded()).filteredOn(e -> e.action().equals(ROLE_REVOKED)).extracting(e -> e.detail().replaceAll("^grant=\\S+ (role=\\S+ cause=SEPARATION) at=\\S+$", "$1")).containsExactlyInAnyOrder(
