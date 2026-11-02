@@ -116,6 +116,12 @@ class AccountGrants {
         return changes;
     }
 
+    /** The audit entry of one disable, written in the transaction of the act; the notice card names it as its trigger. */
+    AuditEntryId recordDisabled(UserId by, UserId account) {
+        return audit.record(new AuditEntry("platform.identity.account.disabled", by, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, account.value()),
+                "the account was disabled"));
+    }
+
     /** The named grant row, the cause or channel and the actual clock. */
     private String text(AccountRoleGrantId grant, RoleCode role, String how) {
         return "grant=" + grant + " role=" + role.value() + " " + how + " at=" + clock.instant();

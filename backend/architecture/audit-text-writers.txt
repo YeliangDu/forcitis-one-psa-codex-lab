@@ -25,9 +25,8 @@ src/main/java/com/forcitis/one/platform/audit/application/ExportAuditEntries.jav
 src/main/java/com/forcitis/one/platform/audit/application/SearchAuditEntries.java | 1 | 8 | SURROGATE
 src/main/java/com/forcitis/one/platform/file/infrastructure/audit/BindingAuditLog.java | 5 | 23 | SURROGATE
 src/main/java/com/forcitis/one/platform/file/infrastructure/audit/StoreAuditLog.java | 6 | 22 | POSSIBLE
-src/main/java/com/forcitis/one/platform/identity/application/AccountGrants.java | 2 | 1 | NONE
+src/main/java/com/forcitis/one/platform/identity/application/AccountGrants.java | 3 | 1 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/BrowserIdentity.java | 2 | 11 | SURROGATE
-src/main/java/com/forcitis/one/platform/identity/application/ChangeAccountStatus.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/ConfirmIdentity.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/CreateRole.java | 1 | 1,4 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/DeleteRole.java | 1 | 1 | NONE
@@ -37,7 +36,6 @@ src/main/java/com/forcitis/one/platform/identity/application/EnterAdministratorM
 src/main/java/com/forcitis/one/platform/identity/application/ExitAdministratorMode.java | 1 | 2 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/ForceUserLogout.java | 1 | 16 | POSSIBLE
 src/main/java/com/forcitis/one/platform/identity/application/GrantRoleByOperations.java | 1 | 15 | SURROGATE
-src/main/java/com/forcitis/one/platform/identity/application/HandleEmployeeSeparated.java | 1 | 5 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/LoginAdmission.java | 3 | 4,10,12,13 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/Logout.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/PurgeExpiredSessions.java | 1 | 4 | NONE

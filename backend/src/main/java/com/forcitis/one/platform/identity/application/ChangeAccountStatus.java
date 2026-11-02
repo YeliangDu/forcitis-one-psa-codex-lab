@@ -4,11 +4,7 @@ import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
-import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditEntryId;
-import com.forcitis.one.platform.audit.api.AuditLog;
-import com.forcitis.one.platform.audit.api.AuditSubject;
-import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.AdministratorFloor;
@@ -34,11 +30,11 @@ public class ChangeAccountStatus {
     private final RevokeBrowserIdentifiers revokeBrowserIdentifiers;
     private final AdministratorFloor floor;
     private final AdministratorFloorNotice notice;
-    private final AuditLog audit;
+    private final AccountGrants grants;
     private final CurrentUser currentUser;
 
     ChangeAccountStatus(AccountRepository accounts, SessionRevocation revocation, AccessCache cache, DomainEvents events,
-            RevokeBrowserIdentifiers revokeBrowserIdentifiers, AdministratorFloor floor, AdministratorFloorNotice notice, AuditLog audit,
+            RevokeBrowserIdentifiers revokeBrowserIdentifiers, AdministratorFloor floor, AdministratorFloorNotice notice, AccountGrants grants,
             CurrentUser currentUser) {
         this.revokeBrowserIdentifiers = revokeBrowserIdentifiers;
         this.accounts = accounts;
@@ -47,7 +43,7 @@ public class ChangeAccountStatus {
         this.events = events;
         this.floor = floor;
         this.notice = notice;
-        this.audit = audit;
+        this.grants = grants;
         this.currentUser = currentUser;
     }
 
@@ -71,12 +67,11 @@ public class ChangeAccountStatus {
                 if (open.stream().anyMatch(grant -> grant.roleCode().equals(Role.SUPER_ADMIN) || grant.roleCode().equals(Role.SECURITY_AUDITOR))) {
                     judgement = floor.judge(userId, open.stream().anyMatch(grant -> grant.roleCode().equals(Role.SUPER_ADMIN)));
                 }
-                disabledEntry = audit.record(new AuditEntry("platform.identity.account.disabled", currentUser.userId(), null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
-                        "the account was disabled"));
+                disabledEntry = grants.recordDisabled(currentUser.userId(), userId);
             }
             accounts.save(account);
             events.publish(account);
-            if (judgement.needsNotice()) {
+            if (judgement.noticeDue()) {
                 notice.accountDisabled(userId, disabledEntry, judgement.noticeTo(), currentUser.userId());
             }
         }

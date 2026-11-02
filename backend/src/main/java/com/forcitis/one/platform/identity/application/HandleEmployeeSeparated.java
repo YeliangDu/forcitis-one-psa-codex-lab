@@ -7,11 +7,6 @@ import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
-import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditLog;
-import com.forcitis.one.platform.audit.api.AuditOutcome;
-import com.forcitis.one.platform.audit.api.AuditSubject;
-import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import java.util.Set;
 import org.springframework.modulith.events.ApplicationModuleListener;
@@ -33,21 +28,19 @@ class HandleEmployeeSeparated {
     private final AccountRepository accounts;
     private final AccountGrants grants;
     private final DomainEvents events;
-    private final SessionRegistry sessions;
+    private final SessionRevocation revocation;
     private final RevokeBrowserIdentifiers revokeBrowserIdentifiers;
     private final AccessCache cache;
-    private final AuditLog audit;
 
-    HandleEmployeeSeparated(AccountEmployees accountEmployees, AccountRepository accounts, AccountGrants grants, DomainEvents events, SessionRegistry sessions,
-            RevokeBrowserIdentifiers revokeBrowserIdentifiers, AccessCache cache, AuditLog audit) {
+    HandleEmployeeSeparated(AccountEmployees accountEmployees, AccountRepository accounts, AccountGrants grants, DomainEvents events, SessionRevocation revocation,
+            RevokeBrowserIdentifiers revokeBrowserIdentifiers, AccessCache cache) {
         this.accountEmployees = accountEmployees;
         this.accounts = accounts;
         this.grants = grants;
         this.events = events;
-        this.sessions = sessions;
+        this.revocation = revocation;
         this.revokeBrowserIdentifiers = revokeBrowserIdentifiers;
         this.cache = cache;
-        this.audit = audit;
     }
 
     @ApplicationModuleListener
@@ -66,10 +59,8 @@ class HandleEmployeeSeparated {
                 events.publish(account);
             }
         });
-        sessions.revokeAll(userId);
+        revocation.revokeAll(userId, "separated by personnel command");
         revokeBrowserIdentifiers.execute(userId);
         cache.evict(userId);
-        audit.record(new AuditEntry("platform.identity.session.revoked", null, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
-                "separated by personnel command").withTrace(null, AuditOutcome.SUCCEEDED, null));
     }
 }

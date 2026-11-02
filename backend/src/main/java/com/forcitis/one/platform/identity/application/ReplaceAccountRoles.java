@@ -177,7 +177,7 @@ public class ReplaceAccountRoles {
             events.publish(account);
             revocation.revokeAll(account.userId(), "the roles of the account were replaced");
             cache.evict(account.userId());
-            if (judgement.needsNotice()) {
+            if (judgement.noticeDue()) {
                 HeldGrant about = administratorGrants.getOrDefault(Role.SUPER_ADMIN, administratorGrants.get(Role.SECURITY_AUDITOR));
                 notice.roleRevoked(about.id(), judgement.noticeTo(), currentUser.userId());
             }
