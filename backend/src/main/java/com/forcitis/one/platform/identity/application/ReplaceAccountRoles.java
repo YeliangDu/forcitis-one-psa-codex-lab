@@ -125,7 +125,7 @@ public class ReplaceAccountRoles {
         return new AdminOutcome.Done<>(replace(account, wanted, AccountGrants.Origin.manual(caller, null), null).orElseThrow());
     }
 
-    /** The second person agreed: Done(true) when applied, Done(false) when the base had moved and nothing was applied; applied without the single-person checks, which the confirmation replaces; the floor still applies. The request asked, so it is the one on the rows. */
+    /** The second person agreed: Done(true) when applied, Done(false) when the base had moved (a requested role that no longer exists included) and nothing was applied; applied without the single-person checks, which the confirmation replaces; the floor still applies. The request asked, so it is the one on the rows. */
     @Transactional
     AdminOutcome<Boolean> applyConfirmed(UserId userId, Set<String> roleCodes, AuthorizationRequest request) {
         Optional<UserAccount> found = accounts.find(userId);
@@ -136,7 +136,7 @@ public class ReplaceAccountRoles {
         for (String code : roleCodes) {
             Optional<Role> role = roles.findByCode(new RoleCode(code));
             if (role.isEmpty()) {
-                return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND);
+                return new AdminOutcome.Done<>(false);
             }
             wanted.add(role.get());
         }

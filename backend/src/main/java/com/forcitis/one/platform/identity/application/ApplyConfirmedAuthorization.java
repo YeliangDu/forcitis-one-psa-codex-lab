@@ -46,7 +46,11 @@ class ApplyConfirmedAuthorization {
             if (request.status() != AuthorizationRequestStatus.CONFIRMED) {
                 return;
             }
-            if (request.kind() == AuthorizationRequestKind.REPLACE_ROLES || roles.versionWrittenBy(request.requestId())) {
+            if (request.kind() == AuthorizationRequestKind.REPLACE_ROLES) {
+                return;
+            }
+            voiding.lockBase(request);
+            if (roles.versionWrittenBy(request.requestId())) {
                 return;
             }
             if (voiding.moved(request, null)) {

@@ -24,6 +24,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -184,7 +185,7 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
     private static AuthorizationBase base(ResultSet rs) throws SQLException {
         Long account = (Long) rs.getObject("base_account_version_number");
         Array roles = rs.getArray("base_role_version_ids");
-        List<RoleVersionId> versions = roles == null ? List.of() : java.util.Arrays.stream((UUID[]) roles.getArray()).map(RoleVersionId::new).toList();
+        List<RoleVersionId> versions = roles == null ? List.of() : Arrays.stream((UUID[]) roles.getArray()).map(RoleVersionId::new).toList();
         return new AuthorizationBase(account, versions);
     }
 

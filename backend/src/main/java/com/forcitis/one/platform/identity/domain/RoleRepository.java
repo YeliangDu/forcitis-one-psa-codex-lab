@@ -27,7 +27,7 @@ public interface RoleRepository {
     Set<RoleVersionId> currentVersions(Collection<RoleVersionId> versions);
 
     /**
-     * Locks the role rows the versions belong to, in role id order (FOR UPDATE when the caller is about to write them, else FOR SHARE), so what
+     * Locks the role rows the versions belong to, in creation order (created_at, then role id) (FOR UPDATE when the caller is about to write them, else FOR SHARE), so what
      * {@link #currentVersions} reads next cannot change before the transaction ends.
      */
     void lockRolesOf(Collection<RoleVersionId> versions, boolean forWrite);

@@ -5,6 +5,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.forcitis.one.fixture.doubles.TestAccounts;
@@ -47,14 +48,19 @@ class ApplyConfirmedAuthorizationTest {
     final AuthorizationVoiding voiding = new AuthorizationVoiding(roles, mock(com.forcitis.one.platform.audit.api.AuditLog.class));
     final ApplyConfirmedAuthorization listener = new ApplyConfirmedAuthorization(requests, createRole, updateRole, voiding, roles, events);
 
-    private AuthorizationRequest confirmedRoleChange() {
+    private AuthorizationRequest pendingRoleChange() {
         RoleId role = new RoleId(UUID.randomUUID());
         AuthorizationRequest request = AuthorizationRequest.updateRole(new AuthorizationRequestId(UUID.randomUUID()), REQUESTER, Instant.parse("2026-11-02T08:00:00Z"),
                 role, new RoleDraft("synthetic", "Synthetic", true, AccessScopeKind.ALL, Set.of("platform.approval:task:read"), Set.of()),
                 new AuthorizationBase(null, List.of(BASE_VERSION)));
+        when(requests.find(request.requestId())).thenReturn(Optional.of(request));
+        return request;
+    }
+
+    private AuthorizationRequest confirmedRoleChange() {
+        AuthorizationRequest request = pendingRoleChange();
         request.confirm(CONFIRMER, Instant.parse("2026-11-02T08:01:00Z"));
         request.drainEvents(TestEnvelopes.INSTANCE);
-        when(requests.find(request.requestId())).thenReturn(Optional.of(request));
         return request;
     }
 
@@ -72,9 +78,28 @@ class ApplyConfirmedAuthorizationTest {
 
         deliver(request);
 
-        verify(requests, never()).save(any());
+        verify(roles).lockRolesOf(List.of(BASE_VERSION), true);
+        verify(roles).versionWrittenBy(request.requestId());
+        verifyNoMoreInteractions(roles);
+        verify(requests).find(request.requestId());
+        verifyNoMoreInteractions(requests);
         verifyNoInteractions(events, updateRole, createRole);
-        verify(roles, never()).currentVersions(any());
+    }
+
+    @Test
+    @DisplayName("a request that is already VOIDED or REJECTED when the confirmation is delivered again is left alone: nothing locked, saved, published or applied")
+    void aRequestThatIsNoLongerConfirmedIsLeftAlone() {
+        AuthorizationRequest voided = confirmedRoleChange();
+        voided.markVoided();
+        AuthorizationRequest rejected = pendingRoleChange();
+        rejected.reject(CONFIRMER, Instant.parse("2026-11-02T08:01:00Z"));
+        rejected.drainEvents(TestEnvelopes.INSTANCE);
+
+        deliver(voided);
+        deliver(rejected);
+
+        verifyNoInteractions(roles, events, updateRole, createRole);
+        verify(requests, never()).save(any());
     }
 
     @Test
@@ -87,6 +112,7 @@ class ApplyConfirmedAuthorizationTest {
 
         InOrder order = Mockito.inOrder(roles, updateRole);
         order.verify(roles).lockRolesOf(List.of(BASE_VERSION), true);
+        order.verify(roles).versionWrittenBy(request.requestId());
         order.verify(roles).currentVersions(List.of(BASE_VERSION));
         order.verify(updateRole).applyConfirmed(any(), any(), any(), any());
     }
