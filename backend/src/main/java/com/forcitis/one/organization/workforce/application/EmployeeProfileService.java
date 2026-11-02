@@ -74,6 +74,9 @@ class EmployeeProfileService implements EmployeeProfiles {
         if (change == null) {
             return;
         }
+        if (!AuditEntry.acceptsText(change.beforeText()) || !AuditEntry.acceptsText(change.afterText())) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_PROFILE_INVALID, ErrorKind.UNPROCESSABLE, "the profile text is too long or looks like a secret");
+        }
         boolean wecomChanged = !Objects.equals(after.wecomUserId(), before.wecomUserId());
         // The WeCom user id is the login binding: moving or clearing one that is set, on an account with a role beyond employee, needs a second person (a later card); until then it is refused.
         if (wecomChanged && before.wecomUserId() != null && !access.holdsOnlyEmployeeRole(request.employeeId())) {
