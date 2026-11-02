@@ -89,10 +89,10 @@ class AdministratorSeparationReview implements SeparationReview {
                     .filter(employee -> {
                         if (separating.contains(employee) && !separatingDay.equals(today)) {
                             return directory.employmentOn(employee, separatingDay).map(status -> status == EmploymentStatus.EMPLOYED).orElse(false)
-                                    && !directory.isOnUnpaidLeave(employee, separatingDay);
+                                    && !directory.availabilityOn(employee, separatingDay).onUnpaidLeave();
                         }
                         return directory.findEmployee(employee).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false)
-                                && !directory.isOnUnpaidLeave(employee, today);
+                                && !directory.availabilityOn(employee, today).onUnpaidLeave();
                     })
                     .ifPresent(usable::add);
         }

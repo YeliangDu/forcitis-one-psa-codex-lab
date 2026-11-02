@@ -215,7 +215,7 @@ public abstract class IdentityIntegrationTest {
         jdbc.sql("delete from platform_identity.sso_ticket_uses").update();
         jdbc.sql("delete from platform_identity.ticket_issuers").update();
         jdbc.sql("delete from platform_identity.emergency_admins").update();
-        jdbc.sql("delete from platform_identity.account_roles").update();
+        TestRoles.deleteAllGrants(jdbc);
         TestRoles.deleteCustomRoles(jdbc);
         jdbc.sql("delete from platform_identity.user_accounts").update();
     }
@@ -226,6 +226,8 @@ public abstract class IdentityIntegrationTest {
 
     protected EmployeeProfile knownEmployee(long id, EmploymentStatus status) {
         EmployeeProfile profile = profile(id, status);
+        when(orgDirectory.availabilityOn(org.mockito.ArgumentMatchers.eq(profile.employeeId()), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(com.forcitis.one.organization.workforce.api.Availability.AVAILABLE);
         when(orgDirectory.findEmployee(profile.employeeId())).thenReturn(Optional.of(profile));
         when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByWecomUser(profile.wecomUserId()))).thenReturn(Optional.of(profile));
         when(orgDirectory.employmentOf(profile.employeeId())).thenReturn(status == EmploymentStatus.EMPLOYED
@@ -243,8 +245,9 @@ public abstract class IdentityIntegrationTest {
                 .param("user", TestAccounts.account(id).value()).param("employee", TestAccounts.employee(id).value()).update();
         for (String code : roleCodes) {
             jdbc.sql("""
-                            insert into platform_identity.account_roles (account_role_id, user_id, role_id)
-                            select uuidv7(), a.user_id, r.role_id from platform_identity.user_accounts a, platform_identity.roles r
+                            insert into platform_identity.account_role_grants (account_role_grant_id, user_id, role_id, effective_from_at, grant_channel_kind,
+                                   grant_audit_entry_id, created_at, updated_at)
+                            select uuidv7(), a.user_id, r.role_id, now(), 'OPERATIONS', uuidv7(), now(), now() from platform_identity.user_accounts a, platform_identity.roles r
                              where a.employee_id = :employee and lower(r.code) = lower(:code)
                             on conflict do nothing
                             """)

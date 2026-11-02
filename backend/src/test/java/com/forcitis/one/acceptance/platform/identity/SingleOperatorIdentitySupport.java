@@ -145,14 +145,16 @@ public abstract class SingleOperatorIdentitySupport extends IdentityIntegrationT
 
     boolean holds(long id, String roleCode) {
         return jdbc.sql("""
-                select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id
+                select count(*) from platform_identity.account_role_grants ar join platform_identity.roles r on r.role_id = ar.role_id
                  join platform_identity.user_accounts ua on ua.user_id = ar.user_id where ua.employee_id = :employee and r.code = :code
+                   and ar.effective_to_at is null
                 """).param("employee", TestAccounts.employee(id).value()).param("code", roleCode).query(Long.class).single() == 1;
     }
 
     /** Everything the commands could change in the identity tables. */
     List<Long> identityRows() {
-        return List.of(count("user_accounts"), count("account_roles"), count("emergency_admins"), count("sessions"));
+        return List.of(count("user_accounts"), count("account_role_grants"), jdbc.sql("select count(*) from platform_identity.account_role_grants where effective_to_at is null").query(Long.class).single(),
+                count("emergency_admins"), count("sessions"));
     }
 
     void assertNothingChanged(List<Long> before) {
