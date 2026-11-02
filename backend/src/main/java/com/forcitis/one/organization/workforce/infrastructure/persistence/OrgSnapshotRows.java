@@ -16,7 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
 
-/** The SELECTs and row mappers of the org snapshot: the repository loads the snapshot rows for a sync, the queries browse as of a business day. */
+/** The SELECTs and row mappers of the org snapshot: the repository loads the snapshot rows for the reconciliation, the queries browse as of a business day. */
 final class OrgSnapshotRows {
     private OrgSnapshotRows() {
     }
