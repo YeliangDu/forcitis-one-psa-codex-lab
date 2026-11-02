@@ -153,6 +153,29 @@ class OldSyncRemovedIT {
         assertThat(paths.stream().filter(path -> path.contains("sync-run")).sorted().toList()).as("endpoints under sync-runs").isEmpty();
     }
 
+    static final String RECONCILE_PATH = "/api/v1/organization/org-reconciliations:run";
+    static final String RECONCILE_CODE = "organization.workforce:org-reconciliation:execute";
+
+    @Test
+    @DisplayName("#934 裁定 4：组织对账保留并改名：接口 /api/v1/organization/org-reconciliations:run 存在；权限目录有在用的 organization.workforce:org-reconciliation:execute")
+    void theReconciliationIsKeptUnderItsNewName() {
+        RequestMappingHandlerMapping mapping = context.getBean("requestMappingHandlerMapping", RequestMappingHandlerMapping.class);
+        List<String> paths = new ArrayList<>();
+        for (RequestMappingInfo info : mapping.getHandlerMethods().keySet()) {
+            paths.addAll(info.getPatternValues());
+        }
+        List<String> live = new ArrayList<>();
+        for (Permission permission : Permission.values()) {
+            if (permission.code().equals(RECONCILE_CODE) && !permission.deprecated()) {
+                live.add(permission.code());
+            }
+        }
+
+        assertThat(paths).as("the reconciliation endpoint").contains(RECONCILE_PATH);
+        assertThat(live).as("the reconciliation permission in the catalogue, live").containsExactly(RECONCILE_CODE);
+        // Who holds it (org_data_admin, as the sync run codes it replaces) is pinned by the role declaration's own acceptance, SystemRoleDeclarationIT.
+    }
+
     @Test
     @DisplayName("#934 删除旧同步（ADR-0055 第 6 条撤同步记录权限，ADR-0034 决定 1 第 3 项只标停用不删）：含 sync-run 的权限码已停用、不再可授，Permission.Codes 中不再有含 sync-run 的常量")
     void theSyncRunPermissionsAreRetired() throws IllegalAccessException {

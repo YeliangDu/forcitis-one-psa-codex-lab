@@ -37,10 +37,13 @@ import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P2 (ADR-0033 section 3 item 7, U-4 answered "拒绝并告警"; ADR-0027 section 1 item 3): the employment check of the emergency login
- * finds the employee behind the bound account through identity and then reads the organisation snapshot. A snapshot that works but does
- * not list that employee refuses the login and alerts; a snapshot that is not there at all lets the login through and alerts on top of
- * the usual emergency-login alert. The stale-snapshot case (the source failing for a long time) went with the old sync in #934: with no
- * sync there is no source run whose failures could make the snapshot stale.
+ * finds the employee behind the bound account through identity and then asks workforce whether that employee is employed. A snapshot that
+ * works but does not list that employee refuses the login and alerts.
+ * <p>#934 (lead ruling 2026-11-02 on point 5): after D2 there is no snapshot to be fresh or missing; employment is judged from the employee
+ * versions in force on the business day, so the freshness condition of ADR-0027 section 1 item 3 is obsolete. A person employed by versions
+ * may log in by emergency login, also when the snapshot row says separated; a person separated by versions may not, whatever the snapshot says;
+ * a person with neither versions nor a snapshot row is not listed and is refused (403 PLATFORM_IDENTITY_EMPLOYEE_SEPARATED). The pass-through
+ * when the snapshot is unavailable and the stale-snapshot case went with the old sync; what replaces "unavailable" is the D1 card's.
  * The bound account's id and its employee id differ (the account id is a UUID), so the check has to be made on the employee's side.
  * The emergency account is registered with the operations command; its password and one-time-code secret exist only in this test's memory.
  */
@@ -129,6 +132,8 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
             if (oldSync) {
                 statement.execute("delete from sync_run_held_separations");
             }
+            statement.execute("delete from assignment_versions");
+            statement.execute("delete from employee_versions");
             statement.execute("delete from assignments");
             statement.execute("delete from employees");
             statement.execute("delete from org_units");
@@ -136,6 +141,46 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
                 statement.execute("delete from sync_runs");
             }
         }
+    }
+
+    /** One employee version of the person from the day on: EMPLOYED (regular, fee earner no) or SEPARATED; closed on the day before {@code to} when given. */
+    private void employeeVersion(UUID person, String status, java.time.LocalDate from, java.time.LocalDate to) throws SQLException {
+        boolean employed = "EMPLOYED".equals(status);
+        java.time.OffsetDateTime at = java.time.OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC);
+        try (Connection workforce = schemaConnection("organization_workforce"); java.sql.PreparedStatement insert = workforce.prepareStatement("""
+                insert into employee_versions (employee_version_id, employee_id, effective_from_date, effective_to_date, closed_at, revision_number,
+                  employment_status, employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
+                  change_channel_kind, created_at, updated_at)
+                values (?, ?, ?, ?, ?, 0, ?, ?, false, false, ?, ?, 'MIGRATION', ?, ?)""")) {
+            insert.setObject(1, com.forcitis.one.kernel.Uuids.timeOrdered(NOW));
+            insert.setObject(2, stored(person));
+            insert.setObject(3, from);
+            insert.setObject(4, to);
+            insert.setObject(5, to == null ? null : at);
+            insert.setString(6, status);
+            insert.setString(7, employed ? "REGULAR" : null);
+            insert.setObject(8, employed ? from : null);
+            insert.setString(9, employed ? "LEGACY_HR_RECORD" : null);
+            insert.setObject(10, at);
+            insert.setObject(11, at);
+            insert.executeUpdate();
+        }
+    }
+
+    private String snapshotStatus(UUID person) throws SQLException {
+        try (Connection workforce = schemaConnection("organization_workforce");
+             java.sql.PreparedStatement select = workforce.prepareStatement("select employment_status from employees where id = ?")) {
+            select.setObject(1, stored(person));
+            try (java.sql.ResultSet rs = select.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        }
+    }
+
+    private static String errorCode(MockHttpServletResponse response) throws Exception {
+        String body = response.getContentAsString();
+        Matcher code = Pattern.compile("\"errorCode\"\\s*:\\s*\"([A-Z_]+)\"").matcher(body);
+        return code.find() ? code.group(1) : body;
     }
 
     /** A working snapshot: a run that succeeded a minute ago and a colleague in it. */
@@ -169,7 +214,9 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 7 条 / ADR-0027 第 1 项第 3 条（对照）：快照可用且绑定员工在职 → 放行，进入管理模式")
     void aWorkingSnapshotWithTheBoundEmployeeEmployedLetsThrough() throws Exception {
         UUID unit = workingSnapshot();
-        EmergencyAccount account = boundSuperAdministrator(newEmployeeId(), unit);
+        UUID bound = newEmployeeId();
+        EmergencyAccount account = boundSuperAdministrator(bound, unit);
+        employeeVersion(bound, "EMPLOYED", TODAY.minusYears(1), null);
 
         MockHttpServletResponse login = emergencyLogin(account);
 
@@ -179,24 +226,56 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
     }
 
     @Test
-    @DisplayName("R-1b P2 ADR-0033 第 3 项第 7 条 / ADR-0027 第 1 项第 3 条：快照整体不可用（没有快照、没有成功过的同步）→ 按 ADR-0027 放行，并比正常的应急登录多告警")
-    void noSnapshotAtAllLetsThroughAndAlerts() throws Exception {
+    @DisplayName("#934 裁定 5：既无员工版本、也无快照行的绑定员工 → 查无此人，拒绝应急登录（403 PLATFORM_IDENTITY_EMPLOYEE_SEPARATED），不建会话")
+    void neitherVersionsNorASnapshotRowRefuses() throws Exception {
         UUID unit = workingSnapshot();
         EmergencyAccount account = boundSuperAdministrator(newEmployeeId(), unit);
-        int usualMark = logMark();
-        MockHttpServletResponse usual = emergencyLogin(account);
-        assertThat(usual.getStatus()).as(usual.getContentAsString()).isEqualTo(200);
-        int usualAlerts = alertsSince(usualMark).size();
 
         clearOrgSnapshot();
         clock.set(NOW.plus(Duration.ofSeconds(31)));
-        int mark = logMark();
+        MockHttpServletResponse login = emergencyLogin(account);
+
+        assertThat(login.getStatus()).as(login.getContentAsString()).isEqualTo(403);
+        assertThat(errorCode(login)).isEqualTo("PLATFORM_IDENTITY_EMPLOYEE_SEPARATED");
+        assertThat(startedASession(login)).as("a session was started").isFalse();
+    }
+
+    @Test
+    @DisplayName("#934 裁定 5：按员工版本当天在职、快照却写已离职 → 放行应急登录，进入管理模式")
+    void employedByVersionsLetsThroughWhateverTheSnapshotSays() throws Exception {
+        UUID unit = workingSnapshot();
+        UUID bound = newEmployeeId();
+        EmergencyAccount account = boundSuperAdministrator(bound, unit);
+        employeeVersion(bound, "EMPLOYED", TODAY.minusYears(1), null);
+        try (Connection workforce = schemaConnection("organization_workforce");
+             java.sql.PreparedStatement separate = workforce.prepareStatement("update employees set employment_status = 'SEPARATED', separated_at = ? where id = ?")) {
+            separate.setObject(1, java.time.OffsetDateTime.ofInstant(NOW.minus(Duration.ofDays(1)), java.time.ZoneOffset.UTC));
+            separate.setObject(2, stored(bound));
+            separate.executeUpdate();
+        }
+        assertThat(snapshotStatus(bound)).as("premise: the snapshot row says separated").isEqualTo("SEPARATED");
+
         MockHttpServletResponse login = emergencyLogin(account);
 
         assertThat(login.getStatus()).as(login.getContentAsString()).isEqualTo(200);
         assertThat(startedASession(login)).isTrue();
-        assertThat(alertsSince(mark).size()).as("alerts when the snapshot is missing, against %s for a usual emergency login", usualAlerts)
-                .isGreaterThan(usualAlerts);
+        assertThat(login.getContentAsString()).contains("administratorModeExpiresAt");
+    }
+
+    @Test
+    @DisplayName("#934 裁定 5：按员工版本当天已离职、快照却仍写在职 → 拒绝应急登录，不建会话")
+    void separatedByVersionsRefusesWhateverTheSnapshotSays() throws Exception {
+        UUID unit = workingSnapshot();
+        UUID bound = newEmployeeId();
+        EmergencyAccount account = boundSuperAdministrator(bound, unit);
+        employeeVersion(bound, "EMPLOYED", TODAY.minusYears(1), TODAY.minusDays(1));
+        employeeVersion(bound, "SEPARATED", TODAY.minusDays(1), null);
+        assertThat(snapshotStatus(bound)).as("premise: the snapshot row still says employed").isEqualTo("EMPLOYED");
+
+        MockHttpServletResponse login = emergencyLogin(account);
+
+        assertThat(login.getStatus()).as(login.getContentAsString()).isIn(401, 403);
+        assertThat(startedASession(login)).as("a session was started").isFalse();
     }
 
     /** RFC 6238 as an authenticator app computes it: HMAC-SHA1, 30-second steps, 6 digits. */

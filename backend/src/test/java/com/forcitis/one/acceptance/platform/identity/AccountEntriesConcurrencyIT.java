@@ -52,9 +52,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * the unique constraint. The event is published the way the workforce module publishes it (inside a transaction, delivered after the
  * commit through the event publication registry); a handler that failed would leave its publication incomplete.
  *
- * <p>#934: the fourth entry, the OrgSnapshotChanged handler, went with the old sync. The hire command does not take its place:
- * EmployeeHired opens no account (ADR-0068 item 5 lists the identity listeners on the personnel events: transferred, separated,
- * corrected), so there is no fourth entry to race.
+ * <p>#934: the fourth entry, the OrgSnapshotChanged handler, went with the old sync. Account opening on EmployeeHired is card #1015
+ * with its own acceptance (HireOpensAccountIT), so no fourth entry is pinned here.
  */
 class AccountEntriesConcurrencyIT extends AccountsAcceptanceSupport {
 
