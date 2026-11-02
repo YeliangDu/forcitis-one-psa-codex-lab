@@ -25,9 +25,12 @@ public final class ExternalReadRegister {
     public static final String VIEW_SCHEMA = "forcitis_one";
     public static final String BASE_SCHEMA = "dbo";
 
-    /** DdlNamingTest.SENSITIVE_NAME plus the two identity words of the external sources (login, we_com), on the lower-case column name. */
+    /** Column words of external sources that must be registered SENSITIVE or above, on the lower-case column name; kept as its own list, independent of ClassificationRegister. */
     public static final Pattern SENSITIVE_NAME = Pattern.compile(
-            "(^|_)(password|secret|totp|bank|salary|wage|daily_rate|id_card|identity_number|mobile|phone|email|birth|gender|address|attribute_bytes|login|we_com)(_|$)");
+            "(^|_)(password|secret|totp|bank|salary|wage|daily_rate|id_card|identity_number|mobile|phone|birth|address|attribute_bytes|login)(_|$)");
+
+    /** Personal-data words that ADR-0043 D-6 puts at L2: registered INTERNAL or above (the PI mark is held by the own column, see ExternalReadRegisterTest). */
+    public static final Pattern PERSONAL_NAME = Pattern.compile("(^|_)(email|gender|we_com)(_|$)");
 
     public enum ReadPurpose {
         RUNTIME_SYNC, RUNTIME_TODO, MIGRATION, MIGRATION_TIE_OUT;
@@ -168,6 +171,9 @@ public final class ExternalReadRegister {
         }
         if (looksSensitive(row.column()) && !Set.of("SENSITIVE", "RESTRICTED").contains(row.get("sensitivity"))) {
             problems.add(at + "column " + row.column() + " looks sensitive: register it SENSITIVE or RESTRICTED");
+        }
+        if (PERSONAL_NAME.matcher(row.column().toLowerCase(Locale.ROOT)).find() && row.get("sensitivity").equals("PUBLIC")) {
+            problems.add(at + "column " + row.column() + " looks personal: register it INTERNAL or above");
         }
         return problems;
     }
