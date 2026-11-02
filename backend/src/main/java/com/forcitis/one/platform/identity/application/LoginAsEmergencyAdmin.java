@@ -98,16 +98,14 @@ public class LoginAsEmergencyAdmin {
         switch (directory.employmentOf(bound)) {
             case SEPARATED -> {
                 return admission.reject(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED, method, admin.userId(),
-                        "the organisation snapshot lists the bound person as separated");
+                        "the bound person is separated");
             }
             case NOT_LISTED -> {
-                log.error("ALERT platform.identity emergency login of user {} refused: the organisation snapshot is current and does not list employee {}",
+                log.error("ALERT platform.identity emergency login of user {} refused: the directory does not list employee {}",
                         admin.userId().value(), bound.value());
                 return admission.reject(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED, method, admin.userId(),
-                        "the organisation snapshot is current and does not list the bound person");
+                        "the directory does not list the bound person");
             }
-            case SNAPSHOT_UNAVAILABLE -> log.error("ALERT platform.identity emergency login of user {} let through without a current organisation snapshot: "
-                    + "employee {} is not listed as separated, but the snapshot cannot confirm the employment", admin.userId().value(), bound.value());
             case EMPLOYED -> {
             }
         }
