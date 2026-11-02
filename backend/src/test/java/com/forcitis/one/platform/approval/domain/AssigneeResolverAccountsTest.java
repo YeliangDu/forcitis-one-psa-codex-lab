@@ -42,6 +42,7 @@ class AssigneeResolverAccountsTest {
             when(org.findEmployee(TestAccounts.employee(employee))).thenReturn(Optional.of(new EmployeeProfile(TestAccounts.employee(employee), "person-" + employee,
                     TestOrgIds.orgUnit(5), null, EmploymentStatus.EMPLOYED, false)));
         }
+        when(org.availabilityOn(any(), any())).thenReturn(com.forcitis.one.organization.workforce.api.Availability.AVAILABLE);
         when(org.findSupervisor(any(EmployeeId.class))).thenAnswer(call -> call.getArgument(0).equals(INITIATOR) ? Optional.of(SUPERVISOR) : Optional.empty());
     }
 

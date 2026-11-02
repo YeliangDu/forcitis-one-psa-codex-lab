@@ -78,7 +78,7 @@ class ReleaseSeparationHoldByOperations {
     /** Retained: locally employed, not leaving and not on unpaid leave (ADR-0068 section 3; a released separation waiting for its date is leaving). */
     private void requireRetained(EmployeeId person, String role, Set<EmployeeId> leaving, LocalDate today) {
         boolean employed = directory.findEmployee(person).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false);
-        if (leaving.contains(person) || !employed || directory.isOnUnpaidLeave(person, today)) {
+        if (leaving.contains(person) || !employed || directory.availabilityOn(person, today).onUnpaidLeave()) {
             throw refused("the " + role + " does not stay: they must be locally employed, not leaving and not on unpaid leave");
         }
     }

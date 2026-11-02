@@ -92,6 +92,23 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
     }
 
     @Override
+    public boolean isHeld(EmployeeId employee) {
+        return jdbc.sql("select exists (select 1 from organization_workforce.separation_holds where employee_id = :employee and status = 'HELD')")
+                .param("employee", employee.value()).query(Boolean.class).single();
+    }
+
+    @Override
+    public boolean isLeaving(EmployeeId employee) {
+        return jdbc.sql("""
+                select exists (select 1 from organization_workforce.separation_holds h
+                                join organization_workforce.personnel_commands c on c.personnel_command_id = h.personnel_command_id
+                               where h.employee_id = :employee and (h.status = 'HELD' or (h.status = 'RELEASED' and c.status = 'PENDING')))
+                    or exists (select 1 from organization_workforce.personnel_commands
+                                where employee_id = :employee and command_kind = 'UNPAID_LEAVE_START' and status = 'PENDING')
+                """).param("employee", employee.value()).query(Boolean.class).single();
+    }
+
+    @Override
     public List<PersonnelCommandId> pendingDue(LocalDate day) {
         return jdbc.sql("""
                 select c.personnel_command_id from organization_workforce.personnel_commands c

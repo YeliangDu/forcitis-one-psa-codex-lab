@@ -105,8 +105,8 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
     public final java.util.Set<EmployeeId> onLeave = new java.util.HashSet<>();
 
     @Override
-    public boolean isOnUnpaidLeave(EmployeeId employeeId, java.time.LocalDate day) {
-        return onLeave.contains(employeeId);
+    public com.forcitis.one.organization.workforce.api.Availability availabilityOn(EmployeeId employeeId, java.time.LocalDate day) {
+        return new com.forcitis.one.organization.workforce.api.Availability(onLeave.contains(employeeId), false, false);
     }
 
     @Override
