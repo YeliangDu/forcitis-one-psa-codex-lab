@@ -62,7 +62,7 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
     @Test
     @DisplayName("IMP-1030-ORG-F1 every org unit kind has a passing row, RENAME and a position SET_ATTRIBUTES are refused")
     void commandKindsPerTarget() {
-        pending(COMMAND, "CREATE", ", target_name, target_is_delivery_unit", ", 'n', false");
+        pending(COMMAND, "CREATE", ", target_name, is_target_delivery_unit", ", 'n', false");
         day = "date '2026-11-11'";
         pending("gen_random_uuid()", "DISSOLVE", "", "");
         day = "date '2026-11-10'";
@@ -96,7 +96,7 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
                 + " target_org_unit_id, target_position_id, effective_date, status, target_name, created_at, created_by, updated_at) values (gen_random_uuid(), 'CREATE', 'ORG_UNIT', "
                 + UNIT + ", " + POSITION + ", date '2026-11-10', 'PENDING', 'n', now(), " + USER + ", now())").update());
         refused("ck_org_structure_commands_target", () -> jdbc.sql("insert into organization_workforce.org_structure_commands (org_structure_command_id, command_kind, target_kind,"
-                + " target_position_id, effective_date, status, target_name, target_is_delivery_unit, created_at, created_by, updated_at) values (gen_random_uuid(), 'CREATE', 'ORG_UNIT', "
+                + " target_position_id, effective_date, status, target_name, is_target_delivery_unit, created_at, created_by, updated_at) values (gen_random_uuid(), 'CREATE', 'ORG_UNIT', "
                 + POSITION + ", date '2026-11-10', 'PENDING', 'n', false, now(), " + USER + ", now())").update());
     }
 
@@ -105,7 +105,7 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
     void setAttributesColumns() {
         pending("gen_random_uuid()", "SET_ATTRIBUTES", ", target_short_name", ", 'short'");
         day = "date '2026-11-11'";
-        pending("gen_random_uuid()", "SET_ATTRIBUTES", ", target_is_delivery_unit", ", true");
+        pending("gen_random_uuid()", "SET_ATTRIBUTES", ", is_target_delivery_unit", ", true");
         day = "date '2026-11-12'";
         pending("gen_random_uuid()", "SET_ATTRIBUTES", ", target_region_kind", ", 'REGIONAL'");
         day = "date '2026-11-10'";
@@ -113,21 +113,21 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
         refused("ck_org_structure_commands_set_attributes_columns", () -> pending("gen_random_uuid()", "SET_ATTRIBUTES", ", target_name, target_head_employee_id", ", 'n', " + EMPLOYEE));
         refused("ck_org_structure_commands_legal_entity_columns", () -> pending("gen_random_uuid()", "SET_ATTRIBUTES", ", target_name, target_legal_entity_id", ", 'n', " + LEGAL_ENTITY));
         refused("ck_org_structure_commands_create_only_columns", () -> pending("gen_random_uuid()", "SET_ATTRIBUTES", ", target_name, target_code", ", 'n', 'C1'"));
-        refused("ck_org_structure_commands_create_only_columns", () -> pending("gen_random_uuid()", "REPARENT", ", target_parent_org_unit_id, target_is_delivery_unit", ", " + OTHER_UNIT + ", true"));
+        refused("ck_org_structure_commands_create_only_columns", () -> pending("gen_random_uuid()", "REPARENT", ", target_parent_org_unit_id, is_target_delivery_unit", ", " + OTHER_UNIT + ", true"));
         refused("ck_org_structure_commands_create_only_columns", () -> pending("gen_random_uuid()", "REPARENT", ", target_parent_org_unit_id, target_region_kind", ", " + OTHER_UNIT + ", 'REGIONAL'"));
     }
 
     @Test
     @DisplayName("IMP-1030-ORG-F1 CREATE columns: name required, delivery flag only for units, a position carries no unit-only column")
     void createColumns() {
-        refused("ck_org_structure_commands_create_columns", () -> pending("gen_random_uuid()", "CREATE", ", target_is_delivery_unit", ", false"));
+        refused("ck_org_structure_commands_create_columns", () -> pending("gen_random_uuid()", "CREATE", ", is_target_delivery_unit", ", false"));
         refused("ck_org_structure_commands_unit_attributes", () -> pending("gen_random_uuid()", "CREATE", ", target_name", ", 'n'"));
-        refused("ck_org_structure_commands_unit_attributes", () -> command("gen_random_uuid()", "CREATE", "POSITION", "PENDING", ", target_name, target_is_delivery_unit", ", 'n', false"));
+        refused("ck_org_structure_commands_unit_attributes", () -> command("gen_random_uuid()", "CREATE", "POSITION", "PENDING", ", target_name, is_target_delivery_unit", ", 'n', false"));
         refused("ck_org_structure_commands_unit_attributes", () -> command("gen_random_uuid()", "CREATE", "POSITION", "PENDING", ", target_name, target_region_kind", ", 'n', 'REGIONAL'"));
         refused("ck_org_structure_commands_create_columns", () -> command("gen_random_uuid()", "CREATE", "POSITION", "PENDING", ", target_name, target_short_name", ", 'n', 's'"));
         refused("ck_org_structure_commands_legal_entity_columns", () -> command("gen_random_uuid()", "CREATE", "POSITION", "PENDING", ", target_name, target_legal_entity_id", ", 'n', " + LEGAL_ENTITY));
-        refused("ck_org_structure_commands_create_columns", () -> pending("gen_random_uuid()", "CREATE", ", target_name, target_is_delivery_unit, target_head_employee_id", ", 'n', false, " + EMPLOYEE));
-        pending("gen_random_uuid()", "CREATE", ", target_name, target_is_delivery_unit, target_code, target_region_kind, target_legal_entity_id, target_parent_org_unit_id",
+        refused("ck_org_structure_commands_create_columns", () -> pending("gen_random_uuid()", "CREATE", ", target_name, is_target_delivery_unit, target_head_employee_id", ", 'n', false, " + EMPLOYEE));
+        pending("gen_random_uuid()", "CREATE", ", target_name, is_target_delivery_unit, target_code, target_region_kind, target_legal_entity_id, target_parent_org_unit_id",
                 ", 'n', true, 'C1', 'HEADQUARTERS', " + LEGAL_ENTITY + ", " + OTHER_UNIT);
     }
 
@@ -166,7 +166,7 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
     @Test
     @DisplayName("IMP-1030-ORG-F1 names, short names, codes, region kinds and withdrawal reasons are bounded")
     void valueBounds() {
-        String create = ", target_is_delivery_unit";
+        String create = ", is_target_delivery_unit";
         refused("ck_org_structure_commands_name", () -> pending("gen_random_uuid()", "CREATE", create + ", target_name", ", false, '  '"));
         refused("ck_org_structure_commands_name", () -> pending("gen_random_uuid()", "CREATE", create + ", target_name", ", false, '" + "x".repeat(501) + "'"));
         refused("ck_org_structure_commands_name", () -> pending("gen_random_uuid()", "CREATE", create + ", target_name, target_short_name", ", false, 'n', '" + "x".repeat(51) + "'"));

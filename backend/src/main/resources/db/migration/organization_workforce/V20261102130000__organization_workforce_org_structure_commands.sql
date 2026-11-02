@@ -11,7 +11,7 @@ CREATE TABLE organization_workforce.org_structure_commands (
     target_name                 text,
     target_short_name           text,
     target_region_kind          text,
-    target_is_delivery_unit     boolean,
+    is_target_delivery_unit     boolean,
     target_parent_org_unit_id   uuid,
     target_head_employee_id     uuid,
     target_receivables_manager_employee_id uuid,
@@ -53,14 +53,14 @@ CREATE TABLE organization_workforce.org_structure_commands (
     CONSTRAINT ck_org_structure_commands_code CHECK (target_code IS NULL OR (char_length(target_code) BETWEEN 1 AND 500 AND btrim(target_code) <> '')),
     CONSTRAINT ck_org_structure_commands_region_kind CHECK (target_region_kind IS NULL OR target_region_kind IN ('HEADQUARTERS', 'REGIONAL')),
     CONSTRAINT ck_org_structure_commands_create_only_columns CHECK ((command_kind = 'CREATE' OR target_code IS NULL)
-        AND (command_kind IN ('CREATE', 'SET_ATTRIBUTES') OR num_nonnulls(target_region_kind, target_is_delivery_unit) = 0)),
+        AND (command_kind IN ('CREATE', 'SET_ATTRIBUTES') OR num_nonnulls(target_region_kind, is_target_delivery_unit) = 0)),
     CONSTRAINT ck_org_structure_commands_unit_attributes CHECK (command_kind <> 'CREATE'
-        OR ((target_kind = 'ORG_UNIT') = (target_is_delivery_unit IS NOT NULL) AND (target_kind = 'ORG_UNIT' OR target_region_kind IS NULL))),
+        OR ((target_kind = 'ORG_UNIT') = (is_target_delivery_unit IS NOT NULL) AND (target_kind = 'ORG_UNIT' OR target_region_kind IS NULL))),
     CONSTRAINT ck_org_structure_commands_create_columns CHECK (command_kind <> 'CREATE'
         OR (target_name IS NOT NULL AND target_head_employee_id IS NULL AND target_receivables_manager_employee_id IS NULL AND merge_into_org_unit_id IS NULL
             AND (target_kind = 'ORG_UNIT' OR (target_short_name IS NULL AND target_parent_org_unit_id IS NULL)))),
     CONSTRAINT ck_org_structure_commands_set_attributes_columns CHECK (command_kind <> 'SET_ATTRIBUTES'
-        OR (target_kind = 'ORG_UNIT' AND num_nonnulls(target_name, target_short_name, target_region_kind, target_is_delivery_unit) >= 1
+        OR (target_kind = 'ORG_UNIT' AND num_nonnulls(target_name, target_short_name, target_region_kind, is_target_delivery_unit) >= 1
             AND num_nonnulls(target_parent_org_unit_id, target_head_employee_id, target_receivables_manager_employee_id, merge_into_org_unit_id, target_legal_entity_id) = 0)),
     CONSTRAINT ck_org_structure_commands_reparent_columns CHECK (command_kind <> 'REPARENT'
         OR (target_parent_org_unit_id IS NOT NULL AND num_nonnulls(target_name, target_short_name, target_head_employee_id, target_receivables_manager_employee_id, merge_into_org_unit_id) = 0)),
@@ -74,8 +74,7 @@ CREATE TABLE organization_workforce.org_structure_commands (
         AND (command_kind <> 'MERGE' OR num_nonnulls(target_name, target_short_name, target_parent_org_unit_id, target_head_employee_id, target_receivables_manager_employee_id) = 0)),
     CONSTRAINT ck_org_structure_commands_legal_entity_columns CHECK (
         (command_kind = 'ASSIGN_LEGAL_ENTITY' AND target_kind = 'ORG_UNIT' AND target_legal_entity_id IS NOT NULL
-            AND num_nonnulls(target_code, target_name, target_short_name, target_region_kind, target_is_delivery_unit, target_parent_org_unit_id,
-                             target_head_employee_id, target_receivables_manager_employee_id, merge_into_org_unit_id) = 0)
+            AND num_nonnulls(target_code, target_name, target_short_name, target_region_kind, is_target_delivery_unit, target_parent_org_unit_id, target_head_employee_id, target_receivables_manager_employee_id, merge_into_org_unit_id) = 0)
         OR (command_kind <> 'ASSIGN_LEGAL_ENTITY' AND (target_legal_entity_id IS NULL OR (target_kind = 'ORG_UNIT' AND command_kind = 'CREATE')))),
     CONSTRAINT ck_org_structure_commands_merge_not_self CHECK (merge_into_org_unit_id IS NULL OR merge_into_org_unit_id <> target_org_unit_id),
     CONSTRAINT ck_org_structure_commands_parent_not_self CHECK (target_parent_org_unit_id IS NULL OR target_parent_org_unit_id <> target_org_unit_id),
@@ -113,7 +112,7 @@ COMMENT ON COLUMN organization_workforce.org_structure_commands.target_code IS '
 COMMENT ON COLUMN organization_workforce.org_structure_commands.target_name IS '目标名称（1 至 500 字）：新建必填，改属性可选；为空表示不改名称';
 COMMENT ON COLUMN organization_workforce.org_structure_commands.target_short_name IS '目标简称（1 至 50 字）：组织单元新建或改属性时写入；为空表示不设或不改简称';
 COMMENT ON COLUMN organization_workforce.org_structure_commands.target_region_kind IS '目标总部区域：HEADQUARTERS 总部 / REGIONAL 区域；组织单元新建或改属性时写入；为空表示不设或不改';
-COMMENT ON COLUMN organization_workforce.org_structure_commands.target_is_delivery_unit IS '目标是否交付单元：组织单元新建必填，改属性可选；为空表示不改或目标是岗位';
+COMMENT ON COLUMN organization_workforce.org_structure_commands.is_target_delivery_unit IS '目标是否交付单元：组织单元新建必填，改属性可选；为空表示不改或目标是岗位';
 COMMENT ON COLUMN organization_workforce.org_structure_commands.target_parent_org_unit_id IS '目标上级组织单元 ID：调整上级必填，组织单元新建可选；为空表示不改上级，新建时为空表示根';
 COMMENT ON COLUMN organization_workforce.org_structure_commands.target_head_employee_id IS '目标负责人（员工 ID）：指定负责人必填；为空表示不是指定负责人';
 COMMENT ON COLUMN organization_workforce.org_structure_commands.target_receivables_manager_employee_id IS '目标区域应收负责人（员工 ID）：指定区域应收负责人必填；为空表示不是该种类';

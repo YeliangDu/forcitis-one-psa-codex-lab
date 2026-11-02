@@ -154,7 +154,7 @@ tables:
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}  # 个人任职史版本表：离职满 10 年删除该员工的行（RETENTION_PROPOSAL 第 16 行，W2 第 8 节清理通道另批）
     lineage: {source: NEW}
-    references: {corrected_from_version_id: organization_workforce.employee_versions}
+    references: {corrected_from_version_id: organization_workforce.employee_versions, change_command_id: organization_workforce.personnel_commands, superseding_command_id: organization_workforce.personnel_commands}
     writers: [organization.workforce]
   organization_workforce.personnel_commands:
     role: AGGREGATE_CHILD
@@ -206,7 +206,7 @@ tables:
     condition: 关闭列对与作废列对各只能由空变非空一次，已关闭的行也可被作废，其余列不变，不删除（触发器 tg_assignment_versions_append_only，ADR-0068 15.1，W2 设计第 2 节）
     retention: {policy: PERMANENT}
     lineage: {source: ORG_SOURCE}
-    references: {corrected_from_version_id: organization_workforce.assignment_versions}
+    references: {corrected_from_version_id: organization_workforce.assignment_versions, change_command_id: organization_workforce.personnel_commands, superseding_command_id: organization_workforce.personnel_commands}
     writers: [organization.workforce]
   organization_workforce.sync_runs:
     role: AGGREGATE_ROOT
