@@ -84,4 +84,48 @@ class HandleEmployeeReinstatedIntegrationTest extends IdentityIntegrationTest {
         assertThat(count("account_role_grants where effective_to_at is null")).isEqualTo(1);
         assertThat(count("handled_personnel_commands")).isEqualTo(2);
     }
+
+    private EmployeeReinstated again(EmployeeReinstated event) {
+        return new EmployeeReinstated(TestEnvelopes.of("organization.workforce.EmployeeReinstated", "Employee", event.employeeId().value()),
+                event.personnelCommandId(), event.employeeId(), event.effectiveDate());
+    }
+
+    @Test
+    @DisplayName("a command first seen while the directory shows the person not employed is recorded: the same command again, once the person is employed, opens nothing")
+    void aNotEmployedDecisionIsKept() {
+        knownEmployee(7103, EmploymentStatus.SEPARATED);
+        createAccount(7103);
+        EmployeeId employee = TestAccounts.employee(7103);
+        EmployeeReinstated event = reinstated(employee);
+        tx.executeWithoutResult(status -> events.publishEvent(event));
+        await().atMost(Duration.ofSeconds(15)).until(() -> handled(event));
+        assertThat(count("account_role_grants where effective_to_at is null")).isZero();
+
+        knownEmployee(7103, EmploymentStatus.EMPLOYED);
+        EmployeeReinstated redelivered = again(event);
+        tx.executeWithoutResult(status -> events.publishEvent(redelivered));
+
+        await().atMost(Duration.ofSeconds(15)).until(() -> handled(redelivered));
+        assertThat(count("account_role_grants where effective_to_at is null")).isZero();
+        assertThat(count("handled_personnel_commands")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("a command first seen while the account already holds a grant is recorded: after an administrator took the grants away, the same command again opens nothing")
+    void anAlreadyGrantedDecisionIsKept() {
+        knownEmployee(7104, EmploymentStatus.EMPLOYED);
+        createAccount(7104, "employee");
+        EmployeeId employee = TestAccounts.employee(7104);
+        EmployeeReinstated event = reinstated(employee);
+        tx.executeWithoutResult(status -> events.publishEvent(event));
+        await().atMost(Duration.ofSeconds(15)).until(() -> handled(event));
+        jdbc.sql("update platform_identity.account_role_grants set effective_to_at = greatest(now(), effective_from_at), revocation_cause_kind = 'OPERATIONS', revocation_audit_entry_id = uuidv7(), updated_at = now() where effective_to_at is null").update();
+
+        EmployeeReinstated redelivered = again(event);
+        tx.executeWithoutResult(status -> events.publishEvent(redelivered));
+
+        await().atMost(Duration.ofSeconds(15)).until(() -> handled(redelivered));
+        assertThat(count("account_role_grants where effective_to_at is null")).isZero();
+        assertThat(count("handled_personnel_commands")).isEqualTo(1);
+    }
 }
