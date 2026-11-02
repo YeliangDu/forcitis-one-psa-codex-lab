@@ -168,8 +168,8 @@ class ConcurrentAssignmentSyncIT extends DataScopeSupport {
                 "Synthetic newcomer", new OwnObjectId(unitId), new OwnObjectId(positionId), null, "c711-newcomer", "c711-newcomer@example.test",
                 SourceGender.FEMALE, new WecomUserId("c711-wx-newcomer"), false)));
 
-        // A sign-in runs inside a request's work context (correlation id), as the real login does.
-        try (WorkContext.Scope login = WorkContext.enter(UUID.randomUUID(), null, "platform.identity.login")) {
+        // A sign-in runs inside a request's work context: a correlation id and no system actor, as the real login request has.
+        try (WorkContext.Scope login = WorkContext.enter(UUID.randomUUID(), null, null)) {
             assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("c711-wx-newcomer")))).as("registered on the login miss").isPresent();
         }
 
