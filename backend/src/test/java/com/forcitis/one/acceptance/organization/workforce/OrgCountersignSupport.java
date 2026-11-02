@@ -169,7 +169,7 @@ abstract class OrgCountersignSupport extends OrgStructureCommandSupport {
     /** Raises the escalation level of a request directly (the trigger allows increases; the reminder job is card E). */
     protected void escalateTo(UUID orgCommand, String kind, UUID entity, int level) throws SQLException {
         try (Connection workforce = schemaConnection("organization_workforce")) {
-            update(workforce, "update " + COUNTERSIGNS + " set escalation_level = ? where attribution_countersign_id = ?", (short) level, requestId(orgCommand, kind, entity));
+            update(workforce, "update " + COUNTERSIGNS + " set escalation_level_number = ? where attribution_countersign_id = ?", (short) level, requestId(orgCommand, kind, entity));
         }
     }
 
