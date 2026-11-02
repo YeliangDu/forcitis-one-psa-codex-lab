@@ -278,6 +278,8 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            # a missing base makes git log fail and gitleaks report "no leaks" for zero commits: fail instead
+            git rev-parse --verify -q "origin/$BASE_REF^{commit}" >/dev/null || { echo "::error::origin/$BASE_REF is not in this checkout: the pull request range cannot be scanned"; exit 1; }
             gitleaks git --redact --no-banner --exit-code 1 --log-opts="origin/$BASE_REF..HEAD" .
           else
             gitleaks git --redact --no-banner --exit-code 1 .
