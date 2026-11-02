@@ -152,7 +152,11 @@ class AuthorizationHistoryAsOfIT extends GrantStoreSupport {
         List<Set<String>> objects = objectsOf(restored, roleCode);
         assertThat(objects).as("the restore names role %s exactly once: %s", roleCode, restored).hasSize(1);
         Set<String> strings = objects.getFirst();
-        assertThat(strings).as(restored).contains(name, scope).containsAll(codes).doesNotContainAnyElementsOf(notCodes).doesNotContain(otherName);
+        assertThat(strings).as(restored).contains(name, scope).containsAll(codes).doesNotContain(otherName);
+        // AssertJ refuses an empty iterable here; with no code to exclude there is nothing more to check
+        if (!notCodes.isEmpty()) {
+            assertThat(strings).as(restored).doesNotContainAnyElementsOf(notCodes);
+        }
     }
 
     @Test

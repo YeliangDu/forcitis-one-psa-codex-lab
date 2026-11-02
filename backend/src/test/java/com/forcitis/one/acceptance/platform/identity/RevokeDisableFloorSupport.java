@@ -473,9 +473,15 @@ abstract class RevokeDisableFloorSupport extends AccountsAcceptanceSupport {
         return previous;
     }
 
+    /**
+     * Lead ruling 2026-11-02: PrivilegedRequestAudit records every administrator-mode write attempt before its outcome is known, refused ones
+     * included, so its entries are not a change made by the act and stay out of the "nothing changed" count.
+     */
+    static final String PRIVILEGED_REQUEST_ACTION = "platform.identity.privileged.request";
+
     private long auditRows() throws SQLException {
         try (Connection audit = schemaConnection("platform_audit")) {
-            return (long) query(audit, "select count(*) as n from audit_entries").get(0).get("n");
+            return (long) query(audit, "select count(*) as n from audit_entries where action <> ?", PRIVILEGED_REQUEST_ACTION).get(0).get("n");
         }
     }
 
