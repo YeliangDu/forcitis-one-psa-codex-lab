@@ -67,7 +67,7 @@ class ApplyConfirmedAuthorization {
             if (outcome instanceof AdminOutcome.Refused<?> refused) {
                 log.error("ALERT platform.identity the confirmed authorization request {} could not be applied: {}", request.requestId().value(),
                         refused.error());
-                voiding.voidRequest(request, "the confirmed change was refused when applied (" + refused.error() + "); nothing was applied");
+                voiding.voidRequest(request, "the confirmed change was refused when applied (" + refused.error().name() + "); nothing was applied");
                 requests.save(request);
                 events.publish(request);
             }
