@@ -7,8 +7,8 @@ import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Service;
 
 /**
- * A hire took effect (ADR-0068 item 1.9): the person gets an account with the default role, as the retired sync used to open it. Repeated
- * or concurrent deliveries find the account already open; a person who is not employed on the directory's reading gets none.
+ * A hire took effect (ADR-0068 item 1.9): the person gets an account with the default role, opened as every account entry opens it (ADR-0033 section 3
+ * item 1). Repeated or concurrent deliveries find the account already open; a person who is not employed on the directory's reading gets none.
  */
 @SystemActorName("platform.identity.account-provisioning")
 @Service

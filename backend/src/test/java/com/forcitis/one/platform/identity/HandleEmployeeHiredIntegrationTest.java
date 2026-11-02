@@ -36,6 +36,16 @@ class HandleEmployeeHiredIntegrationTest extends IdentityIntegrationTest {
         return jdbc.sql("select count(*) from platform_identity.user_accounts where employee_id = :id").param("id", employee.value()).query(Long.class).single();
     }
 
+    /** Whether the publication of this very event to the hire listener is completed: a delivery that failed stays open and is retried. */
+    private boolean handled(EmployeeHired event) {
+        return jdbc.sql("""
+                select count(*) from (select listener_id, completion_date, serialized_event from platform_integration.event_publication
+                                      union all
+                                      select listener_id, completion_date, serialized_event from platform_integration.event_publication_archive) p
+                 where p.listener_id like '%HandleEmployeeHired%' and p.completion_date is not null and p.serialized_event like :event
+                """).param("event", "%" + event.envelope().eventId() + "%").query(Long.class).single() == 1;
+    }
+
     @Test
     @DisplayName("a hire opens one account with the default role as its only open grant; the same event again and a second event for the person change nothing")
     void aHireOpensOneAccountOnce() {
@@ -45,15 +55,16 @@ class HandleEmployeeHiredIntegrationTest extends IdentityIntegrationTest {
 
         tx.executeWithoutResult(status -> events.publishEvent(event));
 
-        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(accountsOf(employee)).isEqualTo(1));
+        await().atMost(Duration.ofSeconds(15)).until(() -> handled(event));
+        assertThat(accountsOf(employee)).isEqualTo(1);
         assertThat(count("account_role_grants where effective_to_at is null")).isEqualTo(1);
         long grants = count("account_role_grants");
+        EmployeeHired second = hired(employee);
+        tx.executeWithoutResult(status -> events.publishEvent(second));
         tx.executeWithoutResult(status -> events.publishEvent(event));
-        tx.executeWithoutResult(status -> events.publishEvent(hired(employee)));
-        await().during(Duration.ofSeconds(2)).atMost(Duration.ofSeconds(6)).untilAsserted(() -> {
-            assertThat(accountsOf(employee)).isEqualTo(1);
-            assertThat(count("account_role_grants")).isEqualTo(grants);
-        });
+        await().atMost(Duration.ofSeconds(15)).until(() -> handled(second));
+        assertThat(accountsOf(employee)).isEqualTo(1);
+        assertThat(count("account_role_grants")).isEqualTo(grants);
     }
 
     @Test
@@ -62,8 +73,10 @@ class HandleEmployeeHiredIntegrationTest extends IdentityIntegrationTest {
         knownEmployee(7002, EmploymentStatus.SEPARATED);
         EmployeeId employee = TestAccounts.employee(7002);
 
-        tx.executeWithoutResult(status -> events.publishEvent(hired(employee)));
+        EmployeeHired event = hired(employee);
+        tx.executeWithoutResult(status -> events.publishEvent(event));
 
-        await().during(Duration.ofSeconds(2)).atMost(Duration.ofSeconds(6)).untilAsserted(() -> assertThat(accountsOf(employee)).isZero());
+        await().atMost(Duration.ofSeconds(15)).until(() -> handled(event));
+        assertThat(accountsOf(employee)).isZero();
     }
 }
