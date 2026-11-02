@@ -154,7 +154,7 @@ tables:
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}  # 个人任职史版本表：离职满 10 年删除该员工的行（RETENTION_PROPOSAL 第 16 行，W2 第 8 节清理通道另批）
     lineage: {source: NEW}
-    references: {corrected_from_version_id: organization_workforce.employee_versions}
+    references: {corrected_from_version_id: organization_workforce.employee_versions, change_command_id: organization_workforce.personnel_commands, superseding_command_id: organization_workforce.personnel_commands}
     writers: [organization.workforce]
   organization_workforce.personnel_commands:
     role: AGGREGATE_CHILD
@@ -176,6 +176,16 @@ tables:
     retention: {policy: PERMANENT}  # 与 personnel_commands 相同：随员工清除，离职满 10 年由 purge_employee_history 删除（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
     writers: [organization.workforce]
+  # 岗位命令同表，按 target_kind 归属岗位；注册表只能记一个聚合，取组织单元。尚无写入方（后续卡随仓储登记 writers）。
+  organization_workforce.org_structure_commands:
+    role: AGGREGATE_CHILD
+    aggregate: OrgUnit
+    mutability: CONDITIONAL_UPDATE
+    condition: 状态只按 PENDING 到 IN_PROGRESS、EFFECTIVE、WITHDRAWN，IN_PROGRESS 到 EFFECTIVE，待会签到 PENDING、EFFECTIVE、WITHDRAWN 前进，时刻列、撤回列与涉及人数由空变非空一次，已转人数只增不减，其余列不变（触发器 tg_org_structure_commands_append_only，ADR-0068 第 4 条）
+    business_key: [org_structure_command_id]
+    retention: {policy: PERMANENT}  # 随组织记录保留，清除通道随 W2 第 8 节另批
+    lineage: {source: NEW}
+    writers: []
   # Columns of org_units left out of the versions on purpose: sort_order (only orders siblings for display, nothing reads it by date), short_name (not a source column:
   # a cross-source column refreshed daily from the old system, valid until DA-8 lands, ADR-0033 item 2.6), revoked_at (follows from the start of the REVOKED version),
   # last_sync_run_id (moves to the change set with split a).
@@ -196,7 +206,7 @@ tables:
     condition: 关闭列对与作废列对各只能由空变非空一次，已关闭的行也可被作废，其余列不变，不删除（触发器 tg_assignment_versions_append_only，ADR-0068 15.1，W2 设计第 2 节）
     retention: {policy: PERMANENT}
     lineage: {source: ORG_SOURCE}
-    references: {corrected_from_version_id: organization_workforce.assignment_versions}
+    references: {corrected_from_version_id: organization_workforce.assignment_versions, change_command_id: organization_workforce.personnel_commands, superseding_command_id: organization_workforce.personnel_commands}
     writers: [organization.workforce]
   organization_workforce.sync_runs:
     role: AGGREGATE_ROOT
