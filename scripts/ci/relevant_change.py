@@ -212,7 +212,7 @@ def referenced_docs_paths(root):
 
 def uncovered_reads(root):
     """Docs paths named by a source that may not run when they change; ALWAYS_RUN_READERS run on every event, so what they read needs no tier."""
-    return sorted({f"{rel}: {path}" for rel, path in referenced_docs_paths(root) if rel not in ALWAYS_RUN_READERS and not is_covered(path)})
+    return sorted({f"{rel}: {path}" for rel, path in referenced_docs_paths(root) if rel not in ALWAYS_RUN_READERS and not rel.startswith(LOCAL_ONLY) and not is_covered(path)})
 
 
 GUARDED_READER_DIRS = {"scripts/release/": "release"}
