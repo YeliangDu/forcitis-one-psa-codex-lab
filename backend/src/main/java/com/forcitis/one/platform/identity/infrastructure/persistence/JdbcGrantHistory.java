@@ -26,24 +26,25 @@ class JdbcGrantHistory implements GrantHistory {
     @Override
     public Optional<List<HeldRole>> heldAt(UserId user, Instant moment) {
         OffsetDateTime at = OffsetDateTime.ofInstant(moment, ZoneOffset.UTC);
-        boolean recorded = jdbc.sql("""
-                select exists (select 1 from platform_identity.account_role_grants g where g.user_id = :user and g.effective_from_at <= :at)
-                """).param("user", user.value()).param("at", at).query(Boolean.class).single();
-        if (!recorded) {
-            return Optional.empty();
-        }
-        return Optional.of(jdbc.sql("""
-                select r.code, v.role_name, v.access_scope_kind, v.permission_codes
-                  from platform_identity.account_role_grants g
-                  join platform_identity.roles r on r.role_id = g.role_id
-                  join platform_identity.role_versions v on v.role_id = g.role_id
-                   and v.effective_from_at <= :at and (v.%1$s or v.effective_to_at > :at)
-                 where g.user_id = :user and g.effective_from_at <= :at and (g.%1$s or g.effective_to_at > :at)
-                 order by r.code
-                """.formatted(Validity.CURRENT)).param("user", user.value()).param("at", at).query(JdbcGrantHistory::held).list());
+        List<Optional<HeldRole>> rows = jdbc.sql("""
+                select e.earliest, h.code, h.role_name, h.access_scope_kind, h.permission_codes
+                  from (select min(x.effective_from_at) as earliest from platform_identity.account_role_grants x where x.user_id = :user) e
+                  left join (select r.code, v.role_name, v.access_scope_kind, v.permission_codes
+                               from platform_identity.account_role_grants g
+                               join platform_identity.roles r on r.role_id = g.role_id
+                               join platform_identity.role_versions v on v.role_id = g.role_id
+                                and v.effective_from_at <= :at and (v.%1$s or v.effective_to_at > :at)
+                              where g.user_id = :user and g.effective_from_at <= :at and (g.%1$s or g.effective_to_at > :at)) h on true
+                 where e.earliest <= :at
+                 order by h.code
+                """.formatted(Validity.CURRENT)).param("user", user.value()).param("at", at).query(JdbcGrantHistory::held).list();
+        return rows.isEmpty() ? Optional.empty() : Optional.of(rows.stream().flatMap(Optional::stream).toList());
     }
 
-    private static HeldRole held(ResultSet rs, int row) throws SQLException {
-        return new HeldRole(rs.getString("code"), rs.getString("role_name"), rs.getString("access_scope_kind"), RoleRows.codes(rs, "permission_codes"));
+    private static Optional<HeldRole> held(ResultSet rs, int row) throws SQLException {
+        if (rs.getString("code") == null) {
+            return Optional.empty();
+        }
+        return Optional.of(new HeldRole(rs.getString("code"), rs.getString("role_name"), rs.getString("access_scope_kind"), RoleRows.codes(rs, "permission_codes")));
     }
 }

@@ -107,7 +107,7 @@ class AccountGrants {
             }
         }
         GrantChanges changes = new GrantChanges(opened, closed);
-        accounts.applyGrantChanges(user, changes);
+        accounts.saveGrants(user, changes);
         account.replaceRoles(wanted);
         account.grantsWritten(changes);
         return changes;

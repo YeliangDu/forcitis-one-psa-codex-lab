@@ -1,0 +1,122 @@
+# 超管下限、授予历史（#732，ADR-0034、ADR-0068 第 2.2 条）。名称为提议，待 one-design 确认。
+terms:
+- id: floor
+  zh: 下限
+  en: Floor
+  snake: floor
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 可用超级管理员人数的最低保护线：手工撤销与停用先按此判定，会降到 0 就拒绝，降到 1 就通知
+  standard_ref:
+  - docs/adr/ADR-0068.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: judge
+  zh: 判定
+  en: Judge
+  snake: judge
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 按下限数一遍撤销或停用之后还剩几名可用超级管理员
+  standard_ref:
+  - docs/adr/ADR-0068.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: judgement
+  zh: 判定结果
+  en: Judgement
+  snake: judgement
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 下限判定的结果：不受影响，或剩 1 名需要通知的人
+  standard_ref:
+  - docs/adr/ADR-0068.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: announce
+  zh: 通知
+  en: Announce
+  snake: announce
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 剩 1 名可用超级管理员时向其余管理员发卡并记告警
+  standard_ref:
+  - docs/adr/ADR-0068.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: leaving
+  zh: 在走的人
+  en: Leaving
+  snake: leaving
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 仍在职但已按「已走」统计的员工：暂停放行、已放行待生效、已录入未开始的停薪留职
+  standard_ref:
+  - docs/adr/ADR-0068.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: opening
+  zh: 开启
+  en: Opening
+  snake: opening
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 一次授予行的开启（相对关闭 closing）
+  standard_ref:
+  - docs/adr/ADR-0068.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: protected
+  zh: 受保护
+  en: Protected
+  snake: protected
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 受下限保护：不得使可用超级管理员降到 0
+  standard_ref:
+  - docs/adr/ADR-0068.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__platform_identity_last_super_admin_protected
+  zh: 最后一名超级管理员受保护
+  en: PlatformIdentityLastSuperAdminProtected
+  snake: platform_identity_last_super_admin_protected
+  kind: error_code
+  bc: platform.identity
+  scope: domain
+  definition: 撤销超级管理员授予或停用其账号会使可用超级管理员降到 0，已拒绝（422，ADR-0068 第 2.2 条）
+  standard_ref:
+  - docs/adr/ADR-0068.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''

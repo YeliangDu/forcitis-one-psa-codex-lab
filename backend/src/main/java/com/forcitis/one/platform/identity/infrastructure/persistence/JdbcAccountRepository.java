@@ -88,7 +88,7 @@ class JdbcAccountRepository implements AccountRepository {
                 select g.account_role_grant_id, g.role_id, r.code
                   from platform_identity.account_role_grants g join platform_identity.roles r on r.role_id = g.role_id
                  where g.user_id = :id and g.%s
-                 order by g.account_role_grant_id
+                 order by g.effective_from_at, g.account_role_grant_id
                 """.formatted(Validity.CURRENT))
                 .param("id", userId.value())
                 .query((rs, n) -> new HeldGrant(new AccountRoleGrantId(rs.getObject("account_role_grant_id", UUID.class)),
@@ -141,7 +141,7 @@ class JdbcAccountRepository implements AccountRepository {
     }
 
     @Override
-    public void applyGrantChanges(UserId userId, GrantChanges changes) {
+    public void saveGrants(UserId userId, GrantChanges changes) {
         OffsetDateTime now = OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
         for (GrantClosing closing : changes.closed()) {
             int closed = jdbc.sql("""

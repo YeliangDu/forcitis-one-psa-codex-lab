@@ -4,7 +4,7 @@ import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
-import com.forcitis.one.kernel.LeavingEmployees;
+import com.forcitis.one.organization.workforce.api.LeavingEmployees;
 import com.forcitis.one.kernel.SeparationReview;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.IdentityError;

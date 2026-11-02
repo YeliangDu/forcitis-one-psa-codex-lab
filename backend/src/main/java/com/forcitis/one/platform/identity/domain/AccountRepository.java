@@ -22,16 +22,16 @@ public interface AccountRepository {
      * Opens and closes the grant rows of the account (account_role_grants is the only grant store). Takes the role rows FOR SHARE before opening, so a role
      * cannot be deleted under a grant being opened; a start is never before the end of the person's earlier rows of the role, an end never before its start.
      */
-    void applyGrantChanges(UserId userId, GrantChanges changes);
+    void saveGrants(UserId userId, GrantChanges changes);
 
     Optional<UserId> findByEmployee(EmployeeId employeeId);
 
     Optional<EmployeeId> findEmployee(UserId userId);
 
-    /** True only for the caller that created it: an employee who has an account already keeps it (atomic). Writes the account row only; its grants follow in {@link #applyGrantChanges}. */
+    /** True only for the caller that created it: an employee who has an account already keeps it (atomic). Writes the account row only; its grants follow in {@link #saveGrants}. */
     boolean insertIfAbsent(UserAccount opened);
 
-    /** Applies only to the version the account was loaded with; otherwise a DomainException (CONFLICT). Writes the status; grants go through {@link #applyGrantChanges}. */
+    /** Applies only to the version the account was loaded with; otherwise a DomainException (CONFLICT). Writes the status; grants go through {@link #saveGrants}. */
     void save(UserAccount account);
 
     void recordLogin(UserId userId, Instant at, String address);
