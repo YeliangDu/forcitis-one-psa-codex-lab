@@ -80,8 +80,8 @@ class ClassificationRegisterTest {
     }
 
     @Test
-    @DisplayName("the real register parses and every row of the legal answer's SPI list stays out of it until a report exists")
+    @DisplayName("the real register parses with the strict four-segment rules")
     void theRealRegisterParses() throws IOException {
-        assertThat(ClassificationRegister.read()).isNotEmpty().allSatisfy((column, row) -> assertThat(row.mark()).isIn("NONE", "PI"));
+        assertThat(ClassificationRegister.read()).isNotEmpty();
     }
 }

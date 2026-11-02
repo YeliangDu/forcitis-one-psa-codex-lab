@@ -25,7 +25,7 @@ public final class ExternalReadRegister {
     public static final String VIEW_SCHEMA = "forcitis_one";
     public static final String BASE_SCHEMA = "dbo";
 
-    /** DdlNamingTest.SENSITIVE_NAME plus the two identity words of the external sources (login, we_com), on the lower-case column name. */
+    /** The sensitive-looking column words of external sources, on the lower-case column name: the former DdlNamingTest list (email and gender included) plus the two identity words of the external sources (login, we_com); kept as its own list, independent of ClassificationRegister. */
     public static final Pattern SENSITIVE_NAME = Pattern.compile(
             "(^|_)(password|secret|totp|bank|salary|wage|daily_rate|id_card|identity_number|mobile|phone|email|birth|gender|address|attribute_bytes|login|we_com)(_|$)");
 
