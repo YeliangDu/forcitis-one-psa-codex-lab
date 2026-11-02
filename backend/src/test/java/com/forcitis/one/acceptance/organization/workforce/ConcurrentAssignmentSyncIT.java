@@ -7,6 +7,13 @@ import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AssignmentRoots;
 import com.forcitis.one.acceptance.DataScopeSupport;
 import com.forcitis.one.kernel.Uuids;
+import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.kernel.WorkContext;
+import com.forcitis.one.organization.workforce.api.LoginLookup;
+import com.forcitis.one.organization.workforce.api.OrgDirectory;
+import com.forcitis.one.platform.integration.api.OwnObjectId;
+import com.forcitis.one.platform.integration.api.SourceGender;
+import com.forcitis.one.platform.integration.api.SourcePerson;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -18,6 +25,9 @@ import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -27,6 +37,10 @@ import org.springframework.test.context.DynamicPropertySource;
  * leaves an open concurrent post open, and a newly synced employee has exactly one PRIMARY root. The organisation enters through the real
  * sync from the source port double of {@link DataScopeSupport}; the concurrent post is seeded in the schema, because no source carries
  * concurrent posts. Every key and unit code here is new per test (#1038).
+ *
+ * <p>Done-when 9a (one-design ruling on #711 comment 6590431312): registration on a login miss, the writer that remains when #934 removes
+ * the periodic sync, creates exactly one PRIMARY root with its version and no CONCURRENT root. The periodic-sync cases are to be dropped
+ * when #934 (PR #1018) merges, under the same ruling.
  */
 class ConcurrentAssignmentSyncIT extends DataScopeSupport {
 
@@ -134,5 +148,36 @@ class ConcurrentAssignmentSyncIT extends DataScopeSupport {
 
         assertThat(roots(person, AssignmentRoots.PRIMARY)).hasSize(1);
         assertThat(roots(person, AssignmentRoots.CONCURRENT)).containsExactly(concurrent);
+    }
+
+    @Autowired
+    private OrgDirectory directory;
+
+    @Test
+    @DisplayName("#711 完成标准 9a（one-design 裁定 #711 comment 6590431312）：登录未命中时按组织源登记新员工：恰好一个主任职根、它的任职版本都挂在其上，没有兼职根")
+    void registrationOnALoginMissCreatesOnePrimaryRoot() throws Exception {
+        unit("C711-R3", null);
+        unit("C711-E", "C711-R3");
+        position("C711-S");
+        person("c711-anchor", "C711-E", "C711-S");
+        synchronise();
+        UUID unitId = unitId("C711-E");
+        UUID positionId = (UUID) select("select id from positions where code = ?", "C711-S").get(0).get(0);
+        UUID newcomer = UUID.randomUUID();
+        Mockito.when(orgSource.findStaffByLogin(ArgumentMatchers.any())).thenReturn(List.of(new SourcePerson(new OwnObjectId(newcomer), "C711-NEW",
+                "Synthetic newcomer", new OwnObjectId(unitId), new OwnObjectId(positionId), null, "c711-newcomer", "c711-newcomer@example.test",
+                SourceGender.FEMALE, new WecomUserId("c711-wx-newcomer"), false)));
+
+        // A sign-in runs inside a request's work context (correlation id), as the real login does.
+        try (WorkContext.Scope login = WorkContext.enter(UUID.randomUUID(), null, "platform.identity.login")) {
+            assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("c711-wx-newcomer")))).as("registered on the login miss").isPresent();
+        }
+
+        UUID registered = (UUID) select("select id from employees where employee_code = ?", "C711-NEW").get(0).get(0);
+        assertThat(roots(registered, AssignmentRoots.PRIMARY)).hasSize(1);
+        assertThat(roots(registered, AssignmentRoots.CONCURRENT)).isEmpty();
+        UUID primary = roots(registered, AssignmentRoots.PRIMARY).get(0);
+        assertThat(select("select assignment_id, assignment_kind from assignment_versions where employee_id = ?", registered))
+                .isNotEmpty().allSatisfy(row -> assertThat(row).containsExactly(primary, AssignmentRoots.PRIMARY));
     }
 }
