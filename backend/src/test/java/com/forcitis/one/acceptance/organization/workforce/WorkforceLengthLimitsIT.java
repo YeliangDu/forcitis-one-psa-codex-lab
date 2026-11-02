@@ -104,11 +104,11 @@ class WorkforceLengthLimitsIT extends AccountsAcceptanceSupport {
     @DisplayName("DATA-REPAIR-workforce WF-11：ck_org_unit_versions_name 与 ck_org_unit_versions_code 恰为 500 个字符通过，501 个被拒")
     void wf11OrgUnitVersionNameAndCodeLimit() throws SQLException {
         String name = """
-                insert into org_unit_versions (org_unit_version_id, org_unit_id, effective_from_date, effective_to_date, name, status, is_delivery_unit)
-                values (uuidv7(), ?, ?, ?, ?, 'ACTIVE', false)""";
+                insert into org_unit_versions (org_unit_version_id, org_unit_id, effective_from_date, effective_to_date, name, status, is_delivery_unit, closed_at)
+                values (uuidv7(), ?, ?, ?, ?, 'ACTIVE', false, now())""";
         String code = """
-                insert into org_unit_versions (org_unit_version_id, org_unit_id, effective_from_date, effective_to_date, code, name, status, is_delivery_unit)
-                values (uuidv7(), ?, ?, ?, ?, 'Synthetic unit', 'ACTIVE', false)""";
+                insert into org_unit_versions (org_unit_version_id, org_unit_id, effective_from_date, effective_to_date, code, name, status, is_delivery_unit, closed_at)
+                values (uuidv7(), ?, ?, ?, ?, 'Synthetic unit', 'ACTIVE', false, now())""";
         execute(name, stored(unit), TODAY.minusDays(40), TODAY.minusDays(35), "A".repeat(500));
         refusedBy(() -> execute(name, stored(unit), TODAY.minusDays(30), TODAY.minusDays(25), "A".repeat(501)), "ck_org_unit_versions_name");
         execute(code, stored(unit), TODAY.minusDays(20), TODAY.minusDays(15), "A".repeat(500));
