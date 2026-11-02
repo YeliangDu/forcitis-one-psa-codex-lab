@@ -212,8 +212,8 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
         refused("ck_attribution_countersigns_reason", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 3, ENTITY_A, OTHER_USER, withdrawalByOther + ", decision_reason", ", 'REJECTED', now(), " + DECIDER + ", gen_random_uuid(), ' '"));
         refused("ck_attribution_countersigns_reason", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 3, ENTITY_A, OTHER_USER, ", decision_reason", ", 'a reason before any decision'"));
         refused("ck_attribution_countersigns_decision_kind", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 3, ENTITY_A, OTHER_USER, withdrawalByOther, ", 'MAYBE', now(), " + DECIDER + ", gen_random_uuid()"));
-        refused("ck_attribution_countersigns_escalation_level", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 3, ENTITY_A, OTHER_USER, ", escalation_level", ", 4"));
-        countersign("CHANGE", 1, ENTITY_B, ", escalation_level", ", 3");
+        refused("ck_attribution_countersigns_escalation_level", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 3, ENTITY_A, OTHER_USER, ", escalation_level_number", ", 4"));
+        countersign("CHANGE", 1, ENTITY_B, ", escalation_level_number", ", 3");
     }
 
     private void bump(String set, String where) {
@@ -226,16 +226,16 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
         awaiting(COMMAND, EMPLOYEE);
         countersign("CHANGE", 1, ENTITY_A, "", "");
         countersign("CHANGE", 1, ENTITY_B, "", "");
-        bump("escalation_level = 1", "legal_entity_id = " + ENTITY_A);
-        assertThatThrownBy(() -> bump("escalation_level = 0", "legal_entity_id = " + ENTITY_A)).hasMessageContaining("can only increase");
-        bump("escalation_level = 2", "legal_entity_id = " + ENTITY_A);
+        bump("escalation_level_number = 1", "legal_entity_id = " + ENTITY_A);
+        assertThatThrownBy(() -> bump("escalation_level_number = 0", "legal_entity_id = " + ENTITY_A)).hasMessageContaining("can only increase");
+        bump("escalation_level_number = 2", "legal_entity_id = " + ENTITY_A);
         assertThatThrownBy(() -> bump("due_on_date = date '2026-12-31'", "legal_entity_id = " + ENTITY_A)).hasMessageContaining("only the decision columns");
         assertThatThrownBy(() -> bump("requested_by = " + OTHER_USER, "legal_entity_id = " + ENTITY_A)).hasMessageContaining("only the decision columns");
         bump("decision_kind = 'APPROVED', decided_at = now(), decided_by = " + DECIDER + ", decision_audit_entry_id = gen_random_uuid()", "legal_entity_id = " + ENTITY_A);
         assertThatThrownBy(() -> bump("decision_kind = 'REJECTED', decision_reason = 'changed my mind'", "legal_entity_id = " + ENTITY_A)).hasMessageContaining("set once");
         assertThatThrownBy(() -> bump("decided_by = " + OTHER_USER, "legal_entity_id = " + ENTITY_A)).hasMessageContaining("set once");
         assertThatThrownBy(() -> bump("decision_audit_entry_id = gen_random_uuid()", "legal_entity_id = " + ENTITY_A)).hasMessageContaining("set once");
-        assertThatThrownBy(() -> bump("escalation_level = 3", "legal_entity_id = " + ENTITY_A)).hasMessageContaining("can only increase");
+        assertThatThrownBy(() -> bump("escalation_level_number = 3", "legal_entity_id = " + ENTITY_A)).hasMessageContaining("can only increase");
         assertThatThrownBy(() -> bump("decision_kind = 'APPROVED'", "legal_entity_id = " + ENTITY_B)).hasMessageContaining("ck_attribution_countersigns_decision");
         bump("decision_kind = 'REJECTED', decided_at = now(), decided_by = " + DECIDER + ", decision_audit_entry_id = gen_random_uuid(), decision_reason = 'no'", "legal_entity_id = " + ENTITY_B);
     }

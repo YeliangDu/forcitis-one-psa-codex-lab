@@ -82,7 +82,7 @@ CREATE TABLE organization_workforce.attribution_countersigns (
     employee_id                uuid        NOT NULL,
     drafted_by                 uuid        NOT NULL,
     request_kind               text        NOT NULL,
-    request_sequence_number    smallint    NOT NULL,
+    request_sequence_number    integer     NOT NULL,
     legal_entity_id            uuid        NOT NULL,
     requested_at               timestamptz NOT NULL,
     requested_by               uuid        NOT NULL,
@@ -92,7 +92,7 @@ CREATE TABLE organization_workforce.attribution_countersigns (
     decided_by                 uuid,
     decision_reason            text,
     decision_audit_entry_id    uuid,
-    escalation_level           smallint    NOT NULL DEFAULT 0,
+    escalation_level_number    integer     NOT NULL DEFAULT 0,
     created_at                 timestamptz NOT NULL,
     updated_at                 timestamptz NOT NULL,
     version                    bigint      NOT NULL DEFAULT 0,
@@ -103,7 +103,7 @@ CREATE TABLE organization_workforce.attribution_countersigns (
     CONSTRAINT fk_attribution_countersigns_legal_entity_id FOREIGN KEY (legal_entity_id) REFERENCES organization_workforce.legal_entities (id) ON DELETE RESTRICT,
     CONSTRAINT ck_attribution_countersigns_request_kind CHECK (request_kind IN ('CHANGE', 'WITHDRAWAL')),
     CONSTRAINT ck_attribution_countersigns_decision_kind CHECK (decision_kind IS NULL OR decision_kind IN ('APPROVED', 'REJECTED', 'LAPSED')),
-    CONSTRAINT ck_attribution_countersigns_escalation_level CHECK (escalation_level BETWEEN 0 AND 3),
+    CONSTRAINT ck_attribution_countersigns_escalation_level_number CHECK (escalation_level_number BETWEEN 0 AND 3),
     CONSTRAINT ck_attribution_countersigns_request_sequence_number CHECK (request_sequence_number >= 1),
     CONSTRAINT ck_attribution_countersigns_due_on_date_finite CHECK (isfinite(due_on_date)),
     CONSTRAINT ck_attribution_countersigns_not_drafter CHECK (decided_by IS DISTINCT FROM drafted_by AND decided_by IS DISTINCT FROM requested_by),
@@ -133,7 +133,7 @@ COMMENT ON COLUMN organization_workforce.attribution_countersigns.decided_at IS 
 COMMENT ON COLUMN organization_workforce.attribution_countersigns.decided_by IS '决定人（用户账号 ID，跨 schema 只存 ID）：不得是起草人或请求人；为空表示仍待会签或已失效（失效不由人决定）';
 COMMENT ON COLUMN organization_workforce.attribution_countersigns.decision_reason IS '决定理由（1 至 500 字）：拒绝必填，批准可填；为空表示未填或仍待会签';
 COMMENT ON COLUMN organization_workforce.attribution_countersigns.decision_audit_entry_id IS '决定审计记录 ID（跨模块，只存 ID、不建外键）；为空表示仍待会签';
-COMMENT ON COLUMN organization_workforce.attribution_countersigns.escalation_level IS '升级级别：0 未升级 / 1 提醒 / 2 二级 / 3 三级，只升不降';
+COMMENT ON COLUMN organization_workforce.attribution_countersigns.escalation_level_number IS '升级级别：0 未升级 / 1 提醒 / 2 二级 / 3 三级，只升不降';
 COMMENT ON COLUMN organization_workforce.attribution_countersigns.created_at IS '创建时间';
 COMMENT ON COLUMN organization_workforce.attribution_countersigns.updated_at IS '更新时间';
 COMMENT ON COLUMN organization_workforce.attribution_countersigns.version IS '乐观锁版本';
@@ -159,11 +159,11 @@ BEGIN
             RAISE EXCEPTION 'column % of %.% is set once and cannot change', column_name, TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
         END IF;
     END LOOP;
-    IF NEW.escalation_level < OLD.escalation_level OR (OLD.decision_kind IS NOT NULL AND NEW.escalation_level <> OLD.escalation_level) THEN
-        RAISE EXCEPTION 'escalation_level of %.% can only increase while the request is open', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
+    IF NEW.escalation_level_number < OLD.escalation_level_number OR (OLD.decision_kind IS NOT NULL AND NEW.escalation_level_number <> OLD.escalation_level_number) THEN
+        RAISE EXCEPTION 'escalation_level_number of %.% can only increase while the request is open', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
     END IF;
-    IF (to_jsonb(NEW) - 'decision_kind' - 'decided_at' - 'decided_by' - 'decision_reason' - 'decision_audit_entry_id' - 'escalation_level' - 'updated_at' - 'version')
-            <> (to_jsonb(OLD) - 'decision_kind' - 'decided_at' - 'decided_by' - 'decision_reason' - 'decision_audit_entry_id' - 'escalation_level' - 'updated_at' - 'version') THEN
+    IF (to_jsonb(NEW) - 'decision_kind' - 'decided_at' - 'decided_by' - 'decision_reason' - 'decision_audit_entry_id' - 'escalation_level_number' - 'updated_at' - 'version')
+            <> (to_jsonb(OLD) - 'decision_kind' - 'decided_at' - 'decided_by' - 'decision_reason' - 'decision_audit_entry_id' - 'escalation_level_number' - 'updated_at' - 'version') THEN
         RAISE EXCEPTION 'only the decision columns and the escalation level of %.% can change', TG_TABLE_SCHEMA, TG_TABLE_NAME USING ERRCODE = 'restrict_violation';
     END IF;
     RETURN NEW;
