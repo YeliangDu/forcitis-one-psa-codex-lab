@@ -94,6 +94,8 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
             assertThat(e.userId()).isEqualTo(new com.forcitis.one.kernel.UserId(accountOf(1001)));
             assertThat(e.roleIds()).isEmpty();
         });
+        assertThat(domainEvents.of(com.forcitis.one.platform.identity.events.AccountSeparated.class)).singleElement()
+                .satisfies(e -> assertThat(e.userId()).isEqualTo(new com.forcitis.one.kernel.UserId(accountOf(1001))));
         assertThat(domainEvents.of(EmergencyAdminDisabled.class)).singleElement().satisfies(e -> {
             assertThat(e.userId()).isEqualTo(new com.forcitis.one.kernel.UserId(accountOf(1001)));
             assertThat(e.cause()).isEqualTo(EmergencyAdminDisableCause.SEPARATION);

@@ -53,8 +53,8 @@ class HandleEmployeeSeparated {
     private void separate(UserId userId, PersonnelCommandId command) {
         accounts.findForUpdate(userId).ifPresent(account -> {
             if (!account.roles().isEmpty()) {
-                grants.replace(account, Set.of(), AccountGrants.Origin.separation(command));
                 account.recordSeparation();
+                grants.replace(account, Set.of(), AccountGrants.Origin.separation(command));
                 accounts.save(account);
                 events.publish(account);
             }
