@@ -184,4 +184,66 @@ class OrgMergeTransferGuardIT extends OrgCountersignSupport {
         }
         assertThat(transferReferring(seededOrgCommand("MERGE", "PENDING"), AWAITING)).isNull();
     }
+
+    // ---- one-design ruling on #908 (comment 6590861391) item 1: leaving AWAITING_ATTRIBUTION_COUNTERSIGN is fail-closed ----
+
+    /** An ASSIGN_LEGAL_ENTITY awaiting countersign, on a unit of its own (one open command per unit and day). */
+    private UUID awaitingAssignment() throws Exception {
+        UUID id = Uuids.timeOrdered(NOW);
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, """
+                    insert into org_structure_commands (org_structure_command_id, command_kind, target_kind, target_org_unit_id, effective_date, status,
+                      target_legal_entity_id, created_at, created_by, updated_at) values (?, 'ASSIGN_LEGAL_ENTITY', 'ORG_UNIT', ?, ?, ?, ?, ?, ?, ?)""",
+                    id, stored(seedUnit(topE1)), TODAY.plusDays(3), AWAITING, e2, at, drafter, at);
+        }
+        return id;
+    }
+
+    /** Moves the command to the status directly in the schema; null when the database accepted it, else the refusal. */
+    private Throwable moveTo(UUID command, String status) {
+        return catchThrowable(() -> {
+            try (Connection workforce = schemaConnection("organization_workforce")) {
+                if (status.equals("WITHDRAWN")) {
+                    update(workforce, "update org_structure_commands set status = 'WITHDRAWN', withdrawn_at = ?, withdrawn_by = ?, withdrawal_reason = 'synthetic', updated_at = ?"
+                            + " where org_structure_command_id = ?", at, drafter, at, command);
+                } else {
+                    update(workforce, "update org_structure_commands set status = ?, applied_at = ?, updated_at = ? where org_structure_command_id = ?",
+                            status, status.equals("EFFECTIVE") ? at : null, at, command);
+                }
+            }
+        });
+    }
+
+    private void assertExitRefused(UUID command, String status) throws Exception {
+        assertThat(moveTo(command, status)).as("AWAITING -> " + status + " refused by the transition trigger").isInstanceOf(SQLException.class);
+        assertThat(rows("select status from org_structure_commands where org_structure_command_id = ?", command).get(0).get("status")).isEqualTo(AWAITING);
+    }
+
+    @Test
+    @DisplayName("#910 one-design 裁定（#908 comment 6590861391 第 1 项，fail-closed）：待法人归属会签的组织命令，有一行 CHANGE 未决、被拒或已失效、或一行 CHANGE 都没有时，数据库拒绝把它改成待生效或已生效，状态不变")
+    void anAwaitingCommandCannotLeaveWithoutEveryChangeApproved() throws Exception {
+        for (String other : new String[] {null, REJECTED, LAPSED}) {
+            UUID command = awaitingAssignment();
+            changeRow(command, e1, APPROVED);
+            changeRow(command, e2, other);
+            assertExitRefused(command, "PENDING");
+            assertExitRefused(command, "EFFECTIVE");
+        }
+        UUID none = awaitingAssignment();
+        assertExitRefused(none, "PENDING");
+        assertExitRefused(none, "EFFECTIVE");
+    }
+
+    @Test
+    @DisplayName("#910 one-design 裁定（#908 comment 6590861391 第 1 项）通过的孪生：所有 CHANGE 行都批准时可以转待生效；有未决 CHANGE 行时仍可以转已撤回（拒签、失效、起草人撤回要能走）")
+    void theTwinsLeaveAwaiting() throws Exception {
+        UUID approved = awaitingAssignment();
+        changeRow(approved, e1, APPROVED);
+        changeRow(approved, e2, APPROVED);
+        assertThat(moveTo(approved, "PENDING")).isNull();
+
+        UUID withdrawn = awaitingAssignment();
+        changeRow(withdrawn, e1, null);
+        assertThat(moveTo(withdrawn, "WITHDRAWN")).isNull();
+    }
 }

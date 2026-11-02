@@ -20,14 +20,25 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
+import com.forcitis.one.kernel.DomainException;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -344,5 +355,49 @@ class OrgCountersignMergeIT extends OrgCountersignSupport {
         actIn(orgAdmin);
         assertThat(orgCommand(merge).get("transferred_employee_count")).isEqualTo(done);
         assertThat(unitOf(outsider, DAY.plusDays(3))).isEqualTo(topE1);
+    }
+
+    @RepeatedTest(3)
+    @DisplayName("#910 one-design 裁定（#908 comment 6590861391 第 2 项，组织单元根行锁）：合并执行开始与一次复核失败的最后批准同时进行：两者都不挂起，失败只能是业务拒绝；合并没有开始执行（不是 IN_PROGRESS 或 EFFECTIVE）、没有任何引用它的调岗，最后批准的那行为 REJECTED")
+    void executionStartAndAFailingLastApprovalSerialize() throws Exception {
+        UUID merge = enteredMerge();
+        approve(headE1, merge, KIND_CHANGE, e1);
+        inheritingIn(merged);
+        setToday(DAY);
+        UUID lastRow = requestId(merge, KIND_CHANGE, e2);
+        actIn(headE2);
+        restoreActing();
+        SecurityContext approver = SecurityContextHolder.getContext();
+        actIn(orgAdmin);
+        restoreActing();
+        SecurityContext executor = SecurityContextHolder.getContext();
+        OrgCountersignProbe countersigns = OrgCountersignProbe.of(springContext);
+        OrgStructureCommandsProbe orgProbe = OrgStructureCommandsProbe.of(springContext, AccountsAcceptanceSupport::employeeIdOf);
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        List<Future<Throwable>> runs = new ArrayList<>();
+        for (Object[] run : new Object[][] {{approver, (Runnable) () -> countersigns.approve(lastRow)}, {executor, (Runnable) () -> orgProbe.executeMerge(merge)}}) {
+            runs.add(pool.submit(() -> {
+                SecurityContextHolder.setContext((SecurityContext) run[0]);
+                try {
+                    start.await();
+                    return catchThrowable(((Runnable) run[1])::run);
+                } finally {
+                    SecurityContextHolder.clearContext();
+                }
+            }));
+        }
+        start.countDown();
+        pool.shutdown();
+        assertThat(pool.awaitTermination(60, TimeUnit.SECONDS)).as("neither call hangs").isTrue();
+        for (Future<Throwable> run : runs) {
+            Throwable failure = run.get();
+            assertThat(failure == null || failure instanceof DomainException).as("only business refusals: " + failure).isTrue();
+        }
+
+        actIn(orgAdmin);
+        assertThat(statusOf(merge)).isNotIn(IN_PROGRESS, EFFECTIVE);
+        assertThat(generatedTransfers(merge)).as("no TRANSFER next to a set that is not approved").isEmpty();
+        assertThat(decision(merge, KIND_CHANGE, e2)).isEqualTo(REJECTED);
     }
 }
