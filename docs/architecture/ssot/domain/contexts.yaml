@@ -29,7 +29,7 @@ contexts:
   legacy_bc: 工时与投入有效性 BC
   evidence: 老仓库 00_战略设计/04-限界上下文清单.md L34；02-子域划分.md 02 L133-137；ADR-0017 对照表
 - id: organization.attendance
-  zh: 考勤与休假 BC
+  zh: 工作日历与标准工时 BC
   subdomain: organization
   kind: business
   status: built
@@ -38,6 +38,20 @@ contexts:
   legacy_bc: null
   evidence: backend 模块包与 module-dependencies.txt
   note: Phase 1a 为工作日历先建（用户 2026-10-14）；与 organization.payroll 的边界见 Q3
+- id: organization.leave
+  zh: 假勤
+  subdomain: organization
+  kind: business
+  status: planned
+  schema: organization_leave
+  blueprint_bc: B-27
+  legacy_bc: null
+  basis: adr
+  adr:
+  - ADR-0051
+  - ADR-0079
+  evidence: ADR-0051 决定 3（B-27，自 organization.attendance 拆出）；ADR-0079 决定 2
+  note: 打卡与补卡、外勤、请假、额度、加班调休、月度考勤锁定、假期规则版本；依赖 workforce、attendance、platform.approval
 - id: organization.administration
   zh: 行政事务
   subdomain: organization
@@ -407,23 +421,25 @@ contexts:
   evidence: 老仓库 00_战略设计/04-限界上下文清单.md L52；02-子域划分.md 02 L180-189；ADR-0017 对照表
   note: 子域 slug 待定：老文档 knowledge_management，ADR-0017 写作 km
 - id: organization.payroll
-  zh: 假勤薪酬 BC
+  zh: 薪酬 BC
   subdomain: organization
   kind: business
   status: planned
   schema: organization_payroll
   blueprint_bc: null
   legacy_bc: 假勤薪酬 BC
-  responsibility: 假勤事实与薪酬基础（02 L203 称实为通用级、外购优先、无自建聚合档）
-  basis: legacy-evidence
-  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
-  evidence: 老仓库 00_战略设计/04-限界上下文清单.md L57；02-子域划分.md 02 L203；ADR-0017 对照表
+  responsibility: 薪资档案与调薪、月度薪资、社保公积金、个税与专项附加扣除、薪资规则版本、激励奖金（自建，ADR-0051 B-15 深模块；ADR-0079 决定 2）
+  basis: adr
+  adr:
+  - ADR-0051
+  - ADR-0079
+  evidence: ADR-0051 决定 3；ADR-0079 决定 2；用户 2026-10-16「薪资在新系统计算、公司代扣个税」（intent 152603）；老仓库 04-限界上下文清单.md L57 只作证据
   decision_ref: Q3
 - id: organization.incentive
   zh: 绩效激励 BC
   subdomain: organization
   kind: business
-  status: planned
+  status: retired
   schema: organization_incentive
   blueprint_bc: null
   legacy_bc: 绩效激励 BC
@@ -431,6 +447,7 @@ contexts:
   basis: legacy-evidence
   review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
   evidence: 老仓库 00_战略设计/04-限界上下文清单.md L58；02-子域划分.md 02 L203；ADR-0017 对照表
+  note: 已并入 organization.payroll（ADR-0051 决定 3）；绩效结果归 organization.workforce（ADR-0079 决定 2）
 - id: accounting.ledger
   zh: 财务总账与法定核算 BC
   subdomain: accounting

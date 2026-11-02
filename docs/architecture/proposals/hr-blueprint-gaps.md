@@ -29,7 +29,7 @@
 
 ## 需调整（与 ADR-0079 冲突，须改）
 
-1. `docs/architecture/ssot/domain/contexts.yaml`：缺 `organization.leave`；`organization.payroll` 职责仍写「外购优先、无自建聚合」；`organization.incentive` 仍为 planned（应为已并入 payroll）；`organization.attendance` 中文名仍含「休假」。随 ADR-0079 采纳由 one-design 改（本目录路径独有）。
+1. `docs/architecture/ssot/domain/contexts.yaml`：已随 ADR-0079 采纳改（登记 `organization.leave`；payroll 职责按 ADR-0051；incentive 退役；attendance 中文名去掉「休假」）。`organization/attendance/package-info.java` 与 `docs/glossary/glossary.md` 的旧中文名随下一张对应卡改。
 2. 复职可选目标阶段 PROBATION（ADR-0068 REINSTATE 字段）与「同一用人单位只约定一次试用期」（LAB#试用期限制）可能冲突：交法务；若须收紧则另开卡并调整验收。
 3. 规划聚合 AGG-62 的事件草名（入职已登记、Employed、Separated）与已建事件名（`EmployeeHired`、`EmployeeSeparated`）不一致：以已建为准，规划文件随下一张 workforce 卡改。
 4. 规划聚合与 ADR-0079 不一致处（`planned.yaml`，随对应卡改）：AGG-95 把社保申报挂在扣缴义务人口径，应改按用人单位（不变量 4）；AGG-115 资产归还在离职生效时触发，应改为登记后经 workforce 只读 api 生成（第 2 条）；AGG-67 合同事件只作分析，应供 payroll 订阅（第 4 条）；AGG-74 参保依据取员工事件，应取合同的用人单位。
