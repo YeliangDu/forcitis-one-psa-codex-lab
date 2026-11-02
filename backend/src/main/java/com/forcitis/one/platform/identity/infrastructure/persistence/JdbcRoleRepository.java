@@ -379,17 +379,18 @@ class JdbcRoleRepository implements RoleRepository {
         }
         jdbc.sql("""
                 select role_id from platform_identity.roles
-                 where role_id in (select role_id from platform_identity.role_versions where role_version_id in (:versions))
-                 order by role_id for %s
-                """.formatted(forWrite ? "update" : "share")).param("versions", versions.stream().map(RoleVersionId::value).toList())
+                 where role_id in (select role_id from platform_identity.role_versions where role_version_id in (:versions) and (%s or effective_to_at is not null))
+                 order by created_at, role_id for %s
+                """.formatted(Validity.CURRENT, forWrite ? "update" : "share")).param("versions", versions.stream().map(RoleVersionId::value).toList())
                 .query(UUID.class).list();
     }
 
+    /** Any version of any role counts, open or closed: the version the request wrote may have been replaced since. */
     @Override
     public boolean versionWrittenBy(AuthorizationRequestId requestId) {
         return jdbc.sql("""
-                select exists (select 1 from platform_identity.role_versions where authorization_request_id = :request)
-                """).param("request", requestId.value()).query(Boolean.class).single();
+                select exists (select 1 from platform_identity.role_versions where authorization_request_id = :request and (%s or effective_to_at is not null))
+                """.formatted(Validity.CURRENT)).param("request", requestId.value()).query(Boolean.class).single();
     }
 
     private static OffsetDateTime at(Instant instant) {
