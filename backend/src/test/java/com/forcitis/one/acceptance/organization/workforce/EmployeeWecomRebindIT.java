@@ -80,6 +80,7 @@ class EmployeeWecomRebindIT extends EmployeeHireSupport {
             assertThat(code).as("an error of its own: not the duplicate refusal").isNotEqualTo(taken);
             assertThat(code).as("an error of its own: not the own-record refusal").isNotEqualTo(self);
             assertThat(code).as("an error of its own: not the refusal of an invalid change (a future date)").isNotEqualTo(tooEarly);
+            assertThat(code.code()).as("the code of this control").isEqualTo(WECOM_CHANGE_NOT_ALLOWED);
         }
         assertThat(((DomainException) rebind).errorCode()).as("rebind and clear are the same control").isEqualTo(((DomainException) clear).errorCode());
     }
