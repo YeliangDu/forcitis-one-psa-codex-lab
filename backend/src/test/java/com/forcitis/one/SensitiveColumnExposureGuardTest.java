@@ -30,20 +30,18 @@ class SensitiveColumnExposureGuardTest {
         return camel.replaceAll("([a-z0-9])([A-Z])", "$1_$2").toLowerCase();
     }
 
-    /** column name -> every "schema.table.column" with that name at level SENSITIVE or RESTRICTED. */
     static Map<String, List<String>> sensitiveColumns() throws IOException {
+        return sensitiveColumns(ClassificationRegister.read());
+    }
+
+    /** column name -> every "schema.table.column" with that name at level SENSITIVE or RESTRICTED; only the access level decides, the mark does not (ADR-0043 guard rule 6). */
+    static Map<String, List<String>> sensitiveColumns(Map<String, ClassificationRegister.Row> register) {
         Map<String, List<String>> columns = new LinkedHashMap<>();
-        for (String line : Files.readAllLines(CLASSIFICATION)) {
-            if (line.isBlank() || line.startsWith("#")) {
-                continue;
-            }
-            String[] parts = line.split("\\|");
-            String level = parts[1].trim();
-            if (level.equals("SENSITIVE") || level.equals("RESTRICTED")) {
-                String qualified = parts[0].trim();
+        register.forEach((qualified, row) -> {
+            if (row.atLeast("SENSITIVE")) {
                 columns.computeIfAbsent(qualified.substring(qualified.lastIndexOf('.') + 1), k -> new ArrayList<>()).add(qualified);
             }
-        }
+        });
         return columns;
     }
 
@@ -93,7 +91,7 @@ class SensitiveColumnExposureGuardTest {
                 "remove the field from the response, or register it in " + EXCEPTIONS + " with the reason it must be sent; for a stale line delete it")).isEmpty();
     }
 
-    record LeakyResponse(String id, String email, String passwordHash, String lastLoginAddress, String displayName) {
+    record LeakyResponse(String id, String passwordHash, String lastLoginAddress, String accountName, String idNumber, String email) {
     }
 
     record HarmlessResponse(String id, String title) {
@@ -102,20 +100,28 @@ class SensitiveColumnExposureGuardTest {
     record NotAResponseRecord(String email) {
     }
 
+    /** Fixed table: the injection keeps its strength whatever the real register says (ADR-0043). */
+    static final Map<String, ClassificationRegister.Row> FIXED = Map.of(
+            "m.t.password_hash", new ClassificationRegister.Row("RESTRICTED", "NONE", "credential"),
+            "m.t.last_login_address", new ClassificationRegister.Row("SENSITIVE", "PI", "用途：x"),
+            "m.t.account_name", new ClassificationRegister.Row("SENSITIVE", "NONE", "x"),
+            "m.t.id_number", new ClassificationRegister.Row("SENSITIVE", "SPI", "用途：x docs/privacy/x.md"),
+            "m.t.email", new ClassificationRegister.Row("INTERNAL", "PI", "用途：x"));
+
     @Test
-    @DisplayName("injection: fields named like classified columns are found in any *Response record, camelCase or not, and other records are left alone")
-    void scannerFindsClassifiedFields() throws IOException {
-        Set<String> found = exposures(List.of(LeakyResponse.class, HarmlessResponse.class, NotAResponseRecord.class), sensitiveColumns());
+    @DisplayName("injection: fields named like SENSITIVE or RESTRICTED columns (any mark) are found in any *Response record, camelCase or not; an INTERNAL personal column and other records are left alone")
+    void scannerFindsClassifiedFields() {
+        Set<String> found = exposures(List.of(LeakyResponse.class, HarmlessResponse.class, NotAResponseRecord.class), sensitiveColumns(FIXED));
 
         String leaky = LeakyResponse.class.getName();
-        assertThat(found).containsExactlyInAnyOrder(leaky + "#email", leaky + "#passwordHash", leaky + "#lastLoginAddress", leaky + "#displayName");
+        assertThat(found).containsExactlyInAnyOrder(leaky + "#passwordHash", leaky + "#lastLoginAddress", leaky + "#accountName", leaky + "#idNumber");
     }
 
     @Test
-    @DisplayName("the classification lists sensitive columns to guard against")
+    @DisplayName("the classification lists sensitive columns to guard against, and an INTERNAL personal column is not among them")
     void classificationIsRead() throws IOException {
         assertThat(sensitiveColumns()).as(GuardMessage.of("CS-2.13",
-                "architecture/data-classification.txt no longer lists email, password_hash and last_login_address as SENSITIVE or RESTRICTED",
-                "restore those classifications in " + CLASSIFICATION)).containsKeys("email", "password_hash", "last_login_address");
+                "architecture/data-classification.txt no longer lists password_hash and last_login_address as SENSITIVE or RESTRICTED",
+                "restore those classifications in " + CLASSIFICATION)).containsKeys("password_hash", "last_login_address").doesNotContainKey("email");
     }
 }
