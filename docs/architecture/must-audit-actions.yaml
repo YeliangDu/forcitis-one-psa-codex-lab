@@ -23,6 +23,7 @@ categories:
   - platform.identity.AuthorizationConfirmed
   - platform.identity.AuthorizationOpened
   - platform.identity.AuthorizationRejected
+  - platform.identity.authorization.voided
   - platform.identity.grant.refused
   - platform.identity.operations.account.role.granted
   - platform.identity.operations.account.role.revoked

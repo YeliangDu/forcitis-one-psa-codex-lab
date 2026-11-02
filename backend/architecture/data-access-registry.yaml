@@ -163,6 +163,15 @@ tables:
     retention: {policy: PERMANENT}  # 个人任职史随员工清除：离职满 10 年由 purge_employee_history 删除（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
     writers: [organization.workforce]
+  organization_workforce.employee_profile_change_requests:
+    role: AGGREGATE_CHILD
+    aggregate: Employee
+    mutability: CONDITIONAL_UPDATE
+    condition: 状态只按 PENDING 到 CONFIRMED、REJECTED、VOIDED 前进，处理人、处理时刻、作废原因、拒绝原因由空变非空一次，其余内容列不变（触发器 tg_employee_profile_change_requests_append_only，#980）
+    business_key: [employee_profile_change_request_id]
+    retention: {policy: PERMANENT}  # 随员工任职史清除：离职满 10 年删除该员工的行（W2 第 8 节，清理作业另批）
+    lineage: {source: NEW}
+    writers: []  # 尚无写入方（#980 实现卡随用例登记）
   organization_workforce.separation_holds:
     role: AGGREGATE_CHILD
     aggregate: Employee

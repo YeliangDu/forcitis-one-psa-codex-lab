@@ -266,12 +266,15 @@ aggregates:
   - ApplyConfirmedAuthorization
   - AuthorizationGate
   - AuthorizationRequestView
+  - AuthorizationVoiding
   - ConfirmAuthorizationRequest
   - RejectAuthorizationRequest
+  - ReplaceAccountRoles
   events:
   - platform.identity.AuthorizationConfirmed
   - platform.identity.AuthorizationOpened
   - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
   events_in_module:
   - platform.identity.AccountDisabled
   - platform.identity.AccountEnabled
@@ -281,6 +284,7 @@ aggregates:
   - platform.identity.AuthorizationConfirmed
   - platform.identity.AuthorizationOpened
   - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
   - platform.identity.EmergencyAdminCredentialsReset
   - platform.identity.EmergencyAdminDisabled
   - platform.identity.EmergencyAdminEnabled
@@ -322,6 +326,7 @@ aggregates:
   - platform.identity.AuthorizationConfirmed
   - platform.identity.AuthorizationOpened
   - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
   - platform.identity.EmergencyAdminCredentialsReset
   - platform.identity.EmergencyAdminDisabled
   - platform.identity.EmergencyAdminEnabled
@@ -368,6 +373,7 @@ aggregates:
   - platform.identity.AuthorizationConfirmed
   - platform.identity.AuthorizationOpened
   - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
   - platform.identity.EmergencyAdminCredentialsReset
   - platform.identity.EmergencyAdminDisabled
   - platform.identity.EmergencyAdminEnabled
@@ -415,6 +421,7 @@ aggregates:
   - platform.identity.AuthorizationConfirmed
   - platform.identity.AuthorizationOpened
   - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
   - platform.identity.EmergencyAdminCredentialsReset
   - platform.identity.EmergencyAdminDisabled
   - platform.identity.EmergencyAdminEnabled

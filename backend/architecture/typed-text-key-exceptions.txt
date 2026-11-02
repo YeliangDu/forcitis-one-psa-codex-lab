@@ -2,4 +2,4 @@
 # DdlNamingTest finds such columns by the names subject_key and deduplication_key, and by a comment that spells "{type}:" or "{类型}:".
 # A line goes when its column is gone; a line whose column no longer exists fails the test, so the exception expires with the split that replaces the table.
 # Format: <schema.table.column>  # reason and expiry
-organization_workforce.sync_diffs.subject_key  # dropped with the whole table by V20261102141000__organization_workforce_drop_sync.sql (#934); the guard reads every CREATE TABLE in the migration history, not the resulting schema, so the baseline column is still found. Goes when the guard skips dropped tables or the baseline is squashed
+organization_workforce.sync_diffs.subject_key  # dropped with the whole table by V20261102171000__organization_workforce_drop_sync.sql (#934); the guard reads every CREATE TABLE in the migration history, not the resulting schema, so the baseline column is still found. Goes when the guard skips dropped tables or the baseline is squashed
