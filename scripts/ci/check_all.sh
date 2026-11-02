@@ -21,7 +21,7 @@ step() {  # step <名字> <命令…>
 }
 
 # shellcheck disable=SC2329  # called through step "$@"
-secrets() {  # 本分支相对基线的提交里没有密钥（CI 的 gitleaks 作业扫全史）
+secrets() {  # 本分支相对基线的提交里没有密钥（CI 的 gitleaks 作业在 PR 上扫同一范围，全史由 push 到 main 与夜间扫）
   command -v gitleaks >/dev/null || { echo "找不到 gitleaks：照 runner 运维页装 8.30.1" >&2; return 1; }
   gitleaks git --redact --no-banner --exit-code 1 --log-opts="$base..HEAD" .
 }
