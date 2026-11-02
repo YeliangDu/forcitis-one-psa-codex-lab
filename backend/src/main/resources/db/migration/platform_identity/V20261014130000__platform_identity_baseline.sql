@@ -456,6 +456,33 @@ CREATE INDEX ix_account_role_grants_grant_authorization_request_id ON platform_i
 CREATE INDEX ix_account_role_grants_revocation_authorization_request_id ON platform_identity.account_role_grants (revocation_authorization_request_id)
     WHERE revocation_authorization_request_id IS NOT NULL;
 
+-- 已处理的人事命令：消费人事事件的监听器记下「这条命令已判定过」，重投时不再按当时状态重新判定（#939，数据设计签发 #939 修订）。只追加。
+CREATE TABLE platform_identity.handled_personnel_commands (
+    personnel_command_id  uuid        NOT NULL,
+    user_id               uuid        NOT NULL,
+    command_kind          text        NOT NULL,
+    outcome_kind          text        NOT NULL,
+    account_role_grant_id uuid,
+    handled_at            timestamptz NOT NULL,
+    created_at            timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_handled_personnel_commands PRIMARY KEY (personnel_command_id),
+    CONSTRAINT fk_handled_personnel_commands_user_id FOREIGN KEY (user_id) REFERENCES platform_identity.user_accounts (user_id),
+    CONSTRAINT fk_handled_personnel_commands_account_role_grant_id FOREIGN KEY (account_role_grant_id) REFERENCES platform_identity.account_role_grants (account_role_grant_id),
+    CONSTRAINT ck_handled_personnel_commands_command_kind CHECK (command_kind IN ('REINSTATE')),
+    CONSTRAINT ck_handled_personnel_commands_outcome_kind CHECK (outcome_kind IN ('GRANT_OPENED', 'NOT_EMPLOYED', 'ALREADY_GRANTED')),
+    CONSTRAINT ck_handled_personnel_commands_grant CHECK ((outcome_kind = 'GRANT_OPENED') = (account_role_grant_id IS NOT NULL))
+);
+CREATE INDEX ix_handled_personnel_commands_user_id ON platform_identity.handled_personnel_commands (user_id);
+CREATE INDEX ix_handled_personnel_commands_account_role_grant_id ON platform_identity.handled_personnel_commands (account_role_grant_id) WHERE account_role_grant_id IS NOT NULL;
+COMMENT ON TABLE platform_identity.handled_personnel_commands IS '已处理的人事命令：监听器对一条人事命令判定后记一行（无论开了授予与否），重投时见到该行就跳过，不再按当时状态重新判定；只追加。粒度：每条已判定的人事命令一行';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.personnel_command_id IS '人事命令 ID（跨模块，只存 ID、不建外键）';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.user_id IS '用户 ID：命令所涉员工的账号';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.command_kind IS '命令类别：REINSTATE 复职；将来别的人事命令增加时扩展本检查';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.outcome_kind IS '判定结果：GRANT_OPENED 开了基础角色授予 / NOT_EMPLOYED 目录显示不在职、没开 / ALREADY_GRANTED 账号已有开放授予、没开';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.account_role_grant_id IS '本命令开出的角色授予 ID；只在 GRANT_OPENED 时有';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.handled_at IS '判定时刻（注入时钟）';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.created_at IS '创建时间';
+
 CREATE FUNCTION platform_identity.require_open_role_version() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM platform_identity.role_versions v WHERE v.role_id = NEW.role_id AND v.effective_to_at IS NULL) THEN

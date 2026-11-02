@@ -6,7 +6,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.forcitis.one.fixture.doubles.TestAccounts;
-import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.DomainEvents;
@@ -15,11 +14,9 @@ import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
-import com.forcitis.one.platform.identity.domain.GrantHistory;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
 import com.forcitis.one.platform.identity.domain.UserAccount;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -33,7 +30,7 @@ class HandleEmployeeReinstatedOrderTest {
     final AccountRepository accounts = mock(AccountRepository.class);
     final OrgDirectory directory = mock(OrgDirectory.class);
     final HandleEmployeeReinstated handler = new HandleEmployeeReinstated(TestAccounts.everyoneHasOne(), directory, accounts, mock(RoleRepository.class),
-            mock(AccountGrants.class), mock(DomainEvents.class), mock(AccessCache.class), mock(GrantHistory.class), new BusinessZone(ZoneId.of("Asia/Shanghai")), "employee");
+            mock(AccountGrants.class), mock(DomainEvents.class), mock(AccessCache.class), "employee");
 
     @Test
     void theLockComesBeforeTheDirectoryRead() {
@@ -49,6 +46,7 @@ class HandleEmployeeReinstatedOrderTest {
 
         InOrder order = inOrder(accounts, directory);
         order.verify(accounts).findForUpdate(user);
+        order.verify(accounts).isHandled(event.personnelCommandId());
         order.verify(directory).findEmployee(employee);
     }
 }

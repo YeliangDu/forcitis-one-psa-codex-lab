@@ -56,11 +56,32 @@ class HandleEmployeeReinstatedIntegrationTest extends IdentityIntegrationTest {
         long grants = count("account_role_grants");
 
         tx.executeWithoutResult(status -> events.publishEvent(event));
-        EmployeeReinstated another = reinstated(employee);
-        tx.executeWithoutResult(status -> events.publishEvent(another));
+        EmployeeReinstated same = new EmployeeReinstated(TestEnvelopes.of("organization.workforce.EmployeeReinstated", "Employee", employee.value()),
+                event.personnelCommandId(), employee, event.effectiveDate());
+        tx.executeWithoutResult(status -> events.publishEvent(same));
 
-        await().atMost(Duration.ofSeconds(15)).until(() -> handled(another));
+        await().atMost(Duration.ofSeconds(15)).until(() -> handled(same));
         assertThat(count("account_role_grants")).isEqualTo(grants);
         assertThat(count("account_role_grants where effective_to_at is null")).isZero();
+        assertThat(count("handled_personnel_commands")).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("a second reinstatement of the same person (another command, after a separation closed the grants) opens the grant again, however the dates lie")
+    void aLaterReinstatementIsDecidedOnItsOwn() {
+        knownEmployee(7102, EmploymentStatus.EMPLOYED);
+        createAccount(7102);
+        EmployeeId employee = TestAccounts.employee(7102);
+        EmployeeReinstated first = reinstated(employee);
+        tx.executeWithoutResult(status -> events.publishEvent(first));
+        await().atMost(Duration.ofSeconds(15)).until(() -> handled(first));
+        jdbc.sql("update platform_identity.account_role_grants set effective_to_at = greatest(now(), effective_from_at), revocation_cause_kind = 'OPERATIONS', revocation_audit_entry_id = uuidv7(), updated_at = now() where effective_to_at is null").update();
+
+        EmployeeReinstated second = reinstated(employee);
+        tx.executeWithoutResult(status -> events.publishEvent(second));
+
+        await().atMost(Duration.ofSeconds(15)).until(() -> handled(second));
+        assertThat(count("account_role_grants where effective_to_at is null")).isEqualTo(1);
+        assertThat(count("handled_personnel_commands")).isEqualTo(2);
     }
 }

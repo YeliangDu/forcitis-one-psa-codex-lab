@@ -359,6 +359,15 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [platform.identity]
+  platform_identity.handled_personnel_commands:
+    # Retention as account_role_grants (0034-Q2; data design sign-off #939): purged with it, before it (foreign key). Only surrogate keys and codes.
+    role: IDEMPOTENCY
+    aggregate: UserAccount
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    references: {user_id: platform_identity.user_accounts, account_role_grant_id: platform_identity.account_role_grants}
+    writers: [platform.identity]
   platform_identity.role_versions:
     # Retention (ADR-0034 0034-Q2): 3 years online, archived until 10 years. The purge job is built with the online deletion of audit entries (ADR-0034, impact list), then this becomes {policy: 3y, job: ...}.
     # Owner: one-1a-par. Due: within 30 months after the first production deployment. The purge runs in dependency order: account_role_grants first, then role_versions, then the rows they reference

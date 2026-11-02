@@ -1,7 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.kernel.AccountEmployees;
-import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.SystemActorName;
@@ -14,7 +13,8 @@ import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
-import com.forcitis.one.platform.identity.domain.GrantHistory;
+import com.forcitis.one.platform.identity.domain.GrantChanges;
+import com.forcitis.one.platform.identity.domain.HandledOutcome;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,7 +23,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * A reinstatement took effect (ADR-0034 section 3 item 5, ADR-0055 section 3 item 6; D-1a-17): when the directory shows the person employed and the
- * account holds no open grant and none was opened since the effective date, exactly one default-role grant is opened, as when an account is opened.
+ * account holds no open grant, exactly one default-role grant is opened, as when an account is opened.
  * Earlier grants stay closed and are not restored. A person without an account gets none, and a repeated delivery opens nothing, also after an
  * administrator took the role away.
  */
@@ -40,12 +40,10 @@ class HandleEmployeeReinstated {
     private final AccountGrants grants;
     private final DomainEvents events;
     private final AccessCache cache;
-    private final GrantHistory history;
-    private final BusinessZone zone;
     private final String defaultRole;
 
     HandleEmployeeReinstated(AccountEmployees accountEmployees, OrgDirectory directory, AccountRepository accounts, RoleRepository roles, AccountGrants grants,
-            DomainEvents events, AccessCache cache, GrantHistory history, BusinessZone zone, @Value("${forcitis.platform.identity.default-role}") String defaultRole) {
+            DomainEvents events, AccessCache cache, @Value("${forcitis.platform.identity.default-role}") String defaultRole) {
         this.accountEmployees = accountEmployees;
         this.directory = directory;
         this.accounts = accounts;
@@ -53,8 +51,6 @@ class HandleEmployeeReinstated {
         this.grants = grants;
         this.events = events;
         this.cache = cache;
-        this.history = history;
-        this.zone = zone;
         this.defaultRole = defaultRole;
     }
 
@@ -66,22 +62,30 @@ class HandleEmployeeReinstated {
     }
 
     /**
-     * The account row is locked before the directory is read, so a separation that takes effect meanwhile either shows in the reading or waits for this
-     * transaction and then closes the grant opened here. A grant opened since the effective date is the trace of this very reinstatement (a redelivery
-     * after an administrator removed the role opens nothing).
+     * The account row is locked first; then the record of the command is read, and only then the directory (a separation that takes effect meanwhile
+     * either shows in the reading or waits for this transaction and closes the grant opened here). Every completed decision is recorded, so a redelivery,
+     * also after an administrator removed the role or after a later separation, never decides again.
      */
     private void openDefaultRole(UserId user, EmployeeReinstated event) {
         accounts.findForUpdate(user).ifPresent(account -> {
+            if (accounts.isHandled(event.personnelCommandId())) {
+                return;
+            }
             boolean employed = directory.findEmployee(event.employeeId()).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false);
-            if (!employed || !account.roles().isEmpty()
-                    || history.openedFrom(user, event.effectiveDate().atStartOfDay(zone.zone()).toInstant())) {
+            if (!employed) {
+                accounts.saveHandled(event.personnelCommandId(), user, HandledOutcome.NOT_EMPLOYED, null);
+                return;
+            }
+            if (!account.roles().isEmpty()) {
+                accounts.saveHandled(event.personnelCommandId(), user, HandledOutcome.ALREADY_GRANTED, null);
                 return;
             }
             var initial = roles.findByCode(new RoleCode(defaultRole)).orElseThrow(() -> new DomainException(IdentityError.PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING,
                     ErrorKind.UNAVAILABLE, "the default role " + defaultRole + " does not exist")).roleId();
-            grants.replace(account, Set.of(initial), AccountGrants.Origin.defaultRole());
+            GrantChanges changes = grants.replace(account, Set.of(initial), AccountGrants.Origin.defaultRole());
             accounts.save(account);
             events.publish(account);
+            accounts.saveHandled(event.personnelCommandId(), user, HandledOutcome.GRANT_OPENED, changes.opened().getFirst().id());
             cache.evict(user);
         });
     }
