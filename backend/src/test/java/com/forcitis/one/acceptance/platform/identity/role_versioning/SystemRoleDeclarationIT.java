@@ -85,7 +85,7 @@ class SystemRoleDeclarationIT {
         return ids;
     }
 
-    /** ADR-0034 decision 1 item 7 and card 7.2: a role the declaration wrote has exactly one version, number 1, open, SEED, revision 1, no recorder, no request. */
+    /** ADR-0034 decision 1 item 7 and card 7.2: a role the declaration wrote has exactly one version, number 1, open, SEED, revision 1 (org_data_admin 2), no recorder, no request. */
     private static void assertOneSeedVersion(String database) throws SQLException {
         for (SeededRole role : SEED) {
             List<List<Object>> versions = versionsOf(database, role.roleId());
@@ -94,7 +94,10 @@ class SystemRoleDeclarationIT {
             assertThat(version.get(1)).as("version_number of %s", role.code()).isEqualTo(1);
             assertThat(version.get(2)).as("%s's version is current", role.code()).isEqualTo(true);
             assertThat(version.get(3)).as("change_channel_kind of %s", role.code()).isEqualTo("SEED");
-            assertThat(version.get(4)).as("declaration_revision_number of %s (card 7.2: 声明修订号 1)", role.code()).isEqualTo(1);
+            // org_data_admin's declared content changed (sync run codes -> org-reconciliation:execute): under the declaration convention changed content raises
+            // the revision, so existing dev databases reconcile instead of refusing to start (lead ruling 2026-11-02 on #1014).
+            int revision = role.code().equals("org_data_admin") ? 2 : 1;
+            assertThat(version.get(4)).as("declaration_revision_number of %s (card 7.2: 声明修订号 1; org_data_admin 2 since #934)", role.code()).isEqualTo(revision);
             assertThat(version.get(5)).as("recorded_by of a SEED version").isNull();
             assertThat(version.get(6)).as("authorization_request_id of a SEED version").isNull();
             assertThat((String) version.get(7)).as("change_reason of %s", role.code()).isNotBlank();
@@ -133,7 +136,7 @@ class SystemRoleDeclarationIT {
     }
 
     @Test
-    @DisplayName("0034-G8-01 空库启动：建出七个系统角色——六个沿用基线种子（role_id 为声明固定值 019a…101 至 …106、kind SYSTEM、编码与是否管理员角色同声明）加人事专员 personnel_specialist（#872），每个恰有版本 1：当前、渠道 SEED、声明修订号 1、无记录人、无授权申请")
+    @DisplayName("0034-G8-01 空库启动：建出七个系统角色——六个沿用基线种子（role_id 为声明固定值 019a…101 至 …106、kind SYSTEM、编码与是否管理员角色同声明）加人事专员 personnel_specialist（#872），每个恰有版本 1：当前、渠道 SEED、声明修订号 1（组织数据管理员为 2，#934 改了其声明内容）、无记录人、无授权申请")
     void anEmptyDatabaseGetsTheSixSystemRoles() throws Exception {
         Outcome outcome = firstStart();
 
