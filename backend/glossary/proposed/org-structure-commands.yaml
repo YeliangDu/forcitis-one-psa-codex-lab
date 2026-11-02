@@ -127,7 +127,7 @@ terms:
   forbidden: []
   status: proposed
   confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: ''
+  note: 「合并」在此指组织单元合并（命令种类 MERGE，人员经调动转入承接单元，不改劳动合同）；ADR-0079 不变量 14 的「合并」指用人单位合并，两者不同
 - id: org_unit_reparented
   zh: 组织单元上级已调整
   en: OrgUnitReparented
@@ -224,3 +224,18 @@ terms:
   status: proposed
   confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
   note: 岗位不设删除（ADR-0068 第 15 条第 4 项）
+- id: into
+  zh: 并入
+  en: Into
+  snake: into
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 合并命令里承接方的列名用语（merge_into_org_unit_id）：被并入方的员工与下级转入的组织单元
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 随 #905 建表登记，列名取自 one-design 签发的 DDL；编码时才发现的用语，请 one-design 复核
