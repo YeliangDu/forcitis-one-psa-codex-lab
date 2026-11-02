@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 交付前的一条本机命令（#856，CLAUDE.md 交付第 2 步）：light.sh、gitleaks（本分支相对基线的提交）、改动范围内的免容器单测与守护类。
 # 用法：scripts/ci/check_all.sh [<基线>]   基线默认 origin/main（本脚本不 fetch）。任一步失败退出 1，末尾逐步汇总；前置条件缺失算失败并写明怎么补，不跳过。
-# 不在这里的：要起容器的集成测试、前端 verify 的其余步骤（CI 的重步骤跑）；前端有改动时只多跑类型检查（#914）。Bash 3.2 可用。
+# 不在这里的：要起容器的集成测试（CI 的重步骤跑）；前端有改动时多跑与 CI 同一条 pnpm run verify（#1026）。Bash 3.2 可用。
 set -uo pipefail
 root=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "check_all.sh：不在 git 仓库里" >&2; exit 2; }
 cd "$root" || exit 2
