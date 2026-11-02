@@ -6,7 +6,10 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.util.List;
 import java.util.Optional;
 
-/** Reading side of the org snapshot: lookups and browsing, nothing is loaded for a change. */
+/**
+ * Reading side of the org snapshot: lookups and browsing, nothing is loaded for a change. The staff lookups answer as of the business day: a person with
+ * employee versions is read from the versions in force, anyone else from the snapshot (#958).
+ */
 public interface OrgSnapshotQueries {
     Optional<StaffEmployee> findStaff(EmployeeId employeeId);
 
