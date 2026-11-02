@@ -4,6 +4,7 @@ import static com.forcitis.one.acceptance.organization.workforce.PersonnelComman
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.acceptance.AssignmentRoots;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
@@ -128,11 +129,13 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
             // personnel command api, which is the point of the red run, and not on the seed. With #880 the row is always written.
             if (!query(workforce, "select 1 as present from information_schema.columns where table_schema = 'organization_workforce' and table_name = ? and column_name = ?",
                     ASSIGNMENT_VERSIONS, "change_channel_kind").isEmpty()) {
-                update(workforce, """
+                // #711: the version hangs on the employee's PRIMARY root once employee_assignments exists (AssignmentRoots).
+                UUID root = AssignmentRoots.primaryOf(workforce, stored(id));
+                update(workforce, AssignmentRoots.withRoot("""
                     insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
-                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""",
-                    Uuids.timeOrdered(NOW), stored(id), SINCE, stored(unit), position, OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC),
-                    OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC));
+                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root),
+                    AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), stored(id), SINCE, stored(unit), position,
+                    OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC), OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC)));
             }
         }
         attributeEmployee(administrator, id, legalEntity);
