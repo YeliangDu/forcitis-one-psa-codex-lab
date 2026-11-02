@@ -199,7 +199,7 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
     // ---- done-when 5, 6 ----
 
     @Test
-    @DisplayName("#711 完成标准 5：调岗不带目标任职、结束兼职指向主任职根、新增兼职带目标任职，都被 CHECK 拒绝；结束兼职指向兼职根被接受")
+    @DisplayName("#711 完成标准 5：调岗不带目标任职、结束兼职指向主任职根或带别的目标列、新增兼职带目标任职、离职与转正带目标任职，都被 CHECK 拒绝（DD 4.3）；结束兼职指向兼职根被接受")
     void commandsNameTheRightKindOfPost() throws Exception {
         UUID concurrent = root(person, AssignmentRoots.CONCURRENT);
 
@@ -207,6 +207,10 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
         refusedBy(() -> command(person, "END_CONCURRENT", TODAY.plusDays(4), null, null, null, null, primary, AssignmentRoots.PRIMARY, null), CHECK_VIOLATION, null);
         refusedBy(() -> command(person, "START_CONCURRENT", TODAY.plusDays(4), newUnit(), newPosition(), null, null, concurrent, AssignmentRoots.CONCURRENT, null),
                 CHECK_VIOLATION, null);
+        refusedBy(() -> command(person, "END_CONCURRENT", TODAY.plusDays(4), newUnit(), null, null, null, concurrent, AssignmentRoots.CONCURRENT, null),
+                CHECK_VIOLATION, null);
+        refusedBy(() -> command(person, "SEPARATE", TODAY.plusDays(4), null, null, null, null, primary, AssignmentRoots.PRIMARY, null), CHECK_VIOLATION, null);
+        refusedBy(() -> command(person, "REGULARIZE", TODAY.plusDays(4), null, null, null, null, primary, AssignmentRoots.PRIMARY, null), CHECK_VIOLATION, null);
         command(person, "END_CONCURRENT", TODAY.plusDays(4), null, null, null, null, concurrent, AssignmentRoots.CONCURRENT, null);
     }
 
@@ -235,7 +239,7 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
     // ---- done-when 7, 8 ----
 
     @Test
-    @DisplayName("#711 完成标准 7（M2：按人或主任职、按兼职分别一天一条未生效命令）：同一天主任职调岗加新增兼职、结束兼职加主任职调岗都被接受；主任职同一天两条被 uk_personnel_commands_open_per_day 拒绝；同一兼职同一天两条被 uk_personnel_commands_open_per_assignment_day 拒绝")
+    @DisplayName("#711 完成标准 7（M2：按人或主任职、按兼职分别一天一条未生效命令）：同一天主任职调岗加新增兼职、结束兼职加主任职调岗、再加另一个兼职的调岗都被接受（按兼职各算，rv1045x M1）；主任职同一天两条被 uk_personnel_commands_open_per_day 拒绝；同一兼职同一天两条被 uk_personnel_commands_open_per_assignment_day 拒绝")
     void oneOpenCommandPerPersonOrPrimaryAndPerConcurrentPostPerDay() throws Exception {
         UUID concurrent = root(person, AssignmentRoots.CONCURRENT);
         concurrentVersion(concurrent, TODAY.minusDays(9), newUnit(), newPosition());
@@ -246,6 +250,9 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
         command(person, "START_CONCURRENT", first, newUnit(), newPosition(), null, null, null, null, null);
         command(person, "END_CONCURRENT", second, null, null, null, null, concurrent, AssignmentRoots.CONCURRENT, null);
         command(person, "TRANSFER", second, newUnit(), null, null, null, primary, AssignmentRoots.PRIMARY, null);
+        UUID secondPost = root(person, AssignmentRoots.CONCURRENT);
+        concurrentVersion(secondPost, TODAY.minusDays(8), newUnit(), newPosition());
+        command(person, "TRANSFER", second, newUnit(), null, null, null, secondPost, AssignmentRoots.CONCURRENT, null);
 
         refusedBy(() -> command(person, "TRANSFER", first, newUnit(), null, null, null, primary, AssignmentRoots.PRIMARY, null), UNIQUE_VIOLATION,
                 "uk_personnel_commands_open_per_day");
@@ -254,7 +261,7 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
     }
 
     @Test
-    @DisplayName("#711 完成标准 8（M1）：同一合并给同一员工两条任职各生成一条调岗被接受；同一任职两条被 uk_personnel_commands_merge_assignment 拒绝")
+    @DisplayName("#711 完成标准 8（M1）：同一合并给同一员工三条任职（主任职与两个兼职）各生成一条调岗被接受（每条任职一条，rv1045x M1）；同一任职两条被 uk_personnel_commands_merge_assignment 拒绝")
     void oneGeneratedTransferPerAssignmentPerMerge() throws Exception {
         UUID concurrent = root(person, AssignmentRoots.CONCURRENT);
         concurrentVersion(concurrent, TODAY.minusDays(9), unit, newPosition());
@@ -263,6 +270,9 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
 
         command(person, "TRANSFER", day, newUnit(), null, null, null, primary, AssignmentRoots.PRIMARY, merge);
         command(person, "TRANSFER", day, newUnit(), null, null, null, concurrent, AssignmentRoots.CONCURRENT, merge);
+        UUID secondPost = root(person, AssignmentRoots.CONCURRENT);
+        concurrentVersion(secondPost, TODAY.minusDays(8), unit, newPosition());
+        command(person, "TRANSFER", day, newUnit(), null, null, null, secondPost, AssignmentRoots.CONCURRENT, merge);
 
         refusedBy(() -> command(person, "TRANSFER", day.plusDays(1), newUnit(), null, null, null, concurrent, AssignmentRoots.CONCURRENT, merge), UNIQUE_VIOLATION,
                 "uk_personnel_commands_merge_assignment");

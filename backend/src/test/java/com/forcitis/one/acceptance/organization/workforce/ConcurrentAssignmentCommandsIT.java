@@ -159,7 +159,7 @@ class ConcurrentAssignmentCommandsIT extends PersonnelCommandSupport {
     }
 
     @Test
-    @DisplayName("#711 完成标准 7（经接口）：同一天主任职调岗与新增兼职都被接受，同一天两条新增兼职也被接受（新增兼职不按日限）；同一天结束兼职与主任职调岗都被接受；主任职同一天第二条、同一兼职同一天第二条被拒")
+    @DisplayName("#711 完成标准 7（经接口）：同一天主任职调岗与新增兼职都被接受，同一天两条新增兼职也被接受（新增兼职不按日限）；同一天结束一个兼职、主任职调岗、调另一个兼职都被接受（按兼职各算）；主任职同一天第二条、同一兼职（仍在任）同一天第二条被拒")
     void dayRulesThroughTheApi() throws Exception {
         UUID person = employed(REGULAR);
         UUID concurrent = rootCreatedBy(startConcurrent(person, TODAY, newUnit(), newPosition()));
@@ -169,11 +169,13 @@ class ConcurrentAssignmentCommandsIT extends PersonnelCommandSupport {
         transfer(person, first, newUnit());
         startConcurrent(person, first, newUnit(), newPosition());
         startConcurrent(person, first, newUnit(), newPosition());
+        UUID secondPost = rootCreatedBy(startConcurrent(person, TODAY, newUnit(), newPosition()));
         endConcurrent(person, second, concurrent);
         transfer(person, second, newUnit());
+        transferPost(person, second, secondPost, newUnit());
 
         assertRefused(catchThrowable(() -> transfer(person, first, newUnit())));
-        assertRefused(catchThrowable(() -> transferPost(person, second, concurrent, newUnit())));
+        assertRefused(catchThrowable(() -> transferPost(person, second, secondPost, newUnit())));
     }
 
     @Test
@@ -196,7 +198,7 @@ class ConcurrentAssignmentCommandsIT extends PersonnelCommandSupport {
     }
 
     @Test
-    @DisplayName("#711 完成标准 10：离职关闭此人所有开着的任职版本（主任职与兼职）；结束兼职（与其他人事命令一样审计）后，在结束日之后对该兼职的命令（再结束、调岗）被拒（S7）")
+    @DisplayName("#711 完成标准 10：离职关闭此人所有开着的任职版本（主任职与兼职）；结束兼职（与其他人事命令一样审计）后，在结束日之后对该兼职的命令（再结束、调岗）被拒；撤回的新增兼职留下的根上的命令也被拒（S7）")
     void separationEndsEveryPostAndAnEndedPostTakesNoCommand() throws Exception {
         UUID leaver = employed(REGULAR);
         UUID leaverConcurrent = rootCreatedBy(startConcurrent(leaver, TODAY, newUnit(), newPosition()));
@@ -214,6 +216,11 @@ class ConcurrentAssignmentCommandsIT extends PersonnelCommandSupport {
         assertThat(postOn(concurrent, TODAY.plusDays(2))).isNull();
         assertRefused(catchThrowable(() -> endConcurrent(person, TODAY.plusDays(3), concurrent)));
         assertRefused(catchThrowable(() -> transferPost(person, TODAY.plusDays(3), concurrent, newUnit())));
+
+        UUID withdrawnStart = startConcurrent(person, TODAY.plusDays(6), newUnit(), newPosition());
+        UUID orphan = rootCreatedBy(withdrawnStart);
+        commands().withdraw(withdrawnStart, "synthetic: not after all");
+        assertRefused(catchThrowable(() -> endConcurrent(person, TODAY.plusDays(8), orphan)));
     }
 
     @Test
@@ -314,5 +321,30 @@ class ConcurrentAssignmentCommandsIT extends PersonnelCommandSupport {
                     AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), stored(id), SINCE, stored(orgUnit), newPosition(), stored(leader), at, at));
         }
         return id;
+    }
+
+    @Test
+    @DisplayName("#711 完成标准 11、13（rv1045x M2：兼职比主任职当前版本开始得早）：先新增兼职，次日把主任职调到另一单元并换直属领导；次日起组织目录给出主任职的新单元与新直属领导，成本法人按主任职单元链取，不取较早开始的兼职")
+    void readersReadThePrimaryEvenWhenTheConcurrentPostIsOlder() throws Exception {
+        Staff admin = staff("org_data_admin");
+        UUID otherEntity = createLegalEntity(admin.session(), newLegalEntityCode("CK"), "Synthetic older concurrent entity");
+        UUID firstUnit = attributedUnit(admin, legalEntity);
+        UUID primaryUnit = attributedUnit(admin, legalEntity);
+        UUID concurrentUnit = attributedUnit(admin, otherEntity);
+        UUID leader = employed(REGULAR);
+        UUID person = inheriting(firstUnit, leader);
+        UUID newLeader = employed(REGULAR);
+        startConcurrent(person, TODAY, concurrentUnit, newPosition());
+        commands().enter(fields(EMPLOYEE_ID, person, COMMAND_KIND, TRANSFER, EFFECTIVE_DATE, TODAY.plusDays(1), TARGET_ORG_UNIT_ID, primaryUnit,
+                TARGET_REPORTS_TO_EMPLOYEE_ID, newLeader));
+        EmployeeId id = employeeIdOf(person);
+        setToday(TODAY.plusDays(1));
+        try {
+            assertThat(directory.findEmployee(id)).hasValueSatisfying(profile -> assertThat(profile.orgUnitId().value()).isEqualTo(primaryUnit));
+            assertThat(directory.findSupervisor(id).map(EmployeeId::value)).contains(newLeader);
+            assertThat(legalEntities.on(id, TODAY.plusDays(1)).value()).isEqualTo(legalEntity);
+        } finally {
+            setToday(TODAY);
+        }
     }
 }
