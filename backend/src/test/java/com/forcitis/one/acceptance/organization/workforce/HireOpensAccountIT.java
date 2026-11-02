@@ -359,7 +359,10 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         return open;
     }
 
-    /** Sets the employee separated: the snapshot row and the employee versions (employed until yesterday, separated from yesterday on). */
+    /**
+     * Sets the employee separated: the snapshot row and the employee versions (employed until yesterday, separated from yesterday on), with an
+     * assignment version so that a reader of the versions finds the person on the day, as separated, not as missing.
+     */
     private void separatedYesterday(UUID person) throws Exception {
         OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
         LocalDate yesterday = TODAY.minusDays(1);
@@ -376,6 +379,10 @@ class HireOpensAccountIT extends EmployeeHireSupport {
                       is_on_unpaid_leave, is_fee_earner, change_channel_kind, created_at, updated_at)
                     values (?, ?, ?, 0, 'SEPARATED', false, false, 'MIGRATION', ?, ?)""",
                     com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), yesterday, at, at);
+            update(workforce, """
+                    insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
+                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""",
+                    com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), SINCE, stored(unit), newPosition(), at, at);
         }
     }
 
@@ -437,9 +444,11 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         List<String> grants = grantsOf(account);
         assertThat(grants).as("premise: the base role is no longer held").noneMatch(grant -> grant.equals(BASE_ROLE + "|" + DEFAULT_ROLE_CHANNEL + "|open"));
 
+        // a redelivery is the same event (same envelope, same eventId) as a new object, the way the registry deserialises it again
         EmployeeHired again = employeeHired(command, employee, TODAY);
         UUID first = publishEmployeeHired(again);
-        UUID second = publishEmployeeHired(again);
+        UUID second = publishEmployeeHired(new EmployeeHired(again.envelope(), again.personnelCommandId(), again.employeeId(), again.effectiveDate()));
+        assertThat(second).as("premise: the redelivery carries the same eventId").isEqualTo(first);
         UUID another = publishEmployeeHired(employeeHired(command, employee, TODAY));
         for (UUID event : List.of(first, second, another)) {
             identityHandledEmployeeHired(event.toString());
