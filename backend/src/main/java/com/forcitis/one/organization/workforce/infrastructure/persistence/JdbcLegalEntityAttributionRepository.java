@@ -51,8 +51,8 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
     private void updatePeriodEnd(AttributionSubject subject, AttributionPeriod period) {
         String sql = subject.kind() == AttributionKind.ORG_UNIT
                 ? """
-                  update organization_workforce.org_unit_legal_entities set effective_to_date = :to, updated_at = :updatedAt
-                   where org_unit_id = :id and effective_from_date = :from
+                  update organization_workforce.org_unit_legal_entities set effective_to_date = :to, closed_at = :updatedAt, updated_at = :updatedAt
+                   where org_unit_id = :id and effective_from_date = :from and superseded_at is null
                   """
                 : """
                   update organization_workforce.employee_legal_entities set effective_to_date = :to, closed_at = :updatedAt, updated_at = :updatedAt
@@ -88,8 +88,8 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
     private void insertPeriod(AttributionSubject subject, AttributionPeriod period) {
         String sql = subject.kind() == AttributionKind.ORG_UNIT
                 ? """
-                  insert into organization_workforce.org_unit_legal_entities (org_unit_legal_entity_id, org_unit_id, legal_entity_id, effective_from_date, effective_to_date)
-                  values (:rowId, :id, :legalEntity, :from, :to)
+                  insert into organization_workforce.org_unit_legal_entities (org_unit_legal_entity_id, org_unit_id, legal_entity_id, effective_from_date, effective_to_date, closed_at)
+                  values (:rowId, :id, :legalEntity, :from, :to, :closedAt)
                   """
                 : """
                   insert into organization_workforce.employee_legal_entities (employee_legal_entity_id, employee_id, legal_entity_id, effective_from_date, effective_to_date, closed_at)

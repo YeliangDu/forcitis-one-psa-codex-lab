@@ -138,7 +138,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
     void resolutionFollowsTheTreeOfTheDay() throws Exception {
         synced(2L);
         LocalDate first = today();
-        jdbc.sql("update organization_workforce.org_unit_versions set effective_to_date = :to where org_unit_id = " + sqlOrgUnit(3) + " and effective_to_date is null")
+        jdbc.sql("update organization_workforce.org_unit_versions set effective_to_date = :to, closed_at = now() where org_unit_id = " + sqlOrgUnit(3) + " and effective_to_date is null")
                 .param("to", first.plusDays(3)).update();
         jdbc.sql("""
                 insert into organization_workforce.org_unit_versions (org_unit_version_id, org_unit_id, effective_from_date, code, name, parent_org_unit_id, status,
