@@ -39,7 +39,7 @@ contexts:
   evidence: backend 模块包与 module-dependencies.txt
   note: Phase 1a 为工作日历先建（用户 2026-10-14）；与 organization.payroll 的边界见 Q3
 - id: organization.leave
-  zh: 假勤
+  zh: 请假与加班 BC
   subdomain: organization
   kind: business
   status: planned
@@ -445,7 +445,6 @@ contexts:
   legacy_bc: 绩效激励 BC
   responsibility: 绩效评定与激励结果，承接经营结果（支撑级，强定制）
   basis: legacy-evidence
-  review: 来自老系统切法，仅作证据，待按目标架构（能力地图与价值流）重审
   evidence: 老仓库 00_战略设计/04-限界上下文清单.md L58；02-子域划分.md 02 L203；ADR-0017 对照表
   note: 已并入 organization.payroll（ADR-0051 决定 3）；绩效结果归 organization.workforce（ADR-0079 决定 2）
 - id: accounting.ledger
