@@ -270,12 +270,42 @@ class AuthorizationBaseChangedVoidsIT extends AccountsAcceptanceSupport {
         assertThat(baseRoleVersions).as("ADR-0034 2.5 (column comment of base_role_version_ids): the base holds the current version of every requested role")
                 .contains(requestedVersion);
 
+        long accountBase = (long) requestRow(requestId).get("baseAccount");
+
         renameDirectly(people.requester(), roleId, "Synthetic g702_requested renamed");
         assertThat(closedRoleVersionsAmong(baseRoleVersions)).as("premise: the requested role's base version is no longer current").containsExactly(requestedVersion);
+        assertThat(accountVersionOf(people.beneficiary().userId())).as("premise: only the role version moved, not the account version").isEqualTo(accountBase);
         confirm(people.third(), requestId);
 
         assertVoided(requestId);
         assertThat(rolesOf(people.third(), people.beneficiary())).as("the voided request granted nothing").doesNotContain("security_auditor", "g702_requested");
+    }
+
+    @Test
+    @DisplayName("#938 0034-G7-02 相关角色版本变了（账号授权申请拿掉的已持有角色）：受益人提交时持有角色 R，申请去掉 R 并加敏感角色；基准含 R 当时的版本；R 在提交后被直接改名（账号版本不变），第三人确认后申请作废为 VOIDED，审计与事件各一，受益人仍持有 R、没有敏感角色")
+    void aMovedDroppedRoleVersionVoidsTheAccountRequest() throws Exception {
+        People people = people();
+        String roleId = plainRole(people.requester(), "g702_dropped");
+        grantByOperations(people.beneficiary().employeeId(), "g702_dropped");
+        List<String> wanted = new ArrayList<>(rolesOf(people.requester(), people.beneficiary()));
+        assertThat(wanted).as("premise: the beneficiary holds the role at submission").contains("g702_dropped");
+        wanted.remove("g702_dropped");
+        wanted.add("security_auditor");
+        String requestId = requestRoles(people.requester(), people.beneficiary(), wanted);
+        @SuppressWarnings("unchecked")
+        List<String> baseRoleVersions = (List<String>) requestRow(requestId).get("baseRoleVersions");
+        String droppedVersion = currentRoleVersionOf(roleId);
+        assertThat(baseRoleVersions).as("ADR-0034 2.5: the base holds the current version of every role held at submission, also one the request drops")
+                .contains(droppedVersion);
+        long accountBase = (long) requestRow(requestId).get("baseAccount");
+
+        renameDirectly(people.requester(), roleId, "Synthetic g702_dropped renamed");
+        assertThat(closedRoleVersionsAmong(baseRoleVersions)).as("premise: the dropped role's base version is no longer current").containsExactly(droppedVersion);
+        assertThat(accountVersionOf(people.beneficiary().userId())).as("premise: only the role version moved, not the account version").isEqualTo(accountBase);
+        confirm(people.third(), requestId);
+
+        assertVoided(requestId);
+        assertThat(rolesOf(people.third(), people.beneficiary())).as("the voided request changed nothing").contains("g702_dropped").doesNotContain("security_auditor");
     }
 
     @Test
@@ -330,5 +360,6 @@ class AuthorizationBaseChangedVoidsIT extends AccountsAcceptanceSupport {
                 .untilAsserted(() -> assertThat(rolesOf(people.third(), people.beneficiary())).contains("security_auditor"));
         assertThat(statusOf(requestId)).isEqualTo("CONFIRMED");
         assertThat(voidAuditsOf(requestId)).isEmpty();
+        assertThat(voidEventsOf(requestId)).isZero();
     }
 }
