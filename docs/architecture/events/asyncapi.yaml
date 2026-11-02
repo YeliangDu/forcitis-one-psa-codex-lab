@@ -3089,7 +3089,7 @@ components:
             description: 稳定 ID 的字符串形式
     AuthorizationVoided:
       name: AuthorizationVoided
-      title: 敏感授权申请因基准已变而作废
+      title: 敏感授权申请作废（基准已变或确认后无法应用）
       x-event:
         eventType: platform.identity.AuthorizationVoided
         version: 1
