@@ -226,6 +226,8 @@ public abstract class IdentityIntegrationTest {
 
     protected EmployeeProfile knownEmployee(long id, EmploymentStatus status) {
         EmployeeProfile profile = profile(id, status);
+        when(orgDirectory.availabilityOn(org.mockito.ArgumentMatchers.eq(profile.employeeId()), org.mockito.ArgumentMatchers.any()))
+                .thenReturn(com.forcitis.one.organization.workforce.api.Availability.AVAILABLE);
         when(orgDirectory.findEmployee(profile.employeeId())).thenReturn(Optional.of(profile));
         when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByWecomUser(profile.wecomUserId()))).thenReturn(Optional.of(profile));
         when(orgDirectory.employmentOf(profile.employeeId())).thenReturn(status == EmploymentStatus.EMPLOYED
