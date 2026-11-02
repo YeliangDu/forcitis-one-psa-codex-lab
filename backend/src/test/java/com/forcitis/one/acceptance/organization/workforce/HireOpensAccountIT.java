@@ -2,6 +2,7 @@ package com.forcitis.one.acceptance.organization.workforce;
 
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -10,6 +11,8 @@ import ch.qos.logback.classic.spi.IThrowableProxy;
 import ch.qos.logback.core.read.ListAppender;
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
+import com.jayway.jsonpath.JsonPath;
+import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelopes;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
@@ -27,6 +30,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,6 +54,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.DefaultApplicationArguments;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -155,12 +161,15 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         }
     }
 
-    /** Built as the due-date job builds it: a system run under its actor, no signed-in caller. */
+    /**
+     * Built as the due-date job builds it: a system run under its actor, no signed-in caller; the envelope's legal entity is the one legal
+     * entity of this world (workforce.yaml EmployeeHired: the employee's legal entity on the effective date).
+     */
     private EmployeeHired employeeHired(UUID command, UUID employee, LocalDate effective) {
         SecurityContextHolder.clearContext();
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.personnel.command.due")) {
-            return new EmployeeHired(envelopes.wrap(new EventDraft("organization.workforce.EmployeeHired", 1, "Employee", employee, 1, null, effective,
-                    List.of())), new PersonnelCommandId(command), employeeIdOf(employee), effective);
+            return new EmployeeHired(envelopes.wrap(new EventDraft("organization.workforce.EmployeeHired", 1, "Employee", employee, 1,
+                    new LegalEntityId(legalEntity), effective, List.of())), new PersonnelCommandId(command), employeeIdOf(employee), effective);
         }
     }
 
@@ -260,21 +269,114 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         return eventIds.size();
     }
 
-    /** The grants of the account in the grant store as "role|channel|open|audited", ordered. */
+    /** AccountOpened events in the registry whose payload names the employee. */
+    private int accountOpenedEventsOfEmployee(UUID employee) throws Exception {
+        int found = 0;
+        try (Connection registry = schemaConnection("platform_integration")) {
+            for (String table : List.of("event_publication", "event_publication_archive")) {
+                try (PreparedStatement select = registry.prepareStatement("select count(*) from " + table + " where event_type like '%.AccountOpened' and serialized_event like ?")) {
+                    select.setString(1, "%" + text(employee) + "%");
+                    try (ResultSet rs = select.executeQuery()) {
+                        rs.next();
+                        found += rs.getInt(1);
+                    }
+                }
+            }
+        }
+        return found;
+    }
+
+    /** The grants of the account in the grant store as "role|channel|open", ordered. */
     private List<String> grantsOf(UUID account) throws Exception {
         List<String> grants = new ArrayList<>();
         try (Connection identity = schemaConnection("platform_identity"); PreparedStatement select = identity.prepareStatement("""
-                select r.code, g.grant_channel_kind, g.effective_to_at is null as open, g.grant_audit_entry_id is not null as audited
+                select r.code, g.grant_channel_kind, g.effective_to_at is null as open
                   from account_role_grants g join roles r on r.role_id = g.role_id
                  where g.user_id = ? order by r.code, g.effective_from_at""")) {
             select.setObject(1, account);
             try (ResultSet rs = select.executeQuery()) {
                 while (rs.next()) {
-                    grants.add(rs.getString(1) + "|" + rs.getString(2) + "|" + (rs.getBoolean(3) ? "open" : "closed") + "|" + (rs.getBoolean(4) ? "audited" : "unaudited"));
+                    grants.add(rs.getString(1) + "|" + rs.getString(2) + "|" + (rs.getBoolean(3) ? "open" : "closed"));
                 }
             }
         }
         return grants;
+    }
+
+    /**
+     * RULE-344 「并审计」: the audit entry the open base-role grant names exists and is an identity action, read through the audit query by
+     * the account or by the employee as subject.
+     */
+    private void theBaseGrantIsAudited(UUID account, UUID employee) throws Exception {
+        UUID entry;
+        try (Connection identity = schemaConnection("platform_identity"); PreparedStatement select = identity.prepareStatement("""
+                select g.grant_audit_entry_id from account_role_grants g join roles r on r.role_id = g.role_id
+                 where g.user_id = ? and r.code = ? and g.effective_to_at is null""")) {
+            select.setObject(1, account);
+            select.setString(2, BASE_ROLE);
+            try (ResultSet rs = select.executeQuery()) {
+                assertThat(rs.next()).as("an open base-role grant").isTrue();
+                entry = rs.getObject(1, UUID.class);
+            }
+        }
+        List<String> actions = new ArrayList<>();
+        for (String[] subject : List.of(new String[] {"USER_ACCOUNT", account.toString()}, new String[] {"EMPLOYEE", text(employee)})) {
+            MockHttpServletResponse found = mvc.perform(get(AUDIT_ENTRIES).param("subjectKind", subject[0]).param("subjectId", subject[1])
+                    .param("limit", "200").with(AUDIT_READER)).andReturn().getResponse();
+            assertThat(found.getStatus()).as(found.getContentAsString()).isEqualTo(200);
+            for (Map<String, Object> item : JsonPath.<List<Map<String, Object>>>read(found.getContentAsString(), "$.items")) {
+                if (entry.toString().equals(item.get("entryId"))) {
+                    actions.add(String.valueOf(item.get("action")));
+                }
+            }
+        }
+        assertThat(actions).as("the audit entry %s of the base-role grant", entry).isNotEmpty().allMatch(action -> action.startsWith("platform.identity."));
+    }
+
+    /** The identity operations command revoke-role for the employee's account; returns exit code and error output. */
+    private String revokeRoleByOperations(UUID employee, String roleCode) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+        ensureAttestors();
+        int exit = operations.run(new DefaultApplicationArguments("--operation=revoke-role", "--employee-id=" + text(employee), "--role-code=" + roleCode,
+                "--operator=" + OPERATOR_ID, "--witness=" + WITNESS_ID), new PrintStream(out, true, StandardCharsets.UTF_8),
+                new PrintStream(err, true, StandardCharsets.UTF_8));
+        return (exit + " " + err.toString(StandardCharsets.UTF_8)).strip();
+    }
+
+    /** The publications to platform.identity listeners whose event names the text and that are not completed yet. */
+    private int openIdentityPublications(String matching) throws Exception {
+        int open = 0;
+        try (Connection registry = schemaConnection("platform_integration"); PreparedStatement select = registry.prepareStatement("""
+                select count(*) from event_publication
+                 where listener_id like 'com.forcitis.one.platform.identity.%' and serialized_event like ? and completion_date is null""")) {
+            select.setString(1, "%" + matching + "%");
+            try (ResultSet rs = select.executeQuery()) {
+                rs.next();
+                open = rs.getInt(1);
+            }
+        }
+        return open;
+    }
+
+    /** Sets the employee separated: the snapshot row and the employee versions (employed until yesterday, separated from yesterday on). */
+    private void separatedYesterday(UUID person) throws Exception {
+        OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
+        LocalDate yesterday = TODAY.minusDays(1);
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update employees set employment_status = 'SEPARATED', separated_at = ? where id = ?", at.minusDays(1), stored(person));
+            update(workforce, """
+                    insert into employee_versions (employee_version_id, employee_id, effective_from_date, effective_to_date, closed_at, revision_number,
+                      employment_status, employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
+                      change_channel_kind, created_at, updated_at)
+                    values (?, ?, ?, ?, ?, 0, 'EMPLOYED', 'REGULAR', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""",
+                    com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), SINCE, yesterday, at, SINCE, at, at);
+            update(workforce, """
+                    insert into employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+                      is_on_unpaid_leave, is_fee_earner, change_channel_kind, created_at, updated_at)
+                    values (?, ?, ?, 0, 'SEPARATED', false, false, 'MIGRATION', ?, ?)""",
+                    com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), yesterday, at, at);
+        }
     }
 
     private String wecomColumn(UUID employee) throws Exception {
@@ -320,17 +422,20 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         identityHandledEmployeeHired(text(employee));
 
         UUID account = theOneAccount(employee);
-        assertThat(grantsOf(account)).as("grants of the new account").containsExactly(BASE_ROLE + "|" + DEFAULT_ROLE_CHANNEL + "|open|audited");
+        assertThat(grantsOf(account)).as("grants of the new account").containsExactly(BASE_ROLE + "|" + DEFAULT_ROLE_CHANNEL + "|open");
+        theBaseGrantIsAudited(account, employee);
     }
 
     @Test
-    @DisplayName("#1015 幂等：同一个 EmployeeHired 对象发布两次，再为同一命令另发一条 EmployeeHired → 仍只有一个账号、一条 AccountOpened，授予不变")
+    @DisplayName("#1015 幂等（RULE-344 只在建档时授一次）：开户后用运维命令收回基础角色，再把同一个 EmployeeHired 对象发布两次、为同一命令另发一条 → 仍只有一个账号、一条 AccountOpened，基础角色不被补回，授予与收回后相同")
     void aRepeatedEmployeeHiredOpensNothingMore() throws Exception {
         UUID command = hireOn(TODAY, syntheticWecom("replay"));
         UUID employee = employeeOf(command);
         identityHandledEmployeeHired(text(employee));
         UUID account = theOneAccount(employee);
+        assertThat(revokeRoleByOperations(employee, BASE_ROLE)).as("exit code and error output of revoke-role").isEqualTo("0");
         List<String> grants = grantsOf(account);
+        assertThat(grants).as("premise: the base role is no longer held").noneMatch(grant -> grant.equals(BASE_ROLE + "|" + DEFAULT_ROLE_CHANNEL + "|open"));
 
         EmployeeHired again = employeeHired(command, employee, TODAY);
         UUID first = publishEmployeeHired(again);
@@ -341,7 +446,7 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         }
 
         assertThat(theOneAccount(employee)).isEqualTo(account);
-        assertThat(grantsOf(account)).as("grants after the redeliveries").isEqualTo(grants);
+        assertThat(grantsOf(account)).as("grants after the redeliveries: the removed base role stays removed").isEqualTo(grants);
     }
 
     @Test
@@ -375,7 +480,7 @@ class HireOpensAccountIT extends EmployeeHireSupport {
                 assertThat(accountsOfEmployee(person)).as("accounts of employee %s", person).containsExactly(account);
                 assertThat(theOneAccount(person)).isEqualTo(account);
                 assertThat(grantsOf(account).stream().filter(grant -> grant.startsWith(BASE_ROLE + "|")).toList()).as("base role grants")
-                        .containsExactly(BASE_ROLE + "|" + DEFAULT_ROLE_CHANNEL + "|open|audited");
+                        .containsExactly(BASE_ROLE + "|" + DEFAULT_ROLE_CHANNEL + "|open");
                 assertThat(List.copyOf(errors.list).subList(mark, errors.list.size()).stream()
                         .filter(event -> event.getLevel().isGreaterOrEqual(Level.WARN)).filter(HireOpensAccountIT::isConstraintFailure)
                         .map(ILoggingEvent::getFormattedMessage).toList()).as("unique constraint failures logged").isEmpty();
@@ -403,20 +508,37 @@ class HireOpensAccountIT extends EmployeeHireSupport {
     }
 
     @Test
-    @DisplayName("#1015 已有账号（入职事件前已登录过）：EmployeeHired 不建第二个账号、不发第二条 AccountOpened，授予不变，投递完成")
+    @DisplayName("#1015 已有账号（入职事件前已登录过，基础角色已被运维命令收回）：EmployeeHired 不建第二个账号、不发第二条 AccountOpened，不补回基础角色（RULE-344），授予不变，投递完成")
     void anExistingAccountIsLeftAsItIs() throws Exception {
         UUID person = newEmployeeId();
         employee(person, unit, null);
         UUID account = signIn(person).userId();
         UUID existing = theOneAccount(person);
+        assertThat(revokeRoleByOperations(person, BASE_ROLE)).as("exit code and error output of revoke-role").isEqualTo("0");
         List<String> grants = grantsOf(account);
+        assertThat(grants).as("premise: the base role is no longer held").noneMatch(grant -> grant.equals(BASE_ROLE + "|" + DEFAULT_ROLE_CHANNEL + "|open"));
 
         UUID event = publishEmployeeHired(employeeHired(UUID.randomUUID(), person, TODAY));
         identityHandledEmployeeHired(event.toString());
 
         assertThat(existing).isEqualTo(account);
         assertThat(theOneAccount(person)).isEqualTo(account);
-        assertThat(grantsOf(account)).as("grants after the hire event").isEqualTo(grants);
+        assertThat(grantsOf(account)).as("grants after the hire event: the removed base role stays removed").isEqualTo(grants);
+    }
+
+    @Test
+    @DisplayName("#1015 已离职、尚无账号的员工收到 EmployeeHired（如离职后迟到的重投）：身份模块处理完后仍无账号、无 AccountOpened（I-11、RULE-344 只给在职员工）")
+    void aSeparatedEmployeeGetsNoAccount() throws Exception {
+        UUID person = newEmployeeId();
+        employee(person, unit, null);
+        separatedYesterday(person);
+        assertThat(accountsOfEmployee(person)).as("premise: no account").isEmpty();
+
+        UUID event = publishEmployeeHired(employeeHired(UUID.randomUUID(), person, SINCE));
+        identityHandledEmployeeHired(event.toString());
+
+        assertThat(accountsOfEmployee(person)).as("accounts of the separated employee").isEmpty();
+        assertThat(accountOpenedEventsOfEmployee(person)).as("AccountOpened events naming the separated employee").isZero();
     }
 
     @Test
@@ -426,6 +548,8 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         UUID employee = employeeOf(command);
         runDueJob();
         assertThat(command(command).get("status")).as("premise: the hire waits for its date").isEqualTo(PENDING);
+        // the registry records a publication in the publishing transaction: with none open for this employee, no identity work is still to come
+        Awaitility.await().atMost(DELIVERY).pollInterval(Duration.ofMillis(100)).until(() -> openIdentityPublications(text(employee)) == 0);
 
         assertThat(accountsOfEmployee(employee)).as("accounts before the effective date").isEmpty();
     }
@@ -436,6 +560,7 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         LocalDate due = TODAY.plusDays(5);
         UUID command = hireOn(due, syntheticWecom("due"));
         UUID employee = employeeOf(command);
+        Awaitility.await().atMost(DELIVERY).pollInterval(Duration.ofMillis(100)).until(() -> openIdentityPublications(text(employee)) == 0);
         assertThat(accountsOfEmployee(employee)).as("premise: no account before the date").isEmpty();
 
         setToday(due);
@@ -444,7 +569,8 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         identityHandledEmployeeHired(text(employee));
 
         UUID account = theOneAccount(employee);
-        assertThat(grantsOf(account)).containsExactly(BASE_ROLE + "|" + DEFAULT_ROLE_CHANNEL + "|open|audited");
+        assertThat(grantsOf(account)).containsExactly(BASE_ROLE + "|" + DEFAULT_ROLE_CHANNEL + "|open");
+        theBaseGrantIsAudited(account, employee);
     }
 
     @Test
@@ -457,6 +583,7 @@ class HireOpensAccountIT extends EmployeeHireSupport {
 
         identityHandledEmployeeHired(text(employee));
 
+        // identity cannot write this schema itself (own-schema guard): this watches a call from the hire handling back into a workforce api
         assertThat(wecomColumn(employee)).as("employees.wecom_user_id after identity handled the hire").isEqualTo(before);
     }
 }
