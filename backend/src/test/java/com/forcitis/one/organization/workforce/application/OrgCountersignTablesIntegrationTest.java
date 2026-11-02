@@ -100,8 +100,8 @@ class OrgCountersignTablesIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     private String basisSql(String command, String employee, String previous, String next) {
-        return "insert into " + BASES + " (attribution_countersign_basis_id, org_structure_command_id, employee_id, previous_legal_entity_id, new_legal_entity_id, created_at) values (gen_random_uuid(), "
-                + command + ", " + employee + ", " + previous + ", " + next + ", now())";
+        return "insert into " + BASES + " (attribution_countersign_basis_id, org_structure_command_id, employee_id, previous_legal_entity_id, new_legal_entity_id, created_at, updated_at) values (gen_random_uuid(), "
+                + command + ", " + employee + ", " + previous + ", " + next + ", now(), now())";
     }
 
     private void refused(String constraint, String sql) {

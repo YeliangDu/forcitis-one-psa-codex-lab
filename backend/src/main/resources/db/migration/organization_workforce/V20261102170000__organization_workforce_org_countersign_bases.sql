@@ -8,6 +8,7 @@ CREATE TABLE organization_workforce.attribution_countersign_bases (
     previous_legal_entity_id         uuid        NOT NULL,
     new_legal_entity_id              uuid        NOT NULL,
     created_at                       timestamptz NOT NULL,
+    updated_at                       timestamptz NOT NULL,
     CONSTRAINT pk_attribution_countersign_bases PRIMARY KEY (attribution_countersign_basis_id),
     CONSTRAINT uk_attribution_countersign_bases_command_employee UNIQUE (org_structure_command_id, employee_id),
     CONSTRAINT fk_attribution_countersign_bases_org_structure_command_id FOREIGN KEY (org_structure_command_id) REFERENCES organization_workforce.org_structure_commands (org_structure_command_id) ON DELETE RESTRICT,
@@ -27,6 +28,7 @@ COMMENT ON COLUMN organization_workforce.attribution_countersign_bases.employee_
 COMMENT ON COLUMN organization_workforce.attribution_countersign_bases.previous_legal_entity_id IS '原法人主体 ID：变化前的成本法人，与新法人不同';
 COMMENT ON COLUMN organization_workforce.attribution_countersign_bases.new_legal_entity_id IS '新法人主体 ID：变化后的成本法人，与原法人不同';
 COMMENT ON COLUMN organization_workforce.attribution_countersign_bases.created_at IS '创建时间';
+COMMENT ON COLUMN organization_workforce.attribution_countersign_bases.updated_at IS '更新时间：写入时等于创建时间，之后不会变（触发器拒绝任何 UPDATE）';
 
 -- 只追加：任何 UPDATE 都拒绝，DELETE 只放行表属主（清除），TRUNCATE 拒绝。
 CREATE FUNCTION organization_workforce.refuse_attribution_countersign_basis_rewrite() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
