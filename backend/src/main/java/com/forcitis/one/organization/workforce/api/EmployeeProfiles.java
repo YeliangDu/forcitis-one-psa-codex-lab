@@ -11,7 +11,7 @@ public interface EmployeeProfiles {
      * writes nothing.
      *
      * @throws com.forcitis.one.kernel.DomainException when the employee does not exist, the profile is invalid, the effective date is later than today
-     *                                                 or the WeCom user id is held by another employee, separated ones included
+     *                                                 the WeCom user id is held by another employee (separated ones included), the caller is the employee themself, or the account holds a role beyond employee and its WeCom user id would be moved or cleared
      */
     void change(ChangeEmployeeProfile command);
 }
