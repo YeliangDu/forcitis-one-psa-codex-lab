@@ -26,9 +26,11 @@ class SingleOperatorEmergencyMinimumIT extends SingleOperatorIdentitySupport {
 
     private void takeSuperAdminFrom(long id) {
         jdbc.sql("""
-                delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = :employee)
-                   and role_id = (select role_id from platform_identity.roles where code = 'super_admin')
-                """).param("employee", TestAccounts.employee(id).value()).update();
+                update platform_identity.account_role_grants set effective_to_at = greatest(effective_from_at, :at), revocation_cause_kind = 'OPERATIONS',
+                       revocation_audit_entry_id = uuidv7(), updated_at = greatest(effective_from_at, :at)
+                 where user_id = (select user_id from platform_identity.user_accounts where employee_id = :employee)
+                   and role_id = (select role_id from platform_identity.roles where code = 'super_admin') and effective_to_at is null
+                """).param("at", java.time.OffsetDateTime.ofInstant(clock.instant(), java.time.ZoneOffset.UTC)).param("employee", TestAccounts.employee(id).value()).update();
     }
 
     @Test

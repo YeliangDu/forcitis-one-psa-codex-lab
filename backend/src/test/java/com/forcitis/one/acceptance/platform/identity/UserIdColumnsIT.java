@@ -34,7 +34,7 @@ class UserIdColumnsIT extends AcceptanceSupport {
     static final List<String[]> USER_ID_COLUMNS = List.of(
             new String[] {"platform_identity", "user_accounts", "user_id"},
             new String[] {"platform_identity", "emergency_admins", "user_id"},
-            new String[] {"platform_identity", "account_roles", "user_id"},
+            new String[] {"platform_identity", "account_role_grants", "user_id"},
             new String[] {"platform_identity", "browser_identifiers", "user_id"},
             new String[] {"platform_identity", "authorization_requests", "requested_by"},
             new String[] {"platform_identity", "authorization_requests", "subject_user_id"},
