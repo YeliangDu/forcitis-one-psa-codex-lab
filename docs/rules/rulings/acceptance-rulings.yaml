@@ -324,3 +324,12 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/organization/administration/README.md
     reason: 卡 C（IMP-1022-ADM-01）迁移使 DRAFT 不落库、条目表新增必填列 is_system_only；卡 A 的 ADM-A-46/48/49/50 去 DRAFT 或降为 SQLSTATE，条目夹具显式给 is_system_only=false；不删用例，ADM-A-35 至 44、61 断言原样；PR 改断言栏单列
     ref: docs/rules/rulings/coord-2026-10-23.md
+  - id: RULING-LEAD-20261102-01
+    date: 2026-11-02
+    ruled_by: independent sonnet reviewer rv894c (dispatched by one-test, given only the diff), recorded by one-lead
+    implementer: one-test
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/CountersignApprovalIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/CountersignEntryIT.java
+    reason: 合入 main 后两类同时静态导入 CountersignNames.* 与 PersonnelCommandNames.*，裸名 CORRECTION 有歧义编译不过；限定为 CountersignNames.CORRECTION，两常量值同为 "CORRECTION"，断言、期望值、用例、夹具均未改，只修编译
+    ref: "#894 acceptance branch, commit 19c80042e; review-894-compile-fix-sonnet.md"
