@@ -133,10 +133,9 @@ class OpenApiExportTest {
 
     /**
      * Ids that are not ours, by full name. InboxItemResponse.taskId carries the old system's task key for the old system's items; it stays a plain
-     * string until the inbox contract is neutralised (ADR-0039 item 6, RULING-P4-D6) and is deleted here then. SyncDiffResponse.subjectKey is a
-     * "{type}:{id}" text key of the synchronisation (RULING-P5-1, D-13); it is deleted here when split a gives the differences their own columns.
+     * string until the inbox contract is neutralised (ADR-0039 item 6, RULING-P4-D6) and is deleted here then.
      */
-    static final Set<String> OTHER_ID_NAMES = Set.of("InboxItemResponse.taskId", "SyncDiffResponse.subjectKey");
+    static final Set<String> OTHER_ID_NAMES = Set.of("InboxItemResponse.taskId");
 
     /** Identifiers that belong to an external system and stay what that system gives: a plain string on the wire. */
     static final Set<String> EXTERNAL_ID_NAMES = Set.of("sourceId", "wecomUserId");

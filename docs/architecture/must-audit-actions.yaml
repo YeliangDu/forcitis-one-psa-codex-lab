@@ -39,7 +39,6 @@ categories:
   - planned: platform.approval.proxy.acted | 显式代理动作（RULE-270，D-07）随代理功能一起做，1a 没有代理入口
 - name: 放行
   actions:
-  - organization.workforce.OrgSnapshotChanged
   - organization.workforce.SeparationHeld
   - organization.workforce.SeparationHoldReleased
   - organization.workforce.initial-versions.migrated
