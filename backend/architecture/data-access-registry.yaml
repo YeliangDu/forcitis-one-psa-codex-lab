@@ -122,7 +122,7 @@ tables:
     mutability: MUTABLE
     retention: {policy: CURRENT_STATE}
     lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
-    writers: [organization.workforce]
+    readers: [organization.workforce]  # no writer in main since #934 removed the org sync
   # 使用方未建，由同步原样入库 (no consumer built yet, stored as the sync gives them): regional_receivables_manager_id (exposed through
   # OrgDirectory.findRegionalReceivablesManager, no caller yet) and is_delivery_unit (read-only exposure in OrgUnitResponse).
   organization_workforce.org_units:
@@ -183,7 +183,7 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: ORG_SOURCE}
     references: {regional_receivables_manager_id: organization_workforce.employees}
-    writers: [organization.workforce]
+    readers: [organization.workforce]  # no writer in main since #934 removed the org sync
   # D17 rule 2: effective basis DECLARED (ADR-0068 item 6). Trigger tg_assignment_versions_append_only (ADR-0068 15.1, W2 design 2): the closing pair
   # (effective_to_date, closed_at) and the superseding pair (superseded_at, superseding_command_id) go from null to non-null once, a superseded row may be
   # open or closed, nothing else changes, nothing is deleted.

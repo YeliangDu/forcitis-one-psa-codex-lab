@@ -206,18 +206,6 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("ADR-0027 1.3 / ADR-0033 3.7 a snapshot that is missing or stale does not stop the login: the organisation source may be down")
-    void unavailableSnapshotIsAllowed() throws Exception {
-        when(orgDirectory.findEmployee(TestAccounts.employee(7))).thenReturn(Optional.empty());
-        when(orgDirectory.employmentOf(TestAccounts.employee(7))).thenReturn(com.forcitis.one.organization.workforce.api.EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
-
-        MvcResult result = login("breakglass", PASSWORD, code());
-
-        assertThat(result.getResponse().getStatus()).isEqualTo(200);
-        assertThat(body(result).path("administratorModeExpiresAt").asString()).isNotBlank();
-    }
-
-    @Test
     @DisplayName("ADR-0033 3.7 (U-4) a current snapshot that does not list the bound employee refuses the login")
     void currentSnapshotWithoutTheBoundEmployeeIsRefused() throws Exception {
         when(orgDirectory.findEmployee(TestAccounts.employee(7))).thenReturn(Optional.empty());

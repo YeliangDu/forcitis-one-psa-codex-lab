@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.identity;
 
-import com.forcitis.one.TestIds;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -10,8 +9,8 @@ import static org.mockito.Mockito.when;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.TestEnvelopes;
-import com.forcitis.one.organization.workforce.api.EmploymentStatus;
-import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
+import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
+import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.identity.api.EmergencyAdminDisableCause;
 import com.forcitis.one.platform.identity.domain.EmergencyAdmin;
@@ -23,7 +22,6 @@ import com.forcitis.one.platform.identity.events.AccountRolesReplaced;
 import com.forcitis.one.platform.identity.events.EmergencyAdminDisabled;
 import jakarta.servlet.http.Cookie;
 import java.time.Duration;
-import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -52,9 +50,13 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     @Autowired
     TotpSecretVault vault;
 
-    private UUID publish(List<EmployeeId> changed, List<EmployeeId> separated) {
-        OrgSnapshotChanged event = new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "OrgSnapshot", TestIds.uuid(1)), changed, separated,
-                List.of(), java.time.LocalDate.of(2026, 10, 15));
+    private EmployeeSeparated separated(long id) {
+        EmployeeId employee = TestAccounts.employee(id);
+        return new EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", employee.value()),
+                new PersonnelCommandId(UUID.randomUUID()), employee, java.time.LocalDate.of(2026, 10, 15));
+    }
+
+    private UUID publish(EmployeeSeparated event) {
         tx.executeWithoutResult(status -> events.publishEvent(event));
         return event.envelope().eventId();
     }
@@ -77,7 +79,7 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
         registerEmergencyAdmin(1002, "breakglass-b");
         accessCache.evictAll();
 
-        publish(List.of(), List.of(TestAccounts.employee(1001)));
+        publish(separated(1001));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(roleCount(1001)).isZero());
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(domainEvents.of(EmergencyAdminDisabled.class)).hasSize(1));
@@ -105,25 +107,14 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("a person reported as no longer employed in a change event is handled the same way")
-    void changedPersonWhoIsNoLongerEmployedLosesTheRoles() throws Exception {
-        knownEmployee(1003, EmploymentStatus.SEPARATED);
-        createAccount(1003, "employee", "business_admin");
-
-        publish(List.of(TestAccounts.employee(1003)), List.of());
-
-        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(roleCount(1003)).isZero());
-    }
-
-    @Test
     @DisplayName("an event delivered again changes nothing and fails nothing")
     void deliveringTheEventTwiceIsHarmless() {
         createAccount(1004, "employee");
         registerEmergencyAdmin(1004, "breakglass-c");
 
-        publish(List.of(), List.of(TestAccounts.employee(1004)));
+        publish(separated(1004));
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(roleCount(1004)).isZero());
-        publish(List.of(), List.of(TestAccounts.employee(1004)));
+        publish(separated(1004));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
                 assertThat(recorded().stream().filter(e -> e.action().equals("platform.identity.session.revoked")).count()).isEqualTo(2));
@@ -135,13 +126,13 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("P2-H3 a person without an account is a quiet no-op: once the separation listener has handled the event, no account is opened, no role and no session is revoked (R-1b P2: there is no account id to name)")
     void P2_H3_noAccountIsOpenedForASeparatedPersonWithout() {
-        UUID published = publish(List.of(), List.of(TestAccounts.employee(5555)));
+        UUID published = publish(separated(5555));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(jdbc.sql("""
                 select count(*) from (select listener_id, completion_date, serialized_event from platform_integration.event_publication
                                       union all
                                       select listener_id, completion_date, serialized_event from platform_integration.event_publication_archive) p
-                 where p.listener_id like '%HandleOrgSnapshotChange%' and p.completion_date is not null and p.serialized_event like :event
+                 where p.listener_id like '%HandleEmployeeSeparated%' and p.completion_date is not null and p.serialized_event like :event
                 """).param("event", "%" + published + "%").query(Long.class).single()).isEqualTo(1));
         assertThat(count("user_accounts")).isZero();
         assertThat(count("account_roles")).isZero();

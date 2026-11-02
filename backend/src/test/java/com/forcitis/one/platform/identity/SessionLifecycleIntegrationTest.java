@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.identity;
 
-import com.forcitis.one.TestIds;
 import org.assertj.core.groups.Tuple;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
@@ -13,14 +12,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.kernel.event.TestEnvelopes;
-import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
+import com.forcitis.one.kernel.event.DomainEvent;
+import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
+import com.forcitis.one.organization.workforce.events.EmployeeRegistered;
+import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import jakarta.servlet.http.Cookie;
 import java.time.Duration;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -46,8 +47,19 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
         return mvc.perform(get(CURRENT).cookie(new Cookie("SESSION", session))).andReturn().getResponse().getStatus();
     }
 
-    private void publish(OrgSnapshotChanged event) {
+    private void publish(DomainEvent event) {
         tx.executeWithoutResult(status -> events.publishEvent(event));
+    }
+
+    private static EmployeeSeparated separated(long id) {
+        EmployeeId employee = TestAccounts.employee(id);
+        return new EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", employee.value()),
+                new PersonnelCommandId(UUID.randomUUID()), employee, LocalDate.of(2026, 10, 14));
+    }
+
+    private static EmployeeRegistered registered(long id) {
+        EmployeeId employee = TestAccounts.employee(id);
+        return new EmployeeRegistered(TestEnvelopes.of("organization.workforce.EmployeeRegistered", "Employee", employee.value()), employee);
     }
 
     @Test
@@ -197,12 +209,12 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("RULE-363/366 OrgSnapshotChanged: separated people lose every session at once")
+    @DisplayName("RULE-363/366 EmployeeSeparated: separated people lose every session at once")
     void separationEventRevokesSessions() throws Exception {
         String victim = loginWithWecom(1001);
         String other = loginWithWecom(1002);
 
-        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "OrgSnapshot", TestIds.uuid(1)), List.of(), List.of(TestAccounts.employee(1001)), List.of(), LocalDate.of(2026, 10, 14)));
+        publish(separated(1001));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(
                 jdbc.sql("select count(*) from platform_identity.sessions where principal_name = (select ua.user_id::text from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").query(Long.class).single()).isZero());
@@ -212,12 +224,13 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("RULE-344 sync: an employed new person gets an account with the default role once; separated people get nothing")
+    @DisplayName("RULE-344 EmployeeRegistered: an employed new person gets an account with the default role once; separated people get nothing")
     void syncCreatesAccounts() throws Exception {
         knownEmployee(2001, EmploymentStatus.EMPLOYED);
         knownEmployee(2002, EmploymentStatus.SEPARATED);
 
-        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "OrgSnapshot", TestIds.uuid(1)), List.of(TestAccounts.employee(2001), TestAccounts.employee(2002)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
+        publish(registered(2001));
+        publish(registered(2002));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(count("user_accounts")).isEqualTo(1));
         assertThat(jdbc.sql("select employee_id from platform_identity.user_accounts").query(UUID.class).single()).isEqualTo(TestAccounts.employee(2001).value());
@@ -227,7 +240,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
                 """).param("employee", TestAccounts.employee(2001).value()).query(String.class).list()).containsExactly("employee");
 
         jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(2001) + ")").update();
-        publish(new OrgSnapshotChanged(TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "OrgSnapshot", TestIds.uuid(1)), List.of(TestAccounts.employee(2001)), List.of(), List.of(), LocalDate.of(2026, 10, 14)));
+        publish(registered(2001));
         await().during(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(2)).untilAsserted(() -> assertThat(count("account_roles")).isZero());
     }
 

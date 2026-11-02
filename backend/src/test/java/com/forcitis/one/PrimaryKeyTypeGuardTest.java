@@ -78,7 +78,11 @@ class PrimaryKeyTypeGuardTest {
                 if (exempt.contains(qualified) && !PrimaryKeyExemptions.isPartitionException(exemptions.get(qualified))) {
                     continue;
                 }
-                checkLines(qualified, table.group(3), model.get(table.group(1)).tables.get(table.group(2)), model, foreignKeys, crossSchema, problems);
+                DdlNamingTest.Table kept = model.get(table.group(1)).tables.get(table.group(2));
+                if (kept == null) {
+                    continue; // a later migration dropped the table: only the schema as it stands is judged
+                }
+                checkLines(qualified, table.group(3), kept, model, foreignKeys, crossSchema, problems);
             }
         });
         registryProblems(model, crossSchema, problems);

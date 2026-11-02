@@ -139,7 +139,6 @@ organization.workforce::api organization.workforce.api.EmploymentVerdict public 
 organization.workforce::api organization.workforce.api.EmploymentVerdict public static final organization.workforce.api.EmploymentVerdict organization.workforce.api.EmploymentVerdict.EMPLOYED
 organization.workforce::api organization.workforce.api.EmploymentVerdict public static final organization.workforce.api.EmploymentVerdict organization.workforce.api.EmploymentVerdict.NOT_LISTED
 organization.workforce::api organization.workforce.api.EmploymentVerdict public static final organization.workforce.api.EmploymentVerdict organization.workforce.api.EmploymentVerdict.SEPARATED
-organization.workforce::api organization.workforce.api.EmploymentVerdict public static final organization.workforce.api.EmploymentVerdict organization.workforce.api.EmploymentVerdict.SNAPSHOT_UNAVAILABLE
 organization.workforce::api organization.workforce.api.EmploymentVerdict public static organization.workforce.api.EmploymentVerdict organization.workforce.api.EmploymentVerdict.valueOf(java.lang.String)
 organization.workforce::api organization.workforce.api.EmploymentVerdict public static organization.workforce.api.EmploymentVerdict[] organization.workforce.api.EmploymentVerdict.values()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component commandKind: organization.workforce.api.PersonnelCommandKind
@@ -586,23 +585,6 @@ organization.workforce::events organization.workforce.events.LegalEntityRenamed 
 organization.workforce::events organization.workforce.events.LegalEntityRenamed public kernel.LegalEntityId organization.workforce.events.LegalEntityRenamed.legalEntityId()
 organization.workforce::events organization.workforce.events.LegalEntityRenamed public kernel.event.EventEnvelope organization.workforce.events.LegalEntityRenamed.envelope()
 organization.workforce::events organization.workforce.events.LegalEntityRenamed public organization.workforce.events.LegalEntityRenamed(kernel.event.EventEnvelope,kernel.LegalEntityId)
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged component changedEmployees: java.util.List<kernel.EmployeeId>
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged component changedOrgUnits: java.util.List<organization.workforce.api.OrgUnitId>
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged component effectiveFrom: java.time.LocalDate
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged component envelope: kernel.event.EventEnvelope
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged component separatedEmployees: java.util.List<kernel.EmployeeId>
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged extends java.lang.Record
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged implements kernel.event.DomainEvent
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged public final boolean organization.workforce.events.OrgSnapshotChanged.equals(java.lang.Object)
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged public final int organization.workforce.events.OrgSnapshotChanged.hashCode()
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged public final java.lang.String organization.workforce.events.OrgSnapshotChanged.toString()
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged public final record organization.workforce.events.OrgSnapshotChanged
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged public java.time.LocalDate organization.workforce.events.OrgSnapshotChanged.effectiveFrom()
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged public java.util.List<kernel.EmployeeId> organization.workforce.events.OrgSnapshotChanged.changedEmployees()
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged public java.util.List<kernel.EmployeeId> organization.workforce.events.OrgSnapshotChanged.separatedEmployees()
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged public java.util.List<organization.workforce.api.OrgUnitId> organization.workforce.events.OrgSnapshotChanged.changedOrgUnits()
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged public kernel.event.EventEnvelope organization.workforce.events.OrgSnapshotChanged.envelope()
-organization.workforce::events organization.workforce.events.OrgSnapshotChanged public organization.workforce.events.OrgSnapshotChanged(kernel.event.EventEnvelope,java.util.List<kernel.EmployeeId>,java.util.List<kernel.EmployeeId>,java.util.List<organization.workforce.api.OrgUnitId>,java.time.LocalDate)
 organization.workforce::events organization.workforce.events.SeparationHeld component effectiveDate: java.time.LocalDate
 organization.workforce::events organization.workforce.events.SeparationHeld component employeeId: kernel.EmployeeId
 organization.workforce::events organization.workforce.events.SeparationHeld component envelope: kernel.event.EventEnvelope

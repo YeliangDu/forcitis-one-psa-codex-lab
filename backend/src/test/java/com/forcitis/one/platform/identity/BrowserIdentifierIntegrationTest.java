@@ -1,6 +1,5 @@
 package com.forcitis.one.platform.identity;
 
-import com.forcitis.one.TestIds;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.organization.workforce.api.LoginLookup;
 import com.forcitis.one.fixture.doubles.TestAccounts;
@@ -234,9 +233,9 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
         confirmedIdentifier(1002, null);
         assertThat(storedIdentifiers(1001)).isPositive();
         com.forcitis.one.kernel.EmployeeId separated = TestAccounts.employee(1001);
-        var snapshot = new com.forcitis.one.organization.workforce.events.OrgSnapshotChanged(
-                TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "OrgSnapshot", TestIds.uuid(1)), List.of(), List.of(separated),
-                List.of(), java.time.LocalDate.of(2026, 10, 15));
+        var snapshot = new com.forcitis.one.organization.workforce.events.EmployeeSeparated(
+                TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", separated.value()),
+                new com.forcitis.one.organization.workforce.api.PersonnelCommandId(java.util.UUID.randomUUID()), separated, java.time.LocalDate.of(2026, 10, 15));
 
         tx.executeWithoutResult(status -> events.publishEvent(snapshot));
         org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(storedIdentifiers(1001)).isZero());
@@ -251,9 +250,10 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
         confirmedIdentifier(1001, null);
         jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").update();
         assertThat(storedIdentifiers(1001)).isPositive();
-        var snapshot = new com.forcitis.one.organization.workforce.events.OrgSnapshotChanged(
-                TestEnvelopes.of("organization.workforce.OrgSnapshotChanged", "OrgSnapshot", TestIds.uuid(2)), List.of(),
-                List.of(TestAccounts.employee(1001)), List.of(), java.time.LocalDate.of(2026, 10, 15));
+        var snapshot = new com.forcitis.one.organization.workforce.events.EmployeeSeparated(
+                TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", TestAccounts.employee(1001).value()),
+                new com.forcitis.one.organization.workforce.api.PersonnelCommandId(java.util.UUID.randomUUID()), TestAccounts.employee(1001),
+                java.time.LocalDate.of(2026, 10, 15));
 
         tx.executeWithoutResult(status -> events.publishEvent(snapshot));
 
