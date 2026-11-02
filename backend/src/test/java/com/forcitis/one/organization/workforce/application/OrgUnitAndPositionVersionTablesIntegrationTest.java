@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 class OrgUnitAndPositionVersionTablesIntegrationTest extends WorkforceIntegrationSupport {
     static final String UNIT = "'019a0000-0000-7000-8000-0000000000b1'";
     static final String POSITION = "'019a0000-0000-7000-8000-0000000000b2'";
-    static final String LEGAL_ENTITY = "'019a0000-0000-7000-8000-0000000000e1'";
+    static final String LEGAL_ENTITY = "'019a0000-0000-7000-8000-0000000000e3'";
     static final String USER = "'019a0000-0000-7000-8000-0000000000aa'";
     static final String COMMAND = "'019a0000-0000-7000-8000-0000000000c1'";
     static final String LATER_COMMAND = "'019a0000-0000-7000-8000-0000000000c2'";
@@ -40,7 +40,7 @@ class OrgUnitAndPositionVersionTablesIntegrationTest extends WorkforceIntegratio
     void targetsAndTwoCommands() {
         jdbc.sql("insert into organization_workforce.org_units (id, name, status) values (" + UNIT + ", 'unit', 'ACTIVE')").update();
         jdbc.sql("insert into organization_workforce.positions (id, name, status) values (" + POSITION + ", 'position', 'ACTIVE')").update();
-        jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (" + LEGAL_ENTITY + ", 'ABC', 'entity', 'ACTIVE') on conflict do nothing").update();
+        jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (" + LEGAL_ENTITY + ", 'ZQV', 'entity', 'ACTIVE') on conflict (id) do nothing").update();
         jdbc.sql("insert into organization_workforce.legal_entity_attributions (attribution_id, org_unit_id) values (gen_random_uuid(), " + UNIT + ")").update();
         command(COMMAND, 0);
         command(LATER_COMMAND, 1);
