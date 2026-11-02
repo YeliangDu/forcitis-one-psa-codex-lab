@@ -21,7 +21,10 @@ class AuditWritePointsGuardTest {
     static final Path MAIN = Path.of("src/main/java");
     static final Path REGISTER = Path.of("architecture/audit-text-writers.txt");
     static final Path DEFINITION = Path.of("src/main/java/com/forcitis/one/platform/audit/api/AuditEntry.java");
-    static final Set<String> PERSONAL_DATA = Set.of("NONE", "SURROGATE", "POSSIBLE");
+    static final Set<String> PERSONAL_DATA = Set.of("NONE", "SURROGATE", "POSSIBLE", "PI");
+    /** Row 26 (#959, ADR-0043 U-7(b)): the one write point that may put the changed L2 profile columns into before and after text, and the only one that may be class PI. */
+    static final String PROFILE_WRITER = "src/main/java/com/forcitis/one/organization/workforce/application/EmployeeProfileService.java";
+    static final String PROFILE_ROW = "26";
     static final int LAST_ROW = 26;
     static final Pattern WRITE = Pattern.compile("new\\s+AuditEntry\\s*\\(|\\.withChange\\s*\\(");
 
@@ -49,6 +52,13 @@ class AuditWritePointsGuardTest {
                 Writer writer = new Writer(Integer.parseInt(parts[1].strip()), rowList, parts[3].strip());
                 if (writer.writes() < 1 || !PERSONAL_DATA.contains(writer.personalData())) {
                     throw new IllegalArgumentException("writes must be positive and personal data one of " + PERSONAL_DATA);
+                }
+                boolean profileRow = List.of(rowList.split(",")).stream().map(String::strip).anyMatch(PROFILE_ROW::equals);
+                if (profileRow && !parts[0].strip().equals(PROFILE_WRITER)) {
+                    throw new IllegalArgumentException("row " + PROFILE_ROW + " belongs to " + PROFILE_WRITER + " alone");
+                }
+                if (writer.personalData().equals("PI") && !profileRow) {
+                    throw new IllegalArgumentException("the class PI is a personal data class for row " + PROFILE_ROW + " alone");
                 }
                 if (rows.put(parts[0].strip(), writer) != null) {
                     throw new IllegalArgumentException("two lines for one file");
@@ -149,6 +159,21 @@ class AuditWritePointsGuardTest {
         List<String> problems = new ArrayList<>();
         assertThat(parse(List.of("A.java | 1 | 1 | PI"), problems)).isEmpty();
         assertThat(problems).singleElement().asString().contains("personal data");
+    }
+
+    @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-01 injected (#959): row 26 and the class PI belong to the profile change writer alone, and only a row 26 file may write before and after text")
+    void profileRowIsPinnedToItsWriter() {
+        List<String> problems = new ArrayList<>();
+        assertThat(parse(List.of(PROFILE_WRITER + " | 2 | 26 | PI"), problems)).containsOnlyKeys(PROFILE_WRITER);
+        assertThat(problems).isEmpty();
+        for (String bad : List.of("src/main/java/Other.java | 2 | 4,26 | NONE", "src/main/java/Other.java | 2 | 26 | PI", "src/main/java/Other.java | 1 | 4 | PI",
+                PROFILE_WRITER + " | 2 | 25 | PI")) {
+            List<String> one = new ArrayList<>();
+            assertThat(parse(List.of(bad), one)).as(bad).isEmpty();
+            assertThat(one).as(bad).hasSize(1);
+        }
+        assertThat(changeTexts("e.withChange(reason, before, after);")).as("a file outside row 26 cannot write the texts").hasSize(1);
     }
 
     @Test

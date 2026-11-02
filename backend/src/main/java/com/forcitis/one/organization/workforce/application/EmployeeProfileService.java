@@ -63,7 +63,7 @@ class EmployeeProfileService implements EmployeeProfiles {
         if (change == null) {
             return;
         }
-        if (after.wecomUserId() != null && employees.wecomUserIdHeld(after.wecomUserId(), request.employeeId())) {
+        if (after.wecomUserId() != null && !after.wecomUserId().equals(before.wecomUserId()) && employees.wecomUserIdHeld(after.wecomUserId(), request.employeeId())) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_WECOM_USER_ID_TAKEN, ErrorKind.UNPROCESSABLE, "the WeCom user id belongs to another employee");
         }
         employees.updateProfile(request.employeeId(), after, now);
