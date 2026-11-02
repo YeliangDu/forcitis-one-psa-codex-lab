@@ -15,7 +15,6 @@ import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelopes;
 import com.forcitis.one.organization.workforce.events.EmployeeRegistered;
-import com.forcitis.one.organization.workforce.events.OrgSnapshotChanged;
 import com.forcitis.one.platform.identity.application.OperationsCommands;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -47,12 +46,15 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * R-1b P2 review P2-M3 (ADR-0033 section 3 item 1): all four ways an account is opened insert on the employee and read back by the
- * employee (INSERT … ON CONFLICT (employee_id) DO NOTHING), so the WeCom login, the EmployeeRegistered and OrgSnapshotChanged handlers
- * and the operations command grant-role, started for the same new employee at the same moment, end with one account and one
- * AccountOpened, and none of them fails on the unique constraint. The two events are published the way the workforce module publishes
- * them (inside a transaction, delivered after the commit through the event publication registry); a handler that failed would leave its
- * publication incomplete.
+ * R-1b P2 review P2-M3 (ADR-0033 section 3 item 1): every way an account is opened inserts on the employee and reads back by the
+ * employee (INSERT … ON CONFLICT (employee_id) DO NOTHING), so the WeCom login, the EmployeeRegistered handler and the operations command
+ * grant-role, started for the same new employee at the same moment, end with one account and one AccountOpened, and none of them fails on
+ * the unique constraint. The event is published the way the workforce module publishes it (inside a transaction, delivered after the
+ * commit through the event publication registry); a handler that failed would leave its publication incomplete.
+ *
+ * <p>#934: the fourth entry, the OrgSnapshotChanged handler, went with the old sync. The hire command does not take its place:
+ * EmployeeHired opens no account (ADR-0068 item 5 lists the identity listeners on the personnel events: transferred, separated,
+ * corrected), so there is no fourth entry to race.
  */
 class AccountEntriesConcurrencyIT extends AccountsAcceptanceSupport {
 
@@ -99,18 +101,6 @@ class AccountEntriesConcurrencyIT extends AccountsAcceptanceSupport {
             return transactions.execute(status -> {
                 EmployeeRegistered event = new EmployeeRegistered(envelopes.wrap(new EventDraft("organization.workforce.EmployeeRegistered", 1, "Employee",
                         employee, 1, null, null, List.of())), employeeIdOf(employee));
-                publisher.publishEvent(event);
-                return event.envelope().eventId();
-            });
-        }
-    }
-
-    private UUID publishOrgSnapshotChanged(UUID employee) {
-        try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
-            return transactions.execute(status -> {
-                OrgSnapshotChanged event = new OrgSnapshotChanged(envelopes.wrap(new EventDraft("organization.workforce.OrgSnapshotChanged", 1, "OrgSnapshot",
-                        UUID.randomUUID(), 1, null, TODAY, List.of())),
-                        List.of(employeeIdOf(employee)), List.of(), List.of(), TODAY);
                 publisher.publishEvent(event);
                 return event.envelope().eventId();
             });
@@ -179,11 +169,11 @@ class AccountEntriesConcurrencyIT extends AccountsAcceptanceSupport {
     }
 
     @Test
-    @DisplayName("P2-M3 ADR-0033 第 3 项第 1 条：同一新员工同时经企业微信登录、EmployeeRegistered、OrgSnapshotChanged(changed)、运维 grant-role --employee-id 四个入口建账号 → 只有一个账号、恰一条 AccountOpened、四个入口都成功、没有唯一约束冲突")
-    void fourEntriesAtOnceOpenOneAccount() throws Exception {
+    @DisplayName("P2-M3 ADR-0033 第 3 项第 1 条：同一新员工同时经企业微信登录、EmployeeRegistered、运维 grant-role --employee-id 三个入口建账号 → 只有一个账号、恰一条 AccountOpened、三个入口都成功、没有唯一约束冲突")
+    void everyEntryAtOnceOpensOneAccount() throws Exception {
         UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
-        ExecutorService pool = Executors.newFixedThreadPool(4);
+        ExecutorService pool = Executors.newFixedThreadPool(3);
         try {
             for (int round = 0; round < ROUNDS; round++) {
                 UUID person = newEmployeeId();
@@ -193,19 +183,15 @@ class AccountEntriesConcurrencyIT extends AccountsAcceptanceSupport {
                 CountDownLatch start = new CountDownLatch(1);
                 Future<SignedIn> login = pool.submit(waiting(start, () -> signInWith(code, person)));
                 Future<UUID> registered = pool.submit(waiting(start, () -> publishEmployeeRegistered(person)));
-                Future<UUID> changed = pool.submit(waiting(start, () -> publishOrgSnapshotChanged(person)));
                 Future<String> granted = pool.submit(waiting(start, () -> grantRoleByOperations(person)));
                 start.countDown();
 
                 UUID account = login.get(60, TimeUnit.SECONDS).userId();
                 assertThat(granted.get(60, TimeUnit.SECONDS)).as("exit code and error output of grant-role").isEqualTo("0");
                 UUID registeredEvent = registered.get(60, TimeUnit.SECONDS);
-                UUID changedEvent = changed.get(60, TimeUnit.SECONDS);
-                for (Object[] delivery : List.of(new Object[] {registeredEvent, "HandleEmployeeRegistered"}, new Object[] {changedEvent, "HandleOrgSnapshotChange"})) {
-                    Awaitility.await().atMost(Duration.ofSeconds(30)).pollInterval(Duration.ofMillis(100))
-                            .until(() -> deliveryToIdentity((UUID) delivery[0], (String) delivery[1]), state -> !state.equals("OPEN"));
-                    assertThat(deliveryToIdentity((UUID) delivery[0], (String) delivery[1])).as("delivery to %s", delivery[1]).isEqualTo("COMPLETED");
-                }
+                Awaitility.await().atMost(Duration.ofSeconds(30)).pollInterval(Duration.ofMillis(100))
+                        .until(() -> deliveryToIdentity(registeredEvent, "HandleEmployeeRegistered"), state -> !state.equals("OPEN"));
+                assertThat(deliveryToIdentity(registeredEvent, "HandleEmployeeRegistered")).as("delivery to HandleEmployeeRegistered").isEqualTo("COMPLETED");
 
                 assertThat(accountsOfEmployee(person)).as("accounts of employee %s", person).containsExactly(account);
                 assertThat(account.toString()).isNotEqualTo(text(person));

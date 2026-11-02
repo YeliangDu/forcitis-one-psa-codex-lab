@@ -10,17 +10,10 @@ import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.application.RefreshShortNames;
-import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
-import com.forcitis.one.organization.workforce.application.SyncResult;
-import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
-import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
-import com.forcitis.one.platform.integration.api.OrgSource;
-import com.forcitis.one.platform.integration.api.StaffLookup;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -50,7 +43,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 /**
  * ADR37-1 (ADR-0037 item 4, implementation card of one-coordinator and one-ops 2026-10-15): every read-only external connection is checked
  * against the RDS platform baseline when the application starts and again before each sync; anything more, anything less or anything that
- * cannot be determined refuses. The application is started for real (black box) against a real SQL Server, one start per case.
+ * cannot be determined refuses. The application is started for real (black box) against a real SQL Server, one start per case. The cases
+ * of the re-check before an organisation sync run went with the sync in #934 (ADR-0055 section 6); the re-check before a short-name refresh
+ * stays.
  *
  * <p>The logins come from {@link ReadOnlyBaselineFixture}; {@link #fixtureReproducesTheRdsBaseline} proves they equal the RDS export
  * before anything else is believed.
@@ -503,26 +498,6 @@ class ReadOnlyAccountCheckIT {
     }
 
     @Test
-    @DisplayName("C-14 定位裁定（one-1a-next-3 条件）：启动后 public 得到 GRANT CONTROL，组织同步前重检失败写 ALERT 报项 (g)，ALERT、日志与同步结果说明中不出现 schema 名与对象名")
-    void recheckAlertNamesNoSchemaOrObject(CapturedOutput output) throws SQLException {
-        Account account = baselineAccount(ReadOnlyConnection.A8);
-        String mark = marker();
-        String table = q("s_" + mark) + "." + q("t_" + mark);
-        try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.A8, account))) {
-            run(A8_WORLD, "CREATE SCHEMA " + q("s_" + mark) + " AUTHORIZATION dbo", "CREATE TABLE " + table + " (id bigint)",
-                    "GRANT CONTROL ON OBJECT::" + table + " TO public");
-            SyncResult result = runSync(context.getBean(SyncOrgSnapshot.class));
-
-            assertThat(result.status()).as(result.note()).isEqualTo(SyncRunStatus.FAILED);
-            assertThat(output.getAll()).as("the failed re-check raises an ALERT naming item (g)").containsPattern("ALERT[^\\n]*[(（]g[)）]");
-            assertThat(output.getAll()).as("no schema or object name in the ALERT or any log line").doesNotContain(mark);
-            assertThat(String.valueOf(result.note())).as("no schema or object name in the sync result").doesNotContain(mark);
-        } finally {
-            run(A8_WORLD, "DROP TABLE IF EXISTS " + table, "DROP SCHEMA IF EXISTS " + q("s_" + mark));
-        }
-    }
-
-    @Test
     @DisplayName("C-14 (f) 纳入基线附加条件（one-coordinator 2026-10-15）：本账号拥有一个 Agent 作业时拒绝启动并报项 (f)，拒绝原因与日志中不出现作业名")
     void ownedAgentJobRefusesStartupWithoutTheJobName(CapturedOutput output) throws SQLException {
         Account account = baselineAccount(ReadOnlyConnection.LEGACY_NAMES);
@@ -543,24 +518,6 @@ class ReadOnlyAccountCheckIT {
         assertThat(messages(failure)).as("the refusal names item (f)").containsPattern("[(（]f[)）]");
         assertThat(messages(failure)).as("no job name in the refusal").doesNotContain(job);
         assertThat(output.getAll()).as("no job name in the log").doesNotContain(job);
-    }
-
-    @Test
-    @DisplayName("C-14 (f) 纳入基线附加条件：启动后本账号得到一个 Agent 作业，组织同步前重检失败写 ALERT 报项 (f)，ALERT、日志与同步结果说明中不出现作业名")
-    void agentJobAfterStartupFailsTheRecheckWithoutTheJobName(CapturedOutput output) throws SQLException {
-        Account account = baselineAccount(ReadOnlyConnection.A8);
-        String job = "j_" + marker();
-        try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.A8, account))) {
-            run("msdb", addJob(job, account.login()));
-            SyncResult result = runSync(context.getBean(SyncOrgSnapshot.class));
-
-            assertThat(result.status()).as(result.note()).isEqualTo(SyncRunStatus.FAILED);
-            assertThat(output.getAll()).as("the failed re-check raises an ALERT naming item (f)").containsPattern("ALERT[^\\n]*[(（]f[)）]");
-            assertThat(output.getAll()).as("no job name in the ALERT or any log line").doesNotContain(job);
-            assertThat(String.valueOf(result.note())).as("no job name in the sync result").doesNotContain(job);
-        } finally {
-            run("msdb", deleteJob(job));
-        }
     }
 
     /** sa may name any login as owner; the Agent need not run for msdb to record the job (SQL Server 2022 container, checked 2026-10-15). */
@@ -592,28 +549,6 @@ class ReadOnlyAccountCheckIT {
                 .isNotNull();
         assertThat(messages(failure)).as("the refusal comes from the read-only check and names an unmet item")
                 .containsPattern("[(（][a-g][)）]");
-    }
-
-    @Test
-    @DisplayName("ADR37-1 运行期重检：启动后 A8 账号多了一项写权限，下一次组织同步开始前重检失败，A8 适配器停止并写 ALERT，不再读取")
-    void writeGrantedAfterStartupStopsTheA8AdapterBeforeTheNextSync(CapturedOutput output) throws SQLException {
-        Account account = baselineAccount(ReadOnlyConnection.A8);
-        try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.A8, account))) {
-            OrgSource a8 = context.getBean(OrgSource.class);
-            assertThat(a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))).as("the adapter reads before the grant changes").hasSize(1);
-
-            grantWriteBehindTheDatabaseDeny(account);
-            long readsBefore = baseTableReads(A8_WORLD, "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER");
-            SyncResult result = runSync(context.getBean(SyncOrgSnapshot.class));
-
-            assertThat(result.status()).as(result.note()).isEqualTo(SyncRunStatus.FAILED);
-            assertThat(output.getAll()).as("the failed re-check raises an ALERT naming item (b)").containsPattern("ALERT[^\\n]*[(（]b[)）]");
-            assertThat(baseTableReads(A8_WORLD, "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER"))
-                    .as("nothing is read from A8 once the re-check has failed").isEqualTo(readsBefore);
-            assertThatThrownBy(() -> a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))).as("the stopped adapter answers 'unavailable'")
-                    .isInstanceOf(ExternalSystemUnavailableException.class);
-            assertThat(baseTableReads(A8_WORLD, "ORG_UNIT", "relationship_rows", "post_rows", "ORG_MEMBER")).isEqualTo(readsBefore);
-        }
     }
 
     @Test
@@ -659,12 +594,6 @@ class ReadOnlyAccountCheckIT {
 
     static void grantWriteBehindTheDatabaseDeny(Account account) throws SQLException {
         run(account.connection().database, "REVOKE INSERT FROM " + q(account.login()), "GRANT INSERT ON SCHEMA::dbo TO " + q(account.login()));
-    }
-
-    static SyncResult runSync(SyncOrgSnapshot sync) {
-        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
-            return sync.execute(SyncTrigger.MANUAL, false);
-        }
     }
 
     static ConfigurableApplicationContext start(Map<ReadOnlyConnection, Account> enabled) {
