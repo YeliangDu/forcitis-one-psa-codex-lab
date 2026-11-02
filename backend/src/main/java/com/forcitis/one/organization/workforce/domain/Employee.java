@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.domain;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
+import com.forcitis.one.organization.workforce.api.Gender;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 

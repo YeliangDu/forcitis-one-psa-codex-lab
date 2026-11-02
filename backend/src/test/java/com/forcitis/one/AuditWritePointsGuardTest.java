@@ -21,8 +21,11 @@ class AuditWritePointsGuardTest {
     static final Path MAIN = Path.of("src/main/java");
     static final Path REGISTER = Path.of("architecture/audit-text-writers.txt");
     static final Path DEFINITION = Path.of("src/main/java/com/forcitis/one/platform/audit/api/AuditEntry.java");
-    static final Set<String> PERSONAL_DATA = Set.of("NONE", "SURROGATE", "POSSIBLE");
-    static final int LAST_ROW = 25;
+    static final Set<String> PERSONAL_DATA = Set.of("NONE", "SURROGATE", "POSSIBLE", "PI");
+    /** Row 26 (#959, ADR-0043 U-7(b)): the one write point that may put the changed L2 profile columns into before and after text, and the only one that may be class PI. */
+    static final String PROFILE_WRITER = "src/main/java/com/forcitis/one/organization/workforce/application/EmployeeProfileService.java";
+    static final String PROFILE_ROW = "26";
+    static final int LAST_ROW = 26;
     static final Pattern WRITE = Pattern.compile("new\\s+AuditEntry\\s*\\(|\\.withChange\\s*\\(");
 
     record Writer(int writes, String rows, String personalData) {
@@ -49,6 +52,13 @@ class AuditWritePointsGuardTest {
                 Writer writer = new Writer(Integer.parseInt(parts[1].strip()), rowList, parts[3].strip());
                 if (writer.writes() < 1 || !PERSONAL_DATA.contains(writer.personalData())) {
                     throw new IllegalArgumentException("writes must be positive and personal data one of " + PERSONAL_DATA);
+                }
+                boolean profileRow = List.of(rowList.split(",")).stream().map(String::strip).anyMatch(PROFILE_ROW::equals);
+                if (profileRow && !parts[0].strip().equals(PROFILE_WRITER)) {
+                    throw new IllegalArgumentException("row " + PROFILE_ROW + " belongs to " + PROFILE_WRITER + " alone");
+                }
+                if (writer.personalData().equals("PI") && !profileRow) {
+                    throw new IllegalArgumentException("the class PI is a personal data class for row " + PROFILE_ROW + " alone");
                 }
                 if (rows.put(parts[0].strip(), writer) != null) {
                     throw new IllegalArgumentException("two lines for one file");
@@ -112,10 +122,15 @@ class AuditWritePointsGuardTest {
         Map<String, Writer> register = parse(Files.readAllLines(REGISTER), problems);
         problems.addAll(check(sources, register));
         for (Map.Entry<String, String> source : sources.entrySet()) {
+            // Row 26: the profile change may write the changed L2 profile columns as before and after text (ADR-0043 U-7(b); #959, one-lead ruling 2026-11-02).
+            Writer writer = register.get(source.getKey());
+            if (writer != null && List.of(writer.rows().split(",")).stream().map(String::strip).anyMatch("26"::equals)) {
+                continue;
+            }
             changeTexts(source.getValue()).forEach(wrong -> problems.add(source.getKey() + " writes a before or after text: " + wrong));
         }
         assertThat(problems).as(GuardMessage.of("DATA-REPAIR-timesheet-audit TB-01", "a file writes an audit entry without a register line, with another number of write places, or with a before or after text", "register the file in " + REGISTER + " with its row of the allowed-content table and write count, or delete a stale line, and pass the literal null as before and after text of withChange")).isEmpty();
-        assertThat(register).as("the card counted 35 files, rows 20 and 21 add the start-up audit and the relaxation mark of the single operator mode, RevokeRoleByOperations is a writer of row 15, row 22 adds the file service gate and row 23 its links, holds and reads, ADR-0034-IMPL PR-2 adds RoleVersionAudit (rows 4 and 6: ids, enum names and clock readings of role versions), F-1 #728 adds CreateRole (grant.refused for a two-person role's scope: reason code, scope kind and org unit ids), IMP-1030-PAR-B6 #875 adds SeparationHoldService (row 17: the release reason typed by a person, session mode, ids and the remaining count), IMP-1030-PAR-B3 #872 adds PersonnelCommandService (rows 24 and 25: the ids, kind and date of an entry, and the withdrawal reason typed by a person with control characters replaced). " + GuardMessage.of("DATA-REPAIR-timesheet-audit TB-01", "the number of registered audit writers changed", "update the expected count here only together with the allowed-content row of the new writer")).hasSize(44);
+        assertThat(register).as("the card counted 35 files, rows 20 and 21 add the start-up audit and the relaxation mark of the single operator mode, RevokeRoleByOperations is a writer of row 15, row 22 adds the file service gate and row 23 its links, holds and reads, ADR-0034-IMPL PR-2 adds RoleVersionAudit (rows 4 and 6: ids, enum names and clock readings of role versions), F-1 #728 adds CreateRole (grant.refused for a two-person role's scope: reason code, scope kind and org unit ids), IMP-1030-PAR-B6 #875 adds SeparationHoldService (row 17: the release reason typed by a person, session mode, ids and the remaining count), #959 adds EmployeeProfileService (row 26: the changed L2 profile columns as before and after text, never the employee code), IMP-1030-PAR-B3 #872 adds PersonnelCommandService (rows 24 and 25: the ids, kind and date of an entry, and the withdrawal reason typed by a person with control characters replaced). " + GuardMessage.of("DATA-REPAIR-timesheet-audit TB-01", "the number of registered audit writers changed", "update the expected count here only together with the allowed-content row of the new writer")).hasSize(45);
     }
 
     @Test
@@ -147,12 +162,27 @@ class AuditWritePointsGuardTest {
     }
 
     @Test
+    @DisplayName("DATA-REPAIR-timesheet-audit TB-01 injected (#959): row 26 and the class PI belong to the profile change writer alone, and only a row 26 file may write before and after text")
+    void profileRowIsPinnedToItsWriter() {
+        List<String> problems = new ArrayList<>();
+        assertThat(parse(List.of(PROFILE_WRITER + " | 2 | 26 | PI"), problems)).containsOnlyKeys(PROFILE_WRITER);
+        assertThat(problems).isEmpty();
+        for (String bad : List.of("src/main/java/Other.java | 2 | 4,26 | NONE", "src/main/java/Other.java | 2 | 26 | PI", "src/main/java/Other.java | 1 | 4 | PI",
+                PROFILE_WRITER + " | 2 | 25 | PI")) {
+            List<String> one = new ArrayList<>();
+            assertThat(parse(List.of(bad), one)).as(bad).isEmpty();
+            assertThat(one).as(bad).hasSize(1);
+        }
+        assertThat(changeTexts("e.withChange(reason, before, after);")).as("a file outside row 26 cannot write the texts").hasSize(1);
+    }
+
+    @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TB-01 injected: a line with a missing segment, an unknown row or class, a zero count or a duplicate is refused; a good line is read")
     void registerLinesAreChecked() {
         List<String> problems = new ArrayList<>();
         assertThat(parse(List.of("# c", "", "A.java | 1 | 1,2 | POSSIBLE"), problems)).containsOnlyKeys("A.java");
         assertThat(problems).isEmpty();
-        for (String bad : List.of("A.java | 1 | 1", "A.java | 1 | 26 | NONE", "A.java | 1 | 0 | NONE", "A.java | 1 | 1 | SECRET", "A.java | 0 | 1 | NONE",
+        for (String bad : List.of("A.java | 1 | 1", "A.java | 1 | 27 | NONE", "A.java | 1 | 0 | NONE", "A.java | 1 | 1 | SECRET", "A.java | 0 | 1 | NONE",
                 "A.java | x | 1 | NONE", "A.java | 1 | | NONE")) {
             List<String> one = new ArrayList<>();
             assertThat(parse(List.of(bad), one)).as(bad).isEmpty();
