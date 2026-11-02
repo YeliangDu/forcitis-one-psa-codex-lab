@@ -76,15 +76,16 @@ class DueSeparationReleasedIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @DisplayName("#933 an unreleased future separation is not executed by the job, before or after its day (its re-judgement is card #967)")
-    void unreleasedIsLeftAlone() {
+    @DisplayName("#967 an unreleased future separation the job runs after its day is not judged: it takes effect as written")
+    void unreleasedLateRunTakesEffectUnjudged() {
         PersonnelSeedSupport.Person person = PersonnelSeedSupport.employed(jdbc, clock, "RL-2");
         UUID command = futureSeparation(person, null);
 
         clock.advance(Duration.ofDays(5));
         dueJob.run();
 
-        assertThat(statusOf(command)).isEqualTo("PENDING");
-        assertThat(events("EmployeeSeparated", command)).isZero();
+        assertThat(statusOf(command)).isEqualTo("EFFECTIVE");
+        assertThat(events("EmployeeSeparated", command)).isEqualTo(1);
+        assertThat(events("SeparationHeld", command)).isZero();
     }
 }

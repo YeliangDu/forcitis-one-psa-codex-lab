@@ -1,5 +1,6 @@
 package com.forcitis.one.kernel;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 
@@ -23,6 +24,13 @@ public interface SeparationReview {
      * count as available administrators for the remainder, nor as the retained releaser (ADR-0068 item 2.2, 2.3).
      */
     Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser);
+
+    /**
+     * The same judgement for the due-day re-judgement of a future-dated separation (ADR-0068 item 2.2, #967): the separating are available when they are
+     * holders now and were employed and not on unpaid leave on {@code separatingDay}, their last working day; everyone else (remaining, retained releaser,
+     * notice recipients) is judged as of today. The grant is always read as it is now. The three-argument method is this one with the separating judged today.
+     */
+    Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser, LocalDate separatingDay);
 
     /** The sync path has no held set. */
     default Verdict review(List<EmployeeId> separating, UserId releaser) {

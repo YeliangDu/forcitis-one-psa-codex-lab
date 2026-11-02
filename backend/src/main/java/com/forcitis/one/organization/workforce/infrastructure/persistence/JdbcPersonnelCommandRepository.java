@@ -96,8 +96,6 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
         return jdbc.sql("""
                 select c.personnel_command_id from organization_workforce.personnel_commands c
                 where c.status = 'PENDING' and c.effective_date <= :day
-                  and (c.command_kind <> 'SEPARATE' or exists (select 1 from organization_workforce.separation_holds h
-                                                               where h.personnel_command_id = c.personnel_command_id and h.status = 'RELEASED'))
                 order by c.effective_date, c.personnel_command_id""")
                 .param("day", day).query((rs, n) -> new PersonnelCommandId(rs.getObject("personnel_command_id", UUID.class))).list();
     }
