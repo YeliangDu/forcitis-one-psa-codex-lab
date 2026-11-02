@@ -5,6 +5,7 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.platform.identity.api.IdentityError;
@@ -55,7 +56,8 @@ public class RevokeRoleByOperations {
         }
         Set<RoleId> wanted = new HashSet<>(account.roles());
         wanted.remove(role.roleId());
-        grants.replace(account, wanted, AccountGrants.Origin.operations(attestation));
+        grants.replace(account, wanted, AccountGrants.Origin.operations((subject, code) -> new AuditEntry("platform.identity.operations.account.role.revoked", null, null, subject,
+                attestation.describe() + " role=" + code)));
         accounts.save(account);
         events.publish(account);
         sessions.revokeAll(person);

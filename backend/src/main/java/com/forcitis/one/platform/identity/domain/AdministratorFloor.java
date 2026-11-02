@@ -19,7 +19,7 @@ public interface AdministratorFloor {
             noticeTo = Set.copyOf(noticeTo);
         }
 
-        public boolean announce() {
+        public boolean needsNotice() {
             return !noticeTo.isEmpty();
         }
     }

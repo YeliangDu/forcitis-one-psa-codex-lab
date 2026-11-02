@@ -45,21 +45,6 @@ terms:
   forbidden: []
   status: proposed
   note: ''
-- id: announce
-  zh: 通知
-  en: Announce
-  snake: announce
-  kind: value_object
-  bc: platform.identity
-  scope: domain
-  definition: 剩 1 名可用超级管理员时向其余管理员发卡并记告警
-  standard_ref:
-  - docs/adr/ADR-0068.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: leaving
   zh: 在走的人
   en: Leaving

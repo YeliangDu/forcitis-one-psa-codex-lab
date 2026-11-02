@@ -25,7 +25,7 @@ src/main/java/com/forcitis/one/platform/audit/application/ExportAuditEntries.jav
 src/main/java/com/forcitis/one/platform/audit/application/SearchAuditEntries.java | 1 | 8 | SURROGATE
 src/main/java/com/forcitis/one/platform/file/infrastructure/audit/BindingAuditLog.java | 5 | 23 | SURROGATE
 src/main/java/com/forcitis/one/platform/file/infrastructure/audit/StoreAuditLog.java | 6 | 22 | POSSIBLE
-src/main/java/com/forcitis/one/platform/identity/application/AccountGrants.java | 4 | 1,15 | SURROGATE
+src/main/java/com/forcitis/one/platform/identity/application/AccountGrants.java | 2 | 1 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/BrowserIdentity.java | 2 | 11 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/application/ChangeAccountStatus.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/ConfirmIdentity.java | 1 | 1 | NONE
@@ -36,6 +36,7 @@ src/main/java/com/forcitis/one/platform/identity/application/EnableEmergencyAdmi
 src/main/java/com/forcitis/one/platform/identity/application/EnterAdministratorMode.java | 2 | 4,5 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/ExitAdministratorMode.java | 1 | 2 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/ForceUserLogout.java | 1 | 16 | POSSIBLE
+src/main/java/com/forcitis/one/platform/identity/application/GrantRoleByOperations.java | 1 | 15 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/application/HandleEmployeeSeparated.java | 1 | 5 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/LoginAdmission.java | 3 | 4,10,12,13 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/Logout.java | 1 | 1 | NONE
@@ -44,6 +45,7 @@ src/main/java/com/forcitis/one/platform/identity/application/ReconcileEmergencyA
 src/main/java/com/forcitis/one/platform/identity/application/RegisterEmergencyAdmin.java | 1 | 14 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/application/ReplaceAccountRoles.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/ResetEmergencyAdminCredentials.java | 1 | 15 | SURROGATE
+src/main/java/com/forcitis/one/platform/identity/application/RevokeRoleByOperations.java | 1 | 15 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/application/SessionRevocation.java | 1 | 5 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/SingleOperatorMarks.java | 1 | 21 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/UpdateRole.java | 2 | 1,4 | NONE

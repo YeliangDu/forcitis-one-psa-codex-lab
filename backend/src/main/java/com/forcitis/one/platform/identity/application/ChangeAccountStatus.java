@@ -76,7 +76,7 @@ public class ChangeAccountStatus {
             }
             accounts.save(account);
             events.publish(account);
-            if (judgement.announce()) {
+            if (judgement.needsNotice()) {
                 notice.accountDisabled(userId, disabledEntry, judgement.noticeTo(), currentUser.userId());
             }
         }

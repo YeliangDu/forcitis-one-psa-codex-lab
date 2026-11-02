@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import com.forcitis.one.kernel.EmployeeId;
@@ -60,7 +61,8 @@ public class GrantRoleByOperations {
         }
         Set<RoleId> wanted = new HashSet<>(account.roles());
         wanted.add(role.roleId());
-        grants.replace(account, wanted, AccountGrants.Origin.operations(attestation));
+        grants.replace(account, wanted, AccountGrants.Origin.operations((subject, code) -> new AuditEntry("platform.identity.operations.account.role.granted", null, null, subject,
+                attestation.describe() + " role=" + code)));
         accounts.save(account);
         events.publish(account);
         sessions.revokeAll(person);
