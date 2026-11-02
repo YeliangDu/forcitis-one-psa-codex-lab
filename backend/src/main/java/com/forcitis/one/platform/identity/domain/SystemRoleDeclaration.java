@@ -33,7 +33,7 @@ public record SystemRoleDeclaration(List<DeclaredRole> roles) {
                     Codes.PLATFORM_APPROVAL_TASK_READ, Codes.PLATFORM_APPROVAL_TASK_APPROVE, Codes.PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ,
                     Codes.PLATFORM_FILE_FILE_CREATE, Codes.PLATFORM_FILE_FILE_READ),
             declared("019a0000-0000-7000-8000-000000000103", "process_administrator", "流程管理员", AccessScopeKind.SELF, false),
-            declared("019a0000-0000-7000-8000-000000000104", "org_data_admin", "组织数据管理员", AccessScopeKind.ALL, false,
+            declared("019a0000-0000-7000-8000-000000000104", "org_data_admin", "组织数据管理员", AccessScopeKind.ALL, false, 2,
                     Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ, Codes.ORGANIZATION_WORKFORCE_ORG_RECONCILIATION_EXECUTE,
                     Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE, Codes.ORGANIZATION_ATTENDANCE_WORK_CALENDAR_READ,
                     Codes.ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE, Codes.ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE,
@@ -46,7 +46,7 @@ public record SystemRoleDeclaration(List<DeclaredRole> roles) {
             declared("019a0000-0000-7000-8000-000000000107", "personnel_specialist", "人事专员", AccessScopeKind.ALL, false,
                     Codes.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_CREATE)));
 
-    /** The revision every role of the first declaration carries (card 7.2: 声明修订号 1). */
+    /** The revision every role of the first declaration carries (card 7.2: 声明修订号 1); org_data_admin is at 2 since #934 swapped its sync-run codes for org-reconciliation:execute. */
     static final int FIRST_REVISION = 1;
 
     public SystemRoleDeclaration {
@@ -61,7 +61,12 @@ public record SystemRoleDeclaration(List<DeclaredRole> roles) {
     }
 
     private static DeclaredRole declared(String roleId, String code, String name, AccessScopeKind scope, boolean administrative, String... permissionCodes) {
-        return new DeclaredRole(new RoleId(UUID.fromString(roleId)), new RoleCode(code), administrative, FIRST_REVISION,
+        return declared(roleId, code, name, scope, administrative, FIRST_REVISION, permissionCodes);
+    }
+
+    private static DeclaredRole declared(String roleId, String code, String name, AccessScopeKind scope, boolean administrative, int revision,
+            String... permissionCodes) {
+        return new DeclaredRole(new RoleId(UUID.fromString(roleId)), new RoleCode(code), administrative, revision,
                 new RoleDefinition(name, RoleStatus.ENABLED, scope, Set.of(permissionCodes)));
     }
 }
