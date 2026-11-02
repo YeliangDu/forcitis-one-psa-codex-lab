@@ -2,13 +2,18 @@
 # `new AuditEntry(` or `.withChange(`. AuditWritePointsGuardTest fails when this file and the code differ in either direction, in the file set or in a count.
 # Format: <path under backend/> | <writes: number of `new AuditEntry(` plus `.withChange(` calls> | <rows of the allowed-content table> | <personal data>.
 # Rows are the numbers of the table in docs/data/repair-cards/data-repair-timesheet-audit.md, TB-01 item 2 (row 19: before_text and
-# after_text are never written non-null). Personal data after the TB-01 repair: NONE | SURROGATE (only own ids, still personal data under ADR-0043
-# section 4 item 2, allowed) | POSSIBLE (free text typed by a person; shown, not blocked). The class PI is never allowed (the guard refuses it).
+# after_text are never written non-null, except row 26). Personal data after the TB-01 repair: NONE | SURROGATE (only own ids, still personal data under ADR-0043
+# section 4 item 2, allowed) | POSSIBLE (free text typed by a person; shown, not blocked). The class PI is refused by the guard except for row 26, which only
+# EmployeeProfileService may carry (#959, ADR-0043 U-7(b)): it writes the changed L2 profile columns (name, gender, email, WeCom user id) as before and after text.
 # A new writer must name the row it belongs to, or add a row to the card first. Changes need design review.
 src/main/java/com/forcitis/one/organization/workforce/application/CorrectLegalEntityAttribution.java | 1 | 4 | NONE
+src/main/java/com/forcitis/one/organization/workforce/application/EmployeeProfileService.java | 2 | 26 | PI
 src/main/java/com/forcitis/one/organization/workforce/application/GetLegalEntityAttribution.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/organization/workforce/application/GetOrgUnit.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/organization/workforce/application/HeldSeparationRelease.java | 1 | 17 | POSSIBLE
+src/main/java/com/forcitis/one/organization/workforce/application/MigrateInitialVersions.java | 1 | 15 | SURROGATE
 src/main/java/com/forcitis/one/organization/workforce/application/OwnAttributionGuard.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/organization/workforce/application/PersonnelCommandService.java | 2 | 24,25 | POSSIBLE
 src/main/java/com/forcitis/one/organization/workforce/application/RecordSyncRunRelease.java | 1 | 17 | POSSIBLE
 src/main/java/com/forcitis/one/platform/approval/application/ListAllTasks.java | 2 | 1,2 | NONE
 src/main/java/com/forcitis/one/platform/approval/application/ReassignTask.java | 1 | 1 | NONE
@@ -18,6 +23,8 @@ src/main/java/com/forcitis/one/platform/approval/application/TaskGuard.java | 1 
 src/main/java/com/forcitis/one/platform/audit/application/AuditDomainEvents.java | 2 | 9,18,19 | POSSIBLE
 src/main/java/com/forcitis/one/platform/audit/application/ExportAuditEntries.java | 1 | 8 | SURROGATE
 src/main/java/com/forcitis/one/platform/audit/application/SearchAuditEntries.java | 1 | 8 | SURROGATE
+src/main/java/com/forcitis/one/platform/file/infrastructure/audit/BindingAuditLog.java | 5 | 23 | SURROGATE
+src/main/java/com/forcitis/one/platform/file/infrastructure/audit/StoreAuditLog.java | 6 | 22 | POSSIBLE
 src/main/java/com/forcitis/one/platform/identity/application/BrowserIdentity.java | 2 | 11 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/application/ConfirmIdentity.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/CreateRole.java | 1 | 1,4 | NONE
@@ -45,7 +52,3 @@ src/main/java/com/forcitis/one/platform/identity/infrastructure/security/AccessD
 src/main/java/com/forcitis/one/platform/identity/infrastructure/security/PrivilegedRequestAudit.java | 1 | 7 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/infrastructure/security/SessionGuardFilter.java | 1 | 4 | NONE
 src/main/java/com/forcitis/one/platform/identity/infrastructure/startup/SingleOperatorModeStartup.java | 1 | 20 | NONE
-src/main/java/com/forcitis/one/platform/file/infrastructure/audit/BindingAuditLog.java | 5 | 23 | SURROGATE
-src/main/java/com/forcitis/one/platform/file/infrastructure/audit/StoreAuditLog.java | 6 | 22 | POSSIBLE
-src/main/java/com/forcitis/one/organization/workforce/application/HeldSeparationRelease.java | 1 | 17 | POSSIBLE
-src/main/java/com/forcitis/one/organization/workforce/application/PersonnelCommandService.java | 2 | 24,25 | POSSIBLE

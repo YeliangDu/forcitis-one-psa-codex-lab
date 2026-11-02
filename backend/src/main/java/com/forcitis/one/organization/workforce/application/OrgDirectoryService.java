@@ -60,9 +60,22 @@ class OrgDirectoryService implements OrgDirectory {
     }
 
     @Override
+    public Optional<EmploymentStatus> employmentOn(EmployeeId employeeId, LocalDate day) {
+        if (versions.hasVersions(employeeId)) {
+            return versions.employmentOn(employeeId, day);
+        }
+        return snapshots.findStaff(employeeId).map(staff -> staff.employee().employmentStatus());
+    }
+
+    @Override
     public EmploymentVerdict employmentOf(EmployeeId employeeId) {
+        if (versions.hasVersions(employeeId)) {
+            return versions.employmentOn(employeeId, zone.today(clock))
+                    .map(status -> status == EmploymentStatus.EMPLOYED ? EmploymentVerdict.EMPLOYED : EmploymentVerdict.SEPARATED)
+                    .orElse(EmploymentVerdict.NOT_LISTED);
+        }
         Optional<StaffEmployee> staff = snapshots.findStaff(employeeId);
-        if (staff.isPresent() && statusOf(staff.get()) != EmploymentStatus.EMPLOYED) {
+        if (staff.isPresent() && staff.get().employee().employmentStatus() != EmploymentStatus.EMPLOYED) {
             return EmploymentVerdict.SEPARATED;
         }
         if (!freshness.isCurrent()) {
@@ -73,7 +86,7 @@ class OrgDirectoryService implements OrgDirectory {
 
     private Optional<EmployeeProfile> findEmployeeByWecomUser(WecomUserId wecomUserId) {
         return snapshots.findStaffByWecomUser(wecomUserId)
-                .or(() -> registerOnLogin.execute(wecomUserId))
+                .or(() -> snapshots.findEmployeeIdsByWecomUser(wecomUserId).isEmpty() ? registerOnLogin.execute(wecomUserId).flatMap(registered -> snapshots.findStaff(registered.employeeId())) : Optional.empty())
                 .map(this::profile);
     }
 
@@ -83,7 +96,7 @@ class OrgDirectoryService implements OrgDirectory {
         }
         String key = loginName.trim();
         return snapshots.findStaffByLoginName(key)
-                .or(() -> registerOnLoginName.execute(key))
+                .or(() -> snapshots.findEmployeeIdsByLoginName(key).isEmpty() ? registerOnLoginName.execute(key).flatMap(registered -> snapshots.findStaff(registered.employeeId())) : Optional.empty())
                 .map(this::profile);
     }
 
@@ -118,17 +131,8 @@ class OrgDirectoryService implements OrgDirectory {
         return snapshots.findAncestors(orgUnitId);
     }
 
-    /**
-     * A person who has employee versions is read from those versions by today; everyone else from the snapshot, as before the commands existed. Only the
-     * personnel commands write versions in this phase, so this is the stop-gap the C batch replaces together with the snapshot path (a version of any channel
-     * wins over the snapshot status, so initial migrated versions must not be loaded while the sync still writes the snapshot).
-     */
-    private EmploymentStatus statusOf(StaffEmployee staff) {
-        return versions.employmentOn(staff.employeeId(), zone.today(clock)).orElse(staff.employee().employmentStatus());
-    }
-
     private EmployeeProfile profile(StaffEmployee staff) {
         return new EmployeeProfile(staff.employeeId(), staff.employee().displayName(), staff.assignment().orgUnitId(),
-                staff.employee().wecomUserId(), statusOf(staff), staff.employee().feeEarner());
+                staff.employee().wecomUserId(), staff.employee().employmentStatus(), staff.employee().feeEarner());
     }
 }

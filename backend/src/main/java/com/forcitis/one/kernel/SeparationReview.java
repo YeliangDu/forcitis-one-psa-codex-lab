@@ -1,7 +1,9 @@
 package com.forcitis.one.kernel;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Asked before a sync run turns people into separated ones. Implemented by whoever owns administrator access, so that a wrong
@@ -11,7 +13,7 @@ public interface SeparationReview {
 
     /**
      * The text of the transaction-level advisory lock (pg_advisory_xact_lock(hashtextextended(key, 0))) that every transaction taking part in
-     * the administrator-separation decision takes first: executing a separation, releasing a hold, withdrawing a held command (ADR-0068 item 2.2).
+     * the administrator-separation decision takes first: entering a separation or an unpaid-leave start, releasing a hold, withdrawing a held command (ADR-0068 item 2.2; #943).
      * Workforce and identity are in different schemas, so the key lives here and no table holds it.
      */
     String SEPARATION_LOCK_KEY = "com.forcitis.one.kernel.SeparationReview.separation-decision";
@@ -19,10 +21,19 @@ public interface SeparationReview {
     /**
      * releaser is the account releasing a held run, null for a scheduled run; the implementation finds the releaser's employee to set
      * against the separating ones. sessionMode is the mode of the releaser's session, empty text when there is no releaser or no
-     * signed-in session. held are the employees whose separation is held at this moment, or released and waiting for its date: they still are employed, but they do not
+     * signed-in session. held are the employees already counted as gone (the caller's one count): separation held, or released and waiting for its date, or an unpaid-leave start entered and not yet started: they still are employed, but they do not
      * count as available administrators for the remainder, nor as the retained releaser (ADR-0068 item 2.2, 2.3).
      */
-    Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser);
+    default Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser) {
+        return review(separating, held, releaser, null);
+    }
+
+    /**
+     * The same judgement for the due-day re-judgement of a future-dated separation (ADR-0068 item 2.2, #967): the separating are available when they are
+     * holders now and were employed and not on unpaid leave on {@code separatingDay}, their last working day; everyone else (remaining, retained releaser,
+     * notice recipients) is judged as of today. The grant is always read as it is now. A null day judges the separating today, as the three-argument method does.
+     */
+    Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser, @Nullable LocalDate separatingDay);
 
     /** The sync path has no held set. */
     default Verdict review(List<EmployeeId> separating, UserId releaser) {

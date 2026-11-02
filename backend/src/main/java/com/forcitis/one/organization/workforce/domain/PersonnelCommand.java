@@ -69,9 +69,10 @@ public final class PersonnelCommand extends AggregateRoot {
      * A command about to be stored. A separation is entered with the last working day and takes effect the day after (ADR-0068 item 1.5); every other
      * kind carries its effective date. A day that is not after today takes effect at once (ADR-0068 item 1.8), a later one waits.
      *
+     * @param employee              the employee the command is about: the one the request names, or for a hire the id the server made
      * @param employeeEventSequence the employee's event sequence, which the command's own event continues
      */
-    public static PersonnelCommand enter(PersonnelCommandId id, EnterPersonnelCommand request, UserId createdBy, Instant now, LocalDate today,
+    public static PersonnelCommand enter(PersonnelCommandId id, EmployeeId employee, EnterPersonnelCommand request, UserId createdBy, Instant now, LocalDate today,
                                          long employeeEventSequence) {
         PersonnelCommandKind kind = require(request.commandKind(), "a command kind");
         LocalDate effective;
@@ -88,7 +89,7 @@ public final class PersonnelCommand extends AggregateRoot {
         }
         // A correction is immediate whatever its day (ck_personnel_commands_correction_immediate); it never waits.
         CommandStatus status = kind != PersonnelCommandKind.CORRECTION && effective.isAfter(today) ? CommandStatus.PENDING : CommandStatus.EFFECTIVE;
-        PersonnelCommand command = new PersonnelCommand(id, require(request.employeeId(), "the employee"), kind, effective, status, request.targetOrgUnitId(),
+        PersonnelCommand command = new PersonnelCommand(id, employee, kind, effective, status, request.targetOrgUnitId(),
                 request.targetPositionId(), request.targetReportsToEmployeeId(), request.isTargetFeeEarner(), request.targetEmploymentPhaseKind(), createdBy, now,
                 status == CommandStatus.EFFECTIVE ? now : null, 0, employeeEventSequence);
         command.requireShapeOfKind();
@@ -151,6 +152,15 @@ public final class PersonnelCommand extends AggregateRoot {
         boolean due = !effectiveDate.isAfter(today);
         status = CommandStatus.MACHINE.require(status, due ? CommandStatus.EFFECTIVE : CommandStatus.PENDING, WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL);
         appliedAt = due ? Objects.requireNonNull(at, "at") : null;
+    }
+
+    /** The due-day re-judgement of a separation that was not held at entry found a reason to hold it (ADR-0068 item 2.2): nothing was applied, the versions are voided by the caller. */
+    public void holdOnDueDay() {
+        if (kind != PersonnelCommandKind.SEPARATE) {
+            throw invalid("only a separation can be held");
+        }
+        status = CommandStatus.MACHINE.require(status, CommandStatus.HELD, WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL);
+        appliedAt = null;
     }
 
     /** A pending command whose day has come takes effect (the due-date job; its versions were written when it was entered or released). */

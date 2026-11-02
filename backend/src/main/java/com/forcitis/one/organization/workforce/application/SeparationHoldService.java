@@ -24,7 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
  * The single release of a held separation (ADR-0068 item 2.3). It takes the separation lock first, then asks the review with the held set: a releaser
  * who is not retained (not an available administrator, leaving themself, or on leave) and a release that would leave no available super administrator are
  * refused; one left is allowed with an alert. The held set counts, besides the held, every administrator whose separation was released and still waits
- * for its date. The versions are written at the original date and the command takes effect now or, when that date is later, waits for the due-date job;
+ * for its date and every one with an entered unpaid-leave start that has not started (the one count of PersonnelCommandRepository#excludedEmployees). The versions are written at the original date and the command takes effect now or, when that date is later, waits for the due-date job;
  * the hold, the transitions, the audit entry and the events are written in the same transaction. It is never held again.
  */
 @Component
@@ -64,7 +64,7 @@ class SeparationHoldService implements SeparationHolds {
         long holdVersion = hold.version();
         long commandVersion = command.version();
         hold.release(by, request.reason(), now);
-        Set<EmployeeId> leaving = commands.heldOrReleasedEmployees();
+        Set<EmployeeId> leaving = commands.excludedEmployees();
         SeparationReview.Verdict verdict = review.review(List.of(employee), leaving, by);
         if (!verdict.actorRetained()) {
             throw refused("the releaser is not a retained administrator: not an available holder, held, or on unpaid leave");

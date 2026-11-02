@@ -146,12 +146,14 @@ aggregates:
   tables: []
   commands:
   - AdministratorHoldCheck
-  - ApplyDueSeparation
+  - ApplyDueCommand
   - HeldSeparationRelease
   - PersonnelCommandService
   - PersonnelPlans
   - ReleaseSeparationHoldByOperations
   - SeparationHoldService
+  - UnpaidLeaveStartFloor
+  - UnpaidLeaveStartNotice
   events: []
   events_in_module:
   - organization.workforce.EmployeeCorrected
@@ -567,7 +569,7 @@ aggregates:
   - ConfigureNumberingRule
   - ConfirmNumberingRule
   - ConfirmNumberingRuleByFinance
-  - IssueDocumentNumber
+  - NumberIssuance
   - NumberingRuleViews
   events:
   - platform.numbering.NumberingRuleConfirmationGiven

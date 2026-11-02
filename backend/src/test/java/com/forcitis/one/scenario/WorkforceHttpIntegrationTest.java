@@ -108,7 +108,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-359/368/369 org data is read-only in the new system: the only writes are the release of a held run and the read-only comparison trigger")
+    @DisplayName("RULE-359/368/369 org data is read-only in the new system: the only writes are the release of a held run, the read-only comparison trigger and, since #933, the three personnel command endpoints and, since #959, the profile change")
     void orgDataHasNoEditEndpoints() {
         List<String> writes = new ArrayList<>();
         List<String> reads = new ArrayList<>();
@@ -117,7 +117,9 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                     (m.name().equals("GET") ? reads : writes).add(m.name() + " " + p);
                 })));
 
-        assertThat(writes).containsExactlyInAnyOrder("POST /api/v1/organization/sync-runs/{syncRunId}:release", "POST /api/v1/organization/sync-runs:reconcile");
+        assertThat(writes).containsExactlyInAnyOrder("POST /api/v1/organization/sync-runs/{syncRunId}:release", "POST /api/v1/organization/sync-runs:reconcile",
+                "POST /api/v1/organization/personnel-commands", "POST /api/v1/organization/personnel-commands/{personnelCommandId}:withdraw",
+                "POST /api/v1/organization/separation-holds/{separationHoldId}:release", "POST /api/v1/organization/employees/{employeeId}:change-profile");
         assertThat(reads).hasSize(4);
     }
 

@@ -7,6 +7,7 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.SeparationReview;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
@@ -49,7 +50,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Entering and withdrawing personnel commands (ADR-0068 item 1). One transaction holds the employee row locked, the cross-row rules, the command,
  * the version rows (W2 design sections 0 and 2), the transitions, the audit entry and, when the command takes effect, the event. The permission is
- * checked before anything about the content is read. Two methods, like the other adapters of an api interface in this module.
+ * checked before anything about the content is read. A start of unpaid leave takes the separation lock and passes the administrator floor. Two methods, like the other adapters of an api interface in this module.
  */
 @Component
 class PersonnelCommandService implements PersonnelCommands {
@@ -58,8 +59,10 @@ class PersonnelCommandService implements PersonnelCommands {
     private static final String HOLD = "SeparationHold";
 
     private final PersonnelCommandRepository commands;
+    private final NewEmployees newEmployees;
     private final PersonnelPlans timelines;
     private final SeparationHoldCheck holdCheck;
+    private final UnpaidLeaveStartFloor leaveFloor;
     private final LegalEntityResolutionSources legalEntities;
     private final AuditLog audit;
     private final DomainEvents events;
@@ -68,11 +71,13 @@ class PersonnelCommandService implements PersonnelCommands {
     private final Clock clock;
     private final BusinessZone zone;
 
-    PersonnelCommandService(PersonnelCommandRepository commands, PersonnelPlans timelines, SeparationHoldCheck holdCheck, LegalEntityResolutionSources legalEntities,
-                            AuditLog audit, DomainEvents events, CurrentUser currentUser, IdGenerator ids, Clock clock, BusinessZone zone) {
+    PersonnelCommandService(PersonnelCommandRepository commands, NewEmployees newEmployees, PersonnelPlans timelines, SeparationHoldCheck holdCheck, UnpaidLeaveStartFloor leaveFloor,
+                            LegalEntityResolutionSources legalEntities, AuditLog audit, DomainEvents events, CurrentUser currentUser, IdGenerator ids, Clock clock, BusinessZone zone) {
         this.commands = commands;
+        this.newEmployees = newEmployees;
         this.timelines = timelines;
         this.holdCheck = holdCheck;
+        this.leaveFloor = leaveFloor;
         this.legalEntities = legalEntities;
         this.audit = audit;
         this.events = events;
@@ -89,17 +94,23 @@ class PersonnelCommandService implements PersonnelCommands {
         Instant now = clock.instant();
         LocalDate today = zone.dateOf(now);
         UserId by = currentUser.userId();
-        EmployeeId employee = request.employeeId();
-        if (request.commandKind() == PersonnelCommandKind.SEPARATE) {
-            commands.lockSeparationDecisions();
+        EmployeeId employee;
+        if (request.commandKind() == PersonnelCommandKind.HIRE) {
+            employee = newEmployees.create(request, today, now);
+        } else {
+            employee = existingEmployee(request);
+            if (request.commandKind() == PersonnelCommandKind.SEPARATE || request.commandKind() == PersonnelCommandKind.UNPAID_LEAVE_START) {
+                commands.lockSeparationDecisions();
+            }
+            if (!commands.lockEmployee(employee)) {
+                throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID, ErrorKind.UNPROCESSABLE, "the employee does not exist");
+            }
         }
-        if (!commands.lockEmployee(employee)) {
-            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID, ErrorKind.UNPROCESSABLE, "the employee does not exist");
-        }
-        PersonnelCommand command = PersonnelCommand.enter(new PersonnelCommandId(ids.next()), request, by, now, today, commands.eventSequence(employee));
+        PersonnelCommand command = PersonnelCommand.enter(new PersonnelCommandId(ids.next()), employee, request, by, now, today, commands.eventSequence(employee));
         requireTargetsExist(command);
         PersonnelHistory history = commands.load(employee);
         PersonnelCommandRules.check(command, history);
+        SeparationReview.@Nullable Verdict leaveVerdict = command.kind() == PersonnelCommandKind.UNPAID_LEAVE_START ? leaveFloor.check(command) : null;
         boolean held = command.kind() == PersonnelCommandKind.SEPARATE && holdCheck.holds(command);
         if (held) {
             command.holdAtEntry();
@@ -129,6 +140,9 @@ class PersonnelCommandService implements PersonnelCommands {
                 events.publish(command);
                 commands.saveEventSequence(employee, command.eventSequenceAfterSave());
             }
+        }
+        if (leaveVerdict != null) {
+            leaveFloor.announce(command, leaveVerdict, by);
         }
         return command.id();
     }
@@ -176,6 +190,17 @@ class PersonnelCommandService implements PersonnelCommands {
     /** The envelope carries the employee's legal entity on the effective date (contract question Q6); none resolvable means the envelope has none. */
     private @Nullable LegalEntityId legalEntityOn(EmployeeId employee, LocalDate day) {
         return LegalEntityResolution.resolve(legalEntities, employee, day).orElse(null);
+    }
+
+    /** Every kind but a hire is about a named employee and carries no profile (the profile of an existing employee is changed by its own use case). */
+    private static EmployeeId existingEmployee(EnterPersonnelCommand request) {
+        if (request.employeeId() == null) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID, ErrorKind.UNPROCESSABLE, "the employee is required");
+        }
+        if (request.displayName() != null || request.gender() != null || request.email() != null || request.wecomUserId() != null) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID, ErrorKind.UNPROCESSABLE, "only a hire carries a profile");
+        }
+        return request.employeeId();
     }
 
     private void requireTargetsExist(PersonnelCommand command) {

@@ -17,6 +17,12 @@ public interface OrgDirectory {
     /** True when the employee has an employed version flagged unpaid leave on that business day (ADR-0068 section 3); a person on leave is still employed, but counts neither as available nor as retained. */
     boolean isOnUnpaidLeave(EmployeeId employeeId, LocalDate day);
 
+    /**
+     * The employment status on that business day: for an employee with versions the status of the version in force that day, empty when none covers it;
+     * for one without versions the current status of the snapshot (#958).
+     */
+    Optional<EmploymentStatus> employmentOn(EmployeeId employeeId, LocalDate day);
+
     /** Empty when none or not employed. */
     Optional<EmployeeId> findSupervisor(EmployeeId employeeId);
 

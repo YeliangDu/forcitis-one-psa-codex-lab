@@ -256,15 +256,18 @@ CREATE TRIGGER tg_numbering_rule_versions_append_only_truncate
     FOR EACH STATEMENT EXECUTE FUNCTION platform_numbering.guard_rule_version_change();
 
 -- ADR-0010 第 5 项：统一新格式。三种单据都从默认模板起步，待管理员确认；老系统的编号格式不沿用（旧编号进 legacy_numbers）。
+-- EMPLOYEE（员工工号，#963）：全局唯一、不随法人变化，模板不含 {LE}、不按期重置；暂名与默认模板待业务管理员确认，确认前入职不发号。
 INSERT INTO platform_numbering.document_types (document_type_id, code, number_code, owner_bc_code, is_finance_confirmation_required, effective_from_date) VALUES
     ('019a0000-0000-7000-8000-000000000401', 'QUOTE', 'QT', 'presales.opportunity', false, DATE '2000-01-01'),
     ('019a0000-0000-7000-8000-000000000402', 'TIMESHEET', 'TS', 'cost.timesheet', false, DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000403', 'JOURNAL_VOUCHER', 'JV', 'accounting.ledger', true, DATE '2000-01-01');
+    ('019a0000-0000-7000-8000-000000000403', 'JOURNAL_VOUCHER', 'JV', 'accounting.ledger', true, DATE '2000-01-01'),
+    ('019a0000-0000-7000-8000-000000000404', 'EMPLOYEE', 'EMP', 'organization.workforce', false, DATE '2000-01-01');
 
 INSERT INTO platform_numbering.numbering_rules (numbering_rule_id, document_type_id, version, event_count) VALUES
     ('019a0000-0000-7000-8000-000000000301', '019a0000-0000-7000-8000-000000000401', 1, 0),
     ('019a0000-0000-7000-8000-000000000302', '019a0000-0000-7000-8000-000000000402', 1, 0),
-    ('019a0000-0000-7000-8000-000000000303', '019a0000-0000-7000-8000-000000000403', 1, 0);
+    ('019a0000-0000-7000-8000-000000000303', '019a0000-0000-7000-8000-000000000403', 1, 0),
+    ('019a0000-0000-7000-8000-000000000304', '019a0000-0000-7000-8000-000000000404', 1, 0);
 
 -- 种子规则的模板成为版本 1，一律待确认：由业务管理员按四眼确认（凭证号模板另由财务确认）。
 INSERT INTO platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status, source_kind)
@@ -272,3 +275,7 @@ SELECT seeds.version_id, rules.numbering_rule_id, 1, '{TYPE}-{LE}-{yyyyMM}-{seq:
   FROM platform_numbering.numbering_rules rules
   JOIN (VALUES ('019a0000-0000-7000-8000-000000000401'::uuid, '019a0000-0000-7000-8000-000000000501'::uuid), ('019a0000-0000-7000-8000-000000000402'::uuid, '019a0000-0000-7000-8000-000000000502'::uuid), ('019a0000-0000-7000-8000-000000000403'::uuid, '019a0000-0000-7000-8000-000000000503'::uuid)) AS seeds (document_type_id, version_id)
     ON seeds.document_type_id = rules.document_type_id;
+
+-- EMPLOYEE 的种子模板（#963）：{TYPE}{seq:6}，NEVER，不含 {LE}；同样待确认，确认前 nextGlobal 不发号。
+INSERT INTO platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status, source_kind)
+VALUES ('019a0000-0000-7000-8000-000000000504', '019a0000-0000-7000-8000-000000000304', 1, '{TYPE}{seq:6}', 'NEVER', 1, DATE '2000-01-01', now(), 'PENDING_CONFIRMATION', 'SEEDED');

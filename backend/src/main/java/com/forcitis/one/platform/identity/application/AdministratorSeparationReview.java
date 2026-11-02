@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,11 +52,12 @@ class AdministratorSeparationReview implements SeparationReview {
 
     @Override
     @Transactional(readOnly = true)
-    public Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser) {
+    public Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser, @Nullable LocalDate nullableSeparatingDay) {
         LocalDate today = zone.dateOf(clock.instant());
-        Set<EmployeeId> superAdministrators = usableHolders(Role.SUPER_ADMIN, today);
+        LocalDate separatingDay = nullableSeparatingDay == null ? today : nullableSeparatingDay;
+        Set<EmployeeId> superAdministrators = usableHolders(Role.SUPER_ADMIN, today, separating, separatingDay);
         Set<EmployeeId> everyone = new HashSet<>(superAdministrators);
-        everyone.addAll(usableHolders(Role.SECURITY_AUDITOR, today));
+        everyone.addAll(usableHolders(Role.SECURITY_AUDITOR, today, separating, separatingDay));
         Set<EmployeeId> separatedAdministrators = new HashSet<>(separating);
         separatedAdministrators.retainAll(everyone);
         Set<EmployeeId> remaining = new HashSet<>(superAdministrators);
@@ -76,13 +78,22 @@ class AdministratorSeparationReview implements SeparationReview {
                 noticeRecipients);
     }
 
-    /** Enabled holders who are employed and not on unpaid leave that day: a person on leave counts neither as retained nor as an available administrator (ADR-0068 section 3). */
-    private Set<EmployeeId> usableHolders(RoleCode role, LocalDate today) {
+    /**
+     * Enabled holders who are employed and not on unpaid leave that day: a person on leave counts neither as retained nor as an available administrator (ADR-0068 section 3).
+     * The separating are read on their last working day when that is not today (the due-day re-judgement, #967), everyone else today.
+     */
+    private Set<EmployeeId> usableHolders(RoleCode role, LocalDate today, List<EmployeeId> separating, LocalDate separatingDay) {
         Set<EmployeeId> usable = new HashSet<>();
         for (UserId holder : accounts.findEnabledHolders(role)) {
             accountEmployees.employeeOf(holder)
-                    .filter(employee -> directory.findEmployee(employee).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false))
-                    .filter(employee -> !directory.isOnUnpaidLeave(employee, today))
+                    .filter(employee -> {
+                        if (separating.contains(employee) && !separatingDay.equals(today)) {
+                            return directory.employmentOn(employee, separatingDay).map(status -> status == EmploymentStatus.EMPLOYED).orElse(false)
+                                    && !directory.isOnUnpaidLeave(employee, separatingDay);
+                        }
+                        return directory.findEmployee(employee).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false)
+                                && !directory.isOnUnpaidLeave(employee, today);
+                    })
                     .ifPresent(usable::add);
         }
         return usable;

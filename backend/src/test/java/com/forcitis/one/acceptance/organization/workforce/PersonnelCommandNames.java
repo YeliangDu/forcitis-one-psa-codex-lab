@@ -30,6 +30,7 @@ final class PersonnelCommandNames {
     static final String LAST_WORKING_DAY = "lastWorkingDay";
     static final String TARGET_ORG_UNIT_ID = "targetOrgUnitId";
     static final String TARGET_POSITION_ID = "targetPositionId";
+    static final String TARGET_REPORTS_TO_EMPLOYEE_ID = "targetReportsToEmployeeId";
     static final String IS_TARGET_FEE_EARNER = "isTargetFeeEarner";
     static final String TARGET_EMPLOYMENT_PHASE_KIND = "targetEmploymentPhaseKind";
     static final String PERSONNEL_COMMAND_ID = "personnelCommandId";
@@ -44,6 +45,7 @@ final class PersonnelCommandNames {
     static final String TRANSFER = "TRANSFER";
     static final String SEPARATE = "SEPARATE";
     static final String REINSTATE = "REINSTATE";
+    static final String CORRECTION = "CORRECTION";
     static final String UNPAID_LEAVE_START = "UNPAID_LEAVE_START";
     static final String UNPAID_LEAVE_END = "UNPAID_LEAVE_END";
     static final String PENDING = "PENDING";
@@ -120,4 +122,29 @@ final class PersonnelCommandNames {
      */
     static final String DUE_JOB_TYPE = "PersonnelCommandDueJob";
     static final String DUE_JOB_METHOD = "run";
+
+    // ---- #959: hire of a new person and changes of the profile (W2 sections 3.1 and 7 items 1, 2; user answers of 2026-10-30, Q1 and Q2) ----
+
+    /** Profile components of EnterPersonnelCommand for a HIRE of a new person (employeeId absent: the server makes the id). No employee code: the system numbers it. */
+    static final String DISPLAY_NAME = "displayName";
+    static final String GENDER = "gender";
+    static final String EMAIL = "email";
+    static final String WECOM_USER_ID = "wecomUserId";
+    static final String EMPLOYEE_CODE = "employeeCode";
+
+    /** 暂名: the profile change use case, a bean of this type in API_PACKAGE; the parameter carries the whole new profile (replace, not patch) and a nullable effective date. */
+    static final String PROFILES_API_TYPE = "EmployeeProfiles";
+    static final String CHANGE_METHOD = "change";
+    static final String CHANGE_PARAMETER = "ChangeEmployeeProfile";
+    static final String AUDIT_PROFILE_CHANGED = "organization.workforce.employee-profile.changed";
+    /**
+     * 暂名 (one-design, #959 follow-up of 2026-11-02): the error of a rebind or clear of a non-empty WeCom user id of an employee whose account
+     * holds any role beyond employee; until the second-person flow exists (a later card) such a change is refused with this code.
+     */
+    static final String WECOM_CHANGE_NOT_ALLOWED = "ORGANIZATION_WORKFORCE_WECOM_USER_ID_CHANGE_NOT_ALLOWED";
+
+    /** 暂名 (one-design DD on #959): the numbering document type of employee codes and its seeded default template {TYPE}{seq:6}, never reset. */
+    static final String EMPLOYEE_DOCUMENT_TYPE = "EMPLOYEE";
+    static final String EMPLOYEE_CODE_PATTERN = "EMP\\d{6}";
+    static final String BUSINESS_ADMIN = "business_admin";
 }

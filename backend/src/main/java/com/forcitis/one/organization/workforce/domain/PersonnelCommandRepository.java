@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PositionId;
@@ -27,22 +28,39 @@ public interface PersonnelCommandRepository {
     void lockSeparationDecisions();
 
     /**
-     * The administrators who count as leaving: those whose separation is held, and those whose separation was released before its date and still waits
-     * as pending, whatever the date (user ruling 2026-10-30, ADR-0068 item 2.3). They are no available administrators and not retained (read under the lock).
+     * The one count of who has already gone when the remaining available administrators are counted (user decision 2026-10-30 「统一都算已走」, ADR-0068
+     * items 2.2 and 2.3): those whose separation is held, those whose separation was released and still waits as pending, whatever the date, and those
+     * whose unpaid-leave start was entered and has not started. They are no available administrators and not retained (read under the lock).
      */
-    Set<EmployeeId> heldOrReleasedEmployees();
+    Set<EmployeeId> excludedEmployees();
 
     /** The employees whose separation is held at this moment (read under the lock). */
     Set<EmployeeId> heldEmployees();
 
-    /** The pending separations whose hold was released and whose effective date is not after the day, oldest first. */
-    List<PersonnelCommandId> releasedSeparationsDue(LocalDate day);
+    /**
+     * The pending commands whose effective date is not after the day, oldest first. A separation that was never held counts too: it is judged
+     * on its day (#967). A held separation is not pending until it is released.
+     */
+    List<PersonnelCommandId> pendingDue(LocalDate day);
 
     boolean orgUnitExists(OrgUnitId orgUnit);
 
     boolean positionExists(PositionId position);
 
     boolean employeeExists(EmployeeId employee);
+
+    /** The root of a hired person. The version rows follow from the command. */
+    void insertEmployee(NewEmployee employee, Instant at);
+
+    boolean employeeCodeTaken(String employeeCode);
+
+    /** Whether any employee other than {@code except} (none: anyone) holds the WeCom user id, separated ones included (W2 section 3.1 N-05). */
+    boolean wecomUserIdHeld(WecomUserId wecomUserId, @Nullable EmployeeId except);
+
+    Optional<PersonalProfile> profileOf(EmployeeId employee);
+
+    /** Writes the profile columns of the root; the code is never among them. */
+    void updateProfile(EmployeeId employee, PersonalProfile profile, Instant at);
 
     /** The employee's event sequence, which a command that takes effect continues. */
     long eventSequence(EmployeeId employee);
