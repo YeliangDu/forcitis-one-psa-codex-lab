@@ -8,17 +8,22 @@ import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.SeparationReview;
 import com.forcitis.one.kernel.Uuids;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
- * #933: the due job executes a separation only when its hold was released; one released is never judged or held again, and an unreleased one is left
- * alone until its re-judgement exists (card #967).
+ * #933, #967: the due job never judges a separation again once its hold was released; one never held is judged only on its day, and run later it
+ * takes effect as written with an alert.
  */
 class DueSeparationReleasedIntegrationTest extends WorkforceIntegrationSupport {
     @Autowired
@@ -76,15 +81,26 @@ class DueSeparationReleasedIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @DisplayName("#933 an unreleased future separation is not executed by the job, before or after its day (its re-judgement is card #967)")
-    void unreleasedIsLeftAlone() {
+    @DisplayName("#967 an unreleased future separation the job runs after its day is not judged: it takes effect as written")
+    void unreleasedLateRunTakesEffectUnjudged() {
         PersonnelSeedSupport.Person person = PersonnelSeedSupport.employed(jdbc, clock, "RL-2");
         UUID command = futureSeparation(person, null);
+        Logger logger = (Logger) LoggerFactory.getLogger(ApplyDueCommand.class);
+        ListAppender<ILoggingEvent> logged = new ListAppender<>();
+        logged.start();
+        logger.addAppender(logged);
 
         clock.advance(Duration.ofDays(5));
-        dueJob.run();
+        try {
+            dueJob.run();
+        } finally {
+            logger.detachAppender(logged);
+        }
 
-        assertThat(statusOf(command)).isEqualTo("PENDING");
-        assertThat(events("EmployeeSeparated", command)).isZero();
+        assertThat(logged.list).as("the late run is alerted").anyMatch(e -> e.getLevel() == Level.ERROR && e.getFormattedMessage().startsWith("ALERT organization.workforce separation"));
+
+        assertThat(statusOf(command)).isEqualTo("EFFECTIVE");
+        assertThat(events("EmployeeSeparated", command)).isEqualTo(1);
+        assertThat(events("SeparationHeld", command)).isZero();
     }
 }
