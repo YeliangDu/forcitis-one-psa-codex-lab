@@ -22,7 +22,6 @@ import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -133,7 +132,7 @@ class ConcurrentAssignmentCommandsIT extends PersonnelCommandSupport {
     @DisplayName("#711 修正案第 1 条（与调岗同一权限 organization.workforce:personnel-command:create）：没有该权限的人新增、结束兼职都被拒，不留命令")
     void startingAndEndingNeedThePersonnelCommandPermission() throws Exception {
         UUID person = employed(REGULAR);
-        actInSpecialist();
+        actIn(hr);
         UUID root = rootCreatedBy(startConcurrent(person, TODAY, newUnit(), newPosition()));
         long commands = commandCount(person);
         actIn(staff());
@@ -142,10 +141,6 @@ class ConcurrentAssignmentCommandsIT extends PersonnelCommandSupport {
         assertThat(isPermissionRefusal(catchThrowable(() -> endConcurrent(person, TODAY.plusDays(1), root)))).isTrue();
 
         assertThat(commandCount(person)).isEqualTo(commands);
-    }
-
-    private void actInSpecialist() throws Exception {
-        actIn(hr);
     }
 
     @Test
@@ -201,7 +196,7 @@ class ConcurrentAssignmentCommandsIT extends PersonnelCommandSupport {
     }
 
     @Test
-    @DisplayName("#711 完成标准 10：离职关闭此人所有开着的任职版本（主任职与兼职）；结束兼职后，在结束日之后对该兼职的命令（再结束、调岗）被拒（S7）")
+    @DisplayName("#711 完成标准 10：离职关闭此人所有开着的任职版本（主任职与兼职）；结束兼职（与其他人事命令一样审计）后，在结束日之后对该兼职的命令（再结束、调岗）被拒（S7）")
     void separationEndsEveryPostAndAnEndedPostTakesNoCommand() throws Exception {
         UUID leaver = employed(REGULAR);
         UUID leaverConcurrent = rootCreatedBy(startConcurrent(leaver, TODAY, newUnit(), newPosition()));
@@ -213,14 +208,16 @@ class ConcurrentAssignmentCommandsIT extends PersonnelCommandSupport {
 
         UUID person = employed(REGULAR);
         UUID concurrent = rootCreatedBy(startConcurrent(person, TODAY, newUnit(), newPosition()));
+        int audited = auditCount(AUDIT_ENTERED);
         endConcurrent(person, TODAY.plusDays(2), concurrent);
+        assertThat(auditCount(AUDIT_ENTERED)).as("audited as the other personnel commands (amendment item 1)").isEqualTo(audited + 1);
         assertThat(postOn(concurrent, TODAY.plusDays(2))).isNull();
         assertRefused(catchThrowable(() -> endConcurrent(person, TODAY.plusDays(3), concurrent)));
         assertRefused(catchThrowable(() -> transferPost(person, TODAY.plusDays(3), concurrent, newUnit())));
     }
 
     @Test
-    @DisplayName("#711 完成标准 6（经接口）：兼职的更正只作废该兼职的版本（主任职的行不动）；有兼职时主任职的更正照常被接受，只作废主任职的行")
+    @DisplayName("#711 完成标准 6（经接口）：兼职的更正只作废该兼职的版本（主任职的行不动）；有兼职时主任职的更正（不带 targetAssignmentId 即主任职，并存下主任职根）照常被接受，只作废主任职的行")
     void correctionsStayOnTheirPost() throws Exception {
         UUID person = employed(REGULAR);
         UUID leader = employed(REGULAR);
@@ -235,8 +232,9 @@ class ConcurrentAssignmentCommandsIT extends PersonnelCommandSupport {
         assertThat(fromStored(postOn(concurrent, TODAY).get("org_unit_id"))).isEqualTo(corrected);
         assertThat(postOn(concurrent, TODAY).get("assignment_id")).isEqualTo(concurrent);
 
-        commands().enter(fields(EMPLOYEE_ID, person, COMMAND_KIND, CORRECTION, EFFECTIVE_DATE, TODAY.minusDays(5), TARGET_REPORTS_TO_EMPLOYEE_ID, leader));
+        UUID primaryCorrection = commands().enter(fields(EMPLOYEE_ID, person, COMMAND_KIND, CORRECTION, EFFECTIVE_DATE, TODAY.minusDays(5), TARGET_REPORTS_TO_EMPLOYEE_ID, leader));
 
+        assertThat(command(primaryCorrection).get("target_assignment_id")).as("omitted = the primary root, stored at entry (#711 comment 6589514976)").isEqualTo(primary);
         assertThat(fromStored(postOn(primary, TODAY).get("reports_to_employee_id"))).isEqualTo(leader);
         assertThat(fromStored(postOn(concurrent, TODAY).get("org_unit_id"))).as("the concurrent post is untouched by the primary correction").isEqualTo(corrected);
     }
@@ -256,12 +254,14 @@ class ConcurrentAssignmentCommandsIT extends PersonnelCommandSupport {
     }
 
     @Test
-    @DisplayName("#711 完成标准 11、13（a、b，one-design 裁定 #711 comment 6588973194）：有兼职（在另一法人的单元）时，组织目录按主任职给出所属单元（按员工 ID 与按企业微信登录查都一样）与直属领导；兼职单元的负责人不是兼职者；没有自有归属的人成本法人按主任职单元链取（不按兼职、不抛异常）")
+    @DisplayName("#711 完成标准 11、13（a、b，one-design 裁定 #711 comment 6588973194）：有兼职（在另一法人的单元）时，组织目录按主任职给出所属单元（按员工 ID 与按企业微信登录查都一样）与直属领导；兼职单元的负责人仍是该单元的负责人、不是兼职者；没有自有归属的人成本法人按主任职单元链取（不按兼职、不抛异常）")
     void readersReadThePrimaryOnly() throws Exception {
         Staff admin = staff("org_data_admin");
         UUID otherEntity = createLegalEntity(admin.session(), newLegalEntityCode("CJ"), "Synthetic concurrent post entity");
         UUID primaryUnit = attributedUnit(admin, legalEntity);
         UUID concurrentUnit = attributedUnit(admin, otherEntity);
+        UUID unitHead = employed(REGULAR);
+        headedBy(concurrentUnit, unitHead);
         UUID leader = employed(REGULAR);
         UUID person = inheriting(primaryUnit, leader);
         startConcurrent(person, TODAY, concurrentUnit, newPosition());
@@ -271,7 +271,7 @@ class ConcurrentAssignmentCommandsIT extends PersonnelCommandSupport {
         assertThat(directory.findEmployeeByLogin(new com.forcitis.one.organization.workforce.api.LoginLookup.ByWecomUser(
                 new com.forcitis.one.kernel.WecomUserId(wecomUserIdOf(person))))).hasValueSatisfying(profile -> assertThat(profile.orgUnitId().value()).isEqualTo(primaryUnit));
         assertThat(directory.findSupervisor(id).map(EmployeeId::value)).contains(leader);
-        assertThat(directory.findOrgUnitHead(new OrgUnitId(concurrentUnit)).map(EmployeeId::value)).isNotEqualTo(Optional.of(person));
+        assertThat(directory.findOrgUnitHead(new OrgUnitId(concurrentUnit)).map(EmployeeId::value)).as("the unit's head, not its concurrent holder").contains(unitHead);
         assertThat(legalEntities.on(id, TODAY).value()).isEqualTo(legalEntity);
     }
 
@@ -282,6 +282,17 @@ class ConcurrentAssignmentCommandsIT extends PersonnelCommandSupport {
                 .content("{\"legalEntityId\":\"" + entity + "\",\"effectiveFrom\":\"" + TODAY.minusDays(30) + "\"}")).andReturn().getResponse();
         assertThat(attributed.getStatus()).as("attributing the unit: " + attributed.getContentAsString()).isEqualTo(200);
         return id;
+    }
+
+    /** A migrated version of the unit from SINCE naming its head (the head is a unit attribute, ADR-0068 item 4). */
+    private void headedBy(UUID orgUnit, UUID head) throws Exception {
+        OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, """
+                    insert into org_unit_versions (org_unit_version_id, org_unit_id, effective_from_date, name, status, region_kind, is_delivery_unit,
+                      head_employee_id, created_at, updated_at) values (?, ?, ?, ?, 'ACTIVE', 'HEADQUARTERS', false, ?, ?, ?)""",
+                    Uuids.timeOrdered(NOW), stored(orgUnit), SINCE, "Synthetic headed unit", stored(head), at, at);
+        }
     }
 
     /** An employed person without an own attribution, in the unit, reporting to the leader; migrated versions on the PRIMARY root. */

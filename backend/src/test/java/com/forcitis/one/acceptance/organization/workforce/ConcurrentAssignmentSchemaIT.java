@@ -107,10 +107,6 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
         }
     }
 
-    private static void accepted(Statement statement) throws Exception {
-        statement.run();
-    }
-
     // ---- done-when 1, 2, 14 ----
 
     @Test
@@ -119,8 +115,8 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
         UUID first = root(person, AssignmentRoots.CONCURRENT);
         UUID second = root(person, AssignmentRoots.CONCURRENT);
 
-        accepted(() -> concurrentVersion(first, TODAY.minusDays(20), newUnit(), newPosition()));
-        accepted(() -> concurrentVersion(second, TODAY.minusDays(10), newUnit(), newPosition()));
+        concurrentVersion(first, TODAY.minusDays(20), newUnit(), newPosition());
+        concurrentVersion(second, TODAY.minusDays(10), newUnit(), newPosition());
 
         refusedBy(() -> version(person, primary, AssignmentRoots.PRIMARY, TODAY.minusDays(5), newUnit(), newPosition(), null, 0), EXCLUSION_VIOLATION,
                 "ex_assignment_versions_overlap");
@@ -138,8 +134,8 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
         UUID otherConcurrent = root(other, AssignmentRoots.CONCURRENT);
         LocalDate day = TODAY.minusDays(3);
 
-        accepted(() -> version(other, otherPrimary, AssignmentRoots.PRIMARY, day, unit, newPosition(), null, 0));
-        accepted(() -> version(other, otherConcurrent, AssignmentRoots.CONCURRENT, day, newUnit(), newPosition(), null, 1));
+        version(other, otherPrimary, AssignmentRoots.PRIMARY, day, unit, newPosition(), null, 0);
+        version(other, otherConcurrent, AssignmentRoots.CONCURRENT, day, newUnit(), newPosition(), null, 1);
 
         UUID third = root(other, AssignmentRoots.CONCURRENT);
         refusedBy(() -> version(other, third, AssignmentRoots.CONCURRENT, day, newUnit(), newPosition(), null, 0), UNIQUE_VIOLATION, "uk_assignment_versions_revision");
@@ -151,7 +147,7 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
         UUID position = positionHeldNow();
         UUID concurrent = root(person, AssignmentRoots.CONCURRENT);
 
-        accepted(() -> concurrentVersion(concurrent, TODAY.minusDays(1), unit, position));
+        concurrentVersion(concurrent, TODAY.minusDays(1), unit, position);
 
         assertThat(rows("select count(*) as n from assignment_versions where employee_id = ? and org_unit_id = ? and position_id = ? and effective_to_date is null",
                 stored(person), stored(unit), position).get(0).get("n")).isEqualTo(2L);
@@ -178,7 +174,7 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
                 FOREIGN_KEY_VIOLATION, "fk_personnel_commands_target_assignment");
         refusedBy(() -> command(person, "TRANSFER", TODAY.plusDays(3), newUnit(), null, null, null, mine, AssignmentRoots.PRIMARY, null),
                 FOREIGN_KEY_VIOLATION, "fk_personnel_commands_target_assignment");
-        accepted(() -> command(person, "TRANSFER", TODAY.plusDays(3), newUnit(), null, null, null, mine, AssignmentRoots.CONCURRENT, null));
+        command(person, "TRANSFER", TODAY.plusDays(3), newUnit(), null, null, null, mine, AssignmentRoots.CONCURRENT, null);
     }
 
     @Test
@@ -192,12 +188,12 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
         UUID other = newEmployeeId();
         employee(other, unit, null);
         UUID otherPrimary = root(other, AssignmentRoots.PRIMARY);
-        accepted(() -> version(other, otherPrimary, AssignmentRoots.PRIMARY, TODAY.minusDays(2), unit, newPosition(), leader, 0));
+        version(other, otherPrimary, AssignmentRoots.PRIMARY, TODAY.minusDays(2), unit, newPosition(), leader, 0);
 
         refusedBy(() -> command(person, "START_CONCURRENT", TODAY.plusDays(2), newUnit(), newPosition(), leader, null, null, null, null), CHECK_VIOLATION, null);
         refusedBy(() -> command(person, "TRANSFER", TODAY.plusDays(2), newUnit(), null, leader, null, concurrent, AssignmentRoots.CONCURRENT, null), CHECK_VIOLATION, null);
         refusedBy(() -> command(person, "TRANSFER", TODAY.plusDays(2), newUnit(), null, null, true, concurrent, AssignmentRoots.CONCURRENT, null), CHECK_VIOLATION, null);
-        accepted(() -> command(person, "START_CONCURRENT", TODAY.plusDays(2), newUnit(), newPosition(), null, null, null, null, null));
+        command(person, "START_CONCURRENT", TODAY.plusDays(2), newUnit(), newPosition(), null, null, null, null, null);
     }
 
     // ---- done-when 5, 6 ----
@@ -211,7 +207,7 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
         refusedBy(() -> command(person, "END_CONCURRENT", TODAY.plusDays(4), null, null, null, null, primary, AssignmentRoots.PRIMARY, null), CHECK_VIOLATION, null);
         refusedBy(() -> command(person, "START_CONCURRENT", TODAY.plusDays(4), newUnit(), newPosition(), null, null, concurrent, AssignmentRoots.CONCURRENT, null),
                 CHECK_VIOLATION, null);
-        accepted(() -> command(person, "END_CONCURRENT", TODAY.plusDays(4), null, null, null, null, concurrent, AssignmentRoots.CONCURRENT, null));
+        command(person, "END_CONCURRENT", TODAY.plusDays(4), null, null, null, null, concurrent, AssignmentRoots.CONCURRENT, null);
     }
 
     @Test
@@ -222,7 +218,7 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
         UUID primaryVersion = (UUID) rows("select assignment_version_id from assignment_versions where assignment_id = ?", primary).get(0).get("assignment_version_id");
 
         refusedBy(() -> correctionOf(concurrent, primaryVersion), FOREIGN_KEY_VIOLATION, "fk_assignment_versions_corrected_from");
-        accepted(() -> correctionOf(concurrent, concurrentVersion));
+        correctionOf(concurrent, concurrentVersion);
     }
 
     /** A closed row of the concurrent root, before every other version, that names the corrected version (only the composite FK is under test). */
@@ -246,10 +242,10 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
         LocalDate first = TODAY.plusDays(5);
         LocalDate second = TODAY.plusDays(6);
 
-        accepted(() -> command(person, "TRANSFER", first, newUnit(), null, null, null, primary, AssignmentRoots.PRIMARY, null));
-        accepted(() -> command(person, "START_CONCURRENT", first, newUnit(), newPosition(), null, null, null, null, null));
-        accepted(() -> command(person, "END_CONCURRENT", second, null, null, null, null, concurrent, AssignmentRoots.CONCURRENT, null));
-        accepted(() -> command(person, "TRANSFER", second, newUnit(), null, null, null, primary, AssignmentRoots.PRIMARY, null));
+        command(person, "TRANSFER", first, newUnit(), null, null, null, primary, AssignmentRoots.PRIMARY, null);
+        command(person, "START_CONCURRENT", first, newUnit(), newPosition(), null, null, null, null, null);
+        command(person, "END_CONCURRENT", second, null, null, null, null, concurrent, AssignmentRoots.CONCURRENT, null);
+        command(person, "TRANSFER", second, newUnit(), null, null, null, primary, AssignmentRoots.PRIMARY, null);
 
         refusedBy(() -> command(person, "TRANSFER", first, newUnit(), null, null, null, primary, AssignmentRoots.PRIMARY, null), UNIQUE_VIOLATION,
                 "uk_personnel_commands_open_per_day");
@@ -265,8 +261,8 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
         UUID merge = mergeInProgress();
         LocalDate day = TODAY;
 
-        accepted(() -> command(person, "TRANSFER", day, newUnit(), null, null, null, primary, AssignmentRoots.PRIMARY, merge));
-        accepted(() -> command(person, "TRANSFER", day, newUnit(), null, null, null, concurrent, AssignmentRoots.CONCURRENT, merge));
+        command(person, "TRANSFER", day, newUnit(), null, null, null, primary, AssignmentRoots.PRIMARY, merge);
+        command(person, "TRANSFER", day, newUnit(), null, null, null, concurrent, AssignmentRoots.CONCURRENT, merge);
 
         refusedBy(() -> command(person, "TRANSFER", day.plusDays(1), newUnit(), null, null, null, concurrent, AssignmentRoots.CONCURRENT, merge), UNIQUE_VIOLATION,
                 "uk_personnel_commands_merge_assignment");
