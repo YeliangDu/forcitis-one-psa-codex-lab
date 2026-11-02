@@ -87,7 +87,10 @@ BEGIN
         RETURN NEW;
     END IF;
     SELECT command_kind, status INTO merge_command FROM organization_workforce.org_structure_commands WHERE org_structure_command_id = NEW.org_structure_command_id;
-    IF NOT FOUND OR merge_command.command_kind <> 'MERGE' OR merge_command.status <> 'IN_PROGRESS' THEN
+    IF NOT FOUND THEN
+        RETURN NEW;  -- 命令不存在：由外键 fk_personnel_commands_org_structure_command_id 拒绝
+    END IF;
+    IF merge_command.command_kind <> 'MERGE' OR merge_command.status <> 'IN_PROGRESS' THEN
         RAISE EXCEPTION 'a transfer made by an org structure command needs a merge in progress' USING ERRCODE = 'restrict_violation';
     END IF;
     SELECT count(*), count(*) FILTER (WHERE decision_kind IS DISTINCT FROM 'APPROVED') INTO change_requests, unapproved_requests

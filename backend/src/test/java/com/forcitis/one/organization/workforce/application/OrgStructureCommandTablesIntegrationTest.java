@@ -253,7 +253,8 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
     @Test
     @DisplayName("IMP-1030-ORG-F1 a personnel command's org structure command must exist")
     void personnelCommandForeignKey() {
-        pending(COMMAND, "MERGE", ", merge_into_org_unit_id", ", " + OTHER_UNIT);
+        // #908 (DD §3, note §4.5): a transfer made by a merge needs the merge IN_PROGRESS, so the fixture merge is already in progress; the assertions below are unchanged.
+        command(COMMAND, "MERGE", "ORG_UNIT", "IN_PROGRESS", ", merge_into_org_unit_id, affected_employee_count, transferred_employee_count", ", " + OTHER_UNIT + ", 1, 0");
         String insert = "insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id,"
                 + " org_structure_command_id, created_at, created_by, updated_at) values (gen_random_uuid(), " + EMPLOYEE + ", 'TRANSFER', date '2026-11-10', 'PENDING', " + OTHER_UNIT + ", ";
         refused("fk_personnel_commands_org_structure_command_id", () -> jdbc.sql(insert + "gen_random_uuid(), now(), " + USER + ", now())").update());

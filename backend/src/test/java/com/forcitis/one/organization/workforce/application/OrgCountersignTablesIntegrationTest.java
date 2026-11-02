@@ -202,7 +202,7 @@ class OrgCountersignTablesIntegrationTest extends WorkforceIntegrationSupport {
         refused("needs a merge in progress", transferSql(EMPLOYEE, MERGE, "PENDING"));
         dissolve(OTHER_MERGE);
         refused("needs a merge in progress", transferSql(EMPLOYEE, OTHER_MERGE, "PENDING"));
-        refused("needs a merge in progress", transferSql(EMPLOYEE, "gen_random_uuid()", "PENDING"));
+        refused("fk_personnel_commands_org_structure_command_id", transferSql(EMPLOYEE, "gen_random_uuid()", "PENDING"));
         jdbc.sql(transferSql(EMPLOYEE, MERGE, "AWAITING_ATTRIBUTION_COUNTERSIGN")).update();
     }
 
