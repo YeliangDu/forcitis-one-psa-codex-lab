@@ -74,7 +74,7 @@ class HandleEmployeeReinstated {
         accounts.findForUpdate(user).ifPresent(account -> {
             boolean employed = directory.findEmployee(event.employeeId()).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false);
             if (!employed || !account.roles().isEmpty()
-                    || history.openedSince(user, event.effectiveDate().atStartOfDay(zone.zone()).toInstant())) {
+                    || history.openedFrom(user, event.effectiveDate().atStartOfDay(zone.zone()).toInstant())) {
                 return;
             }
             var initial = roles.findByCode(new RoleCode(defaultRole)).orElseThrow(() -> new DomainException(IdentityError.PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING,

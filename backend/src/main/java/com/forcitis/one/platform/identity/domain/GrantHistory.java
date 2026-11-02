@@ -17,7 +17,7 @@ public interface GrantHistory {
     }
 
     /** Whether the person holds, or held for a non-empty span, a grant that was opened at or after the moment: the trace of a reinstatement already handled. */
-    boolean openedSince(UserId user, Instant moment);
+    boolean openedFrom(UserId user, Instant moment);
 
     /** Empty when the moment is before every grant record of the person: the history cannot say what they held. */
     Optional<List<HeldRole>> heldAt(UserId user, Instant moment);

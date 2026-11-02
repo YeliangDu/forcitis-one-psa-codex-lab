@@ -42,7 +42,7 @@ class JdbcGrantHistory implements GrantHistory {
     }
 
     @Override
-    public boolean openedSince(UserId user, Instant moment) {
+    public boolean openedFrom(UserId user, Instant moment) {
         return jdbc.sql("""
                 select exists (select 1 from platform_identity.account_role_grants g
                                 where g.user_id = :user and g.effective_from_at >= :since and (g.%s or g.effective_to_at > g.effective_from_at))
