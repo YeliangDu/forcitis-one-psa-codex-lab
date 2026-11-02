@@ -22,7 +22,7 @@ import java.util.Set;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-/** The default role is granted only when the account is opened, so an administrator's later removal is not overridden. */
+/** The default role is granted when the account is opened and, once, when a reinstatement takes effect (HandleEmployeeReinstated), so an administrator's later removal is not overridden by a repeated delivery. */
 @Component
 @SystemActorName("platform.identity.account-provisioning")
 class AccountProvisioning {

@@ -49,4 +49,4 @@ Only lead asks the user, in the conversation, with options and a recommendation;
 ## ⑩ Models
 Enforced by: manual: lead / every dispatch
 
-Session models and config: `policy.json` `sessions`. opus only for first-round review, security, guard implementation and final review, and design judgement; everything else sonnet. A subagent brief names model, scope and output cap; never dispatch the same thing twice; Explore and Plan don't read CLAUDE.md, so their prompt carries the baseline.
+Session models and config: `policy.json` `sessions`. opus only for first-round review, security, guard implementation and final review, and design judgement, and the standing acceptance-test session one-test (user 2026-11-02); everything else sonnet. A subagent brief names model, scope and output cap; never dispatch the same thing twice; Explore and Plan don't read CLAUDE.md, so their prompt carries the baseline.
