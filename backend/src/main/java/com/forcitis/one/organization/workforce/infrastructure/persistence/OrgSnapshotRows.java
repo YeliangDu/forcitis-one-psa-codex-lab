@@ -6,7 +6,7 @@ import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.Assignment;
 import com.forcitis.one.organization.workforce.domain.Employee;
-import com.forcitis.one.organization.workforce.domain.Gender;
+import com.forcitis.one.organization.workforce.api.Gender;
 import com.forcitis.one.organization.workforce.domain.OrgUnit;
 import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
 import com.forcitis.one.organization.workforce.api.PositionId;

@@ -32,12 +32,43 @@ final class PersonnelCommandsProbe {
     private Object holds;
     private Method release;
     private String holdsMissing = "";
+    /** #959: the profile change; absent until the EmployeeProfiles bean exists, which fails only the tests that change a profile. */
+    private Object profiles;
+    private Method change;
 
     private PersonnelCommandsProbe(Object service, Method enter, Method withdraw, Function<UUID, EmployeeId> employeeIds) {
         this.service = service;
         this.enter = enter;
         this.withdraw = withdraw;
         this.employeeIds = employeeIds;
+    }
+
+    private PersonnelCommandsProbe withProfiles(ApplicationContext context) {
+        for (String name : context.getBeanDefinitionNames()) {
+            Class<?> type = context.getType(name);
+            Class<?> contract = type == null ? null : contractOf(ClassUtils.getUserClass(type), PROFILES_API_TYPE);
+            if (contract != null) {
+                profiles = context.getBean(name);
+                change = recordMethod(contract, CHANGE_METHOD, CHANGE_PARAMETER);
+                return this;
+            }
+        }
+        return this;
+    }
+
+    /** Changes a profile as the signed-in caller; the fields are keyed by the component names of {@link PersonnelCommandNames}. */
+    void changeProfile(Map<String, Object> fields) {
+        if (change == null) {
+            throw new AssertionError("#959: no bean of a type named " + PROFILES_API_TYPE + " in " + API_PACKAGE);
+        }
+        call(profiles, change, fields);
+    }
+
+    List<String> changeComponents() {
+        if (change == null) {
+            throw new AssertionError("#959: no bean of a type named " + PROFILES_API_TYPE + " in " + API_PACKAGE);
+        }
+        return names(change.getParameterTypes()[0]);
     }
 
     private PersonnelCommandsProbe withHolds(ApplicationContext context) {
@@ -74,7 +105,7 @@ final class PersonnelCommandsProbe {
             Class<?> contract = contractOf(ClassUtils.getUserClass(type), API_TYPE);
             if (contract != null) {
                 return new PersonnelCommandsProbe(context.getBean(name), recordMethod(contract, ENTER_METHOD, ENTER_PARAMETER),
-                        recordMethod(contract, WITHDRAW_METHOD, WITHDRAW_PARAMETER), employeeIds).withHolds(context);
+                        recordMethod(contract, WITHDRAW_METHOD, WITHDRAW_PARAMETER), employeeIds).withHolds(context).withProfiles(context);
             }
         }
         throw new AssertionError("ADR-0068 item 1.6: no bean of a type named " + API_TYPE + " in " + API_PACKAGE + " (same-named types elsewhere: " + seen + ")");
@@ -197,6 +228,13 @@ final class PersonnelCommandsProbe {
                 return type.getDeclaredConstructor(UUID.class).newInstance(uuid);
             } catch (ReflectiveOperationException notATypedId) {
                 throw new AssertionError("a UUID argument needs a UUID or a typed id built from one, not " + type, notATypedId);
+            }
+        }
+        if (value instanceof String text && type != String.class) {
+            try {
+                return type.getDeclaredConstructor(String.class).newInstance(text);
+            } catch (ReflectiveOperationException notATypedValue) {
+                throw new AssertionError("a String argument needs a String or a typed value built from one, not " + type, notATypedValue);
             }
         }
         if (type == boolean.class && value instanceof Boolean || type == LocalDate.class && value instanceof LocalDate) {

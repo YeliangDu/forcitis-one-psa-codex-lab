@@ -6,7 +6,9 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.SeparationReview;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
+import com.forcitis.one.organization.workforce.api.Gender;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
@@ -17,6 +19,8 @@ import com.forcitis.one.organization.workforce.domain.CommandEffects;
 import com.forcitis.one.organization.workforce.domain.HoldStatus;
 import com.forcitis.one.organization.workforce.domain.SeparationHold;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
+import com.forcitis.one.organization.workforce.domain.NewEmployee;
+import com.forcitis.one.organization.workforce.domain.PersonalProfile;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
 import com.forcitis.one.organization.workforce.domain.ReleaseChannelKind;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
@@ -111,6 +115,54 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
     @Override
     public boolean employeeExists(EmployeeId employee) {
         return jdbc.sql("select 1 from organization_workforce.employees where id = :id").param("id", employee.value()).query(Integer.class).optional().isPresent();
+    }
+
+    @Override
+    public void insertEmployee(NewEmployee employee, Instant at) {
+        PersonalProfile profile = employee.profile();
+        jdbc.sql("""
+                insert into organization_workforce.employees (id, employee_code, display_name, email, gender, wecom_user_id, employment_status, is_fee_earner,
+                       created_at, updated_at)
+                values (:id, :code, :name, :email, :gender, :wecom, :status, :feeEarner, :at, :at)
+                """)
+                .param("id", employee.employeeId().value()).param("code", employee.employeeCode()).param("name", profile.displayName())
+                .param("email", profile.email(), Types.VARCHAR).param("gender", profile.gender() == null ? null : profile.gender().name(), Types.VARCHAR)
+                .param("wecom", profile.wecomUserId() == null ? null : profile.wecomUserId().value(), Types.VARCHAR)
+                .param("status", employee.employmentStatus().name()).param("feeEarner", employee.feeEarner()).param("at", at(at)).update();
+    }
+
+    @Override
+    public boolean employeeCodeTaken(String employeeCode) {
+        return jdbc.sql("select 1 from organization_workforce.employees where employee_code = :code").param("code", employeeCode).query(Integer.class).optional().isPresent();
+    }
+
+    @Override
+    public boolean wecomUserIdHeld(WecomUserId wecomUserId, @Nullable EmployeeId except) {
+        return jdbc.sql("select 1 from organization_workforce.employees where wecom_user_id = :wecom and (cast(:except as uuid) is null or id <> :except) limit 1")
+                .param("wecom", wecomUserId.value()).param("except", except == null ? null : except.value(), Types.OTHER).query(Integer.class).optional().isPresent();
+    }
+
+    @Override
+    public Optional<PersonalProfile> profileOf(EmployeeId employee) {
+        return jdbc.sql("select display_name, gender, email, wecom_user_id from organization_workforce.employees where id = :id").param("id", employee.value())
+                .query((rs, n) -> {
+                    String gender = rs.getString("gender");
+                    String wecom = rs.getString("wecom_user_id");
+                    return new PersonalProfile(rs.getString("display_name"), gender == null ? null : Gender.valueOf(gender), rs.getString("email"),
+                            wecom == null ? null : new WecomUserId(wecom));
+                }).optional();
+    }
+
+    @Override
+    public void updateProfile(EmployeeId employee, PersonalProfile profile, Instant at) {
+        jdbc.sql("""
+                update organization_workforce.employees set display_name = :name, gender = :gender, email = :email, wecom_user_id = :wecom,
+                       updated_at = :at, version = version + 1
+                 where id = :id
+                """)
+                .param("name", profile.displayName()).param("gender", profile.gender() == null ? null : profile.gender().name(), Types.VARCHAR)
+                .param("email", profile.email(), Types.VARCHAR).param("wecom", profile.wecomUserId() == null ? null : profile.wecomUserId().value(), Types.VARCHAR)
+                .param("at", at(at)).param("id", employee.value()).update();
     }
 
     @Override
