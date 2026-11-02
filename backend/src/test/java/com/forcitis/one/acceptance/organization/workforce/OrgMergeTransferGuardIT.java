@@ -88,6 +88,18 @@ class OrgMergeTransferGuardIT extends OrgCountersignSupport {
         }
     }
 
+    /** A decided WITHDRAWAL row (requested by the drafter, sequence 1): the guard counts CHANGE rows only (#908 DD section 3). */
+    private void rejectedWithdrawalRow(UUID command, UUID entity) throws SQLException {
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, """
+                    insert into attribution_countersigns (attribution_countersign_id, org_structure_command_id, drafted_by, request_kind, request_sequence_number,
+                      legal_entity_id, requested_at, requested_by, due_on_date, created_at, updated_at) values (?, ?, ?, 'WITHDRAWAL', 1, ?, ?, ?, ?, ?, ?)""",
+                    Uuids.timeOrdered(NOW), command, drafter, entity, at, drafter, TODAY.plusDays(3), at, at);
+            update(workforce, "update attribution_countersigns set decision_kind = 'REJECTED', decided_at = ?, decided_by = ?, decision_reason = 'synthetic reason',"
+                    + " decision_audit_entry_id = ?, updated_at = ? where org_structure_command_id = ? and request_kind = 'WITHDRAWAL'", at, headE1.userId(), Uuids.timeOrdered(NOW), at, command);
+        }
+    }
+
     private void basisRow(UUID command) throws Exception {
         UUID person = inheritingIn(merged);
         try (Connection workforce = schemaConnection("organization_workforce")) {
@@ -156,13 +168,18 @@ class OrgMergeTransferGuardIT extends OrgCountersignSupport {
     }
 
     @Test
-    @DisplayName("#910 note §4.5、#908 数据设计第 3 节（通过的孪生）：IN_PROGRESS 合并的 CHANGE 行全部批准时放行；既无 CHANGE 行也无依据时放行（待生效或已生效）；调岗本身待法人归属会签时无论合并状态都放行")
+    @DisplayName("#910 note §4.5、#908 数据设计第 3 节（通过的孪生）：IN_PROGRESS 合并的 CHANGE 行全部批准时放行（另有被拒的 WITHDRAWAL 行也放行）；既无 CHANGE 行也无依据时放行（待生效或已生效）；调岗本身待法人归属会签时无论合并状态都放行")
     void theTwinsPass() throws Exception {
         for (String status : NOT_AWAITING) {
             UUID approved = seededOrgCommand("MERGE", "IN_PROGRESS");
             changeRow(approved, e1, APPROVED);
             changeRow(approved, e2, APPROVED);
             assertThat(transferReferring(approved, status)).isNull();
+            UUID withdrawalRejected = seededOrgCommand("MERGE", "IN_PROGRESS");
+            changeRow(withdrawalRejected, e1, APPROVED);
+            changeRow(withdrawalRejected, e2, APPROVED);
+            rejectedWithdrawalRow(withdrawalRejected, e1);
+            assertThat(transferReferring(withdrawalRejected, status)).as("a rejected WITHDRAWAL row is not a CHANGE row (rv1041x suggestion 1)").isNull();
             assertThat(transferReferring(seededOrgCommand("MERGE", "IN_PROGRESS"), status)).isNull();
         }
         assertThat(transferReferring(seededOrgCommand("MERGE", "PENDING"), AWAITING)).isNull();

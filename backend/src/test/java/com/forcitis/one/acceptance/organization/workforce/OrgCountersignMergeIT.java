@@ -202,4 +202,29 @@ class OrgCountersignMergeIT extends OrgCountersignSupport {
         assertThat(statusOf(merge)).isEqualTo(IN_PROGRESS);
         assertThat(requests(merge, KIND_WITHDRAWAL)).isEmpty();
     }
+
+    @Test
+    @DisplayName("#910 ADR-0073 守护 1、note §5 第 4 条（rv1041x M1）：会签后才以更早生效的调岗进入被并入单元、继承 E1 的人没有依据行，但执行日成本法人会变（E1 → E2）：他的调岗待法人归属会签（E1、E2 各一行），不计数，合并停在 IN_PROGRESS（受影响 4、已转 3），不发「成本法人已变更」")
+    void aNewcomerWithoutABasisRowWhoseEntityChangesIsStopped() throws Exception {
+        UUID merge = countersignedMerge();
+        UUID newcomer = inheritingIn(topE1);
+        actInSpecialist();
+        transfer(newcomer, DAY.minusDays(2), merged);
+        actIn(orgAdmin);
+        setToday(DAY);
+
+        catchThrowable(() -> orgCommands().executeMerge(merge));
+
+        Map<String, Object> row = orgCommand(merge);
+        assertThat(row.get("status")).isEqualTo(IN_PROGRESS);
+        assertThat(row.get("affected_employee_count")).isEqualTo(4);
+        assertThat(row.get("transferred_employee_count")).isEqualTo(3);
+        Map<String, Object> stopped = generatedTransfers(merge).get(newcomer);
+        assertThat(stopped.get("status")).as("no basis row is not an exemption when the entity changes").isEqualTo(AWAITING);
+        assertThat(rows("select legal_entity_id from " + COUNTERSIGNS + " where personnel_command_id = ? and request_kind = ?", stopped.get("personnel_command_id"), KIND_CHANGE)
+                .stream().map(r -> r.get("legal_entity_id")).toList()).containsExactlyInAnyOrder(e1, e2);
+        assertThat(unitOf(newcomer, DAY)).isEqualTo(merged);
+        assertThat(legalEntityChangesOf(newcomer)).isZero();
+        assertThat(unitOn(merged, DAY).get("status")).isEqualTo(ACTIVE);
+    }
 }

@@ -9,6 +9,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.kernel.DomainException;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -68,7 +69,7 @@ class OrgCountersignWithdrawalIT extends OrgCountersignSupport {
     }
 
     @Test
-    @DisplayName("#910 note §5 第 5a 条：撤回已会签的待生效组织命令不立即撤回：仍待生效、版本仍在，按 CHANGE 的法人各开一行 WITHDRAWAL 请求（请求人为撤回的人）；只批一行仍待生效；两行都批后转已撤回，归属版本作废")
+    @DisplayName("#910 note §5 第 5a 条：撤回已会签的待生效组织命令不立即撤回：仍待生效、版本仍在，按 CHANGE 的法人各开一行 WITHDRAWAL 请求（请求人为撤回的人）；只批一行仍待生效；别的法人负责人与起草人不能批撤回行；两行都批后转已撤回，归属版本作废")
     void withdrawingACountersignedCommandNeedsEveryHead() throws Exception {
         UUID command = countersigned();
 
@@ -81,6 +82,9 @@ class OrgCountersignWithdrawalIT extends OrgCountersignSupport {
             assertThat(fromStored(row.get("requested_by"))).isEqualTo(orgAdmin.userId());
             assertThat(row.get("decision_kind")).isNull();
         });
+        assertThat(catchThrowable(() -> approve(headE3, command, KIND_WITHDRAWAL, e1))).as("another entity's head (rv1041x suggestion 3)").isInstanceOf(DomainException.class);
+        assertThat(catchThrowable(() -> approve(orgAdmin, command, KIND_WITHDRAWAL, e1))).as("the drafter").isNotNull();
+        assertThat(decision(command, KIND_WITHDRAWAL, e1)).isNull();
         approve(headE1, command, KIND_WITHDRAWAL, e1);
         assertThat(statusOf(command)).isEqualTo(PENDING);
         approve(headE2, command, KIND_WITHDRAWAL, e2);

@@ -30,7 +30,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
  * Only the finance head of the row's entity (business_admin from escalation level 2) reads the row and its parent command; anything else is
  * 404 (ADR-0026 1.7, naming-standard 2.6 A-10). Responses carry only the listed columns (no L3, no contact data, no other records of the
  * employee), and errors do not echo reason text (ADR-0080 4.2). The org data admin sees the merge preview and the basis whatever its own
- * data scope; finance heads of a requested entity see the basis. The paths are 暂名 (OrgCountersignNames), pending one-design's ruling.
+ * data scope; finance heads of a requested entity see the basis. The paths are those of OrgCountersignNames, accepted by one-design on #910
+ * (comment 6588705997): a caller without the function permission gets 403, a holder who is not the decider or addressee gets 404.
  */
 class OrgCountersignReadPathIT extends OrgCountersignSupport {
 
@@ -99,7 +100,7 @@ class OrgCountersignReadPathIT extends OrgCountersignSupport {
     }
 
     @Test
-    @DisplayName("#910 修正案 B、ADR-0026 第 1.7 条（越权与跨范围）：另一法人的负责人（E2 读 E1 的行、E3 读 E1 的行）、有权限但不是任何法人负责人的人、不存在的行都得 404；没有审批权限的人得 403 或 404；拒绝的响应不带决定理由")
+    @DisplayName("#910 修正案 B、ADR-0026 第 1.7 条（越权与跨范围）：另一法人的负责人（E2 读 E1 的行、E3 读 E1 的行）、有权限但不是任何法人负责人的人、不存在的行都得 404；没有审批权限的人得 403（one-design 命名裁定 #910 comment 6588705997）；拒绝的响应不带决定理由")
     void everyoneElseGetsNotFound() throws Exception {
         Waiting waiting = waiting();
         reject(headE2, waiting.command(), KIND_CHANGE, e2, "synthetic-reason-marker-7f3a");
@@ -116,7 +117,7 @@ class OrgCountersignReadPathIT extends OrgCountersignSupport {
         assertThat(row(headE1, rowE2).getStatus()).as("E2's row is not addressed to E1").isEqualTo(404);
         assertThat(row(headE2, rowE1).getStatus()).as("E1's row is not addressed to E2").isEqualTo(404);
         assertThat(row(headE1, UUID.randomUUID()).getStatus()).isEqualTo(404);
-        assertThat(row(nobody, rowE2).getStatus()).isIn(403, 404);
+        assertThat(row(nobody, rowE2).getStatus()).isEqualTo(403);
         assertThat(row(headE2, rowE2).getStatus()).as("the twin: its own head reads it").isEqualTo(200);
     }
 
@@ -136,7 +137,7 @@ class OrgCountersignReadPathIT extends OrgCountersignSupport {
     }
 
     @Test
-    @DisplayName("#910 修正案 B（会签依据）：被请求法人的负责人（E2）与组织数据管理员读依据：200，每人一行（员工 ID、姓名、工号、之前与之后的法人），只含所列字段；E3 负责人得 404；依据外的人与该员工的其他命令不出现")
+    @DisplayName("#910 修正案 B（会签依据）：被请求法人的负责人（E2）与组织数据管理员读依据：200，每人一行（员工 ID、姓名、工号、之前与之后的法人），只含所列字段；E3 负责人（有审批权限、不在请求集合内）得 404；既无审批权限也无组织命令权限的人（含数据范围为全部的人事专员）得 403；升级级别 0 的业务管理员得 404；依据外的人与该员工的其他命令不出现")
     void theBasisIsReadByTheRequestedHeadsAndTheOrgAdminOnly() throws Exception {
         Waiting waiting = waiting();
         UUID outsider = inheritingIn(topE1);
@@ -155,6 +156,9 @@ class OrgCountersignReadPathIT extends OrgCountersignSupport {
             assertOnlyListedColumns(response);
         }
         assertThat(bases(headE3, waiting.command()).getStatus()).isEqualTo(404);
+        assertThat(bases(person(), waiting.command()).getStatus()).isEqualTo(403);
+        assertThat(bases(hr, waiting.command()).getStatus()).as("a 人事专员 (ALL data scope, no approve or org command permission)").isEqualTo(403);
+        assertThat(bases(person(ESCALATED_ROLE), waiting.command()).getStatus()).as("business_admin at escalation level 0").isEqualTo(404);
     }
 
     @Test
@@ -188,7 +192,7 @@ class OrgCountersignReadPathIT extends OrgCountersignSupport {
     }
 
     @Test
-    @DisplayName("#910 修正案 B（合并预演）：组织数据管理员不论自己的数据范围都能看合并预演：200，被并入单元的每个在职员工一行（员工 ID、姓名、工号、当前单元、之前与之后的法人、是否需要会签），继承法人的人需要会签、有自有归属的人不需要；只含所列字段；预演不写任何东西；没有组织命令权限的人得 403 或 404")
+    @DisplayName("#910 修正案 B（合并预演）：组织数据管理员能看合并预演：200，被并入单元的每个在职员工一行（员工 ID、姓名、工号、当前单元、之前与之后的法人、是否需要会签），继承法人的人需要会签、有自有归属的人不需要；只含所列字段；预演不写任何东西；没有组织命令权限的人得 403")
     void theOrgAdminSeesTheMergePreviewWhateverItsScope() throws Exception {
         UUID merged = seedUnit(topE1);
         UUID receiving = seedUnit(topE2);
@@ -203,13 +207,13 @@ class OrgCountersignReadPathIT extends OrgCountersignSupport {
         String body = response.getContentAsString();
         List<Map<String, Object>> items = JsonPath.read(body, "$.items");
         assertThat(items).extracting(item -> item.get("employeeId")).containsExactlyInAnyOrder(text(inheriting), text(own));
-        assertThat(items).allSatisfy(item -> assertThat(item).containsKeys("displayName", "employeeCode", "needsCountersign"));
+        assertThat(items).allSatisfy(item -> assertThat(item).containsKeys("displayName", "employeeCode", "needsAttributionCountersign"));
         for (Map<String, Object> item : items) {
-            assertThat(item.get("needsCountersign")).as("employee " + item.get("employeeId")).isEqualTo(text(inheriting).equals(item.get("employeeId")));
+            assertThat(item.get("needsAttributionCountersign")).as("employee " + item.get("employeeId")).isEqualTo(text(inheriting).equals(item.get("employeeId")));
         }
         assertOnlyListedColumns(response);
         assertThat(orgCommandCount()).isEqualTo(commands);
         assertThat(read(headE1, get(PREVIEW_MERGE_PATH, merged).param("mergeIntoOrgUnitId", text(receiving)).param("effectiveDate", DAY.toString())).getStatus())
-                .isIn(403, 404);
+                .isEqualTo(403);
     }
 }

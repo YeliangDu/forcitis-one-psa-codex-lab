@@ -307,4 +307,35 @@ class OrgCountersignApprovalIT extends OrgCountersignSupport {
 
         assertThat(orgCommandCount()).isEqualTo(commands);
     }
+
+    @Test
+    @DisplayName("#910 note §5 第 2 条「依据的人员集合或任何之前/之后不同」（rv1041x M2）：人员不变但之前的法人变了：待会签期间录入并会签一条更早生效的调整上级（单元挂到 E3 下），依据里的人那天变成 E3 → E2；最后一次批准时该请求 REJECTED 带理由、命令已撤回、不写版本")
+    void aChangedBeforeValueFailsTheReCheck() throws Exception {
+        Waiting waiting = waiting(DAY);
+        UUID earlier = reparent(waiting.unit(), DAY.minusDays(1), topE3);
+        assertThat(statusOf(earlier)).isEqualTo(AWAITING);
+        approve(headE1, earlier, KIND_CHANGE, e1);
+        approve(headE3, earlier, KIND_CHANGE, e3);
+        assertThat(statusOf(earlier)).isEqualTo(PENDING);
+        approve(headE1, waiting.command(), KIND_CHANGE, e1);
+
+        catchThrowable(() -> approve(headE2, waiting.command(), KIND_CHANGE, e2));
+
+        assertThat(statusOf(waiting.command())).isEqualTo(WITHDRAWN);
+        assertThat(decision(waiting.command(), KIND_CHANGE, e2)).isEqualTo(REJECTED);
+        assertThat(request(waiting.command(), KIND_CHANGE, e2).get("decision_reason")).isNotNull();
+        assertThat(unitAttributionRowsWrittenBy(waiting.command())).isZero();
+    }
+
+    @Test
+    @DisplayName("#910 note §5 第 5 条「今天版本的财务负责人」（rv1041x 建议 2）：从今天起被别人接任的前任负责人不能决定组织命令的行；接任者可以")
+    void aFormerHeadNoLongerDecides() throws Exception {
+        Waiting waiting = waiting(DAY);
+        Staff successor = head(e1);
+
+        assertDecisionRefused(() -> approve(headE1, waiting.command(), KIND_CHANGE, e1));
+        assertThat(decision(waiting.command(), KIND_CHANGE, e1)).isNull();
+        approve(successor, waiting.command(), KIND_CHANGE, e1);
+        assertThat(decision(waiting.command(), KIND_CHANGE, e1)).isEqualTo(APPROVED);
+    }
 }

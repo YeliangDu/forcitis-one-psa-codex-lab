@@ -51,7 +51,8 @@ final class OrgCountersignNames {
     /*
      * DD amendment B on #910 (decider read path, lead ruling in the spirit of ADR-0080): the HTTP reads below are 暂名, chosen by the acceptance
      * part from the existing workforce paths (naming-standard 2.6 A-1: read-only computation as GET .../{id}:{action}), sent to one-design for a
-     * ruling (lead 2026-11-02, review rv1041a M3). A rename changes only these constants.
+     * ruling (lead 2026-11-02, review rv1041a M3). one-design accepted them on #910 (comment 6588705997) with needsCountersign renamed to
+     * needsAttributionCountersign and 403 for every caller without the function permission. A rename changes only these constants.
      */
     /** One countersign request row with its parent command and the other rows of that command; the decider of the row's entity only. */
     static final String READ_COUNTERSIGN_PATH = "/api/v1/organization/attribution-countersigns/{attributionCountersignId}";
@@ -67,7 +68,7 @@ final class OrgCountersignNames {
             "employee", "employeeId", "displayName", "employeeCode",
             // previous and new cost legal entity, previous and new (or current) org unit
             "previousLegalEntityId", "previousLegalEntityName", "newLegalEntityId", "newLegalEntityName",
-            "previousOrgUnitId", "previousOrgUnitName", "newOrgUnitId", "newOrgUnitName", "orgUnitId", "orgUnitName", "needsCountersign",
+            "previousOrgUnitId", "previousOrgUnitName", "newOrgUnitId", "newOrgUnitName", "orgUnitId", "orgUnitName", "needsAttributionCountersign",
             // the countersign rows of the same command
             "requests", "attributionCountersignId", "requestKind", "requestSequenceNumber", "legalEntityId", "legalEntityName", "requestedAt",
             "requestedByDisplayName", "dueOnDate", "escalationLevel", "decisionKind", "decidedAt", "decidedByDisplayName", "decisionReason",

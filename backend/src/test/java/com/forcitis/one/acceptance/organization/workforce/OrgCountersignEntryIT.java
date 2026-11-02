@@ -145,7 +145,7 @@ class OrgCountersignEntryIT extends OrgCountersignSupport {
     }
 
     @Test
-    @DisplayName("#910 note §5 第 5 条（起草人）：组织数据管理员自己的主任职所在单元链法人会被改变时录入被拒，不留命令行与请求；另一位组织数据管理员可以录入同一命令")
+    @DisplayName("#910 note §5 第 5 条（起草人）：组织数据管理员自己的主任职所在单元链法人会被改变时录入被拒（指定法人、调整上级、合并都拒，rv1041x M3），不留命令行与请求；另一位组织数据管理员可以录入同一命令")
     void theDrafterMayNotChangeTheirOwnCostLegalEntity() throws Exception {
         UUID unitX = seedUnit(topE1);
         UUID selfId = inheritingIn(unitX);
@@ -157,6 +157,7 @@ class OrgCountersignEntryIT extends OrgCountersignSupport {
 
         assertRefused(() -> assignLegalEntity(unitX, DAY, e2));
         assertRefused(() -> reparent(unitX, DAY, topE2));
+        assertRefused(() -> merge(unitX, seedUnit(topE2), DAY));
 
         assertThat(orgCommandCount()).isEqualTo(commands);
         assertThat(allRequestRows()).isEqualTo(requests);
