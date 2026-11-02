@@ -12,6 +12,7 @@ import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 class MigrateInitialVersions {
 
+    /** The scheduler runs every five minutes; a command in another process cannot see it, so a stopped sync is a sync that has left no run for three cycles. */
+    private static final Duration SYNC_QUIET_PERIOD = Duration.ofMinutes(15);
+
     private final InitialVersionMigrationRepository migration;
     private final AuditLog audit;
     private final Clock clock;
@@ -38,14 +42,14 @@ class MigrateInitialVersions {
         this.zone = zone;
     }
 
-    /** @throws DomainException when a sync run is still running, since the snapshot would go on changing */
+    /** @throws DomainException when the sync is not stopped, since the snapshot would go on changing */
     @Transactional
     public String execute(WorkforceOperationAttestation attestation) {
-        if (migration.syncRunning()) {
-            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_INITIAL_VERSION_MIGRATION_REFUSED, ErrorKind.UNPROCESSABLE,
-                    "a sync run is still running: the snapshot would change under the migration");
-        }
         Instant now = clock.instant();
+        if (migration.syncRunRecent(now.minus(SYNC_QUIET_PERIOD))) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_INITIAL_VERSION_MIGRATION_REFUSED, ErrorKind.UNPROCESSABLE,
+                    "the sync is not stopped: a run is running or started within " + SYNC_QUIET_PERIOD + ", so the snapshot would change under the migration");
+        }
         LocalDate today = zone.dateOf(now);
         long skipped = migration.countEmployeesWithVersions();
         int employedPeople = 0;

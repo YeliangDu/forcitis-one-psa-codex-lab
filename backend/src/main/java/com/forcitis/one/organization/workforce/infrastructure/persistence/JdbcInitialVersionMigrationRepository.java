@@ -28,12 +28,20 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
     }
 
     @Override
-    public boolean syncRunning() {
-        return jdbc.sql("select exists (select 1 from organization_workforce.sync_runs where status = 'RUNNING')").query(Boolean.class).single();
+    public boolean syncRunRecent(Instant cutoff) {
+        return jdbc.sql("select exists (select 1 from organization_workforce.sync_runs where status = 'RUNNING' or started_at >= :cutoff)")
+                .param("cutoff", OffsetDateTime.ofInstant(cutoff, ZoneOffset.UTC)).query(Boolean.class).single();
     }
 
     @Override
     public List<InitialVersionPlan.SnapshotPerson> lockEmployeesWithoutVersions() {
+        // Commands lock the employee row without changing it, so a row that waited for the lock is not re-checked: lock first, then look again in a new statement.
+        jdbc.sql("""
+                select e.id from organization_workforce.employees e
+                 where not exists (select 1 from organization_workforce.employee_versions ev where ev.employee_id = e.id)
+                 order by e.created_at, e.id
+                   for update of e
+                """).query(UUID.class).list();
         return jdbc.sql("""
                 select e.id, e.employment_status, e.is_fee_earner, e.separated_at,
                        (select min(v.effective_from_date) from organization_workforce.assignment_versions v
@@ -44,7 +52,6 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
                   from organization_workforce.employees e
                  where not exists (select 1 from organization_workforce.employee_versions ev where ev.employee_id = e.id)
                  order by e.created_at, e.id
-                   for update of e
                 """).query((rs, n) -> {
             OffsetDateTime separatedAt = rs.getObject("separated_at", OffsetDateTime.class);
             return new InitialVersionPlan.SnapshotPerson(rs.getObject("id", UUID.class), "EMPLOYED".equals(rs.getString("employment_status")),
