@@ -12,6 +12,7 @@ import static com.forcitis.one.acceptance.organization.workforce.PersonnelComman
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.TARGET_ORG_UNIT_ID;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.TRANSFER;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
@@ -143,7 +144,8 @@ class OrgMergePeakIT extends OrgCountersignSupport {
                 .allMatch(failure -> failure == null || failure instanceof DomainException);
 
         actIn(orgAdmin);
-        orgCommands().executeMerge(merge);
+        // F2a leaves open whether rerunning a finished merge is refused (OrgUnitMergeIT): only the outcome counts.
+        catchThrowable(() -> orgCommands().executeMerge(merge));
         Map<String, Object> row = orgCommand(merge);
         assertThat(row.get("status")).isEqualTo(EFFECTIVE);
         assertThat(row.get("affected_employee_count")).isEqualTo(PEOPLE);

@@ -1,18 +1,33 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
 import static com.forcitis.one.acceptance.organization.workforce.OrgCountersignNames.*;
+import static com.forcitis.one.acceptance.organization.workforce.OrgStructureCommandNames.ORG_DATA_ADMIN_ROLE;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.EFFECTIVE;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.PENDING;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.REGULAR;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.WITHDRAWN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.kernel.DomainException;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+import org.assertj.core.api.ThrowingConsumer;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -34,6 +49,50 @@ class OrgCountersignApprovalIT extends OrgCountersignSupport {
     private static final LocalDate DAY = TODAY.plusDays(10);
 
     private record Waiting(UUID unit, UUID first, UUID second, UUID command) {
+    }
+
+    /** A decision the api refuses: a business refusal or a refusal of the caller's rights, not a missing bean or a broken fixture. */
+    private static void assertDecisionRefused(ThrowingCallable decision) {
+        Throwable failure = catchThrowable(decision);
+        assertThat(failure).as("the decision is refused").isNotNull();
+        assertThat(failure instanceof DomainException || isPermissionRefusal(failure)).as("refused by the api, not broken: " + failure).isTrue();
+    }
+
+    /** Runs the two decisions at the same moment, each in its own thread with its decider's security context; answers their failures (null = none). */
+    private List<Throwable> atOnce(Staff firstWho, ThrowingConsumer<OrgCountersignProbe> first, Staff secondWho, ThrowingConsumer<OrgCountersignProbe> second) throws Exception {
+        List<SecurityContext> contexts = new ArrayList<>();
+        for (Staff who : List.of(firstWho, secondWho)) {
+            actIn(who);
+            restoreActing();
+            contexts.add(SecurityContextHolder.getContext());
+        }
+        actIn(orgAdmin);
+        OrgCountersignProbe probe = OrgCountersignProbe.of(springContext);
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(2);
+        List<Future<Throwable>> runs = new ArrayList<>();
+        List<ThrowingConsumer<OrgCountersignProbe>> calls = List.of(first, second);
+        for (int i = 0; i < 2; i++) {
+            SecurityContext context = contexts.get(i);
+            ThrowingConsumer<OrgCountersignProbe> call = calls.get(i);
+            runs.add(pool.submit(() -> {
+                SecurityContextHolder.setContext(context);
+                try {
+                    start.await();
+                    return catchThrowable(() -> call.accept(probe));
+                } finally {
+                    SecurityContextHolder.clearContext();
+                }
+            }));
+        }
+        start.countDown();
+        pool.shutdown();
+        assertThat(pool.awaitTermination(60, TimeUnit.SECONDS)).as("neither decision hangs").isTrue();
+        List<Throwable> failures = new ArrayList<>();
+        for (Future<Throwable> run : runs) {
+            failures.add(run.get());
+        }
+        return failures;
     }
 
     private Waiting waiting(LocalDate day) throws Exception {
@@ -96,7 +155,7 @@ class OrgCountersignApprovalIT extends OrgCountersignSupport {
         assertThat(request(waiting.command(), KIND_CHANGE, e1).get("decided_by")).isNull();
         assertThat(unitAttributionRowsWrittenBy(waiting.command())).isZero();
         assertThat(legalEntityChangesOf(waiting.first())).isZero();
-        assertThat(catchThrowable(() -> approve(headE1, waiting.command(), KIND_CHANGE, e1))).isNotNull();
+        assertDecisionRefused(() -> approve(headE1, waiting.command(), KIND_CHANGE, e1));
         assertThat(statusOf(waiting.command())).isEqualTo(WITHDRAWN);
     }
 
@@ -136,10 +195,10 @@ class OrgCountersignApprovalIT extends OrgCountersignSupport {
         Waiting waiting = waiting(DAY);
         Staff holderOnly = person(FINANCE_HEAD_ROLE);
 
-        assertThat(catchThrowable(() -> approve(headE3, waiting.command(), KIND_CHANGE, e1))).isNotNull();
-        assertThat(catchThrowable(() -> approve(holderOnly, waiting.command(), KIND_CHANGE, e1))).isNotNull();
-        assertThat(catchThrowable(() -> reject(headE3, waiting.command(), KIND_CHANGE, e1, "synthetic: not mine"))).isNotNull();
-        assertThat(catchThrowable(() -> approve(orgAdmin, waiting.command(), KIND_CHANGE, e1))).isNotNull();
+        assertDecisionRefused(() -> approve(headE3, waiting.command(), KIND_CHANGE, e1));
+        assertDecisionRefused(() -> approve(holderOnly, waiting.command(), KIND_CHANGE, e1));
+        assertDecisionRefused(() -> reject(headE3, waiting.command(), KIND_CHANGE, e1, "synthetic: not mine"));
+        assertDecisionRefused(() -> approve(orgAdmin, waiting.command(), KIND_CHANGE, e1));
 
         assertThat(decision(waiting.command(), KIND_CHANGE, e1)).isNull();
         assertThat(statusOf(waiting.command())).isEqualTo(AWAITING);
@@ -150,13 +209,13 @@ class OrgCountersignApprovalIT extends OrgCountersignSupport {
     void bindingWithoutThePermissionAndTheDrafterAsHeadAreRefused() throws Exception {
         Staff boundOnly = person();
         bind(boundOnly, e2);
-        Staff drafterHead = person(com.forcitis.one.acceptance.organization.workforce.OrgStructureCommandNames.ORG_DATA_ADMIN_ROLE, FINANCE_HEAD_ROLE);
+        Staff drafterHead = person(ORG_DATA_ADMIN_ROLE, FINANCE_HEAD_ROLE);
         bind(drafterHead, e1);
         actIn(drafterHead);
         Waiting waiting = waiting(DAY);
 
-        assertThat(catchThrowable(() -> approve(boundOnly, waiting.command(), KIND_CHANGE, e2))).isNotNull();
-        assertThat(catchThrowable(() -> approve(drafterHead, waiting.command(), KIND_CHANGE, e1))).isNotNull();
+        assertDecisionRefused(() -> approve(boundOnly, waiting.command(), KIND_CHANGE, e2));
+        assertDecisionRefused(() -> approve(drafterHead, waiting.command(), KIND_CHANGE, e1));
 
         assertThat(decision(waiting.command(), KIND_CHANGE, e1)).isNull();
         assertThat(decision(waiting.command(), KIND_CHANGE, e2)).isNull();
@@ -168,9 +227,9 @@ class OrgCountersignApprovalIT extends OrgCountersignSupport {
         Waiting waiting = waiting(DAY);
         Staff escalated = person(ESCALATED_ROLE);
 
-        assertThat(catchThrowable(() -> approve(escalated, waiting.command(), KIND_CHANGE, e1))).as("level 0").isNotNull();
+        assertDecisionRefused(() -> approve(escalated, waiting.command(), KIND_CHANGE, e1));
         escalateTo(waiting.command(), KIND_CHANGE, e1, 1);
-        assertThat(catchThrowable(() -> approve(escalated, waiting.command(), KIND_CHANGE, e1))).as("level 1").isNotNull();
+        assertDecisionRefused(() -> approve(escalated, waiting.command(), KIND_CHANGE, e1));
         assertThat(decision(waiting.command(), KIND_CHANGE, e1)).isNull();
         escalateTo(waiting.command(), KIND_CHANGE, e1, 2);
         approve(escalated, waiting.command(), KIND_CHANGE, e1);
@@ -181,5 +240,71 @@ class OrgCountersignApprovalIT extends OrgCountersignSupport {
         approve(both, other.command(), KIND_CHANGE, e1);
         approve(both, other.command(), KIND_CHANGE, e2);
         assertThat(statusOf(other.command())).isEqualTo(PENDING);
+    }
+
+    @RepeatedTest(3)
+    @DisplayName("#910 note §5 第 2 条「最后一次批准锁组织单元根行」（并发）：两位负责人同时批准：两次调用都不失败，恰好写一次单元归属版本，命令转待生效，两行都 APPROVED、没有未决行")
+    void twoHeadsApprovingAtOnceWriteExactlyOnce() throws Exception {
+        Waiting waiting = waiting(DAY);
+        UUID rowE1 = requestId(waiting.command(), KIND_CHANGE, e1);
+        UUID rowE2 = requestId(waiting.command(), KIND_CHANGE, e2);
+
+        List<Throwable> failures = atOnce(headE1, probe -> probe.approve(rowE1), headE2, probe -> probe.approve(rowE2));
+
+        assertThat(failures).containsOnlyNulls();
+        assertThat(statusOf(waiting.command())).isEqualTo(PENDING);
+        assertThat(unitAttributionRowsWrittenBy(waiting.command())).isEqualTo(1);
+        assertThat(unitAttributions(waiting.unit())).hasSize(1);
+        assertThat(decision(waiting.command(), KIND_CHANGE, e1)).isEqualTo(APPROVED);
+        assertThat(decision(waiting.command(), KIND_CHANGE, e2)).isEqualTo(APPROVED);
+    }
+
+    @RepeatedTest(3)
+    @DisplayName("#910 note §5 第 2 条、用户答复 Q1（并发）：一位负责人批准的同时另一位拒签：命令转已撤回，不写版本，没有未决行；拒签行为 REJECTED，另一行或为先到的 APPROVED、或为 LAPSED（批准被拒）")
+    void approveAndRejectAtOnceLeaveNoHalfState() throws Exception {
+        Waiting waiting = waiting(DAY);
+        UUID rowE1 = requestId(waiting.command(), KIND_CHANGE, e1);
+        UUID rowE2 = requestId(waiting.command(), KIND_CHANGE, e2);
+
+        List<Throwable> failures = atOnce(headE1, probe -> probe.approve(rowE1), headE2, probe -> probe.reject(rowE2, "synthetic: no"));
+
+        assertThat(failures.get(1)).as("the rejection itself goes through").isNull();
+        assertThat(failures.get(0) == null || failures.get(0) instanceof DomainException).as("a refused approval is a business refusal: " + failures.get(0)).isTrue();
+        assertThat(statusOf(waiting.command())).isEqualTo(WITHDRAWN);
+        assertThat(unitAttributionRowsWrittenBy(waiting.command())).isZero();
+        assertThat(decision(waiting.command(), KIND_CHANGE, e2)).isEqualTo(REJECTED);
+        assertThat(decision(waiting.command(), KIND_CHANGE, e1)).isIn(APPROVED, LAPSED);
+        assertThat(rows("select 1 from " + COUNTERSIGNS + " where " + ORG_PARENT_COLUMN + " = ? and decision_kind is null", waiting.command())).isEmpty();
+    }
+
+    @Test
+    @DisplayName("#910 note §5 第 2、3 条（复核经应用路径）：待会签期间录入一条更早生效的调岗（允许），把依据里的人调出单元；最后一次批准时依据不同：该请求 REJECTED、命令已撤回、不写版本")
+    void anEarlierDatedTransferFailsTheReCheck() throws Exception {
+        Waiting waiting = waiting(DAY);
+        approve(headE1, waiting.command(), KIND_CHANGE, e1);
+        actInSpecialist();
+        transfer(waiting.first(), DAY.minusDays(3), topE1);
+        actIn(orgAdmin);
+
+        catchThrowable(() -> approve(headE2, waiting.command(), KIND_CHANGE, e2));
+
+        assertThat(statusOf(waiting.command())).isEqualTo(WITHDRAWN);
+        assertThat(decision(waiting.command(), KIND_CHANGE, e2)).isEqualTo(REJECTED);
+        assertThat(unitAttributionRowsWrittenBy(waiting.command())).isZero();
+    }
+
+    @Test
+    @DisplayName("#910 note §5 第 5 条「起草人自己的法人或自己所在单元链的法人会被改变时被拒」：有自有法人归属的组织数据管理员，所在单元链的法人会被改变时录入同样被拒")
+    void aDrafterWithAnOwnAttributionIsRefusedWhenTheirChainChanges() throws Exception {
+        UUID unitX = seedUnit(topE1);
+        inheritingIn(unitX);
+        UUID selfId = employedIn(unitX, REGULAR, true);
+        grantByOperations(selfId, ORG_DATA_ADMIN_ROLE);
+        actIn(new Staff(selfId, signIn(selfId)));
+        long commands = orgCommandCount();
+
+        assertRefused(() -> assignLegalEntity(unitX, DAY, e2));
+
+        assertThat(orgCommandCount()).isEqualTo(commands);
     }
 }

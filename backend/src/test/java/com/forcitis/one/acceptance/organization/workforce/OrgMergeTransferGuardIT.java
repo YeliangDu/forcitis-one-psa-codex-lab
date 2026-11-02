@@ -48,17 +48,21 @@ class OrgMergeTransferGuardIT extends OrgCountersignSupport {
         receiving = seedUnit(topE2);
     }
 
-    private UUID seededOrgCommand(String kind, String status) throws SQLException {
+    private UUID seededOrgCommand(String kind, String status) throws Exception {
         UUID id = Uuids.timeOrdered(NOW);
         try (Connection workforce = schemaConnection("organization_workforce")) {
             if (kind.equals("MERGE")) {
                 update(workforce, """
                         insert into org_structure_commands (org_structure_command_id, command_kind, target_kind, target_org_unit_id, effective_date, status,
                           merge_into_org_unit_id, created_at, created_by, updated_at) values (?, 'MERGE', 'ORG_UNIT', ?, ?, 'PENDING', ?, ?, ?, ?)""",
-                        id, stored(seedUnitQuietly()), TODAY, stored(receiving), at, drafter, at);
-                if (status.equals("IN_PROGRESS")) {
+                        id, stored(seedUnit(topE1)), TODAY, stored(receiving), at, drafter, at);
+                if (!status.equals("PENDING")) {
                     update(workforce, "update org_structure_commands set status = 'IN_PROGRESS', affected_employee_count = 1, transferred_employee_count = 0, updated_at = ?"
                             + " where org_structure_command_id = ?", at, id);
+                }
+                if (status.equals("EFFECTIVE")) {
+                    update(workforce, "update org_structure_commands set status = 'EFFECTIVE', transferred_employee_count = 1, applied_at = ?, updated_at = ?"
+                            + " where org_structure_command_id = ?", at, at, id);
                 }
             } else {
                 update(workforce, """
@@ -68,14 +72,6 @@ class OrgMergeTransferGuardIT extends OrgCountersignSupport {
             }
         }
         return id;
-    }
-
-    private UUID seedUnitQuietly() throws SQLException {
-        try {
-            return seedUnit(topE1);
-        } catch (Exception failure) {
-            throw new SQLException(failure);
-        }
     }
 
     private void changeRow(UUID command, UUID entity, String decision) throws SQLException {
@@ -100,6 +96,12 @@ class OrgMergeTransferGuardIT extends OrgCountersignSupport {
         }
     }
 
+    /**
+     * The guard fires for every status other than AWAITING_ATTRIBUTION_COUNTERSIGN (#908 DD section 3), so each refused case is tried both as a
+     * PENDING row and as an EFFECTIVE one, the shape of a merge-generated transfer (review rv1041a M2).
+     */
+    private static final String[] NOT_AWAITING = {"PENDING", "EFFECTIVE"};
+
     /** Inserts a TRANSFER that refers to the org command; null when the database accepted it, else the refusal. */
     private Throwable transferReferring(UUID command, String status) throws Exception {
         UUID person = inheritingIn(merged);
@@ -107,10 +109,10 @@ class OrgMergeTransferGuardIT extends OrgCountersignSupport {
             try (Connection workforce = schemaConnection("organization_workforce")) {
                 update(workforce, """
                         insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id,
-                          org_structure_command_id, countersign_previous_legal_entity_id, countersign_new_legal_entity_id, created_at, created_by, updated_at)
-                        values (?, ?, 'TRANSFER', ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                        Uuids.timeOrdered(NOW), stored(person), TODAY.plusDays(1), status, stored(receiving), command,
-                        status.equals(AWAITING) ? e1 : null, status.equals(AWAITING) ? e2 : null, at, drafter, at);
+                          org_structure_command_id, countersign_previous_legal_entity_id, countersign_new_legal_entity_id, applied_at, created_at, created_by, updated_at)
+                        values (?, ?, 'TRANSFER', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        Uuids.timeOrdered(NOW), stored(person), TODAY, status, stored(receiving), command,
+                        status.equals(AWAITING) ? e1 : null, status.equals(AWAITING) ? e2 : null, status.equals("EFFECTIVE") ? at : null, at, drafter, at);
             }
         });
     }
@@ -121,39 +123,48 @@ class OrgMergeTransferGuardIT extends OrgCountersignSupport {
     }
 
     @Test
-    @DisplayName("#910 note §4.5、#908 数据设计第 3 节（红例）：合并还是 PENDING 时，引用它的调岗被数据库拒绝")
-    void aPendingMergeIsRefused() throws Exception {
-        assertGuardRefused(transferReferring(seededOrgCommand("MERGE", "PENDING"), "PENDING"));
-    }
-
-    @Test
-    @DisplayName("#910 note §4.5、#908 数据设计第 3 节（红例）：IN_PROGRESS 合并的 CHANGE 行有一行未决、被拒或已失效时，引用它的调岗被拒")
-    void anIncompleteCountersignIsRefused() throws Exception {
-        for (String other : new String[] {null, REJECTED, LAPSED}) {
-            UUID merge = seededOrgCommand("MERGE", "IN_PROGRESS");
-            changeRow(merge, e1, APPROVED);
-            changeRow(merge, e2, other);
-            assertGuardRefused(transferReferring(merge, "PENDING"));
+    @DisplayName("#910 note §4.5、#908 数据设计第 3 节（红例）：合并还是 PENDING 时，引用它的调岗（待生效或已生效）被数据库拒绝；已 EFFECTIVE 的合并同样被拒")
+    void aMergeNotInProgressIsRefused() throws Exception {
+        for (String status : NOT_AWAITING) {
+            assertGuardRefused(transferReferring(seededOrgCommand("MERGE", "PENDING"), status));
+            assertGuardRefused(transferReferring(seededOrgCommand("MERGE", "EFFECTIVE"), status));
         }
     }
 
     @Test
-    @DisplayName("#910 note §4.5、#908 数据设计第 3 节（红例）：IN_PROGRESS 合并有会签依据却没有 CHANGE 行时被拒；引用非合并组织命令的调岗被拒")
-    void aBasisWithoutRequestsAndANonMergeAreRefused() throws Exception {
-        UUID merge = seededOrgCommand("MERGE", "IN_PROGRESS");
-        basisRow(merge);
-        assertGuardRefused(transferReferring(merge, "PENDING"));
-        assertGuardRefused(transferReferring(seededOrgCommand("ASSIGN_LEGAL_ENTITY", "PENDING"), "PENDING"));
+    @DisplayName("#910 note §4.5、#908 数据设计第 3 节（红例）：IN_PROGRESS 合并的 CHANGE 行有一行未决、被拒或已失效时，引用它的调岗（待生效或已生效）被拒")
+    void anIncompleteCountersignIsRefused() throws Exception {
+        for (String status : NOT_AWAITING) {
+            for (String other : new String[] {null, REJECTED, LAPSED}) {
+                UUID merge = seededOrgCommand("MERGE", "IN_PROGRESS");
+                changeRow(merge, e1, APPROVED);
+                changeRow(merge, e2, other);
+                assertGuardRefused(transferReferring(merge, status));
+            }
+        }
     }
 
     @Test
-    @DisplayName("#910 note §4.5、#908 数据设计第 3 节（通过的孪生）：IN_PROGRESS 合并的 CHANGE 行全部批准时放行；既无 CHANGE 行也无依据时放行；调岗本身待法人归属会签时无论合并状态都放行")
+    @DisplayName("#910 note §4.5、#908 数据设计第 3 节（红例）：IN_PROGRESS 合并有会签依据却没有 CHANGE 行时被拒；引用非合并组织命令的调岗被拒（待生效或已生效）")
+    void aBasisWithoutRequestsAndANonMergeAreRefused() throws Exception {
+        for (String status : NOT_AWAITING) {
+            UUID merge = seededOrgCommand("MERGE", "IN_PROGRESS");
+            basisRow(merge);
+            assertGuardRefused(transferReferring(merge, status));
+            assertGuardRefused(transferReferring(seededOrgCommand("ASSIGN_LEGAL_ENTITY", "PENDING"), status));
+        }
+    }
+
+    @Test
+    @DisplayName("#910 note §4.5、#908 数据设计第 3 节（通过的孪生）：IN_PROGRESS 合并的 CHANGE 行全部批准时放行；既无 CHANGE 行也无依据时放行（待生效或已生效）；调岗本身待法人归属会签时无论合并状态都放行")
     void theTwinsPass() throws Exception {
-        UUID approved = seededOrgCommand("MERGE", "IN_PROGRESS");
-        changeRow(approved, e1, APPROVED);
-        changeRow(approved, e2, APPROVED);
-        assertThat(transferReferring(approved, "PENDING")).isNull();
-        assertThat(transferReferring(seededOrgCommand("MERGE", "IN_PROGRESS"), "PENDING")).isNull();
+        for (String status : NOT_AWAITING) {
+            UUID approved = seededOrgCommand("MERGE", "IN_PROGRESS");
+            changeRow(approved, e1, APPROVED);
+            changeRow(approved, e2, APPROVED);
+            assertThat(transferReferring(approved, status)).isNull();
+            assertThat(transferReferring(seededOrgCommand("MERGE", "IN_PROGRESS"), status)).isNull();
+        }
         assertThat(transferReferring(seededOrgCommand("MERGE", "PENDING"), AWAITING)).isNull();
     }
 }
