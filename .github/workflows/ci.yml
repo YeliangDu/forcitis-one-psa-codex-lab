@@ -272,7 +272,18 @@ jobs:
             tar -xzf gitleaks_8.30.1_darwin_arm64.tar.gz gitleaks
             echo "$PWD" >> "$GITHUB_PATH"
           fi
-      - run: gitleaks git --redact --no-banner --exit-code 1 .
+      # a pull request run scans only its own commits (the same range scripts/ci/check_all.sh scans); the full history takes ~80 CPU-seconds across 4+ cores on every event, and main's push and the nightly run still scan all of it (#1034)
+      - name: gitleaks (pull request - its commits against the base; push to main and nightly - the full history)
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            # a missing base makes git log fail and gitleaks report "no leaks" for zero commits: fail instead
+            git rev-parse --verify -q "refs/remotes/origin/$BASE_REF^{commit}" >/dev/null || { echo "::error::origin/$BASE_REF is not in this checkout: the pull request range cannot be scanned"; exit 1; }
+            gitleaks git --redact --no-banner --exit-code 1 --log-opts="refs/remotes/origin/$BASE_REF..HEAD" .
+          else
+            gitleaks git --redact --no-banner --exit-code 1 .
+          fi
       # 发布与部署脚本读取 ci.yml、部署前清单、部署门输入 deploy_gate.json、prod-approvals.txt 与 tools/ops/ecs/files；只改与它们无关的文档时跳过下面两步
       - name: release scripts or what they read changed?
         id: change
