@@ -465,6 +465,7 @@ CREATE TABLE platform_identity.handled_personnel_commands (
     account_role_grant_id uuid,
     handled_at            timestamptz NOT NULL,
     created_at            timestamptz NOT NULL DEFAULT now(),
+    updated_at            timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_handled_personnel_commands PRIMARY KEY (personnel_command_id),
     CONSTRAINT fk_handled_personnel_commands_user_id FOREIGN KEY (user_id) REFERENCES platform_identity.user_accounts (user_id),
     CONSTRAINT fk_handled_personnel_commands_account_role_grant_id FOREIGN KEY (account_role_grant_id) REFERENCES platform_identity.account_role_grants (account_role_grant_id),
@@ -479,9 +480,10 @@ COMMENT ON COLUMN platform_identity.handled_personnel_commands.personnel_command
 COMMENT ON COLUMN platform_identity.handled_personnel_commands.user_id IS '用户 ID：命令所涉员工的账号';
 COMMENT ON COLUMN platform_identity.handled_personnel_commands.command_kind IS '命令类别：REINSTATE 复职；将来别的人事命令增加时扩展本检查';
 COMMENT ON COLUMN platform_identity.handled_personnel_commands.outcome_kind IS '判定结果：GRANT_OPENED 开了基础角色授予 / NOT_EMPLOYED 目录显示不在职、没开 / ALREADY_GRANTED 账号已有开放授予、没开';
-COMMENT ON COLUMN platform_identity.handled_personnel_commands.account_role_grant_id IS '本命令开出的角色授予 ID；只在 GRANT_OPENED 时有';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.account_role_grant_id IS '角色授予 ID：本命令开出的授予；只在 GRANT_OPENED 时有';
 COMMENT ON COLUMN platform_identity.handled_personnel_commands.handled_at IS '判定时刻（注入时钟）';
 COMMENT ON COLUMN platform_identity.handled_personnel_commands.created_at IS '创建时间';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.updated_at IS '更新时间（行只追加，等于创建时间；命名标准要求每表有）';
 
 CREATE FUNCTION platform_identity.require_open_role_version() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
