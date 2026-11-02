@@ -14,6 +14,7 @@ import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
+import com.forcitis.one.platform.identity.domain.AuthorizationBase;
 import com.forcitis.one.platform.identity.domain.Role;
 import com.forcitis.one.platform.identity.domain.RoleDraft;
 import com.forcitis.one.platform.identity.domain.RoleKind;
@@ -21,6 +22,8 @@ import com.forcitis.one.platform.identity.domain.RoleRepository;
 import com.forcitis.one.platform.identity.domain.RoleRuleException;
 import com.forcitis.one.platform.identity.domain.SensitivePermissions;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.stereotype.Service;
@@ -85,7 +88,8 @@ public class UpdateRole {
                 if (!ceiling.mayRequest(role.permissionCodes(), role.administrative())) {
                     return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED);
                 }
-                return new AdminOutcome.Awaiting<>(gate.openUpdateRole(caller, role.roleId(), draft(role, command)).value().toString());
+                return new AdminOutcome.Awaiting<>(gate.openUpdateRole(caller, role.roleId(), draft(role, command),
+                        new AuthorizationBase(null, List.of(Objects.requireNonNull(existing.get().roleVersionId())))).value().toString());
             }
             if (!ceiling.mayGrant(role.permissionCodes(), role.administrative())) {
                 return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED);
