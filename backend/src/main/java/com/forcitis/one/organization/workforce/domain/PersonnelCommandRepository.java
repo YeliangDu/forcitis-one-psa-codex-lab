@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PositionId;
@@ -47,6 +48,19 @@ public interface PersonnelCommandRepository {
     boolean positionExists(PositionId position);
 
     boolean employeeExists(EmployeeId employee);
+
+    /** The root of a hired person. The version rows follow from the command. */
+    void insertEmployee(NewEmployee employee, Instant at);
+
+    boolean employeeCodeTaken(String employeeCode);
+
+    /** Whether any employee other than {@code except} (none: anyone) holds the WeCom user id, separated ones included (W2 section 3.1 N-05). */
+    boolean wecomUserIdHeld(WecomUserId wecomUserId, @Nullable EmployeeId except);
+
+    Optional<PersonalProfile> profileOf(EmployeeId employee);
+
+    /** Writes the profile columns of the root; the code is never among them. */
+    void updateProfile(EmployeeId employee, PersonalProfile profile, Instant at);
 
     /** The employee's event sequence, which a command that takes effect continues. */
     long eventSequence(EmployeeId employee);

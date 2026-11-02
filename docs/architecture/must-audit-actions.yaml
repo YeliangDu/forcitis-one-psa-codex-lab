@@ -56,6 +56,7 @@ categories:
   - organization.workforce.EmployeeReinstated
   - organization.workforce.EmployeeSeparated
   - organization.workforce.EmployeeTransferred
+  - organization.workforce.employee-profile.changed
   - organization.workforce.personnel-command.entered
   - organization.workforce.personnel-command.withdrawn
 - name: 法人

@@ -6,9 +6,12 @@
 # section 4 item 2, allowed) | POSSIBLE (free text typed by a person; shown, not blocked). The class PI is never allowed (the guard refuses it).
 # A new writer must name the row it belongs to, or add a row to the card first. Changes need design review.
 src/main/java/com/forcitis/one/organization/workforce/application/CorrectLegalEntityAttribution.java | 1 | 4 | NONE
+src/main/java/com/forcitis/one/organization/workforce/application/EmployeeProfileService.java | 2 | 26 | POSSIBLE
 src/main/java/com/forcitis/one/organization/workforce/application/GetLegalEntityAttribution.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/organization/workforce/application/GetOrgUnit.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/organization/workforce/application/HeldSeparationRelease.java | 1 | 17 | POSSIBLE
 src/main/java/com/forcitis/one/organization/workforce/application/OwnAttributionGuard.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/organization/workforce/application/PersonnelCommandService.java | 2 | 24,25 | POSSIBLE
 src/main/java/com/forcitis/one/organization/workforce/application/RecordSyncRunRelease.java | 1 | 17 | POSSIBLE
 src/main/java/com/forcitis/one/platform/approval/application/ListAllTasks.java | 2 | 1,2 | NONE
 src/main/java/com/forcitis/one/platform/approval/application/ReassignTask.java | 1 | 1 | NONE
@@ -18,6 +21,8 @@ src/main/java/com/forcitis/one/platform/approval/application/TaskGuard.java | 1 
 src/main/java/com/forcitis/one/platform/audit/application/AuditDomainEvents.java | 2 | 9,18,19 | POSSIBLE
 src/main/java/com/forcitis/one/platform/audit/application/ExportAuditEntries.java | 1 | 8 | SURROGATE
 src/main/java/com/forcitis/one/platform/audit/application/SearchAuditEntries.java | 1 | 8 | SURROGATE
+src/main/java/com/forcitis/one/platform/file/infrastructure/audit/BindingAuditLog.java | 5 | 23 | SURROGATE
+src/main/java/com/forcitis/one/platform/file/infrastructure/audit/StoreAuditLog.java | 6 | 22 | POSSIBLE
 src/main/java/com/forcitis/one/platform/identity/application/BrowserIdentity.java | 2 | 11 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/application/ConfirmIdentity.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/CreateRole.java | 1 | 1,4 | NONE
@@ -45,7 +50,3 @@ src/main/java/com/forcitis/one/platform/identity/infrastructure/security/AccessD
 src/main/java/com/forcitis/one/platform/identity/infrastructure/security/PrivilegedRequestAudit.java | 1 | 7 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/infrastructure/security/SessionGuardFilter.java | 1 | 4 | NONE
 src/main/java/com/forcitis/one/platform/identity/infrastructure/startup/SingleOperatorModeStartup.java | 1 | 20 | NONE
-src/main/java/com/forcitis/one/platform/file/infrastructure/audit/BindingAuditLog.java | 5 | 23 | SURROGATE
-src/main/java/com/forcitis/one/platform/file/infrastructure/audit/StoreAuditLog.java | 6 | 22 | POSSIBLE
-src/main/java/com/forcitis/one/organization/workforce/application/HeldSeparationRelease.java | 1 | 17 | POSSIBLE
-src/main/java/com/forcitis/one/organization/workforce/application/PersonnelCommandService.java | 2 | 24,25 | POSSIBLE
