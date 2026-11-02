@@ -12,7 +12,6 @@ const NAVIGATION = [
     routePath: null,
     children: [
       { name: '编号规则', routePath: '/admin/numbering-rules', children: [] },
-      { name: '同步记录', routePath: '/admin/sync-runs', children: [] },
     ],
   },
 ];

@@ -27,7 +27,6 @@ import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
 import com.forcitis.one.platform.integration.api.SourceOrgUnit;
-import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.organization.workforce.events.EmployeeRegistered;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import java.util.List;
@@ -42,9 +41,6 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     OrgDirectory directory;
 
     @Autowired
-    SyncOrgSnapshot sync;
-
-    @Autowired
     AttributionSubjects attributionSubjects;
 
     @Autowired
@@ -55,7 +51,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
                         new SourceOrgUnit(sourceUnit(4), "C4", "Stopped", sourceUnit(1), 4, SourceRecordState.DISABLED, List.of(), null, null, false, null)),
                 List.of(head(2, 1), manager(2, 2)), List.of(post(100), post(101)),
                 List.of(person(1, 2, 100L, null), person(2, 3, 101L, 1L), person(3, 3, 101L, 2L)));
-        sync.execute(SyncTrigger.SCHEDULED, false);
+        SnapshotSeeder.seed(jdbc, orgSource.snapshot);
     }
 
     @Test
@@ -336,7 +332,7 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)),
                 List.of(head(2, 1), manager(2, 2)), List.of(post(100), post(101)),
                 List.of(person(1, 2, 100L, null), person(2, 3, 101L, 1L), person(3, 3, 101L, 2L)));
-        sync.execute(SyncTrigger.SCHEDULED, false);
+        SnapshotSeeder.seed(jdbc, orgSource.snapshot);
         assertThat(jdbc.sql("select status from organization_workforce.org_units where id = " + sqlOrgUnit(4)).query(String.class).single()).isEqualTo("REVOKED");
         assertThat(directory.findOrgUnit(unitId(4))).get().satisfies(u -> assertThat(u.active()).isFalse());
         assertThat(directory.findOrgUnit(unitId(404))).isEmpty();

@@ -4,8 +4,6 @@
 column organization_workforce.employees.email | 改名为 email_address
 column organization_workforce.employees.gender | 改名为 gender_code
 column organization_workforce.org_units.region_category | 改名为 region_kind（加 CHECK：总部 / 区域枚举）
-column organization_workforce.sync_diffs.detail | 改名为 detail_text
-column organization_workforce.sync_diffs.issue_kind | 改名为 保留列名，补 CHECK 列出枚举名
 column platform_approval.approval_requests.current_round | 改名为 current_round_number
 column platform_audit.audit_entries.action | 改名为 action_code
 column platform_audit.audit_entries.detail | 改名为 detail_text
@@ -28,9 +26,6 @@ constraint organization_workforce.legal_entities.legal_entities_code_key | RENAM
 constraint organization_workforce.legal_entities.legal_entities_pkey | RENAME CONSTRAINT legal_entities_pkey TO pk_legal_entities
 constraint organization_workforce.org_units.org_units_pkey | RENAME CONSTRAINT org_units_pkey TO pk_org_units
 constraint organization_workforce.positions.positions_pkey | RENAME CONSTRAINT positions_pkey TO pk_positions
-constraint organization_workforce.sync_diffs.sync_diffs_pkey | RENAME CONSTRAINT sync_diffs_pkey TO pk_sync_diffs
-constraint organization_workforce.sync_diffs.sync_diffs_sync_run_id_fkey | RENAME CONSTRAINT sync_diffs_sync_run_id_fkey TO fk_sync_diffs_sync_run_id
-constraint organization_workforce.sync_runs.sync_runs_pkey | RENAME CONSTRAINT sync_runs_pkey TO pk_sync_runs
 constraint platform_approval.approval_requests.approval_requests_pkey | RENAME CONSTRAINT approval_requests_pkey TO pk_approval_requests
 constraint platform_approval.approval_requests.uq_approval_requests_document | RENAME CONSTRAINT uq_approval_requests_document TO uk_approval_requests_document
 constraint platform_approval.start_rounds.start_rounds_pkey | RENAME CONSTRAINT start_rounds_pkey TO pk_start_rounds
@@ -52,9 +47,6 @@ constraint platform_numbering.numbering_rules.numbering_rules_pkey | RENAME CONS
 index organization_workforce.assignments_org_unit_id_idx | ALTER INDEX organization_workforce.assignments_org_unit_id_idx RENAME TO ix_assignments_org_unit_id
 index organization_workforce.employees_wecom_user_id_employed_key | ALTER INDEX organization_workforce.employees_wecom_user_id_employed_key RENAME TO uk_employees_wecom_user_id_employed
 index organization_workforce.org_units_parent_org_unit_id_idx | ALTER INDEX organization_workforce.org_units_parent_org_unit_id_idx RENAME TO ix_org_units_parent_org_unit_id
-index organization_workforce.sync_diffs_sync_run_id_idx | ALTER INDEX organization_workforce.sync_diffs_sync_run_id_idx RENAME TO ix_sync_diffs_sync_run_id
-index organization_workforce.sync_runs_started_at_idx | ALTER INDEX organization_workforce.sync_runs_started_at_idx RENAME TO ix_sync_runs_started_at
-index organization_workforce.sync_runs_status_idx | ALTER INDEX organization_workforce.sync_runs_status_idx RENAME TO ix_sync_runs_status
 index platform_identity.uq_roles_code | ALTER INDEX platform_identity.uq_roles_code RENAME TO uk_roles_code
 index platform_integration.outbound_deliveries_dead_idx | ALTER INDEX platform_integration.outbound_deliveries_dead_idx RENAME TO ix_outbound_deliveries_dead
 index platform_integration.outbound_deliveries_due_idx | ALTER INDEX platform_integration.outbound_deliveries_due_idx RENAME TO ix_outbound_deliveries_due

@@ -32,36 +32,6 @@ terms:
   forbidden: []
   status: proposed
   note: R-1b P2-H2，两个按登录标识查人的方法合一以守住 api 方法上限
-- id: error__organization_workforce_sync_run_transition_illegal
-  zh: 同步记录状态转换非法
-  en: OrganizationWorkforceSyncRunTransitionIllegal
-  snake: organization_workforce_sync_run_transition_illegal
-  kind: error_code
-  bc: organization.workforce
-  scope: domain
-  definition: 同步记录不能从当前状态进入目标状态（409）
-  standard_ref:
-  - docs/architecture/proposals/phase1-a-platform-conventions.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: error__organization_workforce_sync_run_not_found
-  zh: 同步记录不存在
-  en: OrganizationWorkforceSyncRunNotFound
-  snake: organization_workforce_sync_run_not_found
-  kind: error_code
-  bc: organization.workforce
-  scope: domain
-  definition: 没有这条同步记录（404）
-  standard_ref:
-  - docs/architecture/proposals/phase1-a-platform-conventions.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__organization_workforce_legal_entity_transition_illegal
   zh: 法人状态转换非法
   en: OrganizationWorkforceLegalEntityTransitionIllegal

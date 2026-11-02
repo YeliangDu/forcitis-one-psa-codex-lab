@@ -130,8 +130,6 @@ tables:
     mutability: MUTABLE
     retention: {policy: CURRENT_STATE}
     lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
-    fk_exceptions:
-      last_sync_run_id: sync runs are deleted after two years while the snapshot row lives on
     references: {regional_receivables_manager_id: organization_workforce.employees}
     writers: [organization.workforce]
   # is_fee_earner: 使用方未建，由同步原样入库 (cost.costing and others are not built); exposed through EmployeeProfile, and it does not mean billable.
@@ -177,8 +175,7 @@ tables:
     lineage: {source: NEW}
     writers: [organization.workforce]
   # Columns of org_units left out of the versions on purpose: sort_order (only orders siblings for display, nothing reads it by date), short_name (not a source column:
-  # a cross-source column refreshed daily from the old system, valid until DA-8 lands, ADR-0033 item 2.6), revoked_at (follows from the start of the REVOKED version),
-  # last_sync_run_id (moves to the change set with split a).
+  # a cross-source column refreshed daily from the old system, valid until DA-8 lands, ADR-0033 item 2.6), revoked_at (follows from the start of the REVOKED version).
   # 使用方未建，由同步原样入库: regional_receivables_manager_id and is_delivery_unit, as on org_units.
   organization_workforce.org_unit_versions:
     role: DIMENSION_VERSIONED
@@ -197,27 +194,6 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: ORG_SOURCE}
     references: {corrected_from_version_id: organization_workforce.assignment_versions}
-    writers: [organization.workforce]
-  organization_workforce.sync_runs:
-    role: AGGREGATE_ROOT
-    aggregate: SyncRun
-    mutability: MUTABLE
-    retention: {policy: 2y, job: organization.workforce.sync.purge}
-    lineage: {source: NEW}
-    writers: [organization.workforce]
-  organization_workforce.sync_diffs:
-    role: AGGREGATE_CHILD
-    aggregate: SyncRun
-    mutability: APPEND_ONLY
-    retention: {policy: 1y, job: organization.workforce.sync.purge}
-    lineage: {source: NEW}
-    writers: [organization.workforce]
-  organization_workforce.sync_run_held_separations:
-    role: AGGREGATE_CHILD
-    aggregate: SyncRun
-    mutability: REPLACE_SET
-    retention: {policy: 1y, job: organization.workforce.sync.purge}
-    lineage: {source: NEW}
     writers: [organization.workforce]
   # legal_entities is the current-value projection of the open row of legal_entity_versions: code, name and status are written in the same transaction as the version
   # (history in the versions table); WorkforceRowConstraintsIntegrationTest checks that the root equals its open version.

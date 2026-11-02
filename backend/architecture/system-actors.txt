@@ -8,8 +8,6 @@ cost.timesheet.consumed.events.purge | ea631485-fb5d-58ad-87ec-7c953ee85365 | co
 organization.workforce.login-registration | 8fb8643a-127d-507d-91a8-5fb200b233a5 | organization.workforce | 登录时登记员工（LoginMissRegistration）：企业微信或单点登录未命中快照、来源查到在职员工时登记并发布 EmployeeRegistered；登录请求尚无会话用户（P2-F1）
 organization.workforce.short.name.refresh | 99a33b03-dfe7-501f-8537-da3c7b1b87bd | organization.workforce | 作业：刷新部门简称
 organization.workforce.snapshot.reconcile | 3a1915f8-3e64-55a2-87f9-cc393fab0789 | organization.workforce | 作业：组织快照与来源每日核对
-organization.workforce.snapshot.sync | 57960204-0589-5d0a-91f3-72f5d147e40a | organization.workforce | 作业：组织快照同步
-organization.workforce.sync.purge | fb812326-a9e9-5e97-8a60-32ed4802a2dc | organization.workforce | 作业：清理过期的同步记录与差异
 platform.approval.approval-start | b1bdaa05-8daa-5a97-96a8-9c8b0e7fa3fe | platform.approval | 监听器 StartApprovalOnSubmission：工时单提交后发起审批
 platform.approval.deadline.enforce | 903ccafd-ba92-5772-b37a-6525c16febfb | platform.approval | 作业：审批时限提醒、逾期与升级
 platform.approval.process.archive | 8cd3cdaa-791f-54a2-ae05-7d7750cdd2b3 | platform.approval | 作业：归档已结束的流程实例

@@ -3,4 +3,3 @@
 # tests that saves other aggregate sets, for a use case here that no longer exists, and for an event of such a transaction without relatedAggregates.
 # Changes need design review.
 com.forcitis.one.cost.timesheet.application.SubmitTimesheet | Timesheet+NumberingRule | A document number must come from a gapless counter in the same transaction that inserts the document (DocumentNumbers.next); the TimesheetSubmitted of that transaction names NumberingRule in relatedAggregates
-com.forcitis.one.organization.workforce.application.ApplySourceSnapshot | SyncRun+OrgSnapshot | 运行结果与快照同生同灭，拆开会留下「已应用但运行未记」或反之的窗口；SyncRunSucceeded 与 OrgSnapshotChanged 在 relatedAggregates 里列出 OrgSnapshot

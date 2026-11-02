@@ -8,7 +8,6 @@ import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.EmployeeExistence;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
-import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,9 +20,6 @@ class Nits1EmployeeExistenceIntegrationTest extends WorkforceIntegrationSupport 
     @Autowired
     OrgDirectory directory;
 
-    @Autowired
-    SyncOrgSnapshot sync;
-
     private void rowOnly(EmployeeId id, long serial) {
         jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values (:id, :code, :name, 'EMPLOYED')")
                 .param("id", id.value()).param("code", "ROW" + serial).param("name", "Synthetic row-only person " + serial).update();
@@ -33,7 +29,7 @@ class Nits1EmployeeExistenceIntegrationTest extends WorkforceIntegrationSupport 
     @DisplayName("NITS-1 employeeExists 对有行无任职、离职、在职员工为真，对不存在的 ID 为假")
     void anEmployeesRowIsEnough() {
         orgSource.snapshot = tree(person(1, 2, 100L, null), person(2, 2, 100L, null));
-        sync.execute(SyncTrigger.SCHEDULED, false);
+        SnapshotSeeder.seed(jdbc, orgSource.snapshot);
         jdbc.sql("update organization_workforce.employees set employment_status = 'SEPARATED' where id = :id").param("id", TestAccounts.employee(2).value()).update();
         EmployeeId withoutAssignment = TestAccounts.employee(500);
         rowOnly(withoutAssignment, 500);
@@ -48,7 +44,7 @@ class Nits1EmployeeExistenceIntegrationTest extends WorkforceIntegrationSupport 
     @DisplayName("NITS-1 findEmployee 对无任职员工仍返回空（语义不变）")
     void findEmployeeStillNeedsAnAssignment() {
         orgSource.snapshot = tree(person(1, 2, 100L, null));
-        sync.execute(SyncTrigger.SCHEDULED, false);
+        SnapshotSeeder.seed(jdbc, orgSource.snapshot);
         EmployeeId withoutAssignment = TestAccounts.employee(500);
         rowOnly(withoutAssignment, 500);
 
