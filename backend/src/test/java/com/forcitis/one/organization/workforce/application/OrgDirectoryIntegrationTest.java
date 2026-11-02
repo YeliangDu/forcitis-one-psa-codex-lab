@@ -45,6 +45,9 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     SyncOrgSnapshot sync;
 
     @Autowired
+    AttributionSubjects attributionSubjects;
+
+    @Autowired
     ApplicationEvents events;
 
     private void synced() {
@@ -140,6 +143,31 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId("wx-2")))).isEmpty();
 
         assertThat(events.stream(EmployeeRegistered.class).count()).as("no second EmployeeRegistered").isEqualTo(registered);
+    }
+
+    @Test
+    @DisplayName("#958 login miss by login name: a known employee not in post by versions under a changed login name is not registered again nor admitted")
+    void aKnownEmployeeUnderAChangedLoginNameIsNotRegisteredAgain() {
+        synced();
+        notYetInPost(2);
+        jdbc.sql("update organization_workforce.employees set wecom_user_id = 'wx-2-old', login_name = 'old-login' where id = " + sqlEmployee(2)).update();
+        String sourceLogin = "new-login";
+        orgSource.singleLookupResult = List.of(person(2, 3, 101L, 1L, sourceLogin, "wx-2"));
+        long registered = events.stream(EmployeeRegistered.class).count();
+
+        assertThat(directory.findEmployeeByLogin(new LoginLookup.ByLoginName(sourceLogin))).isEmpty();
+
+        assertThat(events.stream(EmployeeRegistered.class).count()).as("no second EmployeeRegistered").isEqualTo(registered);
+    }
+
+    @Test
+    @DisplayName("#958 an employee who is not in post by versions still exists for legal-entity attribution (existence is the root row, not the assignment in force)")
+    void anEmployeeNotInPostByVersionsStillExistsForAttribution() {
+        synced();
+        notYetInPost(2);
+        assertThat(directory.findEmployee(user(2))).isEmpty();
+
+        assertThat(attributionSubjects.require(com.forcitis.one.organization.workforce.api.AttributionKind.EMPLOYEE, TestAccounts.employee(2).value())).isNotNull();
     }
 
     @Test
