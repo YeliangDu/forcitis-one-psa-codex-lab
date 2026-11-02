@@ -38,8 +38,9 @@ import org.springframework.test.context.DynamicPropertySource;
 /**
  * R-1b P2 (ADR-0033 section 3 item 7, U-4 answered "拒绝并告警"; ADR-0027 section 1 item 3): the employment check of the emergency login
  * finds the employee behind the bound account through identity and then reads the organisation snapshot. A snapshot that works but does
- * not list that employee refuses the login and alerts; a snapshot that is not there at all, or is stale because the source has been
- * failing, lets the login through and alerts on top of the usual emergency-login alert.
+ * not list that employee refuses the login and alerts; a snapshot that is not there at all lets the login through and alerts on top of
+ * the usual emergency-login alert. The stale-snapshot case (the source failing for a long time) went with the old sync in #934: with no
+ * sync there is no source run whose failures could make the snapshot stale.
  * The bound account's id and its employee id differ (the account id is a UUID), so the check has to be made on the employee's side.
  * The emergency account is registered with the operations command; its password and one-time-code secret exist only in this test's memory.
  */
@@ -123,12 +124,17 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
     }
 
     private void clearOrgSnapshot() throws SQLException {
+        boolean oldSync = oldSyncTablesExist();
         try (Connection workforce = schemaConnection("organization_workforce"); Statement statement = workforce.createStatement()) {
-            statement.execute("delete from sync_run_held_separations");
+            if (oldSync) {
+                statement.execute("delete from sync_run_held_separations");
+            }
             statement.execute("delete from assignments");
             statement.execute("delete from employees");
             statement.execute("delete from org_units");
-            statement.execute("delete from sync_runs");
+            if (oldSync) {
+                statement.execute("delete from sync_runs");
+            }
         }
     }
 
@@ -190,34 +196,6 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
         assertThat(login.getStatus()).as(login.getContentAsString()).isEqualTo(200);
         assertThat(startedASession(login)).isTrue();
         assertThat(alertsSince(mark).size()).as("alerts when the snapshot is missing, against %s for a usual emergency login", usualAlerts)
-                .isGreaterThan(usualAlerts);
-    }
-
-    @Test
-    @DisplayName("R-1b P2 ADR-0033 第 3 项第 7 条 / ADR-0027 第 1 项第 3 条：快照过期（最近一次成功同步在 30 天前，其后同步一直失败）且查不到绑定员工 → 放行，并比正常的应急登录多告警")
-    void aStaleSnapshotWithoutTheBoundEmployeeLetsThroughAndAlerts() throws Exception {
-        UUID unit = workingSnapshot();
-        UUID bound = newEmployeeId();
-        EmergencyAccount account = boundSuperAdministrator(bound, unit);
-        int usualMark = logMark();
-        MockHttpServletResponse usual = emergencyLogin(account);
-        assertThat(usual.getStatus()).as(usual.getContentAsString()).isEqualTo(200);
-        int usualAlerts = alertsSince(usualMark).size();
-
-        try (Connection workforce = schemaConnection("organization_workforce"); Statement statement = workforce.createStatement()) {
-            statement.execute("delete from sync_runs");
-        }
-        syncRun("SUCCEEDED", NOW.minus(Duration.ofDays(30)), NOW.minus(Duration.ofDays(30)).plusSeconds(60));
-        syncRun("FAILED", NOW.minus(Duration.ofMinutes(10)), NOW.minus(Duration.ofMinutes(9)));
-        syncRun("FAILED", NOW.minus(Duration.ofMinutes(5)), NOW.minus(Duration.ofMinutes(4)));
-        removeFromSnapshot(bound);
-        clock.set(NOW.plus(Duration.ofSeconds(31)));
-        int mark = logMark();
-        MockHttpServletResponse login = emergencyLogin(account);
-
-        assertThat(login.getStatus()).as(login.getContentAsString()).isEqualTo(200);
-        assertThat(startedASession(login)).isTrue();
-        assertThat(alertsSince(mark).size()).as("alerts when the snapshot is stale, against %s for a usual emergency login", usualAlerts)
                 .isGreaterThan(usualAlerts);
     }
 
