@@ -5,9 +5,14 @@ import static com.forcitis.one.acceptance.organization.workforce.OrgStructureCom
 import static com.forcitis.one.acceptance.organization.workforce.OrgStructureCommandNames.EVENT_MERGED;
 import static com.forcitis.one.acceptance.organization.workforce.OrgStructureCommandNames.IN_PROGRESS;
 import static com.forcitis.one.acceptance.organization.workforce.OrgStructureCommandNames.REVOKED;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.COMMAND_KIND;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.CORRECTION;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.EFFECTIVE;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.EFFECTIVE_DATE;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.EMPLOYEE_ID;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.PENDING;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.REGULAR;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.TARGET_ORG_UNIT_ID;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.TRANSFER;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.WITHDRAWN;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,6 +22,7 @@ import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -226,5 +232,117 @@ class OrgCountersignMergeIT extends OrgCountersignSupport {
         assertThat(unitOf(newcomer, DAY)).isEqualTo(merged);
         assertThat(legalEntityChangesOf(newcomer)).isZero();
         assertThat(unitOn(merged, DAY).get("status")).isEqualTo(ACTIVE);
+    }
+
+    @Test
+    @DisplayName("#910 用户答复 QF1（a）与 one-design 读法「合并日当天或之后调出才算」的反面（lead 2026-11-02 选 c）：会签后、执行前录入一条合并日前一天生效的调岗把依据里的人调出被并入单元：执行时此人不受影响、不计入受影响人数、不给他生成调岗；其余的人照常调走，合并 EFFECTIVE（受影响 = 已转 = 2）")
+    void aPersonMovedOutTheDayBeforeIsNotPartOfTheMerge() throws Exception {
+        UUID merge = countersignedMerge();
+        actInSpecialist();
+        transfer(inheritingA, DAY.minusDays(1), topE1);
+        actIn(orgAdmin);
+        setToday(DAY);
+
+        orgCommands().executeMerge(merge);
+
+        Map<String, Object> row = orgCommand(merge);
+        assertThat(row.get("affected_employee_count")).isEqualTo(2);
+        assertThat(row.get("transferred_employee_count")).isEqualTo(2);
+        assertThat(row.get("status")).isEqualTo(EFFECTIVE);
+        assertThat(generatedTransfers(merge)).containsOnlyKeys(inheritingB, own);
+        assertThat(unitOf(inheritingA, DAY)).isEqualTo(topE1);
+        assertThat(legalEntityChangesOf(inheritingA)).isZero();
+    }
+
+    /**
+     * QF1 (b), one-design ruling on #910 comment 6589166321: the chain of the receiving unit changes after the countersign, both inheriting
+     * people are stopped at execution, and finance rejects inheritingA's own countersign; the merge stays IN_PROGRESS with inheritingA held.
+     */
+    private UUID mergeHoldingARejectedPerson() throws Exception {
+        UUID merge = countersignedMerge();
+        assignLegalEntity(receiving, DAY.minusDays(1), e3);
+        setToday(DAY);
+        catchThrowable(() -> orgCommands().executeMerge(merge));
+        countersignsAs(headE3).reject(personnelRequest(transferOf(merge, inheritingA), e3), "synthetic: finance refuses");
+        countersignsAs(headE1).approve(personnelRequest(transferOf(merge, inheritingB), e1));
+        countersignsAs(headE3).approve(personnelRequest(transferOf(merge, inheritingB), e3));
+        actIn(orgAdmin);
+        assertThat(statusOf(merge)).isEqualTo(IN_PROGRESS);
+        assertThat(unitOf(inheritingA, DAY)).isEqualTo(merged);
+        return merge;
+    }
+
+    private UUID correctionInto(UUID person, LocalDate from, UUID toUnit) throws Exception {
+        actInSpecialist();
+        Map<String, Object> fields = new HashMap<>();
+        fields.put(EMPLOYEE_ID, person);
+        fields.put(COMMAND_KIND,
+                CORRECTION);
+        fields.put(EFFECTIVE_DATE, from);
+        fields.put(TARGET_ORG_UNIT_ID, toUnit);
+        UUID command = commands().enter(fields);
+        actIn(orgAdmin);
+        return command;
+    }
+
+    @Test
+    @DisplayName("#910 one-design 裁定 QF1（b，#910 comment 6589166321，按版本判断）：被拦且会签被拒的人，经一条从合并日前一天起的更正调出被并入单元后即算完成（不必再执行合并）：合并 EFFECTIVE（受影响 = 已转 = 3），被并入单元撤销，发一次「已合并」")
+    void aBackDatedCorrectionOutCountsThePerson() throws Exception {
+        UUID merge = mergeHoldingARejectedPerson();
+
+        correctionInto(inheritingA, DAY.minusDays(1), topE1);
+
+        Map<String, Object> row = orgCommand(merge);
+        assertThat(row.get("status")).isEqualTo(EFFECTIVE);
+        assertThat(row.get("transferred_employee_count")).isEqualTo(row.get("affected_employee_count")).isEqualTo(3);
+        assertThat(unitOn(merged, DAY).get("status")).isEqualTo(REVOKED);
+        assertThat(eventsOf(EVENT_MERGED, merge)).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("#910 one-design 裁定 QF1（b）：被拦的人只在合并日之后（D+5）才调出，不算完成：其在被并入单元的版本仍覆盖合并日，合并仍 IN_PROGRESS、单元不撤销")
+    void aLaterTransferOutDoesNotCount() throws Exception {
+        UUID merge = mergeHoldingARejectedPerson();
+        actInSpecialist();
+
+        transfer(inheritingA, DAY.plusDays(5), topE1);
+
+        actIn(orgAdmin);
+        catchThrowable(() -> orgCommands().executeMerge(merge));
+        assertThat(statusOf(merge)).isEqualTo(IN_PROGRESS);
+        assertThat(orgCommand(merge).get("transferred_employee_count")).isEqualTo(2);
+        assertThat(unitOn(merged, DAY).get("status")).isEqualTo(ACTIVE);
+    }
+
+    @Test
+    @DisplayName("#910 one-design 裁定 QF1（b）：被拦的人在合并日生效离职（最后工作日为前一天）即算完成：合并 EFFECTIVE，被并入单元撤销")
+    void aSeparationEffectiveOnTheMergeDateCounts() throws Exception {
+        UUID merge = mergeHoldingARejectedPerson();
+        actInSpecialist();
+
+        separate(inheritingA, DAY.minusDays(1));
+
+        actIn(orgAdmin);
+        assertThat(statusOf(merge)).isEqualTo(EFFECTIVE);
+        assertThat(orgCommand(merge).get("transferred_employee_count")).isEqualTo(3);
+        assertThat(unitOn(merged, DAY).get("status")).isEqualTo(REVOKED);
+    }
+
+    @Test
+    @DisplayName("#910 one-design 裁定 QF1（b）「已完成数只增不减」：合并 IN_PROGRESS 期间，把任何人在合并日或之后放进被并入单元的命令都被拒（调入、从更早日期起的更正），已完成数不变")
+    void nobodyMayBeMovedIntoAMergeInProgress() throws Exception {
+        UUID merge = mergeHoldingARejectedPerson();
+        UUID outsider = inheritingIn(topE1);
+        Object done = orgCommand(merge).get("transferred_employee_count");
+        actInSpecialist();
+
+        assertRefused(() -> transfer(outsider, DAY, merged));
+        assertRefused(() -> transfer(outsider, DAY.plusDays(3), merged));
+        assertRefused(() -> transfer(inheritingB, DAY.plusDays(2), merged));
+        assertRefused(() -> correctionInto(outsider, DAY.minusDays(2), merged));
+
+        actIn(orgAdmin);
+        assertThat(orgCommand(merge).get("transferred_employee_count")).isEqualTo(done);
+        assertThat(unitOf(outsider, DAY.plusDays(3))).isEqualTo(topE1);
     }
 }
