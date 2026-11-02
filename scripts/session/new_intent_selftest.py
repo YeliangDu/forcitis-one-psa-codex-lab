@@ -68,7 +68,7 @@ def main():
         assert code == 0 and "## 规则\n\nRULE-1、ABC-RULE-22\n" in open(sorted(glob.glob(os.path.join(mod, "2026-01-03-*.md")))[0], encoding="utf-8").read(), out
         code, out = run(tree, GOOD + ["--rules=rule-1"])
         assert code != 0 and "--rules" in out, "规则号格式不合应拒"
-        for owner in ("one-lead", "one-design", "one-platform", "one-dev-org"):
+        for owner in ("one-lead", "one-design", "one-platform", "one-dev-org", "one-dev-identity"):
             code, out = run(tree, swap(GOOD, "owner", owner))
             assert code == 0, f"{owner} 应认：{out}"
         for old in ("one-rules", "one-coordinator", "one-leader", "one-ops", "one-architecture", "one-platform-file"):   # #856：旧名不再放行
