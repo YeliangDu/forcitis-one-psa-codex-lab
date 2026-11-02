@@ -10,7 +10,7 @@
 |---|---|---|---|---|
 | 登录失败率 | P1 | `forcitis_platform_identity_login_total{outcome}` | 5 分钟失败率 > 20 % 且失败 ≥ 20 | `ONE_ALERT_P1` |
 | 未完成事件发布 / 死信 | P2 | `forcitis_platform_integration_event_publications_stale`、`…_exhausted`、`forcitis_platform_integration_deliveries_dead_letters` | 任一 > 0（stale 持续 1 分钟） | `ONE_ALERT_P2` |
-| 组织同步延迟或中止 | P2 | `forcitis_organization_workforce_sync_lag_seconds`、`…_sync_held_runs` | lag > 600 秒，或 held > 0 | `ONE_ALERT_P2` |
+| 组织同步被扣留（HELD） | P2 | `forcitis_organization_workforce_sync_held_runs` | held > 0（同步已不再被调度，延迟告警已撤；处置见 infra-runbook「HELD 运行」） | `ONE_ALERT_P2` |
 | 作业失败 | P3 | `tasks_scheduled_execution_seconds_count{outcome="ERROR"}`、`forcitis_platform_approval_deadline_failed_total` | 15 分钟内 > 0 | 看板；汇总进 `ONE_ALERT_P2` |
 | 附加：日历未维护 | P2 | `forcitis_organization_attendance_calendar_unmaintained_total` | 1 小时内 > 0 | `ONE_ALERT_P2` |
 | 附加：应用不可达 | P1 | `up{job="forcitis-one"}` | = 0 持续 2 分钟 | `ONE_ALERT_P1` |
