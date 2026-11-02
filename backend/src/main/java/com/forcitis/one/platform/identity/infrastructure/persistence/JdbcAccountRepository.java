@@ -52,18 +52,23 @@ class JdbcAccountRepository implements AccountRepository {
 
     @Override
     public Optional<UserAccount> find(UserId userId) {
-        return load(userId, "");
+        return load(userId, false);
     }
 
     @Override
     public Optional<UserAccount> findForUpdate(UserId userId) {
-        return load(userId, " for update");
+        return load(userId, true);
     }
 
-    private Optional<UserAccount> load(UserId userId, String lock) {
-        Optional<UserAccount> found = jdbc.sql("""
+    private Optional<UserAccount> load(UserId userId, boolean lock) {
+        JdbcClient.StatementSpec select = lock
+                ? jdbc.sql("""
+                        select user_id, employee_id, status, version, event_count from platform_identity.user_accounts where user_id = :id for update
+                        """)
+                : jdbc.sql("""
                         select user_id, employee_id, status, version, event_count from platform_identity.user_accounts where user_id = :id
-                        """ + lock)
+                        """);
+        Optional<UserAccount> found = select
                 .param("id", userId.value())
                 .query((rs, n) -> UserAccount.restore(new UserId(rs.getObject("user_id", UUID.class)), new EmployeeId(rs.getObject("employee_id", UUID.class)),
                         rs.getString("status"), Set.of(), rs.getLong("version"), rs.getLong("event_count")))
