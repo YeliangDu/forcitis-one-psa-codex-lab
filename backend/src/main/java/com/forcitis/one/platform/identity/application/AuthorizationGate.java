@@ -5,6 +5,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.identity.api.AuthorizationRequestId;
 import com.forcitis.one.platform.identity.api.RoleId;
+import com.forcitis.one.platform.identity.domain.AuthorizationBase;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequest;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequestRepository;
 import com.forcitis.one.platform.identity.domain.RoleDraft;
@@ -26,16 +27,16 @@ class AuthorizationGate {
         this.clock = clock;
     }
 
-    AuthorizationRequestId openReplaceRoles(UserId by, UserId subject, Set<String> roleCodes) {
-        return open(AuthorizationRequest.replaceRoles(newId(), by, clock.instant(), subject, roleCodes));
+    AuthorizationRequestId openReplaceRoles(UserId by, UserId subject, Set<String> roleCodes, AuthorizationBase base) {
+        return open(AuthorizationRequest.replaceRoles(newId(), by, clock.instant(), subject, roleCodes, base));
     }
 
     AuthorizationRequestId openCreateRole(UserId by, RoleDraft draft) {
         return open(AuthorizationRequest.createRole(newId(), by, clock.instant(), draft));
     }
 
-    AuthorizationRequestId openUpdateRole(UserId by, RoleId role, RoleDraft draft) {
-        return open(AuthorizationRequest.updateRole(newId(), by, clock.instant(), role, draft));
+    AuthorizationRequestId openUpdateRole(UserId by, RoleId role, RoleDraft draft, AuthorizationBase base) {
+        return open(AuthorizationRequest.updateRole(newId(), by, clock.instant(), role, draft, base));
     }
 
     private AuthorizationRequestId newId() {
