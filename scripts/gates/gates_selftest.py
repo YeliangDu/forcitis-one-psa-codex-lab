@@ -300,15 +300,15 @@ def renamed_test():  # ── pre_commit ──
     """#744：会话名随角色（one-lead、one-design、one-platform、one-dev-<bc>），都在 sessions.config。#856：旧名不再登记（没有 sessions.aliases），
     会话由工作区会话标记认定；合入队列的分支归属（gapscan.load_owners）只认 sessions.config 的键，旧前缀的分支报未知。"""
     sessions, root = policy("sessions"), Path(ROOT)
-    assert set(sessions["config"]) == {"one-lead", "one-design", "one-platform", "one-dev-org"}, sorted(sessions["config"])
-    for name, role in (("one-lead", "lead"), ("one-design", "design"), ("one-platform", "platform"), ("one-dev-org", "dev")):
+    assert set(sessions["config"]) == {"one-lead", "one-design", "one-platform", "one-dev-org", "one-dev-identity"}, sorted(sessions["config"])
+    for name, role in (("one-lead", "lead"), ("one-design", "design"), ("one-platform", "platform"), ("one-dev-org", "dev"), ("one-dev-identity", "dev")):
         assert sessions["config"][name]["role"] == role, name
     assert "aliases" not in sessions, "no old names are kept (#856)"
     assert not (root / "scripts/merge/session_map.json").exists(), "branch owners come from policy.json only (#754)"
     sys.path.insert(0, str(root / "scripts" / "merge"))
     import gapscan
     owners = gapscan.load_owners()
-    assert all(gapscan.author_session(b, owners) == o for b, o in (("claude/one-lead-x", "one-lead"), ("claude/one-dev-org-x", "one-dev-org"),
+    assert all(gapscan.author_session(b, owners) == o for b, o in (("claude/one-lead-x", "one-lead"), ("claude/one-dev-org-x", "one-dev-org"), ("claude/one-dev-identity-x", "one-dev-identity"),
                                                                ("claude/one-platform-810-x", "one-platform"), ("claude/one-design-860-x", "one-design"),
                                                                ("claude/one-ops-744-x", "?(claude/one-ops-744-x)"))), "only current names own branches"
 
