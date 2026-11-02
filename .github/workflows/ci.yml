@@ -158,6 +158,27 @@ jobs:
           bash ../scripts/codegen/generate_api.sh --check
           ./mvnw -q test-compile surefire:test -Dtest="$CLASSES"
           for class in ${CLASSES//,/ }; do ls target/surefire-reports/TEST-*."$class".xml >/dev/null 2>&1 || { echo "$class produced no report: it did not run" >&2; exit 1; }; done
+      - name: start the SQL Server tests beside surefire and failsafe (profile legacy-it)
+        if: steps.change.outputs.legacy_it == 'true' && steps.heavy.outputs.run == 'true'
+        shell: bash
+        env:
+          BACKEND_WATCHDOG_SECONDS: '1500'
+        run: |
+          legacy="$RUNNER_TEMP/legacy-it"
+          rm -rf "$legacy"
+          git worktree prune
+          git worktree add --detach -q "$legacy" HEAD
+          cp frontend/packages/api/openapi.json "$legacy/frontend/packages/api/openapi.json"
+          mkdir -p "$legacy/frontend/packages/api/src/generated"
+          cp frontend/packages/api/src/generated/*.ts "$legacy/frontend/packages/api/src/generated/"
+          rm -f "$RUNNER_TEMP/legacy-it.rc"
+          {
+            echo "LEGACY_IT_DIR=$legacy"
+            echo "LEGACY_IT_LOG=$RUNNER_TEMP/legacy-it.log"
+            echo "LEGACY_IT_RC=$RUNNER_TEMP/legacy-it.rc"
+          } >> "$GITHUB_ENV"
+          # the script's own watchdog and fork limits apply; its exit status lands in the rc file (never empty: the waiting step polls for it)
+          nohup bash -c 'cd "$1" && scripts/ci/legacy_it.sh -Dtest.forks=2 -Dtest.fork.timeout=1800; echo $? > "$2"' _ "$legacy" "$RUNNER_TEMP/legacy-it.rc" > "$RUNNER_TEMP/legacy-it.log" 2>&1 &
       - name: surefire and failsafe, side by side
         if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         # Two forks per plugin (four test JVMs per runner instead of eight): the runners share one Docker Desktop (docs/ops/ci-runners.md)
@@ -170,12 +191,24 @@ jobs:
         if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         # Check the default invocation before explicit -Dit.test reruns can add SQL Server reports.
         run: python3 scripts/guards/acceptance_reports.py --tier default
+      # the SQL Server tests (~3 min, most pull requests touch what they read) end this job's step list, but run beside surefire and failsafe, started in a second checkout of the same commit (own target directory and reports, so
+      # neither run touches the other's classes or reports); the step below waits for them and fails the job, so the result stays inside the required `backend verify` check (#1034)
       - name: SQL Server integration tests (profile legacy-it)
         if: steps.change.outputs.legacy_it == 'true' && steps.heavy.outputs.run == 'true'
         timeout-minutes: 30
-        env:
-          BACKEND_WATCHDOG_SECONDS: '1500'
-        run: scripts/ci/legacy_it.sh -Dtest.forks=2 -Dtest.fork.timeout=1800
+        run: |
+          while [ ! -s "$LEGACY_IT_RC" ]; do sleep 5; done
+          echo "::group::legacy_it.sh"; cat "$LEGACY_IT_LOG"; echo "::endgroup::"
+          test "$(cat "$LEGACY_IT_RC")" = 0
+      # a failed or cancelled earlier step leaves the second checkout's Maven and test JVMs running: stop what runs from it (by its path) and drop the checkout
+      - name: stop the SQL Server tests if they are still running
+        if: always() && env.LEGACY_IT_DIR != ''
+        run: |
+          pkill -f "$LEGACY_IT_DIR/" 2>/dev/null || true
+          sleep 2
+          pkill -9 -f "$LEGACY_IT_DIR/" 2>/dev/null || true
+          git worktree remove --force "$LEGACY_IT_DIR" 2>/dev/null || rm -rf "$LEGACY_IT_DIR"
+          git worktree prune
       # only a recorded pid: an empty one used to become `kill 0`, which signals the whole process group of the step - runsvc.sh and the runner listener included - and took the runner offline (卡 #736 第 9 项)
       - name: stop the docker events recorder
         if: always()
@@ -188,6 +221,9 @@ jobs:
             backend/target/surefire-reports
             backend/target/failsafe-reports
             backend/target/legacy-it-reports
+            ${{ runner.temp }}/legacy-it/backend/target/legacy-it-reports
+            ${{ runner.temp }}/legacy-it/backend/target/thread-dumps
+            ${{ runner.temp }}/legacy-it.log
             backend/target/thread-dumps
             backend/target/docker-diagnostics
             backend/target/**/*.dump*

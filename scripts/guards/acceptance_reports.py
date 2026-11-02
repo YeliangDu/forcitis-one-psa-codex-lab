@@ -250,9 +250,12 @@ def configuration_self_test(root):
     report_step = ci.index("- name: every acceptance test class produced")
     rerun_step = ci.index("- name: SQL Server integration tests (profile legacy-it)")   # #742: the repeat step is gone; the SQL Server step is the run that adds reports after the default one
     assert report_step < rerun_step and "acceptance_reports.py --tier default" in ci[report_step:rerun_step], "QUAL-CARD-H-R2-7: default reports must be checked before explicit reruns"
-    sql_step = ci.split("- name: SQL Server integration tests (profile legacy-it)", 1)[1].split("\n      - ", 1)[0]
-    assert "run: scripts/ci/legacy_it.sh -Dtest.forks=2 -Dtest.fork.timeout=1800" in sql_step, "QUAL-CARD-H-R2-2: SQL Server must use two bounded forks"
-    assert "BACKEND_WATCHDOG_SECONDS: '1500'" in sql_step and "timeout-minutes: 30" in sql_step, "QUAL-CARD-H-R2-2: watchdog must run before the step deadline"
+    sql_step = ci.split("- name: SQL Server integration tests (profile legacy-it)", 1)[1].split("\n      - ", 1)[0]   # the step that waits for the run and fails the job (#1034: the run itself starts beside surefire and failsafe)
+    start_step = ci.split("- name: start the SQL Server tests beside surefire and failsafe (profile legacy-it)", 1)[1].split("\n      - ", 1)[0]
+    assert "scripts/ci/legacy_it.sh -Dtest.forks=2 -Dtest.fork.timeout=1800" in start_step, "QUAL-CARD-H-R2-2: SQL Server must use two bounded forks"
+    assert "BACKEND_WATCHDOG_SECONDS: '1500'" in start_step and "timeout-minutes: 30" in sql_step, "QUAL-CARD-H-R2-2: watchdog must run before the step deadline"
+    assert 'git worktree add --detach -q "$legacy" HEAD' in start_step and 'test "$(cat "$LEGACY_IT_RC")" = 0' in sql_step, "#1034: the SQL Server run has its own checkout, and its status fails the backend job"
+    assert ci.index("- name: start the SQL Server tests beside") < ci.index("- name: surefire and failsafe, side by side"), "#1034: the SQL Server run starts before surefire and failsafe so that they overlap"
     nightly = Path(root, ".github/workflows/nightly-legacy-it.yml").read_text()
     assert "scripts/ci/backend_verify.sh -Plegacy-it" in nightly and "acceptance_reports.py --tier full" in nightly, "nightly must run and check both tiers"
 
