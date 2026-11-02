@@ -26,6 +26,12 @@ class JdbcEmployeeVersionQueries implements EmployeeVersionQueries {
     }
 
     @Override
+    public boolean hasVersions(EmployeeId employee) {
+        return jdbc.sql("select 1 from organization_workforce.employee_versions where employee_id = :employee limit 1")
+                .param("employee", employee.value()).query(Integer.class).optional().isPresent();
+    }
+
+    @Override
     public Optional<EmploymentStatus> employmentOn(EmployeeId employee, LocalDate day) {
         return jdbc.sql("""
                 select employment_status from organization_workforce.employee_versions

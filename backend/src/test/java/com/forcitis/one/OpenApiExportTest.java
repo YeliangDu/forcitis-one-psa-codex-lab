@@ -121,6 +121,9 @@ class OpenApiExportTest {
             "TaskDetailResponse.taskId", "TaskDetailResponse.instanceId", "TaskDetailResponse.documentId", "TaskOverviewResponse.taskId", "TaskOverviewResponse.documentId",
             "InboxItemResponse.documentId", "parameter taskId", "StoredFileResponse.fileId", "FileStatusResponse.fileId", "parameter fileId",
             "parameter orgUnitId", "parameter employeeId",
+            "EnterPersonnelCommandRequest.employeeId", "EnterPersonnelCommandRequest.targetOrgUnitId", "EnterPersonnelCommandRequest.targetPositionId",
+            "EnterPersonnelCommandRequest.targetReportsToEmployeeId", "PersonnelCommandResponse.personnelCommandId", "parameter personnelCommandId",
+            "parameter separationHoldId",
             "AuthorizationRequestResponse.requestedBy", "PendingTemplate.confirmedBy", "PendingTemplate.financeConfirmedBy", "SyncRunResponse.releasedBy",
             "TaskDetailResponse.initiator", "TaskDetailResponse.assignee", "TaskOverviewResponse.assignee");
 
@@ -135,8 +138,8 @@ class OpenApiExportTest {
      */
     static final Set<String> OTHER_ID_NAMES = Set.of("InboxItemResponse.taskId", "SyncDiffResponse.subjectKey");
 
-    /** Identifiers that belong to an external system and stay what that system gives: on the wire a whole number written as text. */
-    static final Set<String> EXTERNAL_ID_NAMES = Set.of("sourceId");
+    /** Identifiers that belong to an external system and stay what that system gives: a plain string on the wire. */
+    static final Set<String> EXTERNAL_ID_NAMES = Set.of("sourceId", "wecomUserId");
 
     @Test
     void idFieldsOfThisSystemAreStringUuidAndEveryOtherIdFieldIsClassified() throws Exception {

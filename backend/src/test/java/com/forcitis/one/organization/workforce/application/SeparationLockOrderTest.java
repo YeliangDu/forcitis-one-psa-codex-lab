@@ -79,12 +79,12 @@ class SeparationLockOrderTest {
     @Test
     @DisplayName("IMP-1030-PAR-B6 entering a separation takes the separation lock before the employee row")
     void enteringLocksTheDecisionFirst() {
-        PersonnelCommandService service = new PersonnelCommandService(commands, new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class),
+        PersonnelCommandService service = new PersonnelCommandService(commands, mock(NewEmployees.class), new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class),
                 mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone);
         when(commands.eventSequence(EMPLOYEE)).thenReturn(0L);
         when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), Map.of()));
 
-        assertThatThrownBy(() -> service.enter(new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.SEPARATE, null, LocalDate.of(2026, 11, 1), null, null, null, null, null)))
+        assertThatThrownBy(() -> service.enter(new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.SEPARATE, null, LocalDate.of(2026, 11, 1), null, null, null, null, null, null, null, null, null)))
                 .as("refused later, by the rules (the employee has no version); the locks were taken before that").isInstanceOf(DomainException.class);
 
         InOrder order = inOrder(commands);
@@ -95,7 +95,7 @@ class SeparationLockOrderTest {
     @Test
     @DisplayName("IMP-1030-PAR-B6 withdrawing a held separation takes the separation lock before the employee row")
     void withdrawingLocksTheDecisionFirst() {
-        PersonnelCommandService service = new PersonnelCommandService(commands, new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class),
+        PersonnelCommandService service = new PersonnelCommandService(commands, mock(NewEmployees.class), new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class),
                 mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone);
         heldSeparation();
         when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), Map.of()));
@@ -128,6 +128,22 @@ class SeparationLockOrderTest {
         order.verify(commands).lockEmployee(EMPLOYEE);
         verify(commands, never()).updateHold(any(), any(), anyLong());
         verify(commands, never()).update(any(), any(), anyLong());
+    }
+
+    @Test
+    @DisplayName("#933 the due-date step takes the separation lock before the employee row, whatever the kind of the command")
+    void dueStepLocksTheDecisionFirst() {
+        ApplyDueCommand due = new ApplyDueCommand(commands, mock(LegalEntityResolutionSources.class), mock(DomainEvents.class), ids, clock, zone);
+        PersonnelCommand pending = PersonnelCommand.restore(COMMAND, EMPLOYEE, PersonnelCommandKind.REGULARIZE, LocalDate.of(2026, 11, 2), CommandStatus.PENDING,
+                null, null, null, null, null, USER, NOW, null, 0, 0);
+        when(commands.find(COMMAND)).thenReturn(java.util.Optional.of(pending));
+
+        due.execute(COMMAND);
+
+        InOrder order = inOrder(commands);
+        order.verify(commands).lockSeparationDecisions();
+        order.verify(commands).lockEmployee(EMPLOYEE);
+        order.verify(commands).update(any(), any(), anyLong());
     }
 
     @Test

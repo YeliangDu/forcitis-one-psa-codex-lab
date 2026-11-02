@@ -1,0 +1,97 @@
+package com.forcitis.one.organization.workforce.infrastructure.persistence;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
+import com.forcitis.one.kernel.BusinessZone;
+import com.forcitis.one.kernel.Uuids;
+import com.forcitis.one.organization.workforce.domain.InitialVersionPlan;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
+
+/** #960 review: the lock of the initial migration and its test for a stopped sync, against real PostgreSQL without the application. */
+class JdbcInitialVersionMigrationRepositoryIT {
+
+    static final TestDatabase postgres = TestPostgres.database(JdbcInitialVersionMigrationRepositoryIT.class, TestPostgres.MIGRATED);
+
+    private final DriverManagerDataSource source = new DriverManagerDataSource(postgres.url(), postgres.username(), postgres.password());
+    private final TransactionTemplate transaction = new TransactionTemplate(new DataSourceTransactionManager(source));
+    private final JdbcInitialVersionMigrationRepository repository = new JdbcInitialVersionMigrationRepository(JdbcClient.create(source), UUID::randomUUID,
+            new BusinessZone(ZoneId.of("Asia/Shanghai")));
+
+    @BeforeEach
+    void empty() throws SQLException {
+        execute("truncate table organization_workforce.sync_runs cascade");
+    }
+
+    private void execute(String sql) throws SQLException {
+        try (Connection c = DriverManager.getConnection(postgres.url(), postgres.username(), postgres.password()); Statement s = c.createStatement()) {
+            s.execute(sql);
+        }
+    }
+
+    private UUID employee() throws SQLException {
+        UUID id = Uuids.timeOrdered(Instant.parse("2026-11-02T02:00:00Z"));
+        execute("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values ('" + id + "', 'E-" + id
+                + "', 'name', 'EMPLOYED')");
+        return id;
+    }
+
+    @Test
+    @DisplayName("#960 评审必改：别的事务持有员工行时，迁入在锁上等待，对方提交版本后迁入的名单不含此人")
+    void aVersionCommittedWhileWaitingForTheLockLeavesThePersonOut() throws Exception {
+        UUID person = employee();
+        try (Connection holder = DriverManager.getConnection(postgres.url(), postgres.username(), postgres.password()); Statement s = holder.createStatement()) {
+            holder.setAutoCommit(false);
+            s.execute("select id from organization_workforce.employees where id = '" + person + "' for update");
+            CompletableFuture<List<InitialVersionPlan.SnapshotPerson>> migration = CompletableFuture
+                    .supplyAsync(() -> transaction.execute(status -> repository.lockEmployeesWithoutVersions()));
+            await().atMost(Duration.ofSeconds(10)).until(() -> {
+                try (Connection c = DriverManager.getConnection(postgres.url(), postgres.username(), postgres.password()); Statement q = c.createStatement()) {
+                    return q.executeQuery("select 1 from pg_stat_activity where wait_event_type = 'Lock'").next();
+                }
+            });
+            s.execute("insert into organization_workforce.employee_versions (employee_version_id, employee_id, effective_from_date, revision_number,"
+                    + " employment_status, employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_basis_kind, change_channel_kind,"
+                    + " created_at, updated_at) values ('" + UUID.randomUUID() + "', '" + person + "', date '2026-10-01', 0, 'EMPLOYED', 'REGULAR', false,"
+                    + " false, 'UNKNOWN', 'MIGRATION', now(), now())");
+            holder.commit();
+            assertThat(migration.get()).extracting(InitialVersionPlan.SnapshotPerson::id).doesNotContain(person);
+        }
+    }
+
+    @Test
+    @DisplayName("#960 数据设计第 2 节：进行中的同步和截止时刻之后开始的同步算同步未停，更早结束的不算")
+    void onlyARunningOrRecentSyncCounts() throws Exception {
+        Instant now = Instant.parse("2026-11-02T02:00:00Z");
+        Instant cutoff = now.minus(Duration.ofMinutes(15));
+        assertThat(repository.syncRunRecent(cutoff)).isFalse();
+        execute("insert into organization_workforce.sync_runs (id, trigger_kind, status, started_at) values (uuidv7(), 'SCHEDULED', 'SUCCEEDED', timestamptz '"
+                + now.minus(Duration.ofMinutes(20)) + "')");
+        assertThat(repository.syncRunRecent(cutoff)).isFalse();
+        execute("insert into organization_workforce.sync_runs (id, trigger_kind, status, started_at) values (uuidv7(), 'SCHEDULED', 'SUCCEEDED', timestamptz '"
+                + now.minus(Duration.ofMinutes(5)) + "')");
+        assertThat(repository.syncRunRecent(cutoff)).isTrue();
+        execute("truncate table organization_workforce.sync_runs cascade");
+        execute("insert into organization_workforce.sync_runs (id, trigger_kind, status, started_at) values (uuidv7(), 'MANUAL', 'RUNNING', timestamptz '"
+                + now.minus(Duration.ofMinutes(60)) + "')");
+        assertThat(repository.syncRunRecent(cutoff)).isTrue();
+    }
+}

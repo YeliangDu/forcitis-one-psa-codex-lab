@@ -6,7 +6,7 @@ import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.Assignment;
 import com.forcitis.one.organization.workforce.domain.Employee;
-import com.forcitis.one.organization.workforce.domain.Gender;
+import com.forcitis.one.organization.workforce.api.Gender;
 import com.forcitis.one.organization.workforce.domain.OrgUnit;
 import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
 import com.forcitis.one.organization.workforce.api.PositionId;
@@ -16,7 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
 
-/** The SELECTs and row mappers of the org snapshot, shared by the repository (loading for a sync) and the queries (browsing). */
+/** The SELECTs and row mappers of the org snapshot: the repository loads the snapshot rows for a sync, the queries browse as of a business day. */
 final class OrgSnapshotRows {
     private OrgSnapshotRows() {
     }
@@ -27,6 +27,7 @@ final class OrgSnapshotRows {
               from organization_workforce.org_units
             """;
 
+    /** The snapshot rows as the sync wrote them; for the sync's own comparison only, readers use SELECT_STAFF_ON_DAY. */
     static final String SELECT_STAFF = """
             select e.id, e.employee_code, e.display_name, e.login_name, e.email, e.gender, e.wecom_user_id,
                    e.employment_status, e.is_fee_earner,
@@ -35,6 +36,29 @@ final class OrgSnapshotRows {
               join organization_workforce.assignments a on a.employee_id = e.id
             """;
 
+    /**
+     * The staff row as of {@code :day}. A person with any employee version is read from the versions in force that day (status and fee-earner flag from the
+     * employee version, org unit, position and reporting line from the assignment version) and is absent when either is missing; everyone else from the
+     * snapshot. Name, gender, email, WeCom account and code stay on the root row.
+     */
+    static final String SELECT_STAFF_ON_DAY = """
+            select s.* from (
+              select e.id, e.employee_code, e.display_name, e.login_name, e.email, e.gender, e.wecom_user_id, e.updated_at,
+                     case when v.versioned then ev.employment_status else e.employment_status end as employment_status,
+                     case when v.versioned then ev.is_fee_earner else e.is_fee_earner end as is_fee_earner,
+                     case when v.versioned then av.org_unit_id else a.org_unit_id end as org_unit_id,
+                     case when v.versioned then av.position_id else a.position_id end as position_id,
+                     case when v.versioned then av.reports_to_employee_id else a.reports_to_employee_id end as reports_to_employee_id
+                from organization_workforce.employees e
+                cross join lateral (select exists (select 1 from organization_workforce.employee_versions x where x.employee_id = e.id) as versioned) v
+                left join organization_workforce.employee_versions ev on v.versioned and ev.employee_id = e.id and ev.superseded_at is null
+                     and ev.effective_from_date <= :day and (ev.effective_to_date is null or :day < ev.effective_to_date)
+                left join organization_workforce.assignment_versions av on v.versioned and av.employee_id = e.id and av.superseded_at is null
+                     and av.effective_from_date <= :day and (av.effective_to_date is null or :day < av.effective_to_date)
+                left join organization_workforce.assignments a on not v.versioned and a.employee_id = e.id
+            ) s
+            where s.org_unit_id is not null and s.employment_status is not null
+            """;
 
     static OrgUnit orgUnit(ResultSet rs) throws SQLException {
         return new OrgUnit(new OrgUnitId(rs.getObject("id", UUID.class)), rs.getString("code"), rs.getString("name"),

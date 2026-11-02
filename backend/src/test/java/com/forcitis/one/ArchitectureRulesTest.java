@@ -1,5 +1,6 @@
 package com.forcitis.one;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
@@ -13,6 +14,7 @@ import static com.tngtech.archunit.library.GeneralCodingRules.NO_CLASSES_SHOULD_
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.domain.JavaModifier;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -29,8 +31,8 @@ class ArchitectureRulesTest {
     static final int MAX_API_METHODS_PER_MODULE = 12;
     // 登记例外：模块 -> {上限, 出处}；全局上限不抬，新增例外须有出处并经 one-architecture 裁定
     static final Map<String, ApiLimitException> API_LIMIT_EXCEPTIONS = Map.of(
-            ROOT + ".organization.workforce", new ApiLimitException(17,
-                    "NITS-1 项⑤；one-coordinator 同意；one-architecture 裁定 2026-10-17；人事命令 enter/withdraw（ADR-0068 第 1 条）one-design 裁定 2026-10-30 #872；停薪留职查询 isOnUnpaidLeave（ADR-0068 第 3 条）one-design 裁定 2026-10-30 #874；暂停放行 release（ADR-0068 第 2 条第 3 项）one-design 裁定 2026-10-30 #875"),
+            ROOT + ".organization.workforce", new ApiLimitException(11,
+                    "G4 只数有模块外调用方的方法，上限按此口径降到实际数（只降不升）one-lead 转用户批准 2026-11-02 #981；NITS-1 项⑤；one-coordinator 同意；one-architecture 裁定 2026-10-17；人事命令 enter/withdraw（ADR-0068 第 1 条）one-design 裁定 2026-10-30 #872；停薪留职查询 isOnUnpaidLeave（ADR-0068 第 3 条）one-design 裁定 2026-10-30 #874；暂停放行 release（ADR-0068 第 2 条第 3 项）one-design 裁定 2026-10-30 #875；员工档案修改 EmployeeProfiles.change（验收 #964 固定接口）one-lead 裁定 2026-11-02 #959"),
             ROOT + ".platform.integration", new ApiLimitException(17,
                     "ADR-0060 检测与业务文件桶端口；one-architecture 裁定 2026-10-21；到期：ADR-0069 D2 合入"));
 
@@ -67,20 +69,39 @@ class ArchitectureRulesTest {
 
     @Test
     void apiSurfaceStaysNarrow() {
+        // 只数有模块外调用方的方法：被另一模块实现的必需端口（本模块调用、别处实现）不是本模块对外的面
         Map<String, Long> perModule = CLASSES.stream()
                 .filter(c -> c.getPackageName().matches(".*\\.api(\\..*)?$") && c.isInterface())
-                .collect(Collectors.groupingBy(c -> c.getPackageName().replaceFirst("\\.api(\\..*)?$", ""),
-                        Collectors.summingLong(c -> c.getMethods().size())));
+                .collect(Collectors.groupingBy(c -> moduleOf(c),
+                        Collectors.summingLong(c -> c.getMethods().stream().filter(m -> hasCallerOutside(m, moduleOf(c))).count())));
         assertApiSurfaceNarrow(perModule);
+    }
+
+    static String moduleOf(JavaClass api) {
+        return api.getPackageName().replaceFirst("\\.api(\\..*)?$", "");
+    }
+
+    static boolean hasCallerOutside(JavaMethod method, String module) {
+        return method.getAccessesToSelf().stream()
+                .anyMatch(a -> !a.getOriginOwner().getPackageName().equals(module) && !a.getOriginOwner().getPackageName().startsWith(module + "."));
     }
 
     @Test
     void apiSurfaceExceptionModuleAllowsExactlyItsLimit() {
         String module = ROOT + ".organization.workforce";
-        assertApiSurfaceNarrow(Map.of(module, 17L));
-        assertThatThrownBy(() -> assertApiSurfaceNarrow(Map.of(module, 18L)))
+        assertApiSurfaceNarrow(Map.of(module, 11L));
+        assertThatThrownBy(() -> assertApiSurfaceNarrow(Map.of(module, 12L)))
                 .isInstanceOf(AssertionError.class)
                 .hasMessageContaining("Deepen the module instead of widening its interface.");
+    }
+
+    @Test
+    void apiMethodsWithoutCallerOutsideTheModuleAreNotCounted() {
+        String workforce = ROOT + ".organization.workforce";
+        JavaClass port = CLASSES.get(workforce + ".api.LegalEntityNumberUsage");   // required port: workforce calls it, platform.numbering implements it
+        assertThat(port.getMethods()).isNotEmpty().noneMatch(m -> hasCallerOutside(m, workforce));
+        JavaClass exposed = CLASSES.get(workforce + ".api.EmployeeLegalEntities");
+        assertThat(exposed.getMethods()).anyMatch(m -> hasCallerOutside(m, workforce));
     }
 
     @Test

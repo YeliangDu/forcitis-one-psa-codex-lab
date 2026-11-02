@@ -80,6 +80,24 @@ organization.workforce::api organization.workforce.api.AttributionSubjectId publ
 organization.workforce::api organization.workforce.api.AttributionSubjectId public java.lang.String organization.workforce.api.AttributionSubjectId.toString()
 organization.workforce::api organization.workforce.api.AttributionSubjectId public java.util.UUID organization.workforce.api.AttributionSubjectId.value()
 organization.workforce::api organization.workforce.api.AttributionSubjectId public organization.workforce.api.AttributionSubjectId(java.util.UUID)
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile component displayName: java.lang.String
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile component effectiveDate: java.time.LocalDate
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile component email: java.lang.String
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile component employeeId: kernel.EmployeeId
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile component gender: organization.workforce.api.Gender
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile component wecomUserId: kernel.WecomUserId
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile extends java.lang.Record
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile public final boolean organization.workforce.api.ChangeEmployeeProfile.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile public final int organization.workforce.api.ChangeEmployeeProfile.hashCode()
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile public final java.lang.String organization.workforce.api.ChangeEmployeeProfile.toString()
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile public final record organization.workforce.api.ChangeEmployeeProfile
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile public java.lang.String organization.workforce.api.ChangeEmployeeProfile.displayName()
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile public java.lang.String organization.workforce.api.ChangeEmployeeProfile.email()
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile public java.time.LocalDate organization.workforce.api.ChangeEmployeeProfile.effectiveDate()
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile public kernel.EmployeeId organization.workforce.api.ChangeEmployeeProfile.employeeId()
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile public kernel.WecomUserId organization.workforce.api.ChangeEmployeeProfile.wecomUserId()
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile public organization.workforce.api.ChangeEmployeeProfile(kernel.EmployeeId,java.lang.String,organization.workforce.api.Gender,java.lang.String,kernel.WecomUserId,java.time.LocalDate)
+organization.workforce::api organization.workforce.api.ChangeEmployeeProfile public organization.workforce.api.Gender organization.workforce.api.ChangeEmployeeProfile.gender()
 organization.workforce::api organization.workforce.api.EmployeeExistence public abstract boolean organization.workforce.api.EmployeeExistence.exists(kernel.EmployeeId)
 organization.workforce::api organization.workforce.api.EmployeeExistence public abstract interface organization.workforce.api.EmployeeExistence
 organization.workforce::api organization.workforce.api.EmployeeLegalEntities public abstract interface organization.workforce.api.EmployeeLegalEntities
@@ -102,6 +120,8 @@ organization.workforce::api organization.workforce.api.EmployeeProfile public ke
 organization.workforce::api organization.workforce.api.EmployeeProfile public organization.workforce.api.EmployeeProfile(kernel.EmployeeId,java.lang.String,organization.workforce.api.OrgUnitId,kernel.WecomUserId,organization.workforce.api.EmploymentStatus,boolean)
 organization.workforce::api organization.workforce.api.EmployeeProfile public organization.workforce.api.EmploymentStatus organization.workforce.api.EmployeeProfile.employmentStatus()
 organization.workforce::api organization.workforce.api.EmployeeProfile public organization.workforce.api.OrgUnitId organization.workforce.api.EmployeeProfile.orgUnitId()
+organization.workforce::api organization.workforce.api.EmployeeProfiles public abstract interface organization.workforce.api.EmployeeProfiles
+organization.workforce::api organization.workforce.api.EmployeeProfiles public abstract void organization.workforce.api.EmployeeProfiles.change(organization.workforce.api.ChangeEmployeeProfile)
 organization.workforce::api organization.workforce.api.EmploymentPhaseKind extends java.lang.Enum<organization.workforce.api.EmploymentPhaseKind>
 organization.workforce::api organization.workforce.api.EmploymentPhaseKind public final enum organization.workforce.api.EmploymentPhaseKind
 organization.workforce::api organization.workforce.api.EmploymentPhaseKind public static final organization.workforce.api.EmploymentPhaseKind organization.workforce.api.EmploymentPhaseKind.PROBATION
@@ -123,29 +143,43 @@ organization.workforce::api organization.workforce.api.EmploymentVerdict public 
 organization.workforce::api organization.workforce.api.EmploymentVerdict public static organization.workforce.api.EmploymentVerdict organization.workforce.api.EmploymentVerdict.valueOf(java.lang.String)
 organization.workforce::api organization.workforce.api.EmploymentVerdict public static organization.workforce.api.EmploymentVerdict[] organization.workforce.api.EmploymentVerdict.values()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component commandKind: organization.workforce.api.PersonnelCommandKind
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand component displayName: java.lang.String
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component effectiveDate: java.time.LocalDate
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand component email: java.lang.String
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component employeeId: kernel.EmployeeId
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand component gender: organization.workforce.api.Gender
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component isTargetFeeEarner: java.lang.Boolean
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component lastWorkingDay: java.time.LocalDate
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetEmploymentPhaseKind: organization.workforce.api.EmploymentPhaseKind
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetOrgUnitId: organization.workforce.api.OrgUnitId
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetPositionId: organization.workforce.api.PositionId
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetReportsToEmployeeId: kernel.EmployeeId
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand component wecomUserId: kernel.WecomUserId
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand extends java.lang.Record
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public final boolean organization.workforce.api.EnterPersonnelCommand.equals(java.lang.Object)
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public final int organization.workforce.api.EnterPersonnelCommand.hashCode()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public final java.lang.String organization.workforce.api.EnterPersonnelCommand.toString()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public final record organization.workforce.api.EnterPersonnelCommand
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public java.lang.Boolean organization.workforce.api.EnterPersonnelCommand.isTargetFeeEarner()
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand public java.lang.String organization.workforce.api.EnterPersonnelCommand.displayName()
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand public java.lang.String organization.workforce.api.EnterPersonnelCommand.email()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public java.time.LocalDate organization.workforce.api.EnterPersonnelCommand.effectiveDate()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public java.time.LocalDate organization.workforce.api.EnterPersonnelCommand.lastWorkingDay()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public kernel.EmployeeId organization.workforce.api.EnterPersonnelCommand.employeeId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public kernel.EmployeeId organization.workforce.api.EnterPersonnelCommand.targetReportsToEmployeeId()
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand public kernel.WecomUserId organization.workforce.api.EnterPersonnelCommand.wecomUserId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.EmploymentPhaseKind organization.workforce.api.EnterPersonnelCommand.targetEmploymentPhaseKind()
-organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.EnterPersonnelCommand(kernel.EmployeeId,organization.workforce.api.PersonnelCommandKind,java.time.LocalDate,java.time.LocalDate,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,kernel.EmployeeId,java.lang.Boolean,organization.workforce.api.EmploymentPhaseKind)
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.EnterPersonnelCommand(kernel.EmployeeId,organization.workforce.api.PersonnelCommandKind,java.time.LocalDate,java.time.LocalDate,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,kernel.EmployeeId,java.lang.Boolean,organization.workforce.api.EmploymentPhaseKind,java.lang.String,organization.workforce.api.Gender,java.lang.String,kernel.WecomUserId)
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.Gender organization.workforce.api.EnterPersonnelCommand.gender()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.OrgUnitId organization.workforce.api.EnterPersonnelCommand.targetOrgUnitId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.PersonnelCommandKind organization.workforce.api.EnterPersonnelCommand.commandKind()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.PositionId organization.workforce.api.EnterPersonnelCommand.targetPositionId()
+organization.workforce::api organization.workforce.api.Gender extends java.lang.Enum<organization.workforce.api.Gender>
+organization.workforce::api organization.workforce.api.Gender public final enum organization.workforce.api.Gender
+organization.workforce::api organization.workforce.api.Gender public static final organization.workforce.api.Gender organization.workforce.api.Gender.FEMALE
+organization.workforce::api organization.workforce.api.Gender public static final organization.workforce.api.Gender organization.workforce.api.Gender.MALE
+organization.workforce::api organization.workforce.api.Gender public static organization.workforce.api.Gender organization.workforce.api.Gender.valueOf(java.lang.String)
+organization.workforce::api organization.workforce.api.Gender public static organization.workforce.api.Gender[] organization.workforce.api.Gender.values()
 organization.workforce::api organization.workforce.api.HoldKind extends java.lang.Enum<organization.workforce.api.HoldKind>
 organization.workforce::api organization.workforce.api.HoldKind public final enum organization.workforce.api.HoldKind
 organization.workforce::api organization.workforce.api.HoldKind public static final organization.workforce.api.HoldKind organization.workforce.api.HoldKind.ADMINISTRATOR_SEPARATION
@@ -307,7 +341,11 @@ organization.workforce::api organization.workforce.api.WorkforceError public sta
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_FOUND
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_CODE_TAKEN
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_NOT_FOUND
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_PROFILE_INVALID
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_INITIAL_VERSION_MIGRATION_REFUSED
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN
@@ -317,6 +355,7 @@ organization.workforce::api organization.workforce.api.WorkforceError public sta
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_OWN_PROFILE_CHANGE_FORBIDDEN
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_ALLOWED
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_FOUND
@@ -328,6 +367,8 @@ organization.workforce::api organization.workforce.api.WorkforceError public sta
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_APPLY_FAILED
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_NOT_FOUND
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_SYNC_RUN_TRANSITION_ILLEGAL
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_WECOM_USER_ID_CHANGE_NOT_ALLOWED
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_WECOM_USER_ID_TAKEN
 organization.workforce::api organization.workforce.api.WorkforceError public static organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.valueOf(java.lang.String)
 organization.workforce::api organization.workforce.api.WorkforceError public static organization.workforce.api.WorkforceError[] organization.workforce.api.WorkforceError.values()
 organization.workforce::events organization.workforce.events.EmployeeCorrected component affectedFrom: java.time.LocalDate

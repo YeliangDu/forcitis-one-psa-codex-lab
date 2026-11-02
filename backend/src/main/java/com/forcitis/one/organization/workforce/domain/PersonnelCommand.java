@@ -69,9 +69,10 @@ public final class PersonnelCommand extends AggregateRoot {
      * A command about to be stored. A separation is entered with the last working day and takes effect the day after (ADR-0068 item 1.5); every other
      * kind carries its effective date. A day that is not after today takes effect at once (ADR-0068 item 1.8), a later one waits.
      *
+     * @param employee              the employee the command is about: the one the request names, or for a hire the id the server made
      * @param employeeEventSequence the employee's event sequence, which the command's own event continues
      */
-    public static PersonnelCommand enter(PersonnelCommandId id, EnterPersonnelCommand request, UserId createdBy, Instant now, LocalDate today,
+    public static PersonnelCommand enter(PersonnelCommandId id, EmployeeId employee, EnterPersonnelCommand request, UserId createdBy, Instant now, LocalDate today,
                                          long employeeEventSequence) {
         PersonnelCommandKind kind = require(request.commandKind(), "a command kind");
         LocalDate effective;
@@ -88,7 +89,7 @@ public final class PersonnelCommand extends AggregateRoot {
         }
         // A correction is immediate whatever its day (ck_personnel_commands_correction_immediate); it never waits.
         CommandStatus status = kind != PersonnelCommandKind.CORRECTION && effective.isAfter(today) ? CommandStatus.PENDING : CommandStatus.EFFECTIVE;
-        PersonnelCommand command = new PersonnelCommand(id, require(request.employeeId(), "the employee"), kind, effective, status, request.targetOrgUnitId(),
+        PersonnelCommand command = new PersonnelCommand(id, employee, kind, effective, status, request.targetOrgUnitId(),
                 request.targetPositionId(), request.targetReportsToEmployeeId(), request.isTargetFeeEarner(), request.targetEmploymentPhaseKind(), createdBy, now,
                 status == CommandStatus.EFFECTIVE ? now : null, 0, employeeEventSequence);
         command.requireShapeOfKind();

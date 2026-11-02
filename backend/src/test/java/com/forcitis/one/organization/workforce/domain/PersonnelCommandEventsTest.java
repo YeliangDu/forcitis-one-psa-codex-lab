@@ -45,13 +45,13 @@ class PersonnelCommandEventsTest {
     static final long SEQUENCE = 4;
 
     private static PersonnelCommand command(PersonnelCommandKind kind, EnterPersonnelCommand request) {
-        return PersonnelCommand.enter(new PersonnelCommandId(UUID.fromString("019a0000-0000-7000-8000-0000000000c1")), request,
+        return PersonnelCommand.enter(new PersonnelCommandId(UUID.fromString("019a0000-0000-7000-8000-0000000000c1")), EMPLOYEE, request,
                 new UserId(UUID.fromString("019a0000-0000-7000-8000-0000000000aa")), NOW, DAY, SEQUENCE);
     }
 
     private static EnterPersonnelCommand request(PersonnelCommandKind kind, LocalDate effective, LocalDate lastWorkingDay, OrgUnitId unit, PositionId position,
                                                  Boolean feeEarner, EmploymentPhaseKind phase) {
-        return new EnterPersonnelCommand(EMPLOYEE, kind, effective, lastWorkingDay, unit, position, null, feeEarner, phase);
+        return new EnterPersonnelCommand(EMPLOYEE, kind, effective, lastWorkingDay, unit, position, null, feeEarner, phase, null, null, null, null);
     }
 
     private static DomainEvent published(PersonnelCommand command, VersionRow before) {

@@ -340,6 +340,15 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
   - **双人在场且都须留任**：`--operator` 与 `--witness` 必填，为两个不同的、已存在的员工，且都须本地在职、不在待放行名单中、不在停薪留职；见证人始终必填，没有单人模式。违反则拒绝（退出码 1），库内无任何变化。
   - 效果与界面放行相同：离职自原生效日起生效、不重判；暂停记录记为 `OPERATIONS_COMMAND` 放行、放行账号为空，状态转换与事件的操作者是系统主体 `organization.workforce.operations`；审计 `organization.workforce.separation-hold.released` 一条，`detail` 含原因、途径、`operatorId=`、`witnessId=`、命令 ID、暂停记录 ID 与剩余超管数 0。先取与离职、界面放行、撤回同一把咨询锁。
   - 退出码：0 已放行；1 被拒绝（含当月审计分区不存在，需先启动常驻应用建分区）；2 用法错误（缺参数、未知选项、ID 格式不对）。
+- **一次性迁入命令 `migrate-initial-versions`**（#960，one-design 数据设计签发于 #960 评论；档案同 `workforce-operations`）：把本库同步快照里还没有任何员工版本的人，按当前状态写成 MIGRATION 版本，让同步停掉后所有读取方都读版本表。不用 Flyway：必须可重跑且重跑不写行，且生产只走发布闸门，不在部署时静默执行。
+  ```
+  java -jar forcitis-one.jar --spring.profiles.include=workforce-operations --operation=migrate-initial-versions \
+       --operator=<操作人员工 ID> --witness=<见证人员工 ID>
+  ```
+  - **运行时机**：只在同步不再写快照之后运行（#957 之后）；命令自己检查同步已停：有进行中的同步，或 15 分钟内（三个调度周期）开始过任何同步，都拒绝（退出码 1）；所以要先停调度，等 15 分钟再运行。操作人与见证人必填，为两个不同的已存在员工（不要求留任）。
+  - 每人写什么：没有任何员工版本的人（任意渠道、任意日期）写一条（已离职且离职日晚于左边界时两条）；左边界取最早未作废任职版本的生效日，没有则取运行当天；在职者雇佣阶段一律记正式（用户答复），入职日未知（左截断），非停薪留职，收费标记取快照；离职日取 `separated_at` 的业务日期，是同步观察到离职的日期，不是人事离职日。有快照任职但无任职版本的人补一条任职版本；已有版本的人（含命令版本）一行不动，与快照不一致的任职只计数不覆盖。
+  - 副作用：一个事务、逐人先锁员工行；不发领域事件、不发通知、不改授予；审计 `organization.workforce.initial-versions.migrated` 一条，只含操作人、见证人 ID 与计数（新增在职、离职人数，补写任职版本数，因已有版本跳过数，任职与快照不一致数）。
+  - 退出码：0 完成（重跑也是 0，计数为 0）；1 被拒绝（缺见证人、两人相同或不是员工、同步未停、当月审计分区不存在）；2 用法错误。dev 只走正常路径跑；生产由发布闸门执行，不在本卡内运行。
 - 剧本见 `runbooks/C-5-first-admins.md`（待按本节对齐）。
 
 ## 7. 首次部署步骤（dev）
