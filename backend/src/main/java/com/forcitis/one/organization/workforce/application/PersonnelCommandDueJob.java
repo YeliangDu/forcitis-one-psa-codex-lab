@@ -12,8 +12,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Daily, shortly after midnight of the business day: executes the pending commands that are now due, the future-dated ordinary commands and the
- * separations whose hold was released (ADR-0068 item 1.8). A pending separation that was never held is left alone until its due-day re-judgement exists
- * (card #967). One transaction per command, so one failure never stops the others; a failure is an alert and the
+ * separations, which on their effective date are judged once more unless released before (ADR-0068 items 1.8 and 2.2). One transaction per command, so one failure never stops the others; a failure is an alert and the
  * command is tried again at the next run.
  */
 @Component

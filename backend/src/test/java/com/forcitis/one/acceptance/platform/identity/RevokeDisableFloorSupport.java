@@ -266,7 +266,7 @@ abstract class RevokeDisableFloorSupport extends AccountsAcceptanceSupport {
     private UUID enterSeparation(Person leaver, LocalDate lastWorkingDay) throws Exception {
         actIn(hr);
         UUID command = personnelCommands.enter(new EnterPersonnelCommand(employeeIdOf(leaver.employeeId()), PersonnelCommandKind.SEPARATE, null,
-                lastWorkingDay, null, null, null, null, null)).value();
+                lastWorkingDay, null, null, null, null, null, null, null, null, null)).value();
         assertThat(commandStatus(command)).as("the separation of an administrator is held").isEqualTo("HELD");
         return holdOf(command);
     }
@@ -275,7 +275,7 @@ abstract class RevokeDisableFloorSupport extends AccountsAcceptanceSupport {
     protected UUID enterFutureUnpaidLeave(Person person) throws Exception {
         actIn(hr);
         UUID command = personnelCommands.enter(new EnterPersonnelCommand(employeeIdOf(person.employeeId()), PersonnelCommandKind.UNPAID_LEAVE_START,
-                DUE, null, null, null, null, null, null)).value();
+                DUE, null, null, null, null, null, null, null, null, null, null)).value();
         assertThat(commandStatus(command)).as("an unpaid-leave start in the future waits for its date").isEqualTo("PENDING");
         return command;
     }

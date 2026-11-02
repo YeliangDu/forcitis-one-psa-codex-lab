@@ -50,6 +50,12 @@ final class ExportedSnapshot implements OrgDirectory, RoleDirectory {
         return false;
     }
 
+    /** An export carries one state per person, so the day does not matter. */
+    @Override
+    public Optional<EmploymentStatus> employmentOn(EmployeeId employeeId, java.time.LocalDate day) {
+        return findEmployee(employeeId).map(EmployeeProfile::employmentStatus);
+    }
+
     @Override
     public EmploymentVerdict employmentOf(EmployeeId employeeId) {
         return findEmployee(employeeId).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED ? EmploymentVerdict.EMPLOYED : EmploymentVerdict.SEPARATED)
