@@ -132,7 +132,7 @@ adrs:
   category: "安全与权限"
   bc: ["platform.identity"]
   stage: ["TA-1a"]  # 目标建造批：TA-W0
-  partially_superseded: ["ADR-0027 第 1 项接入表、第 5 项第 2、6 条", "ADR-0027 第 6 项第 2 条、「1a 交付范围」", "ADR-0028 第 5 项第 3 条（部分）", "ADR-0030 第 5 项第 5 条、回滚第 1 条（仅非生产）", "ADR-0032 第 6 项第 4 条与第 2 条一句", "ADR-0034 第 8 项第 7 条与回滚第 4 条", "ADR-0043 第 7 项第 3 条（补充）", "ADR-0055 决定第 8 项第 4 条（部分）"]
+  partially_superseded: ["ADR-0027 第 1 项接入表、第 5 项第 2、6 条", "ADR-0027 第 6 项第 2 条、「1a 交付范围」", "ADR-0028 第 5 项第 3 条（部分）", "ADR-0030 第 5 项第 5 条、回滚第 1 条（仅非生产）", "ADR-0032 第 6 项第 4 条与第 2 条一句", "ADR-0034 第 8 项第 7 条与回滚第 4 条", "ADR-0043 第 7 项第 3 条（补充）", "ADR-0055 决定第 8 项第 4 条（部分）", "ADR-0080 第 7 项第 2、3 条（补充）"]
 - id: "0027"   # Phase 1a 流程梳理带来的身份与授权修订
   category: "安全与权限"
   bc: ["platform.identity", "platform.numbering", "platform.audit"]
@@ -177,12 +177,12 @@ adrs:
   category: "数据"
   bc: ["platform.migration"]
   stage: ["全阶段"]
-  partially_superseded: ["ADR-0039 legacy_numbers 表路径", "ADR-0054 决定 10、迁移方案 2 至 4（部分）", "ADR-0071 拒收登记、处置与核对分列口径（部分）"]
+  partially_superseded: ["ADR-0039 legacy_numbers 表路径", "ADR-0054 决定 10、迁移方案 2 至 4（部分）", "ADR-0071 拒收登记、处置与核对分列口径（部分）", "ADR-0080 决定 10 第 1 点（非 6e 的 L3）"]
 - id: "0037"   # 新系统读取老系统与 A8 数据的范围
   category: "集成"
   bc: ["platform.integration"]
   stage: ["TA-1a"]  # 目标建造批：TA-W0、TA-W1
-  partially_superseded: ["ADR-0043 第 1 项第 1 条（补充）", "ADR-0043 第 2 项第 5 条第 2 点词汇句", "ADR-0055 决定第 5、6、8 项（部分）", "ADR-0069 决定 1 第 1 条、决定 4（部分）"]
+  partially_superseded: ["ADR-0043 第 1 项第 1 条（补充）", "ADR-0043 第 2 项第 5 条第 2 点词汇句", "ADR-0055 决定第 5、6、8 项（部分）", "ADR-0069 决定 1 第 1 条、决定 4（部分）", "ADR-0080 决定 1 第 1 条（L3 表）"]
 - id: "0038"   # 迁移基线在生产部署前关闭
   category: "数据"
   bc: ["全局"]
@@ -212,7 +212,7 @@ adrs:
   category: "安全与权限"
   bc: ["全局"]
   stage: ["全阶段"]
-  partially_superseded: []
+  partially_superseded: ["ADR-0080 第 3 项工号行、工资日薪行", "ADR-0080 第 5 项第 3 条 U-14 句", "ADR-0080 待用户决定 U-2、U-14 行", "ADR-0080 放宽断言工号三句、后果工号句"]
 - id: "0044"   # 双人逐人级角色的自定义部门范围与「维持授权」的办理
   category: "安全与权限"
   bc: ["platform.identity"]

@@ -204,8 +204,10 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(recordedEvents.stream(AccountOpened.class)).singleElement().satisfies(e -> assertThat(e.userId().value()).isEqualTo(accountOf(1001)));
 
         jdbc.sql("update platform_identity.account_role_grants set effective_to_at = greatest(now(), effective_from_at), revocation_cause_kind = 'OPERATIONS', revocation_audit_entry_id = uuidv7(), updated_at = now() where effective_to_at is null and user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").update();
+        long grantRows = count("account_role_grants");
         loginWithWecom(1001);
         assertThat(count("account_role_grants where effective_to_at is null")).isZero();
+        assertThat(count("account_role_grants")).as("a removed default role is not given back and no row is deleted").isEqualTo(grantRows);
     }
 
     @Test

@@ -1,45 +1,50 @@
-# 列级敏感分级（NAMING_STANDARD §2.5，GUIDING_PRINCIPLES §6 数据安全）。DdlNamingTest 检查：
-#   名字像敏感信息的列（口令、密钥、TOTP、银行、工资、日薪、证件、手机、邮箱、生日、性别、地址、会话内容）必须登记为 SENSITIVE 或 RESTRICTED；
-#   登记的列必须存在（改名或删列后同步改这里）。未登记的列默认 INTERNAL。
-# 级别：PUBLIC 公开 | INTERNAL 内部 | SENSITIVE 敏感（个人信息、工资与日薪、银行卡：脱敏展示、按范围授权）| RESTRICTED 高度敏感（口令、密钥、会话：不出库、不进日志与分析层）
-# 格式：<schema.table.column> | <级别> | <理由>。web / api 出参不得直接暴露 SENSITIVE 与 RESTRICTED 列（守护由 1a 会话实现）。
-organization_workforce.employees.email | SENSITIVE | 个人信息：工作邮箱
-organization_workforce.employees.gender | SENSITIVE | 个人信息
-platform_identity.user_accounts.last_login_address | SENSITIVE | 个人信息：最近登录 IP
-platform_identity.emergency_admins.password_hash | RESTRICTED | 口令哈希
-platform_identity.emergency_admins.totp_secret_encrypted | RESTRICTED | TOTP 密钥（加密存放）
-platform_identity.emergency_admins.last_totp_step | SENSITIVE | TOTP 防重放计步，可辅助推断验证码
-platform_identity.login_states.state_hash | SENSITIVE | 一次性登录 state 的摘要
-platform_identity.sso_ticket_uses.ticket_hash | SENSITIVE | 一次性单点登录票据的摘要
-platform_identity.ticket_issuers.key_reference | SENSITIVE | 签名密钥在 KMS 中的引用
-platform_identity.sessions_attributes.attribute_bytes | RESTRICTED | 会话内容
-platform_identity.emergency_admins.account_name | SENSITIVE | 应急账号的登录名，可辅助撞库
-platform_identity.sessions.principal_name | SENSITIVE | 个人信息：会话所属用户 ID
-platform_audit.audit_entries.source_address | SENSITIVE | 个人信息：带登录与会话轨迹的条目（登录、会话、管理员模式、拒绝访问、特权请求、强制下线）的客户端地址
-organization_workforce.employees.display_name | SENSITIVE | 个人信息：姓名
-organization_workforce.employees.login_name | SENSITIVE | 个人信息：登录名
-organization_workforce.employees.wecom_user_id | SENSITIVE | 个人信息：企业微信用户 ID
-organization_workforce.employees.employee_code | SENSITIVE | 个人信息：工号
-platform_integration.outbound_deliveries.recipient_codes | SENSITIVE | 个人信息：收件人的企业微信用户 ID
-platform_integration.outbound_deliveries.skipped_recipient_codes | SENSITIVE | 个人信息：被跳过收件人的企业微信用户 ID
-platform_identity.browser_identifiers.identifier_hash | SENSITIVE | 浏览器标识的摘要：可用于判断某浏览器是否已被本人确认
-platform_audit.audit_entries.detail | INTERNAL | 用途：说明动作的上下文；个人信息 PI（三段格式下以此为准，四段化随 ADR-0043 实施 PR）；不得含直接标识（IP、登录名、企业微信 ID、姓名），人员只写自有 ID；文件服务加密拒收（platform.file.upload.encrypted-refused）另写上传人起的原文件名（用户 2026-10-21 决定，intent 2026-10-21-170547）
-platform_audit.audit_entries.change_reason | INTERNAL | 用途：人填的变更理由；个人信息 PI；只提示不拦截
-platform_audit.audit_entries.before_text | INTERNAL | 用途：被变更字段的原值；个人信息 PI；仅 L2 个人信息原值，L3 及以上与 SPI 不记，现在一律不写非空值
-platform_audit.audit_entries.after_text | INTERNAL | 用途：被变更字段的新值；个人信息 PI；同 before_text
-platform_idempotency.idempotent_responses.response_text | INTERNAL | 用途：重放幂等请求的第一次应答；个人信息 PI（三段格式下以此为准，四段化随 ADR-0043 实施 PR）；正文仅限 idempotent-endpoints.txt 的接口，不含直接标识，可含自有 UUID（代理键仍是个人信息，ADR-0043 第 4 项第 2 条）
-platform_integration.source_references.source_id | INTERNAL | 用途：来源系统中该对象的标识；个人信息 PI（来源对象类为 EMPLOYEE 时是外部系统的员工编号，等同工号类直接标识；其余类不是）；应答不得进幂等应答表
-platform_identity.sessions.session_id | RESTRICTED | 会话标识，等同 Cookie 持有凭据（个人信息标记待 one-data / U-11 裁定，四段化随 ADR-0043 实施 PR）
-platform_identity.sessions.primary_id | RESTRICTED | 框架内部主键，不进 Cookie，可关联会话内容；按用户决定与 session_id 同级（个人信息标记待 one-data / U-11 裁定，四段化随 ADR-0043 实施 PR）
-platform_approval.approval_requests.summary_text | INTERNAL | 用途：审批卡片上显示的业务摘要；目前内容为单据编号、工作日、工时，不含个人信息；写入方新增字段须先评估个人信息
-platform_file.stored_file_names.original_name | INTERNAL | 用途：下载时还原文件名；个人信息 PI；到期去标识
-platform_file.file_holds.hold_reason | INTERNAL | 人填理由，注释要求不填个人信息；个人信息 PI
-platform_file.false_positive_judgments.judgment_reason | INTERNAL | 人填理由；个人信息 PI
-platform_file.false_positive_judgments.review_reason | INTERNAL | 人填意见；个人信息 PI
-platform_file.scan_exception_revocations.revocation_reason | INTERNAL | 人填理由；个人信息 PI
-platform_file.quarantine_read_requests.request_reason | INTERNAL | 人填理由；个人信息 PI
-organization_workforce.personnel_commands.withdrawal_reason | INTERNAL | 用途：人填的撤回原因；个人信息 PI；只提示不拦截
-organization_workforce.separation_holds.release_reason | INTERNAL | 用途：人填的放行原因；个人信息 PI；只提示不拦截
-organization_workforce.employee_versions.employment_status | INTERNAL | 用途：员工在职状态的历史；个人信息 PI（W2 设计第 5 节）
-organization_workforce.employee_versions.is_fee_earner | INTERNAL | 用途：员工是否收费员工的历史；个人信息 PI（W2 设计第 5 节）
-organization_workforce.employee_versions.employment_start_date | INTERNAL | 用途：员工入职日期，满周年查询用；个人信息 PI
+# 列登记：访问级别与个人信息标记两个维度（ADR-0043；NAMING_STANDARD §2.5，GUIDING_PRINCIPLES §6 数据安全）。
+# 格式（四段，守护 ClassificationRegister 解析，段数、取值、理由不得含 | 都会报出具体行）：
+#   <schema.table.column> | PUBLIC|INTERNAL|SENSITIVE|RESTRICTED | NONE|PI|SPI | <理由>
+# 访问级别（用户按业务决定）：PUBLIC L1 公开 | INTERNAL L2 内部 | SENSITIVE L3 敏感（个人联系方式、生日、工资与日薪、证件、银行卡、安全材料：脱敏展示、按范围授权）| RESTRICTED L4 机密（口令、密钥、会话：不出库、不进日志与分析层）。
+# 个人信息标记（按法律判定，拿不准按 SPI）：NONE 非个人信息 | PI 个人信息 | SPI 敏感个人信息（个人信息保护法第二十八条；SPI 的访问级别不得低于 SENSITIVE）。
+# 理由：PI、SPI 行以「用途：」开头写明该列的功能；SPI 行另写影响评估报告路径（docs/privacy/…md，须存在）；NONE 行以「豁免：」开头表示名字像个人信息但不是（如代理键）。
+# DdlNamingTest 检查：名字像凭据、薪酬、银行、证件的列须登记 SENSITIVE 及以上；名字像敏感个人信息的列（银行、证件、民族、户籍、生物识别、行踪、健康、病假、工伤、生育、专项附加扣除）须标 SPI；薪酬列须标 PI 或 SPI；登记的列必须存在。
+# DataArchitectureTest D5 检查：名字像个人信息的列（姓名、登录名、企业微信、收件人、账号名、工号、邮箱、性别、手机、生日、地址等）须标 PI 或 SPI，或有「豁免：」行。未登记的列默认 INTERNAL + NONE。
+# web / api 出参不得直接暴露 SENSITIVE 与 RESTRICTED 列（只看访问级别，不看标记）。
+organization_workforce.employees.email | INTERNAL | PI | 用途：工作邮箱，通知与联系；访问级别 L2 依 D-6（ADR-0043 第 3 项）
+organization_workforce.employees.gender | INTERNAL | PI | 用途：员工性别，人事档案；访问级别 L2 依 D-6
+platform_identity.user_accounts.last_login_address | SENSITIVE | PI | 用途：显示本人最近登录来源，便于发现被盗会话；最近登录 IP
+platform_identity.emergency_admins.password_hash | RESTRICTED | NONE | 口令哈希
+platform_identity.emergency_admins.totp_secret_encrypted | RESTRICTED | NONE | TOTP 密钥（加密存放）
+platform_identity.emergency_admins.last_totp_step | SENSITIVE | NONE | TOTP 防重放计步，可辅助推断验证码；安全材料
+platform_identity.login_states.state_hash | SENSITIVE | NONE | 一次性登录 state 的摘要；安全材料
+platform_identity.sso_ticket_uses.ticket_hash | SENSITIVE | NONE | 一次性单点登录票据的摘要；安全材料
+platform_identity.ticket_issuers.key_reference | SENSITIVE | NONE | 签名密钥在 KMS 中的引用；安全材料
+platform_identity.sessions_attributes.attribute_bytes | RESTRICTED | PI | 用途：保存会话内容，含用户身份
+platform_identity.emergency_admins.account_name | SENSITIVE | PI | 用途：应急账号的登录名；对应一名员工，可辅助撞库
+platform_identity.sessions.principal_name | SENSITIVE | NONE | 豁免：会话所属用户 ID，值为用户 UUID 文本，按代理键处理（ADR-0043 U-4 (b)）；级别是否下调未定，维持现级
+platform_audit.audit_entries.source_address | SENSITIVE | PI | 用途：说明动作来自哪里；带登录与会话轨迹的条目（登录、会话、管理员模式、拒绝访问、特权请求、强制下线）的客户端地址
+organization_workforce.employees.display_name | INTERNAL | PI | 用途：待办与通讯录中显示姓名；访问级别 L2 依 D-12（ADR-0043 第 3 项）
+organization_workforce.employees.login_name | SENSITIVE | PI | 用途：员工登录名，登录与账号匹配
+organization_workforce.employees.wecom_user_id | INTERNAL | PI | 用途：企业微信用户 ID，登录匹配与消息投递；访问级别 L2 依 D-6
+organization_workforce.employees.employee_code | INTERNAL | PI | 用途：工号，人事与来源系统对照；访问级别 L2（用户决定 2026-11-02-162028，U-2）
+platform_integration.outbound_deliveries.recipient_codes | INTERNAL | PI | 用途：外发消息的收件人（企业微信用户 ID），投递与追查；访问级别 L2（U-4 (b)）
+platform_integration.outbound_deliveries.skipped_recipient_codes | INTERNAL | PI | 用途：外发消息被跳过的收件人（企业微信用户 ID），追查未送达；访问级别 L2（U-4 (b)）
+platform_identity.browser_identifiers.identifier_hash | SENSITIVE | PI | 用途：判断某浏览器是否已被本人确认；关联用户的浏览器标识摘要（去标识化，仍是个人信息）
+platform_audit.audit_entries.detail | INTERNAL | PI | 用途：说明动作的上下文；个人信息 PI；不得含直接标识（IP、登录名、企业微信 ID、姓名），人员只写自有 ID；文件服务加密拒收（platform.file.upload.encrypted-refused）另写上传人起的原文件名（用户 2026-10-21 决定，intent 2026-10-21-170547）
+platform_audit.audit_entries.change_reason | INTERNAL | PI | 用途：人填的变更理由；个人信息 PI；只提示不拦截
+platform_audit.audit_entries.before_text | INTERNAL | PI | 用途：被变更字段的原值；个人信息 PI；仅 L2 个人信息原值，L3 及以上与 SPI 不记，现在一律不写非空值
+platform_audit.audit_entries.after_text | INTERNAL | PI | 用途：被变更字段的新值；个人信息 PI；同 before_text
+platform_idempotency.idempotent_responses.response_text | INTERNAL | PI | 用途：重放幂等请求的第一次应答；个人信息 PI；正文仅限 idempotent-endpoints.txt 的接口，不含直接标识，可含自有 UUID（代理键仍是个人信息，ADR-0043 第 4 项第 2 条）
+platform_integration.source_references.source_id | INTERNAL | PI | 用途：来源系统中该对象的标识；个人信息 PI（来源对象类为 EMPLOYEE 时是外部系统的员工编号，等同工号类直接标识；其余类不是）；应答不得进幂等应答表
+platform_identity.sessions.session_id | RESTRICTED | PI | 用途：会话标识，等同 Cookie 持有凭据；个人信息标记暂按 PI，待 one-data / U-11 裁定
+platform_identity.sessions.primary_id | RESTRICTED | PI | 用途：框架内部主键，不进 Cookie，可关联会话内容；按用户决定与 session_id 同级；个人信息标记暂按 PI，待 one-data / U-11 裁定
+platform_approval.approval_requests.summary_text | INTERNAL | NONE | 用途：审批卡片上显示的业务摘要；目前内容为单据编号、工作日、工时，不含个人信息；写入方新增字段须先评估个人信息
+platform_file.stored_file_names.original_name | INTERNAL | PI | 用途：下载时还原文件名；个人信息 PI；到期去标识
+platform_file.file_holds.hold_reason | INTERNAL | PI | 用途：人填理由，注释要求不填个人信息；个人信息 PI
+platform_file.false_positive_judgments.judgment_reason | INTERNAL | PI | 用途：人填理由；个人信息 PI
+platform_file.false_positive_judgments.review_reason | INTERNAL | PI | 用途：人填意见；个人信息 PI
+platform_file.scan_exception_revocations.revocation_reason | INTERNAL | PI | 用途：人填理由；个人信息 PI
+platform_file.quarantine_read_requests.request_reason | INTERNAL | PI | 用途：人填理由；个人信息 PI
+organization_workforce.personnel_commands.withdrawal_reason | INTERNAL | PI | 用途：人填的撤回原因；个人信息 PI；只提示不拦截
+organization_workforce.org_structure_commands.withdrawal_reason | INTERNAL | PI | 用途：人填的撤回原因；个人信息 PI；只提示不拦截
+organization_workforce.separation_holds.release_reason | INTERNAL | PI | 用途：人填的放行原因；个人信息 PI；只提示不拦截
+organization_workforce.employee_versions.employment_status | INTERNAL | PI | 用途：员工在职状态的历史；个人信息 PI（W2 设计第 5 节）
+organization_workforce.employee_versions.is_fee_earner | INTERNAL | PI | 用途：员工是否收费员工的历史；个人信息 PI（W2 设计第 5 节）
+organization_workforce.employee_versions.employment_start_date | INTERNAL | PI | 用途：员工入职日期，满周年查询用；个人信息 PI

@@ -75,9 +75,11 @@ class SeparationRevokesRolesIntegrationTest extends IdentityIntegrationTest {
         registerEmergencyAdmin(1002, "breakglass-b");
         accessCache.evictAll();
 
+        long grantRows = count("account_role_grants");
         publish(TestAccounts.employee(1001));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(roleCount(1001)).isZero());
+        assertThat(count("account_role_grants")).as("closed, never deleted: the grant total is unchanged").isEqualTo(grantRows);
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(domainEvents.of(EmergencyAdminDisabled.class)).hasSize(1));
         assertThat(roleCount(1002)).as("nobody else is touched").isEqualTo(1);
         assertThat(jdbc.sql("select is_enabled from platform_identity.emergency_admins where user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").query(Boolean.class).single()).isFalse();
