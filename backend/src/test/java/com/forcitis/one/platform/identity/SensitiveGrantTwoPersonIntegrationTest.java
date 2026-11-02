@@ -39,7 +39,7 @@ class SensitiveGrantTwoPersonIntegrationTest extends IdentityIntegrationTest {
     }
 
     private boolean holds(long user, String roleCode) {
-        return jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :u) and r.code = :c")
+        return jdbc.sql("select count(*) from platform_identity.account_role_grants ar join platform_identity.roles r on r.role_id = ar.role_id where ar.effective_to_at is null and ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :u) and r.code = :c")
                 .param("u", TestAccounts.employee(user).value()).param("c", roleCode).query(Long.class).single() == 1;
     }
 

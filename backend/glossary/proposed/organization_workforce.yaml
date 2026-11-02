@@ -281,7 +281,7 @@ terms:
   zh: 人事命令
   en: PersonnelCommand
   snake: personnel_command
-  kind: entity
+  kind: aggregate
   bc: organization.workforce
   scope: domain
   definition: 员工聚合内的人事异动第一手记录：入职、转正、调岗、离职、复职、更正、停薪留职开始与结束，只追加；生效日为人事业务生效日
@@ -291,7 +291,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: W2 PR-B，IMP-1022-PAR-01
+  note: W2 PR-B，IMP-1022-PAR-01；IMP-1030-PAR-B3（#872）起代码里以聚合根承载员工事件序号并发布生效事件（聚合类型仍是 Employee），故种类由 entity 改 aggregate，待 one-design 核定
 - id: unpaid_leave
   zh: 停薪留职
   en: UnpaidLeave
@@ -449,6 +449,262 @@ terms:
   forbidden: []
   status: proposed
   note: IMP-1028-PAR-PCA（#737）；F-1 在 platform.identity 的 trigger_field_kind 列取同样的值
+- id: error__organization_workforce_personnel_command_invalid
+  zh: 人事命令内容不合法
+  en: OrganizationWorkforcePersonnelCommandInvalid
+  snake: organization_workforce_personnel_command_invalid
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 录入的人事命令缺字段、字段与种类不符或引用的员工、部门、岗位不存在（422）
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1030-PAR-B3（#872）
+- id: error__organization_workforce_personnel_command_not_allowed
+  zh: 人事命令不允许
+  en: OrganizationWorkforcePersonnelCommandNotAllowed
+  snake: organization_workforce_personnel_command_not_allowed
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令违反跨行规则：同日已有待生效命令、离职之后再录命令、员工当日状态不符，或命令不是待生效与待放行而撤回（422；撤回已生效命令为 409）
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1030-PAR-B3（#872）
+- id: error__organization_workforce_personnel_command_not_found
+  zh: 人事命令不存在
+  en: OrganizationWorkforcePersonnelCommandNotFound
+  snake: organization_workforce_personnel_command_not_found
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 没有这条人事命令（404）
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1030-PAR-B3（#872）
+- id: error__organization_workforce_personnel_command_reason_invalid
+  zh: 撤回原因不合法
+  en: OrganizationWorkforcePersonnelCommandReasonInvalid
+  snake: organization_workforce_personnel_command_reason_invalid
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 撤回人事命令须填 1 至 500 字且非空白的原因（422）
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1030-PAR-B3（#872）
+- id: error__organization_workforce_personnel_command_transition_illegal
+  zh: 人事命令状态转换不合法
+  en: OrganizationWorkforcePersonnelCommandTransitionIllegal
+  snake: organization_workforce_personnel_command_transition_illegal
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令或待放行离职的状态转换不在状态机允许的范围内（422）
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1030-PAR-B3（#872）
+- id: probation
+  zh: 试用
+  en: Probation
+  snake: probation
+  kind: state
+  bc: organization.workforce
+  scope: domain
+  definition: 雇佣阶段之一：入职后到转正前；员工版本的雇佣阶段取值 PROBATION
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1030-PAR-B3（#872）
+- id: regular
+  zh: 正式
+  en: Regular
+  snake: regular
+  kind: state
+  bc: organization.workforce
+  scope: domain
+  definition: 雇佣阶段之一：转正之后；员工版本的雇佣阶段取值 REGULAR
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1030-PAR-B3（#872）
+- id: regularize
+  zh: 转正命令
+  en: Regularize
+  snake: regularize
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令种类 REGULARIZE：雇佣阶段由试用转为正式，在职状态不变；命令生效发布 EmployeeRegularized
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1030-PAR-B3（#872）
+- id: reinstate
+  zh: 复职命令
+  en: Reinstate
+  snake: reinstate
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令种类 REINSTATE：已离职的员工回到在职，生效日须晚于离职生效日；命令生效发布 EmployeeReinstated
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1030-PAR-B3（#872）
+- id: separate
+  zh: 离职命令
+  en: Separate
+  snake: separate
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令种类 SEPARATE：人事填最后工作日，离职版本生效日为其次日；命令生效发布 EmployeeSeparated
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: IMP-1030-PAR-B3（#872）
+
+- id: error__organization_workforce_employee_not_found
+  zh: 员工不存在
+  en: OrganizationWorkforceEmployeeNotFound
+  snake: organization_workforce_employee_not_found
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 档案修改所指的员工不存在（404）
+  standard_ref:
+  - one-design 数据设计（#959）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 入职建员工并可改档案（#959）
+- id: error__organization_workforce_employee_profile_invalid
+  zh: 员工档案内容不合法
+  en: OrganizationWorkforceEmployeeProfileInvalid
+  snake: organization_workforce_employee_profile_invalid
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 姓名为空或过长、邮箱为空白或过长，或档案修改带了晚于今天的生效日（422）
+  standard_ref:
+  - one-design 数据设计（#959）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 入职建员工并可改档案（#959）
+- id: error__organization_workforce_employee_code_taken
+  zh: 工号已被占用
+  en: OrganizationWorkforceEmployeeCodeTaken
+  snake: organization_workforce_employee_code_taken
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 入职时系统发出的工号已是某名员工（如迁入者）的工号，整个入职拒收、计数回滚（409）
+  standard_ref:
+  - one-design 数据设计（#959）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 入职建员工并可改档案（#959）
+- id: error__organization_workforce_wecom_user_id_taken
+  zh: 企业微信账号已被占用
+  en: OrganizationWorkforceWecomUserIdTaken
+  snake: organization_workforce_wecom_user_id_taken
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 入职或档案修改带的企业微信账号已属于另一名员工，已离职者也算（422）
+  standard_ref:
+  - one-design 数据设计（#959）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 入职建员工并可改档案（#959）
+- id: error__organization_workforce_wecom_user_id_change_not_allowed
+  zh: 企业微信账号不允许一人改动
+  en: OrganizationWorkforceWecomUserIdChangeNotAllowed
+  snake: organization_workforce_wecom_user_id_change_not_allowed
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 账号持有普通员工以外角色的员工，其已有的企业微信账号改绑或清空须两人经办，目前一律拒收（403）
+  standard_ref:
+  - 用户决定 2026-11-02（企业微信账号改绑防冒用）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 入职建员工并可改档案（#959）
+- id: error__organization_workforce_own_profile_change_forbidden
+  zh: 不能修改本人档案
+  en: OrganizationWorkforceOwnProfileChangeForbidden
+  snake: organization_workforce_own_profile_change_forbidden
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 任何人不得修改自己的员工档案（403）
+  standard_ref:
+  - 用户决定 2026-11-02（企业微信账号改绑防冒用）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 入职建员工并可改档案（#959）
+- id: error__organization_workforce_initial_version_migration_refused
+  zh: 初始迁入被拒绝
+  en: OrganizationWorkforceInitialVersionMigrationRefused
+  snake: organization_workforce_initial_version_migration_refused
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 有进行中的同步时，现有员工初始迁入版本表的运维命令被拒绝（422）
+  standard_ref:
+  - one-design 数据设计签发（#960 评论 6529863330）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 迁入命令 migrate-initial-versions（#960）
 common_words:
 - listed
 - lookup
@@ -539,3 +795,5 @@ common_words:
 - applied
 - superseding
 - affected
+- planner
+- interface

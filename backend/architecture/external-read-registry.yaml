@@ -39,17 +39,17 @@ columns:
   - { database: a8_db, object: forcitis_one.v_org_post, column: STATUS, source: dbo.ORG_POST.STATUS, category: POSITION, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
   - { database: a8_db, object: forcitis_one.v_org_post, column: IS_DELETED, source: dbo.ORG_POST.IS_DELETED, category: POSITION, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
   - { database: a8_db, object: forcitis_one.v_org_member, column: ID, source: dbo.ORG_MEMBER.ID, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: NAME, source: dbo.ORG_MEMBER.NAME, category: EMPLOYEE, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: CODE, source: dbo.ORG_MEMBER.CODE, category: EMPLOYEE, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: NAME, source: dbo.ORG_MEMBER.NAME, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: CODE, source: dbo.ORG_MEMBER.CODE, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
   - { database: a8_db, object: forcitis_one.v_org_member, column: ORG_UNIT_ID, source: dbo.ORG_MEMBER.ORG_DEPARTMENT_ID, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
   - { database: a8_db, object: forcitis_one.v_org_member, column: ORG_UNIT_PATH, source: dbo.ORG_UNIT.PATH, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
   - { database: a8_db, object: forcitis_one.v_org_member, column: POST_ID, source: dbo.ORG_MEMBER.ORG_POST_ID, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
   - { database: a8_db, object: forcitis_one.v_org_member, column: SUPERVISOR_MEMBER_ID, source: dbo.ORG_MEMBER.EXT_ATTR_37, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: WE_COM_ID, source: dbo.ORG_MEMBER.we_com_id, category: EXTERNAL_IDENTITY, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: WE_COM_ID, source: dbo.ORG_MEMBER.we_com_id, category: EXTERNAL_IDENTITY, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
   - { database: a8_db, object: forcitis_one.v_org_member, column: IS_INTERNAL, source: dbo.ORG_MEMBER.IS_INTERNAL, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
   - { database: a8_db, object: forcitis_one.v_org_member, column: LOGIN_NAME, source: dbo.ORG_PRINCIPAL.LOGIN_NAME, category: EXTERNAL_IDENTITY, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: ENTERPRISE_EMAIL, source: dbo.formmain_0307.field0234, category: EMPLOYEE, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
-  - { database: a8_db, object: forcitis_one.v_org_member, column: GENDER, source: dbo.formmain_0307.field0284, category: EMPLOYEE, sensitivity: SENSITIVE, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: ENTERPRISE_EMAIL, source: dbo.formmain_0307.field0234, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
+  - { database: a8_db, object: forcitis_one.v_org_member, column: GENDER, source: dbo.formmain_0307.field0284, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
   - { database: a8_db, object: forcitis_one.v_org_member, column: FEE_EARNER_ENUM_ID, source: dbo.formmain_0307.FIELD0244, category: EMPLOYEE, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
   - { database: a8_db, object: dbo.ORG_UNIT, column: ID, source: dbo.ORG_UNIT.ID, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }
   - { database: a8_db, object: dbo.ORG_UNIT, column: TYPE, source: dbo.ORG_UNIT.TYPE, category: ORG_UNIT, sensitivity: INTERNAL, purpose: RUNTIME_SYNC }

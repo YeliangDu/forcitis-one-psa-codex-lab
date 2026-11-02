@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.api;
 
 import com.forcitis.one.kernel.EmployeeId;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,6 +13,15 @@ public interface OrgDirectory {
 
     /** What the snapshot can say about the employment of one employee, and whether it can be trusted to say it. */
     EmploymentVerdict employmentOf(EmployeeId employeeId);
+
+    /** Unpaid leave that day (a person on leave is still employed, but counts neither as available nor as retained, ADR-0068 section 3), and whether the person is held or leaving. */
+    Availability availabilityOn(EmployeeId employeeId, LocalDate day);
+
+    /**
+     * The employment status on that business day: for an employee with versions the status of the version in force that day, empty when none covers it;
+     * for one without versions the current status of the snapshot (#958).
+     */
+    Optional<EmploymentStatus> employmentOn(EmployeeId employeeId, LocalDate day);
 
     /** Empty when none or not employed. */
     Optional<EmployeeId> findSupervisor(EmployeeId employeeId);

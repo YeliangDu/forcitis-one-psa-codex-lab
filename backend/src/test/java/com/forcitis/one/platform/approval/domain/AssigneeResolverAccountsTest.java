@@ -35,13 +35,14 @@ class AssigneeResolverAccountsTest {
 
     final OrgDirectory org = mock(OrgDirectory.class);
     final RoleDirectory roles = mock(RoleDirectory.class);
-    final AssigneeResolver resolver = new AssigneeResolver(org, roles, Set.of(), TestAccounts.everyoneHasOne());
+    final AssigneeResolver resolver = new AssigneeResolver(org, roles, Set.of(), TestAccounts.everyoneHasOne(), java.time.LocalDate.of(2026, 11, 2));
 
     AssigneeResolverAccountsTest() {
         for (long employee : new long[] {1001, 1002, 1003}) {
             when(org.findEmployee(TestAccounts.employee(employee))).thenReturn(Optional.of(new EmployeeProfile(TestAccounts.employee(employee), "person-" + employee,
                     TestOrgIds.orgUnit(5), null, EmploymentStatus.EMPLOYED, false)));
         }
+        when(org.availabilityOn(any(), any())).thenReturn(com.forcitis.one.organization.workforce.api.Availability.AVAILABLE);
         when(org.findSupervisor(any(EmployeeId.class))).thenAnswer(call -> call.getArgument(0).equals(INITIATOR) ? Optional.of(SUPERVISOR) : Optional.empty());
     }
 

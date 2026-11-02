@@ -28,12 +28,68 @@ final class PersonnelCommandsProbe {
     private final Method enter;
     private final Method withdraw;
     private final Function<UUID, EmployeeId> employeeIds;
+    /** #873: the single release of a separation hold; absent until the SeparationHolds bean exists, which fails only the tests that release. */
+    private Object holds;
+    private Method release;
+    private String holdsMissing = "";
+    /** #959: the profile change; absent until the EmployeeProfiles bean exists, which fails only the tests that change a profile. */
+    private Object profiles;
+    private Method change;
 
     private PersonnelCommandsProbe(Object service, Method enter, Method withdraw, Function<UUID, EmployeeId> employeeIds) {
         this.service = service;
         this.enter = enter;
         this.withdraw = withdraw;
         this.employeeIds = employeeIds;
+    }
+
+    private PersonnelCommandsProbe withProfiles(ApplicationContext context) {
+        for (String name : context.getBeanDefinitionNames()) {
+            Class<?> type = context.getType(name);
+            Class<?> contract = type == null ? null : contractOf(ClassUtils.getUserClass(type), PROFILES_API_TYPE);
+            if (contract != null) {
+                profiles = context.getBean(name);
+                change = recordMethod(contract, CHANGE_METHOD, CHANGE_PARAMETER);
+                return this;
+            }
+        }
+        return this;
+    }
+
+    /** Changes a profile as the signed-in caller; the fields are keyed by the component names of {@link PersonnelCommandNames}. */
+    void changeProfile(Map<String, Object> fields) {
+        if (change == null) {
+            throw new AssertionError("#959: no bean of a type named " + PROFILES_API_TYPE + " in " + API_PACKAGE);
+        }
+        call(profiles, change, fields);
+    }
+
+    List<String> changeComponents() {
+        if (change == null) {
+            throw new AssertionError("#959: no bean of a type named " + PROFILES_API_TYPE + " in " + API_PACKAGE);
+        }
+        return names(change.getParameterTypes()[0]);
+    }
+
+    private PersonnelCommandsProbe withHolds(ApplicationContext context) {
+        List<String> seen = new ArrayList<>();
+        for (String name : context.getBeanDefinitionNames()) {
+            Class<?> type = context.getType(name);
+            if (type == null) {
+                continue;
+            }
+            if (type.getSimpleName().equals(HOLDS_API_TYPE)) {
+                seen.add(type.getName());
+            }
+            Class<?> contract = contractOf(ClassUtils.getUserClass(type), HOLDS_API_TYPE);
+            if (contract != null) {
+                holds = context.getBean(name);
+                release = recordMethod(contract, RELEASE_METHOD, RELEASE_PARAMETER);
+                return this;
+            }
+        }
+        holdsMissing = "ADR-0068 item 2.3: no bean of a type named " + HOLDS_API_TYPE + " in " + API_PACKAGE + " (same-named types elsewhere: " + seen + ")";
+        return this;
     }
 
     static PersonnelCommandsProbe of(ApplicationContext context, Function<UUID, EmployeeId> employeeIds) {
@@ -46,20 +102,20 @@ final class PersonnelCommandsProbe {
             if (type.getSimpleName().equals(API_TYPE)) {
                 seen.add(type.getName());
             }
-            Class<?> contract = contractOf(ClassUtils.getUserClass(type));
+            Class<?> contract = contractOf(ClassUtils.getUserClass(type), API_TYPE);
             if (contract != null) {
                 return new PersonnelCommandsProbe(context.getBean(name), recordMethod(contract, ENTER_METHOD, ENTER_PARAMETER),
-                        recordMethod(contract, WITHDRAW_METHOD, WITHDRAW_PARAMETER), employeeIds);
+                        recordMethod(contract, WITHDRAW_METHOD, WITHDRAW_PARAMETER), employeeIds).withHolds(context).withProfiles(context);
             }
         }
         throw new AssertionError("ADR-0068 item 1.6: no bean of a type named " + API_TYPE + " in " + API_PACKAGE + " (same-named types elsewhere: " + seen + ")");
     }
 
-    private static Class<?> contractOf(Class<?> type) {
+    private static Class<?> contractOf(Class<?> type, String simpleName) {
         List<Class<?>> candidates = new ArrayList<>(ClassUtils.getAllInterfacesForClassAsSet(type));
         candidates.addFirst(type);
         for (Class<?> candidate : candidates) {
-            if (candidate.getSimpleName().equals(API_TYPE) && candidate.getPackageName().equals(API_PACKAGE)) {
+            if (candidate.getSimpleName().equals(simpleName) && candidate.getPackageName().equals(API_PACKAGE)) {
                 return candidate;
             }
         }
@@ -95,17 +151,35 @@ final class PersonnelCommandsProbe {
 
     /** Enters a command; the fields are keyed by the component names of {@link PersonnelCommandNames}. Business refusals propagate. */
     UUID enter(Map<String, Object> fields) {
-        return idOf(call(enter, fields));
+        return idOf(call(service, enter, fields));
+    }
+
+    /** Releases one hold as the signed-in caller; business refusals and permission refusals propagate. */
+    void release(UUID separationHoldId, String reason) {
+        if (release == null) {
+            throw new AssertionError(holdsMissing);
+        }
+        Map<String, Object> fields = new java.util.HashMap<>();
+        fields.put(SEPARATION_HOLD_ID, separationHoldId);
+        fields.put(REASON, reason);
+        call(holds, release, fields);
+    }
+
+    List<String> releaseComponents() {
+        if (release == null) {
+            throw new AssertionError(holdsMissing);
+        }
+        return names(release.getParameterTypes()[0]);
     }
 
     void withdraw(UUID personnelCommandId, String reason) {
         Map<String, Object> fields = new java.util.HashMap<>();
         fields.put(PERSONNEL_COMMAND_ID, personnelCommandId);
         fields.put(REASON, reason);
-        call(withdraw, fields);
+        call(service, withdraw, fields);
     }
 
-    private Object call(Method method, Map<String, Object> fields) {
+    private Object call(Object target, Method method, Map<String, Object> fields) {
         Class<?> parameter = method.getParameterTypes()[0];
         List<String> components = names(parameter);
         for (String name : fields.keySet()) {
@@ -121,7 +195,7 @@ final class PersonnelCommandsProbe {
             arguments[i] = convert(types[i], fields.get(declared[i].getName()));
         }
         try {
-            return method.invoke(service, parameter.getDeclaredConstructor(types).newInstance(arguments));
+            return method.invoke(target, parameter.getDeclaredConstructor(types).newInstance(arguments));
         } catch (InvocationTargetException failure) {
             if (failure.getCause() instanceof RuntimeException runtime) {
                 throw runtime;
@@ -154,6 +228,13 @@ final class PersonnelCommandsProbe {
                 return type.getDeclaredConstructor(UUID.class).newInstance(uuid);
             } catch (ReflectiveOperationException notATypedId) {
                 throw new AssertionError("a UUID argument needs a UUID or a typed id built from one, not " + type, notATypedId);
+            }
+        }
+        if (value instanceof String text && type != String.class) {
+            try {
+                return type.getDeclaredConstructor(String.class).newInstance(text);
+            } catch (ReflectiveOperationException notATypedValue) {
+                throw new AssertionError("a String argument needs a String or a typed value built from one, not " + type, notATypedValue);
             }
         }
         if (type == boolean.class && value instanceof Boolean || type == LocalDate.class && value instanceof LocalDate) {

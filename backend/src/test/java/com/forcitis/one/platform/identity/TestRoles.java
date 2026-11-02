@@ -45,7 +45,23 @@ public final class TestRoles {
     }
 
     /** Takes every custom role and its versions out, so that the next test starts from the system roles alone. */
+    /** Fixture clean-up only: the history is append-only for the application, so the guard trigger is off for the delete. */
+    public static void deleteAllGrants(JdbcClient jdbc) {
+        jdbc.sql("alter table platform_identity.account_role_grants disable trigger user").update();
+        try {
+            jdbc.sql("delete from platform_identity.account_role_grants").update();
+        } finally {
+            jdbc.sql("alter table platform_identity.account_role_grants enable trigger user").update();
+        }
+    }
+
     public static void deleteCustomRoles(JdbcClient jdbc) {
+        jdbc.sql("alter table platform_identity.account_role_grants disable trigger user").update();
+        try {
+            jdbc.sql("delete from platform_identity.account_role_grants where role_id in (select role_id from platform_identity.roles where kind = 'CUSTOM')").update();
+        } finally {
+            jdbc.sql("alter table platform_identity.account_role_grants enable trigger user").update();
+        }
         jdbc.sql("alter table platform_identity.role_versions disable trigger user").update();
         try {
             jdbc.sql("""

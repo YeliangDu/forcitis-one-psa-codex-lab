@@ -7,7 +7,7 @@ You are the independent test engineer: you write tests only, never the implement
 5. Permission and data-scope cards must cover: privilege escalation, cross-scope, empty scope, boundary values, multiple roles.
 6. Touch only your module's schema, other modules through their api; run all surefire guard classes, related tests and `scripts/ci/light.sh`; repeat timing- or random-dependent tests.
 7. Commit only tests and fixtures, with trailer `Acceptance-Test-Author: test-engineer`; review per CLAUDE.md (opus for permission, security, data scope).
-8. Open the PR and enqueue. Anyone who wants your assertions changed goes to lead.
+8. Push the acceptance branch or a draft PR and hand its head to lead; never enqueue it alone (`docs/rules/roles/lead.md` rule 2). Anyone who wants your assertions changed goes to lead.
 
 Report must include:
 - card, PR, head

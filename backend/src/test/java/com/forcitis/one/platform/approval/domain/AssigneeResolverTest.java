@@ -33,7 +33,7 @@ class AssigneeResolverTest {
                 .person(101, 1, null).person(110, 10, null).separated(120, 12, null).person(130, 13, null).person(131, 10, null)
                 .person(1, 11, 2L).person(2, 10, 3L).person(3, 1, null)
                 .person(ADMIN, 1, null);
-        resolver = new AssigneeResolver(org, org, java.util.Set.of(TestAccounts.account(ADMIN)), TestAccounts.everyoneHasOne());
+        resolver = new AssigneeResolver(org, org, java.util.Set.of(TestAccounts.account(ADMIN)), TestAccounts.everyoneHasOne(), java.time.LocalDate.of(2026, 11, 2));
     }
 
     Resolution resolve(AssignmentRule rule, long initiator, ProcessVariables variables) {
@@ -129,12 +129,12 @@ class AssigneeResolverTest {
     @DisplayName("RULE-250 nothing found anywhere goes to the process administrator; without one the result is UNRESOLVED")
     void nothingFoundGoesToAdministrator() {
         FakeOrganisation lonely = new FakeOrganisation().unit(1, null, null).person(5, 1, null);
-        Resolution r = new AssigneeResolver(lonely, lonely, java.util.Set.of(TestAccounts.account(ADMIN)), TestAccounts.everyoneHasOne())
+        Resolution r = new AssigneeResolver(lonely, lonely, java.util.Set.of(TestAccounts.account(ADMIN)), TestAccounts.everyoneHasOne(), java.time.LocalDate.of(2026, 11, 2))
                 .resolve(new AssignmentRule.InitiatorSupervisor(1), false, TestAccounts.employee(5), ProcessVariables.empty());
         assertThat(r.candidates()).isEqualTo(ids(ADMIN));
         assertThat(r.kind()).isEqualTo(ResolutionKind.ADMINISTRATOR_FALLBACK);
 
-        Resolution none = new AssigneeResolver(lonely, lonely, java.util.Set.of(), TestAccounts.everyoneHasOne())
+        Resolution none = new AssigneeResolver(lonely, lonely, java.util.Set.of(), TestAccounts.everyoneHasOne(), java.time.LocalDate.of(2026, 11, 2))
                 .resolve(new AssignmentRule.InitiatorSupervisor(1), false, TestAccounts.employee(5), ProcessVariables.empty());
         assertThat(none.candidates()).isEmpty();
         assertThat(none.kind()).isEqualTo(ResolutionKind.UNRESOLVED);
@@ -184,7 +184,7 @@ class AssigneeResolverTest {
     @DisplayName("RULE-300 a complete, valid input with really nobody (no supervisor, no head, no role holder) is SKIPPED")
     void reallyNobodyIsSkipped() {
         FakeOrganisation lonely = new FakeOrganisation().unit(1, null, null).person(5, 1, null);
-        AssigneeResolver lonelyResolver = new AssigneeResolver(lonely, lonely, java.util.Set.of(TestAccounts.account(ADMIN)), TestAccounts.everyoneHasOne());
+        AssigneeResolver lonelyResolver = new AssigneeResolver(lonely, lonely, java.util.Set.of(TestAccounts.account(ADMIN)), TestAccounts.everyoneHasOne(), java.time.LocalDate.of(2026, 11, 2));
 
         assertThat(lonelyResolver.resolve(new AssignmentRule.InitiatorSupervisor(1), false, true, TestAccounts.employee(5), ProcessVariables.empty())
                 .kind()).isEqualTo(ResolutionKind.SKIPPED);
@@ -202,6 +202,16 @@ class AssigneeResolverTest {
         Resolution r = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 1,
                 fields("projectManagerId", person(2), person(3), person(2), " ", person(negativeBigId)));
         assertThat(r.candidates()).isEqualTo(ids(2, 3, negativeBigId));
+    }
+
+    @Test
+    @DisplayName("IMP-1030-PAR-B5 (ADR-0068 section 3, the third in-service check): a person on unpaid leave is skipped as an approver, like a separated one; the others stay")
+    void aPersonOnUnpaidLeaveIsSkipped() {
+        org.onLeave.add(TestAccounts.employee(2));
+
+        Resolution r = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 1, fields("projectManagerId", person(2), person(3)));
+
+        assertThat(r.candidates()).as("2 is on leave: only 3 remains").isEqualTo(ids(3));
     }
 
     @Test

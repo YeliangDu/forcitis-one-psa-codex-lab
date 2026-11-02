@@ -28,6 +28,7 @@ base=x
 expect scripts/gates/install.sh t_shell t_gates
 expect tools/ops/Runner_Watch.SH t_shell t_runner_watch
 expect backend/src/test/java/com/forcitis/one/a/FooTest.java t_unit_classes
+expect scripts/ci/error_catalogue.py t_error_catalogue_tool
 expect x/notes.txt
 expect x/install.sh.bak
 expect x/scripts/guards/ci_git.py
@@ -67,6 +68,10 @@ direct() {  # direct <路径> <模式名> <0|1>：light.sh 直接用、不进检
 }
 direct backend/src/test/java/com/forcitis/one/acceptance/a/FooAT.java t_acceptance 1
 direct backend/src/test/java/com/forcitis/one/a/FooTest.java t_acceptance 0
+direct backend/src/main/java/com/forcitis/one/a/api/AError.java t_error_catalogue 1
+direct frontend/packages/core/src/error-messages.ts t_error_catalogue 1
+direct scripts/ci/error_catalogue.py t_error_catalogue 1
+direct backend/src/main/resources/x.sql t_error_catalogue 0
 direct CLAUDE.md t_start_sheet 1
 direct scripts/session/build_decisions.py t_start_sheet 1
 direct x/CLAUDE.md t_start_sheet 0

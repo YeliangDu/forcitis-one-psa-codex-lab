@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
 import com.forcitis.one.kernel.AccountEmployees;
+import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.approval.api.ApprovalError;
@@ -13,6 +14,7 @@ import com.forcitis.one.platform.approval.domain.ResolutionKind;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Locale;
+import java.time.Clock;
 import java.util.Map;
 import org.flowable.bpmn.model.UserTask;
 import org.slf4j.Logger;
@@ -33,9 +35,13 @@ class NodeAssignment {
     private final ProcessAdministrator administrator;
     private final MeterRegistry meters;
     private final AccountEmployees accountEmployees;
+    private final Clock clock;
+    private final BusinessZone zone;
 
     NodeAssignment(OrgDirectory org, RoleDirectory roles, ProcessAdministrator administrator, MeterRegistry meters,
-            AccountEmployees accountEmployees) {
+            AccountEmployees accountEmployees, Clock clock, BusinessZone zone) {
+        this.clock = clock;
+        this.zone = zone;
         this.accountEmployees = accountEmployees;
         this.org = org;
         this.roles = roles;
@@ -50,7 +56,7 @@ class NodeAssignment {
         Resolution resolution;
         try {
             EmployeeId initiator = FlowableApprovalEngine.initiatorOf(variables, instanceId);
-            resolution = new AssigneeResolver(org, roles, administrator.holders(), accountEmployees)
+            resolution = new AssigneeResolver(org, roles, administrator.holders(), accountEmployees, zone.today(clock))
                     .resolve(policy.rule(), policy.selfApprovalAllowed(), policy.skipWhenEmpty(), initiator, variables);
         } catch (RuntimeException failed) {
             log.error("ALERT platform.approval resolving the assignees of node {} (instance {}) failed: {}", node.getId(), instanceId, failed.toString());

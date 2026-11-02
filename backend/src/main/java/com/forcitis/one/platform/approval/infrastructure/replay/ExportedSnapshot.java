@@ -44,6 +44,18 @@ final class ExportedSnapshot implements OrgDirectory, RoleDirectory {
         return Optional.empty();
     }
 
+    /** An export carries no leave flag (it predates the flag), so nobody in a replay is on leave. */
+    @Override
+    public com.forcitis.one.organization.workforce.api.Availability availabilityOn(EmployeeId employeeId, java.time.LocalDate day) {
+        return com.forcitis.one.organization.workforce.api.Availability.AVAILABLE;
+    }
+
+    /** An export carries one state per person, so the day does not matter. */
+    @Override
+    public Optional<EmploymentStatus> employmentOn(EmployeeId employeeId, java.time.LocalDate day) {
+        return findEmployee(employeeId).map(EmployeeProfile::employmentStatus);
+    }
+
     @Override
     public EmploymentVerdict employmentOf(EmployeeId employeeId) {
         return findEmployee(employeeId).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED ? EmploymentVerdict.EMPLOYED : EmploymentVerdict.SEPARATED)

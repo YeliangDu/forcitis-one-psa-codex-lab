@@ -196,7 +196,7 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
 
         assertThat(run(with("disable-emergency-admin", "--employee-id=" + TestAccounts.employee(7).value())).out()).isEqualTo("disabled\n");
         assertThat(run(with("disable-emergency-admin", "--employee-id=" + TestAccounts.employee(7).value())).out()).contains("already disabled");
-        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(7) + ")").update();
+        jdbc.sql("update platform_identity.account_role_grants set effective_to_at = greatest(now(), effective_from_at), revocation_cause_kind = 'OPERATIONS', revocation_audit_entry_id = uuidv7(), updated_at = now() where effective_to_at is null and user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(7) + ")").update();
         Result refused = run(with("enable-emergency-admin", "--employee-id=" + TestAccounts.employee(7).value()));
         assertThat(refused.exitCode()).isEqualTo(1);
         assertThat(refused.err()).contains("PLATFORM_IDENTITY_EMERGENCY_BINDING_INVALID");
@@ -219,8 +219,8 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
         assertThat(first.out()).isEqualTo("role granted\n");
         assertThat(again.out()).contains("already held");
         assertThat(jdbc.sql("""
-                select r.code from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id
-                 where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :employee) order by r.code
+                select r.code from platform_identity.account_role_grants ar join platform_identity.roles r on r.role_id = ar.role_id
+                 where ar.effective_to_at is null and ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :employee) order by r.code
                 """).param("employee", TestAccounts.employee(33).value()).query(String.class).list()).containsExactly("business_admin", "employee");
         assertThat(recorded()).filteredOn(entry -> entry.action().equals("platform.identity.operations.account.role.granted")).singleElement()
                 .satisfies(entry -> assertThat(entry.detail()).contains("operatorId=" + OPERATOR_ID, "witnessId=" + WITNESS_ID, "role=business_admin"));
