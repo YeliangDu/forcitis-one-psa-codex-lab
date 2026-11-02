@@ -32,7 +32,8 @@ CREATE TABLE organization_workforce.employee_profile_change_requests (
         AND (decision_reason IS NULL OR (char_length(decision_reason) BETWEEN 1 AND 500 AND btrim(decision_reason) <> ''))),
     CONSTRAINT ck_employee_profile_change_requests_display_name CHECK (char_length(display_name) <= 500 AND btrim(display_name) <> ''
         AND char_length(base_display_name) <= 500 AND btrim(base_display_name) <> ''),
-    CONSTRAINT ck_employee_profile_change_requests_gender CHECK ((gender_code IS NULL OR gender_code IN ('MALE', 'FEMALE')) AND (base_gender_code IS NULL OR base_gender_code IN ('MALE', 'FEMALE'))),
+    CONSTRAINT ck_employee_profile_change_requests_gender_code CHECK (gender_code IS NULL OR gender_code IN ('MALE', 'FEMALE')),
+    CONSTRAINT ck_employee_profile_change_requests_base_gender_code CHECK (base_gender_code IS NULL OR base_gender_code IN ('MALE', 'FEMALE')),
     CONSTRAINT ck_employee_profile_change_requests_email CHECK ((email_address IS NULL OR (char_length(email_address) <= 100 AND btrim(email_address) <> ''))
         AND (base_email_address IS NULL OR (char_length(base_email_address) <= 100 AND btrim(base_email_address) <> '')))
 );

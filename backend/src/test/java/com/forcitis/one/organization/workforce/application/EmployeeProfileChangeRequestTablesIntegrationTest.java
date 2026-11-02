@@ -3,9 +3,14 @@ package com.forcitis.one.organization.workforce.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /** #980: the second-person review request of an employee profile change, as the database enforces it (design PR #996, section 4). */
 class EmployeeProfileChangeRequestTablesIntegrationTest extends WorkforceIntegrationSupport {
@@ -68,7 +73,13 @@ class EmployeeProfileChangeRequestTablesIntegrationTest extends WorkforceIntegra
         refused("ck_employee_profile_change_requests_decision_reason", insert(EMPLOYEE, "REJECTED", ", decided_by, decided_at, decision_reason", ", " + CONFIRMER + ", now(), ' '"));
         refused("ck_employee_profile_change_requests_decision_reason", insert(EMPLOYEE, "CONFIRMED", ", decided_by, decided_at, decision_reason", ", " + CONFIRMER + ", now(), 'x'"));
         refused("ck_employee_profile_change_requests_display_name", insert(EMPLOYEE, "PENDING", "", "").replace("base_display_name, base_wecom_user_id, display_name", "base_display_name, base_wecom_user_id, display_name").replace("'name', 'old', 'name'", "'name', 'old', ' '"));
-        refused("ck_employee_profile_change_requests_gender", insert(EMPLOYEE, "PENDING", ", gender_code", ", 'OTHER'"));
+        refused("ck_employee_profile_change_requests_display_name", insert(EMPLOYEE, "PENDING", "", "").replace("now(), 'name', 'old', 'name'", "now(), ' ', 'old', 'name'"));
+        refused("ck_employee_profile_change_requests_gender_code", insert(EMPLOYEE, "PENDING", ", gender_code", ", 'OTHER'"));
+        refused("ck_employee_profile_change_requests_base_gender_code", insert(EMPLOYEE, "PENDING", ", base_gender_code", ", 'OTHER'"));
+        refused("ck_employee_profile_change_requests_email", insert(EMPLOYEE, "PENDING", ", email_address", ", ' '"));
+        refused("ck_employee_profile_change_requests_email", insert(EMPLOYEE, "PENDING", ", email_address", ", '" + "a".repeat(101) + "'"));
+        refused("ck_employee_profile_change_requests_email", insert(EMPLOYEE, "PENDING", ", base_email_address", ", ' '"));
+        jdbc.sql(insert(OTHER_EMPLOYEE, "PENDING", ", gender_code, base_gender_code, email_address, base_email_address", ", 'FEMALE', 'MALE', 'a@b.c', NULL")).update();
     }
 
     @Test
@@ -83,8 +94,29 @@ class EmployeeProfileChangeRequestTablesIntegrationTest extends WorkforceIntegra
         pending();
     }
 
+    @Autowired
+    DataSource dataSource;
+
     @Test
-    @DisplayName("#980 a pending request moves once to CONFIRMED, REJECTED or VOIDED, the decision columns are set once, the content never changes, nothing is deleted by the runtime")
+    @DisplayName("#980 the runtime account cannot delete requests; only the table owner may")
+    void deleteIsOwnerOnly() throws SQLException {
+        pending();
+        try (Connection c = dataSource.getConnection(); Statement s = c.createStatement()) {
+            s.execute("do $$ begin if not exists (select 1 from pg_roles where rolname = 'f1_runtime') then create role f1_runtime; end if; end $$");
+            s.execute("grant usage on schema organization_workforce to f1_runtime");
+            s.execute("grant select, insert, update, delete on " + TABLE + " to f1_runtime");
+            s.execute("set role f1_runtime");
+            try {
+                assertThatThrownBy(() -> s.execute("delete from " + TABLE)).hasMessageContaining("append-only");
+            } finally {
+                s.execute("reset role");
+            }
+        }
+        assertThat(jdbc.sql("delete from " + TABLE).update()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("#980 a pending request moves once to CONFIRMED, REJECTED or VOIDED, the decision columns are set once, the content never changes, nothing is truncated")
     void appendOnly() {
         pending();
         refused("only the status and decision columns", "update " + TABLE + " set wecom_user_id = 'other'");
@@ -92,6 +124,9 @@ class EmployeeProfileChangeRequestTablesIntegrationTest extends WorkforceIntegra
         refused("status cannot move", "update " + TABLE + " set request_status = 'REJECTED', decision_reason = 'late'");
         refused("status cannot move", "update " + TABLE + " set request_status = 'PENDING', decided_by = NULL, decided_at = NULL");
         refused("is set once", "update " + TABLE + " set decided_by = " + REQUESTER);
+        refused("is set once", "update " + TABLE + " set decided_at = decided_at + interval '1 day' where request_status = 'CONFIRMED'");
+        jdbc.sql(insert(OTHER_EMPLOYEE, "REJECTED", ", decided_by, decided_at, decision_reason", ", " + CONFIRMER + ", now(), 'no'")).update();
+        refused("is set once", "update " + TABLE + " set decision_reason = 'changed' where request_status = 'REJECTED'");
         refused("truncate", "truncate " + TABLE);
         assertThat(jdbc.sql("select count(*) from pg_trigger where tgname = 'tg_employee_profile_change_requests_append_only_truncate' and (tgtype & 32) <> 0").query(Integer.class).single())
                 .isEqualTo(1);
