@@ -2,6 +2,7 @@ package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.organization.workforce.api.Gender;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.integration.api.OwnObjectId;
 import com.forcitis.one.platform.integration.api.SourceGender;

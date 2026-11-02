@@ -138,8 +138,8 @@ class OpenApiExportTest {
      */
     static final Set<String> OTHER_ID_NAMES = Set.of("InboxItemResponse.taskId", "SyncDiffResponse.subjectKey");
 
-    /** Identifiers that belong to an external system and stay what that system gives: on the wire a whole number written as text. */
-    static final Set<String> EXTERNAL_ID_NAMES = Set.of("sourceId");
+    /** Identifiers that belong to an external system and stay what that system gives: a plain string on the wire. */
+    static final Set<String> EXTERNAL_ID_NAMES = Set.of("sourceId", "wecomUserId");
 
     @Test
     void idFieldsOfThisSystemAreStringUuidAndEveryOtherIdFieldIsClassified() throws Exception {
