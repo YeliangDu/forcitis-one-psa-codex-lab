@@ -23,9 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Unknown login name, wrong password, wrong code, locked and disabled all look the same and cost about the same time. After the
- * credentials the bound account must be enabled and hold super_admin now. A current organisation snapshot must list the bound
- * employee as employed; a snapshot that is missing or stale while the source is down lets the login through with an alert, but a person
- * it lists as separated is still refused (ADR-0027 section 1; ADR-0033 section 3 item 7).
+ * credentials the bound account must be enabled and hold super_admin now. The directory must judge the bound employee
+ * as employed, from the employee versions (or the snapshot row of a person without versions); a separated or unlisted person is refused
+ * (ADR-0027 section 1; ADR-0033 section 3 item 7).
  */
 @Service
 public class LoginAsEmergencyAdmin {

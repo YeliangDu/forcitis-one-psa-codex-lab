@@ -8,7 +8,7 @@ terms:
   kind: value_object
   bc: organization.workforce
   scope: domain
-  definition: 组织快照对某员工是否在职的判定：在职 EMPLOYED、离职 SEPARATED、快照可用而未列出 NOT_LISTED、快照不可用或过期 SNAPSHOT_UNAVAILABLE（ADR-0033 第 3 项第 7 条，应急登录在职校验用）
+  definition: 组织快照对某员工是否在职的判定：在职 EMPLOYED、离职 SEPARATED、未列出 NOT_LISTED（ADR-0033 第 3 项第 7 条，应急登录在职校验用；快照不可用的取值已随旧同步删除，#934）
   standard_ref:
   - ADR-0033 第 3 项第 7 条
   confidence: medium

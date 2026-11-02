@@ -296,7 +296,7 @@ stateDiagram-v2
 
 | 事件名 | 触发时机（状态转换） | 负载要点 | 消费方及反应 | 依据 / 代码 |
 |---|---|---|---|---|
-| `OrgSnapshotChanged`（规格名 `OrgChanged`） | 旧组织同步一次运行提交后（旧同步已随 #934 删除，现无发布方，事件与消费方保留待后续卡）；员工 EMPLOYED→SEPARATED、复职、信息变化 | `changedEmployees`、`separatedEmployees`（用户 id 列表）、`changedOrgUnits` | `platform.identity` 的 `HandleOrgSnapshotChange`（`@ApplicationModuleListener`）：离职者删全部会话 + 清缓存 + 写 `session.revoked` 审计；变化者仍在职则补建账号并清缓存，不再在职则同离职处理 | 原发布方 `ApplySourceSnapshot` 已随 #934 删除；类 `organization/workforce/events/OrgSnapshotChanged.java:8-9`；消费 `ID/application/HandleOrgSnapshotChange.java:33-56`。规格 `AI_NATIVE_SPEC.md §3.2` asyncapi（`OrgChanged`：`syncRunId`、`items`）、C1a-11 P1；`REIMAGINED_ARCHITECTURE.md:94`（会话吊销有两道保证，不依赖事件） |
+| `OrgSnapshotChanged`（规格名 `OrgChanged`；已随 #934 删除） | 旧组织同步一次运行提交后（旧同步、事件与消费方均已随 #934 删除，离职由 `EmployeeSeparated` 触发，见 `HandleEmployeeSeparated`） | — | — | 规格 `AI_NATIVE_SPEC.md §3.2` asyncapi（`OrgChanged`）、C1a-11 P1；`REIMAGINED_ARCHITECTURE.md:94`（会话吊销有两道保证，不依赖事件） |
 | `AccountStatusChanged`（仅规格） | 账号启用 / 停用 | `userId`、`status`、`revokeSessions` | 规格未写消费方 | `AI_NATIVE_SPEC.md §3.2` asyncapi；**代码中不存在**（grep 无命中）；停用时由 `ChangeAccountStatus.java:36-43` 同步调用 `sessions.revokeAll` 与 `cache.evict` |
 | 无事件：登录成功 / 失败、登出、会话吊销的审计 | 每次登录准入结果；登出；离职吊销 | 审计条目（动作、操作人、主体、说明） | `platform.audit` 通过模块 API `AuditLog.record`（同事务）与 `recordIndependently`（失败，独立事务）同步写入 | `ID/application/LoginAdmission.java:52,62`、`Logout.java:27`、`HandleOrgSnapshotChange.java:55`；`DOC/REIMAGINED_ARCHITECTURE.md:53` |
 | 无事件：账号创建、默认角色授予 | 首次登录 / 同步命中 | — | 同步审计 | `ID/application/AccountProvisioning.java:39-49` |

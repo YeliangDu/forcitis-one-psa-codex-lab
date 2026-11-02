@@ -4,8 +4,8 @@ import com.forcitis.one.platform.identity.api.Permission;
 import java.util.Set;
 
 /**
- * The only permissions an administrator mode session has: platform authorisation and lifting the hold that a sync run puts on
- * separating administrators (ADR-0028); never business, sensitive reads or audit (I-11).
+ * The only permissions an administrator mode session has: platform authorisation and lifting the hold that separating the last
+ * administrators puts on a personnel command (ADR-0028); never business, sensitive reads or audit (I-11).
  */
 public final class AdministratorMode {
 

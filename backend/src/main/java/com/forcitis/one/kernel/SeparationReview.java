@@ -6,7 +6,7 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Asked before a sync run turns people into separated ones. Implemented by whoever owns administrator access, so that a wrong
+ * Asked before people are turned into separated ones. Implemented by whoever owns administrator access, so that a wrong
  * source can never take every administrator away at once (ADR-0027 section 1, ADR-0028).
  */
 public interface SeparationReview {
@@ -35,7 +35,7 @@ public interface SeparationReview {
      */
     Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser, @Nullable LocalDate separatingDay);
 
-    /** The sync path has no held set. */
+    /** For callers that have no held set. */
     default Verdict review(List<EmployeeId> separating, UserId releaser) {
         return review(separating, Set.of(), releaser);
     }

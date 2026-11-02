@@ -27,7 +27,7 @@ final class OrgSnapshotRows {
               from organization_workforce.org_units
             """;
 
-    /** The snapshot rows as the sync wrote them; for the sync's own comparison only, readers use SELECT_STAFF_ON_DAY. */
+    /** The snapshot rows as stored; for the reconciliation's own comparison only, readers use SELECT_STAFF_ON_DAY. */
     static final String SELECT_STAFF = """
             select e.id, e.employee_code, e.display_name, e.login_name, e.email, e.gender, e.wecom_user_id,
                    e.employment_status, e.is_fee_earner,

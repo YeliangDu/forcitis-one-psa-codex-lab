@@ -24,7 +24,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * The local personnel command took effect (ADR-0068 item 2.5 C): the person loses every role, session and browser identifier (ADR-0027 section 1;
- * RULE-363); the emergency account follows from the AccountSeparated fact in its own transaction. Workforce judged the last-administrator floor
+ * RULE-363); the emergency account is disabled by DisableEmergencyAdminOnSeparation, which listens to the same event in its own transaction. Workforce judged the last-administrator floor
  * before publishing, so nothing is refused here; a person without an account is a no-op. The per-request check (SessionPrincipals) holds even if this event is late or lost,
  * so session revocation does not depend on it.
  */
