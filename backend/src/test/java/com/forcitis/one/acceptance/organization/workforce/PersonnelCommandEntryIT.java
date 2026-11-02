@@ -45,7 +45,8 @@ class PersonnelCommandEntryIT extends PersonnelCommandSupport {
         assertThat(command(first).get("created_by")).as("the recorder is the signed-in account, not a field of the request").isEqualTo(hr.userId());
         assertThat(commands().enterComponents()).as("nothing the server decides can be supplied")
                 .noneMatch(name -> name.equalsIgnoreCase(PERSONNEL_COMMAND_ID) || name.equalsIgnoreCase("id")
-                        || CALLER_MUST_NOT_SUPPLY.stream().anyMatch(word -> name.toLowerCase().contains(word)));
+                        || !name.equals(WECOM_USER_ID) && CALLER_MUST_NOT_SUPPLY.stream().anyMatch(word -> name.toLowerCase().contains(word)));
+        // #959: wecomUserId is the new employee's WeCom account (profile data), not the acting user; only that exact name is exempt.
         assertThat(commands().withdrawComponents()).noneMatch(name -> CALLER_MUST_NOT_SUPPLY.stream().anyMatch(word -> name.toLowerCase().contains(word)));
     }
 
