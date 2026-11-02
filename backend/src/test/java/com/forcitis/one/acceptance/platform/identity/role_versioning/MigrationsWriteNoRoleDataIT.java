@@ -35,12 +35,12 @@ class MigrationsWriteNoRoleDataIT {
         assertThat(db.count("select count(*) from platform_identity.role_versions")).as("role_versions rows written by migrations").isZero();
     }
 
-    /** Card 7.2: navigation_items 种子 :330-336 保留，不得出现其变化. */
+    /** Card 7.2: navigation_items 种子 :330-336 保留，不得出现其变化；#934 删除同步记录页面及路由，迁移同时删掉它的菜单项 …206，种子列表因此是 …201 至 …205 五项. */
     @Test
-    @DisplayName("0034-G8-03 / 卡 7.2 navigation_items 种子保留：六个导航项 019a…201 至 …206 仍由迁移写入")
+    @DisplayName("0034-G8-03 / 卡 7.2 / #934 navigation_items 种子保留：五个导航项 019a…201 至 …205 仍由迁移写入（同步记录页面的菜单项 …206 随页面一起删除）")
     void navigationSeedStays() throws SQLException {
         assertThat(db.column("select item_id::text from platform_identity.navigation_items where item_id::text like '019a0000-0000-7000-8000-0000000002%' order by item_id"))
                 .containsExactly("019a0000-0000-7000-8000-000000000201", "019a0000-0000-7000-8000-000000000202", "019a0000-0000-7000-8000-000000000203",
-                        "019a0000-0000-7000-8000-000000000204", "019a0000-0000-7000-8000-000000000205", "019a0000-0000-7000-8000-000000000206");
+                        "019a0000-0000-7000-8000-000000000204", "019a0000-0000-7000-8000-000000000205");
     }
 }
