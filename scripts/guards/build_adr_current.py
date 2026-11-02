@@ -33,7 +33,7 @@ def header(text):
 
 
 def clip(s, n=60):
-    s = re.sub(r"[（(]部分[）)]", "", s).strip()
+    s = re.sub(r"[（(]部分(?:[：:][^）)]*)?[）)]", "", s).strip()
     return s if len(s) <= n else s[: n - 1] + "…"
 
 
@@ -67,11 +67,11 @@ def partial_clauses(adrs):
         for item in a["supersedes"]:
             m = REF.match(item)
             rest = item[m.end():].strip() if m else ""
-            if m and rest and m.group(1) in adrs and adrs[m.group(1)]["state"] != "superseded":
+            if m and rest and m.group(1) in adrs and adrs[m.group(1)]["state"] != "superseded" and a["state"] == "已采纳":
                 out[m.group(1)][n].append(clip(rest))
         for item in a["partly"]:
             m = REF.match(item)
-            if m:
+            if m and adrs.get(m.group(1), {}).get("state") == "已采纳":
                 out[n][m.group(1)].append(clip(item[m.end():]))
     for target in out:
         for by, ranges in out[target].items():
@@ -113,14 +113,15 @@ def self_test():
         d = Path(d)
         (d / "catalog.yaml").write_text(
             "adrs:\n- id: \"0001\"\n  category: 方法\n  bc: [全局]\n  partially_superseded: [\"ADR-0002 决定 1\"]\n", encoding="utf-8")
-        for n, extra in (("0001", ""), ("0002", "- **取代**：\n  - ADR-0001 决定 2（部分）\n  - ADR-0003\n"), ("0003", "")):
-            state = "已被 ADR-0002 取代" if n == "0003" else "已采纳"
+        for n, extra in (("0001", ""), ("0002", "- **取代**：\n  - ADR-0001 决定 2（部分）\n  - ADR-0003\n"), ("0003", ""), ("0004", "- **取代**：\n  - ADR-0001 决定 9\n")):
+            state = {"0003": "已被 ADR-0002 取代", "0004": "提议"}.get(n, "已采纳")
             (d / f"ADR-{n}.md").write_text(
                 f"# ADR-{n}：T{n}\n\n- **状态**：{state}\n- **类别**：方法\n- **BC**：\n  - platform.x\n{extra}\n## 背景\n", encoding="utf-8")
         page = render(load(d))
     assert "## platform.x" in page and "ADR-0001 T0001" in page
     assert "ADR-0001 ← ADR-0002 决定 1、决定 2" in page, page
     assert "ADR-0003 T0003 → ADR-0002" in page and "- ADR-0003 T0003" not in page.split("## 整份被取代")[0]
+    assert "决定 9" not in page, "a proposal does not supersede anything yet"
     print("self-test ok")
 
 
