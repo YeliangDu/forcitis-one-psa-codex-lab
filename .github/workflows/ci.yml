@@ -191,8 +191,8 @@ jobs:
         if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
         # Check the default invocation before explicit -Dit.test reruns can add SQL Server reports.
         run: python3 scripts/guards/acceptance_reports.py --tier default
-      # the SQL Server tests (~3 min, most pull requests touch what they read) end this job's step list, but run beside surefire and failsafe, started in a second checkout of the same commit (own target directory and reports, so
-      # neither run touches the other's classes or reports); the step below waits for them and fails the job, so the result stays inside the required `backend verify` check (#1034)
+      # the SQL Server tests (~3 min, most pull requests touch what they read) run beside surefire and failsafe: the step above their start ("start the SQL Server tests beside ...") launches them in a second checkout of the same commit
+      # (own target directory and reports, so neither run touches the other's classes or reports); this step waits for them and fails the job, so the result stays inside the required `backend verify` check (#1034)
       - name: SQL Server integration tests (profile legacy-it)
         if: steps.change.outputs.legacy_it == 'true' && steps.heavy.outputs.run == 'true'
         timeout-minutes: 30
@@ -200,15 +200,6 @@ jobs:
           while [ ! -s "$LEGACY_IT_RC" ]; do sleep 5; done
           echo "::group::legacy_it.sh"; cat "$LEGACY_IT_LOG"; echo "::endgroup::"
           test "$(cat "$LEGACY_IT_RC")" = 0
-      # a failed or cancelled earlier step leaves the second checkout's Maven and test JVMs running: stop what runs from it (by its path) and drop the checkout
-      - name: stop the SQL Server tests if they are still running
-        if: always() && env.LEGACY_IT_DIR != ''
-        run: |
-          pkill -f "$LEGACY_IT_DIR/" 2>/dev/null || true
-          sleep 2
-          pkill -9 -f "$LEGACY_IT_DIR/" 2>/dev/null || true
-          git worktree remove --force "$LEGACY_IT_DIR" 2>/dev/null || rm -rf "$LEGACY_IT_DIR"
-          git worktree prune
       # only a recorded pid: an empty one used to become `kill 0`, which signals the whole process group of the step - runsvc.sh and the runner listener included - and took the runner offline (卡 #736 第 9 项)
       - name: stop the docker events recorder
         if: always()
@@ -228,6 +219,15 @@ jobs:
             backend/target/docker-diagnostics
             backend/target/**/*.dump*
             backend/hs_err_pid*.log
+      # after the failure upload above (it reads this checkout's reports and thread dumps): a failed or cancelled earlier step leaves the second checkout's Maven and test JVMs running: stop what runs from it (by its path) and drop the checkout
+      - name: stop the SQL Server tests if they are still running
+        if: always() && env.LEGACY_IT_DIR != ''
+        run: |
+          pkill -f "$LEGACY_IT_DIR/" 2>/dev/null || true
+          sleep 2
+          pkill -9 -f "$LEGACY_IT_DIR/" 2>/dev/null || true
+          git worktree remove --force "$LEGACY_IT_DIR" 2>/dev/null || rm -rf "$LEGACY_IT_DIR"
+          git worktree prune
 
   frontend:
     needs: api-contract
