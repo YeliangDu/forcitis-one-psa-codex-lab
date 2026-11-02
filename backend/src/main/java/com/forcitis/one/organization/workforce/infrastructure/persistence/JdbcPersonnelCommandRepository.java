@@ -23,6 +23,7 @@ import com.forcitis.one.organization.workforce.domain.NewEmployee;
 import com.forcitis.one.organization.workforce.domain.PersonalProfile;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
 import com.forcitis.one.organization.workforce.domain.ReleaseChannelKind;
+import com.forcitis.one.organization.workforce.domain.PersonnelCommandQueries;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
 import com.forcitis.one.organization.workforce.domain.PersonnelHistory;
 import com.forcitis.one.organization.workforce.domain.ChangeSource;
@@ -53,7 +54,7 @@ import org.springframework.stereotype.Repository;
 
 /** Personnel commands and their version rows in the workforce schema. Rows are only inserted, superseded or closed (W2 design section 2); the triggers hold the rest. */
 @Repository
-class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
+class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, PersonnelCommandQueries {
     private static final String SCHEMA = "organization_workforce.";
     private final JdbcClient jdbc;
     private final IdGenerator ids;

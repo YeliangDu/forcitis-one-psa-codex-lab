@@ -105,3 +105,18 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: availability
+  zh: 可用状态
+  en: Availability
+  snake: availability
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 组织对一名员工在某个业务日的说法：是否停薪留职、是否暂停放行、是否已按「已走」统计（ADR-0068 第 2.2、3 条）；替换原先只回答是否停薪留职的方法
+  standard_ref:
+  - docs/adr/ADR-0068.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''

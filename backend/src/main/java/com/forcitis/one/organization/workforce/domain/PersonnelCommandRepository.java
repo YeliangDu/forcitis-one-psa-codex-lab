@@ -37,12 +37,6 @@ public interface PersonnelCommandRepository {
     /** The employees whose separation is held at this moment (read under the lock). */
     Set<EmployeeId> heldEmployees();
 
-    /** Whether this employee's separation is held at this moment. */
-    boolean isHeld(EmployeeId employee);
-
-    /** Whether this employee is in {@link #excludedEmployees()}. */
-    boolean isLeaving(EmployeeId employee);
-
     /**
      * The pending commands whose effective date is not after the day, oldest first. A separation that was never held counts too: it is judged
      * on its day (#967). A held separation is not pending until it is released.

@@ -2,7 +2,7 @@ package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
-import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
+import com.forcitis.one.organization.workforce.domain.PersonnelCommandQueries;
 import com.forcitis.one.organization.workforce.api.Availability;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentVerdict;
@@ -31,10 +31,10 @@ class OrgDirectoryService implements OrgDirectory {
     private final EmployeeVersionQueries versions;
     private final Clock clock;
     private final BusinessZone zone;
-    private final PersonnelCommandRepository commands;
+    private final PersonnelCommandQueries commands;
 
     OrgDirectoryService(OrgSnapshotQueries snapshots, RegisterEmployeeOnLogin registerOnLogin,
-                        RegisterEmployeeOnLoginName registerOnLoginName, SnapshotFreshness freshness, EmployeeVersionQueries versions, PersonnelCommandRepository commands, Clock clock, BusinessZone zone) {
+                        RegisterEmployeeOnLoginName registerOnLoginName, SnapshotFreshness freshness, EmployeeVersionQueries versions, PersonnelCommandQueries commands, Clock clock, BusinessZone zone) {
         this.commands = commands;
         this.versions = versions;
         this.clock = clock;

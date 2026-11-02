@@ -128,6 +128,7 @@ class TimesheetOwnerGateTest {
     @DisplayName("SubmitTimesheet takes up an existing timesheet only for the signed-in employee, and files a new one under the employee, not the account")
     void submittingIsOwnedByTheEmployee() {
         OrgDirectory directory = mock(OrgDirectory.class);
+        when(directory.availabilityOn(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any())).thenReturn(com.forcitis.one.organization.workforce.api.Availability.AVAILABLE);
         EmployeeLegalEntities legalEntities = mock(EmployeeLegalEntities.class);
         DocumentNumbers numbers = mock(DocumentNumbers.class);
         DomainEvents events = mock(DomainEvents.class);
