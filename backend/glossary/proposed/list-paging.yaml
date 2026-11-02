@@ -1,9 +1,0 @@
-# K-3a 列表分页公共契约新增的纯技术词（proposed，NAMING_STANDARD A-3、A-4）。
-terms: []
-common_words:
-- descending
-- interceptor
-- parameter
-- small
-- table
-- declared
