@@ -18,7 +18,7 @@ import org.springframework.test.context.DynamicPropertySource;
 /**
  * R-1b P5 RULING-P5-D12 (ADR-0033 section 1 item 2, "same for the old tables that are still there when R-1b merges"): account_roles,
  * role_versions (which took over from the retired role_permissions in ADR-0034-IMPL PR-2a) and sync_run_held_separations get a single uuid primary key, and the columns of their former key become a named
- * unique constraint. Read from the catalogue of the migrated database.
+ * unique constraint. sync_run_held_separations was dropped with the old sync by #934 (ADR-0068 section 2.5 D2) and is no longer listed. Read from the catalogue of the migrated database.
  */
 class SingleColumnPrimaryKeysIT extends AcceptanceSupport {
 
@@ -63,7 +63,7 @@ class SingleColumnPrimaryKeysIT extends AcceptanceSupport {
     }
 
     @Test
-    @DisplayName("R-1b P5 RULING-P5-D12：account_roles、role_versions（取代已退役的 role_permissions，ADR-0034-IMPL 卡 7.2）、sync_run_held_separations 的主键是单列 uuid；原键的列成为命名唯一约束")
+    @DisplayName("R-1b P5 RULING-P5-D12：account_roles、role_versions（取代已退役的 role_permissions，ADR-0034-IMPL 卡 7.2）的主键是单列 uuid；原键的列成为命名唯一约束")
     void theThreeTablesHaveASingleUuidKeyAndTheirOldKeyIsUnique() throws Exception {
         List<String> wrong = new ArrayList<>();
         try (Connection catalogue = schemaConnection("public")) {
