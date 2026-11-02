@@ -37,6 +37,9 @@ import org.springframework.test.context.DynamicPropertySource;
  */
 class EmployeeWecomRebindIT extends EmployeeHireSupport {
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.forcitis.one.platform.identity.application.OperationsCommands identityOperations;
+
     static final TestDatabase postgres = TestPostgres.database(EmployeeWecomRebindIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
 
     @DynamicPropertySource
@@ -96,9 +99,14 @@ class EmployeeWecomRebindIT extends EmployeeHireSupport {
         assertThat(((DomainException) customRefusal).errorCode()).isEqualTo(seeded);
 
         Staff admin = staff("super_admin");
-        try (Connection identity = schemaConnection("platform_identity")) {
-            update(identity, "delete from account_roles where user_id = ? and role_id = (select role_id from roles where code = 'employee')", admin.userId());
-        }
+        ensureAttestors();
+        java.io.ByteArrayOutputStream err = new java.io.ByteArrayOutputStream();
+        int revoked = identityOperations.run(new org.springframework.boot.DefaultApplicationArguments("--operation=revoke-role", "--employee-id=" + text(admin.employeeId()),
+                "--role-code=employee", "--operator=01900000-0000-7000-8000-00000000a001", "--witness=01900000-0000-7000-8000-00000000a002"),
+                new java.io.PrintStream(new java.io.ByteArrayOutputStream(), true, java.nio.charset.StandardCharsets.UTF_8),
+                new java.io.PrintStream(err, true, java.nio.charset.StandardCharsets.UTF_8));
+        assertThat(revoked).as("premise: the employee role is taken from the administrator: " + err.toString(java.nio.charset.StandardCharsets.UTF_8)).isZero();
+        admin = new Staff(admin.employeeId(), signIn(admin.employeeId())); // a role change ends the sessions; the case needs a live one
         Throwable adminRefusal = assertRefusedUnchanged(hr, admin, "Synthetic rebound", syntheticWecom("admin-only"));
         assertThat(adminRefusal).as(String.valueOf(adminRefusal)).isInstanceOf(DomainException.class);
         assertThat(((DomainException) adminRefusal).errorCode()).isEqualTo(seeded);

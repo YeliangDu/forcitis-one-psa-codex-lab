@@ -78,11 +78,12 @@ class RoleIdentityImmutableIT {
                 "CREATE TRIGGER tg_roles_identity_immutable BEFORE UPDATE ON platform_identity.roles FOR EACH ROW EXECUTE FUNCTION platform_identity.refuse_role_identity_change()");
     }
 
-    /** Card 7.2 (删除整张 role_permissions；不得出现 account_roles 的变化——授予退役属 PR-3); ADR-0034 decision 1 item 3. */
+    /** Card 7.2 (删除整张 role_permissions); ADR-0034 decision 1 item 3. account_roles retires with #732 (option C, DD sign-off A): only account_role_grants holds grants. */
     @Test
-    @DisplayName("0034-G1-06 / 卡 7.2 role_permissions 整张删除；account_roles 仍在（PR-2 不动授予）")
-    void rolePermissionsRetiresAccountRolesStays() throws SQLException {
+    @DisplayName("0034-G1-06 / 卡 7.2 role_permissions 整张删除；account_roles 随 #732 整张删除，account_role_grants 是唯一授予表")
+    void rolePermissionsAndAccountRolesAreRetired() throws SQLException {
         assertThat(db.column("select to_regclass('platform_identity.role_permissions')::text")).containsExactly((Object) null);
-        assertThat(db.column("select to_regclass('platform_identity.account_roles')::text")).containsExactly("platform_identity.account_roles");
+        assertThat(db.column("select to_regclass('platform_identity.account_roles')::text")).containsExactly((Object) null);
+        assertThat(db.column("select to_regclass('platform_identity.account_role_grants')::text")).containsExactly("platform_identity.account_role_grants");
     }
 }

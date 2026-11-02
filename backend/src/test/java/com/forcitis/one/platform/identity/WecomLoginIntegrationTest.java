@@ -198,14 +198,16 @@ class WecomLoginIntegrationTest extends IdentityIntegrationTest {
         loginWithWecom(1001);
 
         assertThat(jdbc.sql("""
-                select r.code from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id
-                 where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :employee)
+                select r.code from platform_identity.account_role_grants ar join platform_identity.roles r on r.role_id = ar.role_id
+                 where ar.effective_to_at is null and ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :employee)
                 """).param("employee", TestAccounts.employee(1001).value()).query(String.class).list()).containsExactly("employee");
         assertThat(recordedEvents.stream(AccountOpened.class)).singleElement().satisfies(e -> assertThat(e.userId().value()).isEqualTo(accountOf(1001)));
 
-        jdbc.sql("delete from platform_identity.account_roles where user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").update();
+        jdbc.sql("update platform_identity.account_role_grants set effective_to_at = greatest(now(), effective_from_at), revocation_cause_kind = 'OPERATIONS', revocation_audit_entry_id = uuidv7(), updated_at = now() where effective_to_at is null and user_id = (select user_id from platform_identity.user_accounts where employee_id = " + TestOrgIds.sqlEmployee(1001) + ")").update();
+        long grantRows = count("account_role_grants");
         loginWithWecom(1001);
-        assertThat(count("account_roles")).isZero();
+        assertThat(count("account_role_grants where effective_to_at is null")).isZero();
+        assertThat(count("account_role_grants")).as("a removed default role is not given back and no row is deleted").isEqualTo(grantRows);
     }
 
     @Test

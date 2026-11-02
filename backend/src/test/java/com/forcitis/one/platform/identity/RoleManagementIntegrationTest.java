@@ -165,7 +165,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         MvcResult held = mvc.perform(delete(ROLES + "/" + analyst).header("If-Match", versionOf(analyst)).with(xsrf()).with(admin)).andReturn();
         assertThat(held.getResponse().getStatus()).isEqualTo(409);
         assertThat(errorCode(held)).isEqualTo("PLATFORM_IDENTITY_ROLE_IN_USE");
-        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles where role_id = :id").param("id", analyst)
+        assertThat(jdbc.sql("select count(*) from platform_identity.account_role_grants where effective_to_at is null and role_id = :id").param("id", analyst)
                 .query(Long.class).single()).as("a role held by an account is not deleted and its link stays").isEqualTo(1);
 
         assertThat(mvc.perform(post("/api/v1/platform/user-accounts/" + accountOrNone(1001) + ":replace-roles").header("If-Match", accountVersion(1001)).with(xsrf()).with(admin)
@@ -216,8 +216,8 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
 
         assertThat(result.getResponse().getStatus()).isEqualTo(204);
         assertThat(jdbc.sql("""
-                select r.code from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id
-                 where ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :employee) order by r.code
+                select r.code from platform_identity.account_role_grants ar join platform_identity.roles r on r.role_id = ar.role_id
+                 where ar.effective_to_at is null and ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = :employee) order by r.code
                 """).param("employee", TestAccounts.employee(1001).value()).query(String.class).list()).containsExactly("auditor", "planner");
         assertThat(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn().getResponse().getStatus())
                 .as("RULE-338: a role change ends the sessions").isEqualTo(401);
@@ -249,7 +249,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
         assertThat(errorCode(broad)).isEqualTo("PLATFORM_IDENTITY_ROLE_NOT_ALLOWED");
         assertThat(toSuperAdmin.getResponse().getStatus()).isEqualTo(403);
         assertThat(within.getResponse().getStatus()).isEqualTo(201);
-        assertThat(jdbc.sql("select count(*) from platform_identity.account_roles ar join platform_identity.roles r on r.role_id = ar.role_id where r.code = 'super_admin' and ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1001) + ")")
+        assertThat(jdbc.sql("select count(*) from platform_identity.account_role_grants ar join platform_identity.roles r on r.role_id = ar.role_id where ar.effective_to_at is null and r.code = 'super_admin' and ar.user_id = (select ua.user_id from platform_identity.user_accounts ua where ua.employee_id = " + TestOrgIds.sqlEmployee(1001) + ")")
                 .query(Long.class).single()).isZero();
     }
 

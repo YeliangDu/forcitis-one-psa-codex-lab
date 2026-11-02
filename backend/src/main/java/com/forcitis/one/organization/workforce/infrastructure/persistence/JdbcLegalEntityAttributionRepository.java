@@ -55,8 +55,8 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
                    where org_unit_id = :id and effective_from_date = :from
                   """
                 : """
-                  update organization_workforce.employee_legal_entities set effective_to_date = :to, updated_at = :updatedAt
-                   where employee_id = :id and effective_from_date = :from
+                  update organization_workforce.employee_legal_entities set effective_to_date = :to, closed_at = :updatedAt, updated_at = :updatedAt
+                   where employee_id = :id and effective_from_date = :from and superseded_at is null
                   """;
         jdbc.sql(sql).param("id", subject.subjectId()).param("from", period.effectiveFrom())
                 .param("to", period.effectiveTo(), java.sql.Types.DATE)
@@ -92,12 +92,13 @@ class JdbcLegalEntityAttributionRepository implements LegalEntityAttributionRepo
                   values (:rowId, :id, :legalEntity, :from, :to)
                   """
                 : """
-                  insert into organization_workforce.employee_legal_entities (employee_legal_entity_id, employee_id, legal_entity_id, effective_from_date, effective_to_date)
-                  values (:rowId, :id, :legalEntity, :from, :to)
+                  insert into organization_workforce.employee_legal_entities (employee_legal_entity_id, employee_id, legal_entity_id, effective_from_date, effective_to_date, closed_at)
+                  values (:rowId, :id, :legalEntity, :from, :to, :closedAt)
                   """;
         jdbc.sql(sql).param("rowId", ids.next()).param("id", subject.subjectId()).param("legalEntity", period.legalEntityId().value())
                 .param("from", period.effectiveFrom())
-                .param("to", period.effectiveTo(), java.sql.Types.DATE).update();
+                .param("to", period.effectiveTo(), java.sql.Types.DATE)
+                .param("closedAt", period.effectiveTo() == null ? null : OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC), Types.TIMESTAMP_WITH_TIMEZONE).update();
     }
 
     private List<AttributionPeriod> periods(AttributionSubject subject) {

@@ -202,6 +202,6 @@ public final class AssigneeResolver {
     }
 
     private boolean isEmployed(EmployeeId user) {
-        return org.findEmployee(user).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false) && !org.isOnUnpaidLeave(user, today);
+        return org.findEmployee(user).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false) && !org.availabilityOn(user, today).onUnpaidLeave();
     }
 }
