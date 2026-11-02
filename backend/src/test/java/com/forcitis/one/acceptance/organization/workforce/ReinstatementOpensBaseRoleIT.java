@@ -5,7 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
-import com.forcitis.one.kernel.event.TestEnvelopes;
+import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.Uuids;
+import com.forcitis.one.kernel.event.ActorType;
+import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
 import java.sql.Connection;
@@ -54,6 +57,9 @@ class ReinstatementOpensBaseRoleIT extends PersonnelCommandSupport {
 
     @Autowired
     private TransactionTemplate transaction;
+
+    @Autowired
+    private com.forcitis.one.platform.identity.application.OperationsCommands identityOperations;
 
     record Grant(UUID id, String roleCode, Instant from, Instant to, String channel, UUID grantedBy, UUID grantAuditEntryId) {
         boolean open() {
@@ -129,21 +135,58 @@ class ReinstatementOpensBaseRoleIT extends PersonnelCommandSupport {
         return command;
     }
 
+    /**
+     * The event as organization.workforce publishes it (docs/architecture/events/workforce.yaml EmployeeReinstated): businessDate is the
+     * effective date, legalEntityId the person's legal entity on that day, occurredAt after the separation took effect.
+     */
     private EmployeeReinstated reinstatedEvent(UUID employee, UUID command) {
-        return new EmployeeReinstated(TestEnvelopes.of("organization.workforce.EmployeeReinstated", "Employee", employee),
-                new PersonnelCommandId(command), employeeIdOf(employee), BACK_ON);
+        EventEnvelope envelope = new EventEnvelope(Uuids.timeOrdered(NOW), "organization.workforce.EmployeeReinstated", 1, NOW, "Employee", employee, 1,
+                Uuids.timeOrdered(NOW), null, ActorType.SYSTEM, com.forcitis.one.kernel.SystemActors.idOf("test.envelope"), new LegalEntityId(legalEntity),
+                BACK_ON, null, List.of());
+        return new EmployeeReinstated(envelope, new PersonnelCommandId(command), employeeIdOf(employee), BACK_ON);
     }
 
     private void publish(Object event) {
         transaction.executeWithoutResult(status -> publisher.publishEvent(event));
     }
 
-    /** Waits two seconds during which the grant rows and the identity audit count stay as given. */
-    private void nothingChanges(UUID user, List<Grant> grants, long entries) {
-        Awaitility.await().during(Duration.ofSeconds(2)).atMost(Duration.ofSeconds(6)).untilAsserted(() -> {
-            assertThat(grants(user)).isEqualTo(grants);
-            assertThat(auditEntries()).isEqualTo(entries);
+    /**
+     * Waits until platform.identity's listener has finished the event: at least one identity publication of it exists and none of its
+     * publications is still open. A listener that throws, or never runs, leaves this waiting and the case red.
+     */
+    private void identityHandled(EmployeeReinstated event) {
+        String id = event.envelope().eventId().toString();
+        Awaitility.await().atMost(SETTLE).pollInterval(Duration.ofMillis(100)).until(() -> {
+            try (Connection registry = schemaConnection("platform_integration")) {
+                long identity = 0;
+                long open = 0;
+                for (String table : List.of("event_publication", "event_publication_archive")) {
+                    for (var row : query(registry, "select listener_id, completion_date from " + table + " where serialized_event like ?", "%" + id + "%")) {
+                        if (String.valueOf(row.get("listener_id")).contains(".platform.identity.")) {
+                            identity++;
+                        }
+                        if (row.get("completion_date") == null) {
+                            open++;
+                        }
+                    }
+                }
+                return identity > 0 && open == 0;
+            }
         });
+    }
+
+    private void revokeByOperations(UUID employee, String roleCode) {
+        java.io.ByteArrayOutputStream err = new java.io.ByteArrayOutputStream();
+        int exit = identityOperations.run(new org.springframework.boot.DefaultApplicationArguments("--operation=revoke-role", "--employee-id=" + text(employee),
+                "--role-code=" + roleCode, "--operator=01900000-0000-7000-8000-00000000a001", "--witness=01900000-0000-7000-8000-00000000a002"),
+                new java.io.PrintStream(new java.io.ByteArrayOutputStream(), true, java.nio.charset.StandardCharsets.UTF_8),
+                new java.io.PrintStream(err, true, java.nio.charset.StandardCharsets.UTF_8));
+        assertThat(exit).as("revoke-role " + roleCode + ": " + err.toString(java.nio.charset.StandardCharsets.UTF_8)).isZero();
+    }
+
+    private void nothingChanged(UUID user, List<Grant> grants, long entries) throws SQLException {
+        assertThat(grants(user)).isEqualTo(grants);
+        assertThat(auditEntries()).isEqualTo(entries);
     }
 
     @Test
@@ -170,6 +213,27 @@ class ReinstatementOpensBaseRoleIT extends PersonnelCommandSupport {
     }
 
     @Test
+    @DisplayName("#939 0034-G4-03' A-13 不靠授予历史推断：离职前已用 revoke-role 收回全部角色（离职时没有开放授予可关），复职后仍只开一条 DEFAULT_ROLE 的 employee 授予")
+    void aReinstatementOpensTheEmployeeRoleAlsoWhenNothingWasOpenAtSeparation() throws Exception {
+        UUID employee = employed(REGULAR);
+        grantByOperations(employee, "business_admin");
+        UUID user = accountOf(employee);
+        revokeByOperations(employee, "business_admin");
+        revokeByOperations(employee, "employee");
+        assertThat(openGrants(user)).as("premise: no open grant before the separation").isEmpty();
+        assertThat(grants(user)).as("premise (#732 grant store): the revoked grants are kept as closed rows").isNotEmpty();
+        separate(employee, LAST_WORKING_DAY);
+
+        reinstated(employee);
+
+        List<Grant> open = Awaitility.await().atMost(SETTLE).pollInterval(Duration.ofMillis(100)).until(() -> openGrants(user), found -> !found.isEmpty());
+        assertThat(open).hasSize(1).first().satisfies(base -> {
+            assertThat(base.roleCode()).isEqualTo("employee");
+            assertThat(base.channel()).isEqualTo("DEFAULT_ROLE");
+        });
+    }
+
+    @Test
     @DisplayName("#939 0034-G4-03' 幂等：复职已开过 employee 授予后，同一 EmployeeReinstated 再投递两次（同 eventId），以及同一命令的另一事件，都不再开授予、不写审计")
     void aRedeliveryChangesNothing() throws Exception {
         UUID employee = employedWithRoles();
@@ -181,11 +245,14 @@ class ReinstatementOpensBaseRoleIT extends PersonnelCommandSupport {
         long entries = auditEntries();
 
         EmployeeReinstated again = reinstatedEvent(employee, command);
+        EmployeeReinstated another = reinstatedEvent(employee, command);
         publish(again);
         publish(again);
-        publish(reinstatedEvent(employee, command));
+        publish(another);
+        identityHandled(again);
+        identityHandled(another);
 
-        nothingChanges(user, after, entries);
+        nothingChanged(user, after, entries);
     }
 
     @Test
@@ -197,9 +264,11 @@ class ReinstatementOpensBaseRoleIT extends PersonnelCommandSupport {
         List<Grant> closed = grants(user);
         long entries = auditEntries();
 
-        publish(reinstatedEvent(employee, newPersonnelCommandId()));
+        EmployeeReinstated event = reinstatedEvent(employee, newPersonnelCommandId());
+        publish(event);
+        identityHandled(event);
 
-        nothingChanges(user, closed, entries);
+        nothingChanged(user, closed, entries);
     }
 
     @Test
@@ -211,9 +280,11 @@ class ReinstatementOpensBaseRoleIT extends PersonnelCommandSupport {
         assertThat(openGrants(user)).as("premise (#732 grant store): the account holds open grants").extracting(Grant::roleCode).contains("employee", "business_admin");
         long entries = auditEntries();
 
-        publish(reinstatedEvent(employee, newPersonnelCommandId()));
+        EmployeeReinstated event = reinstatedEvent(employee, newPersonnelCommandId());
+        publish(event);
+        identityHandled(event);
 
-        nothingChanges(user, before, entries);
+        nothingChanged(user, before, entries);
     }
 
     @Test
@@ -247,6 +318,6 @@ class ReinstatementOpensBaseRoleIT extends PersonnelCommandSupport {
     }
 
     private static UUID newPersonnelCommandId() {
-        return com.forcitis.one.kernel.Uuids.timeOrdered(NOW);
+        return Uuids.timeOrdered(NOW);
     }
 }
