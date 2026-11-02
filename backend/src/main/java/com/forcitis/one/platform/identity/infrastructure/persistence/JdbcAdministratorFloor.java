@@ -71,6 +71,9 @@ class JdbcAdministratorFloor implements AdministratorFloor {
                 }
             });
         }
+        if (excluded.contains(found.get())) {
+            return Judgement.UNAFFECTED;
+        }
         SeparationReview.Verdict without = review.review(List.of(found.get()), excluded, null);
         if (without.separatedAdministrators().isEmpty()) {
             return Judgement.UNAFFECTED;
