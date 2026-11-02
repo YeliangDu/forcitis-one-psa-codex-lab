@@ -39,7 +39,7 @@ import org.springframework.stereotype.Component;
 @Component
 class AccountGrants {
 
-    /** Who acts and under which channel and cause the rows are written; note is added to every audit text. */
+    /** Who acts and under which channel and cause the rows are written; operationsEntry, when set, builds the audit entry of an operations command. */
     record Origin(GrantChannel channel, RevocationCause cause, @Nullable UserId actor, @Nullable AuthorizationRequestId request,
                   @Nullable PersonnelCommandId separationCommand, @Nullable BiFunction<AuditSubject, String, AuditEntry> operationsEntry) {
 
