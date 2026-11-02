@@ -1,5 +1,4 @@
 # A *Response record field named like a SENSITIVE or RESTRICTED column of data-classification.txt: <fully qualified record>#<field>  # why it must be sent.
 # SensitiveColumnExposureGuardTest fails for such a field that is not listed here and for a line here that is no longer needed. Changes need design review.
 com.forcitis.one.platform.audit.web.OwnLoginRecordResponse#sourceAddress  # the signed-in user's own login history; the controller only ever returns the caller's own records, and seeing where one's own sessions came from is how a stolen session is noticed
-com.forcitis.one.platform.identity.web.CurrentUserResponse#displayName  # the signed-in user's own name for the page header; it is the caller's own record and never another employee's
 com.forcitis.one.platform.audit.web.AuditEntryResponse#sourceAddress  # the audit trail exists to say who acted from where; it is read only with audit-entry:read, held by the security auditor, and every read is itself audited

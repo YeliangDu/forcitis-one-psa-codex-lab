@@ -275,8 +275,6 @@ class DdlNamingTest {
 
     static final Map<String, Set<String>> STANDALONE = Map.of("id", Set.of("bigint", "uuid", "text"), "version", Set.of("bigint", "integer"));
     static final Set<String> CHECKED_ENUMS = Set.of("_status", "_kind", "_type", "_policy");
-    static final Pattern SENSITIVE_NAME = Pattern.compile("(^|_)(password|secret|totp|bank|salary|wage|daily_rate|id_card|identity_number|mobile|phone|email|birth|gender|address|attribute_bytes)(_|$)");
-    static final Set<String> LEVELS = Set.of("PUBLIC", "INTERNAL", "SENSITIVE", "RESTRICTED");
 
     record Column(String name, String type, boolean checked) {}
 
@@ -362,11 +360,11 @@ class DdlNamingTest {
     }
 
     @Test
-    @DisplayName("every sensitive-looking column is classified SENSITIVE or RESTRICTED, and every classified column exists (NAMING_STANDARD §2.5)")
+    @DisplayName("every sensitive-looking column is classified at the level and with the mark its name demands, and every classified column exists (ADR-0043, NAMING_STANDARD §2.5)")
     void sensitiveColumnsAreClassified() throws IOException {
         List<String> problems = classificationProblems(model(readMigrations()), readClassification());
         if (!problems.isEmpty()) {
-            throw new AssertionError(GuardMessage.of("D2 (NAMING_STANDARD.md §2.5)", "a sensitive-looking column is not classified, or a classified column does not exist", "add <schema.table.column> | SENSITIVE or RESTRICTED | <reason> to " + CLASSIFICATION + ", or delete the line of a column that is gone") + "\n  " + String.join("\n  ", problems));
+            throw new AssertionError(GuardMessage.of("D2 (NAMING_STANDARD.md §2.5)", "a sensitive-looking column is not classified, or a classified column does not exist", "add <schema.table.column> | SENSITIVE or RESTRICTED | NONE, PI or SPI | <reason> to " + CLASSIFICATION + ", or delete the line of a column that is gone") + "\n  " + String.join("\n  ", problems));
         }
     }
 
@@ -778,37 +776,14 @@ class DdlNamingTest {
         return entries;
     }
 
-    static Map<String, String> readClassification() throws IOException {
-        Map<String, String> entries = new TreeMap<>();
-        for (String line : Files.readAllLines(CLASSIFICATION)) {
-            if (line.isBlank() || line.startsWith("#")) {
-                continue;
-            }
-            String[] parts = line.split("\\s*\\|\\s*", 3);
-            assertThat(parts).as(GuardMessage.of("D2 (NAMING_STANDARD.md §2.5)", "a line of " + CLASSIFICATION + " is not <schema.table.column> | <LEVEL> | <reason>: " + line, "write the line as <schema.table.column> | <LEVEL> | <reason>")).hasSize(3);
-            assertThat(LEVELS).as(GuardMessage.of("D2 (NAMING_STANDARD.md §2.5)", "the level of " + parts[0] + " in " + CLASSIFICATION + " is not one of the known levels", "use one of PUBLIC, INTERNAL, SENSITIVE, RESTRICTED")).contains(parts[1].trim());
-            entries.put(parts[0].trim(), parts[1].trim());
-        }
-        return entries;
+    static Map<String, ClassificationRegister.Row> readClassification() throws IOException {
+        return ClassificationRegister.read();
     }
 
-    static List<String> classificationProblems(Map<String, Schema> schemas, Map<String, String> classified) {
-        List<String> problems = new ArrayList<>();
+    static List<String> classificationProblems(Map<String, Schema> schemas, Map<String, ClassificationRegister.Row> classified) {
         Set<String> existing = new LinkedHashSet<>();
         schemas.forEach((s, schema) -> schema.tables.forEach((t, model) -> model.columns.keySet().forEach(c -> existing.add(s + "." + t + "." + c))));
-        for (String column : existing) {
-            String name = column.substring(column.lastIndexOf('.') + 1);
-            String level = classified.get(column);
-            if (SENSITIVE_NAME.matcher(name).find() && !("SENSITIVE".equals(level) || "RESTRICTED".equals(level))) {
-                problems.add(column + " looks sensitive: classify it SENSITIVE or RESTRICTED (or explain INTERNAL/PUBLIC is not possible: rename it)");
-            }
-        }
-        for (String column : classified.keySet()) {
-            if (!existing.contains(column)) {
-                problems.add(column + " is classified but does not exist: remove the stale line");
-            }
-        }
-        return problems;
+        return ClassificationRegister.problems(existing, classified);
     }
 
     static List<String> sampleViolations(String schema, String sql) {
