@@ -71,7 +71,7 @@ ALWAYS_RUN_READERS = (
 )
 # developer tools that name docs paths but are no CI step: they are not readers. scripts/gates/ holds the local hooks (the gates and their installer);
 # its gates_selftest.py does run in CI, but through scripts/ci/light.sh on every event, so a doc only it names needs no further tier
-LOCAL_ONLY = ("scripts/hooks/", "scripts/gates/")
+LOCAL_ONLY = ("scripts/hooks/", "scripts/gates/", "scripts/guards/build_adr_current.py")   # the last one is a generator run by hand, no CI step
 
 # read only by checks that run unconditionally (scripts/ci/light.sh in the backend job on every event, the gitleaks job); docs read by scripts/release must be listed in READ_BY_BUILDS
 READ_BY_ALWAYS_RUN_CHECKS = (
