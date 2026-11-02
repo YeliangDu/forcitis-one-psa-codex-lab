@@ -17,6 +17,7 @@ categories:
 - name: 权限与角色
   actions:
   - platform.identity.access.denied
+  - platform.identity.account.role.granted
   - platform.identity.account.role.revoked
   - platform.identity.AccountSeparated
   - platform.identity.AuthorizationConfirmed
@@ -30,7 +31,7 @@ categories:
   - platform.identity.role-version.opened
   - platform.identity.single-operator-mode.applied
   - platform.identity.single-operator-mode.enabled
-  - platform.identity.AccountDisabled
+  - platform.identity.account.disabled
   - platform.identity.AccountEnabled
   - platform.identity.AccountOpened
   - platform.identity.AccountRolesReplaced

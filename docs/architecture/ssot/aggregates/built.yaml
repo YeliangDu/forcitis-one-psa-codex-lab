@@ -415,6 +415,7 @@ aggregates:
   - platform_identity.roles
   commands:
   - AdministratorSeparationReview
+  - ChangeAccountStatus
   - CreateRole
   - DeleteRole
   - ForceUserLogout
@@ -456,16 +457,15 @@ aggregates:
   - registry
   tables:
   - platform_identity.account_role_grants
-  - platform_identity.account_roles
   - platform_identity.user_accounts
   commands:
+  - AccountGrants
   - AccountProvisioning
   - ChangeAccountStatus
   - ConfirmAuthorizationRequest
   - EmergencyBinding
   - GetUserAccount
   - GrantRoleByOperations
-  - HandleOrgSnapshotChange
   - LoginAdmission
   - LoginAsEmergencyAdmin
   - ReconcileEmergencyAdmins

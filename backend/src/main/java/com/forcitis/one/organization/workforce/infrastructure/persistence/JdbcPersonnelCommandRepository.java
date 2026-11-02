@@ -23,6 +23,7 @@ import com.forcitis.one.organization.workforce.domain.NewEmployee;
 import com.forcitis.one.organization.workforce.domain.PersonalProfile;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
 import com.forcitis.one.organization.workforce.domain.ReleaseChannelKind;
+import com.forcitis.one.organization.workforce.domain.PersonnelCommandQueries;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
 import com.forcitis.one.organization.workforce.domain.PersonnelHistory;
 import com.forcitis.one.organization.workforce.domain.ChangeSource;
@@ -53,7 +54,7 @@ import org.springframework.stereotype.Repository;
 
 /** Personnel commands and their version rows in the workforce schema. Rows are only inserted, superseded or closed (W2 design section 2); the triggers hold the rest. */
 @Repository
-class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
+class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, PersonnelCommandQueries {
     private static final String SCHEMA = "organization_workforce.";
     private final JdbcClient jdbc;
     private final IdGenerator ids;
@@ -89,6 +90,23 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository {
     public Set<EmployeeId> heldEmployees() {
         return new HashSet<>(jdbc.sql("select employee_id from organization_workforce.separation_holds where status = 'HELD'")
                 .query((rs, n) -> new EmployeeId(rs.getObject("employee_id", UUID.class))).list());
+    }
+
+    @Override
+    public boolean isHeld(EmployeeId employee) {
+        return jdbc.sql("select exists (select 1 from organization_workforce.separation_holds where employee_id = :employee and status = 'HELD')")
+                .param("employee", employee.value()).query(Boolean.class).single();
+    }
+
+    @Override
+    public boolean isLeaving(EmployeeId employee) {
+        return jdbc.sql("""
+                select exists (select 1 from organization_workforce.separation_holds h
+                                join organization_workforce.personnel_commands c on c.personnel_command_id = h.personnel_command_id
+                               where h.employee_id = :employee and (h.status = 'HELD' or (h.status = 'RELEASED' and c.status = 'PENDING')))
+                    or exists (select 1 from organization_workforce.personnel_commands
+                                where employee_id = :employee and command_kind = 'UNPAID_LEAVE_START' and status = 'PENDING')
+                """).param("employee", employee.value()).query(Boolean.class).single();
     }
 
     @Override

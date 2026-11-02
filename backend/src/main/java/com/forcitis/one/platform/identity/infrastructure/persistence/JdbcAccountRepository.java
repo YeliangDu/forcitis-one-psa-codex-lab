@@ -5,17 +5,21 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.identity.api.AccountRoleGrantId;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
+import com.forcitis.one.platform.identity.domain.GrantChanges;
+import com.forcitis.one.platform.identity.domain.GrantClosing;
+import com.forcitis.one.platform.identity.domain.GrantOpening;
+import com.forcitis.one.platform.identity.domain.HeldGrant;
 import com.forcitis.one.platform.identity.domain.Role;
 import com.forcitis.one.platform.identity.domain.UserAccount;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,9 +52,23 @@ class JdbcAccountRepository implements AccountRepository {
 
     @Override
     public Optional<UserAccount> find(UserId userId) {
-        Optional<UserAccount> found = jdbc.sql("""
-                        select user_id, employee_id, status, version, event_count from platform_identity.user_accounts where user_id = :id
+        return load(userId, false);
+    }
+
+    @Override
+    public Optional<UserAccount> findForUpdate(UserId userId) {
+        return load(userId, true);
+    }
+
+    private Optional<UserAccount> load(UserId userId, boolean lock) {
+        JdbcClient.StatementSpec select = lock
+                ? jdbc.sql("""
+                        select user_id, employee_id, status, version, event_count from platform_identity.user_accounts where user_id = :id for update
                         """)
+                : jdbc.sql("""
+                        select user_id, employee_id, status, version, event_count from platform_identity.user_accounts where user_id = :id
+                        """);
+        Optional<UserAccount> found = select
                 .param("id", userId.value())
                 .query((rs, n) -> UserAccount.restore(new UserId(rs.getObject("user_id", UUID.class)), new EmployeeId(rs.getObject("employee_id", UUID.class)),
                         rs.getString("status"), Set.of(), rs.getLong("version"), rs.getLong("event_count")))
@@ -59,12 +77,23 @@ class JdbcAccountRepository implements AccountRepository {
             return found;
         }
         UserAccount account = found.get();
-        Set<RoleId> roles = new HashSet<>(jdbc.sql("""
-                select role_id from platform_identity.account_roles where user_id = :id
-                """)
-                .param("id", userId.value()).query(UUID.class).list().stream().map(RoleId::new).toList());
+        Set<RoleId> roles = openGrants(userId).stream().map(HeldGrant::roleId).collect(Collectors.toSet());
         return Optional.of(UserAccount.restore(account.userId(), account.employeeId(), account.status().name(), roles, account.version(),
                 account.eventSequence()));
+    }
+
+    @Override
+    public List<HeldGrant> openGrants(UserId userId) {
+        return jdbc.sql("""
+                select g.account_role_grant_id, g.role_id, r.code
+                  from platform_identity.account_role_grants g join platform_identity.roles r on r.role_id = g.role_id
+                 where g.user_id = :id and g.%s
+                 order by g.effective_from_at, g.account_role_grant_id
+                """.formatted(Validity.CURRENT))
+                .param("id", userId.value())
+                .query((rs, n) -> new HeldGrant(new AccountRoleGrantId(rs.getObject("account_role_grant_id", UUID.class)),
+                        new RoleId(rs.getObject("role_id", UUID.class)), new RoleCode(rs.getString("code"))))
+                .list();
     }
 
     @Override
@@ -91,9 +120,6 @@ class JdbcAccountRepository implements AccountRepository {
                         """)
                 .param("id", opened.userId().value()).param("employee", opened.employeeId().value()).param("status", opened.status().name())
                 .param("version", opened.versionAfterSave()).param("eventSequence", opened.eventSequenceAfterSave()).update();
-        if (inserted == 1) {
-            saveRoles(opened.userId(), opened.roles());
-        }
         return inserted == 1;
     }
 
@@ -112,27 +138,47 @@ class JdbcAccountRepository implements AccountRepository {
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_CONCURRENT_UPDATE, ErrorKind.CONFLICT,
                     "account " + account.userId().value() + " was changed by someone else");
         }
-        if (account.rolesChanged()) {
-            saveRoles(account.userId(), account.roles());
-        }
     }
 
-    private void saveRoles(UserId userId, Set<RoleId> roleIds) {
-        if (roleIds.isEmpty()) {
-            jdbc.sql("""
-                    delete from platform_identity.account_roles where user_id = :user
-                    """).param("user", userId.value()).update();
-            return;
+    @Override
+    public void saveGrants(UserId userId, GrantChanges changes) {
+        OffsetDateTime now = OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
+        for (GrantClosing closing : changes.closed()) {
+            int closed = jdbc.sql("""
+                    update platform_identity.account_role_grants
+                       set effective_to_at = greatest(:now, effective_from_at), updated_at = :now, revoked_by = :revokedBy, revocation_cause_kind = :cause,
+                           revocation_authorization_request_id = :request, revocation_separation_command_id = :command, revocation_audit_entry_id = :audit
+                     where account_role_grant_id = :id and user_id = :user and %s
+                    """.formatted(Validity.CURRENT))
+                    .param("now", now).param("revokedBy", closing.revokedBy() == null ? null : closing.revokedBy().value()).param("cause", closing.cause().name())
+                    .param("request", closing.request() == null ? null : closing.request().value())
+                    .param("command", closing.separationCommand() == null ? null : closing.separationCommand().value())
+                    .param("audit", closing.audit().value()).param("id", closing.id().value()).param("user", userId.value()).update();
+            if (closed != 1) {
+                throw new DomainException(IdentityError.PLATFORM_IDENTITY_CONCURRENT_UPDATE, ErrorKind.CONFLICT,
+                        "grant " + closing.id().value() + " of account " + userId.value() + " is not open any more");
+            }
         }
-        jdbc.sql("""
-                delete from platform_identity.account_roles where user_id = :user and role_id not in (:roles)
-                """)
-                .param("user", userId.value()).param("roles", roleIds.stream().map(RoleId::value).toList()).update();
-        for (RoleId roleId : roleIds) {
+        for (GrantOpening opening : changes.opened()) {
             jdbc.sql("""
-                    insert into platform_identity.account_roles (account_role_id, user_id, role_id) values (:id, :user, :role) on conflict do nothing
-                    """)
-                    .param("id", ids.next()).param("user", userId.value()).param("role", roleId.value()).update();
+                    select role_id from platform_identity.roles where role_id = :role for share
+                    """).param("role", opening.roleId().value()).query(UUID.class).optional();
+            boolean live = jdbc.sql("""
+                    select exists (select 1 from platform_identity.role_versions where role_id = :role and %s)
+                    """.formatted(Validity.CURRENT)).param("role", opening.roleId().value()).query(Boolean.class).single();
+            if (!live) {
+                throw new DomainException(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_FOUND, ErrorKind.NOT_FOUND, "role " + opening.roleId().value() + " was deleted");
+            }
+            jdbc.sql("""
+                    insert into platform_identity.account_role_grants (account_role_grant_id, user_id, role_id, effective_from_at, granted_by, grant_channel_kind,
+                           grant_authorization_request_id, grant_audit_entry_id, created_at, updated_at)
+                    values (:id, :user, :role, greatest(:now, coalesce((select max(g.effective_to_at) from platform_identity.account_role_grants g
+                                                                         where g.user_id = :user and g.role_id = :role and not (g.%s)), :now)),
+                            :grantedBy, :channel, :request, :audit, :now, :now)
+                    """.formatted(Validity.CURRENT))
+                    .param("id", opening.id().value()).param("user", userId.value()).param("role", opening.roleId().value()).param("now", now)
+                    .param("grantedBy", opening.grantedBy() == null ? null : opening.grantedBy().value()).param("channel", opening.channel().name())
+                    .param("request", opening.request() == null ? null : opening.request().value()).param("audit", opening.audit().value()).update();
         }
     }
 
@@ -161,18 +207,18 @@ class JdbcAccountRepository implements AccountRepository {
     @Override
     public List<Role> findEnabledRoles(UserId userId) {
         return RoleRows.select(jdbc, """
-                join platform_identity.account_roles ar on ar.role_id = r.role_id
-               where ar.user_id = :id and v.role_status = 'ENABLED'
-                """, Map.of("id", userId.value()));
+                join platform_identity.account_role_grants ar on ar.role_id = r.role_id
+               where ar.user_id = :id and ar.%s and v.role_status = 'ENABLED'
+                """.formatted(Validity.CURRENT), Map.of("id", userId.value()));
     }
 
     @Override
     public Set<RoleCode> findAssignedRoleCodes(UserId userId) {
         return jdbc.sql("""
                         select r.code from platform_identity.roles r
-                          join platform_identity.account_roles ar on ar.role_id = r.role_id
-                         where ar.user_id = :id
-                        """)
+                          join platform_identity.account_role_grants ar on ar.role_id = r.role_id
+                         where ar.user_id = :id and ar.%s
+                        """.formatted(Validity.CURRENT))
                 .param("id", userId.value()).query(String.class).list().stream().map(RoleCode::new).collect(Collectors.toSet());
     }
 
@@ -180,13 +226,13 @@ class JdbcAccountRepository implements AccountRepository {
     public Set<UserId> findEnabledHolders(RoleCode roleCode) {
         return jdbc.sql("""
                         select ar.user_id
-                          from platform_identity.account_roles ar
+                          from platform_identity.account_role_grants ar
                           join platform_identity.roles r on r.role_id = ar.role_id
                           join platform_identity.user_accounts a on a.user_id = ar.user_id
-                         where lower(r.code) = lower(:code) and a.status = 'ENABLED'
+                         where lower(r.code) = lower(:code) and a.status = 'ENABLED' and ar.%1$s
                            and exists (select 1 from platform_identity.role_versions v
-                                        where v.role_id = r.role_id and v.effective_to_at is null and v.role_status = 'ENABLED')
-                        """)
+                                        where v.role_id = r.role_id and v.%1$s and v.role_status = 'ENABLED')
+                        """.formatted(Validity.CURRENT))
                 .param("code", roleCode.value()).query(UUID.class).list().stream().map(UserId::new).collect(Collectors.toSet());
     }
 }

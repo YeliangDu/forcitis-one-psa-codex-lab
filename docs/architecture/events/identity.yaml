@@ -195,12 +195,11 @@ components:
         aggregate: UserAccount
         idempotencyKey: eventId
         publisher: platform.identity
-        consumers:
-        - platform.audit
+        consumers: []
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
+        audit: 'not-audited: account.disabled 同事务直写：通知卡要用该条审计条目的 ID（#732）'
         publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
         noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
     AccountRolesReplaced:
@@ -220,6 +219,20 @@ components:
               type: string
               format: uuid
               x-type: RoleId
+          openedGrantIds:
+            type: array
+            description: 本次变更新开的角色授予行 ID
+            items:
+              type: string
+              format: uuid
+              x-type: AccountRoleGrantId
+          closedGrantIds:
+            type: array
+            description: 本次变更关闭的角色授予行 ID
+            items:
+              type: string
+              format: uuid
+              x-type: AccountRoleGrantId
       x-event:
         eventType: platform.identity.AccountRolesReplaced
         version: 1
