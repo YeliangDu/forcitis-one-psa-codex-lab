@@ -468,7 +468,6 @@ CREATE TABLE platform_identity.handled_personnel_commands (
     updated_at            timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_handled_personnel_commands PRIMARY KEY (personnel_command_id),
     CONSTRAINT fk_handled_personnel_commands_user_id FOREIGN KEY (user_id) REFERENCES platform_identity.user_accounts (user_id),
-    CONSTRAINT fk_handled_personnel_commands_account_role_grant_id FOREIGN KEY (account_role_grant_id) REFERENCES platform_identity.account_role_grants (account_role_grant_id),
     CONSTRAINT ck_handled_personnel_commands_command_kind CHECK (command_kind IN ('REINSTATE')),
     CONSTRAINT ck_handled_personnel_commands_outcome_kind CHECK (outcome_kind IN ('GRANT_OPENED', 'NOT_EMPLOYED', 'ALREADY_GRANTED')),
     CONSTRAINT ck_handled_personnel_commands_grant CHECK ((outcome_kind = 'GRANT_OPENED') = (account_role_grant_id IS NOT NULL))
