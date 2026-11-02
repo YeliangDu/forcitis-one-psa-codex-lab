@@ -6,6 +6,7 @@ import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
+import com.forcitis.one.platform.identity.api.AuthorizationRequestId;
 import com.forcitis.one.platform.identity.api.CustomOrgUnit;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
@@ -369,6 +370,26 @@ class JdbcRoleRepository implements RoleRepository {
                 select role_version_id from platform_identity.role_versions where role_version_id in (:versions) and %s
                 """.formatted(Validity.CURRENT)).param("versions", versions.stream().map(RoleVersionId::value).toList())
                 .query((rs, n) -> new RoleVersionId(rs.getObject(1, UUID.class))).list());
+    }
+
+    @Override
+    public void lockRolesOf(Collection<RoleVersionId> versions, boolean forWrite) {
+        if (versions.isEmpty()) {
+            return;
+        }
+        jdbc.sql("""
+                select role_id from platform_identity.roles
+                 where role_id in (select role_id from platform_identity.role_versions where role_version_id in (:versions))
+                 order by role_id for %s
+                """.formatted(forWrite ? "update" : "share")).param("versions", versions.stream().map(RoleVersionId::value).toList())
+                .query(UUID.class).list();
+    }
+
+    @Override
+    public boolean versionWrittenBy(AuthorizationRequestId requestId) {
+        return jdbc.sql("""
+                select exists (select 1 from platform_identity.role_versions where authorization_request_id = :request)
+                """).param("request", requestId.value()).query(Boolean.class).single();
     }
 
     private static OffsetDateTime at(Instant instant) {

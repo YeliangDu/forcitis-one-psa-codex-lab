@@ -25,12 +25,16 @@ class AuthorizationVoiding {
         this.audit = audit;
     }
 
-    /** accountVersion is the version of the account read under its row lock; null where the request has no account. */
+    /**
+     * accountVersion is the version of the account read under its row lock; null where the request has no account. The related role rows are locked
+     * before their versions are read (ADR-0034 decision 2 item 5): FOR SHARE for an account request, FOR UPDATE for a role change, which writes the role next.
+     */
     boolean moved(AuthorizationRequest request, @Nullable Long accountVersion) {
         AuthorizationBase base = request.base();
         if (base.accountVersion() != null && !base.accountVersion().equals(accountVersion)) {
             return true;
         }
+        roles.lockRolesOf(base.roleVersions(), base.accountVersion() == null);
         return !roles.currentVersions(base.roleVersions()).containsAll(base.roleVersions());
     }
 

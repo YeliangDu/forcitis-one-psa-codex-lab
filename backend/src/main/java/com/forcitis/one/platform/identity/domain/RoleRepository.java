@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.identity.domain;
 
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.identity.api.AuthorizationRequestId;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.api.RoleVersionId;
@@ -24,6 +25,15 @@ public interface RoleRepository {
 
     /** Those of the versions that are still the current version of their role (a replaced or closed version is not). */
     Set<RoleVersionId> currentVersions(Collection<RoleVersionId> versions);
+
+    /**
+     * Locks the role rows the versions belong to, in role id order (FOR UPDATE when the caller is about to write them, else FOR SHARE), so what
+     * {@link #currentVersions} reads next cannot change before the transaction ends.
+     */
+    void lockRolesOf(Collection<RoleVersionId> versions, boolean forWrite);
+
+    /** True when a version of some role was written by the confirmed request: its change is already applied. */
+    boolean versionWrittenBy(AuthorizationRequestId requestId);
 
     /**
      * Writes the role row and its version 1. Throws RoleRuleException(DUPLICATE_CODE) when any role, deleted ones included, has the code

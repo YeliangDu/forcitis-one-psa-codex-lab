@@ -24,9 +24,12 @@ import com.forcitis.one.platform.identity.domain.RoleRepository;
 import com.forcitis.one.platform.identity.domain.SensitivePermissions;
 import com.forcitis.one.platform.identity.domain.UserAccount;
 import java.util.ArrayList;
-import java.util.Map;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.springframework.stereotype.Service;
@@ -142,9 +145,9 @@ public class ReplaceAccountRoles {
 
     /** The account version and the current version of every role of the wanted set and of the set held now. */
     private AuthorizationBase baseOf(UserAccount account, List<Role> wanted, Set<RoleCode> alreadyHeld) {
-        Set<RoleVersionId> versions = new java.util.LinkedHashSet<>();
-        wanted.forEach(role -> versions.add(java.util.Objects.requireNonNull(role.roleVersionId())));
-        alreadyHeld.forEach(code -> roles.findByCode(code).ifPresent(role -> versions.add(java.util.Objects.requireNonNull(role.roleVersionId()))));
+        Set<RoleVersionId> versions = new LinkedHashSet<>();
+        wanted.forEach(role -> versions.add(Objects.requireNonNull(role.roleVersionId())));
+        alreadyHeld.forEach(code -> roles.findByCode(code).ifPresent(role -> versions.add(Objects.requireNonNull(role.roleVersionId()))));
         return new AuthorizationBase(account.version(), List.copyOf(versions));
     }
 
@@ -166,7 +169,7 @@ public class ReplaceAccountRoles {
 
     /**
      * Lock order: the separation advisory lock, then the account row, then the role rows (inside the repository). Revoking a super_admin or security_auditor
-     * grant of an available holder is refused when no available super administrator would remain, and announced when one remains. Returns the version.
+     * grant of an available holder is refused when no available super administrator would remain, and announced when one remains. Returns the account version, or empty when a confirmed request's base moved (the caller voids it).
      */
     private Optional<Long> replace(UserAccount loaded, List<Role> wanted, AccountGrants.Origin origin, @Nullable AuthorizationRequest confirmed) {
         floor.lockDecisions();
@@ -179,7 +182,7 @@ public class ReplaceAccountRoles {
         }
         Set<RoleId> wantedIds = new HashSet<>();
         wanted.forEach(role -> wantedIds.add(role.roleId()));
-        Map<RoleCode, HeldGrant> administratorGrants = new java.util.HashMap<>();
+        Map<RoleCode, HeldGrant> administratorGrants = new HashMap<>();
         for (HeldGrant grant : grants.closing(account.userId(), wantedIds)) {
             if (grant.roleCode().equals(Role.SUPER_ADMIN) || grant.roleCode().equals(Role.SECURITY_AUDITOR)) {
                 administratorGrants.put(grant.roleCode(), grant);
