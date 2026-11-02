@@ -7,8 +7,6 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.DomainException;
-import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -176,17 +174,5 @@ class EmployeeProfileChangeIT extends EmployeeHireSupport {
         assertThat(isPermissionRefusal(failure)).as(String.valueOf(failure)).isTrue();
         assertThat(root(person)).isEqualTo(rootBefore);
         assertThat(auditCount(AUDIT_PROFILE_CHANGED)).isEqualTo(audited);
-    }
-
-    private void change(UUID person, String displayName, String gender, String email, String wecomUserId, LocalDate effective) {
-        Map<String, Object> fields = new HashMap<>();
-        fields.put(EMPLOYEE_ID, person);
-        fields.put(DISPLAY_NAME, displayName);
-        fields.put(GENDER, gender);
-        fields.put(EMAIL, email);
-        fields.put(WECOM_USER_ID, wecomUserId);
-        fields.put(EFFECTIVE_DATE, effective);
-        fields.values().removeIf(java.util.Objects::isNull);
-        commands().changeProfile(fields);
     }
 }
