@@ -30,9 +30,9 @@
 | # | 不变量 | 验收测试 |
 |---|---|---|
 | I-10 | 数据范围 fail-closed：空范围零行、范围计算异常即拒绝；只有登记在数据访问注册表中的持久化类能访问数据库，触及 `SCOPED` 表的方法必须带 `AccessScope`；越权按 id 读取返回 404 | 本批（B1-scope）只堵 `org_units` 的读路径：范围算不出来或覆盖不到即拒绝，列表只含范围内部门，越权按 id 读取 404 并审计（`OrgUnitScopeIntegrationTest`）；其余机制（类型下沉、`CurrentAccess`、授予明细表、注册表 SCOPED 登记）与下列三项守护排在下一批第一项，首次部署前必须完成：`DataAccessRegistryTest`、ArchUnit `onlyRegisteredPersistenceTouchesTheDatabase`、`ScopedRepositoryContract` |
-| I-11 | 管理模式与业务权限分离：普通会话中 `super_admin` 持有人没有平台权限；管理模式（再次验证、1 小时）只有五项权限：角色读取 `role:read`、角色定义 `role:update`、账号授权 `account-role:update`、强制下线 `session:delete`、放行管理员离职造成的待放行离职 `separation-hold:approve`（ADR-0027 第 2 项、ADR-0028），不含业务、敏感读与审计查看，不能办理审批；应急登录直接进入管理模式；应急与管理模式会话每请求复核「账号启用、应急账号启用、当前持有 `super_admin`」，快照明确离职时拒绝应急登录；离职删除全部角色授予并停用应急账号 | `AdminModeBoundaryTest`、`EmergencyLoginIT`、`SeparationRevokesRolesIT`、`SyncLockoutGuardIT`（ADR-0028 规则 1 至 3：按类放行、留任判定、余量为 0 时界面拒绝、重跑出现新管理员回到暂停、应急会话需快照、HELD 视图权限、放行写审计与告警） |
+| I-11 | 管理模式与业务权限分离：普通会话中 `super_admin` 持有人没有平台权限；管理模式（再次验证、1 小时）只有五项权限：角色读取 `role:read`、角色定义 `role:update`、账号授权 `account-role:update`、强制下线 `session:delete`、放行管理员离职造成的待放行离职 `separation-hold:approve`（ADR-0027 第 2 项、ADR-0028），不含业务、敏感读与审计查看，不能办理审批；应急登录直接进入管理模式；应急与管理模式会话每请求复核「账号启用、应急账号启用、当前持有 `super_admin`」，目录（员工版本，无版本者看快照行）判定离职或未列出时拒绝应急登录；离职删除全部角色授予并停用应急账号 | `AdminModeBoundaryTest`、`EmergencyLoginIT`、`SeparationRevokesRolesIT`、`SyncLockoutGuardIT`（旧同步已随 #934 删除）；ADR-0028 规则 1 至 3 的待放行离职版本：`SeparationHoldDecisionIT`、`SeparationHoldReleaseIT`、`SeparationHoldReleaserIT`、`UnpaidLeaveAdministratorCountIT` |
 | I-12 | 不能修改自己的角色集合，也不能修改自己持有的任何角色的定义；敏感权限（含 `separation-hold:approve`）的授予需第二人确认，管理员不豁免；修改角色定义的申请，确认人不得持有被修改的角色 | `SelfGrantForbiddenIT`、`SensitiveGrantTwoPersonIT` |
-| I-13 | 外部票据（致远 SSO、外部签名票据）登录的会话，在本人确认「这是我的账号」前不持有任何权限（`sessions:current` 也不返回权限与菜单）。只有浏览器带着由本账号确认后签发的标识（`__Host-` 前缀 Cookie，库内只存摘要，每次使用换新值）才免确认；旧值重放作废该账号全部标识并记高风险审计；账号停用或员工离职时标识与会话同事务作废（离职触发点是应用服务 `RevokeBrowserIdentifiers.execute`，当前由离职事件监听 `HandleEmployeeSeparated` 调用；组织同步处于 HELD 状态期间，离职员工的浏览器标识一直保留到放行，放行时才作废）；确认后会话 ID 与 CSRF 令牌重发。**边界：此机制只防「被他人伪造的登录请求把受害者登进别人账号」（登录 CSRF），不防票据被盗、Cookie 被盗或终端被控；这几类由票据一次性与短时效、Cookie 的 HttpOnly 与 Secure、会话超时负责** | `BrowserIdentifierIntegrationTest`、`SsoLoginIntegrationTest.ticketSessionNeedsConfirmation`、`SignedTicketLoginIntegrationTest.ticketSessionNeedsConfirmation` |
+| I-13 | 外部票据（致远 SSO、外部签名票据）登录的会话，在本人确认「这是我的账号」前不持有任何权限（`sessions:current` 也不返回权限与菜单）。只有浏览器带着由本账号确认后签发的标识（`__Host-` 前缀 Cookie，库内只存摘要，每次使用换新值）才免确认；旧值重放作废该账号全部标识并记高风险审计；账号停用或员工离职时标识与会话同事务作废（离职触发点是应用服务 `RevokeBrowserIdentifiers.execute`，当前由离职事件监听 `HandleEmployeeSeparated` 调用；离职命令处于待放行期间，浏览器标识一直保留到放行或生效日，发布 `EmployeeSeparated` 时才作废）；确认后会话 ID 与 CSRF 令牌重发。**边界：此机制只防「被他人伪造的登录请求把受害者登进别人账号」（登录 CSRF），不防票据被盗、Cookie 被盗或终端被控；这几类由票据一次性与短时效、Cookie 的 HttpOnly 与 Secure、会话超时负责** | `BrowserIdentifierIntegrationTest`、`SsoLoginIntegrationTest.ticketSessionNeedsConfirmation`、`SignedTicketLoginIntegrationTest.ticketSessionNeedsConfirmation` |
 
 ## 3. 落地方式
 
@@ -57,7 +57,7 @@ ADR-0026、ADR-0027、ADR-0028 与上文用的是目标名；实际类名按仓�
 | `AdminModeBoundaryTest`（I-11） | `AdministratorModeIntegrationTest`（`@DisplayName` 以 `AdminModeBoundary` 开头）、`RoleTest.superAdmin` |
 | `EmergencyLoginIT`（I-11） | `EmergencyLoginIntegrationTest` |
 | `SeparationRevokesRolesIT`（I-11） | `SeparationRevokesRolesIntegrationTest` |
-| `SyncLockoutGuardIT`（I-11、ADR-0028 规则 1 至 3；旧同步已随 #934 删除，对应集成测试一并删除） | 端口本身由 `AdministratorSeparationReviewTest` 覆盖 |
+| `SyncLockoutGuardIT`（I-11、ADR-0028 规则 1 至 3；旧同步已随 #934 删除） | `SeparationHoldDecisionIT`、`SeparationHoldReleaseIT`、`SeparationHoldReleaserIT`、`UnpaidLeaveAdministratorCountIT`；端口本身另有 `AdministratorSeparationReviewTest` |
 | `EmergencyAccountDailyCheckTest` | `EmergencyAdminDailyCheckTest` |
 | `SelfGrantForbiddenIT`、`SensitiveGrantTwoPersonIT`（I-12） | `SensitiveGrantTwoPersonIntegrationTest`（含 `noSelfGrantAndNoWayToTheAuditTrail`：管理模式下给自己授予审计员再导出审计的路被堵死）、`RoleManagementIntegrationTest` |
 | `AccessDeniedAuditIT` | `OrgDataAdminRoleIntegrationTest`（`@DisplayName` 含 AccessDeniedAudit 与 PrivilegedRequestAudit） |
