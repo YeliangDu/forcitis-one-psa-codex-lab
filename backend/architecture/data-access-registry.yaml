@@ -165,6 +165,17 @@ tables:
     retention: {policy: PERMANENT}  # 个人任职史随员工清除：离职满 10 年由 purge_employee_history 删除（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
     writers: [organization.workforce]
+  organization_workforce.attribution_countersigns:
+    role: AGGREGATE_CHILD
+    aggregate: Employee
+    mutability: CONDITIONAL_UPDATE
+    condition: 决定各列由空变非空一次，升级级别只升不降且决定后不再变，其余列不变（触发器 tg_attribution_countersigns_append_only，ADR-0073 第 3 至 4 条）
+    business_key: [attribution_countersign_id]
+    fk_exceptions:
+      decision_audit_entry_id: the id of an audit entry of another module, stored without a key across modules
+    retention: {policy: PERMANENT}  # 同人事命令：个人任职史随员工清除，离职满 10 年删除（W2 第 8 节，清理作业另批）
+    lineage: {source: NEW}
+    writers: []  # 尚无写入方（#895 随用例登记）
   organization_workforce.separation_holds:
     role: AGGREGATE_CHILD
     aggregate: Employee
