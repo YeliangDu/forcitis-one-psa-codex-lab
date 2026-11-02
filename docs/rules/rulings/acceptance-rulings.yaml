@@ -324,3 +324,13 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/organization/administration/README.md
     reason: 卡 C（IMP-1022-ADM-01）迁移使 DRAFT 不落库、条目表新增必填列 is_system_only；卡 A 的 ADM-A-46/48/49/50 去 DRAFT 或降为 SQLSTATE，条目夹具显式给 is_system_only=false；不删用例，ADM-A-35 至 44、61 断言原样；PR 改断言栏单列
     ref: docs/rules/rulings/coord-2026-10-23.md
+  - id: RULING-LEAD-20261102-02
+    date: 2026-11-02
+    ruled_by: independent sonnet reviewer rvEsc (dispatched by one-test, given only the diffs), recorded by one-lead
+    implementer: one-test
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/CountersignSupport.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/CountersignEntryIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/OrgCountersignSupport.java
+    reason: '#893 签发列名 escalation_level 改为 escalation_level_number（#893 命名裁定 comment 6589791372 第 1 项）；两个夹具的 SQL 列名与 CountersignEntryIT:75 断言读的行键随之改名，写入值与期望值 0 不变，未增删或放宽任何断言、用例'
+    ref: "commits 489647736 (#895 acceptance) and 9547f9239 (#910 acceptance); review-escalation-rename-sonnet.md"
