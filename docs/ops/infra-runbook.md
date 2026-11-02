@@ -355,7 +355,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
   - 退出码：0 通过（没有 HELD 运行下的扣留离职行）；1 拒绝，每个有扣留行的 HELD 运行输出一行 `refused: sync run <运行 ID> is HELD and holds <N> separation rows`，先在界面逐条放行再重跑；2 用法错误。已放行（RELEASED）运行下残留的行、没有扣留行的 HELD 运行都不拦。
   - **HELD 运行的处置（#1008）**：`OneWorkforceSyncHeld` 告警或 `prelaunch-check` 退出码 1 都指向 HELD 运行。组织同步不再被调度，HELD 运行不会自行消失，也不会有新的同步运行产生；`OneWorkforceSyncLagging` 告警已撤，同步停止本身不告警。
     1. 组织来源在该环境开启、界面可用：由组织数据管理员在界面逐条放行所列运行，再重跑 `prelaunch-check`，须为 0。
-    2. 组织来源在该环境已关闭（界面无法放行）：运维不得直接改库、不得重新打开调度来放行。把 `prelaunch-check` 输出的每行 `refused: …` 原样交组织数据管理员和 lead，由其裁定该运行下的扣留离职行（放行，或确认作废）并给出书面结论，在此之前该环境不得发布含 #961 的版本、不得运行 `migrate-initial-versions`。
+    2. 组织来源在该环境已关闭（界面无法放行）：运维不得直接改库、不得重新打开调度来放行。把 `prelaunch-check` 输出的每行 `refused: …` 原样交组织数据管理员和 lead，由其裁定该运行下的扣留离职行（放行，或确认作废）并给出书面结论，在此之前该环境不得继续后续上线步骤，尤其不得运行 `migrate-initial-versions`。
     3. 裁定落地后重跑 `prelaunch-check`，退出码 0 才继续；在此期间 `OneWorkforceSyncHeld` 保持告警，属预期，不静默。
 - **#960 迁入命令的运维步骤（一次性，由运维在发布闸门放行后执行，开发会话不执行）**：
   1. 发布含 #961 的版本，确认没有任何实例的调度再跑组织同步（`SnapshotSyncNotScheduledIT` 守护；`WORKFORCE_SYNC_ENABLED` 已不再有作用）。
