@@ -42,10 +42,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * ADR37-1 (ADR-0037 item 4, implementation card of one-coordinator and one-ops 2026-10-15): every read-only external connection is checked
- * against the RDS platform baseline when the application starts and again before each sync; anything more, anything less or anything that
- * cannot be determined refuses. The application is started for real (black box) against a real SQL Server, one start per case. The cases
- * of the re-check before an organisation sync run went with the sync in #934 (ADR-0055 section 6); the re-check before a short-name refresh
- * stays.
+ * against the RDS platform baseline when the application starts and again before each short-name refresh; anything more, anything less or
+ * anything that cannot be determined refuses. The application is started for real (black box) against a real SQL Server, one start per case.
+ * The re-check before an organisation sync run went with the sync in #934 (ADR-0055 section 6).
  *
  * <p>The logins come from {@link ReadOnlyBaselineFixture}; {@link #fixtureReproducesTheRdsBaseline} proves they equal the RDS export
  * before anything else is believed.

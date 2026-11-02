@@ -10,7 +10,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.WecomUserId;
-import java.sql.Connection;
 import com.forcitis.one.organization.workforce.api.LoginLookup;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.identity.application.OperationsCommands;
@@ -22,6 +21,9 @@ import jakarta.servlet.http.Cookie;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -180,8 +182,8 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
         syncRun("SUCCEEDED", clock.instant().minusSeconds(120), clock.instant().minusSeconds(60));
     }
 
-    private static void write(Connection connection, String sql, Object... args) throws java.sql.SQLException {
-        try (java.sql.PreparedStatement statement = connection.prepareStatement(sql)) {
+    private static void write(Connection connection, String sql, Object... args) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
             for (int i = 0; i < args.length; i++) {
                 statement.setObject(i + 1, args[i]);
             }

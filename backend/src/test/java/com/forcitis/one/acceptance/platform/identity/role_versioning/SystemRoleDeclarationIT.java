@@ -31,7 +31,11 @@ class SystemRoleDeclarationIT {
     static final String SUPER_ADMIN = "019a0000-0000-7000-8000-000000000101";
     static final String EMPLOYEE = "019a0000-0000-7000-8000-000000000102";
 
-    /** One system role as the identity baseline seeded it on main f62af6ae8 (V20261014130000 :523-586), the 「改前」 of card 0034-G8-02. */
+    /**
+     * One system role as the identity baseline seeded it on main f62af6ae8 (V20261014130000 :523-586), the 「改前」 of card 0034-G8-02, with one
+     * ruled change: org_data_admin's two sync run codes became organization.workforce:org-reconciliation:execute when #934 removed the old
+     * sync (lead ruling 2026-11-02, point 4: the reconciliation is kept under that code with the same grants).
+     */
     record SeededRole(String roleId, String code, String name, String accessScope, boolean administrative, List<String> permissionCodes) {
     }
 
@@ -43,7 +47,7 @@ class SystemRoleDeclarationIT {
             new SeededRole("019a0000-0000-7000-8000-000000000104", "org_data_admin", "组织数据管理员", "ALL", false, List.of(
                     "organization.attendance:locked-day:update", "organization.attendance:work-calendar:read", "organization.attendance:work-calendar:update",
                     "organization.workforce:legal-entity-attribution-correction:create", "organization.workforce:legal-entity:update",
-                    "organization.workforce:org-unit:read", "organization.workforce:sync-run:execute", "organization.workforce:sync-run:read",
+                    "organization.workforce:org-reconciliation:execute", "organization.workforce:org-unit:read",
                     "platform.integration:source-reference:update", "platform.numbering:numbering-rule:read", "platform.numbering:numbering-rule:update")),
             new SeededRole("019a0000-0000-7000-8000-000000000105", "business_admin", "业务管理员", "SELF", false, List.of(
                     "platform.integration:source-reference:approve", "platform.numbering:numbering-rule:approve", "platform.numbering:numbering-rule:read")),
