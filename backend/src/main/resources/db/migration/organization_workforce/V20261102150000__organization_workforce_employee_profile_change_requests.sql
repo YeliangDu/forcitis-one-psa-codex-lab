@@ -6,7 +6,7 @@ CREATE TABLE organization_workforce.employee_profile_change_requests (
     requested_at                       timestamptz NOT NULL,
     base_display_name                  text        NOT NULL,
     base_gender_kind                        text,
-    base_email_text                         text,
+    base_email_address                         text,
     base_wecom_user_id                 text,
     display_name                       text        NOT NULL,
     gender_kind                             text,
@@ -34,7 +34,7 @@ CREATE TABLE organization_workforce.employee_profile_change_requests (
         AND char_length(base_display_name) <= 500 AND btrim(base_display_name) <> ''),
     CONSTRAINT ck_employee_profile_change_requests_gender CHECK ((gender_kind IS NULL OR gender_kind IN ('MALE', 'FEMALE')) AND (base_gender_kind IS NULL OR base_gender_kind IN ('MALE', 'FEMALE'))),
     CONSTRAINT ck_employee_profile_change_requests_email CHECK ((email_address IS NULL OR (char_length(email_address) <= 100 AND btrim(email_address) <> ''))
-        AND (base_email_text IS NULL OR (char_length(base_email_text) <= 100 AND btrim(base_email_text) <> '')))
+        AND (base_email_address IS NULL OR (char_length(base_email_address) <= 100 AND btrim(base_email_address) <> '')))
 );
 CREATE UNIQUE INDEX uk_employee_profile_change_requests_one_pending_per_employee
     ON organization_workforce.employee_profile_change_requests (employee_id) WHERE request_status = 'PENDING';
@@ -47,7 +47,7 @@ COMMENT ON COLUMN organization_workforce.employee_profile_change_requests.reques
 COMMENT ON COLUMN organization_workforce.employee_profile_change_requests.requested_at IS '申请时刻';
 COMMENT ON COLUMN organization_workforce.employee_profile_change_requests.base_display_name IS '申请时的姓名：确认时与当前档案比对，不同则作废';
 COMMENT ON COLUMN organization_workforce.employee_profile_change_requests.base_gender_kind IS '性别：申请时的值，MALE / FEMALE；为空表示当时未维护';
-COMMENT ON COLUMN organization_workforce.employee_profile_change_requests.base_email_text IS '企业邮箱：申请时的值；为空表示当时未设';
+COMMENT ON COLUMN organization_workforce.employee_profile_change_requests.base_email_address IS '企业邮箱：申请时的值；为空表示当时未设';
 COMMENT ON COLUMN organization_workforce.employee_profile_change_requests.base_wecom_user_id IS '申请时的企业微信用户 ID；为空只在清空后 30 天内的再填入申请里出现';
 COMMENT ON COLUMN organization_workforce.employee_profile_change_requests.display_name IS '拟改的姓名';
 COMMENT ON COLUMN organization_workforce.employee_profile_change_requests.gender_kind IS '性别：拟改的值，MALE / FEMALE；为空表示清空';

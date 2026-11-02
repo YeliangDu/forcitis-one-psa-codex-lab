@@ -52,7 +52,7 @@ organization_workforce.employee_profile_change_requests.base_display_name | INTE
 organization_workforce.employee_profile_change_requests.display_name | INTERNAL | PI | 用途：拟改的姓名，确认后写入档案；访问级别与档案同列一致
 organization_workforce.employee_profile_change_requests.base_gender_kind | INTERNAL | PI | 用途：申请时的性别，确认时比对档案；访问级别与档案同列一致
 organization_workforce.employee_profile_change_requests.gender_kind | INTERNAL | PI | 用途：拟改的性别，确认后写入档案；访问级别与档案同列一致
-organization_workforce.employee_profile_change_requests.base_email_text | INTERNAL | PI | 用途：申请时的企业邮箱，确认时比对档案；访问级别与档案同列一致
+organization_workforce.employee_profile_change_requests.base_email_address | INTERNAL | PI | 用途：申请时的企业邮箱，确认时比对档案；访问级别与档案同列一致
 organization_workforce.employee_profile_change_requests.email_address | INTERNAL | PI | 用途：拟改的企业邮箱，确认后写入档案；访问级别与档案同列一致
 organization_workforce.employee_profile_change_requests.base_wecom_user_id | INTERNAL | PI | 用途：申请时的企业微信用户 ID，确认时比对档案；访问级别与档案同列一致
 organization_workforce.employee_profile_change_requests.wecom_user_id | INTERNAL | PI | 用途：拟改的企业微信用户 ID，确认后写入档案；访问级别与档案同列一致

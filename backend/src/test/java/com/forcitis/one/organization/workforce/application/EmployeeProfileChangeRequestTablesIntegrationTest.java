@@ -58,7 +58,7 @@ class EmployeeProfileChangeRequestTablesIntegrationTest extends WorkforceIntegra
     @DisplayName("#980 the WeCom id must move; a void names its reason, a rejection its text")
     void contentColumns() {
         refused("ck_employee_profile_change_requests_wecom_moves", insert(EMPLOYEE, "PENDING", "", "").replace("'new'", "'old'"));
-        refused("ck_employee_profile_change_requests_wecom_moves", insert(EMPLOYEE, "PENDING", "", "").replace("base_wecom_user_id,", "base_wecom_user_id, base_email_text,").replace("'old',", "'old', 'e',")
+        refused("ck_employee_profile_change_requests_wecom_moves", insert(EMPLOYEE, "PENDING", "", "").replace("base_wecom_user_id,", "base_wecom_user_id, base_email_address,").replace("'old',", "'old', 'e',")
                 .replace("'new'", "NULL").replace("'name', 'old', 'e'", "'name', NULL, 'e'"));
         jdbc.sql(insert(EMPLOYEE, "PENDING", "", "").replace("'new'", "NULL")).update();
         refused("ck_employee_profile_change_requests_void_reason", insert(EMPLOYEE, "VOIDED", ", decided_by, decided_at", ", " + CONFIRMER + ", now()"));
