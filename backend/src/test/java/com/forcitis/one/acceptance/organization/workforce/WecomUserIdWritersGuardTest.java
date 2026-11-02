@@ -19,10 +19,13 @@ import org.junit.jupiter.api.Test;
  * #934 with #980 (user intent 2026-11-02 企业微信账号改绑防冒用 ③: any change of an employee's WeCom user id revokes that employee's sessions
  * and browser identifiers). Successor of #961's WecomUserIdWritersRevokeIT, whose release path went with the sync: once the sync is gone the
  * one way a WeCom user id may move on an existing employees row is the profile change, whose caller revokes (pinned by EmployeeWecomRebindIT).
- * Read from the main sources: exactly one SQL statement assigns wecom_user_id on an existing employees row (UPDATE … SET … wecom_user_id =,
- * a tuple SET (…, wecom_user_id, …) =, or INSERT … ON CONFLICT … DO UPDATE SET … wecom_user_id =), and it is the profile-change UPDATE of
- * JdbcPersonnelCommandRepository. A second such statement anywhere, that file included, is red. Inserting a new row is no move and stays
- * allowed. Lead 2026-11-02: a surviving login-miss registration may only fill an empty id, never overwrite or clear a set one.
+ * Read from the main sources: exactly one SQL statement may overwrite or clear wecom_user_id on an existing employees row (UPDATE … SET …
+ * wecom_user_id =, a tuple SET (…, wecom_user_id, …) =, or INSERT … ON CONFLICT … DO UPDATE SET … wecom_user_id =), and it is the
+ * profile-change UPDATE of JdbcPersonnelCommandRepository in its exact shape. A second such statement anywhere, that file included, or the
+ * profile change reshaped, is red. Lead ruling (c), 2026-11-02: a surviving login-miss registration may only fill an empty id, never overwrite
+ * or clear a set one. So two writes stay allowed: inserting a new row, and filling an empty id only, i.e. every assignment is
+ * {@code wecom_user_id = coalesce(<row's>wecom_user_id, …)} (not {@code excluded.} first), or the clause's WHERE requires
+ * {@code wecom_user_id is null}.
  *
  * <p>The SQL is read from the string literals and text blocks of each file. Literals joined by +, also across a constant or other name
  * between them, are read as one statement, the name standing for its text.
@@ -34,10 +37,11 @@ class WecomUserIdWritersGuardTest {
     /** The file of the profile change: its caller revokes the sessions and browser identifiers when the id changes (EmployeeWecomRebindIT). */
     static final String ALLOWED = "com/forcitis/one/organization/workforce/infrastructure/persistence/JdbcPersonnelCommandRepository.java";
 
-    /** The one allowed statement: the profile-change UPDATE that writes name, gender, email and WeCom user id together. */
+    /** The one allowed statement, exactly: the profile-change UPDATE that writes name, gender, email and WeCom user id together, by id. */
     static final Pattern PROFILE_CHANGE = Pattern.compile(
             "^\\s*update\\s+organization_workforce\\.employees\\s+set\\s+display_name\\s*=\\s*:name\\s*,\\s*gender\\s*=\\s*:gender\\s*,\\s*email\\s*=\\s*:email\\s*,"
-                    + "\\s*wecom_user_id\\s*=\\s*:wecom\\b(?:(?!\\bwecom_user_id\\b).)*$", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+                    + "\\s*wecom_user_id\\s*=\\s*:wecom\\s*,\\s*updated_at\\s*=\\s*:at\\s*,\\s*version\\s*=\\s*version\\s*\\+\\s*1\\s+where\\s+id\\s*=\\s*:id\\s*$",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     /** The table: employees, schema-qualified or not, or a name standing for it (a constant such as EMPLOYEES or EMPLOYEES_TABLE). */
     static final String TABLE = "(?:\\w+\\.)?\\w*employees\\w*";
@@ -90,8 +94,51 @@ class WecomUserIdWritersGuardTest {
         return line;
     }
 
+    /** The SET part and the WHERE part (or null) of an UPDATE of the table or of a DO UPDATE. */
+    static final Pattern WRITE_CLAUSE = Pattern.compile("(?:\\bupdate\\s+" + TABLE + "\\s+(?:as\\s+)?(?:(?!set\\b)\\w+\\s+)?|\\bdo\\s+update\\s+)set\\b"
+            + "((?:(?!\\bwhere\\b|\\breturning\\b).)*)(?:\\bwhere\\b((?:(?!\\breturning\\b).)*))?", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+
+    static final Pattern ASSIGNMENT = Pattern.compile(ASSIGNED, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+
+    static final Pattern TUPLE = Pattern.compile("\\([^()]*\\bwecom_user_id\\b[^()]*\\)\\s*=", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+
+    /** The value assigned keeps a set id: coalesce over the row's own column first (not excluded., which is the incoming value). */
+    static final Pattern FILL = Pattern.compile("\\G\\s*coalesce\\s*\\(\\s*(?!excluded\\.)(?:\\w+\\.)?wecom_user_id\\s*,", Pattern.CASE_INSENSITIVE);
+
+    static final Pattern ONLY_WHEN_EMPTY = Pattern.compile("(?:\\w+\\.)?\\bwecom_user_id\\s+is\\s+null\\b", Pattern.CASE_INSENSITIVE);
+
+    static final Pattern SINGLE = Pattern.compile("\\bwecom_user_id\\s*=", Pattern.CASE_INSENSITIVE);
+
+    /** True when the statement overwrites or clears wecom_user_id on an existing employees row; filling an empty one only is not. */
     static boolean writesAWecomId(String sql) {
-        return UPDATE.matcher(sql).find() || UPSERT.matcher(sql).find();
+        if (!UPDATE.matcher(sql).find() && !UPSERT.matcher(sql).find()) {
+            return false;
+        }
+        Matcher clause = WRITE_CLAUSE.matcher(sql);
+        while (clause.find()) {
+            String set = clause.group(1);
+            String where = clause.group(2);
+            if (!ASSIGNMENT.matcher(set).find() || (where != null && ONLY_WHEN_EMPTY.matcher(where).find()) || fillsOnly(set)) {
+                continue;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /** Every assignment of the column in the SET part is a coalesce that keeps the row's own value; a tuple assignment never is. */
+    static boolean fillsOnly(String set) {
+        if (TUPLE.matcher(set).find()) {
+            return false;
+        }
+        Matcher single = SINGLE.matcher(set);
+        while (single.find()) {
+            Matcher fill = FILL.matcher(set);
+            if (!fill.find(single.end())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** The statements that write a WeCom user id on an existing row, by relative path, as "path:line" and whether each is the profile change. */
@@ -144,7 +191,7 @@ class WecomUserIdWritersGuardTest {
     }
 
     @Test
-    @DisplayName("#934/#980 守护自检：文本块 UPDATE、拼接的 UPDATE、经常量拼表名的 UPDATE、元组 SET、ON CONFLICT DO UPDATE 都被认出；新建员工行、只在 WHERE 里出现、别的表的同名列不被误认")
+    @DisplayName("#934/#980 守护自检：文本块 UPDATE、拼接的 UPDATE、经常量拼表名的 UPDATE、元组 SET、ON CONFLICT DO UPDATE 的覆盖与清空都被认出；新建员工行、只在 WHERE 里出现、别的表的同名列、只填空值（coalesce 保留原值，或 WHERE 要求为空，裁定 (c)）不算违规")
     void theReadingFindsEveryShapeAndNothingElse() {
         String source = String.join("\n", "class Sample {",
                 "  String a = \"\"\"",
@@ -162,6 +209,13 @@ class WecomUserIdWritersGuardTest {
                 "  String g = \"update organization_workforce.employees set display_name = :n where wecom_user_id = :w\";",
                 "  String h = \"update \" + EMPLOYEES + \" set wecom_user_id = :w where id = :id\";",
                 "  String i = \"update organization_workforce.employees set (display_name, wecom_user_id) = (:n, :w) where id = :id\";",
+                "  String j = \"update organization_workforce.employees set wecom_user_id = coalesce(wecom_user_id, :w) where id = :id\";",
+                "  String k = \"update organization_workforce.employees set wecom_user_id = :w where id = :id and wecom_user_id is null\";",
+                "  String l = \"insert into organization_workforce.employees (id, wecom_user_id) values (:id, :w) on conflict (id) do update set "
+                        + "wecom_user_id = coalesce(employees.wecom_user_id, excluded.wecom_user_id)\";",
+                "  String m = \"insert into organization_workforce.employees (id, wecom_user_id) values (:id, :w) on conflict (id) do update set "
+                        + "wecom_user_id = coalesce(excluded.wecom_user_id, employees.wecom_user_id)\";",
+                "  String n = \"update organization_workforce.employees set wecom_user_id = :w where id = :id and wecom_user_id is not null\";",
                 "}");
         List<Integer> lines = new ArrayList<>();
         for (Statement statement : statements(source)) {
@@ -169,11 +223,12 @@ class WecomUserIdWritersGuardTest {
                 lines.add(statement.line());
             }
         }
-        assertThat(lines).containsExactly(2, 6, 7, 15, 16);
+        // j, k, l only fill an empty id (ruling (c)): allowed; m overwrites a set id with the incoming one, n overwrites only set ids: red
+        assertThat(lines).containsExactly(2, 6, 7, 15, 16, 20, 21);
     }
 
     @Test
-    @DisplayName("#934/#980 守护自检：资料变更仓储里只放过那一条 UPDATE；同一文件再多一条 upsert 或 UPDATE 写 wecom_user_id 即违规，换了形状的资料变更也违规")
+    @DisplayName("#934/#980 守护自检：资料变更仓储里只放过那一条原形的 UPDATE；同一文件再多一条 upsert 或 UPDATE 写 wecom_user_id 即违规，只有一条 upsert、少一个字段或多一列的资料变更也违规")
     void theAllowedFileHoldsOnlyTheOneStatement() {
         String profileChange = String.join("\n", "class Repo {",
                 "  void updateProfile() {",
@@ -188,11 +243,22 @@ class WecomUserIdWritersGuardTest {
                 + "on conflict (id) do update set wecom_user_id = excluded.wecom_user_id\";\n}";
         String withSecondUpdate = profileChange + "\n  String v = \"update organization_workforce.employees set wecom_user_id = :w where id = :id\";\n}";
         String twice = profileChange + "\n" + profileChange.substring(profileChange.indexOf("  void")) + "\n}";
+        String onlyAnUpsert = "class Repo {\n  String u = \"insert into organization_workforce.employees (id, wecom_user_id) values (:id, :w) "
+                + "on conflict (id) do update set wecom_user_id = excluded.wecom_user_id\";\n}";
+        String withoutEmail = alone.replace("email = :email, ", "");
+        String withAnExtraColumn = alone.replace("wecom_user_id = :wecom,", "wecom_user_id = :wecom, login_name = :login,");
 
         assertThat(offenders(writers(Map.of(ALLOWED, alone)))).as("the profile change alone").isEmpty();
         assertThat(offenders(writers(Map.of(ALLOWED, withUpsert)))).as("a second upsert in the allowed file").containsExactly(ALLOWED + ":9");
         assertThat(offenders(writers(Map.of(ALLOWED, withSecondUpdate)))).as("a second update in the allowed file").containsExactly(ALLOWED + ":9");
         assertThat(offenders(writers(Map.of(ALLOWED, twice)))).as("the profile-change statement twice").hasSize(1);
         assertThat(offenders(writers(Map.of("other/Repo.java", alone)))).as("the same statement in another file").containsExactly("other/Repo.java:3");
+        for (Map.Entry<String, String> reshaped : Map.of("only an upsert", onlyAnUpsert, "without the email", withoutEmail, "with an extra column",
+                withAnExtraColumn).entrySet()) {
+            List<Writer> found = writers(Map.of(ALLOWED, reshaped.getValue()));
+            assertThat(found).as("%s: a writer is found", reshaped.getKey()).hasSize(1);
+            assertThat(found).as("%s: not taken for the profile change", reshaped.getKey()).noneMatch(Writer::profileChange);
+            assertThat(offenders(found)).as("%s: a violation", reshaped.getKey()).hasSize(1);
+        }
     }
 }

@@ -1,9 +1,12 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.acceptance.AcceptanceSupport;
 import com.forcitis.one.platform.identity.api.Permission;
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -43,7 +46,7 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "spring.datasource.hikari.connection-timeout=2000",
         "forcitis.platform.scheduling.jobs-enabled=true", "forcitis.organization.workforce.sync.enabled=true",
         "forcitis.organization.workforce.sync-purge.enabled=true"})
-class OldSyncRemovedIT {
+class OldSyncRemovedIT extends AcceptanceSupport {
 
     static final String WORKFORCE = "com.forcitis.one.organization.workforce";
 
@@ -157,8 +160,8 @@ class OldSyncRemovedIT {
     static final String RECONCILE_CODE = "organization.workforce:org-reconciliation:execute";
 
     @Test
-    @DisplayName("#934 裁定 4：组织对账保留并改名：接口 /api/v1/organization/org-reconciliations:run 存在；权限目录有在用的 organization.workforce:org-reconciliation:execute")
-    void theReconciliationIsKeptUnderItsNewName() {
+    @DisplayName("#934 裁定 4：组织对账保留并改名：接口 /api/v1/organization/org-reconciliations:run 存在；权限目录有在用的 organization.workforce:org-reconciliation:execute；不持有它的调用方（持有其余全部权限码）得 403，只持有它的调用方被受理（不是 403，业务结果不钉）")
+    void theReconciliationIsKeptUnderItsNewName() throws Exception {
         RequestMappingHandlerMapping mapping = context.getBean("requestMappingHandlerMapping", RequestMappingHandlerMapping.class);
         List<String> paths = new ArrayList<>();
         for (RequestMappingInfo info : mapping.getHandlerMethods().keySet()) {
@@ -173,6 +176,13 @@ class OldSyncRemovedIT {
 
         assertThat(paths).as("the reconciliation endpoint").contains(RECONCILE_PATH);
         assertThat(live).as("the reconciliation permission in the catalogue, live").containsExactly(RECONCILE_CODE);
+
+        String[] everyOtherCode = java.util.Arrays.stream(Permission.values()).map(Permission::code).filter(code -> !code.equals(RECONCILE_CODE))
+                .toArray(String[]::new);
+        int without = mvc.perform(post(RECONCILE_PATH).with(csrf()).with(person(3, everyOtherCode))).andReturn().getResponse().getStatus();
+        int with = mvc.perform(post(RECONCILE_PATH).with(csrf()).with(person(4, RECONCILE_CODE))).andReturn().getResponse().getStatus();
+        assertThat(without).as("a caller holding every other code but not %s", RECONCILE_CODE).isEqualTo(403);
+        assertThat(with).as("a caller holding only %s is let through (any answer but 401/403)", RECONCILE_CODE).isNotIn(401, 403);
         // Who holds it (org_data_admin, as the sync run codes it replaces) is pinned by the role declaration's own acceptance, SystemRoleDeclarationIT.
     }
 
