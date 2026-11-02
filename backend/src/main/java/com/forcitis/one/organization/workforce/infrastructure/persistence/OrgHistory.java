@@ -32,53 +32,6 @@ final class OrgHistory {
         this.ids = ids;
     }
 
-    void recordOrgUnits(List<OrgUnit> units, LocalDate day) {
-        if (units.isEmpty()) {
-            return;
-        }
-        record Values(UUID parent, UUID head, UUID manager, String code, String name, String status, String category, boolean delivery, Open open) {
-        }
-        Map<UUID, Values> open = new HashMap<>();
-        jdbc.sql("""
-                        select org_unit_id, effective_from_date, revision_number, code, name, parent_org_unit_id, status, head_employee_id,
-                               regional_receivables_manager_id, region_kind, is_delivery_unit
-                          from organization_workforce.org_unit_versions where effective_to_date is null and org_unit_id in (:ids)
-                        """)
-                .param("ids", units.stream().map(u -> u.orgUnitId().value()).toList())
-                .query((rs, n) -> open.put(rs.getObject("org_unit_id", UUID.class), new Values(rs.getObject("parent_org_unit_id", UUID.class),
-                        rs.getObject("head_employee_id", UUID.class), rs.getObject("regional_receivables_manager_id", UUID.class), rs.getString("code"), rs.getString("name"), rs.getString("status"),
-                        rs.getString("region_kind"), rs.getBoolean("is_delivery_unit"),
-                        new Open(rs.getObject("effective_from_date", LocalDate.class), rs.getInt("revision_number"))))).list();
-        for (OrgUnit u : units) {
-            Values before = open.get(u.orgUnitId().value());
-            UUID parent = u.parentOrgUnitId() == null ? null : u.parentOrgUnitId().value();
-            UUID head = u.headEmployeeId() == null ? null : u.headEmployeeId().value();
-            UUID manager = u.regionalReceivablesManagerId() == null ? null : u.regionalReceivablesManagerId().value();
-            String category = u.regionCategory() == null ? null : u.regionCategory().name();
-            if (before != null && Objects.equals(before.parent(), parent) && Objects.equals(before.head(), head) && Objects.equals(before.manager(), manager)
-                    && Objects.equals(before.code(), u.code()) && before.name().equals(u.name()) && before.status().equals(u.status().name())
-                    && Objects.equals(before.category(), category) && before.delivery() == u.deliveryUnit()) {
-                continue;
-            }
-            int revision = revisionFor(before == null ? null : before.open(), day);
-            if (before != null) {
-                jdbc.sql("""
-                        update organization_workforce.org_unit_versions set effective_to_date = :day where org_unit_id = :id and effective_to_date is null
-                        """)
-                        .param("id", u.orgUnitId().value()).param("day", day).update();
-            }
-            jdbc.sql("""
-                            insert into organization_workforce.org_unit_versions (org_unit_version_id, org_unit_id, effective_from_date, code, name,
-                                   parent_org_unit_id, status, head_employee_id, regional_receivables_manager_id, region_kind, is_delivery_unit, revision_number)
-                            values (:versionId, :id, :day, :code, :name, :parent, :status, :head, :manager, :category, :delivery, :revision)
-                            """)
-                    .param("versionId", ids.next()).param("id", u.orgUnitId().value()).param("day", day).param("code", u.code()).param("name", u.name())
-                    .param("parent", parent, java.sql.Types.OTHER).param("status", u.status().name()).param("head", head, java.sql.Types.OTHER)
-                    .param("manager", manager, java.sql.Types.OTHER).param("category", category, java.sql.Types.VARCHAR)
-                    .param("delivery", u.deliveryUnit()).param("revision", revision).update();
-        }
-    }
-
     void recordAssignments(List<Assignment> assignments, LocalDate day, Instant now) {
         if (assignments.isEmpty()) {
             return;

@@ -16,11 +16,9 @@ import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
 import com.forcitis.one.organization.workforce.domain.Position;
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.domain.PositionStatus;
-import com.forcitis.one.organization.workforce.domain.Reconciliation;
 import com.forcitis.one.organization.workforce.domain.RegisteredEmployee;
 import com.forcitis.one.organization.workforce.domain.RegionCategory;
 import com.forcitis.one.organization.workforce.domain.StaffEmployee;
-import com.forcitis.one.organization.workforce.api.SyncRunId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -71,38 +69,6 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
     }
 
     @Override
-    public void save(Reconciliation changes, SyncRunId syncRunId, Instant now, LocalDate snapshotDate) {
-        UUID run = syncRunId == null ? null : syncRunId.value();
-        OffsetDateTime at = OffsetDateTime.ofInstant(now, ZoneOffset.UTC);
-        for (Position p : changes.positions()) {
-            jdbc.sql("""
-                    insert into organization_workforce.positions (id, code, name, sort_order, status, created_at, updated_at)
-                    values (:id, :code, :name, :sortOrder, :status, :now, :now)
-                    on conflict (id) do update set code = excluded.code, name = excluded.name, sort_order = excluded.sort_order,
-                           status = excluded.status, updated_at = excluded.updated_at, version = positions.version + 1
-                    """)
-                    .param("id", p.positionId().value()).param("code", p.code()).param("name", p.name())
-                    .param("sortOrder", p.sortOrder()).param("status", p.status().name()).param("now", at).update();
-        }
-        for (OrgUnit u : changes.orgUnits()) {
-            upsertOrgUnit(u, run, at);
-        }
-        history.recordOrgUnits(changes.orgUnits(), snapshotDate);
-        // The unique WeCom key covers employed people only; clearing the batch first makes the write order irrelevant.
-        List<UUID> staffIds = changes.staff().stream().map(s -> s.employeeId().value()).toList();
-        if (!staffIds.isEmpty()) {
-            jdbc.sql("""
-                    update organization_workforce.employees set wecom_user_id = null where id in (:ids) and wecom_user_id is not null
-                    """)
-                    .param("ids", staffIds).update();
-        }
-        for (StaffEmployee s : changes.staff()) {
-            upsertStaff(s, at);
-        }
-        history.recordAssignments(changes.staff().stream().map(StaffEmployee::assignment).toList(), snapshotDate, now);
-    }
-
-    @Override
     public void saveRegisteredEmployee(RegisteredEmployee registered, Instant now) {
         LocalDate day = zone.dateOf(now);
         upsertStaff(registered.staff(), OffsetDateTime.ofInstant(now, ZoneOffset.UTC));
@@ -119,31 +85,6 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 select event_count from organization_workforce.employees where id = :id
                 """).param("id", employeeId.value())
                 .query(Long.class).optional().orElse(0L);
-    }
-
-    private void upsertOrgUnit(OrgUnit u, UUID run, OffsetDateTime now) {
-        jdbc.sql("""
-                insert into organization_workforce.org_units (id, code, name, parent_org_unit_id, sort_order, status,
-                       head_employee_id, regional_receivables_manager_id, region_category, is_delivery_unit, short_name,
-                       revoked_at, last_sync_run_id, created_at, updated_at)
-                values (:id, :code, :name, :parent, :sortOrder, :status, :head, :manager, :category, :delivery, :shortName,
-                        case when cast(:status as text) = 'REVOKED' then cast(:now as timestamptz) end, :run, :now, :now)
-                on conflict (id) do update set code = excluded.code, name = excluded.name,
-                       parent_org_unit_id = excluded.parent_org_unit_id, sort_order = excluded.sort_order,
-                       status = excluded.status, head_employee_id = excluded.head_employee_id,
-                       regional_receivables_manager_id = excluded.regional_receivables_manager_id,
-                       region_category = excluded.region_category, is_delivery_unit = excluded.is_delivery_unit,
-                       revoked_at = case when excluded.status = 'REVOKED' then coalesce(org_units.revoked_at, excluded.updated_at) end,
-                       last_sync_run_id = excluded.last_sync_run_id, updated_at = excluded.updated_at, version = org_units.version + 1
-                """)
-                .param("id", u.orgUnitId().value()).param("code", u.code()).param("name", u.name())
-                .param("parent", u.parentOrgUnitId() == null ? null : u.parentOrgUnitId().value())
-                .param("sortOrder", u.sortOrder()).param("status", u.status().name())
-                .param("head", u.headEmployeeId() == null ? null : u.headEmployeeId().value())
-                .param("manager", u.regionalReceivablesManagerId() == null ? null : u.regionalReceivablesManagerId().value())
-                .param("category", u.regionCategory() == null ? null : u.regionCategory().name())
-                .param("delivery", u.deliveryUnit()).param("shortName", u.shortName())
-                .param("run", run).param("now", now).update();
     }
 
     private void upsertStaff(StaffEmployee s, OffsetDateTime now) {
