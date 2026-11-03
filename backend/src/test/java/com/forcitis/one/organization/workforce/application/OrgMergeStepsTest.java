@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -12,10 +13,14 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.AssignmentId;
+import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
 import com.forcitis.one.organization.workforce.api.OrgStructureTargetKind;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.organization.workforce.domain.AssignmentKind;
+import com.forcitis.one.organization.workforce.domain.HeldPost;
 import com.forcitis.one.organization.workforce.domain.OrgCommandStatus;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommand;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository;
@@ -29,6 +34,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 /** #910 S2 design note section 5 rules 2 and 4: a merge that awaits its countersign does not start, and a person the merge already has a transfer for gets no second one. */
 class OrgMergeStepsTest {
@@ -38,6 +44,10 @@ class OrgMergeStepsTest {
     static final OrgUnitId MERGED = new OrgUnitId(UUID.fromString("019a0000-0000-7000-8000-0000000000a1"));
     static final OrgUnitId RECEIVING = new OrgUnitId(UUID.fromString("019a0000-0000-7000-8000-0000000000a2"));
     static final EmployeeId A = new EmployeeId(UUID.fromString("019a0000-0000-7000-8000-000000000011"));
+    static final AssignmentId ROOT = new AssignmentId(UUID.fromString("019a0000-0000-7000-8000-000000000021"));
+    static final AssignmentId OTHER_ROOT = new AssignmentId(UUID.fromString("019a0000-0000-7000-8000-000000000022"));
+    static final HeldPost PRIMARY = new HeldPost(A, ROOT, AssignmentKind.PRIMARY);
+    static final HeldPost CONCURRENT = new HeldPost(A, OTHER_ROOT, AssignmentKind.CONCURRENT);
     static final UUID ACTOR = UUID.fromString("019a0000-0000-7000-8000-0000000000d1");
 
     final OrgStructureCommandRepository commands = mock(OrgStructureCommandRepository.class);
@@ -56,26 +66,41 @@ class OrgMergeStepsTest {
     @DisplayName("#910 S2 note section 5 rule 2: a merge awaiting its countersign is not started and nobody is listed to move")
     void anAwaitingMergeDoesNotStart() {
         stored(OrgCommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN);
-        when(commands.employedIn(MERGED, DAY)).thenReturn(List.of(A));
+        when(commands.postsIn(MERGED, DAY)).thenReturn(List.of(PRIMARY));
 
         assertThatThrownBy(() -> steps.start(MERGE, ACTOR)).isInstanceOf(DomainException.class);
     }
 
     @Test
-    @DisplayName("#910 S2 note section 5 rule 4: a person whose transfer from this merge exists, whatever became of it, gets no second transfer; one without gets it")
-    void aHeldPersonIsNotMovedTwice() {
+    @DisplayName("#910 S2 note section 5 rule 4: a post whose transfer from this merge exists, whatever became of it, gets no second transfer; one without gets it")
+    void aHeldPostIsNotMovedTwice() {
         stored(OrgCommandStatus.IN_PROGRESS);
-        when(commands.employedIn(MERGED, DAY)).thenReturn(List.of(A));
-        when(commands.hasGeneratedTransfer(MERGE, A)).thenReturn(true);
+        when(commands.postsIn(MERGED, DAY)).thenReturn(List.of(PRIMARY));
+        when(commands.hasGeneratedTransfer(MERGE, ROOT)).thenReturn(true);
 
-        steps.move(MERGE, A, ACTOR);
+        steps.move(MERGE, PRIMARY, ACTOR);
 
         verify(personnel, never()).enter(any(), any(), any());
 
-        when(commands.hasGeneratedTransfer(MERGE, A)).thenReturn(false);
+        when(commands.hasGeneratedTransfer(MERGE, ROOT)).thenReturn(false);
 
-        steps.move(MERGE, A, ACTOR);
+        steps.move(MERGE, PRIMARY, ACTOR);
 
         verify(personnel).enter(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("#1040: one person's two posts get one transfer each; the transfer of a concurrent post names its root, that of the primary post names none")
+    void eachPostGetsItsOwnTransfer() {
+        stored(OrgCommandStatus.IN_PROGRESS);
+        when(commands.postsIn(MERGED, DAY)).thenReturn(List.of(PRIMARY, CONCURRENT));
+        when(commands.hasGeneratedTransfer(MERGE, ROOT)).thenReturn(true);
+
+        steps.move(MERGE, PRIMARY, ACTOR);
+        steps.move(MERGE, CONCURRENT, ACTOR);
+
+        ArgumentCaptor<EnterPersonnelCommand> entered = ArgumentCaptor.forClass(EnterPersonnelCommand.class);
+        verify(personnel).enter(entered.capture(), any(), any());
+        assertThat(entered.getValue().targetAssignmentId()).isEqualTo(OTHER_ROOT);
     }
 }

@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.StateMachine;
+import com.forcitis.one.organization.workforce.api.CountersignCommandStatus;
 
 /**
  * ADR-0073 item 3 adds the wait for the finance countersign: a command that changes the cost legal entity is entered awaiting, writes no version, and leaves only when
@@ -23,5 +24,10 @@ public enum CommandStatus {
     /** Open commands hold their day (ADR-0068 item 1.5): one per employee per effective date; an awaiting one holds it too (ADR-0073 item 3.6). */
     public boolean isOpen() {
         return this == PENDING || this == HELD || this == AWAITING_ATTRIBUTION_COUNTERSIGN;
+    }
+
+    /** The same status as the countersign read paths name it. */
+    public CountersignCommandStatus asCountersignCommandStatus() {
+        return CountersignCommandStatus.valueOf(name());
     }
 }

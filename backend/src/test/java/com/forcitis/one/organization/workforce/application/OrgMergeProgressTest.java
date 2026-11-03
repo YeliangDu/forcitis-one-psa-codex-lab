@@ -17,6 +17,9 @@ import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
 import com.forcitis.one.organization.workforce.api.OrgStructureTargetKind;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.OrgCommandStatus;
+import com.forcitis.one.organization.workforce.api.AssignmentId;
+import com.forcitis.one.organization.workforce.domain.AssignmentKind;
+import com.forcitis.one.organization.workforce.domain.HeldPost;
 import com.forcitis.one.organization.workforce.domain.OrgCountersignBasis;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommand;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository;
@@ -48,6 +51,10 @@ class OrgMergeProgressTest {
     final OrgMergeCompletion completion = mock(OrgMergeCompletion.class);
     final OrgMergeProgress progress = new OrgMergeProgress(commands, completion, Clock.fixed(NOW, ZoneOffset.UTC));
 
+    private static HeldPost post(EmployeeId employee, AssignmentKind kind) {
+        return new HeldPost(employee, new AssignmentId(UUID.randomUUID()), kind);
+    }
+
     private OrgStructureCommand merge(int affected, int transferred) {
         return OrgStructureCommand.restore(MERGE, OrgStructureTargetKind.ORG_UNIT, OrgStructureCommandKind.MERGE, MERGED, null, DAY, null, null, null, null, null, null, null, null,
                 RECEIVING, null, OrgCommandStatus.IN_PROGRESS, affected, transferred, new UserId(UUID.randomUUID()), NOW, null, 3);
@@ -68,7 +75,7 @@ class OrgMergeProgressTest {
     @DisplayName("#910 S2 one-design QF1 (b): the count is the people of the start who are out of the unit now; somebody left means the merge is not completed")
     void whoIsLeftIsNotCounted() {
         OrgStructureCommand merge = merge(3, 1);
-        when(commands.employedIn(MERGED, DAY)).thenReturn(List.of(A));
+        when(commands.postsIn(MERGED, DAY)).thenReturn(List.of(post(A, AssignmentKind.PRIMARY)));
 
         progress.recount(merge);
 
@@ -78,10 +85,21 @@ class OrgMergeProgressTest {
     }
 
     @Test
+    @DisplayName("#1040 one-design 6591756163 section 3: a person who still holds one of two posts in the unit is left once, not twice")
+    void twoPostsOfOnePersonAreOnePerson() {
+        OrgStructureCommand merge = merge(3, 1);
+        when(commands.postsIn(MERGED, DAY)).thenReturn(List.of(post(A, AssignmentKind.PRIMARY), post(A, AssignmentKind.CONCURRENT)));
+
+        progress.recount(merge);
+
+        assertThat(merge.transferredEmployeeCount()).isEqualTo(2);
+    }
+
+    @Test
     @DisplayName("#910 S2 one-design QF1 (b): the count never falls, and an unchanged count writes nothing")
     void theCountOnlyRises() {
         OrgStructureCommand merge = merge(3, 2);
-        when(commands.employedIn(MERGED, DAY)).thenReturn(List.of(A, B));
+        when(commands.postsIn(MERGED, DAY)).thenReturn(List.of(post(A, AssignmentKind.PRIMARY), post(B, AssignmentKind.PRIMARY)));
 
         progress.recount(merge);
 
@@ -94,7 +112,7 @@ class OrgMergeProgressTest {
     void anEmptyUnitEndsTheMerge() {
         OrgStructureCommand merge = merge(3, 2);
         OrgStructureCommand stored = merge(3, 3);
-        when(commands.employedIn(MERGED, DAY)).thenReturn(List.of());
+        when(commands.postsIn(MERGED, DAY)).thenReturn(List.of());
         when(commands.find(MERGE)).thenReturn(Optional.of(stored));
         when(completion.unitIsEmpty(merge)).thenReturn(true);
 

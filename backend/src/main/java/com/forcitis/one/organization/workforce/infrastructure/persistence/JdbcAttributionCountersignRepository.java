@@ -13,7 +13,7 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersign;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
-import com.forcitis.one.organization.workforce.domain.CountersignRequestKind;
+import com.forcitis.one.organization.workforce.api.CountersignRequestKind;
 import com.forcitis.one.platform.audit.api.AuditEntryId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -118,6 +118,36 @@ class JdbcAttributionCountersignRepository implements AttributionCountersignRepo
         if (updated != 1) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE, ErrorKind.CONFLICT, "the countersign request was changed by someone else");
         }
+    }
+
+    @Override
+    public List<AttributionCountersignId> overdueBelowLastLevel(LocalDate day) {
+        return jdbc.sql("""
+                select attribution_countersign_id from organization_workforce.attribution_countersigns
+                 where decision_kind is null and due_on_date < :day and escalation_level_number < :last
+                 order by due_on_date, attribution_countersign_id
+                """).param("day", day).param("last", AttributionCountersign.LAST_ESCALATION_LEVEL)
+                .query((rs, n) -> new AttributionCountersignId(rs.getObject("attribution_countersign_id", UUID.class))).list();
+    }
+
+    @Override
+    public void saveEscalation(AttributionCountersign r, Instant at, long loadedVersion) {
+        int updated = jdbc.sql("""
+                update organization_workforce.attribution_countersigns set escalation_level_number = :level, updated_at = :now, version = :version
+                 where attribution_countersign_id = :id and version = :loaded and decision_kind is null
+                """).param("level", r.escalationLevel()).param("now", at(at)).param("version", loadedVersion + 1).param("id", r.id().value()).param("loaded", loadedVersion).update();
+        if (updated != 1) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE, ErrorKind.CONFLICT, "the countersign request was changed by someone else");
+        }
+    }
+
+    @Override
+    public Optional<EmployeeId> financeHeadOn(LegalEntityId legalEntity, LocalDate day) {
+        return jdbc.sql("""
+                select finance_head_employee_id from organization_workforce.legal_entity_versions
+                 where legal_entity_id = :entity and finance_head_employee_id is not null and effective_from_date <= :day and (effective_to_date is null or :day < effective_to_date)
+                """).param("entity", legalEntity.value()).param("day", day)
+                .query((rs, n) -> new EmployeeId(rs.getObject("finance_head_employee_id", UUID.class))).optional();
     }
 
     @Override

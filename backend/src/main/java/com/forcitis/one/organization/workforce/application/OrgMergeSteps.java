@@ -2,7 +2,6 @@ package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.DomainException;
-import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.UserId;
@@ -13,6 +12,8 @@ import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
+import com.forcitis.one.organization.workforce.domain.AssignmentKind;
+import com.forcitis.one.organization.workforce.domain.HeldPost;
 import com.forcitis.one.organization.workforce.domain.OrgCommandStatus;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommand;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository;
@@ -25,8 +26,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * The three transactions of a merge run: its start, one person's move, its finish. Each takes the root row of the merged org unit first and the employee
- * row after it (lock order: org unit root, then employee root), so a concurrent last approval and an execution serialize on the unit. The person's move
+ * The three transactions of a merge run: its start, one post's move, its finish. Each takes the root row of the merged org unit first and the employee
+ * row after it (lock order: org unit root, then employee root), so a concurrent last approval and an execution serialize on the unit. The post's move
  * is a transfer entered through the personnel command service, the core-employment partition's own entry (DD amendment C of #907).
  */
 @Component
@@ -53,9 +54,9 @@ class OrgMergeSteps {
         this.zone = zone;
     }
 
-    /** Starts a pending merge that is due (the people of that moment are counted once), or finds who is left of one in progress; a finished merge has nobody left. */
+    /** Starts a pending merge that is due (the people of that moment are counted once), or finds which posts are left of one in progress; a finished merge has none left. */
     @Transactional
-    public List<EmployeeId> start(OrgStructureCommandId id, UUID actor) {
+    public List<HeldPost> start(OrgStructureCommandId id, UUID actor) {
         Instant now = clock.instant();
         LocalDate today = zone.dateOf(now);
         commands.lockOrgTree();
@@ -69,7 +70,7 @@ class OrgMergeSteps {
         if (merge.status() == OrgCommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN) {
             throw notAllowed("the merge awaits the legal entity countersign of its people's change");
         }
-        List<EmployeeId> people = commands.employedIn(merge.targetOrgUnitId(), merge.effectiveDate());
+        List<HeldPost> posts = commands.postsIn(merge.targetOrgUnitId(), merge.effectiveDate());
         if (merge.status() == OrgCommandStatus.PENDING) {
             if (merge.effectiveDate().isAfter(today)) {
                 throw notAllowed("the merge is due on " + merge.effectiveDate());
@@ -77,28 +78,33 @@ class OrgMergeSteps {
             rules.checkMergeStillPossible(merge);
             long loaded = merge.version();
             String before = merge.status().name();
-            merge.startMerge(people.size());
+            merge.startMerge(employeesOf(posts));
             commands.update(merge, now, loaded);
             commands.insertTransition(merge.id(), loaded + 1, before, merge.status().name(), ActorType.SYSTEM, actor, today, now, correlation());
         }
-        return people;
+        return posts;
+    }
+
+    /** The merge counts people, not posts: one who holds a primary and a concurrent post in the unit counts once. */
+    static int employeesOf(List<HeldPost> posts) {
+        return (int) posts.stream().map(HeldPost::employee).distinct().count();
     }
 
     /**
-     * Enters the transfer that moves one person into the receiving unit, unless the merge has entered one for them already (a person whose transfer awaits or lost its legal entity
-     * countersign stays where they are until another command moves them). One who something else has moved out since the list was made needs none. The employee is locked
-     * before the check, so a command that holds the person has committed when the check reads.
+     * Enters the transfer that moves one post into the receiving unit, unless the merge has entered one for it already (a post whose transfer awaits or lost its legal entity
+     * countersign stays where it is until another command moves it). A post that something else has moved out since the list was made needs none. The employee is locked
+     * before the check, so a command that holds the person has committed when the check reads. A primary post is named by no assignment: the transfer acts on the primary root.
      */
     @Transactional
-    public void move(OrgStructureCommandId id, EmployeeId employee, UUID actor) {
+    public void move(OrgStructureCommandId id, HeldPost post, UUID actor) {
         OrgStructureCommand merge = lockedMerge(id);
         if (merge.status() != OrgCommandStatus.IN_PROGRESS) {
             return;
         }
-        commands.lockEmployee(employee);
-        if (commands.employedIn(merge.targetOrgUnitId(), merge.effectiveDate()).contains(employee) && !commands.hasGeneratedTransfer(merge.id(), employee)) {
-            personnel.enter(new EnterPersonnelCommand(employee, PersonnelCommandKind.TRANSFER, merge.effectiveDate(), null, merge.mergeIntoOrgUnitId(), null, null, null, null,
-                    null, null, null, null), new UserId(actor), merge.id());
+        commands.lockEmployee(post.employee());
+        if (commands.postsIn(merge.targetOrgUnitId(), merge.effectiveDate()).contains(post) && !commands.hasGeneratedTransfer(merge.id(), post.assignment())) {
+            personnel.enter(new EnterPersonnelCommand(post.employee(), PersonnelCommandKind.TRANSFER, merge.effectiveDate(), null, merge.mergeIntoOrgUnitId(), null, null, null, null,
+                    null, null, null, null, null, post.kind() == AssignmentKind.CONCURRENT ? post.assignment() : null), new UserId(actor), merge.id());
         }
     }
 
