@@ -60,6 +60,100 @@ organization.workforce::api organization.workforce.api.AssignmentId public java.
 organization.workforce::api organization.workforce.api.AssignmentId public java.util.UUID organization.workforce.api.AssignmentId.value()
 organization.workforce::api organization.workforce.api.AssignmentId public organization.workforce.api.AssignmentId(java.util.UUID)
 organization.workforce::api organization.workforce.api.AssignmentId public static organization.workforce.api.AssignmentId organization.workforce.api.AssignmentId.parse(java.lang.String)
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component attributionCountersignId: organization.workforce.api.AttributionCountersignId
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component commandKind: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component commandStatus: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component decisionReason: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component dueDate: java.time.LocalDate
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component effectiveDate: java.time.LocalDate
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component employeeDisplayName: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component employeeId: kernel.EmployeeId
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component employeeNumber: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component escalationLevel: int
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component legalEntityId: kernel.LegalEntityId
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component legalEntityName: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component newLegalEntityId: kernel.LegalEntityId
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component newLegalEntityName: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component newOrgUnitId: organization.workforce.api.OrgUnitId
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component newOrgUnitName: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component previousLegalEntityId: kernel.LegalEntityId
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component previousLegalEntityName: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component previousOrgUnitId: organization.workforce.api.OrgUnitId
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component previousOrgUnitName: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component requestKind: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component requestReason: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component requestSequenceNumber: int
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component requestedAt: java.time.Instant
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component requestedByDisplayName: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component rows: java.util.List<organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow>
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail component status: organization.workforce.api.AttributionCountersignStatus
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail extends java.lang.Record
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public final boolean organization.workforce.api.AttributionCountersignDetail.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public final int organization.workforce.api.AttributionCountersignDetail.hashCode()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public final java.lang.String organization.workforce.api.AttributionCountersignDetail.toString()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public final record organization.workforce.api.AttributionCountersignDetail
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public int organization.workforce.api.AttributionCountersignDetail.escalationLevel()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public int organization.workforce.api.AttributionCountersignDetail.requestSequenceNumber()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.lang.String organization.workforce.api.AttributionCountersignDetail.commandKind()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.lang.String organization.workforce.api.AttributionCountersignDetail.commandStatus()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.lang.String organization.workforce.api.AttributionCountersignDetail.decisionReason()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.lang.String organization.workforce.api.AttributionCountersignDetail.employeeDisplayName()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.lang.String organization.workforce.api.AttributionCountersignDetail.employeeNumber()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.lang.String organization.workforce.api.AttributionCountersignDetail.legalEntityName()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.lang.String organization.workforce.api.AttributionCountersignDetail.newLegalEntityName()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.lang.String organization.workforce.api.AttributionCountersignDetail.newOrgUnitName()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.lang.String organization.workforce.api.AttributionCountersignDetail.previousLegalEntityName()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.lang.String organization.workforce.api.AttributionCountersignDetail.previousOrgUnitName()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.lang.String organization.workforce.api.AttributionCountersignDetail.requestKind()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.lang.String organization.workforce.api.AttributionCountersignDetail.requestReason()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.lang.String organization.workforce.api.AttributionCountersignDetail.requestedByDisplayName()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.time.Instant organization.workforce.api.AttributionCountersignDetail.requestedAt()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.time.LocalDate organization.workforce.api.AttributionCountersignDetail.dueDate()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.time.LocalDate organization.workforce.api.AttributionCountersignDetail.effectiveDate()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public java.util.List<organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow> organization.workforce.api.AttributionCountersignDetail.rows()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public kernel.EmployeeId organization.workforce.api.AttributionCountersignDetail.employeeId()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public kernel.LegalEntityId organization.workforce.api.AttributionCountersignDetail.legalEntityId()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public kernel.LegalEntityId organization.workforce.api.AttributionCountersignDetail.newLegalEntityId()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public kernel.LegalEntityId organization.workforce.api.AttributionCountersignDetail.previousLegalEntityId()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public organization.workforce.api.AttributionCountersignDetail(organization.workforce.api.AttributionCountersignId,organization.workforce.api.PersonnelCommandId,java.lang.String,java.lang.String,java.time.LocalDate,kernel.EmployeeId,java.lang.String,java.lang.String,java.lang.String,int,organization.workforce.api.AttributionCountersignStatus,kernel.LegalEntityId,java.lang.String,kernel.LegalEntityId,java.lang.String,kernel.LegalEntityId,java.lang.String,java.time.Instant,java.lang.String,java.time.LocalDate,int,organization.workforce.api.OrgUnitId,java.lang.String,organization.workforce.api.OrgUnitId,java.lang.String,java.lang.String,java.lang.String,java.util.List<organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow>)
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public organization.workforce.api.AttributionCountersignId organization.workforce.api.AttributionCountersignDetail.attributionCountersignId()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public organization.workforce.api.AttributionCountersignStatus organization.workforce.api.AttributionCountersignDetail.status()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public organization.workforce.api.OrgUnitId organization.workforce.api.AttributionCountersignDetail.newOrgUnitId()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public organization.workforce.api.OrgUnitId organization.workforce.api.AttributionCountersignDetail.previousOrgUnitId()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail public organization.workforce.api.PersonnelCommandId organization.workforce.api.AttributionCountersignDetail.personnelCommandId()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow component attributionCountersignId: organization.workforce.api.AttributionCountersignId
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow component decidedAt: java.time.Instant
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow component decidedByDisplayName: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow component decisionReason: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow component dueDate: java.time.LocalDate
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow component escalationLevel: int
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow component legalEntityId: kernel.LegalEntityId
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow component legalEntityName: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow component requestKind: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow component requestSequenceNumber: int
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow component requestedAt: java.time.Instant
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow component requestedByDisplayName: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow component status: organization.workforce.api.AttributionCountersignStatus
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow extends java.lang.Record
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public final boolean organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public final int organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow.hashCode()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public final java.lang.String organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow.toString()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public int organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow.escalationLevel()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public int organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow.requestSequenceNumber()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public java.lang.String organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow.decidedByDisplayName()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public java.lang.String organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow.decisionReason()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public java.lang.String organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow.legalEntityName()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public java.lang.String organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow.requestKind()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public java.lang.String organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow.requestedByDisplayName()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public java.time.Instant organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow.decidedAt()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public java.time.Instant organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow.requestedAt()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public java.time.LocalDate organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow.dueDate()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public kernel.LegalEntityId organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow.legalEntityId()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow(organization.workforce.api.AttributionCountersignId,java.lang.String,int,kernel.LegalEntityId,java.lang.String,organization.workforce.api.AttributionCountersignStatus,java.time.Instant,java.lang.String,java.time.LocalDate,int,java.time.Instant,java.lang.String,java.lang.String)
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public organization.workforce.api.AttributionCountersignId organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow.attributionCountersignId()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public organization.workforce.api.AttributionCountersignStatus organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow.status()
+organization.workforce::api organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow public static final record organization.workforce.api.AttributionCountersignDetail$AttributionCountersignRow
 organization.workforce::api organization.workforce.api.AttributionCountersignId component value: java.util.UUID
 organization.workforce::api organization.workforce.api.AttributionCountersignId extends java.lang.Record
 organization.workforce::api organization.workforce.api.AttributionCountersignId public final boolean organization.workforce.api.AttributionCountersignId.equals(java.lang.Object)
@@ -68,7 +162,65 @@ organization.workforce::api organization.workforce.api.AttributionCountersignId 
 organization.workforce::api organization.workforce.api.AttributionCountersignId public java.lang.String organization.workforce.api.AttributionCountersignId.toString()
 organization.workforce::api organization.workforce.api.AttributionCountersignId public java.util.UUID organization.workforce.api.AttributionCountersignId.value()
 organization.workforce::api organization.workforce.api.AttributionCountersignId public organization.workforce.api.AttributionCountersignId(java.util.UUID)
+organization.workforce::api organization.workforce.api.AttributionCountersignStatus extends java.lang.Enum<organization.workforce.api.AttributionCountersignStatus>
+organization.workforce::api organization.workforce.api.AttributionCountersignStatus public final enum organization.workforce.api.AttributionCountersignStatus
+organization.workforce::api organization.workforce.api.AttributionCountersignStatus public static final organization.workforce.api.AttributionCountersignStatus organization.workforce.api.AttributionCountersignStatus.APPROVED
+organization.workforce::api organization.workforce.api.AttributionCountersignStatus public static final organization.workforce.api.AttributionCountersignStatus organization.workforce.api.AttributionCountersignStatus.LAPSED
+organization.workforce::api organization.workforce.api.AttributionCountersignStatus public static final organization.workforce.api.AttributionCountersignStatus organization.workforce.api.AttributionCountersignStatus.OPEN
+organization.workforce::api organization.workforce.api.AttributionCountersignStatus public static final organization.workforce.api.AttributionCountersignStatus organization.workforce.api.AttributionCountersignStatus.REJECTED
+organization.workforce::api organization.workforce.api.AttributionCountersignStatus public static organization.workforce.api.AttributionCountersignStatus organization.workforce.api.AttributionCountersignStatus.valueOf(java.lang.String)
+organization.workforce::api organization.workforce.api.AttributionCountersignStatus public static organization.workforce.api.AttributionCountersignStatus[] organization.workforce.api.AttributionCountersignStatus.values()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component attributionCountersignId: organization.workforce.api.AttributionCountersignId
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component commandKind: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component commandStatus: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component dueDate: java.time.LocalDate
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component effectiveDate: java.time.LocalDate
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component employeeDisplayName: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component employeeId: kernel.EmployeeId
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component employeeNumber: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component escalationLevel: int
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component legalEntityId: kernel.LegalEntityId
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component legalEntityName: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component newLegalEntityId: kernel.LegalEntityId
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component newLegalEntityName: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component previousLegalEntityId: kernel.LegalEntityId
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component previousLegalEntityName: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component requestKind: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component requestSequenceNumber: int
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component requestedAt: java.time.Instant
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component requestedByDisplayName: java.lang.String
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary component status: organization.workforce.api.AttributionCountersignStatus
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary extends java.lang.Record
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public final boolean organization.workforce.api.AttributionCountersignSummary.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public final int organization.workforce.api.AttributionCountersignSummary.hashCode()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public final java.lang.String organization.workforce.api.AttributionCountersignSummary.toString()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public final record organization.workforce.api.AttributionCountersignSummary
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public int organization.workforce.api.AttributionCountersignSummary.escalationLevel()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public int organization.workforce.api.AttributionCountersignSummary.requestSequenceNumber()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public java.lang.String organization.workforce.api.AttributionCountersignSummary.commandKind()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public java.lang.String organization.workforce.api.AttributionCountersignSummary.commandStatus()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public java.lang.String organization.workforce.api.AttributionCountersignSummary.employeeDisplayName()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public java.lang.String organization.workforce.api.AttributionCountersignSummary.employeeNumber()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public java.lang.String organization.workforce.api.AttributionCountersignSummary.legalEntityName()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public java.lang.String organization.workforce.api.AttributionCountersignSummary.newLegalEntityName()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public java.lang.String organization.workforce.api.AttributionCountersignSummary.previousLegalEntityName()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public java.lang.String organization.workforce.api.AttributionCountersignSummary.requestKind()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public java.lang.String organization.workforce.api.AttributionCountersignSummary.requestedByDisplayName()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public java.time.Instant organization.workforce.api.AttributionCountersignSummary.requestedAt()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public java.time.LocalDate organization.workforce.api.AttributionCountersignSummary.dueDate()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public java.time.LocalDate organization.workforce.api.AttributionCountersignSummary.effectiveDate()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public kernel.EmployeeId organization.workforce.api.AttributionCountersignSummary.employeeId()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public kernel.LegalEntityId organization.workforce.api.AttributionCountersignSummary.legalEntityId()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public kernel.LegalEntityId organization.workforce.api.AttributionCountersignSummary.newLegalEntityId()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public kernel.LegalEntityId organization.workforce.api.AttributionCountersignSummary.previousLegalEntityId()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public organization.workforce.api.AttributionCountersignId organization.workforce.api.AttributionCountersignSummary.attributionCountersignId()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public organization.workforce.api.AttributionCountersignStatus organization.workforce.api.AttributionCountersignSummary.status()
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public organization.workforce.api.AttributionCountersignSummary(organization.workforce.api.AttributionCountersignId,organization.workforce.api.PersonnelCommandId,java.lang.String,java.lang.String,java.time.LocalDate,kernel.EmployeeId,java.lang.String,java.lang.String,java.lang.String,int,organization.workforce.api.AttributionCountersignStatus,kernel.LegalEntityId,java.lang.String,kernel.LegalEntityId,java.lang.String,kernel.LegalEntityId,java.lang.String,java.time.Instant,java.lang.String,java.time.LocalDate,int)
+organization.workforce::api organization.workforce.api.AttributionCountersignSummary public organization.workforce.api.PersonnelCommandId organization.workforce.api.AttributionCountersignSummary.personnelCommandId()
 organization.workforce::api organization.workforce.api.AttributionCountersigns public abstract interface organization.workforce.api.AttributionCountersigns
+organization.workforce::api organization.workforce.api.AttributionCountersigns public abstract kernel.CursorPage<organization.workforce.api.AttributionCountersignSummary> organization.workforce.api.AttributionCountersigns.list(organization.workforce.api.AttributionCountersignStatus,kernel.PageRequest)
+organization.workforce::api organization.workforce.api.AttributionCountersigns public abstract organization.workforce.api.AttributionCountersignDetail organization.workforce.api.AttributionCountersigns.get(organization.workforce.api.AttributionCountersignId)
 organization.workforce::api organization.workforce.api.AttributionCountersigns public abstract void organization.workforce.api.AttributionCountersigns.approve(organization.workforce.api.ApproveAttributionCountersign)
 organization.workforce::api organization.workforce.api.AttributionCountersigns public abstract void organization.workforce.api.AttributionCountersigns.reject(organization.workforce.api.RejectAttributionCountersign)
 organization.workforce::api organization.workforce.api.AttributionId component value: java.util.UUID
@@ -571,6 +723,8 @@ organization.workforce::api organization.workforce.api.WorkforceError public sta
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_NOT_FOUND
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_PROFILE_INVALID
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_FINANCE_HEAD_EMPLOYEE_INVALID
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_FINANCE_HEAD_SELF_APPOINTMENT_FORBIDDEN
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_INVALID
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_LOCKED
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_CODE_TAKEN
