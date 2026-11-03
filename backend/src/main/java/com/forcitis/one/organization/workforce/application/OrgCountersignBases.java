@@ -24,7 +24,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
- * Which employees' cost legal entity an org-structure command changes (ADR-0073 item 3.4, note of #910 section 5 rule 1): those employed on the effective date whose primary
+ * Which employees' cost legal entity an org-structure command changes (ADR-0073 item 3.4, docs/architecture/proposals/org-structure-commands.md section 5 rule 1): those employed on the effective date whose primary
  * assignment that day is in the unit or below it (a merge: in the merged unit), compared before and after the command with the same resolution as everywhere
  * (the employee's own attribution first, else the nearest department attribution up the chain). Only an assignment of a legal entity, a reparent and a merge can change it.
  */
@@ -64,12 +64,12 @@ class OrgCountersignBases {
         return basis;
     }
 
-    /** Nobody changes the legal entity their own place in the organisation belongs to (ADR-0027 section 2), the chain above them included, whatever their own attribution says. */
-    void requireDrafterUnaffected(OrgStructureCommand command, UserId drafter) {
+    /** Nobody (drafter or decider) changes the legal entity their own place in the organisation belongs to (ADR-0027 section 2), the chain above them included, whatever their own attribution says. */
+    void requireUserUnaffected(OrgStructureCommand command, UserId user) {
         if (!mayChangeCostLegalEntity(command)) {
             return;
         }
-        Optional<EmployeeId> own = accountEmployees.employeeOf(drafter);
+        Optional<EmployeeId> own = accountEmployees.employeeOf(user);
         if (own.isEmpty()) {
             return;
         }
@@ -80,7 +80,7 @@ class OrgCountersignBases {
         Optional<LegalEntityId> next = LegalEntityResolution.resolve(chainAfter, own.get(), day);
         if (before.isPresent() && next.isPresent() && !before.get().equals(next.get())) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN, ErrorKind.FORBIDDEN,
-                    "the legal entity of your own department chain would change; another data administrator enters this command");
+                    "the legal entity of your own department chain would change; another person enters or decides this command");
         }
     }
 

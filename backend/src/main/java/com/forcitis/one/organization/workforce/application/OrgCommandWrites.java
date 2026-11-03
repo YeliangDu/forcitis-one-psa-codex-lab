@@ -59,8 +59,12 @@ class OrgCommandWrites {
 
     /** A countersigned command takes effect at the last approval: its plan is made on the timeline as it stands then. */
     void applyAfterCountersign(OrgStructureCommand command, AuditEntryId audit, Instant now) {
+        apply(command, planNow(command, audit), audit, now);
+    }
+
+    VersionPlan planNow(OrgStructureCommand command, AuditEntryId audit) {
         OrgTimeline timeline = timelineOf(command);
-        apply(command, timeline == null ? VersionPlan.empty() : plans.forEntry(command, timeline, audit), audit, now);
+        return timeline == null ? VersionPlan.empty() : plans.forEntry(command, timeline, audit);
     }
 
     /** The command is withdrawn: its version rows and attribution periods are taken back. */

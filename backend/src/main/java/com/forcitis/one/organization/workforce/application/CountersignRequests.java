@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Writing the countersign requests of a command and what each write leaves behind: the state transition and the audit entry (note of #878 section 7). The required
- * set is the two legal entities of the basis, one request each, decided separately even when one person heads both (user answer Q1).
+ * set is the legal entities of the basis (a personnel command: its two; an org command: every entity before or after for any employee of the basis), one request each, decided separately even when one person heads both (user answer Q1).
  */
 @Component
 class CountersignRequests {

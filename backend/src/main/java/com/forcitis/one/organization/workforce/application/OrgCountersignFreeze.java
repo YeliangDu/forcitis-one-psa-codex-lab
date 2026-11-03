@@ -18,7 +18,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
- * The scope freeze of an org-structure command that awaits the countersign (note of #910 section 5 rule 3): until it is countersigned or withdrawn, a later-dated command
+ * The scope freeze of an org-structure command that awaits the countersign (docs/architecture/proposals/org-structure-commands.md section 5 rule 3): until it is countersigned or withdrawn, a later-dated command
  * that touches its scope is refused, because the basis is computed on the effective date only and cannot see what a later one would change. The scope is the target unit
  * and every unit below it on the effective date (a merge: also the receiving unit) and the employees of the basis. Earlier-dated commands are allowed; the comparison
  * at the last approval catches what they change on the effective date.
@@ -29,6 +29,15 @@ class OrgCountersignFreeze {
 
     OrgCountersignFreeze(OrgStructureCommandRepository commands) {
         this.commands = commands;
+    }
+
+    /**
+     * The waiting command keeps the unit rows of its scope and the employee rows of its basis locked until it commits, in the order a personnel entry takes them (unit, then
+     * employee): a personnel entry that touches the scope waits here and then sees the waiting command, so the freeze cannot be missed by two entries that overlap in time.
+     */
+    void holdScope(OrgStructureCommand waiting, List<OrgCountersignBasis> basis) {
+        scopeOf(waiting, new OrgTree(commands.currentUnitRows())).stream().sorted().forEach(unit -> commands.lockOrgUnit(new OrgUnitId(unit)));
+        basis.stream().map(row -> row.employeeId().value()).sorted().forEach(employee -> commands.lockEmployee(new EmployeeId(employee)));
     }
 
     /** An org-structure command about a unit: refused when it is dated after a waiting command and its target (a reparent: also the new parent; a merge: also the receiving unit) is in that command's scope. */

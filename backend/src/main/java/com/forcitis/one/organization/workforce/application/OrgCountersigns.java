@@ -37,7 +37,7 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
 /**
- * The finance countersign of an org-structure command that changes people's cost legal entity (ADR-0073 item 3.6, note of #910 section 5): the request set at entry, the
+ * The finance countersign of an org-structure command that changes people's cost legal entity (ADR-0073 item 3.6, docs/architecture/proposals/org-structure-commands.md section 5): the request set at entry, the
  * decisions, the last approval that judges the basis again and writes the command's versions, and the withdrawal of a command that was countersigned. Every method joins the
  * caller's transaction; the use cases take the tree lock first, then the unit root (and the employee roots only to publish).
  */
@@ -49,6 +49,7 @@ class OrgCountersigns {
     private final CountersignRequests requests;
     private final CountersignDeciders deciders;
     private final OrgCountersignBases bases;
+    private final OrgStructureRules rules;
     private final OrgCommandWrites writes;
     private final AuditLog audit;
     private final DomainEvents events;
@@ -58,7 +59,7 @@ class OrgCountersigns {
     private final BusinessZone zone;
 
     OrgCountersigns(OrgStructureCommandRepository commands, PersonnelCommandRepository personnel, AttributionCountersignRepository countersigns, CountersignRequests requests,
-                    CountersignDeciders deciders, OrgCountersignBases bases, OrgCommandWrites writes, AuditLog audit, DomainEvents events, CurrentUser currentUser, IdGenerator ids,
+                    CountersignDeciders deciders, OrgCountersignBases bases, OrgStructureRules rules, OrgCommandWrites writes, AuditLog audit, DomainEvents events, CurrentUser currentUser, IdGenerator ids,
                     Clock clock, BusinessZone zone) {
         this.commands = commands;
         this.personnel = personnel;
@@ -66,6 +67,7 @@ class OrgCountersigns {
         this.requests = requests;
         this.deciders = deciders;
         this.bases = bases;
+        this.rules = rules;
         this.writes = writes;
         this.audit = audit;
         this.events = events;
@@ -125,6 +127,9 @@ class OrgCountersigns {
         OrgStructureCommand command = commands.find(found.id()).orElseThrow(OrgCountersigns::notFound);
         requireDecidable(row, command, today);
         deciders.require(row, by, today);
+        if (approve) {
+            bases.requireUserUnaffected(command, by);
+        }
         CountersignRequests.Parent parent = CountersignRequests.Parent.of(command);
         long loaded = row.version();
         if (!approve) {
@@ -178,6 +183,8 @@ class OrgCountersigns {
         commands.update(command, now, loaded);
         commands.insertTransition(command.id(), loaded + 1, before.name(), command.status().name(), ActorType.USER, by.value(), today, now, correlation);
         if (command.status() == OrgCommandStatus.EFFECTIVE) {
+            command.recordEffect();
+            events.publish(command);
             for (OrgCountersignBasis basis : commands.basisOf(command.id())) {
                 commands.lockEmployee(basis.employeeId());
                 EmployeeLegalEntityChange change = EmployeeLegalEntityChange.of(command.id(), command.effectiveDate(), basis, personnel.eventSequence(basis.employeeId()));
@@ -199,8 +206,13 @@ class OrgCountersigns {
         commands.insertTransition(command.id(), loaded + 1, before.name(), command.status().name(), ActorType.USER, row.requestedBy().value(), today, now, correlation);
     }
 
-    /** The command is judged again as when it was entered: the basis recomputed must equal the basis stored (the same people, the same entity before and after). */
+    /** The command is judged again as when it was entered: the structural rules still hold on the timeline as it stands, and the basis recomputed equals the basis stored (the same people, the same entity before and after). */
     private @Nullable String recheck(OrgStructureCommand command) {
+        try {
+            rules.checkStillHolds(command, writes.planNow(command, new AuditEntryId(ids.next())));
+        } catch (DomainException refused) {
+            return refused.getMessage();
+        }
         boolean unchanged = Set.copyOf(bases.of(command)).equals(Set.copyOf(commands.basisOf(command.id())));
         return unchanged ? null : "the employees whose cost legal entity the command changes, or the entities before and after, are no longer the ones the countersign was asked about";
     }

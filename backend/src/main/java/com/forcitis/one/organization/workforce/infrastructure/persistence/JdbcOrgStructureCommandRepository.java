@@ -85,6 +85,14 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     }
 
     @Override
+    public boolean hasAttributionBeyond(OrgUnitId orgUnit, LocalDate day) {
+        return jdbc.sql("""
+                select 1 from organization_workforce.org_unit_legal_entities
+                 where org_unit_id = :unit and superseded_at is null and (effective_from_date >= :day or effective_to_date > :day)
+                """).param("unit", orgUnit.value()).param("day", day).query(Integer.class).optional().isPresent();
+    }
+
+    @Override
     public boolean orgUnitExists(OrgUnitId orgUnit) {
         return jdbc.sql("select 1 from organization_workforce.org_units where id = :id").param("id", orgUnit.value()).query(Integer.class).optional().isPresent();
     }

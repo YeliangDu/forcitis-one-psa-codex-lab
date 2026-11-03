@@ -29,6 +29,15 @@ class OrgStructureRules {
 
     /** @param unitPlan what the command writes to its unit's timeline, for the cycle check; empty for the other kinds */
     void check(OrgStructureCommand c, VersionPlan unitPlan) {
+        check(c, unitPlan, true);
+    }
+
+    /** The same rules for a command that is already entered and waits: it is not counted as an open command against itself. */
+    void checkStillHolds(OrgStructureCommand c, VersionPlan unitPlan) {
+        check(c, unitPlan, false);
+    }
+
+    private void check(OrgStructureCommand c, VersionPlan unitPlan, boolean entering) {
         LocalDate day = c.effectiveDate();
         if (c.targetPositionId() != null) {
             checkPosition(c, day);
@@ -56,6 +65,9 @@ class OrgStructureRules {
                 if (!commands.legalEntityExists(c.targetLegalEntityId())) {
                     throw refused("the legal entity does not exist");
                 }
+                if (commands.hasAttributionBeyond(unit, day)) {
+                    throw refused("the unit already has a legal entity period that starts on or after that day or ends after it; a back-dated assignment is not supported yet");
+                }
             }
             case ASSIGN_HEAD -> {
                 requireInForce(unit, day, tree);
@@ -79,7 +91,7 @@ class OrgStructureRules {
             }
             default -> requireInForce(unit, day, tree);
         }
-        if (commands.hasOpenCommand(unit, null, day)) {
+        if (entering && commands.hasOpenCommand(unit, null, day)) {
             throw refused("the org unit already has an open command for " + day);
         }
     }

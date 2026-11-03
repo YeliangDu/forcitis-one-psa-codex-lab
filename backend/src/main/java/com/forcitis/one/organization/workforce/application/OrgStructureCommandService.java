@@ -109,7 +109,7 @@ class OrgStructureCommandService implements OrgStructureCommands {
         List<OrgCountersignBasis> basis = List.of();
         if (unit != null) {
             freeze.requireNotFrozen(command);
-            countersignBases.requireDrafterUnaffected(command, by);
+            countersignBases.requireUserUnaffected(command, by);
             basis = countersignBases.of(command);
         }
         boolean awaiting = !basis.isEmpty();
@@ -123,6 +123,7 @@ class OrgStructureCommandService implements OrgStructureCommands {
         commands.insertTransition(command.id(), command.version(), null, command.status().name(), ActorType.USER, by.value(), today, now, correlation());
         if (awaiting) {
             commands.insertBasis(command.id(), basis, now);
+            freeze.holdScope(command, basis);
             countersigns.openChange(command, basis, by, now, today, correlation());
             return command.id();
         }

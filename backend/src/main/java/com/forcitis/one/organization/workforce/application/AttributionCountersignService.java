@@ -44,9 +44,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * The finance countersign of a change of the cost legal entity (ADR-0073 item 3.6, design note of #878 sections 4 and 6). One transaction holds the employee row
+ * The finance countersign of a change of the cost legal entity (ADR-0073 item 3.6, design note of #878 sections 4 and 6). Requests of a personnel command: one transaction holds the employee row
  * locked, the decision, its transition and audit entry and, when it completes the required set, the command's versions or their taking back. The last approval of a
- * waiting command judges the command again; one that no longer holds is recorded as rejected with the reason and the command is withdrawn ("不满足即拒签").
+ * waiting command judges the command again; one that no longer holds is recorded as rejected with the reason and the command is withdrawn ("不满足即拒签"). Requests of an org-structure command are decided by OrgCountersigns, which holds the tree lock and the unit row instead.
  */
 @Component
 class AttributionCountersignService implements AttributionCountersigns {

@@ -14,7 +14,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
-/** Storage of the countersign requests of personnel commands. Every method joins the caller's transaction. */
+/** Storage of the countersign requests of personnel commands and of org-structure commands. Every method joins the caller's transaction. */
 public interface AttributionCountersignRepository {
 
     Optional<AttributionCountersign> find(AttributionCountersignId id);
