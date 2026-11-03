@@ -121,7 +121,7 @@ class PermissionAdjustmentSchemaIT {
     }
 
     @Test
-    @DisplayName("F-1 7.1 / B4 / 不变量 36 外键只指向本 schema 的账号、角色、授权申请与自身，全部 ON DELETE RESTRICT；部门、岗位、员工、同步运行、审计条目跨 schema 不建外键")
+    @DisplayName("F-1 7.1 / B4 / 不变量 36 外键只指向本 schema 的账号、角色、授权申请与自身，全部 ON DELETE RESTRICT；部门、岗位、员工、人事命令、组织结构命令、审计条目跨 schema 不建外键")
     void foreignKeysAreTheCardsAndRestrict() throws SQLException {
         assertThat(db.column("""
                 select conname || ' (' || (select string_agg(attname, ',') from pg_attribute where attrelid = conrelid and attnum = any(conkey)) || ') -> '

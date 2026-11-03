@@ -94,6 +94,11 @@ class PermissionAdjustmentShapeIT {
         rows.refusedByCheck("ck_permission_adjustments_trigger_command", rows.regenerated().with("trigger_org_structure_command_id", UUID.randomUUID()));
         rows.refusedByCheck("ck_permission_adjustments_trigger_command", rows.sensitiveOrgUnitChange().with("trigger_org_structure_command_id", UUID.randomUUID()));
         rows.refusedByCheck("ck_permission_adjustments_trigger_command", rows.scopeReviewInactiveUnit().with("trigger_personnel_command_id", UUID.randomUUID()));
+        // each id belongs to its own origin: the other kind of command id alone does not satisfy the check
+        rows.refusedByCheck("ck_permission_adjustments_trigger_command",
+                rows.sensitiveOrgUnitChange().with("trigger_personnel_command_id", null).with("trigger_org_structure_command_id", UUID.randomUUID()));
+        rows.refusedByCheck("ck_permission_adjustments_trigger_command",
+                rows.scopeReviewInactiveUnit().with("trigger_org_structure_command_id", null).with("trigger_personnel_command_id", UUID.randomUUID()));
     }
 
     @Test
@@ -129,8 +134,8 @@ class PermissionAdjustmentShapeIT {
     }
 
     @Test
-    @DisplayName("F-1 不变量 15、32 同步触发按（类型，人，触发人事命令，触发字段）去重：同一键第二条 23505；同一条调岗命令改部门与岗位各一条，同一次触发两类条目各一条，另一条命令再一条")
-    void anAssignmentChangeIsRaisedOncePerKindPersonRunAndField() throws SQLException {
+    @DisplayName("F-1 不变量 15、32 任职变化按（类型，人，触发人事命令，触发字段）去重：同一键第二条 23505；同一条调岗命令改部门与岗位各一条，同一次触发两类条目各一条，另一条命令再一条")
+    void anAssignmentChangeIsRaisedOncePerKindPersonCommandAndField() throws SQLException {
         Row first = rows.sensitiveOrgUnitChange();
         rows.insert(first);
 

@@ -58,7 +58,7 @@ final class PermissionAdjustmentRows {
                 .with("escalation_due_at", T1).with("created_at", T0).with("updated_at", T0);
     }
 
-    /** Sensitive role review raised by a sync that moved the holder to another org unit (ADR-0032 item 5). */
+    /** Sensitive role review raised by a transfer (personnel command) that moved the holder to another org unit (ADR-0032 item 5). */
     Row sensitiveOrgUnitChange() throws SQLException {
         return base("SENSITIVE_ROLE_REVIEW", "ASSIGNMENT_CHANGE").with("user_id", db.account()).with("trigger_personnel_command_id", UUID.randomUUID())
                 .with("trigger_field_kind", "ORG_UNIT").with("before_org_unit_id", UUID.randomUUID()).with("after_org_unit_id", UUID.randomUUID());
