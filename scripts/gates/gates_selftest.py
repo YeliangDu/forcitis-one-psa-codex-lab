@@ -326,7 +326,7 @@ def pre_commit_test():
     print("pre_commit self-test: ok")
 
 FAKE = "fake-prod-db.example.invalid"  # ── install ── fictitious production host, put on the temporary repository's origin/main table only
-ENTRIES = {"PreToolUse": ["scripts/gates/pre_tool_dispatch.py"], "SessionStart": ["scripts/hooks/git_ceiling_env.sh", "scripts/hooks/stop_language.py"], "Stop": ["scripts/hooks/stop_language.py"]}  # the start sheet hangs on the tool library (O23a)
+ENTRIES = {"PreToolUse": ["scripts/gates/pre_tool_dispatch.py"], "SessionStart": ["scripts/hooks/git_ceiling_env.sh", "scripts/hooks/stop_language.py"], "Stop": ["scripts/hooks/stop_language.py", "scripts/hooks/card_handover.py"]}  # the start sheet hangs on the tool library (O23a)
 SHELLS = ("/bin/sh", "/bin/bash")
 FIRST_ONLY = """#!/bin/bash
 read -r line

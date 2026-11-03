@@ -60,6 +60,15 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "H=\"$HOME\"/.modernize/psa/tools/hooks/current/scripts/hooks/card_handover.py; [ -x \"$H\" ] && /usr/bin/python3 -I \"$H\" --stop; c=$?; [ \"$c\" = 2 ] && exit 2; exit 0",
+            "timeout": 30
+          }
+        ]
       }
     ]
   },
