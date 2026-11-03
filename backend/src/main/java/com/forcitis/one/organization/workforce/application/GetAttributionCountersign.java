@@ -44,21 +44,23 @@ public class GetAttributionCountersign {
     @Transactional(readOnly = true)
     public Row execute(AttributionCountersignId id) {
         CountersignReadAccess.Readable readable = access.ofRequest(id);
+        // Only a WITHDRAWAL request carries a reason; it is the text the command gets as its withdrawal reason once every head approves, and until then it is stored nowhere else.
+        @Nullable String reason = readable.row().requestReason();
         OrgStructureCommand org = readable.orgCommand();
         PersonnelCommand personnel = readable.personnelCommand();
-        return new Row(org != null ? orgCommand(org) : personnelCommand(Objects.requireNonNull(personnel)), requests(readable.requests()));
+        return new Row(org != null ? orgCommand(org, reason) : personnelCommand(Objects.requireNonNull(personnel), reason), requests(readable.requests()));
     }
 
-    private Command orgCommand(OrgStructureCommand command) {
+    private Command orgCommand(OrgStructureCommand command, @Nullable String withdrawalReason) {
         OrgUnitId unit = command.targetOrgUnitId();
         LegalEntityId target = command.targetLegalEntityId();
         Map<LegalEntityId, String> entities = target == null ? Map.of() : names.legalEntityNames(List.of(target));
-        return new Command(command.id().value(), null, CountersignCommandKind.valueOf(command.kind().name()), command.effectiveDate(), command.status().asCountersignCommandStatus(), command.withdrawalReason(), null, null, null,
+        return new Command(command.id().value(), null, CountersignCommandKind.valueOf(command.kind().name()), command.effectiveDate(), command.status().asCountersignCommandStatus(), withdrawalReason, null, null, null,
                 target == null ? null : target.value(), target == null ? null : entities.get(target), unit == null ? null : unit.value(),
                 unit == null ? null : names.orgUnitName(unit).orElse(null));
     }
 
-    private Command personnelCommand(PersonnelCommand command) {
+    private Command personnelCommand(PersonnelCommand command, @Nullable String withdrawalReason) {
         LegalEntityId previous = command.countersignPreviousLegalEntityId();
         LegalEntityId next = command.countersignNewLegalEntityId();
         List<LegalEntityId> shown = new ArrayList<>();
@@ -70,7 +72,7 @@ public class GetAttributionCountersign {
         }
         Map<LegalEntityId, String> entities = names.legalEntityNames(shown);
         CountersignReadQueries.Person person = names.employees(List.of(command.employeeId())).get(command.employeeId());
-        return new Command(null, command.id().value(), CountersignCommandKind.valueOf(command.kind().name()), command.effectiveDate(), command.status().asCountersignCommandStatus(), command.withdrawalReason(),
+        return new Command(null, command.id().value(), CountersignCommandKind.valueOf(command.kind().name()), command.effectiveDate(), command.status().asCountersignCommandStatus(), withdrawalReason,
                 new Person(command.employeeId().value(), person == null ? "" : person.displayName(), person == null ? "" : person.employeeCode()),
                 previous == null ? null : previous.value(), previous == null ? null : entities.get(previous), next == null ? null : next.value(), next == null ? null : entities.get(next),
                 null, null);
