@@ -11545,6 +11545,36 @@ terms:
   forbidden: []
   note: 聚合 PermissionAdjustment（#730 提议，待用语确认）
   status: proposed
+- id: permission_adjustment_upheld
+  zh: 待调整权限已维持
+  en: PermissionAdjustmentUpheld
+  snake: permission_adjustment_upheld
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 办理人看过一条待调整权限条目后决定维持，授权保持原样
+  standard_ref:
+  - docs/architecture/events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 PermissionAdjustment（#730 S3 提议，待用语确认）
+  status: proposed
+- id: permission_adjustment_adjusted
+  zh: 待调整权限已调整
+  en: PermissionAdjustmentAdjusted
+  snake: permission_adjustment_adjusted
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 办理人标明一条待调整权限条目已通过授权申请或授予审计条目调整
+  standard_ref:
+  - docs/architecture/events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 PermissionAdjustment（#730 S3 提议，待用语确认）
+  status: proposed
 - id: authorization_opened
   zh: 授权申请已开立
   en: AuthorizationOpened

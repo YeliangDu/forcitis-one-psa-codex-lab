@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.domain;
 
+import com.forcitis.one.platform.identity.api.PermissionAdjustmentStatus;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
@@ -11,7 +12,11 @@ import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.platform.identity.api.PermissionAdjustmentId;
 import com.forcitis.one.platform.identity.api.PermissionAdjustmentKind;
 import com.forcitis.one.platform.identity.api.PermissionAdjustmentOrigin;
+import com.forcitis.one.platform.identity.api.IdentityError;
+import com.forcitis.one.platform.identity.api.RoleId;
+import com.forcitis.one.platform.identity.events.PermissionAdjustmentAdjusted;
 import com.forcitis.one.platform.identity.events.PermissionAdjustmentOpened;
+import com.forcitis.one.platform.identity.events.PermissionAdjustmentUpheld;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
@@ -19,24 +24,33 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * A review item that reminds the people entitled to decide that someone's authorizations should be looked at again (ADR-0032 decisions 4 and 5);
- * it never grants or takes back anything. Here it is only raised; the decisions that move it on are added with their use cases.
+ * it never grants or takes back anything. It is raised OPEN and then upheld or marked adjusted, once; an item that is no longer OPEN takes no
+ * further command. Items of the other origins and the later states are written by the jobs and listeners that own them and are only read here.
  */
 public final class PermissionAdjustment extends AggregateRoot {
 
     private final PermissionAdjustmentId id;
     private final PermissionAdjustmentKind kind;
     private final PermissionAdjustmentOrigin origin;
-    private final PermissionAdjustmentStatus status;
-    private final UserId user;
-    private final PersonnelCommandId triggerCommand;
-    private final TriggerFieldKind triggerField;
+    private PermissionAdjustmentStatus status;
+    private final @Nullable UserId user;
+    private final @Nullable RoleId role;
+    private final @Nullable OrgUnitId inactiveOrgUnit;
+    private final @Nullable PersonnelCommandId triggerCommand;
+    private final @Nullable TriggerFieldKind triggerField;
     private final @Nullable OrgUnitId beforeOrgUnit;
-    private final OrgUnitId afterOrgUnit;
+    private final @Nullable OrgUnitId afterOrgUnit;
     private final @Nullable PositionId beforePosition;
     private final @Nullable PositionId afterPosition;
     private final @Nullable EmployeeId recipient;
     private final Instant escalationDueAt;
     private final Instant createdAt;
+    private @Nullable UserId upheldBy;
+    private @Nullable UpholdReason upholdReason;
+    private @Nullable EmployeeId businessOwner;
+    private @Nullable Instant upholdExpiresAt;
+    private @Nullable UserId adjustedBy;
+    private @Nullable AdjustmentReference adjustedWith;
 
     private PermissionAdjustment(PermissionAdjustmentId id, PermissionAdjustmentKind kind, UserId user, PersonnelCommandId triggerCommand,
             TriggerFieldKind triggerField, @Nullable OrgUnitId beforeOrgUnit, OrgUnitId afterOrgUnit, @Nullable PositionId beforePosition,
@@ -47,6 +61,8 @@ public final class PermissionAdjustment extends AggregateRoot {
         this.origin = PermissionAdjustmentOrigin.ASSIGNMENT_CHANGE;
         this.status = PermissionAdjustmentStatus.OPEN;
         this.user = Objects.requireNonNull(user, "user");
+        this.role = null;
+        this.inactiveOrgUnit = null;
         this.triggerCommand = Objects.requireNonNull(triggerCommand, "triggerCommand");
         this.triggerField = Objects.requireNonNull(triggerField, "triggerField");
         this.beforeOrgUnit = beforeOrgUnit;
@@ -56,6 +72,87 @@ public final class PermissionAdjustment extends AggregateRoot {
         this.recipient = recipient;
         this.escalationDueAt = Objects.requireNonNull(escalationDueAt, "escalationDueAt");
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt");
+    }
+
+    private PermissionAdjustment(Stored stored) {
+        super(stored.version(), stored.eventSequence());
+        this.id = stored.id();
+        this.kind = stored.kind();
+        this.origin = stored.origin();
+        this.status = stored.status();
+        this.user = stored.user();
+        this.role = stored.role();
+        this.inactiveOrgUnit = stored.inactiveOrgUnit();
+        this.triggerCommand = stored.triggerCommand();
+        this.triggerField = stored.triggerField();
+        this.beforeOrgUnit = stored.beforeOrgUnit();
+        this.afterOrgUnit = stored.afterOrgUnit();
+        this.beforePosition = stored.beforePosition();
+        this.afterPosition = stored.afterPosition();
+        this.recipient = stored.recipient();
+        this.escalationDueAt = stored.escalationDueAt();
+        this.createdAt = stored.createdAt();
+        this.upheldBy = stored.upheldBy();
+        this.businessOwner = stored.businessOwner();
+        this.upholdExpiresAt = stored.upholdExpiresAt();
+    }
+
+    /** An item as the table holds it, whichever origin raised it. */
+    public record Stored(PermissionAdjustmentId id, PermissionAdjustmentKind kind, PermissionAdjustmentOrigin origin, PermissionAdjustmentStatus status,
+                         @Nullable UserId user, @Nullable RoleId role, @Nullable OrgUnitId inactiveOrgUnit, @Nullable PersonnelCommandId triggerCommand,
+                         @Nullable TriggerFieldKind triggerField, @Nullable OrgUnitId beforeOrgUnit, @Nullable OrgUnitId afterOrgUnit,
+                         @Nullable PositionId beforePosition, @Nullable PositionId afterPosition, @Nullable EmployeeId recipient, Instant escalationDueAt,
+                         Instant createdAt, @Nullable UserId upheldBy, @Nullable EmployeeId businessOwner, @Nullable Instant upholdExpiresAt, long version,
+                         long eventSequence) {
+    }
+
+    public static PermissionAdjustment restore(Stored stored) {
+        return new PermissionAdjustment(stored);
+    }
+
+    /**
+     * The handler upholds an OPEN item: the authorizations stay. A sensitive-role review names a business owner (an employee, given by the caller after
+     * checking they are employed and not the person the item is about) and expires at the instant the use case worked out (the next natural quarter start, UpholdExpiry); the other kinds take neither.
+     */
+    public void uphold(UserId by, UpholdReason reason, @Nullable EmployeeId owner, Instant sensitiveExpiry) {
+        requireOpen();
+        requireNotAbout(by);
+        boolean sensitive = kind == PermissionAdjustmentKind.SENSITIVE_ROLE_REVIEW;
+        if (sensitive != (owner != null)) {
+            throw new IllegalArgumentException("only a sensitive-role review is upheld with a business owner");
+        }
+        this.status = PermissionAdjustmentStatus.UPHELD;
+        this.upheldBy = by;
+        this.upholdReason = reason;
+        this.businessOwner = owner;
+        this.upholdExpiresAt = sensitive ? sensitiveExpiry : null;
+        EmployeeId recordedOwner = owner;
+        Instant recordedExpiry = upholdExpiresAt;
+        record((envelopes, version) -> new PermissionAdjustmentUpheld(envelopes.wrap(draft("PermissionAdjustmentUpheld", version)), id, by, kind,
+                recordedOwner, recordedExpiry));
+    }
+
+    /** The handler shows an OPEN item was adjusted, by an authorization request or by a grant in the audit trail; nothing is granted or taken back here. */
+    public void markAdjusted(UserId by, AdjustmentReference reference) {
+        requireOpen();
+        requireNotAbout(by);
+        this.status = PermissionAdjustmentStatus.ADJUSTED;
+        this.adjustedBy = by;
+        this.adjustedWith = reference;
+        record((envelopes, version) -> new PermissionAdjustmentAdjusted(envelopes.wrap(draft("PermissionAdjustmentAdjusted", version)), id, by, kind,
+                reference.authorizationRequest(), reference.auditEntry()));
+    }
+
+    private void requireOpen() {
+        if (status != PermissionAdjustmentStatus.OPEN) {
+            throw IdentityError.PLATFORM_IDENTITY_PERMISSION_ADJUSTMENT_NOT_OPEN.refusal("the item " + id.value() + " is " + status + " and takes no further command");
+        }
+    }
+
+    private void requireNotAbout(UserId by) {
+        if (by.equals(user)) {
+            throw IdentityError.PLATFORM_IDENTITY_OWN_PERMISSION_ADJUSTMENT_FORBIDDEN.refusal("the item " + id.value() + " is about the handler");
+        }
     }
 
     /**
@@ -106,23 +203,55 @@ public final class PermissionAdjustment extends AggregateRoot {
         return status;
     }
 
-    public UserId user() {
+    public @Nullable UserId user() {
         return user;
     }
 
-    public PersonnelCommandId triggerCommand() {
+    public @Nullable RoleId role() {
+        return role;
+    }
+
+    public @Nullable OrgUnitId inactiveOrgUnit() {
+        return inactiveOrgUnit;
+    }
+
+    public @Nullable PersonnelCommandId triggerCommand() {
         return triggerCommand;
     }
 
-    public TriggerFieldKind triggerField() {
+    public @Nullable TriggerFieldKind triggerField() {
         return triggerField;
+    }
+
+    public @Nullable UserId upheldBy() {
+        return upheldBy;
+    }
+
+    public @Nullable UpholdReason upholdReason() {
+        return upholdReason;
+    }
+
+    public @Nullable EmployeeId businessOwner() {
+        return businessOwner;
+    }
+
+    public @Nullable Instant upholdExpiresAt() {
+        return upholdExpiresAt;
+    }
+
+    public @Nullable UserId adjustedBy() {
+        return adjustedBy;
+    }
+
+    public @Nullable AdjustmentReference adjustedWith() {
+        return adjustedWith;
     }
 
     public @Nullable OrgUnitId beforeOrgUnit() {
         return beforeOrgUnit;
     }
 
-    public OrgUnitId afterOrgUnit() {
+    public @Nullable OrgUnitId afterOrgUnit() {
         return afterOrgUnit;
     }
 
