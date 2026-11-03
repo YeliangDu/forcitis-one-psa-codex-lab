@@ -38,6 +38,9 @@ abstract class PermissionAdjustmentApiSupport extends DataScopeSupport {
     static final String UPHELD_ACTION = "platform.identity.PermissionAdjustmentUpheld";
     static final String ADJUSTED_ACTION = "platform.identity.PermissionAdjustmentAdjusted";
 
+    /** The people of the world; their display names are "Synthetic " + key (DataScopeSupport). */
+    static final List<String> PEOPLE = List.of("admin1", "oda", "oda2", "auditor", "multi", "headA", "headB", "mover", "mover2", "odaSubject", "owner", "gone", "plain");
+
     private static final Set<String> TIMESTAMPS = Set.of("escalation_due_at", "created_at", "updated_at");
 
     /**
@@ -51,7 +54,7 @@ abstract class PermissionAdjustmentApiSupport extends DataScopeSupport {
         unit("F1-B", "F1-ROOT");
         unit("F1-C", "F1-ROOT");
         position("F1-P1");
-        for (String key : List.of("admin1", "oda", "oda2", "auditor", "multi", "headA", "headB", "mover", "mover2", "odaSubject", "owner", "gone", "plain")) {
+        for (String key : PEOPLE) {
             person(key, "F1-ROOT", "F1-P1");
         }
         head("F1-A", "headA");
