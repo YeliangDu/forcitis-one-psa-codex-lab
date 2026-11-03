@@ -93,6 +93,18 @@ organization.workforce::api organization.workforce.api.Availability public final
 organization.workforce::api organization.workforce.api.Availability public final record organization.workforce.api.Availability
 organization.workforce::api organization.workforce.api.Availability public organization.workforce.api.Availability(boolean,boolean,boolean)
 organization.workforce::api organization.workforce.api.Availability public static final organization.workforce.api.Availability organization.workforce.api.Availability.AVAILABLE
+organization.workforce::api organization.workforce.api.BlockingArrival component arrivesOn: java.time.LocalDate
+organization.workforce::api organization.workforce.api.BlockingArrival component employeeId: kernel.EmployeeId
+organization.workforce::api organization.workforce.api.BlockingArrival component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::api organization.workforce.api.BlockingArrival extends java.lang.Record
+organization.workforce::api organization.workforce.api.BlockingArrival public final boolean organization.workforce.api.BlockingArrival.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.BlockingArrival public final int organization.workforce.api.BlockingArrival.hashCode()
+organization.workforce::api organization.workforce.api.BlockingArrival public final java.lang.String organization.workforce.api.BlockingArrival.toString()
+organization.workforce::api organization.workforce.api.BlockingArrival public final record organization.workforce.api.BlockingArrival
+organization.workforce::api organization.workforce.api.BlockingArrival public java.time.LocalDate organization.workforce.api.BlockingArrival.arrivesOn()
+organization.workforce::api organization.workforce.api.BlockingArrival public kernel.EmployeeId organization.workforce.api.BlockingArrival.employeeId()
+organization.workforce::api organization.workforce.api.BlockingArrival public organization.workforce.api.BlockingArrival(kernel.EmployeeId,java.time.LocalDate,organization.workforce.api.PersonnelCommandId)
+organization.workforce::api organization.workforce.api.BlockingArrival public organization.workforce.api.PersonnelCommandId organization.workforce.api.BlockingArrival.personnelCommandId()
 organization.workforce::api organization.workforce.api.ChangeEmployeeProfile component displayName: java.lang.String
 organization.workforce::api organization.workforce.api.ChangeEmployeeProfile component effectiveDate: java.time.LocalDate
 organization.workforce::api organization.workforce.api.ChangeEmployeeProfile component email: java.lang.String
@@ -273,6 +285,16 @@ organization.workforce::api organization.workforce.api.OrgDirectory public abstr
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract java.util.Optional<organization.workforce.api.OrgUnitProfile> organization.workforce.api.OrgDirectory.findOrgUnit(organization.workforce.api.OrgUnitId)
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract organization.workforce.api.Availability organization.workforce.api.OrgDirectory.availabilityOn(kernel.EmployeeId,java.time.LocalDate)
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract organization.workforce.api.EmploymentVerdict organization.workforce.api.OrgDirectory.employmentOf(kernel.EmployeeId)
+organization.workforce::api organization.workforce.api.OrgMergePreview component blocking: java.util.List<organization.workforce.api.BlockingArrival>
+organization.workforce::api organization.workforce.api.OrgMergePreview component employees: java.util.List<kernel.EmployeeId>
+organization.workforce::api organization.workforce.api.OrgMergePreview extends java.lang.Record
+organization.workforce::api organization.workforce.api.OrgMergePreview public final boolean organization.workforce.api.OrgMergePreview.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.OrgMergePreview public final int organization.workforce.api.OrgMergePreview.hashCode()
+organization.workforce::api organization.workforce.api.OrgMergePreview public final java.lang.String organization.workforce.api.OrgMergePreview.toString()
+organization.workforce::api organization.workforce.api.OrgMergePreview public final record organization.workforce.api.OrgMergePreview
+organization.workforce::api organization.workforce.api.OrgMergePreview public java.util.List<kernel.EmployeeId> organization.workforce.api.OrgMergePreview.employees()
+organization.workforce::api organization.workforce.api.OrgMergePreview public java.util.List<organization.workforce.api.BlockingArrival> organization.workforce.api.OrgMergePreview.blocking()
+organization.workforce::api organization.workforce.api.OrgMergePreview public organization.workforce.api.OrgMergePreview(java.util.List<kernel.EmployeeId>,java.util.List<organization.workforce.api.BlockingArrival>)
 organization.workforce::api organization.workforce.api.OrgStructureCommandId component value: java.util.UUID
 organization.workforce::api organization.workforce.api.OrgStructureCommandId extends java.lang.Record
 organization.workforce::api organization.workforce.api.OrgStructureCommandId public final boolean organization.workforce.api.OrgStructureCommandId.equals(java.lang.Object)
@@ -294,7 +316,7 @@ organization.workforce::api organization.workforce.api.OrgStructureCommandKind p
 organization.workforce::api organization.workforce.api.OrgStructureCommandKind public static organization.workforce.api.OrgStructureCommandKind organization.workforce.api.OrgStructureCommandKind.valueOf(java.lang.String)
 organization.workforce::api organization.workforce.api.OrgStructureCommandKind public static organization.workforce.api.OrgStructureCommandKind[] organization.workforce.api.OrgStructureCommandKind.values()
 organization.workforce::api organization.workforce.api.OrgStructureCommands public abstract interface organization.workforce.api.OrgStructureCommands
-organization.workforce::api organization.workforce.api.OrgStructureCommands public abstract java.util.List<kernel.EmployeeId> organization.workforce.api.OrgStructureCommands.previewMerge(organization.workforce.api.PreviewOrgUnitMerge)
+organization.workforce::api organization.workforce.api.OrgStructureCommands public abstract organization.workforce.api.OrgMergePreview organization.workforce.api.OrgStructureCommands.previewMerge(organization.workforce.api.PreviewOrgUnitMerge)
 organization.workforce::api organization.workforce.api.OrgStructureCommands public abstract organization.workforce.api.OrgStructureCommandId organization.workforce.api.OrgStructureCommands.enter(organization.workforce.api.EnterOrgStructureCommand)
 organization.workforce::api organization.workforce.api.OrgStructureCommands public abstract void organization.workforce.api.OrgStructureCommands.executeMerge(organization.workforce.api.OrgStructureCommandId)
 organization.workforce::api organization.workforce.api.OrgStructureCommands public abstract void organization.workforce.api.OrgStructureCommands.withdraw(organization.workforce.api.WithdrawOrgStructureCommand)
@@ -509,6 +531,7 @@ organization.workforce::api organization.workforce.api.WorkforceError public sta
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_ORG_STRUCTURE_COMMAND_NOT_FOUND
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_ORG_STRUCTURE_COMMAND_REASON_INVALID
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_ORG_STRUCTURE_MERGE_INCOMPLETE
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_ORG_UNIT_MERGE_OPEN
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_ORG_UNIT_NOT_FOUND
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_OWN_PROFILE_CHANGE_FORBIDDEN
