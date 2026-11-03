@@ -15,8 +15,8 @@ import org.springframework.stereotype.Component;
 /**
  * Daily, after the due personnel commands and before the countersign deadline job: turns the pending org-structure commands that are now due effective and starts the due merges
  * (ADR-0068 items 1.8 and 15.2). The job judges nothing and reads never depend on it: the versions are in force on their day whether it ran or not, a missed run only delays the
- * events. One transaction per command (a merge runs its own steps), so one failure never stops the others; a failure is an alert and the command is tried again at the next run. A command found past
- * its day is alerted and applied in the same run. The run is safe beside the countersign deadline job and a second run of itself because both take the same row locks ({@link ApplyDueOrgCommand}).
+ * events. One transaction per command (a merge runs its own steps), so one failure never stops the others; a failure is an alert, and a command still pending is tried again at the next run. A merge that
+ * started and then failed to move somebody stays in progress and is continued by {@code executeMerge}, not by this job. A command found past its day is alerted and applied in the same run. The run is safe beside the countersign deadline job and a second run of itself because both take the same row locks ({@link ApplyDueOrgCommand}).
  */
 @Component
 public class OrgStructureCommandDueJob {
@@ -52,7 +52,7 @@ public class OrgStructureCommandDueJob {
                     apply.execute(command.id());
                 }
             } catch (RuntimeException failure) {
-                LOG.error("ALERT organization.workforce due org-structure command {} not executed, retried at the next run", command.id().value(), failure);
+                LOG.error("ALERT organization.workforce due org-structure command {} not fully executed; if it is still pending the next run tries again", command.id().value(), failure);
             }
         }
     }
