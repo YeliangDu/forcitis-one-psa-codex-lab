@@ -15,6 +15,8 @@ import re
 
 FIRST_LINE = re.compile(r"(Closes|Refs) #([1-9][0-9]{0,8})[ \t\r]*")
 SESSION, HANG, HOLD = "会话:", "挂起", "hold"
+TITLE_HEAD = re.compile(r"[a-z]+(\([\w./-]+\))?: (?P<summary>.+)")
+CJK = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff]")
 
 
 def fetch(run, args):
@@ -31,6 +33,21 @@ def home_repo(run, scope):
     """本 PR 所在仓库的小写 owner/name：有 -R 参数就用它，否则问 gh；取不到返回 None。"""
     slug = scope[1] if scope else (fetch(run, ["repo", "view", "--json", "nameWithOwner"]) or {}).get("nameWithOwner")
     return slug.lower() if isinstance(slug, str) and re.fullmatch(r"[^/\s]+/[^/\s]+", slug) else None
+
+
+def title_problem(title, body):
+    """PR 标题须为「类型(范围): 含中文的摘要（#卡号）」，范围可省，卡号取正文首行 Closes/Refs 那张，括号全角；合格返回 None，否则返回原因并给出该有的样子。
+    不替人改标题，也不与卡自己的标题比（卡标题有历史英文）。post_review 前置检查与合入队列合入前各调一次（标题在复审后被改也拦得住）。"""
+    link = FIRST_LINE.fullmatch(body.lstrip("﻿").partition("\n")[0]) if isinstance(body, str) else None
+    if link is None:
+        return "PR 正文首行不是「Closes #<卡号>」或「Refs #<卡号>」，查不了标题里该写的卡号"
+    num = link.group(2)
+    shape = f"类型(范围): 中文摘要（#{num}）"
+    head = TITLE_HEAD.fullmatch(title) if isinstance(title, str) else None
+    tail = f"（#{num}）"
+    if head is None or not head.group("summary").endswith(tail) or not CJK.search(head.group("summary")[:-len(tail)]):
+        return f"PR 标题须为「{shape}」（范围可省，摘要含中文，卡号与正文首行一致，括号全角），现为 {title!r}"
+    return None
 
 
 def closing_mismatch(pr, run, scope, num, refs_only=False):
@@ -57,13 +74,16 @@ def closing_mismatch(pr, run, scope, num, refs_only=False):
 
 def unscheduled(pr, run, scope):
     """关联 Issue 已排期返回 None，否则返回拒绝原因（不带正文内容）。run 与 post_review.gh 同形，自测传桩。"""
-    body = (fetch(run, ["pr", "view", str(pr), *scope, "--json", "body"]) or {}).get("body")
+    view = fetch(run, ["pr", "view", str(pr), *scope, "--json", "body,title"]) or {}
+    body = view.get("body")
     if not isinstance(body, str):
         return f"读不到 PR #{pr} 的正文，确认不了关联 Issue，拒绝提交（失败关闭）"
     link = FIRST_LINE.fullmatch(body.lstrip("﻿").partition("\n")[0])
     if link is None:
         return "PR 正文首行须恰为「Closes #<卡号>」或「Refs #<卡号>」（取不到、格式不对或跨仓库写法），拒绝提交"
     num = link.group(2)
+    if (why := title_problem(view.get("title"), body)) is not None:
+        return why + "，拒绝提交"
     if (why := closing_mismatch(pr, run, scope, num, link.group(1) == "Refs")) is not None:
         return why
     issue = fetch(run, ["issue", "view", num, *scope, "--json", "state,labels"])
