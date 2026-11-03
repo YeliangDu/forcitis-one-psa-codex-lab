@@ -27,7 +27,7 @@ class LegalEntityStateMachineTest {
     static final LegalEntityId ID = new LegalEntityId(TestIds.uuid(4));
 
     static LegalEntity at(LegalEntityStatus status) {
-        return LegalEntity.restore(ID, new LegalEntityCode("FST"), "Synthetic", status.name(), 7, 7);
+        return LegalEntity.restore(ID, new LegalEntityCode("FST"), "Synthetic", status.name(), null, 7, 7);
     }
 
     @Test

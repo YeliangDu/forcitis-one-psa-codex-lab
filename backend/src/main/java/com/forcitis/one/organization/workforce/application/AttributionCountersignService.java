@@ -11,7 +11,12 @@ import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.ApproveAttributionCountersign;
+import com.forcitis.one.kernel.CursorPage;
+import com.forcitis.one.kernel.PageRequest;
+import com.forcitis.one.organization.workforce.api.AttributionCountersignDetail;
 import com.forcitis.one.organization.workforce.api.AttributionCountersignId;
+import com.forcitis.one.organization.workforce.api.AttributionCountersignStatus;
+import com.forcitis.one.organization.workforce.api.AttributionCountersignSummary;
 import com.forcitis.one.organization.workforce.api.AttributionCountersigns;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
 import com.forcitis.one.organization.workforce.api.RejectAttributionCountersign;
@@ -63,6 +68,7 @@ class AttributionCountersignService implements AttributionCountersigns {
     private final OwnAttributionGuard ownGuard;
     private final OrgMergeProgress mergeProgress;
     private final CountersignDeciders deciders;
+    private final CountersignReads reads;
     private final OrgCountersigns orgCountersigns;
     private final AuditLog audit;
     private final CurrentUser currentUser;
@@ -71,7 +77,7 @@ class AttributionCountersignService implements AttributionCountersigns {
     private final BusinessZone zone;
 
     AttributionCountersignService(AttributionCountersignRepository countersigns, PersonnelCommandRepository commands, CountersignRequests requests, CountersignBases bases,
-                                  PersonnelPlans timelines, EffectPublisher effects, OwnAttributionGuard ownGuard, OrgMergeProgress mergeProgress, CountersignDeciders deciders, OrgCountersigns orgCountersigns, AuditLog audit,
+                                  PersonnelPlans timelines, EffectPublisher effects, OwnAttributionGuard ownGuard, OrgMergeProgress mergeProgress, CountersignDeciders deciders, CountersignReads reads, OrgCountersigns orgCountersigns, AuditLog audit,
                                   CurrentUser currentUser, IdGenerator ids, Clock clock, BusinessZone zone) {
         this.countersigns = countersigns;
         this.commands = commands;
@@ -82,6 +88,7 @@ class AttributionCountersignService implements AttributionCountersigns {
         this.ownGuard = ownGuard;
         this.mergeProgress = mergeProgress;
         this.deciders = deciders;
+        this.reads = reads;
         this.orgCountersigns = orgCountersigns;
         this.audit = audit;
         this.currentUser = currentUser;
@@ -102,6 +109,20 @@ class AttributionCountersignService implements AttributionCountersigns {
     @PreAuthorize("hasAuthority('" + PERMISSION + "')")
     public void reject(RejectAttributionCountersign request) {
         decide(request.attributionCountersignId(), request.reason(), false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAuthority('" + PERMISSION + "')")
+    public CursorPage<AttributionCountersignSummary> list(@Nullable AttributionCountersignStatus status, PageRequest page) {
+        return reads.list(status, page);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAuthority('" + PERMISSION + "')")
+    public AttributionCountersignDetail get(AttributionCountersignId id) {
+        return reads.get(id);
     }
 
     private void decide(AttributionCountersignId id, @Nullable String reason, boolean approve) {
@@ -237,7 +258,7 @@ class AttributionCountersignService implements AttributionCountersigns {
         deciders.requireHead(row, by, today);
     }
 
-    private static DomainException notFound() {
+    static DomainException notFound() {
         return new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_COUNTERSIGN_NOT_FOUND, ErrorKind.NOT_FOUND, "no such countersign request");
     }
 }
