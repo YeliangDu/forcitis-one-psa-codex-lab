@@ -260,9 +260,11 @@ class ReinstatementOpensBaseRoleIT extends PersonnelCommandSupport {
         EmployeeReinstated again = reinstatedEvent(employee, command);
         EmployeeReinstated another = reinstatedEvent(employee, command);
         publish(again);
-        publish(again);
-        publish(another);
         identityHandled(again);
+        // #1104: the duplicate goes out only after the first delivery is handled; two concurrent deliveries of one eventId race on Modulith's archive insert and can leave a publication PROCESSING
+        publish(again);
+        identityHandled(again);
+        publish(another);
         identityHandled(another);
 
         nothingChanged(user, after, entries);
