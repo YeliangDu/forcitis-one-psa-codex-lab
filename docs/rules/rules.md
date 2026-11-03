@@ -8,7 +8,7 @@ Enforced by: gitleaks, prod_write_gate, new_intent, main_checkout_gate, backend;
 See `CLAUDE.md`.
 
 ## ② Cards and handoff
-Enforced by: handoff, start_sheet; manual: lead / weekly review
+Enforced by: handoff, start_sheet, card_handover; manual: lead / weekly review
 
 One card = one acceptable result, one owning session, one bc, one Issue; if entry conditions fail, stop and tell lead. When a card is handed over (PR merged or closed), overwrite the handoff file first (cap: `policy.json` `start.handoff_max_kb`), then end the session or `/clear`; correct records that contradict the facts; check the actual state when starting. Lead opens every new session with start_session. Session messages only wake someone up; content goes on the card or PR. Send a session message only when someone can now review, use, decide or unblock something (lead: only when blocked, when the user must decide, or on an incident); never repeat an unchanged status; while waiting on CI, the queue, a review or lead, end the turn and let a background task, Monitor or message wake you instead of polling. A dev session that finishes a card takes the next one in its handoff order without waiting for lead; lead changes the order in the handoff. A card with a prerequisite starts after it merges; to work in parallel, stack the branch on the prerequisite's PR branch and rebase after it merges.
 
