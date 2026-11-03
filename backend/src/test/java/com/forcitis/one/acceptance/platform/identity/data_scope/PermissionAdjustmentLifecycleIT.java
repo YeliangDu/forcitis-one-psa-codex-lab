@@ -74,7 +74,7 @@ class PermissionAdjustmentLifecycleIT {
     }
 
     @Test
-    @DisplayName("F-1 不变量 14 维持原因去掉空格后 1 至 500 字（按字符计，500 个汉字可写，501 个拒绝；全空格、空串拒绝）")
+    @DisplayName("F-1 不变量 14 维持原因按原串计 1 至 500 字且去掉空格后非空（按字符计，500 个汉字可写，501 个拒绝；全空格、空串拒绝）")
     void theUpholdReasonIsOneToFiveHundredCharacters() throws SQLException {
         rows.accepted(rows.upheld(rows.scopeReviewInactiveUnit()).with("uphold_reason", "留"));
         rows.accepted(rows.upheld(rows.scopeReviewInactiveUnit()).with("uphold_reason", "留".repeat(500)));
