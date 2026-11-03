@@ -47,10 +47,10 @@ class AttributionCountersignListPagingIntegrationTest extends WorkforceIntegrati
         for (int i = 0; i < 3; i++) {
             ownRows.add(countersign(ENTITY_A, i));
         }
-        otherEntityRow = countersign(ENTITY_B, 3);
+        otherEntityRow = countersign(ENTITY_B, -1);
     }
 
-    /** One request of its own command and employee, due {@code index} days after today. */
+    /** One request of its own command and employee, due {@code index} days after today; the other entity's row is due first, so a cursor on it would let every row of the caller through. */
     private UUID countersign(UUID entity, int index) {
         UUID employee = UUID.randomUUID();
         UUID command = UUID.randomUUID();
