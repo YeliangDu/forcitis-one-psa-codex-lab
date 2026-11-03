@@ -173,7 +173,7 @@ tables:
     business_key: [employee_profile_change_request_id]
     retention: {policy: PERMANENT}  # 随员工任职史清除：离职满 10 年删除该员工的行（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
-    writers: []  # 尚无写入方（#980 实现卡随用例登记）
+    writers: [organization.workforce]
   organization_workforce.separation_holds:
     role: AGGREGATE_CHILD
     aggregate: Employee

@@ -124,7 +124,8 @@ class OpenApiExportTest {
             "EnterPersonnelCommandRequest.employeeId", "EnterPersonnelCommandRequest.targetOrgUnitId", "EnterPersonnelCommandRequest.targetPositionId",
             "EnterPersonnelCommandRequest.targetReportsToEmployeeId", "PersonnelCommandResponse.personnelCommandId", "parameter personnelCommandId",
             "parameter separationHoldId",
-            "AuthorizationRequestResponse.requestedBy", "PendingTemplate.confirmedBy", "PendingTemplate.financeConfirmedBy", "SyncRunResponse.releasedBy",
+            "AuthorizationRequestResponse.requestedBy", "ProfileChangeRequestResponse.requestId", "ProfileChangeRequestResponse.employeeId", "ProfileChangeRequestResponse.requestedBy",
+            "ProfileChangeRequestResponse.decidedBy", "AwaitingSecondPersonResponse.requestId", "PendingTemplate.confirmedBy", "PendingTemplate.financeConfirmedBy", "SyncRunResponse.releasedBy",
             "TaskDetailResponse.initiator", "TaskDetailResponse.assignee", "TaskOverviewResponse.assignee");
 
     /** Employee ids whose names do not end in Id or By (D-10): named in full so the guard looks at them. */
@@ -178,7 +179,9 @@ class OpenApiExportTest {
                     }
                 }
             } else if (EXTERNAL_ID_NAMES.contains(fieldName(key))) {
-                if (!schema.path("type").asString().equals("string") || schema.has("format")) {
+                JsonNode type = schema.path("type");
+                boolean plainString = type.isArray() ? type.toString().equals("[\"string\",\"null\"]") : type.asString().equals("string");
+                if (!plainString || schema.has("format")) {
                     problems.add(key + " is an id of an external system and is a plain string on the wire, found " + schema.path("type") + " / " + schema.path("format"));
                 }
             } else if (!OTHER_ID_NAMES.contains(key)) {
