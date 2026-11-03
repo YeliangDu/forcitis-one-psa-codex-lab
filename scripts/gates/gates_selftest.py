@@ -566,6 +566,7 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         shutil.rmtree(target)
         shutil.copytree(os.path.join(hooks, a), target, symlinks=True)
         subprocess.run(["chflags", "uchg", target], check=True)
+        gone = os.path.join(tmp, "gone-" + b)
         rival_errors = []
         def rival():
             try:
@@ -575,10 +576,16 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
                 time.sleep(0.5)
                 subprocess.run(["chflags", "nouchg", target], check=True)
                 writable(target)
-                shutil.rmtree(target)
+                # One rename takes the old files away: rmtree-ing in place lets the installer's rename land on the emptied directory
+                # (POSIX allows it) while rmtree is still inside, which fails with EACCES on a loaded runner (#1071).
+                os.rename(target, gone)
                 os.rename(good, target)
-            except Exception as e:  # a thread's exception would otherwise vanish and the test pass on a path it never took
-                rival_errors.append(e)
+            except OSError as e:
+                if e.errno not in (errno.ENOTEMPTY, errno.EEXIST) or not os.path.isdir(target):
+                    rival_errors.append(traceback.format_exc())
+                # else the installer slid its copy into the gap between the two renames (the #879 path, also fine): its own checks below judge the result
+            except Exception:  # a thread's exception would otherwise vanish and the test pass on a path it never took
+                rival_errors.append(traceback.format_exc())
         t = threading.Thread(target=rival)
         t.start()
         try:
