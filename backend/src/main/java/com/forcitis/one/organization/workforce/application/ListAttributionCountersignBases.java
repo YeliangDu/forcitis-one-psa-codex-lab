@@ -1,8 +1,5 @@
 package com.forcitis.one.organization.workforce.application;
 
-import com.forcitis.one.kernel.BusinessZone;
-import com.forcitis.one.kernel.CallerPermissions;
-import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -10,15 +7,7 @@ import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.application.CountersignReadViews.BasisLine;
 import com.forcitis.one.organization.workforce.application.CountersignReadViews.Person;
-import com.forcitis.one.organization.workforce.domain.AttributionCountersign;
-import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
 import com.forcitis.one.organization.workforce.domain.CountersignReadQueries;
-import com.forcitis.one.organization.workforce.domain.CountersignRequestKind;
-import com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository;
-import com.forcitis.one.platform.audit.api.AuditSubject;
-import com.forcitis.one.platform.audit.api.AuditSubjectKind;
-import java.time.Clock;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

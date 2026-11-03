@@ -99,7 +99,10 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                 // #980: the second person of a WeCom user id rebind confirms or rejects the waiting profile change; the list of the waiting ones is the third read.
                 "POST /api/v1/organization/employee-profile-change-requests/{requestId}:confirm", "POST /api/v1/organization/employee-profile-change-requests/{requestId}:reject");
         assertThat(reads).containsExactlyInAnyOrder("GET /api/v1/organization/org-units", "GET /api/v1/organization/org-units/{orgUnitId}",
-                "GET /api/v1/organization/employee-profile-change-requests");
+                "GET /api/v1/organization/employee-profile-change-requests",
+                // #910 S3: the decider's read of a countersign request, the basis of an org-structure command and the merge rehearsal.
+                "GET /api/v1/organization/attribution-countersigns/{attributionCountersignId}", "GET /api/v1/organization/attribution-countersign-bases/{orgStructureCommandId}",
+                "GET /api/v1/organization/org-units/{orgUnitId}:preview-merge");
     }
 
     @Test

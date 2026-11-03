@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** The decider's reads of a legal-entity countersign and the merge rehearsal (#910 amendment B; paths ruled by one-design on #910, comment 6588705997). */
+/** The decider's reads of a legal-entity countersign and the merge rehearsal (#910 amendment B; paths ruled by one-design on #910, comment 6588705997; the basis path is flat by lead ruling, comment 6611676984, because G41 allows no sub-resource). */
 @RestController
 @RequestMapping("/api/v1/organization")
 class CountersignReadController {
