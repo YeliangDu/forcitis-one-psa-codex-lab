@@ -41,3 +41,5 @@ platform.file.staging.expire | 18a840ca-d8f0-5830-8e12-1bcd5ecad2f3 | platform.f
 organization.workforce.operations | e932d608-3a2e-5738-a568-d9f1cb73233c | organization.workforce | 运维命令（workforce-operations 档案）：release-separation-hold 放行待放行离职的状态转换操作者与事件信封 actorId
 organization.workforce.personnel.command.due | eb80b90a-6a1a-5c08-80c6-e90e0edc980c | organization.workforce | 作业：到日执行已放行的将来日离职（暂名，#931；一般待生效命令的到日执行是 #933）
 organization.workforce.org.structure.merge.execute | 550a37fb-c036-51bb-be7a-9fd0874b9698 | organization.workforce | 到日执行组织单元合并：逐人生成调岗，转完后撤销被并入单元（#907；到日作业本身另批）
+platform.identity.permission.adjustment.expire | cf9e57dc-ff3d-5eba-8e8e-bc12a222bf2b | platform.identity | 作业：待调整权限到期（维持到期转已到期，并按条件生成新条目）
+platform.identity.permission.adjustment.escalate | 0a716c3e-8620-59b2-8e01-5f7b23f88a6c | platform.identity | 作业：待调整权限超期升级（待处理超过升级期限的条目标记升级一次）

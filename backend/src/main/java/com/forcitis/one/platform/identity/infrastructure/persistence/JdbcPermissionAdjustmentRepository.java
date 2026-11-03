@@ -20,6 +20,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -58,9 +59,9 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
         jdbc.sql("""
                 insert into platform_identity.permission_adjustments (permission_adjustment_id, kind, origin_kind, status, user_id,
                         trigger_personnel_command_id, trigger_field_kind, before_org_unit_id, after_org_unit_id, before_position_id, after_position_id,
-                        recipient_employee_id, escalation_due_at, version, event_count, created_at, updated_at)
+                        recipient_employee_id, original_permission_adjustment_id, escalation_due_at, version, event_count, created_at, updated_at)
                 values (:id, :kind, :origin, :status, :user, :command, :field, :beforeUnit, :afterUnit, :beforePosition, :afterPosition,
-                        :recipient, :escalationDueAt, :version, :eventSequence, :at, :at)
+                        :recipient, :original, :escalationDueAt, :version, :eventSequence, :at, :at)
                 """)
                 .param("id", opened.id().value()).param("kind", opened.kind().name()).param("origin", opened.origin().name())
                 .param("status", opened.status().name()).param("user", opened.user() == null ? null : opened.user().value(), Types.OTHER)
@@ -71,6 +72,7 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
                 .param("beforePosition", opened.beforePosition() == null ? null : opened.beforePosition().value(), Types.OTHER)
                 .param("afterPosition", opened.afterPosition() == null ? null : opened.afterPosition().value(), Types.OTHER)
                 .param("recipient", opened.recipient() == null ? null : opened.recipient().value(), Types.OTHER)
+                .param("original", opened.original() == null ? null : opened.original().value(), Types.OTHER)
                 .param("escalationDueAt", OffsetDateTime.ofInstant(opened.escalationDueAt(), ZoneOffset.UTC))
                 .param("version", opened.versionAfterSave()).param("eventSequence", opened.eventSequenceAfterSave()).param("at", at).update();
     }
@@ -87,9 +89,14 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
         AdjustmentReference reference = changed.adjustedWith();
         int updated = jdbc.sql("""
                 update platform_identity.permission_adjustments
-                   set status = :status, upheld_at = :upheldAt, upheld_by = :upheldBy, uphold_reason = :reason,
-                       business_owner_employee_id = :owner, uphold_expires_at = :expiresAt, adjusted_at = :adjustedAt, adjusted_by = :adjustedBy,
-                       adjusted_authorization_request_id = :request, adjusted_audit_entry_id = :entry,
+                   set status = :status, upheld_at = coalesce(upheld_at, :upheldAt), upheld_by = coalesce(upheld_by, :upheldBy),
+                       uphold_reason = coalesce(uphold_reason, :reason), business_owner_employee_id = coalesce(business_owner_employee_id, :owner),
+                       uphold_expires_at = coalesce(uphold_expires_at, :expiresAt), adjusted_at = coalesce(adjusted_at, :adjustedAt),
+                       adjusted_by = coalesce(adjusted_by, :adjustedBy),
+                       adjusted_authorization_request_id = coalesce(adjusted_authorization_request_id, :request),
+                       adjusted_audit_entry_id = coalesce(adjusted_audit_entry_id, :entry), escalated_at = coalesce(escalated_at, :escalatedAt),
+                       expired_at = coalesce(expired_at, :expiredAt), is_held_at_expiry = coalesce(is_held_at_expiry, :held),
+                       regeneration_decided_at = coalesce(regeneration_decided_at, :decidedAt),
                        version = :next, event_count = :eventSequence, updated_at = :at
                  where permission_adjustment_id = :id and version = :version
                 """)
@@ -98,17 +105,58 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
                 .param("upheldBy", changed.upheldBy() == null ? null : changed.upheldBy().value(), Types.OTHER)
                 .param("reason", changed.upholdReason() == null ? null : changed.upholdReason().value(), Types.VARCHAR)
                 .param("owner", changed.businessOwner() == null ? null : changed.businessOwner().value(), Types.OTHER)
-                .param("expiresAt", changed.upholdExpiresAt() == null ? null : OffsetDateTime.ofInstant(changed.upholdExpiresAt(), ZoneOffset.UTC),
-                        Types.TIMESTAMP_WITH_TIMEZONE)
+                .param("expiresAt", utc(changed.upholdExpiresAt()), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("adjustedAt", changed.adjustedBy() == null ? null : at, Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("adjustedBy", changed.adjustedBy() == null ? null : changed.adjustedBy().value(), Types.OTHER)
                 .param("request", reference == null || reference.authorizationRequest() == null ? null : reference.authorizationRequest().value(), Types.OTHER)
                 .param("entry", reference == null || reference.auditEntry() == null ? null : reference.auditEntry().value(), Types.OTHER)
+                .param("escalatedAt", utc(changed.escalatedAt()), Types.TIMESTAMP_WITH_TIMEZONE)
+                .param("expiredAt", utc(changed.expiredAt()), Types.TIMESTAMP_WITH_TIMEZONE)
+                .param("held", changed.heldAtExpiry(), Types.BOOLEAN)
+                .param("decidedAt", utc(changed.regenerationDecidedAt()), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("next", changed.versionAfterSave()).param("eventSequence", changed.eventSequenceAfterSave()).param("at", at)
                 .param("id", changed.id().value()).param("version", changed.version()).update();
         if (updated != 1) {
             throw IdentityError.PLATFORM_IDENTITY_CONCURRENT_UPDATE.refusal("the item " + changed.id().value() + " was changed by someone else");
         }
+    }
+
+    @Override
+    public List<PermissionAdjustmentId> dueToExpire(Instant now, @Nullable PermissionAdjustmentId after, int limit) {
+        return ids(jdbc.sql("""
+                select permission_adjustment_id from platform_identity.permission_adjustments
+                 where status = 'UPHELD' and uphold_expires_at <= :now and (cast(:after as uuid) is null or (created_at, permission_adjustment_id)
+                       > (select created_at, permission_adjustment_id from platform_identity.permission_adjustments where permission_adjustment_id = :after))
+                 order by created_at, permission_adjustment_id limit :limit
+                """).param("now", utc(now)).param("after", after == null ? null : after.value(), Types.OTHER).param("limit", limit));
+    }
+
+    @Override
+    public List<PermissionAdjustmentId> pendingRegeneration(@Nullable PermissionAdjustmentId after, int limit) {
+        return ids(jdbc.sql("""
+                select permission_adjustment_id from platform_identity.permission_adjustments
+                 where status = 'EXPIRED' and regeneration_decided_at is null and (cast(:after as uuid) is null or (created_at, permission_adjustment_id)
+                       > (select created_at, permission_adjustment_id from platform_identity.permission_adjustments where permission_adjustment_id = :after))
+                 order by created_at, permission_adjustment_id limit :limit
+                """).param("after", after == null ? null : after.value(), Types.OTHER).param("limit", limit));
+    }
+
+    @Override
+    public List<PermissionAdjustmentId> overdueOpen(Instant now, @Nullable PermissionAdjustmentId after, int limit) {
+        return ids(jdbc.sql("""
+                select permission_adjustment_id from platform_identity.permission_adjustments
+                 where status = 'OPEN' and escalated_at is null and escalation_due_at <= :now and (cast(:after as uuid) is null or (created_at, permission_adjustment_id)
+                       > (select created_at, permission_adjustment_id from platform_identity.permission_adjustments where permission_adjustment_id = :after))
+                 order by created_at, permission_adjustment_id limit :limit
+                """).param("now", utc(now)).param("after", after == null ? null : after.value(), Types.OTHER).param("limit", limit));
+    }
+
+    private static List<PermissionAdjustmentId> ids(JdbcClient.StatementSpec query) {
+        return query.query((row, ignored) -> new PermissionAdjustmentId(row.getObject(1, UUID.class))).list();
+    }
+
+    private static @Nullable OffsetDateTime utc(@Nullable Instant instant) {
+        return instant == null ? null : OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 
     @Override
@@ -132,7 +180,8 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
 
     private static final String COLUMNS = "permission_adjustment_id, kind, origin_kind, status, user_id, role_id, org_unit_id, trigger_personnel_command_id, "
             + "trigger_field_kind, before_org_unit_id, after_org_unit_id, before_position_id, after_position_id, recipient_employee_id, escalation_due_at, "
-            + "created_at, upheld_by, business_owner_employee_id, uphold_expires_at, version, event_count";
+            + "created_at, upheld_by, business_owner_employee_id, uphold_expires_at, original_permission_adjustment_id, escalated_at, expired_at, is_held_at_expiry, "
+            + "regeneration_decided_at, version, event_count";
 
     private static PermissionAdjustment item(ResultSet row, int ignored) throws SQLException {
         return PermissionAdjustment.restore(new PermissionAdjustment.Stored(new PermissionAdjustmentId(row.getObject("permission_adjustment_id", UUID.class)),
@@ -145,8 +194,13 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
                 mapped(row, "recipient_employee_id", EmployeeId::new), row.getObject("escalation_due_at", OffsetDateTime.class).toInstant(),
                 row.getObject("created_at", OffsetDateTime.class).toInstant(), mapped(row, "upheld_by", UserId::new),
                 mapped(row, "business_owner_employee_id", EmployeeId::new),
-                row.getObject("uphold_expires_at", OffsetDateTime.class) == null ? null : row.getObject("uphold_expires_at", OffsetDateTime.class).toInstant(),
-                row.getLong("version"), row.getLong("event_count")));
+                instant(row, "uphold_expires_at"), mapped(row, "original_permission_adjustment_id", PermissionAdjustmentId::new), instant(row, "escalated_at"),
+                instant(row, "expired_at"), (Boolean) row.getObject("is_held_at_expiry"), instant(row, "regeneration_decided_at"), row.getLong("version"), row.getLong("event_count")));
+    }
+
+    private static @Nullable Instant instant(ResultSet row, String column) throws SQLException {
+        OffsetDateTime value = row.getObject(column, OffsetDateTime.class);
+        return value == null ? null : value.toInstant();
     }
 
     private static <T> @Nullable T mapped(ResultSet row, String column, Function<UUID, T> wrap) throws SQLException {
