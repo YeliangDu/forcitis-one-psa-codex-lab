@@ -301,13 +301,13 @@ class OrgMergeSafetyIT {
         long before = commandCount();
 
         assertThatThrownBy(() -> merge(unit(), dying, today)).isInstanceOf(DomainException.class);
-        assertThatThrownBy(() -> merge(unit(), leaving, today)).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> merge(unit(), leaving, today.plusDays(6))).isInstanceOf(DomainException.class);
 
         assertThat(commandCount()).isEqualTo(before);
         UUID home = unit();
         merge(unit(), home, today);
         assertThatThrownBy(() -> commands.enter(unitCommand(OrgStructureCommandKind.DISSOLVE, home, today.plusDays(2), null, null))).isInstanceOf(DomainException.class);
-        assertThatThrownBy(() -> merge(home, unit(), today.plusDays(2))).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> merge(home, unit(), today)).isInstanceOf(DomainException.class);
         assertThat(commands.enter(unitCommand(OrgStructureCommandKind.DISSOLVE, unit(), today.plusDays(2), null, null))).as("a unit nobody merges into is not held back").isNotNull();
     }
 

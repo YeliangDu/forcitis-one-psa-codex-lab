@@ -234,6 +234,26 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     }
 
     @Override
+    public boolean hasMergeAwayOnOrBefore(OrgUnitId orgUnit, LocalDate day) {
+        return jdbc.sql("select 1 from organization_workforce.org_structure_commands where target_org_unit_id = :id and command_kind = 'MERGE'"
+                + " and (status = 'IN_PROGRESS' or (status in ('PENDING', 'AWAITING_ATTRIBUTION_COUNTERSIGN') and effective_date <= :day)) limit 1")
+                .param("id", orgUnit.value()).param("day", day).query(Integer.class).optional().isPresent();
+    }
+
+    @Override
+    public boolean hasMergeIntoOnOrAfter(OrgUnitId orgUnit, LocalDate day) {
+        return jdbc.sql("select 1 from organization_workforce.org_structure_commands where merge_into_org_unit_id = :id and command_kind = 'MERGE'"
+                + " and status in ('PENDING', 'IN_PROGRESS', 'AWAITING_ATTRIBUTION_COUNTERSIGN') and effective_date >= :day limit 1")
+                .param("id", orgUnit.value()).param("day", day).query(Integer.class).optional().isPresent();
+    }
+
+    @Override
+    public List<OrgStructureCommandId> openMerges() {
+        return jdbc.sql("select org_structure_command_id from organization_workforce.org_structure_commands where command_kind = 'MERGE' and status in ('PENDING', 'IN_PROGRESS')"
+                + " order by effective_date, target_org_unit_id, org_structure_command_id").query((rs, n) -> new OrgStructureCommandId(rs.getObject(1, UUID.class))).list();
+    }
+
+    @Override
     public void insertOrgUnit(OrgStructureCommand c, Instant at) {
         jdbc.sql("""
                 insert into organization_workforce.org_units (id, code, name, parent_org_unit_id, status, region_category, is_delivery_unit, short_name, created_at, updated_at)
