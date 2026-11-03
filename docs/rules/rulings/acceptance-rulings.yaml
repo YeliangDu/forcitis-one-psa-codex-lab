@@ -444,3 +444,13 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/role_versioning/SystemRoleDeclarationIT.java
     reason: '#907 给组织数据管理员授 organization.workforce:org-structure-command:create（SystemRoleDeclaration.CURRENT，one-design 核对与 ADR-0073 与设计稿一致）；SEED 中 org_data_admin 清单按字母序加该码，修订号 2→3（声明变则加一，#934 惯例）；其他角色、断言、用例不变'
     ref: "commit 02c428be1 (#907 acceptance); review-907-seed-sonnet.md"
+  - id: RULING-LEAD-20261103-12
+    date: 2026-11-03
+    ruled_by: independent sonnet reviewer rv12r2 (dispatched by one-test, given only the diff), against one-design's confirmation on #895 (comment 6595465956), recorded by one-lead
+    implementer: one-dev-identity
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/role_versioning/SystemRoleDeclarationIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/role_versioning/SystemRoleDeclarationLauncher.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/role_versioning/SystemRoleRaisedRevisionIT.java
+    reason: '#895 新增系统角色 legal_entity_finance_head（SELF、非管理员、仅 organization.workforce:legal-entity-attribution:approve、修订号 1）并给业务管理员授该码（修订号 1→2）；系统角色数与对账探针 7→8，显示名改为八个，新角色逐项钉住；其他角色与断言不变。与 #907（RULING-LEAD-20261103-11）同改 SystemRoleDeclarationIT：后合入者在合并提交中同时保留两边改动（org_data_admin 修订号 3 与 org-structure-command:create；business_admin 修订号 2 与 approve 码；8 个角色、新角色钉住），并带该 PR 自己的 Acceptance-Ruling 尾注'
+    ref: "commit 0d0c0635c (PR #1077), patch-id 3918582bf273b6659d9158b03d9b342757b39a14; review-895-seed-sonnet.md, review-895-seed-2-sonnet.md"
