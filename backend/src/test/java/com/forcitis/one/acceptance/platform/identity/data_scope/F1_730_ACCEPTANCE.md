@@ -18,6 +18,13 @@
 | A-U2 `aPersonWithoutASensitiveRoleGetsNothingAndNobodyGetsAScopeReview` | 只有 employee 的人不生成；任何人都没有范围复核条目（对照：持有者生成，证明监听器跑过） |
 | A-U3 `aCorrectionThatEndsEmploymentGivesNothingAndIsNotRetried` | 更正后不在职（触发后部门岗位空）持有敏感角色也不生成；事件的每条发布状态为 COMPLETED，无失败重试，重投递仍不生成 |
 | 告警 `aTransferWithoutItsBeforeDepartmentIsAlertedNotRetriedAndGivesNoItem` | 转岗事件缺触发前部门（空）：恰好一条以 `ALERT P2 platform.identity ` 开头的 ERROR 日志（自由文本只断言含事件 id、不含此人姓名与工号；员工 id 允许出现）；不生成条目；事件发布已 COMPLETED（one-design 裁定，#730 评论 6600900803） |
+| 真实转岗 `aRealTransferOfAHolderGivesOneItemDueByTheEntitysOwnCalendar` | 人事专员提交转岗命令：持有敏感角色者得一条敏感角色复核（触发字段部门、前后部门、触发命令）；A-6(a)：法人自有日历（11-04 假日）时 escalation_due_at 为第 5 个工作日结束 11-10 |
+| 真实转岗 `aRealTransferOfAPersonWithoutASensitiveRoleGivesNothing` | 只有 employee 角色者转岗无条目，持有者对照有 |
+| A-6(a) 对照 `anEntityWithoutItsOwnCalendarUsesTheDefaultOne` | 信封法人无自有日历：默认日历，11-09 |
+| A-6(c) `anUnresolvableEntityStillGivesTheItemWithTheDefaultCalendarAndOneP3Alert` | 信封无法人：仍生成条目、默认日历 11-09、恰好一条 `ALERT P3 platform.identity ` 含事件 id 不含工号姓名、事件 COMPLETED 一次 |
+| A-6(d) `theTableHasNoLegalEntityColumn` | 表无法人列（现已绿，守住不加） |
+
+A-6 不覆盖/存疑：(b) 到期再生成用 `EmployeeLegalEntities.on` 属 S2，待 S2 作业用例；法人自有日历夹具直接写 `organization_attendance.work_calendar_years/days`（旧表，现行读取路径；日历维护 API 目前只管默认日历）——若实现改读版本表（`work_calendar_versions`），夹具要跟着改，请通知我；`escalation_due_at` 只断言落在第 5 个工作日当天（本地 00:00 之后、次日 00:00 及之前），不钉「结束」是 24:00 还是 23:59:59；范围复核（SCOPE_REVIEW）的真实转岗路径未覆盖（需要自定义组织单位角色夹具）。
 
 红：main 上 identity 没有处理 `EmployeeCorrected` 的监听器，四条都在等待 identity 发布而超时（失败信息列出该事件仅有 audit 的发布）。绿：临时的最小监听器（只对 security_auditor、business_admin 持有者按裁定插入一行）加放宽后的 CHECK，前 3 条全绿（告警条随实现落地后转绿）；临时文件不提交。
 

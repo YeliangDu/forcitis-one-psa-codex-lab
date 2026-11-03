@@ -259,4 +259,141 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         assertThat(publicationsOf(envelope.eventId().toString())).as("delivery consumed, not failed or resubmitted")
                 .isNotEmpty().allSatisfy(row -> assertThat(row).containsEntry("status", "COMPLETED").containsEntry("completion_attempts", 1));
     }
+
+    // ---- real EmployeeTransferred (personnel command) and the escalation due date (one-design ruling A-6, #730 comment 6600968506) ----
+
+    private static final java.time.ZoneId BUSINESS_ZONE = java.time.ZoneId.of("Asia/Shanghai");
+    private static final LocalDate HOLIDAY_OF_X = LocalDate.of(2026, 11, 4);
+
+    /** Instant of the local midnight that starts the given day in the business zone. */
+    private static java.time.Instant startOf(LocalDate day) {
+        return day.atStartOfDay(BUSINESS_ZONE).toInstant();
+    }
+
+    /** The legal entity gets its own 2026 calendar with one weekday holiday, which the default calendar (weekends off only) does not have. */
+    private void givenOwnCalendarWithAHoliday(UUID entity, LocalDate holiday) throws SQLException {
+        UUID year = Uuids.timeOrdered(NOW);
+        try (Connection attendance = schemaConnection("organization_attendance")) {
+            update(attendance, "insert into work_calendar_years (id, legal_entity_id, year_number) values (?, ?, ?)", year, stored(entity), holiday.getYear());
+            update(attendance, "insert into work_calendar_days (id, work_calendar_year_id, calendar_date, day_kind) values (?, ?, ?, 'HOLIDAY')",
+                    Uuids.timeOrdered(NOW), year, holiday);
+        }
+    }
+
+    /** The five workdays after Monday 2026-11-02 end on Mon 11-09 by the default calendar and, with 11-04 a holiday, on Tue 11-10. */
+    private void assertDueAtEndOfDay(Object due, LocalDate fifthWorkday) {
+        java.time.Instant at = instantOf(due);
+        assertThat(at).as("the due instant is the end of " + fifthWorkday + " in the business zone").isAfter(startOf(fifthWorkday))
+                .isBeforeOrEqualTo(startOf(fifthWorkday.plusDays(1)));
+    }
+
+    private Map<String, Object> dueRowAbout(UUID user) throws SQLException {
+        try (Connection identity = schemaConnection("platform_identity")) {
+            return query(identity, "select escalation_due_at from permission_adjustments where user_id = ?", user).getFirst();
+        }
+    }
+
+    private void awaitItemsAbout(UUID user, int count) {
+        Awaitility.await().atMost(SETTLE).pollInterval(Duration.ofMillis(100)).untilAsserted(() -> assertThat(itemsAbout(user)).hasSize(count));
+    }
+
+    private EmployeeTransferred transferredIn(UUID employee, UUID command, UUID fromUnit, UUID toUnit, @org.jspecify.annotations.Nullable UUID entity) {
+        EventEnvelope envelope = new EventEnvelope(Uuids.timeOrdered(NOW), "organization.workforce.EmployeeTransferred", 1, NOW, "Employee", employee, 1,
+                Uuids.timeOrdered(NOW), null, ActorType.SYSTEM, com.forcitis.one.kernel.SystemActors.idOf("test.envelope"),
+                entity == null ? null : new LegalEntityId(entity), BACK_ON, null, List.of());
+        return new EmployeeTransferred(envelope, new PersonnelCommandId(command), employeeIdOf(employee), BACK_ON, List.of(TriggerFieldKind.ORG_UNIT),
+                new OrgUnitId(fromUnit), new OrgUnitId(toUnit), null, null);
+    }
+
+    @Test
+    @DisplayName("#730 真实转岗 + A-6(a)：人事专员对持有敏感角色的人提交转岗命令，生成恰好一条敏感角色复核（触发字段部门、触发前为原部门、触发后为目标部门、触发命令为该命令）；法人有自有日历且某个工作日为假日时，escalation_due_at 是该法人日历的第 5 个工作日结束（11-10），不是默认日历的（11-09）")
+    void aRealTransferOfAHolderGivesOneItemDueByTheEntitysOwnCalendar() throws Exception {
+        givenOwnCalendarWithAHoliday(legalEntity, HOLIDAY_OF_X);
+        UUID employee = employedHolding(SECURITY_AUDITOR);
+        UUID user = accountOf(employee);
+        UUID toUnit = newUnit();
+
+        UUID command = transfer(employee, TODAY, toUnit);
+
+        awaitItemsAbout(user, 1);
+        Map<String, Object> item = itemsAbout(user).getFirst();
+        assertThat(item).containsEntry("kind", "SENSITIVE_ROLE_REVIEW").containsEntry("origin_kind", "ASSIGNMENT_CHANGE").containsEntry("status", "OPEN")
+                .containsEntry("trigger_field_kind", "ORG_UNIT").containsEntry("trigger_personnel_command_id", command)
+                .containsEntry("before_org_unit_id", unit).containsEntry("after_org_unit_id", toUnit);
+        assertThat(item.get("recipient_employee_id")).as("a person item has no recipient").isNull();
+        assertDueAtEndOfDay(dueRowAbout(user).get("escalation_due_at"), LocalDate.of(2026, 11, 10));
+    }
+
+    @Test
+    @DisplayName("#730 真实转岗：只有 employee 角色的人转岗不生成条目（对照：同一时刻持有敏感角色的人转岗生成一条，证明监听器在跑）")
+    void aRealTransferOfAPersonWithoutASensitiveRoleGivesNothing() throws Exception {
+        UUID plain = employedHolding();
+        UUID plainUser = accountOf(plain);
+        UUID holder = employedHolding(SECURITY_AUDITOR);
+        UUID holderUser = accountOf(holder);
+
+        transfer(plain, TODAY, newUnit());
+        transfer(holder, TODAY, newUnit());
+
+        awaitItemsAbout(holderUser, 1);
+        assertThat(itemsAbout(plainUser)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("#730 A-6(a) 对照：同样的转岗事件，信封法人是没有自有日历的另一个法人，escalation_due_at 按默认日历（周末休息、无假日）是第 5 个工作日结束（11-09）；日历不跨法人套用")
+    void anEntityWithoutItsOwnCalendarUsesTheDefaultOne() throws Exception {
+        givenOwnCalendarWithAHoliday(legalEntity, HOLIDAY_OF_X);
+        UUID otherEntity = createLegalEntity(administrator, newLegalEntityCode("PD"), "Synthetic entity without calendar");
+        UUID employee = employedHolding(SECURITY_AUDITOR);
+        UUID user = accountOf(employee);
+        EmployeeTransferred event = transferredIn(employee, Uuids.timeOrdered(NOW), unit, newUnit(), otherEntity);
+
+        publish(event);
+        identityHandled(event.envelope().eventId().toString());
+
+        assertThat(itemsAbout(user)).hasSize(1);
+        assertDueAtEndOfDay(dueRowAbout(user).get("escalation_due_at"), LocalDate.of(2026, 11, 9));
+    }
+
+    @Test
+    @DisplayName("#730 A-6(c)：信封不带法人时条目仍然生成，escalation_due_at 按默认日历（11-09），并恰好一条以 \"ALERT P3 platform.identity \" 开头的日志，含事件 id、不含工号与姓名；事件处理完成不重试")
+    void anUnresolvableEntityStillGivesTheItemWithTheDefaultCalendarAndOneP3Alert() throws Exception {
+        givenOwnCalendarWithAHoliday(legalEntity, HOLIDAY_OF_X);
+        UUID employee = employedHolding(SECURITY_AUDITOR);
+        UUID user = accountOf(employee);
+        EmployeeTransferred event = transferredIn(employee, Uuids.timeOrdered(NOW), unit, newUnit(), null);
+        String eventId = event.envelope().eventId().toString();
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        ListAppender<ILoggingEvent> logged = new ListAppender<>();
+        logged.start();
+        root.addAppender(logged);
+        try {
+            publish(event);
+            identityHandled(eventId);
+        } finally {
+            root.detachAppender(logged);
+        }
+
+        assertThat(itemsAbout(user)).as("a lost review is worse than an approximate date").hasSize(1);
+        assertDueAtEndOfDay(dueRowAbout(user).get("escalation_due_at"), LocalDate.of(2026, 11, 9));
+        List<ILoggingEvent> alerts = logged.list.stream().filter(line -> line.getFormattedMessage().startsWith("ALERT P3 platform.identity ")).toList();
+        assertThat(alerts).as("exactly one P3 alert line").hasSize(1);
+        String line = alerts.getFirst().getFormattedMessage();
+        assertThat(line).contains(eventId);
+        Map<String, Object> person;
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            person = query(workforce, "select employee_code, display_name from employees where id = ?", stored(employee)).getFirst();
+        }
+        assertThat(line).doesNotContain(String.valueOf(person.get("employee_code"))).doesNotContain(String.valueOf(person.get("display_name")));
+        assertThat(publicationsOf(eventId)).isNotEmpty().allSatisfy(row -> assertThat(row).containsEntry("status", "COMPLETED").containsEntry("completion_attempts", 1));
+    }
+
+    @Test
+    @DisplayName("#730 A-6(d)：permission_adjustments 没有法人列（升级期限在生成时存好，之后不需要法人）")
+    void theTableHasNoLegalEntityColumn() throws Exception {
+        try (Connection identity = schemaConnection("platform_identity")) {
+            assertThat(query(identity, "select column_name from information_schema.columns where table_schema = 'platform_identity' and table_name = 'permission_adjustments' and column_name like '%legal_entity%'"))
+                    .isEmpty();
+        }
+    }
 }
