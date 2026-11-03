@@ -3,7 +3,9 @@ package com.forcitis.one.organization.workforce.domain;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.event.EventDraft;
+import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.events.EmployeeLegalEntityChanged;
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -12,16 +14,17 @@ import java.util.List;
  */
 public final class EmployeeLegalEntityChange extends AggregateRoot {
 
-    private EmployeeLegalEntityChange(long employeeEventSequence) {
+    private final EmployeeId id;
+
+    private EmployeeLegalEntityChange(EmployeeId id, long employeeEventSequence) {
         super(0, employeeEventSequence);
+        this.id = id;
     }
 
-    public static EmployeeLegalEntityChange of(OrgStructureCommand command, OrgCountersignBasis basis, long employeeEventSequence) {
-        EmployeeLegalEntityChange change = new EmployeeLegalEntityChange(employeeEventSequence);
-        EmployeeId employee = basis.employeeId();
+    public static EmployeeLegalEntityChange of(OrgStructureCommandId command, LocalDate effectiveDate, OrgCountersignBasis basis, long employeeEventSequence) {
+        EmployeeLegalEntityChange change = new EmployeeLegalEntityChange(basis.employeeId(), employeeEventSequence);
         change.record((envelopes, sequence) -> new EmployeeLegalEntityChanged(envelopes.wrap(new EventDraft("organization.workforce.EmployeeLegalEntityChanged", 1, "Employee",
-                employee.value(), sequence, basis.next(), command.effectiveDate(), List.of())), null, command.id(), employee, command.effectiveDate(), basis.previous(),
-                basis.next()));
+                change.id.value(), sequence, basis.next(), effectiveDate, List.of())), null, command, change.id, effectiveDate, basis.previous(), basis.next()));
         return change;
     }
 }

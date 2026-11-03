@@ -17,6 +17,7 @@ src/main/java/com/forcitis/one/organization/workforce/application/HeldSeparation
 src/main/java/com/forcitis/one/organization/workforce/application/MigrateInitialVersions.java | 1 | 15 | SURROGATE
 src/main/java/com/forcitis/one/organization/workforce/application/OwnAttributionGuard.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/organization/workforce/application/OrgMergeSteps.java | 1 | 30 | NONE
+src/main/java/com/forcitis/one/organization/workforce/application/OrgCountersigns.java | 1 | 25 | POSSIBLE
 src/main/java/com/forcitis/one/organization/workforce/application/OrgStructureCommandService.java | 2 | 29,25 | POSSIBLE
 src/main/java/com/forcitis/one/organization/workforce/application/PersonnelCommandService.java | 2 | 24,25 | POSSIBLE
 src/main/java/com/forcitis/one/platform/approval/application/ListAllTasks.java | 2 | 1,2 | NONE

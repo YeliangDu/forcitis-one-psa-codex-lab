@@ -23,7 +23,7 @@ public final class OrgCommandResolutionSources implements LegalEntityResolutionS
     }
 
     /** The sources with the employee's own attribution left out: the chain only, as when judging whether the drafter's own place in the organisation would change. */
-    public static LegalEntityResolutionSources chainOnly(LegalEntityResolutionSources stored) {
+    public static LegalEntityResolutionSources withoutOwnAttribution(LegalEntityResolutionSources stored) {
         return new LegalEntityResolutionSources() {
             @Override
             public Optional<LegalEntityId> employeeAttribution(EmployeeId employee, LocalDate date) {

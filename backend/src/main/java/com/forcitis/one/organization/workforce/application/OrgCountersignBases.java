@@ -74,8 +74,8 @@ class OrgCountersignBases {
             return;
         }
         LocalDate day = command.effectiveDate();
-        LegalEntityResolutionSources chainBefore = OrgCommandResolutionSources.chainOnly(sources);
-        LegalEntityResolutionSources chainAfter = OrgCommandResolutionSources.chainOnly(OrgCommandResolutionSources.after(sources, command));
+        LegalEntityResolutionSources chainBefore = OrgCommandResolutionSources.withoutOwnAttribution(sources);
+        LegalEntityResolutionSources chainAfter = OrgCommandResolutionSources.withoutOwnAttribution(OrgCommandResolutionSources.after(sources, command));
         Optional<LegalEntityId> before = LegalEntityResolution.resolve(chainBefore, own.get(), day);
         Optional<LegalEntityId> next = LegalEntityResolution.resolve(chainAfter, own.get(), day);
         if (before.isPresent() && next.isPresent() && !before.get().equals(next.get())) {

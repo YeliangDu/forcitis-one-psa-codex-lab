@@ -15,6 +15,7 @@ import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersign;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
 import com.forcitis.one.organization.workforce.domain.CountersignRequestKind;
+import com.forcitis.one.organization.workforce.domain.CountersignStatus;
 import com.forcitis.one.organization.workforce.domain.EmployeeLegalEntityChange;
 import com.forcitis.one.organization.workforce.domain.OrgCommandStatus;
 import com.forcitis.one.organization.workforce.domain.OrgCountersignBasis;
@@ -134,7 +135,7 @@ class OrgCountersigns {
         }
         List<AttributionCountersign> set = countersigns.ofOrgCommand(command.id()).stream()
                 .filter(r -> r.requestKind() == row.requestKind() && r.requestSequenceNumber() == row.requestSequenceNumber()).toList();
-        boolean last = set.stream().allMatch(r -> r.id().equals(row.id()) || r.status() == com.forcitis.one.organization.workforce.domain.CountersignStatus.APPROVED);
+        boolean last = set.stream().allMatch(r -> r.id().equals(row.id()) || r.status() == CountersignStatus.APPROVED);
         String failure = last && row.requestKind() == CountersignRequestKind.CHANGE ? recheck(command) : null;
         if (failure != null) {
             row.reject(by, failure, now);
@@ -179,7 +180,7 @@ class OrgCountersigns {
         if (command.status() == OrgCommandStatus.EFFECTIVE) {
             for (OrgCountersignBasis basis : commands.basisOf(command.id())) {
                 commands.lockEmployee(basis.employeeId());
-                EmployeeLegalEntityChange change = EmployeeLegalEntityChange.of(command, basis, personnel.eventSequence(basis.employeeId()));
+                EmployeeLegalEntityChange change = EmployeeLegalEntityChange.of(command.id(), command.effectiveDate(), basis, personnel.eventSequence(basis.employeeId()));
                 events.publish(change);
                 personnel.saveEventSequence(basis.employeeId(), change.eventSequenceAfterSave());
             }

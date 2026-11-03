@@ -114,7 +114,7 @@ class OrgStructureCommandService implements OrgStructureCommands {
         }
         boolean awaiting = !basis.isEmpty();
         if (awaiting) {
-            command.awaitCountersign();
+            command.requireCountersign();
         }
         if (creates) {
             insertTarget(command, now);

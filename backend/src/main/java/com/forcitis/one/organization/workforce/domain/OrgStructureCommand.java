@@ -230,7 +230,7 @@ public final class OrgStructureCommand extends AggregateRoot {
     }
 
     /** The command changes people's cost legal entity: nothing is written until every finance head has approved. Only a command being entered may start here. */
-    public void awaitCountersign() {
+    public void requireCountersign() {
         if (status != OrgCommandStatus.PENDING && status != OrgCommandStatus.EFFECTIVE) {
             throw notAllowed("only a command being entered waits for the countersign");
         }

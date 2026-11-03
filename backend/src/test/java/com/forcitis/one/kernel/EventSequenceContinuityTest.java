@@ -149,6 +149,16 @@ class EventSequenceContinuityTest {
     }
 
     @Test
+    @DisplayName("EmployeeLegalEntityChange: the event continues the employee's sequence")
+    void employeeLegalEntityChange() {
+        checkMany(() -> com.forcitis.one.organization.workforce.domain.EmployeeLegalEntityChange.of(
+                        new com.forcitis.one.organization.workforce.api.OrgStructureCommandId(TestIds.uuid(1)), TODAY,
+                        new com.forcitis.one.organization.workforce.domain.OrgCountersignBasis(new EmployeeId(TestIds.uuid(2)),
+                                new com.forcitis.one.kernel.LegalEntityId(TestIds.uuid(5)), new com.forcitis.one.kernel.LegalEntityId(TestIds.uuid(6))), 7),
+                List.of(c -> { }));
+    }
+
+    @Test
     @DisplayName("StoredFile: no events, the lock version still moves once per save")
     void storedFile() {
         checkMany(() -> com.forcitis.one.platform.file.domain.StoredFile.restore(new com.forcitis.one.platform.file.api.FileId(TestIds.uuid(4)),

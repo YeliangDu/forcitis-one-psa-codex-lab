@@ -320,7 +320,7 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     public List<OrgCountersignBasis> basisOf(OrgStructureCommandId command) {
         return jdbc.sql("""
                 select employee_id, previous_legal_entity_id, new_legal_entity_id from organization_workforce.attribution_countersign_bases
-                 where org_structure_command_id = :command order by employee_id
+                 where org_structure_command_id = :command order by created_at, employee_id
                 """).param("command", command.value())
                 .query((rs, n) -> new OrgCountersignBasis(new EmployeeId(rs.getObject("employee_id", UUID.class)),
                         new LegalEntityId(rs.getObject("previous_legal_entity_id", UUID.class)), new LegalEntityId(rs.getObject("new_legal_entity_id", UUID.class)))).list();
