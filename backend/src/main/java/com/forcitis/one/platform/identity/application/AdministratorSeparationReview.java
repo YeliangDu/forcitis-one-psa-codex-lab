@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * A sync run that would separate a holder of super_admin or of the security auditor role waits for a person (ADR-0027 section 1,
+ * A personnel command that would separate a holder of super_admin or of the security auditor role waits for a person (ADR-0027 section 1,
  * Q-3), and so does one that would leave fewer than two usable super_admin holders. Only a retained holder of one of the two
  * roles may lift that hold (ADR-0028).
  */

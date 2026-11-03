@@ -16,7 +16,7 @@ import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * R-1b P3b ★ (ADR-0033 section 3 items 1 and 3; card section 4 items 8 and 9): the reverse tests of the "本人" gates (EmergencyLoginEmploymentIT,
- * HeldSeparationReleaseIT, OwnAttributionIT, ApprovalAccountsIT, RetractionInitiatorAccountsIT, TimesheetOwnerAccountsIT, OwnRolesIT,
+ * SeparationHoldReleaserIT, OwnAttributionIT, ApprovalAccountsIT, RetractionInitiatorAccountsIT, TimesheetOwnerAccountsIT, OwnRolesIT,
  * AuthorizationConfirmerAccountsIT, AccountingCodeConfirmerAccountsIT, NumberingRuleConfirmerIT) and AccountEnsureConcurrencyIT run again
  * unchanged once the employee ids are UUIDs. This case pins that they then really run with UUIDs: the build's EmployeeId wraps a UUID,
  * the employee id an account names is the UUID the employee entry has, and it is not the account's own UUID.

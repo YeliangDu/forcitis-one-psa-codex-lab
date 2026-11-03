@@ -1,6 +1,6 @@
 # 由 architecture/panorama/scan_acceptance_tests.py 生成，勿手改
 meta:
-  count: 1132
+  count: 1115
   covers_nonempty: 297
   generated_from:
     - "backend/src/test/java/**/*.java (exclude **/architecture/**; outside acceptance require RULE-/INV-)"
@@ -3726,108 +3726,6 @@ tests:
     class_covers: []
     covers: ["RULE-372"]
     location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgDirectoryIntegrationTest.java:233"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#applyingTheSnapshotIsARegisteredMultiAggregateWrite"
-    display_name: "INT-DDD-H2 同步应用快照的多聚合写已登记，事件 relatedAggregates 列出快照"
-    kind: "integration"
-    class_covers: []
-    covers: []
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:83"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#brokenTreeLeavesTheSnapshotAlone"
-    display_name: "RULE-354 a broken org tree fails the run, writes nothing and publishes nothing"
-    kind: "integration"
-    class_covers: []
-    covers: ["RULE-354"]
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:216"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#concurrentRunsDoNotDuplicate"
-    display_name: "two runs at the same time never double-write: the writer lock serialises them"
-    kind: "integration"
-    class_covers: []
-    covers: []
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:359"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#dataQualityCountIsOutput"
-    display_name: "RULE-374 the number of employed people without a WeCom user id is recorded and exposed as a gauge"
-    kind: "integration"
-    class_covers: []
-    covers: ["RULE-374"]
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:348"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#firstRunBuildsTheSnapshot"
-    display_name: "RULE-357/373 the first run builds the snapshot in one transaction, logs run and differences, announces the change"
-    kind: "integration"
-    class_covers: []
-    covers: ["RULE-357"]
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:100"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#interruptedRunsAreClosed"
-    display_name: "a run that was killed mid-way is closed as failed by the next run, a recent one is left alone"
-    kind: "integration"
-    class_covers: []
-    covers: []
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:190"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#isolatedRowDoesNotStopTheBatch"
-    display_name: "RULE-365 an isolated row is reported in the run, the rest of the batch is written"
-    kind: "integration"
-    class_covers: []
-    covers: ["RULE-365"]
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:334"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#leaverIsSeparatedOnce"
-    display_name: "RULE-363/366 a leaver is separated once, the event names them, and re-running never repeats it"
-    kind: "integration"
-    class_covers: []
-    covers: ["RULE-363"]
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:169"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#recoveredSourceClosesTheHold"
-    display_name: "a held run that the source itself repairs is closed by the next normal run, no administrator needed"
-    kind: "integration"
-    class_covers: []
-    covers: []
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:314"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#releaseAppliesTheHeldChange"
-    display_name: "RULE-358 an administrator releases the held run: the source is read afresh, the guard is bypassed, the actor is audited"
-    kind: "integration"
-    class_covers: []
-    covers: ["RULE-358"]
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:289"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#releaseReasonLosesControlCharacters"
-    display_name: "DATA-REPAIR-timesheet-audit TB-01 a control character in the reason of a release is replaced by a space before it reaches the audit text"
-    kind: "integration"
-    class_covers: []
-    covers: []
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:273"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#shortNamesAreRefreshedAndKept"
-    display_name: "short names: refreshed daily from the old system, only changed units are touched, the source sync never overwrites them"
-    kind: "integration"
-    class_covers: []
-    covers: []
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:400"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#shrinkHoldsTheRun"
-    display_name: "RULE-358/366 shrink guard: a drop over 20 % holds the run, nothing is written, one held row is refreshed, alerts can fire"
-    kind: "integration"
-    class_covers: []
-    covers: ["RULE-358"]
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:252"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#snapshotDayIsTheSameForTheEventAndTheHistoryRowsAcrossMidnight"
-    display_name: "B2b-H2 a run that crosses Shanghai midnight dates its event and its history rows with the same day: the one the source was read on"
-    kind: "integration"
-    class_covers: []
-    covers: []
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:133"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#unavailableSourceFailsTheRun"
-    display_name: "an unreachable the source fails the run, records why and keeps the snapshot; the next run recovers"
-    kind: "integration"
-    class_covers: []
-    covers: []
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:234"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#unchangedSourceChangesNothing"
-    display_name: "RULE-357 a run without changes writes no rows and publishes no event"
-    kind: "integration"
-    class_covers: []
-    covers: ["RULE-357"]
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:154"
-  - key: "com.forcitis.one.organization.workforce.application.OrgSnapshotSyncIntegrationTest#wecomUserIdCanMoveBetweenPeopleInOneRun"
-    display_name: "the unique WeCom key never trips the write: a user id moving from a leaver to a new hire in one run"
-    kind: "integration"
-    class_covers: []
-    covers: []
-    location: "backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java:384"
   - key: "com.forcitis.one.organization.workforce.domain.EmployeeSyncRulesTest#duplicateWecomUserIdIsNotStored"
     display_name: "RULE-362 one WeCom user id identifies one employed person: duplicates are stored for nobody and reported"
     kind: "integration"

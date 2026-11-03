@@ -130,8 +130,11 @@ class ClamdScannerTest {
     @Test
     void aSilentClamdTimesOutAndIsRetriedWithinTheLimitThenRefused() throws Exception {
         Path file = staged();
+        // A frozen clock: the 200 ms is then spent only waiting on the silent server (the selector waits in real time), never on a stall of the test JVM
+        // before the client has written its command (a deadline read from the live clock expired first on a loaded host: the server then saw an empty command)
+        Clock frozen = Clock.fixed(Instant.now(), ZoneOffset.UTC);
         try (FakeClamd clamd = FakeClamd.tcp(command -> null)) {
-            assertThatThrownBy(() -> scanner(tcp(clamd.port(), 2, Duration.ofMillis(200))).scan(file))
+            assertThatThrownBy(() -> new ClamdScanner(tcp(clamd.port(), 2, Duration.ofMillis(200)), frozen).scan(file))
                     .isInstanceOf(ExternalSystemUnavailableException.class).hasMessageContaining("2 attempts");
             assertThat(clamd.commands).containsExactly("zVERSION", "zVERSION");
         }

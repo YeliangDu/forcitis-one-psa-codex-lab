@@ -14,7 +14,6 @@ src/main/java/com/forcitis/one/organization/workforce/application/HeldSeparation
 src/main/java/com/forcitis/one/organization/workforce/application/MigrateInitialVersions.java | 1 | 15 | SURROGATE
 src/main/java/com/forcitis/one/organization/workforce/application/OwnAttributionGuard.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/organization/workforce/application/PersonnelCommandService.java | 2 | 24,25 | POSSIBLE
-src/main/java/com/forcitis/one/organization/workforce/application/RecordSyncRunRelease.java | 1 | 17 | POSSIBLE
 src/main/java/com/forcitis/one/platform/approval/application/ListAllTasks.java | 2 | 1,2 | NONE
 src/main/java/com/forcitis/one/platform/approval/application/ReassignTask.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/platform/approval/application/Retraction.java | 1 | 1 | NONE
@@ -26,6 +25,7 @@ src/main/java/com/forcitis/one/platform/audit/application/SearchAuditEntries.jav
 src/main/java/com/forcitis/one/platform/file/infrastructure/audit/BindingAuditLog.java | 5 | 23 | SURROGATE
 src/main/java/com/forcitis/one/platform/file/infrastructure/audit/StoreAuditLog.java | 6 | 22 | POSSIBLE
 src/main/java/com/forcitis/one/platform/identity/application/AccountGrants.java | 3 | 1 | NONE
+src/main/java/com/forcitis/one/platform/identity/application/AuthorizationVoiding.java | 1 | 1,4 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/BrowserIdentity.java | 2 | 11 | SURROGATE
 src/main/java/com/forcitis/one/platform/identity/application/ConfirmIdentity.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/CreateRole.java | 1 | 1,4 | NONE

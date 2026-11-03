@@ -4,7 +4,7 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.util.List;
 
-/** Who and what a sync run changed, as ids; already-separated and already-revoked rows are never repeated. */
+/** Who and what a reconciliation changed, as ids; already-separated and already-revoked rows are never repeated. */
 public record SnapshotChange(List<EmployeeId> changedEmployees, List<EmployeeId> separatedEmployees, List<OrgUnitId> changedOrgUnits) {
     public SnapshotChange {
         changedEmployees = List.copyOf(changedEmployees);

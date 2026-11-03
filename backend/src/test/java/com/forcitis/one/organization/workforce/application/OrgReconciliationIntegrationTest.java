@@ -13,7 +13,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.organization.workforce.domain.OrgReconciliationReport;
-import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,16 +20,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 /** Named *Test so Surefire runs it in the default build. */
 class OrgReconciliationIntegrationTest extends WorkforceIntegrationSupport {
     @Autowired
-    SyncOrgSnapshot sync;
-
-    @Autowired
     ReconcileOrgSnapshot reconcile;
 
     @Test
     @DisplayName("组织零差异: after a sync the stored snapshot equals the source in people, org units and reporting relations")
     void zeroDifferenceAfterSync() {
         orgSource.snapshot = tree(person(1, 2, 100L, null), person(2, 3, 101L, 1L), person(3, 3, 101L, 1L), person(4, 2, 100L, null, null, null));
-        sync.execute(SyncTrigger.SCHEDULED, false);
+        SnapshotSeeder.seed(jdbc, orgSource.snapshot);
 
         OrgReconciliationReport report = reconcile.execute();
 
@@ -45,7 +41,7 @@ class OrgReconciliationIntegrationTest extends WorkforceIntegrationSupport {
     @DisplayName("组织零差异: a change in the source that is not synced yet, and a hand edit of the snapshot, both show up as differences")
     void driftIsVisible() {
         orgSource.snapshot = tree(person(1, 2, 100L, null), person(2, 3, 101L, 1L), person(3, 3, 101L, 1L));
-        sync.execute(SyncTrigger.SCHEDULED, false);
+        SnapshotSeeder.seed(jdbc, orgSource.snapshot);
 
         orgSource.snapshot = tree(person(1, 2, 100L, null), person(2, 3, 101L, 3L), person(3, 3, 101L, 1L), person(4, 2, 100L, null));
         OrgReconciliationReport beforeNextSync = reconcile.execute();
@@ -55,7 +51,7 @@ class OrgReconciliationIntegrationTest extends WorkforceIntegrationSupport {
         assertThat(beforeNextSync.sourceEmployedCount()).isEqualTo(4);
         assertThat(beforeNextSync.snapshotEmployedCount()).isEqualTo(3);
 
-        sync.execute(SyncTrigger.SCHEDULED, false);
+        SnapshotSeeder.seed(jdbc, orgSource.snapshot);
         assertThat(reconcile.execute().isZeroDifference()).isTrue();
 
         jdbc.sql("update organization_workforce.org_units set parent_org_unit_id = " + sqlOrgUnit(1) + " where id = " + sqlOrgUnit(3)).update();
@@ -67,7 +63,7 @@ class OrgReconciliationIntegrationTest extends WorkforceIntegrationSupport {
     void headsManagersAndWecomIdsAreCompared() {
         orgSource.snapshot = source(java.util.List.of(unit(1, null), unit(2, 1L)), java.util.List.of(head(2, 1), manager(2, 1)),
                 java.util.List.of(post(100)), java.util.List.of(person(1, 2, 100L, null, "13900000001", "wx-1"), person(2, 2, 100L, null, "13900000002", "wx-2")));
-        sync.execute(SyncTrigger.SCHEDULED, false);
+        SnapshotSeeder.seed(jdbc, orgSource.snapshot);
         assertThat(reconcile.execute().isZeroDifference()).isTrue();
 
         orgSource.snapshot = source(java.util.List.of(unit(1, null), unit(2, 1L)), java.util.List.of(head(2, 2), manager(2, 2)),

@@ -28,8 +28,12 @@ final class ClassificationRegister {
     private static final String RULE = "D2 (ADR-0043, NAMING_STANDARD.md §2.5)";
     private static final Pattern REPORT = Pattern.compile("docs/privacy/[\\w./-]+\\.md");
 
-    /** Column names that must be registered at SENSITIVE or higher (ADR-0026 section 7; ADR-0043 guard rule 1, groups 1 and 2). */
-    static final Pattern SENSITIVE_NAME = Pattern.compile("(^|_)(password|secret|totp|bank|salary|wage|daily_rate|id_card|identity_number|passport|mobile|phone|birth|address|attribute_bytes)(_|$)");
+    /**
+     * Column names that must be registered at SENSITIVE or higher (ADR-0026 section 7; ADR-0043 guard rule 1, groups 1 and 2). The class word of an email
+     * column, a name that ends in the token email_address (the email word starts the name or follows an underscore), is not a physical address (ADR-0043 :202, one-design ruling on #980); email_address_hash and every other
+     * address stay sensitive.
+     */
+    static final Pattern SENSITIVE_NAME = Pattern.compile("(^|_)(password|secret|totp|bank|salary|wage|daily_rate|id_card|identity_number|passport|mobile|phone|birth|(?<!(?:^|_)email_)address|address(?=_)|attribute_bytes)(_|$)");
     /** Column names whose value is sensitive personal information (art. 28 PIPL; the HR list of the legal answer 2026-11-02): they must be marked SPI. */
     static final Pattern SPI_NAME = Pattern.compile("(^|_)(bank|id_card|identity_number|passport|ethnicity|household|hukou|biometric|fingerprint|face_template|gps|whereabouts|health|sick_leave|work_injury|maternity|pregnancy|special_deduction)(_|$)");
     /** Pay figures are personal information, sensitive personal information when legal says so (ADR-0043 U-5, U-11): PI or SPI. */

@@ -1,3 +1,2 @@
 # Repository methods that return an aggregate root and make its id although ADR-0033 section 1 item 9 says the id is made when the aggregate is built (IdMakingGuardTest).
 # Format: <class>.<method>  # reason and the card that ends the exception. A line whose method no longer breaks the rule fails the test.
-com.forcitis.one.organization.workforce.infrastructure.persistence.JdbcSyncRunRepository.insertRunning  # SyncRun gets its id in the repository; the synchronisation is rebuilt in split a / b (NEXT_BATCH_PLAN 7.11), which builds it with the id

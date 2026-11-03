@@ -2,7 +2,6 @@ package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.kernel.EmployeeId;
-import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.time.Instant;
@@ -18,10 +17,6 @@ public interface OrgSnapshotRepository {
     void lockForWrite();
 
     OrgSnapshot loadAll();
-
-    /** The order never trips the unique keys. */
-    /** snapshotDate is the day the history rows take effect from: the day the source was read. */
-    void save(Reconciliation changes, SyncRunId syncRunId, Instant now, LocalDate snapshotDate);
 
     void saveRegisteredEmployee(RegisteredEmployee registered, Instant now);
 
