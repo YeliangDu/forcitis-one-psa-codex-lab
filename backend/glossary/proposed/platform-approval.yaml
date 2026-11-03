@@ -416,3 +416,51 @@ terms:
   status: approved
   note: ''
   confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_approval_task_not_found
+  zh: 任务不存在
+  en: PlatformApprovalTaskNotFound
+  snake: platform_approval_task_not_found
+  kind: error_code
+  bc: platform.approval
+  scope: domain
+  definition: 审批任务不存在或已办结，或办理人无权看到它（404）
+  standard_ref:
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: ''
+- id: error__platform_approval_no_process
+  zh: 没有审批流程
+  en: PlatformApprovalNoProcess
+  snake: platform_approval_no_process
+  kind: error_code
+  bc: platform.approval
+  scope: domain
+  definition: 该单据类型没有审批流程，报价上线前审批只受理工时（422，AP-14、ADR-0030 U-3）
+  standard_ref:
+  - ADR-0030 U-3
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: IMP-1021-NX5-01 RULING-COORD-20261021-03
+- id: error__platform_approval_transfer_target_invalid
+  zh: 转交对象无效
+  en: PlatformApprovalTransferTargetInvalid
+  snake: platform_approval_transfer_target_invalid
+  kind: error_code
+  bc: platform.approval
+  scope: domain
+  definition: 被转交或改派的人必须在职、不是发起人、在该节点还没有任务（422）
+  standard_ref:
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: ''

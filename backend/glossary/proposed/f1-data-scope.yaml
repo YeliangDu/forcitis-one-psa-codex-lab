@@ -34,35 +34,3 @@ terms:
   note: 登记会话 one-1a-par（#728）
   confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 # 第 2 块（#729）：待调整权限表用到的两个词。
-- id: origin
-  zh: 条目来源
-  en: Origin
-  snake: origin
-  kind: value_object
-  bc: platform.identity
-  scope: domain
-  definition: 待调整权限由什么产生：任职变化、维持到期（重新生成）、自定义部门停用或撤销；列 origin_kind
-  standard_ref:
-  - docs/adr/ADR-0032.md
-  - docs/architecture/implementation-cards/f-1.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 登记会话 one-dev-identity（#729，F-1 卡「本卡新词」）
-- id: regeneration
-  zh: 重新生成
-  en: Regeneration
-  snake: regeneration
-  kind: value_object
-  bc: platform.identity
-  scope: domain
-  definition: 已维持的敏感角色复核到期后开出新条目（ADR-0044 第 3 项）；列 regeneration_decided_at 记判定时刻
-  standard_ref:
-  - docs/adr/ADR-0032.md
-  - docs/architecture/implementation-cards/f-1.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 登记会话 one-dev-identity（#729，F-1 卡「本卡新词」）

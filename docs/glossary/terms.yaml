@@ -22146,6 +22146,1097 @@ terms:
   forbidden: []
   status: approved
   confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: drafted_by
+  zh: 起草人
+  en: DraftedBy
+  snake: drafted_by
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 录入某条人事命令（或组织结构命令）的账号，即该命令的录入人 created_by，由法人归属会签表对命令的复合外键约束；起草人不得对本命令的法人归属会签作决定（ADR-0073 第 3 条第 6 项，第 71 行）
+  standard_ref:
+  - ADR-0073 第 3 条第 6 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 列 attribution_countersigns.drafted_by（#893）
+- id: attribution_countersign
+  zh: 法人归属会签
+  en: AttributionCountersign
+  snake: attribution_countersign
+  kind: entity
+  bc: organization.workforce
+  scope: domain
+  definition: 改变员工成本法人的人事命令须由变更前、变更后两个法人的法人财务负责人各自批准或拒签的请求，变更请求任一方拒签即撤回命令，撤回请求被拒签则命令仍待生效；每个请求一行（变更或撤回，每个法人一行），属员工聚合
+  standard_ref:
+  - ADR-0073 第 3 条第 6 项
+  - 用户 2026-10-30 答复（两个法人的财务负责人都会签，任一方可拒签）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 与 platform.approval 的 countersign「会签」同名异义（中英文名不同，不列 homonyms，在此互注）；表 attribution_countersigns（#893）
+- id: awaiting_attribution_countersign
+  zh: 待法人归属会签
+  en: AwaitingAttributionCountersign
+  snake: awaiting_attribution_countersign
+  kind: state
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令的状态：命令改变员工的成本法人，已登记、尚待法人归属会签；此期间不写任何版本，不得录入该员工生效日更晚的命令
+  standard_ref:
+  - ADR-0073 第 3 条第 6 项
+  - 用户 2026-10-30 答复（等会签期间拒绝生效日更晚的命令）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 状态值 AWAITING_ATTRIBUTION_COUNTERSIGN（随用户确认的名称，原暂名 AWAITING_COUNTERSIGN 不再用）；「会签」在此指法人归属会签，不是 platform.approval 的会签
+- id: cost_legal_entity
+  zh: 成本法人
+  en: CostLegalEntity
+  snake: cost_legal_entity
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 员工在某日成本归集所属的法人：员工单独指定的法人优先，没有才取其当日主任职所在组织单元沿部门链向上第一个有法人归属的单元；兼职不参与、不按岗位分摊；由组织人事内部按日计算，不接受调用方传入
+  standard_ref:
+  - ADR-0073 第 3 条第 4 项
+  - ADR-0026 第 5 项
+  - 用户 2026-11-02 答复「A」（兼岗只按主岗所在部门，intent 2026-11-02-195532）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 会签判据即命令生效日前后的成本法人是否变化；成本法人（归属法人，ADR-0073）不是用人单位（劳动合同签约方，ADR-0079 不变量 4），改其一不连带改另一；ADR-0073 的「跨法人变动」「跨法人调岗」与卡片里的「跨法人调动」指成本法人变化，ADR-0079 Q1 的「跨法人调动」指用人单位变更（原单位合同终止、新单位另签），两者不得混用，代码与事件名不得暗示合同动作
+- id: change_legal_entity
+  zh: 变更法人归属
+  en: ChangeLegalEntity
+  snake: change_legal_entity
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令种类之一：为员工单独指定法人（写员工法人归属期间），目标法人须在五家之内；改变成本法人时进待会签
+  standard_ref:
+  - ADR-0073 第 3 条第 2 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 命令种类值 CHANGE_LEGAL_ENTITY
+- id: employee_legal_entity_changed
+  zh: 员工法人归属已变更
+  en: EmployeeLegalEntityChanged
+  snake: employee_legal_entity_changed
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令生效且员工的成本法人随之变化：负载为命令 ID、员工 ID、生效日、变更前与变更后的成本法人；任何种类的命令（含调岗）改变成本法人都发布
+  standard_ref:
+  - ADR-0073 影响面（法人归属已变更）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ADR-0073 暂名「法人归属已变更」；事件名为聚合名 Employee 加过去式业务动词
+- id: attribution_countersign_lapsed
+  zh: 法人归属会签已失效
+  en: AttributionCountersignLapsed
+  snake: attribution_countersign_lapsed
+  kind: state
+  bc: organization.workforce
+  scope: domain
+  definition: 法人归属会签请求的状态：命令已离开需要它的状态而未经决定即关闭：命令已撤回（含另一法人拒签变更请求），撤回请求被另一法人拒签（命令仍待生效，同批其余撤回请求失效），或撤回请求到生效日仍未决定；逾期作业不再提醒
+  standard_ref:
+  - 用户 2026-10-30 答复（撤回请求到生效日失效，以经会签的更正撤销）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，经 lead 转达「按建议改」，#898）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 决定值 LAPSED；与 APPROVED 批准、REJECTED 拒签并列
+- id: origin
+  zh: 条目来源
+  en: Origin
+  snake: origin
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 待调整权限由什么产生：任职变化、维持到期（重新生成）、自定义部门停用或撤销；列 origin_kind
+  standard_ref:
+  - docs/adr/ADR-0032.md
+  - docs/architecture/implementation-cards/f-1.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 登记会话 one-dev-identity（#729，F-1 卡「本卡新词」）
+- id: regeneration
+  zh: 重新生成
+  en: Regeneration
+  snake: regeneration
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 已维持的敏感角色复核到期后开出新条目（ADR-0044 第 3 项）；列 regeneration_decided_at 记判定时刻
+  standard_ref:
+  - docs/adr/ADR-0032.md
+  - docs/architecture/implementation-cards/f-1.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 登记会话 one-dev-identity（#729，F-1 卡「本卡新词」）
+- id: release
+  zh: 放行
+  en: Release
+  snake: release
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 有权的人让被暂停的离职命令按原生效日生效的动作（旧同步已移除，释义随之更正）
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: 扫描前端界面文案发现；同步记录页按钮与结果用语
+- id: ui_external_system
+  zh: 外部系统
+  en: ExternalSystem
+  snake: external_system
+  kind: entity
+  bc: platform.integration
+  scope: acl
+  acl_class: 长期
+  definition: 本系统之外、通过防腐层接入的系统，如企业微信、致远、组织来源
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: 错误提示用语
+- id: administration_status__ended
+  zh: 已结束
+  en: Ended
+  snake: ended
+  kind: state
+  bc: organization.administration
+  scope: domain
+  definition: 使用期间因归还或调拨而结束。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2–§3.6
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: 使用：资产使用期间。
+- id: personnel_specialist
+  zh: 人事专员
+  en: PersonnelSpecialist
+  snake: personnel_specialist
+  kind: role
+  bc: platform.identity
+  scope: domain
+  definition: 系统角色 personnel_specialist：录入与撤回人事命令（入职、转正、调岗、离职、复职、更正、停薪留职开始与结束），持有权限 organization.workforce:personnel-command:create；撤回须持有录入权限（ADR-0068 第 1 条第 6 项）
+  standard_ref:
+  - docs/decisions/2026-10-30-005221-one-lead-人事专员.md
+  - ADR-0068 第 1 条第 6 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: 由
+- id: registration
+  zh: 登记
+  en: Registration
+  snake: registration
+  kind: command
+  bc: platform.integration
+  scope: acl
+  acl_class: 长期
+  definition: 由人把一条来源对照录入系统，先处于待确认，等另一个人确认或拒绝；现在只有核算组织编码可以人工登记
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: ''
+- id: unregistered
+  zh: 未登记
+  en: Unregistered
+  snake: unregistered
+  kind: state
+  bc: platform.numbering
+  scope: domain
+  definition: 不在登记表中
+  standard_ref:
+  - ADR-0066 决定 4
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: REG-1（IMP-1021-NX5-01）新增
+- id: seal_ledger
+  zh: 印章台账
+  en: SealLedger
+  snake: seal_ledger
+  kind: aggregate
+  bc: platform.signing
+  scope: domain
+  definition: 公司各法人各类印章的台账，管印章有哪些、什么载体、是否启用、谁保管；用印登记引用其条目（ADR-0064 决定 3）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: ''
+- id: seal_ledger_entry
+  zh: 印章台账条目
+  en: SealLedgerEntry
+  snake: seal_ledger_entry
+  kind: entity
+  bc: platform.signing
+  scope: domain
+  definition: 台账中一枚印章的一条记录：粒度为法人 × 印章类型，自有主键 UUIDv7，带载体（实体或电子）与启停状态，同一法人同一印章类型任一时点至多一条启用（ADR-0064 决定 3）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: ''
+- id: seal_type
+  zh: 印章类型
+  en: SealType
+  snake: seal_type
+  kind: value_object
+  bc: platform.signing
+  scope: domain
+  definition: 印章的种类，如公章、合同章、出图专用章；台账条目由法人加印章类型确定；取值清单随先行上线批登记（ADR-0064 决定 3）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: ''
+- id: seal_type_list
+  zh: 印章类型清单
+  en: SealTypeList
+  snake: seal_type_list
+  kind: entity
+  bc: platform.signing
+  scope: domain
+  definition: 行政提供的印章类型取值清单，做成版本化配置表（根表加版本表），不写死枚举；作者与确认人分离，决定出处必填（ADR-0064 决定 3，D15）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: ''
+- id: process_administrator
+  zh: 流程管理员
+  en: ProcessAdministrator
+  snake: process_administrator
+  kind: value_object
+  bc: platform.approval
+  scope: domain
+  definition: 负责审批流程兜底、取不到办理人时接手待办的管理角色
+  standard_ref:
+  - 'RULES: APPROVAL_INTEGRITY；转流程管理员已登记'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: ''
+- id: login_method
+  zh: 登录方式
+  en: LoginMethod
+  snake: login_method
+  kind: value_object
+  bc: platform.audit
+  scope: domain
+  definition: 本人登录记录里这次登录所用的方式
+  standard_ref:
+  - 'RULES: TIMESHEET_CALENDAR_ATTRIBUTION'
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: ''
+- id: floor
+  zh: 下限
+  en: Floor
+  snake: floor
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 可用超级管理员人数的最低保护线：手工撤销与停用先按此判定，会降到 0 就拒绝，降到 1 就通知
+  standard_ref:
+  - docs/adr/ADR-0068.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: judge
+  zh: 判定
+  en: Judge
+  snake: judge
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 按下限数一遍撤销或停用之后还剩几名可用超级管理员
+  standard_ref:
+  - docs/adr/ADR-0068.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: judgement
+  zh: 判定结果
+  en: Judgement
+  snake: judgement
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 下限判定的结果：不受影响，或剩 1 名需要通知的人
+  standard_ref:
+  - docs/adr/ADR-0068.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: leaving
+  zh: 在走的人
+  en: Leaving
+  snake: leaving
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 仍在职但已按「已走」统计的员工：暂停放行、已放行待生效、已录入未开始的停薪留职
+  standard_ref:
+  - docs/adr/ADR-0068.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: opening
+  zh: 开启
+  en: Opening
+  snake: opening
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 一次授予行的开启（相对关闭 closing）
+  standard_ref:
+  - docs/adr/ADR-0068.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: protected
+  zh: 受保护
+  en: Protected
+  snake: protected
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 受下限保护：不得使可用超级管理员降到 0
+  standard_ref:
+  - docs/adr/ADR-0068.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: availability
+  zh: 可用状态
+  en: Availability
+  snake: availability
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 组织对一名员工在某个业务日的说法：是否停薪留职、是否暂停放行、是否已按「已走」统计（ADR-0068 第 2.2、3 条）；替换原先只回答是否停薪留职的方法
+  standard_ref:
+  - docs/adr/ADR-0068.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: authorization_voided
+  zh: 授权申请已作废
+  en: AuthorizationVoided
+  snake: authorization_voided
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 已确认的授权申请在执行前发现基准（账号版本或相关角色版本）已变，什么都没有执行，申请作废
+  standard_ref:
+  - docs/adr/ADR-0034.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: org_structure_command
+  zh: 组织结构命令
+  en: OrgStructureCommand
+  snake: org_structure_command
+  kind: entity
+  bc: organization.workforce
+  scope: domain
+  definition: 组织单元新建、撤销、调整属性、合并、调整上级、指定负责人、指定区域应收负责人、指定法人，以及岗位新建、停用的第一手记录，只追加；组织单元与岗位命令同表，按目标种类归属组织单元或岗位
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ADR-0068 待登记用语「组织命令」；表 org_structure_commands（#905）
+- id: set_attributes
+  zh: 调整属性
+  en: SetAttributes
+  snake: set_attributes
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 组织结构命令种类之一，只用于组织单元：一条命令表达一次完整调整，可改名称、简称、总部或区域、是否交付单元，至少改一项；取代原「改名」
+  standard_ref:
+  - ADR-0073 第 2 条第 1 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 种类值 SET_ATTRIBUTES；原暂名 RENAME 不再用
+- id: assign_legal_entity
+  zh: 指定法人
+  en: AssignLegalEntity
+  snake: assign_legal_entity
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 组织结构命令种类之一，只用于组织单元：写部门到法人的对照（组织单元法人归属期间）；使员工成本法人变化时进待法人归属会签
+  standard_ref:
+  - ADR-0073 第 3 条第 2 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 种类值 ASSIGN_LEGAL_ENTITY；人事一侧的对应种类为「变更法人归属」change_legal_entity
+- id: attribution_countersign_basis
+  zh: 法人归属会签依据
+  en: AttributionCountersignBasis
+  snake: attribution_countersign_basis
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 组织结构命令登记时计算的、成本法人将变化的员工清单，每人记变更前与变更后的成本法人；财务据此会签，合并逐人执行时与之比对决定是否免会签
+  standard_ref:
+  - ADR-0073 第 3 条第 4 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ADR-0073 原文「会签依据」，按用户 2026-10-30 对「会签」一律限定为「法人归属会签」的改名，表名建议 attribution_countersign_bases（#908；设计说明暂写 org_structure_countersign_bases）
+- id: org_unit_created
+  zh: 组织单元已新建
+  en: OrgUnitCreated
+  snake: org_unit_created
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 新建组织单元的组织结构命令已生效
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: org_unit_dissolved
+  zh: 组织单元已撤销
+  en: OrgUnitDissolved
+  snake: org_unit_dissolved
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 撤销组织单元的组织结构命令已生效（单元须已无在职员工与启用的下级单元）；合并完成时被并入方的撤销不发本事件，只发「组织单元已合并」
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: F-1 来源②由撤销与合并触发
+- id: org_unit_attributes_set
+  zh: 组织单元属性已调整
+  en: OrgUnitAttributesSet
+  snake: org_unit_attributes_set
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 调整属性命令已生效：名称、简称、总部或区域、是否交付单元中的若干项自生效日起改变
+  standard_ref:
+  - ADR-0073 第 2 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: org_unit_merged
+  zh: 组织单元已合并
+  en: OrgUnitMerged
+  snake: org_unit_merged
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 合并命令的全部受影响员工已转入承接单元，被并入方已撤销
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 「合并」在此指组织单元合并（命令种类 MERGE，人员经调动转入承接单元，不改劳动合同）；ADR-0079 不变量 14 的「合并」指用人单位合并，两者不同
+- id: org_unit_reparented
+  zh: 组织单元上级已调整
+  en: OrgUnitReparented
+  snake: org_unit_reparented
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 调整上级命令已生效：组织单元自生效日起挂到新的上级单元
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: org_unit_head_assigned
+  zh: 部门负责人已指定
+  en: OrgUnitHeadAssigned
+  snake: org_unit_head_assigned
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 指定负责人命令已生效
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: org_unit_receivables_manager_assigned
+  zh: 区域应收负责人已指定
+  en: OrgUnitReceivablesManagerAssigned
+  snake: org_unit_receivables_manager_assigned
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 指定区域应收负责人命令已生效
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: org_unit_legal_entity_assigned
+  zh: 组织单元法人已指定
+  en: OrgUnitLegalEntityAssigned
+  snake: org_unit_legal_entity_assigned
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 指定法人命令已生效：组织单元自生效日起对照新的法人；成本法人因此变化的员工另各发「员工法人归属已变更」
+  standard_ref:
+  - ADR-0073 第 3 条第 2 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: position_created
+  zh: 岗位已新建
+  en: PositionCreated
+  snake: position_created
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 新建岗位的组织结构命令已生效
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 岗位按 W2 设计第 3.3 节为聚合根
+- id: position_disabled
+  zh: 岗位已停用
+  en: PositionDisabled
+  snake: position_disabled
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 停用岗位的组织结构命令已生效（岗位须已无在任员工）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）；one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 岗位不设删除（ADR-0068 第 15 条第 4 项）
+- id: into
+  zh: 并入
+  en: Into
+  snake: into
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 合并命令里承接方的列名用语（merge_into_org_unit_id）：被并入方的员工与下级转入的组织单元
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 随
+- id: employment_verdict
+  zh: 在职判定
+  en: EmploymentVerdict
+  snake: employment_verdict
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 组织快照对某员工是否在职的判定：在职 EMPLOYED、离职 SEPARATED、未列出 NOT_LISTED（ADR-0033 第 3 项第 7 条，应急登录在职校验用；快照不可用的取值已随旧同步删除，#934）
+  standard_ref:
+  - ADR-0033 第 3 项第 7 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: R-1b P2-H2
+- id: login_lookup
+  zh: 登录查人
+  en: LoginLookup
+  snake: login_lookup
+  kind: value_object
+  bc: organization.workforce
+  scope: acl
+  acl_class: 过渡期
+  definition: 按外部登录标识（企业微信 userid 或外部登录名）在组织快照中找员工；随 DA-3 外部身份移到 identity 后删除
+  standard_ref:
+  - ADR-0033 第 4 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: R-1b P2-H2，两个按登录标识查人的方法合一以守住 api 方法上限
+- id: workforce__sync_diff
+  zh: 同步差异
+  en: SyncDiff
+  snake: sync_diff
+  kind: entity
+  bc: platform.integration
+  scope: acl
+  acl_class: 过渡期
+  definition: 一次同步运行改动的对象与字段，以及发现的数据例外（供数据管理员处理）
+  standard_ref:
+  - RULE-373
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: workforce__login_name
+  zh: 登录名
+  en: LoginName
+  snake: login_name
+  kind: value_object
+  bc: platform.integration
+  scope: acl
+  acl_class: 过渡期
+  definition: 员工在组织源的登录名（手机号）；没有即离职（RULE-363）
+  standard_ref:
+  - RULE-363
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: ''
+- id: workforce__staff_employee
+  zh: 员工任职快照
+  en: StaffEmployee
+  snake: staff_employee
+  kind: value_object
+  bc: organization.workforce
+  scope: acl
+  acl_class: 过渡期
+  definition: 一名员工连同其任职，是同步比较与写入的单位
+  standard_ref:
+  - REIMAGINED_ARCHITECTURE.md §3.3
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: workforce__relationship
+  zh: 关系
+  en: Relationship
+  snake: relationship
+  kind: value_object
+  bc: platform.integration
+  scope: acl
+  acl_class: 过渡期
+  definition: A8 中人员与组织单元之间的关系（部门负责人、区域应收负责人），类型 ID 为配置项
+  standard_ref:
+  - RULE-356
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: ''
+- id: attribution_subject
+  zh: 法人归属对象
+  en: AttributionSubject
+  snake: attribution_subject
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 法人归属所指的对象，是一个组织单元或一名员工，由对象类别与对象 ID 共同确定；同一对象在同一时点只归属一个法人
+  standard_ref:
+  - ADR-0033 第 7 项第 4 条（DA-5）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 类型 AttributionSubjectId 为它的标识（kind + subjectId，docs/architecture/events/workforce.yaml x-type）；落库按 DA-5 拆为 org_unit_id / employee_id 两列
+- id: personnel_command
+  zh: 人事命令
+  en: PersonnelCommand
+  snake: personnel_command
+  kind: aggregate
+  bc: organization.workforce
+  scope: domain
+  definition: 员工聚合内的人事异动第一手记录：入职、转正、调岗、离职、复职、更正、停薪留职开始与结束，只追加；生效日为人事业务生效日
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: W2 PR-B，IMP-1022-PAR-01；IMP-1030-PAR-B3（#872）起代码里以聚合根承载员工事件序号并发布生效事件（聚合类型仍是 Employee），故种类由 entity 改 aggregate，待 one-design 核定
+- id: unpaid_leave
+  zh: 停薪留职
+  en: UnpaidLeave
+  snake: unpaid_leave
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 员工在职期间暂停发薪的状态，不是雇佣状态；员工版本以 is_on_unpaid_leave 记录，人事命令以开始、结束两种种类改变它
+  standard_ref:
+  - ADR-0068 第 3 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: W2 PR-B，IMP-1022-PAR-01
+- id: employee_hired
+  zh: 员工入职已生效
+  en: EmployeeHired
+  snake: employee_hired
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 入职命令已生效：员工自生效日（入职日）起在职；负载为人事命令 ID、员工 ID 与生效日
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: IMP-1028-PAR-PCA（#737）；聚合 Employee
+- id: employee_regularized
+  zh: 员工转正已生效
+  en: EmployeeRegularized
+  snake: employee_regularized
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 转正命令已生效：员工自生效日起由试用阶段转为正式阶段，在职状态不变
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  - ADR-0068 第 1 条第 3 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: IMP-1028-PAR-PCA（#737）；与 contract.agreement 的 regularized「转正」（授权复核关闭）同名异义：中英文名都不同，不能列 homonyms，在此互注，交 one-glossary
+- id: employee_transferred
+  zh: 员工调岗已生效
+  en: EmployeeTransferred
+  snake: employee_transferred
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 调岗命令已生效：员工自生效日起任职改变；负载另带触发字段与生效日前后的部门
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  - ADR-0032 第 4 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: IMP-1028-PAR-PCA（#737）；F-1 订阅
+- id: employee_separated
+  zh: 员工离职已生效
+  en: EmployeeSeparated
+  snake: employee_separated
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 离职命令已生效：员工自生效日（人事所填最后工作日的次日）起离职；待放行的离职放行后才发布
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  - ADR-0068 第 1 条第 5 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: IMP-1028-PAR-PCA（#737）；中文名避开 platform.identity 错误码「员工已离职」
+- id: employee_reinstated
+  zh: 员工复职已生效
+  en: EmployeeReinstated
+  snake: employee_reinstated
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 复职命令已生效：已离职的员工自生效日起重新在职
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  - ADR-0068 第 1 条第 10 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: IMP-1028-PAR-PCA（#737）；取代撤销的 WF-REINSTATE
+- id: employee_corrected
+  zh: 员工人事已更正
+  en: EmployeeCorrected
+  snake: employee_corrected
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 更正命令改变了员工截至今天的部门、岗位、在职状态或直属领导；只改历史时只写审计、不发布；负载为人事命令 ID、员工 ID 与受影响区间
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: IMP-1028-PAR-PCA（#737）
+- id: separation_held
+  zh: 离职已转待放行
+  en: SeparationHeld
+  snake: separation_held
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 离职命令因管理员离职保护转为待放行：员工保持在职，不发布员工离职已生效
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  - ADR-0068 第 2 条第 2 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: IMP-1028-PAR-PCA（#737）；载体为待放行离职 separation_hold
+- id: separation_hold_released
+  zh: 待放行离职已放行
+  en: SeparationHoldReleased
+  snake: separation_hold_released
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 待放行的离职经有权的人放行，按原生效日执行
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  - ADR-0068 第 2 条第 3 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: IMP-1028-PAR-PCA（#737）
+- id: trigger_field_kind
+  zh: 触发字段
+  en: TriggerFieldKind
+  snake: trigger_field_kind
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 调岗改变的任职字段：ORG_UNIT 部门 / POSITION 岗位；员工调岗已生效的负载带它，供待调整权限去重（人，人事命令 ID，触发字段）
+  standard_ref:
+  - ADR-0032 第 4 项第 3 条
+  - ADR-0055 决定 4
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: IMP-1028-PAR-PCA（#737）；F-1 在 platform.identity 的 trigger_field_kind 列取同样的值
+- id: probation
+  zh: 试用
+  en: Probation
+  snake: probation
+  kind: state
+  bc: organization.workforce
+  scope: domain
+  definition: 雇佣阶段之一：入职后到转正前；员工版本的雇佣阶段取值 PROBATION
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: IMP-1030-PAR-B3（#872）
+- id: regular
+  zh: 正式
+  en: Regular
+  snake: regular
+  kind: state
+  bc: organization.workforce
+  scope: domain
+  definition: 雇佣阶段之一：转正之后；员工版本的雇佣阶段取值 REGULAR
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: IMP-1030-PAR-B3（#872）
+- id: regularize
+  zh: 转正命令
+  en: Regularize
+  snake: regularize
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令种类 REGULARIZE：雇佣阶段由试用转为正式，在职状态不变；命令生效发布 EmployeeRegularized
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: IMP-1030-PAR-B3（#872）
+- id: reinstate
+  zh: 复职命令
+  en: Reinstate
+  snake: reinstate
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令种类 REINSTATE：已离职的员工回到在职，生效日须晚于离职生效日；命令生效发布 EmployeeReinstated
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: IMP-1030-PAR-B3（#872）
+- id: separate
+  zh: 离职命令
+  en: Separate
+  snake: separate
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令种类 SEPARATE：人事填最后工作日，离职版本生效日为其次日；命令生效发布 EmployeeSeparated
+  standard_ref:
+  - ADR-0068 第 1 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: IMP-1030-PAR-B3（#872）
 common_words:
 - Id
 - Uuid

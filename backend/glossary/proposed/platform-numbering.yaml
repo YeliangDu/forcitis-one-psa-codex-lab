@@ -80,3 +80,19 @@ terms:
   status: approved
   note: REG-1（IMP-1021-NX5-01）新增
   confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_numbering_rule_not_found
+  zh: 编号规则不存在
+  en: PlatformNumberingRuleNotFound
+  snake: platform_numbering_rule_not_found
+  kind: error_code
+  bc: platform.numbering
+  scope: domain
+  definition: 该单据类型没有有效的编号规则（404）
+  standard_ref:
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
+  note: ''
