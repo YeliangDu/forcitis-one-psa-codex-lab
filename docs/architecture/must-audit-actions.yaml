@@ -98,6 +98,7 @@ categories:
 - name: 数据范围
   actions:
   - organization.workforce.org-unit.denied
+  - organization.workforce.profile-change-request.denied
 - name: 编号规则
   actions:
   - platform.numbering.NumberingRuleConfirmationGiven

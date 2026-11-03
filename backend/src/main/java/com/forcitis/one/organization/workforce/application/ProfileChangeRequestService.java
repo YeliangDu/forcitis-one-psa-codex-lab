@@ -163,7 +163,7 @@ class ProfileChangeRequestService implements ProfileChangeRequests {
     }
 
     /**
-     * A request outside the caller's scope answers like an unknown one, before the version or the state is looked at; a scope that cannot be worked out shows nothing,
+     * A request outside the caller's scope answers like an unknown one and is audited as a denied read (as GetOrgUnit does), before the version or the state is looked at, after the employee lock it needs anyway; a scope that cannot be worked out shows nothing,
      * a refusal would tell the caller the id exists (security-invariants I-10, #730 comment 6606893624). The list keeps the refusal, it carries no id.
      */
     private void requireInScope(ProfileChangeRequest request) {
@@ -174,21 +174,27 @@ class ProfileChangeRequestService implements ProfileChangeRequests {
             if (unavailable.kind() != ErrorKind.FORBIDDEN) {
                 throw unavailable;
             }
-            throw notFound();
+            throw outOfScope(request);
         }
         if (!inScope(visible).test(request)) {
-            throw notFound();
+            throw outOfScope(request);
         }
+    }
+
+    private DomainException outOfScope(ProfileChangeRequest request) {
+        audit.recordIndependently(new AuditEntry("organization.workforce.profile-change-request.denied", currentUser.userId(), null, subject(request),
+                "outside the scope of the caller"));
+        return notFound();
     }
 
     /** The request read under the lock of its employee, at the version the caller based the call on, and still pending. */
     private ProfileChangeRequest lockedPending(ProfileChangeRequestId id, ExpectedVersion expected) {
         ProfileChangeRequest first = requests.find(id).orElseThrow(() -> notFound());
-        requireInScope(first);
         if (!employees.lockEmployee(first.employeeId())) {
             throw notFound();
         }
         ProfileChangeRequest request = requests.find(id).orElseThrow(() -> notFound());
+        requireInScope(request);
         expected.check(request.version());
         if (request.status() != ProfileChangeStatus.PENDING) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PROFILE_CHANGE_REQUEST_NOT_PENDING, ErrorKind.CONFLICT, "the request is already " + request.status());
