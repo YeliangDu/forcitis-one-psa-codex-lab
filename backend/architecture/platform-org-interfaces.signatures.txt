@@ -305,6 +305,53 @@ organization.workforce::api organization.workforce.api.ChangeEmployeeProfile pub
 organization.workforce::api organization.workforce.api.ChangeEmployeeProfile public kernel.WecomUserId organization.workforce.api.ChangeEmployeeProfile.wecomUserId()
 organization.workforce::api organization.workforce.api.ChangeEmployeeProfile public organization.workforce.api.ChangeEmployeeProfile(kernel.EmployeeId,java.lang.String,organization.workforce.api.Gender,java.lang.String,kernel.WecomUserId,java.time.LocalDate)
 organization.workforce::api organization.workforce.api.ChangeEmployeeProfile public organization.workforce.api.Gender organization.workforce.api.ChangeEmployeeProfile.gender()
+organization.workforce::api organization.workforce.api.CountersignCommandKind extends java.lang.Enum<organization.workforce.api.CountersignCommandKind>
+organization.workforce::api organization.workforce.api.CountersignCommandKind public final enum organization.workforce.api.CountersignCommandKind
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.ASSIGN_HEAD
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.ASSIGN_LEGAL_ENTITY
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.ASSIGN_RECEIVABLES_MANAGER
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.CHANGE_LEGAL_ENTITY
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.CORRECTION
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.CREATE
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.DISABLE
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.DISSOLVE
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.END_CONCURRENT
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.HIRE
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.MERGE
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.REGULARIZE
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.REINSTATE
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.REPARENT
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.SEPARATE
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.SET_ATTRIBUTES
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.START_CONCURRENT
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.TRANSFER
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.UNPAID_LEAVE_END
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static final organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.UNPAID_LEAVE_START
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static organization.workforce.api.CountersignCommandKind organization.workforce.api.CountersignCommandKind.valueOf(java.lang.String)
+organization.workforce::api organization.workforce.api.CountersignCommandKind public static organization.workforce.api.CountersignCommandKind[] organization.workforce.api.CountersignCommandKind.values()
+organization.workforce::api organization.workforce.api.CountersignCommandStatus extends java.lang.Enum<organization.workforce.api.CountersignCommandStatus>
+organization.workforce::api organization.workforce.api.CountersignCommandStatus public final enum organization.workforce.api.CountersignCommandStatus
+organization.workforce::api organization.workforce.api.CountersignCommandStatus public static final organization.workforce.api.CountersignCommandStatus organization.workforce.api.CountersignCommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN
+organization.workforce::api organization.workforce.api.CountersignCommandStatus public static final organization.workforce.api.CountersignCommandStatus organization.workforce.api.CountersignCommandStatus.EFFECTIVE
+organization.workforce::api organization.workforce.api.CountersignCommandStatus public static final organization.workforce.api.CountersignCommandStatus organization.workforce.api.CountersignCommandStatus.HELD
+organization.workforce::api organization.workforce.api.CountersignCommandStatus public static final organization.workforce.api.CountersignCommandStatus organization.workforce.api.CountersignCommandStatus.IN_PROGRESS
+organization.workforce::api organization.workforce.api.CountersignCommandStatus public static final organization.workforce.api.CountersignCommandStatus organization.workforce.api.CountersignCommandStatus.PENDING
+organization.workforce::api organization.workforce.api.CountersignCommandStatus public static final organization.workforce.api.CountersignCommandStatus organization.workforce.api.CountersignCommandStatus.WITHDRAWN
+organization.workforce::api organization.workforce.api.CountersignCommandStatus public static organization.workforce.api.CountersignCommandStatus organization.workforce.api.CountersignCommandStatus.valueOf(java.lang.String)
+organization.workforce::api organization.workforce.api.CountersignCommandStatus public static organization.workforce.api.CountersignCommandStatus[] organization.workforce.api.CountersignCommandStatus.values()
+organization.workforce::api organization.workforce.api.CountersignDecisionKind extends java.lang.Enum<organization.workforce.api.CountersignDecisionKind>
+organization.workforce::api organization.workforce.api.CountersignDecisionKind public final enum organization.workforce.api.CountersignDecisionKind
+organization.workforce::api organization.workforce.api.CountersignDecisionKind public static final organization.workforce.api.CountersignDecisionKind organization.workforce.api.CountersignDecisionKind.APPROVED
+organization.workforce::api organization.workforce.api.CountersignDecisionKind public static final organization.workforce.api.CountersignDecisionKind organization.workforce.api.CountersignDecisionKind.LAPSED
+organization.workforce::api organization.workforce.api.CountersignDecisionKind public static final organization.workforce.api.CountersignDecisionKind organization.workforce.api.CountersignDecisionKind.REJECTED
+organization.workforce::api organization.workforce.api.CountersignDecisionKind public static organization.workforce.api.CountersignDecisionKind organization.workforce.api.CountersignDecisionKind.valueOf(java.lang.String)
+organization.workforce::api organization.workforce.api.CountersignDecisionKind public static organization.workforce.api.CountersignDecisionKind[] organization.workforce.api.CountersignDecisionKind.values()
+organization.workforce::api organization.workforce.api.CountersignRequestKind extends java.lang.Enum<organization.workforce.api.CountersignRequestKind>
+organization.workforce::api organization.workforce.api.CountersignRequestKind public final enum organization.workforce.api.CountersignRequestKind
+organization.workforce::api organization.workforce.api.CountersignRequestKind public static final organization.workforce.api.CountersignRequestKind organization.workforce.api.CountersignRequestKind.CHANGE
+organization.workforce::api organization.workforce.api.CountersignRequestKind public static final organization.workforce.api.CountersignRequestKind organization.workforce.api.CountersignRequestKind.WITHDRAWAL
+organization.workforce::api organization.workforce.api.CountersignRequestKind public static organization.workforce.api.CountersignRequestKind organization.workforce.api.CountersignRequestKind.valueOf(java.lang.String)
+organization.workforce::api organization.workforce.api.CountersignRequestKind public static organization.workforce.api.CountersignRequestKind[] organization.workforce.api.CountersignRequestKind.values()
 organization.workforce::api organization.workforce.api.EmployeeExistence public abstract boolean organization.workforce.api.EmployeeExistence.exists(kernel.EmployeeId)
 organization.workforce::api organization.workforce.api.EmployeeExistence public abstract interface organization.workforce.api.EmployeeExistence
 organization.workforce::api organization.workforce.api.EmployeeLegalEntities public abstract interface organization.workforce.api.EmployeeLegalEntities

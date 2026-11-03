@@ -13,7 +13,7 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersign;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
-import com.forcitis.one.organization.workforce.domain.CountersignRequestKind;
+import com.forcitis.one.organization.workforce.api.CountersignRequestKind;
 import com.forcitis.one.platform.audit.api.AuditEntryId;
 import java.sql.ResultSet;
 import java.sql.SQLException;

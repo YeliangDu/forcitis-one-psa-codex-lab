@@ -9,6 +9,7 @@
 src/main/java/com/forcitis/one/organization/workforce/application/AttributionCountersignService.java | 1 | 32 | NONE
 src/main/java/com/forcitis/one/organization/workforce/application/ChangeFinanceHead.java | 1 | 38 | SURROGATE
 src/main/java/com/forcitis/one/organization/workforce/application/CorrectLegalEntityAttribution.java | 1 | 4 | NONE
+src/main/java/com/forcitis/one/organization/workforce/application/CountersignReadAccess.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/organization/workforce/application/CountersignRequests.java | 4 | 31 | POSSIBLE
 src/main/java/com/forcitis/one/organization/workforce/application/EmployeeProfileService.java | 3 | 26,27 | PI
 src/main/java/com/forcitis/one/organization/workforce/application/ProfileChangeRequestService.java | 2 | 28 | SURROGATE
