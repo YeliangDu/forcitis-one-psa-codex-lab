@@ -478,3 +478,11 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/OrgCountersignSupport.java
     reason: '#910 组织会签辅助类在时钟后拨时让在场人员重新登录（会话绝对期 24 小时）；与 RULING-LEAD-20261103-08 同一改动，该编号已被 #895 的 e9988da6c 用过，#1066（#1040 验收）合入 main 后需另立编号；未改断言、值、用例或显示名'
     ref: "commit d5ba39b19 (#910 acceptance, carried by PR #1066); review-relogin-08-sonnet.md"
+  - id: RULING-LEAD-20261103-16
+    date: 2026-11-03
+    ruled_by: independent sonnet reviewer (review-730-s3-pin-sonnet.md, dispatched by one-dev-identity on commit 5c8d134bf alone), verdict 通过, recorded by one-lead
+    implementer: one-dev-identity
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/role_versioning/SystemRoleDeclarationIT.java
+    reason: '#730 S3 按 ADR-0044 第 98 行与 f-1.md 第 646 行给系统角色授权限调整码：org_data_admin 修订号 3→4 增 platform.identity:permission-adjustment:read 与 :update；security_auditor 修订号 1→2 增 :read；只改这两个角色的钉住值与修订号，其他角色与断言不变'
+    ref: "commit 5c8d134bf (#730 S3, one-dev-identity), patch-id f0685645ff99a8e7fd58739c33e5cf73c792ae40; review-730-s3-pin-sonnet.md"
