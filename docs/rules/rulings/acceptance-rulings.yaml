@@ -410,3 +410,12 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/OrgUnitMergeIT.java
     reason: '会话绝对期 24 小时（SessionSettings.absoluteTimeout），用例把时钟前移 5 天后再用旧会话调用接口必得 401；只在时钟前移后让同两名调用人重新登录，断言、期望值、用例、显示名均不变'
     ref: "commit f095368fe (#907 acceptance); review-907-relogin-sonnet.md"
+  - id: RULING-LEAD-20261103-08
+    date: 2026-11-03
+    ruled_by: independent sonnet reviewer rv08r (dispatched by one-test, given only the diffs), recorded by one-lead
+    implementer: one-test
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/OrgCountersignSupport.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/CountersignSupport.java
+    reason: '会话绝对期 24 小时，测试把时钟拨过 TODAY 后旧会话必得 401；两个辅助类覆盖 setToday，时钟后拨时让 hr、orgAdmin 与三位财务负责人以同一员工重新登录。未改断言、值、用例、显示名或调用处；原先靠 401 通过的两条拒绝用例现在走真实服务'
+    ref: "commits d5ba39b19 (#910), e87841a6a (#1040), e9988da6c (#895); review-relogin-08-sonnet.md"
