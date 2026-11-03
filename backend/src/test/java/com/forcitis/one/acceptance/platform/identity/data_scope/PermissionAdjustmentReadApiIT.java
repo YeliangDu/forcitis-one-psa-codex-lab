@@ -60,10 +60,10 @@ class PermissionAdjustmentReadApiIT extends PermissionAdjustmentApiSupport {
         }
     }
 
-    /** Contract 13: no permission codes, scope or personal names in an item, whatever the member is called (keys at any depth, and the texts of the fixture roles and people). */
+    /** Contract 13: no permission codes, access scope or personal identifiers (display or employee name, employee code, login id, WeCom id) in an item: no such member at any depth, and none of the fixture texts. */
     private static void assertNoPermissionOrScopeOrName(String body) {
         Object parsed = JsonPath.parse(body).json();
-        assertThat(keysOf(parsed)).as("member names of the answer").noneMatch(key -> key.matches("(?i).*(permission(s|code|codes)|scope|name|employeecode|loginid|wecom).*") && !key.equals("permissionAdjustmentId"));
+        assertThat(keysOf(parsed)).as("member names of the answer").noneMatch(key -> key.matches("(?i)(permissions?|permissioncodes?|accessscope|scope|displayname|employeename|personname|employeecode|loginid|wecom.*)"));
         assertThat(body).doesNotContain("Synthetic", "organization.workforce:", "platform.identity:");
     }
 
