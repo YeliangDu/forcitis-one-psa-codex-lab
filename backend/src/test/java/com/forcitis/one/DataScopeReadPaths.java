@@ -25,6 +25,9 @@ final class DataScopeReadPaths {
 
     private static final String RULE = "#730 data-scope read-path register / security-invariants I-10";
 
+    /** HandlerMappings known to serve no rows: the welcome-page one answers 406 to a non-HTML request for "/". */
+    private static final Set<String> NO_ROWS_MAPPINGS = Set.of("WelcomePageNotAcceptableHandlerMapping");
+
     private DataScopeReadPaths() {
     }
 
@@ -80,7 +83,7 @@ final class DataScopeReadPaths {
                         String verb = methods.isEmpty() || methods.contains(RequestMethod.GET) ? "GET" : methods.contains(RequestMethod.HEAD) ? "HEAD" : null;
                         if (verb != null) {
                             // BasicErrorController maps /error twice (HTML and JSON, by produces), both answering the failed request's status and no rows: one key for the pair
-                            boolean pair = handler.getBeanType().getSimpleName().equals("BasicErrorController");
+                            boolean pair = handler.getBeanType().getName().matches("org\\.springframework\\.boot\\..*\\.BasicErrorController");
                             info.getPathPatternsCondition().getPatternValues().forEach(pattern -> (pair ? framework : keys).add(verb + " " + pattern));
                         }
                     }
@@ -94,9 +97,14 @@ final class DataScopeReadPaths {
                 if (urlMapping.getDefaultHandler() != null) {
                     keys.add("GET <default handler of " + urlMapping.getClass().getSimpleName() + ">");
                 }
-            } else if (mapping instanceof RouterFunctionMapping routerMapping && routerMapping.getRouterFunction() != null) {
-                problems.add(GuardMessage.of(RULE, "the context maps a RouterFunction, whose routes cannot be matched against the register",
-                        "serve the read from a controller method, or ask design to extend the register to router functions"));
+            } else if (mapping instanceof RouterFunctionMapping routerMapping) {
+                if (routerMapping.getRouterFunction() != null) {
+                    problems.add(GuardMessage.of(RULE, "the context maps a RouterFunction, whose routes cannot be matched against the register",
+                            "serve the read from a controller method, or ask design to extend the register to router functions"));
+                }
+            } else if (!NO_ROWS_MAPPINGS.contains(mapping.getClass().getSimpleName())) {
+                problems.add(GuardMessage.of(RULE, mapping.getClass().getName() + " is a HandlerMapping whose routes this register cannot enumerate",
+                        "serve the read from a controller method, or ask design to extend the register to this kind of mapping"));
             }
         }
         return keys;

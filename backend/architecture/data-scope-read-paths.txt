@@ -1,4 +1,4 @@
-# Every GET handler of every HandlerMapping of the running application (controllers, actuator, static resources) (#730, security-invariants I-10), and the data scope its rows answer under. of the servlet context.
+# Every GET handler of every HandlerMapping of the running application of the servlet context (controllers, actuator, static resources) (#730, security-invariants I-10), and the data scope its rows answer under.
 # Endpoints on the separate management port (prod: 8081) live in a child context and are out of this register (#730 comment 6604403956), on the condition that this port exposes only
 # health and prometheus; exposing anything more is an infrastructure change under the runbook.
 # DataScopeReadPathsGuardTest keeps this file well formed; DataScopeReadPathsIT keeps it equal to the GET mappings of the running context

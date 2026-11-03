@@ -2,6 +2,7 @@ package com.forcitis.one;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,8 +10,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.boot.autoconfigure.web.ErrorProperties;
+import org.springframework.boot.webmvc.autoconfigure.error.BasicErrorController;
+import org.springframework.boot.webmvc.error.DefaultErrorAttributes;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.StaticApplicationContext;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,6 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerResponse;
 import org.springframework.web.servlet.function.support.RouterFunctionMapping;
+import org.springframework.web.servlet.handler.AbstractHandlerMapping;
 import org.springframework.web.servlet.handler.SimpleUrlHandlerMapping;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
@@ -110,19 +118,6 @@ class DataScopeReadPathsGuardTest {
     }
 
     @RestController
-    static class BasicErrorController {
-        @GetMapping(path = "/error", produces = "text/html")
-        String html() {
-            return "";
-        }
-
-        @GetMapping("/error")
-        String json() {
-            return "";
-        }
-    }
-
-    @RestController
     static class RowsOnError {
         @GetMapping(path = "/error", params = "rows")
         List<String> rows() {
@@ -130,9 +125,19 @@ class DataScopeReadPathsGuardTest {
         }
     }
 
+    @Configuration
+    static class FrameworkErrorController {
+        @Bean
+        BasicErrorController basicErrorController() {
+            return new BasicErrorController(new DefaultErrorAttributes(), new ErrorProperties());
+        }
+    }
+
     private static List<String> handlersOf(Class<?>... controllers) {
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(controllers);
         RequestMappingHandlerMapping mappings = new RequestMappingHandlerMapping();
-        mappings.setApplicationContext(new AnnotationConfigApplicationContext(controllers));
+        mappings.setEmbeddedValueResolver(context.getEnvironment()::resolvePlaceholders);
+        mappings.setApplicationContext(context);
         mappings.afterPropertiesSet();
         return DataScopeReadPaths.getHandlers(List.of(mappings), new ArrayList<>());
     }
@@ -142,8 +147,8 @@ class DataScopeReadPathsGuardTest {
     void aThirdHandlerOnErrorIsCaught() {
         List<String> register = List.of("GET /error | NOT_SCOPE_BOUND | the failed request's status");
 
-        assertThat(DataScopeReadPaths.problems(handlersOf(BasicErrorController.class), register)).isEmpty();
-        assertThat(DataScopeReadPaths.problems(handlersOf(BasicErrorController.class, RowsOnError.class), register)).singleElement().asString().contains("served by 2 handlers");
+        assertThat(DataScopeReadPaths.problems(handlersOf(FrameworkErrorController.class), register)).isEmpty();
+        assertThat(DataScopeReadPaths.problems(handlersOf(FrameworkErrorController.class, RowsOnError.class), register)).singleElement().asString().contains("served by 2 handlers");
     }
 
     @Test
@@ -157,6 +162,16 @@ class DataScopeReadPathsGuardTest {
         assertThat(DataScopeReadPaths.getHandlers(List.of(router, new RouterFunctionMapping()), problems)).isEmpty();
         assertThat(problems).singleElement().asString().contains("RouterFunction");
         assertThat(DataScopeReadPaths.getHandlers(List.of(urls), problems)).containsExactly("GET /static/**");
+        problems.clear();
+        AbstractHandlerMapping custom = new AbstractHandlerMapping() {
+            @Override
+            protected @Nullable Object getHandlerInternal(HttpServletRequest request) {
+                return null;
+            }
+        };
+        assertThat(DataScopeReadPaths.getHandlers(List.of(custom), problems)).isEmpty();
+        assertThat(problems).singleElement().asString().contains("cannot enumerate");
+        problems.clear();
         SimpleUrlHandlerMapping withRoot = new SimpleUrlHandlerMapping(Map.of());
         withRoot.setRootHandler(new Object());
         withRoot.setDefaultHandler(new Object());
@@ -172,6 +187,8 @@ class DataScopeReadPathsGuardTest {
         assertThat(DataScopeReadPaths.problems(handlers, List.of("GET /a | SCOPED |", "GET /a | SELF |"))).singleElement().asString().contains("two lines");
         assertThat(DataScopeReadPaths.problems(handlers, List.of("GET /a | MAYBE |"))).hasSize(2).anyMatch(text -> text.contains("not `GET <path>"));
         assertThat(DataScopeReadPaths.problems(handlers, List.of("POST /a | SCOPED |", "GET /a | SCOPED |"))).singleElement().asString().contains("not `GET <path>");
+        assertThat(DataScopeReadPaths.problems(handlers, List.of("GET /a | SCOPED | x | y", "GET /a SCOPED"))).as("a line with a missing or extra column").filteredOn(text -> text.contains("not `GET <path>")).hasSize(2);
+        assertThat(DataScopeReadPaths.problems(handlers, List.of("GET /a b | SCOPED |", "GET a | SCOPED |"))).as("a key that is not one path starting with /").filteredOn(text -> text.contains("not `GET <path>")).hasSize(2);
         assertThat(DataScopeReadPaths.problems(handlers, List.of("GET /a | NOT_SCOPE_BOUND |   "))).singleElement().asString().contains("without a reason");
         assertThat(DataScopeReadPaths.problems(handlers, List.of("GET /a | NOT_SCOPE_BOUND | numbering rules", "# a comment", ""))).isEmpty();
     }
