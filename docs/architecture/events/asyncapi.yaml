@@ -5591,6 +5591,10 @@ x-system-actors:
   actorId: ea631485-fb5d-58ad-87ec-7c953ee85365
   module: cost.timesheet
   description: 作业：清理已消费事件登记
+- name: organization.workforce.countersign.deadline
+  actorId: 1e4cbd76-6e78-5ed9-b8ed-5f9ea2692f55
+  module: organization.workforce
+  description: 作业：法人归属会签到期后的逐级提醒与升级（AttributionCountersignDeadlineJob）
 - name: organization.workforce.login-registration
   actorId: 8fb8643a-127d-507d-91a8-5fb200b233a5
   module: organization.workforce
