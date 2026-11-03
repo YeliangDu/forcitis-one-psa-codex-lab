@@ -113,6 +113,12 @@ public final class VersionPlanner {
      */
     public static VersionPlan revert(List<VersionRow> current, Function<UUID, VersionRow> byId, PersonnelCommandId commandId, LocalDate day, Set<String> columns,
                                       Predicate<VersionRow> rowFilter, Function<VersionRow, Set<String>> setters, Supplier<UUID> ids) {
+        return revert(current, byId, source -> source.isCommand(commandId), day, columns, rowFilter, setters, ids);
+    }
+
+    /** As above for the command whose rows {@code isMine} recognises, whichever kind of command it is. */
+    public static VersionPlan revert(List<VersionRow> current, Function<UUID, VersionRow> byId, Predicate<ChangeSource> isMine, LocalDate day, Set<String> columns,
+                                      Predicate<VersionRow> rowFilter, Function<VersionRow, Set<String>> setters, Supplier<UUID> ids) {
         VersionPlan plan = VersionPlan.empty();
         List<VersionRow> rows = sorted(current);
         VersionRow before = rows.stream().filter(r -> r.covers(day.minusDays(1))).findFirst().orElse(null);
@@ -121,7 +127,7 @@ public final class VersionPlanner {
             if (!row.endsAfter(day)) {
                 continue;
             }
-            boolean mine = row.source().isCommand(commandId);
+            boolean mine = isMine.test(row.source());
             if (row.from().isAfter(day) && !mine) {
                 active.removeAll(setters.apply(row));
             }

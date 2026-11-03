@@ -10,6 +10,10 @@
 # 字段：id, zh, en, snake, kind, bc, definition, standard_ref, confidence, aliases, forbidden, status(approved|proposed)
 
 common_words:
+  - column
+  - generated
+  - part
+  - take
   # #955 第二轮：从已合并的提议文件移来（one-design 2026-11-03）
   - opened
   - clock

@@ -22621,7 +22621,7 @@ terms:
   zh: 组织结构命令
   en: OrgStructureCommand
   snake: org_structure_command
-  kind: entity
+  kind: aggregate
   bc: organization.workforce
   scope: domain
   definition: 组织单元新建、撤销、调整属性、合并、调整上级、指定负责人、指定区域应收负责人、指定法人，以及岗位新建、停用的第一手记录，只追加；组织单元与岗位命令同表，按目标种类归属组织单元或岗位
@@ -23237,6 +23237,102 @@ terms:
   status: approved
   confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: IMP-1030-PAR-B3（#872）
+- id: child
+  zh: 下级单元
+  en: Child
+  snake: child
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 组织单元树里直属下一层的组织单元；合并或撤销要求被处理的单元在那天起没有在用的下级
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 随
+- id: dissolve
+  zh: 撤销空单元
+  en: Dissolve
+  snake: dissolve
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 撤销空的组织单元：没有在职员工也没有在用的下级时，写入已撤销版本（DISSOLVE）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 随
+- id: preview
+  zh: 预演
+  en: Preview
+  snake: preview
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 合并执行前的演练：返回将被转走的员工清单，不写任何数据（ADR-0068 第 4 条）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 随
+- id: reparent
+  zh: 调整上级
+  en: Reparent
+  snake: reparent
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 把组织单元挂到新的上级之下（REPARENT），新上级不得在其自身子树内
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 随
+- id: timeline
+  zh: 时间线
+  en: Timeline
+  snake: timeline
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 一个组织单元或岗位的全部版本行，用于规划变更与撤回
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 随
+- id: arrival
+  zh: 调入
+  en: Arrival
+  snake: arrival
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 有人在合并日之后才进入被并入的组织单元（将来日期的调入，或补登过去日期的合并之后加入的人）；这样的合并被拒，免得把人留在已撤销的单元里
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 随
 common_words:
 - Id
 - Uuid

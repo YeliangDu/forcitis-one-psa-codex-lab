@@ -1,0 +1,93 @@
+# 组织结构命令与组织一侧的法人归属会签（设计 docs/architecture/proposals/org-structure-commands.md，#897；one-design 2026-10-30，#911）。中文名用户已确认（2026-10-30「采纳」，经 lead 转达）。
+terms:
+- id: error__organization_workforce_org_structure_command_invalid
+  zh: 组织结构命令内容不合法
+  en: OrganizationWorkforceOrgStructureCommandInvalid
+  snake: organization_workforce_org_structure_command_invalid
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 录入的组织结构命令缺内容、内容与种类不符、引用的单元或员工不存在或类型枚举不认识（422）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_workforce_org_structure_command_not_allowed
+  zh: 组织结构命令不被允许
+  en: OrganizationWorkforceOrgStructureCommandNotAllowed
+  snake: organization_workforce_org_structure_command_not_allowed
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 命令违反跨行规则：目标当天不在用、当天已有未生效命令、单元里仍有在职员工或在用下级、会成环、挂在将被合并或撤销的单元之下、岗位编码已被占用等（422），或状态不允许该操作（409）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_workforce_org_structure_command_not_found
+  zh: 组织结构命令不存在
+  en: OrganizationWorkforceOrgStructureCommandNotFound
+  snake: organization_workforce_org_structure_command_not_found
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 没有这条组织结构命令（404）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_workforce_org_structure_command_reason_invalid
+  zh: 组织结构命令撤回原因不合法
+  en: OrganizationWorkforceOrgStructureCommandReasonInvalid
+  snake: organization_workforce_org_structure_command_reason_invalid
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 撤回原因缺失、空白或超过 500 字（422）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_workforce_org_structure_merge_incomplete
+  zh: 组织单元合并未完成
+  en: OrganizationWorkforceOrgStructureMergeIncomplete
+  snake: organization_workforce_org_structure_merge_incomplete
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 合并还有人没转完或被并入单元里仍有在职员工，不能转为已生效（409）；再次执行会继续剩下的人
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_workforce_org_unit_merge_open
+  zh: 部门有未完成的合并
+  en: OrganizationWorkforceOrgUnitMergeOpen
+  snake: organization_workforce_org_unit_merge_open
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令要把人放进一个有未完成合并的部门，且日期不早于合并日，会把人留在即将撤销的单元里，录入被拒（409）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 随 #907，one-design 裁定（#907 评论 6596302513）
