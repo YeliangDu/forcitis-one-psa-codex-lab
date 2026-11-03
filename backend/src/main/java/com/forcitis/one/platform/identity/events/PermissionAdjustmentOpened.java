@@ -24,11 +24,11 @@ public record PermissionAdjustmentOpened(EventEnvelope envelope, PermissionAdjus
     @Override
     public String auditDetail() {
         return "item " + permissionAdjustmentId.value() + " " + kind + " origin " + originKind + "; user " + userId.value()
-                + (originalPermissionAdjustmentId == null ? "" : "; regenerated from expired item " + originalPermissionAdjustmentId.value())
                 + (triggerPersonnelCommandId == null ? "" : "; trigger command " + triggerPersonnelCommandId.value() + " field " + triggerFieldKind)
                 + (beforeOrgUnitId == null ? "" : "; before org " + beforeOrgUnitId.value()
                         + (beforePositionId == null ? "" : " position " + beforePositionId.value()))
                 + (afterOrgUnitId == null ? "" : "; after org " + afterOrgUnitId.value() + (afterPositionId == null ? "" : " position " + afterPositionId.value()))
+                + (originalPermissionAdjustmentId == null ? "" : "; regenerates " + originalPermissionAdjustmentId.value())
                 + "; escalation due " + escalationDueAt;
     }
 }

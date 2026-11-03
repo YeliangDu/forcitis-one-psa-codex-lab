@@ -182,7 +182,7 @@ class PermissionAdjustmentTest {
         assertThat(next.afterOrgUnit()).isNull();
         assertThat(next.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(PermissionAdjustmentOpened.class,
                 opened -> assertThat(opened.auditDetail()).isEqualTo("item " + id.value() + " SENSITIVE_ROLE_REVIEW origin UPHOLD_EXPIRY; user " + USER.value()
-                        + "; regenerated from expired item " + expired.id().value() + "; escalation due " + EXPIRY.plusSeconds(86_400)));
+                        + "; regenerates " + expired.id().value() + "; escalation due " + EXPIRY.plusSeconds(86_400)));
     }
 
     @Test
