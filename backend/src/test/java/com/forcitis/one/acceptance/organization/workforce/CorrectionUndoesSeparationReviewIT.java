@@ -435,9 +435,32 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
 
     private List<Map<String, Object>> assignedCardsAbout(Object item) throws SQLException {
         try (Connection registry = schemaConnection("platform_integration")) {
-            return query(registry, "select recipient_codes from outbound_deliveries where subject_kind = 'PERMISSION_ADJUSTMENT' and subject_id = ?"
+            return query(registry, "select array_to_string(recipient_codes, ',') as recipients from outbound_deliveries where subject_kind = 'PERMISSION_ADJUSTMENT' and subject_id = ?"
                     + " and purpose_kind = 'PERMISSION_ADJUSTMENT_ASSIGNED'", item);
         }
+    }
+
+    private String storedWecomUserId(UUID employee) throws SQLException {
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            return (String) query(workforce, "select wecom_user_id from employees where id = ?", stored(employee)).getFirst().get("wecom_user_id");
+        }
+    }
+
+    /** The envelope event id of the EmployeeTransferred a command published (written in the publishing transaction, so nothing is awaited). */
+    private String transferEventIdOf(UUID command) throws SQLException {
+        java.util.regex.Pattern eventId = java.util.regex.Pattern.compile("\"eventId\"\\s*:\\s*\"([^\"]+)\"");
+        try (Connection registry = schemaConnection("platform_integration")) {
+            for (String table : List.of("event_publication", "event_publication_archive")) {
+                for (Map<String, Object> row : query(registry, "select serialized_event from " + table + " where event_type like ? and serialized_event like ?",
+                        "%.EmployeeTransferred", "%" + command + "%")) {
+                    java.util.regex.Matcher found = eventId.matcher((String) row.get("serialized_event"));
+                    if (found.find()) {
+                        return found.group(1);
+                    }
+                }
+            }
+        }
+        throw new AssertionError("no EmployeeTransferred published for command " + command);
     }
 
     private int openedAudits() throws Exception {
@@ -469,7 +492,9 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         assertThat(item.get("role_id")).as("the item is about the person, not a role").isNull();
         Object itemId = dueItemId(user);
         Awaitility.await().atMost(SETTLE).untilAsserted(() -> {
-            assertThat(assignedCardsAbout(itemId)).as("one assigned card to the new head, in the same transaction").hasSize(1);
+            List<Map<String, Object>> cards = assignedCardsAbout(itemId);
+            assertThat(cards).as("one assigned card to the new head, in the same transaction").hasSize(1);
+            assertThat(cards.getFirst().get("recipients")).as("the card goes to exactly the new head's WeCom user id").isEqualTo(storedWecomUserId(head));
             assertThat(openedAudits() - auditsBefore).isEqualTo(1);
         });
     }
@@ -510,9 +535,10 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         grantByOperations(employee, roleWithScope("own-unit-" + Uuids.timeOrdered(NOW).toString().substring(24), "OWN_ORG_UNIT"));
         UUID user = accountOf(employee);
 
-        transfer(employee, TODAY, newUnit());
+        UUID command = transfer(employee, TODAY, newUnit());
 
         awaitItemsAbout(user, 1);
+        identityHandled(transferEventIdOf(command));
         assertThat(kindsOf(itemsAbout(user))).containsExactly("SENSITIVE_ROLE_REVIEW");
     }
 

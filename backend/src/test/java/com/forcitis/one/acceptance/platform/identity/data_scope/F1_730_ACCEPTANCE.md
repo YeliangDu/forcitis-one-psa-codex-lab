@@ -24,7 +24,7 @@
 | A-6(c) `anUnresolvableEntityStillGivesTheItemWithTheDefaultCalendarAndOneP3Alert` | 信封无法人：仍生成条目、默认日历 11-09、恰好一条 `ALERT P3 platform.identity ` 含事件 id 不含工号姓名、事件 COMPLETED 一次 |
 | A-6(d) `theTableHasNoLegalEntityColumn` | 表无法人列（现已绿，守住不加） |
 
-A-6 不覆盖/存疑：(b) 到期再生成用 `EmployeeLegalEntities.on` 属 S2，待 S2 作业用例；法人自有日历夹具直接写 `organization_attendance.work_calendar_years/days`（旧表，现行读取路径；日历维护 API 目前只管默认日历）——若实现改读版本表（`work_calendar_versions`），夹具要跟着改，请通知我；`escalation_due_at` 只断言落在第 5 个工作日当天（本地 00:00 之后、次日 00:00 及之前），不钉「结束」是 24:00 还是 23:59:59；范围复核（SCOPE_REVIEW）的真实转岗路径未覆盖（需要自定义组织单位角色夹具）。
+A-6 不覆盖/存疑：(b) 到期再生成用 `EmployeeLegalEntities.on` 属 S2，待 S2 作业用例；法人自有日历夹具直接写 `organization_attendance.work_calendar_years/days`（旧表，现行读取路径；日历维护 API 目前只管默认日历）——若实现改读版本表（`work_calendar_versions`），夹具要跟着改，请通知我；`escalation_due_at` 只断言落在第 5 个工作日当天（本地 00:00 之后、次日 00:00 及之前），不钉「结束」是 24:00 还是 23:59:59；范围复核（SCOPE_REVIEW）的真实转岗路径见下一节。
 
 红：main 上 identity 没有处理 `EmployeeCorrected` 的监听器，四条都在等待 identity 发布而超时（失败信息列出该事件仅有 audit 的发布）。绿：临时的最小监听器（只对 security_auditor、business_admin 持有者按裁定插入一行）加放宽后的 CHECK，前 3 条全绿（告警条随实现落地后转绿）；临时文件不提交。
 
@@ -53,5 +53,5 @@ Red on baseline: all 8 fail (timeout waiting for the item or for identity to han
 
 Not covered / doubts:
 - Case 2 (role with LISTED legal entities): the role schema on main has no such scope (`access_scope_kind` is ALL, CUSTOM_ORG_UNITS, OWN_ORG_UNIT, OWN_ORG_UNIT_SUBTREE, SELF, SELF_AND_DIRECT_REPORTS), so no fixture can be built; to be added when the scope exists. Question for one-design.
-- The recipient column of the ASSIGNED card is not asserted (recipient_codes format unknown); only subject kind, id and purpose.
+- The ASSIGNED card of case 1 is asserted to go to exactly the new head's WeCom user id (`recipient_codes`, one element), per ruling 6602940790.
 - Source 2 (ORG_UNIT_INACTIVE generation) has no acceptance, by ruling.
