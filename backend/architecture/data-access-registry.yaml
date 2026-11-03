@@ -195,7 +195,7 @@ tables:
     business_key: [org_structure_command_id, employee_id]
     retention: {policy: PERMANENT}  # 随组织记录保留，清除通道随 W2 第 8 节另批
     lineage: {source: NEW}
-    writers: []  # 尚无写入方（F4a 随用例登记）
+    writers: [organization.workforce]
   organization_workforce.employee_profile_change_requests:
     role: AGGREGATE_CHILD
     aggregate: Employee
