@@ -33,6 +33,10 @@ REVOKE UPDATE, DELETE, TRUNCATE ON organization_workforce.state_transitions FROM
 REVOKE DELETE, TRUNCATE ON platform_identity.role_version_custom_org_units FROM one_prod_app;
 REVOKE DELETE, TRUNCATE ON platform_identity.authorization_request_custom_org_units FROM one_prod_app;
 
+-- 权限调整条目（F-1 #729；数据访问注册表 AGGREGATE_ROOT / MUTABLE）：状态与关闭列由聚合改写，行本身永久保留；
+-- 运行角色不持有 DELETE 与 TRUNCATE（卡 F-1 注册清单第 6 项）。
+REVOKE DELETE, TRUNCATE ON platform_identity.permission_adjustments FROM one_prod_app;
+
 -- 文件服务（ADR-0060、0061、0070；one-data 签发 IMP-1021-COO-02 单元 3）：只追加表与状态转换表运行角色只留 SELECT、INSERT；
 -- 其余表运行角色不持有 DELETE 与 TRUNCATE（保存类别根表可改名称，其余由触发器限定只改状态或确认列）；视图只读。
 REVOKE UPDATE, DELETE, TRUNCATE ON platform_file.file_bindings, platform_file.file_holds, platform_file.file_preservations,
