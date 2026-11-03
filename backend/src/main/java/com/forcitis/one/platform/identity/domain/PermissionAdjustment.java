@@ -16,6 +16,8 @@ import com.forcitis.one.platform.identity.api.PermissionAdjustmentOrigin;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.events.PermissionAdjustmentAdjusted;
+import com.forcitis.one.platform.identity.events.PermissionAdjustmentEscalated;
+import com.forcitis.one.platform.identity.events.PermissionAdjustmentExpired;
 import com.forcitis.one.platform.identity.events.PermissionAdjustmentOpened;
 import com.forcitis.one.platform.identity.events.PermissionAdjustmentUpheld;
 import java.time.Instant;
@@ -26,7 +28,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * A review item that reminds the people entitled to decide that someone's authorizations should be looked at again (ADR-0032 decisions 4 and 5);
  * it never grants or takes back anything. It is raised OPEN and then upheld or marked adjusted, once; an item that is no longer OPEN takes no
- * further command. Items of the other origins and the later states are written by the jobs and listeners that own them and are only read here.
+ * further command. The daily jobs expire an upheld sensitive-role review and escalate an overdue open one; items of the other origins and the later states are written by the listeners that own them and are only read here.
  */
 public final class PermissionAdjustment extends AggregateRoot {
 
@@ -52,22 +54,29 @@ public final class PermissionAdjustment extends AggregateRoot {
     private @Nullable Instant upholdExpiresAt;
     private @Nullable UserId adjustedBy;
     private @Nullable AdjustmentReference adjustedWith;
+    private final @Nullable PermissionAdjustmentId original;
+    private @Nullable Instant escalatedAt;
+    private @Nullable Instant expiredAt;
+    private @Nullable Boolean heldAtExpiry;
+    private @Nullable Instant regenerationDecidedAt;
 
-    private PermissionAdjustment(PermissionAdjustmentId id, PermissionAdjustmentKind kind, UserId user, PersonnelCommandId triggerCommand,
-            TriggerFieldKind triggerField, @Nullable OrgUnitId beforeOrgUnit, OrgUnitId afterOrgUnit, @Nullable PositionId beforePosition,
-            @Nullable PositionId afterPosition, @Nullable EmployeeId recipient, Instant escalationDueAt, Instant createdAt) {
+    private PermissionAdjustment(PermissionAdjustmentId id, PermissionAdjustmentKind kind, PermissionAdjustmentOrigin origin, UserId user,
+            @Nullable PersonnelCommandId triggerCommand, @Nullable TriggerFieldKind triggerField, @Nullable OrgUnitId beforeOrgUnit,
+            @Nullable OrgUnitId afterOrgUnit, @Nullable PositionId beforePosition, @Nullable PositionId afterPosition, @Nullable EmployeeId recipient,
+            @Nullable PermissionAdjustmentId original, Instant escalationDueAt, Instant createdAt) {
         super(0, 0);
         this.id = Objects.requireNonNull(id, "id");
         this.kind = Objects.requireNonNull(kind, "kind");
-        this.origin = PermissionAdjustmentOrigin.ASSIGNMENT_CHANGE;
+        this.origin = origin;
         this.status = PermissionAdjustmentStatus.OPEN;
         this.user = Objects.requireNonNull(user, "user");
         this.role = null;
         this.inactiveOrgUnit = null;
-        this.triggerCommand = Objects.requireNonNull(triggerCommand, "triggerCommand");
-        this.triggerField = Objects.requireNonNull(triggerField, "triggerField");
+        this.triggerCommand = triggerCommand;
+        this.triggerField = triggerField;
         this.beforeOrgUnit = beforeOrgUnit;
-        this.afterOrgUnit = Objects.requireNonNull(afterOrgUnit, "afterOrgUnit");
+        this.afterOrgUnit = afterOrgUnit;
+        this.original = original;
         this.beforePosition = beforePosition;
         this.afterPosition = afterPosition;
         this.recipient = recipient;
@@ -96,6 +105,11 @@ public final class PermissionAdjustment extends AggregateRoot {
         this.upheldBy = stored.upheldBy();
         this.businessOwner = stored.businessOwner();
         this.upholdExpiresAt = stored.upholdExpiresAt();
+        this.original = stored.original();
+        this.escalatedAt = stored.escalatedAt();
+        this.expiredAt = stored.expiredAt();
+        this.heldAtExpiry = stored.heldAtExpiry();
+        this.regenerationDecidedAt = stored.regenerationDecidedAt();
     }
 
     /** An item as the table holds it, whichever origin raised it. */
@@ -103,8 +117,9 @@ public final class PermissionAdjustment extends AggregateRoot {
                          @Nullable UserId user, @Nullable RoleId role, @Nullable OrgUnitId inactiveOrgUnit, @Nullable PersonnelCommandId triggerCommand,
                          @Nullable TriggerFieldKind triggerField, @Nullable OrgUnitId beforeOrgUnit, @Nullable OrgUnitId afterOrgUnit,
                          @Nullable PositionId beforePosition, @Nullable PositionId afterPosition, @Nullable EmployeeId recipient, Instant escalationDueAt,
-                         Instant createdAt, @Nullable UserId upheldBy, @Nullable EmployeeId businessOwner, @Nullable Instant upholdExpiresAt, long version,
-                         long eventSequence) {
+                         Instant createdAt, @Nullable UserId upheldBy, @Nullable EmployeeId businessOwner, @Nullable Instant upholdExpiresAt,
+                         @Nullable PermissionAdjustmentId original, @Nullable Instant escalatedAt, @Nullable Instant expiredAt, @Nullable Boolean heldAtExpiry,
+                         @Nullable Instant regenerationDecidedAt, long version, long eventSequence) {
     }
 
     public static PermissionAdjustment restore(Stored stored) {
@@ -144,6 +159,41 @@ public final class PermissionAdjustment extends AggregateRoot {
                 reference.authorizationRequest(), reference.auditEntry()));
     }
 
+    /**
+     * The daily job finds an UPHELD sensitive-role review at or past its expiry (ADR-0044 decision 2 item 3): it turns EXPIRED at the job's clock,
+     * records whether the person was held that day, and, unless held, is decided at once whether a new review follows. Nothing is granted or taken back.
+     */
+    public void expire(Instant now, boolean held) {
+        if (status != PermissionAdjustmentStatus.UPHELD || upholdExpiresAt == null || now.isBefore(upholdExpiresAt)) {
+            throw new IllegalStateException("the item " + id.value() + " is not an upheld item at its expiry");
+        }
+        this.status = PermissionAdjustmentStatus.EXPIRED;
+        this.expiredAt = now;
+        this.heldAtExpiry = held;
+        this.regenerationDecidedAt = held ? null : now;
+        Instant expiry = upholdExpiresAt;
+        record((envelopes, version) -> new PermissionAdjustmentExpired(envelopes.wrap(draft("PermissionAdjustmentExpired", version)), id, kind, expiry, now,
+                held));
+    }
+
+    /** The job found an EXPIRED item that waited for the release of a held separation, and has now decided about its successor (invariant 26). */
+    public void decideRegeneration(Instant now) {
+        if (status != PermissionAdjustmentStatus.EXPIRED || regenerationDecidedAt != null) {
+            throw new IllegalStateException("the item " + id.value() + " has no pending regeneration decision");
+        }
+        this.regenerationDecidedAt = now;
+    }
+
+    /** The job finds an OPEN item past its escalation due time that was not escalated yet: it is marked once, stays OPEN and nothing is taken back (invariant 30). */
+    public void escalate(Instant now) {
+        if (status != PermissionAdjustmentStatus.OPEN || escalatedAt != null || now.isBefore(escalationDueAt)) {
+            throw new IllegalStateException("the item " + id.value() + " is not an open, unescalated item past its due time");
+        }
+        this.escalatedAt = now;
+        record((envelopes, version) -> new PermissionAdjustmentEscalated(envelopes.wrap(draft("PermissionAdjustmentEscalated", version)), id, kind,
+                escalationDueAt));
+    }
+
     private void requireOpen() {
         if (status != PermissionAdjustmentStatus.OPEN) {
             throw IdentityError.PLATFORM_IDENTITY_PERMISSION_ADJUSTMENT_NOT_OPEN.refusal("the item " + id.value() + " is " + status + " and takes no further command");
@@ -178,13 +228,31 @@ public final class PermissionAdjustment extends AggregateRoot {
                 afterPosition, recipient, escalationDueAt, at);
     }
 
+    /**
+     * The successor of an item whose upholding expired, for the same person and the same kind of review (ADR-0044 decision 2 item 3); it names the
+     * expired item and no trigger, and has its own escalation due date.
+     */
+    public static PermissionAdjustment expiryReview(PermissionAdjustmentId id, PermissionAdjustment expired, Instant escalationDueAt, Instant at) {
+        UserId person = Objects.requireNonNull(expired.user, "user");
+        return opened(PermissionAdjustmentKind.SENSITIVE_ROLE_REVIEW, PermissionAdjustmentOrigin.UPHOLD_EXPIRY, id, person, null, null, null, null, null,
+                null, null, expired.id, escalationDueAt, at);
+    }
+
     private static PermissionAdjustment opened(PermissionAdjustmentKind kind, PermissionAdjustmentId id, UserId user, PersonnelCommandId command,
             TriggerFieldKind field, @Nullable OrgUnitId beforeOrgUnit, OrgUnitId afterOrgUnit, @Nullable PositionId beforePosition,
             @Nullable PositionId afterPosition, @Nullable EmployeeId recipient, Instant escalationDueAt, Instant at) {
-        PermissionAdjustment item = new PermissionAdjustment(id, kind, user, command, field, beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition,
-                recipient, escalationDueAt, at);
+        return opened(kind, PermissionAdjustmentOrigin.ASSIGNMENT_CHANGE, id, user, command, field, beforeOrgUnit, afterOrgUnit, beforePosition,
+                afterPosition, recipient, null, escalationDueAt, at);
+    }
+
+    private static PermissionAdjustment opened(PermissionAdjustmentKind kind, PermissionAdjustmentOrigin origin, PermissionAdjustmentId id, UserId user,
+            @Nullable PersonnelCommandId command, @Nullable TriggerFieldKind field, @Nullable OrgUnitId beforeOrgUnit, @Nullable OrgUnitId afterOrgUnit,
+            @Nullable PositionId beforePosition, @Nullable PositionId afterPosition, @Nullable EmployeeId recipient, @Nullable PermissionAdjustmentId original,
+            Instant escalationDueAt, Instant at) {
+        PermissionAdjustment item = new PermissionAdjustment(id, kind, origin, user, command, field, beforeOrgUnit, afterOrgUnit, beforePosition,
+                afterPosition, recipient, original, escalationDueAt, at);
         item.record((envelopes, version) -> new PermissionAdjustmentOpened(envelopes.wrap(item.draft("PermissionAdjustmentOpened", version)),
-                id, user, item.kind, item.origin, command, field, beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition, escalationDueAt));
+                id, user, item.kind, item.origin, command, field, beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition, original, escalationDueAt));
         return item;
     }
 
@@ -274,6 +342,26 @@ public final class PermissionAdjustment extends AggregateRoot {
 
     public Instant createdAt() {
         return createdAt;
+    }
+
+    public @Nullable PermissionAdjustmentId original() {
+        return original;
+    }
+
+    public @Nullable Instant escalatedAt() {
+        return escalatedAt;
+    }
+
+    public @Nullable Instant expiredAt() {
+        return expiredAt;
+    }
+
+    public @Nullable Boolean heldAtExpiry() {
+        return heldAtExpiry;
+    }
+
+    public @Nullable Instant regenerationDecidedAt() {
+        return regenerationDecidedAt;
     }
 
     private EventDraft draft(String eventName, long version) {

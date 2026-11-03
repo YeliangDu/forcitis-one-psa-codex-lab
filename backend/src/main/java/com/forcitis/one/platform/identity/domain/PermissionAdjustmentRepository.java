@@ -6,6 +6,7 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.platform.identity.api.PermissionAdjustmentId;
 import com.forcitis.one.platform.identity.api.PermissionAdjustmentKind;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
@@ -21,6 +22,15 @@ public interface PermissionAdjustmentRepository {
 
     /** Writes the state a command changed; the version the item was read at must still be the stored one. */
     void update(PermissionAdjustment changed);
+
+    /** At most limit UPHELD items whose expiry is at or before now, the earliest first. */
+    List<PermissionAdjustmentId> dueToExpire(Instant now, int limit);
+
+    /** At most limit EXPIRED items that were held when they expired and wait for the decision about their successor, the earliest first. */
+    List<PermissionAdjustmentId> pendingRegeneration(int limit);
+
+    /** At most limit OPEN items not escalated yet whose escalation due time is at or before now, the earliest first. */
+    List<PermissionAdjustmentId> overdueOpen(Instant now, int limit);
 
     /**
      * The items the reader may read, newest first, at most limit of them after the item the cursor names (null: from the start), optionally of one
