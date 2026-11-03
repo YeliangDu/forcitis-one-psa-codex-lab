@@ -509,7 +509,7 @@ components:
         noConsumer: 暂无消费方：授权申请只需留痕，确认后的执行由本模块的监听器完成；现在就发布，是因为申请与确认只在发生当时可被记录，补不回
     AuthorizationVoided:
       name: AuthorizationVoided
-      title: 敏感授权申请因基准已变而作废
+      title: 敏感授权申请作废（基准已变或确认后无法应用）
       payload:
         type: object
         properties:

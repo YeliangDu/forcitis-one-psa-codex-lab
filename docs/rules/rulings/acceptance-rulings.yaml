@@ -352,3 +352,44 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/P5Names.java
     reason: '#1018（#934）合入 main 的冲突解决：结果正好是两边各自已接受的删除之和（#934 删 sync_run_held_separations，#732 删 account_roles 并以新测试替代），外加 List.<String[]>of 编译修复与方法名、DisplayName、javadoc 随之改写；循环断言逐字不变，未放松或多删用例'
     ref: "merge commit 1073683476b5775b963c529d27151212796db4bd (PR #1018); review-934-merge-sonnet.md"
+  - id: RULING-LEAD-20261103-02
+    date: 2026-11-03
+    ruled_by: independent sonnet reviewer dispatched by one-lead (given only commit f9a32a32d and the branch), recorded by one-lead
+    implementer: one-dev-org
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/role_versioning/MigrationsWriteNoRoleDataIT.java
+    reason: '#934 删除同步页面与路由，其迁移 V20261102171200 只删导航项 …206（/admin/sync-runs）；navigationSeedStays 锁定的导航种子由 …201–…206 改为 …201–…205，仍为精确匹配，查询与方法名不变，未放宽其他断言'
+    ref: "commit f9a32a32d (PR #1018); ruling-1018-nav.md"
+  - id: RULING-LEAD-20261103-01
+    date: 2026-11-03
+    ruled_by: independent sonnet reviewer rv959r (dispatched by one-test, given only the diff), recorded by one-lead
+    implementer: one-test
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/EmployeeWecomRebindIT.java
+    reason: '用户 2026-11-02 #980 Q1a Q2a 把特权账号的企业微信改绑/清空由直接拒绝改为等第二人复核；#959 受影响用例只把期望结果由拒收码改为 202 + PENDING，六种角色、自定义角色、无员工角色的超管与接管链用例全部保留，保留的拒绝不变；仅删去比较已不存在的拒收码的检查'
+    ref: "commit 5b634e94e (#980 acceptance, PR #1059); review-980-959-rewrite-sonnet.md"
+  - id: RULING-LEAD-20261103-03
+    date: 2026-11-03
+    ruled_by: independent sonnet reviewer rv1040b (dispatched by one-test, given only the diffs), recorded by one-lead
+    implementer: one-test
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/PersonnelCommandSupport.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/OrgCountersignSupport.java
+    reason: '#1040 验收分支合并 #910 与 #711 两个验收 head：PersonnelCommandSupport 冲突取两边之并（#906 的单元参数链与 #711 先建主任职根）；OrgCountersignSupport.inheritingIn 按 #711 设计 §7 M7 先建主任职根。仅夹具，未改断言、期望值或用例'
+    ref: "merge bb126a402 and commit 1b017b2af (branch claude/one-test-1040-acceptance); rv1040b"
+  - id: RULING-LEAD-20261103-04
+    date: 2026-11-03
+    ruled_by: independent sonnet reviewer rv1040w (dispatched by one-test, given only the diff), recorded by one-lead
+    implementer: one-test
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/OrgCountersignNames.java
+    reason: '#1040 设计第 6 节（#1040 comment 6591756163）给合并预览加 primaryInUnit 与 concurrentAssignmentCount；#910 读路径字段白名单 READ_PATH_FIELDS 只放进这两个名字，仍为封闭子集检查，未加通配、未删既有项、未放进个人或 L3 字段'
+    ref: "commit bea78482f (branch claude/one-test-1040-acceptance); review-1040-whitelist-sonnet.md"
+  - id: RULING-LEAD-20261103-05
+    date: 2026-11-03
+    ruled_by: independent sonnet reviewer rv980s (dispatched by one-test, given only the diff), recorded by one-lead
+    implementer: one-dev-identity
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/ProfileChangeRequestRevocationIT.java
+    reason: 'revokeSessions 为 @Transactional(MANDATORY)，测试在无事务线程上对代理打桩先被事务切面拒绝；只把打桩与两处 reset 移到代理后面的间谍对象（AopTestUtils.getUltimateTargetObject），注入的失败仍经代理传出，断言、值、用例不变；#980 实现上分支后须全量重跑，非实现原因不绿则重开本裁定'
+    ref: "commit 13292f974 (#980 acceptance, PR #1059); review-980-stub-sonnet.md"
