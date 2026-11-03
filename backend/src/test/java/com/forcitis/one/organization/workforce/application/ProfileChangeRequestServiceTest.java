@@ -14,6 +14,8 @@ import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeAccountAccess;
+import com.forcitis.one.kernel.OrgUnitAccess;
+import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.UserId;
@@ -50,8 +52,10 @@ class ProfileChangeRequestServiceTest {
     final CurrentUser currentUser = mock(CurrentUser.class);
     final AccountEmployees accountEmployees = mock(AccountEmployees.class);
     final EmployeeAccountAccess access = mock(EmployeeAccountAccess.class);
+    final OrgUnitAccess unitAccess = mock(OrgUnitAccess.class);
+    final OrgSnapshotQueries snapshots = mock(OrgSnapshotQueries.class);
     final EmployeeProfileService profiles = mock(EmployeeProfileService.class);
-    final ProfileChangeRequestService service = new ProfileChangeRequestService(requests, employees, audit, currentUser, accountEmployees, access, profiles,
+    final ProfileChangeRequestService service = new ProfileChangeRequestService(requests, employees, audit, currentUser, accountEmployees, access, unitAccess, snapshots, profiles,
             Clock.fixed(AT.plusSeconds(60), ZoneOffset.UTC));
 
     private ProfileChangeRequest decided(ProfileChangeStatus status) {
