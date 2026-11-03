@@ -53,7 +53,7 @@ class AuditIdContractTest {
     }
 
     @Test
-    @DisplayName("R-1b P5 G-A1 / ADR-0033 第 6 项第 2 条：AuditEntryResponse 有 subjectKind（枚举，取值为已定稿的 19 个类别）与 subjectId（string / uuid），无 subjectKey")
+    @DisplayName("R-1b P5 G-A1 / ADR-0033 第 6 项第 2 条：AuditEntryResponse 有 subjectKind（枚举，取值为已定稿的全部类别）与 subjectId（string / uuid），无 subjectKey")
     void theAuditEntryNamesItsSubjectInTwoFields() throws IOException {
         JsonNode properties = schema("AuditEntryResponse").path("properties");
 
