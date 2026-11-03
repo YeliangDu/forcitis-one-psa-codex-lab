@@ -7,7 +7,7 @@ import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.organization.workforce.api.AttributionCountersignId;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersign;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
-import com.forcitis.one.organization.workforce.domain.CountersignRequestKind;
+import com.forcitis.one.organization.workforce.api.CountersignRequestKind;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommand;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
 import com.forcitis.one.platform.audit.api.AuditEntry;
