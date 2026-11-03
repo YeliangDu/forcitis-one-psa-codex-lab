@@ -77,7 +77,7 @@ class AttributionCountersignServiceTest {
     final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     final BusinessZone zone = new BusinessZone(ZoneId.of("Asia/Shanghai"));
     final AttributionCountersignService service = new AttributionCountersignService(countersigns, commands, requests, bases,
-            new PersonnelPlans(ids), effects, ownGuard, new CountersignDeciders(countersigns, roles, currentUser), mock(OrgCountersigns.class), mock(AuditLog.class), currentUser, ids, clock, zone);
+            new PersonnelPlans(ids), effects, ownGuard, mock(OrgMergeProgress.class), new CountersignDeciders(countersigns, roles, currentUser), mock(OrgCountersigns.class), mock(AuditLog.class), currentUser, ids, clock, zone);
 
     AttributionCountersignServiceTest() {
         when(ids.next()).thenReturn(COMMAND.value());
@@ -175,7 +175,7 @@ class AttributionCountersignServiceTest {
         org.mockito.Mockito.doThrow(new DomainException(com.forcitis.one.organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN,
                 ErrorKind.FORBIDDEN, "own")).when(ownGuard).requireNotOwn(any(), any());
         PersonnelCommandService personnel = new PersonnelCommandService(commands, mock(NewEmployees.class), new PersonnelPlans(ids), mock(SeparationHoldCheck.class),
-                mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), bases, requests, new OrgCountersignFreeze(mock(com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository.class)), countersigns, ownGuard, effects, mock(AuditLog.class),
+                mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), bases, requests, new OrgCountersignFreeze(mock(com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository.class)), countersigns, ownGuard, mock(OrgMergeProgress.class), effects, mock(AuditLog.class),
                 mock(DomainEvents.class), currentUser, ids, clock, zone);
 
         assertThatThrownBy(() -> personnel.withdraw(new com.forcitis.one.organization.workforce.api.WithdrawPersonnelCommand(COMMAND, "plan changed")))

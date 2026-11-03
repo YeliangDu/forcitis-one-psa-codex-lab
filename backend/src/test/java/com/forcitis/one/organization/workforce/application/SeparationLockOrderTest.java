@@ -81,7 +81,7 @@ class SeparationLockOrderTest {
     @DisplayName("IMP-1030-PAR-B6 entering a separation takes the separation lock before the employee row")
     void enteringLocksTheDecisionFirst() {
         PersonnelCommandService service = new PersonnelCommandService(commands, mock(NewEmployees.class), new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), mock(CountersignBases.class), mock(CountersignRequests.class), new OrgCountersignFreeze(mock(com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository.class)),
-                mock(AttributionCountersignRepository.class), mock(OwnAttributionGuard.class), mock(EffectPublisher.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone);
+                mock(AttributionCountersignRepository.class), mock(OwnAttributionGuard.class), mock(OrgMergeProgress.class), mock(EffectPublisher.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone);
         when(commands.eventSequence(EMPLOYEE)).thenReturn(0L);
         when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), List.of(), List.of(), Map.of()));
 
@@ -97,7 +97,7 @@ class SeparationLockOrderTest {
     @DisplayName("IMP-1030-PAR-B6 withdrawing a held separation takes the separation lock before the employee row")
     void withdrawingLocksTheDecisionFirst() {
         PersonnelCommandService service = new PersonnelCommandService(commands, mock(NewEmployees.class), new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), mock(CountersignBases.class), mock(CountersignRequests.class), new OrgCountersignFreeze(mock(com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository.class)),
-                mock(AttributionCountersignRepository.class), mock(OwnAttributionGuard.class), mock(EffectPublisher.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone);
+                mock(AttributionCountersignRepository.class), mock(OwnAttributionGuard.class), mock(OrgMergeProgress.class), mock(EffectPublisher.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone);
         heldSeparation();
         when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), List.of(), List.of(), Map.of()));
 
