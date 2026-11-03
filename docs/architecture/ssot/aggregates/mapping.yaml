@@ -22,10 +22,10 @@ entries:
     invariants: ["RULE-385"]
     evidence: "依据：规划表 AGG-117 行（source_line 523）聚合名写明「法人归属（已建 `LegalEntityAttribution`，表 `organization_workforce.legal_entity_attributions`…）」，命令指定/更正法人归属对应 AttributeLegalEntity/CorrectLegalEntityAttribution，事件 法人归属已变更/已更正与已建 LegalEntityAttributed/Corrected 对应；已建另有 EndLegalEntityAttribution，规划表未列（规划称命令名以已建代码为准）。"
   - built: organization.workforce/RegisteredEmployee
-    planned: ["AGG-62"]
-    relation: pending
+    planned: []
+    relation: none
     invariants: []
-    evidence: "依据：规划表 AGG-62 行（source_line 516）「人员（OBJ-56）」命令含「登记候选人/登记入职」等，事件列「人员已登记」；已建 RegisteredEmployee 无表、仅命令 PersistRegisteredEmployee 与事件 EmployeeRegistered，规划行未提 RegisteredEmployee 或 EmployeeRegistered，事件名与「人员已登记」是否同义、是否为 AGG-62 的早期切片无法由规划原文证实，候选 AGG-62，relation 待 one-architecture 定（可能 part-of）。"
+    evidence: "依据：ADR-0068 第 1 条第 9 项以人事命令事件（EmployeeHired 等）取代 EmployeeRegistered，ADR-0069 第 9 条：登录时不再建员工，E 同批删除 EmployeeRegistered。已建 RegisteredEmployee 无表、仅命令 PersistRegisteredEmployee 与该事件，是首次登录登记进组织快照的过渡切片，随 E 删除；AGG-62 人员由人事命令产生，不是它的延续，故无对应（原 pending 作废，#712）。"
   - built: platform.approval/ApprovalRequest
     planned: []
     relation: none
