@@ -1,0 +1,183 @@
+package com.forcitis.one.acceptance.platform.identity.data_scope;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
+import com.jayway.jsonpath.JsonPath;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+
+/**
+ * #730 S3 (F-1 contract items 10, 11, 13, 14, 16 and constraint table rows 22, 31, 33; ADR-0032 section 5 item 5): who lists and reads
+ * which permission adjustment, what an item shows, paging, and the audit entry "viewed". Callers are real sessions of people holding the
+ * roles named in the contract; the items are written directly in the valid shapes of the card.
+ */
+class PermissionAdjustmentReadApiIT extends PermissionAdjustmentApiSupport {
+
+    static final TestDatabase postgres = TestPostgres.database(PermissionAdjustmentReadApiIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
+
+    @BeforeAll
+    void organisation() throws Exception {
+        apiWorld();
+    }
+
+    @Test
+    @DisplayName("#730 S3 契约第 10、11、13 条：组织数据管理员与安全审计员都能列出全部类型的条目（人员条目带 userId，角色条目带 roleId 与 orgUnitId），形状为 {items, nextCursor}，条目与详情都不含权限码与范围")
+    void bothReadersSeeEveryKindAndNoPermissionCodeOrScope() throws Exception {
+        UUID sensitive = sensitiveItemAbout("mover");
+        UUID transfer = scopeReviewAbout("mover", "headB");
+        UUID inactive = inactiveUnitItem();
+
+        for (String reader : List.of("oda", "auditor")) {
+            MockHttpServletResponse listed = listPage(session(reader), "limit", "200");
+            assertThat(listed.getStatus()).as(reader + ": " + listed.getContentAsString()).isEqualTo(200);
+            assertThat((Object) JsonPath.read(listed.getContentAsString(), "$.nextCursor")).as("last page has no cursor").isNull();
+            List<Map<String, Object>> items = items(listed);
+            assertThat(field(items, "permissionAdjustmentId")).as(reader).contains(sensitive.toString(), transfer.toString(), inactive.toString());
+            Map<String, Object> person = items.stream().filter(item -> sensitive.toString().equals(item.get("permissionAdjustmentId"))).findFirst().orElseThrow();
+            assertThat(person).containsEntry("kind", "SENSITIVE_ROLE_REVIEW").containsEntry("status", "OPEN").containsEntry("userId", userId("mover"));
+            Map<String, Object> role = items.stream().filter(item -> inactive.toString().equals(item.get("permissionAdjustmentId"))).findFirst().orElseThrow();
+            assertThat(role).containsEntry("kind", "SCOPE_REVIEW").containsKeys("roleId", "orgUnitId");
+            assertThat(listed.getContentAsString()).doesNotContain("permissionCodes", "accessScope");
+            MockHttpServletResponse detail = read(session(reader), sensitive);
+            assertThat(detail.getStatus()).isEqualTo(200);
+            assertThat(detail.getContentAsString()).doesNotContain("permissionCodes", "accessScope");
+        }
+    }
+
+    @Test
+    @DisplayName("#730 S3 契约第 13 条：没有权限码的人（无角色者、原部门负责人、当事人本人）列表与读取都是 403，条目不泄露")
+    void callersWithoutThePermissionAreRefused() throws Exception {
+        UUID item = sensitiveItemAbout("mover");
+        UUID transfer = scopeReviewAbout("mover", "headB");
+
+        for (String caller : List.of("plain", "headA", "mover")) {
+            MockHttpServletResponse listed = listPage(session(caller), "limit", "200");
+            assertThat(listed.getStatus()).as(caller + " lists").isEqualTo(403);
+            assertThat(listed.getContentAsString()).doesNotContain(item.toString());
+            for (UUID target : List.of(item, transfer)) {
+                MockHttpServletResponse read = read(session(caller), target);
+                assertThat(read.getStatus()).as(caller + " reads " + target).isEqualTo(403);
+                assertThat(read.getContentAsString()).doesNotContain(target.toString());
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("#730 S3 契约第 14 条、不变量 33：列表不含关于调用人本人的条目（持有读权限也一样），其他人的条目照常列出；读自己的条目不返回 200")
+    void aListLeavesOutTheCallersOwnItems() throws Exception {
+        UUID own = sensitiveItemAbout("odaSubject");
+        UUID other = sensitiveItemAbout("mover2");
+
+        List<String> ids = listedIds(session("odaSubject"));
+
+        assertThat(ids).doesNotContain(own.toString()).contains(other.toString());
+        assertThat(listedIds(session("oda"))).as("another administrator sees the item").contains(own.toString());
+        assertThat(read(session("odaSubject"), own).getStatus()).as("the person reads an item about themselves").isNotEqualTo(200);
+    }
+
+    @Test
+    @DisplayName("#730 S3 契约第 16 条来源①：新部门负责人（无权限码）只列出收件人是本人的范围复核并能读取；别人的收件人条目、敏感角色复核、角色条目都不在其列表里，读取为 403；原部门负责人 403")
+    void theNewHeadSeesOnlyTheItemsAddressedToThem() throws Exception {
+        UUID forB = scopeReviewAbout("mover", "headB");
+        UUID forC = scopeReviewAbout("mover2", "multi");
+        UUID sensitive = sensitiveItemAbout("mover");
+        UUID inactive = inactiveUnitItem();
+
+        MockHttpServletResponse listed = listPage(session("headB"), "limit", "200");
+        assertThat(listed.getStatus()).as(listed.getContentAsString()).isEqualTo(200);
+        assertThat(field(items(listed), "permissionAdjustmentId")).contains(forB.toString()).doesNotContain(forC.toString(), sensitive.toString(), inactive.toString());
+        assertThat(read(session("headB"), forB).getStatus()).isEqualTo(200);
+        for (UUID notMine : List.of(forC, sensitive, inactive)) {
+            assertThat(read(session("headB"), notMine).getStatus()).as("headB reads " + notMine).isEqualTo(403);
+        }
+        assertThat(read(session("headA"), forB).getStatus()).as("the old unit's head is not the recipient").isEqualTo(403);
+        assertThat(read(session("plain"), forB).getStatus()).isEqualTo(403);
+    }
+
+    @Test
+    @DisplayName("#730 S3 契约第 16 条来源①（待裁定 R-5 的取向）：收件人为空的范围复核，组织数据管理员能读；多重角色（安全审计员兼新部门负责人）既读全部也读收件人条目")
+    void anItemWithoutARecipientIsReadByTheAdministratorAndTwoRolesAddUp() throws Exception {
+        UUID noHead = scopeReviewAbout("mover", null);
+        UUID forMulti = scopeReviewAbout("mover2", "multi");
+
+        assertThat(read(session("oda"), noHead).getStatus()).isEqualTo(200);
+        assertThat(listedIds(session("oda"))).contains(noHead.toString(), forMulti.toString());
+        assertThat(read(session("headB"), noHead).getStatus()).as("a head who is not the recipient").isEqualTo(403);
+        assertThat(listedIds(session("multi"))).contains(noHead.toString(), forMulti.toString());
+        assertThat(read(session("multi"), forMulti).getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    @DisplayName("#730 S3 契约第 10 条：详情带 ETag；不存在的条目为 404，ID 形式不对为 400")
+    void aDetailCarriesAVersionAndAbsentIdsAreRefused() throws Exception {
+        UUID item = sensitiveItemAbout("mover");
+
+        MockHttpServletResponse found = read(session("oda"), item);
+        assertThat(found.getStatus()).isEqualTo(200);
+        assertThat(found.getHeader("ETag")).isNotBlank();
+        assertThat((String) JsonPath.read(found.getContentAsString(), "$.permissionAdjustmentId")).isEqualTo(item.toString());
+        assertThat(readAdjustment(session("oda"), UUID.randomUUID().toString()).getStatus()).isEqualTo(404);
+        assertThat(readAdjustment(session("oda"), "not-an-id").getStatus()).isEqualTo(400);
+    }
+
+    @Test
+    @DisplayName("#730 S3 K-3a 分页：limit=2 逐页取（带 nextCursor）得到的条目与一次取全的相同，无重复无遗漏，最后一页没有 nextCursor；limit=1 恰好一条")
+    void pagingWalksEveryItemOnceAndEndsWithoutACursor() throws Exception {
+        for (int i = 0; i < 5; i++) {
+            sensitiveItemAbout(i % 2 == 0 ? "mover" : "mover2");
+        }
+        List<String> everything = listedIds(session("oda"));
+        assertThat(everything.size()).isGreaterThanOrEqualTo(5);
+
+        List<String> walked = new ArrayList<>();
+        String cursor = null;
+        int pages = 0;
+        do {
+            MockHttpServletResponse page = cursor == null ? listPage(session("oda"), "limit", "2") : listPage(session("oda"), "limit", "2", "cursor", cursor);
+            assertThat(page.getStatus()).as(page.getContentAsString()).isEqualTo(200);
+            List<Map<String, Object>> items = items(page);
+            assertThat(items.size()).isLessThanOrEqualTo(2);
+            walked.addAll(field(items, "permissionAdjustmentId"));
+            cursor = JsonPath.read(page.getContentAsString(), "$.nextCursor");
+            assertThat(++pages).as("the walk ends").isLessThan(100);
+        } while (cursor != null);
+
+        assertThat(walked).as("no duplicates").doesNotHaveDuplicates();
+        assertThat(new HashSet<>(walked)).isEqualTo(new HashSet<>(everything));
+        assertThat(items(listPage(session("oda"), "limit", "1"))).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("#730 S3 ADR-0032 第 5 项第 5 条：读取详情写一条 viewed 审计（对象类别 PERMISSION_ADJUSTMENT、对象为该条目、操作人为读者）；被拒的读取不写")
+    void readingAnItemIsAuditedAsViewed() throws Exception {
+        UUID item = sensitiveItemAbout("mover");
+        UUID refusedItem = sensitiveItemAbout("mover2");
+
+        assertThat(read(session("auditor"), item).getStatus()).isEqualTo(200);
+        assertThat(read(session("headA"), refusedItem).getStatus()).isEqualTo(403);
+
+        List<Map<String, Object>> viewed = auditEntries(AUDIT_PREFIX + "viewed");
+        assertThat(viewed).anySatisfy(entry -> {
+            assertThat(entry).containsEntry("subjectKind", "PERMISSION_ADJUSTMENT").containsEntry("subjectId", item.toString())
+                    .containsEntry("actorId", userId("auditor")).containsEntry("action", AUDIT_PREFIX + "viewed");
+        });
+        assertThat(viewed).noneSatisfy(entry -> assertThat(entry).containsEntry("subjectId", refusedItem.toString()));
+        assertThat(viewed.stream().map(entry -> String.valueOf(entry.get("detail"))).toList()).noneMatch(detail -> detail.contains("Synthetic"));
+    }
+}
