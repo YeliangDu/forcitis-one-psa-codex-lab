@@ -417,6 +417,36 @@ components:
         audit: audited
         publisherTest: com.forcitis.one.platform.identity.domain.EmergencyAdminTest
         noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
+    PermissionAdjustmentOpened:
+      name: PermissionAdjustmentOpened
+      title: 待调整权限条目生成
+      payload:
+        type: object
+        properties:
+          permissionAdjustmentId:
+            type: string
+            format: uuid
+            x-type: PermissionAdjustmentId
+          userId:
+            type: string
+            x-type: UserId
+            format: uuid
+            description: 稳定 ID 的字符串形式
+      x-event:
+        eventType: platform.identity.PermissionAdjustmentOpened
+        version: 1
+        class: com.forcitis.one.platform.identity.events.PermissionAdjustmentOpened
+        aggregate: PermissionAdjustment
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.PermissionAdjustmentTest
+        noConsumer: 暂无消费方：条目只需留痕，办理走本模块的接口；现在就发布，是因为生成只在发生当时可被记录，补不回
     AuthorizationOpened:
       name: AuthorizationOpened
       title: 敏感授权申请开立

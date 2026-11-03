@@ -118,6 +118,16 @@ class EventSequenceContinuityTest {
     }
 
     @Test
+    @DisplayName("PermissionAdjustment: the event of raising it is numbered 1")
+    void permissionAdjustment() {
+        checkMany(() -> com.forcitis.one.platform.identity.domain.PermissionAdjustment.separationCorrectionReview(
+                        new com.forcitis.one.platform.identity.api.PermissionAdjustmentId(java.util.UUID.randomUUID()), TestAccounts.account(1),
+                        new com.forcitis.one.organization.workforce.api.PersonnelCommandId(java.util.UUID.randomUUID()),
+                        new com.forcitis.one.organization.workforce.api.OrgUnitId(java.util.UUID.randomUUID()), null, NOW.plusSeconds(86_400), NOW),
+                List.of());
+    }
+
+    @Test
     @DisplayName("LegalEntity: events are numbered 1..n")
     void legalEntity() {
         checkMany(() -> LegalEntity.register(new LegalEntityId(TestIds.uuid(1)), new LegalEntityCode("FST"), "Synthetic"), List.of(

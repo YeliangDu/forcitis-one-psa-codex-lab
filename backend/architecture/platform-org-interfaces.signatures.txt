@@ -38,9 +38,9 @@ organization.attendance::api organization.attendance.api.LockedDayChange public 
 organization.attendance::api organization.attendance.api.LockedDayChange public organization.attendance.api.DayException organization.attendance.api.LockedDayChange.after()
 organization.attendance::api organization.attendance.api.LockedDayChange public organization.attendance.api.DayException organization.attendance.api.LockedDayChange.before()
 organization.attendance::api organization.attendance.api.LockedDayChange public organization.attendance.api.LockedDayChange(java.time.LocalDate,organization.attendance.api.DayException,organization.attendance.api.DayException)
+organization.attendance::api organization.attendance.api.WorkCalendar implements kernel.WorkdayDeadlines
 organization.attendance::api organization.attendance.api.WorkCalendar public abstract boolean organization.attendance.api.WorkCalendar.isWorkday(java.time.LocalDate,kernel.LegalEntityId)
 organization.attendance::api organization.attendance.api.WorkCalendar public abstract interface organization.attendance.api.WorkCalendar
-organization.attendance::api organization.attendance.api.WorkCalendar public abstract java.time.Instant organization.attendance.api.WorkCalendar.endOfWorkdayAfter(java.time.LocalDate,int,kernel.LegalEntityId)
 organization.workforce::api organization.workforce.api.AttributionId component value: java.util.UUID
 organization.workforce::api organization.workforce.api.AttributionId extends java.lang.Record
 organization.workforce::api organization.workforce.api.AttributionId public final boolean organization.workforce.api.AttributionId.equals(java.lang.Object)

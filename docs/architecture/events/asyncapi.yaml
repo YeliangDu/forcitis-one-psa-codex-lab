@@ -146,6 +146,11 @@ channels:
     messages:
       EmergencyAdminDisabled:
         $ref: '#/components/messages/EmergencyAdminDisabled'
+  permissionAdjustmentOpened:
+    address: platform.identity.PermissionAdjustmentOpened
+    messages:
+      PermissionAdjustmentOpened:
+        $ref: '#/components/messages/PermissionAdjustmentOpened'
   authorizationOpened:
     address: platform.identity.AuthorizationOpened
     messages:
@@ -782,6 +787,20 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/emergencyAdminDisabled/messages/EmergencyAdminDisabled'
+  publishPermissionAdjustmentOpened:
+    action: send
+    channel:
+      $ref: '#/channels/permissionAdjustmentOpened'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/permissionAdjustmentOpened/messages/PermissionAdjustmentOpened'
+  handlePermissionAdjustmentOpenedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/permissionAdjustmentOpened'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/permissionAdjustmentOpened/messages/PermissionAdjustmentOpened'
   publishAuthorizationOpened:
     action: send
     channel:
@@ -1202,6 +1221,13 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/employeeTransferred/messages/EmployeeTransferred'
+  handleEmployeeTransferredInPlatformIdentity:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeTransferred'
+    summary: platform.identity 消费
+    messages:
+    - $ref: '#/channels/employeeTransferred/messages/EmployeeTransferred'
   publishEmployeeSeparated:
     action: send
     channel:
@@ -1256,6 +1282,13 @@ operations:
     channel:
       $ref: '#/channels/employeeCorrected'
     summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/employeeCorrected/messages/EmployeeCorrected'
+  handleEmployeeCorrectedInPlatformIdentity:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeCorrected'
+    summary: platform.identity 消费
     messages:
     - $ref: '#/channels/employeeCorrected/messages/EmployeeCorrected'
   publishSeparationHeld:
@@ -2987,6 +3020,42 @@ components:
             - SEPARATION
             - OPERATIONS
             x-type: EmergencyAdminDisableCause
+    PermissionAdjustmentOpened:
+      name: PermissionAdjustmentOpened
+      title: 待调整权限条目生成
+      x-event:
+        eventType: platform.identity.PermissionAdjustmentOpened
+        version: 1
+        class: com.forcitis.one.platform.identity.events.PermissionAdjustmentOpened
+        aggregate: PermissionAdjustment
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.PermissionAdjustmentTest
+        noConsumer: 暂无消费方：条目只需留痕，办理走本模块的接口；现在就发布，是因为生成只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - permissionAdjustmentId
+        - userId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          permissionAdjustmentId:
+            type: string
+            format: uuid
+            x-type: PermissionAdjustmentId
+          userId:
+            type: string
+            x-type: UserId
+            format: uuid
+            description: 稳定 ID 的字符串形式
     AuthorizationOpened:
       name: AuthorizationOpened
       title: 敏感授权申请开立
@@ -4316,6 +4385,7 @@ components:
         publisher: organization.workforce
         consumers:
         - platform.audit
+        - platform.identity
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 人事业务生效日（effectiveDate）：调岗命令的生效日
@@ -4481,6 +4551,7 @@ components:
         publisher: organization.workforce
         consumers:
         - platform.audit
+        - platform.identity
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 人事业务生效日：更正命令的生效日（负载不带，信封带）
@@ -5158,6 +5229,10 @@ x-system-actors:
   actorId: 26758f3f-e27f-55a8-9789-834245457756
   module: platform.identity
   description: 运维命令（identity-operations 档案）
+- name: platform.identity.permission-adjustment
+  actorId: b40b9e70-0e57-5079-9711-1ba819de79a6
+  module: platform.identity
+  description: 监听器 HandleEmployeeCorrected：撤销误离职的更正后，给持有敏感角色的人生成敏感角色复核条目（待调整权限，#730）
 - name: platform.identity.separation
   actorId: 1da01607-dce4-5fbc-9490-f0ae7628d6d1
   module: platform.identity
