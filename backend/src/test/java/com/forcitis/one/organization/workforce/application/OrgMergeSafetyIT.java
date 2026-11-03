@@ -925,10 +925,10 @@ class OrgMergeSafetyIT {
         UUID y = unit();
         UUID resident = person(x, "REGULAR");
         OrgStructureCommandId first = merge(x, y, today);
-        steps.start(first, UUID.randomUUID());
+        com.forcitis.one.organization.workforce.domain.HeldPost post = steps.start(first, UUID.randomUUID()).getFirst();
         slipInMergeAwayFrom(first, y, unit(), today.minusDays(1));
 
-        Throwable refused = catchThrowable(() -> steps.move(first, new EmployeeId(resident), UUID.randomUUID()));
+        Throwable refused = catchThrowable(() -> steps.move(first, post, UUID.randomUUID()));
 
         assertThat(refused).isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).hasToString("ORGANIZATION_WORKFORCE_ORG_UNIT_MERGE_OPEN"));
         assertThat(unitOf(resident, today)).isEqualTo(x);

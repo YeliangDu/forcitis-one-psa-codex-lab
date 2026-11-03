@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.Uuids;
+import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.organization.workforce.domain.AssignmentKind;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.domain.Assignment;
@@ -23,7 +25,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-/** #711: the assignment root table refuses rewrites, and a merge counts the people whose primary post is in the unit, not those who hold a concurrent post there. */
+/** #711: the assignment root table refuses rewrites; #1040: a merge moves the concurrent posts of a unit too, and the people whose cost legal entity it can change are those with a primary post there. */
 class EmployeeAssignmentsTablesIntegrationTest extends WorkforceIntegrationSupport {
     static final String ROOTS = "organization_workforce.employee_assignments";
 
@@ -90,11 +92,8 @@ class EmployeeAssignmentsTablesIntegrationTest extends WorkforceIntegrationSuppo
         assertThat(jdbc.sql("select count(*) from " + ROOTS + " where employee_id = :e").param("e", person.employee()).query(Integer.class).single()).isEqualTo(1);
     }
 
-    @Test
-    @DisplayName("#711 a merge counts the people whose primary post is in the merged unit; the holder of a concurrent post there is not moved by it")
-    void aMergeCountsPrimaryHoldersOnly() {
-        PersonnelSeedSupport.Person resident = PersonnelSeedSupport.employed(jdbc, clock, "AP-2");
-        PersonnelSeedSupport.Person visitor = PersonnelSeedSupport.employed(jdbc, clock, "AP-3");
+    private PersonnelSeedSupport.Person visitorWithConcurrentPostIn(PersonnelSeedSupport.Person resident, String code) {
+        PersonnelSeedSupport.Person visitor = PersonnelSeedSupport.employed(jdbc, clock, code);
         UUID root = Uuids.timeOrdered(clock);
         jdbc.sql("insert into " + ROOTS + " (assignment_id, employee_id, assignment_kind, created_at, updated_at) values (:root, :e, 'CONCURRENT', now(), now())")
                 .param("root", root).param("e", visitor.employee()).update();
@@ -104,7 +103,35 @@ class EmployeeAssignmentsTablesIntegrationTest extends WorkforceIntegrationSuppo
                 values (:id, :e, :root, 'CONCURRENT', :since, :unit, 1, 'MIGRATION', now(), now())""")
                 .param("id", Uuids.timeOrdered(clock)).param("e", visitor.employee()).param("root", root).param("since", PersonnelSeedSupport.SINCE)
                 .param("unit", resident.orgUnit()).update();
+        return visitor;
+    }
 
-        assertThat(structure.employedIn(new OrgUnitId(resident.orgUnit()), LocalDate.of(2026, 11, 3))).containsExactly(new EmployeeId(resident.employee()));
+    @Test
+    @DisplayName("#1040 a merge moves every post in the merged unit, primary and concurrent; only the primary holders are the people whose cost legal entity it can change")
+    void aMergeMovesEveryPostButOnlyPrimaryHoldersCanChangeEntity() {
+        PersonnelSeedSupport.Person resident = PersonnelSeedSupport.employed(jdbc, clock, "AP-2");
+        PersonnelSeedSupport.Person visitor = visitorWithConcurrentPostIn(resident, "AP-3");
+        OrgUnitId unit = new OrgUnitId(resident.orgUnit());
+        LocalDate day = LocalDate.of(2026, 11, 3);
+
+        assertThat(structure.employedIn(unit, day)).containsExactly(new EmployeeId(resident.employee()));
+        assertThat(structure.postsIn(unit, day)).extracting(post -> post.employee(), post -> post.kind())
+                .containsExactlyInAnyOrder(org.assertj.core.groups.Tuple.tuple(new EmployeeId(resident.employee()), AssignmentKind.PRIMARY),
+                        org.assertj.core.groups.Tuple.tuple(new EmployeeId(visitor.employee()), AssignmentKind.CONCURRENT));
+    }
+
+    @Test
+    @DisplayName("#1040 a merge in progress holds the person who has only a concurrent post in its unit, so a command about them locks the unit first and counts them")
+    void aMergeInProgressHoldsAConcurrentOnlyPerson() {
+        PersonnelSeedSupport.Person resident = PersonnelSeedSupport.employed(jdbc, clock, "AP-6");
+        PersonnelSeedSupport.Person visitor = visitorWithConcurrentPostIn(resident, "AP-7");
+        UUID merge = Uuids.timeOrdered(clock);
+        jdbc.sql("""
+                insert into organization_workforce.org_structure_commands (org_structure_command_id, command_kind, target_kind, target_org_unit_id, merge_into_org_unit_id, effective_date,
+                  status, affected_employee_count, transferred_employee_count, created_at, created_by, updated_at)
+                values (:id, 'MERGE', 'ORG_UNIT', :unit, :into, date '2026-11-03', 'IN_PROGRESS', 2, 0, now(), gen_random_uuid(), now())""")
+                .param("id", merge).param("unit", resident.orgUnit()).param("into", PersonnelSeedSupport.orgUnit(jdbc, clock)).update();
+
+        assertThat(structure.mergesInProgressOf(new EmployeeId(visitor.employee()))).containsExactly(new OrgStructureCommandId(merge));
     }
 }

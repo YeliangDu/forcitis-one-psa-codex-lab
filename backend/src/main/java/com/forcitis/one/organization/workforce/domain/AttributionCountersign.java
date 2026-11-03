@@ -24,6 +24,9 @@ public final class AttributionCountersign {
     /** From this escalation level on a business administrator may decide the row (user answer Q3 of 2026-10-30). */
     public static final int ESCALATED_FROM_LEVEL = 2;
 
+    /** The last escalation level: after the 4th working day past the due date; there is no level 4. */
+    public static final int LAST_ESCALATION_LEVEL = 3;
+
     private final AttributionCountersignId id;
     private final @Nullable PersonnelCommandId commandId;
     private final @Nullable OrgStructureCommandId orgCommandId;
@@ -35,7 +38,7 @@ public final class AttributionCountersign {
     private final Instant requestedAt;
     private final UserId requestedBy;
     private final LocalDate dueOn;
-    private final int escalationLevel;
+    private int escalationLevel;
     private final @Nullable String requestReason;
     private final long version;
     private CountersignStatus status;
@@ -125,6 +128,17 @@ public final class AttributionCountersign {
     public void close(Instant at) {
         status = CountersignStatus.MACHINE.require(status, CountersignStatus.LAPSED, WorkforceError.ORGANIZATION_WORKFORCE_COUNTERSIGN_NOT_OPEN);
         decidedAt = Objects.requireNonNull(at, "at");
+    }
+
+    /** The level only rises, only while the request is open, and stops at the last level. */
+    public void escalateTo(int level) {
+        if (!isOpen()) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_COUNTERSIGN_NOT_OPEN, ErrorKind.CONFLICT, "only an open countersign request escalates");
+        }
+        if (level <= escalationLevel || level > LAST_ESCALATION_LEVEL) {
+            throw new IllegalArgumentException("escalation level " + level + " does not rise from " + escalationLevel + " within 1.." + LAST_ESCALATION_LEVEL);
+        }
+        escalationLevel = level;
     }
 
     private void decide(CountersignStatus next, UserId by, @Nullable String reason, Instant at) {

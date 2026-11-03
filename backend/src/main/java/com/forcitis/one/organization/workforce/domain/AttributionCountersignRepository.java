@@ -34,6 +34,15 @@ public interface AttributionCountersignRepository {
     /** Writes the decision of an open request with the audit entry that recorded it, if the stored version is still the one it was loaded with. */
     void saveDecision(AttributionCountersign request, AuditEntryId decisionAudit, Instant at, long loadedVersion);
 
+    /** The open requests whose due date lies before the day and that are below the last escalation level: the only ones the deadline job may still raise. */
+    List<AttributionCountersignId> overdueBelowLastLevel(LocalDate day);
+
+    /** Writes the raised escalation level of an open request, if the stored version is still the one it was loaded with. */
+    void saveEscalation(AttributionCountersign request, Instant at, long loadedVersion);
+
+    /** The finance head of the legal entity in the version of the entity that holds on the day; empty when the version names none. */
+    Optional<EmployeeId> financeHeadOn(LegalEntityId legalEntity, LocalDate day);
+
     /** Whether the employee is the finance head of the legal entity in the version of the entity that holds on the day. */
     boolean isFinanceHead(LegalEntityId legalEntity, EmployeeId employee, LocalDate day);
 }

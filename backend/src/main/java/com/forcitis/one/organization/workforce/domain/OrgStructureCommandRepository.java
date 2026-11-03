@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.domain;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.event.ActorType;
+import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.BlockingArrival;
 import com.forcitis.one.organization.workforce.api.HeldSeparation;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
@@ -115,8 +116,11 @@ public interface OrgStructureCommandRepository {
 
     void insertPositionVersions(PositionId position, VersionPlan plan, OrgStructureCommandId command, Instant at);
 
-    /** The people employed on the day whose assignment on that day is in the unit, in a stable order. */
+    /** The people employed on the day whose primary post on that day is in the unit, in a stable order: the people whose cost legal entity a merge or a dissolve can change. */
     List<EmployeeId> employedIn(OrgUnitId orgUnit, LocalDate day);
+
+    /** Every post in the unit on the day, primary and concurrent, of the people employed that day, in a stable order: what a merge moves, one transfer per post (#1040). */
+    List<HeldPost> postsIn(OrgUnitId orgUnit, LocalDate day);
 
     /** Whether somebody is employed and in the unit on some day from the given one on, whatever the entered commands will make of them. */
     boolean hasEmployedFrom(OrgUnitId orgUnit, LocalDate day);
@@ -130,11 +134,11 @@ public interface OrgStructureCommandRepository {
     /** The people employed in the unit on the day whose separation is held, with the held command: a hold keeps them where they are. */
     List<HeldSeparation> heldSeparationsIn(OrgUnitId orgUnit, LocalDate day);
 
-    /** The merges in progress whose merged unit holds the employee's primary post on the merge day, ordered by merge day, merged unit, then id (the order their unit rows are locked in). */
+    /** The merges in progress whose merged unit holds a post of the employee on the merge day, ordered by merge day, merged unit, then id (the order their unit rows are locked in). */
     List<OrgStructureCommandId> mergesInProgressOf(EmployeeId employee);
 
-    /** Whether the merge already generated a transfer for the employee, whatever became of it. */
-    boolean hasGeneratedTransfer(OrgStructureCommandId merge, EmployeeId employee);
+    /** Whether the merge already generated a transfer for the post, whatever became of it. */
+    boolean hasGeneratedTransfer(OrgStructureCommandId merge, AssignmentId assignment);
 
     /** Whether somebody is employed and holds the position on some day from the given one on. */
     boolean hasHolderFrom(PositionId position, LocalDate day);

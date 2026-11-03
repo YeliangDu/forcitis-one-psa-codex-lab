@@ -65,7 +65,7 @@ class OrgMergeProgress {
         Set<OrgStructureCommandId> placed = new HashSet<>();
         for (OrgStructureCommand merge : open) {
             boolean in = merge.status() == OrgCommandStatus.IN_PROGRESS
-                    ? commands.employedIn(merge.targetOrgUnitId(), merge.effectiveDate()).contains(employee)
+                    ? commands.postsIn(merge.targetOrgUnitId(), merge.effectiveDate()).stream().anyMatch(post -> post.employee().equals(employee))
                     : commands.arrivalsAfter(merge.targetOrgUnitId(), merge.effectiveDate()).stream().anyMatch(a -> a.employeeId().equals(employee));
             if (in) {
                 placed.add(merge.id());
@@ -96,7 +96,7 @@ class OrgMergeProgress {
 
     /** The merge is locked and in progress. */
     void recount(OrgStructureCommand merge) {
-        int left = commands.employedIn(merge.targetOrgUnitId(), merge.effectiveDate()).size();
+        int left = OrgMergeSteps.employeesOf(commands.postsIn(merge.targetOrgUnitId(), merge.effectiveDate()));
         if (merge.recordRemaining(left)) {
             commands.update(merge, clock.instant(), merge.version());
         }
