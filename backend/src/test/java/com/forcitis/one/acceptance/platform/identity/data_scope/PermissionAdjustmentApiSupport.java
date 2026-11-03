@@ -39,9 +39,10 @@ abstract class PermissionAdjustmentApiSupport extends DataScopeSupport {
     static final String ADJUSTED_ACTION = "platform.identity.PermissionAdjustmentAdjusted";
 
     /** The people of the world; their display names are "Synthetic " + key (DataScopeSupport). */
-    static final List<String> PEOPLE = List.of("admin1", "oda", "oda2", "auditor", "multi", "headA", "headB", "mover", "mover2", "odaSubject", "owner", "gone", "plain");
+    static final List<String> PEOPLE = List.of("admin1", "oda", "oda2", "auditor", "multi", "headA", "headB", "mover", "mover2", "odaSubject", "owner", "gone", "plain", "held", "leaver", "bound", "stray");
 
-    private static final Set<String> TIMESTAMPS = Set.of("escalation_due_at", "created_at", "updated_at");
+    private static final Set<String> TIMESTAMPS = Set.of("escalation_due_at", "created_at", "updated_at", "upheld_at", "uphold_expires_at", "expired_at",
+            "regeneration_decided_at", "escalated_at");
 
     /**
      * oda, oda2: organisation data administrators; auditor: security auditor; multi: security auditor and head of F1-C; headA: head of the
@@ -76,6 +77,10 @@ abstract class PermissionAdjustmentApiSupport extends DataScopeSupport {
         }
         grantByOperations("mover", BUSINESS_ADMIN);
         grantByOperations("mover2", BUSINESS_ADMIN);
+        grantByOperations("held", BUSINESS_ADMIN);
+        grantByOperations("leaver", BUSINESS_ADMIN);
+        grantByOperations("bound", BUSINESS_ADMIN);
+        grantByOperations("stray", BUSINESS_ADMIN);
     }
 
     // ---- items --------------------------------------------------------------------------------------------------------------
@@ -116,12 +121,12 @@ abstract class PermissionAdjustmentApiSupport extends DataScopeSupport {
         }
     }
 
-    private static Item base(String kind, String origin) {
+    protected static Item base(String kind, String origin) {
         return new Item().with("permission_adjustment_id", UUID.randomUUID()).with("kind", kind).with("origin_kind", origin).with("status", "OPEN")
                 .with("escalation_due_at", DUE).with("created_at", CREATED).with("updated_at", CREATED);
     }
 
-    private UUID insertItem(Item item) throws SQLException {
+    protected UUID insertItem(Item item) throws SQLException {
         List<String> names = new ArrayList<>();
         List<String> marks = new ArrayList<>();
         for (String column : item.columns.keySet()) {
