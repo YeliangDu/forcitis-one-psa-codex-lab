@@ -17,12 +17,35 @@ public record VersionPlan(List<Close> closes, List<UUID> supersede, List<NewRow>
     public record Close(UUID id, LocalDate to) {
     }
 
-    /** A row to insert. correctedFrom is the superseded row it replaces, empty for a row that follows a closed one or fills a gap. */
-    public record NewRow(UUID id, LocalDate from, @Nullable LocalDate to, Map<String, Object> values, ChangeSource source, @Nullable UUID correctedFrom) {
+    /** A row to insert. correctedFrom is the superseded row it replaces, empty for a row that follows a closed one or fills a gap. root is the post it belongs to, empty on the employee table and for the primary post's first row (the store names it). */
+    public record NewRow(UUID id, LocalDate from, @Nullable LocalDate to, Map<String, Object> values, ChangeSource source, @Nullable UUID correctedFrom,
+                         @Nullable UUID root) {
+
+        /** A row of the post the plan's other rows belong to, or of the employee table. */
+        public NewRow(UUID id, LocalDate from, @Nullable LocalDate to, Map<String, Object> values, ChangeSource source, @Nullable UUID correctedFrom) {
+            this(id, from, to, values, source, correctedFrom, null);
+        }
     }
 
     public static VersionPlan empty() {
         return new VersionPlan(new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+    }
+
+    /** The same plan with every inserted row on the post: a plan is made over the rows of one post, so the planner leaves the root to the caller. */
+    public VersionPlan withRoot(UUID root) {
+        List<NewRow> stamped = inserts.stream().map(r -> new NewRow(r.id(), r.from(), r.to(), r.values(), r.source(), r.correctedFrom(), root)).toList();
+        return new VersionPlan(new ArrayList<>(closes), new ArrayList<>(supersede), new ArrayList<>(stamped));
+    }
+
+    /** The rows of both plans in one plan: closes first, then supersedes, then inserts, each in the order given. */
+    public VersionPlan and(VersionPlan other) {
+        VersionPlan merged = empty();
+        for (VersionPlan plan : List.of(this, other)) {
+            merged.closes().addAll(plan.closes());
+            merged.supersede().addAll(plan.supersede());
+            merged.inserts().addAll(plan.inserts());
+        }
+        return merged;
     }
 
     public boolean isEmpty() {

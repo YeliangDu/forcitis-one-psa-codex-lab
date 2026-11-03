@@ -4,7 +4,7 @@ You own the implementation and evidence within the card; anything outside it is 
 2. Read `docs/rules/coding-core.md` before writing code.
 3. Settle data shapes (types, state machine, tables) before logic; compare two options for anything crossing a module boundary.
 4. Commit a failing test before the implementation; commit each unit once verified.
-5. Run affected tests plus `scripts/ci/light.sh`; verify behaviour at the real entry point.
+5. Run affected tests plus `scripts/ci/light.sh`; verify behaviour at the real entry point. For each defence you add or claim, break it in a temporary copy and show its test goes red; list the table (defence | how broken | red) in the PR body.
 6. Before committing, delete speculative code and ask what else this change can remove.
 7. Review per CLAUDE.md (sonnet for normal cards; opus for permission, security, data scope). The verdict binds head and patch-id: content changes need a new review, a pure rebase does not.
 8. Open the PR, enqueue, read back the result after merge.

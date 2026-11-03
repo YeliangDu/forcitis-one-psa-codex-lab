@@ -462,3 +462,19 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/P5Names.java
     reason: '#729 卡 7.2 新增审计对象类别 PERMISSION_ADJUSTMENT（有对象）；KINDS_WITH_OBJECT 在 AUTHORIZATION_REQUEST 之后加该项；其他列表与断言不变'
     ref: "commit de0e515e8 (PR #1082), patch-id fc5e4490c6ace67151836231f80942e5ec5135be; review_p5names.md"
+  - id: RULING-LEAD-20261103-14
+    date: 2026-11-03
+    ruled_by: independent sonnet reviewer rvEsc (review-escalation-rename-sonnet.md, which already covered commit 9547f9239), recorded by one-lead
+    implementer: one-test
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/OrgCountersignSupport.java
+    reason: '#910 组织会签夹具的升级级别列随 #893 命名裁定改为 escalation_level_number，写入值不变；与 RULING-LEAD-20261102-02 同一改动，该编号已被 #895 的 489647736 用过，#1066（#1040 验收）合入 main 后需另立编号；未增删或放宽断言、用例'
+    ref: "commit 9547f9239 (#910 acceptance, carried by PR #1066); review-escalation-rename-sonnet.md"
+  - id: RULING-LEAD-20261103-15
+    date: 2026-11-03
+    ruled_by: independent sonnet reviewer rv08r (review-relogin-08-sonnet.md, which already covered commit d5ba39b19), recorded by one-lead
+    implementer: one-test
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/OrgCountersignSupport.java
+    reason: '#910 组织会签辅助类在时钟后拨时让在场人员重新登录（会话绝对期 24 小时）；与 RULING-LEAD-20261103-08 同一改动，该编号已被 #895 的 e9988da6c 用过，#1066（#1040 验收）合入 main 后需另立编号；未改断言、值、用例或显示名'
+    ref: "commit d5ba39b19 (#910 acceptance, carried by PR #1066); review-relogin-08-sonnet.md"

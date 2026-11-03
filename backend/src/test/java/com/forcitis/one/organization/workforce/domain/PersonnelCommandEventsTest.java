@@ -202,7 +202,7 @@ class PersonnelCommandEventsTest {
         LegalEntityId previous = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f1"));
         LegalEntityId next = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f2"));
         PersonnelCommand change = command(PersonnelCommandKind.CHANGE_LEGAL_ENTITY, new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.CHANGE_LEGAL_ENTITY, DAY, null,
-                null, null, null, null, null, next, null, null, null, null));
+                null, null, null, null, null, next, null, null, null, null, null));
         change.requireCountersign(previous, next);
         assertThat(change.status()).isEqualTo(CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN);
         assertThat(change.hasPendingEvents()).as("nothing is published while it waits").isFalse();
@@ -226,7 +226,7 @@ class PersonnelCommandEventsTest {
     void aFutureCorrectionIsEffectiveWhenCountersigned() {
         LegalEntityId next = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f2"));
         PersonnelCommand correction = command(PersonnelCommandKind.CORRECTION, new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.CORRECTION, DAY.plusDays(3), null,
-                null, null, null, null, null, next, null, null, null, null));
+                null, null, null, null, null, next, null, null, null, null, null));
         correction.requireCountersign(new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f1")), next);
 
         correction.completeCountersign(NOW, DAY);
@@ -241,10 +241,10 @@ class PersonnelCommandEventsTest {
         LegalEntityId previous = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f1"));
         LegalEntityId next = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f2"));
         PersonnelCommand later = PersonnelCommand.restore(new PersonnelCommandId(UUID.fromString("019a0000-0000-7000-8000-0000000000c2")), EMPLOYEE,
-                PersonnelCommandKind.CHANGE_LEGAL_ENTITY, DAY.plusDays(1), CommandStatus.PENDING, null, null, null, null, null, next, previous, next,
+                PersonnelCommandKind.CHANGE_LEGAL_ENTITY, DAY.plusDays(1), CommandStatus.PENDING, null, null, null, null, null, next, previous, next, null, null,
                 new UserId(UUID.fromString("019a0000-0000-7000-8000-0000000000aa")), NOW, null, 0, 0);
         PersonnelCommand sameDay = PersonnelCommand.restore(new PersonnelCommandId(UUID.fromString("019a0000-0000-7000-8000-0000000000c3")), EMPLOYEE,
-                PersonnelCommandKind.CHANGE_LEGAL_ENTITY, DAY, CommandStatus.PENDING, null, null, null, null, null, next, previous, next,
+                PersonnelCommandKind.CHANGE_LEGAL_ENTITY, DAY, CommandStatus.PENDING, null, null, null, null, null, next, previous, next, null, null,
                 new UserId(UUID.fromString("019a0000-0000-7000-8000-0000000000aa")), NOW, null, 0, 0);
 
         later.requireWithdrawalAllowed("plan changed", DAY);

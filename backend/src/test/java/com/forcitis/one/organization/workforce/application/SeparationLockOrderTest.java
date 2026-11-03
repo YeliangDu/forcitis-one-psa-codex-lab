@@ -72,7 +72,7 @@ class SeparationLockOrderTest {
 
     private PersonnelCommand heldSeparation() {
         PersonnelCommand separation = PersonnelCommand.restore(COMMAND, EMPLOYEE, PersonnelCommandKind.SEPARATE, LocalDate.of(2026, 11, 2), CommandStatus.HELD,
-                null, null, null, null, null, null, null, null, USER, NOW, null, 0, 0);
+                null, null, null, null, null, null, null, null, null, null, USER, NOW, null, 0, 0);
         when(commands.find(COMMAND)).thenReturn(java.util.Optional.of(separation));
         return separation;
     }
@@ -83,7 +83,7 @@ class SeparationLockOrderTest {
         PersonnelCommandService service = new PersonnelCommandService(commands, mock(NewEmployees.class), new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), mock(CountersignBases.class), mock(CountersignRequests.class),
                 mock(AttributionCountersignRepository.class), mock(OwnAttributionGuard.class), mock(EffectPublisher.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone);
         when(commands.eventSequence(EMPLOYEE)).thenReturn(0L);
-        when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), List.of(), Map.of()));
+        when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), List.of(), List.of(), Map.of()));
 
         assertThatThrownBy(() -> service.enter(new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.SEPARATE, null, LocalDate.of(2026, 11, 1), null, null, null, null, null, null, null, null, null)))
                 .as("refused later, by the rules (the employee has no version); the locks were taken before that").isInstanceOf(DomainException.class);
@@ -99,7 +99,7 @@ class SeparationLockOrderTest {
         PersonnelCommandService service = new PersonnelCommandService(commands, mock(NewEmployees.class), new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), mock(CountersignBases.class), mock(CountersignRequests.class),
                 mock(AttributionCountersignRepository.class), mock(OwnAttributionGuard.class), mock(EffectPublisher.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone);
         heldSeparation();
-        when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), List.of(), Map.of()));
+        when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), List.of(), List.of(), Map.of()));
 
         service.withdraw(new WithdrawPersonnelCommand(COMMAND, "synthetic: the person stays"));
 
@@ -137,7 +137,7 @@ class SeparationLockOrderTest {
         ApplyDueCommand due = new ApplyDueCommand(commands, new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(LegalEntityResolutionSources.class), mock(CountersignRequests.class),
                 mock(AttributionCountersignRepository.class), mock(DomainEvents.class), ids, clock, zone);
         PersonnelCommand pending = PersonnelCommand.restore(COMMAND, EMPLOYEE, PersonnelCommandKind.REGULARIZE, LocalDate.of(2026, 11, 2), CommandStatus.PENDING,
-                null, null, null, null, null, null, null, null, USER, NOW, null, 0, 0);
+                null, null, null, null, null, null, null, null, null, null, USER, NOW, null, 0, 0);
         when(commands.find(COMMAND)).thenReturn(java.util.Optional.of(pending));
 
         due.execute(COMMAND);

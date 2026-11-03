@@ -1,9 +1,9 @@
 # 由 panorama/scan_aggregates.py 生成，勿手改
 meta:
-  count: 17
+  count: 18
   code_only: 7
   registry_only: 0
-  both: 10
+  both: 11
   sources:
   - backend/src/main/java/com/forcitis/one
   - backend/architecture/data-access-registry.yaml
@@ -16,10 +16,6 @@ meta:
     owner: one-platform-file
     due: '2026-11-15'
     reason: 单元 3 基线建表，隔离读取申请代码未写（ADR-0070）；根类随 5a 补，11-01 前 5a 未开工先报改期（one-platform-file 2026-10-22）
-  - table: platform_identity.permission_adjustments
-    owner: one-dev-identity
-    due: '2026-11-20'
-    reason: F-1 第 2 块（#729）只建表；聚合 PermissionAdjustment 与写入随第 3 块（#730）补
 aggregates:
 - id: cost.timesheet/Timesheet
   bc: cost.timesheet
@@ -377,6 +373,7 @@ aggregates:
   - platform.identity.EmergencyAdminDisabled
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentOpened
   - platform.identity.RoleCreated
   - platform.identity.RoleDeleted
   - platform.identity.RoleDisabled
@@ -419,6 +416,39 @@ aggregates:
   - platform.identity.EmergencyAdminDisabled
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.RoleCreated
+  - platform.identity.RoleDeleted
+  - platform.identity.RoleDisabled
+  - platform.identity.RoleEnabled
+  - platform.identity.RoleRevised
+- id: platform.identity/PermissionAdjustment
+  bc: platform.identity
+  root_class: backend/src/main/java/com/forcitis/one/platform/identity/domain/PermissionAdjustment.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_identity.permission_adjustments
+  commands:
+  - OpenAssignmentReviews
+  events:
+  - platform.identity.PermissionAdjustmentOpened
+  events_in_module:
+  - platform.identity.AccountDisabled
+  - platform.identity.AccountEnabled
+  - platform.identity.AccountOpened
+  - platform.identity.AccountRolesReplaced
+  - platform.identity.AccountSeparated
+  - platform.identity.AuthorizationConfirmed
+  - platform.identity.AuthorizationOpened
+  - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
+  - platform.identity.EmergencyAdminCredentialsReset
+  - platform.identity.EmergencyAdminDisabled
+  - platform.identity.EmergencyAdminEnabled
+  - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentOpened
   - platform.identity.RoleCreated
   - platform.identity.RoleDeleted
   - platform.identity.RoleDisabled
@@ -466,6 +496,7 @@ aggregates:
   - platform.identity.EmergencyAdminDisabled
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentOpened
   - platform.identity.RoleCreated
   - platform.identity.RoleDeleted
   - platform.identity.RoleDisabled
@@ -515,6 +546,7 @@ aggregates:
   - platform.identity.EmergencyAdminDisabled
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentOpened
   - platform.identity.RoleCreated
   - platform.identity.RoleDeleted
   - platform.identity.RoleDisabled
