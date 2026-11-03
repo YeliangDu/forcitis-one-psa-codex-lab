@@ -13,7 +13,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_attribution_date_invalid
   zh: 法人归属日期非法
@@ -28,7 +29,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_attribution_not_open
   zh: 没有未结束的法人归属
@@ -43,7 +45,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_attribution_not_found
   zh: 法人归属不存在
@@ -58,7 +61,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_attribution_subject_not_found
   zh: 法人归属对象不存在
@@ -73,7 +77,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_default_role_missing
   zh: 默认角色不存在
@@ -88,7 +93,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_not_signed_in
   zh: 未登录
@@ -103,7 +109,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_org_unit_not_found
   zh: 组织单元不存在
@@ -118,7 +125,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
   note: ''
 - id: error__platform_identity_account_disabled
   zh: 账号已停用
@@ -133,7 +141,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
   note: ''
 - id: error__platform_identity_account_not_found
   zh: 账号不存在
@@ -148,7 +157,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_credentials_invalid
   zh: 凭据无效
@@ -163,7 +173,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_employee_separated
   zh: 员工已离职
@@ -178,7 +189,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
   note: ''
 - id: error__platform_identity_login_name_unknown
   zh: 登录名未知
@@ -193,7 +205,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_login_rate_limited
   zh: 登录请求过多
@@ -208,7 +221,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_network_denied
   zh: 网络不允许
@@ -223,7 +237,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_permission_unknown
   zh: 权限码未知
@@ -238,7 +253,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_role_blank_name
   zh: 角色名称为空
@@ -253,7 +269,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_role_duplicate_code
   zh: 角色编码重复
@@ -268,7 +285,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_role_duplicate_name
   zh: 角色名称重复
@@ -283,7 +301,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_role_invalid_code
   zh: 角色编码非法
@@ -298,7 +317,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_role_not_allowed
   zh: 角色授予超出上限
@@ -313,7 +333,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_role_not_found
   zh: 角色不存在
@@ -328,7 +349,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_role_reserved_code
   zh: 角色编码保留
@@ -343,7 +365,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_role_system_frozen
   zh: 系统角色不可改
@@ -358,7 +381,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_role_in_use
   zh: 角色仍有账号持有
@@ -373,7 +397,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_sso_unavailable
   zh: 单点登录不可用
@@ -388,7 +413,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_state_invalid
   zh: 登录状态无效
@@ -403,10 +429,11 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_ticket_invalid
-  zh: 票据无效
+  zh: 登录凭证无效
   en: PlatformIdentityTicketInvalid
   snake: platform_identity_ticket_invalid
   kind: error_code
@@ -418,7 +445,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
   note: ''
 - id: error__platform_identity_ticket_replayed
   zh: 票据已使用
@@ -433,7 +461,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_wecom_code_invalid
   zh: 企业微信授权码无效
@@ -448,7 +477,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_wecom_not_bound
   zh: 企业微信未绑定员工
@@ -463,7 +493,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_integration_concurrent_update
   zh: 投递并发修改
@@ -478,7 +509,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_numbering_legacy_number_not_found
   zh: 老单据编号未登记
@@ -493,7 +525,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_numbering_legal_entity_unavailable
   zh: 法人不可用于发号
@@ -508,7 +541,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_web_access_denied
   zh: 无权访问
@@ -523,7 +557,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_web_cursor_invalid
   zh: 游标无效
@@ -538,7 +573,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_web_idempotency_in_progress
   zh: 幂等请求处理中
@@ -553,7 +589,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_web_idempotency_key_reused
   zh: 幂等键被复用
@@ -568,7 +605,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_web_unauthenticated
   zh: 未登录
@@ -583,7 +621,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_numbering_legacy_number_taken
   zh: 原编号已被占用
@@ -598,7 +637,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_numbering_legacy_prefix_invalid
   zh: 原编号前缀无效
@@ -613,7 +653,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_attribution_period_not_found
   zh: 归属期间不存在
@@ -628,7 +669,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_attribution_period_not_closed
   zh: 归属期间尚未关闭
@@ -643,7 +685,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_attribution_correction_overlap
   zh: 更正后期间重叠
@@ -658,7 +701,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_attribution_correction_reason_required
   zh: 更正需要原因
@@ -673,7 +717,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_attribution_correction_forbidden
   zh: 无权更正归属期间
@@ -688,55 +733,6 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
-common_words:
-- opened
-- clock
-- ended
-- cookie
-- clear
-- limited
-- many
-- throttle
-- per
-- minute
-- too
-- apply
-- idempotency
-- idempotent
-- reused
-- cursor
-- unconfirmed
-- administration
-- authentication
-- body
-- cached
-- lifetime
-- encode
-- etag
-- exist
-- expected
-- finish
-- header
-- must
-- outward
-- precondition
-- refusal
-- shared
-- should
-- slice
-- stream
-- reasoned
-- trace
-- browser
-- identifier
-- generator
-- invalidate
-- known
-- retired
-- timeout
-- caller
-- correction
-- corrected
-- cause
