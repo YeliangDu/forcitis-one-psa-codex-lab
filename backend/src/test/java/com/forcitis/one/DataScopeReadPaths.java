@@ -1,6 +1,8 @@
 package com.forcitis.one;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -8,8 +10,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.servlet.HandlerMapping;
+import org.springframework.web.servlet.function.support.RouterFunctionMapping;
+import org.springframework.web.servlet.handler.AbstractHandlerMethodMapping;
+import org.springframework.web.servlet.handler.AbstractUrlHandlerMapping;
 import org.springframework.web.servlet.mvc.method.RequestMappingInfo;
-import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 /** The register of HTTP read handlers and the data scope each answers under (#730, I-10): the parser, the enumeration of the GET handlers a context maps, and the comparison of the two. */
 final class DataScopeReadPaths {
@@ -19,6 +24,9 @@ final class DataScopeReadPaths {
     }
 
     private static final String RULE = "#730 data-scope read-path register / security-invariants I-10";
+
+    /** BasicErrorController maps /error twice (an HTML page and JSON, by produces); both answer the failed request's status and no rows. */
+    private static final Set<String> TOLERATED_SHARED = Set.of("GET /error");
 
     private DataScopeReadPaths() {
     }
@@ -59,26 +67,49 @@ final class DataScopeReadPaths {
         return null;
     }
 
-    /** "GET pattern" for every pattern of every mapping that serves GET; a mapping without a method serves GET too. */
-    static Set<String> getHandlers(RequestMappingHandlerMapping mappings) {
-        Set<String> keys = new TreeSet<>();
-        for (RequestMappingInfo info : mappings.getHandlerMethods().keySet()) {
-            Set<RequestMethod> methods = info.getMethodsCondition().getMethods();
-            if ((methods.isEmpty() || methods.contains(RequestMethod.GET)) && info.getPathPatternsCondition() != null) {
-                info.getPathPatternsCondition().getPatternValues().forEach(pattern -> keys.add("GET " + pattern));
+    /**
+     * One "GET pattern" per pattern of every mapping that serves GET (a mapping without a method serves GET too; a HEAD-only one is "HEAD pattern" and never matches a
+     * register line) in every HandlerMapping of the context: controller and actuator endpoints, and the URL mappings (static resources, welcome page). A RouterFunction cannot
+     * be enumerated by path, so one that is present is a problem.
+     */
+    static List<String> getHandlers(Collection<? extends HandlerMapping> mappings, List<String> problems) {
+        List<String> keys = new ArrayList<>();
+        for (HandlerMapping mapping : mappings) {
+            if (mapping instanceof AbstractHandlerMethodMapping<?> methodMapping) {
+                for (Object key : methodMapping.getHandlerMethods().keySet()) {
+                    if (key instanceof RequestMappingInfo info && info.getPathPatternsCondition() != null) {
+                        Set<RequestMethod> methods = info.getMethodsCondition().getMethods();
+                        String verb = methods.isEmpty() || methods.contains(RequestMethod.GET) ? "GET" : methods.contains(RequestMethod.HEAD) ? "HEAD" : null;
+                        if (verb != null) {
+                            info.getPathPatternsCondition().getPatternValues().forEach(pattern -> keys.add(verb + " " + pattern));
+                        }
+                    }
+                }
+            } else if (mapping instanceof AbstractUrlHandlerMapping urlMapping) {
+                urlMapping.getHandlerMap().keySet().forEach(pattern -> keys.add("GET " + pattern));
+            } else if (mapping instanceof RouterFunctionMapping routerMapping && routerMapping.getRouterFunction() != null) {
+                problems.add(GuardMessage.of(RULE, "the context maps a RouterFunction, whose routes cannot be matched against the register",
+                        "serve the read from a controller method, or ask design to extend the register to router functions"));
             }
         }
         return keys;
     }
 
     /** Everything wrong between the handlers a context maps and the register: unlisted handlers, dangling lines, bad lines. Empty means they agree. */
-    static List<String> problems(Set<String> handlers, List<String> registerLines) {
+    static List<String> problems(List<String> handlers, List<String> registerLines) {
         List<String> problems = new ArrayList<>();
         Set<String> listed = parse(registerLines, problems).keySet();
-        Set<String> unlisted = new LinkedHashSet<>(handlers);
+        Set<String> distinct = new TreeSet<>(handlers);
+        distinct.forEach(key -> {
+            if (Collections.frequency(handlers, key) > 1 && !TOLERATED_SHARED.contains(key)) {
+                problems.add(GuardMessage.of(RULE, key + " is served by " + Collections.frequency(handlers, key) + " handlers (same path, different params, headers, consumes or produces), and one register line cannot cover them",
+                        "give each read its own path, so each has its own line and its own scope test"));
+            }
+        });
+        Set<String> unlisted = new LinkedHashSet<>(distinct);
         unlisted.removeAll(listed);
         Set<String> dangling = new LinkedHashSet<>(listed);
-        dangling.removeAll(handlers);
+        dangling.removeAll(distinct);
         unlisted.forEach(key -> problems.add(GuardMessage.of(RULE, key + " is a GET handler that is not in the register",
                 "add `" + key + " | SCOPED, SELF or NOT_SCOPE_BOUND | reason` to backend/architecture/data-scope-read-paths.txt after deciding which data scope its rows answer under")));
         dangling.forEach(key -> problems.add(GuardMessage.of(RULE, "the register lists " + key + " but no GET handler is mapped to it",
