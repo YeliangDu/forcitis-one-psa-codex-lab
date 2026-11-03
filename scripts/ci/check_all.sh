@@ -41,6 +41,12 @@ frontend_verify() {  # 前端有改动：跑 CI 前端 verify 同一条命令（
 }
 
 # shellcheck disable=SC2329  # called through step "$@"
+copy_check() {  # 后端词表（backend/glossary/）有改动、前端没改（#1158：#1076、#1154 两次词表登记后前端 check:copy 的白名单到 CI 才红）：只跑 check:copy，约 0.5 秒；前端有改动时 frontend_verify 已含它
+  [ -d frontend/node_modules ] || { echo "本机没有前端依赖：先跑 cd frontend && pnpm install --frozen-lockfile --prefer-offline" >&2; return 1; }
+  (cd frontend && pnpm run check:copy)
+}
+
+# shellcheck disable=SC2329  # called through step "$@"
 schema_checks() {  # 迁移或数据访问登记表有改动（#1056：#1019、#1050 两次本机全绿、队列里 DataArchitectureTest 红）：跑 DataArchitectureTest，加被改 schema 的表结构测试；要起 Testcontainers，约 20 秒起，每个被改 schema 再加它的表测试
   local schema dir name tests="DataArchitectureTest" its="" file
   docker info >/dev/null 2>&1 || { echo "Docker 没起：先打开 Docker Desktop（或 bash scripts/release/docker_ensure.sh），迁移和登记表的检查要起 Testcontainers" >&2; return 1; }
@@ -67,6 +73,7 @@ step "gitleaks ($base..HEAD)" secrets
 step "container-free unit and guard classes for the change range" units
 if touches '^backend/src/main/resources/db/migration/|^backend/architecture/data-access-registry\.yaml$'; then step "data architecture (migrations or data-access registry changed)" schema_checks; fi
 if touches '^frontend/'; then step "frontend verify (frontend/ changed)" frontend_verify; fi
+if touches '^backend/glossary/' && ! touches '^frontend/'; then step "frontend check:copy (backend/glossary/ changed)" copy_check; fi
 echo
 printf '%s\n' "${results[@]}"
 exit "$failed"

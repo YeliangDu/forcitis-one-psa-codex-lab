@@ -14,6 +14,7 @@ import time
 
 import driftscan_selftest
 import gapscan_selftest
+import mq_acceptance_selftest
 import mq_label_selftest
 import mq_title_selftest
 
@@ -170,7 +171,7 @@ def run(mq):
     try:
         with tempfile.TemporaryDirectory() as d:
             fake_gh(d, [])   # nothing in the self-test reaches the real gh: an unknown call exits 97
-            for case in (_units, _flow, _release, _pause, _runner, _queue, _remove_busy, _head_changed, _gh_commands, _git, _docs_tiers, mq_label_selftest.run, mq_title_selftest.run, gapscan_selftest.run, driftscan_selftest.run_with_mq):
+            for case in (_units, _flow, _release, _pause, _runner, _queue, _remove_busy, _head_changed, _gh_commands, _git, _docs_tiers, mq_label_selftest.run, mq_title_selftest.run, mq_acceptance_selftest.run, gapscan_selftest.run, driftscan_selftest.run_with_mq):
                 case(mq, d)
     finally:
         for k, v in old.items():
@@ -814,11 +815,12 @@ def _head_changed(mq, d):
     assert once(mq, d, "h6", gh, 6)[0] == "MERGED", "nothing recorded: nothing to compare"
     # enqueue asks gh only for the view (card #736): no comment, review or label call
     probe, real = type("ViewOnly", (), {"view": lambda self, n: {"state": "OPEN", "merge": "CLEAN", "labels": [], "branch": "b", "head": f"{n:040x}"}})(), mq.Gh
-    mq.Gh = lambda: probe
+    mq.Gh, enforce = (lambda: probe), mq.mq_acceptance.enforce
+    mq.mq_acceptance.enforce = lambda *args: None   # the guard has its own case (mq_acceptance_selftest); this one must not touch the network
     try:
         mq.main(["--queue", os.path.join(d, "dev", "q"), "enqueue", "21"])
     finally:
-        mq.Gh = real
+        mq.Gh, mq.mq_acceptance.enforce = real, enforce
     assert mq.Queue(os.path.join(d, "dev", "q")).head_of(21) == f"{21:040x}"
 
 
