@@ -40,7 +40,7 @@ class PermissionAdjustmentSchemaIT {
         expected.put("kind", "text NOT NULL");
         expected.put("origin_kind", "text NOT NULL");
         expected.put("status", "text NOT NULL");
-        for (String column : new String[] {"user_id", "role_id", "org_unit_id", "trigger_sync_run_id"}) {
+        for (String column : new String[] {"user_id", "role_id", "org_unit_id", "trigger_personnel_command_id", "trigger_org_structure_command_id"}) {
             expected.put(column, "uuid");
         }
         expected.put("trigger_field_kind", "text");
@@ -56,14 +56,14 @@ class PermissionAdjustmentSchemaIT {
         expected.put("business_owner_employee_id", "uuid");
         expected.put("uphold_expires_at", "timestamp with time zone");
         expected.put("expired_at", "timestamp with time zone");
-        expected.put("expiry_held_sync_run_id", "uuid");
+        expected.put("is_held_at_expiry", "boolean");
         expected.put("regeneration_decided_at", "timestamp with time zone");
         expected.put("adjusted_at", "timestamp with time zone");
         expected.put("adjusted_by", "uuid");
         expected.put("adjusted_authorization_request_id", "uuid");
         expected.put("adjusted_audit_entry_id", "uuid");
         expected.put("closed_at", "timestamp with time zone");
-        expected.put("closure_sync_run_id", "uuid");
+        expected.put("closure_personnel_command_id", "uuid");
         expected.put("version", "bigint NOT NULL DEFAULT 0");
         expected.put("event_count", "bigint NOT NULL DEFAULT 0");
         expected.put("created_at", "timestamp with time zone NOT NULL");
@@ -78,7 +78,8 @@ class PermissionAdjustmentSchemaIT {
             String line = (String) row;
             found.put(line.substring(0, line.indexOf(' ')), line.substring(line.indexOf(' ') + 1));
         }
-        assertThat(found).containsExactlyEntriesOf(expected);
+        // column order is no part of the card
+        assertThat(found).containsExactlyInAnyOrderEntriesOf(expected);
     }
 
     @Test
@@ -99,8 +100,8 @@ class PermissionAdjustmentSchemaIT {
                         "ck_permission_adjustments_recipient c",
                         "ck_permission_adjustments_status c",
                         "ck_permission_adjustments_subject c",
+                        "ck_permission_adjustments_trigger_command c",
                         "ck_permission_adjustments_trigger_field_kind c",
-                        "ck_permission_adjustments_trigger_sync_run_id c",
                         "ck_permission_adjustments_uphold c",
                         "ck_permission_adjustments_uphold_expires_at c",
                         "ck_permission_adjustments_uphold_reason c",
@@ -120,7 +121,7 @@ class PermissionAdjustmentSchemaIT {
     }
 
     @Test
-    @DisplayName("F-1 7.1 / B4 / 不变量 36 外键只指向本 schema 的账号、角色、授权申请与自身，全部 ON DELETE RESTRICT；部门、岗位、员工、同步运行、审计条目跨 schema 不建外键")
+    @DisplayName("F-1 7.1 / B4 / 不变量 36 外键只指向本 schema 的账号、角色、授权申请与自身，全部 ON DELETE RESTRICT；部门、岗位、员工、人事命令、组织结构命令、审计条目跨 schema 不建外键")
     void foreignKeysAreTheCardsAndRestrict() throws SQLException {
         assertThat(db.column("""
                 select conname || ' (' || (select string_agg(attname, ',') from pg_attribute where attrelid = conrelid and attnum = any(conkey)) || ') -> '
@@ -156,7 +157,7 @@ class PermissionAdjustmentSchemaIT {
                         "uk_permission_adjustments_original_permission_adjustment_id");
         assertThat(indexDef("uk_permission_adjustments_assignment_trigger")).isEqualTo(
                 "CREATE UNIQUE INDEX uk_permission_adjustments_assignment_trigger ON platform_identity.permission_adjustments USING btree"
-                        + " (kind, user_id, trigger_sync_run_id, trigger_field_kind) WHERE (origin_kind = 'ASSIGNMENT_CHANGE'::text)");
+                        + " (kind, user_id, trigger_personnel_command_id, trigger_field_kind) WHERE (origin_kind = 'ASSIGNMENT_CHANGE'::text)");
         assertThat(indexDef("uk_permission_adjustments_inactive_org_unit")).isEqualTo(
                 "CREATE UNIQUE INDEX uk_permission_adjustments_inactive_org_unit ON platform_identity.permission_adjustments USING btree (role_id, org_unit_id)"
                         + " WHERE ((origin_kind = 'ORG_UNIT_INACTIVE'::text) AND (status = ANY (ARRAY['OPEN'::text, 'UPHELD'::text])))");

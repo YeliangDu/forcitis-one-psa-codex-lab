@@ -10,6 +10,10 @@ backend/mvnw -B -f backend/pom.xml verify -Dit.test='PermissionAdjustment*IT,Per
 
 不起 Spring；每个类一个迁移好的库，每条用例一个不提交的事务，探测语句在保存点里执行后回滚。
 
+## 修订（one-design 的 DD 裁定，#729 评论 6597646561）
+
+#934 删掉同步后，列改名：`trigger_sync_run_id` → `trigger_personnel_command_id`（任职变化）与新增 `trigger_org_structure_command_id`（部门解散或合并），`expiry_held_sync_run_id` → `is_held_at_expiry boolean`，`closure_sync_run_id` → `closure_personnel_command_id`；新 `ck_permission_adjustments_trigger_command`、新形 `ck_permission_adjustments_expiry`、去掉恢复分支的 `ck_permission_adjustments_closed`；唯一键 `uk_permission_adjustments_assignment_trigger` 改按人事命令；状态集去掉 `CLOSED_BY_REACTIVATION`。本块用例已按此改写；列顺序卡没有规定，列集合按无序比较。
+
 ## 块边界（one-design 拆分，lead 记录于 #729）
 
 - #729 只验收库：7.1 表结构原样、库内承担的不变量（直接 SQL 写入证明）、7.2 审计对象类别。

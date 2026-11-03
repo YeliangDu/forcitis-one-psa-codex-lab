@@ -35,19 +35,18 @@ class PermissionAdjustmentLifecycleIT {
     }
 
     @Test
-    @DisplayName("F-1 状态机 每个状态的合法行都能写入：已维持（两类）、已到期（已判定、在等放行）、已调整（人办、来源②系统转）、因离职关闭、因部门恢复关闭")
+    @DisplayName("F-1 状态机 每个状态的合法行都能写入：已维持（两类）、已到期（已判定、在等放行）、已调整（人办、来源②系统转）、因离职关闭")
     void aValidRowOfEveryStatusIsAccepted() throws SQLException {
         rows.accepted(rows.upheld(rows.sensitiveOrgUnitChange()));
         rows.accepted(rows.upheld(rows.scopeReviewTransfer()));
         rows.accepted(rows.upheld(rows.scopeReviewInactiveUnit()));
         rows.accepted(rows.expired(rows.sensitiveOrgUnitChange()));
-        rows.accepted(rows.expired(rows.sensitivePositionChange()).with("regeneration_decided_at", null).with("expiry_held_sync_run_id", UUID.randomUUID()));
+        rows.accepted(rows.expired(rows.sensitivePositionChange()).with("is_held_at_expiry", true).with("regeneration_decided_at", null));
         rows.accepted(rows.adjusted(rows.sensitiveOrgUnitChange()));
         rows.accepted(rows.adjusted(rows.scopeReviewTransfer()).with("adjusted_audit_entry_id", null).with("adjusted_authorization_request_id", db.openRequest()));
         rows.accepted(rows.adjusted(rows.scopeReviewInactiveUnit()).with("adjusted_by", null));
         rows.accepted(rows.closed(rows.sensitiveOrgUnitChange(), "CLOSED_BY_SEPARATION"));
         rows.accepted(rows.closed(rows.scopeReviewTransfer(), "CLOSED_BY_SEPARATION"));
-        rows.accepted(rows.closed(rows.scopeReviewInactiveUnit(), "CLOSED_BY_REACTIVATION"));
         rows.accepted(rows.sensitiveOrgUnitChange().with("escalated_at", T2));
     }
 
@@ -92,18 +91,21 @@ class PermissionAdjustmentLifecycleIT {
     }
 
     @Test
-    @DisplayName("F-1 不变量 25、26 已到期只来自敏感角色复核的维持、到期时刻不早于有效至（等于可）；已到期的要么已判定重新生成、要么标明在等放行；未到期的不带这两列")
+    @DisplayName("F-1 不变量 25、26 （#729 DD 裁定新形）已到期只来自敏感角色复核的维持、到期时刻不早于有效至（等于可）；已到期的必记到期时是否暂停，不在暂停的必已判定重新生成，暂停的可等放行后补判；未到期的不带这两列")
     void onlyAnUpheldSensitiveRoleReviewExpiresAtItsExpiry() throws SQLException {
         rows.accepted(rows.expired(rows.sensitiveOrgUnitChange()).with("expired_at", T2));
         rows.accepted(rows.expired(rows.sensitiveOrgUnitChange()).with("expired_at", T3));
         rows.refusedByCheck("ck_permission_adjustments_expiry", rows.expired(rows.sensitiveOrgUnitChange()).with("expired_at", T1));
         rows.refusedByCheck("ck_permission_adjustments_expiry",
-                rows.upheld(rows.scopeReviewInactiveUnit()).with("status", "EXPIRED").with("expired_at", T2).with("regeneration_decided_at", T2));
+                rows.upheld(rows.scopeReviewInactiveUnit()).with("status", "EXPIRED").with("expired_at", T2).with("is_held_at_expiry", false)
+                        .with("regeneration_decided_at", T2));
         rows.refusedByCheck("ck_permission_adjustments_expiry", rows.expired(rows.sensitiveOrgUnitChange()).with("expired_at", null));
         rows.refusedByCheck("ck_permission_adjustments_expiry", rows.expired(rows.sensitiveOrgUnitChange()).with("regeneration_decided_at", null));
+        rows.refusedByCheck("ck_permission_adjustments_expiry", rows.expired(rows.sensitiveOrgUnitChange()).with("is_held_at_expiry", null));
+        rows.accepted(rows.expired(rows.sensitiveOrgUnitChange()).with("is_held_at_expiry", true));
         rows.refusedByCheck("ck_permission_adjustments_expiry", rows.upheld(rows.sensitiveOrgUnitChange()).with("expired_at", T2));
         rows.refusedByCheck("ck_permission_adjustments_expiry", rows.upheld(rows.sensitiveOrgUnitChange()).with("regeneration_decided_at", T2));
-        rows.refusedByCheck("ck_permission_adjustments_expiry", rows.upheld(rows.sensitiveOrgUnitChange()).with("expiry_held_sync_run_id", UUID.randomUUID()));
+        rows.refusedByCheck("ck_permission_adjustments_expiry", rows.upheld(rows.sensitiveOrgUnitChange()).with("is_held_at_expiry", false));
     }
 
     @Test
@@ -121,12 +123,10 @@ class PermissionAdjustmentLifecycleIT {
     }
 
     @Test
-    @DisplayName("F-1 不变量 29 因离职关闭只用于关于人的条目，因部门恢复关闭只用于来源②；关闭时刻与所据同步运行成对，随关闭状态有、无")
+    @DisplayName("F-1 不变量 29（#729 DD 裁定：只剩离职）因离职关闭只用于关于人的条目；关闭时刻与所据人事命令成对，随关闭状态有、无")
     void eachClosureFitsItsItems() throws SQLException {
         rows.refusedByCheck("ck_permission_adjustments_closed", rows.closed(rows.scopeReviewInactiveUnit(), "CLOSED_BY_SEPARATION"));
-        rows.refusedByCheck("ck_permission_adjustments_closed", rows.closed(rows.sensitiveOrgUnitChange(), "CLOSED_BY_REACTIVATION"));
-        rows.refusedByCheck("ck_permission_adjustments_closed", rows.closed(rows.scopeReviewTransfer(), "CLOSED_BY_REACTIVATION"));
-        rows.refusedByCheck("ck_permission_adjustments_closed", rows.closed(rows.sensitiveOrgUnitChange(), "CLOSED_BY_SEPARATION").with("closure_sync_run_id", null));
+        rows.refusedByCheck("ck_permission_adjustments_closed", rows.closed(rows.sensitiveOrgUnitChange(), "CLOSED_BY_SEPARATION").with("closure_personnel_command_id", null));
         rows.refusedByCheck("ck_permission_adjustments_closed", rows.closed(rows.sensitiveOrgUnitChange(), "CLOSED_BY_SEPARATION").with("closed_at", null));
         rows.refusedByCheck("ck_permission_adjustments_closed", rows.closed(rows.sensitiveOrgUnitChange(), "CLOSED_BY_SEPARATION").with("status", "OPEN"));
     }

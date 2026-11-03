@@ -45,14 +45,15 @@ class PermissionAdjustmentShapeIT {
     }
 
     @Test
-    @DisplayName("F-1 7.1 取值集合：kind、status、trigger_field_kind、origin_kind 各拒绝卡外的取值")
+    @DisplayName("F-1 7.1 取值集合：kind、status、trigger_field_kind、origin_kind 各拒绝卡外的取值；CLOSED_BY_REACTIVATION 已不在状态集（#729 DD 裁定：部门只会解散，没有恢复在用）")
     void valuesOutsideTheCardsSetsAreRefused() throws SQLException {
         // kind also breaks kind_origin; CHECK constraints are tested in name order, so kind is the one named
         rows.refusedByCheck("ck_permission_adjustments_kind", rows.sensitiveOrgUnitChange().with("kind", "ROLE_REVIEW"));
         rows.refusedByCheck("ck_permission_adjustments_status", rows.sensitiveOrgUnitChange().with("status", "CLOSED"));
+        rows.refusedByCheck("ck_permission_adjustments_status", rows.scopeReviewInactiveUnit().with("status", "CLOSED_BY_REACTIVATION"));
         rows.refusedByCheck("ck_permission_adjustments_trigger_field_kind", rows.sensitiveOrgUnitChange().with("trigger_field_kind", "DEPARTMENT"));
         // an unknown origin on a row with no trigger columns satisfies every origin-keyed check except the two that list the origins
-        Row unknownOrigin = rows.sensitiveOrgUnitChange().with("origin_kind", "GRANT_MODE_UPGRADE").with("trigger_sync_run_id", null)
+        Row unknownOrigin = rows.sensitiveOrgUnitChange().with("origin_kind", "GRANT_MODE_UPGRADE").with("trigger_personnel_command_id", null)
                 .with("trigger_field_kind", null).with("before_org_unit_id", null).with("after_org_unit_id", null);
         PSQLException refusal = db.refused(PermissionAdjustmentRows.insertSql(unknownOrigin), unknownOrigin.columns.values().toArray());
         assertThat(refusal.getSQLState()).as(refusal.getMessage()).isEqualTo(PermissionAdjustmentRows.CHECK_VIOLATION);
@@ -78,7 +79,7 @@ class PermissionAdjustmentShapeIT {
     }
 
     @Test
-    @DisplayName("F-1 不变量 11 任职变化条目有触发字段与触发前后部门，其他来源没有；同步触发（任职变化、部门停用）的条目有触发同步运行，重新生成的没有")
+    @DisplayName("F-1 不变量 11 任职变化条目有触发字段与触发前后部门，其他来源没有；任职变化的条目有触发人事命令、部门解散或合并的条目有触发组织结构命令，两种互不混用，重新生成的两者都没有（#729 DD 裁定）")
     void onlyAnAssignmentChangeCarriesTheTrigger() throws SQLException {
         rows.refusedByCheck("ck_permission_adjustments_assignment_change", rows.sensitiveOrgUnitChange().with("trigger_field_kind", null));
         rows.refusedByCheck("ck_permission_adjustments_assignment_change", rows.sensitiveOrgUnitChange().with("after_org_unit_id", null));
@@ -87,9 +88,17 @@ class PermissionAdjustmentShapeIT {
                 rows.scopeReviewInactiveUnit().with("before_org_unit_id", UUID.randomUUID()).with("after_org_unit_id", UUID.randomUUID()));
         rows.refusedByCheck("ck_permission_adjustments_assignment_change", rows.regenerated().with("before_position_id", UUID.randomUUID()));
 
-        rows.refusedByCheck("ck_permission_adjustments_trigger_sync_run_id", rows.sensitiveOrgUnitChange().with("trigger_sync_run_id", null));
-        rows.refusedByCheck("ck_permission_adjustments_trigger_sync_run_id", rows.scopeReviewInactiveUnit().with("trigger_sync_run_id", null));
-        rows.refusedByCheck("ck_permission_adjustments_trigger_sync_run_id", rows.regenerated().with("trigger_sync_run_id", UUID.randomUUID()));
+        rows.refusedByCheck("ck_permission_adjustments_trigger_command", rows.sensitiveOrgUnitChange().with("trigger_personnel_command_id", null));
+        rows.refusedByCheck("ck_permission_adjustments_trigger_command", rows.scopeReviewInactiveUnit().with("trigger_org_structure_command_id", null));
+        rows.refusedByCheck("ck_permission_adjustments_trigger_command", rows.regenerated().with("trigger_personnel_command_id", UUID.randomUUID()));
+        rows.refusedByCheck("ck_permission_adjustments_trigger_command", rows.regenerated().with("trigger_org_structure_command_id", UUID.randomUUID()));
+        rows.refusedByCheck("ck_permission_adjustments_trigger_command", rows.sensitiveOrgUnitChange().with("trigger_org_structure_command_id", UUID.randomUUID()));
+        rows.refusedByCheck("ck_permission_adjustments_trigger_command", rows.scopeReviewInactiveUnit().with("trigger_personnel_command_id", UUID.randomUUID()));
+        // each id belongs to its own origin: the other kind of command id alone does not satisfy the check
+        rows.refusedByCheck("ck_permission_adjustments_trigger_command",
+                rows.sensitiveOrgUnitChange().with("trigger_personnel_command_id", null).with("trigger_org_structure_command_id", UUID.randomUUID()));
+        rows.refusedByCheck("ck_permission_adjustments_trigger_command",
+                rows.scopeReviewInactiveUnit().with("trigger_org_structure_command_id", null).with("trigger_personnel_command_id", UUID.randomUUID()));
     }
 
     @Test
@@ -125,18 +134,18 @@ class PermissionAdjustmentShapeIT {
     }
 
     @Test
-    @DisplayName("F-1 不变量 15、32 同步触发按（类型，人，触发同步运行，触发字段）去重：同一键第二条 23505；同一次同步改部门与岗位各一条，同一次触发两类条目各一条，另一次同步再一条")
-    void anAssignmentChangeIsRaisedOncePerKindPersonRunAndField() throws SQLException {
+    @DisplayName("F-1 不变量 15、32 任职变化按（类型，人，触发人事命令，触发字段）去重：同一键第二条 23505；同一条调岗命令改部门与岗位各一条，同一次触发两类条目各一条，另一条命令再一条")
+    void anAssignmentChangeIsRaisedOncePerKindPersonCommandAndField() throws SQLException {
         Row first = rows.sensitiveOrgUnitChange();
         rows.insert(first);
 
         rows.refusedBy(UNIQUE_VIOLATION, "uk_permission_adjustments_assignment_trigger", first.copy());
         rows.refusedBy(UNIQUE_VIOLATION, "uk_permission_adjustments_assignment_trigger", first.copy().with("status", "CLOSED_BY_SEPARATION")
-                .with("closed_at", PermissionAdjustmentRows.T1).with("closure_sync_run_id", UUID.randomUUID()));
+                .with("closed_at", PermissionAdjustmentRows.T1).with("closure_personnel_command_id", UUID.randomUUID()));
         rows.accepted(first.copy().with("trigger_field_kind", "POSITION").with("before_position_id", UUID.randomUUID())
                 .with("after_position_id", UUID.randomUUID()));
         rows.accepted(first.copy().with("kind", "SCOPE_REVIEW"));
-        rows.accepted(first.copy().with("trigger_sync_run_id", UUID.randomUUID()));
+        rows.accepted(first.copy().with("trigger_personnel_command_id", UUID.randomUUID()));
         rows.accepted(first.copy().with("user_id", db.account()));
     }
 
@@ -150,11 +159,11 @@ class PermissionAdjustmentShapeIT {
     }
 
     @Test
-    @DisplayName("F-1 不变量 17 来源②按（角色，部门）至多一条待处理或已维持；已调整或因部门恢复关闭后可再生成；另一部门、另一角色各自一条")
+    @DisplayName("F-1 不变量 17 来源②按（角色，部门）至多一条待处理或已维持；已调整后可再生成；另一部门、另一角色各自一条")
     void anInactiveUnitHasAtMostOneLiveItemPerRole() throws SQLException {
         Row open = rows.scopeReviewInactiveUnit();
         rows.insert(open);
-        rows.refusedBy(UNIQUE_VIOLATION, "uk_permission_adjustments_inactive_org_unit", open.copy().with("trigger_sync_run_id", UUID.randomUUID()));
+        rows.refusedBy(UNIQUE_VIOLATION, "uk_permission_adjustments_inactive_org_unit", open.copy().with("trigger_org_structure_command_id", UUID.randomUUID()));
         rows.accepted(open.copy().with("org_unit_id", UUID.randomUUID()));
         rows.accepted(open.copy().with("role_id", db.role()));
 
@@ -167,10 +176,5 @@ class PermissionAdjustmentShapeIT {
                 .with("adjusted_audit_entry_id", UUID.randomUUID());
         rows.insert(adjusted);
         rows.accepted(rows.scopeReviewInactiveUnit().with("role_id", adjusted.columns.get("role_id")).with("org_unit_id", adjusted.columns.get("org_unit_id")));
-
-        Row reactivated = rows.closed(rows.scopeReviewInactiveUnit(), "CLOSED_BY_REACTIVATION");
-        rows.insert(reactivated);
-        rows.accepted(rows.scopeReviewInactiveUnit().with("role_id", reactivated.columns.get("role_id"))
-                .with("org_unit_id", reactivated.columns.get("org_unit_id")));
     }
 }
