@@ -3,6 +3,10 @@ package com.forcitis.one.acceptance.organization.workforce;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -14,6 +18,7 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.organization.workforce.events.EmployeeCorrected;
+import com.forcitis.one.organization.workforce.events.EmployeeTransferred;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -25,6 +30,7 @@ import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionTimeoutException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -105,7 +111,10 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
      * still open. A listener that throws and is retried, or never runs, leaves this waiting and the case red; the failure names the open ones.
      */
     private void identityHandled(EmployeeCorrected event) throws SQLException {
-        String id = event.envelope().eventId().toString();
+        identityHandled(event.envelope().eventId().toString());
+    }
+
+    private void identityHandled(String id) throws SQLException {
         try {
             Awaitility.await().atMost(SETTLE).pollInterval(Duration.ofMillis(100)).until(() -> {
                 List<Map<String, Object>> publications = publicationsOf(id);
@@ -208,5 +217,36 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         List<Map<String, Object>> publications = publicationsOf(event.envelope().eventId().toString());
         assertThat(publications).as("every publication of the event completed once, none failed or was resubmitted")
                 .allSatisfy(row -> assertThat(row.get("status")).isEqualTo("COMPLETED"));
+    }
+
+    @Test
+    @DisplayName("#730 一次转岗事件缺触发前部门（空）：监听器不生成条目，记一条以 \"ALERT P2 platform.identity \" 开头的 ERROR 日志（恰好一条、不含此人标识），处理完成而不重试；持有敏感角色也一样（one-design 裁定，#730 评论 6600900803）")
+    void aTransferWithoutItsBeforeDepartmentIsAlertedNotRetriedAndGivesNoItem() throws Exception {
+        UUID employee = employedHolding(SECURITY_AUDITOR);
+        UUID user = accountOf(employee);
+        UUID command = Uuids.timeOrdered(NOW);
+        EventEnvelope envelope = new EventEnvelope(Uuids.timeOrdered(NOW), "organization.workforce.EmployeeTransferred", 1, NOW, "Employee", employee, 1,
+                Uuids.timeOrdered(NOW), null, ActorType.SYSTEM, com.forcitis.one.kernel.SystemActors.idOf("test.envelope"), new LegalEntityId(legalEntity),
+                BACK_ON, null, List.of());
+        EmployeeTransferred event = new EmployeeTransferred(envelope, new PersonnelCommandId(command), employeeIdOf(employee), BACK_ON,
+                List.of(TriggerFieldKind.ORG_UNIT), null, new OrgUnitId(newUnit()), null, null);
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        ListAppender<ILoggingEvent> logged = new ListAppender<>();
+        logged.start();
+        root.addAppender(logged);
+        try {
+            publish(event);
+            identityHandled(envelope.eventId().toString());
+        } finally {
+            root.detachAppender(logged);
+        }
+
+        List<ILoggingEvent> alerts = logged.list.stream()
+                .filter(line -> line.getLevel() == Level.ERROR && line.getFormattedMessage().startsWith("ALERT P2 platform.identity ")).toList();
+        assertThat(alerts).as("exactly one alert line for the event").hasSize(1);
+        assertThat(alerts.getFirst().getFormattedMessage()).as("no personal identifier in the line").doesNotContain(employee.toString());
+        assertThat(itemsAbout(user)).as("no item for the refused event").isEmpty();
+        assertThat(publicationsOf(envelope.eventId().toString())).as("delivery consumed, not failed or resubmitted")
+                .isNotEmpty().allSatisfy(row -> assertThat(row.get("status")).isEqualTo("COMPLETED"));
     }
 }
