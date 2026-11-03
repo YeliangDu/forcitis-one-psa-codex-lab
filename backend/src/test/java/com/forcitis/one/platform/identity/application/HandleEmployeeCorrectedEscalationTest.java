@@ -254,4 +254,25 @@ class HandleEmployeeCorrectedEscalationTest {
         verify(wecom, never()).send(any());
         assertThat(alerts()).singleElement().asString().contains(event.envelope().eventId().toString());
     }
+
+    @Test
+    @DisplayName("a correction after which the moved person heads the new department is treated like no head: no recipient, no card, one P3 alert with the event id and the item id")
+    void aMoverWhoHeadsTheNewDepartmentIsTreatedLikeNoHead() {
+        Role scoped = mock(Role.class);
+        when(scoped.accessScope()).thenReturn(AccessScopeKind.CUSTOM_ORG_UNITS);
+        when(scoped.code()).thenReturn(new RoleCode("scoped"));
+        when(scoped.permissionCodes()).thenReturn(Set.of());
+        RoleId roleId = new RoleId(UUID.randomUUID());
+        when(accounts.openGrants(user)).thenReturn(List.of(new HeldGrant(new AccountRoleGrantId(UUID.randomUUID()), roleId, new RoleCode("scoped"))));
+        when(roles.findById(roleId)).thenReturn(Optional.of(scoped));
+        EmployeeCorrected event = correction(new LegalEntityId(UUID.randomUUID()), List.of(TriggerFieldKind.ORG_UNIT), new OrgUnitId(UUID.randomUUID()));
+        when(directory.findOrgUnitHead(event.newOrgUnitId())).thenReturn(Optional.of(event.employeeId()));
+
+        handle(event);
+
+        PermissionAdjustment item = inserted();
+        assertThat(item.recipient()).isNull();
+        verify(wecom, never()).send(any());
+        assertThat(alerts()).singleElement().asString().contains(event.envelope().eventId().toString()).contains(item.id().value().toString());
+    }
 }
