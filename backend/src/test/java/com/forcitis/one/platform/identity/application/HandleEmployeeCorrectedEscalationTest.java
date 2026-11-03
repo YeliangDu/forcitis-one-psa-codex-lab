@@ -34,6 +34,7 @@ import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.organization.workforce.events.EmployeeCorrected;
@@ -171,18 +172,37 @@ class HandleEmployeeCorrectedEscalationTest {
     }
 
     @Test
-    @DisplayName("a correction that moves an employed person between departments is not an undone separation: a holder of a sensitive role gets no item")
-    void aMoveBetweenDepartmentsRaisesNothing() {
+    @DisplayName("a correction that moves a holder of a sensitive role between departments raises one sensitive-role review for the department, like a transfer")
+    void aMoveBetweenDepartmentsRaisesTheSensitiveReview() {
         handle(correction(new LegalEntityId(UUID.randomUUID()), List.of(TriggerFieldKind.ORG_UNIT), new OrgUnitId(UUID.randomUUID())));
 
-        verify(adjustments, never()).insert(any());
-        verify(deadlines, never()).endOfWorkdayAfter(any(), eq(5), any());
+        PermissionAdjustment item = inserted();
+        assertThat(item.kind()).isEqualTo(PermissionAdjustmentKind.SENSITIVE_ROLE_REVIEW);
+        assertThat(item.triggerField()).isEqualTo(TriggerFieldKind.ORG_UNIT);
+        assertThat(item.beforeOrgUnit()).isNotNull();
     }
 
     @Test
-    @DisplayName("a correction that changes only the position raises nothing")
-    void aPositionOnlyCorrectionRaisesNothing() {
-        handle(correction(new LegalEntityId(UUID.randomUUID()), List.of(TriggerFieldKind.POSITION), null));
+    @DisplayName("a correction that changes only the position of a holder of a sensitive role raises one sensitive-role review for the position and no scope review")
+    void aPositionOnlyCorrectionRaisesTheSensitiveReview() {
+        OrgUnitId unit = new OrgUnitId(UUID.randomUUID());
+        EventEnvelope base = TestEnvelopes.of("organization.workforce.EmployeeCorrected", "Employee", employee.value());
+        EventEnvelope envelope = new EventEnvelope(base.eventId(), base.eventType(), base.schemaVersion(), base.occurredAt(), base.aggregateType(),
+                base.aggregateId(), base.aggregateVersion(), base.correlationId(), null, ActorType.SYSTEM, base.actorId(), null, null, null, List.of());
+
+        handle(new EmployeeCorrected(envelope, new PersonnelCommandId(UUID.randomUUID()), employee, LocalDate.of(2026, 11, 2), null,
+                List.of(TriggerFieldKind.POSITION), unit, unit, new PositionId(UUID.randomUUID()), new PositionId(UUID.randomUUID())));
+
+        assertThat(inserted().triggerField()).isEqualTo(TriggerFieldKind.POSITION);
+    }
+
+    @Test
+    @DisplayName("a correction after which the person is not employed, or that changes no field, raises nothing")
+    void noEmploymentOrNoFieldRaisesNothing() {
+        EmployeeCorrected ended = correction(new LegalEntityId(UUID.randomUUID()), List.of(TriggerFieldKind.ORG_UNIT), new OrgUnitId(UUID.randomUUID()));
+        handle(new EmployeeCorrected(ended.envelope(), ended.personnelCommandId(), employee, ended.affectedFrom(), null, ended.triggerFieldKinds(),
+                ended.previousOrgUnitId(), null, null, null));
+        handle(correction(new LegalEntityId(UUID.randomUUID()), List.of(), new OrgUnitId(UUID.randomUUID())));
 
         verify(adjustments, never()).insert(any());
     }
@@ -192,6 +212,8 @@ class HandleEmployeeCorrectedEscalationTest {
     void aMoveGivesTheNewHeadAScopeReview() {
         Role scoped = mock(Role.class);
         when(scoped.accessScope()).thenReturn(AccessScopeKind.CUSTOM_ORG_UNITS);
+        when(scoped.code()).thenReturn(new RoleCode("scoped"));
+        when(scoped.permissionCodes()).thenReturn(Set.of());
         RoleId roleId = new RoleId(UUID.randomUUID());
         when(accounts.openGrants(user)).thenReturn(List.of(new HeldGrant(new AccountRoleGrantId(UUID.randomUUID()), roleId, new RoleCode("scoped"))));
         when(roles.findById(roleId)).thenReturn(Optional.of(scoped));
@@ -216,6 +238,8 @@ class HandleEmployeeCorrectedEscalationTest {
     void aHeadWithoutAWecomIdStillGetsTheItem() {
         Role scoped = mock(Role.class);
         when(scoped.accessScope()).thenReturn(AccessScopeKind.CUSTOM_ORG_UNITS);
+        when(scoped.code()).thenReturn(new RoleCode("scoped"));
+        when(scoped.permissionCodes()).thenReturn(Set.of());
         RoleId roleId = new RoleId(UUID.randomUUID());
         when(accounts.openGrants(user)).thenReturn(List.of(new HeldGrant(new AccountRoleGrantId(UUID.randomUUID()), roleId, new RoleCode("scoped"))));
         when(roles.findById(roleId)).thenReturn(Optional.of(scoped));
