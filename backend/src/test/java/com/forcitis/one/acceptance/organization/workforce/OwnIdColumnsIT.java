@@ -65,7 +65,6 @@ class OwnIdColumnsIT extends AcceptanceSupport {
             new String[] {WORKFORCE, "legal_entity_attributions", "employee_id"},
             new String[] {WORKFORCE, "legal_entity_attribution_corrections", "org_unit_id"},
             new String[] {WORKFORCE, "legal_entity_attribution_corrections", "employee_id"},
-            new String[] {WORKFORCE, "sync_run_held_separations", "employee_id"},
             new String[] {"platform_identity", "user_accounts", "employee_id"},
             new String[] {"cost_timesheet", "timesheets", "employee_id"},
             new String[] {"cost_timesheet", "timesheets", "project_manager_id"},
@@ -247,20 +246,5 @@ class OwnIdColumnsIT extends AcceptanceSupport {
         }
 
         assertThat(missing).as("foreign key indexes of DDL-06").isEmpty();
-    }
-
-    @Test
-    @DisplayName("R-1b P5 RULING-P5-D12 / ADR-0033：sync_run_held_separations 为 uuid 单列主键，(sync_run_id, employee_id) 是命名唯一约束，外键仍指向员工，employee_id 为 uuid")
-    void theHeldSeparationsHaveASingleUuidKeyAndAUniquePair() throws Exception {
-        try (Connection catalogue = schemaConnection("public")) {
-            assertThat(constraintColumns(catalogue, "sync_run_held_separations", "pk_sync_run_held_separations", "p"))
-                    .isEqualTo("sync_run_held_separation_id");
-            assertThat(typeOf(catalogue, WORKFORCE, "sync_run_held_separations", "sync_run_held_separation_id")).isEqualTo("uuid");
-            assertThat(constraintColumns(catalogue, "sync_run_held_separations", "uk_sync_run_held_separations_sync_run_id_employee_id", "u"))
-                    .isEqualTo("sync_run_id,employee_id");
-            assertThat(constraintColumns(catalogue, "sync_run_held_separations", "fk_sync_run_held_separations_employee_id", "f"))
-                    .isEqualTo("employee_id");
-            assertThat(typeOf(catalogue, WORKFORCE, "sync_run_held_separations", "employee_id")).isEqualTo("uuid");
-        }
     }
 }

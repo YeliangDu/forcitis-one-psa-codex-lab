@@ -49,7 +49,6 @@ class UserIdColumnsIT extends AcceptanceSupport {
             new String[] {"platform_numbering", "numbering_rule_versions", "author_id"},
             new String[] {"platform_numbering", "numbering_rule_versions", "confirmed_by"},
             new String[] {"platform_numbering", "numbering_rule_versions", "finance_confirmed_by"},
-            new String[] {"organization_workforce", "sync_runs", "released_by"},
             new String[] {"organization_workforce", "legal_entity_attribution_corrections", "corrected_by_user_id"},
             new String[] {"platform_integration", "source_references", "created_by"},
             new String[] {"platform_integration", "source_references", "decided_by"});

@@ -31,7 +31,7 @@ class UserIdContractTest {
     static final List<String> USER_ID_PROPERTIES = List.of("AuditEntryResponse.actorId", "AuditEntryResponse.onBehalfOfId",
             "AuthorizationRequestResponse.requestedBy", "AuthorizationRequestResponse.subjectUserId", "CurrentUserResponse.userId", "LoginResponse.userId",
             "UserAccountResponse.userId", "HandledTaskResponse.actorId", "HistoryEntry.actorId", "PendingTemplate.authorId", "PendingTemplate.confirmedBy",
-            "PendingTemplate.financeConfirmedBy", "SyncRunResponse.releasedBy", "TaskDetailResponse.assignee", "TaskDetailResponse.candidates",
+            "PendingTemplate.financeConfirmedBy", "TaskDetailResponse.assignee", "TaskDetailResponse.candidates",
             "TaskOverviewResponse.assignee");
 
     /** path, parameter: the user ids in paths and query strings. */
@@ -57,7 +57,7 @@ class UserIdContractTest {
     }
 
     @Test
-    @DisplayName("R-1b P2 ADR-0033 第 6 项第 2 条 / NAMING_STANDARD A-7：OpenAPI 中用户 ID 的属性（审计操作人、授权申请人与受益人、当前用户、账号、办理人与候选人、模板作者与确认人、放行人）为 type: string, format: uuid")
+    @DisplayName("R-1b P2 ADR-0033 第 6 项第 2 条 / NAMING_STANDARD A-7：OpenAPI 中用户 ID 的属性（审计操作人、授权申请人与受益人、当前用户、账号、办理人与候选人、模板作者与确认人）为 type: string, format: uuid")
     void userIdPropertiesAreStringUuid() throws IOException {
         JsonNode schemas = openApi().path("components").path("schemas");
         List<String> wrong = new ArrayList<>();

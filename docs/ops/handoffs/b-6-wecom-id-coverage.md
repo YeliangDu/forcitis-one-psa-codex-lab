@@ -9,7 +9,7 @@ FORCITIS one 只按 A8 人员档案里的企业微信 ID 认人。在职员工�
 ## 步骤
 
 1. **取清单**
-   - FORCITIS one dev 上线后：管理端「同步记录」页（`/admin/sync-runs`）的问题清单，类型为「在职但无企业微信 ID」；数量同时见指标 `forcitis.organization.workforce.employees.without.wecom`。以此为准。
+   - （已失效，#934）原先取自管理端「同步记录」页的问题清单与指标 `forcitis.organization.workforce.employees.without.wecom`；旧同步及其页面、指标已删除，代码里没有等价的清单来源，需另定取清单的办法，现以下一条的预估查询为准。
    - 上线前预估（可选）：请 A8 DBA 用 B-5 建好的只读账号执行下面的查询，结果只给组织数据管理员，不外传：
      ```sql
      SELECT M.CODE, M.NAME, M.ORG_UNIT_PATH

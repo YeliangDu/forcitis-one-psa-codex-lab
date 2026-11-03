@@ -14,12 +14,12 @@ class SystemActorsTest {
     @Test
     @DisplayName("RULING-P2-C5 a declared job acts with a name-based UUID (version 5): the same for every call, another for another job, never a version 7 account id")
     void aJobHasOneStableId() {
-        UUID sync = SystemActors.idOf("organization.workforce.snapshot.sync");
+        UUID job = SystemActors.idOf("organization.workforce.snapshot.reconcile");
 
-        assertThat(SystemActors.idOf("organization.workforce.snapshot.sync")).isEqualTo(sync);
-        assertThat(SystemActors.idOf("platform.identity.account-provisioning")).isNotEqualTo(sync);
-        assertThat(sync.version()).isEqualTo(5);
-        assertThat(sync.variant()).isEqualTo(2);
+        assertThat(SystemActors.idOf("organization.workforce.snapshot.reconcile")).isEqualTo(job);
+        assertThat(SystemActors.idOf("platform.identity.account-provisioning")).isNotEqualTo(job);
+        assertThat(job.version()).isEqualTo(5);
+        assertThat(job.variant()).isEqualTo(2);
     }
 
     @Test

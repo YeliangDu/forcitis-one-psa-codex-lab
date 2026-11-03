@@ -52,7 +52,7 @@
 1. 记录 `t0`（开始时间）。控制台「备份恢复」→「按时间点恢复」→ 新建实例，时间点选 T，网络与白名单同源实例（只加 172.16.89.86）。
 2. 实例可用后记录 `t1`。在 ECS 上用临时 env 文件启动一次应用的只读冒烟（不改 `/etc/forcitis-one/one.env`）：
    ```bash
-   # /root/drill.env：复制 one.env，只改 SPRING_DATASOURCE_URL 指向临时实例，并设 FORCITIS_JOBS_ENABLED=false（总开关，#228 起生效；之前的发布包不能用于演练）、WORKFORCE_SYNC_ENABLED=false、
+   # /root/drill.env：复制 one.env，只改 SPRING_DATASOURCE_URL 指向临时实例，并设 FORCITIS_JOBS_ENABLED=false（总开关，#228 起生效；之前的发布包不能用于演练）、
    # WECOM_ENABLED=false、APPROVAL_DEADLINE_ENABLED=false、FLOWABLE_ASYNC_EXECUTOR=false、WORKFORCE_SHORT_NAME_ENABLED=false、EVENT_PUBLICATION_JOBS_ENABLED=false、SERVER_PORT=18080、MANAGEMENT_SERVER_PORT=18081
    # 口令经 EnvironmentFile 传入，不出现在命令行参数
    install -o root -g root -m 0600 /etc/forcitis-one/one.env /root/drill.env   # 然后编辑上面几项

@@ -393,3 +393,12 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/ProfileChangeRequestRevocationIT.java
     reason: 'revokeSessions 为 @Transactional(MANDATORY)，测试在无事务线程上对代理打桩先被事务切面拒绝；只把打桩与两处 reset 移到代理后面的间谍对象（AopTestUtils.getUltimateTargetObject），注入的失败仍经代理传出，断言、值、用例不变；#980 实现上分支后须全量重跑，非实现原因不绿则重开本裁定'
     ref: "commit 13292f974 (#980 acceptance, PR #1059); review-980-stub-sonnet.md"
+  - id: RULING-LEAD-20261103-06
+    date: 2026-11-03
+    ruled_by: independent sonnet reviewer rv1018f (dispatched by one-test, given only the commit), recorded by one-lead
+    implementer: one-dev-org
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/grant_store/GrantStoreSupport.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/web/ManagementEndpointIT.java
+    reason: '#934 删除同步后，夹具里退役的权限码 organization.workforce:sync-run:read 换成可授予的 cost.timesheet:timesheet:submit（与 RoleVersioningSupport 同），随同步删除的指标 sync_lag_seconds 换成常驻的 attendance_calendar_unmaintained_total；断言含义不变，未放松或删用例'
+    ref: "commit 0b61a27aa (PR #1018); review-1018-fixtures-sonnet.md"

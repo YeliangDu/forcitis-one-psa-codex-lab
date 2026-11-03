@@ -28,12 +28,6 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
     }
 
     @Override
-    public boolean syncRunRecent(Instant cutoff) {
-        return jdbc.sql("select exists (select 1 from organization_workforce.sync_runs where status = 'RUNNING' or started_at >= :cutoff)")
-                .param("cutoff", OffsetDateTime.ofInstant(cutoff, ZoneOffset.UTC)).query(Boolean.class).single();
-    }
-
-    @Override
     public List<InitialVersionPlan.SnapshotPerson> lockEmployeesWithoutVersions() {
         // Commands lock the employee row without changing it, so a row that waited for the lock is not re-checked: lock first, then look again in a new statement.
         jdbc.sql("""

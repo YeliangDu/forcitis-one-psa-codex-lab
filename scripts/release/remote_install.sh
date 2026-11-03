@@ -750,7 +750,7 @@ migrate() {
   args=(--spring.main.web-application-type=none "--spring.config.import=configtree:/run/credentials/$unit.service/"
         --spring.flyway.enabled=true --spring.flyway.default-schema=one_migration)
   # Overrides go on the command line: Spring lets arguments win over one.env. Every scheduled job and outbound delivery stays off.
-  args+=(--WORKFORCE_SYNC_ENABLED=false --WORKFORCE_SHORT_NAME_ENABLED=false --WECOM_ENABLED=false --APPROVAL_DEADLINE_ENABLED=false
+  args+=(--WORKFORCE_SHORT_NAME_ENABLED=false --WECOM_ENABLED=false --APPROVAL_DEADLINE_ENABLED=false
          --EVENT_PUBLICATION_JOBS_ENABLED=false --FLOWABLE_ASYNC_EXECUTOR=false
          --spring.session.jdbc.cleanup-cron=- --forcitis.platform.identity.credential-purge.cron=-
          --forcitis.platform.numbering.capacity-check.cron=-)

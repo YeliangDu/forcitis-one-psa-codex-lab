@@ -8,12 +8,9 @@
          Single list, also read by acceptance_reports.py and legacy_it.sh; includes the OrgSourceWorldSupport subclasses. -->
     <legacy.it.acceptance>
       com/forcitis/one/acceptance/platform/integration/A8SourceFlagsIT.java,
-      com/forcitis/one/acceptance/platform/integration/EmployeeCodeConcurrentSyncIT.java,
       com/forcitis/one/acceptance/platform/integration/LegacyReferencesIT.java,
-      com/forcitis/one/acceptance/platform/integration/NegativeSourceIdIT.java,
       com/forcitis/one/acceptance/platform/integration/ReadOnlyAccountCheckIT.java,
       com/forcitis/one/acceptance/platform/integration/ReadOnlyVerificationCommandIT.java,
-      com/forcitis/one/acceptance/platform/integration/SourceIdMatchingIT.java,
       com/forcitis/one/acceptance/platform/integration/StalledExternalSourceIT.java
     </legacy.it.acceptance>
     <integration.reports>${project.build.directory}/failsafe-reports</integration.reports>
@@ -43,7 +40,7 @@
     <!-- platform.identity: Boot 4 auto-configures Spring Session JDBC (cookie, table name, cleanup) from this starter -->
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-session-jdbc</artifactId></dependency>
     <!-- platform.identity: Argon2id for emergency-admin passwords (Spring Security's Argon2PasswordEncoder needs BouncyCastle); not managed by the Boot BOM -->
-    <!-- platform.identity: @ApplicationModuleListener (reacts to OrgSnapshotChanged); a no-op duplicate if the event registry starter is added later -->
+    <!-- platform.identity: @ApplicationModuleListener (reacts to workforce events); a no-op duplicate if the event registry starter is added later -->
     <dependency><groupId>org.springframework.modulith</groupId><artifactId>spring-modulith-events-api</artifactId></dependency>
     <dependency><groupId>org.bouncycastle</groupId><artifactId>bcprov-jdk18on</artifactId><version>1.82</version></dependency>
     <dependency><groupId>com.github.ben-manes.caffeine</groupId><artifactId>caffeine</artifactId></dependency>

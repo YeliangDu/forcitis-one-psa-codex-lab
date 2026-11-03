@@ -7,5 +7,5 @@
 platform.approval -> organization.attendance::api  # WorkCalendar: working-day arithmetic for deadlines (REG-1)
 platform.approval -> organization.workforce::api  # OrgDirectory, EmployeeProfile, OrgUnitProfile, OrgUnitId, EmploymentStatus, EmploymentVerdict, LoginLookup: assignee resolution and the employment check
 platform.identity -> organization.workforce::api  # OrgDirectory, EmployeeProfile, OrgUnitProfile, OrgUnitId, EmploymentStatus, EmployeeExistence, EmployeeLegalEntities, LoginLookup: account binding and access scopes (ADR-0068)
-platform.identity -> organization.workforce::events  # EmployeeRegistered, OrgSnapshotChanged: grant lifecycle; the ADR-0068 personnel events join here
+platform.identity -> organization.workforce::events  # EmployeeRegistered, EmployeeSeparated: grant lifecycle; the ADR-0068 personnel events join here
 platform.numbering -> organization.workforce::api  # LegalEntityCode, LegalEntityDirectory, LegalEntityNumberUsage: legal-entity part of document numbers

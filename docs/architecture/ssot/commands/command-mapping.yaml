@@ -108,42 +108,6 @@ entries:
   commands: []
   relation: none
   evidence: 持久化同步来的已登记员工；已建聚合 RegisteredEmployee 未对上规划聚合（mapping 为 none），规划命令表无对应
-- class: ApplySourceSnapshot
-  module: organization.workforce
-  built_aggregate: organization.workforce/SyncRun
-  commands: []
-  relation: none
-  evidence: 应用源快照到同步运行；已建聚合 SyncRun 未对上规划聚合，规划命令表无对应
-- class: BeginSyncRun
-  module: organization.workforce
-  built_aggregate: organization.workforce/SyncRun
-  commands: []
-  relation: none
-  evidence: 开始同步运行并关闭被遗弃的旧运行；已建聚合 SyncRun 未对上规划聚合，规划命令表无对应
-- class: FailSyncRun
-  module: organization.workforce
-  built_aggregate: organization.workforce/SyncRun
-  commands: []
-  relation: none
-  evidence: 把同步运行标记为失败；已建聚合 SyncRun 未对上规划聚合，规划命令表无对应
-- class: RecordSyncRunRelease
-  module: organization.workforce
-  built_aggregate: organization.workforce/SyncRun
-  commands: []
-  relation: none
-  evidence: 记录同步运行的放行；已建聚合 SyncRun 未对上规划聚合，规划命令表无对应
-- class: ReleaseSyncRun
-  module: organization.workforce
-  built_aggregate: organization.workforce/SyncRun
-  commands: []
-  relation: none
-  evidence: 放行同步运行；已建聚合 SyncRun 未对上规划聚合，规划命令表无对应
-- class: ReleaseSyncRunHolds
-  module: organization.workforce
-  built_aggregate: organization.workforce/SyncRun
-  commands: []
-  relation: none
-  evidence: 解除同步运行的挂起；已建聚合 SyncRun 未对上规划聚合，规划命令表无对应
 - class: Approvals
   module: platform.approval
   built_aggregate: platform.approval/ApprovalRequest
