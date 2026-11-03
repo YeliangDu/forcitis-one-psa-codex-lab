@@ -1,53 +1,5 @@
-# F-1 数据范围新增术语（proposed，待 one-glossary 评审，ADR-0018）。第 1 块（#728）：两张自定义部门子表与两个错误码。
-# 已批准、直接用：custom_org_unit、include_descendants、access_scope、authorization_request；提议中的 role_version 见 platform-identity.yaml。
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
 terms:
-- id: role_version_custom_org_unit
-  zh: 角色版本自定义部门
-  en: RoleVersionCustomOrgUnit
-  snake: role_version_custom_org_unit
-  kind: entity
-  bc: platform.identity
-  scope: domain
-  definition: 范围类型为 CUSTOM_ORG_UNITS 的角色版本所列的一个部门及其「含下级」选择；随新版本一次写入，不可改不可删，改明细即新增角色版本（ADR-0034 第 5 项）；表 role_version_custom_org_units，列 is_descendants_included 对应已批准的 include_descendants
-  standard_ref:
-  - docs/adr/ADR-0034.md
-  - docs/architecture/implementation-cards/f-1.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 登记会话 one-1a-par（#728，F-1 卡「本卡新词」）；由已批准的 custom_org_unit 与提议中的 role_version 组成；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名
-- id: authorization_request_custom_org_unit
-  zh: 授权申请自定义部门
-  en: AuthorizationRequestCustomOrgUnit
-  snake: authorization_request_custom_org_unit
-  kind: entity
-  bc: platform.identity
-  scope: domain
-  definition: 新建或修改角色的授权申请中、范围类型为 CUSTOM_ORG_UNITS 时申请的一个部门，均为仅本部门（只为双人逐人级角色开申请，ADR-0044 第 1 项）；随申请提交一次写入，不可改不可删；表 authorization_request_custom_org_units
-  standard_ref:
-  - docs/adr/ADR-0044.md
-  - docs/architecture/implementation-cards/f-1.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 登记会话 one-1a-par（#728，F-1 卡「本卡新词」）；查重：terms.yaml 与 proposed 中同一 bc 无同名、同中文名
-- id: is_descendants_included
-  zh: 是否含下级
-  en: IsDescendantsIncluded
-  snake: is_descendants_included
-  kind: value_object
-  bc: platform.identity
-  scope: domain
-  definition: 角色版本自定义部门的列：真为该部门连同全部下级，假为仅本部门；对应已批准的 include_descendants，is_ 前缀为 DdlNamingTest 布尔列规则所加（F-1 卡「本卡新词」）
-  standard_ref:
-  - docs/architecture/implementation-cards/f-1.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 登记会话 one-1a-par（#728）；Java 与接口用已批准的 includeDescendants，只有列名用本词
 - id: error__platform_identity_role_custom_org_units_invalid
   zh: 角色自定义部门不合规
   en: PlatformIdentityRoleCustomOrgUnitsInvalid
@@ -61,8 +13,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: 登记会话 one-1a-par（#728）
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_identity_role_scope_not_allowed
   zh: 角色数据范围不允许
   en: PlatformIdentityRoleScopeNotAllowed
@@ -77,5 +30,6 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: 登记会话 one-1a-par（#728）
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）

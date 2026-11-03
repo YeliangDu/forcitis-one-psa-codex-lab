@@ -1,5 +1,0 @@
-# Phase 1a 时间与时区修复新增用语（proposed，待业务评审，ADR-0018）。纯技术词放 common_words。
-terms: []
-common_words:
-- jvm
-- utc

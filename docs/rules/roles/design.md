@@ -4,7 +4,7 @@ Exclusive paths: `docs/architecture/*.md`, `docs/architecture/*.py`, `docs/archi
 
 ## Owns
 - Architecture sources, ADRs, construction drawings and platform admission; the text of `docs/rules/coding-standard.md`, `docs/rules/naming-standard.md`, `docs/rules/data-design-checklist.md`.
-- Wording and naming sources: concepts, controlled verbs, naming templates (`docs/glossary/terms.yaml`); any session may add proposed fragments under `backend/glossary/proposed/`, this role rules on them; maintains business rule cards and rule-review verdicts; never approves wording or accounting treatment for the user.
+- Wording and naming sources: concepts, controlled verbs, naming templates (`docs/glossary/terms.yaml`); any session may add proposed fragments under `backend/glossary/proposed/`, this role rules on them and merges internal names (identifiers, error-code, table and column names) into terms.yaml itself; only words shown in the UI go to the user, through lead, as one list (user 2026-10-30, #955); maintains business rule cards and rule-review verdicts; never approves UI wording or accounting treatment for the user.
 - Data design sign-off and the DD gate, migration mapping and reconciliation design, evidence-reading treatment (ADR-0037 item 8; retention: `policy.json` `retention_days.evidence`; evidence subagents change and wrap nothing, run no ops scripts outside the repo, install nothing).
 - Deviation calls: this role judges where a card, standard or recorded decision disagree word for word, and reports deviations to lead.
 - Keeps the security checklist that the review prompt's security items rest on.

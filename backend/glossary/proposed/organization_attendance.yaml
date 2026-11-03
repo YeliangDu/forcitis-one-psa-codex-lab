@@ -1,4 +1,4 @@
-# organization.attendance 提议术语（proposed，待业务评审，ADR-0018）。
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
 terms:
 - id: error__organization_attendance_year_not_maintained
   zh: 工作日历年度未维护
@@ -13,8 +13,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__organization_attendance_year_not_found
   zh: 工作日历年度不存在
   en: OrganizationAttendanceYearNotFound
@@ -28,8 +29,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__organization_attendance_day_outside_year
   zh: 日期不在该年内
   en: OrganizationAttendanceDayOutsideYear
@@ -43,8 +45,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__organization_attendance_day_duplicate
   zh: 日期重复
   en: OrganizationAttendanceDayDuplicate
@@ -58,8 +61,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__organization_attendance_make_up_workday_on_weekday
   zh: 调休上班日落在工作日
   en: OrganizationAttendanceMakeUpWorkdayOnWeekday
@@ -73,8 +77,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__organization_attendance_year_out_of_range
   zh: 年份超出范围
   en: OrganizationAttendanceYearOutOfRange
@@ -88,8 +93,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__organization_attendance_year_conflict
   zh: 工作日历并发修改
   en: OrganizationAttendanceYearConflict
@@ -103,8 +109,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__organization_attendance_day_kind_unknown
   zh: 日期类型未知
   en: OrganizationAttendanceDayKindUnknown
@@ -118,44 +125,6 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
-- id: official_notice
-  zh: 官方通知
-  en: OfficialNotice
-  snake: official_notice
-  kind: value_object
-  bc: organization.attendance
-  scope: domain
-  definition: 国家或地方政府发布的放假与调休安排通知，以文号和链接标识；工作日历版本确认时必须挂上（IMP-1021-PAR-02，one-data 审查 WORK-CALENDAR-DDL-2026-10-21 更正三、五）
-  standard_ref:
-  - ADR-0072
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 列名 official_notice_number、official_notice_url 用此词，暂名，待 one-glossary 定名
-- id: make_up_workday_cancelled
-  zh: 调休上班日取消
-  en: MakeUpWorkdayCancelled
-  snake: make_up_workday_cancelled
-  kind: state
-  bc: organization.attendance
-  scope: domain
-  definition: 官方安排的调休上班日被公司取消、按普通周末休息计的例外日取值；必须是周六或周日，依据为公司加休或手工更正并写明取消的是哪份官方通知里的哪个调休（IMP-1021-PAR-02，更正六）
-  standard_ref:
-  - ADR-0072
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 暂名，待 one-glossary 定名
-common_words:
-- maintain
-- maintained
-- outside
-- persisted
-- restore
-- unmaintained
-- weekday
-- stored
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
