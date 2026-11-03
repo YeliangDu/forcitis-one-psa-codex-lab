@@ -9,6 +9,7 @@ import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
+import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.ApproveAttributionCountersign;
 import com.forcitis.one.organization.workforce.api.AttributionCountersignId;
 import com.forcitis.one.organization.workforce.api.AttributionCountersigns;
@@ -60,6 +61,7 @@ class AttributionCountersignService implements AttributionCountersigns {
     private final PersonnelPlans timelines;
     private final EffectPublisher effects;
     private final OwnAttributionGuard ownGuard;
+    private final OrgMergeProgress mergeProgress;
     private final CountersignDeciders deciders;
     private final OrgCountersigns orgCountersigns;
     private final AuditLog audit;
@@ -69,7 +71,7 @@ class AttributionCountersignService implements AttributionCountersigns {
     private final BusinessZone zone;
 
     AttributionCountersignService(AttributionCountersignRepository countersigns, PersonnelCommandRepository commands, CountersignRequests requests, CountersignBases bases,
-                                  PersonnelPlans timelines, EffectPublisher effects, OwnAttributionGuard ownGuard, CountersignDeciders deciders, OrgCountersigns orgCountersigns, AuditLog audit,
+                                  PersonnelPlans timelines, EffectPublisher effects, OwnAttributionGuard ownGuard, OrgMergeProgress mergeProgress, CountersignDeciders deciders, OrgCountersigns orgCountersigns, AuditLog audit,
                                   CurrentUser currentUser, IdGenerator ids, Clock clock, BusinessZone zone) {
         this.countersigns = countersigns;
         this.commands = commands;
@@ -78,6 +80,7 @@ class AttributionCountersignService implements AttributionCountersigns {
         this.timelines = timelines;
         this.effects = effects;
         this.ownGuard = ownGuard;
+        this.mergeProgress = mergeProgress;
         this.deciders = deciders;
         this.orgCountersigns = orgCountersigns;
         this.audit = audit;
@@ -112,6 +115,7 @@ class AttributionCountersignService implements AttributionCountersigns {
             return;
         }
         EmployeeId employee = found.employeeId();
+        List<OrgStructureCommandId> holding = mergeProgress.lockHolding(employee);
         commands.lockEmployee(employee);
         AttributionCountersign row = countersigns.find(id).orElseThrow(AttributionCountersignService::notFound);
         PersonnelCommand command = commands.find(row.commandId()).orElseThrow(AttributionCountersignService::notFound);
@@ -141,6 +145,7 @@ class AttributionCountersignService implements AttributionCountersigns {
         if (last) {
             if (row.requestKind() == CountersignRequestKind.CHANGE) {
                 complete(command, history, entry, by, now, today, correlation);
+                mergeProgress.recount(holding);
             } else {
                 completeWithdrawal(command, history, row, now, today, correlation);
             }

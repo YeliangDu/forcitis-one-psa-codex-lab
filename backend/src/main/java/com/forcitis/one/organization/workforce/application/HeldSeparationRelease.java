@@ -8,6 +8,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolution;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolutionSources;
@@ -24,6 +25,7 @@ import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -47,9 +49,10 @@ class HeldSeparationRelease {
     private final DomainEvents events;
     private final IdGenerator ids;
     private final BusinessZone zone;
+    private final OrgMergeProgress mergeProgress;
 
     HeldSeparationRelease(PersonnelCommandRepository commands, PersonnelPlans timelines, LegalEntityResolutionSources legalEntities, AuditLog audit,
-                          DomainEvents events, IdGenerator ids, BusinessZone zone) {
+                          DomainEvents events, IdGenerator ids, BusinessZone zone, OrgMergeProgress mergeProgress) {
         this.commands = commands;
         this.timelines = timelines;
         this.legalEntities = legalEntities;
@@ -57,6 +60,7 @@ class HeldSeparationRelease {
         this.events = events;
         this.ids = ids;
         this.zone = zone;
+        this.mergeProgress = mergeProgress;
     }
 
     /** Who released: an account in the interface, or the operations command, whose actor is the system and whose people are only in the audit detail. */
@@ -70,9 +74,12 @@ class HeldSeparationRelease {
         }
     }
 
-    /** The loaded versions are those read before the aggregates were changed; now is the instant the hold was marked released. */
+    /**
+     * The loaded versions are those read before the aggregates were changed; now is the instant the hold was marked released. The holding merges are those the caller
+     * locked (before the employee row) for this person: the versions written here may take the person out of a merged unit, so they are counted in the same transaction.
+     */
     void execute(PersonnelCommand command, long commandVersion, SeparationHold hold, long holdVersion, Releaser releaser, Instant now,
-                 String auditDetail) {
+                 String auditDetail, List<OrgStructureCommandId> holding) {
         LocalDate today = zone.dateOf(now);
         EmployeeId employee = command.employeeId();
         String commandBefore = command.status().name();
@@ -83,6 +90,7 @@ class HeldSeparationRelease {
         for (Map.Entry<VersionTable, VersionPlan> plan : timelines.forEntry(command, history, auditEntry).entrySet()) {
             commands.insertVersions(employee, plan.getKey(), plan.getValue(), command.id(), now);
         }
+        mergeProgress.recount(holding);
         commands.update(command, now, commandVersion);
         commands.updateHold(hold, now, holdVersion);
         UUID correlation = WorkContext.correlationId().orElseGet(ids::next);
