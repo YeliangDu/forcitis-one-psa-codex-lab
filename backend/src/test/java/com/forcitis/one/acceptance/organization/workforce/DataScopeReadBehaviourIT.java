@@ -45,8 +45,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
  *
  * <p>A1 lists give B's rows and none of A's through every filter and every cursor page; A2 a detail in A answers 404 with the body of an id that
  * does not exist; A3 an empty scope (a custom unit that names nothing, an own-unit scope with no assignment) gives zero rows and 404, never all
- * rows; A4 a scope that cannot be worked out gives 403 on lists and 404 on details, never a wider answer. Rulings: design comment 6597359528 (A4 as
- * worded there) and 6604403956 (the five SCOPED lines).
+ * rows; A4 a scope that cannot be worked out gives 403 on lists and 404 on details, never a wider answer. Ruling: design comment 6597359528 (A4 as
+ * worded there); the SCOPED lines are those of the register.
  */
 class DataScopeReadBehaviourIT extends DataScopeSupport {
 
@@ -110,10 +110,6 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
         grantOrdinaryRoles(administrator("admin1"), "nohome", "f1-read-own");
         grantOrdinaryRoles(administrator("admin1"), "broken", "f1-read-own");
         try (Connection workforce = schemaConnection("organization_workforce")) {
-            try (PreparedStatement statement = workforce.prepareStatement("delete from assignments where employee_id = ?")) {
-                statement.setObject(1, UUID.fromString(employeeIdOf("nohome")));
-                statement.executeUpdate();
-            }
             OffsetDateTime at = OffsetDateTime.of(2026, 10, 1, 9, 0, 0, 0, ZoneOffset.UTC);
             int minute = 0;
             for (String key : List.of("a1", "b1", "a2", "b2")) {
@@ -289,6 +285,8 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
     @Test
     @DisplayName("#730 A3: a caller whose scope is empty (a custom unit that names nothing; an own-unit scope with no assignment) gets zero rows and 404, never all rows")
     void anEmptyScopeSeesNothing() throws Exception {
+        require(read("nohome", ORG_UNITS), 200, "priming the session of the caller: a person without an assignment cannot sign in, so the assignment goes after the sign-in");
+        removeAssignmentOf("nohome");
         for (String key : List.of("dangling", "nohome")) {
             for (ListPath list : lists()) {
                 for (String query : list.queries()) {
@@ -299,6 +297,14 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
                 assertAbsentAnswer(key, detail, detail.inA(), key + " reads " + detail.register() + " for A");
                 assertAbsentAnswer(key, detail, detail.inB(), key + " reads " + detail.register() + " for B");
             }
+        }
+    }
+
+    private void removeAssignmentOf(String key) throws Exception {
+        try (Connection workforce = schemaConnection("organization_workforce");
+                PreparedStatement statement = workforce.prepareStatement("delete from assignments where employee_id = ?")) {
+            statement.setObject(1, UUID.fromString(employeeIdOf(key)));
+            statement.executeUpdate();
         }
     }
 
