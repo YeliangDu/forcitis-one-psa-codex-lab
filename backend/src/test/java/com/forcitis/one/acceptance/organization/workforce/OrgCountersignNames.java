@@ -57,7 +57,7 @@ final class OrgCountersignNames {
     /** One countersign request row with its parent command and the other rows of that command; the decider of the row's entity only. */
     static final String READ_COUNTERSIGN_PATH = "/api/v1/organization/attribution-countersigns/{attributionCountersignId}";
     /** The basis rows of an org command (#908 attribution_countersign_bases): finance heads of a requested entity and the org data admin. */
-    static final String READ_BASES_PATH = "/api/v1/organization/org-structure-commands/{orgStructureCommandId}/attribution-countersign-bases";
+    static final String READ_BASES_PATH = "/api/v1/organization/attribution-countersign-bases/{orgStructureCommandId}";
     /** The merge rehearsal with its columns (amendment B: org data admin, whatever its data scope); query mergeIntoOrgUnitId and effectiveDate. */
     static final String PREVIEW_MERGE_PATH = "/api/v1/organization/org-units/{orgUnitId}:preview-merge";
     /** JSON property names a response of the read path may carry (amendment B "columns shown, and only these"); anything else is a leak. */
