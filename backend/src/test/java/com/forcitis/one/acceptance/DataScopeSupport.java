@@ -479,7 +479,7 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
     }
 
     protected static String auditText(Map<String, Object> entry) {
-        return entry.get("detail") + " " + entry.get("changeReason") + " " + entry.get("beforeText") + " " + entry.get("afterText") + " " + entry.get("subjectKey");
+        return entry.get("detail") + " " + entry.get("changeReason") + " " + entry.get("beforeText") + " " + entry.get("afterText") + " " + entry.get("subjectId");
     }
 
     /**
@@ -545,7 +545,7 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
                     .andReturn().getResponse();
             require(entries, 200, "the audit query");
             items(entries).stream().filter(entry -> String.valueOf(entry.get("action")).endsWith("denied")
-                    && String.valueOf(entry.get("subjectKey")).contains(subjectId)).forEach(found::add);
+                    && String.valueOf(entry.get("subjectId")).contains(subjectId)).forEach(found::add);
         }
         return found;
     }
