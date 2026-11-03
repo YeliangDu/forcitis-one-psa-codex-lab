@@ -66,7 +66,8 @@ class OrgStructureRules {
                     throw refused("the legal entity does not exist");
                 }
                 if (commands.hasAttributionAfter(unit, day)) {
-                    throw refused("the unit already has a legal entity period that starts on or after that day or ends after it; a back-dated assignment is not supported yet");
+                    throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ORG_LEGAL_ENTITY_CONFLICT, ErrorKind.UNPROCESSABLE,
+                            "the unit already has a legal entity period that starts on or after that day; a back-dated assignment is not supported yet");
                 }
             }
             case ASSIGN_HEAD -> {

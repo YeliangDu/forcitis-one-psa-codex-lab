@@ -15,6 +15,7 @@ import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
 import com.forcitis.one.organization.workforce.api.OrgStructureTargetKind;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.ChangeSource;
 import com.forcitis.one.organization.workforce.domain.OrgEffects;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommand;
@@ -60,7 +61,7 @@ class OrgStructureRulesTest {
         LocalDate day = TODAY.plusDays(10);
         when(commands.hasAttributionAfter(UNIT, day)).thenReturn(true);
 
-        assertThatThrownBy(() -> rules.check(assign(day), VersionPlan.empty())).isInstanceOf(DomainException.class).hasMessageContaining("back-dated");
+        assertThatThrownBy(() -> rules.check(assign(day), VersionPlan.empty())).isInstanceOfSatisfying(DomainException.class, refused -> assertThat(refused.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_ORG_LEGAL_ENTITY_CONFLICT));
 
         when(commands.hasAttributionAfter(UNIT, day)).thenReturn(false);
         assertThatCode(() -> rules.check(assign(day), VersionPlan.empty())).doesNotThrowAnyException();

@@ -213,7 +213,13 @@ class OrgCountersigns {
         } catch (DomainException refused) {
             return refused.getMessage();
         }
-        boolean unchanged = Set.copyOf(bases.of(command)).equals(Set.copyOf(commands.basisOf(command.id())));
+        List<OrgCountersignBasis> now;
+        try {
+            now = bases.of(command);
+        } catch (DomainException refused) {
+            return refused.getMessage();
+        }
+        boolean unchanged = Set.copyOf(now).equals(Set.copyOf(commands.basisOf(command.id())));
         return unchanged ? null : "the employees whose cost legal entity the command changes, or the entities before and after, are no longer the ones the countersign was asked about";
     }
 

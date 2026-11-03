@@ -42,7 +42,7 @@ public interface OrgStructureCommandRepository {
 
     boolean legalEntityExists(LegalEntityId legalEntity);
 
-    /** Whether the unit has an attribution period that starts on or after the day, or ends after it: appending a period from that day would need the W2 void-and-append split, which is not built. */
+    /** Whether the unit has an attribution period that starts on or after the day: appending a period from that day would need the W2 void-and-append split, which is not built. */
     boolean hasAttributionAfter(OrgUnitId orgUnit, LocalDate day);
 
     /** Whether any position, current or not, ever had the code (codes are company-unique and never reused). */
