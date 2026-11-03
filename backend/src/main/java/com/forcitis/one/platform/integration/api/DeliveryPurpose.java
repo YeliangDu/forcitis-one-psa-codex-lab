@@ -12,7 +12,10 @@ public enum DeliveryPurpose {
     UNPAID_LEAVE_START_NOTICE(DeliverySubjectKind.PERSONNEL_COMMAND, false),
     ROLE_REVOCATION_NOTICE(DeliverySubjectKind.ACCOUNT_ROLE_GRANT, false),
     ACCOUNT_DISABLE_NOTICE(DeliverySubjectKind.USER_ACCOUNT, true),
-    PERMISSION_ADJUSTMENT_ASSIGNED(DeliverySubjectKind.PERMISSION_ADJUSTMENT, false);
+    PERMISSION_ADJUSTMENT_ASSIGNED(DeliverySubjectKind.PERMISSION_ADJUSTMENT, false),
+    COUNTERSIGN_OVERDUE_REMINDER(DeliverySubjectKind.ATTRIBUTION_COUNTERSIGN, false),
+    COUNTERSIGN_ESCALATED_LEVEL_TWO(DeliverySubjectKind.ATTRIBUTION_COUNTERSIGN, false),
+    COUNTERSIGN_ESCALATED_LEVEL_THREE(DeliverySubjectKind.ATTRIBUTION_COUNTERSIGN, false);
 
     private final DeliverySubjectKind subjectKind;
     private final boolean perEvent;
