@@ -436,16 +436,16 @@ tables:
     references: {upheld_by: platform_identity.user_accounts, adjusted_by: platform_identity.user_accounts}
     fk_exceptions:
       org_unit_id: an org unit of organization_workforce.org_units (another schema); the item exists because that unit is disabled or revoked
-      trigger_sync_run_id: the run that raised the item, another module; no foreign key (F-1 card section 7.1)
+      trigger_personnel_command_id: the transfer command, another schema (organization_workforce); no foreign key
+      trigger_org_structure_command_id: the dissolve or merge command, another schema; no foreign key
       before_org_unit_id: the department before the change, another schema
       after_org_unit_id: the department after the change, another schema
       before_position_id: the position before the change, another schema
       after_position_id: the position after the change, another schema
       recipient_employee_id: the head of the new department when raised, another schema
       business_owner_employee_id: an employee of organization_workforce.employees, another schema
-      expiry_held_sync_run_id: the held run at expiry, another module; no foreign key
       adjusted_audit_entry_id: an audit entry of platform_audit, another schema
-      closure_sync_run_id: the run that closed the item, another module; no foreign key
+      closure_personnel_command_id: the separation command, another schema; no foreign key
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
   platform_identity.account_role_grants:
