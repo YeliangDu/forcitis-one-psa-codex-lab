@@ -9,6 +9,8 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.platform.identity.api.PermissionAdjustmentId;
+import com.forcitis.one.platform.identity.api.PermissionAdjustmentKind;
+import com.forcitis.one.platform.identity.api.PermissionAdjustmentOrigin;
 import com.forcitis.one.platform.identity.events.PermissionAdjustmentOpened;
 import java.time.Instant;
 import java.util.UUID;
@@ -26,7 +28,8 @@ class PermissionAdjustmentTest {
         PermissionAdjustmentId id = new PermissionAdjustmentId(UUID.randomUUID());
         OrgUnitId unit = new OrgUnitId(UUID.randomUUID());
 
-        PermissionAdjustment item = PermissionAdjustment.separationCorrectionReview(id, USER, new PersonnelCommandId(UUID.randomUUID()), unit, null,
+        PersonnelCommandId command = new PersonnelCommandId(UUID.randomUUID());
+        PermissionAdjustment item = PermissionAdjustment.separationCorrectionReview(id, USER, command, unit, null,
                 AT.plusSeconds(86_400), AT);
 
         assertThat(item.kind()).isEqualTo(PermissionAdjustmentKind.SENSITIVE_ROLE_REVIEW);
@@ -37,6 +40,10 @@ class PermissionAdjustmentTest {
         assertThat(item.beforePosition()).isNull();
         assertThat(item.afterOrgUnit()).isEqualTo(unit);
         assertThat(item.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(PermissionAdjustmentOpened.class,
-                opened -> assertThat(opened.permissionAdjustmentId()).isEqualTo(id));
+                opened -> {
+                    assertThat(opened.permissionAdjustmentId()).isEqualTo(id);
+                    assertThat(opened.auditDetail()).isEqualTo("item " + id.value() + " SENSITIVE_ROLE_REVIEW origin ASSIGNMENT_CHANGE; user " + USER.value()
+                            + "; trigger command " + command.value() + " field ORG_UNIT; after org " + unit.value() + "; escalation due " + AT.plusSeconds(86_400));
+                });
     }
 }

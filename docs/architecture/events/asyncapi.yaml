@@ -3034,7 +3034,7 @@ components:
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        businessDate: 无：不是带日期的业务里程碑
         audit: audited
         publisherTest: com.forcitis.one.platform.identity.domain.PermissionAdjustmentTest
         noConsumer: 暂无消费方：条目只需留痕，办理走本模块的接口；现在就发布，是因为生成只在发生当时可被记录，补不回
@@ -3044,6 +3044,13 @@ components:
         - envelope
         - permissionAdjustmentId
         - userId
+        - kind
+        - originKind
+        - triggerPersonnelCommandId
+        - triggerFieldKind
+        - beforeOrgUnitId
+        - afterOrgUnitId
+        - escalationDueAt
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -3056,6 +3063,48 @@ components:
             x-type: UserId
             format: uuid
             description: 稳定 ID 的字符串形式
+          kind:
+            type: string
+            enum:
+            - SENSITIVE_ROLE_REVIEW
+            - SCOPE_REVIEW
+            x-type: PermissionAdjustmentKind
+            description: 条目类型：敏感角色复核或范围复核
+          originKind:
+            type: string
+            enum:
+            - ASSIGNMENT_CHANGE
+            - UPHOLD_EXPIRY
+            - ORG_UNIT_INACTIVE
+            x-type: PermissionAdjustmentOrigin
+            description: 条目来源：任职变化、维持到期、部门停用
+          triggerPersonnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            description: 触发条目的人事命令（调岗或更正）
+          triggerFieldKind:
+            type: string
+            enum:
+            - ORG_UNIT
+            - POSITION
+            x-type: TriggerFieldKind
+            description: 触发条目的任职字段
+          beforeOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            nullable: true
+            description: 触发前的部门；撤销误离职时那时没有任职，为空（ADR-0082 第 2 项）
+          afterOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 触发后的部门
+          escalationDueAt:
+            type: string
+            format: date-time
+            description: 升级时刻，条目生成日起第 5 个工作日结束（工作日历按事件所属法人，缺法人用默认日历）
     AuthorizationOpened:
       name: AuthorizationOpened
       title: 敏感授权申请开立

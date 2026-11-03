@@ -3,6 +3,7 @@ package com.forcitis.one.platform.identity.domain;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
+import com.forcitis.one.platform.identity.api.PermissionAdjustmentKind;
 
 public interface PermissionAdjustmentRepository {
 

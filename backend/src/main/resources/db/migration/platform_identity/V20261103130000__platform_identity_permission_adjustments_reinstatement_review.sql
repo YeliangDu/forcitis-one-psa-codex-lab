@@ -12,3 +12,4 @@ ALTER TABLE platform_identity.permission_adjustments ADD CONSTRAINT ck_permissio
                                                AND before_position_id IS NULL AND after_position_id IS NULL))
     AND (trigger_field_kind IS DISTINCT FROM 'ORG_UNIT' OR before_org_unit_id IS DISTINCT FROM after_org_unit_id));
 COMMENT ON COLUMN platform_identity.permission_adjustments.before_org_unit_id IS '触发前部门 ID（跨 schema）；为空表示不是任职变化产生的条目，或触发前此人不在职（撤销误离职的更正产生的敏感角色复核，ADR-0082 决定 2）';
+COMMENT ON COLUMN platform_identity.permission_adjustments.trigger_personnel_command_id IS '触发人事命令 ID：调岗或更正命令（EmployeeTransferred、EmployeeCorrected），跨 schema 不建外键（命令在 organization_workforce）；为空表示不是任职变化产生的条目';

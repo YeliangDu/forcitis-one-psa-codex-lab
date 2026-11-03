@@ -8,6 +8,8 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.platform.identity.api.PermissionAdjustmentId;
+import com.forcitis.one.platform.identity.api.PermissionAdjustmentKind;
+import com.forcitis.one.platform.identity.api.PermissionAdjustmentOrigin;
 import com.forcitis.one.platform.identity.events.PermissionAdjustmentOpened;
 import java.time.Instant;
 import java.util.List;
@@ -62,7 +64,7 @@ public final class PermissionAdjustment extends AggregateRoot {
         PermissionAdjustment item = new PermissionAdjustment(id, PermissionAdjustmentKind.SENSITIVE_ROLE_REVIEW, user, command, TriggerFieldKind.ORG_UNIT,
                 null, toOrgUnit, null, toPosition, escalationDueAt, at);
         item.record((envelopes, version) -> new PermissionAdjustmentOpened(envelopes.wrap(item.draft("PermissionAdjustmentOpened", version)),
-                id, user));
+                id, user, item.kind, item.origin, command, item.triggerField, null, toOrgUnit, escalationDueAt));
         return item;
     }
 
