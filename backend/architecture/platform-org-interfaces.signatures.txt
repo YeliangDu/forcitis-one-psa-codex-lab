@@ -508,6 +508,18 @@ organization.workforce::api organization.workforce.api.LoginLookup$ByWecomUser p
 organization.workforce::api organization.workforce.api.LoginLookup$ByWecomUser public kernel.WecomUserId organization.workforce.api.LoginLookup$ByWecomUser.wecomUserId()
 organization.workforce::api organization.workforce.api.LoginLookup$ByWecomUser public organization.workforce.api.LoginLookup$ByWecomUser(kernel.WecomUserId)
 organization.workforce::api organization.workforce.api.LoginLookup$ByWecomUser public static final record organization.workforce.api.LoginLookup$ByWecomUser
+organization.workforce::api organization.workforce.api.MergedPosts component concurrentAssignmentCount: int
+organization.workforce::api organization.workforce.api.MergedPosts component employee: kernel.EmployeeId
+organization.workforce::api organization.workforce.api.MergedPosts component primaryInUnit: boolean
+organization.workforce::api organization.workforce.api.MergedPosts extends java.lang.Record
+organization.workforce::api organization.workforce.api.MergedPosts public boolean organization.workforce.api.MergedPosts.primaryInUnit()
+organization.workforce::api organization.workforce.api.MergedPosts public final boolean organization.workforce.api.MergedPosts.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.MergedPosts public final int organization.workforce.api.MergedPosts.hashCode()
+organization.workforce::api organization.workforce.api.MergedPosts public final java.lang.String organization.workforce.api.MergedPosts.toString()
+organization.workforce::api organization.workforce.api.MergedPosts public final record organization.workforce.api.MergedPosts
+organization.workforce::api organization.workforce.api.MergedPosts public int organization.workforce.api.MergedPosts.concurrentAssignmentCount()
+organization.workforce::api organization.workforce.api.MergedPosts public kernel.EmployeeId organization.workforce.api.MergedPosts.employee()
+organization.workforce::api organization.workforce.api.MergedPosts public organization.workforce.api.MergedPosts(kernel.EmployeeId,boolean,int)
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract interface organization.workforce.api.OrgDirectory
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract java.util.List<organization.workforce.api.OrgUnitId> organization.workforce.api.OrgDirectory.findAncestors(organization.workforce.api.OrgUnitId)
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract java.util.Optional<kernel.EmployeeId> organization.workforce.api.OrgDirectory.findOrgUnitHead(organization.workforce.api.OrgUnitId)
@@ -521,6 +533,7 @@ organization.workforce::api organization.workforce.api.OrgDirectory public abstr
 organization.workforce::api organization.workforce.api.OrgDirectory public abstract organization.workforce.api.EmploymentVerdict organization.workforce.api.OrgDirectory.employmentOf(kernel.EmployeeId)
 organization.workforce::api organization.workforce.api.OrgMergePreview component blocking: java.util.List<organization.workforce.api.BlockingArrival>
 organization.workforce::api organization.workforce.api.OrgMergePreview component employees: java.util.List<kernel.EmployeeId>
+organization.workforce::api organization.workforce.api.OrgMergePreview component posts: java.util.List<organization.workforce.api.MergedPosts>
 organization.workforce::api organization.workforce.api.OrgMergePreview extends java.lang.Record
 organization.workforce::api organization.workforce.api.OrgMergePreview public final boolean organization.workforce.api.OrgMergePreview.equals(java.lang.Object)
 organization.workforce::api organization.workforce.api.OrgMergePreview public final int organization.workforce.api.OrgMergePreview.hashCode()
@@ -528,7 +541,8 @@ organization.workforce::api organization.workforce.api.OrgMergePreview public fi
 organization.workforce::api organization.workforce.api.OrgMergePreview public final record organization.workforce.api.OrgMergePreview
 organization.workforce::api organization.workforce.api.OrgMergePreview public java.util.List<kernel.EmployeeId> organization.workforce.api.OrgMergePreview.employees()
 organization.workforce::api organization.workforce.api.OrgMergePreview public java.util.List<organization.workforce.api.BlockingArrival> organization.workforce.api.OrgMergePreview.blocking()
-organization.workforce::api organization.workforce.api.OrgMergePreview public organization.workforce.api.OrgMergePreview(java.util.List<kernel.EmployeeId>,java.util.List<organization.workforce.api.BlockingArrival>)
+organization.workforce::api organization.workforce.api.OrgMergePreview public java.util.List<organization.workforce.api.MergedPosts> organization.workforce.api.OrgMergePreview.posts()
+organization.workforce::api organization.workforce.api.OrgMergePreview public organization.workforce.api.OrgMergePreview(java.util.List<kernel.EmployeeId>,java.util.List<organization.workforce.api.BlockingArrival>,java.util.List<organization.workforce.api.MergedPosts>)
 organization.workforce::api organization.workforce.api.OrgStructureCommandId component value: java.util.UUID
 organization.workforce::api organization.workforce.api.OrgStructureCommandId extends java.lang.Record
 organization.workforce::api organization.workforce.api.OrgStructureCommandId public final boolean organization.workforce.api.OrgStructureCommandId.equals(java.lang.Object)
