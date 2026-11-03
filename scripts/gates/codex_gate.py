@@ -13,6 +13,7 @@ bash -c、sh -c、zsh -c、eval、here-document 喂给解释器、绝对或相�
 门本身出错（导入失败、崩溃、超时）由 pre_tool_dispatch 退出码 3 交给 settings.json 的预筛，预筛见 codex 字样就拒（失败关闭）。
 用法：codex_gate.py --self-test（自测在 gates_selftest.py 的 codex_gate 段）
 """
+import fnmatch
 import os
 import re
 import sys
@@ -20,12 +21,16 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOKEN = re.compile(r"(?<![A-Za-z0-9_.])codex(?![A-Za-z0-9_])", re.IGNORECASE)   # codex as a word: codex, @openai/codex, ./codex, codex-cli; not CODEX_HOME, .codex
 ASSIGN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\+?=")
-RESERVED = {"if", "then", "elif", "else", "while", "until", "do", "done", "fi", "esac", "{", "}", "!", "!"}
+RESERVED = {"if", "then", "elif", "else", "while", "until", "do", "done", "fi", "esac", "{", "}", "!"}
 RUNNERS = {  # programs that run what their arguments name (wrappers, shells, interpreters, launchers): codex anywhere in their text is a wrapped use
     "timeout", "gtimeout", "time", "nice", "nohup", "stdbuf", "command", "builtin", "noglob", "env", "sudo", "doas", "su", "runuser", "pkexec", "exec", "setsid", "caffeinate",
     "xargs", "find", "watch", "parallel", "script", "ssh", "flock", "lockf", "chroot", "ionice", "taskpolicy", "arch", "unbuffer", "strace", "ltrace", "dtruss", "sandbox-exec",
     "unshare", "nsenter", "tmux", "screen", "expect", "at", "batch", "launchctl", "open", "osascript", "make", "gmake", "just", "npx", "bunx", "pnpx", "pnpm", "npm", "yarn", "uvx", "pipx",
     "sh", "bash", "zsh", "dash", "ksh", "fish", "csh", "tcsh", "eval", "source", ".", "python", "python3", "python2", "node", "nodejs", "deno", "bun", "perl", "ruby", "php", "lua", "awk", "gawk",
+}
+DYNAMIC = {  # programs that execute text they are handed (a shell, eval, an interpreter, xargs...): with a program word that expands, a script holding one runs what it names only at run time
+    "sh", "bash", "zsh", "dash", "ksh", "fish", "csh", "tcsh", "eval", "source", ".", "exec", "xargs", "watch", "parallel", "python", "python3", "python2", "node", "nodejs", "deno", "bun",
+    "perl", "ruby", "php", "lua", "awk", "gawk", "osascript", "script", "expect", "tmux", "screen", "at", "batch", "ssh", "su", "sudo", "doas", "runuser", "pkexec", "env", "find", "timeout", "gtimeout",
 }
 SANDBOX_OK = "workspace-write"
 EFFORT = re.compile(r"""model_reasoning_effort=("?)(low|medium|high|xhigh)\1""")
@@ -256,27 +261,24 @@ def tokenize(s):
                     start = i
                     w, i = read_word(s, i, nested)
                     toks.append(("w", w))
-                    pending.append((tok, w.text, m.group(2) == "<<-", bool(re.search(r"['\"\\]", s[start:i]))))
+                    pending.append((tok, re.sub(r"['\"\\]", "", s[start:i]), m.group(2) == "<<-", bool(re.search(r"['\"\\]", s[start:i]))))   # the delimiter as written: never expanded
                 continue
             w, i = read_word(s, i, nested)
             toks.append(("w", w))
-    if pending:
-        raise ParseError("here-document without a body")
-    return toks, nested
+    return toks, nested   # a here-document without its closing line has no body: the shell warns and reads to the end
 
 
 def read_heredoc(s, i, delim, dash):
+    """(body, index after the closing line); a missing closing line makes the rest of the text the body, as in the shell."""
     lines, n = [], len(s)
-    while i <= n:
+    while i < n:
         j = s.find("\n", i)
         line = s[i:] if j < 0 else s[i:j]
-        i = n + 1 if j < 0 else j + 1
+        i = n if j < 0 else j + 1
         if (line.lstrip("\t") if dash else line) == delim:
             return "\n".join(lines), i
         lines.append(line)
-        if j < 0:
-            break
-    raise ParseError("here-document not closed")
+    return "\n".join(lines), n
 
 
 class Command:
@@ -331,42 +333,67 @@ class Use:
 
 
 def bare(text):
+    """The text with $'...' escapes decoded and quotes and backslashes removed: what is left to look for codex in when the text does not parse."""
+    text = re.sub(r"\$'((?:[^'\\]|\\.)*)'", lambda m: ansi_c(m.group(1)), text)
     return re.sub(r"""['"\\]""", "", text)
 
 
+def braces(word):
+    """The words a brace expansion makes of `word` (comma lists only, capped)."""
+    m = re.search(r"\{([^{}]*)\}", word)
+    if not m or "," not in m.group(1):
+        return [word]
+    return [w for alt in m.group(1).split(",") for w in braces(word[:m.start()] + alt + word[m.end():])][:64]
+
+
+def could_be_codex(word):
+    """True when the shell may expand this word to a path ending in codex: co{dex,}, cod?x, c*x, /x/c[o]dex (a bare variable cannot be judged and is the accepted gap)."""
+    for w in braces(word):
+        base = os.path.basename(w.rstrip("/")).replace("\0", "*")
+        if base.strip("*") and fnmatch.fnmatchcase("codex", base.lower()):
+            return True
+    return False
+
+
 def nested_uses(text, depth):
-    """Uses found in a script held in a string; a string that does not parse counts as a use when it names codex once its quotes are gone."""
+    """(uses, dynamic) of a script held in a string; a string that does not parse counts as a use when it names codex once its quotes are gone, and as dynamic."""
     try:
-        return uses_in(text, depth)[0]
-    except ParseError:
-        return [Use("indirect")] if TOKEN.search(bare(text)) else []
+        found, _, _, dynamic = uses_in(text, depth)
+        return found, dynamic
+    except (ParseError, RecursionError):
+        return ([Use("indirect")] if TOKEN.search(bare(text)) else []), True
 
 
 def uses_in(text, depth=0):
-    """(list of Use, simple commands, whether the text is nothing but one simple command)."""
+    """(list of Use, simple commands, whether the text is nothing but one simple command, whether anything in it runs text only known at run time)."""
     if depth > DEPTH:
         if TOKEN.search(bare(text)):
             raise ParseError("nested too deep")
-        return [], [], False
+        return [], [], False, True
     toks, nested = tokenize(text)
     cmds, single = commands(toks)
-    found = []
+    found, dynamic = [], False
     for script in nested:
-        found += [Use("indirect") for _ in nested_uses(script, depth + 1)]
+        inner, inner_dynamic = nested_uses(script, depth + 1)
+        found += [Use("indirect") for _ in inner]
+        dynamic = dynamic or inner_dynamic
     for cmd in cmds:
         prog, nxt = program(cmd)
         if prog is None:
             continue
         name = os.path.basename(prog.text.rstrip("/")).lower()
+        dynamic = dynamic or prog.expands or name in DYNAMIC
         texts = [w.text for w in cmd.words] + cmd.bodies
         if name == "codex" and prog.text == "codex" and not prog.expands and cmd.assigns == 0 and cmd.words[0] is prog:
             found.append(Use("direct", cmd, nxt))
-        elif name == "codex" or TOKEN.search(prog.text) or ((name in RUNNERS or prog.expands) and any(TOKEN.search(t) for t in texts)):
+        elif name == "codex" or TOKEN.search(prog.text) or could_be_codex(prog.text) or ((name in RUNNERS or prog.expands) and any(TOKEN.search(t) or could_be_codex(t) for t in texts)):
             found.append(Use("indirect"))
         elif name in RUNNERS:
             for t in texts[1:]:   # a shell string, an eval argument, a script on stdin: read as a script of its own
-                found += [Use("indirect") for _ in nested_uses(t, depth + 1)]
-    return found, cmds, single
+                inner, inner_dynamic = nested_uses(t, depth + 1)
+                found += [Use("indirect") for _ in inner]
+                dynamic = dynamic or inner_dynamic
+    return found, cmds, single, dynamic
 
 
 def own_worktree(cwd):
@@ -464,12 +491,13 @@ def redirect_problem(cmd, cwd, top):
 def check(command, cwd):
     """Refusal text for a shell command, or None when it runs no codex or runs it in the one allowed shape."""
     try:
-        found, cmds, single = uses_in(command)
-    except ParseError:
-        return UNPARSED if TOKEN.search(bare(command)) else None
-    if not found:
-        return None
-    if len(found) != 1 or found[0].kind != "direct" or not single:
+        found, cmds, single, dynamic = uses_in(command)
+        named = bool(TOKEN.search(bare(command))) or any(could_be_codex(w.text) for c in cmds for w in c.words)
+    except (ParseError, RecursionError):   # a text nested deeper than the interpreter reads is not a text this gate can judge
+        return UNPARSED if TOKEN.search(bare(command)) or len(command) > 20000 else None
+    if not found:   # codex only named, not run by anything the text shows; but named in a script that also runs text built at run time (`echo codex ... | bash`, `$(which codex) ...`, `X=codex; $X ...`) is refused
+        return WRAPPED if named and dynamic else None
+    if len(found) != 1 or found[0].kind != "direct" or not single or dynamic:
         return WRAPPED
     use = found[0]
     problem = shape_problem(use.cmd, use.start)

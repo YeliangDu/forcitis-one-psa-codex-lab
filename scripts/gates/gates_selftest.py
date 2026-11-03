@@ -497,7 +497,8 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         for shell in shells:
             for command, code in (("ls", 0), ("ls -la | wc -l", 0), ("git status", 0), ("gh pr list", 0), ("git -c core.pager='sh w.sh' log -1", 0), ("GIT_EXTERNAL_DIFF=./w.sh git diff", 0), ("PATH=./bin:/usr/bin ls", 0),
                                   ("echo x > /dev/tcp/10.0.0.5/6379", 0), ("sort --compress-program=./w.sh x", 0), (f"psql -h {PROD_P} -c 'delete from t'", 2), ("./deploy.sh", 0), ("echo `deploy`", 0), ("rg --pre deploy x", 0),
-                                  ("ssh dev uptime", 0), ("curl -s https://x.example.invalid", 0), ("codex exec --sandbox workspace-write 'a b'", 2), ("git commit -m 'codex'", 2), ("echo CoDeX", 2),   # #1180: a broken gate refuses codex, even the one allowed shape
+                                  ("ssh dev uptime", 0), ("curl -s https://x.example.invalid", 0), ("codex exec --sandbox workspace-write 'a b'", 2), ('co""dex exec x', 2), ("$'\\x63odex' exec x", 2),
+                                  ("co{dex,} exec x", 2), ("cod?x exec x", 2), ("c\\odex exec x", 2), ("ls src/{a,b}", 2), ("git commit -m 'codex'", 2), ("echo CoDeX", 2),   # #1180: a broken gate refuses codex, even the one allowed shape
                                    (f"grep -rn {PROD_H} docs", 2), (f"s''sh {PROD_H} uptime", 2), (f"echo {PROD_D.upper()}", 2),
                                   (f"c\\url https://{PROD_P[:3]}\\{PROD_P[3:]}/", 0),  # split by a backslash: not on the text as written, allowed by design (202019)
                                   *((c, 0) for c in MISBLOCKED), *((c, 2) for c in extra)):
@@ -744,7 +745,7 @@ def codex_gate_test():
                    f"{S} --model=gpt-5.5 'fix the bug'", f"{S} {E} 'fix the bug'", f"{S} --config model_reasoning_effort=xhigh 'fix the bug'", f'{S} -c \'model_reasoning_effort="low"\' \'fix the bug\'',
                    f"{S} {M} {E} 'fix the bug'", f"codex exec {M} {E} -s workspace-write 'fix the bug'", f"{S} -- '--odd prompt'", f"{S} -",
                    f"{S} 'fix the bug' < PROMPT.md > out.txt 2>&1", f"{S} 'fix the bug' >> sub/out.txt", f"{S} 'fix the bug' 2>/dev/null", f"{S} 'fix the bug' &> out.txt", f"{S} \"fix $(date) the bug\"",
-                   f"{S} 'fix the bug'\n", "git commit -m 'codex pilot'", "gh issue comment 1 --body 'ask codex'", "ls ~/.codex", "which codex", "echo CODEX_HOME", "cat <<'EOF'\ncodex exec x\nEOF", "git log --grep=codex"]
+                   f"{S} 'fix the bug'\n", "git commit -m 'codex pilot'", "gh issue comment 1 --body 'ask codex'", "ls ~/.codex", "which codex", "echo codex", "printf codex | cat", "git commit -m 'codex' && ls", "git commit -m 'codex pilot' && git push", "echo CODEX_HOME", "cat <<'EOF'\ncodex exec x\nEOF", "git log --grep=codex"]
         for command in allowed:
             assert ask(command) is None, (command, ask(command))
         assert ask(f"{S} 'fix the bug'", cwd=os.path.join(w1, "sub")) is None, "a subdirectory of the own worktree"
@@ -772,7 +773,16 @@ def codex_gate_test():
             (f"/usr/local/bin/codex exec -s workspace-write 'a b'", "codex 只放一种用法"), (f"./codex exec -s workspace-write 'a b'", "codex 只放一种用法"), (f"node_modules/.bin/codex exec -s workspace-write 'a b'", "codex 只放一种用法"),
             ("npx codex exec -s workspace-write 'a b'", "codex 只放一种用法"), ("npx -y @openai/codex exec -s workspace-write 'a b'", "codex 只放一种用法"), ("pnpm dlx @openai/codex exec", "codex 只放一种用法"),
             ("c\\odex exec 'a b'", "exec"), ("co''dex", "exec"), ("'codex'", "exec"), ("$'\\x63odex'", "exec"), ("bash -c 'c\"\"odex exec x'", "codex 只放一种用法"), ("bash -c \"c'o'dex exec it's\"", "codex 只放一种用法"),
-            ("echo 'unterminated codex", "解析不了"),
+            ("echo 'unterminated codex", "解析不了"), ('echo "x\nbash -c $\'\\x63odex exec x\'', "解析不了"), ("$'\\x63odex' exec x" + '"$(echo ' * 600, "解析不了"),
+            # named in text, run only at run time: the first review's forms (codex is written out, so this is not the accepted "assembled at run time" gap)
+            ("echo 'codex exec --dangerously-bypass-approvals-and-sandbox x' | bash", "codex 只放一种用法"), ("bash <<< 'codex exec x'", "codex 只放一种用法"), ('bash -c "$(echo codex exec x)"', "codex 只放一种用法"),
+            ("bash <(echo codex exec x)", "codex 只放一种用法"), ("$(which codex) exec --dangerously-bypass-approvals-and-sandbox x", "codex 只放一种用法"), ("`which codex` exec x", "codex 只放一种用法"),
+            ("X=codex; $X exec x", "codex 只放一种用法"), ("for c in codex; do $c exec x; done", "codex 只放一种用法"), ("printf 'codex exec x' > r.sh; sh r.sh", "codex 只放一种用法"),
+            (f"{S} \"$(bash -c 'echo hi')\" ".replace('"$(bash', '"fix $(bash'), "codex 只放一种用法"),
+            # the adversarial review's forms: program name made by a brace or glob, a here-document delimiter that expands, a text nested too deep
+            ("co{dex,} --dangerously-bypass-approvals-and-sandbox", "codex 只放一种用法"), ("/opt/bin/cod?x --dangerously-bypass-approvals-and-sandbox 'a b'", "codex 只放一种用法"),
+            ("c[o]dex exec x", "codex 只放一种用法"), ("cod*x exec x", "codex 只放一种用法"), ("env co{dex,} exec x", "codex 只放一种用法"),
+            ("cat <<$X\nx\n$X\nbash -c $'\\x63odex exec --dangerously-bypass-approvals-and-sandbox'", "codex 只放一种用法"),
             (f"{S} 'fix the bug' > /etc/passwd", "不在 worktree"), (f"{S} 'fix the bug' > ../x.txt", "不在 worktree"), (f"{S} 'fix the bug' > {tmp}/x.txt", "不在 worktree"), (f"{S} 'fix the bug' < /etc/passwd", "不在 worktree"),
             (f"{S} 'fix the bug' 2> /tmp/x", "不在 worktree"), (f"{S} 'fix the bug' > $HOME/x", "写死的路径"), (f"{S} 'fix the bug' > *.txt", "写死的路径"), (f"{S} 'fix the bug' >&2", "不放行的重定向"),
             (f"{S} 'fix the bug' <<< 'x'", "不放行的重定向"), (f"{S} - <<EOF\nprompt\nEOF", "here-document"), (f"{S} 'fix the bug' 3> x", "不放行的重定向"),
