@@ -25,8 +25,20 @@ final class DataScopeReadPaths {
 
     private static final String RULE = "#730 data-scope read-path register / security-invariants I-10";
 
-    /** HandlerMappings known to serve no rows: the welcome-page one answers 406 to a non-HTML request for "/". */
-    private static final Set<String> NO_ROWS_MAPPINGS = Set.of("WelcomePageNotAcceptableHandlerMapping");
+    /**
+     * The HandlerMapping classes this register accepts, by exact class: a subclass, an anonymous one or one of ours can route to any handler and is reported. The
+     * welcome-page-not-acceptable one only answers 406 to a non-HTML request for "/", so it serves no rows.
+     */
+    private static final Set<String> KNOWN_MAPPINGS = Set.of(
+            "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping",
+            "org.springframework.web.servlet.handler.SimpleUrlHandlerMapping",
+            "org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping",
+            "org.springframework.web.servlet.function.support.RouterFunctionMapping",
+            "org.springframework.boot.webmvc.autoconfigure.WelcomePageHandlerMapping",
+            "org.springframework.boot.webmvc.autoconfigure.WelcomePageNotAcceptableHandlerMapping",
+            "org.springframework.boot.webmvc.actuate.endpoint.web.WebMvcEndpointHandlerMapping",
+            "org.springframework.boot.webmvc.actuate.endpoint.web.ControllerEndpointHandlerMapping",
+            "org.springframework.boot.webmvc.actuate.endpoint.web.AdditionalHealthEndpointPathsWebMvcHandlerMapping");
 
     private DataScopeReadPaths() {
     }
@@ -75,7 +87,10 @@ final class DataScopeReadPaths {
     static List<String> getHandlers(Collection<? extends HandlerMapping> mappings, List<String> problems) {
         List<String> keys = new ArrayList<>();
         for (HandlerMapping mapping : mappings) {
-            if (mapping instanceof AbstractHandlerMethodMapping<?> methodMapping) {
+            if (!KNOWN_MAPPINGS.contains(mapping.getClass().getName())) {
+                problems.add(GuardMessage.of(RULE, mapping.getClass().getName() + " is a HandlerMapping this register does not know, so its routes cannot be enumerated",
+                        "serve the read from a controller method, or ask design to extend the register to this kind of mapping"));
+            } else if (mapping instanceof AbstractHandlerMethodMapping<?> methodMapping) {
                 Set<String> framework = new LinkedHashSet<>();
                 methodMapping.getHandlerMethods().forEach((key, handler) -> {
                     if (key instanceof RequestMappingInfo info && info.getPathPatternsCondition() != null) {
@@ -102,9 +117,6 @@ final class DataScopeReadPaths {
                     problems.add(GuardMessage.of(RULE, "the context maps a RouterFunction, whose routes cannot be matched against the register",
                             "serve the read from a controller method, or ask design to extend the register to router functions"));
                 }
-            } else if (!NO_ROWS_MAPPINGS.contains(mapping.getClass().getSimpleName())) {
-                problems.add(GuardMessage.of(RULE, mapping.getClass().getName() + " is a HandlerMapping whose routes this register cannot enumerate",
-                        "serve the read from a controller method, or ask design to extend the register to this kind of mapping"));
             }
         }
         return keys;

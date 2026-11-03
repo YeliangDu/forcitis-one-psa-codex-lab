@@ -14,7 +14,6 @@ import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.boot.autoconfigure.web.ErrorProperties;
-import org.springframework.boot.webmvc.autoconfigure.error.BasicErrorController;
 import org.springframework.boot.webmvc.error.DefaultErrorAttributes;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,6 +27,7 @@ import org.springframework.web.servlet.function.RouterFunctions;
 import org.springframework.web.servlet.function.ServerResponse;
 import org.springframework.web.servlet.function.support.RouterFunctionMapping;
 import org.springframework.web.servlet.handler.AbstractHandlerMapping;
+import org.springframework.web.servlet.handler.AbstractUrlHandlerMapping;
 import org.springframework.web.servlet.handler.SimpleUrlHandlerMapping;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
@@ -125,11 +125,24 @@ class DataScopeReadPathsGuardTest {
         }
     }
 
+    @RestController
+    static class BasicErrorController {
+        @GetMapping(path = "/error", produces = "text/html")
+        String html() {
+            return "";
+        }
+
+        @GetMapping("/error")
+        String json() {
+            return "";
+        }
+    }
+
     @Configuration
     static class FrameworkErrorController {
         @Bean
-        BasicErrorController basicErrorController() {
-            return new BasicErrorController(new DefaultErrorAttributes(), new ErrorProperties());
+        org.springframework.boot.webmvc.autoconfigure.error.BasicErrorController basicErrorController() {
+            return new org.springframework.boot.webmvc.autoconfigure.error.BasicErrorController(new DefaultErrorAttributes(), new ErrorProperties());
         }
     }
 
@@ -148,6 +161,7 @@ class DataScopeReadPathsGuardTest {
         List<String> register = List.of("GET /error | NOT_SCOPE_BOUND | the failed request's status");
 
         assertThat(DataScopeReadPaths.problems(handlersOf(FrameworkErrorController.class), register)).isEmpty();
+        assertThat(DataScopeReadPaths.problems(handlersOf(BasicErrorController.class), register)).as("a class of ours with the framework's name is not the pair").singleElement().asString().contains("served by 2 handlers");
         assertThat(DataScopeReadPaths.problems(handlersOf(FrameworkErrorController.class, RowsOnError.class), register)).singleElement().asString().contains("served by 2 handlers");
     }
 
@@ -170,7 +184,16 @@ class DataScopeReadPathsGuardTest {
             }
         };
         assertThat(DataScopeReadPaths.getHandlers(List.of(custom), problems)).isEmpty();
-        assertThat(problems).singleElement().asString().contains("cannot enumerate");
+        assertThat(problems).singleElement().asString().contains("does not know");
+        problems.clear();
+        AbstractUrlHandlerMapping rows = new AbstractUrlHandlerMapping() {
+            @Override
+            protected @Nullable Object getHandlerInternal(HttpServletRequest request) {
+                return null;
+            }
+        };
+        assertThat(DataScopeReadPaths.getHandlers(List.of(rows), problems)).isEmpty();
+        assertThat(problems).as("an anonymous url mapping that routes by its own lookup").singleElement().asString().contains("does not know");
         problems.clear();
         SimpleUrlHandlerMapping withRoot = new SimpleUrlHandlerMapping(Map.of());
         withRoot.setRootHandler(new Object());
