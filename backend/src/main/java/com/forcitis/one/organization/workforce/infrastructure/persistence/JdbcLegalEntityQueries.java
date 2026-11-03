@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.domain.LegalEntityQueries;
@@ -15,7 +16,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 class JdbcLegalEntityQueries implements LegalEntityQueries {
     private static final String SELECT = """
-            select id, code, name, status, version
+            select id, code, name, status, version,
+                   (select v.finance_head_employee_id from organization_workforce.legal_entity_versions v
+                     where v.legal_entity_id = legal_entities.id and v.effective_to_date is null) as finance_head
               from organization_workforce.legal_entities
             """;
 
@@ -52,6 +55,7 @@ class JdbcLegalEntityQueries implements LegalEntityQueries {
 
     private static LegalEntityRecord row(ResultSet rs) throws SQLException {
         return new LegalEntityRecord(new LegalEntityId(rs.getObject("id", UUID.class)), new LegalEntityCode(rs.getString("code")), rs.getString("name"),
-                LegalEntityStatus.valueOf(rs.getString("status")), rs.getLong("version"));
+                LegalEntityStatus.valueOf(rs.getString("status")), rs.getLong("version"),
+                Optional.ofNullable(rs.getObject("finance_head", UUID.class)).map(EmployeeId::new).orElse(null));
     }
 }

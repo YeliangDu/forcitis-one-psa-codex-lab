@@ -87,6 +87,7 @@ categories:
   - organization.workforce.legal-entity-attribution.correction-refused
   - organization.workforce.legal-entity-attribution.denied
   - organization.workforce.legal-entity-attribution.refused
+  - organization.workforce.legal-entity.finance-head.changed
 - name: 来源对照
   actions:
   - platform.integration.SourceReferenceConfirmed
