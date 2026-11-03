@@ -128,7 +128,7 @@ B 部分（one-1a-next-4）允许改动：
 | 32 | detail | `AttributionCountersignService`（经会签的撤回完成后 `organization.workforce.personnel-command.withdrawn`，#895；one-design 2026-11-03 签） | 恰为 `command <命令 UUID> <种类枚举>; countersigned withdrawal` | 代理键 | 允许 |
 | 33 | detail | `PermissionAdjustmentOpened.auditDetail()`（待调整权限生成 `platform.identity.PermissionAdjustmentOpened`，经 `AuditDomainEvents` 事件型审计，ADR-0032 第 4 项；#730 / PR #1115；one-design 2026-11-03 签，#730 评论 6602101721 的动作名） | 恰为 `item <条目 UUID> <kind 枚举> origin <origin 枚举>`，再按条目主体二选一：关于人的条目追加 `; user <当事人账号 UUID>`，关于角色的条目（`ORG_UNIT_INACTIVE`）追加 `; role <角色 UUID> org unit <部门 UUID>`；然后有则按序追加 `; trigger command <人事命令 UUID> field <ORG_UNIT\|POSITION>`（`ASSIGNMENT_CHANGE`）、`; trigger org structure command <组织结构命令 UUID>`（`ORG_UNIT_INACTIVE`）、`; before org <UUID>`、`; before position <UUID>`、`; after org <UUID>`、`; after position <UUID>`（为空的整段省略，前部门为空见 ADR-0082 决定 3）、`; regenerates <原条目 UUID>`（仅 `UPHOLD_EXPIRY`）、`; escalation due <ISO 时刻>`；只有 UUID、枚举、时刻，没有姓名、员工编码、登录名、角色名、原因文本 | 代理键 | 允许；清单外内容不得写入，增加字段须在本表追加行 |
 
-  - 清单共 31 行（`detail` 28 行、`change_reason` 1 行、`before_text` / `after_text` 合 1 行）；覆盖全部 45 处 `new AuditEntry(`。所有写入点另受 `AuditEntry` 构造的既有限制：每段至多 2000 字，含 `password|secret|token|…=` 样式文本即拒绝（`AuditEntry.java:15-25`）。
+  - 清单共 33 行（`detail` 30 行、`change_reason` 1 行、`before_text` / `after_text` 合 1 行）；覆盖全部 45 处 `new AuditEntry(`。所有写入点另受 `AuditEntry` 构造的既有限制：每段至多 2000 字，含 `password|secret|token|…=` 样式文本即拒绝（`AuditEntry.java:15-25`）。
   - **登记四列分级**（建议，待用户第 5 节待决 2 与 ADR-0043 实施 PR 的四段格式；落地前按本表视为已登记，C4 末句）：
       `platform_audit.audit_entries.detail | INTERNAL | PI | 用途：说明动作的上下文；不得含直接标识（IP、登录名、企业微信 ID）与人名，操作人、见证人只记员工 ID`
       `platform_audit.audit_entries.change_reason | INTERNAL | PI | 用途：人填的变更理由；只提示不拦截`
