@@ -146,6 +146,19 @@ class DataScopeReadPathsGuardTest {
         }
     }
 
+    @Configuration
+    static class SubclassedErrorController {
+        @Bean
+        org.springframework.boot.webmvc.autoconfigure.error.BasicErrorController subclassed() {
+            return new org.springframework.boot.webmvc.autoconfigure.error.BasicErrorController(new DefaultErrorAttributes(), new ErrorProperties()) {
+                @GetMapping(path = "/error", params = "rows")
+                List<String> rows() {
+                    return List.of();
+                }
+            };
+        }
+    }
+
     private static List<String> handlersOf(Class<?>... controllers) {
         AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(controllers);
         RequestMappingHandlerMapping mappings = new RequestMappingHandlerMapping();
@@ -162,7 +175,36 @@ class DataScopeReadPathsGuardTest {
 
         assertThat(DataScopeReadPaths.problems(handlersOf(FrameworkErrorController.class), register)).isEmpty();
         assertThat(DataScopeReadPaths.problems(handlersOf(BasicErrorController.class), register)).as("a class of ours with the framework's name is not the pair").singleElement().asString().contains("served by 2 handlers");
+        assertThat(DataScopeReadPaths.problems(handlersOf(SubclassedErrorController.class), register)).as("a subclass of the framework class is not the pair").filteredOn(text -> text.contains("served by 2 handlers")).hasSize(1);
         assertThat(DataScopeReadPaths.problems(handlersOf(FrameworkErrorController.class, RowsOnError.class), register)).singleElement().asString().contains("served by 2 handlers");
+    }
+
+    @Test
+    @DisplayName("#730 G1: a mapping built without a path pattern parser is enumerated too, not skipped")
+    void aMappingWithoutPatternParserIsEnumerated() {
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(ProbeController.class);
+        RequestMappingHandlerMapping mappings = new RequestMappingHandlerMapping();
+        mappings.setPatternParser(null);
+        mappings.setApplicationContext(context);
+        mappings.afterPropertiesSet();
+
+        assertThat(DataScopeReadPaths.getHandlers(List.of(mappings), new ArrayList<>())).containsExactlyInAnyOrder("GET /api/v1/probe/rows", "GET /api/v1/probe/rows/{id}", "GET /api/v1/probe/any");
+    }
+
+    @Test
+    @DisplayName("#730 G1: a HandlerMapping is accepted by its exact class, not its name or a superclass")
+    void aSubclassOfAKnownMappingIsReported() {
+        List<String> problems = new ArrayList<>();
+        SimpleUrlHandlerMapping subclass = new SimpleUrlHandlerMapping(Map.of()) {
+        };
+        RequestMappingHandlerMapping inherited = new RequestMappingHandlerMapping() {
+        };
+
+        DataScopeReadPaths.getHandlers(List.of(subclass, inherited), problems);
+
+        assertThat(problems).hasSize(2).allMatch(text -> text.contains("does not know"));
+        assertThat(DataScopeReadPaths.getHandlers(List.of(new SimpleUrlHandlerMapping(Map.of())), problems)).isEmpty();
+        assertThat(problems).as("a known class adds nothing").hasSize(2);
     }
 
     @Test

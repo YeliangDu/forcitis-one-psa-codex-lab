@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.springframework.boot.webmvc.autoconfigure.error.BasicErrorController;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.servlet.HandlerMapping;
 import org.springframework.web.servlet.function.support.RouterFunctionMapping;
@@ -29,7 +32,7 @@ final class DataScopeReadPaths {
      * The HandlerMapping classes this register accepts, by exact class: a subclass, an anonymous one or one of ours can route to any handler and is reported. The
      * welcome-page-not-acceptable one only answers 406 to a non-HTML request for "/", so it serves no rows.
      */
-    private static final Set<String> KNOWN_MAPPINGS = Set.of(
+    private static final Set<Class<?>> KNOWN_MAPPINGS = Stream.of(
             "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping",
             "org.springframework.web.servlet.handler.SimpleUrlHandlerMapping",
             "org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping",
@@ -38,7 +41,16 @@ final class DataScopeReadPaths {
             "org.springframework.boot.webmvc.autoconfigure.WelcomePageNotAcceptableHandlerMapping",
             "org.springframework.boot.webmvc.actuate.endpoint.web.WebMvcEndpointHandlerMapping",
             "org.springframework.boot.webmvc.actuate.endpoint.web.ControllerEndpointHandlerMapping",
-            "org.springframework.boot.webmvc.actuate.endpoint.web.AdditionalHealthEndpointPathsWebMvcHandlerMapping");
+            "org.springframework.boot.webmvc.actuate.endpoint.web.AdditionalHealthEndpointPathsWebMvcHandlerMapping")
+            .map(DataScopeReadPaths::load).collect(Collectors.toUnmodifiableSet());
+
+    private static Class<?> load(String name) {
+        try {
+            return Class.forName(name);
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException("the known HandlerMapping " + name + " is not on the classpath; update KNOWN_MAPPINGS", e);
+        }
+    }
 
     private DataScopeReadPaths() {
     }
@@ -87,19 +99,22 @@ final class DataScopeReadPaths {
     static List<String> getHandlers(Collection<? extends HandlerMapping> mappings, List<String> problems) {
         List<String> keys = new ArrayList<>();
         for (HandlerMapping mapping : mappings) {
-            if (!KNOWN_MAPPINGS.contains(mapping.getClass().getName())) {
+            if (!KNOWN_MAPPINGS.contains(mapping.getClass())) {
                 problems.add(GuardMessage.of(RULE, mapping.getClass().getName() + " is a HandlerMapping this register does not know, so its routes cannot be enumerated",
                         "serve the read from a controller method, or ask design to extend the register to this kind of mapping"));
             } else if (mapping instanceof AbstractHandlerMethodMapping<?> methodMapping) {
                 Set<String> framework = new LinkedHashSet<>();
                 methodMapping.getHandlerMethods().forEach((key, handler) -> {
-                    if (key instanceof RequestMappingInfo info && info.getPathPatternsCondition() != null) {
+                    if (!(key instanceof RequestMappingInfo info)) {
+                        problems.add(GuardMessage.of(RULE, "a handler mapping holds a key that is not a RequestMappingInfo: " + key,
+                                "serve the read from a controller method, or ask design to extend the register to this kind of mapping"));
+                    } else {
                         Set<RequestMethod> methods = info.getMethodsCondition().getMethods();
                         String verb = methods.isEmpty() || methods.contains(RequestMethod.GET) ? "GET" : methods.contains(RequestMethod.HEAD) ? "HEAD" : null;
                         if (verb != null) {
                             // BasicErrorController maps /error twice (HTML and JSON, by produces), both answering the failed request's status and no rows: one key for the pair
-                            boolean pair = handler.getBeanType().getName().matches("org\\.springframework\\.boot\\..*\\.BasicErrorController");
-                            info.getPathPatternsCondition().getPatternValues().forEach(pattern -> (pair ? framework : keys).add(verb + " " + pattern));
+                            boolean pair = handler.getBeanType() == BasicErrorController.class;
+                            info.getPatternValues().forEach(pattern -> (pair ? framework : keys).add(verb + " " + pattern));
                         }
                     }
                 });
