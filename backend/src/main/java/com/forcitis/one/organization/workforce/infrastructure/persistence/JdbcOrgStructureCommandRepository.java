@@ -9,6 +9,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.BlockingArrival;
+import com.forcitis.one.organization.workforce.api.HeldSeparation;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
 import com.forcitis.one.organization.workforce.api.OrgStructureTargetKind;
@@ -234,6 +235,26 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
         return jdbc.sql("select 1 from organization_workforce.org_structure_commands where merge_into_org_unit_id = :id and command_kind = 'MERGE'"
                 + " and status in ('PENDING', 'IN_PROGRESS', 'AWAITING_ATTRIBUTION_COUNTERSIGN') and effective_date <= :day limit 1")
                 .param("id", orgUnit.value()).param("day", onOrBefore).query(Integer.class).optional().isPresent();
+    }
+
+    @Override
+    public boolean hasMergeOfUnitOnOrBefore(OrgUnitId orgUnit, LocalDate day) {
+        return jdbc.sql("select 1 from organization_workforce.org_structure_commands where target_org_unit_id = :id and command_kind = 'MERGE'"
+                + " and (status = 'IN_PROGRESS' or (status in ('PENDING', 'AWAITING_ATTRIBUTION_COUNTERSIGN') and effective_date <= :day)) limit 1")
+                .param("id", orgUnit.value()).param("day", day).query(Integer.class).optional().isPresent();
+    }
+
+    @Override
+    public boolean hasMergeIntoOnOrAfter(OrgUnitId orgUnit, LocalDate day) {
+        return jdbc.sql("select 1 from organization_workforce.org_structure_commands where merge_into_org_unit_id = :id and command_kind = 'MERGE'"
+                + " and status in ('PENDING', 'IN_PROGRESS', 'AWAITING_ATTRIBUTION_COUNTERSIGN') and effective_date >= :day limit 1")
+                .param("id", orgUnit.value()).param("day", day).query(Integer.class).optional().isPresent();
+    }
+
+    @Override
+    public List<OrgStructureCommandId> openMerges() {
+        return jdbc.sql("select org_structure_command_id from organization_workforce.org_structure_commands where command_kind = 'MERGE' and status in ('PENDING', 'IN_PROGRESS')"
+                + " order by effective_date, target_org_unit_id, org_structure_command_id").query((rs, n) -> new OrgStructureCommandId(rs.getObject(1, UUID.class))).list();
     }
 
     @Override
@@ -519,6 +540,15 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
                     return new BlockingArrival(new EmployeeId(rs.getObject("employee_id", UUID.class)), rs.getObject("effective_from_date", LocalDate.class),
                             command == null ? null : new PersonnelCommandId(command));
                 }).list();
+    }
+
+    @Override
+    public List<HeldSeparation> heldSeparationsIn(OrgUnitId orgUnit, LocalDate day) {
+        return jdbc.sql("select a.employee_id, (select h.personnel_command_id from organization_workforce.separation_holds h where h.employee_id = a.employee_id and h.status = 'HELD') as held_command "
+                + OPEN_HOLDERS.formatted("org_unit_id") + " and a.effective_from_date <= :day"
+                + " and exists (select 1 from organization_workforce.separation_holds h where h.employee_id = a.employee_id and h.status = 'HELD') group by a.employee_id order by min(a.effective_from_date), a.employee_id")
+                .param("target", orgUnit.value()).param("day", day)
+                .query((rs, n) -> new HeldSeparation(new EmployeeId(rs.getObject(1, UUID.class)), new PersonnelCommandId(rs.getObject(2, UUID.class)))).list();
     }
 
     @Override
