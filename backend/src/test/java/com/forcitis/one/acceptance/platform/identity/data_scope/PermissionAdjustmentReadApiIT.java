@@ -53,11 +53,31 @@ class PermissionAdjustmentReadApiIT extends PermissionAdjustmentApiSupport {
             assertThat(person).containsEntry("kind", "SENSITIVE_ROLE_REVIEW").containsEntry("status", "OPEN").containsEntry("userId", userId("mover"));
             Map<String, Object> role = items.stream().filter(item -> inactive.toString().equals(item.get("permissionAdjustmentId"))).findFirst().orElseThrow();
             assertThat(role).containsEntry("kind", "SCOPE_REVIEW").containsKeys("roleId", "orgUnitId");
-            assertThat(listed.getContentAsString()).doesNotContain("permissionCodes", "accessScope");
+            assertNoPermissionOrScopeOrName(listed.getContentAsString());
             MockHttpServletResponse detail = read(session(reader), sensitive);
             assertThat(detail.getStatus()).isEqualTo(200);
-            assertThat(detail.getContentAsString()).doesNotContain("permissionCodes", "accessScope");
+            assertNoPermissionOrScopeOrName(detail.getContentAsString());
         }
+    }
+
+    /** Contract 13: no permission codes, scope or personal names in an item, whatever the member is called (keys at any depth, and the texts of the fixture roles and people). */
+    private static void assertNoPermissionOrScopeOrName(String body) {
+        Object parsed = JsonPath.parse(body).json();
+        assertThat(keysOf(parsed)).as("member names of the answer").noneMatch(key -> key.matches("(?i).*(permission(s|code|codes)|scope|name|employeecode|loginid|wecom).*") && !key.equals("permissionAdjustmentId"));
+        assertThat(body).doesNotContain("Synthetic", "organization.workforce:", "platform.identity:");
+    }
+
+    private static List<String> keysOf(Object node) {
+        List<String> keys = new java.util.ArrayList<>();
+        if (node instanceof Map<?, ?> map) {
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                keys.add(String.valueOf(entry.getKey()));
+                keys.addAll(keysOf(entry.getValue()));
+            }
+        } else if (node instanceof List<?> list) {
+            list.forEach(element -> keys.addAll(keysOf(element)));
+        }
+        return keys;
     }
 
     @Test

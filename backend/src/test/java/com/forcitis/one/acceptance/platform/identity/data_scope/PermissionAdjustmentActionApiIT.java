@@ -353,14 +353,15 @@ class PermissionAdjustmentActionApiIT extends PermissionAdjustmentApiSupport {
     }
 
     @Test
-    @DisplayName("#730 S3 不变量 28、契约第 12c 条：标记已调整必须恰好关联授权申请或授予审计条目其一——两个都不带、两个都带都是 400，条目不变")
+    @DisplayName("#730 S3 不变量 28、契约第 12c 条：标记已调整必须恰好关联授权申请或授予审计条目其一——两个都不带、两个都带（都是真实存在的引用）都是 400，条目不变")
     void markAdjustedNeedsExactlyOneReference() throws Exception {
         UUID item = openSensitive();
         String entry = anAuditEntryId();
+        String request = anAuthorizationRequestId();
 
         MockHttpServletResponse neither = commandWithCurrentVersion(session("oda"), item, "mark-adjusted", "{}");
         MockHttpServletResponse both = commandWithCurrentVersion(session("oda"), item, "mark-adjusted",
-                "{\"authorizationRequestId\":\"" + UUID.randomUUID() + "\",\"auditEntryId\":\"" + entry + "\"}");
+                "{\"authorizationRequestId\":\"" + request + "\",\"auditEntryId\":\"" + entry + "\"}");
 
         assertThat(neither.getStatus()).isEqualTo(400);
         assertThat(both.getStatus()).isEqualTo(400);
