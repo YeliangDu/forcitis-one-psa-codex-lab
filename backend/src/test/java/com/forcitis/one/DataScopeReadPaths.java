@@ -25,9 +25,6 @@ final class DataScopeReadPaths {
 
     private static final String RULE = "#730 data-scope read-path register / security-invariants I-10";
 
-    /** BasicErrorController maps /error twice (an HTML page and JSON, by produces); both answer the failed request's status and no rows. */
-    private static final Set<String> TOLERATED_SHARED = Set.of("GET /error");
-
     private DataScopeReadPaths() {
     }
 
@@ -69,24 +66,34 @@ final class DataScopeReadPaths {
 
     /**
      * One "GET pattern" per pattern of every mapping that serves GET (a mapping without a method serves GET too; a HEAD-only one is "HEAD pattern" and never matches a
-     * register line) in every HandlerMapping of the context: controller and actuator endpoints, and the URL mappings (static resources, welcome page). A RouterFunction cannot
+     * register line) in every HandlerMapping of the context: controller and actuator endpoints of the servlet context, and the URL mappings (patterns, root handler, default handler). Endpoints on a separate management port live in a child context and are out of this register. A RouterFunction cannot
      * be enumerated by path, so one that is present is a problem.
      */
     static List<String> getHandlers(Collection<? extends HandlerMapping> mappings, List<String> problems) {
         List<String> keys = new ArrayList<>();
         for (HandlerMapping mapping : mappings) {
             if (mapping instanceof AbstractHandlerMethodMapping<?> methodMapping) {
-                for (Object key : methodMapping.getHandlerMethods().keySet()) {
+                Set<String> framework = new LinkedHashSet<>();
+                methodMapping.getHandlerMethods().forEach((key, handler) -> {
                     if (key instanceof RequestMappingInfo info && info.getPathPatternsCondition() != null) {
                         Set<RequestMethod> methods = info.getMethodsCondition().getMethods();
                         String verb = methods.isEmpty() || methods.contains(RequestMethod.GET) ? "GET" : methods.contains(RequestMethod.HEAD) ? "HEAD" : null;
                         if (verb != null) {
-                            info.getPathPatternsCondition().getPatternValues().forEach(pattern -> keys.add(verb + " " + pattern));
+                            // BasicErrorController maps /error twice (HTML and JSON, by produces), both answering the failed request's status and no rows: one key for the pair
+                            boolean pair = handler.getBeanType().getSimpleName().equals("BasicErrorController");
+                            info.getPathPatternsCondition().getPatternValues().forEach(pattern -> (pair ? framework : keys).add(verb + " " + pattern));
                         }
                     }
-                }
+                });
+                keys.addAll(framework);
             } else if (mapping instanceof AbstractUrlHandlerMapping urlMapping) {
                 urlMapping.getHandlerMap().keySet().forEach(pattern -> keys.add("GET " + pattern));
+                if (urlMapping.getRootHandler() != null) {
+                    keys.add("GET /");
+                }
+                if (urlMapping.getDefaultHandler() != null) {
+                    keys.add("GET <default handler of " + urlMapping.getClass().getSimpleName() + ">");
+                }
             } else if (mapping instanceof RouterFunctionMapping routerMapping && routerMapping.getRouterFunction() != null) {
                 problems.add(GuardMessage.of(RULE, "the context maps a RouterFunction, whose routes cannot be matched against the register",
                         "serve the read from a controller method, or ask design to extend the register to router functions"));
@@ -101,7 +108,7 @@ final class DataScopeReadPaths {
         Set<String> listed = parse(registerLines, problems).keySet();
         Set<String> distinct = new TreeSet<>(handlers);
         distinct.forEach(key -> {
-            if (Collections.frequency(handlers, key) > 1 && !TOLERATED_SHARED.contains(key)) {
+            if (Collections.frequency(handlers, key) > 1) {
                 problems.add(GuardMessage.of(RULE, key + " is served by " + Collections.frequency(handlers, key) + " handlers (same path, different params, headers, consumes or produces), and one register line cannot cover them",
                         "give each read its own path, so each has its own line and its own scope test"));
             }

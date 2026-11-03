@@ -1,4 +1,5 @@
-# Every GET handler of every HandlerMapping of the running application (controllers, actuator, static resources) (#730, security-invariants I-10), and the data scope its rows answer under.
+# Every GET handler of every HandlerMapping of the running application (controllers, actuator, static resources) (#730, security-invariants I-10), and the data scope its rows answer under. of the servlet context.
+# Endpoints on a separate management port (prod: 8081) live in a child context and are not enumerated here.
 # DataScopeReadPathsGuardTest keeps this file well formed; DataScopeReadPathsIT keeps it equal to the GET mappings of the running context
 # (an unlisted handler or a line that matches no handler fails the build).
 # Format: GET <path as mapped> | <mode> | <reason>
@@ -23,8 +24,8 @@ GET /api/v1/platform/approval-task-overviews | NOT_SCOPE_BOUND | case ii, first 
 GET /api/v1/platform/approval-task-records | SELF | tasks the caller has handled
 GET /api/v1/platform/approval-tasks | SELF | the caller's inbox
 GET /api/v1/platform/approval-tasks/{taskId} | SELF | one task of the caller's inbox
-GET /api/v1/platform/audit-entries | NOT_SCOPE_BOUND | case ii, second form: audit_entries is GLOBAL, not filtered by scope (ADR-0026 table); audit-entry:read belongs to the security auditor system role and any other role gets it only by two-person confirmation (ADR-0027 item 3.1, ADR-0026 item 6.2); a custom role's scope is not applied to this list, by decision
-GET /api/v1/platform/audit-entries:export | NOT_SCOPE_BOUND | case ii, second form: the list above without paging; same GLOBAL decision (ADR-0026 table) and same rule for audit-entry:export (ADR-0027 item 3.1, ADR-0026 item 6.2); a custom role's scope is not applied, by decision
+GET /api/v1/platform/audit-entries | NOT_SCOPE_BOUND | case ii, second form: audit_entries is GLOBAL, not filtered by scope (ADR-0027 item 3.4, ADR-0026 table); audit-entry:read belongs to the security auditor system role and any other role gets it only by two-person confirmation (ADR-0027 item 3.1, ADR-0026 item 6.2); a custom role's scope is not applied to this list, by decision
+GET /api/v1/platform/audit-entries:export | NOT_SCOPE_BOUND | case ii, second form: the list above without paging; same GLOBAL decision (ADR-0027 item 3.4, ADR-0026 table) and same rule for audit-entry:export (ADR-0027 item 3.1, ADR-0026 item 6.2); a custom role's scope is not applied, by decision
 GET /api/v1/platform/authorization-requests | NOT_SCOPE_BOUND | case ii, second form: pending grant requests for the confirmers; account-role:update is a two-person sensitive permission (ADR-0026 item 6.2, ADR-0027 item 3); account role grants are GLOBAL (ADR-0026 table); a custom role's scope is not applied, by decision
 GET /api/v1/platform/files/{fileId} | SELF | status of an upload the caller made and has not yet linked
 GET /api/v1/platform/legacy-numbers | NOT_SCOPE_BOUND | original number to document id, legal entity and batch; no person or unit attribute in the answer
@@ -36,8 +37,8 @@ GET /api/v1/platform/roles | NOT_SCOPE_BOUND | case i: role definitions (code, p
 GET /api/v1/platform/roles/{roleId} | NOT_SCOPE_BOUND | case i: one role definition: configuration; roles is GLOBAL (ADR-0026 table)
 GET /api/v1/platform/sessions:current | SELF | the caller's own session and profile
 GET /api/v1/platform/source-references | NOT_SCOPE_BOUND | case ii, first form: ids only (own id, external id, status, period); the own id is a legal-entity id; only the category the maintainer writes by hand is listed (ListSourceReferences, ADR-0033 section 5 items 3-4); operations mapping like sync_runs; no unit or person attribute may be added to the answer
-GET /api/v1/platform/user-accounts/{userId} | NOT_SCOPE_BOUND | case ii: one account (status, role codes); user_accounts is GLOBAL by decision (ADR-0026 table, user accounts and roles); permission role:read is in AdministratorMode.PLATFORM_ONLY, so only super_admin holds it, in administrator mode
-GET /** | NOT_SCOPE_BOUND | case i: static resources served from the classpath (the front-end bundle): files, no rows
+GET /api/v1/platform/user-accounts/{userId} | NOT_SCOPE_BOUND | case ii, first form: one account (status, role codes); user_accounts is GLOBAL by decision (ADR-0026 table, user accounts and roles); permission role:read is in AdministratorMode.PLATFORM_ONLY, so only super_admin holds it, in administrator mode
+GET /** | NOT_SCOPE_BOUND | case i: the catch-all static-resource handler of Spring MVC; the deployed front end is served by nginx, and a file is no row
 GET /actuator | NOT_SCOPE_BOUND | case i: the actuator discovery page: links, no rows
 GET /actuator/health | NOT_SCOPE_BOUND | case i: the health status of the application: no rows
 GET /actuator/health/** | NOT_SCOPE_BOUND | case i: the health status of one component: no rows

@@ -109,6 +109,43 @@ class DataScopeReadPathsGuardTest {
                 .anyMatch(text -> text.contains("served by 3 handlers")).anyMatch(text -> text.contains("HEAD /api/v1/variant/head"));
     }
 
+    @RestController
+    static class BasicErrorController {
+        @GetMapping(path = "/error", produces = "text/html")
+        String html() {
+            return "";
+        }
+
+        @GetMapping("/error")
+        String json() {
+            return "";
+        }
+    }
+
+    @RestController
+    static class RowsOnError {
+        @GetMapping(path = "/error", params = "rows")
+        List<String> rows() {
+            return List.of();
+        }
+    }
+
+    private static List<String> handlersOf(Class<?>... controllers) {
+        RequestMappingHandlerMapping mappings = new RequestMappingHandlerMapping();
+        mappings.setApplicationContext(new AnnotationConfigApplicationContext(controllers));
+        mappings.afterPropertiesSet();
+        return DataScopeReadPaths.getHandlers(List.of(mappings), new ArrayList<>());
+    }
+
+    @Test
+    @DisplayName("#730 G1: the framework's pair of /error handlers is one key, but a third handler on /error is reported")
+    void aThirdHandlerOnErrorIsCaught() {
+        List<String> register = List.of("GET /error | NOT_SCOPE_BOUND | the failed request's status");
+
+        assertThat(DataScopeReadPaths.problems(handlersOf(BasicErrorController.class), register)).isEmpty();
+        assertThat(DataScopeReadPaths.problems(handlersOf(BasicErrorController.class, RowsOnError.class), register)).singleElement().asString().contains("served by 2 handlers");
+    }
+
     @Test
     @DisplayName("#730 G1: a RouterFunction in the context is reported, and a url mapping's patterns are enumerated")
     void routerFunctionsAndUrlMappingsAreCaught() {
@@ -120,6 +157,10 @@ class DataScopeReadPathsGuardTest {
         assertThat(DataScopeReadPaths.getHandlers(List.of(router, new RouterFunctionMapping()), problems)).isEmpty();
         assertThat(problems).singleElement().asString().contains("RouterFunction");
         assertThat(DataScopeReadPaths.getHandlers(List.of(urls), problems)).containsExactly("GET /static/**");
+        SimpleUrlHandlerMapping withRoot = new SimpleUrlHandlerMapping(Map.of());
+        withRoot.setRootHandler(new Object());
+        withRoot.setDefaultHandler(new Object());
+        assertThat(DataScopeReadPaths.getHandlers(List.of(withRoot), problems)).containsExactly("GET /", "GET <default handler of SimpleUrlHandlerMapping>");
     }
 
     @Test
