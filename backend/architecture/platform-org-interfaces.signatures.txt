@@ -341,6 +341,7 @@ organization.workforce::api organization.workforce.api.OrgStructureCommandId pub
 organization.workforce::api organization.workforce.api.OrgStructureCommandKind extends java.lang.Enum<organization.workforce.api.OrgStructureCommandKind>
 organization.workforce::api organization.workforce.api.OrgStructureCommandKind public final enum organization.workforce.api.OrgStructureCommandKind
 organization.workforce::api organization.workforce.api.OrgStructureCommandKind public static final organization.workforce.api.OrgStructureCommandKind organization.workforce.api.OrgStructureCommandKind.ASSIGN_HEAD
+organization.workforce::api organization.workforce.api.OrgStructureCommandKind public static final organization.workforce.api.OrgStructureCommandKind organization.workforce.api.OrgStructureCommandKind.ASSIGN_LEGAL_ENTITY
 organization.workforce::api organization.workforce.api.OrgStructureCommandKind public static final organization.workforce.api.OrgStructureCommandKind organization.workforce.api.OrgStructureCommandKind.ASSIGN_RECEIVABLES_MANAGER
 organization.workforce::api organization.workforce.api.OrgStructureCommandKind public static final organization.workforce.api.OrgStructureCommandKind organization.workforce.api.OrgStructureCommandKind.CREATE
 organization.workforce::api organization.workforce.api.OrgStructureCommandKind public static final organization.workforce.api.OrgStructureCommandKind organization.workforce.api.OrgStructureCommandKind.DISABLE
@@ -577,6 +578,7 @@ organization.workforce::api organization.workforce.api.WorkforceError public sta
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_NOT_FOUND
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_STATUS_UNKNOWN
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_TRANSITION_ILLEGAL
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_ORG_LEGAL_ENTITY_CONFLICT
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_ORG_STRUCTURE_COMMAND_INVALID
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_ORG_STRUCTURE_COMMAND_NOT_ALLOWED
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_ORG_STRUCTURE_COMMAND_NOT_FOUND
@@ -648,6 +650,7 @@ organization.workforce::events organization.workforce.events.EmployeeLegalEntity
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged component employeeId: kernel.EmployeeId
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged component newLegalEntityId: kernel.LegalEntityId
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged component orgStructureCommandId: organization.workforce.api.OrgStructureCommandId
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged component personnelCommandId: organization.workforce.api.PersonnelCommandId
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged component previousLegalEntityId: kernel.LegalEntityId
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged extends java.lang.Record
@@ -661,8 +664,9 @@ organization.workforce::events organization.workforce.events.EmployeeLegalEntity
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public kernel.LegalEntityId organization.workforce.events.EmployeeLegalEntityChanged.newLegalEntityId()
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public kernel.LegalEntityId organization.workforce.events.EmployeeLegalEntityChanged.previousLegalEntityId()
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public kernel.event.EventEnvelope organization.workforce.events.EmployeeLegalEntityChanged.envelope()
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public organization.workforce.api.OrgStructureCommandId organization.workforce.events.EmployeeLegalEntityChanged.orgStructureCommandId()
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeLegalEntityChanged.personnelCommandId()
-organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public organization.workforce.events.EmployeeLegalEntityChanged(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,kernel.LegalEntityId,kernel.LegalEntityId)
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public organization.workforce.events.EmployeeLegalEntityChanged(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,organization.workforce.api.OrgStructureCommandId,kernel.EmployeeId,java.time.LocalDate,kernel.LegalEntityId,kernel.LegalEntityId)
 organization.workforce::events organization.workforce.events.EmployeeRegistered component employeeId: kernel.EmployeeId
 organization.workforce::events organization.workforce.events.EmployeeRegistered component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.EmployeeRegistered extends java.lang.Record

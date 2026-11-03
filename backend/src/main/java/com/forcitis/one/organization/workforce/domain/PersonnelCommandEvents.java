@@ -51,7 +51,7 @@ final class PersonnelCommandEvents {
 
     /** The cost legal entity changed when the command took effect (ADR-0073 item 3.7), whatever the kind; the envelope names the new entity. */
     static PendingEvent legalEntityChanged(PersonnelCommand c, LegalEntityId previous, LegalEntityId next) {
-        return (envelopes, sequence) -> new EmployeeLegalEntityChanged(envelopes.wrap(draft("EmployeeLegalEntityChanged", c, next, sequence)), c.id(), c.employeeId(),
+        return (envelopes, sequence) -> new EmployeeLegalEntityChanged(envelopes.wrap(draft("EmployeeLegalEntityChanged", c, next, sequence)), c.id(), null, c.employeeId(),
                 c.effectiveDate(), previous, next);
     }
 

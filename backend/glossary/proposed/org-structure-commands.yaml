@@ -30,6 +30,21 @@ terms:
   forbidden: []
   status: approved
   confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_workforce_org_legal_entity_conflict
+  zh: 组织命令法人归属冲突
+  en: OrganizationWorkforceOrgLegalEntityConflict
+  snake: organization_workforce_org_legal_entity_conflict
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 法人归属命令倒签到单元已有的更晚归属期之前，或命令会让已有法人的员工失去成本法人，录入时拒绝，什么都不写（422）
+  standard_ref:
+  - ADR-0073 第 2 至 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#910 评论 6608979043，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__organization_workforce_org_structure_command_not_found
   zh: 组织结构命令不存在
   en: OrganizationWorkforceOrgStructureCommandNotFound
@@ -91,3 +106,18 @@ terms:
   status: approved
   confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: 随 #907，one-design 裁定（#907 评论 6596302513）
+- id: employee_legal_entity_change
+  zh: 员工法人归属变更
+  en: EmployeeLegalEntityChange
+  snake: employee_legal_entity_change
+  kind: aggregate
+  bc: organization.workforce
+  scope: domain
+  definition: 组织结构命令生效而使一名员工的成本法人变化时，只承载一条员工法人归属已变更事件的记录；信封说的是员工，序号接续员工自己的事件计数
+  standard_ref:
+  - ADR-0073 第 2 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 无自己的表；#910 第一片
