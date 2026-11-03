@@ -118,6 +118,17 @@ class EventSequenceContinuityTest {
     }
 
     @Test
+    @DisplayName("PermissionAdjustment: the event of raising it is numbered 1")
+    void permissionAdjustment() {
+        checkMany(() -> com.forcitis.one.platform.identity.domain.PermissionAdjustment.assignmentChangeReview(
+                        new com.forcitis.one.platform.identity.api.PermissionAdjustmentId(java.util.UUID.randomUUID()), TestAccounts.account(1),
+                        new com.forcitis.one.organization.workforce.api.PersonnelCommandId(java.util.UUID.randomUUID()),
+                        com.forcitis.one.organization.workforce.api.TriggerFieldKind.ORG_UNIT, null,
+                        new com.forcitis.one.organization.workforce.api.OrgUnitId(java.util.UUID.randomUUID()), null, null, NOW.plusSeconds(86_400), NOW),
+                List.of());
+    }
+
+    @Test
     @DisplayName("LegalEntity: events are numbered 1..n")
     void legalEntity() {
         checkMany(() -> LegalEntity.register(new LegalEntityId(TestIds.uuid(1)), new LegalEntityCode("FST"), "Synthetic"), List.of(
@@ -146,6 +157,16 @@ class EventSequenceContinuityTest {
                                 new com.forcitis.one.organization.workforce.api.OrgUnitId(TestIds.uuid(2)), null, TODAY, null, "Synthetic", null, null, null, null, null, null, null, null),
                         TestIds.uuid(4), new UserId(TestIds.uuid(3)), NOW, TODAY),
                 List.of(com.forcitis.one.organization.workforce.domain.OrgStructureCommand::recordEffect, c -> c.withdraw(new UserId(TestIds.uuid(3)), "synthetic", NOW)));
+    }
+
+    @Test
+    @DisplayName("EmployeeLegalEntityChange: the event continues the employee's sequence")
+    void employeeLegalEntityChange() {
+        checkMany(() -> com.forcitis.one.organization.workforce.domain.EmployeeLegalEntityChange.of(
+                        new com.forcitis.one.organization.workforce.api.OrgStructureCommandId(TestIds.uuid(1)), TODAY,
+                        new com.forcitis.one.organization.workforce.domain.OrgCountersignBasis(new EmployeeId(TestIds.uuid(2)),
+                                new com.forcitis.one.kernel.LegalEntityId(TestIds.uuid(5)), new com.forcitis.one.kernel.LegalEntityId(TestIds.uuid(6))), 7),
+                List.of(c -> { }));
     }
 
     @Test

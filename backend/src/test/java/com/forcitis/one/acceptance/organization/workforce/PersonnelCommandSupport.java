@@ -54,7 +54,7 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
 
     protected UUID unit;
     protected UUID legalEntity;
-    private SignedIn administrator;
+    protected SignedIn administrator;
 
     /** A person with an account: the employee behind it and the login session. */
     protected record Staff(UUID employeeId, SignedIn session) {

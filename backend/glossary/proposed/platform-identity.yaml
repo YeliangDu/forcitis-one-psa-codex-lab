@@ -48,3 +48,63 @@ terms:
   status: approved
   note: ''
   confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_identity_permission_adjustment_not_found
+  zh: 待调整权限条目不存在
+  en: PlatformIdentityPermissionAdjustmentNotFound
+  snake: platform_identity_permission_adjustment_not_found
+  kind: error_code
+  bc: platform.identity
+  scope: domain
+  definition: 待调整权限条目不存在，或不在调用人的范围内（404，两者同一应答）
+  standard_ref:
+  - docs/architecture/implementation-cards/f-1.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#730 S3 提议，待用语确认'
+- id: error__platform_identity_permission_adjustment_not_open
+  zh: 待调整权限条目已办理
+  en: PlatformIdentityPermissionAdjustmentNotOpen
+  snake: platform_identity_permission_adjustment_not_open
+  kind: error_code
+  bc: platform.identity
+  scope: domain
+  definition: 待调整权限条目不是待处理状态，不能再办理（409）
+  standard_ref:
+  - docs/architecture/implementation-cards/f-1.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#730 S3 提议，待用语确认'
+- id: error__platform_identity_permission_adjustment_handler_not_allowed
+  zh: 无权办理待调整权限条目
+  en: PlatformIdentityPermissionAdjustmentHandlerNotAllowed
+  snake: platform_identity_permission_adjustment_handler_not_allowed
+  kind: error_code
+  bc: platform.identity
+  scope: domain
+  definition: 调用人能读该条目但不是它的办理人（403）：只读角色，或不是范围复核的收件人
+  standard_ref:
+  - docs/architecture/implementation-cards/f-1.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#730 S3 提议，待用语确认'
+- id: error__platform_identity_own_permission_adjustment_forbidden
+  zh: 不能办理关于本人的待调整权限条目
+  en: PlatformIdentityOwnPermissionAdjustmentForbidden
+  snake: platform_identity_own_permission_adjustment_forbidden
+  kind: error_code
+  bc: platform.identity
+  scope: domain
+  definition: 待调整权限条目是关于调用人本人的，本人不能办理（403）
+  standard_ref:
+  - docs/architecture/implementation-cards/f-1.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#730 S3 提议，待用语确认'

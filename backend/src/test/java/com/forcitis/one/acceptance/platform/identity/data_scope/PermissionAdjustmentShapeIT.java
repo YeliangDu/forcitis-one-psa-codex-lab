@@ -111,6 +111,27 @@ class PermissionAdjustmentShapeIT {
     }
 
     @Test
+    @DisplayName("F-1 不变量 11（#730 DD 裁定）撤销误离职的更正：触发前部门为空只对「敏感角色复核、任职变化、触发字段为部门」合法；范围复核、岗位触发、触发前岗位非空、触发后部门为空、非任职变化来源都仍拒绝")
+    void aNullBeforeUnitIsOnlyForAReinstatementOfASensitiveRoleReview() throws SQLException {
+        rows.accepted(rows.sensitiveReinstatement());
+        rows.accepted(rows.sensitiveReinstatement().with("after_position_id", null));
+
+        // a scope review needs a previous unit to narrow from
+        rows.refusedByCheck("ck_permission_adjustments_assignment_change", rows.scopeReviewTransfer().with("before_org_unit_id", null));
+        // a position trigger with no unit before would loop on redelivery
+        rows.refusedByCheck("ck_permission_adjustments_assignment_change", rows.sensitiveReinstatement().with("trigger_field_kind", "POSITION"));
+        // no unit before means no position before either
+        rows.refusedByCheck("ck_permission_adjustments_assignment_change", rows.sensitiveReinstatement().with("before_position_id", UUID.randomUUID()));
+        // the unit after is always there, and an assignment-change row always has a trigger field
+        rows.refusedByCheck("ck_permission_adjustments_assignment_change", rows.sensitiveReinstatement().with("after_org_unit_id", null));
+        rows.refusedByCheck("ck_permission_adjustments_assignment_change", rows.sensitiveReinstatement().with("trigger_field_kind", null));
+        // other origins still carry none of the four columns, a null before unit does not loosen that
+        rows.refusedByCheck("ck_permission_adjustments_assignment_change", rows.scopeReviewInactiveUnit().with("after_org_unit_id", UUID.randomUUID()));
+        rows.refusedByCheck("ck_permission_adjustments_assignment_change", rows.regenerated().with("after_org_unit_id", UUID.randomUUID()));
+        rows.refusedByCheck("ck_permission_adjustments_assignment_change", rows.regenerated().with("before_position_id", UUID.randomUUID()));
+    }
+
+    @Test
     @DisplayName("F-1 不变量 12 范围复核来源①只因部门变化触发；收件人只出现在来源①上（敏感角色复核、来源②都不带收件人）")
     void onlyAScopeReviewOfATransferHasARecipient() throws SQLException {
         Row positionOnly = rows.scopeReviewTransfer().with("trigger_field_kind", "POSITION").with("before_position_id", UUID.randomUUID())

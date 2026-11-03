@@ -195,7 +195,7 @@ tables:
     business_key: [org_structure_command_id, employee_id]
     retention: {policy: PERMANENT}  # 随组织记录保留，清除通道随 W2 第 8 节另批
     lineage: {source: NEW}
-    writers: []  # 尚无写入方（F4a 随用例登记）
+    writers: [organization.workforce]
   organization_workforce.employee_profile_change_requests:
     role: AGGREGATE_CHILD
     aggregate: Employee
@@ -459,6 +459,7 @@ tables:
       adjusted_audit_entry_id: an audit entry of platform_audit, another schema
       closure_personnel_command_id: the separation command, another schema; no foreign key
     retention: {policy: PERMANENT}
+    writers: [platform.identity]
     lineage: {source: NEW}
   platform_identity.account_role_grants:
     # Retention as role_versions above (0034-Q2; owner one-1a-par; due within 30 months after the first production deployment; purge job built with the audit online deletion; account_role_grants is purged before role_versions).
