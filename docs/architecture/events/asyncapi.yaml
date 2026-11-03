@@ -3370,7 +3370,6 @@ components:
         - kind
         - upholdExpiresAt
         - expiredAt
-        - heldAtExpiry
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -3393,9 +3392,6 @@ components:
             type: string
             format: date-time
             description: 到期作业转已到期的时刻（作业用的时钟，不早于有效至）
-          heldAtExpiry:
-            type: boolean
-            description: 到期时当事人的离职是否被暂停；为真时是否生成新条目等放行后的下一次作业判定
     PermissionAdjustmentEscalated:
       name: PermissionAdjustmentEscalated
       title: 待调整权限条目超期升级

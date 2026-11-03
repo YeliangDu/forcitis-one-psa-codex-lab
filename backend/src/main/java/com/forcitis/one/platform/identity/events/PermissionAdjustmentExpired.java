@@ -9,11 +9,10 @@ import java.time.Instant;
 
 /** An upheld review item reached its expiry and the daily job turned it EXPIRED; nothing was granted or taken back. expiredAt is the job's clock, not the expiry. */
 public record PermissionAdjustmentExpired(EventEnvelope envelope, PermissionAdjustmentId permissionAdjustmentId, PermissionAdjustmentKind kind,
-                                          Instant upholdExpiresAt, Instant expiredAt, boolean heldAtExpiry) implements DomainEvent, AuditDetail {
+                                          Instant upholdExpiresAt, Instant expiredAt) implements DomainEvent, AuditDetail {
 
     @Override
     public String auditDetail() {
-        return "item " + permissionAdjustmentId.value() + " " + kind + " expired at " + expiredAt + "; was valid until " + upholdExpiresAt
-                + (heldAtExpiry ? "; the person's separation was held" : "");
+        return "item " + permissionAdjustmentId.value() + " " + kind + " expired at " + expiredAt + "; was valid until " + upholdExpiresAt;
     }
 }

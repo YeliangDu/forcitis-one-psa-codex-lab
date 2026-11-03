@@ -172,8 +172,7 @@ public final class PermissionAdjustment extends AggregateRoot {
         this.heldAtExpiry = held;
         this.regenerationDecidedAt = held ? null : now;
         Instant expiry = upholdExpiresAt;
-        record((envelopes, version) -> new PermissionAdjustmentExpired(envelopes.wrap(draft("PermissionAdjustmentExpired", version)), id, kind, expiry, now,
-                held));
+        record((envelopes, version) -> new PermissionAdjustmentExpired(envelopes.wrap(draft("PermissionAdjustmentExpired", version)), id, kind, expiry, now));
     }
 
     /** The job found an EXPIRED item that waited for the release of a held separation, and has now decided about its successor (invariant 26). */
