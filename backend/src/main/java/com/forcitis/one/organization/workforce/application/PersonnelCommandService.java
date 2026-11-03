@@ -102,7 +102,7 @@ class PersonnelCommandService implements PersonnelCommands {
     @Transactional
     public PersonnelCommandId enter(EnterPersonnelCommand request, UserId by, @Nullable OrgStructureCommandId merge) {
         if (merge == null && request.targetOrgUnitId() != null) {
-            commands.shareOrgUnit(request.targetOrgUnitId());
+            commands.lockOrgUnitForEntry(request.targetOrgUnitId());
         }
         Instant now = clock.instant();
         LocalDate today = zone.dateOf(now);

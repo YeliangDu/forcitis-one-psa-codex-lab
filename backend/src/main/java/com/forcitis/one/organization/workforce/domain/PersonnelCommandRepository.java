@@ -50,7 +50,7 @@ public interface PersonnelCommandRepository {
      * It excludes a merge of the unit from entering, starting or finishing while this personnel command is checked and written, so a person cannot be placed in a unit
      * that a concurrent merge is revoking.
      */
-    void shareOrgUnit(OrgUnitId orgUnit);
+    void lockOrgUnitForEntry(OrgUnitId orgUnit);
 
     /**
      * Whether a placement in the unit on the day would be left in a unit a merge revokes: the merge is in progress (its people are counted, whatever the day), or it is

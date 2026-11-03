@@ -119,7 +119,7 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
     }
 
     @Override
-    public void shareOrgUnit(OrgUnitId orgUnit) {
+    public void lockOrgUnitForEntry(OrgUnitId orgUnit) {
         jdbc.sql("select 1 from organization_workforce.org_units where id = :id for share").param("id", orgUnit.value()).query(Integer.class).optional();
     }
 
