@@ -192,7 +192,9 @@ aggregates:
   - code
   tables: []
   commands:
+  - CountersignReadAccess
   - CountersignRequests
+  - GetAttributionCountersign
   - OrgCommandWrites
   - OrgCountersignBases
   - OrgCountersignFreeze
@@ -203,6 +205,7 @@ aggregates:
   - OrgPlans
   - OrgStructureCommandService
   - OrgStructureRules
+  - PreviewMergeAttribution
   events: []
   events_in_module:
   - organization.workforce.EmployeeCorrected
@@ -243,8 +246,10 @@ aggregates:
   - ApplyDueCommand
   - AttributionCountersignService
   - CountersignBases
+  - CountersignReadAccess
   - CountersignRequests
   - EffectPublisher
+  - GetAttributionCountersign
   - HeldSeparationRelease
   - OrgCountersignFreeze
   - PersonnelCommandService

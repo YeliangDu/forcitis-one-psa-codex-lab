@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.StateMachine;
+import com.forcitis.one.organization.workforce.api.CountersignCommandStatus;
 
 /**
  * ADR-0068 item 4: pending moves to effective or withdrawn; only a merge goes through in progress (its people are being moved, it can no longer be
@@ -22,5 +23,10 @@ public enum OrgCommandStatus {
     /** Open commands hold their day (one per target per effective date, uk_org_structure_commands_open_*). */
     public boolean isOpen() {
         return this == PENDING || this == IN_PROGRESS || this == AWAITING_ATTRIBUTION_COUNTERSIGN;
+    }
+
+    /** The same status as the countersign read paths name it. */
+    public CountersignCommandStatus asCountersignCommandStatus() {
+        return CountersignCommandStatus.valueOf(name());
     }
 }

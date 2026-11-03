@@ -56,7 +56,7 @@ final class TimesheetApproverReplay {
                 boolean expected = branch != null && flags.contains(branch.flag());
                 List<Long> actual = node == null ? List.of() : node.actualApprovers();
                 if (branch == null || !expected) {
-                    record(verdicts, resolutions, differences, new ReplayReport.Difference(instance.instanceId(), nodeKey,
+                    record(verdicts, differences, new ReplayReport.Difference(instance.instanceId(), nodeKey,
                             node.rule().get("type"), ReplayVerdict.DEFECT, null, List.of(), actual, "node not in the new process for these hour types"));
                     continue;
                 }
@@ -91,7 +91,7 @@ final class TimesheetApproverReplay {
         return new ReplayReport(export.processKey(), export.instances().size(), nodes[0], verdicts, resolutions, differences);
     }
 
-    private static void record(Map<ReplayVerdict, Integer> verdicts, Map<ResolutionKind, Integer> resolutions,
+    private static void record(Map<ReplayVerdict, Integer> verdicts,
             List<ReplayReport.Difference> differences, ReplayReport.Difference difference) {
         verdicts.merge(difference.verdict(), 1, Integer::sum);
         differences.add(difference);

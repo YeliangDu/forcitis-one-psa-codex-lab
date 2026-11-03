@@ -25,10 +25,8 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
     private final LegalEntityHistory history;
     private final Clock clock;
     private final BusinessZone zone;
-    private final IdGenerator ids;
 
     JdbcLegalEntityRepository(JdbcClient jdbc, Clock clock, BusinessZone zone, IdGenerator ids) {
-        this.ids = ids;
         this.jdbc = jdbc;
         this.history = new LegalEntityHistory(jdbc, ids);
         this.clock = clock;

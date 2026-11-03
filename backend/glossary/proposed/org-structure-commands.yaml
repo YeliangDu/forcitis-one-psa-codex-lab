@@ -121,3 +121,33 @@ terms:
   forbidden: []
   status: proposed
   note: 无自己的表；#910 第一片
+- id: need
+  zh: 需经会签
+  en: Need
+  snake: need
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 合并预览每行的 needsAttributionCountersign 字段里的动词词根（中文名取「需经会签」，不注册裸动词「需要」，它与普通文案冲突）；该行的合并会改变其成本法人而需要法人归属会签（#910 评议 6588705997 定的 JSON 字段名）
+  standard_ref:
+  - ADR-0073 第 2 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 只作字段名词根，不是独立概念；#910 第三片
+- id: preview_merge
+  zh: 合并预览
+  en: PreviewMerge
+  snake: preview_merge
+  kind: read_model
+  bc: organization.workforce
+  scope: domain
+  definition: 合并执行前的预演里，每个将被转走的员工合并前后的成本法人、以及是否需要法人归属会签；只读，不写任何数据（one-design 评议 6588705997 第 3 条）
+  standard_ref:
+  - ADR-0073 第 2 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 对应 GET /org-units/{orgUnitId}:preview-merge；#910 第三片

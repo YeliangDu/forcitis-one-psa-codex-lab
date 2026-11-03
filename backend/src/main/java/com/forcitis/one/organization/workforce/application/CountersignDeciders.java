@@ -42,12 +42,16 @@ class CountersignDeciders {
     }
 
     void requireHead(AttributionCountersign row, UserId by, LocalDate today) {
-        boolean head = countersigns.isFinanceHead(row.legalEntityId(), currentUser.employeeId(), today);
-        boolean escalated = row.escalationLevel() >= AttributionCountersign.ESCALATED_FROM_LEVEL && roles.holds(by, ESCALATED_ROLE);
-        if (!head && !escalated) {
+        if (!mayDecide(row, by, today)) {
             throw forbidden("only the finance head of the legal entity decides this countersign, a business administrator from escalation level "
                     + AttributionCountersign.ESCALATED_FROM_LEVEL);
         }
+    }
+
+    /** Whether the caller is the finance head of the row's legal entity, or a business administrator once the row has escalated; the drafter and the requester are not asked about. */
+    boolean mayDecide(AttributionCountersign row, UserId by, LocalDate today) {
+        boolean head = countersigns.isFinanceHead(row.legalEntityId(), currentUser.employeeId(), today);
+        return head || row.escalationLevel() >= AttributionCountersign.ESCALATED_FROM_LEVEL && roles.holds(by, ESCALATED_ROLE);
     }
 
     private static DomainException forbidden(String message) {

@@ -6,6 +6,7 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.AttributionCountersignId;
+import com.forcitis.one.organization.workforce.api.CountersignRequestKind;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;

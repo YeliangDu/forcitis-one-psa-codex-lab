@@ -349,7 +349,6 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     @DisplayName("M-2 a round that ended in the approval but is not applied to the timesheet yet cannot be submitted again; the answer says so (409)")
     void resubmittingBeforeTheResultArrivedIsRefused(Scenario scenario) {
         TimesheetId id = newTimesheet();
-        DocumentReference document = documentOf(id);
         submitAndAwaitApproval(scenario, id, "4");
 
         Throwable thrown = org.assertj.core.api.Assertions.catchThrowable(() -> tx.executeWithoutResult(s -> {

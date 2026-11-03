@@ -30,7 +30,7 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersign;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
-import com.forcitis.one.organization.workforce.domain.CountersignRequestKind;
+import com.forcitis.one.organization.workforce.api.CountersignRequestKind;
 import com.forcitis.one.organization.workforce.domain.CountersignStatus;
 import com.forcitis.one.organization.workforce.domain.EmployeeLegalEntityChange;
 import com.forcitis.one.organization.workforce.domain.OrgCommandStatus;
