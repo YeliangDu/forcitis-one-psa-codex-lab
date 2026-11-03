@@ -53,9 +53,15 @@ categories:
   - organization.workforce.EmployeeReinstated
   - organization.workforce.EmployeeSeparated
   - organization.workforce.EmployeeTransferred
+  - organization.workforce.employee-profile.change-rejected
+  - organization.workforce.employee-profile.change-requested
+  - organization.workforce.employee-profile.change-voided
   - organization.workforce.employee-profile.changed
   - organization.workforce.personnel-command.entered
   - organization.workforce.personnel-command.withdrawn
+  - organization.workforce.org-structure-command.entered
+  - organization.workforce.org-structure-command.withdrawn
+  - organization.workforce.org-structure-command.completed
 - name: 法人
   actions:
   - organization.workforce.EmployeeRegistered

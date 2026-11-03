@@ -8,7 +8,7 @@ SET ROLE one_prod_owner;
 DO $$
 DECLARE t text;
 BEGIN
-    FOREACH t IN ARRAY ARRAY['organization_workforce.org_unit_versions', 'organization_workforce.assignment_versions',
+    FOREACH t IN ARRAY ARRAY['organization_workforce.org_unit_versions', 'organization_workforce.position_versions', 'organization_workforce.assignment_versions',
                              'organization_workforce.legal_entity_versions', 'organization_workforce.employee_versions',
                              'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities',
                              'platform_identity.role_versions', 'platform_identity.account_role_grants'] LOOP
@@ -23,6 +23,7 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_numbering.document_types FRO
 REVOKE DELETE, TRUNCATE ON organization_workforce.personnel_commands FROM one_prod_app;
 REVOKE DELETE, TRUNCATE ON organization_workforce.org_structure_commands FROM one_prod_app;
 REVOKE DELETE, TRUNCATE ON organization_workforce.attribution_countersigns FROM one_prod_app;
+REVOKE UPDATE, DELETE, TRUNCATE ON organization_workforce.attribution_countersign_bases FROM one_prod_app;
 REVOKE DELETE, TRUNCATE ON organization_workforce.employee_profile_change_requests FROM one_prod_app;
 -- 待放行离职与人事状态转换（IMP-1030-PAR-B1）：待放行离职同人事命令，状态转换只追加，运行角色只留 SELECT、INSERT。
 REVOKE DELETE, TRUNCATE ON organization_workforce.separation_holds FROM one_prod_app;
@@ -31,6 +32,10 @@ REVOKE UPDATE, DELETE, TRUNCATE ON organization_workforce.state_transitions FROM
 -- 角色版本与授权申请的自定义部门（F-1 #728）：明细只插入，触发器拒改删，运行角色也不持有 DELETE 与 TRUNCATE；与 one_db_roles_schemas.sql §4b 同步。
 REVOKE DELETE, TRUNCATE ON platform_identity.role_version_custom_org_units FROM one_prod_app;
 REVOKE DELETE, TRUNCATE ON platform_identity.authorization_request_custom_org_units FROM one_prod_app;
+
+-- 权限调整条目（F-1 #729；数据访问注册表 AGGREGATE_ROOT / MUTABLE）：状态与关闭列由聚合改写，行本身永久保留；
+-- 运行角色不持有 DELETE 与 TRUNCATE（卡 F-1 注册清单第 6 项）。
+REVOKE DELETE, TRUNCATE ON platform_identity.permission_adjustments FROM one_prod_app;
 
 -- 文件服务（ADR-0060、0061、0070；one-data 签发 IMP-1021-COO-02 单元 3）：只追加表与状态转换表运行角色只留 SELECT、INSERT；
 -- 其余表运行角色不持有 DELETE 与 TRUNCATE（保存类别根表可改名称，其余由触发器限定只改状态或确认列）；视图只读。

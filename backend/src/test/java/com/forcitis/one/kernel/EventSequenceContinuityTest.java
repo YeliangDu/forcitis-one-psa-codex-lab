@@ -137,6 +137,18 @@ class EventSequenceContinuityTest {
     }
 
     @Test
+    @DisplayName("OrgStructureCommand: events are numbered 1..n")
+    void orgStructureCommand() {
+        checkMany(() -> com.forcitis.one.organization.workforce.domain.OrgStructureCommand.enter(
+                        new com.forcitis.one.organization.workforce.api.OrgStructureCommandId(TestIds.uuid(1)),
+                        new com.forcitis.one.organization.workforce.api.EnterOrgStructureCommand(com.forcitis.one.organization.workforce.api.OrgStructureTargetKind.ORG_UNIT,
+                                com.forcitis.one.organization.workforce.api.OrgStructureCommandKind.SET_ATTRIBUTES,
+                                new com.forcitis.one.organization.workforce.api.OrgUnitId(TestIds.uuid(2)), null, TODAY, null, "Synthetic", null, null, null, null, null, null, null, null),
+                        TestIds.uuid(4), new UserId(TestIds.uuid(3)), NOW, TODAY),
+                List.of(com.forcitis.one.organization.workforce.domain.OrgStructureCommand::recordEffect, c -> c.withdraw(new UserId(TestIds.uuid(3)), "synthetic", NOW)));
+    }
+
+    @Test
     @DisplayName("StoredFile: no events, the lock version still moves once per save")
     void storedFile() {
         checkMany(() -> com.forcitis.one.platform.file.domain.StoredFile.restore(new com.forcitis.one.platform.file.api.FileId(TestIds.uuid(4)),

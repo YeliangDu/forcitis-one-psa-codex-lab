@@ -1,20 +1,5 @@
-# platform.approval 提议术语（proposed，待业务评审，ADR-0018）。单词级术语：服务于代码标识、URL、事件键、错误码的命名守护。
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
 terms:
-- id: error__platform_approval_task_not_found
-  zh: 任务不存在
-  en: PlatformApprovalTaskNotFound
-  snake: platform_approval_task_not_found
-  kind: error_code
-  bc: platform.approval
-  scope: domain
-  definition: 审批任务不存在或已办结，或办理人无权看到它（404）
-  standard_ref:
-  - docs/architecture/proposals/phase1-a-platform-conventions.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__platform_approval_task_already_claimed
   zh: 任务已被认领
   en: PlatformApprovalTaskAlreadyClaimed
@@ -28,8 +13,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_decision_empty
   zh: 未给出办理决定
   en: PlatformApprovalDecisionEmpty
@@ -43,8 +29,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_decision_duplicate_task
   zh: 任务重复办理
   en: PlatformApprovalDecisionDuplicateTask
@@ -58,8 +45,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_decision_cross_instance
   zh: 跨流程实例办理
   en: PlatformApprovalDecisionCrossInstance
@@ -73,8 +61,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_decision_single_only
   zh: 同一节点只办一次
   en: PlatformApprovalDecisionSingleOnly
@@ -88,8 +77,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_hook_blocked
   zh: 钩子拒绝办理
   en: PlatformApprovalHookBlocked
@@ -103,8 +93,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_hook_not_registered
   zh: 钩子未登记
   en: PlatformApprovalHookNotRegistered
@@ -118,8 +109,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_request_not_found
   zh: 审批请求不存在
   en: PlatformApprovalRequestNotFound
@@ -133,8 +125,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_no_route
   zh: 没有走向
   en: PlatformApprovalNoRoute
@@ -148,23 +141,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
-- id: error__platform_approval_no_process
-  zh: 没有审批流程
-  en: PlatformApprovalNoProcess
-  snake: platform_approval_no_process
-  kind: error_code
-  bc: platform.approval
-  scope: domain
-  definition: 该单据类型没有审批流程，报价上线前审批只受理工时（422，AP-14、ADR-0030 U-3）
-  standard_ref:
-  - ADR-0030 U-3
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1021-NX5-01 RULING-COORD-20261021-03
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_document_type_unregistered
   zh: 审批单据类型未登记
   en: PlatformApprovalDocumentTypeUnregistered
@@ -178,8 +157,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: IMP-1021-NX5-02 错误码项
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_routing_flag_unknown
   zh: 路由标记未知
   en: PlatformApprovalRoutingFlagUnknown
@@ -193,8 +173,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_form_field_unknown
   zh: 审批表单字段未登记
   en: PlatformApprovalFormFieldUnknown
@@ -208,8 +189,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: R-1b P4 D5-06 / RULING-P4-D10 登记
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_round_mismatch
   zh: 轮次不符
   en: PlatformApprovalRoundMismatch
@@ -223,8 +205,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_already_approved
   zh: 审批已通过
   en: PlatformApprovalAlreadyApproved
@@ -238,8 +221,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_cutoff_passed
   zh: 已过撤回截止点
   en: PlatformApprovalCutoffPassed
@@ -253,8 +237,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_not_initiator
   zh: 不是发起人
   en: PlatformApprovalNotInitiator
@@ -268,8 +253,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_not_administrator
   zh: 不是流程管理员
   en: PlatformApprovalNotAdministrator
@@ -283,23 +269,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
-- id: error__platform_approval_transfer_target_invalid
-  zh: 转交对象无效
-  en: PlatformApprovalTransferTargetInvalid
-  snake: platform_approval_transfer_target_invalid
-  kind: error_code
-  bc: platform.approval
-  scope: domain
-  definition: 被转交或改派的人必须在职、不是发起人、在该节点还没有任务（422）
-  standard_ref:
-  - docs/architecture/proposals/phase1-a-platform-conventions.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_assignee_input_invalid
   zh: 取人输入无效
   en: PlatformApprovalAssigneeInputInvalid
@@ -313,8 +285,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_no_assignee_found
   zh: 找不到处理人
   en: PlatformApprovalNoAssigneeFound
@@ -328,8 +301,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_process_not_deployed
   zh: 审批流程未部署
   en: PlatformApprovalProcessNotDeployed
@@ -343,8 +317,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: IMP-1023-NX5-01（卡 713）调度裁定新增专用码，不复用 NO_PROCESS
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_escalation_target_missing
   zh: 升级对象缺失
   en: PlatformApprovalEscalationTargetMissing
@@ -358,8 +333,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_web_version_required
   zh: 缺少版本条件
   en: PlatformWebVersionRequired
@@ -373,8 +349,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_web_version_malformed
   zh: 版本条件格式错误
   en: PlatformWebVersionMalformed
@@ -388,8 +365,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_web_version_mismatch
   zh: 版本条件不符
   en: PlatformWebVersionMismatch
@@ -403,8 +381,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_node_config_invalid
   zh: 节点配置无效
   en: PlatformApprovalNodeConfigInvalid
@@ -418,8 +397,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_approval_page_invalid
   zh: 翻页参数无效
   en: PlatformApprovalPageInvalid
@@ -433,117 +413,6 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
-common_words:
-- advice
-- already
-- applicable
-- available
-- before
-- block
-- blocked
-- can
-- codec
-- collected
-- commit
-- context
-- cross
-- first
-- hook
-- inside
-- may
-- merge
-- merged
-- merger
-- named
-- only
-- refused
-- registered
-- required
-- resolution
-- resolved
-- resolver
-- single
-- sub
-- supplement
-- unresolved
-- warn
-- when
-- transition
-- illegal
-- concurrent
-- cutoff
-- passed
-- enforce
-- escalation
-- countersign
-- withdraw
-- cancel
-- overdue
-- deadline
-- transfer
-- transferred
-- retract
-- digest
-- content
-- reminder
-- workday
-- node
-- nodes
-- policy
-- repeat
-- automatically
-- sequence
-- pending
-- closed
-- wrap
-- assemble
-- restart
-- begin
-- persisted
-- handler
-- stale
-- initiator
-- holder
-- holders
-- receivers
-- administrator
-- superior
-- superiors
-- legal
-- entity
-- document
-- documents
-- reference
-- config
-- calendar
-- add
-- assign
-- editable
-- escalate
-- loaded
-- pull
-- reassign
-- restore
-- revision
-- retraction
-- binding
-- nullable
-- advised
-- cursor
-- decided
-- handling
-- notice
-- ignored
-- auto
-- customize
-- history
-- automatic
-- future
-- moment
-- overview
-- precondition
-- reassigned
-- refusal
-- remind
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）

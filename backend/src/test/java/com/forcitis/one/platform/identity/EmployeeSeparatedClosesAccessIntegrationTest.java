@@ -72,6 +72,18 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
                 """).param("type", EmployeeSeparated.class.getName()).param("event", "%" + event.envelope().eventId() + "%").query(Long.class).single();
     }
 
+    /**
+     * Waits until every identity listener has finished the event. Two of them take EmployeeSeparated (the emergency-admin one and the one closing grants and sessions) and the
+     * first can finish long before the second commits, so "any completion" is not "handled"; the registry row is written at commit, so completions > 0 with nothing
+     * incomplete means all of them are done.
+     */
+    private void identityHandled(EmployeeSeparated event) {
+        await().atMost(DELIVERY).untilAsserted(() -> {
+            assertThat(identityCompletions(event)).as("identity listeners that completed the event").isPositive();
+            assertThat(identityIncomplete(event)).as("identity listeners still working on the event").isZero();
+        });
+    }
+
     private long identityIncomplete(EmployeeSeparated event) {
         return jdbc.sql("""
                 select count(*) from platform_integration.event_publication p
@@ -183,7 +195,7 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
         EmployeeSeparated event = separated(1003, LocalDate.of(2026, 10, 15));
         deliver(event);
 
-        await().atMost(DELIVERY).untilAsserted(() -> assertThat(identityCompletions(event)).isPositive());
+        identityHandled(event);
         assertThat(holdersOf("super_admin")).isZero();
         assertThat(roles(1003)).isZero();
         assertThat(identityIncomplete(event)).as("no identity listener left the event failed").isZero();
@@ -244,10 +256,7 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
         deliver(event);
         await().atMost(DELIVERY).untilAsserted(() -> assertThat(roles(1005)).isZero());
         await().atMost(DELIVERY).untilAsserted(() -> assertThat(domainEvents.of(EmergencyAdminDisabled.class)).hasSize(1));
-        await().atMost(DELIVERY).untilAsserted(() -> {
-            assertThat(identityCompletions(event)).isPositive();
-            assertThat(identityIncomplete(event)).isZero();
-        });
+        identityHandled(event);
         long firstCompletions = identityCompletions(event);
         deliver(event);
 
@@ -347,7 +356,7 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
 
         deliver(event);
 
-        await().atMost(DELIVERY).untilAsserted(() -> assertThat(identityCompletions(event)).isPositive());
+        identityHandled(event);
         assertThat(identityIncomplete(event)).isZero();
         assertThat(count("user_accounts")).isZero();
         assertThat(count("account_role_grants where effective_to_at is null")).isZero();

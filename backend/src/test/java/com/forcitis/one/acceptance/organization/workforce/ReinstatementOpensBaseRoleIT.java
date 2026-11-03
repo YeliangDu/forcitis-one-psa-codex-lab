@@ -21,8 +21,10 @@ import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -152,27 +154,38 @@ class ReinstatementOpensBaseRoleIT extends PersonnelCommandSupport {
 
     /**
      * Waits until platform.identity's listener has finished the event: at least one identity publication of it exists and none of its
-     * publications is still open. A listener that throws, or never runs, leaves this waiting and the case red.
+     * publications is still open. A listener that throws, or never runs, leaves this waiting and the case red; the failure lists the
+     * publications of the event that are still open, so a timeout names its cause.
      */
-    private void identityHandled(EmployeeReinstated event) {
+    private void identityHandled(EmployeeReinstated event) throws SQLException {
         String id = event.envelope().eventId().toString();
-        Awaitility.await().atMost(SETTLE).pollInterval(Duration.ofMillis(100)).until(() -> {
-            try (Connection registry = schemaConnection("platform_integration")) {
-                long identity = 0;
-                long open = 0;
-                for (String table : List.of("event_publication", "event_publication_archive")) {
-                    for (var row : query(registry, "select listener_id, completion_date from " + table + " where serialized_event like ?", "%" + id + "%")) {
-                        if (String.valueOf(row.get("listener_id")).contains(".platform.identity.")) {
-                            identity++;
-                        }
-                        if (row.get("completion_date") == null) {
-                            open++;
-                        }
-                    }
-                }
-                return identity > 0 && open == 0;
+        try {
+            Awaitility.await().atMost(SETTLE).pollInterval(Duration.ofMillis(100)).until(() -> {
+                List<Map<String, Object>> publications = publicationsOf(id);
+                long identity = publications.stream().filter(row -> String.valueOf(row.get("listener_id")).contains(".platform.identity.")).count();
+                return identity > 0 && publications.stream().noneMatch(row -> row.get("completion_date") == null);
+            });
+        } catch (ConditionTimeoutException timeout) {
+            throw new AssertionError("identity did not finish event " + id + " within " + SETTLE + "; publications of the event (open ones have no completion): "
+                    + describeOpen(publicationsOf(id)), timeout);
+        }
+    }
+
+    private List<Map<String, Object>> publicationsOf(String eventId) throws SQLException {
+        List<Map<String, Object>> found = new ArrayList<>();
+        try (Connection registry = schemaConnection("platform_integration")) {
+            for (String table : List.of("event_publication", "event_publication_archive")) {
+                found.addAll(query(registry, "select listener_id, status, completion_attempts, completion_date from " + table + " where serialized_event like ?",
+                        "%" + eventId + "%"));
             }
-        });
+        }
+        return found;
+    }
+
+    private static String describeOpen(List<Map<String, Object>> publications) {
+        List<String> open = publications.stream().filter(row -> row.get("completion_date") == null)
+                .map(row -> row.get("listener_id") + " status=" + row.get("status") + " attempts=" + row.get("completion_attempts")).toList();
+        return open.isEmpty() ? "none open, " + publications.size() + " in all and no identity listener among them" : String.join("; ", open);
     }
 
     private void revokeByOperations(UUID employee, String roleCode) {

@@ -75,16 +75,28 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
         grantByOperations(admin, "org_data_admin");
         administrator = signIn(admin);
         legalEntity = createLegalEntity(administrator, newLegalEntityCode("PC"), "Synthetic personnel command entity");
-        hr = staff(PERSONNEL_SPECIALIST_ROLE);
-        actIn(hr);
+        hr = buildPersonnelSpecialist();
+        if (hr != null) {
+            actIn(hr);
+        }
     }
 
-    protected PersonnelCommandsProbe commands() {
+    /** The 人事专员 of the world; the org-structure tests (#906) tolerate the role not being seeded yet, so that their red run shows their own reasons. */
+    protected Staff buildPersonnelSpecialist() throws Exception {
+        return staff(PERSONNEL_SPECIALIST_ROLE);
+    }
+
+    /** Sets the thread's security context to the acting caller again (see {@link #actIn}); the org-structure command tests (#906) share it. */
+    protected void restoreActing() {
         if (acting == null) {
             SecurityContextHolder.clearContext();
         } else {
             SecurityContextHolder.setContext(acting);
         }
+    }
+
+    protected PersonnelCommandsProbe commands() {
+        restoreActing();
         return PersonnelCommandsProbe.of(context, AccountsAcceptanceSupport::employeeIdOf);
     }
 
@@ -114,9 +126,18 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
     }
 
     private UUID employed(String phase, boolean withPosition) throws Exception {
-        UUID position = withPosition ? newPosition() : null;
+        return employedIn(unit, phase, withPosition);
+    }
+
+    /** As {@link #employed}, in the given unit (the org-structure command tests of #906 need people in several units). */
+    protected UUID employedIn(UUID orgUnit, String phase, boolean withPosition) throws Exception {
+        return employedAs(orgUnit, phase, withPosition ? newPosition() : null);
+    }
+
+    /** As {@link #employedIn}, holding the given position (null: a legacy assignment without one). */
+    protected UUID employedAs(UUID orgUnit, String phase, UUID position) throws Exception {
         UUID id = newEmployeeId();
-        employee(id, unit, null);
+        employee(id, orgUnit, null);
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, """
                     insert into employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
@@ -134,7 +155,7 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
                 update(workforce, AssignmentRoots.withRoot("""
                     insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
                       change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root),
-                    AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), stored(id), SINCE, stored(unit), position,
+                    AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), stored(id), SINCE, stored(orgUnit), position,
                     OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC), OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC)));
             }
         }
