@@ -31,7 +31,7 @@ class OrgMergeProgress {
 
     /** The merges in progress that hold the employee, their merged units locked; call before the employee row is locked. */
     List<OrgStructureCommandId> lockHolding(EmployeeId employee) {
-        List<OrgStructureCommandId> holding = commands.mergesInProgressHolding(employee);
+        List<OrgStructureCommandId> holding = commands.mergesInProgressOf(employee);
         for (OrgStructureCommandId id : holding) {
             commands.lockOrgUnit(commands.find(id).orElseThrow().targetOrgUnitId());
         }

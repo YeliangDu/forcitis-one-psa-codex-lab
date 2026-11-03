@@ -112,13 +112,13 @@ class OrgMergeProgressTest {
     @Test
     @DisplayName("#910 S2 one-design 6589166321 rule 1: the units of the merges holding the employee are locked, in the order the repository lists them, before the caller locks the employee")
     void theHoldingUnitsAreLockedFirst() {
-        when(commands.mergesInProgressHolding(A)).thenReturn(List.of(MERGE));
+        when(commands.mergesInProgressOf(A)).thenReturn(List.of(MERGE));
         when(commands.find(MERGE)).thenReturn(Optional.of(merge(3, 1)));
 
         assertThat(progress.lockHolding(A)).containsExactly(MERGE);
 
         InOrder order = inOrder(commands);
-        order.verify(commands).mergesInProgressHolding(A);
+        order.verify(commands).mergesInProgressOf(A);
         order.verify(commands).lockOrgUnit(MERGED);
     }
 }

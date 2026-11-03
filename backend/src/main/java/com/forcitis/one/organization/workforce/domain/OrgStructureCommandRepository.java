@@ -118,7 +118,7 @@ public interface OrgStructureCommandRepository {
     List<BlockingArrival> arrivalsAfter(OrgUnitId orgUnit, LocalDate day);
 
     /** The merges in progress whose merged unit holds the employee's primary post on the merge day, in id order (the order their unit rows are locked in). */
-    List<OrgStructureCommandId> mergesInProgressHolding(EmployeeId employee);
+    List<OrgStructureCommandId> mergesInProgressOf(EmployeeId employee);
 
     /** Whether the merge already generated a transfer for the employee, whatever became of it. */
     boolean hasGeneratedTransfer(OrgStructureCommandId merge, EmployeeId employee);

@@ -196,6 +196,8 @@ aggregates:
   - OrgCountersignBases
   - OrgCountersignFreeze
   - OrgCountersigns
+  - OrgMergeCompletion
+  - OrgMergeProgress
   - OrgMergeSteps
   - OrgPlans
   - OrgStructureCommandService

@@ -164,7 +164,7 @@ class PersonnelCommandService implements PersonnelCommands {
                 // The merge's transfer is exempt when the person's entity change is the one the merge's heads approved (ADR-0073 guard 1); any other change waits for its own
                 // countersign. The recorder is the system actor, whose account names no employee, so the own-entry check has nobody to test.
                 if (mergeProgress.approved(merge, employee, basis)) {
-                    command.exemptChange(basis.previous(), basis.next());
+                    command.changeApprovedByMerge(basis.previous(), basis.next());
                 } else {
                     command.requireCountersign(basis.previous(), basis.next());
                 }

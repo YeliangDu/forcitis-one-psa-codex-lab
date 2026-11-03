@@ -505,14 +505,14 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     }
 
     @Override
-    public List<OrgStructureCommandId> mergesInProgressHolding(EmployeeId employee) {
+    public List<OrgStructureCommandId> mergesInProgressOf(EmployeeId employee) {
         return jdbc.sql("""
                 select c.org_structure_command_id from organization_workforce.org_structure_commands c
                  where c.command_kind = 'MERGE' and c.status = 'IN_PROGRESS'
                    and exists (select 1 from organization_workforce.assignment_versions a
                                 where a.employee_id = :employee and a.org_unit_id = c.target_org_unit_id and a.assignment_kind = 'PRIMARY' and a.superseded_at is null
                                   and a.effective_from_date <= c.effective_date and (a.effective_to_date is null or a.effective_to_date > c.effective_date))
-                 order by c.target_org_unit_id, c.org_structure_command_id
+                 order by c.effective_date, c.target_org_unit_id, c.org_structure_command_id
                 """).param("employee", employee.value()).query((rs, n) -> new OrgStructureCommandId(rs.getObject(1, UUID.class))).list();
     }
 

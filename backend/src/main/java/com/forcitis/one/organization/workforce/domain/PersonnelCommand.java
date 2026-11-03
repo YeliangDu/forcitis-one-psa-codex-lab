@@ -43,8 +43,8 @@ public final class PersonnelCommand extends AggregateRoot {
     private final @Nullable LegalEntityId targetLegalEntityId;
     private @Nullable LegalEntityId countersignPreviousLegalEntityId;
     private @Nullable LegalEntityId countersignNewLegalEntityId;
-    private @Nullable LegalEntityId exemptPreviousLegalEntityId;
-    private @Nullable LegalEntityId exemptNewLegalEntityId;
+    private @Nullable LegalEntityId approvedPreviousLegalEntityId;
+    private @Nullable LegalEntityId approvedNewLegalEntityId;
     private @Nullable AssignmentId targetAssignmentId;
     private @Nullable AssignmentKind targetAssignmentKind;
     private final UserId createdBy;
@@ -251,12 +251,12 @@ public final class PersonnelCommand extends AggregateRoot {
      * A transfer a countersigned merge generates whose cost legal entity change is the one the merge's heads approved: it waits for nothing and stores no basis (the merge
      * holds it), but the change is announced when the command takes effect, like that of a command that waited.
      */
-    public void exemptChange(LegalEntityId previous, LegalEntityId next) {
+    public void changeApprovedByMerge(LegalEntityId previous, LegalEntityId next) {
         if (orgStructureCommandId == null || previous.equals(next)) {
-            throw invalid("only a transfer of a merge is exempt, and from a real change");
+            throw invalid("only a transfer of a merge carries the change its heads approved, and only a real change");
         }
-        exemptPreviousLegalEntityId = previous;
-        exemptNewLegalEntityId = next;
+        approvedPreviousLegalEntityId = previous;
+        approvedNewLegalEntityId = next;
     }
 
     /**
@@ -350,8 +350,8 @@ public final class PersonnelCommand extends AggregateRoot {
         PersonnelCommandEvents.of(this, assignmentBefore, assignmentAfter, legalEntity).ifPresent(this::record);
         if (countersignNewLegalEntityId != null) {
             record(PersonnelCommandEvents.legalEntityChanged(this, Objects.requireNonNull(countersignPreviousLegalEntityId), countersignNewLegalEntityId));
-        } else if (exemptNewLegalEntityId != null) {
-            record(PersonnelCommandEvents.legalEntityChanged(this, Objects.requireNonNull(exemptPreviousLegalEntityId), exemptNewLegalEntityId));
+        } else if (approvedNewLegalEntityId != null) {
+            record(PersonnelCommandEvents.legalEntityChanged(this, Objects.requireNonNull(approvedPreviousLegalEntityId), approvedNewLegalEntityId));
         }
     }
 
