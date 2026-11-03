@@ -91,7 +91,7 @@ class OrgMergeSteps {
         return people;
     }
 
-    /** Moves one person into the receiving unit; one who something else has moved out since the list was made is counted as done. */
+    /** Moves one person into the receiving unit; one who something else has moved out since the list was made is counted as done. The employee is locked before the check, so a command that holds the person has committed when the check reads. */
     @Transactional
     public void move(OrgStructureCommandId id, EmployeeId employee, UUID actor) {
         OrgStructureCommand merge = lockedMerge(id);
@@ -99,6 +99,7 @@ class OrgMergeSteps {
             return;
         }
         long loaded = merge.version();
+        commands.lockEmployee(employee);
         if (commands.employedIn(merge.targetOrgUnitId(), merge.effectiveDate()).contains(employee)) {
             personnel.enter(new EnterPersonnelCommand(employee, PersonnelCommandKind.TRANSFER, merge.effectiveDate(), null, merge.mergeIntoOrgUnitId(), null, null, null, null,
                     null, null, null, null), new UserId(actor), merge.id());

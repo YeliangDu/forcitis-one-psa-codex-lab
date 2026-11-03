@@ -74,6 +74,11 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     }
 
     @Override
+    public boolean lockEmployee(EmployeeId employee) {
+        return jdbc.sql("select 1 from organization_workforce.employees where id = :id for update").param("id", employee.value()).query(Integer.class).optional().isPresent();
+    }
+
+    @Override
     public void lockOrgTree() {
         jdbc.sql("select pg_advisory_xact_lock(hashtextextended('organization.workforce.org-tree', 0))").query().singleRow();
     }

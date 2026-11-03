@@ -653,6 +653,36 @@ class OrgMergeSafetyIT {
     }
 
     @Test
+    @DisplayName("#907 终审四轮 M1：合并转人先锁员工行再看人还在不在被并入单元：人事刚把此人调去别的单元（提交晚于合并开始），合并不再把他从别处转走，也不生成调岗")
+    void aMoveDoesNotOverrideATransferThatCommitsWhileItWaitsForTheEmployee() throws Exception {
+        UUID merged = unit();
+        UUID elsewhere = unit();
+        UUID resident = person(merged, "REGULAR");
+        UUID position = jdbc.sql("select position_id from organization_workforce.assignment_versions where employee_id = :id").param("id", resident).query(UUID.class).single();
+        OrgStructureCommandId merge = aDueMerge(merged);
+        Connection holder = lock("positions", position);
+        signIn(PERSONNEL_PERMISSION);
+        CompletableFuture<?> transfer = asCaller(() -> personnel.enter(new EnterPersonnelCommand(new EmployeeId(resident), PersonnelCommandKind.TRANSFER, today.minusDays(1), null,
+                new OrgUnitId(elsewhere), new com.forcitis.one.organization.workforce.api.PositionId(position), null, null, null, null, null, null, null)));
+        awaitBlocked("%insert into organization_workforce.personnel_commands%", 1);
+        signIn(ORG_PERMISSION);
+
+        CompletableFuture<Void> run = asCaller(() -> {
+            commands.executeMerge(merge);
+            return null;
+        });
+
+        awaitBlocked("%from organization_workforce.employees where id = %for update%", 1);
+        holder.commit();
+        holder.close();
+        transfer.get(30, TimeUnit.SECONDS);
+        run.get(30, TimeUnit.SECONDS);
+
+        assertThat(unitOf(resident, today)).as("the person stays where HR put them").isEqualTo(elsewhere);
+        assertThat(commandStatus(merge)).isEqualTo("EFFECTIVE");
+    }
+
+    @Test
     @DisplayName("#907 终审 M4：合并开始时再校验承接单元：录入之后承接单元被撤销（写在命令之外），开始被拒，合并仍待生效、没有调岗")
     void startingAMergeChecksTheReceivingUnitAgain() {
         UUID merged = unit();

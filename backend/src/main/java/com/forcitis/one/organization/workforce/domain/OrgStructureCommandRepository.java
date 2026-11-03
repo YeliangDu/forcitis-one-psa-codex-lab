@@ -25,6 +25,9 @@ public interface OrgStructureCommandRepository {
      */
     boolean lockOrgUnit(OrgUnitId orgUnit);
 
+    /** Locks the employee root row for the rest of the transaction (after the org unit root); false when there is no such employee. */
+    boolean lockEmployee(EmployeeId employee);
+
     /**
      * Takes the transaction-level advisory lock every write of the org tree takes first (entering and withdrawing a command, starting a merge): the tree rules
      * read rows of other units, so two commands that are fine alone but wrong together would otherwise both pass. Order: this lock, then the unit root, then the employee root.
