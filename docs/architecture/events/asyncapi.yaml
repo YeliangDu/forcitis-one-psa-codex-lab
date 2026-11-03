@@ -4471,7 +4471,7 @@ components:
     EmployeeCorrected:
       name: EmployeeCorrected
       title: 员工人事已更正
-      description: 更正命令改变了截至今天的部门、岗位、在职状态或直属领导时发布；只改历史时只写审计、不发布。负载为人事命令 ID、员工 ID 与受影响区间，信封 businessDate 为更正命令的生效日（ADR-0068 第 1 条第 9 项）。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
+      description: 更正命令改变了截至今天的部门、岗位、在职状态或直属领导时发布；只改历史时只写审计、不发布。负载为人事命令 ID、员工 ID、受影响区间，另带触发字段与截至今天更正前后的部门和岗位（供待调整权限按（人，人事命令 ID，触发字段）去重，ADR-0081 第 3 项）；信封 businessDate 为更正命令的生效日（ADR-0068 第 1 条第 9 项）。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
       x-event:
         eventType: organization.workforce.EmployeeCorrected
         version: 1
@@ -4495,6 +4495,11 @@ components:
         - employeeId
         - affectedFrom
         - affectedTo
+        - triggerFieldKinds
+        - previousOrgUnitId
+        - newOrgUnitId
+        - previousPositionId
+        - newPositionId
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -4517,6 +4522,39 @@ components:
             x-type: LocalDate
             nullable: true
             description: 受影响区间的结束日（不含）；为空表示至今仍受影响
+          triggerFieldKinds:
+            type: array
+            items:
+              type: string
+              enum:
+              - ORG_UNIT
+              - POSITION
+              x-type: TriggerFieldKind
+            description: 更正使截至今天的任职中哪些字段的值前后不同：ORG_UNIT 部门 / POSITION 岗位；两者都没变时为空列表。撤销错误离职（更正使离职的人重新在职）只列 ORG_UNIT，不列 POSITION（ADR-0082 第 2 项）
+          previousOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            nullable: true
+            description: 更正前截至今天的部门；那时没有任职时为空
+          newOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            nullable: true
+            description: 更正后截至今天的部门；没改部门时与更正前相同，那时没有任职时为空
+          previousPositionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            nullable: true
+            description: 更正前截至今天的岗位；那时没有任职或任职未设岗位时为空
+          newPositionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            nullable: true
+            description: 更正后截至今天的岗位；没改岗位时与更正前相同，没有任职或未设岗位时为空
     SeparationHeld:
       name: SeparationHeld
       title: 离职已转待放行

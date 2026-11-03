@@ -1,8 +1,10 @@
 package com.forcitis.one.organization.workforce.domain;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Everything the rules and the timeline need about one employee, read after the employee row is locked: every version row of both tables (superseded
@@ -17,6 +19,11 @@ public record PersonnelHistory(List<VersionRow> employeeRows, List<VersionRow> a
 
     public List<VersionRow> currentAssignmentRows() {
         return current(assignmentRows);
+    }
+
+    /** The assignment that covers the day among the current rows, if any. */
+    public @Nullable VersionRow assignmentOn(LocalDate day) {
+        return currentAssignmentRows().stream().filter(row -> row.covers(day)).findFirst().orElse(null);
     }
 
     private static List<VersionRow> current(List<VersionRow> rows) {
