@@ -1,13 +1,8 @@
 package com.forcitis.one.organization.workforce.api;
 
-/**
- * The organisation snapshot's verdict on whether one employee is employed (ADR-0033 section 3 item 7). SEPARATED is said even by a stale
- * snapshot; NOT_LISTED only by a current one; SNAPSHOT_UNAVAILABLE when the snapshot has never synced or is stale and does not list the
- * person as separated.
- */
+/** Whether one employee is employed today (ADR-0033 section 3 item 7), judged from the employee's versions, or from the snapshot row of a person without versions. */
 public enum EmploymentVerdict {
     EMPLOYED,
     SEPARATED,
-    NOT_LISTED,
-    SNAPSHOT_UNAVAILABLE
+    NOT_LISTED
 }

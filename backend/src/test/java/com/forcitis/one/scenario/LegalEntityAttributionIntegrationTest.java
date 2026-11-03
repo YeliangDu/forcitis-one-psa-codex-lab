@@ -29,12 +29,10 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.workforce.api.EmployeeLegalEntities;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.application.CreateLegalEntity;
-import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
+import com.forcitis.one.organization.workforce.application.SnapshotSeeder;
 import com.forcitis.one.organization.workforce.application.WorkforceIntegrationSupport;
-import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.organization.workforce.events.LegalEntityAttributed;
 import com.forcitis.one.platform.identity.api.Permission;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,9 +52,6 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
 
     @Autowired
     MockMvc mvc;
-
-    @Autowired
-    SyncOrgSnapshot sync;
 
     @Autowired
     CreateLegalEntity createLegalEntity;
@@ -102,7 +97,19 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, parentOfUnit3), unit(4, null)),
                 List.of(head(2, 1), manager(2, 2)), List.of(post(100), post(101)),
                 List.of(person(1, 2, 100L, null), person(2, 3, 101L, 1L), person(3, 3, 101L, 2L)));
-        sync.execute(SyncTrigger.SCHEDULED, false);
+        SnapshotSeeder.seed(jdbc, orgSource.snapshot);
+        // The resolution reads the tree on a date from the version tables; since #934 nothing in main writes org unit versions, so the fixture opens one per row.
+        jdbc.sql("""
+                insert into organization_workforce.org_unit_versions (org_unit_version_id, org_unit_id, effective_from_date, code, name, parent_org_unit_id, status,
+                       head_employee_id, regional_receivables_manager_id, region_kind, is_delivery_unit, revision_number)
+                select uuidv7(), id, :day, code, name, parent_org_unit_id, status, head_employee_id, regional_receivables_manager_id, region_category, is_delivery_unit, 0
+                  from organization_workforce.org_units
+                """).param("day", today()).update();
+        jdbc.sql("""
+                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
+                       reports_to_employee_id, revision_number)
+                select uuidv7(), employee_id, :day, org_unit_id, position_id, reports_to_employee_id, 0 from organization_workforce.assignments
+                """).param("day", today()).update();
     }
 
     private static String unitText(long n) {
@@ -127,32 +134,17 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
     }
 
     @Test
-    @DisplayName("T1 a sync writes the first version of every org unit and assignment; an unchanged sync adds none")
-    void firstVersions() {
-        synced(2L);
-        assertThat(count("org_unit_versions")).isEqualTo(4);
-        assertThat(count("assignment_versions")).isEqualTo(3);
-
-        sync.execute(SyncTrigger.SCHEDULED, false);
-
-        assertThat(count("org_unit_versions")).isEqualTo(4);
-        assertThat(count("assignment_versions")).isEqualTo(3);
-    }
-
-    @Test
-    @DisplayName("T1 a change on a later day closes the open version at that day and starts a new one; the earlier day still sees the old tree")
-    void changeClosesTheVersion() throws Exception {
+    @DisplayName("ADR-0026 the resolution reads the tree of the day: after unit 3 moves under unit 4, the earlier day still resolves through the old parent")
+    void resolutionFollowsTheTreeOfTheDay() throws Exception {
         synced(2L);
         LocalDate first = today();
-        clock.advance(Duration.ofDays(3));
-        orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, 4L), unit(4, null)),
-                List.of(head(2, 1), manager(2, 2)), List.of(post(100), post(101)),
-                List.of(person(1, 2, 100L, null), person(2, 3, 101L, 1L), person(3, 3, 101L, 2L)));
-        sync.execute(SyncTrigger.SCHEDULED, false);
-
-        assertThat(count("org_unit_versions")).isEqualTo(5);
-        assertThat(jdbc.sql("select effective_to_date from organization_workforce.org_unit_versions where org_unit_id = " + sqlOrgUnit(3) + " order by effective_from_date limit 1")
-                .query(java.sql.Date.class).single().toLocalDate()).isEqualTo(first.plusDays(3));
+        jdbc.sql("update organization_workforce.org_unit_versions set effective_to_date = :to, closed_at = now() where org_unit_id = " + sqlOrgUnit(3) + " and effective_to_date is null")
+                .param("to", first.plusDays(3)).update();
+        jdbc.sql("""
+                insert into organization_workforce.org_unit_versions (org_unit_version_id, org_unit_id, effective_from_date, code, name, parent_org_unit_id, status,
+                       is_delivery_unit, revision_number)
+                select uuidv7(), id, :from, code, name, %s, status, is_delivery_unit, 0 from organization_workforce.org_units where id = %s
+                """.formatted(sqlOrgUnit(4), sqlOrgUnit(3))).param("from", first.plusDays(3)).update();
 
         attributeOrgUnit(1, le1, first);
         attributeOrgUnit(4, le2, first);

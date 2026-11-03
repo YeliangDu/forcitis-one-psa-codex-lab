@@ -46,7 +46,7 @@ abstract class GrantStoreSupport extends AccountsAcceptanceSupport {
     static final String REVOKED_ACTION = "platform.identity.account.role.revoked";
 
     /** Permission codes that need no second person and are in none of the seeded roles an ordinary account holds (as in role_versioning). */
-    static final List<String> PLAIN_CODES = List.of("organization.workforce:org-unit:read", "organization.workforce:sync-run:read",
+    static final List<String> PLAIN_CODES = List.of("organization.workforce:org-unit:read", "cost.timesheet:timesheet:submit",
             "platform.numbering:numbering-rule:read", "organization.attendance:work-calendar:read", "platform.numbering:legacy-number:read");
 
     /** One row of platform_identity.account_role_grants with the code of its role. */

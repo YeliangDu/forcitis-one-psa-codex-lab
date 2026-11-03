@@ -87,13 +87,17 @@ class ClassificationRegisterTest {
                 "x.t.base_email_address", new ClassificationRegister.Row("INTERNAL", "PI", "用途：x"),
                 "x.t.home_address", new ClassificationRegister.Row("INTERNAL", "PI", "用途：x"),
                 "x.t.last_login_address", new ClassificationRegister.Row("INTERNAL", "PI", "用途：x"),
-                "x.t.email_address_hash", new ClassificationRegister.Row("INTERNAL", "PI", "用途：x"));
+                "x.t.email_address_hash", new ClassificationRegister.Row("INTERNAL", "PI", "用途：x"),
+                "x.t.voicemail_address", new ClassificationRegister.Row("INTERNAL", "PI", "用途：x"),
+                "x.t.remail_address", new ClassificationRegister.Row("INTERNAL", "PI", "用途：x"));
         List<String> problems = ClassificationRegister.problems(
-                Set.of("x.t.email_address", "x.t.base_email_address", "x.t.home_address", "x.t.last_login_address", "x.t.email_address_hash"), register);
+                Set.of("x.t.email_address", "x.t.base_email_address", "x.t.home_address", "x.t.last_login_address", "x.t.email_address_hash", "x.t.voicemail_address", "x.t.remail_address"), register);
         assertThat(problems).noneMatch(p -> p.startsWith("x.t.email_address ") || p.startsWith("x.t.base_email_address"))
                 .anyMatch(p -> p.startsWith("x.t.home_address") && p.contains("SENSITIVE or RESTRICTED"))
                 .anyMatch(p -> p.startsWith("x.t.last_login_address") && p.contains("SENSITIVE or RESTRICTED"))
-                .anyMatch(p -> p.startsWith("x.t.email_address_hash") && p.contains("SENSITIVE or RESTRICTED"));
+                .anyMatch(p -> p.startsWith("x.t.email_address_hash") && p.contains("SENSITIVE or RESTRICTED"))
+                .anyMatch(p -> p.startsWith("x.t.voicemail_address") && p.contains("SENSITIVE or RESTRICTED"))
+                .anyMatch(p -> p.startsWith("x.t.remail_address") && p.contains("SENSITIVE or RESTRICTED"));
         assertThat(ClassificationRegister.PERSON_NAME.matcher("email_address").find()).as("the mark PI stays required (DataArchitectureTest D5)").isTrue();
     }
 

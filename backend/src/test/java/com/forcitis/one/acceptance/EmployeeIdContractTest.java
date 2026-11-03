@@ -52,6 +52,16 @@ class EmployeeIdContractTest {
      */
     static final Set<String> OTHER_ID_NAMES_AFTER_P4 = Set.of("InboxItemResponse.taskId", "SyncDiffResponse.subjectKey");
 
+    /** The sync difference goes with the old sync (#934): once its response type is gone, so is its exception, and only the inbox one is left. */
+    static Set<String> expectedOtherIdNames() {
+        try {
+            Class.forName("com.forcitis.one.organization.workforce.web.SyncDiffResponse");
+            return OTHER_ID_NAMES_AFTER_P4;
+        } catch (ClassNotFoundException gone) {
+            return Set.of("InboxItemResponse.taskId");
+        }
+    }
+
     static final Set<String> OWN_ID_TYPES = Set.of("EmployeeId", "OrgUnitId", "PositionId");
 
     /** RULING-P3B-D5: the events of a legal entity attribution name their subject in two flat fields. */
@@ -145,7 +155,7 @@ class EmployeeIdContractTest {
         Field field = Class.forName("com.forcitis.one.OpenApiExportTest").getDeclaredField("OTHER_ID_NAMES");
         field.setAccessible(true);
 
-        assertThat((Set<String>) field.get(null)).containsExactlyInAnyOrderElementsOf(OTHER_ID_NAMES_AFTER_P4);
+        assertThat((Set<String>) field.get(null)).containsExactlyInAnyOrderElementsOf(expectedOtherIdNames());
     }
 
     @Test

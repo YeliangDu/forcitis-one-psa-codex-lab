@@ -11,10 +11,6 @@ import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.application.RegisterEmployeeOnLoginName;
-import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
-import com.forcitis.one.organization.workforce.application.SyncResult;
-import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
-import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.SessionRoles;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
@@ -22,8 +18,6 @@ import com.forcitis.one.platform.integration.api.OrgSource;
 import com.forcitis.one.platform.integration.api.StaffLookup;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -47,7 +41,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -58,7 +51,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.GenericContainer;
 
 /**
- * D1-1 (principles audit A 3-H1): a stalled A8 or old-system database must never hold a request thread. The sources are real SQL Server
+ * D1-1 (principles audit A 3-H1): a stalled A8 or old-system database must never hold a request thread. The cases of the organisation sync
+ * over a stalled source (and the sync half of the control) went with the sync in #934 (ADR-0055 section 6). The sources are real SQL Server
  * databases behind the real adapters; the stall is a table lock held by the test (WAITFOR cannot sit inside a view or a function, and a
  * held lock is how SQL Server hangs in production: it waits for ever by default), or a CPU-bound view that holds no lock at all.
  * The connection URLs carry no timeout: whatever stops the wait must come from how the application builds its external connections.
@@ -82,9 +76,6 @@ class StalledExternalSourceIT {
 
     static final Duration INTERACTIVE_BUDGET = Duration.ofMillis(3_000 + 1_500);
     static final Duration HARD_CAP_INTERACTIVE = Duration.ofSeconds(20);
-    /** The sync is a background job: ShedLock frees its lock after 4 minutes, so it must give up long before that. */
-    static final Duration BACKGROUND_BUDGET = Duration.ofSeconds(30);
-    static final Duration HARD_CAP_BACKGROUND = Duration.ofSeconds(45);
 
     static final String LOGIN_NAME = "13900008001";
     /** The old-system department of the short-name view. */
@@ -131,9 +122,6 @@ class StalledExternalSourceIT {
 
     @Autowired
     MockMvc mvc;
-
-    @Autowired
-    SyncOrgSnapshot sync;
 
     @Autowired
     RegisterEmployeeOnLoginName loginLookup;
@@ -195,28 +183,10 @@ class StalledExternalSourceIT {
     }
 
     @Test
-    @DisplayName("D1-1 对照：外部库不卡时 A8 登录名查得到人、简称读得到、同步成功")
+    @DisplayName("D1-1 对照：外部库不卡时 A8 登录名查得到人、简称读得到")
     void controlWithoutAnyStall() throws Exception {
         assertThat(a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME))).hasSize(1);
         assertThat(names.readShortNames()).hasSize(1);
-        SyncResult result = runSync();
-        assertThat(result.status()).as(result.note()).isNotEqualTo(SyncRunStatus.FAILED);
-    }
-
-    @Test
-    @DisplayName("D1-1 A8 组织视图卡住时同步失败并告警且不挂住")
-    void stalledA8ViewsFailTheSyncWithAnAlert(CapturedOutput output) throws Exception {
-        blockers.add(Blocker.hold(A8_WORLD, "dbo.ORG_UNIT"));
-        assertBlocked(A8_WORLD, "SELECT COUNT(*) FROM forcitis_one.v_org_unit");
-
-        Outcome<SyncResult> outcome = timed(HARD_CAP_BACKGROUND, () -> runSync());
-
-        assertThat(outcome.hung()).as("the sync is still waiting for the A8 views after %s: its thread and the ShedLock are held", HARD_CAP_BACKGROUND).isFalse();
-        assertThat(outcome.failure()).isNull();
-        assertThat(outcome.elapsed()).as("the sync gives up long before the 4 minutes of its lock").isLessThanOrEqualTo(BACKGROUND_BUDGET);
-        assertThat(outcome.value().status()).as("the run is recorded as failed, the snapshot stays").isEqualTo(SyncRunStatus.FAILED);
-        assertThat(output.getAll()).as("a failed sync raises an ALERT line").containsPattern("ALERT[^\\n]*organization\\.workforce[^\\n]*sync");
-        assertNoSessionStillWaiting(A8_READER);
     }
 
     @Test
@@ -303,13 +273,6 @@ class StalledExternalSourceIT {
                         + "WHERE e.login_name = '" + login + "'" + (blockedOnly ? " AND r.blocking_session_id <> 0" : ""))) {
             rs.next();
             return rs.getInt(1);
-        }
-    }
-
-    /** A scheduled job runs inside a work context; the sync records its failure as an event, which needs one. */
-    SyncResult runSync() {
-        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
-            return sync.execute(SyncTrigger.MANUAL, false);
         }
     }
 

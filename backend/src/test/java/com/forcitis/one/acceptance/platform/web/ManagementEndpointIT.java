@@ -34,7 +34,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
         "management.endpoints.web.exposure.include=health,prometheus,env,beans,heapdump"})
 class ManagementEndpointIT {
 
-    private static final String SYNC_LAG_METRIC = "forcitis_organization_workforce_sync_lag_seconds";
+    private static final String APPLICATION_METRIC = "forcitis_organization_attendance_calendar_unmaintained_total";
 
     @MockitoBean
     OrgUnitAccess orgUnitAccess;
@@ -80,7 +80,7 @@ class ManagementEndpointIT {
         HttpResponse<String> response = anonymousGet(managementPort, "/actuator/prometheus");
 
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).contains(SYNC_LAG_METRIC);
+        assertThat(response.body()).contains(APPLICATION_METRIC);
     }
 
     @Test
@@ -89,7 +89,7 @@ class ManagementEndpointIT {
         HttpResponse<String> response = anonymousGet(applicationPort, "/actuator/prometheus");
 
         assertThat(response.statusCode()).isIn(401, 403, 404);
-        assertThat(response.body()).doesNotContain(SYNC_LAG_METRIC);
+        assertThat(response.body()).doesNotContain(APPLICATION_METRIC);
     }
 
     @Test

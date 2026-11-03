@@ -26,11 +26,6 @@ entries:
     relation: pending
     invariants: []
     evidence: "依据：规划表 AGG-62 行（source_line 516）「人员（OBJ-56）」命令含「登记候选人/登记入职」等，事件列「人员已登记」；已建 RegisteredEmployee 无表、仅命令 PersistRegisteredEmployee 与事件 EmployeeRegistered，规划行未提 RegisteredEmployee 或 EmployeeRegistered，事件名与「人员已登记」是否同义、是否为 AGG-62 的早期切片无法由规划原文证实，候选 AGG-62，relation 待 one-architecture 定（可能 part-of）。"
-  - built: organization.workforce/SyncRun
-    planned: []
-    relation: none
-    invariants: ["RULE-358", "RULE-366"]
-    evidence: "依据：规划表 无对应：规划表 AGG-61/AGG-62/AGG-64 行均写「B-13 自有记录，撤 A8 同步快照来源，S-02」（source_line 515/516/518），130 条规划聚合中没有同步运行、同步差异、扣留离职的聚合；已建 SyncRun（表 sync_runs/sync_diffs/sync_run_held_separations）属于被规划撤销的同步来源路径，去向（退役或保留为迁入工具）须 one-architecture 判定。"
   - built: platform.approval/ApprovalRequest
     planned: []
     relation: none

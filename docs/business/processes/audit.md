@@ -138,7 +138,7 @@ flowchart TD
 |---|---|---|---|---|
 | 1 | `organization.workforce.legal-entity.created` | `organization/workforce/application/CreateLegalEntity.java:39` | 同 | 会话用户 |
 | 2 | `organization.workforce.legal-entity.updated` | `organization/workforce/application/UpdateLegalEntity.java:41` | 同 | 会话用户 |
-| 3 | `organization.workforce.sync-run.released` | `organization/workforce/application/RecordSyncRunRelease.java:31` | 同（但放行的同步在另一事务先行，见 §6 #23） | 会话用户 |
+| 3 | （已删除，#934：旧组织同步放行审计随旧同步一并删除，编号保留以免改动其余引用） | — | — | — |
 | 4 | `organization.workforce.employee.registered-on-login` | `organization/workforce/application/PersistRegisteredEmployee.java:34` | 同 | 空 |
 | 5 | `platform.identity.session.revoked` | `platform/identity/application/HandleOrgSnapshotChange.java:55` | 事件监听事务 | 空 |
 | 6 | `platform.identity.account.roles.replaced` | `platform/identity/application/ReplaceAccountRoles.java:67` | 同 | 会话用户 |
@@ -177,7 +177,7 @@ flowchart TD
 | 默认角色授予 / 跳过 | RULE-344 | 有（#10、#11） | |
 | 代理操作（操作人 + 被代理人） | C1a-17；125 | **缺失** | 无代理入口，`onBehalfOfId` 恒 null（`DOC/process/1a/审批通用流程.md` T16 已记「部分」） |
 | 代理通知被代理人 | 125 | **缺失** | 未实现 |
-| 组织同步放行 | 104 | 有（#3），但**无原因** | 放行接口只有路径参数与会话用户，无原因入参（`BE/organization/workforce/web/SyncRunController.java:46-60`；`ReleaseSyncRun.java:25-43`）；detail 为固定文案 |
+| 组织同步放行 | 104 | 已删除（#934） | 旧组织同步与放行接口已删除，不再有该审计动作 |
 | 法人维护 | 104 | 有（#1、#2） | 只有创建 / 更新，更新 detail 记更新后的状态与名称，不记前值 |
 | 编号模板确认 / 变更 | 用户任务清单 | **缺失** | `ConfigureNumberingRule.java:17-21` 无审计，`NumberingRuleController.java:48-57` 不传操作人 |
 | 审批转交 / 改派 | 128、124 | **缺失** | approval 内无转交 / 改派代码（`grep transfer|reassign` 无命中） |
@@ -203,7 +203,6 @@ flowchart TD
 - 多数调用点是**事务内同写**（`record`）：审批通过、驳回、退回、认领、角色与账号变更、法人维护、登录成功、登出。业务回滚则审计一并回滚，因此审计与审批状态一致（`DecideTasks.java:47,117`：同在 `@Transactional` 内）。
 - **失败类走独立事务**（登录失败、任务越权、发起越权），业务回滚也保留（`RecordAuditEntry.java:29-33`）。
 - **事件后写**只有一处：离职吊销审计在 `OrgSnapshotChanged` 的 `@ApplicationModuleListener` 中写（`HandleOrgSnapshotChange.java:33-56`），晚于同步事务提交；类注释说明请求时的主体校验兜底，吊销生效不依赖该事件（`:14`），但审计依赖事件投递。
-- **跨事务**一处：组织同步放行先在另一事务重新执行同步，再写放行审计（`ReleaseSyncRun.java:37-41`），两者不原子。
 - 审计**不驱动**任何业务状态，业务状态**不依赖**审计读取（审批状态机在 `platform.approval`，审计只记事实）。
 
 ---
@@ -213,7 +212,6 @@ flowchart TD
 - **审计条目（`audit_entries` 行）**：只追加，无状态；`updated_at` 恒等于 `created_at`（`V20261014134000...sql:26`）。`AuditEntry` 是值对象式记录（`BE/platform/audit/api/AuditEntry.java:7`），仓储接口只有保存与分页查询（`BE/platform/audit/domain/AuditEntryRepository.java`）。
 - **归档 / 保留状态**：1a 代码与文档均未定义，因此不画 stateDiagram-v2。
 - **会话**：按 123，会话不设状态字段，过期 / 吊销 / 登出原因只记审计；会话本身由 Spring Session 表持有，删除即失效（`BE/platform/identity/infrastructure/security/ServletSessionRegistry.java:68-79`）。因此审计是会话终止原因的**唯一**记录来源，这也是第 2.2 节「会话吊销」缺口（停用、角色替换、过期）影响最大的地方。
-- **同步运行（`sync_runs`）**：HELD 到 RELEASED 的状态由同步运行表自身持有，放行审计只是旁证（`DOC/process/1a/组织与人员同步.md:219`）。
 - **审批任务**：办理结果在审批侧状态机；审计不是状态来源。130 决定新增只追加的「任务办理记录」，属审批侧聚合，尚未建立。
 
 ---

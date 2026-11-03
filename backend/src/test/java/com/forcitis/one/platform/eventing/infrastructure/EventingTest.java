@@ -87,11 +87,11 @@ class EventingTest {
             assertThat(byUser.actorId()).isEqualTo(TestAccounts.account(9001).value());
         }
         UUID cause = UUID.randomUUID();
-        try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), cause, "organization.workforce.snapshot.sync")) {
+        try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), cause, "organization.workforce.snapshot.reconcile")) {
             EventEnvelope byJob = envelopes(signedIn(9001)).wrap(draft());
             assertThat(byJob.actorType()).isEqualTo(ActorType.SYSTEM);
-            assertThat(byJob.actorId()).isEqualTo(SystemActors.idOf("organization.workforce.snapshot.sync"));
-            assertThat(SystemActors.nameOf(byJob.actorId())).contains("organization.workforce.snapshot.sync");
+            assertThat(byJob.actorId()).isEqualTo(SystemActors.idOf("organization.workforce.snapshot.reconcile"));
+            assertThat(SystemActors.nameOf(byJob.actorId())).contains("organization.workforce.snapshot.reconcile");
             assertThat(byJob.causationId()).as("the handled event is the cause").isEqualTo(cause);
         }
     }
