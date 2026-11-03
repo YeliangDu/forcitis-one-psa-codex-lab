@@ -10,7 +10,7 @@
 
 红：当前 main 上第一条「应接受」的插入即被 `ck_permission_adjustments_assignment_change` 拒绝。绿：用 one-design 裁定的放宽后 CHECK 作为临时迁移跑，`PermissionAdjustment*IT` 30 条全绿（临时迁移不提交）。
 
-## 事件驱动（`organization/workforce/CorrectionUndoesSeparationReviewIT`，4 条，按 #1089 的 `EmployeeCorrected` 最终载荷）
+## 事件驱动（`organization/workforce/CorrectionUndoesSeparationReviewIT`，9 条，按 #1089 的 `EmployeeCorrected` 最终载荷）
 
 | 测试 | 对应 |
 |---|---|
@@ -27,6 +27,8 @@
 A-6 不覆盖/存疑：(b) 到期再生成用 `EmployeeLegalEntities.on` 属 S2，待 S2 作业用例；法人自有日历夹具直接写 `organization_attendance.work_calendar_years/days`（旧表，现行读取路径；日历维护 API 目前只管默认日历）——若实现改读版本表（`work_calendar_versions`），夹具要跟着改，请通知我；`escalation_due_at` 只断言落在第 5 个工作日当天（本地 00:00 之后、次日 00:00 及之前），不钉「结束」是 24:00 还是 23:59:59；范围复核（SCOPE_REVIEW）的真实转岗路径未覆盖（需要自定义组织单位角色夹具）。
 
 红：main 上 identity 没有处理 `EmployeeCorrected` 的监听器，四条都在等待 identity 发布而超时（失败信息列出该事件仅有 audit 的发布）。绿：临时的最小监听器（只对 security_auditor、business_admin 持有者按裁定插入一行）加放宽后的 CHECK，前 3 条全绿（告警条随实现落地后转绿）；临时文件不提交。
+
+后加的 5 条（A-6）：两条真实调动的用例在 awaitItemsAbout 超时；默认日历与无法解析主体的两条在 identityHandled 超时（只有 audit 的发布）；`theTableHasNoLegalEntityColumn` 在基线上按设计就是绿的。
 
 ## 未覆盖与存疑
 

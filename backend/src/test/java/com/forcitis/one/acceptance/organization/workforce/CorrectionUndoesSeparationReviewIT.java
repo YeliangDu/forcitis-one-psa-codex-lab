@@ -283,7 +283,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
     /** The five workdays after Monday 2026-11-02 end on Mon 11-09 by the default calendar and, with 11-04 a holiday, on Tue 11-10. */
     private void assertDueAtEndOfDay(Object due, LocalDate fifthWorkday) {
         java.time.Instant at = instantOf(due);
-        assertThat(at).as("the due instant is the end of " + fifthWorkday + " in the business zone").isAfter(startOf(fifthWorkday))
+        assertThat(at).as("the due instant is the end of " + fifthWorkday + " in the business zone").isAfterOrEqualTo(startOf(fifthWorkday.plusDays(1)).minusSeconds(1))
                 .isBeforeOrEqualTo(startOf(fifthWorkday.plusDays(1)));
     }
 
