@@ -13,8 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * The person and the event commit together, in a transaction of their own: a login that registers a new hire does not hold the snapshot writer
  * lock until it commits and does not change the account aggregate in the same transaction (the account is opened from EmployeeRegistered, or by
- * the login itself, idempotently). The audit entry is written from the event. Takes the same lock as the sync, so a registration
- * and a sync never write the snapshot at once, and the second of two first logins finds the person already registered and writes nothing.
+ * the login itself, idempotently). The audit entry is written from the event. Takes the snapshot writer lock, so two registrations never
+ * write at once, and the second of two first logins finds the person already registered and writes nothing.
  */
 @Service
 class PersistRegisteredEmployee {

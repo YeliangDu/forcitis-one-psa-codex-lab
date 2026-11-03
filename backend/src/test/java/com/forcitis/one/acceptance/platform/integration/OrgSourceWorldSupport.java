@@ -3,9 +3,6 @@ package com.forcitis.one.acceptance.platform.integration;
 import com.forcitis.one.TestMssql;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.WorkContext;
-import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
-import com.forcitis.one.organization.workforce.application.SyncResult;
-import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -29,8 +26,7 @@ import org.testcontainers.containers.GenericContainer;
  * (a root unit, a person, one relationship of each configured type, the configured markers), and adds its own rows. Each class has its own
  * PostgreSQL. The three read-only logins are built like the RDS ones ({@link ReadOnlyBaselineFixture}) and checked against them.
  * <p>
- * {@link #syncOnce()} is the one place that triggers a sync (card section 4 item 2): it calls the sync use case of workforce today, and is the
- * only line to change when split a moves the sync into platform.integration.
+ * The sync that used to read this world went with #934 (ADR-0055 section 6); the cases that ran it were retired with it.
  */
 @TestPropertySource(properties = {
         "forcitis.platform.approval.deadline.enabled=false",
@@ -76,22 +72,7 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
     }
 
     @Autowired
-    SyncOrgSnapshot sync;
-
-    @Autowired
     ApplicationContext context;
-
-    /** Triggers one sync the way the scheduled job does, through the real adapter; a failed run stops the test with its reason. */
-    protected SyncResult syncOnce() {
-        SyncResult result;
-        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
-            result = sync.execute(SyncTrigger.MANUAL, false);
-        }
-        if (!"SUCCEEDED".equals(result.status().name())) {
-            throw new AssertionError("the sync ended " + result.status() + ": " + result.note());
-        }
-        return result;
-    }
 
     // ---- the organisation source ----
 

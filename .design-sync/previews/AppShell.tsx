@@ -5,7 +5,6 @@ const navigation = [
   { key: '/工作台', label: '工作台', children: [{ key: '/工作台/待办', label: '待办', path: '/inbox' }] },
   { key: '/系统管理', label: '系统管理', children: [
     { key: '/系统管理/编号规则', label: '编号规则', path: '/numbering-rules' },
-    { key: '/系统管理/组织同步', label: '组织同步', path: '/sync-runs' },
   ] },
 ];
 

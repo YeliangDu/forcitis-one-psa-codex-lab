@@ -66,14 +66,14 @@ class StateWriteGuardTest {
     @Test
     @DisplayName("injected: a status constant in an assignment, an argument or a parse is caught; a comparison and a switch are not")
     void enumWritesAreCaught() {
-        String comparison = "boolean a = run.status() == SyncRunStatus.HELD; boolean b = x != SyncRunStatus.FAILED; boolean c = s.equals(DeliveryStatus.SENT);";
+        String comparison = "boolean a = run.status() == HoldStatus.HELD; boolean b = x != HoldStatus.RELEASED; boolean c = s.equals(DeliveryStatus.SENT);";
         assertThat(StateWritePolicy.enumWrites("A.java", comparison)).isEmpty();
-        assertThat(StateWritePolicy.enumWrites("A.java", "switch (s) { case SyncRunStatus.HELD -> 1; default -> 2; }")).isEmpty();
-        assertThat(StateWritePolicy.enumWrites("A.java", "this.status = SyncRunStatus.HELD;")).singleElement().asString().contains("SyncRunStatus.HELD");
+        assertThat(StateWritePolicy.enumWrites("A.java", "switch (s) { case HoldStatus.HELD -> 1; default -> 2; }")).isEmpty();
+        assertThat(StateWritePolicy.enumWrites("A.java", "this.status = HoldStatus.HELD;")).singleElement().asString().contains("HoldStatus.HELD");
         assertThat(StateWritePolicy.enumWrites("A.java", "new NewDelivery(key, DeliveryStatus.PENDING, null)")).hasSize(1);
         assertThat(StateWritePolicy.enumWrites("A.java", "Role r = role.revise(n, enabled ? RoleStatus.ENABLED : RoleStatus.DISABLED, scope);")).hasSize(2);
         assertThat(StateWritePolicy.enumWrites("A.java", "var s = AccountStatus.valueOf(row.status());")).anyMatch(p -> p.contains("valueOf"));
-        assertThat(StateWritePolicy.enumWrites("A.java", "// status = SyncRunStatus.HELD in a comment\n/* DeliveryStatus.SENT */ int x;")).isEmpty();
+        assertThat(StateWritePolicy.enumWrites("A.java", "// status = HoldStatus.HELD in a comment\n/* DeliveryStatus.SENT */ int x;")).isEmpty();
     }
 
     @Test

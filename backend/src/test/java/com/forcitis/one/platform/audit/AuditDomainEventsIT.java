@@ -7,6 +7,9 @@ import static org.awaitility.Awaitility.await;
 
 import com.forcitis.one.TestIds;
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.kernel.DocumentId;
+import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.kernel.DocumentTypeCode;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.SystemActors;
 import com.forcitis.one.kernel.event.ActorType;
@@ -15,9 +18,11 @@ import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
-import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.organization.workforce.events.LegalEntityRegistered;
-import com.forcitis.one.organization.workforce.events.SyncRunSucceeded;
+import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
+import com.forcitis.one.platform.approval.api.ApprovalTaskId;
+import com.forcitis.one.platform.approval.api.NodeKey;
+import com.forcitis.one.platform.approval.events.TaskClosed;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.api.RoleVersionId;
@@ -107,21 +112,22 @@ class AuditDomainEventsIT {
     @DisplayName("a system actor is recorded in the detail by its job name (looked up from its fixed UUID, C5), not as a user")
     void systemActorsAreNamedInTheDetail() {
         LegalEntityRegistered event = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", TestIds.uuid(502), ActorType.SYSTEM,
-                SystemActors.idOf("organization.workforce.snapshot.sync"), UUID.randomUUID()), new LegalEntityId(TestIds.uuid(502)), new LegalEntityCode("SYS"));
+                SystemActors.idOf("organization.workforce.snapshot.reconcile"), UUID.randomUUID()), new LegalEntityId(TestIds.uuid(502)), new LegalEntityCode("SYS"));
 
         tx.executeWithoutResult(status -> publisher.publishEvent(event));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(entriesOf(TestIds.uuid(502))).hasSize(1));
         Map<String, Object> entry = entriesOf(TestIds.uuid(502)).getFirst();
         assertThat(entry.get("actor_id")).isNull();
-        assertThat(entry.get("detail")).isEqualTo("by organization.workforce.snapshot.sync");
+        assertThat(entry.get("detail")).isEqualTo("by organization.workforce.snapshot.reconcile");
     }
 
     @Test
     @DisplayName("an event whose record says @NotAudited writes no entry, and its neighbour in the same minute still does")
     void notAuditedEventsAreSkipped() {
-        SyncRunSucceeded skipped = new SyncRunSucceeded(envelope("organization.workforce.SyncRunSucceeded", TestIds.uuid(601), ActorType.SYSTEM, SystemActors.idOf("platform.approval.deadline.enforce"), UUID.randomUUID()),
-                new SyncRunId(TestIds.uuid(601)));
+        TaskClosed skipped = new TaskClosed(envelope("platform.approval.TaskClosed", TestIds.uuid(601), ActorType.SYSTEM, SystemActors.idOf("platform.approval.deadline.enforce"), UUID.randomUUID()),
+                new ApprovalTaskId(TestIds.uuid(601)), new ApprovalInstanceId(TestIds.uuid(602)),
+                new DocumentReference(new DocumentTypeCode("TIMESHEET"), new DocumentId(TestIds.uuid(604))), new NodeKey("review"));
         LegalEntityRegistered audited = new LegalEntityRegistered(envelope("organization.workforce.LegalEntityRegistered", TestIds.uuid(603), ActorType.SYSTEM, SystemActors.idOf("platform.approval.deadline.enforce"), UUID.randomUUID()),
                 new LegalEntityId(TestIds.uuid(603)), new LegalEntityCode("NEI"));
 

@@ -14,7 +14,8 @@ import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * #960 (one-design DD on #960, section 2): the migration is refused before writing anything when the witness is missing or is the operator,
- * as the other workforce operations commands refuse it (exit 1). No sync run is left running here, so nothing else can explain a refusal.
+ * as the other workforce operations commands refuse it (exit 1). No sync run is left running here (and after #934 there is no sync at
+ * all), so nothing else can explain a refusal.
  */
 class InitialVersionMigrationRefusalIT extends InitialVersionMigrationSupport {
 
@@ -29,7 +30,9 @@ class InitialVersionMigrationRefusalIT extends InitialVersionMigrationSupport {
     @Test
     @DisplayName("#960 数据设计第 2 节（与运维命令同形）：缺见证人、见证人与操作人同一人都以 1 拒绝，都不写任何版本行、不写审计")
     void theWitnessIsRequiredAndMustBeSomeoneElse() throws Exception {
-        assertThat(rows("select count(*) as n from sync_runs where status = 'RUNNING'").get(0).get("n")).as("no running sync").isEqualTo(0L);
+        if (oldSyncTablesExist()) {
+            assertThat(rows("select count(*) as n from sync_runs where status = 'RUNNING'").get(0).get("n")).as("no running sync").isEqualTo(0L);
+        }
         UUID person = snapshotPerson(false, null);
         UUID operator = employed(REGULAR);
         long rows = versionRowCount();

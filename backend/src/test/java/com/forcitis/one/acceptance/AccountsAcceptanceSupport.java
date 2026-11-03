@@ -306,7 +306,14 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
         }
     }
 
+    /**
+     * A row of the old sync run log, written only while that table exists: #934 (ADR-0068 section 2.5 D2) drops sync_runs, after which
+     * no run is recorded and this does nothing. Callers use it to put the snapshot in the state a recent run left it in.
+     */
     protected void syncRun(String status, Instant startedAt, Instant finishedAt) throws SQLException {
+        if (!oldSyncTablesExist()) {
+            return;
+        }
         try (Connection workforce = schemaConnection("organization_workforce"); PreparedStatement insert = workforce.prepareStatement("""
                 insert into sync_runs (id, trigger_kind, status, started_at, finished_at, failure_reason)
                 values (?, 'SCHEDULED', ?, ?, ?, ?)""")) {
@@ -316,6 +323,16 @@ public abstract class AccountsAcceptanceSupport extends AcceptanceSupport {
             insert.setTimestamp(4, finishedAt == null ? null : Timestamp.from(finishedAt));
             insert.setString(5, "FAILED".equals(status) ? "synthetic: the organisation source did not answer" : null);
             insert.executeUpdate();
+        }
+    }
+
+    /** True while organization_workforce.sync_runs exists (until #934 drops it with the other tables of the old sync). */
+    protected boolean oldSyncTablesExist() throws SQLException {
+        try (Connection workforce = schemaConnection("organization_workforce");
+             PreparedStatement select = workforce.prepareStatement("select to_regclass('organization_workforce.sync_runs') is not null");
+             ResultSet rs = select.executeQuery()) {
+            rs.next();
+            return rs.getBoolean(1);
         }
     }
 

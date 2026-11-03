@@ -337,7 +337,7 @@ terms:
   kind: error_code
   bc: organization.workforce
   scope: domain
-  definition: 操作人没有任何一类仍在等待的暂停的解除资格：持有 sync-run:execute 才能解除缩水保护，留任的超级管理员或安全审计员持有 separation-hold:approve 才能解除管理员离职暂停（403，ADR-0028）
+  definition: 操作人没有任何一类仍在等待的暂停的解除资格：留任的超级管理员或安全审计员持有 separation-hold:approve 才能解除管理员离职暂停（403，ADR-0028）
   standard_ref:
   - docs/architecture/proposals/phase1-a-platform-conventions.md
   confidence: medium

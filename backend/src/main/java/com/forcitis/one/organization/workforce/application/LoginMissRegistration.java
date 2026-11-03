@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-/** Doubtful or out-of-scope people answer "unknown": login fails closed and the next sync decides. */
+/** Doubtful or out-of-scope people answer "unknown": login fails closed until a personnel command or a later login lookup settles them. */
 @Component
 @SystemActorName("organization.workforce.login-registration")
 class LoginMissRegistration {
