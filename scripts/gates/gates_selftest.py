@@ -745,7 +745,11 @@ def codex_gate_test():
                    f"{S} --model=gpt-5.5 'fix the bug'", f"{S} {E} 'fix the bug'", f"{S} --config model_reasoning_effort=xhigh 'fix the bug'", f'{S} -c \'model_reasoning_effort="low"\' \'fix the bug\'',
                    f"{S} {M} {E} 'fix the bug'", f"codex exec {M} {E} -s workspace-write 'fix the bug'", f"{S} -- '--odd prompt'", f"{S} -",
                    f"{S} 'fix the bug' < PROMPT.md > out.txt 2>&1", f"{S} 'fix the bug' >> sub/out.txt", f"{S} 'fix the bug' 2>/dev/null", f"{S} 'fix the bug' &> out.txt", f"{S} \"fix $(date) the bug\"",
-                   f"{S} 'fix the bug'\n", "git commit -m 'codex pilot'", "gh issue comment 1 --body 'ask codex'", "ls ~/.codex", "which codex", "echo codex", "printf codex | cat", "git commit -m 'codex' && ls", "git commit -m 'codex pilot' && git push", "echo CODEX_HOME", "cat <<'EOF'\ncodex exec x\nEOF", "git log --grep=codex"]
+                   f"{S} 'fix the bug'\n", "git commit -m 'codex pilot'", "gh issue comment 1 --body 'ask codex'", "ls ~/.codex", "which codex", "echo codex", "printf codex | cat",   # data programs and script files that only carry the word as an argument (lead's list, one per program)
+                   "cat docs/codex/notes.md", "cat docs/codex", "sed -n '1,5p' docs/codex.md", "rg codex docs", "rg -n 'codex pilot' scripts", "grep -rn codex docs", "head -5 notes-codex.md", "ls docs/codex", "git log --oneline -- docs/codex",
+                   "git add docs/codex.md", "gh issue create --title 'ops(gates): codex pilot' --body-file body.md", "gh pr create --title 'x (#1)' --body 'codex'", "printf '%s' codex > note.txt", "date", "basename /x/codex",
+                   "python3 scripts/session/new_intent.py --who 'x' 'the user said use codex for drafting'", "python3 scripts/merge/post_review.py --pr 1 --body-file codex-review.md", "python3 -I scripts/merge/mq.py status codex",
+                   "node scripts/tool.js codex", "bash scripts/ci/light.sh codex", "sh ./x.sh --note 'codex'", "./scripts/session/tool.sh codex notes", "/usr/bin/python3 -I scripts/x.py 'codex pilot'", "git commit -m 'codex' && ls", "git commit -m 'codex pilot' && git push", "echo CODEX_HOME", "cat <<'EOF'\ncodex exec x\nEOF", "git log --grep=codex"]
         for command in allowed:
             assert ask(command) is None, (command, ask(command))
         assert ask(f"{S} 'fix the bug'", cwd=os.path.join(w1, "sub")) is None, "a subdirectory of the own worktree"
@@ -783,7 +787,7 @@ def codex_gate_test():
             # the final review's forms: a brace range, shell keywords and zsh precommand words, any program naming codex
             ("co{d..d}ex --full-auto", "codex 只放一种用法"), ("c{o..o}dex --dangerously-bypass-approvals-and-sandbox x", "codex 只放一种用法"), ("function f { codex --full-auto; }; f", "codex 只放一种用法"),
             ('trap "codex --full-auto" EXIT', "codex 只放一种用法"), ("repeat 1 codex --full-auto", "codex 只放一种用法"), ("nocorrect codex --full-auto", "codex 只放一种用法"), ("coproc codex --full-auto", "codex 只放一种用法"),
-            ("alias c=codex; c", "codex 只放一种用法"), ("- codex --full-auto", "codex 只放一种用法"), ("./run.sh codex --full-auto", "codex 只放一种用法"), ("co\\\ndex --full-auto", "exec"),
+            ("alias c=codex; c", "codex 只放一种用法"), ("- codex --full-auto", "codex 只放一种用法"), ("python3 -c 'print(1)' codex", "codex 只放一种用法"), ("python3 - codex <<EOF\nx\nEOF", "codex 只放一种用法"), ("bash -lc 'ls' codex", "codex 只放一种用法"), ("python3 -m pytest codex", "codex 只放一种用法"), ("env ./run.sh codex", "codex 只放一种用法"), ("co\\\ndex --full-auto", "exec"),
             ("co{dex,} --dangerously-bypass-approvals-and-sandbox", "codex 只放一种用法"), ("/opt/bin/cod?x --dangerously-bypass-approvals-and-sandbox 'a b'", "codex 只放一种用法"),
             ("c[o]dex exec x", "codex 只放一种用法"), ("cod*x exec x", "codex 只放一种用法"), ("env co{dex,} exec x", "codex 只放一种用法"),
             ("cat <<$X\nx\n$X\nbash -c $'\\x63odex exec --dangerously-bypass-approvals-and-sandbox'", "codex 只放一种用法"),

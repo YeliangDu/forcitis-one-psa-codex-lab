@@ -37,6 +37,7 @@ DATA = {  # programs that only read their arguments as data (names, patterns, me
     "stat", "file", "test", "[", "jq", "yq", "touch", "mkdir", "rm", "cp", "mv", "ln", "cd", "pwd", "date", "basename", "dirname", "realpath", "readlink", "du", "df", "ps", "pgrep", "true", "false", "sleep",
     "export", "unset", "local", "declare", "readonly", "printenv", "tee",
 }
+INTERPRETERS = {"python", "python3", "python2", "node", "nodejs", "perl", "ruby", "php", "lua", "sh", "bash", "zsh", "dash", "ksh"}
 SANDBOX_OK = "workspace-write"
 EFFORT = re.compile(r"""model_reasoning_effort=("?)(low|medium|high|xhigh)\1""")
 MODEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@-]*")
@@ -368,6 +369,33 @@ def could_be_codex(word):
     return False
 
 
+def runs_file(name, cmd):
+    """The script file an interpreter is run on (`python3 scripts/x.py ...`, `bash ./x.sh ...`), else None: not text from its command line or stdin. The script is not read (a script that itself runs codex is the accepted gap), its arguments are data."""
+    if name not in INTERPRETERS:
+        return None
+    for w in cmd.words[[i for i, x in enumerate(cmd.words) if os.path.basename(x.text) == name][0] + 1:]:
+        t = w.text
+        if t.startswith("--") and len(t) > 2:
+            if t in ("--eval", "--print", "--command", "--module"):
+                return None
+        elif t.startswith("-") and t != "-":
+            if set(t[1:]) & set("cemprE"):
+                return None
+        else:
+            return t if t != "-" and not w.expands and re.search(r"[./]", t) else None
+    return None
+
+
+def written_files(cmds):
+    """The files a script writes itself (> >> &> targets, tee arguments): running one of them is running text this very command made."""
+    out = set()
+    for c in cmds:
+        out |= {t.text for _, op, t in c.redirs if t is not None and op in (">", ">>", ">|") or (_ == "&" and t is not None)}
+        if c.words and os.path.basename(c.words[0].text) == "tee":
+            out |= {w.text for w in c.words[1:] if not w.text.startswith("-")}
+    return out
+
+
 def nested_uses(text, depth):
     """(uses, dynamic) of a script held in a string; a string that does not parse counts as a use when it names codex once its quotes are gone, and as dynamic."""
     try:
@@ -385,7 +413,7 @@ def uses_in(text, depth=0):
         return [], [], False, True
     toks, nested = tokenize(text)
     cmds, single = commands(toks)
-    found, dynamic = [], False
+    found, dynamic, written = [], False, written_files(cmds)
     for script in nested:
         inner, inner_dynamic = nested_uses(script, depth + 1)
         found += [Use("indirect") for _ in inner]
@@ -395,13 +423,15 @@ def uses_in(text, depth=0):
         if prog is None:
             continue
         name = os.path.basename(prog.text.rstrip("/")).lower()
-        dynamic = dynamic or prog.expands or name in DYNAMIC
+        script = runs_file(name, cmd) or (prog.text if "/" in prog.text and not prog.expands and name not in RUNNERS and name not in DYNAMIC else None)   # a script run by path or by an interpreter: its arguments are data
+        file_run = script is not None and script not in written and os.path.normpath(script) not in {os.path.normpath(w) for w in written}   # unless this command wrote it
+        dynamic = dynamic or prog.expands or (name in DYNAMIC and not file_run) or (script is not None and not file_run)
         texts = [w.text for w in cmd.words] + cmd.bodies
         if name == "codex" and prog.text == "codex" and not prog.expands and cmd.assigns == 0 and cmd.words[0] is prog:
             found.append(Use("direct", cmd, nxt))
         elif name == "codex" or TOKEN.search(prog.text) or could_be_codex(prog.text):
             found.append(Use("indirect"))
-        elif name not in DATA:
+        elif name not in DATA and not file_run:
             if any(could_be_codex(t) or ("=" in t and could_be_codex(t.split("=", 1)[1])) for t in texts):   # codex (or a brace or glob spelling of it) as a word of its own, or as the value of x=codex
                 found.append(Use("indirect"))
             else:
