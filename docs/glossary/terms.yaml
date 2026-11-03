@@ -11575,6 +11575,36 @@ terms:
   forbidden: []
   note: 聚合 PermissionAdjustment（#730 S3 提议，待用语确认）
   status: proposed
+- id: permission_adjustment_expired
+  zh: 待调整权限已到期
+  en: PermissionAdjustmentExpired
+  snake: permission_adjustment_expired
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 已维持的待调整权限条目到了有效至，每日到期作业将它转为已到期；授权不变
+  standard_ref:
+  - docs/architecture/events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 PermissionAdjustment（#730 S2 提议，待用语确认）
+  status: proposed
+- id: permission_adjustment_escalated
+  zh: 待调整权限已升级
+  en: PermissionAdjustmentEscalated
+  snake: permission_adjustment_escalated
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 待处理的待调整权限条目超过升级期限，每日升级作业将它标记为已升级一次；条目仍待处理，授权不变
+  standard_ref:
+  - docs/architecture/events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 PermissionAdjustment（#730 S2 提议，待用语确认）
+  status: proposed
 - id: authorization_opened
   zh: 授权申请已开立
   en: AuthorizationOpened

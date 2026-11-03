@@ -161,6 +161,16 @@ channels:
     messages:
       PermissionAdjustmentAdjusted:
         $ref: '#/components/messages/PermissionAdjustmentAdjusted'
+  permissionAdjustmentExpired:
+    address: platform.identity.PermissionAdjustmentExpired
+    messages:
+      PermissionAdjustmentExpired:
+        $ref: '#/components/messages/PermissionAdjustmentExpired'
+  permissionAdjustmentEscalated:
+    address: platform.identity.PermissionAdjustmentEscalated
+    messages:
+      PermissionAdjustmentEscalated:
+        $ref: '#/components/messages/PermissionAdjustmentEscalated'
   authorizationOpened:
     address: platform.identity.AuthorizationOpened
     messages:
@@ -844,6 +854,34 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/permissionAdjustmentAdjusted/messages/PermissionAdjustmentAdjusted'
+  publishPermissionAdjustmentExpired:
+    action: send
+    channel:
+      $ref: '#/channels/permissionAdjustmentExpired'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/permissionAdjustmentExpired/messages/PermissionAdjustmentExpired'
+  handlePermissionAdjustmentExpiredInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/permissionAdjustmentExpired'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/permissionAdjustmentExpired/messages/PermissionAdjustmentExpired'
+  publishPermissionAdjustmentEscalated:
+    action: send
+    channel:
+      $ref: '#/channels/permissionAdjustmentEscalated'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/permissionAdjustmentEscalated/messages/PermissionAdjustmentEscalated'
+  handlePermissionAdjustmentEscalatedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/permissionAdjustmentEscalated'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/permissionAdjustmentEscalated/messages/PermissionAdjustmentEscalated'
   publishAuthorizationOpened:
     action: send
     channel:
@@ -3109,6 +3147,7 @@ components:
         - afterOrgUnitId
         - beforePositionId
         - afterPositionId
+        - originalPermissionAdjustmentId
         - escalationDueAt
         properties:
           envelope:
@@ -3141,14 +3180,16 @@ components:
             type: string
             format: uuid
             x-type: PersonnelCommandId
-            description: 触发条目的人事命令（调岗或更正）
+            nullable: true
+            description: 触发条目的人事命令（调岗或更正）；维持到期重新生成的条目为空
           triggerFieldKind:
             type: string
             enum:
             - ORG_UNIT
             - POSITION
             x-type: TriggerFieldKind
-            description: 触发条目的任职字段
+            nullable: true
+            description: 触发条目的任职字段；维持到期重新生成的条目为空
           beforeOrgUnitId:
             type: string
             format: uuid
@@ -3159,7 +3200,8 @@ components:
             type: string
             format: uuid
             x-type: OrgUnitId
-            description: 触发后的部门
+            nullable: true
+            description: 触发后的部门；维持到期重新生成的条目为空
           beforePositionId:
             type: string
             format: uuid
@@ -3172,6 +3214,12 @@ components:
             x-type: PositionId
             nullable: true
             description: 触发后的岗位；没有岗位时为空
+          originalPermissionAdjustmentId:
+            type: string
+            format: uuid
+            x-type: PermissionAdjustmentId
+            nullable: true
+            description: 维持到期重新生成的条目所接替的已到期条目；其他来源为空
           escalationDueAt:
             type: string
             format: date-time
@@ -3296,6 +3344,97 @@ components:
             x-type: AuditEntryId
             nullable: true
             description: 调整所凭的授予审计条目，与授权申请恰有其一
+    PermissionAdjustmentExpired:
+      name: PermissionAdjustmentExpired
+      title: 待调整权限条目到期
+      x-event:
+        eventType: platform.identity.PermissionAdjustmentExpired
+        version: 1
+        class: com.forcitis.one.platform.identity.events.PermissionAdjustmentExpired
+        aggregate: PermissionAdjustment
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.PermissionAdjustmentTest
+        noConsumer: 暂无消费方：到期只需留痕；现在就发布，是因为到期只在作业运行当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - permissionAdjustmentId
+        - kind
+        - upholdExpiresAt
+        - expiredAt
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          permissionAdjustmentId:
+            type: string
+            format: uuid
+            x-type: PermissionAdjustmentId
+          kind:
+            type: string
+            enum:
+            - SENSITIVE_ROLE_REVIEW
+            - SCOPE_REVIEW
+            x-type: PermissionAdjustmentKind
+            description: 条目类型：敏感角色复核或范围复核
+          upholdExpiresAt:
+            type: string
+            format: date-time
+            description: 维持有效至
+          expiredAt:
+            type: string
+            format: date-time
+            description: 到期作业转已到期的时刻（作业用的时钟，不早于有效至）
+    PermissionAdjustmentEscalated:
+      name: PermissionAdjustmentEscalated
+      title: 待调整权限条目超期升级
+      x-event:
+        eventType: platform.identity.PermissionAdjustmentEscalated
+        version: 1
+        class: com.forcitis.one.platform.identity.events.PermissionAdjustmentEscalated
+        aggregate: PermissionAdjustment
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.PermissionAdjustmentTest
+        noConsumer: 暂无消费方：升级只需留痕；给 account-role:update 持有人的送达另行交付；现在就发布，是因为升级只在作业运行当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - permissionAdjustmentId
+        - kind
+        - escalationDueAt
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          permissionAdjustmentId:
+            type: string
+            format: uuid
+            x-type: PermissionAdjustmentId
+          kind:
+            type: string
+            enum:
+            - SENSITIVE_ROLE_REVIEW
+            - SCOPE_REVIEW
+            x-type: PermissionAdjustmentKind
+            description: 条目类型：敏感角色复核或范围复核
+          escalationDueAt:
+            type: string
+            format: date-time
+            description: 被超过的升级期限
     AuthorizationOpened:
       name: AuthorizationOpened
       title: 敏感授权申请开立
@@ -5596,3 +5735,11 @@ x-system-actors:
   actorId: 550a37fb-c036-51bb-be7a-9fd0874b9698
   module: organization.workforce
   description: 到日执行组织单元合并：逐人生成调岗，转完后撤销被并入单元（#907；到日作业本身另批）
+- name: platform.identity.permission.adjustment.expire
+  actorId: cf9e57dc-ff3d-5eba-8e8e-bc12a222bf2b
+  module: platform.identity
+  description: 作业：待调整权限到期（维持到期转已到期，并按条件生成新条目）
+- name: platform.identity.permission.adjustment.escalate
+  actorId: 0a716c3e-8620-59b2-8e01-5f7b23f88a6c
+  module: platform.identity
+  description: 作业：待调整权限超期升级（待处理超过升级期限的条目标记升级一次）

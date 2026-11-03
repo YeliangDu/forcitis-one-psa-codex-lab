@@ -3,5 +3,7 @@
 # A new implementation needs a row of the allowed-content table on the card DATA-REPAIR-timesheet-audit (TB-01 item 2, row 9) and design review.
 src/main/java/com/forcitis/one/organization/attendance/events/WorkCalendarLockedDaysChanged.java
 src/main/java/com/forcitis/one/platform/identity/events/PermissionAdjustmentAdjusted.java
+src/main/java/com/forcitis/one/platform/identity/events/PermissionAdjustmentEscalated.java
+src/main/java/com/forcitis/one/platform/identity/events/PermissionAdjustmentExpired.java
 src/main/java/com/forcitis/one/platform/identity/events/PermissionAdjustmentOpened.java
 src/main/java/com/forcitis/one/platform/identity/events/PermissionAdjustmentUpheld.java
