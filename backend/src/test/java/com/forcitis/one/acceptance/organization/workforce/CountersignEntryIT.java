@@ -5,6 +5,7 @@ import static com.forcitis.one.acceptance.organization.workforce.PersonnelComman
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.forcitis.one.TestDatabase;
@@ -169,7 +170,8 @@ class CountersignEntryIT extends CountersignSupport {
     @DisplayName("#894 note #878 第 10 条第 10 项、ADR-0073 第 3 条第 2 项（行 54）：目标法人不在法人表内或已停用，被拒：不留命令行、不留请求行")
     void aTargetOutsideTheEntitiesOrInactiveIsRefused() throws Exception {
         UUID inactive = createLegalEntity(orgAdmin.session(), newLegalEntityCode("CD"), "Synthetic inactive entity");
-        MockHttpServletResponse deactivated = mvc.perform(put(LEGAL_ENTITIES + "/" + inactive).header("If-Match", "\"0\"").with(csrf()).with(session(orgAdmin.session()))
+        String etag = mvc.perform(get(LEGAL_ENTITIES + "/" + inactive).with(session(orgAdmin.session()))).andReturn().getResponse().getHeader("ETag");
+        MockHttpServletResponse deactivated = mvc.perform(put(LEGAL_ENTITIES + "/" + inactive).header("If-Match", etag).with(csrf()).with(session(orgAdmin.session()))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Synthetic inactive entity\",\"status\":\"INACTIVE\"}")).andReturn().getResponse();
         assertThat(deactivated.getStatus()).as("deactivating through the public path (a version is appended): " + deactivated.getContentAsString()).isEqualTo(200);
         UUID employee = employed(REGULAR);
