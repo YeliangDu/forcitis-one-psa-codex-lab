@@ -67,6 +67,7 @@ class ProfileChangeRequestServiceTest {
         when(requests.find(ID)).thenReturn(Optional.of(request));
         when(employees.lockEmployee(EMPLOYEE)).thenReturn(true);
         when(currentUser.userId()).thenReturn(THIRD);
+        when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenReturn(OrgUnitAccess.Visible.all());
         return request;
     }
 
@@ -118,9 +119,9 @@ class ProfileChangeRequestServiceTest {
     @Test
     @DisplayName("#730 S4: a cursor naming a request outside the scope or none at all answers the same empty page")
     void aForgedCursorCannotProbeIds() {
+        ProfileChangeRequest existing = decided(ProfileChangeStatus.REJECTED);
         when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenReturn(OrgUnitAccess.Visible.nothing());
         when(snapshots.findAllOrgUnits()).thenReturn(java.util.List.of());
-        ProfileChangeRequest existing = decided(ProfileChangeStatus.REJECTED);
         when(requests.find(ID)).thenReturn(Optional.of(existing));
         when(snapshots.findStaff(EMPLOYEE)).thenReturn(Optional.empty());
         UUID unknown = UUID.fromString("019a0000-0000-7000-8000-0000000000c9");
