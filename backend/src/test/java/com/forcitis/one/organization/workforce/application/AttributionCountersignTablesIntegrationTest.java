@@ -103,6 +103,14 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
     // ---- personnel_commands ----
 
     @Test
+    @DisplayName("#711 an END_CONCURRENT command names a concurrent post: no target and a primary target are both refused")
+    void endConcurrentNeedsAConcurrentTarget() {
+        refused("\"ck_personnel_commands_target_assignment\"", commandSql(COMMAND, EMPLOYEE, "END_CONCURRENT", "PENDING", "", ""));
+        refused("\"ck_personnel_commands_target_assignment\"", commandSql(COMMAND, EMPLOYEE, "END_CONCURRENT", "PENDING", ", target_assignment_id, target_assignment_kind",
+                ", " + primaryRoot(EMPLOYEE) + ", 'PRIMARY'"));
+    }
+
+    @Test
     @DisplayName("IMP-1030-FC-B CHANGE_LEGAL_ENTITY needs its target legal entity and no other target; the target is allowed for TRANSFER, CORRECTION, HIRE, REINSTATE and refused for every other kind")
     void legalEntityColumns() {
         command(COMMAND, EMPLOYEE, "CHANGE_LEGAL_ENTITY", "PENDING", ", target_legal_entity_id", ", " + ENTITY_B);

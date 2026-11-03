@@ -110,7 +110,7 @@ ALTER TABLE organization_workforce.personnel_commands ADD CONSTRAINT ck_personne
     CASE
         WHEN command_kind = 'TRANSFER' THEN target_assignment_id IS NOT NULL
         WHEN command_kind = 'CORRECTION' THEN (target_assignment_id IS NOT NULL) = (num_nonnulls(target_org_unit_id, target_position_id, target_reports_to_employee_id) > 0)
-        WHEN command_kind = 'END_CONCURRENT' THEN target_assignment_kind = 'CONCURRENT'
+        WHEN command_kind = 'END_CONCURRENT' THEN target_assignment_id IS NOT NULL AND target_assignment_kind = 'CONCURRENT'
         ELSE target_assignment_id IS NULL
     END);
 -- 兼职没有汇报线与收费员工标记；新增兼职要部门与岗位；结束兼职不带别的目标列。
