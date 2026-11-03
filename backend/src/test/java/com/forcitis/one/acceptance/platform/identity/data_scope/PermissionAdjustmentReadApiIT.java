@@ -61,25 +61,42 @@ class PermissionAdjustmentReadApiIT extends PermissionAdjustmentApiSupport {
     }
 
     @Test
-    @DisplayName("#730 S3 契约第 13 条：没有权限码的人（无角色者、原部门负责人、当事人本人）列表与读取都是 403，条目不泄露")
-    void callersWithoutThePermissionAreRefused() throws Exception {
+    @DisplayName("#730 S3 裁定 6602368110 第 3 条：没有权限码、也不是收件人的人（无角色者、原部门负责人、当事人本人）列表为 200 且为空（不是 403），读取别人的条目与不存在的 ID 同为 404 且错误体一致，条目不泄露")
+    void callersOutOfScopeSeeAnEmptyListAndNotFoundAlike() throws Exception {
         UUID item = sensitiveItemAbout("mover");
         UUID transfer = scopeReviewAbout("mover", "headB");
 
         for (String caller : List.of("plain", "headA", "mover")) {
             MockHttpServletResponse listed = listPage(session(caller), "limit", "200");
-            assertThat(listed.getStatus()).as(caller + " lists").isEqualTo(403);
+            assertThat(listed.getStatus()).as(caller + " lists").isEqualTo(200);
+            assertThat(items(listed)).as(caller + " sees nothing").isEmpty();
             assertThat(listed.getContentAsString()).doesNotContain(item.toString());
+            MockHttpServletResponse missing = read(session(caller), UUID.randomUUID());
             for (UUID target : List.of(item, transfer)) {
                 MockHttpServletResponse read = read(session(caller), target);
-                assertThat(read.getStatus()).as(caller + " reads " + target).isEqualTo(403);
+                assertThat(read.getStatus()).as(caller + " reads " + target).isEqualTo(404);
                 assertThat(read.getContentAsString()).doesNotContain(target.toString());
+                assertThat((String) JsonPath.read(read.getContentAsString(), "$.errorCode")).as("same body as a missing id")
+                        .isEqualTo(JsonPath.read(missing.getContentAsString(), "$.errorCode"));
+                assertThat((String) JsonPath.read(read.getContentAsString(), "$.title")).isEqualTo(JsonPath.read(missing.getContentAsString(), "$.title"));
             }
         }
     }
 
     @Test
-    @DisplayName("#730 S3 契约第 14 条、不变量 33：列表不含关于调用人本人的条目（持有读权限也一样），其他人的条目照常列出；读自己的条目不返回 200")
+    @DisplayName("#730 S3 裁定第 3 条空范围：只有关于自己的条目的权限码持有者，列表为 200 且为空（不是 403、不含本人条目），读本人条目 404")
+    void aCodeHolderWithOnlyItsOwnItemsSeesAnEmptyList() throws Exception {
+        UUID own = sensitiveItemAbout("odaSubject");
+
+        MockHttpServletResponse listed = listPage(session("odaSubject"), "limit", "200");
+
+        assertThat(listed.getStatus()).as(listed.getContentAsString()).isEqualTo(200);
+        assertThat(field(items(listed), "permissionAdjustmentId")).doesNotContain(own.toString());
+        assertThat(read(session("odaSubject"), own).getStatus()).isEqualTo(404);
+    }
+
+    @Test
+    @DisplayName("#730 S3 契约第 14 条、不变量 33：列表不含关于调用人本人的条目（持有读权限也一样），其他人的条目照常列出；读自己的条目 404")
     void aListLeavesOutTheCallersOwnItems() throws Exception {
         UUID own = sensitiveItemAbout("odaSubject");
         UUID other = sensitiveItemAbout("mover2");
@@ -88,11 +105,11 @@ class PermissionAdjustmentReadApiIT extends PermissionAdjustmentApiSupport {
 
         assertThat(ids).doesNotContain(own.toString()).contains(other.toString());
         assertThat(listedIds(session("oda"))).as("another administrator sees the item").contains(own.toString());
-        assertThat(read(session("odaSubject"), own).getStatus()).as("the person reads an item about themselves").isNotEqualTo(200);
+        assertThat(read(session("odaSubject"), own).getStatus()).as("the person reads an item about themselves").isEqualTo(404);
     }
 
     @Test
-    @DisplayName("#730 S3 契约第 16 条来源①：新部门负责人（无权限码）只列出收件人是本人的范围复核并能读取；别人的收件人条目、敏感角色复核、角色条目都不在其列表里，读取为 403；原部门负责人 403")
+    @DisplayName("#730 S3 契约第 16 条来源①：新部门负责人（无权限码）只列出收件人是本人的范围复核并能读取；别人的收件人条目、敏感角色复核、角色条目都不在其列表里，读取为 404；原部门负责人（真正的原部门 F1-A）列表为空、读取 404")
     void theNewHeadSeesOnlyTheItemsAddressedToThem() throws Exception {
         UUID forB = scopeReviewAbout("mover", "headB");
         UUID forC = scopeReviewAbout("mover2", "multi");
@@ -104,10 +121,11 @@ class PermissionAdjustmentReadApiIT extends PermissionAdjustmentApiSupport {
         assertThat(field(items(listed), "permissionAdjustmentId")).contains(forB.toString()).doesNotContain(forC.toString(), sensitive.toString(), inactive.toString());
         assertThat(read(session("headB"), forB).getStatus()).isEqualTo(200);
         for (UUID notMine : List.of(forC, sensitive, inactive)) {
-            assertThat(read(session("headB"), notMine).getStatus()).as("headB reads " + notMine).isEqualTo(403);
+            assertThat(read(session("headB"), notMine).getStatus()).as("headB reads " + notMine).isEqualTo(404);
         }
-        assertThat(read(session("headA"), forB).getStatus()).as("the old unit's head is not the recipient").isEqualTo(403);
-        assertThat(read(session("plain"), forB).getStatus()).isEqualTo(403);
+        assertThat(read(session("headA"), forB).getStatus()).as("the old unit's head is not the recipient").isEqualTo(404);
+        assertThat(items(listPage(session("headA"), "limit", "200"))).as("nor does the old head see it listed").isEmpty();
+        assertThat(read(session("plain"), forB).getStatus()).isEqualTo(404);
     }
 
     @Test
@@ -118,7 +136,7 @@ class PermissionAdjustmentReadApiIT extends PermissionAdjustmentApiSupport {
 
         assertThat(read(session("oda"), noHead).getStatus()).isEqualTo(200);
         assertThat(listedIds(session("oda"))).contains(noHead.toString(), forMulti.toString());
-        assertThat(read(session("headB"), noHead).getStatus()).as("a head who is not the recipient").isEqualTo(403);
+        assertThat(read(session("headB"), noHead).getStatus()).as("a head who is not the recipient").isEqualTo(404);
         assertThat(listedIds(session("multi"))).contains(noHead.toString(), forMulti.toString());
         assertThat(read(session("multi"), forMulti).getStatus()).isEqualTo(200);
     }
@@ -164,13 +182,13 @@ class PermissionAdjustmentReadApiIT extends PermissionAdjustmentApiSupport {
     }
 
     @Test
-    @DisplayName("#730 S3 ADR-0032 第 5 项第 5 条：读取详情写一条 viewed 审计（对象类别 PERMISSION_ADJUSTMENT、对象为该条目、操作人为读者）；被拒的读取不写")
+    @DisplayName("#730 S3 ADR-0032 第 5 项第 5 条：读取详情写一条 viewed 审计（对象类别 PERMISSION_ADJUSTMENT、对象为该条目、操作人为读者）；范围外的读取不写 viewed")
     void readingAnItemIsAuditedAsViewed() throws Exception {
         UUID item = sensitiveItemAbout("mover");
         UUID refusedItem = sensitiveItemAbout("mover2");
 
         assertThat(read(session("auditor"), item).getStatus()).isEqualTo(200);
-        assertThat(read(session("headA"), refusedItem).getStatus()).isEqualTo(403);
+        assertThat(read(session("headA"), refusedItem).getStatus()).isEqualTo(404);
 
         List<Map<String, Object>> viewed = auditEntries(AUDIT_PREFIX + "viewed");
         assertThat(viewed).anySatisfy(entry -> {
