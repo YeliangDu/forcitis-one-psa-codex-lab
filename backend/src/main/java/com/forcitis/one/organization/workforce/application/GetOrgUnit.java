@@ -41,7 +41,7 @@ public class GetOrgUnit {
         if (unit == null) {
             return Optional.empty();
         }
-        Set<OrgUnitId> allowed = OrgUnitVisibility.idsIn(all, access.visibleOrgUnits(OrgUnitVisibility.ORG_UNIT_READ));
+        Set<OrgUnitId> allowed = OrgUnitVisibility.idsInForDetail(all, access);
         if (!allowed.contains(id)) {
             audit.recordIndependently(new AuditEntry("organization.workforce.org-unit.denied", currentUser.userId(), null, AuditSubject.of(AuditSubjectKind.ORG_UNIT, orgUnitId),
                     "outside the scope of the caller"));

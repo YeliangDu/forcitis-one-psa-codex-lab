@@ -7,9 +7,11 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.kernel.CurrentUser;
+import com.forcitis.one.platform.identity.api.CustomOrgUnit;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.domain.AccessScopeCalculator;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
+import com.forcitis.one.platform.identity.domain.Role;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -34,6 +36,14 @@ class OrgUnitScopes implements OrgUnitAccess {
         this.directory = directory;
     }
 
+    private static AccessScopeCalculator.RoleScope scopeOf(Role role) {
+        return new AccessScopeCalculator.RoleScope(role.accessScope(), true, unitsOf(role, false), unitsOf(role, true));
+    }
+
+    private static Set<OrgUnitId> unitsOf(Role role, boolean withDescendants) {
+        return role.customOrgUnits().stream().filter(unit -> unit.includeDescendants() == withDescendants).map(CustomOrgUnit::orgUnitId).collect(Collectors.toSet());
+    }
+
     @Override
     @Transactional(readOnly = true)
     public Visible visibleOrgUnits(String permissionCode) {
@@ -41,7 +51,7 @@ class OrgUnitScopes implements OrgUnitAccess {
             UserId userId = currentUser.userId();
             List<AccessScopeCalculator.RoleScope> roles = accounts.findEnabledRoles(userId).stream()
                     .filter(role -> role.permissionCodes().contains(permissionCode))
-                    .map(role -> new AccessScopeCalculator.RoleScope(role.accessScope(), true, Set.of()))
+                    .map(OrgUnitScopes::scopeOf)
                     .toList();
             var home = directory.findEmployee(currentUser.employeeId()).map(employee -> employee.orgUnitId());
             AccessScopeCalculator.OrgUnitReach reach = AccessScopeCalculator.orgUnitReach(home.orElse(null), roles);
