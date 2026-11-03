@@ -428,3 +428,19 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/AuditIdContractTest.java
     reason: 'one-design 裁定 #907 新增有对象审计类别 ORG_STRUCTURE_COMMAND（V20261103100000）；P5Names.KINDS_WITH_OBJECT 写死清单加该类别，AuditIdContractTest 显示名去掉已过时的「19 个」计数；断言与用例不变、未放松'
     ref: "commit 75a7e4376 (#907 acceptance); https://github.com/FORCITIS/forcitis-one-psa/issues/907#issuecomment-6594521545"
+  - id: RULING-LEAD-20261103-10
+    date: 2026-11-03
+    ruled_by: independent sonnet reviewer rv10r (dispatched by one-test, given only the diff), recorded by one-lead
+    implementer: one-dev-identity
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/CountersignEntryIT.java
+    reason: '新建法人入库即为版本 1，准备步骤写死 If-Match "0" 在被测代码运行前就得 412 PLATFORM_WEB_VERSION_MISMATCH；改为先 GET 取 ETag 再 PUT（同 LegalEntityCodeCorrectionIT:60）；断言、期望值、用例、显示名不变'
+    ref: "commit b79b5f664 (#895 acceptance); review-895-etag-sonnet.md"
+  - id: RULING-LEAD-20261103-11
+    date: 2026-11-03
+    ruled_by: independent sonnet reviewer rv11r (dispatched by one-test, given only the diff), recorded by one-lead; grant confirmed by one-design (#907 comment 6594922578)
+    implementer: one-dev-org
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/role_versioning/SystemRoleDeclarationIT.java
+    reason: '#907 给组织数据管理员授 organization.workforce:org-structure-command:create（SystemRoleDeclaration.CURRENT，one-design 核对与 ADR-0073 与设计稿一致）；SEED 中 org_data_admin 清单按字母序加该码，修订号 2→3（声明变则加一，#934 惯例）；其他角色、断言、用例不变'
+    ref: "commit 02c428be1 (#907 acceptance); review-907-seed-sonnet.md"
