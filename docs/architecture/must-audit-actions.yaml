@@ -50,10 +50,15 @@ categories:
   actions:
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
   - organization.workforce.EmployeeRegularized
   - organization.workforce.EmployeeReinstated
   - organization.workforce.EmployeeSeparated
   - organization.workforce.EmployeeTransferred
+  - organization.workforce.attribution-countersign.approved
+  - organization.workforce.attribution-countersign.lapsed
+  - organization.workforce.attribution-countersign.rejected
+  - organization.workforce.attribution-countersign.requested
   - organization.workforce.employee-profile.change-rejected
   - organization.workforce.employee-profile.change-requested
   - organization.workforce.employee-profile.change-voided

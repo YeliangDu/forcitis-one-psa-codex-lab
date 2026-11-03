@@ -11,7 +11,8 @@ cost.timesheet -> organization.workforce, platform.approval, platform.identity, 
 organization.administration -> organization.workforce, platform.approval, platform.audit, platform.file, platform.numbering
 organization.attendance -> platform.audit
 # #959 (one-design DD on #959 section 2): kernel.GlobalDocumentNumberSource is asked by organization.workforce (a hire numbers the employee code) and implemented by platform.numbering, which depends on organization.workforce; an edge workforce -> numbering would close a cycle (ModularityTest G1).
-organization.workforce -> platform.audit, platform.integration
+# #895 (ADR-0073 item 3.6, note of #878 section 5.2): a countersign request falls due three working days after it is asked, counted on the ADR-0072 work calendar (organization.attendance api; attendance depends on audit only, so no cycle).
+organization.workforce -> platform.audit, platform.integration, organization.attendance
 platform.approval -> platform.identity, organization.workforce, platform.integration, platform.audit, organization.attendance, platform.numbering
 platform.audit -> platform.integration
 platform.eventing -> platform.identity

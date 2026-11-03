@@ -41,6 +41,27 @@ organization.attendance::api organization.attendance.api.LockedDayChange public 
 organization.attendance::api organization.attendance.api.WorkCalendar implements kernel.WorkdayDeadlines
 organization.attendance::api organization.attendance.api.WorkCalendar public abstract boolean organization.attendance.api.WorkCalendar.isWorkday(java.time.LocalDate,kernel.LegalEntityId)
 organization.attendance::api organization.attendance.api.WorkCalendar public abstract interface organization.attendance.api.WorkCalendar
+organization.workforce::api organization.workforce.api.ApproveAttributionCountersign component attributionCountersignId: organization.workforce.api.AttributionCountersignId
+organization.workforce::api organization.workforce.api.ApproveAttributionCountersign component reason: java.lang.String
+organization.workforce::api organization.workforce.api.ApproveAttributionCountersign extends java.lang.Record
+organization.workforce::api organization.workforce.api.ApproveAttributionCountersign public final boolean organization.workforce.api.ApproveAttributionCountersign.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.ApproveAttributionCountersign public final int organization.workforce.api.ApproveAttributionCountersign.hashCode()
+organization.workforce::api organization.workforce.api.ApproveAttributionCountersign public final java.lang.String organization.workforce.api.ApproveAttributionCountersign.toString()
+organization.workforce::api organization.workforce.api.ApproveAttributionCountersign public final record organization.workforce.api.ApproveAttributionCountersign
+organization.workforce::api organization.workforce.api.ApproveAttributionCountersign public java.lang.String organization.workforce.api.ApproveAttributionCountersign.reason()
+organization.workforce::api organization.workforce.api.ApproveAttributionCountersign public organization.workforce.api.ApproveAttributionCountersign(organization.workforce.api.AttributionCountersignId,java.lang.String)
+organization.workforce::api organization.workforce.api.ApproveAttributionCountersign public organization.workforce.api.AttributionCountersignId organization.workforce.api.ApproveAttributionCountersign.attributionCountersignId()
+organization.workforce::api organization.workforce.api.AttributionCountersignId component value: java.util.UUID
+organization.workforce::api organization.workforce.api.AttributionCountersignId extends java.lang.Record
+organization.workforce::api organization.workforce.api.AttributionCountersignId public final boolean organization.workforce.api.AttributionCountersignId.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.AttributionCountersignId public final int organization.workforce.api.AttributionCountersignId.hashCode()
+organization.workforce::api organization.workforce.api.AttributionCountersignId public final record organization.workforce.api.AttributionCountersignId
+organization.workforce::api organization.workforce.api.AttributionCountersignId public java.lang.String organization.workforce.api.AttributionCountersignId.toString()
+organization.workforce::api organization.workforce.api.AttributionCountersignId public java.util.UUID organization.workforce.api.AttributionCountersignId.value()
+organization.workforce::api organization.workforce.api.AttributionCountersignId public organization.workforce.api.AttributionCountersignId(java.util.UUID)
+organization.workforce::api organization.workforce.api.AttributionCountersigns public abstract interface organization.workforce.api.AttributionCountersigns
+organization.workforce::api organization.workforce.api.AttributionCountersigns public abstract void organization.workforce.api.AttributionCountersigns.approve(organization.workforce.api.ApproveAttributionCountersign)
+organization.workforce::api organization.workforce.api.AttributionCountersigns public abstract void organization.workforce.api.AttributionCountersigns.reject(organization.workforce.api.RejectAttributionCountersign)
 organization.workforce::api organization.workforce.api.AttributionId component value: java.util.UUID
 organization.workforce::api organization.workforce.api.AttributionId extends java.lang.Record
 organization.workforce::api organization.workforce.api.AttributionId public final boolean organization.workforce.api.AttributionId.equals(java.lang.Object)
@@ -211,6 +232,7 @@ organization.workforce::api organization.workforce.api.EnterPersonnelCommand com
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component isTargetFeeEarner: java.lang.Boolean
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component lastWorkingDay: java.time.LocalDate
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetEmploymentPhaseKind: organization.workforce.api.EmploymentPhaseKind
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetLegalEntityId: kernel.LegalEntityId
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetOrgUnitId: organization.workforce.api.OrgUnitId
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetPositionId: organization.workforce.api.PositionId
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetReportsToEmployeeId: kernel.EmployeeId
@@ -227,9 +249,11 @@ organization.workforce::api organization.workforce.api.EnterPersonnelCommand pub
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public java.time.LocalDate organization.workforce.api.EnterPersonnelCommand.lastWorkingDay()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public kernel.EmployeeId organization.workforce.api.EnterPersonnelCommand.employeeId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public kernel.EmployeeId organization.workforce.api.EnterPersonnelCommand.targetReportsToEmployeeId()
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand public kernel.LegalEntityId organization.workforce.api.EnterPersonnelCommand.targetLegalEntityId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public kernel.WecomUserId organization.workforce.api.EnterPersonnelCommand.wecomUserId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.EmploymentPhaseKind organization.workforce.api.EnterPersonnelCommand.targetEmploymentPhaseKind()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.EnterPersonnelCommand(kernel.EmployeeId,organization.workforce.api.PersonnelCommandKind,java.time.LocalDate,java.time.LocalDate,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,kernel.EmployeeId,java.lang.Boolean,organization.workforce.api.EmploymentPhaseKind,java.lang.String,organization.workforce.api.Gender,java.lang.String,kernel.WecomUserId)
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.EnterPersonnelCommand(kernel.EmployeeId,organization.workforce.api.PersonnelCommandKind,java.time.LocalDate,java.time.LocalDate,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,kernel.EmployeeId,java.lang.Boolean,organization.workforce.api.EmploymentPhaseKind,kernel.LegalEntityId,java.lang.String,organization.workforce.api.Gender,java.lang.String,kernel.WecomUserId)
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.Gender organization.workforce.api.EnterPersonnelCommand.gender()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.OrgUnitId organization.workforce.api.EnterPersonnelCommand.targetOrgUnitId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.PersonnelCommandKind organization.workforce.api.EnterPersonnelCommand.commandKind()
@@ -359,6 +383,7 @@ organization.workforce::api organization.workforce.api.PersonnelCommandId public
 organization.workforce::api organization.workforce.api.PersonnelCommandId public organization.workforce.api.PersonnelCommandId(java.util.UUID)
 organization.workforce::api organization.workforce.api.PersonnelCommandKind extends java.lang.Enum<organization.workforce.api.PersonnelCommandKind>
 organization.workforce::api organization.workforce.api.PersonnelCommandKind public final enum organization.workforce.api.PersonnelCommandKind
+organization.workforce::api organization.workforce.api.PersonnelCommandKind public static final organization.workforce.api.PersonnelCommandKind organization.workforce.api.PersonnelCommandKind.CHANGE_LEGAL_ENTITY
 organization.workforce::api organization.workforce.api.PersonnelCommandKind public static final organization.workforce.api.PersonnelCommandKind organization.workforce.api.PersonnelCommandKind.CORRECTION
 organization.workforce::api organization.workforce.api.PersonnelCommandKind public static final organization.workforce.api.PersonnelCommandKind organization.workforce.api.PersonnelCommandKind.HIRE
 organization.workforce::api organization.workforce.api.PersonnelCommandKind public static final organization.workforce.api.PersonnelCommandKind organization.workforce.api.PersonnelCommandKind.REGULARIZE
@@ -456,6 +481,16 @@ organization.workforce::api organization.workforce.api.RegionKind public static 
 organization.workforce::api organization.workforce.api.RegionKind public static final organization.workforce.api.RegionKind organization.workforce.api.RegionKind.REGIONAL
 organization.workforce::api organization.workforce.api.RegionKind public static organization.workforce.api.RegionKind organization.workforce.api.RegionKind.valueOf(java.lang.String)
 organization.workforce::api organization.workforce.api.RegionKind public static organization.workforce.api.RegionKind[] organization.workforce.api.RegionKind.values()
+organization.workforce::api organization.workforce.api.RejectAttributionCountersign component attributionCountersignId: organization.workforce.api.AttributionCountersignId
+organization.workforce::api organization.workforce.api.RejectAttributionCountersign component reason: java.lang.String
+organization.workforce::api organization.workforce.api.RejectAttributionCountersign extends java.lang.Record
+organization.workforce::api organization.workforce.api.RejectAttributionCountersign public final boolean organization.workforce.api.RejectAttributionCountersign.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.RejectAttributionCountersign public final int organization.workforce.api.RejectAttributionCountersign.hashCode()
+organization.workforce::api organization.workforce.api.RejectAttributionCountersign public final java.lang.String organization.workforce.api.RejectAttributionCountersign.toString()
+organization.workforce::api organization.workforce.api.RejectAttributionCountersign public final record organization.workforce.api.RejectAttributionCountersign
+organization.workforce::api organization.workforce.api.RejectAttributionCountersign public java.lang.String organization.workforce.api.RejectAttributionCountersign.reason()
+organization.workforce::api organization.workforce.api.RejectAttributionCountersign public organization.workforce.api.AttributionCountersignId organization.workforce.api.RejectAttributionCountersign.attributionCountersignId()
+organization.workforce::api organization.workforce.api.RejectAttributionCountersign public organization.workforce.api.RejectAttributionCountersign(organization.workforce.api.AttributionCountersignId,java.lang.String)
 organization.workforce::api organization.workforce.api.ReleaseSeparationHold component reason: java.lang.String
 organization.workforce::api organization.workforce.api.ReleaseSeparationHold component separationHoldId: organization.workforce.api.SeparationHoldId
 organization.workforce::api organization.workforce.api.ReleaseSeparationHold extends java.lang.Record
@@ -515,6 +550,9 @@ organization.workforce::api organization.workforce.api.WorkforceError public sta
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_PERIOD_NOT_FOUND
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_SUBJECT_NOT_FOUND
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_COUNTERSIGN_FORBIDDEN
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_COUNTERSIGN_NOT_FOUND
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_COUNTERSIGN_NOT_OPEN
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_CODE_TAKEN
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_LEGAL_ENTITY_UNRESOLVED
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_NOT_FOUND
@@ -593,6 +631,25 @@ organization.workforce::events organization.workforce.events.EmployeeHired publi
 organization.workforce::events organization.workforce.events.EmployeeHired public kernel.event.EventEnvelope organization.workforce.events.EmployeeHired.envelope()
 organization.workforce::events organization.workforce.events.EmployeeHired public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeHired.personnelCommandId()
 organization.workforce::events organization.workforce.events.EmployeeHired public organization.workforce.events.EmployeeHired(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged component effectiveDate: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged component newLegalEntityId: kernel.LegalEntityId
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged component previousLegalEntityId: kernel.LegalEntityId
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged extends java.lang.Record
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public final boolean organization.workforce.events.EmployeeLegalEntityChanged.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public final int organization.workforce.events.EmployeeLegalEntityChanged.hashCode()
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public final java.lang.String organization.workforce.events.EmployeeLegalEntityChanged.toString()
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public final record organization.workforce.events.EmployeeLegalEntityChanged
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public java.time.LocalDate organization.workforce.events.EmployeeLegalEntityChanged.effectiveDate()
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public kernel.EmployeeId organization.workforce.events.EmployeeLegalEntityChanged.employeeId()
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public kernel.LegalEntityId organization.workforce.events.EmployeeLegalEntityChanged.newLegalEntityId()
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public kernel.LegalEntityId organization.workforce.events.EmployeeLegalEntityChanged.previousLegalEntityId()
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public kernel.event.EventEnvelope organization.workforce.events.EmployeeLegalEntityChanged.envelope()
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeLegalEntityChanged.personnelCommandId()
+organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public organization.workforce.events.EmployeeLegalEntityChanged(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,kernel.LegalEntityId,kernel.LegalEntityId)
 organization.workforce::events organization.workforce.events.EmployeeRegistered component employeeId: kernel.EmployeeId
 organization.workforce::events organization.workforce.events.EmployeeRegistered component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.EmployeeRegistered extends java.lang.Record
