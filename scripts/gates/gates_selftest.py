@@ -26,6 +26,7 @@ from unittest import mock
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
+import codex_gate  # noqa: E402
 import pre_tool_dispatch as d  # noqa: E402
 import prod_write_gate as g  # noqa: E402
 from prod_write_gate import (COMMAND_TOOLS, LAUNCH_TOOL, could_concern, judge, load_table)  # noqa: E402
@@ -142,7 +143,7 @@ def pre_tool_dispatch_test():
     corpus = SAMPLES + ["ls", "git status", "echo hi", "cat api.py", "npm test", "", "   ", "python3 x.py", f"git commit -m '{PROD_P} 说明'", f"psql -h {PROD_P} -c 'select 1'", f"aliyun rds DeleteAccount --DBInstanceId {PROD_P}",
                f"aliyun rds DescribeDBInstances --DBInstanceId {PROD_P}", f"python3 -c \"connect('{PROD_P}')\"", f"xargs -I{{}} sqlcmd -S {PROD_P} -Q {{}}", f"sqlcmd -S `echo {PROD_P}` -Q 'delete from t'",
                f"bash -lc \"psql -h {PROD_P} -c 'drop table t'\"", f"$'\\x73qlcmd' -S {PROD_P} -Q 'delete from t'", f"bash <<'EOF'\nsqlcmd -S {PROD_P} -Q 'delete from t'\nEOF", f"env -S 'sqlcmd -S {PROD_P} -Q x'",
-               f"curl -XPOST https://{PROD_P}/x", f"al\"\"iyun rds DeleteAccount --DBInstanceId {PROD_P}", "PSQL -c x", "codex exec p", "git push --no-verify", "gh pr create --title x"]
+               f"curl -XPOST https://{PROD_P}/x", f"al\"\"iyun rds DeleteAccount --DBInstanceId {PROD_P}", "PSQL -c x", "git push --no-verify", "gh pr create --title x"]
     with tempfile.TemporaryDirectory() as elsewhere:
         for command in corpus:
             raw = payload(command, cwd=elsewhere)
@@ -158,7 +159,7 @@ def pre_tool_dispatch_test():
         code, out, err = d.dispatch(payload(command, tool_name=tool))
         assert code == 2 and "底线 4" in err, (command, tool)
     # 3. ordinary commands and other tools start nothing; checks that used to hang off the dispatcher are no longer here
-    for command in ("ls", "echo hi", "git status", "npm test", "codex exec p", "git push --no-verify", "gh pr create --title x"):
+    for command in ("ls", "echo hi", "git status", "npm test", "git push --no-verify", "gh pr create --title x"):
         assert d.dispatch(payload(command)) == (0, "", ""), command
     # preview_start runs the named .claude/launch.json configuration: judged as that command; a url starts nothing; an unreadable configuration is refused
     with tempfile.TemporaryDirectory() as launch, tempfile.TemporaryDirectory() as other, mock.patch.dict(os.environ, CLAUDE_PROJECT_DIR=launch):  # the app reads the session's working directory
@@ -207,6 +208,15 @@ def pre_tool_dispatch_test():
         start = time.monotonic()
         slow = subprocess.run([sys.executable, "-c", run, HERE], input=payload("psql -h localhost -c 'select 1'", cwd=g.REPO_ROOT), capture_output=True, text=True, env={"LC_ALL": "C", "PATH": fake + os.pathsep + os.environ.get("PATH", "")}, timeout=60)
         assert slow.returncode == 3 and "生产写门出错" in slow.stderr and "Overdue" in slow.stderr and time.monotonic() - start < 8, (slow.returncode, slow.stderr, time.monotonic() - start)
+    # 4c. the codex gate failing is its own failure: the dispatcher exits 3 (the mount's pre-filter then refuses codex), the production gate alone still answers other commands
+    def codex_import():
+        raise ImportError("no codex_gate")
+    with mock.patch.object(sys, "stdin"):
+        for loader, why in ((codex_import, "ImportError: no codex_gate"), (lambda: types.SimpleNamespace(decide=lambda p, c: 1 / 0), "ZeroDivisionError")):
+            sys.stdin = io.StringIO(payload("codex exec --sandbox workspace-write 'a b'"))
+            with contextlib.redirect_stderr(io.StringIO()) as err:
+                code = d.main(d.load_gate, loader)
+            assert code == 3 and why in err.getvalue() and "codex 门出错同此处理" in err.getvalue(), (why, code, err.getvalue())
     # 5. end to end as a hook process under the system python, also with -I
     env = {"LC_ALL": "C", "PATH": os.environ.get("PATH", "")}
     for runner in (["/usr/bin/python3"], ["/usr/bin/python3", "-I"]) if os.path.exists("/usr/bin/python3") else ([sys.executable], [sys.executable, "-I"]):
@@ -402,8 +412,8 @@ def settings_self_test():
     for name in [*commands, "scripts/gates/hooks_manifest.sh"]:
         mode = gitc(ROOT, "ls-files", "-s", "--", name).split()[:1]
         assert mode == ["100755"], (name, mode)
-    deny = settings.get("permissions", {}).get("deny", [])  # O21a: external model CLIs are not run directly (no outsourcing entry any more, intent 2026-10-28-201509)
-    assert deny == ["Bash(codex *)", "Bash(pi *)", "mcp__terminal__run_in_terminal"], ("permissions.deny 恰为 codex、pi 直接调用（O21a）与整个终端面板工具（#723）", deny)
+    deny = settings.get("permissions", {}).get("deny", [])  # #1180 (user decision 2026-11-03): the blanket codex deny is gone, codex_gate allows one shape and refuses the rest; pi stays denied
+    assert deny == ["Bash(pi *)", "mcp__terminal__run_in_terminal"], ("permissions.deny 恰为 pi 直接调用与整个终端面板工具（#723）；codex 由 codex_gate 白名单管（#1180）", deny)
     for plugin in ("kotlin-lsp", "claude-code-setup", "code-modernization"):
         assert settings["enabledPlugins"][f"{plugin}@claude-plugins-official"] is False, plugin
     return {**{name: cmd for name, (_, cmd, _) in commands.items()}, "start_sheet": sheet}
@@ -487,7 +497,9 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         for shell in shells:
             for command, code in (("ls", 0), ("ls -la | wc -l", 0), ("git status", 0), ("gh pr list", 0), ("git -c core.pager='sh w.sh' log -1", 0), ("GIT_EXTERNAL_DIFF=./w.sh git diff", 0), ("PATH=./bin:/usr/bin ls", 0),
                                   ("echo x > /dev/tcp/10.0.0.5/6379", 0), ("sort --compress-program=./w.sh x", 0), (f"psql -h {PROD_P} -c 'delete from t'", 2), ("./deploy.sh", 0), ("echo `deploy`", 0), ("rg --pre deploy x", 0),
-                                  ("ssh dev uptime", 0), ("curl -s https://x.example.invalid", 0), (f"grep -rn {PROD_H} docs", 2), (f"s''sh {PROD_H} uptime", 2), (f"echo {PROD_D.upper()}", 2),
+                                  ("ssh dev uptime", 0), ("curl -s https://x.example.invalid", 0), ("codex exec --sandbox workspace-write 'a b'", 2), ('co""dex exec x', 2), ("$'\\x63odex' exec x", 2),
+                                  ("co{dex,} exec x", 2), ("co{d..d}ex exec x", 2), ("co\\\ndex exec x", 2), ("cod?x exec x", 2), ("c\\odex exec x", 2), ("ls src/{a,b}", 2), ("git commit -m 'codex'", 2), ("echo CoDeX", 2),   # #1180: a broken gate refuses codex, even the one allowed shape
+                                   (f"grep -rn {PROD_H} docs", 2), (f"s''sh {PROD_H} uptime", 2), (f"echo {PROD_D.upper()}", 2),
                                   (f"c\\url https://{PROD_P[:3]}\\{PROD_P[3:]}/", 0),  # split by a backslash: not on the text as written, allowed by design (202019)
                                   *((c, 0) for c in MISBLOCKED), *((c, 2) for c in extra)):
                 r = mount(gate_cmd, bash(command), shell)
@@ -710,7 +722,112 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
     r = install("--switch", a)
     assert r.returncode == 0 and points_to() == a and mount(gate_cmd, bash("ls")).returncode == 0
 
-SECTIONS = {"prod_write_gate": prod_write_gate_test, "pre_tool_dispatch": pre_tool_dispatch_test, "main_checkout_gate": main_checkout_gate_test, "pre_commit": pre_commit_test, "install": install_test}
+def codex_gate_test():
+    """#1180: codex runs in one shape, in the caller's own worktree; everything else is refused."""
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = os.path.realpath(tmp)
+        main, w1, w2, plain = (os.path.join(tmp, n) for n in ("main", "main/.claude/worktrees/w1", "main/.claude/worktrees/w2", "plain"))
+        os.makedirs(main)
+        os.makedirs(plain)
+        git(main, "init", "-q", "-b", "main")
+        git(main, "commit", "-q", "--allow-empty", "-m", "base")
+        for name, path in (("w1", w1), ("w2", w2)):
+            git(main, "worktree", "add", "-q", path, "-b", name)
+        os.makedirs(os.path.join(w1, "sub"))
+        S, M, E = "codex exec --sandbox workspace-write", "-m gpt-5.5", "-c model_reasoning_effort=high"
+
+        def ask(command, cwd=w1, project=w1, tool="Bash"):
+            with mock.patch.dict(os.environ, {"CLAUDE_PROJECT_DIR": project} if project else {}, clear=False):
+                if not project:
+                    os.environ.pop("CLAUDE_PROJECT_DIR", None)
+                return codex_gate.check(command, cwd)
+        allowed = [f"{S} 'fix the bug'", f'{S} "fix the bug"', "codex exec -s workspace-write 'fix the bug'", "codex exec --sandbox=workspace-write 'fix the bug'", f"{S} {M} 'fix the bug'",
+                   f"{S} --model=gpt-5.5 'fix the bug'", f"{S} {E} 'fix the bug'", f"{S} --config model_reasoning_effort=xhigh 'fix the bug'", f'{S} -c \'model_reasoning_effort="low"\' \'fix the bug\'',
+                   f"{S} {M} {E} 'fix the bug'", f"codex exec {M} {E} -s workspace-write 'fix the bug'", f"{S} -- '--odd prompt'", f"{S} -",
+                   f"{S} 'fix the bug' < PROMPT.md > out.txt 2>&1", f"{S} 'fix the bug' >> sub/out.txt", f"{S} 'fix the bug' 2>/dev/null", f"{S} 'fix the bug' &> out.txt", f"{S} \"fix $(date) the bug\"",
+                   f"{S} 'fix the bug'\n", "git commit -m 'codex pilot'", "gh issue comment 1 --body 'ask codex'", "ls ~/.codex", "which codex", "echo codex", "printf codex | cat",   # data programs and script files that only carry the word as an argument (lead's list, one per program)
+                   "cat docs/codex/notes.md", "cat docs/codex", "sed -n '1,5p' docs/codex.md", "rg codex docs", "rg -n 'codex pilot' scripts", "grep -rn codex docs", "head -5 notes-codex.md", "ls docs/codex", "git log --oneline -- docs/codex",
+                   "git add docs/codex.md", "gh issue create --title 'ops(gates): codex pilot' --body-file body.md", "gh pr create --title 'x (#1)' --body 'codex'", "printf '%s' codex > note.txt", "date", "basename /x/codex",
+                   "python3 scripts/session/new_intent.py --who 'x' 'the user said use codex for drafting'", "python3 scripts/merge/post_review.py --pr 1 --body-file codex-review.md", "python3 -I scripts/merge/mq.py status codex",
+                   "node scripts/tool.js codex", "bash scripts/ci/light.sh codex", "sh ./x.sh --note 'codex'", "./scripts/session/tool.sh codex notes", "/usr/bin/python3 -I scripts/x.py 'codex pilot'", "git commit -m 'codex' && ls", "git commit -m 'codex pilot' && git push", "echo CODEX_HOME", "cat <<'EOF'\ncodex exec x\nEOF", "git log --grep=codex"]
+        for command in allowed:
+            assert ask(command) is None, (command, ask(command))
+        assert ask(f"{S} 'fix the bug'", cwd=os.path.join(w1, "sub")) is None, "a subdirectory of the own worktree"
+        refused = [  # (command, text the refusal must hold): every form the card names
+            ("codex", "exec"), ("codex exec 'fix the bug'", "workspace-write"), ("codex exec -s read-only 'fix the bug'", "workspace-write"), ("codex exec -s danger-full-access 'fix the bug'", "workspace-write"),
+            ("codex exec --sandbox 'fix the bug'", "workspace-write"), (f"{S} --dangerously-bypass-approvals-and-sandbox 'fix the bug'", "开关"), (f"{S} --full-auto 'fix the bug'", "开关"),
+            (f"{S} --oss 'fix the bug'", "开关"), (f"{S} -p dev 'fix the bug'", "开关"), (f"{S} --profile dev 'fix the bug'", "开关"), (f"{S} -C / 'fix the bug'", "开关"), (f"{S} --cd / 'fix the bug'", "开关"),
+            (f"{S} --add-dir /etc 'fix the bug'", "开关"), (f"{S} --enable x 'fix the bug'", "开关"), (f"{S} -c sandbox_workspace_write.network_access=true 'fix the bug'", "model_reasoning_effort"),
+            (f"{S} -c model=gpt 'fix the bug'", "model_reasoning_effort"), (f"{S} -c model_reasoning_effort=extreme 'fix the bug'", "model_reasoning_effort"), (f"{S} {E} {E} 'fix the bug'", "-c 只放一个"),
+            (f"{S} --config sandbox_mode=danger-full-access 'fix the bug'", "model_reasoning_effort"), (f"{S} -m '-x' 'fix the bug'", "模型名"), (f"{S} -m 'a b' 'fix the bug'", "模型名"),
+            (f"{S} {S[11:]} 'fix the bug'", "沙箱开关重复"), (f"CODEX_HOME=/x {S} 'fix the bug'", "codex 只放一种用法"), (f"FOO=1 {S} 'fix the bug'", "codex 只放一种用法"),
+            ("codex exec resume --last", "workspace-write"), (f"{S} resume", "单个词"), (f"{S} review", "单个词"), (f"{S} 'one' 'two'", "恰有一个提示词"), (f"{S}", "恰有一个提示词"),
+            ("codex login", "exec"), ("codex mcp list", "exec"), ("codex apply", "exec"), ("codex --version", "exec"), ("codex --sandbox workspace-write exec 'fix the bug'", "exec"),
+            (f"timeout 600 {S} 'fix the bug'", "codex 只放一种用法"), (f"time {S} 'fix the bug'", "codex 只放一种用法"), (f"nice -n 5 {S} 'fix the bug'", "codex 只放一种用法"), (f"nohup {S} 'fix the bug'", "codex 只放一种用法"),
+            (f"stdbuf -oL {S} 'fix the bug'", "codex 只放一种用法"), (f"command {S} 'fix the bug'", "codex 只放一种用法"), (f"builtin {S} 'fix the bug'", "codex 只放一种用法"), (f"noglob {S} 'fix the bug'", "codex 只放一种用法"),
+            (f"env {S} 'fix the bug'", "codex 只放一种用法"), (f"env -i CODEX_HOME=/x {S} 'fix the bug'", "codex 只放一种用法"), (f"sudo {S} 'fix the bug'", "codex 只放一种用法"), (f"sudo -u root {S} 'fix the bug'", "codex 只放一种用法"),
+            (f"nohup nice timeout 5 {S} 'fix the bug'", "codex 只放一种用法"), (f"xargs {S}", "codex 只放一种用法"), (f"find . -exec {S} 'a b' \\;", "codex 只放一种用法"), ("watch -n1 codex exec x", "codex 只放一种用法"),
+            (f"ls && {S} 'fix the bug'", "codex 只放一种用法"), (f"ls; {S} 'fix the bug'", "codex 只放一种用法"), (f"ls | {S} 'fix the bug'", "codex 只放一种用法"), (f"{S} 'fix the bug' | tee out.txt", "codex 只放一种用法"),
+            (f"{S} 'fix the bug' && ls", "codex 只放一种用法"), (f"{S} 'fix the bug' &", "codex 只放一种用法"), (f"{S} 'fix the bug'\nls", "codex 只放一种用法"), (f"cd /tmp && {S} 'fix the bug'", "codex 只放一种用法"),
+            (f"( {S} 'fix the bug' )", "codex 只放一种用法"), (f"{{ {S} 'fix the bug'; }}", "codex 只放一种用法"), (f"if true; then {S} 'fix the bug'; fi", "codex 只放一种用法"), (f"! {S} 'fix the bug'", "codex 只放一种用法"),
+            (f"echo $({S} 'fix the bug')", "codex 只放一种用法"), (f"echo `{S} 'fix the bug'`", "codex 只放一种用法"), (f'echo "$({S} \'fix the bug\')"', "codex 只放一种用法"), (f"cat <({S} 'a b')", "codex 只放一种用法"),
+            (f"X=$({S} 'fix the bug')", "codex 只放一种用法"), (f"{S} \"fix $({S} 'x y') the bug\"", "codex 只放一种用法"),
+            (f"bash -c \"{S} 'fix the bug'\"", "codex 只放一种用法"), (f"sh -c '{S} \"fix the bug\"'", "codex 只放一种用法"), (f"zsh -c \"{S} 'fix the bug'\"", "codex 只放一种用法"), (f"bash -lc \"{S} 'fix the bug'\"", "codex 只放一种用法"),
+            (f"eval {S} 'fix the bug'", "codex 只放一种用法"), (f"eval \"{S} 'fix the bug'\"", "codex 只放一种用法"), ("bash <<EOF\ncodex exec x\nEOF", "codex 只放一种用法"), (f"python3 -c \"import os; os.system('{S} x')\"", "codex 只放一种用法"),
+            (f"/usr/local/bin/codex exec -s workspace-write 'a b'", "codex 只放一种用法"), (f"./codex exec -s workspace-write 'a b'", "codex 只放一种用法"), (f"node_modules/.bin/codex exec -s workspace-write 'a b'", "codex 只放一种用法"),
+            ("npx codex exec -s workspace-write 'a b'", "codex 只放一种用法"), ("npx -y @openai/codex exec -s workspace-write 'a b'", "codex 只放一种用法"), ("pnpm dlx @openai/codex exec", "codex 只放一种用法"),
+            ("c\\odex exec 'a b'", "exec"), ("co''dex", "exec"), ("'codex'", "exec"), ("$'\\x63odex'", "exec"), ("bash -c 'c\"\"odex exec x'", "codex 只放一种用法"), ("bash -c \"c'o'dex exec it's\"", "codex 只放一种用法"),
+            ("echo 'unterminated codex", "解析不了"), ('echo "x\nbash -c $\'\\x63odex exec x\'', "解析不了"), ("$'\\x63odex' exec x" + '"$(echo ' * 600, "解析不了"),
+            # named in text, run only at run time: the first review's forms (codex is written out, so this is not the accepted "assembled at run time" gap)
+            ("echo 'codex exec --dangerously-bypass-approvals-and-sandbox x' | bash", "codex 只放一种用法"), ("bash <<< 'codex exec x'", "codex 只放一种用法"), ('bash -c "$(echo codex exec x)"', "codex 只放一种用法"),
+            ("bash <(echo codex exec x)", "codex 只放一种用法"), ("$(which codex) exec --dangerously-bypass-approvals-and-sandbox x", "codex 只放一种用法"), ("`which codex` exec x", "codex 只放一种用法"),
+            ("X=codex; $X exec x", "codex 只放一种用法"), ("for c in codex; do $c exec x; done", "codex 只放一种用法"), ("printf 'codex exec x' > r.sh; sh r.sh", "codex 只放一种用法"),
+            (f"{S} \"$(bash -c 'echo hi')\" ".replace('"$(bash', '"fix $(bash'), "codex 只放一种用法"),
+            # the adversarial review's forms: program name made by a brace or glob, a here-document delimiter that expands, a text nested too deep
+            # the final review's forms: a brace range, shell keywords and zsh precommand words, any program naming codex
+            ("co{d..d}ex --full-auto", "codex 只放一种用法"), ("c{o..o}dex --dangerously-bypass-approvals-and-sandbox x", "codex 只放一种用法"), ("function f { codex --full-auto; }; f", "codex 只放一种用法"),
+            ('trap "codex --full-auto" EXIT', "codex 只放一种用法"), ("repeat 1 codex --full-auto", "codex 只放一种用法"), ("nocorrect codex --full-auto", "codex 只放一种用法"), ("coproc codex --full-auto", "codex 只放一种用法"),
+            ("alias c=codex; c", "codex 只放一种用法"), ("- codex --full-auto", "codex 只放一种用法"), ("python3 -c 'print(1)' codex", "codex 只放一种用法"), ("python3 - codex <<EOF\nx\nEOF", "codex 只放一种用法"), ("bash -lc 'ls' codex", "codex 只放一种用法"), ("python3 -m pytest codex", "codex 只放一种用法"), ("env ./run.sh codex", "codex 只放一种用法"), ("co\\\ndex --full-auto", "exec"),
+            ("co{dex,} --dangerously-bypass-approvals-and-sandbox", "codex 只放一种用法"), ("/opt/bin/cod?x --dangerously-bypass-approvals-and-sandbox 'a b'", "codex 只放一种用法"),
+            ("c[o]dex exec x", "codex 只放一种用法"), ("cod*x exec x", "codex 只放一种用法"), ("env co{dex,} exec x", "codex 只放一种用法"),
+            ("cat <<$X\nx\n$X\nbash -c $'\\x63odex exec --dangerously-bypass-approvals-and-sandbox'", "codex 只放一种用法"),
+            (f"{S} 'fix the bug' > /etc/passwd", "不在 worktree"), (f"{S} 'fix the bug' > ../x.txt", "不在 worktree"), (f"{S} 'fix the bug' > {tmp}/x.txt", "不在 worktree"), (f"{S} 'fix the bug' < /etc/passwd", "不在 worktree"),
+            (f"{S} 'fix the bug' 2> /tmp/x", "不在 worktree"), (f"{S} 'fix the bug' > $HOME/x", "写死的路径"), (f"{S} 'fix the bug' > *.txt", "写死的路径"), (f"{S} 'fix the bug' >&2", "不放行的重定向"),
+            (f"{S} 'fix the bug' <<< 'x'", "不放行的重定向"), (f"{S} - <<EOF\nprompt\nEOF", "here-document"), (f"{S} 'fix the bug' 3> x", "不放行的重定向"),
+            (f"{S} $PROMPT", "展开"), (f"{S} {M[:3]} $MODEL 'a b'", "展开"), (f"{S} 'fix the bug' *", "展开"), (f"{S} ~/x 'a b'", "展开"), (f"{S} {{a,b}} 'a b'", "展开"),
+            (f"{S} -c model_reasoning_effort=$E 'a b'", "展开")]
+        for command, needle in refused:
+            reason = ask(command)
+            assert reason and "拒绝" in reason and needle in reason, (command, needle, reason)
+        # only the caller's own worktree
+        for why, cwd, project in (("the main checkout", main, main), ("another worktree of the repository", w2, w1), ("a directory that is not a repository", plain, w1), ("no cwd", None, w1), ("a relative cwd", "w1", w1),
+                                  ("cwd gone", os.path.join(tmp, "gone"), w1), ("no CLAUDE_PROJECT_DIR", w1, None), ("CLAUDE_PROJECT_DIR is the main checkout", w1, main), ("CLAUDE_PROJECT_DIR is not a repository", w1, plain)):
+            reason = ask(f"{S} 'fix the bug'", cwd=cwd, project=project)
+            assert reason and "自己的 worktree" in reason, (why, reason)
+        os.symlink(w2, os.path.join(tmp, "link"))
+        assert "自己的 worktree" in ask(f"{S} 'fix the bug'", cwd=os.path.join(tmp, "link")), "a symlink into another worktree resolves to it"
+        os.symlink(tmp, os.path.join(w1, "escape"))
+        assert "不在 worktree" in ask(f"{S} 'fix the bug' > escape/x.txt"), "a symlink out of the worktree does not make its target inside"
+        # a repository whose worktree is not under .claude/worktrees/ is not an own worktree
+        other = os.path.join(tmp, "elsewhere")
+        git(main, "worktree", "add", "-q", other, "-b", "elsewhere")
+        assert "worktrees/" in ask(f"{S} 'fix the bug'", cwd=other, project=other)
+        # through the dispatcher: all hook-running tools, the production gate still answers, the launch tool is judged as the command it starts
+        with mock.patch.dict(os.environ, {"CLAUDE_PROJECT_DIR": w1}):
+            for tool in COMMAND_TOOLS:
+                assert d.dispatch(payload(f"{S} 'fix the bug'", cwd=w1, tool_name=tool)) == (0, "", ""), tool
+                code, out, err = d.dispatch(payload(f"timeout 5 {S} 'fix the bug'", cwd=w1, tool_name=tool))
+                assert code == 2 and "codex 只放" in err, (tool, err)
+            assert d.dispatch(payload(f"psql -h {PROD_P} -c x", cwd=w1))[0] == 2 and d.dispatch(payload(f"{S} 'fix the bug' > /etc/x", cwd=w1))[0] == 2
+            put(os.path.join(w1, ".claude", "launch.json"), json.dumps({"configurations": [{"name": "c", "runtimeExecutable": "codex", "runtimeArgs": ["exec"]}, {"name": "ok", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"]}]}), 0o644)
+            assert d.dispatch(json.dumps({"tool_name": LAUNCH_TOOL, "tool_input": {"name": "c"}, "cwd": w1}))[0] == 2
+            assert d.dispatch(json.dumps({"tool_name": LAUNCH_TOOL, "tool_input": {"name": "ok"}, "cwd": w1})) == (0, "", "")
+        # as the hook process, with its stderr
+        r = subprocess.run([PYTHON, "-I", DISPATCH], input=payload(f"env {S} 'a b'", cwd=w1), capture_output=True, text=True, env={"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), "CLAUDE_PROJECT_DIR": w1})
+        assert r.returncode == 2 and "codex 只放" in r.stderr, (r.returncode, r.stderr)
+    print("codex_gate self-test: ok")
+
+SECTIONS = {"prod_write_gate": prod_write_gate_test, "codex_gate": codex_gate_test, "pre_tool_dispatch": pre_tool_dispatch_test, "main_checkout_gate": main_checkout_gate_test, "pre_commit": pre_commit_test, "install": install_test}
 
 if __name__ == "__main__":
     unknown = [name for name in sys.argv[1:] if name not in SECTIONS]
