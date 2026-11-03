@@ -60,13 +60,14 @@ def context_start(path):
     raise Unreadable(f"对话记录 {path} 里没有时间戳")
 
 
-def merged_since(log_path, start):
-    """Numbers of the pull requests merge.log shows MERGED after `start`."""
+def merged_since(log_path, start, tail=LOG_TAIL):
+    """Numbers of the pull requests merge.log shows MERGED after `start`. Only the last `tail` bytes are read; the first line of a cut is dropped (it may be half a line)."""
     try:
         with open(log_path, "rb") as f:
             f.seek(0, 2)
-            f.seek(max(0, f.tell() - LOG_TAIL))
-            lines = f.read().decode("utf-8", "replace").splitlines()
+            offset = max(0, f.tell() - tail)
+            f.seek(offset)
+            lines = f.read().decode("utf-8", "replace").splitlines()[1 if offset else 0:]
         return [int(m.group(2)) for m in map(MERGED.match, lines) if m and parse_time(m.group(1)) > start]
     except (OSError, ValueError) as e:
         raise Unreadable(f"读不出合入日志 {log_path}（{e}）")
@@ -273,6 +274,13 @@ def self_test():
         assert run(mine) == passes + ([],), "a workspace without a session marker passes"
         setup(session="not-a-session", log=[(after, 7)])
         assert run(mine) == passes + ([],), "a marker outside sessions.config passes"
+        setup(log=[(after, 7)])   # a log longer than the tail read: the cut can fall inside a MERGED line, whose time then does not parse
+        log_path = os.path.join(queue, "merge.log")
+        with open(log_path, encoding="utf-8") as f:
+            line = f.read()
+        with open(log_path, "w", encoding="utf-8") as f:
+            f.write(line * 3)
+        assert merged_since(log_path, now - datetime.timedelta(hours=1), tail=2 * len(line) - 10) == [7], "a half line at the cut is dropped, not parsed"
         setup(log=[])
         assert run(mine) == passes + ([],), "nothing merged since the context start: no gh call"
     print("card_handover self-test: ok")
