@@ -5,6 +5,7 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.BlockingArrival;
+import com.forcitis.one.organization.workforce.api.HeldSeparation;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PositionId;
@@ -68,6 +69,15 @@ public interface OrgStructureCommandRepository {
     /** Whether a merge into the unit is pending or in progress with an effective date on or before the day: its people will arrive by then. */
     boolean hasOpenMergeInto(OrgUnitId orgUnit, LocalDate onOrBefore);
 
+    /** Whether a merge of the unit away is in progress, or pending (or awaiting its countersign) with an effective date on or before the day: a unit that is about to disappear cannot receive a merge's people. */
+    boolean hasMergeOfUnitOnOrBefore(OrgUnitId orgUnit, LocalDate day);
+
+    /** Whether a merge into the unit is open (pending, awaiting its countersign or in progress) with an effective date on or after the day: its people arrive on the day or later, so the unit cannot be merged away by then. */
+    boolean hasMergeIntoOnOrAfter(OrgUnitId orgUnit, LocalDate day);
+
+    /** The merges that are pending or in progress, in the order their unit rows are locked in (merge day, merged unit, id). */
+    List<OrgStructureCommandId> openMerges();
+
     /** The snapshot row of a new org unit, in the command's transaction; its versions follow. */
     void insertOrgUnit(OrgStructureCommand command, Instant at);
 
@@ -123,6 +133,9 @@ public interface OrgStructureCommandRepository {
      * A person who is in the unit just before such a row (a later position or manager change) is a resident, not an arrival.
      */
     List<BlockingArrival> arrivalsAfter(OrgUnitId orgUnit, LocalDate day);
+
+    /** The people employed in the unit on the day whose separation is held, with the held command: a hold keeps them where they are. */
+    List<HeldSeparation> heldSeparationsIn(OrgUnitId orgUnit, LocalDate day);
 
     /** The merges in progress whose merged unit holds a post of the employee on the merge day, ordered by merge day, merged unit, then id (the order their unit rows are locked in). */
     List<OrgStructureCommandId> mergesInProgressOf(EmployeeId employee);

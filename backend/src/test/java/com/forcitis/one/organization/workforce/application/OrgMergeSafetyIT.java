@@ -4,23 +4,34 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.kernel.SeparationReview;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.api.EnterOrgStructureCommand;
+import com.forcitis.one.organization.workforce.api.HeldSeparation;
+import com.forcitis.one.organization.workforce.api.PreviewOrgUnitMerge;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommands;
 import com.forcitis.one.organization.workforce.api.OrgStructureTargetKind;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.PersonnelCommands;
 import com.forcitis.one.organization.workforce.api.WithdrawOrgStructureCommand;
+import com.forcitis.one.organization.workforce.api.WithdrawPersonnelCommand;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -28,6 +39,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -38,6 +51,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -92,6 +106,12 @@ class OrgMergeSafetyIT {
 
     @Autowired
     OrgMergeSteps steps;
+
+    @Autowired
+    PersonnelCommandDueJob dueJob;
+
+    @MockitoBean
+    SeparationReview review;
 
     private WorkContext.Scope acting;
     private LocalDate today;
@@ -299,13 +319,13 @@ class OrgMergeSafetyIT {
         long before = commandCount();
 
         assertThatThrownBy(() -> merge(unit(), dying, today)).isInstanceOf(DomainException.class);
-        assertThatThrownBy(() -> merge(unit(), leaving, today)).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> merge(unit(), leaving, today.plusDays(6))).isInstanceOf(DomainException.class);
 
         assertThat(commandCount()).isEqualTo(before);
         UUID home = unit();
         merge(unit(), home, today);
         assertThatThrownBy(() -> commands.enter(unitCommand(OrgStructureCommandKind.DISSOLVE, home, today.plusDays(2), null, null))).isInstanceOf(DomainException.class);
-        assertThatThrownBy(() -> merge(home, unit(), today.plusDays(2))).isInstanceOf(DomainException.class);
+        assertThatThrownBy(() -> merge(home, unit(), today)).isInstanceOf(DomainException.class);
         assertThat(commands.enter(unitCommand(OrgStructureCommandKind.DISSOLVE, unit(), today.plusDays(2), null, null))).as("a unit nobody merges into is not held back").isNotNull();
     }
 
@@ -519,7 +539,7 @@ class OrgMergeSafetyIT {
 
     // ---- later arrivals (one-design ruling on #907, user answer a) ----
 
-    private com.forcitis.one.organization.workforce.api.PersonnelCommandId transferInto(UUID person, UUID unit, LocalDate day) {
+    private PersonnelCommandId transferInto(UUID person, UUID unit, LocalDate day) {
         signIn(PERSONNEL_PERMISSION);
         try {
             return personnel.enter(new EnterPersonnelCommand(new EmployeeId(person), PersonnelCommandKind.TRANSFER, day, null, new OrgUnitId(unit), null, null, null, null, null, null,
@@ -731,5 +751,186 @@ class OrgMergeSafetyIT {
         tree.close();
         run.get(30, TimeUnit.SECONDS);
         assertThat(commandStatus(merge)).isEqualTo("EFFECTIVE");
+    }
+
+    // ---- #1098: placements that name no unit, and merges that chain ----
+
+    private PersonnelCommandId transferOut(UUID person, UUID toUnit, LocalDate day) {
+        signIn(PERSONNEL_PERMISSION);
+        try {
+            return personnel.enter(new EnterPersonnelCommand(new EmployeeId(person), PersonnelCommandKind.TRANSFER, day, null, new OrgUnitId(toUnit), null, null, null, null, null, null, null, null));
+        } finally {
+            signIn(ORG_PERMISSION);
+        }
+    }
+
+    private void withdraw(PersonnelCommandId command) {
+        signIn(PERSONNEL_PERMISSION);
+        try {
+            personnel.withdraw(new WithdrawPersonnelCommand(command, "entered by mistake"));
+        } finally {
+            signIn(ORG_PERMISSION);
+        }
+    }
+
+    @Test
+    @DisplayName("#1098 S1a-1：合并 IN_PROGRESS 时，撤回会把冻结名单之外的人放回被并入单元的待办调出：被拒，调出命令仍待生效、人仍在原处")
+    void withdrawingATransferOutIsRefusedWhileTheMergeIsInProgress() {
+        UUID merged = unit();
+        UUID away = unit();
+        UUID mover = person(merged, "REGULAR");
+        UUID stuck = person(merged, "PROBATION");
+        LocalDate day = today.plusDays(5);
+        regularizeOn(stuck, day);
+        PersonnelCommandId out = transferOut(mover, away, day.minusDays(2));
+        OrgStructureCommandId merge = merge(merged, unit(), day);
+        clock.advance(Duration.ofDays(5));
+        catchThrowable(() -> commands.executeMerge(merge));
+        assertThat(commandStatus(merge)).isEqualTo("IN_PROGRESS");
+
+        Throwable refused = catchThrowable(() -> withdraw(out));
+
+        assertThat(refused).isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).hasToString("ORGANIZATION_WORKFORCE_ORG_UNIT_MERGE_OPEN"));
+        assertThat(unitOf(mover, day)).isEqualTo(away);
+        assertThat(jdbc.sql("select status from organization_workforce.personnel_commands where personnel_command_id = :id").param("id", out.value()).query(String.class).single()).isEqualTo("PENDING");
+    }
+
+    @Test
+    @DisplayName("#1098 S1a-2：合并 PENDING 时，撤回使这个人在合并日仍在被并入单元：允许（合并会移走他）")
+    void withdrawingATransferOutIsAllowedWhileTheMergeIsPendingAndTheMergeDayIsCovered() {
+        UUID merged = unit();
+        UUID mover = person(merged, "REGULAR");
+        LocalDate day = today.plusDays(5);
+        PersonnelCommandId out = transferOut(mover, unit(), day.minusDays(2));
+        merge(merged, unit(), day);
+
+        withdraw(out);
+
+        assertThat(unitOf(mover, day)).isEqualTo(merged);
+    }
+
+    @Test
+    @DisplayName("#1098 S2-1：Y 并入 Z 已录入且合并日不晚于 X 并入 Y 的日期：录入 X 并入 Y 被拒；Y 并入 Z 晚于它则放行")
+    void aChainOfMergesIsRefusedWhenTheReceivingUnitIsMergedAwayFirst() {
+        UUID x = unit();
+        UUID y = unit();
+        UUID z = unit();
+        merge(y, z, today.plusDays(3));
+        long before = commandCount();
+
+        assertThat(catchThrowable(() -> merge(x, y, today.plusDays(3)))).isInstanceOf(DomainException.class);
+        assertThat(catchThrowable(() -> merge(x, y, today.plusDays(4)))).isInstanceOf(DomainException.class);
+        assertThat(commandCount()).isEqualTo(before);
+        assertThat(merge(x, y, today.plusDays(2))).as("X arrives in Y a day before Y goes away").isNotNull();
+    }
+
+    @Test
+    @DisplayName("#1098 S2-2：X 并入 Y 已录入且还没有人移走（甚至进行中）：补录合并日不晚于它的 Y 并入 Z 被拒；晚于它的放行；撤回 X 并入 Y 后同样放行")
+    void aBackDatedMergeOfTheReceivingUnitIsRefused() {
+        UUID x = unit();
+        UUID y = unit();
+        UUID z = unit();
+        person(x, "REGULAR");
+        OrgStructureCommandId first = merge(x, y, today.plusDays(3));
+        long before = commandCount();
+
+        assertThat(catchThrowable(() -> merge(y, z, today.plusDays(2)))).isInstanceOf(DomainException.class);
+        assertThat(catchThrowable(() -> merge(y, z, today.plusDays(3)))).isInstanceOf(DomainException.class);
+        assertThat(commandCount()).isEqualTo(before);
+        assertThat(merge(y, z, today.plusDays(4))).as("Y goes away after X has arrived").isNotNull();
+        commands.withdraw(new WithdrawOrgStructureCommand(first, "re-planned"));
+        assertThat(merge(unit(), y, today.plusDays(1))).isNotNull();
+    }
+
+    @Test
+    @DisplayName("#1098 S1b：到期日待放行离职的人在进行中合并的被并入单元里：保留照常生效（人仍在职、不报错），写一条告警；收尾被拒且消息与预览都点名此人和被保留的命令；HR 调出后收尾完成")
+    void aDueDayHoldStandsWhileTheMergeIsInProgressAndTheMergeNamesTheHeldPerson() {
+        UUID merged = unit();
+        UUID away = unit();
+        UUID held = person(merged, "REGULAR");
+        UUID stuck = person(merged, "PROBATION");
+        LocalDate day = today.plusDays(3);
+        regularizeOn(stuck, day);
+        when(review.review(any(), any(), any())).thenReturn(new SeparationReview.Verdict(Set.of(), true, 2, "", "", Set.of()));
+        signIn(PERSONNEL_PERMISSION);
+        PersonnelCommandId separation = personnel.enter(new EnterPersonnelCommand(new EmployeeId(held), PersonnelCommandKind.SEPARATE, null, day.minusDays(1), null, null, null, null, null, null, null, null, null));
+        signIn(ORG_PERMISSION);
+        OrgStructureCommandId merge = merge(merged, unit(), day);
+        clock.advance(Duration.ofDays(3));
+        catchThrowable(() -> commands.executeMerge(merge));
+        assertThat(commandStatus(merge)).isEqualTo("IN_PROGRESS");
+        when(review.review(any(), any(), any(), any())).thenReturn(new SeparationReview.Verdict(Set.of(new EmployeeId(held)), true, 1, "", "", Set.of()));
+        Logger logger = (Logger) LoggerFactory.getLogger(ApplyDueCommand.class);
+        ListAppender<ILoggingEvent> logged = new ListAppender<>();
+        logged.start();
+        logger.addAppender(logged);
+
+        try {
+            dueJob.run();
+        } finally {
+            logger.detachAppender(logged);
+        }
+
+        assertThat(jdbc.sql("select status from organization_workforce.personnel_commands where personnel_command_id = :id").param("id", separation.value()).query(String.class).single()).isEqualTo("HELD");
+        assertThat(unitOf(held, day)).isEqualTo(merged);
+        assertThat(logged.list).anyMatch(e -> e.getLevel() == Level.ERROR && e.getFormattedMessage().contains(separation.value().toString()) && e.getFormattedMessage().contains(merge.value().toString()));
+        Throwable refused = catchThrowable(() -> steps.finish(merge, UUID.randomUUID()));
+        assertThat(refused).isInstanceOf(DomainException.class).hasMessageContaining(held.toString()).hasMessageContaining(separation.value().toString());
+        assertThat(commands.previewMerge(new PreviewOrgUnitMerge(new OrgUnitId(merged), new OrgUnitId(away), day)).held())
+                .containsExactly(new HeldSeparation(new EmployeeId(held), separation));
+
+        withdraw(separation);
+        transferOut(held, away, zone.today(clock));
+        assignedFrom(stuck, away, day);
+        commands.executeMerge(merge);
+        assertThat(commandStatus(merge)).isEqualTo("EFFECTIVE");
+    }
+
+    /** What a race leaves: a merge of the receiving unit Y dated the day before the merge into it, copied from that merge's row because the entry rules refuse it. */
+    private void slipInMergeAwayFrom(OrgStructureCommandId template, UUID y, UUID z, LocalDate day) {
+        List<String> columns = jdbc.sql("select column_name from information_schema.columns where table_schema = 'organization_workforce' and table_name = 'org_structure_commands'"
+                + " order by ordinal_position").query(String.class).list();
+        String values = columns.stream().map(c -> switch (c) {
+            case "org_structure_command_id" -> ":id";
+            case "target_org_unit_id" -> ":target";
+            case "merge_into_org_unit_id" -> ":into";
+            case "effective_date" -> ":day";
+            default -> c;
+        }).collect(java.util.stream.Collectors.joining(", "));
+        jdbc.sql("insert into organization_workforce.org_structure_commands (" + String.join(", ", columns) + ") select " + values
+                + " from organization_workforce.org_structure_commands where org_structure_command_id = :template")
+                .param("id", UUID.randomUUID()).param("target", y).param("into", z).param("day", day).param("template", template.value()).update();
+    }
+
+    @Test
+    @DisplayName("#1098 S2 第二道线（启动）：录入时漏过的竞态连环合并：X 并入 Y 启动时被拒，合并仍 PENDING，没人被放进 Y")
+    void aChainedMergeThatSlippedInStopsTheStart() {
+        UUID x = unit();
+        UUID y = unit();
+        UUID resident = person(x, "REGULAR");
+        OrgStructureCommandId first = merge(x, y, today);
+        slipInMergeAwayFrom(first, y, unit(), today.minusDays(1));
+
+        Throwable refused = catchThrowable(() -> commands.executeMerge(first));
+
+        assertThat(refused).isInstanceOf(DomainException.class);
+        assertThat(commandStatus(first)).isEqualTo("PENDING");
+        assertThat(unitOf(resident, today)).isEqualTo(x);
+    }
+
+    @Test
+    @DisplayName("#1098 S2 第二道线（生成的调岗）：合并已进行中、之后漏进来的连环合并：生成的调岗在 Y 上被拒，没人被放进 Y")
+    void aChainedMergeThatSlippedInStopsTheGeneratedTransfer() {
+        UUID x = unit();
+        UUID y = unit();
+        UUID resident = person(x, "REGULAR");
+        OrgStructureCommandId first = merge(x, y, today);
+        com.forcitis.one.organization.workforce.domain.HeldPost post = steps.start(first, UUID.randomUUID()).getFirst();
+        slipInMergeAwayFrom(first, y, unit(), today.minusDays(1));
+
+        Throwable refused = catchThrowable(() -> steps.move(first, post, UUID.randomUUID()));
+
+        assertThat(refused).isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).hasToString("ORGANIZATION_WORKFORCE_ORG_UNIT_MERGE_OPEN"));
+        assertThat(unitOf(resident, today)).isEqualTo(x);
     }
 }

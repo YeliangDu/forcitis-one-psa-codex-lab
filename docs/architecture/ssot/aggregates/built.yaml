@@ -208,6 +208,7 @@ aggregates:
   - OrgStructureCommandDueJob
   - OrgStructureCommandService
   - OrgStructureRules
+  - PersonnelCommandService
   - PreviewMergeAttribution
   events: []
   events_in_module:

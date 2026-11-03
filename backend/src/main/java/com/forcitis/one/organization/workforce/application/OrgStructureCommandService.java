@@ -184,7 +184,8 @@ class OrgStructureCommandService implements OrgStructureCommands {
                 .collect(Collectors.groupingBy(HeldPost::employee, LinkedHashMap::new, Collectors.toList()));
         List<MergedPosts> posts = held.entrySet().stream().map(one -> new MergedPosts(one.getKey(), one.getValue().stream().anyMatch(post -> post.kind() == AssignmentKind.PRIMARY),
                 (int) one.getValue().stream().filter(post -> post.kind() == AssignmentKind.CONCURRENT).count())).toList();
-        return new OrgMergePreview(List.copyOf(held.keySet()), commands.arrivalsAfter(preview.targetOrgUnitId(), preview.effectiveDate()), posts);
+        return new OrgMergePreview(List.copyOf(held.keySet()), commands.arrivalsAfter(preview.targetOrgUnitId(), preview.effectiveDate()), posts,
+                commands.heldSeparationsIn(preview.targetOrgUnitId(), preview.effectiveDate()));
     }
 
     @Override

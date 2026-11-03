@@ -29,6 +29,7 @@ import com.forcitis.one.organization.workforce.api.CountersignRequestKind;
 import com.forcitis.one.organization.workforce.domain.HoldStatus;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolution;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolutionSources;
+import com.forcitis.one.organization.workforce.domain.OrgStructureCommand;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRules;
@@ -49,6 +50,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -150,7 +152,7 @@ class PersonnelCommandService implements PersonnelCommands {
             command.generatedBy(merge);
         }
         requireTargetsExist(command);
-        if (merge == null && command.targetOrgUnitId() != null && commands.hasOpenMergeFor(command.targetOrgUnitId(), command.effectiveDate())) {
+        if (command.targetOrgUnitId() != null && commands.hasOpenMergeFor(command.targetOrgUnitId(), command.effectiveDate())) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ORG_UNIT_MERGE_OPEN, ErrorKind.CONFLICT,
                     "the department has a merge in progress, or one dated on or before " + command.effectiveDate() + "; nobody can be placed there from then on");
         }
@@ -224,6 +226,7 @@ class PersonnelCommandService implements PersonnelCommands {
         if (found.kind() == PersonnelCommandKind.SEPARATE) {
             commands.lockSeparationDecisions();
         }
+        List<OrgStructureCommand> openMerges = mergeProgress.lockOpen();
         commands.lockEmployee(found.employeeId());
         PersonnelCommand command = commands.find(request.personnelCommandId()).orElseThrow(PersonnelCommandService::notFound);
         long loadedVersion = command.version();
@@ -241,8 +244,15 @@ class PersonnelCommandService implements PersonnelCommands {
             PersonnelCommandRules.requireNoSeparationAtOrAfter(command, history);
             Map<VersionTable, VersionPlan> plans = timelines.forWithdrawal(command, history);
             PersonnelCommandRules.requirePositionOnCommandRows(plans.get(VersionTable.ASSIGNMENT));
+            Set<OrgStructureCommandId> placedBefore = mergeProgress.placedBy(openMerges, command.employeeId());
             for (Map.Entry<VersionTable, VersionPlan> plan : plans.entrySet()) {
                 commands.insertVersions(command.employeeId(), plan.getKey(), plan.getValue(), command.id(), now);
+            }
+            // The withdrawal names no unit but can put the person back into one (one-design ruling on #1098, S1a): a placement like any other.
+            if (!placedBefore.containsAll(mergeProgress.placedBy(openMerges, command.employeeId()))) {
+                throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ORG_UNIT_MERGE_OPEN, ErrorKind.CONFLICT,
+                        "withdrawing command " + command.id() + " would put employee " + command.employeeId() + " back into a department whose merge is in progress, or joins it only after the merge day;"
+                                + " withdraw it after the merge has finished");
             }
         }
         commands.update(command, now, loadedVersion);
