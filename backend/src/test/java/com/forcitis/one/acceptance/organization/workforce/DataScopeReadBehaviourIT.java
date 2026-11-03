@@ -66,6 +66,13 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
     static final String ADJUSTMENTS = "/api/v1/platform/permission-adjustments";
     static final String ADJUSTMENT = ADJUSTMENTS + "/{permissionAdjustmentId}";
 
+    /**
+     * A4 does not apply to these lines: their scope is a relation (permission-adjustment:read holders, else recipient = caller), the list is always 200
+     * and never 403, and the reader never calls OrgDirectory, so there is nothing that can fail to resolve (one-design, #730 comment 6602368110 point 3;
+     * the harness cannot force it, the register line names its own proof). A1 to A3 still run on them.
+     */
+    static final Set<String> A4_EXEMPT = Set.of("GET " + ADJUSTMENTS, "GET " + ADJUSTMENT);
+
     /** The org unit of the row, or null for a row of no unit the world knows. */
     private record ListPath(String register, String path, List<String> queries, boolean paged, String idField, Function<Map<String, Object>, String> unitOfRow) {
     }
@@ -239,6 +246,7 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
         lists().forEach(list -> adapted.add(list.register()));
         details().forEach(detail -> adapted.add(detail.register()));
         assertThat(adapted).containsExactlyInAnyOrderElementsOf(scopedLines());
+        assertThat(scopedLines()).as("an A4 exemption names a SCOPED line of the register").containsAll(A4_EXEMPT);
     }
 
     // ---- calls --------------------------------------------------------------------------------------------------------------------
@@ -360,6 +368,9 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
         require(read("broken", ORG_UNITS), 200, "priming the principal of the caller before the organisation fails (the principal is cached for a minute)");
         doThrow(new IllegalStateException("organisation unavailable")).when(organisation).findEmployee(argThat(id -> id != null && id.value().toString().equals(employee)));
         for (ListPath list : lists()) {
+            if (A4_EXEMPT.contains(list.register())) {
+                continue;
+            }
             for (String query : list.queries()) {
                 String url = list.path() + query;
                 MockHttpServletResponse refused = read("broken", url);
@@ -367,6 +378,9 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
             }
         }
         for (DetailPath detail : details()) {
+            if (A4_EXEMPT.contains(detail.register())) {
+                continue;
+            }
             for (String id : List.of(detail.inA(), detail.inB())) {
                 MockHttpServletResponse refused = read("broken", urlOf(detail.register(), id));
                 assertThat(refused.getStatus()).as(detail.register() + ": " + refused.getContentAsString()).isEqualTo(404);
