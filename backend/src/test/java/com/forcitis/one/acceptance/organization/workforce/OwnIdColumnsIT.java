@@ -86,15 +86,15 @@ class OwnIdColumnsIT extends AcceptanceSupport {
     /** table, unique constraint, its columns in order (DDL-01: the natural key stays unique). */
     static final List<String[]> NATURAL_KEYS = List.of(
             new String[] {"org_unit_versions", "uk_org_unit_versions_revision", "org_unit_id,effective_from_date,revision_number"},
-            new String[] {"assignment_versions", "uk_assignment_versions_revision", "employee_id,effective_from_date,revision_number"},
-            new String[] {"org_unit_legal_entities", "uk_org_unit_legal_entities_effective_from", "org_unit_id,effective_from_date"});
+            new String[] {"assignment_versions", "uk_assignment_versions_revision", "employee_id,effective_from_date,revision_number"});
 
     /**
      * table, partial unique index, its columns in order: natural keys of attribution period tables that took the W2 common set (W2 design
-     * section 3.6, #892): no revision number, so the key is unique among the rows not superseded.
+     * section 3.6, #892, #904): no revision number, so the key is unique among the rows not superseded.
      */
-    static final List<String[]> CURRENT_ROW_NATURAL_KEYS = List.<String[]>of(
-            new String[] {"employee_legal_entities", "uk_employee_legal_entities_effective_from", "employee_id,effective_from_date"});
+    static final List<String[]> CURRENT_ROW_NATURAL_KEYS = List.of(
+            new String[] {"employee_legal_entities", "uk_employee_legal_entities_effective_from", "employee_id,effective_from_date"},
+            new String[] {"org_unit_legal_entities", "uk_org_unit_legal_entities_effective_from", "org_unit_id,effective_from_date"});
 
     /** table, index, leading column (DDL-06). */
     static final List<String[]> FOREIGN_KEY_INDEXES = List.of(
@@ -187,7 +187,7 @@ class OwnIdColumnsIT extends AcceptanceSupport {
     }
 
     @Test
-    @DisplayName("R-1b P3b DDL-01 与 W2 第 3.6 节（#892）：员工法人归属期间表的自然键改为只管未作废行的部分唯一索引 uk_employee_legal_entities_effective_from (employee_id, effective_from_date) WHERE superseded_at IS NULL")
+    @DisplayName("R-1b P3b DDL-01 与 W2 第 3.6 节（#892、#904）：员工与组织单元法人归属期间表的自然键改为只管未作废行的部分唯一索引 uk_*_effective_from (主体, effective_from_date) WHERE superseded_at IS NULL")
     void theNaturalKeysOfVersionedPeriodsStayUniqueAmongCurrentRows() throws Exception {
         List<String> wrong = new ArrayList<>();
         try (Connection catalogue = schemaConnection("public")) {

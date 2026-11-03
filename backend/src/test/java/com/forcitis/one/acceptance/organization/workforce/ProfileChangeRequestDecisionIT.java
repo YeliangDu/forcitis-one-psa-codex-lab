@@ -1,0 +1,293 @@
+package com.forcitis.one.acceptance.organization.workforce;
+
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.PERSONNEL_SPECIALIST_ROLE;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.forcitis.one.TestDatabase;
+import com.forcitis.one.TestPostgres;
+import com.jayway.jsonpath.JsonPath;
+import java.sql.Connection;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+
+/**
+ * #980 acceptance (design note wecom-rebind-second-person.md section 6 lines 5 to 9, 11, 14, 15 and 17; user answer Q1 a): the second
+ * person is any other holder of the personnel-command permission, never the requester nor the subject. Confirmation applies the whole
+ * proposed profile and revokes the subject's sessions and browser identifiers in the same transaction; a base that moved or a WeCom id
+ * taken meanwhile voids the request (the VOIDED status and its audit survive the 409); rejection needs a reason; decided requests take no
+ * further decision.
+ */
+class ProfileChangeRequestDecisionIT extends ProfileChangeRequestSupport {
+
+    static final TestDatabase postgres = TestPostgres.database(ProfileChangeRequestDecisionIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+
+    @DynamicPropertySource
+    static void database(DynamicPropertyRegistry registry) {
+        postgres.register(registry);
+    }
+
+    private static final String CHANGED = "organization.workforce.employee-profile.changed";
+
+    @Test
+    @DisplayName("#980 完成标准 5、17（用户答复 Q1 a）：请求人确认得 403 确认人代码；被改档案的人自己（也持人事命令权限）确认得 403；请求仍待复核；第三位人事专员可以确认")
+    void onlyAThirdHolderConfirms() throws Exception {
+        Staff subject = staff(PERSONNEL_SPECIALIST_ROLE);
+        UUID request = requested(hr, subject.employeeId(), "Synthetic subject specialist", syntheticWecom("q1"));
+
+        for (Staff refused : List.of(hr, subject)) {
+            MockHttpServletResponse answer = confirm(refused, request);
+            assertThat(answer.getStatus()).as(answer.getContentAsString()).isEqualTo(403);
+            assertThat(codeOf(answer)).isEqualTo(CONFIRMER_CODE);
+        }
+        assertThat(request(request).get("request_status")).isEqualTo("PENDING");
+
+        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE), request).getStatus()).isEqualTo(200);
+        assertThat(request(request).get("request_status")).isEqualTo("CONFIRMED");
+    }
+
+    @Test
+    @DisplayName("#980 完成标准 6：确认写入整份提议档案（姓名与企业微信账号），同事务作废被改人的会话与浏览器标识；一条 changed 审计，操作人为确认人、明细里有请求人与请求 ID；请求为 CONFIRMED、决定人为确认人")
+    void confirmationAppliesTheWholeProfileAndRevokes() throws Exception {
+        Staff subject = privileged();
+        String moved = syntheticWecom("confirmed");
+        UUID request = requested(hr, subject.employeeId(), "Synthetic confirmed name", moved);
+        Staff second = staff(PERSONNEL_SPECIALIST_ROLE);
+        int changedAudits = auditCount(CHANGED);
+
+        MockHttpServletResponse answer = confirm(second, request);
+
+        assertThat(answer.getStatus()).as(answer.getContentAsString()).isEqualTo(200);
+        Map<String, Object> root = root(subject.employeeId());
+        assertThat(root.get("display_name")).isEqualTo("Synthetic confirmed name");
+        assertThat(root.get("wecom_user_id")).isEqualTo(moved);
+        assertThat(sessionStatus(subject)).as("sessions revoked").isNotEqualTo(200);
+        assertThat(browserIdentifiers(subject)).as("browser identifiers revoked").isZero();
+        assertThat(request(request).get("request_status")).isEqualTo("CONFIRMED");
+        assertThat(fromStored(request(request).get("decided_by"))).isEqualTo(second.userId());
+        assertThat(auditCount(CHANGED)).isEqualTo(changedAudits + 1);
+        List<Map<String, Object>> entries = auditQuery(null, null, CHANGED);
+        Map<String, Object> entry = entries.stream().filter(e -> String.valueOf(e.get("detail")).contains(request.toString())).findFirst()
+                .orElseThrow(() -> new AssertionError("a changed entry naming the request " + request));
+        assertThat(String.valueOf(entry.get("actorId"))).as("the confirmer acts").isEqualTo(text(second.userId()));
+        assertThat(String.valueOf(entry.get("detail"))).as("the requester is in the detail").contains(text(hr.userId()));
+    }
+
+    @Test
+    @DisplayName("#980 完成标准 7、15：请求后档案被其他途径改过（直接写库，如 #961 前的同步放行）：确认答 409，请求转 VOIDED BASE_CHANGED（409 后仍在），什么都不写、会话保留；一条 change-voided 审计")
+    void aMovedBaseVoids() throws Exception {
+        Staff subject = privileged();
+        UUID request = requested(hr, subject.employeeId(), "Synthetic base moved", syntheticWecom("base"));
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update employees set display_name = 'Synthetic renamed elsewhere' where id = ?", stored(subject.employeeId()));
+        }
+        Map<String, Object> before = root(subject.employeeId());
+        long identifiers = browserIdentifiers(subject);
+        int voidedAudits = auditCount(AUDIT_VOIDED);
+
+        MockHttpServletResponse answer = confirm(staff(PERSONNEL_SPECIALIST_ROLE), request);
+
+        assertThat(answer.getStatus()).as(answer.getContentAsString()).isEqualTo(409);
+        assertThat(request(request).get("request_status")).isEqualTo("VOIDED");
+        assertThat(request(request).get("void_reason_kind")).isEqualTo("BASE_CHANGED");
+        assertUntouched(subject, before, identifiers);
+        assertThat(auditCount(AUDIT_VOIDED)).isEqualTo(voidedAudits + 1);
+    }
+
+    @Test
+    @DisplayName("#980 完成标准 8、15：提议的企业微信账号在确认前被别的员工占用：确认答 409，请求转 VOIDED WECOM_USER_ID_TAKEN，什么都不写；一条 change-voided 审计")
+    void aTakenWecomIdVoids() throws Exception {
+        Staff subject = privileged();
+        String wanted = syntheticWecom("wanted");
+        UUID request = requested(hr, subject.employeeId(), "Synthetic wants a taken id", wanted);
+        Staff other = staff();
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update employees set wecom_user_id = ? where id = ?", wanted, stored(other.employeeId()));
+        }
+        Map<String, Object> before = root(subject.employeeId());
+        long identifiers = browserIdentifiers(subject);
+        int voidedAudits = auditCount(AUDIT_VOIDED);
+
+        MockHttpServletResponse answer = confirm(staff(PERSONNEL_SPECIALIST_ROLE), request);
+
+        assertThat(answer.getStatus()).as(answer.getContentAsString()).isEqualTo(409);
+        assertThat(request(request).get("request_status")).isEqualTo("VOIDED");
+        assertThat(request(request).get("void_reason_kind")).isEqualTo("WECOM_USER_ID_TAKEN");
+        assertUntouched(subject, before, identifiers);
+        assertThat(auditCount(AUDIT_VOIDED)).isEqualTo(voidedAudits + 1);
+    }
+
+    @Test
+    @DisplayName("#980 完成标准 9、15：另一位人事专员拒绝须写理由（没写被拒、仍待复核）；拒绝后什么都不写、会话保留，一条 change-rejected 审计；之后不能再确认（409）")
+    void rejectionNeedsAReasonAndEndsTheRequest() throws Exception {
+        Staff subject = privileged();
+        UUID request = requested(hr, subject.employeeId(), "Synthetic to reject", syntheticWecom("reject"));
+        Map<String, Object> before = root(subject.employeeId());
+        long identifiers = browserIdentifiers(subject);
+        Staff second = staff(PERSONNEL_SPECIALIST_ROLE);
+        int rejectedAudits = auditCount(AUDIT_REJECTED);
+
+        assertThat(reject(second, request, null).getStatus()).isEqualTo(400);
+        assertThat(request(request).get("request_status")).isEqualTo("PENDING");
+        assertThat(reject(second, request, "synthetic: not this person").getStatus()).isEqualTo(200);
+
+        assertThat(request(request).get("request_status")).isEqualTo("REJECTED");
+        assertThat(request(request).get("decision_reason")).isEqualTo("synthetic: not this person");
+        assertUntouched(subject, before, identifiers);
+        assertThat(auditCount(AUDIT_REJECTED)).isEqualTo(rejectedAudits + 1);
+        assertThat(confirmWith(staff(PERSONNEL_SPECIALIST_ROLE), request, currentVersionOf(request)).getStatus()).isEqualTo(409);
+    }
+
+    @Test
+    @DisplayName("#980 完成标准 14：已 CONFIRMED、REJECTED、VOIDED 的请求再确认或再拒绝都答 409，什么都不变")
+    void decidedRequestsTakeNoFurtherDecision() throws Exception {
+        Staff a = privileged();
+        UUID confirmed = requested(hr, a.employeeId(), "Synthetic decided one", syntheticWecom("d1"));
+        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE), confirmed).getStatus()).isEqualTo(200);
+        Staff b = privileged();
+        UUID rejected = requested(hr, b.employeeId(), "Synthetic decided two", syntheticWecom("d2"));
+        assertThat(reject(staff(PERSONNEL_SPECIALIST_ROLE), rejected, "synthetic: no").getStatus()).isEqualTo(200);
+        Staff c = privileged();
+        UUID voided = requested(hr, c.employeeId(), "Synthetic decided three", syntheticWecom("d3"));
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update employees set display_name = 'Synthetic moved' where id = ?", stored(c.employeeId()));
+        }
+        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE), voided).getStatus()).isEqualTo(409);
+
+        Staff third = staff(PERSONNEL_SPECIALIST_ROLE);
+        for (UUID decided : List.of(confirmed, rejected, voided)) {
+            Map<String, Object> row = request(decided);
+            assertThat(confirmWith(third, decided, currentVersionOf(decided)).getStatus()).as("confirm " + decided).isEqualTo(409);
+            assertThat(rejectWith(third, decided, "synthetic: late", currentVersionOf(decided)).getStatus()).as("reject " + decided).isEqualTo(409);
+            assertThat(request(decided)).isEqualTo(row);
+        }
+    }
+
+    @Test
+    @DisplayName("#980 完成标准 11（多角色按用户判断、I-11）：没有人事命令权限的超级管理员（普通会话与管理员模式）都不能确认；同时持人事专员与另一角色的第三人可以；待复核列表对人事专员可见（无员工数据范围，第 5.4 条）")
+    void aSuperAdministratorWithoutThePermissionCannotConfirm() throws Exception {
+        Staff subject = privileged();
+        UUID request = requested(hr, subject.employeeId(), "Synthetic admin tries", syntheticWecom("admin"));
+        Staff admin = staff("super_admin");
+
+        assertThat(confirm(admin, request).getStatus()).isEqualTo(403);
+        assertThat(confirm(new Staff(admin.employeeId(), administratorMode(admin.session())), request).getStatus()).isEqualTo(403);
+        assertThat(request(request).get("request_status")).isEqualTo("PENDING");
+
+        MockHttpServletResponse listed = listPending(hr);
+        assertThat(listed.getStatus()).as(listed.getContentAsString()).isEqualTo(200);
+        assertThat(JsonPath.<List<String>>read(listed.getContentAsString(), "$.items[*].requestId")).contains(request.toString());
+
+        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE, "org_data_admin"), request).getStatus()).isEqualTo(200);
+    }
+
+    @Test
+    @DisplayName("#980 one-design HTTP 裁定（#980 comment 6591359266 第 1 项）：确认不带 If-Match 答 428，版本不符（\"7\"）答 412；两次都不改请求、不改档案；带 \"0\" 再确认答 200 并带 ETag")
+    void confirmationNeedsTheVersion() throws Exception {
+        Staff subject = privileged();
+        UUID request = requested(hr, subject.employeeId(), "Synthetic versioned", syntheticWecom("version"));
+        Map<String, Object> before = root(subject.employeeId());
+        Staff second = staff(PERSONNEL_SPECIALIST_ROLE);
+
+        assertThat(confirmWith(second, request, null).getStatus()).isEqualTo(428);
+        assertThat(confirmWith(second, request, "\"7\"").getStatus()).isEqualTo(412);
+        assertThat(request(request).get("request_status")).isEqualTo("PENDING");
+        assertThat(root(subject.employeeId())).isEqualTo(before);
+
+        MockHttpServletResponse confirmed = confirm(second, request);
+        assertThat(confirmed.getStatus()).as(confirmed.getContentAsString()).isEqualTo(200);
+        assertThat(confirmed.getHeader("ETag")).as("the request resource answers with its ETag").isNotBlank();
+        assertThat(request(request).get("request_status")).isEqualTo("CONFIRMED");
+    }
+
+    @Test
+    @DisplayName("#980 one-design HTTP 裁定（第 2 项）：拒绝理由空白或 501 字答 400 PLATFORM_WEB_REQUEST_INVALID，错误不回显理由文字，请求仍待复核；1 个字和 500 个字被接受（边界）")
+    void theRejectReasonIsCheckedWithoutEcho() throws Exception {
+        Staff second = staff(PERSONNEL_SPECIALIST_ROLE);
+        UUID request = requested(hr, privileged().employeeId(), "Synthetic reason bounds", syntheticWecom("bounds"));
+        String tooLong = "echo-marker-" + "x".repeat(489);
+
+        for (String bad : new String[] {"   ", tooLong}) {
+            MockHttpServletResponse answer = reject(second, request, bad);
+            assertThat(answer.getStatus()).as(answer.getContentAsString()).isEqualTo(400);
+            assertThat(codeOf(answer)).isEqualTo("PLATFORM_WEB_REQUEST_INVALID");
+            assertThat(answer.getContentAsString()).doesNotContain("echo-marker-");
+        }
+        assertThat(request(request).get("request_status")).isEqualTo("PENDING");
+
+        assertThat(reject(second, request, "x").getStatus()).as("1 character").isEqualTo(200);
+        UUID another = requested(hr, privileged().employeeId(), "Synthetic reason five hundred", syntheticWecom("bounds500"));
+        assertThat(reject(second, another, "y".repeat(500)).getStatus()).as("500 characters").isEqualTo(200);
+        assertThat(request(another).get("decision_reason")).isEqualTo("y".repeat(500));
+    }
+
+    @Test
+    @DisplayName("#980 完成标准 7（rv1059x M3：基准里的企业微信账号变了也算基准变化）：请求后该员工的企业微信账号被其他途径改了（直接写库）：确认答 409、VOIDED BASE_CHANGED，什么都不写")
+    void aMovedBaseWecomIdVoids() throws Exception {
+        Staff subject = privileged();
+        UUID request = requested(hr, subject.employeeId(), "Synthetic base wecom moved", syntheticWecom("wanted"));
+        String elsewhere = syntheticWecom("elsewhere");
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update employees set wecom_user_id = ? where id = ?", elsewhere, stored(subject.employeeId()));
+        }
+
+        MockHttpServletResponse answer = confirm(staff(PERSONNEL_SPECIALIST_ROLE), request);
+
+        assertThat(answer.getStatus()).as(answer.getContentAsString()).isEqualTo(409);
+        assertThat(request(request).get("request_status")).isEqualTo("VOIDED");
+        assertThat(request(request).get("void_reason_kind")).isEqualTo("BASE_CHANGED");
+        assertThat(root(subject.employeeId()).get("wecom_user_id")).isEqualTo(elsewhere);
+    }
+
+    @Test
+    @DisplayName("#980 第 5 条第 3 项「拒绝：另一人（同确认人规则）或请求人撤回」（rv1059x M4）：被改档案的人自己（持人事命令权限）不能拒绝（403 确认人代码），请求仍待复核")
+    void theSubjectCannotReject() throws Exception {
+        Staff subject = staff(PERSONNEL_SPECIALIST_ROLE);
+        UUID request = requested(hr, subject.employeeId(), "Synthetic subject rejects", syntheticWecom("veto"));
+
+        MockHttpServletResponse answer = reject(subject, request, "synthetic: I refuse");
+
+        assertThat(answer.getStatus()).as(answer.getContentAsString()).isEqualTo(403);
+        assertThat(codeOf(answer)).isEqualTo(CONFIRMER_CODE);
+        assertThat(request(request).get("request_status")).isEqualTo("PENDING");
+    }
+
+    @Test
+    @DisplayName("#980 第 3 节「整份档案一起等」（rv1059x 建议 1）：提议里改了邮箱，确认后邮箱一并写入；另一请求后邮箱被其他途径改了，确认答 409、VOIDED BASE_CHANGED")
+    void theWholeProfileIncludesTheEmail() throws Exception {
+        Staff subject = privileged();
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update employees set email = 'synthetic-old@example.invalid' where id = ?", stored(subject.employeeId()));
+        }
+        MockHttpServletResponse asked = changeOver(hr, subject.employeeId(), "Synthetic with email", "synthetic-new@example.invalid", syntheticWecom("mail"));
+        assertThat(asked.getStatus()).as(asked.getContentAsString()).isEqualTo(202);
+        UUID request = UUID.fromString(JsonPath.read(asked.getContentAsString(), "$.requestId"));
+
+        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE), request).getStatus()).isEqualTo(200);
+        assertThat(root(subject.employeeId()).get("email")).isEqualTo("synthetic-new@example.invalid");
+
+        Staff other = privileged();
+        UUID second = requested(hr, other.employeeId(), "Synthetic email base", syntheticWecom("mail-base"));
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update employees set email = 'synthetic-moved@example.invalid' where id = ?", stored(other.employeeId()));
+        }
+        assertThat(confirm(staff(PERSONNEL_SPECIALIST_ROLE), second).getStatus()).isEqualTo(409);
+        assertThat(request(second).get("void_reason_kind")).isEqualTo("BASE_CHANGED");
+    }
+
+    @Test
+    @DisplayName("#980 one-design HTTP 裁定第 1 项（rv1059x 建议 2）：拒绝同样要 If-Match：不带答 428，版本不符答 412，请求仍待复核")
+    void rejectionNeedsTheVersion() throws Exception {
+        UUID request = requested(hr, privileged().employeeId(), "Synthetic reject versioned", syntheticWecom("reject-version"));
+        Staff second = staff(PERSONNEL_SPECIALIST_ROLE);
+
+        assertThat(rejectWith(second, request, "synthetic: no", null).getStatus()).isEqualTo(428);
+        assertThat(rejectWith(second, request, "synthetic: no", "\"7\"").getStatus()).isEqualTo(412);
+        assertThat(request(request).get("request_status")).isEqualTo("PENDING");
+    }
+}

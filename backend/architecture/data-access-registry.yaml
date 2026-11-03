@@ -175,6 +175,15 @@ tables:
     retention: {policy: PERMANENT}  # 同人事命令：个人任职史随员工清除，离职满 10 年删除（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
     writers: []  # 尚无写入方（#895 随用例登记）
+  organization_workforce.attribution_countersign_bases:
+    role: AGGREGATE_CHILD
+    aggregate: OrgUnit
+    mutability: APPEND_ONLY
+    condition: 任何 UPDATE 都拒绝，DELETE 只放行表属主（触发器 tg_attribution_countersign_bases_append_only，ADR-0073 第 2 至 4 条）
+    business_key: [org_structure_command_id, employee_id]
+    retention: {policy: PERMANENT}  # 随组织记录保留，清除通道随 W2 第 8 节另批
+    lineage: {source: NEW}
+    writers: []  # 尚无写入方（F4a 随用例登记）
   organization_workforce.employee_profile_change_requests:
     role: AGGREGATE_CHILD
     aggregate: Employee
@@ -183,7 +192,7 @@ tables:
     business_key: [employee_profile_change_request_id]
     retention: {policy: PERMANENT}  # 随员工任职史清除：离职满 10 年删除该员工的行（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
-    writers: []  # 尚无写入方（#980 实现卡随用例登记）
+    writers: [organization.workforce]
   organization_workforce.separation_holds:
     role: AGGREGATE_CHILD
     aggregate: Employee
@@ -213,8 +222,18 @@ tables:
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
     lineage: {source: ORG_SOURCE}
-    references: {regional_receivables_manager_id: organization_workforce.employees}
+    condition: 关闭列对与作废列对各只能由空变非空一次，已关闭的行也可被作废，其余列不变，不删除（触发器 tg_org_unit_versions_append_only，W2 设计第 2 节）
+    references: {regional_receivables_manager_id: organization_workforce.employees, corrected_from_version_id: organization_workforce.org_unit_versions}
     readers: [organization.workforce]  # no writer in main since #934 removed the org sync
+  # D17 rule 2: effective basis DECLARED. Empty table: the root positions keeps its columns and the sync-era path keeps writing the root until root narrowing (W2 section 9); no writer yet.
+  organization_workforce.position_versions:
+    role: DIMENSION_VERSIONED
+    mutability: APPEND_ONLY
+    condition: 关闭列对与作废列对各只能由空变非空一次，已关闭的行也可被作废，其余列不变，不删除（触发器 tg_position_versions_append_only，W2 设计第 2、3.3 节）
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    references: {corrected_from_version_id: organization_workforce.position_versions}
+    writers: []
   # D17 rule 2: effective basis DECLARED (ADR-0068 item 6). Trigger tg_assignment_versions_append_only (ADR-0068 15.1, W2 design 2): the closing pair
   # (effective_to_date, closed_at) and the superseding pair (superseded_at, superseding_command_id) go from null to non-null once, a superseded row may be
   # open or closed, nothing else changes, nothing is deleted.
@@ -253,6 +272,8 @@ tables:
     role: DIMENSION_VERSIONED
     aggregate: LegalEntityAttribution
     mutability: APPEND_ONLY
+    condition: 关闭列对与作废列对各只能由空变非空一次，已关闭的行也可被作废，其余列不变，不删除（触发器 tg_org_unit_legal_entities_append_only，W2 设计第 2、3.6 节）
+    references: {corrected_from_version_id: organization_workforce.org_unit_legal_entities}
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [organization.workforce]

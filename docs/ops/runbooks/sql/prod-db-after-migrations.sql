@@ -8,7 +8,7 @@ SET ROLE one_prod_owner;
 DO $$
 DECLARE t text;
 BEGIN
-    FOREACH t IN ARRAY ARRAY['organization_workforce.org_unit_versions', 'organization_workforce.assignment_versions',
+    FOREACH t IN ARRAY ARRAY['organization_workforce.org_unit_versions', 'organization_workforce.position_versions', 'organization_workforce.assignment_versions',
                              'organization_workforce.legal_entity_versions', 'organization_workforce.employee_versions',
                              'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities',
                              'platform_identity.role_versions', 'platform_identity.account_role_grants'] LOOP
@@ -23,6 +23,7 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_numbering.document_types FRO
 REVOKE DELETE, TRUNCATE ON organization_workforce.personnel_commands FROM one_prod_app;
 REVOKE DELETE, TRUNCATE ON organization_workforce.org_structure_commands FROM one_prod_app;
 REVOKE DELETE, TRUNCATE ON organization_workforce.attribution_countersigns FROM one_prod_app;
+REVOKE UPDATE, DELETE, TRUNCATE ON organization_workforce.attribution_countersign_bases FROM one_prod_app;
 REVOKE DELETE, TRUNCATE ON organization_workforce.employee_profile_change_requests FROM one_prod_app;
 -- 待放行离职与人事状态转换（IMP-1030-PAR-B1）：待放行离职同人事命令，状态转换只追加，运行角色只留 SELECT、INSERT。
 REVOKE DELETE, TRUNCATE ON organization_workforce.separation_holds FROM one_prod_app;
