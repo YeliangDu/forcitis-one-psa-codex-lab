@@ -419,3 +419,12 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/CountersignSupport.java
     reason: '会话绝对期 24 小时，测试把时钟拨过 TODAY 后旧会话必得 401；两个辅助类覆盖 setToday，时钟后拨时让 hr、orgAdmin 与三位财务负责人以同一员工重新登录。未改断言、值、用例、显示名或调用处；原先靠 401 通过的两条拒绝用例现在走真实服务'
     ref: "commits d5ba39b19 (#910), e87841a6a (#1040), e9988da6c (#895); review-relogin-08-sonnet.md"
+  - id: RULING-LEAD-20261103-09
+    date: 2026-11-03
+    ruled_by: one-design (#907 comment 6594521545), recorded by one-lead
+    implementer: one-dev-org
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/P5Names.java
+      - backend/src/test/java/com/forcitis/one/acceptance/AuditIdContractTest.java
+    reason: 'one-design 裁定 #907 新增有对象审计类别 ORG_STRUCTURE_COMMAND（V20261103100000）；P5Names.KINDS_WITH_OBJECT 写死清单加该类别，AuditIdContractTest 显示名去掉已过时的「19 个」计数；断言与用例不变、未放松'
+    ref: "commit 75a7e4376 (#907 acceptance); https://github.com/FORCITIS/forcitis-one-psa/issues/907#issuecomment-6594521545"
