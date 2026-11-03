@@ -28,13 +28,18 @@ class CountersignDueDates {
     }
 
     LocalDate after(LocalDate requestDay, LegalEntityId legalEntity) {
+        return workingDaysAfter(requestDay, WORKING_DAYS, legalEntity);
+    }
+
+    /** The {@code count}-th working day after the day, the day itself never counting; the escalation levels of the deadline job are dated from the due date the same way (#896). */
+    LocalDate workingDaysAfter(LocalDate startDay, int count, LegalEntityId legalEntity) {
         try {
-            return zone.dateOf(calendar.endOfWorkdayAfter(requestDay, WORKING_DAYS, legalEntity).minusNanos(1));
+            return zone.dateOf(calendar.endOfWorkdayAfter(startDay, count, legalEntity).minusNanos(1));
         } catch (DomainException unconfirmed) {
-            LOG.error("ALERT organization.workforce the work calendar around {} is not confirmed for legal entity {}: a countersign falls due after {} weekdays", requestDay,
-                    legalEntity.value(), WORKING_DAYS);
-            LocalDate day = requestDay;
-            for (int counted = 0; counted < WORKING_DAYS; ) {
+            LOG.error("ALERT organization.workforce the work calendar around {} is not confirmed for legal entity {}: counting {} weekdays after it", startDay,
+                    legalEntity.value(), count);
+            LocalDate day = startDay;
+            for (int counted = 0; counted < count; ) {
                 day = day.plusDays(1);
                 if (day.getDayOfWeek() != DayOfWeek.SATURDAY && day.getDayOfWeek() != DayOfWeek.SUNDAY) {
                     counted++;
