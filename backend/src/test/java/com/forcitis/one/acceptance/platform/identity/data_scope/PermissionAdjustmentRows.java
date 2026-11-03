@@ -60,21 +60,21 @@ final class PermissionAdjustmentRows {
 
     /** Sensitive role review raised by a sync that moved the holder to another org unit (ADR-0032 item 5). */
     Row sensitiveOrgUnitChange() throws SQLException {
-        return base("SENSITIVE_ROLE_REVIEW", "ASSIGNMENT_CHANGE").with("user_id", db.account()).with("trigger_sync_run_id", UUID.randomUUID())
+        return base("SENSITIVE_ROLE_REVIEW", "ASSIGNMENT_CHANGE").with("user_id", db.account()).with("trigger_personnel_command_id", UUID.randomUUID())
                 .with("trigger_field_kind", "ORG_UNIT").with("before_org_unit_id", UUID.randomUUID()).with("after_org_unit_id", UUID.randomUUID());
     }
 
     /** Sensitive role review raised by a position change only: the org unit stays the same (constraint table row 35). */
     Row sensitivePositionChange() throws SQLException {
         UUID unit = UUID.randomUUID();
-        return base("SENSITIVE_ROLE_REVIEW", "ASSIGNMENT_CHANGE").with("user_id", db.account()).with("trigger_sync_run_id", UUID.randomUUID())
+        return base("SENSITIVE_ROLE_REVIEW", "ASSIGNMENT_CHANGE").with("user_id", db.account()).with("trigger_personnel_command_id", UUID.randomUUID())
                 .with("trigger_field_kind", "POSITION").with("before_org_unit_id", unit).with("after_org_unit_id", unit)
                 .with("before_position_id", UUID.randomUUID()).with("after_position_id", UUID.randomUUID());
     }
 
     /** Scope review origin 1: a holder of custom org units moved; the item goes to the new unit's head (ADR-0032 item 4 clause 2). */
     Row scopeReviewTransfer() throws SQLException {
-        return base("SCOPE_REVIEW", "ASSIGNMENT_CHANGE").with("user_id", db.account()).with("trigger_sync_run_id", UUID.randomUUID())
+        return base("SCOPE_REVIEW", "ASSIGNMENT_CHANGE").with("user_id", db.account()).with("trigger_personnel_command_id", UUID.randomUUID())
                 .with("trigger_field_kind", "ORG_UNIT").with("before_org_unit_id", UUID.randomUUID()).with("after_org_unit_id", UUID.randomUUID())
                 .with("recipient_employee_id", UUID.randomUUID());
     }
@@ -82,7 +82,7 @@ final class PermissionAdjustmentRows {
     /** Scope review origin 2: a role version still names an org unit that became inactive (RULE-387); about a role, not a person. */
     Row scopeReviewInactiveUnit() throws SQLException {
         return base("SCOPE_REVIEW", "ORG_UNIT_INACTIVE").with("role_id", db.role()).with("org_unit_id", UUID.randomUUID())
-                .with("trigger_sync_run_id", UUID.randomUUID());
+                .with("trigger_org_structure_command_id", UUID.randomUUID());
     }
 
     /** A sensitive role review regenerated when the upheld item it names expired (ADR-0044 item 3); the original is inserted first. */
@@ -103,9 +103,9 @@ final class PermissionAdjustmentRows {
         return row;
     }
 
-    /** An upheld sensitive role review the expiry job expired at its expiry and decided on. */
+    /** An upheld sensitive role review the expiry job expired at its expiry, not held, and decided on. */
     Row expired(Row row) throws SQLException {
-        return upheld(row).with("status", "EXPIRED").with("expired_at", T2).with("regeneration_decided_at", T2).with("updated_at", T2);
+        return upheld(row).with("status", "EXPIRED").with("expired_at", T2).with("is_held_at_expiry", false).with("regeneration_decided_at", T2).with("updated_at", T2);
     }
 
     /** Marked adjusted by another account, linked to one audit entry (ADR-0044 item 2 clause 1). */
@@ -115,7 +115,7 @@ final class PermissionAdjustmentRows {
     }
 
     Row closed(Row row, String status) {
-        return row.with("status", status).with("closed_at", T1).with("closure_sync_run_id", UUID.randomUUID()).with("updated_at", T1);
+        return row.with("status", status).with("closed_at", T1).with("closure_personnel_command_id", UUID.randomUUID()).with("updated_at", T1);
     }
 
     static String insertSql(Row row) {
