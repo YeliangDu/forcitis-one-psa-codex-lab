@@ -10,9 +10,18 @@
 
 红：当前 main 上第一条「应接受」的插入即被 `ck_permission_adjustments_assignment_change` 拒绝。绿：用 one-design 裁定的放宽后 CHECK 作为临时迁移跑，`PermissionAdjustment*IT` 30 条全绿（临时迁移不提交）。
 
-## 待写（等 #1089 的 `EmployeeCorrected` 新载荷合入）
+## 事件驱动（`organization/workforce/CorrectionUndoesSeparationReviewIT`，3 条，按 #1089 的 `EmployeeCorrected` 最终载荷）
 
-- A-U1：撤销误离职的更正，对持有至少一个敏感角色的人生成恰好一条 SENSITIVE_ROLE_REVIEW（人级，`role_id` 为空），重投递不再生成。
-- A-U2：无敏感角色的人不生成；任何情况下都没有 SCOPE_REVIEW 条目。
-- A-U3：更正后不在职不生成条目，监听器不重试。
-- 调岗事件前部门为空时被拒并告警（监听器侧）。
+| 测试 | 对应 |
+|---|---|
+| A-U1 `anUndoneSeparationGivesOnePersonItemForAHolderOfSensitiveRoles` | 持有两个敏感角色的人得恰好一条人级敏感角色复核（`role_id` 空、无收件人），触发字段部门、触发前部门岗位空、触发后为更正后的、触发命令为该更正命令；重投递与同命令另一事件不再生成 |
+| A-U2 `aPersonWithoutASensitiveRoleGetsNothingAndNobodyGetsAScopeReview` | 只有 employee 的人不生成；任何人都没有范围复核条目（对照：持有者生成，证明监听器跑过） |
+| A-U3 `aCorrectionThatEndsEmploymentGivesNothingAndIsNotRetried` | 更正后不在职（触发后部门岗位空）持有敏感角色也不生成；事件的每条发布状态为 COMPLETED，无失败重试，重投递仍不生成 |
+
+红：main 上 identity 没有处理 `EmployeeCorrected` 的监听器，三条都在等待 identity 发布而超时（失败信息列出该事件仅有 audit 的发布）。绿：临时的最小监听器（只对 security_auditor、business_admin 持有者按裁定插入一行）加放宽后的 CHECK，3 条全绿；临时文件不提交。
+
+## 未覆盖与存疑
+
+- 调岗事件前部门为空时被拒并告警（one-design 更正的第 2 项末句）：告警的载体（日志、审计或指标）卡面未写，无法断言；请 one-design 指明后补。
+- 「此刻持有的敏感角色」用 security_auditor、business_admin 两个角色代表；哪些角色算敏感由 `SensitivePermissions` 定，用例不自带第三方角色。
+- 撤销误离职后通常只剩 employee 一个角色（离职关闭了全部授予），条目通常不生成；是否改为覆盖离职时关闭的敏感授予，正在等用户回答（#730 评论 6599341585 第 4 项），本批按现行（A）。
