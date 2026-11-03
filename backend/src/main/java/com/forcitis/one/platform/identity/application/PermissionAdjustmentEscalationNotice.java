@@ -18,16 +18,15 @@ import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * The WeCom notice of an open item that went overdue and was escalated (ADR-0032 item 3 clause 3; user decision 2026-11-03 on #1151): one card per item to the enabled
+ * The WeCom notice of an open item that went overdue and was escalated (ADR-0032 item 3, line 93; user decision 2026-11-03 on #1151): one card per item to the enabled
  * super_admin holders, by role as {@link AdministratorFloorNotice} does, who are employed and not on unpaid leave that day; the person the item is about is left out.
  * The card is queued in the transaction that marks the item escalated and sent after commit. Nobody to tell, or a recipient without a WeCom user id, is an ALERT log
  * line only: the item stays escalated and is not sent again. The card carries no permission code and no scope (ADR-0032 line 94).
@@ -56,16 +55,13 @@ class PermissionAdjustmentEscalationNotice {
 
     void send(PermissionAdjustment item) {
         LocalDate today = zone.dateOf(clock.instant());
-        Set<EmployeeId> eligible = new LinkedHashSet<>();
+        List<EmployeeProfile> eligible = new ArrayList<>();
         for (UserId holder : accounts.findEnabledHolders(Role.SUPER_ADMIN)) {
             if (!holder.equals(item.user())) {
-                accountEmployees.employeeOf(holder).filter(employee -> usable(employee, today)).ifPresent(eligible::add);
+                accountEmployees.employeeOf(holder).flatMap(employee -> usable(employee, today)).ifPresent(eligible::add);
             }
         }
-        List<WecomUserId> recipients = new ArrayList<>();
-        for (EmployeeId employee : eligible) {
-            directory.findEmployee(employee).map(EmployeeProfile::wecomUserId).ifPresent(recipients::add);
-        }
+        List<WecomUserId> recipients = eligible.stream().map(EmployeeProfile::wecomUserId).filter(Objects::nonNull).distinct().toList();
         if (recipients.isEmpty()) {
             LOG.error("ALERT P3 platform.identity the escalation notice of permission adjustment item {} reaches nobody: {} eligible super_admin holder(s), none with a WeCom user id",
                     item.id().value(), eligible.size());
@@ -79,8 +75,8 @@ class PermissionAdjustmentEscalationNotice {
                 DeliverySubject.of(DeliveryPurpose.PERMISSION_ADJUSTMENT_OVERDUE_NOTICE, item.id().value())));
     }
 
-    private boolean usable(EmployeeId employee, LocalDate today) {
-        Optional<EmployeeProfile> profile = directory.findEmployee(employee);
-        return profile.filter(found -> found.employmentStatus() == EmploymentStatus.EMPLOYED).isPresent() && !directory.availabilityOn(employee, today).onUnpaidLeave();
+    private Optional<EmployeeProfile> usable(EmployeeId employee, LocalDate today) {
+        return directory.findEmployee(employee).filter(found -> found.employmentStatus() == EmploymentStatus.EMPLOYED)
+                .filter(found -> !directory.availabilityOn(employee, today).onUnpaidLeave());
     }
 }
