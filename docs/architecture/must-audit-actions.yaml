@@ -99,6 +99,7 @@ categories:
   actions:
   - organization.workforce.countersign-read.denied
   - organization.workforce.org-unit.denied
+  - organization.workforce.profile-change-request.denied
 - name: 编号规则
   actions:
   - platform.numbering.NumberingRuleConfirmationGiven

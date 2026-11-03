@@ -79,9 +79,7 @@ class ProfileChangeRequestService implements ProfileChangeRequests {
     @PreAuthorize("hasAuthority('" + PERMISSION + "')")
     public CursorPage<ProfileChangeRequestView> pending(PageRequest page) {
         OrgUnitAccess.Visible visible = unitAccess.visibleOrgUnits(PERMISSION);
-        Set<OrgUnitId> allowed = visible.everything() ? Set.of() : OrgUnitVisibility.idsIn(snapshots.findAllOrgUnits(), visible);
-        Predicate<ProfileChangeRequest> inScope = request -> visible.everything()
-                || snapshots.findStaff(request.employeeId()).map(staff -> allowed.contains(staff.assignment().orgUnitId())).orElse(false);
+        Predicate<ProfileChangeRequest> inScope = inScope(visible);
         List<ProfileChangeRequest> items = new ArrayList<>();
         boolean more = false;
         UUID after = page.cursorUuid();
@@ -158,6 +156,37 @@ class ProfileChangeRequestService implements ProfileChangeRequests {
         return view(request);
     }
 
+    private Predicate<ProfileChangeRequest> inScope(OrgUnitAccess.Visible visible) {
+        Set<OrgUnitId> allowed = visible.everything() ? Set.of() : OrgUnitVisibility.idsIn(snapshots.findAllOrgUnits(), visible);
+        return request -> visible.everything()
+                || snapshots.findStaff(request.employeeId()).map(staff -> allowed.contains(staff.assignment().orgUnitId())).orElse(false);
+    }
+
+    /**
+     * A request outside the caller's scope answers like an unknown one and is audited as a denied read (as GetOrgUnit does), before the version or the state is looked at, after the employee lock it needs anyway; a scope that cannot be worked out shows nothing,
+     * a refusal would tell the caller the id exists (security-invariants I-10, #730 comment 6606893624). The list keeps the refusal, it carries no id.
+     */
+    private void requireInScope(ProfileChangeRequest request) {
+        OrgUnitAccess.Visible visible;
+        try {
+            visible = unitAccess.visibleOrgUnits(PERMISSION);
+        } catch (DomainException unavailable) {
+            if (unavailable.kind() != ErrorKind.FORBIDDEN) {
+                throw unavailable;
+            }
+            throw outOfScope(request);
+        }
+        if (!inScope(visible).test(request)) {
+            throw outOfScope(request);
+        }
+    }
+
+    private DomainException outOfScope(ProfileChangeRequest request) {
+        audit.recordIndependently(new AuditEntry("organization.workforce.profile-change-request.denied", currentUser.userId(), null, subject(request),
+                "outside the scope of the caller"));
+        return notFound();
+    }
+
     /** The request read under the lock of its employee, at the version the caller based the call on, and still pending. */
     private ProfileChangeRequest lockedPending(ProfileChangeRequestId id, ExpectedVersion expected) {
         ProfileChangeRequest first = requests.find(id).orElseThrow(() -> notFound());
@@ -165,6 +194,7 @@ class ProfileChangeRequestService implements ProfileChangeRequests {
             throw notFound();
         }
         ProfileChangeRequest request = requests.find(id).orElseThrow(() -> notFound());
+        requireInScope(request);
         expected.check(request.version());
         if (request.status() != ProfileChangeStatus.PENDING) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PROFILE_CHANGE_REQUEST_NOT_PENDING, ErrorKind.CONFLICT, "the request is already " + request.status());

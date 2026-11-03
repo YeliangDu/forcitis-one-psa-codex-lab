@@ -15,7 +15,9 @@ import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeAccountAccess;
 import com.forcitis.one.kernel.OrgUnitAccess;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
+import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.UserId;
@@ -67,6 +69,7 @@ class ProfileChangeRequestServiceTest {
         when(requests.find(ID)).thenReturn(Optional.of(request));
         when(employees.lockEmployee(EMPLOYEE)).thenReturn(true);
         when(currentUser.userId()).thenReturn(THIRD);
+        when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenReturn(OrgUnitAccess.Visible.all());
         return request;
     }
 
@@ -118,9 +121,9 @@ class ProfileChangeRequestServiceTest {
     @Test
     @DisplayName("#730 S4: a cursor naming a request outside the scope or none at all answers the same empty page")
     void aForgedCursorCannotProbeIds() {
+        ProfileChangeRequest existing = decided(ProfileChangeStatus.REJECTED);
         when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenReturn(OrgUnitAccess.Visible.nothing());
         when(snapshots.findAllOrgUnits()).thenReturn(java.util.List.of());
-        ProfileChangeRequest existing = decided(ProfileChangeStatus.REJECTED);
         when(requests.find(ID)).thenReturn(Optional.of(existing));
         when(snapshots.findStaff(EMPLOYEE)).thenReturn(Optional.empty());
         UUID unknown = UUID.fromString("019a0000-0000-7000-8000-0000000000c9");
@@ -133,5 +136,67 @@ class ProfileChangeRequestServiceTest {
         org.assertj.core.api.Assertions.assertThat(missing.items()).isEmpty();
         org.assertj.core.api.Assertions.assertThat(known.nextCursor()).isEqualTo(missing.nextCursor());
         org.mockito.Mockito.verify(requests, org.mockito.Mockito.never()).pending(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyInt());
+    }
+
+    private ProfileChangeRequest pendingOfEmployee() {
+        ProfileChangeRequest request = ProfileChangeRequest.restore(ID, EMPLOYEE, REQUESTER, AT, new PersonalProfile("Synthetic name", null, null, new WecomUserId("old")),
+                new PersonalProfile("Synthetic name", null, null, new WecomUserId("new")), ProfileChangeStatus.PENDING, 3, null, null, null, null);
+        when(requests.find(ID)).thenReturn(Optional.of(request));
+        when(employees.lockEmployee(EMPLOYEE)).thenReturn(true);
+        when(currentUser.userId()).thenReturn(THIRD);
+        return request;
+    }
+
+    private void assertNotFoundAndAudited(String what, org.assertj.core.api.ThrowableAssert.ThrowingCallable call) {
+        org.mockito.Mockito.clearInvocations(audit, employees);
+        assertThatThrownBy(call).as(what).isInstanceOfSatisfying(DomainException.class,
+                refused -> assertThat(refused.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_PROFILE_CHANGE_REQUEST_NOT_FOUND));
+        verify(employees, org.mockito.Mockito.never()).updateProfile(any(), any(), any());
+        verifyNoInteractions(access, profiles);
+        var entry = org.mockito.ArgumentCaptor.forClass(com.forcitis.one.platform.audit.api.AuditEntry.class);
+        verify(audit).recordIndependently(entry.capture());
+        verifyNoMoreInteractions(audit);
+        assertThat(entry.getValue().action()).as(what).isEqualTo("organization.workforce.profile-change-request.denied");
+        assertThat(entry.getValue().actorId()).as(what).isEqualTo(THIRD);
+    }
+
+    @Test
+    @DisplayName("#1153: a request outside the caller's scope answers the same not found as an unknown id, also with a stale version, nothing is written and the refusal is audited")
+    void anOutOfScopeRequestIsNotFoundBeforeTheVersionCheck() {
+        pendingOfEmployee();
+        when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenReturn(OrgUnitAccess.Visible.nothing());
+        when(snapshots.findAllOrgUnits()).thenReturn(java.util.List.of());
+        when(snapshots.findStaff(EMPLOYEE)).thenReturn(Optional.empty());
+
+        assertNotFoundAndAudited("confirm, stale version", () -> service.confirm(ID, ExpectedVersion.of(0)));
+        assertNotFoundAndAudited("reject, stale version", () -> service.reject(ID, "synthetic", ExpectedVersion.of(0)));
+        assertNotFoundAndAudited("confirm, current version", () -> service.confirm(ID, ExpectedVersion.of(3)));
+    }
+
+    @Test
+    @DisplayName("#1153: a scope that cannot be worked out shows nothing, so the id answers like an unknown one (security-invariants I-10) and the refusal is audited")
+    void anUnknownScopeIsNotFound() {
+        pendingOfEmployee();
+        // any FORBIDDEN refusal stands for platform.identity's PLATFORM_IDENTITY_ACCESS_SCOPE_UNAVAILABLE, which a workforce test does not import
+        when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenThrow(
+                new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PROFILE_CHANGE_CONFIRMER_NOT_ALLOWED, com.forcitis.one.kernel.ErrorKind.FORBIDDEN, "scope unavailable"));
+
+        assertNotFoundAndAudited("confirm", () -> service.confirm(ID, ExpectedVersion.of(0)));
+        assertNotFoundAndAudited("reject", () -> service.reject(ID, "synthetic", ExpectedVersion.of(0)));
+    }
+
+    @Test
+    @DisplayName("#1153: a caller of one unit still decides a request of an employee in that unit: the call reaches the lock and the version check")
+    void aRequestInTheCallersUnitIsReached() {
+        pendingOfEmployee();
+        OrgUnitId unit = new OrgUnitId(UUID.fromString("019a0000-0000-7000-8000-0000000000d1"));
+        when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenReturn(new OrgUnitAccess.Visible(false, java.util.Set.of(unit.value()), java.util.Set.of()));
+        when(snapshots.findAllOrgUnits()).thenReturn(java.util.List.of());
+        StaffEmployee staff = mock(StaffEmployee.class, org.mockito.Answers.RETURNS_DEEP_STUBS);
+        when(staff.assignment().orgUnitId()).thenReturn(unit);
+        when(snapshots.findStaff(EMPLOYEE)).thenReturn(Optional.of(staff));
+
+        assertThatThrownBy(() -> service.confirm(ID, ExpectedVersion.of(0))).isInstanceOf(com.forcitis.one.kernel.VersionMismatchException.class);
+        verify(employees).lockEmployee(EMPLOYEE);
     }
 }
