@@ -90,7 +90,10 @@ public interface OrgStructureCommandRepository {
     /** Whether somebody is employed and in the unit on some day from the given one on, whatever the entered commands will make of them. */
     boolean hasEmployedFrom(OrgUnitId orgUnit, LocalDate day);
 
-    /** The employed people who join the unit after the day (a transfer into it dated later, or a person who joined after a back-dated day), with the command that placed them. */
+    /**
+     * The employed people who join the unit after the day (a transfer into it dated later, or a person who joined after a back-dated day), with the command that placed them.
+     * A person who is in the unit just before such a row (a later position or manager change) is a resident, not an arrival.
+     */
     List<BlockingArrival> arrivalsAfter(OrgUnitId orgUnit, LocalDate day);
 
     /** Whether somebody is employed and holds the position on some day from the given one on. */

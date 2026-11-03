@@ -411,7 +411,9 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     @Override
     public List<BlockingArrival> arrivalsAfter(OrgUnitId orgUnit, LocalDate day) {
         return jdbc.sql("select a.employee_id, a.effective_from_date, a.change_command_id " + OPEN_HOLDERS.formatted("org_unit_id")
-                + " and a.effective_from_date > :day order by a.effective_from_date, a.employee_id").param("target", orgUnit.value()).param("day", day)
+                + " and a.effective_from_date > :day and not exists (select 1 from organization_workforce.assignment_versions p where p.employee_id = a.employee_id"
+                + " and p.superseded_at is null and p.org_unit_id = a.org_unit_id and p.effective_to_date = a.effective_from_date)"
+                + " order by a.effective_from_date, a.employee_id").param("target", orgUnit.value()).param("day", day)
                 .query((rs, n) -> {
                     UUID command = rs.getObject("change_command_id", UUID.class);
                     return new BlockingArrival(new EmployeeId(rs.getObject("employee_id", UUID.class)), rs.getObject("effective_from_date", LocalDate.class),

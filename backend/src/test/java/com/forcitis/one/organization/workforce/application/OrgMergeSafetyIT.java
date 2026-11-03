@@ -579,4 +579,119 @@ class OrgMergeSafetyIT {
         });
         assertThat(refused).isInstanceOf(DomainException.class).hasMessageContaining(coming.toString()).hasMessageContaining(command.toString());
     }
+
+    // ---- final review (round 3) ----
+
+    /** A pending position-only transfer: it writes a new assignment row in the same unit and names no unit. */
+    private void positionChangeOn(UUID person, LocalDate day) {
+        UUID position = Uuids.timeOrdered(clock);
+        jdbc.sql("insert into organization_workforce.positions (id, code, name, status) values (:id, :code, 'other position', 'ACTIVE')").param("id", position)
+                .param("code", "Q" + position.toString().substring(24)).update();
+        signIn(PERSONNEL_PERMISSION);
+        personnel.enter(new EnterPersonnelCommand(new EmployeeId(person), PersonnelCommandKind.TRANSFER, day, null, null, new com.forcitis.one.organization.workforce.api.PositionId(position),
+                null, null, null, null, null, null, null));
+        signIn(ORG_PERMISSION);
+    }
+
+    @Test
+    @DisplayName("#907 终审 M3：同一单元里的后续任职行（之后的岗位或直属领导变更）不是调入：住户不阻塞合并的录入与开始，预演只把他列在要转走的人里；合并后他在承接单元")
+    void aResidentWithALaterPositionChangeIsNotAnArrival() {
+        UUID merged = unit();
+        UUID receiving = unit();
+        UUID resident = person(merged, "REGULAR");
+        LocalDate day = today.plusDays(5);
+        positionChangeOn(resident, day.plusDays(3));
+
+        var preview = commands.previewMerge(new com.forcitis.one.organization.workforce.api.PreviewOrgUnitMerge(new OrgUnitId(merged), new OrgUnitId(receiving), day));
+        OrgStructureCommandId merge = merge(merged, receiving, day);
+        clock.advance(Duration.ofDays(5));
+        commands.executeMerge(merge);
+
+        assertThat(preview.employees()).containsExactly(new EmployeeId(resident));
+        assertThat(preview.blocking()).isEmpty();
+        assertThat(commandStatus(merge)).isEqualTo("EFFECTIVE");
+        assertThat(unitOf(resident, day.plusDays(3))).isEqualTo(receiving);
+    }
+
+    @Test
+    @DisplayName("#907 终审 M2：合并执行中（人数已冻结），任何日期放进被并入单元的人事命令都被拒：否则新来的人占走被拒者的名额，合并永远转不完")
+    void nobodyMayBePlacedInAMergedUnitWhileItsMergeIsInProgress() {
+        StuckMerge m = aMergeWithOneStuckPerson();
+        catchThrowable(() -> commands.executeMerge(m.merge()));
+        assertThat(commandStatus(m.merge())).isEqualTo("IN_PROGRESS");
+        UUID newcomer = person(unit(), "REGULAR");
+
+        Throwable refused = catchThrowable(() -> transferInto(newcomer, m.merged(), m.day().minusDays(1)));
+
+        assertThat(refused).isInstanceOf(DomainException.class);
+        assertThat(((DomainException) refused).errorCode().toString()).isEqualTo("ORGANIZATION_WORKFORCE_ORG_UNIT_MERGE_OPEN");
+    }
+
+    @Test
+    @DisplayName("#907 终审 M1：人事命令录入先在被放入的单元根行上取共享锁：它在写入过程中，合并的录入在单元根行锁上等待，等人事命令提交后才看得到这条调入而被拒；去掉共享锁则合并录入不等待、调入被留在撤销的单元里")
+    void aPersonnelEntryAndTheMergeOfItsUnitSerialize() throws Exception {
+        UUID merged = unit();
+        UUID receiving = unit();
+        UUID latecomer = person(unit(), "REGULAR");
+        UUID position = jdbc.sql("select position_id from organization_workforce.assignment_versions where employee_id = :id").param("id", latecomer).query(UUID.class).single();
+        Connection holder = lock("positions", position);
+        signIn(PERSONNEL_PERMISSION);
+        CompletableFuture<?> entry = asCaller(() -> personnel.enter(new EnterPersonnelCommand(new EmployeeId(latecomer), PersonnelCommandKind.TRANSFER, today.plusDays(2), null,
+                new OrgUnitId(merged), new com.forcitis.one.organization.workforce.api.PositionId(position), null, null, null, null, null, null, null)));
+        awaitBlocked("%insert into organization_workforce.personnel_commands%", 1);
+        signIn(ORG_PERMISSION);
+
+        CompletableFuture<OrgStructureCommandId> mergeEntry = asCaller(() -> merge(merged, receiving, today));
+
+        awaitBlockedOn("org_units");
+        assertThat(mergeEntry).as("the merge waits for the personnel entry that holds the unit").isNotDone();
+        holder.commit();
+        holder.close();
+        entry.get(30, TimeUnit.SECONDS);
+        assertThatThrownBy(() -> mergeEntry.get(30, TimeUnit.SECONDS)).isInstanceOf(ExecutionException.class).hasCauseInstanceOf(DomainException.class);
+        assertThat(unitStatusOn(merged, today.plusDays(2))).isEqualTo("ACTIVE");
+    }
+
+    @Test
+    @DisplayName("#907 终审 M4：合并开始时再校验承接单元：录入之后承接单元被撤销（写在命令之外），开始被拒，合并仍待生效、没有调岗")
+    void startingAMergeChecksTheReceivingUnitAgain() {
+        UUID merged = unit();
+        UUID receiving = unit();
+        UUID resident = person(merged, "REGULAR");
+        OrgStructureCommandId merge = merge(merged, receiving, today);
+        jdbc.sql("update organization_workforce.org_unit_versions set effective_to_date = :day, closed_at = now(), updated_at = now() where org_unit_id = :id and effective_to_date is null")
+                .param("day", today).param("id", receiving).update();
+        jdbc.sql("""
+                insert into organization_workforce.org_unit_versions (org_unit_version_id, org_unit_id, effective_from_date, name, status, region_kind, is_delivery_unit)
+                values (:version, :id, :day, 'unit', 'REVOKED', 'HEADQUARTERS', false)
+                """).param("version", Uuids.timeOrdered(clock)).param("id", receiving).param("day", today).update();
+
+        Throwable refused = catchThrowable(() -> commands.executeMerge(merge));
+
+        assertThat(refused).isInstanceOf(DomainException.class);
+        assertThat(commandStatus(merge)).isEqualTo("PENDING");
+        assertThat(unitOf(resident, today)).isEqualTo(merged);
+    }
+
+    @Test
+    @DisplayName("#907 终审 M4：合并开始先取树级锁：他人持有树级锁时，执行在锁上等待、合并仍待生效；锁释放后执行完成")
+    void startingAMergeWaitsForTheTreeLock() throws Exception {
+        UUID merged = unit();
+        person(merged, "REGULAR");
+        OrgStructureCommandId merge = aDueMerge(merged);
+        Connection tree = holdTreeLock();
+
+        CompletableFuture<Void> run = asCaller(() -> {
+            commands.executeMerge(merge);
+            return null;
+        });
+
+        awaitBlocked("%pg_advisory_xact_lock%", 1);
+        assertThat(run).isNotDone();
+        assertThat(commandStatus(merge)).isEqualTo("PENDING");
+        tree.commit();
+        tree.close();
+        run.get(30, TimeUnit.SECONDS);
+        assertThat(commandStatus(merge)).isEqualTo("EFFECTIVE");
+    }
 }

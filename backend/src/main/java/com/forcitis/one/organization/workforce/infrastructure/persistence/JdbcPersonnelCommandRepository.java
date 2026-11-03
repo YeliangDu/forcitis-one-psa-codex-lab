@@ -119,9 +119,14 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
     }
 
     @Override
-    public boolean hasOpenMergeOnOrBefore(OrgUnitId orgUnit, LocalDate day) {
+    public void shareOrgUnit(OrgUnitId orgUnit) {
+        jdbc.sql("select 1 from organization_workforce.org_units where id = :id for share").param("id", orgUnit.value()).query(Integer.class).optional();
+    }
+
+    @Override
+    public boolean hasOpenMergeFor(OrgUnitId orgUnit, LocalDate day) {
         return jdbc.sql("select 1 from organization_workforce.org_structure_commands where target_org_unit_id = :id and command_kind = 'MERGE'"
-                + " and status in ('PENDING', 'IN_PROGRESS') and effective_date <= :day limit 1")
+                + " and (status = 'IN_PROGRESS' or (status = 'PENDING' and effective_date <= :day)) limit 1")
                 .param("id", orgUnit.value()).param("day", day).query(Integer.class).optional().isPresent();
     }
 

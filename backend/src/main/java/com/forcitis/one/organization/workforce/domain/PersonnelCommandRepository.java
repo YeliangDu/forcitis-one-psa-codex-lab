@@ -45,8 +45,18 @@ public interface PersonnelCommandRepository {
 
     boolean orgUnitExists(OrgUnitId orgUnit);
 
-    /** Whether a merge of the unit is pending or in progress with an effective date on or before the day: a person placed there from then on would be left in a revoked unit. */
-    boolean hasOpenMergeOnOrBefore(OrgUnitId orgUnit, LocalDate day);
+    /**
+     * Takes the root row of the org unit in share mode for the rest of the transaction, before the employee row (lock order: org unit root, then employee root).
+     * It excludes a merge of the unit from entering, starting or finishing while this personnel command is checked and written, so a person cannot be placed in a unit
+     * that a concurrent merge is revoking.
+     */
+    void shareOrgUnit(OrgUnitId orgUnit);
+
+    /**
+     * Whether a placement in the unit on the day would be left in a unit a merge revokes: the merge is in progress (its people are counted, whatever the day), or it is
+     * pending with an effective date on or before the day.
+     */
+    boolean hasOpenMergeFor(OrgUnitId orgUnit, LocalDate day);
 
     boolean positionExists(PositionId position);
 

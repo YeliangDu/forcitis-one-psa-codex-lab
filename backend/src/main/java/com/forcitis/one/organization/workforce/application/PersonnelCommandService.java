@@ -101,6 +101,9 @@ class PersonnelCommandService implements PersonnelCommands {
      */
     @Transactional
     public PersonnelCommandId enter(EnterPersonnelCommand request, UserId by, @Nullable OrgStructureCommandId merge) {
+        if (merge == null && request.targetOrgUnitId() != null) {
+            commands.shareOrgUnit(request.targetOrgUnitId());
+        }
         Instant now = clock.instant();
         LocalDate today = zone.dateOf(now);
         EmployeeId employee;
@@ -120,9 +123,9 @@ class PersonnelCommandService implements PersonnelCommands {
             command.generatedBy(merge);
         }
         requireTargetsExist(command);
-        if (merge == null && command.targetOrgUnitId() != null && commands.hasOpenMergeOnOrBefore(command.targetOrgUnitId(), command.effectiveDate())) {
+        if (merge == null && command.targetOrgUnitId() != null && commands.hasOpenMergeFor(command.targetOrgUnitId(), command.effectiveDate())) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ORG_UNIT_MERGE_OPEN, ErrorKind.CONFLICT,
-                    "the department has a merge that is not finished and is dated on or before " + command.effectiveDate() + "; nobody can be placed there from then on");
+                    "the department has a merge in progress, or one dated on or before " + command.effectiveDate() + "; nobody can be placed there from then on");
         }
         PersonnelHistory history = commands.load(employee);
         PersonnelCommandRules.check(command, history);
