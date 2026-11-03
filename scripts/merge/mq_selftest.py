@@ -15,6 +15,7 @@ import time
 import driftscan_selftest
 import gapscan_selftest
 import mq_label_selftest
+import mq_title_selftest
 
 LOG_LINE = re.compile(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d\d:\d\d [A-Z-]+ pr=#(\d+|-) run=(\d+|-) elapsed=\d+s( .*)?$")
 HEAVY = "backend verify (Modulith + ArchUnit guardrails + integration tests)", "frontend verify (typecheck + lint guardrails F1-F14 + structure + build)"
@@ -50,12 +51,12 @@ class FakeGh:
     def add(self, n, merge="CLEAN", labels=(), rounds=None, update_ok=True, merge_results=((True, ""),), behind=0, state="OPEN"):
         head = f"{n:040x}"
         self.prs[n] = dict(state=state, merge=merge, labels=set(labels), branch=f"b{n}", head=head, behind=behind, rounds=rounds or [dict(pending=0, checks=green())], round=0, pend=None,
-                           update_ok=update_ok, merge_results=list(merge_results), reviews=[review(head)], comments=[], pids={}, merges={})
+                           update_ok=update_ok, merge_results=list(merge_results), reviews=[review(head)], comments=[], pids={}, merges={}, title=f"fix(q): 修复（#{n}）", body=f"Closes #{n}\n")
         return self.prs[n]
 
     def view(self, n):
         p = self.prs[n]
-        return {"state": p["state"], "merge": p["merge"], "labels": sorted(p["labels"]), "branch": p["branch"], "head": p["head"]}
+        return {"state": p["state"], "merge": p["merge"], "labels": sorted(p["labels"]), "branch": p["branch"], "head": p["head"], "title": p["title"], "body": p["body"]}
 
     def behind_by(self, n, head):
         if self.slow:
@@ -169,7 +170,7 @@ def run(mq):
     try:
         with tempfile.TemporaryDirectory() as d:
             fake_gh(d, [])   # nothing in the self-test reaches the real gh: an unknown call exits 97
-            for case in (_units, _flow, _release, _pause, _runner, _queue, _remove_busy, _head_changed, _gh_commands, _git, _docs_tiers, mq_label_selftest.run, gapscan_selftest.run, driftscan_selftest.run_with_mq):
+            for case in (_units, _flow, _release, _pause, _runner, _queue, _remove_busy, _head_changed, _gh_commands, _git, _docs_tiers, mq_label_selftest.run, mq_title_selftest.run, gapscan_selftest.run, driftscan_selftest.run_with_mq):
                 case(mq, d)
     finally:
         for k, v in old.items():
@@ -826,7 +827,7 @@ def _gh_commands(mq, d):
     rows = [{"databaseId": 7, "status": "in_progress", "conclusion": "", "headSha": "s7", "headBranch": "main"}, {"databaseId": 6, "status": "completed", "conclusion": "cancelled", "headSha": "s6", "headBranch": "main"},
             {"databaseId": 5, "status": "completed", "conclusion": "failure", "headSha": "s5", "headBranch": "main"}]
     reviews = [[{"body": "b1", "commit_id": "c1", "submitted_at": "t1"}], [{"body": None, "commit_id": "c2", "submitted_at": None}]]
-    fake_gh(d, [(["pr", "view", "1", "--json", "state,mergeStateStatus,labels,headRefName,headRefOid"], json.dumps({"state": "OPEN", "mergeStateStatus": "CLEAN", "labels": [{"name": "queued"}], "headRefName": "br", "headRefOid": "abc"}), "", 0),
+    fake_gh(d, [(["pr", "view", "1", "--json", "state,mergeStateStatus,labels,headRefName,headRefOid,title,body"], json.dumps({"state": "OPEN", "mergeStateStatus": "CLEAN", "labels": [{"name": "queued"}], "headRefName": "br", "headRefOid": "abc", "title": "t", "body": "b"}), "", 0),
                 (["api", "repos/{owner}/{repo}/compare/main...abc"], "3\n", "", 0),
                 (["api", "--paginate", "repos/{owner}/{repo}/pulls/9/files"], "docs/a.md\ndocs/old.md\n", "", 0),
                 (["api", "repos/{owner}/{repo}/compare/abc...main", "--jq", "[.files[] | .filename, .previous_filename] | map(select(. != null)) | .[]"], "docs/x.md\n", "", 0),
@@ -845,7 +846,7 @@ def _gh_commands(mq, d):
                 (["pr", "view", "2", "--json", "state,mergeCommit"], json.dumps({"state": "OPEN", "mergeCommit": None}), "", 0),
                 (["api", "repos/{owner}/{repo}/commits/mc"], "p1 p2\n", "", 0)])
     gh = mq.Gh()
-    assert gh.view(1) == {"state": "OPEN", "merge": "CLEAN", "labels": ["queued"], "branch": "br", "head": "abc"} and gh.view(99) is None
+    assert gh.view(1) == {"state": "OPEN", "merge": "CLEAN", "labels": ["queued"], "branch": "br", "head": "abc", "title": "t", "body": "b"} and gh.view(99) is None
     assert gh.behind_by(1, "abc") == 3 and gh.files(9) == ["docs/a.md", "docs/old.md"] and gh.behind_files("abc") == ["docs/x.md"] and gh.behind_files("big") is None, "a cut-off list (300 files) is no answer"
     assert gh.checks(1) == [{"name": "x", "bucket": "pass", "link": ""}] and gh.checks(2) == [] and gh.checks(3) is None, "no check yet is an empty list, a failed call None"
     assert gh.failed_steps(7) == ["step one", "step two"] and gh.failed_steps(8) is None
