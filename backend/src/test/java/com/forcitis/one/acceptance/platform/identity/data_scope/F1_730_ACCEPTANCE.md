@@ -46,7 +46,7 @@ A-6 不覆盖/存疑：(b) 到期再生成用 `EmployeeLegalEntities.on` 属 S2�
 | 5 POSITION-only transfer: none | `aPositionOnlyTransferGivesNoScopeReview` |
 | 6 replay and second event of one command: one row, one card | `aReplayGivesOneScopeReviewAndOneCard` |
 | 7 no head: NULL recipient, no card, one `ALERT P3 platform.identity ` line | `aNewDepartmentWithoutAHeadGivesAnItemWithoutRecipientCardOrNothingButOneP3Alert` |
-| 7b the moved person heads the new department (ruling #730 comment 6604945364): same as no head: NULL recipient, no card, one `ALERT P3 platform.identity ` line | `aMovedPersonWhoHeadsTheNewDepartmentIsTreatedLikeNoHead` |
+| 7b the moved person heads the new department (ruling #730 comment 6604945364): same as no head: NULL recipient, no card, one `ALERT P3 platform.identity ` line naming the item id, no personal data | `aMovedPersonWhoHeadsTheNewDepartmentIsTreatedLikeNoHead` |
 | 8 sensitive + scoped: two items, scope one has the recipient | `aSensitiveAndScopedHolderGetsOneItemOfEachKind` |
 | 9 EmployeeCorrected with ORG_UNIT and a before department: same rule; empty before: nothing | `aCorrectionOfTheDepartmentFollowsTheSameRule` (uses the #1089 payload, which the class already compiles against) |
 

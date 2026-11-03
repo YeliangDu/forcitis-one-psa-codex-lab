@@ -635,7 +635,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
     }
 
     @Test
-    @DisplayName("#730 SCOPE_REVIEW 7b：新部门的负责人就是被转岗的人本人时，与没有负责人相同：范围复核接收人为空，没有外发卡，并恰好一条以 \"ALERT P3 platform.identity \" 开头、含事件 id、不含工号与姓名的日志（one-design 裁定，#730 评论 6604945364）")
+    @DisplayName("#730 SCOPE_REVIEW 7b：新部门的负责人就是被转岗的人本人时，与没有负责人相同：范围复核接收人为空，没有外发卡，并恰好一条以 \"ALERT P3 platform.identity \" 开头、含条目 id、不含工号与姓名的日志（one-design 裁定，#730 评论 6604945364）")
     void aMovedPersonWhoHeadsTheNewDepartmentIsTreatedLikeNoHead() throws Exception {
         UUID employee = employedHolding();
         grantByOperations(employee, customRole("scoped-self-head", unit));
@@ -665,7 +665,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         try (Connection workforce = schemaConnection("organization_workforce")) {
             person = query(workforce, "select employee_code, display_name from employees where id = ?", stored(employee)).getFirst();
         }
-        assertThat(alerts.getFirst().getFormattedMessage()).contains(eventId).doesNotContain(String.valueOf(person.get("employee_code")))
+        assertThat(alerts.getFirst().getFormattedMessage()).contains(String.valueOf(dueItemId(user))).doesNotContain(String.valueOf(person.get("employee_code")))
                 .doesNotContain(String.valueOf(person.get("display_name")));
     }
 
