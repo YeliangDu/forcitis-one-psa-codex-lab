@@ -35,8 +35,14 @@ public final class PersonnelSeedSupport {
                 values (:id, :employee, :since, 0, 'EMPLOYED', 'REGULAR', false, false, :since, 'LEGACY_HR_RECORD', 'MIGRATION', now(), now())""")
                 .param("id", Uuids.timeOrdered(clock)).param("employee", employee).param("since", SINCE).update();
         jdbc.sql("""
-                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
-                  change_channel_kind, created_at, updated_at) values (:id, :employee, :since, :unit, :position, 'MIGRATION', now(), now())""")
+                insert into organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at)
+                values (uuidv7(), :employee, 'PRIMARY', now(), now()) on conflict (employee_id) where assignment_kind = 'PRIMARY' do nothing""")
+                .param("employee", employee).update();
+        jdbc.sql("""
+                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                  org_unit_id, position_id, change_channel_kind, created_at, updated_at)
+                select :id, :employee, assignment_id, assignment_kind, :since, :unit, :position, 'MIGRATION', now(), now()
+                  from organization_workforce.employee_assignments where employee_id = :employee and assignment_kind = 'PRIMARY'""")
                 .param("id", Uuids.timeOrdered(clock)).param("employee", employee).param("since", SINCE).param("unit", unit).param("position", position).update();
         return new Person(employee, unit, position);
     }

@@ -39,10 +39,10 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
         return jdbc.sql("""
                 select e.id, e.employment_status, e.is_fee_earner, e.separated_at,
                        (select min(v.effective_from_date) from organization_workforce.assignment_versions v
-                         where v.employee_id = e.id and v.superseded_at is null) as first_day,
+                         where v.employee_id = e.id and v.assignment_kind = 'PRIMARY' and v.superseded_at is null) as first_day,
                        (exists (select 1 from organization_workforce.assignments a where a.employee_id = e.id)
                         and not exists (select 1 from organization_workforce.assignment_versions v
-                                         where v.employee_id = e.id and v.superseded_at is null)) as missing_assignment_version
+                                         where v.employee_id = e.id and v.assignment_kind = 'PRIMARY' and v.superseded_at is null)) as missing_assignment_version
                   from organization_workforce.employees e
                  where not exists (select 1 from organization_workforce.employee_versions ev where ev.employee_id = e.id)
                  order by e.created_at, e.id
@@ -64,7 +64,7 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
         return jdbc.sql("""
                 select count(distinct a.employee_id)
                   from organization_workforce.assignments a
-                  join organization_workforce.assignment_versions v on v.employee_id = a.employee_id and v.superseded_at is null
+                  join organization_workforce.assignment_versions v on v.employee_id = a.employee_id and v.assignment_kind = 'PRIMARY' and v.superseded_at is null
                    and v.effective_from_date <= :today and (v.effective_to_date is null or v.effective_to_date > :today)
                  where a.org_unit_id <> v.org_unit_id or a.position_id is distinct from v.position_id
                     or a.reports_to_employee_id is distinct from v.reports_to_employee_id
@@ -89,15 +89,16 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
     @Override
     public void insertAssignmentVersionFromSnapshot(EmployeeId employee, LocalDate from, Instant at) {
         OffsetDateTime stamp = OffsetDateTime.ofInstant(at, ZoneOffset.UTC);
+        UUID root = PrimaryAssignmentRoot.of(jdbc, ids, employee.value(), at);
         jdbc.sql("""
-                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, effective_to_date, org_unit_id,
-                       position_id, reports_to_employee_id, revision_number, change_channel_kind, created_at, updated_at)
-                select :id, a.employee_id, :from, null, a.org_unit_id, a.position_id, a.reports_to_employee_id,
+                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                       effective_to_date, org_unit_id, position_id, reports_to_employee_id, revision_number, change_channel_kind, created_at, updated_at)
+                select :id, a.employee_id, :root, 'PRIMARY', :from, null, a.org_unit_id, a.position_id, a.reports_to_employee_id,
                        coalesce((select max(v.revision_number) + 1 from organization_workforce.assignment_versions v
                                   where v.employee_id = a.employee_id and v.effective_from_date = :from), 0),
                        'MIGRATION', :at, :at
                   from organization_workforce.assignments a where a.employee_id = :employee
                 """)
-                .param("id", ids.next()).param("employee", employee.value()).param("from", from).param("at", stamp).update();
+                .param("id", ids.next()).param("root", root).param("employee", employee.value()).param("from", from).param("at", stamp).update();
     }
 }

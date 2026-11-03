@@ -5,6 +5,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.acceptance.AssignmentRoots;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
@@ -199,10 +200,12 @@ abstract class RevokeDisableFloorSupport extends AccountsAcceptanceSupport {
                       change_channel_kind, created_at, updated_at)
                     values (?, ?, ?, 0, 'EMPLOYED', 'REGULAR', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""",
                     Uuids.timeOrdered(NOW), stored(id), since, since, at, at);
-            update(workforce, """
+            // #711: on the employee's PRIMARY root once employee_assignments exists (AssignmentRoots).
+            UUID root = AssignmentRoots.primaryOf(workforce, stored(id));
+            update(workforce, AssignmentRoots.withRoot("""
                     insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
-                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""",
-                    Uuids.timeOrdered(NOW), stored(id), since, stored(unit), position, at, at);
+                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root),
+                    AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), stored(id), since, stored(unit), position, at, at));
         }
         attributeEmployee(organisationAdmin, id, legalEntity);
         return id;

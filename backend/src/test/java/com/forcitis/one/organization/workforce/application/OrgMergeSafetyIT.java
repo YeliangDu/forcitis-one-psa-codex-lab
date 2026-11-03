@@ -141,8 +141,14 @@ class OrgMergeSafetyIT {
                 values (:version, :id, :since, 0, 'EMPLOYED', :phase, false, false, :since, 'LEGACY_HR_RECORD', 'MIGRATION', now(), now())
                 """).param("version", Uuids.timeOrdered(clock)).param("id", id).param("since", SINCE).param("phase", phase).update();
         jdbc.sql("""
-                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id, change_channel_kind, created_at, updated_at)
-                values (:version, :id, :since, :unit, :position, 'MIGRATION', now(), now())
+                insert into organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at)
+                values (uuidv7(), :employee, 'PRIMARY', now(), now()) on conflict (employee_id) where assignment_kind = 'PRIMARY' do nothing""")
+                .param("employee", id).update();
+        jdbc.sql("""
+                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                       org_unit_id, position_id, change_channel_kind, created_at, updated_at)
+                select :version, :id, assignment_id, assignment_kind, :since, :unit, :position, 'MIGRATION', now(), now()
+                  from organization_workforce.employee_assignments where employee_id = :id and assignment_kind = 'PRIMARY'
                 """).param("version", Uuids.timeOrdered(clock)).param("id", id).param("since", SINCE).param("unit", unit).param("position", position).update();
         return id;
     }
@@ -154,8 +160,10 @@ class OrgMergeSafetyIT {
         jdbc.sql("update organization_workforce.assignment_versions set effective_to_date = :from, closed_at = now(), updated_at = now() where employee_id = :id and effective_to_date is null")
                 .param("from", from).param("id", person).update();
         jdbc.sql("""
-                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id, change_channel_kind, created_at, updated_at)
-                values (:version, :id, :from, :unit, :position, 'MIGRATION', now(), now())
+                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                       org_unit_id, position_id, change_channel_kind, created_at, updated_at)
+                select :version, :id, assignment_id, assignment_kind, :from, :unit, :position, 'MIGRATION', now(), now()
+                  from organization_workforce.employee_assignments where employee_id = :id and assignment_kind = 'PRIMARY'
                 """).param("version", Uuids.timeOrdered(clock)).param("id", person).param("from", from).param("unit", toUnit).param("position", position).update();
     }
 
