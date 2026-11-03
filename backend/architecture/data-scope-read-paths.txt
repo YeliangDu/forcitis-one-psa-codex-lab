@@ -1,0 +1,38 @@
+# Every HTTP read handler the running application maps (#730, security-invariants I-10), and the data scope its rows answer under.
+# DataScopeReadPathsGuardTest keeps this file well formed; DataScopeReadPathsIT keeps it equal to the GET mappings of the running context
+# (an unlisted handler or a line that matches no handler fails the build).
+# Format: GET <path as mapped> | <mode> | <reason>
+#   SCOPED           rows are bound to an org unit or a person and are filtered by the caller's data scope (acceptance A1-A4 prove it)
+#   SELF             only the caller's own data (acceptance A5 proves a second account's data is never returned)
+#   NOT_SCOPE_BOUND  rows have no org-unit or person binding; the reason is required, and a reviewer confirms it when the line is added
+# The reason is kept on every line so that a reviewer of the mode does not have to open the handler.
+GET /api/v1/organization/employee-legal-entities/{employeeId} | SCOPED | legal-entity periods of one employee
+GET /api/v1/organization/employee-profile-change-requests | SCOPED | pending profile changes, one employee each (name, gender, requester)
+GET /api/v1/organization/legal-entities | NOT_SCOPE_BOUND | legal-entity master data (code, name, status): company level, no unit or person
+GET /api/v1/organization/legal-entities/{legalEntityId} | NOT_SCOPE_BOUND | one legal entity: company level, no unit or person
+GET /api/v1/organization/org-unit-legal-entities/{orgUnitId} | SCOPED | legal-entity periods of one org unit
+GET /api/v1/organization/org-units | SCOPED | org units; the read path that already refuses an unresolvable scope (OrgUnitScopeIntegrationTest)
+GET /api/v1/organization/org-units/{orgUnitId} | SCOPED | one org unit; out of scope answers 404
+GET /api/v1/organization/work-calendars | NOT_SCOPE_BOUND | the years a company work calendar is maintained for: no unit or person
+GET /api/v1/organization/work-calendars/{calendarYear} | NOT_SCOPE_BOUND | one year of the company work calendar (days, holidays): no unit or person
+GET /api/v1/platform/approval-task-overviews | SCOPED | open tasks of everyone, read by the process administrator; each row has an assignee
+GET /api/v1/platform/approval-task-records | SELF | tasks the caller has handled
+GET /api/v1/platform/approval-tasks | SELF | the caller's inbox
+GET /api/v1/platform/approval-tasks/{taskId} | SELF | one task of the caller's inbox
+GET /api/v1/platform/audit-entries | SCOPED | audit entries name an actor and an audited object, which are persons or org units
+GET /api/v1/platform/audit-entries:export | SCOPED | the list above without paging; permission audit.entry.export on top
+GET /api/v1/platform/authorization-requests | SCOPED | pending authorization requests name the requester and the user concerned
+GET /api/v1/platform/files/{fileId} | SELF | status of an upload the caller made and has not yet linked
+GET /api/v1/platform/legacy-numbers | NOT_SCOPE_BOUND | original number to document id, legal entity and batch; no person or unit attribute in the answer
+GET /api/v1/platform/legacy-numbers:resolve | NOT_SCOPE_BOUND | one original number to document id, legal entity and batch; no person or unit attribute in the answer
+GET /api/v1/platform/numbering-rules | NOT_SCOPE_BOUND | numbering rules per document type: configuration
+GET /api/v1/platform/numbering-rules/{documentType} | NOT_SCOPE_BOUND | one numbering rule: configuration
+GET /api/v1/platform/own-login-records | SELF | the caller's own login records
+GET /api/v1/platform/roles | NOT_SCOPE_BOUND | role definitions (code, permissions, scope kind): configuration
+GET /api/v1/platform/roles/{roleId} | NOT_SCOPE_BOUND | one role definition: configuration
+GET /api/v1/platform/sessions:current | SELF | the caller's own session and profile
+GET /api/v1/platform/source-references | SCOPED | maps an external id to an own employee, org unit, position or legal entity
+GET /api/v1/platform/user-accounts/{userId} | SCOPED | the account of one person (status, role codes)
+GET /error | NOT_SCOPE_BOUND | the framework error page: carries the status of the failed request, no rows
+GET /v3/api-docs | NOT_SCOPE_BOUND | the OpenAPI document: the contract, no rows
+GET /v3/api-docs.yaml | NOT_SCOPE_BOUND | the OpenAPI document as YAML: the contract, no rows
