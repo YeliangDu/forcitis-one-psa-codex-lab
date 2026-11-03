@@ -186,6 +186,14 @@ class PermissionAdjustmentSchemaIT {
                    and coalesce(btrim(col_description(a.attrelid, a.attnum)), '') = ''""", TABLE)).as("columns without a comment").isEmpty();
     }
 
+    @Test
+    @DisplayName("F-1 7.2 审计对象类别 PERMISSION_ADJUSTMENT 已登记：归 platform.identity、有对象 ID、在用（ADR-0069 第 14 条起类别登记在 audit_subject_kinds，不再是 CHECK 常量）")
+    void theAuditSubjectKindIsRegistered() throws SQLException {
+        assertThat(db.column("""
+                select owner_bc_code || ' ' || has_object::text || ' ' || status || ' ' || (retired_date is null)::text
+                  from platform_audit.audit_subject_kinds where code = 'PERMISSION_ADJUSTMENT'""")).containsExactly("platform.identity true ACTIVE true");
+    }
+
     private String indexDef(String index) throws SQLException {
         return (String) db.column("select pg_get_indexdef(?::regclass)", "platform_identity." + index).getFirst();
     }

@@ -24,7 +24,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * section 5), the scopes a two-person role may have (ADR-0032 section 3, answer 0032-Q1 (a)) and that sensitive permissions reach people
  * one by one (ADR-0032 section 1, user 2026-10-14 "采纳，敏感权限授给人"). Two super_admin holders act in the administrator("admin1") mode.
  * Moved from the F-1 acceptance branch claude/one-1a-par-f1-acceptance (base 771b7b0dc) with the assertions unchanged; what the fixture
- * had to follow on the main line is listed in the commit message. The holder's visible scope after a change belongs to #729.
+ * had to follow on the main line is listed in the commit message. The holder's visible scope after a change belongs to #730.
  */
 class RoleScopeGrantIT extends DataScopeSupport {
 
@@ -86,7 +86,7 @@ class RoleScopeGrantIT extends DataScopeSupport {
     }
 
     @Test
-    @DisplayName("F-1 ADR-0034 第 5 项（改明细即新增角色版本）、F-1 事件「范围授予变更」：改自定义部门后读回的是新部门，审计留下改前与改后的部门（#728；持有人的可见范围见下一条，归 #729）")
+    @DisplayName("F-1 ADR-0034 第 5 项（改明细即新增角色版本）、F-1 事件「范围授予变更」：改自定义部门后读回的是新部门，审计留下改前与改后的部门（#728；持有人的可见范围见下一条，归 #730）")
     void changingTheCustomOrgUnitsLeavesHistory() throws Exception {
         String roleId = ordinaryRole(administrator("admin1"), "f1-moving-detail", "CUSTOM_ORG_UNITS", List.of(onlyUnit(id("F1-A"))), ORG_UNIT_READ);
 
@@ -112,8 +112,8 @@ class RoleScopeGrantIT extends DataScopeSupport {
     }
 
     @Test
-    @Disabled("归 #729：持有人的可见范围（范围计算、部门浏览）随 F-1 第 2 块实现；本条断言自 changingTheCustomOrgUnitsLeavesHistory 后半原样分出")
-    @DisplayName("F-1 ADR-0034 第 5 项（改明细即新增角色版本）：改自定义部门后持有人的可见范围随之改变（归 #729）")
+    @Disabled("归 #730：持有人的可见范围（范围计算、部门浏览）随 F-1 第 3 块实现（one-design 拆分，记录于 #729）；本条断言自 changingTheCustomOrgUnitsLeavesHistory 后半原样分出")
+    @DisplayName("F-1 ADR-0034 第 5 项（改明细即新增角色版本）：改自定义部门后持有人的可见范围随之改变（归 #730）")
     void changingTheCustomOrgUnitsMovesTheHoldersScope() throws Exception {
         String roleId = ordinaryRole(administrator("admin1"), "f1-moving-scope", "CUSTOM_ORG_UNITS", List.of(onlyUnit(id("F1-A"))), ORG_UNIT_READ);
         grantOrdinaryRoles(administrator("admin1"), "holder", "f1-moving-scope");
@@ -162,7 +162,7 @@ class RoleScopeGrantIT extends DataScopeSupport {
     }
 
     @Test
-    @Disabled("归 #729：范围变化走授权申请（ADR-0032 第 1 项第 3 条）；调度裁定挪出 #728，断言不动")
+    @Disabled("归 #730：范围变化走授权申请（ADR-0032 第 1 项第 3 条）；调度裁定挪出 #728，断言不动")
     @DisplayName("F-1 F1-01：含双人逐人级权限的角色修改时把自定义部门改成「含下级」也 422（不走授权申请），角色不变；要覆盖新部门须逐个列出「仅本部门」并经第二人确认")
     void aTwoPersonRoleIsNotRevisedToIncludeDescendants() throws Exception {
         MockHttpServletResponse asked = createRole(administrator("admin1"),
