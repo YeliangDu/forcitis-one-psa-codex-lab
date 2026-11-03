@@ -403,7 +403,8 @@ class PermissionAdjustmentJobsIT extends PermissionAdjustmentApiSupport {
         List<ILoggingEvent> alerts = logged.list.stream().filter(line -> line.getFormattedMessage().startsWith("ALERT P3 platform.identity ")).toList();
         assertThat(alerts).as("exactly one P3 alert line").hasSize(1);
         assertThat(alerts.getFirst().getFormattedMessage()).as("the line names the regenerated item (ruling 6605327331)")
-                .contains(String.valueOf(regenerated.getFirst().get("permission_adjustment_id"))).doesNotContain("Synthetic stray");
+                .contains(String.valueOf(regenerated.getFirst().get("permission_adjustment_id"))).doesNotContain("Synthetic stray")
+                .doesNotContain(employeeCode("stray"));
     }
 
     // ---- escalation ---------------------------------------------------------------------------------------------------------
