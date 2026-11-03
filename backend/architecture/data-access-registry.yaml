@@ -160,11 +160,23 @@ tables:
     role: AGGREGATE_CHILD
     aggregate: Employee
     mutability: CONDITIONAL_UPDATE
-    condition: 状态只按 PENDING 到 EFFECTIVE、WITHDRAWN、HELD 以及 HELD 到 EFFECTIVE、WITHDRAWN 前进，时刻列由空变非空一次，内容列不变（触发器 tg_personnel_commands_append_only，ADR-0068 第 1 条）
+    condition: 状态只按 PENDING 到 EFFECTIVE、WITHDRAWN、HELD，HELD 到 EFFECTIVE、WITHDRAWN、PENDING（放行原生效日在将来的待放行离职），待法人归属会签到 PENDING、EFFECTIVE、WITHDRAWN 前进（转入待法人归属会签只在建立时），时刻列由空变非空一次，内容列不变（触发器 tg_personnel_commands_append_only，ADR-0068 第 1 条）
     business_key: [personnel_command_id]
     retention: {policy: PERMANENT}  # 个人任职史随员工清除：离职满 10 年由 purge_employee_history 删除（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
     writers: [organization.workforce]
+  organization_workforce.attribution_countersigns:
+    role: AGGREGATE_CHILD
+    aggregate: Employee
+    mutability: CONDITIONAL_UPDATE
+    condition: 决定各列由空变非空一次，升级级别只升不降且决定后不再变，其余列不变（触发器 tg_attribution_countersigns_append_only，ADR-0073 第 3 至 4 条）
+    business_key: [attribution_countersign_id]
+    fk_exceptions:
+      employee_id: carried by the composite foreign key fk_attribution_countersigns_command (personnel_command_id, employee_id, drafted_by), which also pins it to the command's employee
+      decision_audit_entry_id: the id of an audit entry of another module, stored without a key across modules
+    retention: {policy: PERMANENT}  # 同人事命令：个人任职史随员工清除，离职满 10 年删除（W2 第 8 节，清理作业另批）
+    lineage: {source: NEW}
+    writers: []  # 尚无写入方（#895 随用例登记）
   organization_workforce.employee_profile_change_requests:
     role: AGGREGATE_CHILD
     aggregate: Employee
