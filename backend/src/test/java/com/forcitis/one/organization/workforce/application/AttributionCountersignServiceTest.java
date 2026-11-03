@@ -77,7 +77,7 @@ class AttributionCountersignServiceTest {
     final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     final BusinessZone zone = new BusinessZone(ZoneId.of("Asia/Shanghai"));
     final AttributionCountersignService service = new AttributionCountersignService(countersigns, commands, requests, bases,
-            new PersonnelPlans(ids), effects, ownGuard, roles, mock(AuditLog.class), currentUser, ids, clock, zone);
+            new PersonnelPlans(ids), effects, ownGuard, new CountersignDeciders(countersigns, roles, currentUser), mock(OrgCountersigns.class), mock(AuditLog.class), currentUser, ids, clock, zone);
 
     AttributionCountersignServiceTest() {
         when(ids.next()).thenReturn(COMMAND.value());
@@ -94,7 +94,7 @@ class AttributionCountersignServiceTest {
     }
 
     private static AttributionCountersign row(AttributionCountersignId id, LegalEntityId entity, int level, UserId requestedBy) {
-        return AttributionCountersign.restore(id, COMMAND, EMPLOYEE, DRAFTER, CountersignRequestKind.CHANGE, 1, entity, NOW, requestedBy, TODAY.plusDays(3), level, null, 0,
+        return AttributionCountersign.restore(id, COMMAND, null, EMPLOYEE, DRAFTER, CountersignRequestKind.CHANGE, 1, entity, NOW, requestedBy, TODAY.plusDays(3), level, null, 0,
                 null, null, null, null);
     }
 
@@ -106,11 +106,11 @@ class AttributionCountersignServiceTest {
 
         assertThatThrownBy(() -> service.approve(new ApproveAttributionCountersign(ROW1, null))).isInstanceOfSatisfying(DomainException.class,
                 refusal -> assertThat(refusal.kind()).isEqualTo(ErrorKind.FORBIDDEN));
-        verify(requests, never()).approved(any(), any(), anyLong(), any(), any(), any(), any());
+        verify(requests, never()).approved(any(), any(PersonnelCommand.class), anyLong(), any(), any(), any(), any());
 
         when(roles.holds(DECIDER, "business_admin")).thenReturn(true);
         service.approve(new ApproveAttributionCountersign(ROW1, null));
-        verify(requests).approved(any(), any(), anyLong(), any(), any(), any(), any());
+        verify(requests).approved(any(), any(PersonnelCommand.class), anyLong(), any(), any(), any(), any());
     }
 
     @Test
@@ -125,7 +125,7 @@ class AttributionCountersignServiceTest {
         when(countersigns.find(ROW1)).thenReturn(Optional.of(row(ROW1, E1, 0, DECIDER)));
         assertThatThrownBy(() -> service.approve(new ApproveAttributionCountersign(ROW1, null))).as("the requester").isInstanceOfSatisfying(DomainException.class,
                 refusal -> assertThat(refusal.kind()).isEqualTo(ErrorKind.FORBIDDEN));
-        verify(requests, never()).approved(any(), any(), anyLong(), any(), any(), any(), any());
+        verify(requests, never()).approved(any(), any(PersonnelCommand.class), anyLong(), any(), any(), any(), any());
     }
 
     @Test
@@ -139,7 +139,7 @@ class AttributionCountersignServiceTest {
 
         due.execute(COMMAND);
 
-        verify(requests).lapse(any(), any(), any(), any(), any(), any(), any());
+        verify(requests).lapse(any(PersonnelCommand.class), any(), any(), any(), any(), any(), any());
         assertThat(pending.status()).isEqualTo(CommandStatus.EFFECTIVE);
     }
 
@@ -149,7 +149,7 @@ class AttributionCountersignServiceTest {
         PersonnelCommand correction = PersonnelCommand.restore(COMMAND, EMPLOYEE, PersonnelCommandKind.CORRECTION, TODAY.plusDays(5),
                 CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN, null, null, null, null, null, E2, E1, E2, null, null, DRAFTER, NOW, null, 0, 0);
         AttributionCountersign open = row(ROW1, E1, 0, DRAFTER);
-        AttributionCountersign approved = AttributionCountersign.restore(ROW2, COMMAND, EMPLOYEE, DRAFTER, CountersignRequestKind.CHANGE, 1, E2, NOW, DRAFTER,
+        AttributionCountersign approved = AttributionCountersign.restore(ROW2, COMMAND, null, EMPLOYEE, DRAFTER, CountersignRequestKind.CHANGE, 1, E2, NOW, DRAFTER,
                 TODAY.plusDays(3), 0, null, 1, "APPROVED", NOW, DECIDER, null);
         when(commands.find(COMMAND)).thenReturn(Optional.of(correction));
         when(countersigns.find(ROW1)).thenReturn(Optional.of(open));
@@ -175,7 +175,7 @@ class AttributionCountersignServiceTest {
         org.mockito.Mockito.doThrow(new DomainException(com.forcitis.one.organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN,
                 ErrorKind.FORBIDDEN, "own")).when(ownGuard).requireNotOwn(any(), any());
         PersonnelCommandService personnel = new PersonnelCommandService(commands, mock(NewEmployees.class), new PersonnelPlans(ids), mock(SeparationHoldCheck.class),
-                mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), bases, requests, countersigns, ownGuard, effects, mock(AuditLog.class),
+                mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), bases, requests, new OrgCountersignFreeze(mock(com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository.class)), countersigns, ownGuard, effects, mock(AuditLog.class),
                 mock(DomainEvents.class), currentUser, ids, clock, zone);
 
         assertThatThrownBy(() -> personnel.withdraw(new com.forcitis.one.organization.workforce.api.WithdrawPersonnelCommand(COMMAND, "plan changed")))
