@@ -3,6 +3,7 @@ package com.forcitis.one.acceptance.organization.workforce;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 import static com.forcitis.one.acceptance.organization.workforce.SeparationHoldOperationNames.*;
 
+import com.forcitis.one.acceptance.AssignmentRoots;
 import com.forcitis.one.kernel.Uuids;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -114,10 +115,12 @@ abstract class InitialVersionMigrationSupport extends PersonnelCommandSupport {
     protected void syncAssignmentVersion(UUID person, LocalDate from, LocalDate to) throws Exception {
         OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
         try (Connection workforce = schemaConnection("organization_workforce")) {
-            update(workforce, """
+            // #711: on the person's PRIMARY root once employee_assignments exists (AssignmentRoots), as the sync writer does (DD rev 2 section 4.3).
+            UUID root = AssignmentRoots.primaryOf(workforce, stored(person));
+            update(workforce, AssignmentRoots.withRoot("""
                     insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, effective_to_date, org_unit_id,
-                      change_channel_kind, closed_at, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?, ?)""",
-                    Uuids.timeOrdered(NOW), stored(person), from, to, stored(unit), to == null ? null : at, at, at);
+                      change_channel_kind, closed_at, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?, ?)""", root),
+                    AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), stored(person), from, to, stored(unit), to == null ? null : at, at, at));
         }
     }
 

@@ -64,6 +64,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import driftscan   # noqa: E402
 import gapscan   # noqa: E402
+import issue_gate   # noqa: E402  (one title check for post_review and the merge)
 import post_review   # noqa: E402  (the machine-read header of a review: one parser for the poster and the queue)
 from mq_github import Gh, SignalError, sh, update_over_ssh   # noqa: E402,F401  (the GitHub and git side)
 from mq_queue import LINE, Log, Queue   # noqa: E402,F401  (the queue file and the log)
@@ -751,6 +752,8 @@ class Processor:
             ok, why = self.released(n, head)
             if not ok:
                 return self.hold(n, None, since, f"not released for merge: {why}")
+            if (why := issue_gate.title_problem(v["title"], v["body"])) is not None:   # edited after the review: caught here
+                return self.hold(n, None, since, f"title: {why}")
             self.checkpoint(n)   # the last one: under the merge lock, right before gh is asked
             ok, message = self.gh.merge(n, head)
             if ok:

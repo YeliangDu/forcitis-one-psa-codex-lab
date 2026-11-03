@@ -12,6 +12,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
@@ -47,6 +48,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -72,8 +74,10 @@ class PersonnelCommandService implements PersonnelCommands {
     private final LegalEntityResolutionSources legalEntities;
     private final CountersignBases bases;
     private final CountersignRequests requests;
+    private final OrgCountersignFreeze freeze;
     private final AttributionCountersignRepository countersigns;
     private final OwnAttributionGuard ownGuard;
+    private final OrgMergeProgress mergeProgress;
     private final EffectPublisher effects;
     private final AuditLog audit;
     private final DomainEvents events;
@@ -84,7 +88,7 @@ class PersonnelCommandService implements PersonnelCommands {
 
     PersonnelCommandService(PersonnelCommandRepository commands, NewEmployees newEmployees, PersonnelPlans timelines, SeparationHoldCheck holdCheck, UnpaidLeaveStartFloor leaveFloor,
                             LegalEntityResolutionSources legalEntities, CountersignBases bases, CountersignRequests requests,
-                            AttributionCountersignRepository countersigns, OwnAttributionGuard ownGuard, EffectPublisher effects, AuditLog audit, DomainEvents events,
+                            OrgCountersignFreeze freeze, AttributionCountersignRepository countersigns, OwnAttributionGuard ownGuard, OrgMergeProgress mergeProgress, EffectPublisher effects, AuditLog audit, DomainEvents events,
                             CurrentUser currentUser, IdGenerator ids, Clock clock, BusinessZone zone) {
         this.commands = commands;
         this.newEmployees = newEmployees;
@@ -94,8 +98,10 @@ class PersonnelCommandService implements PersonnelCommands {
         this.legalEntities = legalEntities;
         this.bases = bases;
         this.requests = requests;
+        this.freeze = freeze;
         this.countersigns = countersigns;
         this.ownGuard = ownGuard;
+        this.mergeProgress = mergeProgress;
         this.effects = effects;
         this.audit = audit;
         this.events = events;
@@ -124,12 +130,16 @@ class PersonnelCommandService implements PersonnelCommands {
         Instant now = clock.instant();
         LocalDate today = zone.dateOf(now);
         EmployeeId employee;
+        List<OrgStructureCommandId> holding = List.of();
         if (request.commandKind() == PersonnelCommandKind.HIRE) {
             employee = newEmployees.create(request, today, now);
         } else {
             employee = existingEmployee(request);
             if (request.commandKind() == PersonnelCommandKind.SEPARATE || request.commandKind() == PersonnelCommandKind.UNPAID_LEAVE_START) {
                 commands.lockSeparationDecisions();
+            }
+            if (merge == null) {
+                holding = mergeProgress.lockHolding(employee);
             }
             if (!commands.lockEmployee(employee)) {
                 throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID, ErrorKind.UNPROCESSABLE, "the employee does not exist");
@@ -145,9 +155,21 @@ class PersonnelCommandService implements PersonnelCommands {
                     "the department has a merge in progress, or one dated on or before " + command.effectiveDate() + "; nobody can be placed there from then on");
         }
         PersonnelHistory history = commands.load(employee);
+        command.actOnPost(history, () -> commands.primaryRoot(employee, now));
         PersonnelCommandRules.check(command, history);
         PersonnelCommandRules.requireNoAwaitingOnOrBefore(command, history);
+        freeze.requireNotFrozen(command);
         bases.of(command, history).ifPresent(basis -> {
+            if (merge != null) {
+                // The merge's transfer is exempt when the person's entity change is the one the merge's heads approved (ADR-0073 guard 1); any other change waits for its own
+                // countersign. The recorder is the system actor, whose account names no employee, so the own-entry check has nobody to test.
+                if (mergeProgress.approved(merge, employee, basis)) {
+                    command.changeApprovedByMerge(basis.previous(), basis.next());
+                } else {
+                    command.requireCountersign(basis.previous(), basis.next());
+                }
+                return;
+            }
             // Nobody changes their own legal entity (ADR-0073 item 3.5, ADR-0027 item 2.2): the drafter is refused when it is theirs that would change.
             ownGuard.requireNotOwn(AttributionSubject.of(employee), by);
             command.requireCountersign(basis.previous(), basis.next());
@@ -164,8 +186,14 @@ class PersonnelCommandService implements PersonnelCommands {
         PersonnelCommandRules.requirePositionOnCommandRows(plans.get(VersionTable.ASSIGNMENT));
         commands.insert(command);
         commands.insertTransition(COMMAND, command.id().value(), command.version(), null, command.status().name(), ActorType.USER, by.value(), today, now, command.id(), correlation());
+        if (command.kind() == PersonnelCommandKind.START_CONCURRENT) {
+            commands.insertConcurrentRoot(employee, startedPost(plans.get(VersionTable.ASSIGNMENT)), now);
+        }
         for (Map.Entry<VersionTable, VersionPlan> plan : plans.entrySet()) {
             commands.insertVersions(employee, plan.getKey(), plan.getValue(), command.id(), now);
+        }
+        if (!held && !awaiting) {
+            mergeProgress.recount(holding);
         }
         if (held) {
             SeparationHold hold = SeparationHold.of(new SeparationHoldId(ids.next()), command);
@@ -210,6 +238,7 @@ class PersonnelCommandService implements PersonnelCommands {
         }
         PersonnelHistory history = commands.load(command.employeeId());
         if (before == CommandStatus.PENDING) {
+            PersonnelCommandRules.requireNoSeparationAtOrAfter(command, history);
             Map<VersionTable, VersionPlan> plans = timelines.forWithdrawal(command, history);
             PersonnelCommandRules.requirePositionOnCommandRows(plans.get(VersionTable.ASSIGNMENT));
             for (Map.Entry<VersionTable, VersionPlan> plan : plans.entrySet()) {
@@ -222,6 +251,11 @@ class PersonnelCommandService implements PersonnelCommands {
         commands.holdOf(command.id()).filter(hold -> hold.status() == HoldStatus.HELD).ifPresent(hold -> withdrawHold(hold, command, by, today, now));
         audit.record(new AuditEntry("organization.workforce.personnel-command.withdrawn", by, null, AuditSubject.of(AuditSubjectKind.EMPLOYEE, command.employeeId().value()),
                 "command " + command.id() + " " + command.kind() + "; reason: " + command.withdrawalReason().replaceAll("\\p{Cntrl}", " ")));
+    }
+
+    /** The post a start made: the one root its first row carries. */
+    private static AssignmentId startedPost(VersionPlan assignments) {
+        return new AssignmentId(Objects.requireNonNull(assignments.inserts().getFirst().root(), "root"));
     }
 
     /** The versions of a countersigned command stay until every finance head of its two legal entities approves the withdrawal (ADR-0073 item 3.6). */

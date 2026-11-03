@@ -28,10 +28,10 @@ class Gh:
     RETRY_PAUSE = 2
 
     def view(self, n):
-        r = sh(["gh", "pr", "view", str(n), "--json", "state,mergeStateStatus,labels,headRefName,headRefOid"])
+        r = sh(["gh", "pr", "view", str(n), "--json", "state,mergeStateStatus,labels,headRefName,headRefOid,title,body"])
         try:
             d = json.loads(r.stdout)
-            return {"state": d["state"], "merge": d["mergeStateStatus"], "labels": [l["name"] for l in d["labels"]], "branch": d["headRefName"], "head": d["headRefOid"]}
+            return {"state": d["state"], "merge": d["mergeStateStatus"], "labels": [l["name"] for l in d["labels"]], "branch": d["headRefName"], "head": d["headRefOid"], "title": d["title"], "body": d["body"]}
         except (ValueError, KeyError):
             return None
 

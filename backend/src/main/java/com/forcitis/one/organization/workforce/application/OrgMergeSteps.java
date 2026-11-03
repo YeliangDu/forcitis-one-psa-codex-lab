@@ -8,8 +8,6 @@ import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
-import com.forcitis.one.kernel.event.DomainEvents;
-import com.forcitis.one.organization.workforce.api.BlockingArrival;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
@@ -18,12 +16,6 @@ import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.OrgCommandStatus;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommand;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository;
-import com.forcitis.one.organization.workforce.domain.OrgTimeline;
-import com.forcitis.one.platform.audit.api.AuditEntry;
-import com.forcitis.one.platform.audit.api.AuditEntryId;
-import com.forcitis.one.platform.audit.api.AuditLog;
-import com.forcitis.one.platform.audit.api.AuditSubject;
-import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -42,22 +34,20 @@ class OrgMergeSteps {
 
     private final OrgStructureCommandRepository commands;
     private final OrgStructureRules rules;
-    private final OrgPlans plans;
+    private final OrgMergeProgress progress;
+    private final OrgMergeCompletion completion;
     private final PersonnelCommandService personnel;
-    private final AuditLog audit;
-    private final DomainEvents events;
     private final IdGenerator ids;
     private final Clock clock;
     private final BusinessZone zone;
 
-    OrgMergeSteps(OrgStructureCommandRepository commands, OrgStructureRules rules, OrgPlans plans, PersonnelCommandService personnel, AuditLog audit,
-                  DomainEvents events, IdGenerator ids, Clock clock, BusinessZone zone) {
+    OrgMergeSteps(OrgStructureCommandRepository commands, OrgStructureRules rules, OrgMergeProgress progress, OrgMergeCompletion completion, PersonnelCommandService personnel,
+                  IdGenerator ids, Clock clock, BusinessZone zone) {
         this.commands = commands;
         this.rules = rules;
-        this.plans = plans;
+        this.progress = progress;
+        this.completion = completion;
         this.personnel = personnel;
-        this.audit = audit;
-        this.events = events;
         this.ids = ids;
         this.clock = clock;
         this.zone = zone;
@@ -76,6 +66,9 @@ class OrgMergeSteps {
         if (merge.status() == OrgCommandStatus.WITHDRAWN) {
             throw notAllowed("the merge was withdrawn");
         }
+        if (merge.status() == OrgCommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN) {
+            throw notAllowed("the merge awaits the legal entity countersign of its people's change");
+        }
         List<EmployeeId> people = commands.employedIn(merge.targetOrgUnitId(), merge.effectiveDate());
         if (merge.status() == OrgCommandStatus.PENDING) {
             if (merge.effectiveDate().isAfter(today)) {
@@ -91,49 +84,40 @@ class OrgMergeSteps {
         return people;
     }
 
-    /** Moves one person into the receiving unit; one who something else has moved out since the list was made is counted as done. The employee is locked before the check, so a command that holds the person has committed when the check reads. */
+    /**
+     * Enters the transfer that moves one person into the receiving unit, unless the merge has entered one for them already (a person whose transfer awaits or lost its legal entity
+     * countersign stays where they are until another command moves them). One who something else has moved out since the list was made needs none. The employee is locked
+     * before the check, so a command that holds the person has committed when the check reads.
+     */
     @Transactional
     public void move(OrgStructureCommandId id, EmployeeId employee, UUID actor) {
         OrgStructureCommand merge = lockedMerge(id);
         if (merge.status() != OrgCommandStatus.IN_PROGRESS) {
             return;
         }
-        long loaded = merge.version();
         commands.lockEmployee(employee);
-        if (commands.employedIn(merge.targetOrgUnitId(), merge.effectiveDate()).contains(employee)) {
+        if (commands.employedIn(merge.targetOrgUnitId(), merge.effectiveDate()).contains(employee) && !commands.hasGeneratedTransfer(merge.id(), employee)) {
             personnel.enter(new EnterPersonnelCommand(employee, PersonnelCommandKind.TRANSFER, merge.effectiveDate(), null, merge.mergeIntoOrgUnitId(), null, null, null, null,
                     null, null, null, null), new UserId(actor), merge.id());
         }
-        merge.recordTransferred();
-        commands.update(merge, clock.instant(), loaded);
     }
 
-    /** Revokes the merged unit once nobody is left in it; whoever is counted and no longer there has been moved, by the merge or by another command. The merge is then effective. */
+    /** Counts who is out of the merged unit now, however they got out; a merge whose unit is empty ends here. */
+    @Transactional
+    public void settle(OrgStructureCommandId id) {
+        OrgStructureCommand merge = lockedMerge(id);
+        if (merge.status() == OrgCommandStatus.IN_PROGRESS) {
+            progress.recount(merge);
+        }
+    }
+
+    /** Ends the merge once nobody is left in the merged unit; it is refused while somebody is. */
     @Transactional
     public void finish(OrgStructureCommandId id, UUID actor) {
-        Instant now = clock.instant();
-        LocalDate today = zone.dateOf(now);
         OrgStructureCommand merge = lockedMerge(id);
-        if (merge.status() == OrgCommandStatus.EFFECTIVE) {
-            return;
+        if (merge.status() != OrgCommandStatus.EFFECTIVE) {
+            completion.finish(merge, actor);
         }
-        if (commands.hasEmployedFrom(merge.targetOrgUnitId(), merge.effectiveDate())) {
-            List<BlockingArrival> arrivals = commands.arrivalsAfter(merge.targetOrgUnitId(), merge.effectiveDate());
-            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ORG_STRUCTURE_MERGE_INCOMPLETE, ErrorKind.CONFLICT, arrivals.isEmpty()
-                    ? "somebody is still in the merged unit on the merge day" : OrgStructureRules.describe(arrivals, merge.effectiveDate()));
-        }
-        long loaded = merge.version();
-        String before = merge.status().name();
-        AuditEntryId auditEntry = audit.record(new AuditEntry("organization.workforce.org-structure-command.completed", null, null, AuditSubject.of(AuditSubjectKind.ORG_UNIT, merge.targetOrgUnitId().value()),
-                "command " + merge.id() + " " + merge.kind() + " effective " + merge.effectiveDate()));
-        OrgTimeline timeline = commands.unitTimeline(merge.targetOrgUnitId());
-        merge.countRemainingAsTransferred();
-        merge.completeMerge(now);
-        commands.insertUnitVersions(merge.targetOrgUnitId(), plans.forMergeCompletion(merge, timeline, auditEntry), merge.id(), now);
-        commands.update(merge, now, loaded);
-        commands.insertTransition(merge.id(), loaded + 1, before, merge.status().name(), ActorType.SYSTEM, actor, today, now, correlation());
-        merge.recordEffect();
-        events.publish(merge);
     }
 
     private OrgStructureCommand lockedMerge(OrgStructureCommandId id) {

@@ -42,6 +42,9 @@ public interface OrgStructureCommandRepository {
 
     boolean legalEntityExists(LegalEntityId legalEntity);
 
+    /** Whether the unit has an attribution period that starts on or after the day, or a closed one that ends after it: appending a period from that day would need the W2 void-and-append split, which is not built. */
+    boolean hasAttributionAfter(OrgUnitId orgUnit, LocalDate day);
+
     /** Whether any position, current or not, ever had the code (codes are company-unique and never reused). */
     boolean positionCodeTaken(String code);
 
@@ -72,8 +75,23 @@ public interface OrgStructureCommandRepository {
     /** Writes the initial legal entity of a new unit: the attribution root and its first open period, from the command's day. */
     void insertInitialAttribution(OrgUnitId orgUnit, LegalEntityId legalEntity, LocalDate from, OrgStructureCommandId command, AuditEntryId audit, Instant at);
 
-    /** Takes the period the command wrote out again (a withdrawal): superseded, not deleted. */
-    void updateInitialAttributionVoided(OrgUnitId orgUnit, OrgStructureCommandId command, Instant at);
+    /** From the day on the unit belongs to the legal entity: closes the open period at the day and appends one, both from the command; the unit's attribution root is created if the unit never had one. */
+    void attributeUnit(OrgUnitId orgUnit, LegalEntityId legalEntity, LocalDate from, OrgStructureCommandId command, AuditEntryId audit, Instant at);
+
+    /**
+     * Takes back every period the command wrote (a withdrawal): superseded, not deleted; a period the command closed is superseded and appended again as it was, up to where the command's own period ended (open when no later command followed),
+     * so the unit belongs to the entity it did before the command.
+     */
+    void voidAttribution(OrgUnitId orgUnit, OrgStructureCommandId command, AuditEntryId audit, Instant at);
+
+    /** The countersign basis of the command, one row per employee whose cost legal entity it changes. Written once, at entry. */
+    void insertBasis(OrgStructureCommandId command, List<OrgCountersignBasis> basis, Instant at);
+
+    List<OrgCountersignBasis> basisOf(OrgStructureCommandId command);
+
+    /** The org-structure commands that wait for the attribution countersign, whatever their day. */
+    List<OrgStructureCommand> awaitingCountersign();
+
 
     OrgTimeline unitTimeline(OrgUnitId orgUnit);
 
@@ -98,6 +116,12 @@ public interface OrgStructureCommandRepository {
      * A person who is in the unit just before such a row (a later position or manager change) is a resident, not an arrival.
      */
     List<BlockingArrival> arrivalsAfter(OrgUnitId orgUnit, LocalDate day);
+
+    /** The merges in progress whose merged unit holds the employee's primary post on the merge day, ordered by merge day, merged unit, then id (the order their unit rows are locked in). */
+    List<OrgStructureCommandId> mergesInProgressOf(EmployeeId employee);
+
+    /** Whether the merge already generated a transfer for the employee, whatever became of it. */
+    boolean hasGeneratedTransfer(OrgStructureCommandId merge, EmployeeId employee);
 
     /** Whether somebody is employed and holds the position on some day from the given one on. */
     boolean hasHolderFrom(PositionId position, LocalDate day);

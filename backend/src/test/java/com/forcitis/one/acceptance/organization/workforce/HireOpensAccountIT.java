@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.AssignmentRoots;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -379,10 +380,11 @@ class HireOpensAccountIT extends EmployeeHireSupport {
                       is_on_unpaid_leave, is_fee_earner, change_channel_kind, created_at, updated_at)
                     values (?, ?, ?, 0, 'SEPARATED', false, false, 'MIGRATION', ?, ?)""",
                     com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), yesterday, at, at);
-            update(workforce, """
+            UUID root = AssignmentRoots.primaryOf(workforce, stored(person));
+            update(workforce, AssignmentRoots.withRoot("""
                     insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
-                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""",
-                    com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), SINCE, stored(unit), newPosition(), at, at);
+                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root),
+                    AssignmentRoots.arguments(root, com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), SINCE, stored(unit), newPosition(), at, at));
         }
     }
 

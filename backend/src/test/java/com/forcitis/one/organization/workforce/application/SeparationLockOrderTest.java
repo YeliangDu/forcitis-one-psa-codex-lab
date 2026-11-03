@@ -59,6 +59,7 @@ class SeparationLockOrderTest {
     static final SeparationHoldId HOLD = new SeparationHoldId(UUID.fromString("019a0000-0000-7000-8000-0000000000e1"));
 
     final PersonnelCommandRepository commands = mock(PersonnelCommandRepository.class);
+    final OrgMergeProgress mergeProgress = mock(OrgMergeProgress.class);
     final IdGenerator ids = mock(IdGenerator.class);
     final CurrentUser currentUser = mock(CurrentUser.class);
     final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
@@ -72,34 +73,35 @@ class SeparationLockOrderTest {
 
     private PersonnelCommand heldSeparation() {
         PersonnelCommand separation = PersonnelCommand.restore(COMMAND, EMPLOYEE, PersonnelCommandKind.SEPARATE, LocalDate.of(2026, 11, 2), CommandStatus.HELD,
-                null, null, null, null, null, null, null, null, USER, NOW, null, 0, 0);
+                null, null, null, null, null, null, null, null, null, null, USER, NOW, null, 0, 0);
         when(commands.find(COMMAND)).thenReturn(java.util.Optional.of(separation));
         return separation;
     }
 
     @Test
-    @DisplayName("IMP-1030-PAR-B6 entering a separation takes the separation lock before the employee row")
+    @DisplayName("IMP-1030-PAR-B6 entering a separation takes the separation lock, then the merged units holding the person, before the employee row")
     void enteringLocksTheDecisionFirst() {
-        PersonnelCommandService service = new PersonnelCommandService(commands, mock(NewEmployees.class), new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), mock(CountersignBases.class), mock(CountersignRequests.class),
-                mock(AttributionCountersignRepository.class), mock(OwnAttributionGuard.class), mock(EffectPublisher.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone);
+        PersonnelCommandService service = new PersonnelCommandService(commands, mock(NewEmployees.class), new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), mock(CountersignBases.class), mock(CountersignRequests.class), new OrgCountersignFreeze(mock(com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository.class)),
+                mock(AttributionCountersignRepository.class), mock(OwnAttributionGuard.class), mergeProgress, mock(EffectPublisher.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone);
         when(commands.eventSequence(EMPLOYEE)).thenReturn(0L);
-        when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), List.of(), Map.of()));
+        when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), List.of(), List.of(), Map.of()));
 
         assertThatThrownBy(() -> service.enter(new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.SEPARATE, null, LocalDate.of(2026, 11, 1), null, null, null, null, null, null, null, null, null)))
                 .as("refused later, by the rules (the employee has no version); the locks were taken before that").isInstanceOf(DomainException.class);
 
-        InOrder order = inOrder(commands);
+        InOrder order = inOrder(commands, mergeProgress);
         order.verify(commands).lockSeparationDecisions();
+        order.verify(mergeProgress).lockHolding(EMPLOYEE);
         order.verify(commands).lockEmployee(EMPLOYEE);
     }
 
     @Test
     @DisplayName("IMP-1030-PAR-B6 withdrawing a held separation takes the separation lock before the employee row")
     void withdrawingLocksTheDecisionFirst() {
-        PersonnelCommandService service = new PersonnelCommandService(commands, mock(NewEmployees.class), new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), mock(CountersignBases.class), mock(CountersignRequests.class),
-                mock(AttributionCountersignRepository.class), mock(OwnAttributionGuard.class), mock(EffectPublisher.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone);
+        PersonnelCommandService service = new PersonnelCommandService(commands, mock(NewEmployees.class), new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), mock(CountersignBases.class), mock(CountersignRequests.class), new OrgCountersignFreeze(mock(com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository.class)),
+                mock(AttributionCountersignRepository.class), mock(OwnAttributionGuard.class), mergeProgress, mock(EffectPublisher.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone);
         heldSeparation();
-        when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), List.of(), Map.of()));
+        when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), List.of(), List.of(), Map.of()));
 
         service.withdraw(new WithdrawPersonnelCommand(COMMAND, "synthetic: the person stays"));
 
@@ -109,12 +111,12 @@ class SeparationLockOrderTest {
     }
 
     @Test
-    @DisplayName("IMP-1030-PAR-B6 releasing a hold takes the separation lock before the employee row")
+    @DisplayName("IMP-1030-PAR-B6 releasing a hold takes the separation lock, then the merged units holding the person, before the employee row")
     void releasingLocksTheDecisionFirst() {
         SeparationReview review = mock(SeparationReview.class);
         SeparationHoldService service = new SeparationHoldService(commands, review,
-                new HeldSeparationRelease(commands, new PersonnelPlans(ids), mock(LegalEntityResolutionSources.class), mock(AuditLog.class), mock(DomainEvents.class), ids, zone),
-                mock(SeparationHoldNotice.class), currentUser, clock);
+                new HeldSeparationRelease(commands, new PersonnelPlans(ids), mock(LegalEntityResolutionSources.class), mock(AuditLog.class), mock(DomainEvents.class), ids, zone, mergeProgress),
+                mergeProgress, mock(SeparationHoldNotice.class), currentUser, clock);
         heldSeparation();
         SeparationHold hold = SeparationHold.restore(HOLD, COMMAND, EMPLOYEE, HoldStatus.HELD, 0, null, null, null, null);
         when(commands.findHold(HOLD)).thenReturn(java.util.Optional.of(hold));
@@ -124,8 +126,9 @@ class SeparationLockOrderTest {
         assertThatThrownBy(() -> service.release(new ReleaseSeparationHold(HOLD, "synthetic: confirmed"))).as("refused later: the releaser is not retained")
                 .isInstanceOf(DomainException.class);
 
-        InOrder order = inOrder(commands);
+        InOrder order = inOrder(commands, mergeProgress);
         order.verify(commands).lockSeparationDecisions();
+        order.verify(mergeProgress).lockHolding(EMPLOYEE);
         order.verify(commands).lockEmployee(EMPLOYEE);
         verify(commands, never()).updateHold(any(), any(), anyLong());
         verify(commands, never()).update(any(), any(), anyLong());
@@ -137,7 +140,7 @@ class SeparationLockOrderTest {
         ApplyDueCommand due = new ApplyDueCommand(commands, new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(LegalEntityResolutionSources.class), mock(CountersignRequests.class),
                 mock(AttributionCountersignRepository.class), mock(DomainEvents.class), ids, clock, zone);
         PersonnelCommand pending = PersonnelCommand.restore(COMMAND, EMPLOYEE, PersonnelCommandKind.REGULARIZE, LocalDate.of(2026, 11, 2), CommandStatus.PENDING,
-                null, null, null, null, null, null, null, null, USER, NOW, null, 0, 0);
+                null, null, null, null, null, null, null, null, null, null, USER, NOW, null, 0, 0);
         when(commands.find(COMMAND)).thenReturn(java.util.Optional.of(pending));
 
         due.execute(COMMAND);
@@ -153,7 +156,7 @@ class SeparationLockOrderTest {
     void theNoticeLeavesOutOnlyTheHeld() {
         SeparationReview review = mock(SeparationReview.class);
         SeparationHoldNotice notice = mock(SeparationHoldNotice.class);
-        SeparationHoldService service = new SeparationHoldService(commands, review, mock(HeldSeparationRelease.class), notice, currentUser, clock);
+        SeparationHoldService service = new SeparationHoldService(commands, review, mock(HeldSeparationRelease.class), mergeProgress, notice, currentUser, clock);
         EmployeeId held = new EmployeeId(UUID.fromString("019a0000-0000-7000-8000-000000000002"));
         EmployeeId waiting = new EmployeeId(UUID.fromString("019a0000-0000-7000-8000-000000000003"));
         EmployeeId stays = new EmployeeId(UUID.fromString("019a0000-0000-7000-8000-000000000004"));

@@ -31,6 +31,9 @@ final class PersonnelCommandEvents {
     }
 
     static Optional<PendingEvent> of(PersonnelCommand c, @Nullable VersionRow assignmentBefore, @Nullable VersionRow assignmentAfter, @Nullable LegalEntityId legalEntity) {
+        if (c.isOnConcurrentPost()) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(switch (c.kind()) {
             case HIRE -> (PendingEvent) (envelopes, sequence) -> new EmployeeHired(envelopes.wrap(draft("EmployeeHired", c, legalEntity, sequence)), c.id(),
                     c.employeeId(), c.effectiveDate());
@@ -42,13 +45,13 @@ final class PersonnelCommandEvents {
                     c.employeeId(), c.effectiveDate());
             case CORRECTION -> corrected(c, assignmentBefore, assignmentAfter, legalEntity);
             case TRANSFER -> transferred(c, assignmentBefore, legalEntity);
-            case UNPAID_LEAVE_START, UNPAID_LEAVE_END, CHANGE_LEGAL_ENTITY -> null;
+            case UNPAID_LEAVE_START, UNPAID_LEAVE_END, CHANGE_LEGAL_ENTITY, START_CONCURRENT, END_CONCURRENT -> null;
         });
     }
 
     /** The cost legal entity changed when the command took effect (ADR-0073 item 3.7), whatever the kind; the envelope names the new entity. */
     static PendingEvent legalEntityChanged(PersonnelCommand c, LegalEntityId previous, LegalEntityId next) {
-        return (envelopes, sequence) -> new EmployeeLegalEntityChanged(envelopes.wrap(draft("EmployeeLegalEntityChanged", c, next, sequence)), c.id(), c.employeeId(),
+        return (envelopes, sequence) -> new EmployeeLegalEntityChanged(envelopes.wrap(draft("EmployeeLegalEntityChanged", c, next, sequence)), c.id(), null, c.employeeId(),
                 c.effectiveDate(), previous, next);
     }
 

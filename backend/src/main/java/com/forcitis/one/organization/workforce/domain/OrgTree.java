@@ -54,6 +54,26 @@ public final class OrgTree {
         return false;
     }
 
+    /** The unit and every unit below it on the day, as the tree stood that day (units not in force on the day are not part of it). */
+    public Set<UUID> subtreeOn(UUID root, LocalDate day) {
+        Map<UUID, List<UUID>> children = new HashMap<>();
+        for (Map.Entry<UUID, List<VersionRow>> unit : units.entrySet()) {
+            UUID parent = parentOn(unit.getValue(), day);
+            if (parent != null && activeOn(unit.getKey(), day)) {
+                children.computeIfAbsent(parent, p -> new ArrayList<>()).add(unit.getKey());
+            }
+        }
+        Set<UUID> subtree = new HashSet<>();
+        List<UUID> open = new ArrayList<>(List.of(root));
+        while (!open.isEmpty()) {
+            UUID next = open.remove(open.size() - 1);
+            if (subtree.add(next)) {
+                open.addAll(children.getOrDefault(next, List.of()));
+            }
+        }
+        return subtree;
+    }
+
     /**
      * Refuses a plan for the unit that makes it its own ancestor on some day. The tree is read on the day of the change and on every later day a row of any
      * unit starts, with the unit's own rows replaced by what the plan leaves.

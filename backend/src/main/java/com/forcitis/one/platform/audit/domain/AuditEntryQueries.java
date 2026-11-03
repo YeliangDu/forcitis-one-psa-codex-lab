@@ -1,10 +1,13 @@
 package com.forcitis.one.platform.audit.domain;
 
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.audit.api.AuditEntryId;
 import java.util.List;
 
 /** Reading side of the audit trail. Every list is ordered by created_at desc, id desc. */
 public interface AuditEntryQueries {
+
+    boolean exists(AuditEntryId id);
 
     AuditPage findPage(AuditFilter filter, AuditPageMark after, int limit);
 

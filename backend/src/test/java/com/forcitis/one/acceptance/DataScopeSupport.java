@@ -409,6 +409,18 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
         return mvc.perform(post(AUTHORIZATION_REQUESTS + "/" + requestId + ":confirm").with(csrf()).with(as(administrator))).andReturn().getResponse();
     }
 
+    /**
+     * Audit entries are partitioned by UTC month and the baseline pre-creates them from 2026-10; a clock earlier than that cannot write its sign-in
+     * entry. Creates the month's partition through the schema's own function (a no-op when it exists); the database is the class's own, so nothing is dropped.
+     */
+    protected void ensureAuditPartition(java.time.LocalDate month) throws Exception {
+        try (Connection audit = schemaConnection("platform_audit"); PreparedStatement statement = audit.prepareStatement("select create_audit_entry_partitions(?, ?)")) {
+            statement.setObject(1, month);
+            statement.setObject(2, month);
+            statement.executeQuery().close();
+        }
+    }
+
     /** Moves the application clock; sessions taken before do not survive the jump, so they are dropped. */
     protected void advanceTo(Instant instant) {
         clock.set(instant);
@@ -479,7 +491,7 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
     }
 
     protected static String auditText(Map<String, Object> entry) {
-        return entry.get("detail") + " " + entry.get("changeReason") + " " + entry.get("beforeText") + " " + entry.get("afterText") + " " + entry.get("subjectKey");
+        return entry.get("detail") + " " + entry.get("changeReason") + " " + entry.get("beforeText") + " " + entry.get("afterText") + " " + entry.get("subjectId");
     }
 
     /**
@@ -545,7 +557,7 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
                     .andReturn().getResponse();
             require(entries, 200, "the audit query");
             items(entries).stream().filter(entry -> String.valueOf(entry.get("action")).endsWith("denied")
-                    && String.valueOf(entry.get("subjectKey")).contains(subjectId)).forEach(found::add);
+                    && String.valueOf(entry.get("subjectId")).contains(subjectId)).forEach(found::add);
         }
         return found;
     }

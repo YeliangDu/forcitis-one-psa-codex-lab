@@ -18,6 +18,7 @@ import com.forcitis.one.organization.workforce.api.RegionKind;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.ChangeSource;
 import com.forcitis.one.organization.workforce.domain.OrgCommandStatus;
+import com.forcitis.one.organization.workforce.domain.OrgCountersignBasis;
 import com.forcitis.one.organization.workforce.domain.OrgEffects;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommand;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository;
@@ -81,6 +82,14 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     @Override
     public void lockOrgTree() {
         jdbc.sql("select pg_advisory_xact_lock(hashtextextended('organization.workforce.org-tree', 0))").query().singleRow();
+    }
+
+    @Override
+    public boolean hasAttributionAfter(OrgUnitId orgUnit, LocalDate day) {
+        return jdbc.sql("""
+                select 1 from organization_workforce.org_unit_legal_entities
+                 where org_unit_id = :unit and superseded_at is null and (effective_from_date >= :day or effective_to_date > :day)
+                """).param("unit", orgUnit.value()).param("day", day).query(Integer.class).optional().isPresent();
     }
 
     @Override
@@ -214,13 +223,13 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     @Override
     public boolean hasOpenMerge(OrgUnitId orgUnit) {
         return jdbc.sql("select 1 from organization_workforce.org_structure_commands where target_org_unit_id = :id and command_kind = 'MERGE'"
-                + " and status in ('PENDING', 'IN_PROGRESS') limit 1").param("id", orgUnit.value()).query(Integer.class).optional().isPresent();
+                + " and status in ('PENDING', 'IN_PROGRESS', 'AWAITING_ATTRIBUTION_COUNTERSIGN') limit 1").param("id", orgUnit.value()).query(Integer.class).optional().isPresent();
     }
 
     @Override
     public boolean hasOpenMergeInto(OrgUnitId orgUnit, LocalDate onOrBefore) {
         return jdbc.sql("select 1 from organization_workforce.org_structure_commands where merge_into_org_unit_id = :id and command_kind = 'MERGE'"
-                + " and status in ('PENDING', 'IN_PROGRESS') and effective_date <= :day limit 1")
+                + " and status in ('PENDING', 'IN_PROGRESS', 'AWAITING_ATTRIBUTION_COUNTERSIGN') and effective_date <= :day limit 1")
                 .param("id", orgUnit.value()).param("day", onOrBefore).query(Integer.class).optional().isPresent();
     }
 
@@ -256,11 +265,79 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     }
 
     @Override
-    public void updateInitialAttributionVoided(OrgUnitId orgUnit, OrgStructureCommandId command, Instant at) {
+    public void attributeUnit(OrgUnitId orgUnit, LegalEntityId legalEntity, LocalDate from, OrgStructureCommandId command, AuditEntryId audit, Instant at) {
+        jdbc.sql("""
+                insert into organization_workforce.legal_entity_attributions (attribution_id, org_unit_id, created_at, updated_at)
+                select :id, :unit, :at, :at where not exists (select 1 from organization_workforce.legal_entity_attributions where org_unit_id = :unit)
+                """).param("id", ids.next()).param("unit", orgUnit.value()).param("at", at(at)).update();
+        jdbc.sql("""
+                update organization_workforce.org_unit_legal_entities set effective_to_date = :from, closed_at = :at, updated_at = :at
+                 where org_unit_id = :unit and effective_to_date is null and superseded_at is null and effective_from_date < :from
+                """).param("from", from).param("at", at(at)).param("unit", orgUnit.value()).update();
+        insertPeriod(ids.next(), orgUnit, legalEntity, from, null, command, audit, null, at);
+    }
+
+    @Override
+    public void voidAttribution(OrgUnitId orgUnit, OrgStructureCommandId command, AuditEntryId audit, Instant at) {
+        record Closed(UUID id, UUID legalEntity, LocalDate from, @Nullable LocalDate commandEnd) {
+        }
+        List<Closed> closedByCommand = jdbc.sql("""
+                select p.org_unit_legal_entity_id, p.legal_entity_id, p.effective_from_date, w.effective_to_date
+                  from organization_workforce.org_unit_legal_entities p
+                  join organization_workforce.org_unit_legal_entities w on w.org_unit_id = p.org_unit_id and w.effective_from_date = p.effective_to_date
+                 where p.org_unit_id = :unit and p.superseded_at is null and w.superseded_at is null and w.change_org_structure_command_id = :command
+                   and p.change_org_structure_command_id is distinct from :command
+                """).param("unit", orgUnit.value()).param("command", command.value())
+                .query((rs, n) -> new Closed(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getObject(3, LocalDate.class), rs.getObject(4, LocalDate.class))).list();
         jdbc.sql("""
                 update organization_workforce.org_unit_legal_entities set superseded_at = :at, superseding_org_structure_command_id = :command, updated_at = :at
-                 where org_unit_id = :unit and change_org_structure_command_id = :command and superseded_at is null
-                """).param("at", at(at)).param("command", command.value()).param("unit", orgUnit.value()).update();
+                 where org_unit_id = :unit and superseded_at is null and (change_org_structure_command_id = :command or org_unit_legal_entity_id in (:closed))
+                """).param("at", at(at)).param("command", command.value()).param("unit", orgUnit.value())
+                .param("closed", closedByCommand.isEmpty() ? List.of(command.value()) : closedByCommand.stream().map(Closed::id).toList()).update();
+        for (Closed period : closedByCommand) {
+            insertPeriod(ids.next(), orgUnit, new LegalEntityId(period.legalEntity()), period.from(), period.commandEnd(), command, audit, period.id(), at);
+        }
+    }
+
+    private void insertPeriod(UUID id, OrgUnitId orgUnit, LegalEntityId legalEntity, LocalDate from, @Nullable LocalDate to, OrgStructureCommandId command, AuditEntryId audit,
+                              @Nullable UUID correctedFrom, Instant at) {
+        jdbc.sql("""
+                insert into organization_workforce.org_unit_legal_entities (org_unit_legal_entity_id, org_unit_id, legal_entity_id, effective_from_date, effective_to_date,
+                       closed_at, change_channel_kind, change_org_structure_command_id, version_audit_entry_id, corrected_from_version_id, created_at, updated_at)
+                values (:id, :unit, :legalEntity, :from, :to, :closedAt, 'COMMAND', :command, :audit, :correctedFrom, :at, :at)
+                """)
+                .param("id", id).param("unit", orgUnit.value()).param("legalEntity", legalEntity.value()).param("from", from).param("to", to, Types.DATE)
+                .param("closedAt", to == null ? null : at(at), Types.TIMESTAMP_WITH_TIMEZONE).param("command", command.value()).param("audit", audit.value())
+                .param("correctedFrom", correctedFrom, Types.OTHER).param("at", at(at)).update();
+    }
+
+    @Override
+    public void insertBasis(OrgStructureCommandId command, List<OrgCountersignBasis> basis, Instant at) {
+        for (OrgCountersignBasis row : basis) {
+            jdbc.sql("""
+                    insert into organization_workforce.attribution_countersign_bases (attribution_countersign_basis_id, org_structure_command_id, employee_id,
+                           previous_legal_entity_id, new_legal_entity_id, created_at, updated_at)
+                    values (:id, :command, :employee, :previous, :next, :at, :at)
+                    """)
+                    .param("id", ids.next()).param("command", command.value()).param("employee", row.employeeId().value()).param("previous", row.previous().value())
+                    .param("next", row.next().value()).param("at", at(at)).update();
+        }
+    }
+
+    @Override
+    public List<OrgCountersignBasis> basisOf(OrgStructureCommandId command) {
+        return jdbc.sql("""
+                select employee_id, previous_legal_entity_id, new_legal_entity_id from organization_workforce.attribution_countersign_bases
+                 where org_structure_command_id = :command order by created_at, employee_id
+                """).param("command", command.value())
+                .query((rs, n) -> new OrgCountersignBasis(new EmployeeId(rs.getObject("employee_id", UUID.class)),
+                        new LegalEntityId(rs.getObject("previous_legal_entity_id", UUID.class)), new LegalEntityId(rs.getObject("new_legal_entity_id", UUID.class)))).list();
+    }
+
+    @Override
+    public List<OrgStructureCommand> awaitingCountersign() {
+        return jdbc.sql(COMMAND_COLUMNS + " where status = 'AWAITING_ATTRIBUTION_COUNTERSIGN' order by effective_date, org_structure_command_id")
+                .query((rs, n) -> command(rs)).list();
     }
 
     @Override
@@ -396,12 +473,13 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
         }
     }
 
+    /** The people the merge moves: primary posts only until the merge moves concurrent posts too (#1040); a transfer without a post would move the primary of a person who holds only a concurrent post here. */
     @Override
     public List<EmployeeId> employedIn(OrgUnitId orgUnit, LocalDate day) {
         return jdbc.sql("""
                 select a.employee_id
                   from organization_workforce.assignment_versions a join organization_workforce.employee_versions e on e.employee_id = a.employee_id
-                 where a.org_unit_id = :unit and a.superseded_at is null and e.superseded_at is null and e.employment_status = 'EMPLOYED'
+                 where a.org_unit_id = :unit and a.assignment_kind = 'PRIMARY' and a.superseded_at is null and e.superseded_at is null and e.employment_status = 'EMPLOYED'
                    and a.effective_from_date <= :day and (a.effective_to_date is null or a.effective_to_date > :day)
                    and e.effective_from_date <= :day and (e.effective_to_date is null or e.effective_to_date > :day)
                  group by a.employee_id order by min(a.effective_from_date), a.employee_id
@@ -424,6 +502,24 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
                     return new BlockingArrival(new EmployeeId(rs.getObject("employee_id", UUID.class)), rs.getObject("effective_from_date", LocalDate.class),
                             command == null ? null : new PersonnelCommandId(command));
                 }).list();
+    }
+
+    @Override
+    public List<OrgStructureCommandId> mergesInProgressOf(EmployeeId employee) {
+        return jdbc.sql("""
+                select c.org_structure_command_id from organization_workforce.org_structure_commands c
+                 where c.command_kind = 'MERGE' and c.status = 'IN_PROGRESS'
+                   and exists (select 1 from organization_workforce.assignment_versions a
+                                where a.employee_id = :employee and a.org_unit_id = c.target_org_unit_id and a.assignment_kind = 'PRIMARY' and a.superseded_at is null
+                                  and a.effective_from_date <= c.effective_date and (a.effective_to_date is null or a.effective_to_date > c.effective_date))
+                 order by c.effective_date, c.target_org_unit_id, c.org_structure_command_id
+                """).param("employee", employee.value()).query((rs, n) -> new OrgStructureCommandId(rs.getObject(1, UUID.class))).list();
+    }
+
+    @Override
+    public boolean hasGeneratedTransfer(OrgStructureCommandId merge, EmployeeId employee) {
+        return jdbc.sql("select 1 from organization_workforce.personnel_commands where org_structure_command_id = :merge and employee_id = :employee limit 1")
+                .param("merge", merge.value()).param("employee", employee.value()).query(Integer.class).optional().isPresent();
     }
 
     @Override

@@ -11,7 +11,8 @@ public enum DeliveryPurpose {
     SEPARATION_HOLD_NOTICE(DeliverySubjectKind.SEPARATION_HOLD, false),
     UNPAID_LEAVE_START_NOTICE(DeliverySubjectKind.PERSONNEL_COMMAND, false),
     ROLE_REVOCATION_NOTICE(DeliverySubjectKind.ACCOUNT_ROLE_GRANT, false),
-    ACCOUNT_DISABLE_NOTICE(DeliverySubjectKind.USER_ACCOUNT, true);
+    ACCOUNT_DISABLE_NOTICE(DeliverySubjectKind.USER_ACCOUNT, true),
+    PERMISSION_ADJUSTMENT_ASSIGNED(DeliverySubjectKind.PERMISSION_ADJUSTMENT, false);
 
     private final DeliverySubjectKind subjectKind;
     private final boolean perEvent;
