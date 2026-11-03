@@ -109,7 +109,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-359/368/369 org data is read-only in the new system: the only writes are the release of a held run, the read-only comparison trigger and, since #933, the three personnel command endpoints and, since #959, the profile change")
+    @DisplayName("RULE-359/368/369 org data is read-only in the new system: the only writes are the release of a held run, the read-only comparison trigger and, since #933, the three personnel command endpoints and, since #959, the profile change and, since #980, its confirmation and rejection")
     void orgDataHasNoEditEndpoints() {
         List<String> writes = new ArrayList<>();
         List<String> reads = new ArrayList<>();
@@ -120,8 +120,10 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
 
         assertThat(writes).containsExactlyInAnyOrder("POST /api/v1/organization/sync-runs/{syncRunId}:release", "POST /api/v1/organization/sync-runs:reconcile",
                 "POST /api/v1/organization/personnel-commands", "POST /api/v1/organization/personnel-commands/{personnelCommandId}:withdraw",
-                "POST /api/v1/organization/separation-holds/{separationHoldId}:release", "POST /api/v1/organization/employees/{employeeId}:change-profile");
-        assertThat(reads).hasSize(4);
+                "POST /api/v1/organization/separation-holds/{separationHoldId}:release", "POST /api/v1/organization/employees/{employeeId}:change-profile",
+                // #980: the second person of a WeCom user id rebind confirms or rejects the waiting profile change; the list of the waiting ones is the fifth read.
+                "POST /api/v1/organization/employee-profile-change-requests/{requestId}:confirm", "POST /api/v1/organization/employee-profile-change-requests/{requestId}:reject");
+        assertThat(reads).hasSize(5);
     }
 
     @Test
