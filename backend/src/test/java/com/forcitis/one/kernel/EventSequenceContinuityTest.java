@@ -133,7 +133,7 @@ class EventSequenceContinuityTest {
                         new com.forcitis.one.organization.workforce.api.EnterPersonnelCommand(new EmployeeId(TestIds.uuid(2)),
                                 com.forcitis.one.organization.workforce.api.PersonnelCommandKind.REGULARIZE, TODAY, null, null, null, null, null, null, null, null, null, null),
                         new UserId(TestIds.uuid(3)), NOW, TODAY, 7),
-                List.of(c -> c.recordEffect(null, null), c -> c.withdraw(new UserId(TestIds.uuid(3)), "synthetic", NOW), c -> c.withdraw(new UserId(TestIds.uuid(3)), " ", NOW)));
+                List.of(c -> c.recordEffect(null, null, null), c -> c.withdraw(new UserId(TestIds.uuid(3)), "synthetic", NOW), c -> c.withdraw(new UserId(TestIds.uuid(3)), " ", NOW)));
     }
 
     @Test

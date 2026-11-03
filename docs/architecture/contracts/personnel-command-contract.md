@@ -20,7 +20,7 @@
 | ADR-0068 1.9 负载 `personnelCommandId`、`employeeId`、`effectiveDate` | 七个事件照此三项 | `M/events/EmployeeHired.java:10` 等 |
 | ADR-0068 1.9 调岗另带触发字段与前后部门；lead 2026-10-28 加前后岗位（原 Q4） | `triggerFieldKinds`（`TriggerFieldKind`：部门、岗位）、`previousOrgUnitId`、`newOrgUnitId`、`previousPositionId`、`newPositionId`（可空：任职版本的 `position_id` 可空，WF:363）；列表不可变 | `M/events/EmployeeTransferred.java:20-26`；`M/api/TriggerFieldKind.java:5`；`T/PersonnelCommandContractTest.java:280` |
 | ADR-0068 1.9 事件名 `EmployeeHired`、`EmployeeRegularized`、`EmployeeTransferred`、`EmployeeSeparated`、`EmployeeReinstated`、`SeparationHeld`、`SeparationHoldReleased` | 七个记录都在 `events` 包；测试断言带人事命令 ID 的事件恰为这七个加更正 | `M/events/`；`T/PersonnelCommandContractTest.java:69、203` |
-| ADR-0068 1.9 `EmployeeCorrected` 只在改变截至今天的状态时发，负载为两个 ID 加受影响区间 | `affectedFrom`、`affectedTo`（可空）；发布条件归 #738 | `M/events/EmployeeCorrected.java:15-16` |
+| ADR-0068 1.9 `EmployeeCorrected` 只在改变截至今天的状态时发，负载为两个 ID 加受影响区间；另带与调岗相同的触发字段和截至今天更正前后的部门、岗位（ADR-0081 第 3 项，#1089） | `affectedFrom`、`affectedTo`（可空）、`triggerFieldKinds`、`previousOrgUnitId`、`newOrgUnitId`、`previousPositionId`、`newPositionId`（后四个可空）；发布条件归 #738 | `M/events/EmployeeCorrected.java:26-29` |
 | ADR-0068 1.9 停薪留职的事件随第 3 条定名 | 未定名，未建（Q1） | — |
 | ADR-0068 1.9 取代 `OrgSnapshotChanged`、`EmployeeRegistered` | 两者仍在，删除归 C、E（ADR-0069 第 9 条） | `M/events/OrgSnapshotChanged.java`、`EmployeeRegistered.java` |
 | ADR-0068 1.10 契约在 A，实现在 B；复职由 `EmployeeReinstated` 承载 | 本卡只有契约；`EmployeeReinstated` 已建 | `M/events/EmployeeReinstated.java` |

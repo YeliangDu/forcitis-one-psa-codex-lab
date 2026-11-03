@@ -555,7 +555,12 @@ organization.workforce::events organization.workforce.events.EmployeeCorrected c
 organization.workforce::events organization.workforce.events.EmployeeCorrected component affectedTo: java.time.LocalDate
 organization.workforce::events organization.workforce.events.EmployeeCorrected component employeeId: kernel.EmployeeId
 organization.workforce::events organization.workforce.events.EmployeeCorrected component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.EmployeeCorrected component newOrgUnitId: organization.workforce.api.OrgUnitId
+organization.workforce::events organization.workforce.events.EmployeeCorrected component newPositionId: organization.workforce.api.PositionId
 organization.workforce::events organization.workforce.events.EmployeeCorrected component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.EmployeeCorrected component previousOrgUnitId: organization.workforce.api.OrgUnitId
+organization.workforce::events organization.workforce.events.EmployeeCorrected component previousPositionId: organization.workforce.api.PositionId
+organization.workforce::events organization.workforce.events.EmployeeCorrected component triggerFieldKinds: java.util.List<organization.workforce.api.TriggerFieldKind>
 organization.workforce::events organization.workforce.events.EmployeeCorrected extends java.lang.Record
 organization.workforce::events organization.workforce.events.EmployeeCorrected implements kernel.event.DomainEvent
 organization.workforce::events organization.workforce.events.EmployeeCorrected public final boolean organization.workforce.events.EmployeeCorrected.equals(java.lang.Object)
@@ -564,10 +569,15 @@ organization.workforce::events organization.workforce.events.EmployeeCorrected p
 organization.workforce::events organization.workforce.events.EmployeeCorrected public final record organization.workforce.events.EmployeeCorrected
 organization.workforce::events organization.workforce.events.EmployeeCorrected public java.time.LocalDate organization.workforce.events.EmployeeCorrected.affectedFrom()
 organization.workforce::events organization.workforce.events.EmployeeCorrected public java.time.LocalDate organization.workforce.events.EmployeeCorrected.affectedTo()
+organization.workforce::events organization.workforce.events.EmployeeCorrected public java.util.List<organization.workforce.api.TriggerFieldKind> organization.workforce.events.EmployeeCorrected.triggerFieldKinds()
 organization.workforce::events organization.workforce.events.EmployeeCorrected public kernel.EmployeeId organization.workforce.events.EmployeeCorrected.employeeId()
 organization.workforce::events organization.workforce.events.EmployeeCorrected public kernel.event.EventEnvelope organization.workforce.events.EmployeeCorrected.envelope()
+organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.api.OrgUnitId organization.workforce.events.EmployeeCorrected.newOrgUnitId()
+organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.api.OrgUnitId organization.workforce.events.EmployeeCorrected.previousOrgUnitId()
 organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeCorrected.personnelCommandId()
-organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.events.EmployeeCorrected(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.api.PositionId organization.workforce.events.EmployeeCorrected.newPositionId()
+organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.api.PositionId organization.workforce.events.EmployeeCorrected.previousPositionId()
+organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.events.EmployeeCorrected(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,java.time.LocalDate,java.util.List<organization.workforce.api.TriggerFieldKind>,organization.workforce.api.OrgUnitId,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,organization.workforce.api.PositionId)
 organization.workforce::events organization.workforce.events.EmployeeHired component effectiveDate: java.time.LocalDate
 organization.workforce::events organization.workforce.events.EmployeeHired component employeeId: kernel.EmployeeId
 organization.workforce::events organization.workforce.events.EmployeeHired component envelope: kernel.event.EventEnvelope

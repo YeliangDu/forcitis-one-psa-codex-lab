@@ -151,10 +151,13 @@ class PersonnelCommandService implements PersonnelCommands {
             events.publish(command);
             commands.saveEventSequence(employee, command.eventSequenceAfterSave());
         } else if (command.status() == CommandStatus.EFFECTIVE && !(command.kind() == PersonnelCommandKind.CORRECTION && command.effectiveDate().isAfter(today))) {
-            VersionRow assignmentBefore = history.currentAssignmentRows().stream().filter(r -> r.covers(command.effectiveDate().minusDays(1))).findFirst().orElse(null);
+            boolean correction = command.kind() == PersonnelCommandKind.CORRECTION;
+            // A transfer names the assignment of the day before it; a correction the assignment today, before and after it (ADR-0081 decision 3).
+            VersionRow assignmentBefore = history.assignmentOn(correction ? today : command.effectiveDate().minusDays(1));
+            VersionRow assignmentAfter = correction ? commands.load(employee).assignmentOn(today) : null;
             // A separation's envelope names the entity of the last day the employee was employed: on the effective day itself the assignment has just ended.
             LocalDate entityDay = command.kind() == PersonnelCommandKind.SEPARATE ? command.effectiveDate().minusDays(1) : command.effectiveDate();
-            command.recordEffect(assignmentBefore, legalEntityOn(employee, entityDay));
+            command.recordEffect(assignmentBefore, assignmentAfter, legalEntityOn(employee, entityDay));
             if (command.hasPendingEvents()) {
                 events.publish(command);
                 commands.saveEventSequence(employee, command.eventSequenceAfterSave());

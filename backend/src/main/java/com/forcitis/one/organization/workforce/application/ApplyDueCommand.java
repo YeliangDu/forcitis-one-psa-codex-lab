@@ -108,7 +108,7 @@ public class ApplyDueCommand {
             // As at the entry: a separation's envelope names the entity of the last day employed, any other command the entity of its effective day.
             LocalDate entityDay = command.kind() == PersonnelCommandKind.SEPARATE ? command.effectiveDate().minusDays(1) : command.effectiveDate();
             LegalEntityId legalEntity = LegalEntityResolution.resolve(legalEntities, command.employeeId(), entityDay).orElse(null);
-            command.recordEffect(assignmentBefore(command), legalEntity);
+            command.recordEffect(assignmentBefore(command), null, legalEntity);
             if (command.hasPendingEvents()) {
                 events.publish(command);
                 commands.saveEventSequence(command.employeeId(), command.eventSequenceAfterSave());
