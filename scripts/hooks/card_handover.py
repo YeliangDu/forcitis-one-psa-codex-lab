@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""One card, one clear (rules.md ①, #1080): a session whose pull request closed its card writes its handoff and clears itself before it does anything else.
+"""One card, one clear (rules.md ②, #1080): a session whose pull request closed its card writes its handoff and clears itself before it does anything else.
 
 --stop       Stop hook. Blocks the end of the turn (exit 2, Chinese message on stderr) when a pull request owned by this session was merged after this context began and its
              first line is `Closes #<card>`. A `Refs` pull request does not count. "This session" is the workspace's session marker (the one start_sheet.identity reads); the owner
@@ -17,13 +17,15 @@ import os
 import re
 import subprocess
 import sys
+import time
 
 CLOSES = re.compile(r"Closes\s+#(\d+)\b")   # the first line of the pull request description (CLAUDE.md delivery 4)
 MERGED = re.compile(r"^(\S+) MERGED pr=#(\d+) ")
 LOG_TAIL = 1 << 20
+BUDGET = 20   # seconds of gh lookups per stop (the mount cuts the hook at 30 s); what was looked up is cached, the next stop continues
 CACHE = "one-session-handover.json"
 HANDOFF = "/usr/bin/python3 ~/.modernize/psa/tools/one-session/handoff/handoff.py"
-MESSAGE = ("【交卡】本会话的 PR #{pr} 已合入并关闭卡 #{card}，合入时间晚于本上下文的开始。一卡一清（rules.md ①）：先用 {handoff} 覆盖写交接（从 stdin 读，"
+MESSAGE = ("【交卡】本会话的 PR #{pr} 已合入并关闭卡 #{card}，合入时间晚于本上下文的开始。一卡一清（rules.md ②）：先用 {handoff} 覆盖写交接（从 stdin 读，"
            "含交接顺序里的下一张卡），再调用 clear_session 工具清空本会话（目标选 self）。不要在这个上下文里开始下一张卡；清空后新上下文晚于这次合入，本钩子即放行。")
 
 
@@ -78,16 +80,20 @@ def gh_view(root, n):
         return None
 
 
-def closing_pr(session, prs, owners, gapscan, view, cache):
-    """(pr, card) of the first of `prs` that `session` owns and that closed its card, else None. `cache` {pr: [owner, card or None]} is filled in."""
+def closing_pr(session, prs, owners, gapscan, view, cache, save, deadline):
+    """(pr, card) of the first of `prs` that `session` owns and that closed its card, else None. `cache` {pr: [owner, card or None]} is filled in and
+    `save`d after every lookup; past `deadline` (time.monotonic) the lookups stop with Unreadable and the next stop continues from the cache."""
     for n in prs:
         if str(n) not in cache:
+            if time.monotonic() > deadline:
+                raise Unreadable(f"PR 太多，{BUDGET} 秒内没查完，已查的存了缓存，下一回合继续")
             info = view(n)
             if not isinstance(info, dict) or "headRefName" not in info:
                 raise Unreadable(f"gh 读不出 PR #{n}")
             first = str(info.get("body") or "").strip().splitlines()[:1]
             m = CLOSES.match(first[0].strip()) if first else None
             cache[str(n)] = [gapscan.author_session(info["headRefName"], owners), int(m.group(1)) if m else None]
+            save(cache)
         owner, card = cache[str(n)]
         if owner == session and card:
             return n, card
@@ -112,7 +118,7 @@ def save_cache(path, cache):
         pass
 
 
-def check(payload, root, view=None):
+def check(payload, root, view=None, budget=BUDGET):
     """The reason to block, or None. Raises Unreadable."""
     sys.path.insert(0, os.path.join(root, "scripts", "merge"))
     try:
@@ -139,14 +145,11 @@ def check(payload, root, view=None):
         return None   # no network call
     cache_path = os.path.join(git_dir, CACHE)
     cache = load_cache(cache_path)
-    try:
-        hit = closing_pr(session, merged, owners, gapscan, view or (lambda n: gh_view(root, n)), cache)
-    finally:
-        save_cache(cache_path, cache)
+    hit = closing_pr(session, merged, owners, gapscan, view or (lambda n: gh_view(root, n)), cache, lambda c: save_cache(cache_path, c), time.monotonic() + budget)
     return MESSAGE.format(pr=hit[0], card=hit[1], handoff=HANDOFF) if hit else None
 
 
-def stop(stdin, env=None, view=None):
+def stop(stdin, env=None, view=None, budget=BUDGET):
     """(exit code, stdout, stderr)."""
     env = os.environ if env is None else env
     try:
@@ -156,7 +159,7 @@ def stop(stdin, env=None, view=None):
         root = env.get("CLAUDE_PROJECT_DIR") or payload.get("cwd")
         if not isinstance(root, str):
             raise Unreadable("没有项目目录")
-        reason = check(payload, root, view)
+        reason = check(payload, root, view, budget)
     except Exception as e:  # fail open: a broken check must not hold up a session
         why = str(e) if isinstance(e, Unreadable) else f"{type(e).__name__}: {e}"
         return 0, json.dumps({"systemMessage": f"【钩子告警】card_handover 读不了输入，本次放行：{why}"}, ensure_ascii=False), ""
@@ -205,15 +208,18 @@ def self_test():
                 f.write(json.dumps({"type": "summary"}) + "\n" + json.dumps({"type": "user", "timestamp": iso(start).replace("+00:00", ".123Z"), "message": {"content": "x"}}) + "\n")
             return path
 
-        def run(prs, start=now - datetime.timedelta(hours=1)):
-            """prs: {number: (branch, body)}. Returns (code, stdout, stderr, gh calls)."""
+        def run(prs, start=now - datetime.timedelta(hours=1), keep_cache=False, budget=BUDGET):
+            """prs: {number: (branch, body)}. Returns (code, stdout, stderr, gh calls). Every run starts without a cache unless `keep_cache`."""
             calls = []
+            cache = os.path.join(root, ".git", CACHE)
+            if not keep_cache and os.path.exists(cache):
+                os.remove(cache)
 
             def view(n):
                 calls.append(n)
                 return {"headRefName": prs[n][0], "body": prs[n][1]} if n in prs else None
             payload = {"transcript_path": transcript(start), "cwd": root}
-            return stop(io.StringIO(json.dumps(payload)), {"CLAUDE_PROJECT_DIR": root}, view) + (calls,)
+            return stop(io.StringIO(json.dumps(payload)), {"CLAUDE_PROJECT_DIR": root}, view, budget) + (calls,)
 
         after, before = now - datetime.timedelta(minutes=10), now - datetime.timedelta(hours=2)
         mine = {7: ("claude/one-platform-1080-x", "Closes #1080\n\nbody")}
@@ -222,7 +228,7 @@ def self_test():
         code, out, err, calls = run(mine)
         assert code == 2 and "#7" in err and "#1080" in err and "clear_session" in err and "handoff.py" in err and "self" in err and out == "", ("closes after start blocks", code, out, err)
         assert calls == [7]
-        assert run(mine)[3] == [], "the second look at the same merged pull request reads the cache"
+        assert run(mine, keep_cache=True)[3] == [], "the second look at the same merged pull request reads the cache"
         again = stop(io.StringIO(json.dumps({"transcript_path": "x", "cwd": root, "stop_hook_active": True})), {"CLAUDE_PROJECT_DIR": root})
         assert again == passes, "a second stop in the same turn passes"
         setup(log=[(before, 7)])   # the context began after the merge
@@ -234,6 +240,24 @@ def self_test():
         assert run({7: ("claude/someone-else-9", "Closes #9")})[:3] == passes, "unknown owner passes"
         setup(log=[(after, 7), (after, 8)])
         assert run({7: ("claude/one-platform-1-x", "Refs #1"), 8: mine[7]})[0] == 2, "a Refs merge does not hide a later Closes merge"
+        setup(log=[(after, 7), (after, 8), (after, 9)])   # past the budget: fail open, but what was looked up stays cached and the next stop continues
+        three = {n: ("claude/one-dev-org-1-x", "Refs #1") for n in (7, 8, 9)}
+        three[9] = mine[7]
+        code, out, err, calls = run(three, budget=-1)
+        assert code == 0 and "【钩子告警】" in out and calls == [], (code, out, calls)
+        cache_file = os.path.join(root, ".git", CACHE)
+        assert not os.path.exists(cache_file)
+        slow = []
+
+        def tick(n):   # the budget runs out after the first lookup
+            slow.append(n)
+            time.sleep(0.05)
+            return {"headRefName": three[n][0], "body": three[n][1]}
+        payload = json.dumps({"transcript_path": transcript(now - datetime.timedelta(hours=1)), "cwd": root})
+        code, out, err = stop(io.StringIO(payload), {"CLAUDE_PROJECT_DIR": root}, tick, 0.01)
+        assert code == 0 and "【钩子告警】" in out and slow == [7] and sorted(json.load(open(cache_file))) == ["7"], (code, out, slow)
+        code, out, err, calls = run(three, keep_cache=True)
+        assert calls == [8, 9] and code == 2, ("the next stop continues from the cache", calls)
         for label, kw, prs in (("no merge.log", dict(log=None), mine), ("bad policy", dict(log=[(after, 7)], policy=False), mine), ("gh down", dict(log=[(after, 7)]), {})):
             setup(**kw)
             code, out, err, _ = run(prs)

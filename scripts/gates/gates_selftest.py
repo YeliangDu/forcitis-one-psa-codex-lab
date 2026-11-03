@@ -362,7 +362,7 @@ def settings_self_test():
               'else echo "【钩子告警】核对不了已装钩子（$V 缺失或不可执行）"; fi; ')  # runs from the session's repository, not from current (O7 final M2)
     hooks = settings["hooks"]
     assert "node_ready" not in raw and "stop_check" not in raw and "clear_session" not in raw, "#752: no hook points at the retired tools (stop_check, the clear_session gate)"
-    assert sorted(hooks) == ["PreToolUse", "SessionStart", "Stop"], sorted(hooks)  # #900: Stop carries only the language rule, no retired tool
+    assert sorted(hooks) == ["PreToolUse", "SessionStart", "Stop"], sorted(hooks)  # #900/#1080: Stop carries the language rule and the card handover, no retired tool
     assert [g["matcher"] for g in hooks["PreToolUse"]] == ["|".join(COMMAND_TOOLS + (LAUNCH_TOOL,))], "PreToolUse: only the production-write gate on the tools that run commands (#752 retired the clear_session gate)"
     assert json.dumps([*COMMAND_TOOLS, LAUNCH_TOOL]) in hooks["PreToolUse"][0]["hooks"][0]["command"], "the mount's own pre-filter names the same tools"
     assert [g["matcher"] for g in hooks["SessionStart"]] == ["startup|clear|compact|resume", "startup|clear|compact", "compact|resume"]
