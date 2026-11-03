@@ -57,10 +57,11 @@ final class CountersignReadResponses {
     }
 
     record MergeLineResponse(UUID employeeId, String displayName, String employeeCode, UUID orgUnitId, @Nullable String orgUnitName, @Nullable UUID previousLegalEntityId,
-                             @Nullable String previousLegalEntityName, @Nullable UUID newLegalEntityId, @Nullable String newLegalEntityName, boolean needsAttributionCountersign) {
+                             @Nullable String previousLegalEntityName, @Nullable UUID newLegalEntityId, @Nullable String newLegalEntityName, boolean needsAttributionCountersign, boolean primaryInUnit,
+                             int concurrentAssignmentCount) {
         static MergeLineResponse of(CountersignReadViews.MergeLine l) {
             return new MergeLineResponse(l.employeeId(), l.displayName(), l.employeeCode(), l.orgUnitId(), l.orgUnitName(), l.previousLegalEntityId(), l.previousLegalEntityName(),
-                    l.newLegalEntityId(), l.newLegalEntityName(), l.needsAttributionCountersign());
+                    l.newLegalEntityId(), l.newLegalEntityName(), l.needsAttributionCountersign(), l.primaryInUnit(), l.concurrentAssignmentCount());
         }
     }
 

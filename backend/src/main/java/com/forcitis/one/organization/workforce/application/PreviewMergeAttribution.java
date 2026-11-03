@@ -6,6 +6,7 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.workforce.api.EnterOrgStructureCommand;
+import com.forcitis.one.organization.workforce.api.MergedPosts;
 import com.forcitis.one.organization.workforce.api.OrgMergePreview;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
@@ -65,9 +66,11 @@ public class PreviewMergeAttribution {
         List<Optional<LegalEntityId>> before = new ArrayList<>();
         List<Optional<LegalEntityId>> next = new ArrayList<>();
         Set<LegalEntityId> entityIds = new LinkedHashSet<>();
-        for (EmployeeId employee : preview.employees()) {
-            Optional<LegalEntityId> from = LegalEntityResolution.resolve(sources, employee, day);
-            Optional<LegalEntityId> to = LegalEntityResolution.resolve(after, employee, day);
+        for (MergedPosts held : preview.posts()) {
+            // A concurrent post never decides the cost legal entity (amendment D): a person without their primary post in the unit has no change to show.
+            EmployeeId employee = held.employee();
+            Optional<LegalEntityId> from = held.primaryInUnit() ? LegalEntityResolution.resolve(sources, employee, day) : Optional.empty();
+            Optional<LegalEntityId> to = held.primaryInUnit() ? LegalEntityResolution.resolve(after, employee, day) : Optional.empty();
             before.add(from);
             next.add(to);
             from.ifPresent(entityIds::add);
@@ -83,7 +86,7 @@ public class PreviewMergeAttribution {
             LegalEntityId to = next.get(i).orElse(null);
             lines.add(new MergeLine(employee.value(), person == null ? "" : person.displayName(), person == null ? "" : person.employeeCode(), unit.value(), unitName,
                     from == null ? null : from.value(), from == null ? null : entities.get(from), to == null ? null : to.value(), to == null ? null : entities.get(to),
-                    from != null && to != null && !from.equals(to)));
+                    from != null && to != null && !from.equals(to), preview.posts().get(i).primaryInUnit(), preview.posts().get(i).concurrentAssignmentCount()));
         }
         return lines;
     }
