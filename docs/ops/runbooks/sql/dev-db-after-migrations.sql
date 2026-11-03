@@ -23,6 +23,7 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_numbering.document_types FRO
 REVOKE DELETE, TRUNCATE ON organization_workforce.personnel_commands FROM one_dev_app;
 REVOKE DELETE, TRUNCATE ON organization_workforce.org_structure_commands FROM one_dev_app;
 REVOKE DELETE, TRUNCATE ON organization_workforce.attribution_countersigns FROM one_dev_app;
+REVOKE DELETE, TRUNCATE ON organization_workforce.employee_profile_change_requests FROM one_dev_app;
 -- 待放行离职与人事状态转换（IMP-1030-PAR-B1）：待放行离职同人事命令，状态转换只追加，运行角色只留 SELECT、INSERT。
 REVOKE DELETE, TRUNCATE ON organization_workforce.separation_holds FROM one_dev_app;
 REVOKE UPDATE, DELETE, TRUNCATE ON organization_workforce.state_transitions FROM one_dev_app;

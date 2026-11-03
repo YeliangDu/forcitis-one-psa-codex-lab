@@ -10,7 +10,9 @@ import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
+import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.platform.identity.domain.GrantChanges;
+import com.forcitis.one.platform.identity.domain.HandledOutcome;
 import com.forcitis.one.platform.identity.domain.GrantClosing;
 import com.forcitis.one.platform.identity.domain.GrantOpening;
 import com.forcitis.one.platform.identity.domain.HeldGrant;
@@ -27,6 +29,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.regex.Pattern;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -80,6 +83,21 @@ class JdbcAccountRepository implements AccountRepository {
         Set<RoleId> roles = openGrants(userId).stream().map(HeldGrant::roleId).collect(Collectors.toSet());
         return Optional.of(UserAccount.restore(account.userId(), account.employeeId(), account.status().name(), roles, account.version(),
                 account.eventSequence()));
+    }
+
+    @Override
+    public boolean isHandled(PersonnelCommandId command) {
+        return jdbc.sql("select exists (select 1 from platform_identity.handled_personnel_commands where personnel_command_id = :id)")
+                .param("id", command.value()).query(Boolean.class).single();
+    }
+
+    @Override
+    public void saveHandled(PersonnelCommandId command, UserId user, HandledOutcome outcome, @Nullable AccountRoleGrantId grant) {
+        jdbc.sql("""
+                insert into platform_identity.handled_personnel_commands (personnel_command_id, user_id, command_kind, outcome_kind, account_role_grant_id, handled_at)
+                values (:id, :user, 'REINSTATE', :outcome, :grant, :now)
+                """).param("id", command.value()).param("user", user.value()).param("outcome", outcome.name())
+                .param("grant", grant == null ? null : grant.value(), java.sql.Types.OTHER).param("now", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC)).update();
     }
 
     @Override
