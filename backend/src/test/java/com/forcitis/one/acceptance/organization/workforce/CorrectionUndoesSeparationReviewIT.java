@@ -35,6 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -45,9 +46,10 @@ import org.springframework.transaction.support.TransactionTemplate;
  * employment raises nothing and is not retried. The event is published as organization.workforce publishes it; the rows are read from
  * platform_identity.permission_adjustments by the columns of the F-1 card section 7.1.
  */
+@TestPropertySource(properties = "spring.flyway.locations=classpath:db/migration,classpath:db/testdata")
 class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
 
-    static final TestDatabase postgres = TestPostgres.database(CorrectionUndoesSeparationReviewIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+    static final TestDatabase postgres = TestPostgres.database(CorrectionUndoesSeparationReviewIT.class, TestPostgres.MIGRATED_TESTDATA).withUrlParam("currentSchema", "platform_approval");
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
