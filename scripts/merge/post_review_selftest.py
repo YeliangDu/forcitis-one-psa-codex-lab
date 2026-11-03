@@ -47,7 +47,8 @@ class Stub:
     def __init__(self, heads=(SHA,), view_rc=0, review_rc=0, post_out=None, edit_rc=0,
                  labels=(), labels_rc=0, labels_out=None, reviews=(), reviews_rc=0, reviews_out=None,
                  body=BODY, body_rc=0, body_out=None, issue_state="OPEN", issue_labels=(SESSION_LABEL,), issue_rc=0, issue_out=None,
-                 refs=None, refs_rc=0, refs_out=None, home_out=None, files=("docs/notes.md",), files_rc=0, files_out=None):
+                 refs=None, refs_rc=0, refs_out=None, home_out=None, files=("docs/notes.md",), files_rc=0, files_out=None, title=None):
+        self.title = title
         self.files, self.files_rc, self.files_out = files, files_rc, files_out   # PR 改动的文件（#856：守护类由 final_paths 判定）；缺省不命中
         self.body, self.body_rc, self.body_out = body, body_rc, body_out   # 关联 Issue 检查（#24）：PR 正文、GitHub 算的关闭集合与 Issue 的桩；缺省为已排期
         self.refs, self.refs_rc, self.refs_out, self.home_out = refs, refs_rc, refs_out, home_out
@@ -67,8 +68,8 @@ class Stub:
         if args[:2] == ["pr", "view"] and "closingIssuesReferences" in args:
             refs = [closing(ISSUE, slug)] if self.refs is None else self.refs
             return self.refs_rc, json.dumps({"closingIssuesReferences": refs}) if self.refs_out is None else self.refs_out
-        if args[:2] == ["pr", "view"] and "body" in args:
-            return self.body_rc, json.dumps({"body": self.body}) if self.body_out is None else self.body_out
+        if args[:2] == ["pr", "view"] and "body,title" in args:
+            return self.body_rc, json.dumps({"body": self.body, "title": self.title if self.title is not None else f"fix(x): 修复（#{(re.match(r'(?:Closes|Refs) #(\d+)', str(self.body)) or [0, ISSUE])[1]}）"}) if self.body_out is None else self.body_out
         if args[:2] == ["issue", "view"]:
             out = json.dumps({"state": self.issue_state, "labels": [{"name": n} for n in self.issue_labels]})
             return self.issue_rc, out if self.issue_out is None else self.issue_out
@@ -355,6 +356,19 @@ def case_issue_not_scheduled_fix_still_posts():
                 assert [c for c in s.calls if c[0][0] == "issue"] == [], kw   # 必改不去查 Issue
     s = Stub(issue_labels=(SESSION_LABEL, "挂起"))   # 对照：同一桩下首轮通过被拒
     assert "挂起" in refused(s)
+
+
+def case_pr_title_checked():
+    """标题格式（#1121）：合格放行；英文摘要、缺卡号、卡号与正文首行不一致、半角括号、卡号后多字、类型缺失都拒，信息里给出带卡号的样子；必改不查标题。"""
+    n = ISSUE
+    for good in (f"fix(gates): 修复门禁（#{n}）", f"ci: 用中文写摘要 with English（#{n}）", f"docs(adr): 声明 ADR-0081（#{n}）"):
+        assert run(Stub(title=good))[0] == 0, good
+    for bad in (f"fix(gates): fix the gate（#{n}）", "fix(gates): 修复门禁", f"fix(gates): 修复门禁（#{n + 1}）", f"fix(gates): 修复门禁(#{n})", f"fix(gates): 修复门禁（#{n}）。",
+                f"修复门禁（#{n}）", f"Fix(gates): 修复门禁（#{n}）", f"fix(gates):修复门禁（#{n}）", f"fix(gates): （#{n}）", ""):
+        msg = refused(Stub(title=bad))
+        assert f"类型(范围): 中文摘要（#{n}）" in msg, (bad, msg)
+    assert "类型(范围)" in refused(Stub(body_out='{"body": "Closes #%d"}' % n))   # 取不到标题：失败关闭
+    assert run(Stub(title="english only"), verdict=FIX)[0] == 0   # 必改照常提交
 
 
 def case_issue_unreadable_fails_closed():
