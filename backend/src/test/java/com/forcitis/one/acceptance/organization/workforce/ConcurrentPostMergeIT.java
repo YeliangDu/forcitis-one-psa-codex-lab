@@ -322,4 +322,62 @@ class ConcurrentPostMergeIT extends OrgCountersignSupport {
         assertThat(bothItem.get(PRIMARY_IN_UNIT)).isEqualTo(true);
         assertThat(((Number) bothItem.get(CONCURRENT_COUNT)).intValue()).isEqualTo(1);
     }
+
+    /** The employee is no longer employed on TODAY by the employee versions (the versions decide employment), whatever the assignment versions still say. */
+    private void notEmployedSinceYesterday(UUID person) throws SQLException {
+        OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
+        LocalDate yesterday = TODAY.minusDays(1);
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update employee_versions set effective_to_date = ?, closed_at = ?, updated_at = ? where employee_id = ? and effective_to_date is null and superseded_at is null",
+                    yesterday, at, at, stored(person));
+            update(workforce, """
+                    insert into employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+                      is_on_unpaid_leave, is_fee_earner, change_channel_kind, created_at, updated_at)
+                    values (?, ?, ?, 0, 'SEPARATED', false, false, 'MIGRATION', ?, ?)""", Uuids.timeOrdered(NOW), stored(person), TODAY, at, at);
+            update(workforce, "update employees set employment_status = 'SEPARATED', separated_at = ? where id = ?", at, stored(person));
+        }
+    }
+
+    @Test
+    @DisplayName("#1040 裁定 6605327850 验收 (4)：主任职与兼职都在被并入单元的员工与只有主任职的员工：共三条调岗，受影响人数与已转人数都按员工数为 2（不按任职数）")
+    void twoPostsOfOneEmployeeCountAsOneEmployee() throws Exception {
+        twoUnits();
+        UUID both = inheritingIn(merged);
+        UUID bothPost = concurrentIn(both, merged, newPosition());
+        UUID primaryOnly = inheritingIn(merged);
+        UUID merge = mergeToday();
+
+        orgCommands().executeMerge(merge);
+
+        assertThat(generated(merge)).as("one TRANSFER per assignment").hasSize(3);
+        assertThat(generatedFor(merge, primaryRootOf(both))).isNotNull();
+        assertThat(generatedFor(merge, bothPost)).isNotNull();
+        assertThat(generatedFor(merge, primaryRootOf(primaryOnly))).isNotNull();
+        Map<String, Object> row = orgCommand(merge);
+        assertThat(row.get("status")).isEqualTo(EFFECTIVE);
+        assertThat(row.get("affected_employee_count")).as("employees, not assignments").isEqualTo(2);
+        assertThat(row.get("transferred_employee_count")).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("#1040 裁定 6605327850 验收 (8)：合并日已不在职的员工留在被并入单元的兼职不被调走、不阻塞：没有为它生成调岗，受影响人数不含此人，合并 EFFECTIVE")
+    void aConcurrentPostOfSomeoneNotEmployedOnTheDateIsNotMovedAndDoesNotBlock() throws Exception {
+        twoUnits();
+        UUID employed = inheritingIn(merged);
+        UUID employedPost = concurrentIn(employed, merged, newPosition());
+        UUID gone = inheritingIn(seedUnit(topE1));
+        UUID gonePost = concurrentIn(gone, merged, newPosition());
+        notEmployedSinceYesterday(gone);
+        UUID merge = mergeToday();
+
+        orgCommands().executeMerge(merge);
+
+        assertThat(rows("select 1 from personnel_commands where org_structure_command_id = ? and target_assignment_id = ?", merge, gonePost)).as("nothing generated for the post").isEmpty();
+        assertThat(generatedFor(merge, employedPost)).isNotNull();
+        assertThat(fromStored(postOn(gonePost, TODAY).get("org_unit_id"))).as("the post is left where it was").isEqualTo(merged);
+        Map<String, Object> row = orgCommand(merge);
+        assertThat(row.get("affected_employee_count")).as("only the employed one").isEqualTo(1);
+        assertThat(row.get("status")).as("their post does not hold the merge back").isEqualTo(EFFECTIVE);
+        assertThat(eventsOf(EVENT_MERGED, merge)).isEqualTo(1);
+    }
 }
