@@ -4,7 +4,7 @@ terms:
   zh: 组织结构命令
   en: OrgStructureCommand
   snake: org_structure_command
-  kind: entity
+  kind: aggregate
   bc: organization.workforce
   scope: domain
   definition: 组织单元新建、撤销、调整属性、合并、调整上级、指定负责人、指定区域应收负责人、指定法人，以及岗位新建、停用的第一手记录，只追加；组织单元与岗位命令同表，按目标种类归属组织单元或岗位
@@ -15,7 +15,7 @@ terms:
   forbidden: []
   status: proposed
   confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: ADR-0068 待登记用语「组织命令」；表 org_structure_commands（#905）
+  note: ADR-0068 待登记用语「组织命令」；表 org_structure_commands（#905）；#907 起代码里以聚合根承载命令自己的事件（序号 1，聚合类型 OrgStructureCommand），故种类由 entity 改 aggregate，待 one-design 核定
 - id: set_attributes
   zh: 调整属性
   en: SetAttributes
@@ -239,3 +239,210 @@ terms:
   forbidden: []
   status: proposed
   note: 随 #905 建表登记，列名取自 one-design 签发的 DDL；编码时才发现的用语，请 one-design 复核
+
+# 随 #907 编码时才发现的用语（命令、规划与规则的方法与类型名）；中文名与种类请 one-design 复核。
+- id: child
+  zh: 下级单元
+  en: Child
+  snake: child
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 组织单元树里直属下一层的组织单元；合并或撤销要求被处理的单元在那天起没有在用的下级
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 随 #907 登记，编码时才发现的用语，请 one-design 复核
+- id: column
+  zh: 列
+  en: Column
+  snake: column
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 版本表的列名；组织结构命令按列名描述自己设置哪些内容
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 随 #907 登记，编码时才发现的用语，请 one-design 复核
+- id: dissolve
+  zh: 撤销
+  en: Dissolve
+  snake: dissolve
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 撤销空的组织单元：没有在职员工也没有在用的下级时，写入已撤销版本（DISSOLVE）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 随 #907 登记，编码时才发现的用语，请 one-design 复核
+- id: generated
+  zh: 生成
+  en: Generated
+  snake: generated
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 合并为每位在职员工生成的调岗命令，记录引用该合并（generatedBy）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 随 #907 登记，编码时才发现的用语，请 one-design 复核
+- id: part
+  zh: 内容项
+  en: Part
+  snake: part
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 组织结构命令里按种类要求或允许的内容项（名称、上级、负责人等）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 随 #907 登记，编码时才发现的用语，请 one-design 复核
+- id: preview
+  zh: 预演
+  en: Preview
+  snake: preview
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 合并执行前的演练：返回将被转走的员工清单，不写任何数据（ADR-0068 第 4 条）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 随 #907 登记，编码时才发现的用语，请 one-design 复核
+- id: reparent
+  zh: 调整上级
+  en: Reparent
+  snake: reparent
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 把组织单元挂到新的上级之下（REPARENT），新上级不得在其自身子树内
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 随 #907 登记，编码时才发现的用语，请 one-design 复核
+- id: take
+  zh: 生效
+  en: Take
+  snake: take
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 命令生效：takesEffectAtEntry 指录入当天即生效、不等到日作业的命令
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 随 #907 登记，编码时才发现的用语，请 one-design 复核
+- id: timeline
+  zh: 时间线
+  en: Timeline
+  snake: timeline
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 一个组织单元或岗位的全部版本行，用于规划变更与撤回
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 随 #907 登记，编码时才发现的用语，请 one-design 复核
+- id: error__organization_workforce_org_structure_command_invalid
+  zh: 组织结构命令内容不合法
+  en: OrganizationWorkforceOrgStructureCommandInvalid
+  snake: organization_workforce_org_structure_command_invalid
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 录入的组织结构命令缺内容、内容与种类不符、引用的单元或员工不存在或类型枚举不认识（422）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+- id: error__organization_workforce_org_structure_command_not_allowed
+  zh: 组织结构命令不被允许
+  en: OrganizationWorkforceOrgStructureCommandNotAllowed
+  snake: organization_workforce_org_structure_command_not_allowed
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 命令违反跨行规则：目标当天不在用、当天已有未生效命令、单元里仍有在职员工或在用下级、会成环、挂在将被合并或撤销的单元之下、岗位编码已被占用等（422），或状态不允许该操作（409）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+- id: error__organization_workforce_org_structure_command_not_found
+  zh: 组织结构命令不存在
+  en: OrganizationWorkforceOrgStructureCommandNotFound
+  snake: organization_workforce_org_structure_command_not_found
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 没有这条组织结构命令（404）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+- id: error__organization_workforce_org_structure_command_reason_invalid
+  zh: 组织结构命令撤回原因不合法
+  en: OrganizationWorkforceOrgStructureCommandReasonInvalid
+  snake: organization_workforce_org_structure_command_reason_invalid
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 撤回原因缺失、空白或超过 500 字（422）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+- id: error__organization_workforce_org_structure_merge_incomplete
+  zh: 组织单元合并未完成
+  en: OrganizationWorkforceOrgStructureMergeIncomplete
+  snake: organization_workforce_org_structure_merge_incomplete
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 合并还有人没转完或被并入单元里仍有在职员工，不能转为已生效（409）；再次执行会继续剩下的人
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed

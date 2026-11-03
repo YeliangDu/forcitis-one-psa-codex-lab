@@ -1,3 +1,4 @@
 # Files in application / infrastructure that may still write a status, one reviewed line each: <path under src/main/java>  # why.
 # StateWriteGuardTest fails for a violation outside this list and for a line here that is no longer needed. Changes need design review.
 com/forcitis/one/platform/approval/infrastructure/replay/ExportedSnapshot.java  # read-only mapping of the exported boolean 'employed' onto the OrgDirectory read contract for the replay tool; it writes no state, and the enum is the contract's own type
+com/forcitis/one/organization/workforce/infrastructure/persistence/JdbcOrgStructureCommandRepository.java  # a created org unit's and position's snapshot row starts ACTIVE, a constant of the create; the command's own status is written from the aggregate

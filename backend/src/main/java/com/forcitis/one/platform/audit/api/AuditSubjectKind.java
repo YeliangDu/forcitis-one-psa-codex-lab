@@ -13,6 +13,7 @@ public enum AuditSubjectKind {
     SYNC_RUN(true),
     LEGAL_ENTITY(true),
     LEGAL_ENTITY_ATTRIBUTION(true),
+    ORG_STRUCTURE_COMMAND(true),
     TIMESHEET(true),
     WORK_CALENDAR_YEAR(true),
     NUMBERING_RULE(true),

@@ -256,8 +256,8 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
         jdbc.sql("""
                 insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status,
                        target_org_unit_id, target_position_id, target_reports_to_employee_id, is_target_fee_earner, target_employment_phase_kind,
-                       is_target_on_unpaid_leave, applied_at, created_at, created_by, updated_at, version)
-                values (:id, :employee, :kind, :day, :status, :unit, :position, :reportsTo, :feeEarner, :phase, :onLeave, :appliedAt, :createdAt, :createdBy,
+                       is_target_on_unpaid_leave, org_structure_command_id, applied_at, created_at, created_by, updated_at, version)
+                values (:id, :employee, :kind, :day, :status, :unit, :position, :reportsTo, :feeEarner, :phase, :onLeave, :orgCommand, :appliedAt, :createdAt, :createdBy,
                         :createdAt, :version)
                 """)
                 .param("id", c.id().value()).param("employee", c.employeeId().value()).param("kind", c.kind().name()).param("day", c.effectiveDate())
@@ -266,7 +266,8 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
                 .param("reportsTo", c.targetReportsToEmployeeId() == null ? null : c.targetReportsToEmployeeId().value(), Types.OTHER)
                 .param("feeEarner", c.isTargetFeeEarner(), Types.BOOLEAN)
                 .param("phase", c.targetEmploymentPhaseKind() == null ? null : c.targetEmploymentPhaseKind().name(), Types.VARCHAR)
-                .param("onLeave", onLeave, Types.BOOLEAN).param("appliedAt", at(c.appliedAt()), Types.TIMESTAMP_WITH_TIMEZONE)
+                .param("onLeave", onLeave, Types.BOOLEAN)
+                .param("orgCommand", c.orgStructureCommandId() == null ? null : c.orgStructureCommandId().value(), Types.OTHER).param("appliedAt", at(c.appliedAt()), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("createdAt", at(c.createdAt())).param("createdBy", c.createdBy().value()).param("version", c.version()).update();
     }
 

@@ -13,6 +13,7 @@ import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
+import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.PersonnelCommands;
@@ -91,9 +92,17 @@ class PersonnelCommandService implements PersonnelCommands {
     @Transactional
     @PreAuthorize("hasAuthority('" + PERMISSION + "')")
     public PersonnelCommandId enter(EnterPersonnelCommand request) {
+        return enter(request, currentUser.userId(), null);
+    }
+
+    /**
+     * The entry of a transfer that an org-structure merge generates for one person: the same rules and the same writes, in the caller's transaction, with
+     * the merge on the command and the system actor of the due-date step as recorder. No permission is checked here; the merge's own entry was.
+     */
+    @Transactional
+    public PersonnelCommandId enter(EnterPersonnelCommand request, UserId by, @Nullable OrgStructureCommandId merge) {
         Instant now = clock.instant();
         LocalDate today = zone.dateOf(now);
-        UserId by = currentUser.userId();
         EmployeeId employee;
         if (request.commandKind() == PersonnelCommandKind.HIRE) {
             employee = newEmployees.create(request, today, now);
@@ -107,6 +116,9 @@ class PersonnelCommandService implements PersonnelCommands {
             }
         }
         PersonnelCommand command = PersonnelCommand.enter(new PersonnelCommandId(ids.next()), employee, request, by, now, today, commands.eventSequence(employee));
+        if (merge != null) {
+            command.generatedBy(merge);
+        }
         requireTargetsExist(command);
         PersonnelHistory history = commands.load(employee);
         PersonnelCommandRules.check(command, history);
