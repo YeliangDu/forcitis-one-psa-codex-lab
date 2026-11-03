@@ -12,7 +12,7 @@ import static org.mockito.Mockito.when;
 import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.kernel.RoleHolders;
+import com.forcitis.one.kernel.RoleHolderAccounts;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.AttributionCountersignId;
@@ -44,7 +44,7 @@ class EscalateCountersignTest {
 
     private final AttributionCountersignRepository countersigns = mock(AttributionCountersignRepository.class);
     private final CountersignDueDates dueDates = mock(CountersignDueDates.class);
-    private final RoleHolders roles = mock(RoleHolders.class);
+    private final RoleHolderAccounts roles = mock(RoleHolderAccounts.class);
     private final AccountEmployees accountEmployees = mock(AccountEmployees.class);
     private final OrgDirectory directory = mock(OrgDirectory.class);
     private final WecomGateway wecom = mock(WecomGateway.class);

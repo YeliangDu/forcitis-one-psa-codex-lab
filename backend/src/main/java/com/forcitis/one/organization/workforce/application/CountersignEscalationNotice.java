@@ -1,7 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.AccountEmployees;
-import com.forcitis.one.kernel.RoleHolders;
+import com.forcitis.one.kernel.RoleHolderAccounts;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
@@ -32,12 +32,12 @@ class CountersignEscalationNotice {
     private static final String TARGET_URL = "https://one.forcitis.com/";
 
     private final AttributionCountersignRepository countersigns;
-    private final RoleHolders roles;
+    private final RoleHolderAccounts roles;
     private final AccountEmployees accountEmployees;
     private final OrgDirectory directory;
     private final WecomGateway wecom;
 
-    CountersignEscalationNotice(AttributionCountersignRepository countersigns, RoleHolders roles, AccountEmployees accountEmployees, OrgDirectory directory, WecomGateway wecom) {
+    CountersignEscalationNotice(AttributionCountersignRepository countersigns, RoleHolderAccounts roles, AccountEmployees accountEmployees, OrgDirectory directory, WecomGateway wecom) {
         this.countersigns = countersigns;
         this.roles = roles;
         this.accountEmployees = accountEmployees;
