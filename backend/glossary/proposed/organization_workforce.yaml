@@ -735,6 +735,51 @@ terms:
   forbidden: []
   status: proposed
   note: 迁入命令 migrate-initial-versions（#960）
+- id: error__organization_workforce_countersign_not_found
+  zh: 法人归属会签不存在
+  en: OrganizationWorkforceCountersignNotFound
+  snake: organization_workforce_countersign_not_found
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 没有这个法人归属会签请求（404）
+  standard_ref:
+  - ADR-0073 第 3 条第 6 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 法人归属会签用例（#895）
+- id: error__organization_workforce_countersign_forbidden
+  zh: 无权决定法人归属会签
+  en: OrganizationWorkforceCountersignForbidden
+  snake: organization_workforce_countersign_forbidden
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 决定人不是该法人当前的财务负责人（业务管理员须待升级到二级），或是起草人、请求人（403）
+  standard_ref:
+  - ADR-0073 第 3 条第 6 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 法人归属会签用例（#895）
+- id: error__organization_workforce_countersign_not_open
+  zh: 法人归属会签已不能决定
+  en: OrganizationWorkforceCountersignNotOpen
+  snake: organization_workforce_countersign_not_open
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 请求已决定、已失效，或命令已不在需要它的状态（409）
+  standard_ref:
+  - ADR-0073 第 3 条第 6 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 法人归属会签用例（#895）
 common_words:
 - listed
 - lookup

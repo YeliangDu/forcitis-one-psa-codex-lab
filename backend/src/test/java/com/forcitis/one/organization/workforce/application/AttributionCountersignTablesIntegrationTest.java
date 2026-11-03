@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
+import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -67,8 +68,8 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
 
     private String countersignSql(String command, String employee, String drafter, String kind, int sequence, String entity, String requester, String extraColumns, String extraValues) {
         return "insert into " + CS + " (attribution_countersign_id, personnel_command_id, employee_id, drafted_by, request_kind, request_sequence_number, legal_entity_id, requested_at,"
-                + " requested_by, due_on_date, created_at, updated_at" + extraColumns + ") values (gen_random_uuid(), " + command + ", " + employee + ", " + drafter + ", '" + kind + "', " + sequence
-                + ", " + entity + ", now(), " + requester + ", date '2026-12-04', now(), now()" + extraValues + ")";
+                + " requested_by, due_on_date, created_at, updated_at" + (kind.equals("WITHDRAWAL") ? ", request_reason" : "") + extraColumns + ") values (gen_random_uuid(), " + command + ", " + employee + ", " + drafter + ", '" + kind + "', " + sequence
+                + ", " + entity + ", now(), " + requester + ", date '2026-12-04', now(), now()" + (kind.equals("WITHDRAWAL") ? ", 'synthetic reason'" : "") + extraValues + ")";
     }
 
     private void countersign(String kind, int sequence, String entity, String extraColumns, String extraValues) {
@@ -158,10 +159,18 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
         assertThatThrownBy(() -> jdbc.sql("update " + PC + " set status = 'HELD', updated_at = now() where personnel_command_id = " + COMMAND).update()).hasMessageContaining("cannot move");
         assertThatThrownBy(() -> jdbc.sql("update " + PC + " set countersign_new_legal_entity_id = " + ENTITY_A + ", countersign_previous_legal_entity_id = " + ENTITY_B
                 + ", updated_at = now() where personnel_command_id = " + COMMAND).update()).hasMessageContaining("only the status");
+        assertThatThrownBy(() -> jdbc.sql("update " + PC + " set status = 'PENDING', updated_at = now() where personnel_command_id = " + COMMAND).update())
+                .as("no CHANGE countersign row yet: the exit rule of #895 holds").hasMessageContaining("every CHANGE countersign is approved");
+        countersignDecided("APPROVED", 1, ENTITY_A, DECIDER);
+        countersignDecided("APPROVED", 1, ENTITY_B, DECIDER);
         jdbc.sql("update " + PC + " set status = 'PENDING', updated_at = now() where personnel_command_id = " + COMMAND).update();
         assertThatThrownBy(() -> jdbc.sql("update " + PC + " set status = 'AWAITING_ATTRIBUTION_COUNTERSIGN', updated_at = now() where personnel_command_id = " + COMMAND).update())
                 .hasMessageContaining("cannot move");
         command(OTHER_COMMAND, OTHER_EMPLOYEE, "CHANGE_LEGAL_ENTITY", "AWAITING_ATTRIBUTION_COUNTERSIGN", ", target_legal_entity_id" + BASIS_COLUMNS, ", " + ENTITY_B + BASIS);
+        String[] approved = decided("APPROVED", DECIDER).split("§");
+        for (String entity : List.of(ENTITY_A, ENTITY_B)) {
+            jdbc.sql(countersignSql(OTHER_COMMAND, OTHER_EMPLOYEE, DRAFTER, "CHANGE", 1, entity, DRAFTER, approved[0], approved[1])).update();
+        }
         jdbc.sql("update " + PC + " set status = 'EFFECTIVE', applied_at = now(), updated_at = now() where personnel_command_id = " + OTHER_COMMAND).update();
         day = "date '2026-12-03'";
         awaiting("gen_random_uuid()", OTHER_EMPLOYEE);
@@ -336,5 +345,20 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
         version(ENTITY_A, "0", "2031-01-01", null, EMPLOYEE);
         jdbc.sql("update organization_workforce.legal_entity_versions set effective_to_date = date '2032-01-01' where legal_entity_id = " + ENTITY_A + " and effective_to_date is null").update();
         version(ENTITY_A, "0", "2032-01-01", null, "null");
+    }
+
+    @Test
+    @DisplayName("#895 one-design ruling (6595446112): a withdrawal request carries the requester's reason, a change request none; 1 to 500 characters and not blank; it never changes")
+    void theRequestReasonBelongsToWithdrawalsOnly() {
+        awaiting(COMMAND, EMPLOYEE);
+        String withReason = ", request_reason";
+        refused("ck_attribution_countersigns_request_reason", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "CHANGE", 1, ENTITY_A, DRAFTER, withReason, ", 'no'"));
+        refused("ck_attribution_countersigns_request_reason", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 1, ENTITY_A, DRAFTER, "", "")
+                .replace("'synthetic reason'", "null"));
+        refused("ck_attribution_countersigns_request_reason", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 1, ENTITY_A, DRAFTER, "", "").replace("'synthetic reason'", "' '"));
+        refused("ck_attribution_countersigns_request_reason", countersignSql(COMMAND, EMPLOYEE, DRAFTER, "WITHDRAWAL", 1, ENTITY_A, DRAFTER, "", "")
+                .replace("'synthetic reason'", "'" + "r".repeat(501) + "'"));
+        countersign("WITHDRAWAL", 1, ENTITY_A, "", "");
+        assertThatThrownBy(() -> jdbc.sql("update " + CS + " set request_reason = 'other' where personnel_command_id = " + COMMAND).update()).hasMessageContaining("only the decision columns");
     }
 }

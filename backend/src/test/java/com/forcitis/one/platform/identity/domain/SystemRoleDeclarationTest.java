@@ -34,14 +34,14 @@ class SystemRoleDeclarationTest {
     }
 
     @Test
-    @DisplayName("card 7.2 / 0034-G8-02 the declaration holds the seven system roles with the fixed ids 019a…101 to …107 at revision 1, super_admin the only administrative one")
-    void theSevenSystemRoles() {
+    @DisplayName("card 7.2 / 0034-G8-02 the declaration holds the eight system roles with the fixed ids 019a…101 to …108 at revision 1, super_admin the only administrative one")
+    void theEightSystemRoles() {
         assertThat(SystemRoleDeclaration.CURRENT.roles()).extracting(role -> role.roleId().value().toString()).containsExactly(
                 "019a0000-0000-7000-8000-000000000101", "019a0000-0000-7000-8000-000000000102", "019a0000-0000-7000-8000-000000000103",
                 "019a0000-0000-7000-8000-000000000104", "019a0000-0000-7000-8000-000000000105", "019a0000-0000-7000-8000-000000000106",
-                "019a0000-0000-7000-8000-000000000107");
-        // org_data_admin's codes changed in #934 (sync-run:read/execute -> org-reconciliation:execute), so its revision is 2; every other role is still at the first declaration
-        assertThat(SystemRoleDeclaration.CURRENT.roles()).allSatisfy(role -> assertThat(role.revisionNumber()).as(role.code().value()).isEqualTo("org_data_admin".equals(role.code().value()) ? 2 : 1));
+                "019a0000-0000-7000-8000-000000000107", "019a0000-0000-7000-8000-000000000108");
+        // org_data_admin's codes changed in #934 (sync-run:read/execute -> org-reconciliation:execute), so its revision is 2; business_admin's is 2 since #895 gave it legal-entity-attribution:approve; every other role is still at the first declaration
+        assertThat(SystemRoleDeclaration.CURRENT.roles()).allSatisfy(role -> assertThat(role.revisionNumber()).as(role.code().value()).isEqualTo(java.util.Set.of("org_data_admin", "business_admin").contains(role.code().value()) ? 2 : 1));
         assertThat(SystemRoleDeclaration.CURRENT.roles()).filteredOn(DeclaredRole::administrative).extracting(role -> role.code().value())
                 .containsExactly("super_admin");
         assertThat(SystemRoleDeclaration.CURRENT.roles()).allSatisfy(role -> assertThat(role.definition().permissionCodes()).allMatch(Permission::isLive));

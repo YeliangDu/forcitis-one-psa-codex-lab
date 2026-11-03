@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.TestEnvelopes;
@@ -16,6 +17,7 @@ import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.organization.workforce.events.EmployeeCorrected;
 import com.forcitis.one.organization.workforce.events.EmployeeHired;
+import com.forcitis.one.organization.workforce.events.EmployeeLegalEntityChanged;
 import com.forcitis.one.organization.workforce.events.EmployeeRegularized;
 import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
@@ -129,5 +131,44 @@ class PersonnelCommandEventsTest {
             assertThat(e.effectiveDate()).as("the original effective date").isEqualTo(DAY);
         });
         assertThat(events.get(1).envelope().aggregateVersion()).as("numbered after the separation event").isEqualTo(events.get(0).envelope().aggregateVersion() + 1);
+    }
+
+    @Test
+    @DisplayName("#895 (ADR-0073 item 3.7): a command that waited for the countersign publishes EmployeeLegalEntityChanged once, after its own event, with the new entity in the envelope")
+    void aCountersignedCommandPublishesTheLegalEntityChange() {
+        LegalEntityId previous = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f1"));
+        LegalEntityId next = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f2"));
+        PersonnelCommand change = command(PersonnelCommandKind.CHANGE_LEGAL_ENTITY, new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.CHANGE_LEGAL_ENTITY, DAY, null,
+                null, null, null, null, null, next, null, null, null, null));
+        change.requireCountersign(previous, next);
+        assertThat(change.status()).isEqualTo(CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN);
+        assertThat(change.hasPendingEvents()).as("nothing is published while it waits").isFalse();
+
+        change.completeCountersign(NOW, DAY);
+        change.recordEffect(null, next);
+
+        assertThat(change.status()).isEqualTo(CommandStatus.EFFECTIVE);
+        assertThat(change.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(EmployeeLegalEntityChanged.class, e -> {
+            assertThat(e.personnelCommandId()).isEqualTo(change.id());
+            assertThat(e.employeeId()).isEqualTo(EMPLOYEE);
+            assertThat(e.effectiveDate()).isEqualTo(DAY);
+            assertThat(e.previousLegalEntityId()).isEqualTo(previous);
+            assertThat(e.newLegalEntityId()).isEqualTo(next);
+            assertThat(e.envelope().legalEntityId()).isEqualTo(next);
+        });
+    }
+
+    @Test
+    @DisplayName("#895 ck_personnel_commands_correction_immediate: a correction dated after today becomes effective when its countersign completes, never pending")
+    void aFutureCorrectionIsEffectiveWhenCountersigned() {
+        LegalEntityId next = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f2"));
+        PersonnelCommand correction = command(PersonnelCommandKind.CORRECTION, new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.CORRECTION, DAY.plusDays(3), null,
+                null, null, null, null, null, next, null, null, null, null));
+        correction.requireCountersign(new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f1")), next);
+
+        correction.completeCountersign(NOW, DAY);
+
+        assertThat(correction.status()).isEqualTo(CommandStatus.EFFECTIVE);
+        assertThat(correction.appliedAt()).isEqualTo(NOW);
     }
 }

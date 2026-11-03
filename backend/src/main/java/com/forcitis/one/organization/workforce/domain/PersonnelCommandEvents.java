@@ -10,6 +10,7 @@ import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.organization.workforce.events.EmployeeCorrected;
 import com.forcitis.one.organization.workforce.events.EmployeeHired;
+import com.forcitis.one.organization.workforce.events.EmployeeLegalEntityChanged;
 import com.forcitis.one.organization.workforce.events.EmployeeRegularized;
 import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
@@ -42,8 +43,14 @@ final class PersonnelCommandEvents {
             case CORRECTION -> (envelopes, sequence) -> new EmployeeCorrected(envelopes.wrap(draft("EmployeeCorrected", c, legalEntity, sequence)), c.id(),
                     c.employeeId(), c.effectiveDate(), null);
             case TRANSFER -> transferred(c, assignmentBefore, legalEntity);
-            case UNPAID_LEAVE_START, UNPAID_LEAVE_END -> null;
+            case UNPAID_LEAVE_START, UNPAID_LEAVE_END, CHANGE_LEGAL_ENTITY -> null;
         });
+    }
+
+    /** The cost legal entity changed when the command took effect (ADR-0073 item 3.7), whatever the kind; the envelope names the new entity. */
+    static PendingEvent legalEntityChanged(PersonnelCommand c, LegalEntityId previous, LegalEntityId next) {
+        return (envelopes, sequence) -> new EmployeeLegalEntityChanged(envelopes.wrap(draft("EmployeeLegalEntityChanged", c, next, sequence)), c.id(), c.employeeId(),
+                c.effectiveDate(), previous, next);
     }
 
     static PendingEvent held(PersonnelCommand c, SeparationHoldId hold, @Nullable LegalEntityId legalEntity) {

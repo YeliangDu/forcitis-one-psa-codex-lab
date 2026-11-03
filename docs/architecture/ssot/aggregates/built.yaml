@@ -73,6 +73,7 @@ aggregates:
   events_in_module:
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
   - organization.workforce.EmployeeRegistered
   - organization.workforce.EmployeeRegularized
   - organization.workforce.EmployeeReinstated
@@ -111,6 +112,7 @@ aggregates:
   events_in_module:
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
   - organization.workforce.EmployeeRegistered
   - organization.workforce.EmployeeRegularized
   - organization.workforce.EmployeeReinstated
@@ -135,6 +137,10 @@ aggregates:
   commands:
   - AdministratorHoldCheck
   - ApplyDueCommand
+  - AttributionCountersignService
+  - CountersignBases
+  - CountersignRequests
+  - EffectPublisher
   - HeldSeparationRelease
   - PersonnelCommandService
   - PersonnelPlans
@@ -146,6 +152,7 @@ aggregates:
   events_in_module:
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
   - organization.workforce.EmployeeRegistered
   - organization.workforce.EmployeeRegularized
   - organization.workforce.EmployeeReinstated
@@ -174,6 +181,7 @@ aggregates:
   events_in_module:
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
   - organization.workforce.EmployeeRegistered
   - organization.workforce.EmployeeRegularized
   - organization.workforce.EmployeeReinstated

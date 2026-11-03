@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
@@ -48,6 +49,9 @@ public interface PersonnelCommandRepository {
     boolean positionExists(PositionId position);
 
     boolean employeeExists(EmployeeId employee);
+
+    /** Whether the legal entity exists and is active: the only target a command may name (ADR-0073 item 3.2). */
+    boolean legalEntityIsActive(LegalEntityId legalEntity);
 
     /** The root of a hired person. The version rows follow from the command. */
     void insertEmployee(NewEmployee employee, Instant at);
