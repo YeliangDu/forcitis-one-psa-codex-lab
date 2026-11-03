@@ -5,7 +5,7 @@
 ## 运行
 
 ```
-backend/mvnw -B -f backend/pom.xml verify -Dit.test='PermissionAdjustment*IT'
+backend/mvnw -B -f backend/pom.xml verify -Dit.test='PermissionAdjustment*IT,PermissionAdjustmentSubjectKindIT'
 ```
 
 不起 Spring；每个类一个迁移好的库，每条用例一个不提交的事务，探测语句在保存点里执行后回滚。
@@ -20,8 +20,9 @@ backend/mvnw -B -f backend/pom.xml verify -Dit.test='PermissionAdjustment*IT'
 
 | 测试类 | 对应卡 |
 |---|---|
-| `PermissionAdjustmentSchemaIT`（6 条） | 7.1 列、默认值（只有 `version`、`event_count`）、约束名、外键与 RESTRICT、索引与部分索引条件、注释；不变量 31（没有权限码与范围列）；7.2 对象类别登记 |
+| `PermissionAdjustmentSchemaIT`（5 条） | 7.1 列、默认值（只有 `version`、`event_count`）、约束名、外键与 RESTRICT、索引与部分索引条件、注释；不变量 31（没有权限码与范围列） |
 | `PermissionAdjustmentShapeIT`（11 条） | 取值集合；不变量 9、10、11、12、35；原条目；去重 15、16、17、32 |
+| `audit/PermissionAdjustmentSubjectKindIT`（1 条） | 7.2 审计对象类别登记（读 audit 的表，守护要求放在 audit 模块的验收目录） |
 | `PermissionAdjustmentLifecycleIT`（11 条） | 每个状态的合法行；维持三列；不变量 13、14、19（库内 CHECK）、23 与 30（库内部分）、25、26（库内部分）、28、29、36 |
 
 ## 假定（卡没有写死、测试照此断言）
