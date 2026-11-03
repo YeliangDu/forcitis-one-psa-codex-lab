@@ -150,9 +150,9 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
             Object employee = query(workforce, "select employee_id from personnel_commands where personnel_command_id = ?", command).get(0).get("employee_id");
             update(workforce, """
                     insert into attribution_countersigns (attribution_countersign_id, personnel_command_id, employee_id, drafted_by, request_kind,
-                      request_sequence_number, legal_entity_id, requested_at, requested_by, due_on_date, created_at, updated_at)
-                    values (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?)""",
-                    id, command, employee, hr.userId(), kind, entity, at, hr.userId(), due, at, at);
+                      request_sequence_number, legal_entity_id, requested_at, requested_by, due_on_date, created_at, updated_at, request_reason)
+                    values (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)""",
+                    id, command, employee, hr.userId(), kind, entity, at, hr.userId(), due, at, at, "WITHDRAWAL".equals(kind) ? "synthetic" : null);
         }
         return id;
     }
@@ -273,6 +273,7 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
         assertThat(levelOf(stepped)).isEqualTo(3);
         String levelThreePurpose = purposeOf(noticesOf(stepped).getLast());
         decide(stepped, "LAPSED", null);
+        setToday(TODAY);
         UUID late = openChangeRow(DUE);
         Mockito.clearInvocations(wecomGateway);
 
@@ -312,11 +313,11 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
     @DisplayName("#896 one-design 裁定第 3 项（今天版本的财务负责人）：E1 的负责人从今天起换人后，第 1 级提醒只发给当天在任的新负责人，不发给前任，也不发给日后才接任的人；E2 的行发给 E2 的负责人")
     void theReminderGoesToTodaysFinanceHead() throws Exception {
         UUID successor = employed(REGULAR);
+        UUID later = employed(REGULAR);
         UUID rowE1 = openChangeRow(DUE);
         UUID rowE2 = openRow(awaitingCommand(), "CHANGE", e2, DUE);
         setToday(DUE.plusDays(1));
         bindFinanceHead(successor, legalEntity, DUE.plusDays(1));
-        UUID later = employed(REGULAR);
         bindFinanceHead(later, legalEntity, DUE.plusDays(3));
         UUID headE2 = fromStored(rows("select finance_head_employee_id from legal_entity_versions where legal_entity_id = ? and effective_to_date is null", e2)
                 .get(0).get("finance_head_employee_id"));
@@ -331,6 +332,7 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
     @Test
     @DisplayName("#896 ADR-0073 第 3 条第 6 款「次年日历未确认按周一至周五计、不让作业失败」、one-design 裁定第 5 项：到期日 2026-12-30，2027 年未维护：12-31 后的工作日按周一至周五算（2027-01-01 周五算工作日），所以 2027-01-02 跑一次即升到第 2 级；作业正常结束、不跳过该行，并有 ALERT 告警行")
     void anUnmaintainedYearCountsMondayToFridayAndTheRunCompletes() throws Exception {
+        grantByOperations(employed(REGULAR), "business_admin");
         UUID row = openChangeRow(LocalDate.of(2026, 12, 30));
         int mark = logMark();
 
