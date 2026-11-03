@@ -208,9 +208,11 @@ class OrgUnitMergeIT extends OrgStructureCommandSupport {
         assertThat(orgCommand(merge).get("status")).as("an IN_PROGRESS merge cannot be withdrawn").isEqualTo(IN_PROGRESS);
         assertThat(orgCommand(merge).get("withdrawn_by")).isNull();
 
-        actInSpecialist();
+        // The clock stands five days on: the sessions signed in before it moved are past the 24 h absolute lifetime (SessionSettings), so both
+        // callers sign in again (RULING-LEAD-20261103-07).
+        actIn(new Staff(hr.employeeId(), signIn(hr.employeeId())));
         commands().withdraw(obstacle, "synthetic: clears the way");
-        actIn(orgAdmin);
+        actIn(new Staff(orgAdmin.employeeId(), signIn(orgAdmin.employeeId())));
         orgCommands().executeMerge(merge);
 
         Map<String, Object> done = orgCommand(merge);
