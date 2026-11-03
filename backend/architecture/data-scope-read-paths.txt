@@ -1,0 +1,54 @@
+# Every GET handler of every HandlerMapping of the running application of the servlet context (controllers, actuator, static resources) (#730, security-invariants I-10), and the data scope its rows answer under.
+# Endpoints on the separate management port (prod: 8081) live in a child context and are out of this register (#730 comment 6604403956), on the condition that this port exposes only
+# health and prometheus; exposing anything more is an infrastructure change under the runbook.
+# DataScopeReadPathsGuardTest keeps this file well formed; DataScopeReadPathsIT keeps it equal to the GET mappings of the running context
+# (an unlisted handler or a line that matches no handler fails the build).
+# Format: GET <path as mapped> | <mode> | <reason>
+#   SCOPED           rows are bound to an org unit or a person and are filtered by the caller's data scope (acceptance A1-A4 prove it)
+#   SELF             only the caller's own data (acceptance A5 proves a second account's data is never returned)
+#   NOT_SCOPE_BOUND  case i: rows have no org-unit or person binding (configuration, reference data); case ii: rows that do carry a person or unit but are
+#                    GLOBAL by an adopted decision, so the holder's role scope is not applied to them (a grant of the permission is a whole-company read). The permission
+#                    that guards the line is either (first form) held by a system role, or (second form) a two-person sensitive permission that other roles obtain only
+#                    through two-person confirmation (ADR-0026 item 6.2, ADR-0027 item 3). The reason names the ADR row that registers the data GLOBAL and which form applies.
+#                    The reason is required; if a case-ii permission can be held by an ordinary role without two-person confirmation, the line is SCOPED.
+# The reason is kept on every line so that a reviewer of the mode does not have to open the handler. Modes ruled by one-design, #730 comments 6603659958, 6604041421 and 6604403956.
+GET /api/v1/organization/attribution-countersigns/{attributionCountersignId} | NOT_SCOPE_BOUND | case ii, first form: a countersign request names an employee but is read by its decider outside the decider's data scope, GLOBAL by the adopted decision of #910 amendment B (one-design ruling, comment 6588705997; ADR-0073 item 3.6); legal-entity-attribution:approve is held by the system roles legal_entity_finance_head and business_admin, and the application answers 404 to anyone who is not the row's decider
+GET /api/v1/organization/attribution-countersign-bases/{orgStructureCommandId} | NOT_SCOPE_BOUND | case ii, first form: the people whose cost legal entity a command changes, read by a finance head of an entity it asks or by the org data administrator whatever their data scope, GLOBAL by #910 amendment B (comment 6588705997; ADR-0073 items 2 to 4); both permissions are held by system roles and a caller with neither permission is answered 403 and a holder outside the set 404
+GET /api/v1/organization/employee-legal-entities/{employeeId} | SCOPED | legal-entity periods of one employee
+GET /api/v1/organization/employee-profile-change-requests | SCOPED | pending profile changes, one employee each (name, gender, requester)
+GET /api/v1/organization/legal-entities | NOT_SCOPE_BOUND | legal-entity master data (code, name, status): company level, no unit or person
+GET /api/v1/organization/legal-entities/{legalEntityId} | NOT_SCOPE_BOUND | one legal entity: company level, no unit or person
+GET /api/v1/organization/org-unit-legal-entities/{orgUnitId} | SCOPED | legal-entity periods of one org unit
+GET /api/v1/organization/org-units | SCOPED | org units; the read path that already refuses an unresolvable scope (OrgUnitScopeIntegrationTest)
+GET /api/v1/organization/org-units/{orgUnitId} | SCOPED | one org unit; out of scope answers 404
+GET /api/v1/organization/org-units/{orgUnitId}:preview-merge | NOT_SCOPE_BOUND | case ii, first form: the merge rehearsal lists the employed people of the merged unit for the org data administrator whatever its data scope, GLOBAL by #910 amendment B (comment 6588705997); org-structure-command:create is held by the system role org_data_admin
+GET /api/v1/organization/work-calendars | NOT_SCOPE_BOUND | the years a company work calendar is maintained for: no unit or person
+GET /api/v1/organization/work-calendars/{calendarYear} | NOT_SCOPE_BOUND | one year of the company work calendar (days, holidays): no unit or person
+GET /api/v1/platform/approval-task-overviews | NOT_SCOPE_BOUND | case ii, first form: open tasks of everyone, read only by holders of the process administrator system role (checked in ListAllTasks by role code; ADR-0032 section 1, ADR-0034 item 7, D-1a-61); an operations view, unit scope would make it useless
+GET /api/v1/platform/approval-task-records | SELF | tasks the caller has handled
+GET /api/v1/platform/approval-tasks | SELF | the caller's inbox
+GET /api/v1/platform/approval-tasks/{taskId} | SELF | one task of the caller's inbox
+GET /api/v1/platform/audit-entries | NOT_SCOPE_BOUND | case ii, second form: audit_entries is GLOBAL, not filtered by scope (ADR-0027 item 3.4, ADR-0026 table); audit-entry:read belongs to the security auditor system role and any other role gets it only by two-person confirmation (ADR-0027 item 3.1, ADR-0026 item 6.2); a custom role's scope is not applied to this list, by decision
+GET /api/v1/platform/audit-entries:export | NOT_SCOPE_BOUND | case ii, second form: the list above without paging; same GLOBAL decision (ADR-0027 item 3.4, ADR-0026 table) and same rule for audit-entry:export (ADR-0027 item 3.1, ADR-0026 item 6.2); a custom role's scope is not applied, by decision
+GET /api/v1/platform/authorization-requests | NOT_SCOPE_BOUND | case ii, second form: pending grant requests for the confirmers; account-role:update is a two-person sensitive permission (ADR-0026 item 6.2, ADR-0027 item 3); account role grants are GLOBAL (ADR-0026 table); a custom role's scope is not applied, by decision
+GET /api/v1/platform/files/{fileId} | SELF | status of an upload the caller made and has not yet linked
+GET /api/v1/platform/legacy-numbers | NOT_SCOPE_BOUND | original number to document id, legal entity and batch; no person or unit attribute in the answer
+GET /api/v1/platform/legacy-numbers:resolve | NOT_SCOPE_BOUND | one original number to document id, legal entity and batch; no person or unit attribute in the answer
+GET /api/v1/platform/numbering-rules | NOT_SCOPE_BOUND | numbering rules per document type: configuration
+GET /api/v1/platform/numbering-rules/{documentType} | NOT_SCOPE_BOUND | one numbering rule: configuration
+GET /api/v1/platform/permission-adjustments | SCOPED | review items about one employee each, filtered by the relation scope: addressed to the caller, or the caller holds permission-adjustment:read and the item is not about the caller (acceptance #730 S3)
+GET /api/v1/platform/permission-adjustments/{permissionAdjustmentId} | SCOPED | one review item under the same relation scope; out of scope is a denied-access audit entry and a 404 (acceptance #730 S3)
+GET /api/v1/platform/own-login-records | SELF | the caller's own login records
+GET /api/v1/platform/roles | NOT_SCOPE_BOUND | case i: role definitions (code, permissions, scope kind): configuration; roles is GLOBAL (ADR-0026 table)
+GET /api/v1/platform/roles/{roleId} | NOT_SCOPE_BOUND | case i: one role definition: configuration; roles is GLOBAL (ADR-0026 table)
+GET /api/v1/platform/sessions:current | SELF | the caller's own session and profile
+GET /api/v1/platform/source-references | NOT_SCOPE_BOUND | case i: ids only (own id, external id, status, period); the own id is a legal-entity id (company-level reference data), no person or unit; only the category the maintainer writes by hand is listed (ListSourceReferences, ADR-0033 section 5 items 3-4); operations mapping like sync_runs; it turns SCOPED if the handler ever serves EMPLOYEE, ORG_UNIT or POSITION kinds
+GET /api/v1/platform/user-accounts/{userId} | NOT_SCOPE_BOUND | case ii, first form: one account (status, role codes); user_accounts is GLOBAL by decision (ADR-0026 table, user accounts and roles); permission role:read is in AdministratorMode.PLATFORM_ONLY, so only super_admin holds it, in administrator mode
+GET /** | NOT_SCOPE_BOUND | case i: the catch-all static-resource handler of Spring MVC; the deployed front end is served by nginx, and a file is no row
+GET /actuator | NOT_SCOPE_BOUND | case i: the actuator discovery page: links, no rows
+GET /actuator/health | NOT_SCOPE_BOUND | case i: the health status of the application: no rows
+GET /actuator/health/** | NOT_SCOPE_BOUND | case i: the health status of one component: no rows
+GET /error | NOT_SCOPE_BOUND | the framework error page: carries the status of the failed request, no rows
+GET /v3/api-docs | NOT_SCOPE_BOUND | the OpenAPI document: the contract, no rows
+GET /v3/api-docs.yaml | NOT_SCOPE_BOUND | the OpenAPI document as YAML: the contract, no rows
+GET /webjars/** | NOT_SCOPE_BOUND | case i: static library files served from webjars: files, no rows

@@ -2,6 +2,7 @@ package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -24,10 +25,8 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
     private final LegalEntityHistory history;
     private final Clock clock;
     private final BusinessZone zone;
-    private final IdGenerator ids;
 
     JdbcLegalEntityRepository(JdbcClient jdbc, Clock clock, BusinessZone zone, IdGenerator ids) {
-        this.ids = ids;
         this.jdbc = jdbc;
         this.history = new LegalEntityHistory(jdbc, ids);
         this.clock = clock;
@@ -46,12 +45,15 @@ class JdbcLegalEntityRepository implements LegalEntityRepository {
 
     private Optional<LegalEntity> load(LegalEntityId legalEntityId, String lock) {
         return jdbc.sql("""
-                select id, code, name, status, version, event_count from organization_workforce.legal_entities where id = :id
+                select e.id, e.code, e.name, e.status, e.version, e.event_count,
+                       (select v.finance_head_employee_id from organization_workforce.legal_entity_versions v
+                         where v.legal_entity_id = e.id and v.effective_to_date is null) as finance_head
+                  from organization_workforce.legal_entities e where e.id = :id
                 """ + lock)
                 .param("id", legalEntityId.value())
                 .query((rs, n) -> LegalEntity.restore(new LegalEntityId(rs.getObject("id", UUID.class)), new LegalEntityCode(rs.getString("code")),
                         rs.getString("name"), rs.getString("status"),
-                        rs.getLong("version"), rs.getLong("event_count")))
+                        Optional.ofNullable(rs.getObject("finance_head", UUID.class)).map(EmployeeId::new).orElse(null), rs.getLong("version"), rs.getLong("event_count")))
                 .optional();
     }
 

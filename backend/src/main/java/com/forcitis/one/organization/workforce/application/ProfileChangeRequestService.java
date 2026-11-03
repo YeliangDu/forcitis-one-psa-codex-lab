@@ -7,14 +7,17 @@ import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.EmployeeAccountAccess;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.ExpectedVersion;
+import com.forcitis.one.kernel.OrgUnitAccess;
 import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.ProfileChangeRequestId;
 import com.forcitis.one.organization.workforce.api.ProfileChangeRequestView;
 import com.forcitis.one.organization.workforce.api.ProfileChangeRequests;
 import com.forcitis.one.organization.workforce.api.ProfileChangeStatus;
 import com.forcitis.one.organization.workforce.api.ProfileVoidReason;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
+import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import com.forcitis.one.organization.workforce.domain.PersonalProfile;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
 import com.forcitis.one.organization.workforce.domain.ProfileChangeRequest;
@@ -25,8 +28,12 @@ import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Predicate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,11 +54,14 @@ class ProfileChangeRequestService implements ProfileChangeRequests {
     private final CurrentUser currentUser;
     private final AccountEmployees accountEmployees;
     private final EmployeeAccountAccess access;
+    private final OrgUnitAccess unitAccess;
+    private final OrgSnapshotQueries snapshots;
     private final EmployeeProfileService profiles;
     private final Clock clock;
 
     ProfileChangeRequestService(ProfileChangeRequestRepository requests, PersonnelCommandRepository employees, AuditLog audit, CurrentUser currentUser,
-                                AccountEmployees accountEmployees, EmployeeAccountAccess access, EmployeeProfileService profiles, Clock clock) {
+                                AccountEmployees accountEmployees, EmployeeAccountAccess access, OrgUnitAccess unitAccess, OrgSnapshotQueries snapshots,
+                                EmployeeProfileService profiles, Clock clock) {
         this.profiles = profiles;
         this.requests = requests;
         this.employees = employees;
@@ -59,6 +69,8 @@ class ProfileChangeRequestService implements ProfileChangeRequests {
         this.currentUser = currentUser;
         this.accountEmployees = accountEmployees;
         this.access = access;
+        this.unitAccess = unitAccess;
+        this.snapshots = snapshots;
         this.clock = clock;
     }
 
@@ -66,9 +78,33 @@ class ProfileChangeRequestService implements ProfileChangeRequests {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('" + PERMISSION + "')")
     public CursorPage<ProfileChangeRequestView> pending(PageRequest page) {
-        List<ProfileChangeRequest> found = requests.pending(page.cursorUuid(), page.limit() + 1);
-        boolean more = found.size() > page.limit();
-        List<ProfileChangeRequest> items = more ? found.subList(0, page.limit()) : found;
+        OrgUnitAccess.Visible visible = unitAccess.visibleOrgUnits(PERMISSION);
+        Set<OrgUnitId> allowed = visible.everything() ? Set.of() : OrgUnitVisibility.idsIn(snapshots.findAllOrgUnits(), visible);
+        Predicate<ProfileChangeRequest> inScope = request -> visible.everything()
+                || snapshots.findStaff(request.employeeId()).map(staff -> allowed.contains(staff.assignment().orgUnitId())).orElse(false);
+        List<ProfileChangeRequest> items = new ArrayList<>();
+        boolean more = false;
+        UUID after = page.cursorUuid();
+        // a cursor names a request the caller was shown; one outside the scope or unknown answers the same empty page, so a forged cursor cannot probe ids
+        if (after != null && !requests.find(new ProfileChangeRequestId(after)).filter(inScope).isPresent()) {
+            return CursorPage.of(List.of(), null);
+        }
+        while (!more) {
+            List<ProfileChangeRequest> found = requests.pending(after, page.limit() + 1);
+            for (ProfileChangeRequest request : found) {
+                if (inScope.test(request)) {
+                    more = items.size() == page.limit();
+                    if (more) {
+                        break;
+                    }
+                    items.add(request);
+                }
+                after = request.id().value();
+            }
+            if (found.size() <= page.limit()) {
+                break;
+            }
+        }
         return CursorPage.of(items.stream().map(ProfileChangeRequestService::view).toList(),
                 more ? PageRequest.encode(LIST, items.getLast().id().value().toString()) : null);
     }

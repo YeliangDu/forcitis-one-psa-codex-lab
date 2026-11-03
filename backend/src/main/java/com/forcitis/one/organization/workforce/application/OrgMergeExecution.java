@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
 @SystemActorName("organization.workforce.org.structure.merge.execute")
 @Component
 class OrgMergeExecution {
-    private static final String ACTOR = OrgMergeExecution.class.getAnnotation(SystemActorName.class).value();
+    static final String ACTOR = OrgMergeExecution.class.getAnnotation(SystemActorName.class).value();
     private static final Logger LOG = LoggerFactory.getLogger(OrgMergeExecution.class);
 
     private final OrgMergeSteps steps;
@@ -47,6 +47,7 @@ class OrgMergeExecution {
                     }
                 }
             }
+            steps.settle(id);
             if (firstFailure != null) {
                 throw firstFailure;
             }

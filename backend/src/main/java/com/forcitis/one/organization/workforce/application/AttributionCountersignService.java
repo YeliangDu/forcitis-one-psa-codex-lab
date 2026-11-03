@@ -1,6 +1,5 @@
 package com.forcitis.one.organization.workforce.application;
 
-import com.forcitis.one.kernel.AccountRoles;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
@@ -10,8 +9,14 @@ import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
+import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.ApproveAttributionCountersign;
+import com.forcitis.one.kernel.CursorPage;
+import com.forcitis.one.kernel.PageRequest;
+import com.forcitis.one.organization.workforce.api.AttributionCountersignDetail;
 import com.forcitis.one.organization.workforce.api.AttributionCountersignId;
+import com.forcitis.one.organization.workforce.api.AttributionCountersignStatus;
+import com.forcitis.one.organization.workforce.api.AttributionCountersignSummary;
 import com.forcitis.one.organization.workforce.api.AttributionCountersigns;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
 import com.forcitis.one.organization.workforce.api.RejectAttributionCountersign;
@@ -19,7 +24,7 @@ import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersign;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
-import com.forcitis.one.organization.workforce.domain.CountersignRequestKind;
+import com.forcitis.one.organization.workforce.api.CountersignRequestKind;
 import com.forcitis.one.organization.workforce.domain.CountersignStatus;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
@@ -45,15 +50,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * The finance countersign of a change of the cost legal entity (ADR-0073 item 3.6, design note of #878 sections 4 and 6). One transaction holds the employee row
+ * The finance countersign of a change of the cost legal entity (ADR-0073 item 3.6, design note of #878 sections 4 and 6). Requests of a personnel command: one transaction holds the employee row
  * locked, the decision, its transition and audit entry and, when it completes the required set, the command's versions or their taking back. The last approval of a
- * waiting command judges the command again; one that no longer holds is recorded as rejected with the reason and the command is withdrawn ("不满足即拒签").
+ * waiting command judges the command again; one that no longer holds is recorded as rejected with the reason and the command is withdrawn ("不满足即拒签"). Requests of an org-structure command are decided by OrgCountersigns, which holds the tree lock and the unit row instead.
  */
 @Component
 class AttributionCountersignService implements AttributionCountersigns {
     static final String PERMISSION = "organization.workforce:legal-entity-attribution:approve";
-    /** The role that may decide a request from escalation level 2 on (user answer Q3 of 2026-10-30). */
-    static final String ESCALATED_ROLE = "business_admin";
     private static final String COMMAND = "PersonnelCommand";
 
     private final AttributionCountersignRepository countersigns;
@@ -63,7 +66,10 @@ class AttributionCountersignService implements AttributionCountersigns {
     private final PersonnelPlans timelines;
     private final EffectPublisher effects;
     private final OwnAttributionGuard ownGuard;
-    private final AccountRoles roles;
+    private final OrgMergeProgress mergeProgress;
+    private final CountersignDeciders deciders;
+    private final CountersignReads reads;
+    private final OrgCountersigns orgCountersigns;
     private final AuditLog audit;
     private final CurrentUser currentUser;
     private final IdGenerator ids;
@@ -71,7 +77,7 @@ class AttributionCountersignService implements AttributionCountersigns {
     private final BusinessZone zone;
 
     AttributionCountersignService(AttributionCountersignRepository countersigns, PersonnelCommandRepository commands, CountersignRequests requests, CountersignBases bases,
-                                  PersonnelPlans timelines, EffectPublisher effects, OwnAttributionGuard ownGuard, AccountRoles roles, AuditLog audit,
+                                  PersonnelPlans timelines, EffectPublisher effects, OwnAttributionGuard ownGuard, OrgMergeProgress mergeProgress, CountersignDeciders deciders, CountersignReads reads, OrgCountersigns orgCountersigns, AuditLog audit,
                                   CurrentUser currentUser, IdGenerator ids, Clock clock, BusinessZone zone) {
         this.countersigns = countersigns;
         this.commands = commands;
@@ -80,7 +86,10 @@ class AttributionCountersignService implements AttributionCountersigns {
         this.timelines = timelines;
         this.effects = effects;
         this.ownGuard = ownGuard;
-        this.roles = roles;
+        this.mergeProgress = mergeProgress;
+        this.deciders = deciders;
+        this.reads = reads;
+        this.orgCountersigns = orgCountersigns;
         this.audit = audit;
         this.currentUser = currentUser;
         this.ids = ids;
@@ -102,12 +111,32 @@ class AttributionCountersignService implements AttributionCountersigns {
         decide(request.attributionCountersignId(), request.reason(), false);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAuthority('" + PERMISSION + "')")
+    public CursorPage<AttributionCountersignSummary> list(@Nullable AttributionCountersignStatus status, PageRequest page) {
+        return reads.list(status, page);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    @PreAuthorize("hasAuthority('" + PERMISSION + "')")
+    public AttributionCountersignDetail get(AttributionCountersignId id) {
+        return reads.get(id);
+    }
+
     private void decide(AttributionCountersignId id, @Nullable String reason, boolean approve) {
         Instant now = clock.instant();
         LocalDate today = zone.dateOf(now);
         UserId by = currentUser.userId();
         UUID correlation = WorkContext.correlationId().orElseGet(ids::next);
-        EmployeeId employee = countersigns.find(id).orElseThrow(AttributionCountersignService::notFound).employeeId();
+        AttributionCountersign found = countersigns.find(id).orElseThrow(AttributionCountersignService::notFound);
+        if (found.isOrg()) {
+            orgCountersigns.decide(id, reason, approve);
+            return;
+        }
+        EmployeeId employee = found.employeeId();
+        List<OrgStructureCommandId> holding = mergeProgress.lockHolding(employee);
         commands.lockEmployee(employee);
         AttributionCountersign row = countersigns.find(id).orElseThrow(AttributionCountersignService::notFound);
         PersonnelCommand command = commands.find(row.commandId()).orElseThrow(AttributionCountersignService::notFound);
@@ -137,6 +166,7 @@ class AttributionCountersignService implements AttributionCountersigns {
         if (last) {
             if (row.requestKind() == CountersignRequestKind.CHANGE) {
                 complete(command, history, entry, by, now, today, correlation);
+                mergeProgress.recount(holding);
             } else {
                 completeWithdrawal(command, history, row, now, today, correlation);
             }
@@ -221,28 +251,14 @@ class AttributionCountersignService implements AttributionCountersigns {
         }
     }
 
-    /**
-     * The decider is the finance head of the row's legal entity in today's version, or a business administrator when the row has escalated to level 2 (user answer Q3);
-     * never the drafter or the requester, and never the employee whose entry changes.
-     */
+    /** The decider is the one who may decide the row (see {@link CountersignDeciders}) and is not the employee whose entry changes. */
     private void requireDecider(AttributionCountersign row, PersonnelCommand command, UserId by, LocalDate today) {
-        if (by.equals(row.draftedBy()) || by.equals(row.requestedBy())) {
-            throw forbidden("the drafter and the requester of a countersign do not decide it");
-        }
+        deciders.requireNotParty(row, by);
         ownGuard.requireNotOwn(AttributionSubject.of(command.employeeId()), by);
-        boolean head = countersigns.isFinanceHead(row.legalEntityId(), currentUser.employeeId(), today);
-        boolean escalated = row.escalationLevel() >= AttributionCountersign.ESCALATED_FROM_LEVEL && roles.holds(by, ESCALATED_ROLE);
-        if (!head && !escalated) {
-            throw forbidden("only the finance head of the legal entity decides this countersign, a business administrator from escalation level "
-                    + AttributionCountersign.ESCALATED_FROM_LEVEL);
-        }
+        deciders.requireHead(row, by, today);
     }
 
-    private static DomainException forbidden(String message) {
-        return new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_COUNTERSIGN_FORBIDDEN, ErrorKind.FORBIDDEN, message);
-    }
-
-    private static DomainException notFound() {
+    static DomainException notFound() {
         return new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_COUNTERSIGN_NOT_FOUND, ErrorKind.NOT_FOUND, "no such countersign request");
     }
 }

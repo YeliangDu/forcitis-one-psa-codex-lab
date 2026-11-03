@@ -242,7 +242,7 @@ class TaskActorAuthorizationIT extends ApprovalIntegrationSupport {
         pool.shutdown();
         assertThat(results).containsOnlyOnce("won");
         assertThat(results.stream().filter(r -> !r.equals("won"))).allMatch(r -> r.equals("PLATFORM_APPROVAL_TASK_NOT_FOUND")
-                || r.equals("PLATFORM_APPROVAL_TASK_NOT_FOUND") || r.equals("PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED"));
+                || r.equals("PLATFORM_APPROVAL_TASK_ALREADY_CLAIMED"));
         assertThat(approvals.isFinished(scene.instance())).isTrue();
         assertThat(events.resulted().stream().filter(e -> e.document().documentId().toString().equals(scene.key())).count()).isLessThanOrEqualTo(1);
     }

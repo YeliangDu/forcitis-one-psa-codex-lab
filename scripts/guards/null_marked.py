@@ -31,7 +31,8 @@ REQUIRED_ARGS = ("-Xep:NullAway:ERROR", "-XepOpt:NullAway:OnlyNullMarked=true", 
 # Every word the main Error Prone argument may hold: an allow-list, since any other -Xep flag or NullAway option can switch NullAway off or
 # narrow it (UnannotatedSubPackages, ExcludedPaths, AllErrorsAsWarnings, a second -Xep:NullAway:...); adding a check means adding it here, reviewed
 # in this order: -XepDisableAllChecks turns off what is named before it, so it must come right after the plugin
-ALLOWED_ARGS = ("-Xplugin:ErrorProne", "-XepDisableAllChecks", "-Xep:CollectionIncompatibleType:ERROR", "-Xep:EqualsIncompatibleType:ERROR") + REQUIRED_ARGS
+ALLOWED_ARGS = ("-Xplugin:ErrorProne", "-XepDisableAllChecks", "-Xep:CollectionIncompatibleType:ERROR", "-Xep:EqualsIncompatibleType:ERROR",
+                "-Xep:UnusedVariable:ERROR", "-Xep:IdentityBinaryExpression:ERROR") + REQUIRED_ARGS
 QUALIFIED = re.compile(r"^\s*@org\.jspecify\.annotations\.NullMarked\b", re.M)
 SIMPLE = re.compile(r"^\s*@NullMarked\b", re.M)
 IMPORT = re.compile(r"^\s*import\s+org\.jspecify\.annotations\.NullMarked\s*;", re.M)
@@ -132,7 +133,7 @@ def self_test():
             return sorted({p.split()[0] for p in problems(tmp)})
 
         good_pom = ("<project><build><plugins><plugin><artifactId>maven-compiler-plugin</artifactId><configuration><compilerArgs><arg>-XDcompilePolicy=simple</arg>"
-                    "<arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:CollectionIncompatibleType:ERROR -Xep:EqualsIncompatibleType:ERROR -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true"
+                    "<arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:CollectionIncompatibleType:ERROR -Xep:EqualsIncompatibleType:ERROR -Xep:UnusedVariable:ERROR -Xep:IdentityBinaryExpression:ERROR -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true"
                     " -XepOpt:NullAway:JSpecifyMode=true</arg></compilerArgs><annotationProcessorPaths>"
                     "<path><groupId>com.uber.nullaway</groupId><artifactId>nullaway</artifactId><version>1</version></path>"
                     "</annotationProcessorPaths></configuration></plugin></plugins></build></project>")

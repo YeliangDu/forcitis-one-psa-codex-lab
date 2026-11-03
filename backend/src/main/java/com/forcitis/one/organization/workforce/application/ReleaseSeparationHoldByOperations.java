@@ -8,6 +8,7 @@ import com.forcitis.one.kernel.SeparationReview;
 import com.forcitis.one.kernel.SystemActors;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
+import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
@@ -36,15 +37,17 @@ class ReleaseSeparationHoldByOperations {
     private final SeparationReview review;
     private final OrgDirectory directory;
     private final HeldSeparationRelease release;
+    private final OrgMergeProgress mergeProgress;
     private final Clock clock;
     private final BusinessZone zone;
 
     ReleaseSeparationHoldByOperations(PersonnelCommandRepository commands, SeparationReview review, OrgDirectory directory, HeldSeparationRelease release,
-                                      Clock clock, BusinessZone zone) {
+                                      OrgMergeProgress mergeProgress, Clock clock, BusinessZone zone) {
         this.commands = commands;
         this.review = review;
         this.directory = directory;
         this.release = release;
+        this.mergeProgress = mergeProgress;
         this.clock = clock;
         this.zone = zone;
     }
@@ -56,6 +59,7 @@ class ReleaseSeparationHoldByOperations {
         SeparationHold found = commands.findHold(holdId).orElseThrow(ReleaseSeparationHoldByOperations::notFound);
         PersonnelCommand command = commands.find(found.commandId()).orElseThrow(ReleaseSeparationHoldByOperations::notFound);
         EmployeeId employee = command.employeeId();
+        List<OrgStructureCommandId> holding = mergeProgress.lockHolding(employee);
         commands.lockEmployee(employee);
         SeparationHold hold = commands.findHold(holdId).orElseThrow(ReleaseSeparationHoldByOperations::notFound);
         command = commands.find(found.commandId()).orElseThrow(ReleaseSeparationHoldByOperations::notFound);
@@ -72,7 +76,7 @@ class ReleaseSeparationHoldByOperations {
         requireRetained(attestation.witness(), "witness", leaving, today);
         release.execute(command, commandVersion, hold, holdVersion, HeldSeparationRelease.Releaser.operations(SystemActors.idOf(SYSTEM_ACTOR)), now,
                 "reason: " + hold.releaseReason().replaceAll("\\p{Cntrl}", " ") + "; route: operations command; operatorId=" + attestation.operator()
-                        + " witnessId=" + attestation.witness() + "; command: " + command.id() + "; hold: " + hold.id() + "; remaining super_admin: " + remaining);
+                        + " witnessId=" + attestation.witness() + "; command: " + command.id() + "; hold: " + hold.id() + "; remaining super_admin: " + remaining, holding);
     }
 
     /** Retained: locally employed, not leaving and not on unpaid leave (ADR-0068 section 3; a released separation waiting for its date is leaving). */

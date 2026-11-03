@@ -8570,7 +8570,7 @@ terms:
   zh: 待调整权限
   en: PermissionAdjustment
   snake: permission_adjustment
-  kind: entity
+  kind: aggregate
   bc: platform.identity
   definition: 同步发现某人的任职变化后，提醒有权的人复核其授权的待办条目；条目类型 + 去重键，只链接到标准授予流程，本身不授予也不收回（ADR-0032 第 4 项第 3 条、第 5 项）
   standard_ref:
@@ -11530,6 +11530,81 @@ terms:
   note: 聚合 AuthorizationRequest
   status: approved
   confirmed: 2026-10-16（用户，词表待确认事项 GL 确认单）
+- id: permission_adjustment_opened
+  zh: 待调整权限已生成
+  en: PermissionAdjustmentOpened
+  snake: permission_adjustment_opened
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 一条待调整权限条目被生成，提醒有权的人复核某人的授权
+  standard_ref:
+  - docs/architecture/events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 PermissionAdjustment（#730 提议，待用语确认）
+  status: proposed
+- id: permission_adjustment_upheld
+  zh: 待调整权限已维持
+  en: PermissionAdjustmentUpheld
+  snake: permission_adjustment_upheld
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 办理人看过一条待调整权限条目后决定维持，授权保持原样
+  standard_ref:
+  - docs/architecture/events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 PermissionAdjustment（#730 S3 提议，待用语确认）
+  status: proposed
+- id: permission_adjustment_adjusted
+  zh: 待调整权限已调整
+  en: PermissionAdjustmentAdjusted
+  snake: permission_adjustment_adjusted
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 办理人标明一条待调整权限条目已通过授权申请或授予审计条目调整
+  standard_ref:
+  - docs/architecture/events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 PermissionAdjustment（#730 S3 提议，待用语确认）
+  status: proposed
+- id: permission_adjustment_expired
+  zh: 待调整权限已到期
+  en: PermissionAdjustmentExpired
+  snake: permission_adjustment_expired
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 已维持的待调整权限条目到了有效至，每日到期作业将它转为已到期；授权不变
+  standard_ref:
+  - docs/architecture/events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 PermissionAdjustment（#730 S2 提议，待用语确认）
+  status: proposed
+- id: permission_adjustment_escalated
+  zh: 待调整权限已升级
+  en: PermissionAdjustmentEscalated
+  snake: permission_adjustment_escalated
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 待处理的待调整权限条目超过升级期限，每日升级作业将它标记为已升级一次；条目仍待处理，授权不变
+  standard_ref:
+  - docs/architecture/events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  note: 聚合 PermissionAdjustment（#730 S2 提议，待用语确认）
+  status: proposed
 - id: authorization_opened
   zh: 授权申请已开立
   en: AuthorizationOpened

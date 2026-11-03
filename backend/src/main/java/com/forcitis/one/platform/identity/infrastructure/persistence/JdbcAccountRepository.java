@@ -45,10 +45,8 @@ class JdbcAccountRepository implements AccountRepository {
 
     private final JdbcClient jdbc;
     private final Clock clock;
-    private final IdGenerator ids;
 
-    JdbcAccountRepository(JdbcClient jdbc, Clock clock, IdGenerator ids) {
-        this.ids = ids;
+    JdbcAccountRepository(JdbcClient jdbc, Clock clock) {
         this.clock = clock;
         this.jdbc = jdbc;
     }

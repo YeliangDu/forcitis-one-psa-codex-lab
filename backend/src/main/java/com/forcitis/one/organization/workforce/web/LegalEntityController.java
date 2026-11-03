@@ -1,9 +1,11 @@
 package com.forcitis.one.organization.workforce.web;
 
 import com.forcitis.one.kernel.CursorPage;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.PageRequest;
+import com.forcitis.one.organization.workforce.application.ChangeFinanceHead;
 import com.forcitis.one.organization.workforce.application.CreateLegalEntity;
 import com.forcitis.one.organization.workforce.application.GetLegalEntity;
 import com.forcitis.one.organization.workforce.application.LegalEntityView;
@@ -30,12 +32,15 @@ class LegalEntityController {
     private final GetLegalEntity get;
     private final CreateLegalEntity create;
     private final UpdateLegalEntity update;
+    private final ChangeFinanceHead changeFinanceHead;
 
-    LegalEntityController(ListLegalEntities list, GetLegalEntity get, CreateLegalEntity create, UpdateLegalEntity update) {
+    LegalEntityController(ListLegalEntities list, GetLegalEntity get, CreateLegalEntity create, UpdateLegalEntity update,
+                          ChangeFinanceHead changeFinanceHead) {
         this.list = list;
         this.get = get;
         this.create = create;
         this.update = update;
+        this.changeFinanceHead = changeFinanceHead;
     }
 
     @GetMapping
@@ -65,6 +70,15 @@ class LegalEntityController {
     ResponseEntity<LegalEntityResponse> update(@PathVariable UUID legalEntityId, @RequestBody UpdateLegalEntityRequest request,
             @RequestHeader(value = "If-Match", required = false) String ifMatch) {
         LegalEntityView view = update.execute(new LegalEntityId(legalEntityId), ExpectedVersion.fromHeader(ifMatch), request.code(), request.name(), request.status());
+        return ResponseEntity.ok().eTag(ExpectedVersion.etag(view.version())).body(LegalEntityResponse.of(view));
+    }
+
+    @PostMapping(path = "/{legalEntityId}:set-finance-head")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_UPDATE + "')")
+    ResponseEntity<LegalEntityResponse> changeFinanceHead(@PathVariable UUID legalEntityId, @RequestBody ChangeFinanceHeadRequest request,
+            @RequestHeader(value = "If-Match", required = false) String ifMatch) {
+        UUID head = request.financeHeadEmployeeId();
+        LegalEntityView view = changeFinanceHead.execute(new LegalEntityId(legalEntityId), ExpectedVersion.fromHeader(ifMatch), head == null ? null : new EmployeeId(head));
         return ResponseEntity.ok().eTag(ExpectedVersion.etag(view.version())).body(LegalEntityResponse.of(view));
     }
 }

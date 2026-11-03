@@ -27,6 +27,12 @@ categories:
   - platform.identity.grant.refused
   - platform.identity.operations.account.role.granted
   - platform.identity.operations.account.role.revoked
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.permission-adjustment.viewed
   - platform.identity.privileged.request
   - platform.identity.role-version.closed
   - platform.identity.role-version.opened
@@ -81,6 +87,7 @@ categories:
   - organization.workforce.legal-entity-attribution.correction-refused
   - organization.workforce.legal-entity-attribution.denied
   - organization.workforce.legal-entity-attribution.refused
+  - organization.workforce.legal-entity.finance-head.changed
 - name: 来源对照
   actions:
   - platform.integration.SourceReferenceConfirmed
@@ -90,6 +97,7 @@ categories:
   - platform.integration.SourceReferenceSuperseded
 - name: 数据范围
   actions:
+  - organization.workforce.countersign-read.denied
   - organization.workforce.org-unit.denied
 - name: 编号规则
   actions:

@@ -35,7 +35,7 @@ class EngineWiringVerificationTest {
         when(definition.getKey()).thenReturn("cost_timesheet_approval");
         when(definition.getId()).thenReturn("d1");
         when(repository.getBpmnModel("d1")).thenReturn(model);
-        return new EngineWiring(null, repository, null, null, null, null);
+        return new EngineWiring(null, repository, null, null);
     }
 
     private static final String TASK_WITHOUT_RULE = "<startEvent id=\"s\"/><userTask id=\"review\" name=\"Review\"/>";

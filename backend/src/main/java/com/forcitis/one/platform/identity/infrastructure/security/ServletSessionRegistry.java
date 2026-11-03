@@ -67,9 +67,9 @@ class ServletSessionRegistry implements SessionRegistry, SessionContext {
         Instant administratorUntil = method == LoginMethod.EMERGENCY ? now.plus(administratorMode.duration()) : null;
         IdentityAuthentication authentication = new IdentityAuthentication(String.valueOf(userId.value()), now, method.name(),
                 administratorUntil, List.of(), identityConfirmed);
-        HttpSession session = request.getSession(true);
+        request.getSession(true);
         rotation.onAuthentication(authentication, request, response);
-        session = request.getSession(true);
+        HttpSession session = request.getSession(true);
         store(authentication, request, response);
         session.setAttribute(FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME, String.valueOf(userId.value()));
         session.setAttribute(CONFIRMED_ATTRIBUTE, identityConfirmed);

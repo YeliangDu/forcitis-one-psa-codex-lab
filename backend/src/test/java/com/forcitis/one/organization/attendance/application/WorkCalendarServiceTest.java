@@ -94,6 +94,16 @@ class WorkCalendarServiceTest {
     }
 
     @Test
+    @DisplayName("#730 A-6: no legal entity counts on the default calendar, an entity with its own holidays counts on its own")
+    void noLegalEntityUsesTheDefaultCalendar() {
+        calendars.maintain(WorkCalendarKey.defaultFor(2026));
+        calendars.maintain(new WorkCalendarKey(FST, 2026), holiday("2026-10-12"));
+
+        assertThat(service.endOfWorkdayAfter(LocalDate.parse("2026-10-09"), 1, null)).isEqualTo(midnight("2026-10-13"));
+        assertThat(service.endOfWorkdayAfter(LocalDate.parse("2026-10-09"), 1, FST)).isEqualTo(midnight("2026-10-14"));
+    }
+
+    @Test
     @DisplayName("a start date that is itself a rest day never counts")
     void startDateNeverCounts() {
         calendars.maintain(WorkCalendarKey.defaultFor(2026));

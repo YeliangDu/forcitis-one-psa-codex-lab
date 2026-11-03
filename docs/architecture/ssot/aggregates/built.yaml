@@ -1,9 +1,9 @@
 # 由 panorama/scan_aggregates.py 生成，勿手改
 meta:
-  count: 17
-  code_only: 7
+  count: 19
+  code_only: 8
   registry_only: 0
-  both: 10
+  both: 11
   sources:
   - backend/src/main/java/com/forcitis/one
   - backend/architecture/data-access-registry.yaml
@@ -16,10 +16,6 @@ meta:
     owner: one-platform-file
     due: '2026-11-15'
     reason: 单元 3 基线建表，隔离读取申请代码未写（ADR-0070）；根类随 5a 补，11-01 前 5a 未开工先报改期（one-platform-file 2026-10-22）
-  - table: platform_identity.permission_adjustments
-    owner: one-dev-identity
-    due: '2026-11-20'
-    reason: F-1 第 2 块（#729）只建表；聚合 PermissionAdjustment 与写入随第 3 块（#730）补
 aggregates:
 - id: cost.timesheet/Timesheet
   bc: cost.timesheet
@@ -55,6 +51,44 @@ aggregates:
   events:
   - organization.attendance.WorkCalendarLockedDaysChanged
   - organization.attendance.WorkCalendarYearMaintained
+- id: organization.workforce/EmployeeLegalEntityChange
+  bc: organization.workforce
+  root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/EmployeeLegalEntityChange.java
+  source:
+  - code
+  tables: []
+  commands:
+  - OrgCountersigns
+  events:
+  - organization.workforce.EmployeeLegalEntityChanged
+  events_in_module:
+  - organization.workforce.EmployeeCorrected
+  - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
+  - organization.workforce.EmployeeRegistered
+  - organization.workforce.EmployeeRegularized
+  - organization.workforce.EmployeeReinstated
+  - organization.workforce.EmployeeSeparated
+  - organization.workforce.EmployeeTransferred
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
+  - organization.workforce.SeparationHeld
+  - organization.workforce.SeparationHoldReleased
 - id: organization.workforce/LegalEntity
   bc: organization.workforce
   root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/LegalEntity.java
@@ -65,6 +99,7 @@ aggregates:
   - organization_workforce.legal_entities
   - organization_workforce.legal_entity_versions
   commands:
+  - ChangeFinanceHead
   - CreateLegalEntity
   - LegalEntityView
   - UpdateLegalEntity
@@ -157,10 +192,20 @@ aggregates:
   - code
   tables: []
   commands:
+  - CountersignReadAccess
+  - CountersignRequests
+  - GetAttributionCountersign
+  - OrgCommandWrites
+  - OrgCountersignBases
+  - OrgCountersignFreeze
+  - OrgCountersigns
+  - OrgMergeCompletion
+  - OrgMergeProgress
   - OrgMergeSteps
   - OrgPlans
   - OrgStructureCommandService
   - OrgStructureRules
+  - PreviewMergeAttribution
   events: []
   events_in_module:
   - organization.workforce.EmployeeCorrected
@@ -201,9 +246,12 @@ aggregates:
   - ApplyDueCommand
   - AttributionCountersignService
   - CountersignBases
+  - CountersignReadAccess
   - CountersignRequests
   - EffectPublisher
+  - GetAttributionCountersign
   - HeldSeparationRelease
+  - OrgCountersignFreeze
   - PersonnelCommandService
   - PersonnelPlans
   - ReleaseSeparationHoldByOperations
@@ -377,6 +425,11 @@ aggregates:
   - platform.identity.EmergencyAdminDisabled
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
   - platform.identity.RoleCreated
   - platform.identity.RoleDeleted
   - platform.identity.RoleDisabled
@@ -419,6 +472,58 @@ aggregates:
   - platform.identity.EmergencyAdminDisabled
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
+  - platform.identity.RoleCreated
+  - platform.identity.RoleDeleted
+  - platform.identity.RoleDisabled
+  - platform.identity.RoleEnabled
+  - platform.identity.RoleRevised
+- id: platform.identity/PermissionAdjustment
+  bc: platform.identity
+  root_class: backend/src/main/java/com/forcitis/one/platform/identity/domain/PermissionAdjustment.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_identity.permission_adjustments
+  commands:
+  - GetPermissionAdjustment
+  - ListPermissionAdjustments
+  - MarkPermissionAdjustmentAdjusted
+  - OpenAssignmentReviews
+  - PermissionAdjustmentAccess
+  - PermissionAdjustmentTransitions
+  - PermissionAdjustmentView
+  - UpholdPermissionAdjustment
+  events:
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
+  events_in_module:
+  - platform.identity.AccountDisabled
+  - platform.identity.AccountEnabled
+  - platform.identity.AccountOpened
+  - platform.identity.AccountRolesReplaced
+  - platform.identity.AccountSeparated
+  - platform.identity.AuthorizationConfirmed
+  - platform.identity.AuthorizationOpened
+  - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
+  - platform.identity.EmergencyAdminCredentialsReset
+  - platform.identity.EmergencyAdminDisabled
+  - platform.identity.EmergencyAdminEnabled
+  - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
   - platform.identity.RoleCreated
   - platform.identity.RoleDeleted
   - platform.identity.RoleDisabled
@@ -441,6 +546,7 @@ aggregates:
   - DeleteRole
   - ForceUserLogout
   - GrantRoleByOperations
+  - OrgUnitScopes
   - ReplaceAccountRoles
   - RevokeRoleByOperations
   - RoleScopeRefusal
@@ -466,6 +572,11 @@ aggregates:
   - platform.identity.EmergencyAdminDisabled
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
   - platform.identity.RoleCreated
   - platform.identity.RoleDeleted
   - platform.identity.RoleDisabled
@@ -515,6 +626,11 @@ aggregates:
   - platform.identity.EmergencyAdminDisabled
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
   - platform.identity.RoleCreated
   - platform.identity.RoleDeleted
   - platform.identity.RoleDisabled

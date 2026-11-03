@@ -22,7 +22,7 @@ final class OrgCommandEvents {
     }
 
     static Optional<PendingEvent> of(OrgStructureCommand c) {
-        return Optional.of(switch (c.kind()) {
+        return Optional.ofNullable(switch (c.kind()) {
             case CREATE -> c.targetPositionId() != null
                     ? (PendingEvent) (e, s) -> new PositionCreated(e.wrap(draft("PositionCreated", c, s)), c.id(), c.targetPositionId(), c.effectiveDate())
                     : (PendingEvent) (e, s) -> new OrgUnitCreated(e.wrap(draft("OrgUnitCreated", c, s)), c.id(), Objects.requireNonNull(c.targetOrgUnitId()),
@@ -35,6 +35,7 @@ final class OrgCommandEvents {
                     Objects.requireNonNull(c.mergeIntoOrgUnitId()), c.effectiveDate());
             case REPARENT -> (e, s) -> new OrgUnitReparented(e.wrap(draft("OrgUnitReparented", c, s)), c.id(), Objects.requireNonNull(c.targetOrgUnitId()),
                     Objects.requireNonNull(c.targetParentOrgUnitId()), c.effectiveDate());
+            case ASSIGN_LEGAL_ENTITY -> null;
             case ASSIGN_HEAD -> (e, s) -> new OrgUnitHeadAssigned(e.wrap(draft("OrgUnitHeadAssigned", c, s)), c.id(), Objects.requireNonNull(c.targetOrgUnitId()),
                     Objects.requireNonNull(c.targetHeadEmployeeId()), c.effectiveDate());
             case ASSIGN_RECEIVABLES_MANAGER -> (e, s) -> new OrgUnitReceivablesManagerAssigned(e.wrap(draft("OrgUnitReceivablesManagerAssigned", c, s)), c.id(),

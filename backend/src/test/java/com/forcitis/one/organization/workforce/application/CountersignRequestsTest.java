@@ -16,7 +16,7 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersign;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
-import com.forcitis.one.organization.workforce.domain.CountersignRequestKind;
+import com.forcitis.one.organization.workforce.api.CountersignRequestKind;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
 import com.forcitis.one.platform.audit.api.AuditLog;
@@ -38,7 +38,7 @@ class CountersignRequestsTest {
     final AttributionCountersignRepository countersigns = mock(AttributionCountersignRepository.class);
     final IdGenerator ids = mock(IdGenerator.class);
     final CountersignDueDates dueDates = mock(CountersignDueDates.class);
-    final CountersignRequests requests = new CountersignRequests(countersigns, mock(PersonnelCommandRepository.class), dueDates, mock(AuditLog.class), ids);
+    final CountersignRequests requests = new CountersignRequests(countersigns, dueDates, mock(AuditLog.class), ids);
     final AtomicLong next = new AtomicLong(1);
 
     CountersignRequestsTest() {

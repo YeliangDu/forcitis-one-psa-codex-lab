@@ -4,6 +4,8 @@ import com.forcitis.one.kernel.OrgUnitAccess;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.OrgHierarchy;
 import com.forcitis.one.organization.workforce.domain.OrgUnit;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -14,6 +16,21 @@ final class OrgUnitVisibility {
     static final String ORG_UNIT_READ = "organization.workforce:org-unit:read";
 
     private OrgUnitVisibility() {
+    }
+
+    /**
+     * For a detail: a scope that cannot be worked out shows nothing, so the id answers like a missing one; a refusal here would tell the caller the id exists
+     * (security-invariants I-10, #730 comment 6606893624). Lists keep the refusal, they carry no id.
+     */
+    static Set<OrgUnitId> idsInForDetail(Collection<OrgUnit> units, OrgUnitAccess access) {
+        try {
+            return idsIn(units, access.visibleOrgUnits(ORG_UNIT_READ));
+        } catch (DomainException unavailable) {
+            if (unavailable.kind() != ErrorKind.FORBIDDEN) {
+                throw unavailable;
+            }
+            return Set.of();
+        }
     }
 
     static Set<OrgUnitId> idsIn(Collection<OrgUnit> units, OrgUnitAccess.Visible visible) {

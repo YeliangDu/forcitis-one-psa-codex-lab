@@ -41,7 +41,7 @@ class GlossaryTest {
     static final Set<String> IRREGULAR_PAST = Set.of("sent", "built", "held", "made", "paid", "set", "put", "read", "lost", "kept", "begun",
             "taken", "given", "written", "shown", "run", "bound", "found", "left", "met", "spent", "split", "cut", "hit", "closed", "reset",
             "frozen", "chosen", "broken", "undone", "overridden", "withdrawn", "drawn", "known", "seen", "gone", "become", "come",
-            "won", "done", "sold", "bought", "withheld", "repaid", "prepaid", "overpaid", "underpaid", "told", "brought", "shut", "let", "rebuilt", "overdrawn");
+            "won", "done", "sold", "bought", "withheld", "repaid", "prepaid", "overpaid", "underpaid", "told", "brought", "shut", "let", "rebuilt", "overdrawn", "upheld");
     // a linking verb in the past plus one complement is an event name too: ApprovalTaskBecameOverdue; same as LINKING_PAST in term_rules.py
     static final Set<String> LINKING_PAST = Set.of("became");
     static final Set<String> NOT_PARTICIPLES = Set.of("need", "speed", "feed", "seed", "embed", "proceed", "exceed", "succeed", "bed", "red", "shed");

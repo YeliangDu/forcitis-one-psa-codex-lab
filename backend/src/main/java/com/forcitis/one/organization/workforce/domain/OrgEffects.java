@@ -53,7 +53,7 @@ public final class OrgEffects {
             case ASSIGN_HEAD -> v.put(HEAD, Objects.requireNonNull(c.targetHeadEmployeeId()).value());
             case ASSIGN_RECEIVABLES_MANAGER -> v.put(RECEIVABLES_MANAGER, Objects.requireNonNull(c.targetReceivablesManagerEmployeeId()).value());
             case DISSOLVE -> v.put(LIFECYCLE, "REVOKED");
-            case MERGE, DISABLE -> {
+            case MERGE, DISABLE, ASSIGN_LEGAL_ENTITY -> {
             }
         }
         return v;

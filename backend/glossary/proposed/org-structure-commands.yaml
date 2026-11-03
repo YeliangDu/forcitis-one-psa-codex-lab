@@ -30,6 +30,21 @@ terms:
   forbidden: []
   status: approved
   confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_workforce_org_legal_entity_conflict
+  zh: 组织命令法人归属冲突
+  en: OrganizationWorkforceOrgLegalEntityConflict
+  snake: organization_workforce_org_legal_entity_conflict
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 法人归属命令倒签到单元已有的更晚归属期之前，或命令会让已有法人的员工失去成本法人，录入时拒绝，什么都不写（422）
+  standard_ref:
+  - ADR-0073 第 2 至 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#910 评论 6608979043，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__organization_workforce_org_structure_command_not_found
   zh: 组织结构命令不存在
   en: OrganizationWorkforceOrgStructureCommandNotFound
@@ -91,3 +106,48 @@ terms:
   status: approved
   confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: 随 #907，one-design 裁定（#907 评论 6596302513）
+- id: employee_legal_entity_change
+  zh: 员工法人归属变更
+  en: EmployeeLegalEntityChange
+  snake: employee_legal_entity_change
+  kind: aggregate
+  bc: organization.workforce
+  scope: domain
+  definition: 组织结构命令生效而使一名员工的成本法人变化时，只承载一条员工法人归属已变更事件的记录；信封说的是员工，序号接续员工自己的事件计数
+  standard_ref:
+  - ADR-0073 第 2 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 无自己的表；#910 第一片
+- id: need
+  zh: 需经会签
+  en: Need
+  snake: need
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 合并预览每行的 needsAttributionCountersign 字段里的动词词根（中文名取「需经会签」，不注册裸动词「需要」，它与普通文案冲突）；该行的合并会改变其成本法人而需要法人归属会签（#910 评议 6588705997 定的 JSON 字段名）
+  standard_ref:
+  - ADR-0073 第 2 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 只作字段名词根，不是独立概念；#910 第三片
+- id: preview_merge
+  zh: 合并预览
+  en: PreviewMerge
+  snake: preview_merge
+  kind: read_model
+  bc: organization.workforce
+  scope: domain
+  definition: 合并执行前的预演里，每个将被转走的员工合并前后的成本法人、以及是否需要法人归属会签；只读，不写任何数据（one-design 评议 6588705997 第 3 条）
+  standard_ref:
+  - ADR-0073 第 2 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 对应 GET /org-units/{orgUnitId}:preview-merge；#910 第三片

@@ -153,4 +153,27 @@ class AccessScopeTest {
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> scope.ownerIds().add(STRANGER)).isInstanceOf(UnsupportedOperationException.class);
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> scope.grants().clear()).isInstanceOf(UnsupportedOperationException.class);
     }
+
+    @Test
+    @DisplayName("#730 A3 a person without a home unit reaches nothing through own-unit roles, and the other roles still count")
+    void noHomeUnitIsAnEmptyReachNotAFailure() {
+        var own = AccessScopeCalculator.orgUnitReach(null, List.of(role(AccessScopeKind.OWN_ORG_UNIT), role(AccessScopeKind.OWN_ORG_UNIT_SUBTREE)));
+        assertThat(own.unrestricted()).isFalse();
+        assertThat(own.units()).isEmpty();
+        assertThat(own.subtrees()).isEmpty();
+
+        var mixed = AccessScopeCalculator.orgUnitReach(null, List.of(role(AccessScopeKind.OWN_ORG_UNIT), new RoleScope(AccessScopeKind.CUSTOM_ORG_UNITS, true, Set.of(DEPT_20))));
+        assertThat(mixed.units()).containsExactly(DEPT_20);
+    }
+
+    @Test
+    @DisplayName("#730 A1 a custom org unit scope reaches its units, and the units marked with descendants as subtrees")
+    void customUnitsAreReachedAsUnitsAndSubtrees() {
+        var reach = AccessScopeCalculator.orgUnitReach(DEPT_15, List.of(new RoleScope(AccessScopeKind.CUSTOM_ORG_UNITS, true, Set.of(DEPT_20), Set.of(DEPT_16))));
+        assertThat(reach.units()).containsExactly(DEPT_20);
+        assertThat(reach.subtrees()).containsExactly(DEPT_16);
+        AccessScope scope = AccessScopeCalculator.calculate(PERSON, List.of(new RoleScope(AccessScopeKind.CUSTOM_ORG_UNITS, true, Set.of(DEPT_20), Set.of(DEPT_16))));
+        assertThat(scope.grants()).extracting(AccessGrant::orgUnitId, AccessGrant::withDescendants).containsExactlyInAnyOrder(
+                org.assertj.core.groups.Tuple.tuple(DEPT_20, false), org.assertj.core.groups.Tuple.tuple(DEPT_16, true));
+    }
 }

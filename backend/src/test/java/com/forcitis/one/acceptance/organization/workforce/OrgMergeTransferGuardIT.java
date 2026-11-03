@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.acceptance.AssignmentRoots;
 import com.forcitis.one.kernel.Uuids;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -68,7 +69,7 @@ class OrgMergeTransferGuardIT extends OrgCountersignSupport {
                 update(workforce, """
                         insert into org_structure_commands (org_structure_command_id, command_kind, target_kind, target_org_unit_id, effective_date, status,
                           target_legal_entity_id, created_at, created_by, updated_at) values (?, 'ASSIGN_LEGAL_ENTITY', 'ORG_UNIT', ?, ?, ?, ?, ?, ?, ?)""",
-                        id, stored(merged), TODAY, status, e2, at, drafter, at);
+                        id, stored(seedUnit(topE1)), TODAY, status, e2, at, drafter, at);
             }
         }
         return id;
@@ -93,7 +94,7 @@ class OrgMergeTransferGuardIT extends OrgCountersignSupport {
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, """
                     insert into attribution_countersigns (attribution_countersign_id, org_structure_command_id, drafted_by, request_kind, request_sequence_number,
-                      legal_entity_id, requested_at, requested_by, due_on_date, created_at, updated_at) values (?, ?, ?, 'WITHDRAWAL', 1, ?, ?, ?, ?, ?, ?)""",
+                      legal_entity_id, requested_at, requested_by, due_on_date, request_reason, created_at, updated_at) values (?, ?, ?, 'WITHDRAWAL', 1, ?, ?, ?, ?, 'synthetic reason', ?, ?)""",
                     Uuids.timeOrdered(NOW), command, drafter, entity, at, drafter, TODAY.plusDays(3), at, at);
             update(workforce, "update attribution_countersigns set decision_kind = 'REJECTED', decided_at = ?, decided_by = ?, decision_reason = 'synthetic reason',"
                     + " decision_audit_entry_id = ?, updated_at = ? where org_structure_command_id = ? and request_kind = 'WITHDRAWAL'", at, headE1.userId(), Uuids.timeOrdered(NOW), at, command);
@@ -103,8 +104,8 @@ class OrgMergeTransferGuardIT extends OrgCountersignSupport {
     private void basisRow(UUID command) throws Exception {
         UUID person = inheritingIn(merged);
         try (Connection workforce = schemaConnection("organization_workforce")) {
-            update(workforce, "insert into " + BASES + " (attribution_countersign_basis_id, org_structure_command_id, employee_id, previous_legal_entity_id, new_legal_entity_id, created_at)"
-                    + " values (?, ?, ?, ?, ?, ?)", Uuids.timeOrdered(NOW), command, stored(person), e1, e2, at);
+            update(workforce, "insert into " + BASES + " (attribution_countersign_basis_id, org_structure_command_id, employee_id, previous_legal_entity_id, new_legal_entity_id, created_at, updated_at)"
+                    + " values (?, ?, ?, ?, ?, ?, ?)", Uuids.timeOrdered(NOW), command, stored(person), e1, e2, at, at);
         }
     }
 
@@ -119,11 +120,14 @@ class OrgMergeTransferGuardIT extends OrgCountersignSupport {
         UUID person = inheritingIn(merged);
         return catchThrowable(() -> {
             try (Connection workforce = schemaConnection("organization_workforce")) {
+                // #711: a TRANSFER names the assignment it moves (here the person's PRIMARY root).
+                UUID root = AssignmentRoots.primaryOf(workforce, stored(person));
                 update(workforce, """
                         insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id,
+                          target_assignment_id, target_assignment_kind,
                           org_structure_command_id, countersign_previous_legal_entity_id, countersign_new_legal_entity_id, applied_at, created_at, created_by, updated_at)
-                        values (?, ?, 'TRANSFER', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                        Uuids.timeOrdered(NOW), stored(person), TODAY, status, stored(receiving), command,
+                        values (?, ?, 'TRANSFER', ?, ?, ?, ?, 'PRIMARY', ?, ?, ?, ?, ?, ?, ?)""",
+                        Uuids.timeOrdered(NOW), stored(person), TODAY, status, stored(receiving), root, command,
                         status.equals(AWAITING) ? e1 : null, status.equals(AWAITING) ? e2 : null, status.equals("EFFECTIVE") ? at : null, at, drafter, at);
             }
         });
