@@ -84,6 +84,21 @@ class PermissionAdjustmentTest {
     }
 
     @Test
+    void theUpholdEventCarriesTheReasonForTheAuditChangeReason() {
+        PermissionAdjustment item = open();
+
+        item.uphold(HANDLER, new UpholdReason("still needed"), new EmployeeId(UUID.randomUUID()), EXPIRY);
+
+        assertThat(item.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(PermissionAdjustmentUpheld.class,
+                upheld -> assertThat(upheld.reason().value()).isEqualTo("still needed"));
+    }
+
+    @Test
+    void aReasonWithANulCharacterIsRefusedAsInvalidInput() {
+        assertThatThrownBy(() -> new UpholdReason("a\u0000b")).isInstanceOf(com.forcitis.one.kernel.InvalidRequestException.class);
+    }
+
+    @Test
     void anItemTakesOneCommandAndNeverOneAboutTheHandler() {
         PermissionAdjustment item = open();
         item.uphold(HANDLER, new UpholdReason("first"), new EmployeeId(UUID.randomUUID()), EXPIRY);

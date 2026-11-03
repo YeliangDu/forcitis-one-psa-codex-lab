@@ -3,6 +3,7 @@ package com.forcitis.one.platform.identity.domain;
 import com.forcitis.one.platform.identity.api.PermissionAdjustmentStatus;
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -129,7 +130,7 @@ public final class PermissionAdjustment extends AggregateRoot {
         EmployeeId recordedOwner = owner;
         Instant recordedExpiry = upholdExpiresAt;
         record((envelopes, version) -> new PermissionAdjustmentUpheld(envelopes.wrap(draft("PermissionAdjustmentUpheld", version)), id, by, kind,
-                recordedOwner, recordedExpiry));
+                recordedOwner, recordedExpiry, new Reason(reason.value())));
     }
 
     /** The handler shows an OPEN item was adjusted, by an authorization request or by a grant in the audit trail; nothing is granted or taken back here. */

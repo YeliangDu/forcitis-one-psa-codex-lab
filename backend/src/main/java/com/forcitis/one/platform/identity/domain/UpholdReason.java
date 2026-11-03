@@ -13,6 +13,9 @@ public record UpholdReason(String value) {
         if (value == null || value.isBlank()) {
             throw new InvalidRequestException("the reason of an uphold must not be blank");
         }
+        if (value.indexOf('\u0000') >= 0) {
+            throw new InvalidRequestException("the reason of an uphold must not contain a NUL character");
+        }
         if (value.codePointCount(0, value.length()) > MAX_CHARACTERS) {
             throw new InvalidRequestException("the reason of an uphold is at most " + MAX_CHARACTERS + " characters");
         }

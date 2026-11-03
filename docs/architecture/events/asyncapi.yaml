@@ -3203,6 +3203,7 @@ components:
         - kind
         - businessOwnerEmployeeId
         - upholdExpiresAt
+        - reason
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -3233,6 +3234,10 @@ components:
             format: date-time
             nullable: true
             description: 维持有效至，维持之后下一自然季度首日 00:00（业务时区），只有敏感角色复核有
+          reason:
+            type: string
+            x-type: Reason
+            description: 办理人填写的维持理由，进审计条目的变更原因列，不进明细
     PermissionAdjustmentAdjusted:
       name: PermissionAdjustmentAdjusted
       title: 待调整权限条目被标记已调整
