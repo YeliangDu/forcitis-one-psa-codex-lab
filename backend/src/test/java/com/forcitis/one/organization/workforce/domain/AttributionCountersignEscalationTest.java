@@ -7,6 +7,7 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.AttributionCountersignId;
+import com.forcitis.one.organization.workforce.api.CountersignRequestKind;
 
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import java.time.Instant;
