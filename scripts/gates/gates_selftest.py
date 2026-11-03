@@ -498,7 +498,7 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
             for command, code in (("ls", 0), ("ls -la | wc -l", 0), ("git status", 0), ("gh pr list", 0), ("git -c core.pager='sh w.sh' log -1", 0), ("GIT_EXTERNAL_DIFF=./w.sh git diff", 0), ("PATH=./bin:/usr/bin ls", 0),
                                   ("echo x > /dev/tcp/10.0.0.5/6379", 0), ("sort --compress-program=./w.sh x", 0), (f"psql -h {PROD_P} -c 'delete from t'", 2), ("./deploy.sh", 0), ("echo `deploy`", 0), ("rg --pre deploy x", 0),
                                   ("ssh dev uptime", 0), ("curl -s https://x.example.invalid", 0), ("codex exec --sandbox workspace-write 'a b'", 2), ('co""dex exec x', 2), ("$'\\x63odex' exec x", 2),
-                                  ("co{dex,} exec x", 2), ("cod?x exec x", 2), ("c\\odex exec x", 2), ("ls src/{a,b}", 2), ("git commit -m 'codex'", 2), ("echo CoDeX", 2),   # #1180: a broken gate refuses codex, even the one allowed shape
+                                  ("co{dex,} exec x", 2), ("co{d..d}ex exec x", 2), ("co\\\ndex exec x", 2), ("cod?x exec x", 2), ("c\\odex exec x", 2), ("ls src/{a,b}", 2), ("git commit -m 'codex'", 2), ("echo CoDeX", 2),   # #1180: a broken gate refuses codex, even the one allowed shape
                                    (f"grep -rn {PROD_H} docs", 2), (f"s''sh {PROD_H} uptime", 2), (f"echo {PROD_D.upper()}", 2),
                                   (f"c\\url https://{PROD_P[:3]}\\{PROD_P[3:]}/", 0),  # split by a backslash: not on the text as written, allowed by design (202019)
                                   *((c, 0) for c in MISBLOCKED), *((c, 2) for c in extra)):
@@ -780,6 +780,10 @@ def codex_gate_test():
             ("X=codex; $X exec x", "codex 只放一种用法"), ("for c in codex; do $c exec x; done", "codex 只放一种用法"), ("printf 'codex exec x' > r.sh; sh r.sh", "codex 只放一种用法"),
             (f"{S} \"$(bash -c 'echo hi')\" ".replace('"$(bash', '"fix $(bash'), "codex 只放一种用法"),
             # the adversarial review's forms: program name made by a brace or glob, a here-document delimiter that expands, a text nested too deep
+            # the final review's forms: a brace range, shell keywords and zsh precommand words, any program naming codex
+            ("co{d..d}ex --full-auto", "codex 只放一种用法"), ("c{o..o}dex --dangerously-bypass-approvals-and-sandbox x", "codex 只放一种用法"), ("function f { codex --full-auto; }; f", "codex 只放一种用法"),
+            ('trap "codex --full-auto" EXIT', "codex 只放一种用法"), ("repeat 1 codex --full-auto", "codex 只放一种用法"), ("nocorrect codex --full-auto", "codex 只放一种用法"), ("coproc codex --full-auto", "codex 只放一种用法"),
+            ("alias c=codex; c", "codex 只放一种用法"), ("- codex --full-auto", "codex 只放一种用法"), ("./run.sh codex --full-auto", "codex 只放一种用法"), ("co\\\ndex --full-auto", "exec"),
             ("co{dex,} --dangerously-bypass-approvals-and-sandbox", "codex 只放一种用法"), ("/opt/bin/cod?x --dangerously-bypass-approvals-and-sandbox 'a b'", "codex 只放一种用法"),
             ("c[o]dex exec x", "codex 只放一种用法"), ("cod*x exec x", "codex 只放一种用法"), ("env co{dex,} exec x", "codex 只放一种用法"),
             ("cat <<$X\nx\n$X\nbash -c $'\\x63odex exec --dangerously-bypass-approvals-and-sandbox'", "codex 只放一种用法"),

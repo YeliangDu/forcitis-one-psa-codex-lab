@@ -32,6 +32,11 @@ DYNAMIC = {  # programs that execute text they are handed (a shell, eval, an int
     "sh", "bash", "zsh", "dash", "ksh", "fish", "csh", "tcsh", "eval", "source", ".", "exec", "xargs", "watch", "parallel", "python", "python3", "python2", "node", "nodejs", "deno", "bun",
     "perl", "ruby", "php", "lua", "awk", "gawk", "osascript", "script", "expect", "tmux", "screen", "at", "batch", "ssh", "su", "sudo", "doas", "runuser", "pkexec", "env", "find", "timeout", "gtimeout",
 }
+DATA = {  # programs that only read their arguments as data (names, patterns, messages): codex named in their arguments is no use of it. Every other program naming codex is refused (an allow-list, not a list of known runners)
+    "echo", "printf", "which", "type", "whereis", "grep", "egrep", "fgrep", "rg", "ag", "git", "gh", "ls", "cat", "head", "tail", "wc", "less", "more", "sort", "uniq", "cut", "tr", "sed", "diff", "cmp",
+    "stat", "file", "test", "[", "jq", "yq", "touch", "mkdir", "rm", "cp", "mv", "ln", "cd", "pwd", "date", "basename", "dirname", "realpath", "readlink", "du", "df", "ps", "pgrep", "true", "false", "sleep",
+    "export", "unset", "local", "declare", "readonly", "printenv", "tee",
+}
 SANDBOX_OK = "workspace-write"
 EFFORT = re.compile(r"""model_reasoning_effort=("?)(low|medium|high|xhigh)\1""")
 MODEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@-]*")
@@ -339,11 +344,19 @@ def bare(text):
 
 
 def braces(word):
-    """The words a brace expansion makes of `word` (comma lists only, capped)."""
+    """The words a brace expansion makes of `word` (comma lists and letter ranges, capped)."""
     m = re.search(r"\{([^{}]*)\}", word)
-    if not m or "," not in m.group(1):
+    if not m:
         return [word]
-    return [w for alt in m.group(1).split(",") for w in braces(word[:m.start()] + alt + word[m.end():])][:64]
+    body, span = m.group(1), re.fullmatch(r"([A-Za-z])\.\.([A-Za-z])", m.group(1))
+    if span:
+        low, high = sorted((ord(span.group(1)), ord(span.group(2))))
+        alts = [chr(n) for n in range(low, high + 1)]
+    elif "," in body:
+        alts = body.split(",")
+    else:
+        return [word]
+    return [w for alt in alts for w in braces(word[:m.start()] + alt + word[m.end():])][:64]
 
 
 def could_be_codex(word):
@@ -386,13 +399,17 @@ def uses_in(text, depth=0):
         texts = [w.text for w in cmd.words] + cmd.bodies
         if name == "codex" and prog.text == "codex" and not prog.expands and cmd.assigns == 0 and cmd.words[0] is prog:
             found.append(Use("direct", cmd, nxt))
-        elif name == "codex" or TOKEN.search(prog.text) or could_be_codex(prog.text) or ((name in RUNNERS or prog.expands) and any(TOKEN.search(t) or could_be_codex(t) for t in texts)):
+        elif name == "codex" or TOKEN.search(prog.text) or could_be_codex(prog.text):
             found.append(Use("indirect"))
-        elif name in RUNNERS:
-            for t in texts[1:]:   # a shell string, an eval argument, a script on stdin: read as a script of its own
-                inner, inner_dynamic = nested_uses(t, depth + 1)
-                found += [Use("indirect") for _ in inner]
-                dynamic = dynamic or inner_dynamic
+        elif name not in DATA:
+            if any(could_be_codex(t) or ("=" in t and could_be_codex(t.split("=", 1)[1])) for t in texts):   # codex (or a brace or glob spelling of it) as a word of its own, or as the value of x=codex
+                found.append(Use("indirect"))
+            else:
+                for t in texts[1:]:   # a shell string, an eval or trap argument, a script on stdin: read as a script of its own
+                    if TOKEN.search(bare(t)):
+                        inner, inner_dynamic = nested_uses(t, depth + 1)
+                        found += [Use("indirect") for _ in inner]
+                        dynamic = dynamic or inner_dynamic
     return found, cmds, single, dynamic
 
 
