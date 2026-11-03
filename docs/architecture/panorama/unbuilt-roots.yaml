@@ -10,7 +10,3 @@ roots:
     owner: one-platform-file
     due: 2026-11-15
     reason: 单元 3 基线建表，隔离读取申请代码未写（ADR-0070）；根类随 5a 补，11-01 前 5a 未开工先报改期（one-platform-file 2026-10-22）
-  - table: platform_identity.permission_adjustments
-    owner: one-dev-identity
-    due: 2026-11-20
-    reason: F-1 第 2 块（#729）只建表；聚合 PermissionAdjustment 与写入随第 3 块（#730）补
