@@ -7,6 +7,7 @@ import static org.mockito.Mockito.doAnswer;
 import com.forcitis.one.platform.integration.api.DeliveryPurpose;
 import com.forcitis.one.platform.integration.api.DeliverySubjectKind;
 import com.forcitis.one.platform.integration.api.WecomCard;
+import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -32,7 +33,8 @@ import org.springframework.util.ClassUtils;
  * acceptance ground; its contract says {@code send} is called inside the caller's transaction and the card goes out only after commit. So the
  * double files a card as <em>delivered</em> only when the transaction that called it commits, and a call with no transaction is filed apart.
  * The new {@link DeliveryPurpose} has no name in the card; it is found as the one purpose besides PERMISSION_ADJUSTMENT_ASSIGNED that is about
- * a PERMISSION_ADJUSTMENT, and a missing or second one fails the test.
+ * a PERMISSION_ADJUSTMENT, and a missing or second one fails the test. The name must not be PERMISSION_ADJUSTMENT_ESCALATED: the older
+ * OutboundDeliveryPermissionAdjustmentRowRulesIT asserts that value is refused and implementers may not edit it.
  */
 abstract class PermissionAdjustmentEscalationSupport extends PermissionAdjustmentApiSupport {
 
@@ -116,7 +118,7 @@ abstract class PermissionAdjustmentEscalationSupport extends PermissionAdjustmen
 
     // ---- the job ------------------------------------------------------------------------------------------------------------------
 
-    /** Runs the daily escalation job once at {@link #RUN_AT}; the entry is found by its assumed type name at run time, so this compiles before it exists. */
+    /** Runs the daily escalation job once at {@link #RUN_AT}; the entry is found by its type name at run time. */
     protected void escalate() {
         advanceTo(RUN_AT);
         runJob(JOB);
@@ -135,7 +137,7 @@ abstract class PermissionAdjustmentEscalationSupport extends PermissionAdjustmen
                     try {
                         candidate.getMethod("execute").invoke(jobs.getBean(name));
                         return;
-                    } catch (java.lang.reflect.InvocationTargetException failure) {
+                    } catch (InvocationTargetException failure) {
                         if (failure.getCause() instanceof RuntimeException runtime) {
                             throw runtime;
                         }

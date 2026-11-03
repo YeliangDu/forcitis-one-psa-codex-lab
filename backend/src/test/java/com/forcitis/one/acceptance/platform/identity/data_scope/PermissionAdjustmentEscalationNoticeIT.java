@@ -10,6 +10,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -56,6 +57,23 @@ class PermissionAdjustmentEscalationNoticeIT extends PermissionAdjustmentEscalat
                 leave.setObject(3, OffsetDateTime.parse(CREATED));
                 leave.setObject(4, OffsetDateTime.parse(CREATED));
                 leave.executeUpdate();
+            }
+            // With any employee version the directory reads the unit from assignment_versions: without a PRIMARY row headB would vanish
+            // from the directory and be left out for that reason, not for the leave.
+            try (PreparedStatement employeeAssignment = workforce.prepareStatement("""
+                    insert into employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at)
+                    values (uuidv7(), ?, 'PRIMARY', now(), now()) on conflict (employee_id) where assignment_kind = 'PRIMARY' do nothing""");
+                    PreparedStatement version = workforce.prepareStatement("""
+                    insert into assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                        org_unit_id, position_id, change_channel_kind, created_at, updated_at)
+                    select ?, a.employee_id, ea.assignment_id, ea.assignment_kind, date '2000-01-01', a.org_unit_id, a.position_id, 'MIGRATION', now(), now()
+                      from assignments a join employee_assignments ea on ea.employee_id = a.employee_id and ea.assignment_kind = 'PRIMARY'
+                     where a.employee_id = ?""")) {
+                employeeAssignment.setObject(1, stored(UUID.fromString(employeeIdOf("headB"))));
+                employeeAssignment.executeUpdate();
+                version.setObject(1, UUID.randomUUID());
+                version.setObject(2, stored(UUID.fromString(employeeIdOf("headB"))));
+                assertThat(version.executeUpdate()).as("headB keeps a PRIMARY assignment version beside the leave version").isEqualTo(1);
             }
         }
         try (Connection identity = schemaConnection("platform_identity"); PreparedStatement disabled = identity
@@ -115,7 +133,7 @@ class PermissionAdjustmentEscalationNoticeIT extends PermissionAdjustmentEscalat
     void rerunsAndAnAlreadyEscalatedItemSendNothingMore() throws Exception {
         UUID item = sensitiveItemAbout("mover");
         UUID escalatedBefore = scopeReviewAbout("mover2", "headB");
-        alreadyEscalatedAt(escalatedBefore, java.time.Instant.parse("2026-09-08T12:00:00Z"));
+        alreadyEscalatedAt(escalatedBefore, Instant.parse("2026-09-08T12:00:00Z"));
 
         escalate();
         escalate();
