@@ -267,16 +267,16 @@ public final class ApprovalRequest extends AggregateRoot {
     }
 
     public void withdraw(EmployeeId actor, boolean cutoffPassed, Reason reason, Moment now) {
-        requireNoSeparationAtOrAfter(actor, cutoffPassed, reason);
+        requireWithdrawable(actor, cutoffPassed, reason);
         end(ApprovalStatus.RETURNED, ApprovalOutcome.RETURNED, reason, ReturnSource.INITIATOR, now);
     }
 
     public void cancel(EmployeeId actor, boolean cutoffPassed, Reason reason, Moment now) {
-        requireNoSeparationAtOrAfter(actor, cutoffPassed, reason);
+        requireWithdrawable(actor, cutoffPassed, reason);
         end(ApprovalStatus.CANCELLED, ApprovalOutcome.CANCELLED, reason, null, now);
     }
 
-    private void requireNoSeparationAtOrAfter(EmployeeId actor, boolean cutoffPassed, @Nullable Reason reason) {
+    private void requireWithdrawable(EmployeeId actor, boolean cutoffPassed, @Nullable Reason reason) {
         switch (checkWithdraw(actor, cutoffPassed)) {
             case NOT_INITIATOR -> throw ApprovalError.PLATFORM_APPROVAL_NOT_INITIATOR.refusal("Only the initiator may withdraw or cancel");
             case CUTOFF_PASSED -> throw ApprovalError.PLATFORM_APPROVAL_CUTOFF_PASSED.refusal("A cut-off node has already finished a task");
