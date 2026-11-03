@@ -10,6 +10,7 @@ public enum PersonnelCommandKind {
     CORRECTION,
     UNPAID_LEAVE_START,
     UNPAID_LEAVE_END,
+    CHANGE_LEGAL_ENTITY,
     START_CONCURRENT,
     END_CONCURRENT
 }

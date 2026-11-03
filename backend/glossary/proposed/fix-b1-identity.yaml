@@ -13,7 +13,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_emergency_admin_not_found
   zh: 应急账号不存在
@@ -28,7 +29,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_emergency_admin_duplicate
   zh: 应急账号重复
@@ -43,7 +45,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_emergency_binding_invalid
   zh: 应急账号绑定无效
@@ -58,7 +61,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_operation_witness_required
   zh: 运维命令须有见证人
@@ -73,7 +77,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_administrator_mode_denied
   zh: 不能进入管理模式
@@ -88,7 +93,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
   note: ''
 - id: error__platform_identity_forced_logout_self_forbidden
   zh: 不能强制自己下线
@@ -103,7 +109,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_forced_logout_reason_required
   zh: 强制下线须填原因
@@ -118,7 +125,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_numbering_rule_not_confirmed
   zh: 编号规则未确认
@@ -133,7 +141,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_numbering_confirmer_is_author
   zh: 确认人是作者
@@ -148,7 +157,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_numbering_confirmation_repeated
   zh: 同一人重复确认
@@ -163,7 +173,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_numbering_nothing_to_confirm
   zh: 没有待确认的版本
@@ -178,7 +189,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_numbering_finance_confirmation_not_required
   zh: 无须财务确认
@@ -193,7 +205,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_audit_export_too_large
   zh: 导出的条目过多
@@ -208,7 +221,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_own_attribution_forbidden
   zh: 不能改本人的法人归属
@@ -223,7 +237,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_own_roles_forbidden
   zh: 不能改自己的角色
@@ -238,7 +253,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_own_role_definition_forbidden
   zh: 不能改自己持有的角色的定义
@@ -253,7 +269,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_authorization_request_not_found
   zh: 授权申请不存在
@@ -268,7 +285,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_authorization_request_not_pending
   zh: 授权申请已处理
@@ -283,7 +301,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_authorization_confirmer_not_allowed
   zh: 不能确认该授权申请
@@ -298,7 +317,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_numbering_version_mismatch
   zh: 模板版本已变
@@ -313,7 +333,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_numbering_effective_date_passed
   zh: 生效日已过
@@ -328,7 +349,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_separation_hold_forbidden
   zh: 无权解除该暂停
@@ -343,7 +365,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_separation_hold_refused
   zh: 不能在界面放行
@@ -358,7 +381,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_release_reason_required
   zh: 放行需要理由
@@ -373,7 +397,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_access_scope_unavailable
   zh: 数据范围无法确定
@@ -388,7 +413,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__platform_identity_permission_administrator_mode_only
   zh: 该权限只在管理模式
@@ -403,24 +429,6 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
-common_words:
-- decided
-- sensitive
-- within
-- authored
-- cause
-- exit
-- force
-- forced
-- given
-- large
-- nothing
-- operation
-- propose
-- repeated
-- revoke
-- superseded
-- trace
-- requested

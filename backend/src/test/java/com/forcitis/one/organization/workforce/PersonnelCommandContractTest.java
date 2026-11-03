@@ -68,6 +68,8 @@ class PersonnelCommandContractTest {
     /** ADR-0068 evidence attachment, 事件契约: the seven named events plus EmployeeCorrected; unpaid leave and legal entity events are not named yet. */
     static final Set<String> ADR_0068_EVENTS = Set.of("EmployeeHired", "EmployeeRegularized", "EmployeeTransferred", "EmployeeSeparated",
             "EmployeeReinstated", "SeparationHeld", "SeparationHoldReleased", "EmployeeCorrected");
+    /** ADR-0073 item 3.7 adds a ninth event that names the command; its contract is the publisher test of #895, not the eight of ADR-0068. */
+    static final Set<String> ADR_0073_EVENTS = Set.of("EmployeeLegalEntityChanged");
     static final List<String> PERSONAL_DATA_WORDS = List.of("name", "email", "mail", "gender", "phone", "mobile", "birth", "address", "card",
             "certificate", "salary", "wage", "login");
 
@@ -76,6 +78,7 @@ class PersonnelCommandContractTest {
                 .<Class<?>>map(JavaClass::reflect)
                 .filter(type -> type.isRecord() && DomainEvent.class.isAssignableFrom(type))
                 .filter(type -> Arrays.stream(type.getRecordComponents()).anyMatch(c -> c.getType() == PersonnelCommandId.class))
+                .filter(type -> !ADR_0073_EVENTS.contains(type.getSimpleName()))
                 .toList();
     }
 
@@ -193,7 +196,8 @@ class PersonnelCommandContractTest {
                         new OrgUnitId(TestIds.uuid(1)), new OrgUnitId(TestIds.uuid(2)), new PositionId(TestIds.uuid(3)), null),
                 new EmployeeSeparated(seal("EmployeeSeparated", DAY), COMMAND, EMPLOYEE, DAY),
                 new EmployeeReinstated(seal("EmployeeReinstated", DAY), COMMAND, EMPLOYEE, DAY),
-                new EmployeeCorrected(seal("EmployeeCorrected", DAY), COMMAND, EMPLOYEE, DAY.minusMonths(1), null),
+                new EmployeeCorrected(seal("EmployeeCorrected", DAY), COMMAND, EMPLOYEE, DAY.minusMonths(1), null, List.of(TriggerFieldKind.ORG_UNIT),
+                        new OrgUnitId(TestIds.uuid(1)), new OrgUnitId(TestIds.uuid(2)), null, null),
                 new SeparationHeld(seal("SeparationHeld", DAY), COMMAND, EMPLOYEE, DAY, HOLD),
                 new SeparationHoldReleased(seal("SeparationHoldReleased", DAY), COMMAND, EMPLOYEE, DAY, HOLD, RELEASER));
     }
@@ -282,7 +286,8 @@ class PersonnelCommandContractTest {
                 "newOrgUnitId:OrgUnitId", "previousPositionId:PositionId", "newPositionId:PositionId");
         assertThat(extraPayload(SeparationHeld.class)).containsExactly("separationHoldId:SeparationHoldId");
         assertThat(extraPayload(SeparationHoldReleased.class)).containsExactly("separationHoldId:SeparationHoldId", "releasedBy:UserId");
-        assertThat(extraPayload(EmployeeCorrected.class)).containsExactly("affectedFrom:LocalDate", "affectedTo:LocalDate");
+        assertThat(extraPayload(EmployeeCorrected.class)).containsExactly("affectedFrom:LocalDate", "affectedTo:LocalDate", "triggerFieldKinds:List",
+                "previousOrgUnitId:OrgUnitId", "newOrgUnitId:OrgUnitId", "previousPositionId:PositionId", "newPositionId:PositionId");
         for (Class<?> event : List.of(EmployeeHired.class, EmployeeRegularized.class, EmployeeSeparated.class, EmployeeReinstated.class)) {
             assertThat(extraPayload(event)).as(event.getSimpleName()).isEmpty();
         }

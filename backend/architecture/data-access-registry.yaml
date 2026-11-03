@@ -176,7 +176,7 @@ tables:
       decision_audit_entry_id: the id of an audit entry of another module, stored without a key across modules
     retention: {policy: PERMANENT}  # 同人事命令：个人任职史随员工清除，离职满 10 年删除（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
-    writers: []  # 尚无写入方（#895 随用例登记）
+    writers: [organization.workforce]
   # #711 (DD revision 2 on #711, 4.1): one PRIMARY root per employee, any number of CONCURRENT roots; versions and commands name the root by composite foreign keys.
   organization_workforce.employee_assignments:
     role: AGGREGATE_CHILD

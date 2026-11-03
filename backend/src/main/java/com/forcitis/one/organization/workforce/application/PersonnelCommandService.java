@@ -21,7 +21,11 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommands;
 import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.WithdrawPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
+import com.forcitis.one.organization.workforce.api.AttributionSubject;
+import com.forcitis.one.organization.workforce.domain.AttributionCountersign;
+import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
+import com.forcitis.one.organization.workforce.domain.CountersignRequestKind;
 import com.forcitis.one.organization.workforce.domain.HoldStatus;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolution;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolutionSources;
@@ -42,6 +46,7 @@ import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -67,6 +72,11 @@ class PersonnelCommandService implements PersonnelCommands {
     private final SeparationHoldCheck holdCheck;
     private final UnpaidLeaveStartFloor leaveFloor;
     private final LegalEntityResolutionSources legalEntities;
+    private final CountersignBases bases;
+    private final CountersignRequests requests;
+    private final AttributionCountersignRepository countersigns;
+    private final OwnAttributionGuard ownGuard;
+    private final EffectPublisher effects;
     private final AuditLog audit;
     private final DomainEvents events;
     private final CurrentUser currentUser;
@@ -75,13 +85,20 @@ class PersonnelCommandService implements PersonnelCommands {
     private final BusinessZone zone;
 
     PersonnelCommandService(PersonnelCommandRepository commands, NewEmployees newEmployees, PersonnelPlans timelines, SeparationHoldCheck holdCheck, UnpaidLeaveStartFloor leaveFloor,
-                            LegalEntityResolutionSources legalEntities, AuditLog audit, DomainEvents events, CurrentUser currentUser, IdGenerator ids, Clock clock, BusinessZone zone) {
+                            LegalEntityResolutionSources legalEntities, CountersignBases bases, CountersignRequests requests,
+                            AttributionCountersignRepository countersigns, OwnAttributionGuard ownGuard, EffectPublisher effects, AuditLog audit, DomainEvents events,
+                            CurrentUser currentUser, IdGenerator ids, Clock clock, BusinessZone zone) {
         this.commands = commands;
         this.newEmployees = newEmployees;
         this.timelines = timelines;
         this.holdCheck = holdCheck;
         this.leaveFloor = leaveFloor;
         this.legalEntities = legalEntities;
+        this.bases = bases;
+        this.requests = requests;
+        this.countersigns = countersigns;
+        this.ownGuard = ownGuard;
+        this.effects = effects;
         this.audit = audit;
         this.events = events;
         this.currentUser = currentUser;
@@ -132,6 +149,13 @@ class PersonnelCommandService implements PersonnelCommands {
         PersonnelHistory history = commands.load(employee);
         command.actOnPost(history, () -> commands.primaryRoot(employee, now));
         PersonnelCommandRules.check(command, history);
+        PersonnelCommandRules.requireNoAwaitingOnOrBefore(command, history);
+        bases.of(command, history).ifPresent(basis -> {
+            // Nobody changes their own legal entity (ADR-0073 item 3.5, ADR-0027 item 2.2): the drafter is refused when it is theirs that would change.
+            ownGuard.requireNotOwn(AttributionSubject.of(employee), by);
+            command.requireCountersign(basis.previous(), basis.next());
+        });
+        boolean awaiting = command.status() == CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN;
         SeparationReview.@Nullable Verdict leaveVerdict = command.kind() == PersonnelCommandKind.UNPAID_LEAVE_START ? leaveFloor.check(command) : null;
         boolean held = command.kind() == PersonnelCommandKind.SEPARATE && holdCheck.holds(command);
         if (held) {
@@ -139,7 +163,7 @@ class PersonnelCommandService implements PersonnelCommands {
         }
         AuditEntryId auditEntry = audit.record(new AuditEntry("organization.workforce.personnel-command.entered", by, null, AuditSubject.of(AuditSubjectKind.EMPLOYEE, employee.value()),
                 "command " + command.id() + " " + command.kind() + " effective " + command.effectiveDate()));
-        Map<VersionTable, VersionPlan> plans = held ? Map.of() : timelines.forEntry(command, history, auditEntry);
+        Map<VersionTable, VersionPlan> plans = held || awaiting ? Map.of() : timelines.forEntry(command, history, auditEntry);
         PersonnelCommandRules.requirePositionOnCommandRows(plans.get(VersionTable.ASSIGNMENT));
         commands.insert(command);
         commands.insertTransition(COMMAND, command.id().value(), command.version(), null, command.status().name(), ActorType.USER, by.value(), today, now, command.id(), correlation());
@@ -156,16 +180,10 @@ class PersonnelCommandService implements PersonnelCommands {
             command.recordHeld(hold.id(), legalEntityOn(employee, command.effectiveDate().minusDays(1)));
             events.publish(command);
             commands.saveEventSequence(employee, command.eventSequenceAfterSave());
+        } else if (awaiting) {
+            requests.open(command, CountersignRequestKind.CHANGE, null, List.of(), by, now, today, correlation());
         } else if (command.status() == CommandStatus.EFFECTIVE && !(command.kind() == PersonnelCommandKind.CORRECTION && command.effectiveDate().isAfter(today))) {
-            VersionRow assignmentBefore = command.targetAssignmentId() == null ? null : history.currentAssignmentRows(command.targetAssignmentId()).stream()
-                    .filter(r -> r.covers(command.effectiveDate().minusDays(1))).findFirst().orElse(null);
-            // A separation's envelope names the entity of the last day the employee was employed: on the effective day itself the assignment has just ended.
-            LocalDate entityDay = command.kind() == PersonnelCommandKind.SEPARATE ? command.effectiveDate().minusDays(1) : command.effectiveDate();
-            command.recordEffect(assignmentBefore, legalEntityOn(employee, entityDay));
-            if (command.hasPendingEvents()) {
-                events.publish(command);
-                commands.saveEventSequence(employee, command.eventSequenceAfterSave());
-            }
+            effects.publish(command, history, today);
         }
         if (leaveVerdict != null) {
             leaveFloor.announce(command, leaveVerdict, by);
@@ -188,7 +206,14 @@ class PersonnelCommandService implements PersonnelCommands {
         PersonnelCommand command = commands.find(request.personnelCommandId()).orElseThrow(PersonnelCommandService::notFound);
         long loadedVersion = command.version();
         CommandStatus before = command.status();
+        if (before == CommandStatus.PENDING && command.countersignNewLegalEntityId() != null) {
+            requestWithdrawal(command, request.reason(), by, now, today);
+            return;
+        }
         command.withdraw(by, request.reason(), now);
+        if (before == CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN) {
+            requests.lapse(command, countersigns.ofCommand(command.id()), ActorType.USER, by.value(), now, today, correlation());
+        }
         PersonnelHistory history = commands.load(command.employeeId());
         if (before == CommandStatus.PENDING) {
             Map<VersionTable, VersionPlan> plans = timelines.forWithdrawal(command, history);
@@ -208,6 +233,18 @@ class PersonnelCommandService implements PersonnelCommands {
     /** The post a start made: the one root its first row carries. */
     private static AssignmentId startedPost(VersionPlan assignments) {
         return new AssignmentId(Objects.requireNonNull(assignments.inserts().getFirst().root(), "root"));
+    }
+
+    /** The versions of a countersigned command stay until every finance head of its two legal entities approves the withdrawal (ADR-0073 item 3.6). */
+    private void requestWithdrawal(PersonnelCommand command, @Nullable String reason, UserId by, Instant now, LocalDate today) {
+        command.requireWithdrawalAllowed(reason, today);
+        // Nobody undoes the change of their own legal entity either (ADR-0073 item 3.5): the same guard as the entry.
+        ownGuard.requireNotOwn(AttributionSubject.of(command.employeeId()), by);
+        List<AttributionCountersign> existing = countersigns.ofCommand(command.id());
+        if (existing.stream().anyMatch(r -> r.isOpen() && r.requestKind() == CountersignRequestKind.WITHDRAWAL)) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_ALLOWED, ErrorKind.CONFLICT, "a withdrawal of this command already awaits the countersign");
+        }
+        requests.open(command, CountersignRequestKind.WITHDRAWAL, reason, existing, by, now, today, correlation());
     }
 
     private void withdrawHold(SeparationHold hold, PersonnelCommand command, UserId by, LocalDate today, Instant now) {
@@ -240,6 +277,10 @@ class PersonnelCommandService implements PersonnelCommands {
                 || command.targetReportsToEmployeeId() != null && !commands.employeeExists(command.targetReportsToEmployeeId())) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID, ErrorKind.UNPROCESSABLE,
                     "a department, position or manager the command names does not exist");
+        }
+        if (command.targetLegalEntityId() != null && !commands.legalEntityIsActive(command.targetLegalEntityId())) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID, ErrorKind.UNPROCESSABLE,
+                    "the legal entity the command names does not exist or is not active");
         }
     }
 

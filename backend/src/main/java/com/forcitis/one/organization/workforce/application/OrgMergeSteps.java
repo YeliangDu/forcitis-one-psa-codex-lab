@@ -102,7 +102,7 @@ class OrgMergeSteps {
         commands.lockEmployee(employee);
         if (commands.employedIn(merge.targetOrgUnitId(), merge.effectiveDate()).contains(employee)) {
             personnel.enter(new EnterPersonnelCommand(employee, PersonnelCommandKind.TRANSFER, merge.effectiveDate(), null, merge.mergeIntoOrgUnitId(), null, null, null, null,
-                    null, null, null, null, null), new UserId(actor), merge.id());
+                    null, null, null, null), new UserId(actor), merge.id());
         }
         merge.recordTransferred();
         commands.update(merge, clock.instant(), loaded);

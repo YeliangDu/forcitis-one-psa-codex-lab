@@ -86,8 +86,8 @@ class OrgCountersignTablesIntegrationTest extends WorkforceIntegrationSupport {
 
     private String orgCountersignSql(String command, String drafter, String kind, int sequence, String entity, String requester, String extraColumns, String extraValues) {
         return "insert into " + CS + " (attribution_countersign_id, org_structure_command_id, drafted_by, request_kind, request_sequence_number, legal_entity_id, requested_at, requested_by,"
-                + " due_on_date, created_at, updated_at" + extraColumns + ") values (gen_random_uuid(), " + command + ", " + drafter + ", '" + kind + "', " + sequence + ", " + entity
-                + ", now(), " + requester + ", date '2026-12-04', now(), now()" + extraValues + ")";
+                + " due_on_date, created_at, updated_at" + (kind.equals("WITHDRAWAL") ? ", request_reason" : "") + extraColumns + ") values (gen_random_uuid(), " + command + ", " + drafter + ", '" + kind + "', " + sequence + ", " + entity
+                + ", now(), " + requester + ", date '2026-12-04', now(), now()" + (kind.equals("WITHDRAWAL") ? ", 'synthetic reason'" : "") + extraValues + ")";
     }
 
     private static final String APPROVED_COLUMNS = ", decision_kind, decided_at, decided_by, decision_audit_entry_id";
@@ -197,7 +197,8 @@ class OrgCountersignTablesIntegrationTest extends WorkforceIntegrationSupport {
                 + ", now(), " + DRAFTER + ", date '2026-12-04', now(), now())";
         jdbc.sql(insert).update();
         refused("uk_attribution_countersigns_", insert);
-        refused("fk_attribution_countersigns_command", insert.replace(ENTITY_A, ENTITY_B).replace("'CHANGE', 1", "'WITHDRAWAL', 1").replace(DRAFTER + ", 'WITHDRAWAL'", OTHER_USER + ", 'WITHDRAWAL'"));
+        refused("fk_attribution_countersigns_command", insert.replace(ENTITY_A, ENTITY_B).replace("'CHANGE', 1", "'WITHDRAWAL', 1").replace(DRAFTER + ", 'WITHDRAWAL'", OTHER_USER + ", 'WITHDRAWAL'")
+                .replace("updated_at) values", "updated_at, request_reason) values").replace("now(), now())", "now(), now(), 'synthetic reason')"));
     }
 
     // ---- the merge transfer guard ----

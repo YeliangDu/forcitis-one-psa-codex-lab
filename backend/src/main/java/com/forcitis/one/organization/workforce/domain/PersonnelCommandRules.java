@@ -19,8 +19,9 @@ public final class PersonnelCommandRules {
     private PersonnelCommandRules() {
     }
 
+    /** The command may be the one stored already (an awaiting command judged again at its last countersign): it is not its own other. */
     public static void check(PersonnelCommand command, PersonnelHistory history) {
-        List<PersonnelCommand> others = history.commands();
+        List<PersonnelCommand> others = history.commands().stream().filter(o -> !o.id().equals(command.id())).toList();
         requireDayFree(command, others);
         requireSeparationOrder(command, others);
         requireStateOnTheDay(command, history.currentEmployeeRows());
@@ -38,6 +39,7 @@ public final class PersonnelCommandRules {
         }
         List<VersionRow> post = command.targetAssignmentId() == null ? List.of() : history.currentAssignmentRows(command.targetAssignmentId());
         requireConstant(CommandEffects.assignmentValues(command).keySet(), post, command.effectiveDate(), row -> true);
+        requireConstant(CommandEffects.legalEntityValues(command).keySet(), history.currentLegalEntityRows(), command.effectiveDate(), row -> true);
         requireConstant(CommandEffects.employeeValues(command).keySet(), history.currentEmployeeRows(), command.effectiveDate(), CommandEffects.employeeFilter(command));
     }
 
@@ -78,6 +80,17 @@ public final class PersonnelCommandRules {
         }
     }
 
+    /**
+     * While an employee has a command awaiting countersign, no command dated on or after it is entered (user answer Q4 of 2026-10-30): its versions are not written,
+     * so a later command would be judged without it and could switch the cost legal entity back when the awaiting one is written. Earlier ones are judged at their own approval.
+     * Checked at entry only; the approval of the awaiting command re-judges the basis instead.
+     */
+    public static void requireNoAwaitingOnOrBefore(PersonnelCommand command, PersonnelHistory history) {
+        if (history.commands().stream().anyMatch(o -> o.status() == CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN && !o.effectiveDate().isAfter(command.effectiveDate()))) {
+            throw refused("the employee has a command awaiting the legal entity countersign on or before " + command.effectiveDate() + "; wait for it or withdraw it first");
+        }
+    }
+
     /** After a separation that no effective reinstatement covers, only a later reinstatement may be entered; a separation may not precede another command. */
     private static void requireSeparationOrder(PersonnelCommand command, List<PersonnelCommand> others) {
         Optional<PersonnelCommand> uncovered = others.stream().filter(o -> o.kind() == PersonnelCommandKind.SEPARATE)
@@ -93,8 +106,8 @@ public final class PersonnelCommandRules {
         if (uncovered.isPresent() && command.effectiveDate().isAfter(uncovered.get().effectiveDate())) {
             throw refused("the employee separates on " + uncovered.get().effectiveDate() + "; only a reinstatement can be dated later");
         }
-        if (command.kind() == PersonnelCommandKind.SEPARATE && others.stream().anyMatch(o -> o.effectiveDate().isAfter(command.effectiveDate()))) {
-            throw refused("a separation dated before another command of the employee is refused; correct those commands first");
+        if (command.kind() == PersonnelCommandKind.SEPARATE && others.stream().anyMatch(o -> o.status() != CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN && o.effectiveDate().isAfter(command.effectiveDate()))) {
+            throw refused("a separation dated before another command of the employee is refused; correct those commands first (a command still awaiting countersign has written nothing; its approval judges it again)");
         }
     }
 

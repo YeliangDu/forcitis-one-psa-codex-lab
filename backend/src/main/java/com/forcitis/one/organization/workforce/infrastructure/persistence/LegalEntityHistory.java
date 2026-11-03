@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-/** Keeps the version rows in step with the legal entity, in its transaction; a second change on the same day closes that day's version and appends the next revision. */
+/** Keeps the version rows in step with the legal entity, in its transaction; a new version carries the finance head of the one it follows (ADR-0073 item 3.6); a second change on the same day closes that day's version and appends the next revision. */
 final class LegalEntityHistory {
     private final JdbcClient jdbc;
     private final IdGenerator ids;
@@ -18,15 +18,15 @@ final class LegalEntityHistory {
     }
 
     void recordLegalEntity(LegalEntity entity, LocalDate day) {
-        record Open(LocalDate from, int revision, boolean same) {
+        record Open(LocalDate from, int revision, boolean same, UUID financeHead) {
         }
         UUID id = entity.legalEntityId().value();
         List<Open> open = jdbc.sql("""
-                        select effective_from_date, revision_number, (code = :code and name = :name and status = :status) as same
+                        select effective_from_date, revision_number, (code = :code and name = :name and status = :status) as same, finance_head_employee_id
                           from organization_workforce.legal_entity_versions where legal_entity_id = :id and effective_to_date is null
                         """)
                 .param("id", id).param("code", entity.code().value()).param("name", entity.name()).param("status", entity.status().name())
-                .query((rs, n) -> new Open(rs.getObject("effective_from_date", LocalDate.class), rs.getInt("revision_number"), rs.getBoolean("same"))).list();
+                .query((rs, n) -> new Open(rs.getObject("effective_from_date", LocalDate.class), rs.getInt("revision_number"), rs.getBoolean("same"), rs.getObject("finance_head_employee_id", UUID.class))).list();
         if (!open.isEmpty() && open.getFirst().same()) {
             return;
         }
@@ -38,10 +38,12 @@ final class LegalEntityHistory {
                     .param("id", id).param("day", day).update();
         }
         jdbc.sql("""
-                        insert into organization_workforce.legal_entity_versions (legal_entity_version_id, legal_entity_id, effective_from_date, revision_number, code, name, status)
-                        values (:versionId, :id, :day, :revision, :code, :name, :status)
+                        insert into organization_workforce.legal_entity_versions (legal_entity_version_id, legal_entity_id, effective_from_date, revision_number, code, name, status,
+                               finance_head_employee_id)
+                        values (:versionId, :id, :day, :revision, :code, :name, :status, :financeHead)
                         """)
                 .param("versionId", ids.next()).param("id", id).param("day", day).param("revision", revision).param("code", entity.code().value())
-                .param("name", entity.name()).param("status", entity.status().name()).update();
+                .param("name", entity.name()).param("status", entity.status().name())
+                .param("financeHead", open.isEmpty() ? null : open.getFirst().financeHead(), java.sql.Types.OTHER).update();
     }
 }
