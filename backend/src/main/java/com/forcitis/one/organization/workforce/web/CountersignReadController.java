@@ -41,7 +41,7 @@ class CountersignReadController {
         return RowResponse.of(get.execute(new AttributionCountersignId(attributionCountersignId)));
     }
 
-    @GetMapping("/org-structure-commands/{orgStructureCommandId}/attribution-countersign-bases")
+    @GetMapping("/attribution-countersign-bases/{orgStructureCommandId}")
     @PreAuthorize("hasAnyAuthority('" + WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_APPROVE + "', '" + WorkforcePermissions.ORG_STRUCTURE_COMMAND_CREATE + "')")
     CursorPage<BasisLineResponse> bases(@PathVariable UUID orgStructureCommandId, @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
         CursorPage<BasisLine> page = listBases.execute(new OrgStructureCommandId(orgStructureCommandId), limit, cursor);
