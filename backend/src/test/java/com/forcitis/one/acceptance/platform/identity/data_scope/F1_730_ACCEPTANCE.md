@@ -53,7 +53,7 @@ Red on baseline: all 8 fail (timeout waiting for the item or for identity to han
 
 Not covered / doubts:
 - Case 2 (role with LISTED legal entities): the role schema on main has no such scope (`access_scope_kind` is ALL, CUSTOM_ORG_UNITS, OWN_ORG_UNIT, OWN_ORG_UNIT_SUBTREE, SELF, SELF_AND_DIRECT_REPORTS), so no fixture can be built; to be added when the scope exists. Question for one-design.
-- The ASSIGNED card of case 1 is asserted to go to exactly the new head's WeCom user id (`recipient_codes`, one element), per ruling 6602940790.
+- The ASSIGNED card of case 1 is asserted to go to exactly the new head's WeCom user id (through the `WecomGateway` mock: one `WecomCard` with purpose PERMISSION_ADJUSTMENT_ASSIGNED and the item id, one WeCom user id; acceptance tests mock the gateway, so nothing reaches the delivery table), per ruling 6602940790.
 - Source 2 (ORG_UNIT_INACTIVE generation) has no acceptance, by ruling.
 
 ## EmployeeCorrected behaves like a transfer (ruling #730 comment 6604000297)

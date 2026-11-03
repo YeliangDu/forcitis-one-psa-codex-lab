@@ -828,7 +828,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         UUID employee = employedHolding(SECURITY_AUDITOR);
         grantByOperations(employee, customRole("scoped-c7", unit));
         UUID user = accountOf(employee);
-        EmployeeCorrected quiet = corrected(employee, Uuids.timeOrdered(NOW), List.of(), unit, unit, null, null);
+        EmployeeCorrected quiet = corrected(employee, Uuids.timeOrdered(NOW), List.of(), null, null, null, null);
 
         publish(quiet);
         identityHandled(quiet);
