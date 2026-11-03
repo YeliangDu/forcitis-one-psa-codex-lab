@@ -33,6 +33,8 @@ GET /api/v1/platform/legacy-numbers | NOT_SCOPE_BOUND | original number to docum
 GET /api/v1/platform/legacy-numbers:resolve | NOT_SCOPE_BOUND | one original number to document id, legal entity and batch; no person or unit attribute in the answer
 GET /api/v1/platform/numbering-rules | NOT_SCOPE_BOUND | numbering rules per document type: configuration
 GET /api/v1/platform/numbering-rules/{documentType} | NOT_SCOPE_BOUND | one numbering rule: configuration
+GET /api/v1/platform/permission-adjustments | SCOPED | review items about one employee each, filtered by the relation scope: addressed to the caller, or the caller holds permission-adjustment:read and the item is not about the caller (acceptance #730 S3)
+GET /api/v1/platform/permission-adjustments/{permissionAdjustmentId} | SCOPED | one review item under the same relation scope; out of scope is a denied-access audit entry and a 404 (acceptance #730 S3)
 GET /api/v1/platform/own-login-records | SELF | the caller's own login records
 GET /api/v1/platform/roles | NOT_SCOPE_BOUND | case i: role definitions (code, permissions, scope kind): configuration; roles is GLOBAL (ADR-0026 table)
 GET /api/v1/platform/roles/{roleId} | NOT_SCOPE_BOUND | case i: one role definition: configuration; roles is GLOBAL (ADR-0026 table)

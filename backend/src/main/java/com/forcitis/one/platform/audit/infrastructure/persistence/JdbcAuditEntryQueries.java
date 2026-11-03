@@ -40,6 +40,11 @@ class JdbcAuditEntryQueries implements AuditEntryQueries {
     }
 
     @Override
+    public boolean exists(AuditEntryId id) {
+        return jdbc.sql("select exists (select 1 from platform_audit.audit_entries where id = :id)").param("id", id.value()).query(Boolean.class).single();
+    }
+
+    @Override
     public AuditPage findPage(AuditFilter filter, AuditPageMark after, int limit) {
         Map<String, Object> params = new HashMap<>();
         String where = after(where(filter, params), after, params);
