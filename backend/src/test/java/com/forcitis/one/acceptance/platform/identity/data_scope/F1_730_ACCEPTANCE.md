@@ -17,12 +17,12 @@
 | A-U1 `anUndoneSeparationGivesOnePersonItemForAHolderOfSensitiveRoles` | 持有两个敏感角色的人得恰好一条人级敏感角色复核（`role_id` 空、无收件人），触发字段部门、触发前部门岗位空、触发后为更正后的、触发命令为该更正命令；重投递与同命令另一事件不再生成 |
 | A-U2 `aPersonWithoutASensitiveRoleGetsNothingAndNobodyGetsAScopeReview` | 只有 employee 的人不生成；任何人都没有范围复核条目（对照：持有者生成，证明监听器跑过） |
 | A-U3 `aCorrectionThatEndsEmploymentGivesNothingAndIsNotRetried` | 更正后不在职（触发后部门岗位空）持有敏感角色也不生成；事件的每条发布状态为 COMPLETED，无失败重试，重投递仍不生成 |
-| 告警 `aTransferWithoutItsBeforeDepartmentIsAlertedNotRetriedAndGivesNoItem` | 转岗事件缺触发前部门（空）：恰好一条以 `ALERT P2 platform.identity ` 开头的 ERROR 日志（只断言前缀）、不含此人标识；不生成条目；事件发布已 COMPLETED（one-design 裁定，#730 评论 6600900803） |
+| 告警 `aTransferWithoutItsBeforeDepartmentIsAlertedNotRetriedAndGivesNoItem` | 转岗事件缺触发前部门（空）：恰好一条以 `ALERT P2 platform.identity ` 开头的 ERROR 日志（自由文本只断言含事件 id、不含此人姓名与工号；员工 id 允许出现）；不生成条目；事件发布已 COMPLETED（one-design 裁定，#730 评论 6600900803） |
 
 红：main 上 identity 没有处理 `EmployeeCorrected` 的监听器，四条都在等待 identity 发布而超时（失败信息列出该事件仅有 audit 的发布）。绿：临时的最小监听器（只对 security_auditor、business_admin 持有者按裁定插入一行）加放宽后的 CHECK，前 3 条全绿（告警条随实现落地后转绿）；临时文件不提交。
 
 ## 未覆盖与存疑
 
-- 告警条只断言日志前缀与「恰好一条」，不断言自由文本（裁定如此）；日志取自根 logger 的 ListAppender，不含事件 id 的断言未加（裁定写「含事件 id/类型」但未给格式）。
+- 告警条的日志取自根 logger 的 ListAppender；事件类型是否出现在行内裁定写了但不好定格式，未断言（只断言事件 id）。
 - 「此刻持有的敏感角色」用 security_auditor、business_admin 两个角色代表；哪些角色算敏感由 `SensitivePermissions` 定，用例不自带第三方角色。
 - 撤销误离职后通常只剩 employee 一个角色（离职关闭了全部授予），条目通常不生成；是否改为覆盖离职时关闭的敏感授予，正在等用户回答（#730 评论 6599341585 第 4 项），本批按现行（A）。

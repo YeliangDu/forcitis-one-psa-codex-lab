@@ -177,6 +177,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         publish(event);
         publish(event);
         publish(again);
+        identityHandled(event);
         identityHandled(again);
         assertThat(itemsAbout(user)).as("a redelivery or another event of the same command adds none").hasSize(1);
     }
@@ -218,11 +219,11 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         assertThat(itemsAbout(user)).isEmpty();
         List<Map<String, Object>> publications = publicationsOf(event.envelope().eventId().toString());
         assertThat(publications).as("every publication of the event completed once, none failed or was resubmitted")
-                .allSatisfy(row -> assertThat(row.get("status")).isEqualTo("COMPLETED"));
+                .allSatisfy(row -> assertThat(row).containsEntry("status", "COMPLETED").containsEntry("completion_attempts", 1));
     }
 
     @Test
-    @DisplayName("#730 一次转岗事件缺触发前部门（空）：监听器不生成条目，记一条以 \"ALERT P2 platform.identity \" 开头的 ERROR 日志（恰好一条、不含此人标识），处理完成而不重试；持有敏感角色也一样（one-design 裁定，#730 评论 6600900803）")
+    @DisplayName("#730 一次转岗事件缺触发前部门（空）：监听器不生成条目，记一条以 \"ALERT P2 platform.identity \" 开头的 ERROR 日志（恰好一条、含事件 id、不含此人姓名与工号），处理完成而不重试；持有敏感角色也一样（one-design 裁定，#730 评论 6600900803）")
     void aTransferWithoutItsBeforeDepartmentIsAlertedNotRetriedAndGivesNoItem() throws Exception {
         UUID employee = employedHolding(SECURITY_AUDITOR);
         UUID user = accountOf(employee);
@@ -246,9 +247,16 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         List<ILoggingEvent> alerts = logged.list.stream()
                 .filter(line -> line.getLevel() == Level.ERROR && line.getFormattedMessage().startsWith("ALERT P2 platform.identity ")).toList();
         assertThat(alerts).as("exactly one alert line for the event").hasSize(1);
-        assertThat(alerts.getFirst().getFormattedMessage()).as("no personal identifier in the line").doesNotContain(employee.toString());
+        String line = alerts.getFirst().getFormattedMessage();
+        assertThat(line).as("the line names the event").contains(envelope.eventId().toString());
+        Map<String, Object> person;
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            person = query(workforce, "select employee_code, display_name from employees where id = ?", stored(employee)).getFirst();
+        }
+        assertThat(line).as("no employee code and no name in the line").doesNotContain(String.valueOf(person.get("employee_code")))
+                .doesNotContain(String.valueOf(person.get("display_name")));
         assertThat(itemsAbout(user)).as("no item for the refused event").isEmpty();
         assertThat(publicationsOf(envelope.eventId().toString())).as("delivery consumed, not failed or resubmitted")
-                .isNotEmpty().allSatisfy(row -> assertThat(row.get("status")).isEqualTo("COMPLETED"));
+                .isNotEmpty().allSatisfy(row -> assertThat(row).containsEntry("status", "COMPLETED").containsEntry("completion_attempts", 1));
     }
 }
