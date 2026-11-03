@@ -16,3 +16,8 @@ Not covered, and why:
 - A4 "custom org units that cannot be read": the seam that reads them does not exist yet; only the unreadable own unit (OrgDirectory fails for the caller) is driven.
 - `GET /api/v1/platform/files/{fileId}` (SELF): the file service is off in every test context (needs scanner and bucket), so no upload over HTTP; `GetUploadStatusTest` proves another uploader's file is not found.
 - G2 (a seeded test-only SCOPED endpoint that ignores scope): the harness takes plain adapters, but no such endpoint is registered here; the implementer adds it.
+
+Rulings on the doubts (one-design, #730 comment 6606893624):
+- No employee or no assignment on an own-unit scope is an empty scope (A3): lists 200 with zero rows, details 404. The resolver answered "nothing" is A3; the resolver failed or met an unknown kind is A4. Today's 403 is an accidental NPE in `AccessScopeCalculator.orgUnitReach`.
+- A4 details are 404 by intent; lists stay 403 `PLATFORM_IDENTITY_ACCESS_SCOPE_UNAVAILABLE`.
+- `unknownDepartmentSeesNothing` and `scopeFailureRefuses` change in the implementer's PR, not in this one.
