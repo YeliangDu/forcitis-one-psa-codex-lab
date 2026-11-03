@@ -19,6 +19,8 @@ import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.organization.workforce.events.EmployeeCorrected;
 import com.forcitis.one.organization.workforce.events.EmployeeTransferred;
+import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.platform.integration.api.WecomCard;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.Duration;
@@ -29,6 +31,8 @@ import java.util.UUID;
 import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionTimeoutException;
 import org.junit.jupiter.api.DisplayName;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -433,11 +437,17 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         }
     }
 
-    private List<Map<String, Object>> assignedCardsAbout(Object item) throws SQLException {
-        try (Connection registry = schemaConnection("platform_integration")) {
-            return query(registry, "select array_to_string(recipient_codes, ',') as recipients from outbound_deliveries where subject_kind = 'PERMISSION_ADJUSTMENT' and subject_id = ?"
-                    + " and purpose_kind = 'PERMISSION_ADJUSTMENT_ASSIGNED'", item);
+    /** The assigned cards sent about the item through the WeCom gateway (a mock in acceptance tests, so nothing reaches the delivery table); recipients are the WeCom user ids joined by commas. */
+    private List<Map<String, Object>> assignedCardsAbout(Object item) {
+        ArgumentCaptor<WecomCard> captured = ArgumentCaptor.forClass(WecomCard.class);
+        Mockito.verify(wecomGateway, Mockito.atLeast(0)).send(captured.capture());
+        List<Map<String, Object>> cards = new java.util.ArrayList<>();
+        for (WecomCard card : captured.getAllValues()) {
+            if ("PERMISSION_ADJUSTMENT_ASSIGNED".equals(card.subject().purpose().name()) && card.subject().id().toString().equals(String.valueOf(item))) {
+                cards.add(Map.of("recipients", String.join(",", card.wecomUserIds().stream().map(WecomUserId::value).toList())));
+            }
         }
+        return cards;
     }
 
     private String storedWecomUserId(UUID employee) throws SQLException {
