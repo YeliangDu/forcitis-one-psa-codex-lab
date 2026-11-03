@@ -15,7 +15,9 @@ import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeAccountAccess;
 import com.forcitis.one.kernel.OrgUnitAccess;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
+import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.UserId;
@@ -176,5 +178,20 @@ class ProfileChangeRequestServiceTest {
 
         assertNotFoundWithoutTouchingAnything("confirm", () -> service.confirm(ID, ExpectedVersion.of(0)));
         assertNotFoundWithoutTouchingAnything("reject", () -> service.reject(ID, "synthetic", ExpectedVersion.of(0)));
+    }
+
+    @Test
+    @DisplayName("#1153: a caller of one unit still decides a request of an employee in that unit: the call reaches the lock and the version check")
+    void aRequestInTheCallersUnitIsReached() {
+        pendingOfEmployee();
+        OrgUnitId unit = new OrgUnitId(UUID.fromString("019a0000-0000-7000-8000-0000000000d1"));
+        when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenReturn(new OrgUnitAccess.Visible(false, java.util.Set.of(unit.value()), java.util.Set.of()));
+        when(snapshots.findAllOrgUnits()).thenReturn(java.util.List.of());
+        StaffEmployee staff = mock(StaffEmployee.class, org.mockito.Answers.RETURNS_DEEP_STUBS);
+        when(staff.assignment().orgUnitId()).thenReturn(unit);
+        when(snapshots.findStaff(EMPLOYEE)).thenReturn(Optional.of(staff));
+
+        assertThatThrownBy(() -> service.confirm(ID, ExpectedVersion.of(0))).isInstanceOf(com.forcitis.one.kernel.VersionMismatchException.class);
+        verify(employees).lockEmployee(EMPLOYEE);
     }
 }
