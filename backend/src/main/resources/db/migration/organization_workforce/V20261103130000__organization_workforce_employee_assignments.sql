@@ -76,6 +76,7 @@ ALTER TABLE organization_workforce.assignment_versions
     ALTER COLUMN assignment_kind SET NOT NULL,
     ADD CONSTRAINT fk_assignment_versions_assignment FOREIGN KEY (assignment_id, employee_id, assignment_kind)
         REFERENCES organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind) ON DELETE RESTRICT,
+    ADD CONSTRAINT ck_assignment_versions_assignment_kind CHECK (assignment_kind IN ('PRIMARY', 'CONCURRENT')),
     ADD CONSTRAINT ck_assignment_versions_concurrent_reports_to CHECK (assignment_kind = 'PRIMARY' OR reports_to_employee_id IS NULL),
     ADD CONSTRAINT uk_assignment_versions_id_assignment UNIQUE (assignment_version_id, assignment_id);
 ALTER TABLE organization_workforce.assignment_versions DROP CONSTRAINT ex_assignment_versions_overlap;
@@ -97,6 +98,7 @@ COMMENT ON COLUMN organization_workforce.assignment_versions.reports_to_employee
 ALTER TABLE organization_workforce.personnel_commands
     ADD CONSTRAINT fk_personnel_commands_target_assignment FOREIGN KEY (target_assignment_id, employee_id, target_assignment_kind)
         REFERENCES organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind) ON DELETE RESTRICT,
+    ADD CONSTRAINT ck_personnel_commands_target_assignment_kind CHECK (target_assignment_kind IN ('PRIMARY', 'CONCURRENT')),
     ADD CONSTRAINT ck_personnel_commands_target_assignment_pair CHECK ((target_assignment_id IS NULL) = (target_assignment_kind IS NULL));
 CREATE INDEX ix_personnel_commands_target_assignment ON organization_workforce.personnel_commands (target_assignment_id, employee_id, target_assignment_kind) WHERE target_assignment_id IS NOT NULL;
 
