@@ -99,4 +99,19 @@ class ProfileChangeRequestServiceTest {
                 refused -> assertThat(refused.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_PROFILE_CHANGE_REQUEST_NOT_FOUND));
         verifyNoMoreInteractions(access, audit);
     }
+
+    @Test
+    @DisplayName("#730 S4: a caller who sees everything gets a pending request of an employee with no current assignment too; a caller of some units does not")
+    void everythingIncludesAnEmployeeWithoutAssignment() {
+        ProfileChangeRequest pending = ProfileChangeRequest.restore(ID, EMPLOYEE, REQUESTER, AT, new PersonalProfile("Synthetic name", null, null, new WecomUserId("old")),
+                new PersonalProfile("Synthetic name", null, null, new WecomUserId("new")), ProfileChangeStatus.PENDING, 0, null, null, null, null);
+        when(requests.pending(null, 51)).thenReturn(java.util.List.of(pending));
+        when(snapshots.findStaff(EMPLOYEE)).thenReturn(Optional.empty());
+
+        when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenReturn(OrgUnitAccess.Visible.all());
+        org.assertj.core.api.Assertions.assertThat(service.pending(com.forcitis.one.kernel.PageRequest.of(50, null, "profile-change-requests")).items()).hasSize(1);
+
+        when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenReturn(OrgUnitAccess.Visible.nothing());
+        org.assertj.core.api.Assertions.assertThat(service.pending(com.forcitis.one.kernel.PageRequest.of(50, null, "profile-change-requests")).items()).isEmpty();
+    }
 }

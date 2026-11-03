@@ -77,14 +77,15 @@ class ProfileChangeRequestService implements ProfileChangeRequests {
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('" + PERMISSION + "')")
     public CursorPage<ProfileChangeRequestView> pending(PageRequest page) {
-        Set<OrgUnitId> allowed = OrgUnitVisibility.idsIn(snapshots.findAllOrgUnits(), unitAccess.visibleOrgUnits(PERMISSION));
+        OrgUnitAccess.Visible visible = unitAccess.visibleOrgUnits(PERMISSION);
+        Set<OrgUnitId> allowed = visible.everything() ? Set.of() : OrgUnitVisibility.idsIn(snapshots.findAllOrgUnits(), visible);
         List<ProfileChangeRequest> items = new ArrayList<>();
         boolean more = false;
         UUID after = page.cursorUuid();
         while (!more) {
             List<ProfileChangeRequest> found = requests.pending(after, page.limit() + 1);
             for (ProfileChangeRequest request : found) {
-                if (snapshots.findStaff(request.employeeId()).map(staff -> allowed.contains(staff.assignment().orgUnitId())).orElse(false)) {
+                if (visible.everything() || snapshots.findStaff(request.employeeId()).map(staff -> allowed.contains(staff.assignment().orgUnitId())).orElse(false)) {
                     more = items.size() == page.limit();
                     if (more) {
                         break;
