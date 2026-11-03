@@ -82,7 +82,7 @@ class OpenAssignmentReviews {
             }
             Instant now = clock.instant();
             PermissionAdjustmentId id = new PermissionAdjustmentId(ids.next());
-            Instant dueAt = escalationDueAt(trigger, id, now);
+            Instant dueAt = escalationDueAt(trigger, id);
             PermissionAdjustment item = PermissionAdjustment.assignmentChangeReview(id, user, command, field,
                     beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition, dueAt, now);
             adjustments.insert(item);
@@ -102,7 +102,7 @@ class OpenAssignmentReviews {
             EmployeeId head = directory.findOrgUnitHead(afterOrgUnit).filter(candidate -> !candidate.equals(mover)).orElse(null);
             PermissionAdjustmentId id = new PermissionAdjustmentId(ids.next());
             PermissionAdjustment item = PermissionAdjustment.departmentChangeScopeReview(id, user, command,
-                    beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition, head, escalationDueAt(trigger, id, now), now);
+                    beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition, head, escalationDueAt(trigger, id), now);
             adjustments.insert(item);
             events.publish(item);
             assign(item, head, trigger);
@@ -129,7 +129,7 @@ class OpenAssignmentReviews {
                 DeliverySubject.of(DeliveryPurpose.PERMISSION_ADJUSTMENT_ASSIGNED, item.id().value())));
     }
 
-    private Instant escalationDueAt(EventEnvelope trigger, PermissionAdjustmentId item, Instant now) {
+    private Instant escalationDueAt(EventEnvelope trigger, PermissionAdjustmentId item) {
         LegalEntityId legalEntity = trigger.legalEntityId();
         if (legalEntity == null) {
             LOG.error("ALERT P3 platform.identity event {} has no legal entity: the escalation deadline of item {} follows the default work calendar",

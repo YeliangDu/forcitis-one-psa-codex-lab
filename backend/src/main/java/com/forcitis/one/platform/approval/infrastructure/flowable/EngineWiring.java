@@ -28,23 +28,17 @@ import org.springframework.core.env.Profiles;
 @EnableConfigurationProperties(AssignmentProperties.class)
 class EngineWiring implements ApplicationListener<ApplicationReadyEvent> {
 
-    private static final Logger log = LoggerFactory.getLogger(EngineWiring.class);
-
     private final ProcessEngine engine;
     private final RepositoryService repository;
     private final TaskAssignmentListener listener;
-    private final AssignmentProperties properties;
     private final ProcessAdministratorCheck administrators;
-    private final Environment environment;
 
-    EngineWiring(ProcessEngine engine, RepositoryService repository, TaskAssignmentListener listener, AssignmentProperties properties,
-            ProcessAdministratorCheck administrators, Environment environment) {
+    EngineWiring(ProcessEngine engine, RepositoryService repository, TaskAssignmentListener listener,
+            ProcessAdministratorCheck administrators) {
         this.engine = engine;
         this.repository = repository;
         this.listener = listener;
-        this.properties = properties;
         this.administrators = administrators;
-        this.environment = environment;
     }
 
     /** Static, so that the engine configuration does not wait for this class, which needs the engine; without an IdGenerator bean Flowable 8.0.0 defaults to StrongUuidGenerator; this configurer runs before the engine is built and replaces it. */

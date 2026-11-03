@@ -46,7 +46,7 @@ class PersonnelCommandEventsTest {
     static final PositionId POSITION = new PositionId(UUID.fromString("019a0000-0000-7000-8000-0000000000b3"));
     static final long SEQUENCE = 4;
 
-    private static PersonnelCommand command(PersonnelCommandKind kind, EnterPersonnelCommand request) {
+    private static PersonnelCommand command(EnterPersonnelCommand request) {
         return PersonnelCommand.enter(new PersonnelCommandId(UUID.fromString("019a0000-0000-7000-8000-0000000000c1")), EMPLOYEE, request,
                 new UserId(UUID.fromString("019a0000-0000-7000-8000-0000000000aa")), NOW, DAY, SEQUENCE);
     }
@@ -74,19 +74,19 @@ class PersonnelCommandEventsTest {
     @Test
     @DisplayName("IMP-1030-PAR-B3 each kind that takes effect publishes its own event with the command id, the employee and the effective date")
     void eachKindPublishesItsEvent() {
-        PersonnelCommand hire = command(PersonnelCommandKind.HIRE, request(PersonnelCommandKind.HIRE, DAY, null, NEW_UNIT, POSITION, false, EmploymentPhaseKind.PROBATION));
+        PersonnelCommand hire = command(request(PersonnelCommandKind.HIRE, DAY, null, NEW_UNIT, POSITION, false, EmploymentPhaseKind.PROBATION));
         assertThat(published(hire, null)).isInstanceOfSatisfying(EmployeeHired.class, e -> {
             assertThat(e.personnelCommandId()).isEqualTo(hire.id());
             assertThat(e.employeeId()).isEqualTo(EMPLOYEE);
             assertThat(e.effectiveDate()).isEqualTo(DAY);
         });
-        assertThat(published(command(PersonnelCommandKind.REGULARIZE, request(PersonnelCommandKind.REGULARIZE, DAY, null, null, null, null, null)), null))
+        assertThat(published(command(request(PersonnelCommandKind.REGULARIZE, DAY, null, null, null, null, null)), null))
                 .isInstanceOf(EmployeeRegularized.class);
-        PersonnelCommand separation = command(PersonnelCommandKind.SEPARATE, request(PersonnelCommandKind.SEPARATE, null, DAY.minusDays(1), null, null, null, null));
+        PersonnelCommand separation = command(request(PersonnelCommandKind.SEPARATE, null, DAY.minusDays(1), null, null, null, null));
         assertThat(published(separation, null)).isInstanceOfSatisfying(EmployeeSeparated.class, e -> assertThat(e.effectiveDate()).as("the day after the last working day").isEqualTo(DAY));
-        assertThat(published(command(PersonnelCommandKind.REINSTATE, request(PersonnelCommandKind.REINSTATE, DAY, null, NEW_UNIT, POSITION, true, EmploymentPhaseKind.REGULAR)), null))
+        assertThat(published(command(request(PersonnelCommandKind.REINSTATE, DAY, null, NEW_UNIT, POSITION, true, EmploymentPhaseKind.REGULAR)), null))
                 .isInstanceOf(EmployeeReinstated.class);
-        assertThat(published(command(PersonnelCommandKind.CORRECTION, request(PersonnelCommandKind.CORRECTION, DAY, null, NEW_UNIT, null, null, null)), null))
+        assertThat(published(command(request(PersonnelCommandKind.CORRECTION, DAY, null, NEW_UNIT, null, null, null)), null))
                 .isInstanceOfSatisfying(EmployeeCorrected.class, e -> assertThat(e.affectedFrom()).isEqualTo(DAY));
     }
 
@@ -95,7 +95,7 @@ class PersonnelCommandEventsTest {
     void aTransferCarriesItsTriggersAndUnpaidLeaveNothing() {
         VersionRow before = new VersionRow(UUID.fromString("019a0000-0000-7000-8000-0000000000d1"), LocalDate.of(2026, 1, 1), null,
                 Map.of(CommandEffects.ORG_UNIT, OLD_UNIT.value(), CommandEffects.POSITION, POSITION.value()), ChangeSource.MIGRATION, null, false);
-        PersonnelCommand transfer = command(PersonnelCommandKind.TRANSFER, request(PersonnelCommandKind.TRANSFER, DAY, null, NEW_UNIT, null, null, null));
+        PersonnelCommand transfer = command(request(PersonnelCommandKind.TRANSFER, DAY, null, NEW_UNIT, null, null, null));
 
         assertThat(published(transfer, before)).isInstanceOfSatisfying(EmployeeTransferred.class, e -> {
             assertThat(e.triggerFieldKinds()).containsExactly(TriggerFieldKind.ORG_UNIT);
@@ -104,7 +104,7 @@ class PersonnelCommandEventsTest {
             assertThat(e.previousPositionId()).isEqualTo(POSITION);
             assertThat(e.newPositionId()).as("the position did not change").isEqualTo(POSITION);
         });
-        PersonnelCommand leave = command(PersonnelCommandKind.UNPAID_LEAVE_START, request(PersonnelCommandKind.UNPAID_LEAVE_START, DAY, null, null, null, null, null));
+        PersonnelCommand leave = command(request(PersonnelCommandKind.UNPAID_LEAVE_START, DAY, null, null, null, null, null));
         leave.recordEffect(null, null, null);
         assertThat(leave.hasPendingEvents()).isFalse();
     }
@@ -117,7 +117,7 @@ class PersonnelCommandEventsTest {
     }
 
     private static EmployeeCorrected corrected(VersionRow before, VersionRow after) {
-        return (EmployeeCorrected) published(command(PersonnelCommandKind.CORRECTION, request(PersonnelCommandKind.CORRECTION, DAY, null, NEW_UNIT, null, null, null)), before, after);
+        return (EmployeeCorrected) published(command(request(PersonnelCommandKind.CORRECTION, DAY, null, NEW_UNIT, null, null, null)), before, after);
     }
 
     @Test
@@ -171,7 +171,7 @@ class PersonnelCommandEventsTest {
     @Test
     @DisplayName("IMP-1030-PAR-B6 (ADR-0068 item 2): a held separation records SeparationHeld and a release records SeparationHoldReleased, both about the employee and dated by the original effective date")
     void aHoldAndItsReleaseAreEventsOfTheEmployee() {
-        PersonnelCommand separation = command(PersonnelCommandKind.SEPARATE, request(PersonnelCommandKind.SEPARATE, null, DAY.minusDays(1), null, null, null, null));
+        PersonnelCommand separation = command(request(PersonnelCommandKind.SEPARATE, null, DAY.minusDays(1), null, null, null, null));
         SeparationHoldId hold = new SeparationHoldId(UUID.fromString("019a0000-0000-7000-8000-0000000000e1"));
         separation.holdAtEntry();
 
@@ -201,7 +201,7 @@ class PersonnelCommandEventsTest {
     void aCountersignedCommandPublishesTheLegalEntityChange() {
         LegalEntityId previous = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f1"));
         LegalEntityId next = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f2"));
-        PersonnelCommand change = command(PersonnelCommandKind.CHANGE_LEGAL_ENTITY, new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.CHANGE_LEGAL_ENTITY, DAY, null,
+        PersonnelCommand change = command(new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.CHANGE_LEGAL_ENTITY, DAY, null,
                 null, null, null, null, null, next, null, null, null, null, null));
         change.requireCountersign(previous, next);
         assertThat(change.status()).isEqualTo(CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN);
@@ -225,7 +225,7 @@ class PersonnelCommandEventsTest {
     @DisplayName("#895 ck_personnel_commands_correction_immediate: a correction dated after today becomes effective when its countersign completes, never pending")
     void aFutureCorrectionIsEffectiveWhenCountersigned() {
         LegalEntityId next = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f2"));
-        PersonnelCommand correction = command(PersonnelCommandKind.CORRECTION, new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.CORRECTION, DAY.plusDays(3), null,
+        PersonnelCommand correction = command(new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.CORRECTION, DAY.plusDays(3), null,
                 null, null, null, null, null, next, null, null, null, null, null));
         correction.requireCountersign(new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f1")), next);
 

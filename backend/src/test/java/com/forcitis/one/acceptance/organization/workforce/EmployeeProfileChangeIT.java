@@ -66,7 +66,6 @@ class EmployeeProfileChangeIT extends EmployeeHireSupport {
     void aFutureDatedChangeIsRefused() throws Exception {
         UUID person = employed(REGULAR);
         Map<String, Object> rootBefore = root(person);
-        int audited = auditCount(AUDIT_PROFILE_CHANGED);
 
         String name = (String) rootBefore.get("display_name");
         String wecom = (String) rootBefore.get("wecom_user_id");

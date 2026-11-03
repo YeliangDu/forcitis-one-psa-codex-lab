@@ -127,13 +127,13 @@ class SensitiveGrantTwoPersonIntegrationTest extends IdentityIntegrationTest {
                 .as("ADR-0034-IMPL A-5: the version applied after the confirmation names the request and its author").isEqualTo(1);
 
         createAccount(10, "reader");
-        MvcResult heldByCaller = mvc.perform(put("/api/v1/platform/roles/" + reader).header("If-Match", roleVersion(reader)).with(xsrf()).cookie(new Cookie("SESSION", loginAgain(second, 10)))
+        MvcResult heldByCaller = mvc.perform(put("/api/v1/platform/roles/" + reader).header("If-Match", roleVersion(reader)).with(xsrf()).cookie(new Cookie("SESSION", loginAgain(second)))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"renamed\",\"enabled\":true,\"permissionCodes\":[]}")).andReturn();
         assertThat(heldByCaller.getResponse().getStatus()).isEqualTo(403);
         assertThat(body(heldByCaller).path("errorCode").asString()).isEqualTo("PLATFORM_IDENTITY_OWN_ROLE_DEFINITION_FORBIDDEN");
     }
 
-    private String loginAgain(String session, long id) throws Exception {
+    private String loginAgain(String session) throws Exception {
         accessCache.evictAll();
         return session;
     }
