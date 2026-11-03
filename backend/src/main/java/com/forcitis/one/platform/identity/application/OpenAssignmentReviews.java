@@ -81,15 +81,16 @@ class OpenAssignmentReviews {
                 return;
             }
             Instant now = clock.instant();
-            Instant dueAt = escalationDueAt(trigger, now);
-            PermissionAdjustment item = PermissionAdjustment.assignmentChangeReview(new PermissionAdjustmentId(ids.next()), user, command, field,
+            PermissionAdjustmentId id = new PermissionAdjustmentId(ids.next());
+            Instant dueAt = escalationDueAt(trigger, id, now);
+            PermissionAdjustment item = PermissionAdjustment.assignmentChangeReview(id, user, command, field,
                     beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition, dueAt, now);
             adjustments.insert(item);
             events.publish(item);
         });
     }
 
-    void openScopeReviewFor(UserId user, EventEnvelope trigger, PersonnelCommandId command, OrgUnitId beforeOrgUnit, OrgUnitId afterOrgUnit,
+    void openScopeReviewFor(UserId user, EmployeeId mover, EventEnvelope trigger, PersonnelCommandId command, OrgUnitId beforeOrgUnit, OrgUnitId afterOrgUnit,
             @Nullable PositionId beforePosition, @Nullable PositionId afterPosition) {
         accounts.findForUpdate(user).ifPresent(account -> {
             boolean holdsScopedRole = accounts.openGrants(user).stream()
@@ -98,16 +99,20 @@ class OpenAssignmentReviews {
                 return;
             }
             Instant now = clock.instant();
-            EmployeeId head = directory.findOrgUnitHead(afterOrgUnit).orElse(null);
-            PermissionAdjustment item = PermissionAdjustment.departmentChangeScopeReview(new PermissionAdjustmentId(ids.next()), user, command,
-                    beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition, head, escalationDueAt(trigger, now), now);
+            EmployeeId head = directory.findOrgUnitHead(afterOrgUnit).filter(candidate -> !candidate.equals(mover)).orElse(null);
+            PermissionAdjustmentId id = new PermissionAdjustmentId(ids.next());
+            PermissionAdjustment item = PermissionAdjustment.departmentChangeScopeReview(id, user, command,
+                    beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition, head, escalationDueAt(trigger, id, now), now);
             adjustments.insert(item);
             events.publish(item);
             assign(item, head, trigger);
         });
     }
 
-    /** One card to the new head, queued in this transaction; none when the department has no head or the head has no WeCom user id. */
+    /**
+     * One card to the new head, queued in this transaction; none when the department has no head (the mover heading it counts as none) or the head
+     * has no WeCom user id.
+     */
     private void assign(PermissionAdjustment item, @Nullable EmployeeId head, EventEnvelope trigger) {
         if (head == null) {
             LOG.error("ALERT P3 platform.identity event {} has no head of the new department: the scope review item {} has no recipient and no card",
@@ -124,11 +129,11 @@ class OpenAssignmentReviews {
                 DeliverySubject.of(DeliveryPurpose.PERMISSION_ADJUSTMENT_ASSIGNED, item.id().value())));
     }
 
-    private Instant escalationDueAt(EventEnvelope trigger, Instant now) {
+    private Instant escalationDueAt(EventEnvelope trigger, PermissionAdjustmentId item, Instant now) {
         LegalEntityId legalEntity = trigger.legalEntityId();
         if (legalEntity == null) {
-            LOG.error("ALERT P3 platform.identity event {} has no legal entity: the escalation deadline follows the default work calendar",
-                    trigger.eventId());
+            LOG.error("ALERT P3 platform.identity event {} has no legal entity: the escalation deadline of item {} follows the default work calendar",
+                    trigger.eventId(), item.value());
         }
         return deadlines.endOfWorkdayAfter(zone.dateOf(clock.instant()), ESCALATION_WORKDAYS, legalEntity);
     }

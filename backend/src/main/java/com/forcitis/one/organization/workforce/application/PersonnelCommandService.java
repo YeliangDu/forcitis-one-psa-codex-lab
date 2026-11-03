@@ -74,6 +74,7 @@ class PersonnelCommandService implements PersonnelCommands {
     private final LegalEntityResolutionSources legalEntities;
     private final CountersignBases bases;
     private final CountersignRequests requests;
+    private final OrgCountersignFreeze freeze;
     private final AttributionCountersignRepository countersigns;
     private final OwnAttributionGuard ownGuard;
     private final EffectPublisher effects;
@@ -86,7 +87,7 @@ class PersonnelCommandService implements PersonnelCommands {
 
     PersonnelCommandService(PersonnelCommandRepository commands, NewEmployees newEmployees, PersonnelPlans timelines, SeparationHoldCheck holdCheck, UnpaidLeaveStartFloor leaveFloor,
                             LegalEntityResolutionSources legalEntities, CountersignBases bases, CountersignRequests requests,
-                            AttributionCountersignRepository countersigns, OwnAttributionGuard ownGuard, EffectPublisher effects, AuditLog audit, DomainEvents events,
+                            OrgCountersignFreeze freeze, AttributionCountersignRepository countersigns, OwnAttributionGuard ownGuard, EffectPublisher effects, AuditLog audit, DomainEvents events,
                             CurrentUser currentUser, IdGenerator ids, Clock clock, BusinessZone zone) {
         this.commands = commands;
         this.newEmployees = newEmployees;
@@ -96,6 +97,7 @@ class PersonnelCommandService implements PersonnelCommands {
         this.legalEntities = legalEntities;
         this.bases = bases;
         this.requests = requests;
+        this.freeze = freeze;
         this.countersigns = countersigns;
         this.ownGuard = ownGuard;
         this.effects = effects;
@@ -150,6 +152,7 @@ class PersonnelCommandService implements PersonnelCommands {
         command.actOnPost(history, () -> commands.primaryRoot(employee, now));
         PersonnelCommandRules.check(command, history);
         PersonnelCommandRules.requireNoAwaitingOnOrBefore(command, history);
+        freeze.requireNotFrozen(command);
         bases.of(command, history).ifPresent(basis -> {
             // Nobody changes their own legal entity (ADR-0073 item 3.5, ADR-0027 item 2.2): the drafter is refused when it is theirs that would change.
             ownGuard.requireNotOwn(AttributionSubject.of(employee), by);

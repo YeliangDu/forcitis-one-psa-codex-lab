@@ -56,7 +56,7 @@ class HireProfileRefusalTest {
         when(currentUser.userId()).thenReturn(USER);
         when(commands.lockEmployee(any())).thenReturn(true);
         service = new PersonnelCommandService(commands, new NewEmployees(commands, numbers, ids), new PersonnelPlans(ids), mock(SeparationHoldCheck.class),
-                mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), mock(CountersignBases.class), mock(CountersignRequests.class),
+                mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), mock(CountersignBases.class), mock(CountersignRequests.class), new OrgCountersignFreeze(mock(com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository.class)),
                 mock(AttributionCountersignRepository.class), mock(OwnAttributionGuard.class), mock(EffectPublisher.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids,
                 Clock.fixed(NOW, ZoneOffset.UTC), new BusinessZone(ZoneId.of("Asia/Shanghai")));
     }

@@ -151,6 +151,16 @@ channels:
     messages:
       PermissionAdjustmentOpened:
         $ref: '#/components/messages/PermissionAdjustmentOpened'
+  permissionAdjustmentUpheld:
+    address: platform.identity.PermissionAdjustmentUpheld
+    messages:
+      PermissionAdjustmentUpheld:
+        $ref: '#/components/messages/PermissionAdjustmentUpheld'
+  permissionAdjustmentAdjusted:
+    address: platform.identity.PermissionAdjustmentAdjusted
+    messages:
+      PermissionAdjustmentAdjusted:
+        $ref: '#/components/messages/PermissionAdjustmentAdjusted'
   authorizationOpened:
     address: platform.identity.AuthorizationOpened
     messages:
@@ -806,6 +816,34 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/permissionAdjustmentOpened/messages/PermissionAdjustmentOpened'
+  publishPermissionAdjustmentUpheld:
+    action: send
+    channel:
+      $ref: '#/channels/permissionAdjustmentUpheld'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/permissionAdjustmentUpheld/messages/PermissionAdjustmentUpheld'
+  handlePermissionAdjustmentUpheldInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/permissionAdjustmentUpheld'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/permissionAdjustmentUpheld/messages/PermissionAdjustmentUpheld'
+  publishPermissionAdjustmentAdjusted:
+    action: send
+    channel:
+      $ref: '#/channels/permissionAdjustmentAdjusted'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/permissionAdjustmentAdjusted/messages/PermissionAdjustmentAdjusted'
+  handlePermissionAdjustmentAdjustedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/permissionAdjustmentAdjusted'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/permissionAdjustmentAdjusted/messages/PermissionAdjustmentAdjusted'
   publishAuthorizationOpened:
     action: send
     channel:
@@ -3138,6 +3176,126 @@ components:
             type: string
             format: date-time
             description: 升级时刻，条目生成日起第 5 个工作日结束（工作日历按事件所属法人，缺法人用默认日历）
+    PermissionAdjustmentUpheld:
+      name: PermissionAdjustmentUpheld
+      title: 待调整权限条目被维持
+      x-event:
+        eventType: platform.identity.PermissionAdjustmentUpheld
+        version: 1
+        class: com.forcitis.one.platform.identity.events.PermissionAdjustmentUpheld
+        aggregate: PermissionAdjustment
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.PermissionAdjustmentTest
+        noConsumer: 暂无消费方：维持只需留痕；现在就发布，是因为办理只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - permissionAdjustmentId
+        - upheldBy
+        - kind
+        - businessOwnerEmployeeId
+        - upholdExpiresAt
+        - reason
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          permissionAdjustmentId:
+            type: string
+            format: uuid
+            x-type: PermissionAdjustmentId
+          upheldBy:
+            type: string
+            x-type: UserId
+            format: uuid
+            description: 办理人账号
+          kind:
+            type: string
+            enum:
+            - SENSITIVE_ROLE_REVIEW
+            - SCOPE_REVIEW
+            x-type: PermissionAdjustmentKind
+            description: 条目类型：敏感角色复核或范围复核
+          businessOwnerEmployeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            nullable: true
+            description: 业务负责人（员工 ID），只有敏感角色复核有
+          upholdExpiresAt:
+            type: string
+            format: date-time
+            nullable: true
+            description: 维持有效至，维持之后下一自然季度首日 00:00（业务时区），只有敏感角色复核有
+          reason:
+            type: string
+            x-type: Reason
+            description: 办理人填写的维持理由，进审计条目的变更原因列，不进明细
+    PermissionAdjustmentAdjusted:
+      name: PermissionAdjustmentAdjusted
+      title: 待调整权限条目被标记已调整
+      x-event:
+        eventType: platform.identity.PermissionAdjustmentAdjusted
+        version: 1
+        class: com.forcitis.one.platform.identity.events.PermissionAdjustmentAdjusted
+        aggregate: PermissionAdjustment
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.PermissionAdjustmentTest
+        noConsumer: 暂无消费方：标记已调整只需留痕；现在就发布，是因为办理只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - permissionAdjustmentId
+        - adjustedBy
+        - kind
+        - authorizationRequestId
+        - auditEntryId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          permissionAdjustmentId:
+            type: string
+            format: uuid
+            x-type: PermissionAdjustmentId
+          adjustedBy:
+            type: string
+            x-type: UserId
+            format: uuid
+            description: 办理人账号
+          kind:
+            type: string
+            enum:
+            - SENSITIVE_ROLE_REVIEW
+            - SCOPE_REVIEW
+            x-type: PermissionAdjustmentKind
+            description: 条目类型：敏感角色复核或范围复核
+          authorizationRequestId:
+            type: string
+            format: uuid
+            x-type: AuthorizationRequestId
+            nullable: true
+            description: 调整所凭的授权申请，与审计条目恰有其一
+          auditEntryId:
+            type: string
+            format: uuid
+            x-type: AuditEntryId
+            nullable: true
+            description: 调整所凭的授予审计条目，与授权申请恰有其一
     AuthorizationOpened:
       name: AuthorizationOpened
       title: 敏感授权申请开立
@@ -4580,7 +4738,7 @@ components:
     EmployeeLegalEntityChanged:
       name: EmployeeLegalEntityChanged
       title: 员工法人归属已变更
-      description: 改变员工成本法人的人事命令（调岗、更正或变更法人归属）经法人财务负责人会签后生效时发布，不论命令种类（调岗同时发布 EmployeeTransferred）。会签期间不发布，待生效的命令也不发布（ADR-0073 第 3 条第 7 项、会签设计说明
+      description: 改变员工成本法人的命令经法人财务负责人会签后生效时发布：人事命令（调岗、更正或变更法人归属，不论命令种类，调岗同时发布 EmployeeTransferred），或组织结构命令（指定法人、调整上级、合并，依据里每位员工各发一次；合并经它生成的调岗发布，不重复发布）。会签期间不发布，待生效的命令也不发布（ADR-0073 第 3 条第 7 项、会签设计说明
       x-event:
         eventType: organization.workforce.EmployeeLegalEntityChanged
         version: 1
@@ -4601,6 +4759,7 @@ components:
         required:
         - envelope
         - personnelCommandId
+        - orgStructureCommandId
         - employeeId
         - effectiveDate
         - previousLegalEntityId
@@ -4612,7 +4771,14 @@ components:
             type: string
             format: uuid
             x-type: PersonnelCommandId
-            description: 触发本事件的人事命令 ID（UUIDv7）
+            nullable: true
+            description: 触发本事件的人事命令 ID（UUIDv7）；由组织结构命令触发时为空，两者恰有一个
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            nullable: true
+            description: 触发本事件的组织结构命令 ID（UUIDv7）：指定法人、调整上级、合并经会签生效后改变了员工成本法人时有值；由人事命令触发时为空
           employeeId:
             type: string
             format: uuid
@@ -4621,7 +4787,7 @@ components:
           effectiveDate:
             type: string
             x-type: LocalDate
-            description: 人事业务生效日（DECLARED）：员工在新成本法人的第一天
+            description: 业务生效日（DECLARED）：员工在新成本法人的第一天
           previousLegalEntityId:
             type: string
             format: uuid

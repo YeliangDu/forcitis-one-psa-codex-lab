@@ -38,7 +38,7 @@ class CountersignRequestsTest {
     final AttributionCountersignRepository countersigns = mock(AttributionCountersignRepository.class);
     final IdGenerator ids = mock(IdGenerator.class);
     final CountersignDueDates dueDates = mock(CountersignDueDates.class);
-    final CountersignRequests requests = new CountersignRequests(countersigns, mock(PersonnelCommandRepository.class), dueDates, mock(AuditLog.class), ids);
+    final CountersignRequests requests = new CountersignRequests(countersigns, dueDates, mock(AuditLog.class), ids);
     final AtomicLong next = new AtomicLong(1);
 
     CountersignRequestsTest() {
