@@ -210,4 +210,24 @@ class HandleEmployeeCorrectedEscalationTest {
         assertThat(card.getValue().wecomUserIds()).containsExactly(new WecomUserId("head-wecom"));
         assertThat(card.getValue().subject()).isEqualTo(DeliverySubject.of(DeliveryPurpose.PERMISSION_ADJUSTMENT_ASSIGNED, item.id().value()));
     }
+
+    @Test
+    @DisplayName("a head of the new department without a WeCom user id still gets the item, no card is sent, and one P3 alert is logged")
+    void aHeadWithoutAWecomIdStillGetsTheItem() {
+        Role scoped = mock(Role.class);
+        when(scoped.accessScope()).thenReturn(AccessScopeKind.CUSTOM_ORG_UNITS);
+        RoleId roleId = new RoleId(UUID.randomUUID());
+        when(accounts.openGrants(user)).thenReturn(List.of(new HeldGrant(new AccountRoleGrantId(UUID.randomUUID()), roleId, new RoleCode("scoped"))));
+        when(roles.findById(roleId)).thenReturn(Optional.of(scoped));
+        EmployeeCorrected event = correction(new LegalEntityId(UUID.randomUUID()), List.of(TriggerFieldKind.ORG_UNIT), new OrgUnitId(UUID.randomUUID()));
+        EmployeeId head = TestAccounts.employee(2002);
+        when(directory.findOrgUnitHead(event.newOrgUnitId())).thenReturn(Optional.of(head));
+        when(directory.findEmployee(head)).thenReturn(Optional.of(new EmployeeProfile(head, "Head", event.newOrgUnitId(), null, EmploymentStatus.EMPLOYED, false)));
+
+        handle(event);
+
+        assertThat(inserted().recipient()).isEqualTo(head);
+        verify(wecom, never()).send(any());
+        assertThat(alerts()).singleElement().asString().contains(event.envelope().eventId().toString());
+    }
 }

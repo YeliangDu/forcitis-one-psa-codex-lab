@@ -5,9 +5,11 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.kernel.WorkdayDeadlines;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.kernel.event.EventEnvelope;
+import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
@@ -112,11 +114,14 @@ class OpenAssignmentReviews {
                     trigger.eventId(), item.id().value());
             return;
         }
-        directory.findEmployee(head).ifPresentOrElse(
-                profile -> wecom.send(new WecomCard(List.of(profile.wecomUserId()), "待调整权限：范围复核", "有员工调入你负责的部门，请复核其数据范围授权。",
-                        "https://one.forcitis.com/", DeliverySubject.of(DeliveryPurpose.PERMISSION_ADJUSTMENT_ASSIGNED, item.id().value()))),
-                () -> LOG.error("ALERT P3 platform.identity event {} the head of the new department has no profile: scope review item {} has no card",
-                        trigger.eventId(), item.id().value()));
+        WecomUserId address = directory.findEmployee(head).map(EmployeeProfile::wecomUserId).orElse(null);
+        if (address == null) {
+            LOG.error("ALERT P3 platform.identity event {} the head of the new department has no WeCom user id: scope review item {} has no card",
+                    trigger.eventId(), item.id().value());
+            return;
+        }
+        wecom.send(new WecomCard(List.of(address), "待调整权限：范围复核", "有员工调入你负责的部门，请复核其数据范围授权。", "https://one.forcitis.com/",
+                DeliverySubject.of(DeliveryPurpose.PERMISSION_ADJUSTMENT_ASSIGNED, item.id().value())));
     }
 
     private Instant escalationDueAt(EventEnvelope trigger, Instant now) {
