@@ -173,7 +173,7 @@ class OrgStructureRules {
         if (!commands.orgUnitExists(receiving) || !tree.activeFrom(receiving.value(), day)) {
             throw refused("the parent org unit does not exist or is not in force from " + day);
         }
-        if (commands.hasMergeAwayOnOrBefore(receiving, day)) {
+        if (commands.hasMergeOfUnitOnOrBefore(receiving, day)) {
             throw refused("the receiving org unit is merged away on or before " + day + ", or its merge is in progress");
         }
     }

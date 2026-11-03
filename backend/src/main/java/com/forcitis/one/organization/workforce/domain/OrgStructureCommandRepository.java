@@ -70,7 +70,7 @@ public interface OrgStructureCommandRepository {
     boolean hasOpenMergeInto(OrgUnitId orgUnit, LocalDate onOrBefore);
 
     /** Whether a merge of the unit away is in progress, or pending (or awaiting its countersign) with an effective date on or before the day: a unit that is about to disappear cannot receive a merge's people. */
-    boolean hasMergeAwayOnOrBefore(OrgUnitId orgUnit, LocalDate day);
+    boolean hasMergeOfUnitOnOrBefore(OrgUnitId orgUnit, LocalDate day);
 
     /** Whether a merge into the unit is open (pending, awaiting its countersign or in progress) with an effective date on or after the day: its people arrive on the day or later, so the unit cannot be merged away by then. */
     boolean hasMergeIntoOnOrAfter(OrgUnitId orgUnit, LocalDate day);

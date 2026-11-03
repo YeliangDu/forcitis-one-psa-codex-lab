@@ -235,7 +235,7 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     }
 
     @Override
-    public boolean hasMergeAwayOnOrBefore(OrgUnitId orgUnit, LocalDate day) {
+    public boolean hasMergeOfUnitOnOrBefore(OrgUnitId orgUnit, LocalDate day) {
         return jdbc.sql("select 1 from organization_workforce.org_structure_commands where target_org_unit_id = :id and command_kind = 'MERGE'"
                 + " and (status = 'IN_PROGRESS' or (status in ('PENDING', 'AWAITING_ATTRIBUTION_COUNTERSIGN') and effective_date <= :day)) limit 1")
                 .param("id", orgUnit.value()).param("day", day).query(Integer.class).optional().isPresent();
@@ -529,7 +529,7 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     public List<HeldSeparation> heldSeparationsIn(OrgUnitId orgUnit, LocalDate day) {
         return jdbc.sql("select a.employee_id, (select h.personnel_command_id from organization_workforce.separation_holds h where h.employee_id = a.employee_id and h.status = 'HELD') as held_command "
                 + OPEN_HOLDERS.formatted("org_unit_id") + " and a.assignment_kind = 'PRIMARY' and a.effective_from_date <= :day"
-                + " and exists (select 1 from organization_workforce.separation_holds h where h.employee_id = a.employee_id and h.status = 'HELD') order by a.employee_id")
+                + " and exists (select 1 from organization_workforce.separation_holds h where h.employee_id = a.employee_id and h.status = 'HELD') order by a.effective_from_date, a.employee_id")
                 .param("target", orgUnit.value()).param("day", day)
                 .query((rs, n) -> new HeldSeparation(new EmployeeId(rs.getObject(1, UUID.class)), new PersonnelCommandId(rs.getObject(2, UUID.class)))).list();
     }
