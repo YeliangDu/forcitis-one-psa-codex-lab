@@ -9,11 +9,17 @@ import static com.forcitis.one.acceptance.organization.workforce.PersonnelComman
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.REGULARIZE;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.WITHDRAWN;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.Uuids;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.RecordComponent;
+import java.util.ArrayList;
 import java.sql.Connection;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -23,6 +29,8 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -33,8 +41,10 @@ import org.springframework.test.context.DynamicPropertySource;
  * allowed and M moves that person; after M is withdrawn the same command is accepted.
  * Part 2 (option a): an arrival on or after D already on record blocks M at entry, at start and at finish; HR clears it (withdraws it or
  * re-enters it into Y) and M then runs; the system never rewrites the blocking command.
- * Not here yet: that the refusals and the merge preview name the blocking employees and their command ids (B1-B3) and the named conflict error
- * of part 1: the field and error names come from the implementer and are asked of lead; until then the refusals are checked as refusals.
+ * The refusals and the merge preview name the blocking employees and their command ids. The error codes, the wording that carries the blockers
+ * (the exception message, ProblemDetail detail) and the preview's shape are the implementer's names, given by one-dev-org on 2026-11-03 at the
+ * request of one-design ("the response field names for the blockers come from the implementer"); see the constants below.
+ * Not covered: a HIRE into the merged unit (part 1 says it counts the same as a TRANSFER).
  */
 class OrgMergeLaterArrivalIT extends OrgStructureCommandSupport {
 
@@ -46,6 +56,79 @@ class OrgMergeLaterArrivalIT extends OrgStructureCommandSupport {
     }
 
     private static final LocalDate D = TODAY.plusDays(6);
+
+    // Names agreed with the implementer (one-dev-org, 2026-11-03).
+    static final String MERGE_OPEN = "ORGANIZATION_WORKFORCE_ORG_UNIT_MERGE_OPEN";
+    static final String NOT_ALLOWED = "ORGANIZATION_WORKFORCE_ORG_STRUCTURE_COMMAND_NOT_ALLOWED";
+    static final String MERGE_INCOMPLETE = "ORGANIZATION_WORKFORCE_ORG_STRUCTURE_MERGE_INCOMPLETE";
+    static final String PREVIEW_TYPE = "com.forcitis.one.organization.workforce.api.OrgMergePreview";
+    static final String PREVIEW_BLOCKING = "blocking";
+
+    @Autowired
+    ApplicationContext context;
+
+    /** A business refusal with this error code, whose message names every given id (employee or command). */
+    private static void refused(String code, org.assertj.core.api.ThrowableAssert.ThrowingCallable entry, UUID... named) {
+        assertThatThrownBy(entry).isInstanceOfSatisfying(DomainException.class, refusal -> {
+            assertThat(refusal.errorCode().code()).as(refusal.getMessage()).isEqualTo(code);
+            for (UUID id : named) {
+                assertThat(refusal.getMessage()).as("the refusal names the blocker").contains(id.toString());
+            }
+        });
+    }
+
+    /** One blocking arrival of the preview: employee, arrival day, and the personnel command (null for a row without one). */
+    record Blocker(UUID employee, LocalDate startDate, UUID command) {
+    }
+
+    /** The merge preview's blocking arrivals, read from the api's preview type by its component names. */
+    private List<Blocker> blockersInThePreview(LocalDate day) throws Exception {
+        Class<?> api = Class.forName(API_PACKAGE + "." + API_TYPE);
+        Method preview = null;
+        for (Method method : api.getMethods()) {
+            if (method.getName().equals(PREVIEW_MERGE_METHOD)) {
+                preview = method;
+            }
+        }
+        assertThat(preview).as(api.getName() + "." + PREVIEW_MERGE_METHOD).isNotNull();
+        assertThat(preview.getReturnType().getName()).isEqualTo(PREVIEW_TYPE);
+        Class<?> parameter = preview.getParameterTypes()[0];
+        RecordComponent[] declared = parameter.getRecordComponents();
+        Object[] arguments = new Object[declared.length];
+        Class<?>[] types = new Class<?>[declared.length];
+        for (int i = 0; i < declared.length; i++) {
+            types[i] = declared[i].getType();
+            arguments[i] = switch (declared[i].getName()) {
+                case TARGET_ORG_UNIT_ID -> types[i].getDeclaredConstructor(UUID.class).newInstance(merged);
+                case MERGE_INTO_ORG_UNIT_ID -> types[i].getDeclaredConstructor(UUID.class).newInstance(receiving);
+                case EFFECTIVE_DATE -> day;
+                default -> throw new AssertionError("unexpected component " + declared[i].getName() + " of " + parameter.getName());
+            };
+        }
+        restoreActing();
+        Object result;
+        try {
+            result = preview.invoke(context.getBean(api), parameter.getDeclaredConstructor(types).newInstance(arguments));
+        } catch (InvocationTargetException failure) {
+            throw failure.getCause() instanceof Exception cause ? cause : new IllegalStateException(failure.getCause());
+        }
+        List<Blocker> blockers = new ArrayList<>();
+        for (Object arrival : (List<?>) component(result, PREVIEW_BLOCKING)) {
+            Object command = component(arrival, "personnelCommandId");
+            blockers.add(new Blocker((UUID) component(component(arrival, "employeeId"), "value"), (LocalDate) component(arrival, "startDate"),
+                    command == null ? null : (UUID) component(command, "value")));
+        }
+        return blockers;
+    }
+
+    private static Object component(Object record, String name) throws Exception {
+        for (RecordComponent component : record.getClass().getRecordComponents()) {
+            if (component.getName().equals(name)) {
+                return component.getAccessor().invoke(record);
+            }
+        }
+        throw new AssertionError(record.getClass().getName() + " has no component " + name);
+    }
 
     private UUID merged;
     private UUID receiving;
@@ -103,8 +186,8 @@ class OrgMergeLaterArrivalIT extends OrgStructureCommandSupport {
         enterMerge(D);
         actInSpecialist();
 
-        assertRefused(() -> transfer(mover, D, merged));
-        assertRefused(() -> transfer(mover, D.plusDays(1), merged));
+        refused(MERGE_OPEN, () -> transfer(mover, D, merged));
+        refused(MERGE_OPEN, () -> transfer(mover, D.plusDays(1), merged));
 
         assertThat(commandCount(mover)).isZero();
         assertThat(unitOfEmployee(mover, D)).isEqualTo(elsewhere);
@@ -137,7 +220,7 @@ class OrgMergeLaterArrivalIT extends OrgStructureCommandSupport {
         UUID mover = employedIn(elsewhere, REGULAR, true);
         UUID merge = enterMerge(D);
         actInSpecialist();
-        assertRefused(() -> transfer(mover, D, merged));
+        refused(MERGE_OPEN, () -> transfer(mover, D, merged));
         actIn(orgAdmin);
 
         orgCommands().withdraw(merge, "synthetic: the merge is off");
@@ -159,7 +242,7 @@ class OrgMergeLaterArrivalIT extends OrgStructureCommandSupport {
         actIn(orgAdmin);
         long commands = orgCommandCount();
 
-        assertRefused(() -> enterMerge(D));
+        refused(NOT_ALLOWED, () -> enterMerge(D), mover, blocking);
 
         assertThat(orgCommandCount()).isEqualTo(commands);
         assertThat(command(blocking)).as("the system does not rewrite or retarget the blocking command").isEqualTo(blockingBefore);
@@ -178,7 +261,7 @@ class OrgMergeLaterArrivalIT extends OrgStructureCommandSupport {
         actIn(orgAdmin);
         long commands = orgCommandCount();
 
-        assertRefused(() -> enterMerge(past));
+        refused(NOT_ALLOWED, () -> enterMerge(past), mover, arrival);
 
         assertThat(orgCommandCount()).isEqualTo(commands);
         assertThat(command(arrival)).isEqualTo(arrivalBefore);
@@ -196,7 +279,7 @@ class OrgMergeLaterArrivalIT extends OrgStructureCommandSupport {
         arrivesOutsideTheCommands(mover, D.plusDays(3));
         onTheMergeDay();
 
-        assertRefused(() -> orgCommands().executeMerge(merge));
+        refused(NOT_ALLOWED, () -> orgCommands().executeMerge(merge), mover);
 
         assertThat(orgCommand(merge).get("status")).isEqualTo(PENDING);
         assertThat(transfersOf(merge)).isEmpty();
@@ -222,12 +305,31 @@ class OrgMergeLaterArrivalIT extends OrgStructureCommandSupport {
         commands().withdraw(obstacle, "synthetic: clears the way");
         actIn(orgAdmin);
 
-        assertRefused(() -> orgCommands().executeMerge(merge));
+        refused(MERGE_INCOMPLETE, () -> orgCommands().executeMerge(merge), mover);
 
         assertThat(orgCommand(merge).get("status")).isEqualTo(IN_PROGRESS);
         assertThat(orgCommand(merge).get("applied_at")).isNull();
         assertThat(unitOn(merged, D).get("status")).isEqualTo(ACTIVE);
         assertThat(eventsOf(EVENT_MERGED, merge)).isZero();
+    }
+
+    @Test
+    @DisplayName("#907 one-design 裁定 6596302513 第 2 条、用户答复「a」：合并预演把挡路的人（员工、到达日、人事命令 ID；没有命令的行为空）按到达日列出，与要转走的人分开；预演不写任何东西")
+    void thePreviewListsTheBlockersApartFromThePeopleToMove() throws Exception {
+        UUID stayer = world();
+        UUID byCommand = employedIn(elsewhere, REGULAR, true);
+        UUID byRow = employedIn(elsewhere, REGULAR, true);
+        actInSpecialist();
+        UUID blocking = transfer(byCommand, D.plusDays(10), merged);
+        arrivesOutsideTheCommands(byRow, D.plusDays(3));
+        actIn(orgAdmin);
+        long commands = orgCommandCount();
+
+        List<Blocker> blockers = blockersInThePreview(D);
+
+        assertThat(blockers).containsExactly(new Blocker(byRow, D.plusDays(3), null), new Blocker(byCommand, D.plusDays(10), blocking));
+        assertThat(orgCommands().previewMerge(merged, receiving, D)).as("the people to move are listed apart").containsExactly(stayer);
+        assertThat(orgCommandCount()).isEqualTo(commands);
     }
 
     @Test
