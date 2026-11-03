@@ -27,6 +27,38 @@ public final class PersonnelCommandRules {
         requireStateOnTheDay(command, history.currentEmployeeRows());
         requireLiveConcurrentPost(command, history);
         requireCorrectionOpenEnded(command, history);
+        requirePostsEndWithTheSeparation(command, others);
+    }
+
+    /**
+     * A separation ends every post at its day and its withdrawal reopens what ends on that day, so a post is neither started past a written separation nor ended on
+     * the day of one (#711): the end of the post would come back with the separation's withdrawal, and the start would stay open after it.
+     */
+    private static void requirePostsEndWithTheSeparation(PersonnelCommand command, List<PersonnelCommand> others) {
+        if (command.kind() == PersonnelCommandKind.START_CONCURRENT && others.stream().anyMatch(o -> o.kind() == PersonnelCommandKind.SEPARATE && writesVersions(o)
+                && o.effectiveDate().isAfter(command.effectiveDate()))) {
+            throw refused("the employee separates after " + command.effectiveDate() + "; a concurrent post is started after the separation is withdrawn, or not at all");
+        }
+        PersonnelCommandKind clash = switch (command.kind()) {
+            case SEPARATE -> PersonnelCommandKind.END_CONCURRENT;
+            case END_CONCURRENT -> PersonnelCommandKind.SEPARATE;
+            default -> null;
+        };
+        if (clash != null && others.stream().anyMatch(o -> o.kind() == clash && o.status() != CommandStatus.WITHDRAWN && o.effectiveDate().equals(command.effectiveDate()))) {
+            throw refused("a separation and the end of a concurrent post may not share the day " + command.effectiveDate());
+        }
+    }
+
+    private static boolean writesVersions(PersonnelCommand command) {
+        return command.status() == CommandStatus.PENDING || command.status() == CommandStatus.EFFECTIVE;
+    }
+
+    /** The end of a concurrent post is taken back only while no separation written on or after its day would have ended the post anyway (#711). */
+    public static void requireWithdrawable(PersonnelCommand command, PersonnelHistory history) {
+        if (command.kind() == PersonnelCommandKind.END_CONCURRENT && history.commands().stream().anyMatch(o -> o.kind() == PersonnelCommandKind.SEPARATE
+                && writesVersions(o) && !o.effectiveDate().isBefore(command.effectiveDate()))) {
+            throw refused("the employee separates on or after " + command.effectiveDate() + "; withdraw the separation first");
+        }
     }
 
     /**

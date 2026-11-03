@@ -16,6 +16,7 @@ import com.forcitis.one.platform.audit.api.AuditEntryId;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -115,7 +116,7 @@ class PersonnelPlans {
     }
 
     /** The concurrent post a start made: the post of the rows that command wrote (the command itself names none). */
-    private static java.util.Optional<AssignmentId> startedPost(PersonnelCommand command, PersonnelHistory history) {
+    private static Optional<AssignmentId> startedPost(PersonnelCommand command, PersonnelHistory history) {
         return history.currentAssignmentRows().stream().filter(row -> row.source().isCommand(command.id())).map(VersionRow::root).filter(Objects::nonNull)
                 .map(AssignmentId::new).findFirst();
     }

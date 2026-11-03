@@ -215,6 +215,9 @@ public final class PersonnelCommand extends AggregateRoot {
         if (root.kind() == AssignmentKind.CONCURRENT && (targetReportsToEmployeeId != null || isTargetFeeEarner != null || targetEmploymentPhaseKind != null)) {
             throw invalid("a concurrent post has no manager and no fee-earner flag");
         }
+        if (root.kind() == AssignmentKind.CONCURRENT && targetLegalEntityId != null) {
+            throw invalid("a concurrent post carries no legal entity: the cost legal entity follows the primary post");
+        }
         targetAssignmentId = root.id();
         targetAssignmentKind = root.kind();
     }
