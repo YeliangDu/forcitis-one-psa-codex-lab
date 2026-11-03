@@ -264,13 +264,16 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
 
     @Override
     public void insert(PersonnelCommand c) {
+        // Until the use cases name the post (#711), a transfer, and a correction that carries an assignment column, act on the primary post.
+        boolean names = c.kind() == PersonnelCommandKind.TRANSFER || (c.kind() == PersonnelCommandKind.CORRECTION
+                && (c.targetOrgUnitId() != null || c.targetPositionId() != null || c.targetReportsToEmployeeId() != null));
         Boolean onLeave = c.kind() == PersonnelCommandKind.UNPAID_LEAVE_START ? Boolean.TRUE : c.kind() == PersonnelCommandKind.UNPAID_LEAVE_END ? Boolean.FALSE : null;
         jdbc.sql("""
                 insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status,
                        target_org_unit_id, target_position_id, target_reports_to_employee_id, is_target_fee_earner, target_employment_phase_kind,
-                       is_target_on_unpaid_leave, org_structure_command_id, applied_at, created_at, created_by, updated_at, version)
-                values (:id, :employee, :kind, :day, :status, :unit, :position, :reportsTo, :feeEarner, :phase, :onLeave, :orgCommand, :appliedAt, :createdAt, :createdBy,
-                        :createdAt, :version)
+                       is_target_on_unpaid_leave, target_assignment_id, target_assignment_kind, org_structure_command_id, applied_at, created_at, created_by, updated_at, version)
+                values (:id, :employee, :kind, :day, :status, :unit, :position, :reportsTo, :feeEarner, :phase, :onLeave, :root, :rootKind, :orgCommand, :appliedAt,
+                        :createdAt, :createdBy, :createdAt, :version)
                 """)
                 .param("id", c.id().value()).param("employee", c.employeeId().value()).param("kind", c.kind().name()).param("day", c.effectiveDate())
                 .param("status", c.status().name()).param("unit", c.targetOrgUnitId() == null ? null : c.targetOrgUnitId().value(), Types.OTHER)
@@ -279,6 +282,8 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
                 .param("feeEarner", c.isTargetFeeEarner(), Types.BOOLEAN)
                 .param("phase", c.targetEmploymentPhaseKind() == null ? null : c.targetEmploymentPhaseKind().name(), Types.VARCHAR)
                 .param("onLeave", onLeave, Types.BOOLEAN)
+                .param("root", names ? PrimaryAssignmentRoot.of(jdbc, ids, c.employeeId().value(), c.createdAt()) : null, Types.OTHER)
+                .param("rootKind", names ? "PRIMARY" : null, Types.VARCHAR)
                 .param("orgCommand", c.orgStructureCommandId() == null ? null : c.orgStructureCommandId().value(), Types.OTHER).param("appliedAt", at(c.appliedAt()), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("createdAt", at(c.createdAt())).param("createdBy", c.createdBy().value()).param("version", c.version()).update();
     }
@@ -337,12 +342,13 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
     private void insertAssignmentVersion(EmployeeId employee, VersionPlan.NewRow row, int revision, Instant at) {
         Map<String, Object> v = row.values();
         jdbc.sql("""
-                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, effective_to_date, org_unit_id,
-                       position_id, reports_to_employee_id, revision_number, change_channel_kind, change_command_id, version_audit_entry_id, closed_at,
-                       corrected_from_version_id, created_at, updated_at)
-                values (:id, :employee, :from, :to, :unit, :position, :reportsTo, :revision, :channel, :command, :audit, :closedAt, :correctedFrom, :at, :at)
+                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                       effective_to_date, org_unit_id, position_id, reports_to_employee_id, revision_number, change_channel_kind, change_command_id,
+                       version_audit_entry_id, closed_at, corrected_from_version_id, created_at, updated_at)
+                values (:id, :employee, :root, 'PRIMARY', :from, :to, :unit, :position, :reportsTo, :revision, :channel, :command, :audit, :closedAt, :correctedFrom, :at, :at)
                 """)
-                .param("id", row.id()).param("employee", employee.value()).param("from", row.from()).param("to", row.to(), Types.DATE)
+                .param("id", row.id()).param("employee", employee.value()).param("root", PrimaryAssignmentRoot.of(jdbc, ids, employee.value(), at))
+                .param("from", row.from()).param("to", row.to(), Types.DATE)
                 .param("unit", v.get(CommandEffects.ORG_UNIT)).param("position", v.get(CommandEffects.POSITION), Types.OTHER)
                 .param("reportsTo", v.get(CommandEffects.REPORTS_TO), Types.OTHER).param("revision", revision)
                 .param("channel", row.source().command() ? "COMMAND" : "MIGRATION").param("command", commandKey(row), Types.OTHER)
