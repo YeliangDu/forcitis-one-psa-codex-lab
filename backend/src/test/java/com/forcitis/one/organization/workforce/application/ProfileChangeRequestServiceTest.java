@@ -14,6 +14,8 @@ import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeAccountAccess;
+import com.forcitis.one.kernel.OrgUnitAccess;
+import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.UserId;
@@ -50,8 +52,10 @@ class ProfileChangeRequestServiceTest {
     final CurrentUser currentUser = mock(CurrentUser.class);
     final AccountEmployees accountEmployees = mock(AccountEmployees.class);
     final EmployeeAccountAccess access = mock(EmployeeAccountAccess.class);
+    final OrgUnitAccess unitAccess = mock(OrgUnitAccess.class);
+    final OrgSnapshotQueries snapshots = mock(OrgSnapshotQueries.class);
     final EmployeeProfileService profiles = mock(EmployeeProfileService.class);
-    final ProfileChangeRequestService service = new ProfileChangeRequestService(requests, employees, audit, currentUser, accountEmployees, access, profiles,
+    final ProfileChangeRequestService service = new ProfileChangeRequestService(requests, employees, audit, currentUser, accountEmployees, access, unitAccess, snapshots, profiles,
             Clock.fixed(AT.plusSeconds(60), ZoneOffset.UTC));
 
     private ProfileChangeRequest decided(ProfileChangeStatus status) {
@@ -94,5 +98,40 @@ class ProfileChangeRequestServiceTest {
         assertThatThrownBy(() -> service.confirm(ID, ExpectedVersion.of(0))).isInstanceOfSatisfying(DomainException.class,
                 refused -> assertThat(refused.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_PROFILE_CHANGE_REQUEST_NOT_FOUND));
         verifyNoMoreInteractions(access, audit);
+    }
+
+    @Test
+    @DisplayName("#730 S4: a caller who sees everything gets a pending request of an employee with no current assignment too; a caller of some units does not")
+    void everythingIncludesAnEmployeeWithoutAssignment() {
+        ProfileChangeRequest pending = ProfileChangeRequest.restore(ID, EMPLOYEE, REQUESTER, AT, new PersonalProfile("Synthetic name", null, null, new WecomUserId("old")),
+                new PersonalProfile("Synthetic name", null, null, new WecomUserId("new")), ProfileChangeStatus.PENDING, 0, null, null, null, null);
+        when(requests.pending(null, 51)).thenReturn(java.util.List.of(pending));
+        when(snapshots.findStaff(EMPLOYEE)).thenReturn(Optional.empty());
+
+        when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenReturn(OrgUnitAccess.Visible.all());
+        org.assertj.core.api.Assertions.assertThat(service.pending(com.forcitis.one.kernel.PageRequest.of(50, null, "profile-change-requests")).items()).hasSize(1);
+
+        when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenReturn(OrgUnitAccess.Visible.nothing());
+        org.assertj.core.api.Assertions.assertThat(service.pending(com.forcitis.one.kernel.PageRequest.of(50, null, "profile-change-requests")).items()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("#730 S4: a cursor naming a request outside the scope or none at all answers the same empty page")
+    void aForgedCursorCannotProbeIds() {
+        when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenReturn(OrgUnitAccess.Visible.nothing());
+        when(snapshots.findAllOrgUnits()).thenReturn(java.util.List.of());
+        ProfileChangeRequest existing = decided(ProfileChangeStatus.REJECTED);
+        when(requests.find(ID)).thenReturn(Optional.of(existing));
+        when(snapshots.findStaff(EMPLOYEE)).thenReturn(Optional.empty());
+        UUID unknown = UUID.fromString("019a0000-0000-7000-8000-0000000000c9");
+        when(requests.find(new ProfileChangeRequestId(unknown))).thenReturn(Optional.empty());
+
+        var known = service.pending(com.forcitis.one.kernel.PageRequest.of(50, com.forcitis.one.kernel.PageRequest.encode("profile-change-requests", ID.value().toString()), "profile-change-requests"));
+        var missing = service.pending(com.forcitis.one.kernel.PageRequest.of(50, com.forcitis.one.kernel.PageRequest.encode("profile-change-requests", unknown.toString()), "profile-change-requests"));
+
+        org.assertj.core.api.Assertions.assertThat(known.items()).isEmpty();
+        org.assertj.core.api.Assertions.assertThat(missing.items()).isEmpty();
+        org.assertj.core.api.Assertions.assertThat(known.nextCursor()).isEqualTo(missing.nextCursor());
+        org.mockito.Mockito.verify(requests, org.mockito.Mockito.never()).pending(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyInt());
     }
 }

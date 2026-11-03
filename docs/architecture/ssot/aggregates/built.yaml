@@ -540,6 +540,7 @@ aggregates:
   - DeleteRole
   - ForceUserLogout
   - GrantRoleByOperations
+  - OrgUnitScopes
   - ReplaceAccountRoles
   - RevokeRoleByOperations
   - RoleScopeRefusal

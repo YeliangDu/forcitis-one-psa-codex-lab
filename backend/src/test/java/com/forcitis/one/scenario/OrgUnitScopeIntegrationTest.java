@@ -132,7 +132,8 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
         MvcResult list = read(session, "");
         assertThat(list.getResponse().getStatus()).isEqualTo(403);
         assertThat(body(list).path("errorCode").asString()).isEqualTo("PLATFORM_IDENTITY_ACCESS_SCOPE_UNAVAILABLE");
-        assertThat(read(session, "/" + unit(10)).getResponse().getStatus()).isEqualTo(403);
+        // #730 comment 6606893624: a detail never refuses with 403 (that would tell the caller the id exists); it answers like a missing id
+        assertThat(read(session, "/" + unit(10)).getResponse().getStatus()).isEqualTo(404);
     }
 
     @Test
@@ -144,7 +145,9 @@ class OrgUnitScopeIntegrationTest extends IdentityIntegrationTest {
 
         when(orgDirectory.findEmployee(TestAccounts.employee(25))).thenReturn(java.util.Optional.empty());
 
-        assertThat(read(session, "").getResponse().getStatus()).isEqualTo(403);
+        // #730 comment 6606893624: the resolver answered "nothing" (no employee), so the scope is empty: list 200 with zero rows, detail 404
+        assertThat(listed(session)).isEmpty();
+        assertThat(read(session, "/" + unit(10)).getResponse().getStatus()).isEqualTo(404);
     }
 
     @Test
