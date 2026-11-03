@@ -58,11 +58,11 @@ class OrgStructureRulesTest {
     void aBackDatedAssignmentBesideALaterPeriodIsRefused() {
         unitInForce();
         LocalDate day = TODAY.plusDays(10);
-        when(commands.hasAttributionBeyond(UNIT, day)).thenReturn(true);
+        when(commands.hasAttributionAfter(UNIT, day)).thenReturn(true);
 
         assertThatThrownBy(() -> rules.check(assign(day), VersionPlan.empty())).isInstanceOf(DomainException.class).hasMessageContaining("back-dated");
 
-        when(commands.hasAttributionBeyond(UNIT, day)).thenReturn(false);
+        when(commands.hasAttributionAfter(UNIT, day)).thenReturn(false);
         assertThatCode(() -> rules.check(assign(day), VersionPlan.empty())).doesNotThrowAnyException();
         assertThat(day).isAfter(TODAY);
     }

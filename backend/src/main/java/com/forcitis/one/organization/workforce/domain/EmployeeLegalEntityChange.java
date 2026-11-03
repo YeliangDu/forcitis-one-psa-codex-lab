@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * An org-structure command took effect and changed one employee's cost legal entity (docs/architecture/proposals/org-structure-commands.md section 5 rule 6). It only carries the event: the envelope is about the
+ * An org-structure command took effect and changed one employee's cost legal entity (the org-structure commands design note section 5 rule 6). It only carries the event: the envelope is about the
  * employee, so the sequence continues the employee's own event count, which the caller saves after publishing.
  */
 public final class EmployeeLegalEntityChange extends AggregateRoot {

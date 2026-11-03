@@ -18,7 +18,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
- * The scope freeze of an org-structure command that awaits the countersign (docs/architecture/proposals/org-structure-commands.md section 5 rule 3): until it is countersigned or withdrawn, a later-dated command
+ * The scope freeze of an org-structure command that awaits the countersign (the org-structure commands design note section 5 rule 3): until it is countersigned or withdrawn, a later-dated command
  * that touches its scope is refused, because the basis is computed on the effective date only and cannot see what a later one would change. The scope is the target unit
  * and every unit below it on the effective date (a merge: also the receiving unit) and the employees of the basis. Earlier-dated commands are allowed; the comparison
  * at the last approval catches what they change on the effective date.

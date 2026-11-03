@@ -65,7 +65,7 @@ class OrgStructureRules {
                 if (!commands.legalEntityExists(c.targetLegalEntityId())) {
                     throw refused("the legal entity does not exist");
                 }
-                if (commands.hasAttributionBeyond(unit, day)) {
+                if (commands.hasAttributionAfter(unit, day)) {
                     throw refused("the unit already has a legal entity period that starts on or after that day or ends after it; a back-dated assignment is not supported yet");
                 }
             }

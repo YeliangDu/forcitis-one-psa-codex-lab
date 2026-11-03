@@ -37,7 +37,7 @@ import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
 /**
- * The finance countersign of an org-structure command that changes people's cost legal entity (ADR-0073 item 3.6, docs/architecture/proposals/org-structure-commands.md section 5): the request set at entry, the
+ * The finance countersign of an org-structure command that changes people's cost legal entity (ADR-0073 item 3.6, the org-structure commands design note section 5): the request set at entry, the
  * decisions, the last approval that judges the basis again and writes the command's versions, and the withdrawal of a command that was countersigned. Every method joins the
  * caller's transaction; the use cases take the tree lock first, then the unit root (and the employee roots only to publish).
  */

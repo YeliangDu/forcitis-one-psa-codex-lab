@@ -24,7 +24,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 /**
- * Which employees' cost legal entity an org-structure command changes (ADR-0073 item 3.4, docs/architecture/proposals/org-structure-commands.md section 5 rule 1): those employed on the effective date whose primary
+ * Which employees' cost legal entity an org-structure command changes (ADR-0073 item 3.4, the org-structure commands design note section 5 rule 1): those employed on the effective date whose primary
  * assignment that day is in the unit or below it (a merge: in the merged unit), compared before and after the command with the same resolution as everywhere
  * (the employee's own attribution first, else the nearest department attribution up the chain). Only an assignment of a legal entity, a reparent and a merge can change it.
  */
