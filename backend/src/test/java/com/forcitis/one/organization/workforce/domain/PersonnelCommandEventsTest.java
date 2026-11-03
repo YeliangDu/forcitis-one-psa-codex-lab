@@ -171,4 +171,22 @@ class PersonnelCommandEventsTest {
         assertThat(correction.status()).isEqualTo(CommandStatus.EFFECTIVE);
         assertThat(correction.appliedAt()).isEqualTo(NOW);
     }
+
+    @Test
+    @DisplayName("#895 user answer Q2: a countersigned command can be asked to be withdrawn only while pending and before its effective day; on the day itself the versions are in force")
+    void aWithdrawalRequestIsAllowedBeforeTheDayOnly() {
+        LegalEntityId previous = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f1"));
+        LegalEntityId next = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f2"));
+        PersonnelCommand later = PersonnelCommand.restore(new PersonnelCommandId(UUID.fromString("019a0000-0000-7000-8000-0000000000c2")), EMPLOYEE,
+                PersonnelCommandKind.CHANGE_LEGAL_ENTITY, DAY.plusDays(1), CommandStatus.PENDING, null, null, null, null, null, next, previous, next,
+                new UserId(UUID.fromString("019a0000-0000-7000-8000-0000000000aa")), NOW, null, 0, 0);
+        PersonnelCommand sameDay = PersonnelCommand.restore(new PersonnelCommandId(UUID.fromString("019a0000-0000-7000-8000-0000000000c3")), EMPLOYEE,
+                PersonnelCommandKind.CHANGE_LEGAL_ENTITY, DAY, CommandStatus.PENDING, null, null, null, null, null, next, previous, next,
+                new UserId(UUID.fromString("019a0000-0000-7000-8000-0000000000aa")), NOW, null, 0, 0);
+
+        later.requireWithdrawalAllowed("plan changed", DAY);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> sameDay.requireWithdrawalAllowed("plan changed", DAY))
+                .isInstanceOf(com.forcitis.one.kernel.DomainException.class);
+    }
 }

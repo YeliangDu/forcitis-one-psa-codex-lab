@@ -208,6 +208,8 @@ class PersonnelCommandService implements PersonnelCommands {
     /** The versions of a countersigned command stay until every finance head of its two legal entities approves the withdrawal (ADR-0073 item 3.6). */
     private void requestWithdrawal(PersonnelCommand command, @Nullable String reason, UserId by, Instant now, LocalDate today) {
         command.requireWithdrawalAllowed(reason, today);
+        // Nobody undoes the change of their own legal entity either (ADR-0073 item 3.5): the same guard as the entry.
+        ownGuard.requireNotOwn(AttributionSubject.of(command.employeeId()), by);
         List<AttributionCountersign> existing = countersigns.ofCommand(command.id());
         if (existing.stream().anyMatch(r -> r.isOpen() && r.requestKind() == CountersignRequestKind.WITHDRAWAL)) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_ALLOWED, ErrorKind.CONFLICT, "a withdrawal of this command already awaits the countersign");

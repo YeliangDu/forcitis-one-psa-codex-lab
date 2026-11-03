@@ -14,7 +14,6 @@ import com.forcitis.one.organization.workforce.api.ApproveAttributionCountersign
 import com.forcitis.one.organization.workforce.api.AttributionCountersignId;
 import com.forcitis.one.organization.workforce.api.AttributionCountersigns;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
-import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.RejectAttributionCountersign;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersign;
@@ -175,8 +174,8 @@ class AttributionCountersignService implements AttributionCountersigns {
         for (Map.Entry<VersionTable, VersionPlan> plan : plans.entrySet()) {
             commands.insertVersions(command.employeeId(), plan.getKey(), plan.getValue(), command.id(), now);
         }
-        // As at entry, a correction dated after today publishes nothing yet.
-        if (command.status() == CommandStatus.EFFECTIVE && !(command.kind() == PersonnelCommandKind.CORRECTION && command.effectiveDate().isAfter(today))) {
+        // A correction is effective at once whatever its day, and no due-date step looks at an effective command: its events leave here or never.
+        if (command.status() == CommandStatus.EFFECTIVE) {
             effects.publish(command, history);
         }
     }

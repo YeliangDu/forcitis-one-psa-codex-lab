@@ -25,11 +25,15 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersign;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
+import com.forcitis.one.organization.workforce.domain.ChangeSource;
+import com.forcitis.one.organization.workforce.domain.CommandEffects;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
 import com.forcitis.one.organization.workforce.domain.CountersignRequestKind;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolutionSources;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
+import com.forcitis.one.organization.workforce.domain.PersonnelHistory;
+import com.forcitis.one.organization.workforce.domain.VersionRow;
 import com.forcitis.one.organization.workforce.domain.SeparationHoldCheck;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import java.time.Clock;
@@ -38,6 +42,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
@@ -64,12 +69,15 @@ class AttributionCountersignServiceTest {
     final PersonnelCommandRepository commands = mock(PersonnelCommandRepository.class);
     final CountersignRequests requests = mock(CountersignRequests.class);
     final AccountRoles roles = mock(AccountRoles.class);
+    final OwnAttributionGuard ownGuard = mock(OwnAttributionGuard.class);
+    final CountersignBases bases = mock(CountersignBases.class);
+    final EffectPublisher effects = mock(EffectPublisher.class);
     final CurrentUser currentUser = mock(CurrentUser.class);
     final IdGenerator ids = mock(IdGenerator.class);
     final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     final BusinessZone zone = new BusinessZone(ZoneId.of("Asia/Shanghai"));
-    final AttributionCountersignService service = new AttributionCountersignService(countersigns, commands, requests, mock(CountersignBases.class),
-            new PersonnelPlans(ids), mock(EffectPublisher.class), mock(OwnAttributionGuard.class), roles, mock(AuditLog.class), currentUser, ids, clock, zone);
+    final AttributionCountersignService service = new AttributionCountersignService(countersigns, commands, requests, bases,
+            new PersonnelPlans(ids), effects, ownGuard, roles, mock(AuditLog.class), currentUser, ids, clock, zone);
 
     AttributionCountersignServiceTest() {
         when(ids.next()).thenReturn(COMMAND.value());
@@ -133,5 +141,46 @@ class AttributionCountersignServiceTest {
 
         verify(requests).lapse(any(), any(), any(), any(), any(), any(), any());
         assertThat(pending.status()).isEqualTo(CommandStatus.EFFECTIVE);
+    }
+
+    @Test
+    @DisplayName("#895 a correction dated after today is effective at the last approval, and its events leave there: no due-date step looks at an effective command")
+    void aFutureCorrectionPublishesWhenCountersigned() {
+        PersonnelCommand correction = PersonnelCommand.restore(COMMAND, EMPLOYEE, PersonnelCommandKind.CORRECTION, TODAY.plusDays(5),
+                CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN, null, null, null, null, null, E2, E1, E2, DRAFTER, NOW, null, 0, 0);
+        AttributionCountersign open = row(ROW1, E1, 0, DRAFTER);
+        AttributionCountersign approved = AttributionCountersign.restore(ROW2, COMMAND, EMPLOYEE, DRAFTER, CountersignRequestKind.CHANGE, 1, E2, NOW, DRAFTER,
+                TODAY.plusDays(3), 0, null, 1, "APPROVED", NOW, DECIDER, null);
+        when(commands.find(COMMAND)).thenReturn(Optional.of(correction));
+        when(countersigns.find(ROW1)).thenReturn(Optional.of(open));
+        when(countersigns.ofCommand(COMMAND)).thenReturn(List.of(open, approved));
+        when(countersigns.isFinanceHead(E1, DECIDER_EMPLOYEE, TODAY)).thenReturn(true);
+        when(bases.of(any(), any())).thenReturn(Optional.of(new CountersignBases.Basis(E1, E2)));
+        VersionRow employed = new VersionRow(UUID.fromString("019a0000-0000-7000-8000-0000000000b1"), TODAY.minusDays(100), null,
+                Map.of(CommandEffects.EMPLOYMENT, "EMPLOYED"), ChangeSource.MIGRATION, null, false);
+        when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(employed), List.of(), List.of(), List.of(), Map.of()));
+
+        service.approve(new ApproveAttributionCountersign(ROW1, null));
+
+        assertThat(correction.status()).isEqualTo(CommandStatus.EFFECTIVE);
+        verify(effects).publish(any(), any());
+    }
+
+    @Test
+    @DisplayName("#895 ADR-0073 item 3.5: the employee whose legal entity changed cannot ask to take the change back; the guard that refuses the entry refuses this too")
+    void theEmployeeCannotAskToWithdrawTheirOwnChange() {
+        PersonnelCommand countersigned = PersonnelCommand.restore(COMMAND, EMPLOYEE, PersonnelCommandKind.CHANGE_LEGAL_ENTITY, TODAY.plusDays(5), CommandStatus.PENDING,
+                null, null, null, null, null, E2, E1, E2, DRAFTER, NOW, null, 0, 0);
+        when(commands.find(COMMAND)).thenReturn(Optional.of(countersigned));
+        org.mockito.Mockito.doThrow(new DomainException(com.forcitis.one.organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN,
+                ErrorKind.FORBIDDEN, "own")).when(ownGuard).requireNotOwn(any(), any());
+        PersonnelCommandService personnel = new PersonnelCommandService(commands, mock(NewEmployees.class), new PersonnelPlans(ids), mock(SeparationHoldCheck.class),
+                mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), bases, requests, countersigns, ownGuard, effects, mock(AuditLog.class),
+                mock(DomainEvents.class), currentUser, ids, clock, zone);
+
+        assertThatThrownBy(() -> personnel.withdraw(new com.forcitis.one.organization.workforce.api.WithdrawPersonnelCommand(COMMAND, "plan changed")))
+                .isInstanceOf(DomainException.class);
+
+        verify(requests, never()).open(any(), any(), any(), any(), any(), any(), any(), any());
     }
 }
