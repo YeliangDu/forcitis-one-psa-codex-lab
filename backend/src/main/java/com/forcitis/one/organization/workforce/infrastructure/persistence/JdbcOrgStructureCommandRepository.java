@@ -339,7 +339,7 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
 
     @Override
     public List<OrgStructureCommand> due(LocalDate day) {
-        return jdbc.sql(COMMAND_COLUMNS + " where status = 'PENDING' and effective_date <= :day or status = 'IN_PROGRESS' order by effective_date, org_structure_command_id")
+        return jdbc.sql(COMMAND_COLUMNS + " where status = 'PENDING' and effective_date <= :day order by effective_date, org_structure_command_id")
                 .param("day", day).query((rs, n) -> command(rs)).list();
     }
 

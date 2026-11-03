@@ -1,7 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.BusinessZone;
-import com.forcitis.one.organization.workforce.domain.OrgCommandStatus;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommand;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
@@ -16,8 +15,8 @@ import org.springframework.stereotype.Component;
 /**
  * Daily, after the due personnel commands and before the countersign deadline job: turns the pending org-structure commands that are now due effective and starts the due merges
  * (ADR-0068 items 1.8 and 15.2). The job judges nothing and reads never depend on it: the versions are in force on their day whether it ran or not, a missed run only delays the
- * events. One transaction per command (a merge runs its own steps), so one failure never stops the others; a failure is an alert and the command is tried again at the next run, as is
- * a command found past its day. The run is safe beside the countersign deadline job and a second run of itself because both take the same row locks ({@link ApplyDueOrgCommand}).
+ * events. One transaction per command (a merge runs its own steps), so one failure never stops the others; a failure is an alert and the command is tried again at the next run. A command found past
+ * its day is alerted and applied in the same run. The run is safe beside the countersign deadline job and a second run of itself because both take the same row locks ({@link ApplyDueOrgCommand}).
  */
 @Component
 public class OrgStructureCommandDueJob {
@@ -42,7 +41,7 @@ public class OrgStructureCommandDueJob {
     public void run() {
         LocalDate today = zone.dateOf(clock.instant());
         for (OrgStructureCommand command : commands.due(today)) {
-            if (command.status() == OrgCommandStatus.PENDING && command.effectiveDate().isBefore(today)) {
+            if (command.effectiveDate().isBefore(today)) {
                 LOG.error("ALERT organization.workforce org-structure command {} due on {} was found pending on {}: the job missed its day, it takes effect now", command.id().value(),
                         command.effectiveDate(), today);
             }

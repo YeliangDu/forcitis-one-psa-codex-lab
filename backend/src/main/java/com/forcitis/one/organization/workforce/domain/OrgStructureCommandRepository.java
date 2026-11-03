@@ -90,7 +90,7 @@ public interface OrgStructureCommandRepository {
 
     List<OrgCountersignBasis> basisOf(OrgStructureCommandId command);
 
-    /** The pending commands whose day is not after the given one, and the merges in progress (their people are moved on until none is left), earliest day first. */
+    /** The pending commands whose day is not after the given one, earliest day first. */
     List<OrgStructureCommand> due(LocalDate day);
 
     /** The org-structure commands that wait for the attribution countersign, whatever their day. */

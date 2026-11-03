@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * The day of one pending org-structure command that is not a merge has come (ADR-0068 item 1.8): it turns effective, a withdrawal request still open lapses, and the events are
- * published. Its versions are in force since the entry or the last countersign, so nothing is judged and nothing is written but the command's own state. The locks are those of
+ * published. Its versions are in force since the entry or the last countersign, so nothing is judged; it writes the command's state, lapses an open withdrawal set and advances the event sequence of each basis employee. The locks are those of
  * the approval: tree, unit root, then the countersign rows and the employee roots, so the countersign deadline job and a decision cannot interleave with it on shared rows.
  */
 @SystemActorName("organization.workforce.org.structure.command.due")
