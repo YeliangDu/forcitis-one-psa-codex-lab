@@ -15,7 +15,8 @@ public enum DeliveryPurpose {
     PERMISSION_ADJUSTMENT_ASSIGNED(DeliverySubjectKind.PERMISSION_ADJUSTMENT, false),
     COUNTERSIGN_OVERDUE_REMINDER(DeliverySubjectKind.ATTRIBUTION_COUNTERSIGN, false),
     COUNTERSIGN_ESCALATED_TO_ADMINS(DeliverySubjectKind.ATTRIBUTION_COUNTERSIGN, false),
-    COUNTERSIGN_ESCALATED_FINAL(DeliverySubjectKind.ATTRIBUTION_COUNTERSIGN, false);
+    COUNTERSIGN_ESCALATED_FINAL(DeliverySubjectKind.ATTRIBUTION_COUNTERSIGN, false),
+    PERMISSION_ADJUSTMENT_OVERDUE_NOTICE(DeliverySubjectKind.PERMISSION_ADJUSTMENT, false);
 
     private final DeliverySubjectKind subjectKind;
     private final boolean perEvent;
