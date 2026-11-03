@@ -18,8 +18,6 @@ final class EffectiveAttributionPeriods {
     static String select(AttributionKind kind) {
         String table = kind == AttributionKind.ORG_UNIT ? "org_unit_legal_entities" : "employee_legal_entities";
         String column = subjectColumn(kind);
-        // Employee periods can be superseded (W2 3.6); only the current rows are periods. The org unit table takes the same column in its own card.
-        String current = kind == AttributionKind.EMPLOYEE ? " and p.superseded_at is null" : "";
         return """
                 select p.legal_entity_id, p.effective_from_date, coalesce(c.new_effective_to_date, p.effective_to_date) as effective_to_date
                   from organization_workforce.%1$s p
@@ -27,7 +25,7 @@ final class EffectiveAttributionPeriods {
                                       where %2$s = p.%2$s
                                         and period_effective_from_date = p.effective_from_date
                                       order by correction_number desc limit 1) c on true
-                 where p.%2$s = :id%3$s
-                """.formatted(table, column, current);
+                 where p.%2$s = :id and p.superseded_at is null
+                """.formatted(table, column);
     }
 }
