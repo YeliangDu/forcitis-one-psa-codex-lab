@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** A short name is not a source column, so the sync never touches it. */
+/** A short name is not a source column, so no source read touches it. */
 @Service
 public class RefreshShortNames {
     private static final Logger LOG = LoggerFactory.getLogger(RefreshShortNames.class);

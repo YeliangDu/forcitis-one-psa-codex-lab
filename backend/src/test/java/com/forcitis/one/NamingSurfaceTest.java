@@ -172,7 +172,7 @@ class NamingSurfaceTest {
             checkPermission("Permission.Codes." + f.getName() + " = '" + code + "'", code, problems);
         }
         for (Permission p : Permission.values()) {
-            if (!catalogue.contains(p.code())) {
+            if (!p.deprecated() && !catalogue.contains(p.code())) { // a retired code is kept for old role versions and has no constant
                 problems.add("Permission." + p.name() + " code '" + p.code() + "' is not a Permission.Codes constant");
             }
         }

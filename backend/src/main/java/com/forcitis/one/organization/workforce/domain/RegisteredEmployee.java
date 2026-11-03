@@ -6,7 +6,7 @@ import com.forcitis.one.organization.workforce.events.EmployeeRegistered;
 import java.util.List;
 import java.util.Objects;
 
-/** A person found in the organisation source at the first login, before the next sync would have brought them in. */
+/** A person found in the organisation source at the first login, before any personnel command brings them in. */
 public final class RegisteredEmployee extends AggregateRoot {
     private final StaffEmployee staff;
 

@@ -27,19 +27,17 @@ class OrgDirectoryService implements OrgDirectory {
     private final OrgSnapshotQueries snapshots;
     private final RegisterEmployeeOnLogin registerOnLogin;
     private final RegisterEmployeeOnLoginName registerOnLoginName;
-    private final SnapshotFreshness freshness;
     private final EmployeeVersionQueries versions;
     private final Clock clock;
     private final BusinessZone zone;
     private final PersonnelCommandQueries commands;
 
     OrgDirectoryService(OrgSnapshotQueries snapshots, RegisterEmployeeOnLogin registerOnLogin,
-                        RegisterEmployeeOnLoginName registerOnLoginName, SnapshotFreshness freshness, EmployeeVersionQueries versions, PersonnelCommandQueries commands, Clock clock, BusinessZone zone) {
+                        RegisterEmployeeOnLoginName registerOnLoginName, EmployeeVersionQueries versions, PersonnelCommandQueries commands, Clock clock, BusinessZone zone) {
         this.commands = commands;
         this.versions = versions;
         this.clock = clock;
         this.zone = zone;
-        this.freshness = freshness;
         this.snapshots = snapshots;
         this.registerOnLogin = registerOnLogin;
         this.registerOnLoginName = registerOnLoginName;
@@ -81,9 +79,6 @@ class OrgDirectoryService implements OrgDirectory {
         Optional<StaffEmployee> staff = snapshots.findStaff(employeeId);
         if (staff.isPresent() && staff.get().employee().employmentStatus() != EmploymentStatus.EMPLOYED) {
             return EmploymentVerdict.SEPARATED;
-        }
-        if (!freshness.isCurrent()) {
-            return EmploymentVerdict.SNAPSHOT_UNAVAILABLE;
         }
         return staff.isPresent() ? EmploymentVerdict.EMPLOYED : EmploymentVerdict.NOT_LISTED;
     }

@@ -19,16 +19,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * The one-time initial migration of the sync snapshot into the version tables (#960, one-design data design): every employee who has no employee
+ * The one-time initial migration of the snapshot into the version tables (#960, one-design data design): every employee who has no employee
  * version yet gets the current state as MIGRATION versions, and a person with an assignment but no assignment version gets one. People who hold any
  * version are left as they are, which makes a rerun write nothing. One transaction, each person's root row locked first; no event, no notification.
  * The audit entry carries counts only. The employment phase of employed people is the user's fallback answer 「一律记正式」.
  */
 @Component
 class MigrateInitialVersions {
-
-    /** The scheduler runs every five minutes; a command in another process cannot see it, so a stopped sync is a sync that has left no run for three cycles. */
-    private static final Duration SYNC_QUIET_PERIOD = Duration.ofMinutes(15);
 
     private final InitialVersionMigrationRepository migration;
     private final AuditLog audit;
@@ -42,14 +39,9 @@ class MigrateInitialVersions {
         this.zone = zone;
     }
 
-    /** @throws DomainException when the sync is not stopped, since the snapshot would go on changing */
     @Transactional
     public String execute(WorkforceOperationAttestation attestation) {
         Instant now = clock.instant();
-        if (migration.syncRunRecent(now.minus(SYNC_QUIET_PERIOD))) {
-            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_INITIAL_VERSION_MIGRATION_REFUSED, ErrorKind.UNPROCESSABLE,
-                    "the sync is not stopped: a run is running or started within " + SYNC_QUIET_PERIOD + ", so the snapshot would change under the migration");
-        }
         LocalDate today = zone.dateOf(now);
         long skipped = migration.countEmployeesWithVersions();
         int employedPeople = 0;

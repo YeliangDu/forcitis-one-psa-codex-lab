@@ -14,7 +14,6 @@ src/main/java/com/forcitis/one/organization/workforce/application/HeldSeparation
 src/main/java/com/forcitis/one/organization/workforce/application/MigrateInitialVersions.java | 1 | 15 | SURROGATE
 src/main/java/com/forcitis/one/organization/workforce/application/OwnAttributionGuard.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/organization/workforce/application/PersonnelCommandService.java | 2 | 24,25 | POSSIBLE
-src/main/java/com/forcitis/one/organization/workforce/application/RecordSyncRunRelease.java | 1 | 17 | POSSIBLE
 src/main/java/com/forcitis/one/platform/approval/application/ListAllTasks.java | 2 | 1,2 | NONE
 src/main/java/com/forcitis/one/platform/approval/application/ReassignTask.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/platform/approval/application/Retraction.java | 1 | 1 | NONE

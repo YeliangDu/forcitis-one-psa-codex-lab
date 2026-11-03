@@ -6,24 +6,11 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import com.forcitis.one.OneApplication;
 import com.forcitis.one.TestMssql;
 import com.forcitis.one.TestPostgres;
-import com.forcitis.one.kernel.WorkContext;
-import com.forcitis.one.organization.workforce.api.OrgDirectory;
-import com.forcitis.one.organization.workforce.api.OrgUnitId;
-import com.forcitis.one.organization.workforce.application.GetSyncRun;
-import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
-import com.forcitis.one.organization.workforce.application.SyncResult;
-import com.forcitis.one.organization.workforce.application.SyncRunDetailView;
-import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
-import com.forcitis.one.organization.workforce.domain.SyncTrigger;
-import com.forcitis.one.platform.integration.api.ExternalSource;
 import com.forcitis.one.platform.integration.api.OrgSource;
-import com.forcitis.one.platform.integration.api.SourceObjectKind;
-import com.forcitis.one.platform.integration.application.SourceReferences;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -37,16 +24,11 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.testcontainers.containers.GenericContainer;
@@ -54,14 +36,14 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * R-1b-0a (D-1a-01; ADR-0037 items 2.4, 3.5, 6.1, 6.3, 8.4; card sections 4 and 14, RULING-R1B0-7): TYPE of dbo.ORG_UNIT is read from the base
- * table next to the frozen org unit view and checked (an Account below the root, or any unit whose TYPE is NULL or neither Department nor
- * Account, rejects the whole run); the start-up check covers the run-time base-table rows of the read-column register as a subset; the person
+ * table next to the frozen org unit view; the start-up check covers the run-time base-table rows of the read-column register as a subset; the person
  * statement does not change. The person flags of dbo.ORG_MEMBER and the two judgements moved to R-1b-0b; their cases wait in
  * src/test/resources/acceptance/platform/integration/r1b0b-pending/A8MemberFlagsCases.md.
  *
  * <p>Black box: a real SQL Server whose views are the DBA script itself (phase1a/SEEYON_VIEWS.sql) over A8-shaped base tables, a read-only
  * login equal to the RDS baseline ({@link ReadOnlyBaselineFixture}), the real application started with SpringApplicationBuilder, and only
- * public entry points: {@link OrgSource}, {@link SyncOrgSnapshot}, {@link GetSyncRun}, {@link OrgDirectory}, the log, the SQL Server plan cache.
+ * public entry points: {@link OrgSource}, the log, the SQL Server plan cache. The cases that ran the organisation sync over this source
+ * (TYPE checks rejecting a run, the dbo-qualified read) went with the sync in #934 (ADR-0055 section 6: R-1b-0b and the sync are not built on).
  * No type of the change is referenced (none exists before it).
  *
  * <p>Base-table column types follow one-ops evidence 2026-10-15: STATE, IS_DELETED, IS_ENABLE smallint and nullable, ORG_PRINCIPAL.LOGIN_NAME
@@ -194,146 +176,6 @@ class A8SourceFlagsIT {
         }
     }
 
-    // ------------------------------------------------------------------ 2
-
-    record Corruption(String name, String column, String table, long rowId, String set, String restore) {
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
-
-    static final String UNIT_RESTORE = "TYPE = N'Department', NAME = N'Support'";
-    static final String ROOT_RESTORE = "TYPE = N'Account', NAME = N'Root'";
-
-    static Stream<Arguments> corruptions() {
-        return Stream.of(
-                new Corruption("非根单元 TYPE=Group", "TYPE", "dbo.ORG_UNIT", 3, "TYPE = N'Group'", UNIT_RESTORE),
-                new Corruption("非根单元 TYPE=NULL", "TYPE", "dbo.ORG_UNIT", 3, "TYPE = NULL", UNIT_RESTORE),
-                // RULING-R1B0-2: the root may be Department or Account (C-4), never NULL or anything else.
-                new Corruption("根单元 TYPE=Group（RULING-R1B0-2）", "TYPE", "dbo.ORG_UNIT", 1, "TYPE = N'Group'", ROOT_RESTORE),
-                new Corruption("根单元 TYPE=NULL（RULING-R1B0-2）", "TYPE", "dbo.ORG_UNIT", 1, "TYPE = NULL", ROOT_RESTORE))
-                .map(Arguments::of);
-    }
-
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("corruptions")
-    @DisplayName("R-1b-0 RULING-R1B0-7 Given 根或非根单元 TYPE 为 NULL 或 Department / Account 以外的值（参数化）When 组织同步 Then 本轮 FAILED、日志有 ALERT、快照不写，失败原因带列名，失败原因与日志不含人员个人信息与 SQL 异常消息")
-    void illegalUnitTypeFailsTheWholeRun(Corruption corruption, CapturedOutput output) throws SQLException {
-        SyncResult baseline = runSync();
-        assertThat(baseline.status()).as("fixture sanity, the clean source syncs: %s", baseline.note()).isEqualTo(SyncRunStatus.SUCCEEDED);
-        String original = corruption.rowId() == 1 ? "Root" : "Support";
-        assertThat(unitName(corruption.rowId())).as("snapshot before").isEqualTo(original);
-        String marker = "Zq" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
-        int mark = output.getAll().length();
-        SyncResult result;
-        try {
-            run(MAIN, "UPDATE " + corruption.table() + " SET " + corruption.set() + ", NAME = N'" + marker + "' WHERE ID = " + corruption.rowId());
-            result = runSync();
-        } finally {
-            run(MAIN, "UPDATE " + corruption.table() + " SET " + corruption.restore() + " WHERE ID = " + corruption.rowId());
-        }
-        String log = output.getAll().substring(mark);
-
-        assertThat(result.status()).as("%s: an illegal source value rejects the whole read (C-3); note: %s", corruption, result.note())
-                .isEqualTo(SyncRunStatus.FAILED);
-        assertThat(log).as("a failed sync raises an ALERT line").containsPattern("ALERT[^\\n]*organization\\.workforce[^\\n]*sync");
-        assertThat(unitName(corruption.rowId())).as("the snapshot is not written: the renamed unit would show").isEqualTo(original);
-        String reason = String.valueOf(result.note()) + "\n" + getRun(result).run().failureReason();
-        assertThat(reason).as("the failure names the column").containsPattern("\\b" + corruption.column() + "\\b");
-        for (String text : List.of(reason, log)) {
-            assertNoPersonalDataNorSqlMessage(text);
-        }
-    }
-
-    /** ADR-0037 item 3.5: no A8 personal data, no SQL Server message text. */
-    static void assertNoPersonalDataNorSqlMessage(String text) {
-        for (Person person : PEOPLE) {
-            assertThat(text).as("no personal data of %s", person.label()).doesNotContain(person.name()).doesNotContain(Long.toString(person.id()));
-            if (person.login() != null) {
-                assertThat(text).doesNotContain(person.login());
-            }
-        }
-        assertThat(text).as("no SQL Server message").doesNotContain("SQLServerException").doesNotContain("Conversion failed");
-    }
-
-    // ------------------------------------------------------------------ 7
-
-    @Test
-    @DisplayName("R-1b-0 Given 根单元 TYPE=Account 或 Department、其下全为 Department Then 正常；Given 根以下出现 TYPE=Account Then 整轮 FAILED 并 ALERT")
-    void accountBelowTheRootFailsTheRun(CapturedOutput output) throws SQLException {
-        SyncResult clean = runSync();
-        assertThat(clean.status()).as("root Account, all below Department: %s", clean.note()).isEqualTo(SyncRunStatus.SUCCEEDED);
-
-        SyncResult rootDepartment;
-        try {
-            run(MAIN, "UPDATE dbo.ORG_UNIT SET TYPE = N'Department' WHERE ID = 1");
-            rootDepartment = runSync();
-        } finally {
-            run(MAIN, "UPDATE dbo.ORG_UNIT SET TYPE = N'Account' WHERE ID = 1");
-        }
-        assertThat(rootDepartment.status()).as("the type of the root unit is not restricted (C-4): %s", rootDepartment.note())
-                .isEqualTo(SyncRunStatus.SUCCEEDED);
-
-        int mark = output.getAll().length();
-        SyncResult accountBelow;
-        try {
-            run(MAIN, "UPDATE dbo.ORG_UNIT SET TYPE = N'Account' WHERE ID = 3");
-            accountBelow = runSync();
-        } finally {
-            run(MAIN, "UPDATE dbo.ORG_UNIT SET " + UNIT_RESTORE + " WHERE ID = 3");
-        }
-        assertThat(accountBelow.status()).as("an Account below the root rejects the whole read: %s", accountBelow.note()).isEqualTo(SyncRunStatus.FAILED);
-        String log = output.getAll().substring(mark);
-        assertThat(log).containsPattern("ALERT[^\\n]*organization\\.workforce[^\\n]*sync");
-        assertNoPersonalDataNorSqlMessage(log);
-    }
-
-    // ------------------------------------------------------------------ 8
-
-    /**
-     * The decoy is created after the application started: the start-up check refuses any object in the view schema that is not a whitelisted
-     * view, so a decoy present at start would only test that check. The run-time re-check before the read looks at permissions, not objects.
-     * Both directions: an illegal decoy must not fail a clean dbo, and a legal decoy must not hide an Account below the root in dbo.
-     */
-    @Test
-    @DisplayName("R-1b-0 RULING-R1B0-7 Given A8 用户默认 schema 为 forcitis_one 且其下有同名诱饵 ORG_UNIT When 同步 Then TYPE 取自 dbo.ORG_UNIT：诱饵非法而 dbo 合法时同步成功，诱饵合法而 dbo 根以下有 Account 时整轮 FAILED")
-    void unitTypeIsReadByItsDboName() throws SQLException {
-        assertThat(app().isActive()).as("started before any decoy exists").isTrue();
-        SyncResult illegalDecoy;
-        try {
-            createUnitDecoy("N'Group'");
-            illegalDecoy = runSync();
-        } finally {
-            run(MAIN, "DROP TABLE IF EXISTS forcitis_one.ORG_UNIT");
-        }
-        assertThat(illegalDecoy.status()).as("decoy TYPE Group everywhere, dbo clean: %s", illegalDecoy.note()).isEqualTo(SyncRunStatus.SUCCEEDED);
-
-        SyncResult legalDecoy;
-        try {
-            run(MAIN, "UPDATE dbo.ORG_UNIT SET TYPE = N'Account' WHERE ID = 3");
-            createUnitDecoy("N'Department'");
-            legalDecoy = runSync();
-        } finally {
-            run(MAIN, "DROP TABLE IF EXISTS forcitis_one.ORG_UNIT", "UPDATE dbo.ORG_UNIT SET " + UNIT_RESTORE + " WHERE ID = 3");
-        }
-        assertThat(legalDecoy.status()).as("decoy all Department, dbo has an Account below the root: the dbo value must reject the run; note: %s",
-                legalDecoy.note()).isEqualTo(SyncRunStatus.FAILED);
-    }
-
-    /** forcitis_one.ORG_UNIT with every unit's ID and the given TYPE; proves the A8 login resolves an unqualified ORG_UNIT to it. */
-    static void createUnitDecoy(String type) throws SQLException {
-        run(MAIN, "SELECT ID, CAST(" + type + " AS nvarchar(32)) AS TYPE INTO forcitis_one.ORG_UNIT FROM dbo.ORG_UNIT");
-        Login reader = LOGINS_BY_DATABASE.get(MAIN);
-        try (Connection c = DriverManager.getConnection(url(MAIN) + ";loginTimeout=30", reader.user(), reader.password());
-                Statement s = c.createStatement();
-                ResultSet rs = s.executeQuery("SELECT TYPE FROM ORG_UNIT WHERE ID = 3")) {
-            assertThat(rs.next()).isTrue();
-            assertThat(rs.getString(1)).as("the trap is armed: for the A8 login an unqualified ORG_UNIT is the decoy")
-                    .isEqualTo(type.substring(2, type.length() - 1));
-        }
-    }
-
     // ------------------------------------------------------------------ 9
 
     @Test
@@ -440,25 +282,6 @@ class A8SourceFlagsIT {
                 .isEqualTo(rowCount(PURE_VIEW_UNITS));
         assertThat(rowCount(PURE_VIEW_MEMBERS)).as("fixture sanity: the comparison is over real rows").isEqualTo(PEOPLE.stream().filter(Person::inScope).count());
         assertThat(rowCount(PURE_VIEW_UNITS)).isEqualTo(3);
-    }
-
-    // ------------------------------------------------------------------ helpers: sync report
-
-    static SyncResult runSync() {
-        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
-            return app().getBean(SyncOrgSnapshot.class).execute(SyncTrigger.MANUAL, false);
-        }
-    }
-
-    static SyncRunDetailView getRun(SyncResult result) {
-        return app().getBean(GetSyncRun.class).execute(result.syncRunId()).orElseThrow();
-    }
-
-    static String unitName(long sourceUnitId) {
-        UUID ownId = app().getBean(SourceReferences.class)
-                .findOwnId(ExternalSource.ORG_SOURCE, SourceObjectKind.ORG_UNIT, sourceUnitId)
-                .orElseThrow(() -> new AssertionError("one confirmed reference of source unit " + sourceUnitId));
-        return app().getBean(OrgDirectory.class).findOrgUnit(new OrgUnitId(ownId)).orElseThrow().name();
     }
 
     // ------------------------------------------------------------------ helpers: statements

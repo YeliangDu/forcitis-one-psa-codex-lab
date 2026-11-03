@@ -46,7 +46,7 @@ class RoleSeparatedDeploymentIT {
     static final String RUNTIME = "one_dev_app";
     static final String[] JOBS_OFF = {"forcitis.platform.integration.archive-store.enabled=false", "forcitis.platform.approval.process-archive.enabled=false",
             "forcitis.platform.audit.archive.enabled=false", "forcitis.cost.timesheet.consumed-events.enabled=false",
-            "forcitis.organization.workforce.sync-purge.enabled=false", "forcitis.platform.integration.outbound-purge.enabled=false",
+            "forcitis.platform.integration.outbound-purge.enabled=false",
             "forcitis.platform.integration.event-publication.jobs-enabled=false", "forcitis.platform.scheduling.jobs-enabled=false",
             "forcitis.platform.identity.sso.enabled=false"};
 
