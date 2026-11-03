@@ -1,20 +1,5 @@
-# cost.timesheet 提议术语（proposed，待第三轮用语确认，ADR-0018）。
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
 terms:
-- id: error__cost_timesheet_not_found
-  zh: 工时单不存在
-  en: CostTimesheetNotFound
-  snake: cost_timesheet_not_found
-  kind: error_code
-  bc: cost.timesheet
-  scope: domain
-  definition: 找不到该工时单（404）
-  standard_ref:
-  - docs/architecture/proposals/phase1-a-platform-conventions.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__cost_timesheet_not_owner
   zh: 不是填报人
   en: CostTimesheetNotOwner
@@ -28,8 +13,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__cost_timesheet_cutoff_passed
   zh: 已过撤回截止点
   en: CostTimesheetCutoffPassed
@@ -43,8 +29,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__cost_timesheet_work_date_required
   zh: 必须填写工作日期
   en: CostTimesheetWorkDateRequired
@@ -58,8 +45,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__cost_timesheet_work_date_in_future
   zh: 工作日期晚于今天
   en: CostTimesheetWorkDateInFuture
@@ -73,8 +61,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__cost_timesheet_work_date_fixed
   zh: 工作日期不可改
   en: CostTimesheetWorkDateFixed
@@ -88,8 +77,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__cost_timesheet_result_pending
   zh: 审批结果尚未回写
   en: CostTimesheetResultPending
@@ -103,8 +93,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__cost_timesheet_employee_unknown
   zh: 填报人不在组织中
   en: CostTimesheetEmployeeUnknown
@@ -118,8 +109,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__cost_timesheet_project_manager_unknown
   zh: 项目经理不在职
   en: CostTimesheetProjectManagerUnknown
@@ -133,7 +125,56 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__cost_timesheet_on_unpaid_leave
+  zh: 停薪留职期间不能提交工时单
+  en: CostTimesheetOnUnpaidLeave
+  snake: cost_timesheet_on_unpaid_leave
+  kind: error_code
+  bc: cost.timesheet
+  scope: domain
+  definition: 填报人在该工作日处于停薪留职，不能为这一天提交工时单；停薪留职开始之前的日子照常可提交（用户决定 2026-10-30，ADR-0068 第 3 条，422）
+  standard_ref:
+  - ADR-0068 第 3 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: IMP-1030-PAR-B5（#874）
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__cost_timesheet_project_manager_on_unpaid_leave
+  zh: 项目经理停薪留职不能审批
+  en: CostTimesheetProjectManagerOnUnpaidLeave
+  snake: cost_timesheet_project_manager_on_unpaid_leave
+  kind: error_code
+  bc: cost.timesheet
+  scope: domain
+  definition: 所选项目经理在该工作日处于停薪留职，不能审批这张工时单，提交即被拒绝，不再交给管理员处理（用户决定 2026-10-30，ADR-0068 第 3 条，422）
+  standard_ref:
+  - ADR-0068 第 3 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: IMP-1030-PAR-B5c（#926）
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__cost_timesheet_not_found
+  zh: 工时单不存在
+  en: CostTimesheetNotFound
+  snake: cost_timesheet_not_found
+  kind: error_code
+  bc: cost.timesheet
+  scope: domain
+  definition: 找不到该工时单（404）
+  standard_ref:
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
   note: ''
 - id: error__cost_timesheet_work_date_duplicate
   zh: 工作日期已有工时单
@@ -148,60 +189,6 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
   note: ''
-- id: error__cost_timesheet_on_unpaid_leave
-  zh: 停薪留职期间不能提交工时单
-  en: CostTimesheetOnUnpaidLeave
-  snake: cost_timesheet_on_unpaid_leave
-  kind: error_code
-  bc: cost.timesheet
-  scope: domain
-  definition: 填报人在该工作日处于停薪留职，不能为这一天提交工时单；停薪留职开始之前的日子照常可提交（用户决定 2026-10-30，ADR-0068 第 3 条，422）
-  standard_ref:
-  - ADR-0068 第 3 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1030-PAR-B5（#874）
-- id: error__cost_timesheet_project_manager_on_unpaid_leave
-  zh: 项目经理停薪留职不能审批
-  en: CostTimesheetProjectManagerOnUnpaidLeave
-  snake: cost_timesheet_project_manager_on_unpaid_leave
-  kind: error_code
-  bc: cost.timesheet
-  scope: domain
-  definition: 所选项目经理在该工作日处于停薪留职，不能审批这张工时单，提交即被拒绝，不再交给管理员处理（用户决定 2026-10-30，ADR-0068 第 3 条，422）
-  standard_ref:
-  - ADR-0068 第 3 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1030-PAR-B5c（#926）
-
-common_words:
-- revise
-- revised
-- submitted
-- awaiting
-- round
-- consumed
-- consumer
-- first
-- time
-- event
-- events
-- cancelled
-- returned
-- rejected
-- approved
-- draft
-- owner
-- result
-- retract
-- revert
-- digest
-- unknown
-- unmatched

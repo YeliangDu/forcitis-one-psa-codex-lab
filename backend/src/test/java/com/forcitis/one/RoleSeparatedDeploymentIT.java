@@ -46,7 +46,7 @@ class RoleSeparatedDeploymentIT {
     static final String RUNTIME = "one_dev_app";
     static final String[] JOBS_OFF = {"forcitis.platform.integration.archive-store.enabled=false", "forcitis.platform.approval.process-archive.enabled=false",
             "forcitis.platform.audit.archive.enabled=false", "forcitis.cost.timesheet.consumed-events.enabled=false",
-            "forcitis.organization.workforce.sync-purge.enabled=false", "forcitis.platform.integration.outbound-purge.enabled=false",
+            "forcitis.platform.integration.outbound-purge.enabled=false",
             "forcitis.platform.integration.event-publication.jobs-enabled=false", "forcitis.platform.scheduling.jobs-enabled=false",
             "forcitis.platform.identity.sso.enabled=false"};
 
@@ -172,7 +172,7 @@ class RoleSeparatedDeploymentIT {
         assertThatThrownBy(() -> jdbc.sql("truncate table organization_workforce.org_unit_versions").update()).rootCause().hasMessageContaining("permission denied");
         assertThatThrownBy(() -> jdbc.sql("delete from platform_audit.audit_entries").update()).rootCause().hasMessageContaining("permission denied");
         assertThatThrownBy(() -> jdbc.sql("update platform_audit.audit_entries set detail = 'x'").update()).rootCause().hasMessageContaining("permission denied");
-        for (String table : List.of("platform_identity.role_versions", "platform_identity.account_role_grants")) {
+        for (String table : List.of("platform_identity.role_versions", "platform_identity.account_role_grants", "platform_identity.permission_adjustments")) {
             assertThatThrownBy(() -> jdbc.sql("delete from " + table).update()).as(table).rootCause().hasMessageContaining("permission denied");
             assertThatThrownBy(() -> jdbc.sql("truncate table " + table).update()).as(table).rootCause().hasMessageContaining("permission denied");
         }

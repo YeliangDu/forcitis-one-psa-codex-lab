@@ -12,6 +12,7 @@ import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
+import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolution;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolutionSources;
@@ -55,17 +56,21 @@ public class ApplyDueCommand {
     private final PersonnelPlans timelines;
     private final SeparationHoldCheck holdCheck;
     private final LegalEntityResolutionSources legalEntities;
+    private final CountersignRequests countersignRequests;
+    private final AttributionCountersignRepository countersigns;
     private final DomainEvents events;
     private final IdGenerator ids;
     private final Clock clock;
     private final BusinessZone zone;
 
     ApplyDueCommand(PersonnelCommandRepository commands, PersonnelPlans timelines, SeparationHoldCheck holdCheck,
-                    LegalEntityResolutionSources legalEntities, DomainEvents events, IdGenerator ids, Clock clock, BusinessZone zone) {
+                    LegalEntityResolutionSources legalEntities, CountersignRequests countersignRequests, AttributionCountersignRepository countersigns, DomainEvents events, IdGenerator ids, Clock clock, BusinessZone zone) {
         this.commands = commands;
         this.timelines = timelines;
         this.holdCheck = holdCheck;
         this.legalEntities = legalEntities;
+        this.countersignRequests = countersignRequests;
+        this.countersigns = countersigns;
         this.events = events;
         this.ids = ids;
         this.clock = clock;
@@ -105,10 +110,14 @@ public class ApplyDueCommand {
             commands.update(command, now, loaded);
             commands.insertTransition(COMMAND, command.id().value(), loaded + 1, before, command.status().name(), ActorType.SYSTEM, actor, today, now,
                     command.id(), WorkContext.correlationId().orElseGet(ids::next));
+            // The day has come: the versions are in force, so a withdrawal still awaiting its countersign lapses (user answer Q2 of 2026-10-30).
+            if (command.countersignNewLegalEntityId() != null) {
+                countersignRequests.lapse(command, countersigns.ofCommand(command.id()), ActorType.SYSTEM, actor, now, today, WorkContext.correlationId().orElseGet(ids::next));
+            }
             // As at the entry: a separation's envelope names the entity of the last day employed, any other command the entity of its effective day.
             LocalDate entityDay = command.kind() == PersonnelCommandKind.SEPARATE ? command.effectiveDate().minusDays(1) : command.effectiveDate();
             LegalEntityId legalEntity = LegalEntityResolution.resolve(legalEntities, command.employeeId(), entityDay).orElse(null);
-            command.recordEffect(assignmentBefore(command), legalEntity);
+            command.recordEffect(assignmentBefore(command), null, legalEntity);
             if (command.hasPendingEvents()) {
                 events.publish(command);
                 commands.saveEventSequence(command.employeeId(), command.eventSequenceAfterSave());
@@ -138,9 +147,9 @@ public class ApplyDueCommand {
 
     /** Only a transfer reads the assignment of the day before; its versions were written at the entry, so the old row still ends where the new one starts. */
     private @Nullable VersionRow assignmentBefore(PersonnelCommand command) {
-        if (command.kind() != PersonnelCommandKind.TRANSFER) {
+        if (command.kind() != PersonnelCommandKind.TRANSFER || command.targetAssignmentId() == null) {
             return null;
         }
-        return commands.load(command.employeeId()).currentAssignmentRows().stream().filter(row -> row.covers(command.effectiveDate().minusDays(1))).findFirst().orElse(null);
+        return commands.load(command.employeeId()).currentAssignmentRows(command.targetAssignmentId()).stream().filter(row -> row.covers(command.effectiveDate().minusDays(1))).findFirst().orElse(null);
     }
 }

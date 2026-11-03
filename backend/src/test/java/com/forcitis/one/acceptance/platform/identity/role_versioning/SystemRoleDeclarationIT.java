@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
  * rows 0034-G8-01 (空库启动建出六个系统角色，role_id 等于声明中的固定值，版本 1 记声明修订号、渠道 SEED；重启不新增版本；修订号更小告警不写；
  * 相等而内容不同启动失败；两实例同时启动结果相同；对账先于 ApplicationRunner、事件监听与重投、定时任务、HTTP 就绪) and 0034-G8-02 (种子转声明对照：
  * 改前基线迁移后的「角色 → 权限码」与改后对账后的当前版本逐码相等), with card 7.2 (六个 role_id 沿用 019a0000-0000-7000-8000-000000000101 至 …106，
- * 声明修订号 1). Since #872 the declaration also holds a seventh system role, 人事专员 personnel_specialist (lead decision 2026-10-30 on the
+ * 声明修订号 1). Since #872 the declaration also holds a seventh system role (and since #895 an eighth, legal_entity_finance_head), 人事专员 personnel_specialist (lead decision 2026-10-30 on the
  * user decision of 2026-10-30 named 人事专员), holding organization.workforce:personnel-command:create; it is not in the 「改前」 seed, so
  * SEED stays the six and the role is checked on its own. Observed only from outside: the child process's outcome and output, and the rows of platform_identity.
  */
@@ -31,7 +31,12 @@ class SystemRoleDeclarationIT {
     static final String SUPER_ADMIN = "019a0000-0000-7000-8000-000000000101";
     static final String EMPLOYEE = "019a0000-0000-7000-8000-000000000102";
 
-    /** One system role as the identity baseline seeded it on main f62af6ae8 (V20261014130000 :523-586), the 「改前」 of card 0034-G8-02. */
+    /**
+     * One system role as the identity baseline seeded it on main f62af6ae8 (V20261014130000 :523-586), the 「改前」 of card 0034-G8-02, with one
+     * ruled change: org_data_admin's two sync run codes became organization.workforce:org-reconciliation:execute when #934 removed the old
+     * sync (lead ruling 2026-11-02, point 4: the reconciliation is kept under that code with the same grants), and #907 granted it
+     * organization.workforce:org-structure-command:create (card #907: the permission for 组织数据管理员, permissions.yaml updated).
+     */
     record SeededRole(String roleId, String code, String name, String accessScope, boolean administrative, List<String> permissionCodes) {
     }
 
@@ -43,14 +48,17 @@ class SystemRoleDeclarationIT {
             new SeededRole("019a0000-0000-7000-8000-000000000104", "org_data_admin", "组织数据管理员", "ALL", false, List.of(
                     "organization.attendance:locked-day:update", "organization.attendance:work-calendar:read", "organization.attendance:work-calendar:update",
                     "organization.workforce:legal-entity-attribution-correction:create", "organization.workforce:legal-entity:update",
-                    "organization.workforce:org-unit:read", "organization.workforce:sync-run:execute", "organization.workforce:sync-run:read",
+                    "organization.workforce:org-reconciliation:execute", "organization.workforce:org-structure-command:create", "organization.workforce:org-unit:read",
                     "platform.integration:source-reference:update", "platform.numbering:numbering-rule:read", "platform.numbering:numbering-rule:update")),
             new SeededRole("019a0000-0000-7000-8000-000000000105", "business_admin", "业务管理员", "SELF", false, List.of(
-                    "platform.integration:source-reference:approve", "platform.numbering:numbering-rule:approve", "platform.numbering:numbering-rule:read")),
+                    "organization.workforce:legal-entity-attribution:approve", "platform.integration:source-reference:approve", "platform.numbering:numbering-rule:approve",
+                    "platform.numbering:numbering-rule:read")),
             new SeededRole("019a0000-0000-7000-8000-000000000106", "security_auditor", "安全审计员", "ALL", false, List.of(
                     "organization.workforce:separation-hold:approve", "platform.audit:audit-entry:export", "platform.audit:audit-entry:read")));
 
     /** The seventh system role, declared by #872; its role_id is the declaration's choice and is not pinned here. */
+    /** The eighth system role, declared by #895 (法人财务负责人); like personnel_specialist its role_id is the declaration's choice. */
+    static final String FINANCE_HEAD = "legal_entity_finance_head";
     static final String PERSONNEL_SPECIALIST = "personnel_specialist";
     static final String PERSONNEL_COMMAND_CREATE = "organization.workforce:personnel-command:create";
 
@@ -81,7 +89,7 @@ class SystemRoleDeclarationIT {
         return ids;
     }
 
-    /** ADR-0034 decision 1 item 7 and card 7.2: a role the declaration wrote has exactly one version, number 1, open, SEED, revision 1, no recorder, no request. */
+    /** ADR-0034 decision 1 item 7 and card 7.2: a role the declaration wrote has exactly one version, number 1, open, SEED, revision 1 (org_data_admin 3, business_admin 2), no recorder, no request. */
     private static void assertOneSeedVersion(String database) throws SQLException {
         for (SeededRole role : SEED) {
             List<List<Object>> versions = versionsOf(database, role.roleId());
@@ -90,7 +98,10 @@ class SystemRoleDeclarationIT {
             assertThat(version.get(1)).as("version_number of %s", role.code()).isEqualTo(1);
             assertThat(version.get(2)).as("%s's version is current", role.code()).isEqualTo(true);
             assertThat(version.get(3)).as("change_channel_kind of %s", role.code()).isEqualTo("SEED");
-            assertThat(version.get(4)).as("declaration_revision_number of %s (card 7.2: 声明修订号 1)", role.code()).isEqualTo(1);
+            // org_data_admin's declared content changed (sync run codes -> org-reconciliation:execute): under the declaration convention changed content raises
+            // the revision, so existing dev databases reconcile instead of refusing to start (lead ruling 2026-11-02 on #1014); #907 changed org_data_admin again.
+            int revision = role.code().equals("org_data_admin") ? 3 : role.code().equals("business_admin") ? 2 : 1;
+            assertThat(version.get(4)).as("declaration_revision_number of %s (card 7.2: 声明修订号 1; org_data_admin 2 since #934, 3 since #907; business_admin 2 since #895)", role.code()).isEqualTo(revision);
             assertThat(version.get(5)).as("recorded_by of a SEED version").isNull();
             assertThat(version.get(6)).as("authorization_request_id of a SEED version").isNull();
             assertThat((String) version.get(7)).as("change_reason of %s", role.code()).isNotBlank();
@@ -113,6 +124,23 @@ class SystemRoleDeclarationIT {
                 .contains(PERSONNEL_COMMAND_CREATE);
     }
 
+    /** The 法人财务负责人 role (#895): SYSTEM, not administrative, SELF scope, one current SEED version 1 of revision 1 holding exactly the countersign permission. */
+    private static void assertFinanceHeadSeeded(String database) throws SQLException {
+        List<List<Object>> role = rows(database, "select role_id::text, kind, is_administrative from platform_identity.roles where code = ?", FINANCE_HEAD);
+        assertThat(role).as("the declared role %s", FINANCE_HEAD).hasSize(1);
+        assertThat(role.getFirst().subList(1, 3)).as("kind and is_administrative of %s", FINANCE_HEAD).isEqualTo(List.of("SYSTEM", false));
+        List<List<Object>> versions = versionsOf(database, (String) role.getFirst().getFirst());
+        assertThat(versions).as("%s has exactly one version", FINANCE_HEAD).hasSize(1);
+        List<Object> version = versions.getFirst();
+        assertThat(List.of(version.get(1), version.get(2), version.get(3), version.get(4))).as("number, current, channel and revision of %s", FINANCE_HEAD)
+                .isEqualTo(List.of(1, true, "SEED", 1));
+        assertThat(version.get(5)).as("recorded_by of a SEED version").isNull();
+        assertThat(version.get(6)).as("authorization_request_id of a SEED version").isNull();
+        assertThat(version.get(10)).as("access scope of %s", FINANCE_HEAD).isEqualTo("SELF");
+        assertThat(((List<?>) version.get(11)).stream().map(String::valueOf).toList()).as("permission codes of %s", FINANCE_HEAD)
+                .containsExactly("organization.workforce:legal-entity-attribution:approve");
+    }
+
     /** A newer SEED version of the employee role written straight into the database: closes version 1 and opens version 2 without one of its codes. */
     private static void writeSeedVersionTwo(String database, int revision) throws SQLException {
         execute(database, """
@@ -129,33 +157,34 @@ class SystemRoleDeclarationIT {
     }
 
     @Test
-    @DisplayName("0034-G8-01 空库启动：建出七个系统角色——六个沿用基线种子（role_id 为声明固定值 019a…101 至 …106、kind SYSTEM、编码与是否管理员角色同声明）加人事专员 personnel_specialist（#872），每个恰有版本 1：当前、渠道 SEED、声明修订号 1、无记录人、无授权申请")
+    @DisplayName("0034-G8-01 空库启动：建出八个系统角色——六个沿用基线种子（role_id 为声明固定值 019a…101 至 …106、kind SYSTEM、编码与是否管理员角色同声明）加人事专员 personnel_specialist（#872）和法人财务负责人 legal_entity_finance_head（#895），每个恰有版本 1：当前、渠道 SEED、声明修订号 1（组织数据管理员与业务管理员为 2：#934 改了前者的声明内容，#895 给后者加了法人归属会签权限）、无记录人、无授权申请")
     void anEmptyDatabaseGetsTheSixSystemRoles() throws Exception {
         Outcome outcome = firstStart();
 
         assertThat(outcome.started()).as(outcome.output()).isTrue();
         String database = SystemRoleDeclarationEnvironment.FIRST_DATABASE;
-        List<List<Object>> roles = rows(database, "select role_id::text, code, kind, is_administrative from platform_identity.roles where code <> ? order by role_id",
-                PERSONNEL_SPECIALIST);
+        List<List<Object>> roles = rows(database, "select role_id::text, code, kind, is_administrative from platform_identity.roles where code not in (?, ?) order by role_id",
+                PERSONNEL_SPECIALIST, FINANCE_HEAD);
         List<List<Object>> expected = new ArrayList<>();
         for (SeededRole role : SEED) {
             expected.add(List.of(role.roleId(), role.code(), "SYSTEM", role.administrative()));
         }
-        assertThat(roles).as("the roles a start on an empty database writes, besides personnel_specialist").isEqualTo(expected);
+        assertThat(roles).as("the roles a start on an empty database writes, besides personnel_specialist and legal_entity_finance_head").isEqualTo(expected);
         assertOneSeedVersion(database);
         assertPersonnelSpecialistSeeded(database);
+        assertFinanceHeadSeeded(database);
     }
 
     @Test
-    @DisplayName("0034-G8-01 对账时点：最早阶段的生命周期 bean 启动时（先于 Web 服务器、调度器、事件监听容器）与第一个 ApplicationRunner 运行时，七个系统角色都已有当前 SEED 版本")
+    @DisplayName("0034-G8-01 对账时点：最早阶段的生命周期 bean 启动时（先于 Web 服务器、调度器、事件监听容器）与第一个 ApplicationRunner 运行时，八个系统角色都已有当前 SEED 版本")
     void theReconciliationIsDoneBeforeAnythingElseRuns() throws Exception {
         Outcome outcome = firstStart();
 
         assertThat(outcome.started()).as(outcome.output()).isTrue();
         assertThat(outcome.linesWith(SystemRoleDeclarationLauncher.PROBE + " " + SystemRoleDeclarationLauncher.LIFECYCLE))
-                .as(outcome.output()).singleElement().asString().endsWith(" open-seed-versions=7");
+                .as(outcome.output()).singleElement().asString().endsWith(" open-seed-versions=8");
         assertThat(outcome.linesWith(SystemRoleDeclarationLauncher.PROBE + " " + SystemRoleDeclarationLauncher.RUNNER))
-                .as(outcome.output()).singleElement().asString().endsWith(" open-seed-versions=7");
+                .as(outcome.output()).singleElement().asString().endsWith(" open-seed-versions=8");
     }
 
     @Test
@@ -184,7 +213,7 @@ class SystemRoleDeclarationIT {
     }
 
     @Test
-    @DisplayName("0034-G8-01 声明不变时重启：启动成功，七个系统角色仍各只有版本 1，版本 ID 不变")
+    @DisplayName("0034-G8-01 声明不变时重启：启动成功，八个系统角色仍各只有版本 1，版本 ID 不变")
     void aRestartAddsNoVersion() throws Exception {
         String database = migratedDatabase("forcitis_one_roles_restart");
         Outcome first = launch(database);
@@ -251,7 +280,7 @@ class SystemRoleDeclarationIT {
     }
 
     @Test
-    @DisplayName("0034-G8-01 两个实例同时在无角色数据的库上启动：都启动成功，结果与单实例相同（七个系统角色，各恰有版本 1）")
+    @DisplayName("0034-G8-01 两个实例同时在无角色数据的库上启动：都启动成功，结果与单实例相同（八个系统角色，各恰有版本 1）")
     void twoInstancesStartingTogetherEndAlike() throws Exception {
         String database = migratedDatabase("forcitis_one_roles_together");
         Outcome warmUp = launch(database);
@@ -266,9 +295,10 @@ class SystemRoleDeclarationIT {
 
         assertThat(a.started()).as(a.output()).isTrue();
         assertThat(b.started()).as(b.output()).isTrue();
-        assertThat(rows(database, "select count(*) from platform_identity.roles").getFirst().getFirst()).isEqualTo(7L);
+        assertThat(rows(database, "select count(*) from platform_identity.roles").getFirst().getFirst()).isEqualTo(8L);
         assertOneSeedVersion(database);
         assertPersonnelSpecialistSeeded(database);
+        assertFinanceHeadSeeded(database);
     }
 
     private static Outcome start(String database) {

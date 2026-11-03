@@ -23,6 +23,7 @@ categories:
   - platform.identity.AuthorizationConfirmed
   - platform.identity.AuthorizationOpened
   - platform.identity.AuthorizationRejected
+  - platform.identity.authorization.voided
   - platform.identity.grant.refused
   - platform.identity.operations.account.role.granted
   - platform.identity.operations.account.role.revoked
@@ -40,27 +41,32 @@ categories:
   - planned: platform.approval.proxy.acted | 显式代理动作（RULE-270，D-07）随代理功能一起做，1a 没有代理入口
 - name: 放行
   actions:
-  - organization.workforce.OrgSnapshotChanged
   - organization.workforce.SeparationHeld
   - organization.workforce.SeparationHoldReleased
-  - organization.workforce.SyncRunFailed
-  - organization.workforce.SyncRunHeld
-  - organization.workforce.SyncRunHoldReleased
-  - organization.workforce.SyncRunReleased
   - organization.workforce.initial-versions.migrated
   - organization.workforce.separation-hold.released
-  - organization.workforce.sync-run.released
 - name: 人事命令
   actions:
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
   - organization.workforce.EmployeeRegularized
   - organization.workforce.EmployeeReinstated
   - organization.workforce.EmployeeSeparated
   - organization.workforce.EmployeeTransferred
+  - organization.workforce.attribution-countersign.approved
+  - organization.workforce.attribution-countersign.lapsed
+  - organization.workforce.attribution-countersign.rejected
+  - organization.workforce.attribution-countersign.requested
+  - organization.workforce.employee-profile.change-rejected
+  - organization.workforce.employee-profile.change-requested
+  - organization.workforce.employee-profile.change-voided
   - organization.workforce.employee-profile.changed
   - organization.workforce.personnel-command.entered
   - organization.workforce.personnel-command.withdrawn
+  - organization.workforce.org-structure-command.entered
+  - organization.workforce.org-structure-command.withdrawn
+  - organization.workforce.org-structure-command.completed
 - name: 法人
   actions:
   - organization.workforce.EmployeeRegistered

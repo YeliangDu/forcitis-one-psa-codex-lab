@@ -1,4 +1,4 @@
-# Phase 1a 修复批 B2（数据架构）新增术语（proposed，待业务评审，ADR-0018）。
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
 terms:
 - id: error__organization_attendance_locked_day_unconfirmed
   zh: 修改锁定日期未经确认
@@ -13,5 +13,6 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）

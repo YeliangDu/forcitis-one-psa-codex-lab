@@ -1,6 +1,6 @@
 # 正本，直接编辑（原生成脚本已随 #742 删除）
 meta:
-  count: 599
+  count: 596
   enforces_nonempty: 2
   unnamed_constraints: 44
 execution_points:
@@ -293,12 +293,6 @@ execution_points:
     location: "backend/src/test/java/com/forcitis/one/RepositoryWriteGuardTest.java:68"
     name: "insertsListTheStatus"
     enforces: []
-  - id: "EP-18832823b6"
-    kind: "豁免"
-    location: "backend/architecture/multi-aggregate-exceptions.txt:6"
-    name: "com.forcitis.one.organization.workforce.application.ApplySourceSnapshot | SyncRun+OrgSnapshot | 运行结果与快照同生同灭，拆开会留下「已应用但运行未记」或反之的窗口；SyncRunSucceeded 与 OrgSnapshotChanged 在 relatedAggregates 里列出 OrgSnapshot"
-    enforces: []
-    exempts: "multi-aggregate-exceptions.txt"
   - id: "EP-19b61015c8"
     kind: "守护"
     location: "backend/src/test/java/com/forcitis/one/NamingSurfaceTest.java:78"
@@ -465,12 +459,6 @@ execution_points:
     location: "backend/src/test/java/com/forcitis/one/ArchitectureRulesTest.java:114"
     name: "domainIsFrameworkFree"
     enforces: []
-  - id: "EP-278ae88b60"
-    kind: "豁免"
-    location: "backend/architecture/source-type-exceptions.txt:9"
-    name: "src/main/java/com/forcitis/one/organization/workforce/application/SyncOrgSnapshot.java | 定时同步读集成层的来源快照 | 拆分 a"
-    enforces: []
-    exempts: "source-type-exceptions.txt"
   - id: "EP-27fb507e73"
     kind: "守护"
     location: "backend/src/test/java/com/forcitis/one/platform/integration/guard/SeeyonSourceScanTest.java:196"
@@ -1993,12 +1981,6 @@ execution_points:
     location: "backend/src/test/java/com/forcitis/one/DdlNamingTest.java:1006"
     name: "sentinelGuardCatchesInjectedSamples"
     enforces: []
-  - id: "EP-a641cbe37b"
-    kind: "豁免"
-    location: "backend/architecture/repository-id-exceptions.txt:3"
-    name: "com.forcitis.one.organization.workforce.infrastructure.persistence.JdbcSyncRunRepository.insertRunning  # SyncRun gets its id in the repository; the synchronisation is rebuilt in split a / b (NEXT_BATCH_PLAN 7.11), which builds it with the id"
-    enforces: []
-    exempts: "repository-id-exceptions.txt"
   - id: "EP-a677c9c836"
     kind: "豁免"
     location: "backend/architecture/status-write-exceptions.txt:3"

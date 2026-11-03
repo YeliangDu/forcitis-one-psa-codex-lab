@@ -26,7 +26,8 @@ class AuditIdContractTest {
     static final Path VALIDATORS = Path.of("../frontend/packages/api/src/generated/validators.ts");
     static final String LIST = "/api/v1/platform/audit-entries";
     static final String EXPORT = "/api/v1/platform/audit-entries:export";
-    static final List<String> BY_PROPERTIES = List.of("requestedBy", "releasedBy", "confirmedBy", "financeConfirmedBy");
+    static final List<String> BY_PROPERTIES = List.of("requestedBy", "confirmedBy", "financeConfirmedBy");
+    // releasedBy left with SyncRunResponse, its only carrier, when #934 removed the old sync; no other schema has it.
 
     private static JsonNode schema(String name) throws IOException {
         return UserIdContractTest.openApi().path("components").path("schemas").path(name);
@@ -52,7 +53,7 @@ class AuditIdContractTest {
     }
 
     @Test
-    @DisplayName("R-1b P5 G-A1 / ADR-0033 第 6 项第 2 条：AuditEntryResponse 有 subjectKind（枚举，取值为已定稿的 19 个类别）与 subjectId（string / uuid），无 subjectKey")
+    @DisplayName("R-1b P5 G-A1 / ADR-0033 第 6 项第 2 条：AuditEntryResponse 有 subjectKind（枚举，取值为已定稿的全部类别）与 subjectId（string / uuid），无 subjectKey")
     void theAuditEntryNamesItsSubjectInTwoFields() throws IOException {
         JsonNode properties = schema("AuditEntryResponse").path("properties");
 
@@ -88,7 +89,7 @@ class AuditIdContractTest {
     }
 
     @Test
-    @DisplayName("R-1b P5 ADR-0033 第 6 项第 2 条：OpenAPI 中名字以 By 结尾的属性（requestedBy、releasedBy、confirmedBy、financeConfirmedBy 等）都是 string / uuid")
+    @DisplayName("R-1b P5 ADR-0033 第 6 项第 2 条：OpenAPI 中名字以 By 结尾的属性（requestedBy、confirmedBy、financeConfirmedBy 等）都是 string / uuid")
     void thePropertiesEndingInByAreUuids() throws IOException {
         List<String> wrong = new ArrayList<>();
         Set<String> found = new HashSet<>();

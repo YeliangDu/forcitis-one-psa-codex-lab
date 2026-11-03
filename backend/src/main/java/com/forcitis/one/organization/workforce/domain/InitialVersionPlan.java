@@ -5,10 +5,10 @@ import java.util.List;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The employee versions the one-time initial migration writes for a person only the sync snapshot knows (one-design data design on #960, section 3):
- * the current state only, never the sync history. The left edge is the earliest assignment version, so that both version tables agree on the first day.
+ * The employee versions the one-time initial migration writes for a person only the snapshot knows (one-design data design on #960, section 3):
+ * the current state only, never a history. The left edge is the earliest assignment version, so that both version tables agree on the first day.
  * The person is employed or separated as the snapshot says; a separation day later than the left edge splits the history in an employed row that closes
- * on it and a separated row that stays open. The separation day is the day the sync observed the leaving, not the day HR recorded.
+ * on it and a separated row that stays open. The separation day is the day the snapshot recorded the leaving, not the day HR recorded.
  */
 public final class InitialVersionPlan {
 

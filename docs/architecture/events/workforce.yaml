@@ -1,199 +1,6 @@
 # 事件目录分片（AsyncAPI 3 的 components.messages）：本模块的事件由 build_asyncapi.py 合成 asyncapi.yaml
 components:
   messages:
-    SyncRunSucceeded:
-      name: SyncRunSucceeded
-      title: 组织同步成功
-      payload:
-        type: object
-        properties:
-          syncRunId:
-            type: string
-            format: uuid
-            x-type: SyncRunId
-            description: 稳定 ID 的字符串形式
-      x-event:
-        eventType: organization.workforce.SyncRunSucceeded
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.SyncRunSucceeded
-        aggregate: SyncRun
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers: []
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: 'not-audited: 每 5 分钟一次的同步会淹没审计记录；同步记录表本身就是它的记录，中止、失败、放行仍然审计'
-        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
-        noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
-    SyncRunHeld:
-      name: SyncRunHeld
-      title: 组织同步被缩水保护中止
-      payload:
-        type: object
-        properties:
-          syncRunId:
-            type: string
-            format: uuid
-            x-type: SyncRunId
-            description: 稳定 ID 的字符串形式
-      x-event:
-        eventType: organization.workforce.SyncRunHeld
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.SyncRunHeld
-        aggregate: SyncRun
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers:
-        - platform.audit
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
-        noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
-    SyncRunFailed:
-      name: SyncRunFailed
-      title: 组织同步失败
-      payload:
-        type: object
-        properties:
-          syncRunId:
-            type: string
-            format: uuid
-            x-type: SyncRunId
-            description: 稳定 ID 的字符串形式
-      x-event:
-        eventType: organization.workforce.SyncRunFailed
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.SyncRunFailed
-        aggregate: SyncRun
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers:
-        - platform.audit
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
-        noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
-    SyncRunReleased:
-      name: SyncRunReleased
-      title: 被中止的同步已由管理员放行或被后续成功同步取代
-      payload:
-        type: object
-        properties:
-          syncRunId:
-            type: string
-            format: uuid
-            x-type: SyncRunId
-            description: 稳定 ID 的字符串形式
-          reason:
-            type: string
-            x-type: Reason
-            nullable: true
-            description: 放行人填写的原因；由下一次成功同步自动放行时为空
-          releasedByRunId:
-            type: string
-            format: uuid
-            x-type: SyncRunId
-            description: 稳定 ID 的字符串形式
-      x-event:
-        eventType: organization.workforce.SyncRunReleased
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.SyncRunReleased
-        aggregate: SyncRun
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers:
-        - platform.audit
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
-        noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
-    SyncRunHoldReleased:
-      name: SyncRunHoldReleased
-      title: 被暂停的同步的一类暂停已被有权的人解除，另一类仍在时运行保持暂停
-      payload:
-        type: object
-        properties:
-          syncRunId:
-            type: string
-            format: uuid
-            x-type: SyncRunId
-            description: 稳定 ID 的字符串形式
-          holdKind:
-            type: string
-            enum:
-            - SHRINK_GUARD
-            - ADMINISTRATOR_SEPARATION
-            x-type: HoldKind
-          releasedBy:
-            type: string
-            x-type: UserId
-            format: uuid
-            description: 稳定 ID 的字符串形式
-      x-event:
-        eventType: organization.workforce.SyncRunHoldReleased
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.SyncRunHoldReleased
-        aggregate: SyncRun
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers:
-        - platform.audit
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
-        noConsumer: 暂无消费方：放行告警（告警通道待用户指定）将订阅；现在就发布，是因为放行只在发生当时有告警价值，事后补不回
-    OrgSnapshotChanged:
-      name: OrgSnapshotChanged
-      title: 组织快照因同步发生变化
-      payload:
-        type: object
-        properties:
-          changedEmployees:
-            type: array
-            items:
-              type: string
-              x-type: EmployeeId
-              format: uuid
-          separatedEmployees:
-            type: array
-            items:
-              type: string
-              x-type: EmployeeId
-              format: uuid
-          changedOrgUnits:
-            type: array
-            items:
-              type: string
-              x-type: OrgUnitId
-              format: uuid
-          effectiveFrom:
-            type: string
-            x-type: LocalDate
-            description: 变化从哪一天起生效（含）；组织源不给变更日期，取快照截止日
-      x-event:
-        eventType: organization.workforce.OrgSnapshotChanged
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.OrgSnapshotChanged
-        aggregate: SyncRun
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers:
-        - platform.identity
-        - platform.audit
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 快照截止日：同步运行开始当天（Asia/Shanghai），即读取组织源快照的业务日；effectiveFrom 在负载
-        audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
     LegalEntityRegistered:
       name: LegalEntityRegistered
       title: 法人新增
@@ -521,13 +328,13 @@ components:
         idempotencyKey: eventId
         publisher: organization.workforce
         consumers:
+        - platform.identity
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 人事业务生效日（effectiveDate）：入职命令的生效日
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
-        noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
     EmployeeRegularized:
       name: EmployeeRegularized
       title: 员工转正已生效
@@ -667,6 +474,52 @@ components:
         businessDate: 人事业务生效日（effectiveDate）：离职命令的生效日，即最后工作日的次日
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
+    EmployeeLegalEntityChanged:
+      name: EmployeeLegalEntityChanged
+      title: 员工法人归属已变更
+      description: 改变员工成本法人的人事命令（调岗、更正或变更法人归属）经法人财务负责人会签后生效时发布，不论命令种类（调岗同时发布 EmployeeTransferred）。会签期间不发布，待生效的命令也不发布（ADR-0073 第 3 条第 7 项、会签设计说明 #878 第 7 节）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，信封 legalEntityId 为新的成本法人；负载只含 ID 与日期，不含姓名等个人信息。
+      payload:
+        type: object
+        properties:
+          personnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            description: 触发本事件的人事命令 ID（UUIDv7）
+          employeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 员工 ID，与信封的 aggregateId 相同
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 人事业务生效日（DECLARED）：员工在新成本法人的第一天
+          previousLegalEntityId:
+            type: string
+            format: uuid
+            x-type: LegalEntityId
+            description: 命令生效前一天的成本法人，即会签依据的原法人
+          newLegalEntityId:
+            type: string
+            format: uuid
+            x-type: LegalEntityId
+            description: 生效日起的成本法人，即会签依据的新法人，与信封 legalEntityId 相同
+      x-event:
+        eventType: organization.workforce.EmployeeLegalEntityChanged
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.EmployeeLegalEntityChanged
+        aggregate: Employee
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 人事业务生效日（effectiveDate）：改变成本法人的命令的生效日
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
+        noConsumer: 暂无消费方：先登记，是为了成本归集等下游按同一份契约并行开工（ADR-0073 第 3 条第 7 项）；事件只在命令生效时发布，漏发补不回
     EmployeeReinstated:
       name: EmployeeReinstated
       title: 员工复职已生效
@@ -696,17 +549,17 @@ components:
         idempotencyKey: eventId
         publisher: organization.workforce
         consumers:
+        - platform.identity
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 人事业务生效日（effectiveDate）：复职命令的生效日
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
-        noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
     EmployeeCorrected:
       name: EmployeeCorrected
       title: 员工人事已更正
-      description: 更正命令改变了截至今天的部门、岗位、在职状态或直属领导时发布；只改历史时只写审计、不发布。负载为人事命令 ID、员工 ID 与受影响区间，信封 businessDate 为更正命令的生效日（ADR-0068 第 1 条第 9 项）。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
+      description: 更正命令改变了截至今天的部门、岗位、在职状态或直属领导时发布；只改历史时只写审计、不发布。负载为人事命令 ID、员工 ID、受影响区间，另带触发字段与截至今天更正前后的部门和岗位（供待调整权限按（人，人事命令 ID，触发字段）去重，ADR-0081 第 3 项）；信封 businessDate 为更正命令的生效日（ADR-0068 第 1 条第 9 项）。信封 legalEntityId 为员工在生效日的法人（lead 2026-10-28 定，#737 Q6）。
       payload:
         type: object
         properties:
@@ -729,6 +582,39 @@ components:
             x-type: LocalDate
             nullable: true
             description: 受影响区间的结束日（不含）；为空表示至今仍受影响
+          triggerFieldKinds:
+            type: array
+            items:
+              type: string
+              enum:
+              - ORG_UNIT
+              - POSITION
+              x-type: TriggerFieldKind
+            description: 更正使截至今天的任职中哪些字段的值前后不同：ORG_UNIT 部门 / POSITION 岗位；两者都没变时为空列表。撤销错误离职（更正使离职的人重新在职）只列 ORG_UNIT，不列 POSITION（ADR-0082 第 2 项）
+          previousOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            nullable: true
+            description: 更正前截至今天的部门；那时没有任职时为空
+          newOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            nullable: true
+            description: 更正后截至今天的部门；没改部门时与更正前相同，那时没有任职时为空
+          previousPositionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            nullable: true
+            description: 更正前截至今天的岗位；那时没有任职或任职未设岗位时为空
+          newPositionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            nullable: true
+            description: 更正后截至今天的岗位；没改岗位时与更正前相同，没有任职或未设岗位时为空
       x-event:
         eventType: organization.workforce.EmployeeCorrected
         version: 1
@@ -832,3 +718,344 @@ components:
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
         noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
+    OrgUnitCreated:
+      name: OrgUnitCreated
+      title: 组织单元已新建
+      description: 新建组织单元命令生效时发布（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      payload:
+        type: object
+        properties:
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 新建的组织单元 ID（服务端生成）
+          parentOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            nullable: true
+            description: 上级组织单元 ID；根单元为空
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：新建日，即组织单元的第一天
+      x-event:
+        eventType: organization.workforce.OrgUnitCreated
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.OrgUnitCreated
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：新建日，即组织单元的第一天
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+    OrgUnitDissolved:
+      name: OrgUnitDissolved
+      title: 组织单元已撤销
+      description: 撤销命令生效时发布（空单元的撤销；合并完成时不发本事件，只发 OrgUnitMerged）（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      payload:
+        type: object
+        properties:
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 被撤销的组织单元 ID
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：撤销日，即已撤销状态的第一天
+      x-event:
+        eventType: organization.workforce.OrgUnitDissolved
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.OrgUnitDissolved
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：撤销日，即已撤销状态的第一天
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+    OrgUnitAttributesSet:
+      name: OrgUnitAttributesSet
+      title: 组织单元属性已调整
+      description: 调整属性命令生效时发布；具体改了哪些列见审计（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      payload:
+        type: object
+        properties:
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 被调整的组织单元 ID
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：调整日，即新属性的第一天
+      x-event:
+        eventType: organization.workforce.OrgUnitAttributesSet
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.OrgUnitAttributesSet
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：调整日，即新属性的第一天
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+    OrgUnitMerged:
+      name: OrgUnitMerged
+      title: 组织单元已合并
+      description: 合并转完最后一个人、被并入单元已撤销时发布一次（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      payload:
+        type: object
+        properties:
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 被并入（已撤销）的组织单元 ID
+          mergedIntoOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 承接单元 ID
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：合并生效日
+      x-event:
+        eventType: organization.workforce.OrgUnitMerged
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.OrgUnitMerged
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：合并生效日
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+    OrgUnitReparented:
+      name: OrgUnitReparented
+      title: 组织单元上级已调整
+      description: 调整上级命令生效时发布（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      payload:
+        type: object
+        properties:
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 被调整的组织单元 ID
+          newParentOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 新的上级组织单元 ID
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：调整日，即新上级的第一天
+      x-event:
+        eventType: organization.workforce.OrgUnitReparented
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.OrgUnitReparented
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：调整日，即新上级的第一天
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+    OrgUnitHeadAssigned:
+      name: OrgUnitHeadAssigned
+      title: 部门负责人已指定
+      description: 指定负责人命令生效时发布（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      payload:
+        type: object
+        properties:
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 组织单元 ID
+          headEmployeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 新负责人（员工 ID）
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：指定日
+      x-event:
+        eventType: organization.workforce.OrgUnitHeadAssigned
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.OrgUnitHeadAssigned
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：指定日
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+    OrgUnitReceivablesManagerAssigned:
+      name: OrgUnitReceivablesManagerAssigned
+      title: 区域应收负责人已指定
+      description: 指定区域应收负责人命令生效时发布（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      payload:
+        type: object
+        properties:
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 组织单元 ID
+          receivablesManagerEmployeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 区域应收负责人（员工 ID）
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：指定日
+      x-event:
+        eventType: organization.workforce.OrgUnitReceivablesManagerAssigned
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.OrgUnitReceivablesManagerAssigned
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：指定日
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+    PositionCreated:
+      name: PositionCreated
+      title: 岗位已新建
+      description: 新建岗位命令生效时发布（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      payload:
+        type: object
+        properties:
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          positionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            description: 新建的岗位 ID（服务端生成）
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：新建日，即岗位的第一天
+      x-event:
+        eventType: organization.workforce.PositionCreated
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.PositionCreated
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：新建日，即岗位的第一天
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+    PositionDisabled:
+      name: PositionDisabled
+      title: 岗位已停用
+      description: 停用岗位命令生效时发布（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      payload:
+        type: object
+        properties:
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          positionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            description: 被停用的岗位 ID
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：停用日，即已停用状态的第一天
+      x-event:
+        eventType: organization.workforce.PositionDisabled
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.PositionDisabled
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：停用日，即已停用状态的第一天
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回

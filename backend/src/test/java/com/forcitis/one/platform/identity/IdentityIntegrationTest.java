@@ -203,8 +203,8 @@ public abstract class IdentityIntegrationTest {
         accessCache.evictAll();
         Mockito.reset(ssoVerifier);
         when(employeeExistence.exists(ArgumentMatchers.any())).thenAnswer(call -> orgDirectory.findEmployee(call.getArgument(0)).isPresent());
-        when(orgDirectory.employmentOf(ArgumentMatchers.any()))
-                .thenReturn(EmploymentVerdict.SNAPSHOT_UNAVAILABLE);
+        // The emergency login is the only reader of the verdict; people the test does not describe (knownEmployee) may log in, as before #934.
+        when(orgDirectory.employmentOf(ArgumentMatchers.any())).thenReturn(EmploymentVerdict.EMPLOYED);
         for (String attestor : List.of("01900000-0000-7000-8000-00000000a001", "01900000-0000-7000-8000-00000000a002")) {
             EmployeeId attestorId = EmployeeId.parse(attestor);
             when(orgDirectory.findEmployee(attestorId)).thenReturn(Optional.of(new EmployeeProfile(attestorId, "Synthetic attestor", TestOrgIds.orgUnit(10),

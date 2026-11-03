@@ -8,6 +8,8 @@ import com.forcitis.one.platform.identity.api.AccessScopeKind;
 import com.forcitis.one.platform.identity.api.AuthorizationRequestId;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleId;
+import com.forcitis.one.platform.identity.api.RoleVersionId;
+import com.forcitis.one.platform.identity.domain.AuthorizationBase;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequest;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequestKind;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequestRepository;
@@ -22,6 +24,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,7 +39,7 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
 
     private static final String COLUMNS = """
             request_id, request_kind, requested_by, requested_at, subject_user_id, role_id, role_codes, new_role_code, role_name, is_enabled,
-            access_scope_kind, permission_codes, request_status, decided_by, decided_at, version, event_count
+            access_scope_kind, permission_codes, base_account_version_number, base_role_version_ids, request_status, decided_by, decided_at, version, event_count
             """;
 
     private final JdbcClient jdbc;
@@ -74,10 +77,10 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
         RoleDraft draft = opened.roleDraft();
         jdbc.sql("""
                         insert into platform_identity.authorization_requests (request_id, request_kind, requested_by, requested_at, subject_user_id,
-                                role_id, role_codes, new_role_code, role_name, is_enabled, access_scope_kind, permission_codes, request_status,
-                                version, event_count)
-                        values (:id, :kind, :by, :at, :subject, :role, :roleCodes, :newCode, :roleName, :enabled, :scope, :permissions, :status,
-                                :version, :eventSequence)
+                                role_id, role_codes, new_role_code, role_name, is_enabled, access_scope_kind, permission_codes, base_account_version_number,
+                                base_role_version_ids, request_status, version, event_count)
+                        values (:id, :kind, :by, :at, :subject, :role, :roleCodes, :newCode, :roleName, :enabled, :scope, :permissions, :baseAccount,
+                                :baseRoles, :status, :version, :eventSequence)
                         """)
                 .param("id", opened.requestId().value()).param("kind", opened.kind().name()).param("by", opened.requestedBy().value())
                 .param("at", OffsetDateTime.ofInstant(opened.requestedAt(), ZoneOffset.UTC))
@@ -89,6 +92,8 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
                 .param("enabled", draft == null ? null : draft.enabled(), Types.BOOLEAN)
                 .param("scope", draft == null || draft.accessScope() == null ? null : draft.accessScope().name(), Types.VARCHAR)
                 .param("permissions", draft == null ? new String[0] : draft.permissionCodes().toArray(String[]::new))
+                .param("baseAccount", opened.base().accountVersion(), Types.BIGINT)
+                .param("baseRoles", opened.base().roleVersions().stream().map(RoleVersionId::value).toArray(UUID[]::new))
                 .param("status", opened.status().name()).param("version", opened.versionAfterSave())
                 .param("eventSequence", opened.eventSequenceAfterSave()).update();
         if (draft == null) {
@@ -150,13 +155,13 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
 
     /** One authorization request row; the draft's custom org units come from the child table. */
     private record Row(UUID requestId, AuthorizationRequestKind kind, UserId requestedBy, Instant requestedAt, @Nullable UserId subject,
-                       @Nullable RoleId role, Set<String> roleCodes, @Nullable DraftColumns draft, String status, @Nullable UserId decidedBy,
+                       @Nullable RoleId role, Set<String> roleCodes, @Nullable DraftColumns draft, AuthorizationBase base, String status, @Nullable UserId decidedBy,
                        @Nullable Instant decidedAt, long version, long eventCount) {
 
         AuthorizationRequest restore(Set<UUID> customOrgUnitIds) {
             RoleDraft roleDraft = draft == null ? null
                     : new RoleDraft(draft.code(), draft.name(), draft.enabled(), draft.scope(), draft.permissionCodes(), customOrgUnitIds);
-            return AuthorizationRequest.restore(new AuthorizationRequestId(requestId), kind, requestedBy, requestedAt, subject, role, roleCodes, roleDraft,
+            return AuthorizationRequest.restore(new AuthorizationRequestId(requestId), kind, requestedBy, requestedAt, subject, role, roleCodes, roleDraft, base,
                     status, decidedBy, decidedAt, version, eventCount);
         }
     }
@@ -172,9 +177,16 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
         OffsetDateTime decidedAt = rs.getObject("decided_at", OffsetDateTime.class);
         return new Row(rs.getObject("request_id", UUID.class), AuthorizationRequestKind.valueOf(rs.getString("request_kind")),
                 new UserId(rs.getObject("requested_by", UUID.class)), rs.getObject("requested_at", OffsetDateTime.class).toInstant(),
-                subject == null ? null : new UserId(subject), role == null ? null : new RoleId(role), strings(rs, "role_codes"), draft,
+                subject == null ? null : new UserId(subject), role == null ? null : new RoleId(role), strings(rs, "role_codes"), draft, base(rs),
                 rs.getString("request_status"), decided == null ? null : new UserId(decided), decidedAt == null ? null : decidedAt.toInstant(),
                 rs.getLong("version"), rs.getLong("event_count"));
+    }
+
+    private static AuthorizationBase base(ResultSet rs) throws SQLException {
+        Long account = (Long) rs.getObject("base_account_version_number");
+        Array roles = rs.getArray("base_role_version_ids");
+        List<RoleVersionId> versions = roles == null ? List.of() : Arrays.stream((UUID[]) roles.getArray()).map(RoleVersionId::new).toList();
+        return new AuthorizationBase(account, versions);
     }
 
     private static Set<String> strings(ResultSet rs, String column) throws SQLException {

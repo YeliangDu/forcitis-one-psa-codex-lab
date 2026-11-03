@@ -26,6 +26,9 @@ public final class CommandEffects {
     public static final String REPORTS_TO = "reports_to_employee_id";
     public static final Set<String> ASSIGNMENT_COLUMNS = Set.of(ORG_UNIT, POSITION, REPORTS_TO);
 
+    public static final String LEGAL_ENTITY = "legal_entity_id";
+    public static final Set<String> LEGAL_ENTITY_COLUMNS = Set.of(LEGAL_ENTITY);
+
     private static final Predicate<VersionRow> ANY = row -> true;
     private static final Predicate<VersionRow> EMPLOYED = row -> "EMPLOYED".equals(row.values().get(EMPLOYMENT));
 
@@ -51,9 +54,13 @@ public final class CommandEffects {
                 v.put(START_DATE, null);
                 v.put(START_BASIS, null);
             }
+            case START_CONCURRENT, END_CONCURRENT -> {
+            }
             case REGULARIZE -> v.put(PHASE, "REGULAR");
             case UNPAID_LEAVE_START -> v.put(ON_LEAVE, true);
             case UNPAID_LEAVE_END -> v.put(ON_LEAVE, false);
+            case CHANGE_LEGAL_ENTITY -> {
+            }
             case TRANSFER, CORRECTION -> {
                 if (c.isTargetFeeEarner() != null) {
                     v.put(FEE_EARNER, c.isTargetFeeEarner());
@@ -69,7 +76,7 @@ public final class CommandEffects {
     /** The assignment version columns the command sets. */
     public static Map<String, Object> assignmentValues(PersonnelCommand c) {
         Map<String, Object> v = new LinkedHashMap<>();
-        if (c.kind() == PersonnelCommandKind.HIRE || c.kind() == PersonnelCommandKind.REINSTATE) {
+        if (c.kind() == PersonnelCommandKind.HIRE || c.kind() == PersonnelCommandKind.REINSTATE || c.kind() == PersonnelCommandKind.START_CONCURRENT) {
             v.put(ORG_UNIT, Objects.requireNonNull(c.targetOrgUnitId(), "department").value());
             v.put(POSITION, Objects.requireNonNull(c.targetPositionId(), "position").value());
             v.put(REPORTS_TO, c.targetReportsToEmployeeId() == null ? null : c.targetReportsToEmployeeId().value());
@@ -87,11 +94,16 @@ public final class CommandEffects {
         return v;
     }
 
+    /** The employee's own attribution the command sets: the target legal entity it names, if any. */
+    public static Map<String, Object> legalEntityValues(PersonnelCommand c) {
+        return c.targetLegalEntityId() == null ? Map.of() : Map.of(LEGAL_ENTITY, c.targetLegalEntityId().value());
+    }
+
     /** Rows the command may change on the employee table: a phase or a leave flag only exists on an employed version. */
     public static Predicate<VersionRow> employeeFilter(PersonnelCommand c) {
         return switch (c.kind()) {
             case HIRE, REINSTATE, SEPARATE -> ANY;
-            case REGULARIZE, UNPAID_LEAVE_START, UNPAID_LEAVE_END, TRANSFER, CORRECTION -> EMPLOYED;
+            case REGULARIZE, UNPAID_LEAVE_START, UNPAID_LEAVE_END, TRANSFER, CORRECTION, CHANGE_LEGAL_ENTITY, START_CONCURRENT, END_CONCURRENT -> EMPLOYED;
         };
     }
 
@@ -100,7 +112,7 @@ public final class CommandEffects {
         return c.kind() == PersonnelCommandKind.HIRE || c.kind() == PersonnelCommandKind.REINSTATE;
     }
 
-    /** A separation ends the assignment instead of changing a column of it. */
+    /** A separation ends every post of the person instead of changing a column of it. */
     public static boolean endsAssignment(PersonnelCommand c) {
         return c.kind() == PersonnelCommandKind.SEPARATE;
     }

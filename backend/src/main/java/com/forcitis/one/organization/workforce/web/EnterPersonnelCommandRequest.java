@@ -2,7 +2,9 @@ package com.forcitis.one.organization.workforce.web;
 
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.InvalidRequestException;
+import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
 import com.forcitis.one.organization.workforce.api.Gender;
@@ -20,8 +22,9 @@ import org.jspecify.annotations.Nullable;
 record EnterPersonnelCommandRequest(@Nullable UUID employeeId, @Nullable PersonnelCommandKind commandKind, @Nullable LocalDate effectiveDate,
                                     @Nullable LocalDate lastWorkingDay, @Nullable UUID targetOrgUnitId, @Nullable UUID targetPositionId,
                                     @Nullable UUID targetReportsToEmployeeId, @Nullable Boolean isTargetFeeEarner,
-                                    @Nullable EmploymentPhaseKind targetEmploymentPhaseKind,
-                                    @Nullable String displayName, @Nullable Gender gender, @Nullable String email, @Nullable String wecomUserId) {
+                                    @Nullable EmploymentPhaseKind targetEmploymentPhaseKind, @Nullable UUID targetLegalEntityId,
+                                    @Nullable String displayName, @Nullable Gender gender, @Nullable String email, @Nullable String wecomUserId,
+                                    @Nullable UUID targetAssignmentId) {
 
     EnterPersonnelCommand toCommand() {
         if (commandKind == null) {
@@ -33,6 +36,7 @@ record EnterPersonnelCommandRequest(@Nullable UUID employeeId, @Nullable Personn
         return new EnterPersonnelCommand(employeeId == null ? null : new EmployeeId(employeeId), commandKind, effectiveDate, lastWorkingDay,
                 targetOrgUnitId == null ? null : new OrgUnitId(targetOrgUnitId), targetPositionId == null ? null : new PositionId(targetPositionId),
                 targetReportsToEmployeeId == null ? null : new EmployeeId(targetReportsToEmployeeId), isTargetFeeEarner, targetEmploymentPhaseKind,
-                displayName, gender, email, wecomUserId == null ? null : new WecomUserId(wecomUserId));
+                targetLegalEntityId == null ? null : new LegalEntityId(targetLegalEntityId), displayName, gender, email, wecomUserId == null ? null : new WecomUserId(wecomUserId),
+                targetAssignmentId == null ? null : new AssignmentId(targetAssignmentId));
     }
 }

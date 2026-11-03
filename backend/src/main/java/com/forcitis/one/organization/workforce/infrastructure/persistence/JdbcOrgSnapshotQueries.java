@@ -77,9 +77,16 @@ class JdbcOrgSnapshotQueries implements OrgSnapshotQueries {
 
     @Override
     public Optional<OrgUnit> findOrgUnit(OrgUnitId orgUnitId) {
-        return jdbc.sql(OrgSnapshotRows.SELECT_ORG_UNITS + """
-                 where id = :id
-                """).param("id", orgUnitId.value()).query((rs, n) -> OrgSnapshotRows.orgUnit(rs)).optional();
+        return jdbc.sql("""
+                select u.id, u.code, u.name, u.parent_org_unit_id, u.sort_order, u.status,
+                       case when exists (select 1 from organization_workforce.org_unit_versions x where x.org_unit_id = u.id) then v.head_employee_id
+                            else u.head_employee_id end as head_employee_id,
+                       u.regional_receivables_manager_id, u.region_category, u.is_delivery_unit, u.short_name
+                  from organization_workforce.org_units u
+                  left join organization_workforce.org_unit_versions v on v.org_unit_id = u.id and v.superseded_at is null
+                       and v.effective_from_date <= :day and (v.effective_to_date is null or :day < v.effective_to_date)
+                 where u.id = :id
+                """).param("day", zone.today(clock)).param("id", orgUnitId.value()).query((rs, n) -> OrgSnapshotRows.orgUnit(rs)).optional();
     }
 
     @Override

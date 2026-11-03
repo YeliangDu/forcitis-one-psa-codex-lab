@@ -13,13 +13,8 @@ import com.forcitis.one.organization.attendance.domain.WorkCalendarKey;
 import com.forcitis.one.organization.attendance.domain.WorkCalendarYear;
 import com.forcitis.one.organization.workforce.api.AttributionSubject;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
-import com.forcitis.one.organization.workforce.api.SyncRunId;
 import com.forcitis.one.organization.workforce.domain.LegalEntity;
 import com.forcitis.one.organization.workforce.domain.LegalEntityAttribution;
-import com.forcitis.one.organization.workforce.domain.RunStats;
-import com.forcitis.one.organization.workforce.domain.SnapshotChange;
-import com.forcitis.one.organization.workforce.domain.SyncRun;
-import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleId;
@@ -117,7 +112,8 @@ class EventSequenceContinuityTest {
     @DisplayName("AuthorizationRequest: events are numbered 1..n")
     void authorizationRequest() {
         checkMany(() -> com.forcitis.one.platform.identity.domain.AuthorizationRequest.replaceRoles(
-                        new com.forcitis.one.platform.identity.api.AuthorizationRequestId(java.util.UUID.randomUUID()), TestAccounts.account(1), NOW, TestAccounts.account(2), Set.of("employee")),
+                        new com.forcitis.one.platform.identity.api.AuthorizationRequestId(java.util.UUID.randomUUID()), TestAccounts.account(1), NOW, TestAccounts.account(2), Set.of("employee"),
+                        new com.forcitis.one.platform.identity.domain.AuthorizationBase(1L, List.of())),
                 List.of(r -> r.confirm(TestAccounts.account(3), NOW), r -> r.reject(TestAccounts.account(4), NOW)));
     }
 
@@ -137,16 +133,19 @@ class EventSequenceContinuityTest {
                         new com.forcitis.one.organization.workforce.api.EnterPersonnelCommand(new EmployeeId(TestIds.uuid(2)),
                                 com.forcitis.one.organization.workforce.api.PersonnelCommandKind.REGULARIZE, TODAY, null, null, null, null, null, null, null, null, null, null),
                         new UserId(TestIds.uuid(3)), NOW, TODAY, 7),
-                List.of(c -> c.recordEffect(null, null), c -> c.withdraw(new UserId(TestIds.uuid(3)), "synthetic", NOW), c -> c.withdraw(new UserId(TestIds.uuid(3)), " ", NOW)));
+                List.of(c -> c.recordEffect(null, null, null), c -> c.withdraw(new UserId(TestIds.uuid(3)), "synthetic", NOW), c -> c.withdraw(new UserId(TestIds.uuid(3)), " ", NOW)));
     }
 
     @Test
-    @DisplayName("SyncRun: events are numbered 1..n")
-    void syncRun() {
-        RunStats stats = new RunStats(1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0);
-        checkMany(() -> SyncRun.restore(new SyncRunId(TestIds.uuid(1)), SyncTrigger.SCHEDULED, "RUNNING", NOW, null, null, null, null, null, null, null, 0, 0),
-                List.of(r -> r.succeed(NOW, stats, new SnapshotChange(List.of(), List.of(), List.of()), LocalDate.of(2026, 10, 13)), r -> r.hold(NOW, stats, "shrunk"), r -> r.fail(NOW, "down"),
-                        r -> r.release(null, new SyncRunId(TestIds.uuid(2)), NOW, null)));
+    @DisplayName("OrgStructureCommand: events are numbered 1..n")
+    void orgStructureCommand() {
+        checkMany(() -> com.forcitis.one.organization.workforce.domain.OrgStructureCommand.enter(
+                        new com.forcitis.one.organization.workforce.api.OrgStructureCommandId(TestIds.uuid(1)),
+                        new com.forcitis.one.organization.workforce.api.EnterOrgStructureCommand(com.forcitis.one.organization.workforce.api.OrgStructureTargetKind.ORG_UNIT,
+                                com.forcitis.one.organization.workforce.api.OrgStructureCommandKind.SET_ATTRIBUTES,
+                                new com.forcitis.one.organization.workforce.api.OrgUnitId(TestIds.uuid(2)), null, TODAY, null, "Synthetic", null, null, null, null, null, null, null, null),
+                        TestIds.uuid(4), new UserId(TestIds.uuid(3)), NOW, TODAY),
+                List.of(com.forcitis.one.organization.workforce.domain.OrgStructureCommand::recordEffect, c -> c.withdraw(new UserId(TestIds.uuid(3)), "synthetic", NOW)));
     }
 
     @Test

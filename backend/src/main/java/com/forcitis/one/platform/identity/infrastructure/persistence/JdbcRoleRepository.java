@@ -6,6 +6,7 @@ import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
+import com.forcitis.one.platform.identity.api.AuthorizationRequestId;
 import com.forcitis.one.platform.identity.api.CustomOrgUnit;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
@@ -27,6 +28,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -356,6 +359,38 @@ class JdbcRoleRepository implements RoleRepository {
                                           and (%s or (effective_to_at > :from and effective_to_at > effective_from_at)))
                         """.formatted(Validity.CURRENT))
                 .param("name", name).param("id", roleId.value()).param("from", at(from)).query(Boolean.class).single();
+    }
+
+    @Override
+    public Set<RoleVersionId> currentVersions(Collection<RoleVersionId> versions) {
+        if (versions.isEmpty()) {
+            return Set.of();
+        }
+        return new HashSet<>(jdbc.sql("""
+                select role_version_id from platform_identity.role_versions where role_version_id in (:versions) and %s
+                """.formatted(Validity.CURRENT)).param("versions", versions.stream().map(RoleVersionId::value).toList())
+                .query((rs, n) -> new RoleVersionId(rs.getObject(1, UUID.class))).list());
+    }
+
+    @Override
+    public void lockRolesOf(Collection<RoleVersionId> versions, boolean forWrite) {
+        if (versions.isEmpty()) {
+            return;
+        }
+        jdbc.sql("""
+                select role_id from platform_identity.roles
+                 where role_id in (select role_id from platform_identity.role_versions where role_version_id in (:versions) and (%s or effective_to_at is not null))
+                 order by created_at, role_id for %s
+                """.formatted(Validity.CURRENT, forWrite ? "update" : "share")).param("versions", versions.stream().map(RoleVersionId::value).toList())
+                .query(UUID.class).list();
+    }
+
+    /** Any version of any role counts, open or closed: the version the request wrote may have been replaced since. */
+    @Override
+    public boolean versionWrittenBy(AuthorizationRequestId requestId) {
+        return jdbc.sql("""
+                select exists (select 1 from platform_identity.role_versions where authorization_request_id = :request and (%s or effective_to_at is not null))
+                """.formatted(Validity.CURRENT)).param("request", requestId.value()).query(Boolean.class).single();
     }
 
     private static OffsetDateTime at(Instant instant) {

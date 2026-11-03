@@ -30,7 +30,7 @@ cd backend
 ## R-1b P3b 员工、部门、岗位 ID 改 UUID
 
 - 员工、部门 ID 在测试里一律是 `UUID`（`AccountsAcceptanceSupport.newEmployeeId()` / `newOrgUnitId()`）。写库、拼路径、命令参数与表单字段经 `stored(id)` / `text(id)`，构造 kernel `EmployeeId` 经 `employeeIdOf(id)`，读回经 `fromStored`；P3b 实现前（`EmployeeId` 仍包 `long`）这些方法按登记的编号写旧形态，所以改写后的现有用例在实现前后结果相同（RULING-P3B-1/2）。`serialOf(id)` 只用于合成编码、姓名与企业微信 userid，不能当 ID 用；别处分配来的自有 ID（如来源对照）先 `adoptId`。
-- 组织源与老系统（`platform/integration/OrgSourceWorldSupport`）：一个 SQL Server 容器，每个测试 JVM 起一次，继承它的类共用；类开始时只留启动校验需要的基础行，各类自己加行；每类自己的 PostgreSQL。触发同步只经 `syncOnce()`，拆分 a 把同步移进集成层时只改这一处。分配次数用测试库里 `source_references` 上的语句级触发器计数（`countAllocations()` / `allocationStatements()`）。
+- 组织源与老系统（`platform/integration/OrgSourceWorldSupport`）：一个 SQL Server 容器，每个测试 JVM 起一次，继承它的类共用；类开始时只留启动校验需要的基础行，各类自己加行；每类自己的 PostgreSQL。经同步读这个世界的用例已随旧同步在 #934 退役，支撑类不再触发同步。分配次数用测试库里 `source_references` 上的语句级触发器计数（`countAllocations()` / `allocationStatements()`）。
 - `SourceTypeBoundaryTest` 读 `backend/architecture/source-type-exceptions.txt`：每行 `路径 | 理由 | 拆分 a`，文件头含「只减不增」；规则名 `SOURCE_TYPE`、`SOURCE_OR_LEGACY_ID`。
 - 断言用到的新名字（列名、约束名、命令名、事件字段）集中为各测试类的常量，术语门禁改名时只改常量。
 

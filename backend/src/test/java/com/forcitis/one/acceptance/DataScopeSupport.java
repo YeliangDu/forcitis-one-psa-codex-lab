@@ -8,26 +8,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
-import com.forcitis.one.fixture.doubles.TestOrgIds;
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.WecomUserId;
-import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.organization.workforce.api.LoginLookup;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
-import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
-import com.forcitis.one.organization.workforce.application.SyncResult;
-import com.forcitis.one.organization.workforce.domain.SyncRunStatus;
-import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.platform.identity.application.OperationsCommands;
 import com.forcitis.one.platform.integration.api.OrgSource;
-import com.forcitis.one.platform.integration.api.SourceGender;
-import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
-import com.forcitis.one.platform.integration.api.SourceOrgUnit;
-import com.forcitis.one.platform.integration.api.SourcePerson;
-import com.forcitis.one.platform.integration.api.OwnObjectId;
-import com.forcitis.one.platform.integration.api.SourcePosition;
-import com.forcitis.one.platform.integration.api.SourceRecordState;
-import com.forcitis.one.platform.integration.api.SourceRelationship;
-import com.forcitis.one.platform.integration.api.SourceRelationshipKind;
 import com.forcitis.one.platform.integration.api.WecomCard;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import com.jayway.jsonpath.JsonPath;
@@ -35,6 +21,9 @@ import jakarta.servlet.http.Cookie;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -59,8 +48,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 /**
- * Ground of the F-1 data scope tests. The organisation enters the way production gets it: a snapshot read through the org source
- * port (the only double) and applied by the real sync. People sign in through the real WeCom login (the gateway answers the code);
+ * Ground of the F-1 data scope tests. The organisation is written into the workforce tables once per class ({@link #seedOrganisation()});
+ * until #934 it came in through the sync, which is gone. People sign in through the real WeCom login (the gateway answers the code);
  * the first administrators get super_admin from the operations command and act in the administrator mode, as ADR-0026 section 5 and
  * ADR-0027 section 2 item 5 require. Own ids are opaque strings read back from HTTP answers; the numbers in here are source ids only.
  * Contracts that do not exist yet are listed in platform/identity/F1_ACCEPTANCE.md.
@@ -70,7 +59,6 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
 
     public static final String ORG_UNITS = "/api/v1/organization/org-units";
     public static final String EMPLOYEES = "/api/v1/organization/employees";
-    public static final String SYNC_RUNS = "/api/v1/organization/sync-runs";
     public static final String ROLES = "/api/v1/platform/roles";
     public static final String USER_ACCOUNTS = "/api/v1/platform/user-accounts";
     public static final String AUTHORIZATION_REQUESTS = "/api/v1/platform/authorization-requests";
@@ -79,7 +67,7 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
 
     public static final String ORG_UNIT_READ = "organization.workforce:org-unit:read";
     public static final String EMPLOYEE_READ = "organization.workforce:employee:read";
-    public static final String SYNC_RUN_READ = "organization.workforce:sync-run:read";
+    public static final String NUMBERING_RULE_READ = "platform.numbering:numbering-rule:read";
     public static final String AUDIT_ENTRY_READ = "platform.audit:audit-entry:read";
     public static final String AUDIT_ENTRY_EXPORT = "platform.audit:audit-entry:export";
 
@@ -91,11 +79,9 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
 
     private static final Duration ASYNC_LIMIT = Duration.ofSeconds(20);
 
+    /** The organisation source stays a double, so that no login of this ground ever reaches a real source. */
     @MockitoBean
     protected OrgSource orgSource;
-
-    @Autowired
-    private SyncOrgSnapshot sync;
 
     @Autowired
     private OperationsCommands operations;
@@ -107,11 +93,10 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
     @Autowired
     private OrgDirectory directory;
 
-    private final AtomicLong sourceIds = new AtomicLong(880_000);
     private final AtomicLong codes = new AtomicLong();
-    private final Map<String, SourceOrgUnit> units = new LinkedHashMap<>();
-    private final Map<String, SourcePosition> positions = new LinkedHashMap<>();
-    private final Map<String, SourcePerson> people = new LinkedHashMap<>();
+    private final Map<String, Unit> units = new LinkedHashMap<>();
+    private final Map<String, Post> positions = new LinkedHashMap<>();
+    private final Map<String, Person> people = new LinkedHashMap<>();
     private final Map<String, String> heads = new LinkedHashMap<>();
     private final Map<String, String> userIds = new HashMap<>();
     private final Map<String, String> employeeIds = new HashMap<>();
@@ -119,29 +104,25 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
     private final Set<String> administrators = new java.util.HashSet<>();
     private final Map<String, String> orgUnitIds = new HashMap<>();
 
-    // ---- the organisation in the source system -------------------------------------------------------------------------------
+    // ---- the organisation ----------------------------------------------------------------------------------------------------
+
+    private record Unit(UUID id, String code, String parentCode, int sortOrder) {
+    }
+
+    private record Post(UUID id, String code) {
+    }
+
+    private record Person(UUID id, String key, String unitCode, String positionCode) {
+    }
 
     protected void unit(String code, String parentCode) {
-        OwnObjectId parent = parentCode == null ? null : known(units, parentCode).unitId();
-        units.put(code, new SourceOrgUnit(TestOrgIds.ownOrgUnit(sourceIds.incrementAndGet()), code, unitName(code), parent, units.size() + 1,
-                SourceRecordState.ACTIVE, List.of(), null, null, false, null));
+        if (parentCode != null) {
+            known(units, parentCode);
+        }
+        units.put(code, new Unit(newOrgUnitId(), code, parentCode, units.size() + 1));
     }
 
-    protected void deactivate(String unitCode) {
-        restate(unitCode, SourceRecordState.DISABLED);
-    }
-
-    protected void reactivate(String unitCode) {
-        restate(unitCode, SourceRecordState.ACTIVE);
-    }
-
-    private void restate(String unitCode, SourceRecordState state) {
-        SourceOrgUnit u = known(units, unitCode);
-        units.put(unitCode, new SourceOrgUnit(u.unitId(), u.code(), u.name(), u.parentUnitId(), u.sortOrder(), state, u.emptyFlags(), u.regionKind(),
-                u.rawRegion(), u.deliveryUnit(), u.duplicateOfUnitId()));
-    }
-
-    /** The source names the person as the head of the unit (A8 relationship UNIT_HEAD). */
+    /** The person heads the unit. */
     protected void head(String unitCode, String key) {
         heads.put(unitCode, key);
     }
@@ -151,8 +132,7 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
     }
 
     protected void position(String code) {
-        positions.put(code, new SourcePosition(TestOrgIds.ownPosition(sourceIds.incrementAndGet()), code, positionName(code), positions.size() + 1,
-                SourceRecordState.ACTIVE));
+        positions.put(code, new Post(Uuids.timeOrdered(NOW), code));
     }
 
     protected static String positionName(String code) {
@@ -160,48 +140,55 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
     }
 
     protected void person(String key, String unitCode, String positionCode) {
-        people.put(key, new SourcePerson(TestOrgIds.ownEmployee(sourceIds.incrementAndGet()), employeeCode(key), "Synthetic " + key,
-                known(units, unitCode).unitId(), known(positions, positionCode).positionId(), null, "f1-login-" + key, key + "@example.test",
-                SourceGender.FEMALE, new WecomUserId(wecomUserId(key)), false));
+        known(units, unitCode);
+        known(positions, positionCode);
+        people.put(key, new Person(newEmployeeId(), key, unitCode, positionCode));
     }
 
     protected static String employeeCode(String key) {
         return "F1-" + key;
     }
 
-    protected void moveTo(String key, String unitCode) {
-        SourcePerson p = known(people, key);
-        people.put(key, new SourcePerson(p.personId(), p.employeeCode(), p.displayName(), known(units, unitCode).unitId(), p.positionId(),
-                p.supervisorId(), p.loginName(), p.email(), p.gender(), p.wecomUserId(), p.feeEarner()));
-    }
-
-    protected void changePosition(String key, String positionCode) {
-        SourcePerson p = known(people, key);
-        people.put(key, new SourcePerson(p.personId(), p.employeeCode(), p.displayName(), p.unitId(), known(positions, positionCode).positionId(),
-                p.supervisorId(), p.loginName(), p.email(), p.gender(), p.wecomUserId(), p.feeEarner()));
-    }
-
-    /** The source marks a separated person by an empty login name (RULE-363 as implemented; DA-3 may move this to a state column). */
-    protected void separate(String key) {
-        SourcePerson p = known(people, key);
-        people.put(key, new SourcePerson(p.personId(), p.employeeCode(), p.displayName(), p.unitId(), p.positionId(), p.supervisorId(), null,
-                p.email(), p.gender(), p.wecomUserId(), p.feeEarner()));
-    }
-
-    /** One sync run of the current source picture; the shrink guard is bypassed because the picture is synthetic and small. */
-    protected SyncResult synchronise() {
-        List<SourceRelationship> relationships = heads.entrySet().stream().map(head -> new SourceRelationship(SourceRelationshipKind.UNIT_HEAD,
-                known(units, head.getKey()).unitId(), known(people, head.getValue()).personId(), false)).toList();
-        when(orgSource.readSnapshot()).thenReturn(new SourceOrgSnapshot(List.copyOf(units.values()), relationships, List.copyOf(positions.values()),
-                List.copyOf(people.values())));
-        SyncResult result;
-        try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
-            result = sync.execute(SyncTrigger.MANUAL, true);
+    /**
+     * Writes the organisation as it stands in the workforce tables (units, posts, employed people and their assignments, heads) and, while
+     * the old sync run log still exists, a run that has just succeeded. Until #934 the picture came in through the sync from the
+     * organisation source; with the sync gone (ADR-0055 section 6, ADR-0068 section 2.5) no path is left that brings a whole organisation
+     * in, so the fixture writes it the way the other acceptance fixtures write org units and people.
+     */
+    protected void seedOrganisation() throws Exception {
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            for (Post post : positions.values()) {
+                write(workforce, "insert into positions (id, code, name, sort_order, status) values (?, ?, ?, ?, 'ACTIVE')", post.id(), post.code(),
+                        positionName(post.code()), 1);
+            }
+            for (Unit unit : units.values()) {
+                write(workforce, "insert into org_units (id, code, name, parent_org_unit_id, sort_order, status) values (?, ?, ?, ?, ?, 'ACTIVE')",
+                        stored(unit.id()), unit.code(), unitName(unit.code()), unit.parentCode() == null ? null : stored(known(units, unit.parentCode()).id()),
+                        unit.sortOrder());
+            }
+            for (Person person : people.values()) {
+                write(workforce, """
+                        insert into employees (id, employee_code, display_name, login_name, email, gender, wecom_user_id, employment_status, is_fee_earner)
+                        values (?, ?, ?, ?, ?, 'FEMALE', ?, 'EMPLOYED', false)""", stored(person.id()), employeeCode(person.key()), "Synthetic " + person.key(),
+                        "f1-login-" + person.key(), person.key() + "@example.test", wecomUserId(person.key()));
+                write(workforce, "insert into assignments (employee_id, org_unit_id, position_id) values (?, ?, ?)", stored(person.id()),
+                        stored(known(units, person.unitCode()).id()), known(positions, person.positionCode()).id());
+            }
+            for (Map.Entry<String, String> head : heads.entrySet()) {
+                write(workforce, "update org_units set head_employee_id = ? where id = ?", stored(known(people, head.getValue()).id()),
+                        stored(known(units, head.getKey()).id()));
+            }
         }
-        if (result.status() != SyncRunStatus.SUCCEEDED) {
-            throw new AssertionError("fixture: the sync run ended " + result.status() + ": " + result.note());
+        syncRun("SUCCEEDED", clock.instant().minusSeconds(120), clock.instant().minusSeconds(60));
+    }
+
+    private static void write(Connection connection, String sql, Object... args) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            for (int i = 0; i < args.length; i++) {
+                statement.setObject(i + 1, args[i]);
+            }
+            statement.executeUpdate();
         }
-        return result;
     }
 
     // ---- sessions ------------------------------------------------------------------------------------------------------------
@@ -260,7 +247,7 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
     /** The employee id of the person, read once through the workforce api while the person is employed, then kept. */
     protected String employeeIdOf(String key) {
         return employeeIds.computeIfAbsent(key, person -> String.valueOf(directory.findEmployeeByLogin(new LoginLookup.ByWecomUser(new WecomUserId(wecomUserId(person))))
-                .orElseThrow(() -> new AssertionError("fixture: " + person + " is not in the synced organisation")).employeeId().value()));
+                .orElseThrow(() -> new AssertionError("fixture: " + person + " is not in the seeded organisation")).employeeId().value()));
     }
 
     /** The operations command of ADR-0026 section 5 item 5 and ADR-0027 section 1: an individual grant with operator and witness. */
@@ -592,7 +579,7 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
         }
         String id = orgUnitIds.get(code);
         if (id == null) {
-            throw new AssertionError("fixture: org unit " + code + " is not in the synced organisation");
+            throw new AssertionError("fixture: org unit " + code + " is not in the seeded organisation");
         }
         return id;
     }

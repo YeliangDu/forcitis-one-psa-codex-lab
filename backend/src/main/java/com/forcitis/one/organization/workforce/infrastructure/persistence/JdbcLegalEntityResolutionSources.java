@@ -44,7 +44,7 @@ class JdbcLegalEntityResolutionSources implements LegalEntityResolutionSources {
     public Optional<OrgUnitId> assignedUnit(EmployeeId employee, LocalDate date) {
         return jdbc.sql("""
                         select org_unit_id from organization_workforce.assignment_versions
-                         where employee_id = :id and superseded_at is null and effective_from_date <= :date
+                         where employee_id = :id and assignment_kind = 'PRIMARY' and superseded_at is null and effective_from_date <= :date
                            and (effective_to_date is null or :date < effective_to_date)
                         """)
                 .param("id", employee.value()).param("date", date).query(UUID.class).optional().map(OrgUnitId::new);
@@ -54,7 +54,7 @@ class JdbcLegalEntityResolutionSources implements LegalEntityResolutionSources {
     public Optional<OrgUnitId> parentUnit(OrgUnitId orgUnit, LocalDate date) {
         return jdbc.sql("""
                         select parent_org_unit_id from organization_workforce.org_unit_versions
-                         where org_unit_id = :id and effective_from_date <= :date and (effective_to_date is null or :date < effective_to_date)
+                         where org_unit_id = :id and superseded_at is null and effective_from_date <= :date and (effective_to_date is null or :date < effective_to_date)
                            and parent_org_unit_id is not null
                         """)
                 .param("id", orgUnit.value()).param("date", date).query(UUID.class).optional().map(OrgUnitId::new);
