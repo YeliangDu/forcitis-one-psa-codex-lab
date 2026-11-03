@@ -17,10 +17,14 @@ import org.springframework.test.context.DynamicPropertySource;
 /**
  * #1146 done-when added by lead on 2026-11-03 (from #1161): the nightly writers of this area must not interleave on shared rows. The org due
  * job, the personnel due job (00:05) and the countersign deadline job (#896, 00:10) take different ShedLocks; if a catch-up run of one is still
- * going when another starts, a stale version write must not roll a command back for a day. Which way the card keeps them apart (one lock, a fixed
- * sequence or per-row locking in approval's order) is the implementer's choice; these tests only overlap two runs on one row, several rounds with
- * fresh rows each, and ask for what must hold whatever the way: nothing failed, the command is EFFECTIVE on its day, its events went out once.
- * Concurrency is not deterministic, so a green run proves less than a red one; the rounds repeat the overlap.
+ * going when another starts, a stale version write must not roll a command back for a day.
+ * What these tests demand, exactly: OrgStructureCommandDueJob.run() and AttributionCountersignDeadlineJob.runOnce() are called directly on two
+ * threads, so each must be safe when the other is running at the same moment (blocking or row-level locking reachable from both entry points,
+ * in approval's order). A fixed sequence that exists only in scheduling, or a skip-type ShedLock on the scheduled method, does not pass; the
+ * catch-up runs the card names are exactly such direct overlaps. The rounds repeat the overlap with fresh rows because concurrency is not
+ * deterministic, so a red run proves more than a green one. The second test is a regression net: the optimistic version check already holds
+ * a double run to one effect, so it does not prove the implementer's locking. The pair personnel due job against deadline job is not run here
+ * (a countersigned personnel command with an open withdrawal set has no shared builder yet); lead decides whether to add it.
  */
 class OrgStructureCommandDueLockIT extends OrgStructureCommandDueSupport {
 

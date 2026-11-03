@@ -178,15 +178,17 @@ class OrgStructureCommandDueJobIT extends OrgStructureCommandDueSupport {
     }
 
     @Test
-    @DisplayName("#1146 目标「每条命令一个事务」：一条命令在提交时失败（约束触发器），另一条到日命令照常生效；失败的那条仍 PENDING、没有事件；故障去掉后下一次作业才生效并恰好发一次事件")
+    @DisplayName("#1146 目标「每条命令一个事务」：一条命令在提交时失败（约束触发器），它前后各一条到日命令照常生效；失败的那条仍 PENDING、没有事件；故障去掉后下一次作业才生效并恰好发一次事件")
     void oneCommandFailingDoesNotStopTheOthersAndIsRetried() throws Exception {
+        UUID healthyBefore = reparent(seedUnit(topE1), DAY.minusDays(1), seedUnit(topE1));
         UUID failing = reparent(seedUnit(topE1), DAY, seedUnit(topE1));
-        UUID healthy = reparent(seedUnit(topE1), DAY, seedUnit(topE1));
+        UUID healthy = reparent(seedUnit(topE1), DAY.plusDays(1), seedUnit(topE1));
         failCommitOfEffective(failing);
         try {
-            Throwable failure = catchThrowable(() -> runDueJobOn(DAY));
+            Throwable failure = catchThrowable(() -> runDueJobOn(DAY.plusDays(1)));
 
-            assertThat(statusOf(healthy)).as("the other command (job failure: " + failure + ")").isEqualTo(EFFECTIVE);
+            assertThat(statusOf(healthyBefore)).as("the command before it (job failure: " + failure + ")").isEqualTo(EFFECTIVE);
+            assertThat(statusOf(healthy)).as("the command after it").isEqualTo(EFFECTIVE);
             assertThat(eventsOf(EVENT_REPARENTED, healthy)).isEqualTo(1);
             assertThat(statusOf(failing)).isEqualTo(PENDING);
             assertThat(eventsOf(EVENT_REPARENTED, failing)).isZero();
@@ -199,6 +201,7 @@ class OrgStructureCommandDueJobIT extends OrgStructureCommandDueSupport {
         assertThat(statusOf(failing)).isEqualTo(EFFECTIVE);
         assertThat(eventsOf(EVENT_REPARENTED, failing)).isEqualTo(1);
         assertThat(eventsOf(EVENT_REPARENTED, healthy)).as("the healthy one is not sent again").isEqualTo(1);
+        assertThat(eventsOf(EVENT_REPARENTED, healthyBefore)).isEqualTo(1);
     }
 
     @Test
