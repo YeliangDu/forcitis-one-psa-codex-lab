@@ -48,7 +48,7 @@ WRAPPED = ("拒绝：codex 只放一种用法：整条命令就是 `codex exec -
            "这条命令里 codex 出现在包装、链、替换、变量赋值、路径或别的位置，按拒绝处理。")
 UNPARSED = "拒绝：命令里有 codex，但这条命令的写法解析不了，判断不了它跑什么，按拒绝处理（只放 `codex exec --sandbox workspace-write …` 一种形状）。"
 SHAPE = "拒绝：codex 只放 `codex exec --sandbox workspace-write [-m 模型] [-c model_reasoning_effort=low|medium|high|xhigh] <一个提示词>`（可带 < 输入文件、> 输出文件）：{why}。"
-PLACE = "拒绝：codex 只在调用会话自己的 worktree 里跑：{why}。"
+PLACE = "拒绝：codex 只在会话 worktree（.claude/worktrees/ 下）里跑：{why}。"
 
 
 class ParseError(Exception):
@@ -455,6 +455,8 @@ def own_worktree(cwd):
         return None, f"git 说不出当前目录属于哪个仓库（{error}）"
     if is_main or os.path.realpath(top).split(os.sep)[-3:-1] != [".claude", "worktrees"]:
         return None, f"{top} 不是 .claude/worktrees/ 下的 worktree（主检出或别处不放行）"
+    if not inside(cwd, os.path.realpath(top), cwd):   # git's top level can be redirected (core.worktree in a linked worktree's config): the directory itself must be below it
+        return None, f"当前目录 {cwd} 不在 git 报的顶层 {top} 之下"
     return os.path.realpath(top), None
 
 
