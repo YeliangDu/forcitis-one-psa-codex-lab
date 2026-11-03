@@ -326,11 +326,17 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
         return units;
     }
 
+    private static final String CLOSE_UNIT = "update organization_workforce.org_unit_versions set effective_to_date = :to, closed_at = :at, updated_at = :at where org_unit_version_id = :id";
+    private static final String CLOSE_POSITION = "update organization_workforce.position_versions set effective_to_date = :to, closed_at = :at, updated_at = :at"
+            + " where position_version_id = :id";
+    private static final String SUPERSEDE_UNIT = "update organization_workforce.org_unit_versions set superseded_at = :at, superseding_org_structure_command_id = :command,"
+            + " updated_at = :at where org_unit_version_id = :id";
+    private static final String SUPERSEDE_POSITION = "update organization_workforce.position_versions set superseded_at = :at, superseding_org_structure_command_id = :command,"
+            + " updated_at = :at where position_version_id = :id";
+
     @Override
     public void insertUnitVersions(OrgUnitId orgUnit, VersionPlan plan, OrgStructureCommandId command, Instant at) {
-        apply(plan, command, at, "update organization_workforce.org_unit_versions set effective_to_date = :to, closed_at = :at, updated_at = :at where org_unit_version_id = :id",
-                "update organization_workforce.org_unit_versions set superseded_at = :at, superseding_org_structure_command_id = :command, updated_at = :at"
-                        + " where org_unit_version_id = :id");
+        apply(plan, command, at, CLOSE_UNIT, SUPERSEDE_UNIT);
         for (VersionPlan.NewRow row : plan.inserts()) {
             Map<String, Object> v = row.values();
             int revision = jdbc.sql("select coalesce(max(revision_number) + 1, 0) from organization_workforce.org_unit_versions where org_unit_id = :unit"
@@ -355,9 +361,7 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
 
     @Override
     public void insertPositionVersions(PositionId position, VersionPlan plan, OrgStructureCommandId command, Instant at) {
-        apply(plan, command, at, "update organization_workforce.position_versions set effective_to_date = :to, closed_at = :at, updated_at = :at where position_version_id = :id",
-                "update organization_workforce.position_versions set superseded_at = :at, superseding_org_structure_command_id = :command, updated_at = :at"
-                        + " where position_version_id = :id");
+        apply(plan, command, at, CLOSE_POSITION, SUPERSEDE_POSITION);
         for (VersionPlan.NewRow row : plan.inserts()) {
             Map<String, Object> v = row.values();
             int revision = jdbc.sql("select coalesce(max(revision_number) + 1, 0) from organization_workforce.position_versions where position_id = :position"
