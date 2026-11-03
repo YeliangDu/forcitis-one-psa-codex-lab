@@ -78,7 +78,7 @@ class AttributionCountersignServiceTest {
     final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     final BusinessZone zone = new BusinessZone(ZoneId.of("Asia/Shanghai"));
     final AttributionCountersignService service = new AttributionCountersignService(countersigns, commands, requests, bases,
-            new PersonnelPlans(ids), effects, ownGuard, mergeProgress, new CountersignDeciders(countersigns, roles, currentUser), mock(OrgCountersigns.class), mock(AuditLog.class), currentUser, ids, clock, zone);
+            new PersonnelPlans(ids), effects, ownGuard, mergeProgress, new CountersignDeciders(countersigns, roles, currentUser), mock(CountersignReads.class), mock(OrgCountersigns.class), mock(AuditLog.class), currentUser, ids, clock, zone);
 
     AttributionCountersignServiceTest() {
         when(ids.next()).thenReturn(COMMAND.value());

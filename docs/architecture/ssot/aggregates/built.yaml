@@ -99,6 +99,7 @@ aggregates:
   - organization_workforce.legal_entities
   - organization_workforce.legal_entity_versions
   commands:
+  - ChangeFinanceHead
   - CreateLegalEntity
   - LegalEntityView
   - UpdateLegalEntity
