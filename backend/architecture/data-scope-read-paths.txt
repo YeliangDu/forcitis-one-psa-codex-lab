@@ -1,5 +1,6 @@
 # Every GET handler of every HandlerMapping of the running application (controllers, actuator, static resources) (#730, security-invariants I-10), and the data scope its rows answer under. of the servlet context.
-# Endpoints on a separate management port (prod: 8081) live in a child context and are not enumerated here.
+# Endpoints on the separate management port (prod: 8081) live in a child context and are out of this register (#730 comment 6604403956), on the condition that this port exposes only
+# health and prometheus; exposing anything more is an infrastructure change under the runbook.
 # DataScopeReadPathsGuardTest keeps this file well formed; DataScopeReadPathsIT keeps it equal to the GET mappings of the running context
 # (an unlisted handler or a line that matches no handler fails the build).
 # Format: GET <path as mapped> | <mode> | <reason>
@@ -10,7 +11,7 @@
 #                    that guards the line is either (first form) held by a system role, or (second form) a two-person sensitive permission that other roles obtain only
 #                    through two-person confirmation (ADR-0026 item 6.2, ADR-0027 item 3). The reason names the ADR row that registers the data GLOBAL and which form applies.
 #                    The reason is required; if a case-ii permission can be held by an ordinary role without two-person confirmation, the line is SCOPED.
-# The reason is kept on every line so that a reviewer of the mode does not have to open the handler. Modes ruled by one-design, #730 comments 6603659958 and 6604041421.
+# The reason is kept on every line so that a reviewer of the mode does not have to open the handler. Modes ruled by one-design, #730 comments 6603659958, 6604041421 and 6604403956.
 GET /api/v1/organization/employee-legal-entities/{employeeId} | SCOPED | legal-entity periods of one employee
 GET /api/v1/organization/employee-profile-change-requests | SCOPED | pending profile changes, one employee each (name, gender, requester)
 GET /api/v1/organization/legal-entities | NOT_SCOPE_BOUND | legal-entity master data (code, name, status): company level, no unit or person
@@ -36,7 +37,7 @@ GET /api/v1/platform/own-login-records | SELF | the caller's own login records
 GET /api/v1/platform/roles | NOT_SCOPE_BOUND | case i: role definitions (code, permissions, scope kind): configuration; roles is GLOBAL (ADR-0026 table)
 GET /api/v1/platform/roles/{roleId} | NOT_SCOPE_BOUND | case i: one role definition: configuration; roles is GLOBAL (ADR-0026 table)
 GET /api/v1/platform/sessions:current | SELF | the caller's own session and profile
-GET /api/v1/platform/source-references | NOT_SCOPE_BOUND | case ii, first form: ids only (own id, external id, status, period); the own id is a legal-entity id; only the category the maintainer writes by hand is listed (ListSourceReferences, ADR-0033 section 5 items 3-4); operations mapping like sync_runs; no unit or person attribute may be added to the answer
+GET /api/v1/platform/source-references | NOT_SCOPE_BOUND | case i: ids only (own id, external id, status, period); the own id is a legal-entity id (company-level reference data), no person or unit; only the category the maintainer writes by hand is listed (ListSourceReferences, ADR-0033 section 5 items 3-4); operations mapping like sync_runs; it turns SCOPED if the handler ever serves EMPLOYEE, ORG_UNIT or POSITION kinds
 GET /api/v1/platform/user-accounts/{userId} | NOT_SCOPE_BOUND | case ii, first form: one account (status, role codes); user_accounts is GLOBAL by decision (ADR-0026 table, user accounts and roles); permission role:read is in AdministratorMode.PLATFORM_ONLY, so only super_admin holds it, in administrator mode
 GET /** | NOT_SCOPE_BOUND | case i: the catch-all static-resource handler of Spring MVC; the deployed front end is served by nginx, and a file is no row
 GET /actuator | NOT_SCOPE_BOUND | case i: the actuator discovery page: links, no rows
