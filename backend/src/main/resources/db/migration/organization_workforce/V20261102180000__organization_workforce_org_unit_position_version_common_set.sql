@@ -176,9 +176,9 @@ CREATE TABLE organization_workforce.position_versions (
     CONSTRAINT ck_position_versions_audit CHECK (change_channel_kind <> 'COMMAND' OR version_audit_entry_id IS NOT NULL),
     CONSTRAINT ck_position_versions_closed CHECK ((effective_to_date IS NULL) = (closed_at IS NULL)),
     CONSTRAINT ck_position_versions_superseded CHECK ((superseded_at IS NULL) = (superseding_org_structure_command_id IS NULL)),
-    CONSTRAINT ex_position_versions_overlap EXCLUDE USING gist (position_id WITH =, daterange(effective_from_date, effective_to_date) WITH &&) WHERE (superseded_at IS NULL)
+    CONSTRAINT ex_position_versions_overlap EXCLUDE USING gist (position_id WITH =, daterange(effective_from_date, effective_to_date) WITH &&) WHERE (superseded_at IS NULL),
+    CONSTRAINT ex_position_versions_code EXCLUDE USING gist (code WITH =, position_id WITH <>) WHERE (code IS NOT NULL AND superseded_at IS NULL)
 );
-CREATE UNIQUE INDEX uk_position_versions_code ON organization_workforce.position_versions (code) WHERE code IS NOT NULL AND superseded_at IS NULL;
 CREATE INDEX ix_position_versions_change_org_structure_command_id ON organization_workforce.position_versions (change_org_structure_command_id) WHERE change_org_structure_command_id IS NOT NULL;
 CREATE INDEX ix_position_versions_superseding_org_structure_command_id ON organization_workforce.position_versions (superseding_org_structure_command_id) WHERE superseding_org_structure_command_id IS NOT NULL;
 CREATE INDEX ix_position_versions_corrected_from_version_id ON organization_workforce.position_versions (corrected_from_version_id) WHERE corrected_from_version_id IS NOT NULL;
@@ -189,7 +189,7 @@ COMMENT ON COLUMN organization_workforce.position_versions.position_id IS '岗�
 COMMENT ON COLUMN organization_workforce.position_versions.effective_from_date IS '生效日（含），按业务时区截日';
 COMMENT ON COLUMN organization_workforce.position_versions.effective_to_date IS '失效日（不含）；为空表示至今；等于生效日表示当天被同日再次变化取代的空区间';
 COMMENT ON COLUMN organization_workforce.position_versions.revision_number IS '修订序号：同一生效日内的序号，同日再次变化时关闭当天版本（空区间）并以加 1 的序号追加新行';
-COMMENT ON COLUMN organization_workforce.position_versions.code IS '岗位编码：全公司唯一且不复用（当前有效的行内唯一）；为空表示没有编码';
+COMMENT ON COLUMN organization_workforce.position_versions.code IS '岗位编码：全公司唯一且不复用（一个编码只属于一个岗位，作废行除外）；为空表示没有编码';
 COMMENT ON COLUMN organization_workforce.position_versions.name IS '岗位名称';
 COMMENT ON COLUMN organization_workforce.position_versions.sort_order IS '显示顺序；为空表示不排序';
 COMMENT ON COLUMN organization_workforce.position_versions.status IS '状态：ACTIVE 启用 / DISABLED 停用';

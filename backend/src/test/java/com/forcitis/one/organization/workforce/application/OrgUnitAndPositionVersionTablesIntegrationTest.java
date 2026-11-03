@@ -20,6 +20,10 @@ class OrgUnitAndPositionVersionTablesIntegrationTest extends WorkforceIntegratio
     static final String AUDIT = "'019a0000-0000-7000-8000-0000000000f1'";
     static final String V1 = "'019a0000-0000-7000-8000-0000000000d1'";
     static final String V2 = "'019a0000-0000-7000-8000-0000000000d2'";
+    static final String V3 = "'019a0000-0000-7000-8000-0000000000d3'";
+    static final String OTHER_POSITION = "'019a0000-0000-7000-8000-0000000000b3'";
+    static final String POSITION_INSERT = "insert into organization_workforce.position_versions (position_version_id, position_id, effective_from_date, name, status, code, change_channel_kind"
+            + ", revision_number, effective_to_date, closed_at) values (";
     static final String UNKNOWN = "'019a0000-0000-7000-8000-00000000ffff'";
 
     /** One table under test: its name, key column, subject column and the columns of a minimal row. */
@@ -40,6 +44,7 @@ class OrgUnitAndPositionVersionTablesIntegrationTest extends WorkforceIntegratio
     void targetsAndTwoCommands() {
         jdbc.sql("insert into organization_workforce.org_units (id, name, status) values (" + UNIT + ", 'unit', 'ACTIVE')").update();
         jdbc.sql("insert into organization_workforce.positions (id, name, status) values (" + POSITION + ", 'position', 'ACTIVE')").update();
+        jdbc.sql("insert into organization_workforce.positions (id, name, status) values (" + OTHER_POSITION + ", 'other position', 'ACTIVE')").update();
         jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (" + LEGAL_ENTITY + ", 'ZQV', 'entity', 'ACTIVE') on conflict (id) do nothing").update();
         jdbc.sql("insert into organization_workforce.legal_entity_attributions (attribution_id, org_unit_id) values (gen_random_uuid(), " + UNIT + ")").update();
         command(COMMAND, 0);
@@ -202,15 +207,29 @@ class OrgUnitAndPositionVersionTablesIntegrationTest extends WorkforceIntegratio
     }
 
     @Test
-    @DisplayName("IMP-1030-ORG-F0 position versions: status DELETED is refused; a code is unique among current rows only, never reused")
-    void positionVersionRules() {
-        String insert = "insert into organization_workforce.position_versions (position_version_id, position_id, effective_from_date, name, status, code, change_channel_kind"
-                + ", revision_number, effective_to_date, closed_at) values (";
+    @DisplayName("IMP-1030-ORG-F0 position versions: status DELETED is refused")
+    void positionVersionStatus() {
+        String insert = POSITION_INSERT;
         assertThatThrownBy(() -> jdbc.sql(insert + V1 + ", " + POSITION + ", date '2026-01-01', 'p', 'DELETED', null, 'MIGRATION', 0, null, null)").update()).hasMessageContaining("ck_position_versions_status");
+    }
+
+    @Test
+    @DisplayName("IMP-1030-ORG-F0 position code: one position shares its code across its versions, another position cannot take it while any unsuperseded row holds it, open or closed (DD amendment of #904)")
+    void positionCodeBelongsToOnePosition() {
+        String insert = POSITION_INSERT;
         jdbc.sql(insert + V1 + ", " + POSITION + ", date '2026-01-01', 'p', 'DISABLED', 'P1', 'MIGRATION', 0, date '2026-05-01', now())").update();
-        assertThatThrownBy(() -> jdbc.sql(insert + V2 + ", " + POSITION + ", date '2026-05-01', 'p', 'ACTIVE', 'P1', 'MIGRATION', 1, null, null)").update()).hasMessageContaining("uk_position_versions_code");
-        jdbc.sql("update organization_workforce.position_versions set superseded_at = now(), superseding_org_structure_command_id = "
-                + COMMAND + ", updated_at = now() where position_version_id = " + V1).update();
         jdbc.sql(insert + V2 + ", " + POSITION + ", date '2026-05-01', 'p', 'ACTIVE', 'P1', 'MIGRATION', 1, null, null)").update();
+        assertThatThrownBy(() -> jdbc.sql(insert + V3 + ", " + OTHER_POSITION + ", date '2026-05-01', 'q', 'ACTIVE', 'P1', 'MIGRATION', 0, null, null)").update())
+                .as("the code is held by an open row of another position").hasMessageContaining("ex_position_versions_code");
+        supersede(V2);
+        assertThatThrownBy(() -> jdbc.sql(insert + V3 + ", " + OTHER_POSITION + ", date '2026-05-01', 'q', 'ACTIVE', 'P1', 'MIGRATION', 0, null, null)").update())
+                .as("and after that row is closed or gone, the closed row still holds it").hasMessageContaining("ex_position_versions_code");
+        supersede(V1);
+        jdbc.sql(insert + V3 + ", " + OTHER_POSITION + ", date '2026-05-01', 'q', 'ACTIVE', 'P1', 'MIGRATION', 0, null, null)").update();
+    }
+
+    private void supersede(String version) {
+        jdbc.sql("update organization_workforce.position_versions set superseded_at = now(), superseding_org_structure_command_id = " + COMMAND
+                + ", updated_at = now() where position_version_id = " + version).update();
     }
 }
