@@ -6,6 +6,7 @@
 不写任何真实生产样本的字面值，拆段拼接也不行（O2 复审 M3）：真实特征运行时按 target id 从 prod_targets.json 取（install 段只经 install.sh 自检与探针按位置取用）；其余用虚构样本（192.0.2.x 是文档专用地址）。"""
 import ast
 import contextlib
+import errno
 import inspect
 import io
 import json
@@ -17,6 +18,7 @@ import sys
 import tempfile
 import threading
 import time
+import traceback
 import types
 from pathlib import Path
 from unittest import mock
@@ -566,6 +568,7 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         shutil.rmtree(target)
         shutil.copytree(os.path.join(hooks, a), target, symlinks=True)
         subprocess.run(["chflags", "uchg", target], check=True)
+        gone = os.path.join(tmp, "gone-" + b)
         rival_errors = []
         def rival():
             try:
@@ -575,10 +578,15 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
                 time.sleep(0.5)
                 subprocess.run(["chflags", "nouchg", target], check=True)
                 writable(target)
-                shutil.rmtree(target)
+                os.rename(target, gone)  # one rename takes the old files away, no in-place rmtree for the installer to race
                 os.rename(good, target)
-            except Exception as e:  # a thread's exception would otherwise vanish and the test pass on a path it never took
-                rival_errors.append(e)
+            except OSError as e:
+                # The installer may slide its own read-only copy into the gap between the two renames (the #879 path): then renaming onto it fails with
+                # EACCES on macOS (ENOTEMPTY/EEXIST elsewhere) - the PermissionError of #1071. That is fine only when the target is that read-only copy.
+                if e.errno not in (errno.EACCES, errno.ENOTEMPTY, errno.EEXIST) or not os.path.isdir(target) or os.access(target, os.W_OK):
+                    rival_errors.append(traceback.format_exc())
+            except Exception:  # a thread's exception would otherwise vanish and the test pass on a path it never took
+                rival_errors.append(traceback.format_exc())
         t = threading.Thread(target=rival)
         t.start()
         try:
