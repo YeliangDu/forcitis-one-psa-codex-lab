@@ -134,7 +134,7 @@ organization.workforce::api organization.workforce.api.EmployeeProfile public or
 organization.workforce::api organization.workforce.api.EmployeeProfile public organization.workforce.api.EmploymentStatus organization.workforce.api.EmployeeProfile.employmentStatus()
 organization.workforce::api organization.workforce.api.EmployeeProfile public organization.workforce.api.OrgUnitId organization.workforce.api.EmployeeProfile.orgUnitId()
 organization.workforce::api organization.workforce.api.EmployeeProfiles public abstract interface organization.workforce.api.EmployeeProfiles
-organization.workforce::api organization.workforce.api.EmployeeProfiles public abstract void organization.workforce.api.EmployeeProfiles.change(organization.workforce.api.ChangeEmployeeProfile)
+organization.workforce::api organization.workforce.api.EmployeeProfiles public abstract java.util.Optional<organization.workforce.api.ProfileChangeRequestId> organization.workforce.api.EmployeeProfiles.change(organization.workforce.api.ChangeEmployeeProfile)
 organization.workforce::api organization.workforce.api.EmploymentPhaseKind extends java.lang.Enum<organization.workforce.api.EmploymentPhaseKind>
 organization.workforce::api organization.workforce.api.EmploymentPhaseKind public final enum organization.workforce.api.EmploymentPhaseKind
 organization.workforce::api organization.workforce.api.EmploymentPhaseKind public static final organization.workforce.api.EmploymentPhaseKind organization.workforce.api.EmploymentPhaseKind.PROBATION
@@ -370,6 +370,64 @@ organization.workforce::api organization.workforce.api.PreviewOrgUnitMerge publi
 organization.workforce::api organization.workforce.api.PreviewOrgUnitMerge public organization.workforce.api.OrgUnitId organization.workforce.api.PreviewOrgUnitMerge.mergeIntoOrgUnitId()
 organization.workforce::api organization.workforce.api.PreviewOrgUnitMerge public organization.workforce.api.OrgUnitId organization.workforce.api.PreviewOrgUnitMerge.targetOrgUnitId()
 organization.workforce::api organization.workforce.api.PreviewOrgUnitMerge public organization.workforce.api.PreviewOrgUnitMerge(organization.workforce.api.OrgUnitId,organization.workforce.api.OrgUnitId,java.time.LocalDate)
+organization.workforce::api organization.workforce.api.ProfileChangeRequestId component value: java.util.UUID
+organization.workforce::api organization.workforce.api.ProfileChangeRequestId extends java.lang.Record
+organization.workforce::api organization.workforce.api.ProfileChangeRequestId public final boolean organization.workforce.api.ProfileChangeRequestId.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.ProfileChangeRequestId public final int organization.workforce.api.ProfileChangeRequestId.hashCode()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestId public final record organization.workforce.api.ProfileChangeRequestId
+organization.workforce::api organization.workforce.api.ProfileChangeRequestId public java.lang.String organization.workforce.api.ProfileChangeRequestId.toString()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestId public java.util.UUID organization.workforce.api.ProfileChangeRequestId.value()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestId public organization.workforce.api.ProfileChangeRequestId(java.util.UUID)
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView component decidedAt: java.time.Instant
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView component decidedBy: kernel.UserId
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView component displayName: java.lang.String
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView component email: java.lang.String
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView component employeeId: kernel.EmployeeId
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView component gender: organization.workforce.api.Gender
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView component requestId: organization.workforce.api.ProfileChangeRequestId
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView component requestedAt: java.time.Instant
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView component requestedBy: kernel.UserId
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView component status: organization.workforce.api.ProfileChangeStatus
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView component version: long
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView component voidReason: organization.workforce.api.ProfileVoidReason
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView component wecomUserId: kernel.WecomUserId
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView extends java.lang.Record
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public final boolean organization.workforce.api.ProfileChangeRequestView.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public final int organization.workforce.api.ProfileChangeRequestView.hashCode()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public final java.lang.String organization.workforce.api.ProfileChangeRequestView.toString()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public final record organization.workforce.api.ProfileChangeRequestView
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public java.lang.String organization.workforce.api.ProfileChangeRequestView.displayName()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public java.lang.String organization.workforce.api.ProfileChangeRequestView.email()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public java.time.Instant organization.workforce.api.ProfileChangeRequestView.decidedAt()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public java.time.Instant organization.workforce.api.ProfileChangeRequestView.requestedAt()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public kernel.EmployeeId organization.workforce.api.ProfileChangeRequestView.employeeId()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public kernel.UserId organization.workforce.api.ProfileChangeRequestView.decidedBy()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public kernel.UserId organization.workforce.api.ProfileChangeRequestView.requestedBy()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public kernel.WecomUserId organization.workforce.api.ProfileChangeRequestView.wecomUserId()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public long organization.workforce.api.ProfileChangeRequestView.version()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public organization.workforce.api.Gender organization.workforce.api.ProfileChangeRequestView.gender()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public organization.workforce.api.ProfileChangeRequestId organization.workforce.api.ProfileChangeRequestView.requestId()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public organization.workforce.api.ProfileChangeRequestView(organization.workforce.api.ProfileChangeRequestId,kernel.EmployeeId,kernel.UserId,java.time.Instant,organization.workforce.api.ProfileChangeStatus,java.lang.String,organization.workforce.api.Gender,java.lang.String,kernel.WecomUserId,kernel.UserId,java.time.Instant,organization.workforce.api.ProfileVoidReason,long)
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public organization.workforce.api.ProfileChangeStatus organization.workforce.api.ProfileChangeRequestView.status()
+organization.workforce::api organization.workforce.api.ProfileChangeRequestView public organization.workforce.api.ProfileVoidReason organization.workforce.api.ProfileChangeRequestView.voidReason()
+organization.workforce::api organization.workforce.api.ProfileChangeRequests public abstract interface organization.workforce.api.ProfileChangeRequests
+organization.workforce::api organization.workforce.api.ProfileChangeRequests public abstract kernel.CursorPage<organization.workforce.api.ProfileChangeRequestView> organization.workforce.api.ProfileChangeRequests.pending(kernel.PageRequest)
+organization.workforce::api organization.workforce.api.ProfileChangeRequests public abstract organization.workforce.api.ProfileChangeRequestView organization.workforce.api.ProfileChangeRequests.confirm(organization.workforce.api.ProfileChangeRequestId,kernel.ExpectedVersion)
+organization.workforce::api organization.workforce.api.ProfileChangeRequests public abstract organization.workforce.api.ProfileChangeRequestView organization.workforce.api.ProfileChangeRequests.reject(organization.workforce.api.ProfileChangeRequestId,java.lang.String,kernel.ExpectedVersion)
+organization.workforce::api organization.workforce.api.ProfileChangeStatus extends java.lang.Enum<organization.workforce.api.ProfileChangeStatus>
+organization.workforce::api organization.workforce.api.ProfileChangeStatus public final enum organization.workforce.api.ProfileChangeStatus
+organization.workforce::api organization.workforce.api.ProfileChangeStatus public static final organization.workforce.api.ProfileChangeStatus organization.workforce.api.ProfileChangeStatus.CONFIRMED
+organization.workforce::api organization.workforce.api.ProfileChangeStatus public static final organization.workforce.api.ProfileChangeStatus organization.workforce.api.ProfileChangeStatus.PENDING
+organization.workforce::api organization.workforce.api.ProfileChangeStatus public static final organization.workforce.api.ProfileChangeStatus organization.workforce.api.ProfileChangeStatus.REJECTED
+organization.workforce::api organization.workforce.api.ProfileChangeStatus public static final organization.workforce.api.ProfileChangeStatus organization.workforce.api.ProfileChangeStatus.VOIDED
+organization.workforce::api organization.workforce.api.ProfileChangeStatus public static organization.workforce.api.ProfileChangeStatus organization.workforce.api.ProfileChangeStatus.valueOf(java.lang.String)
+organization.workforce::api organization.workforce.api.ProfileChangeStatus public static organization.workforce.api.ProfileChangeStatus[] organization.workforce.api.ProfileChangeStatus.values()
+organization.workforce::api organization.workforce.api.ProfileVoidReason extends java.lang.Enum<organization.workforce.api.ProfileVoidReason>
+organization.workforce::api organization.workforce.api.ProfileVoidReason public final enum organization.workforce.api.ProfileVoidReason
+organization.workforce::api organization.workforce.api.ProfileVoidReason public static final organization.workforce.api.ProfileVoidReason organization.workforce.api.ProfileVoidReason.BASE_CHANGED
+organization.workforce::api organization.workforce.api.ProfileVoidReason public static final organization.workforce.api.ProfileVoidReason organization.workforce.api.ProfileVoidReason.WECOM_USER_ID_TAKEN
+organization.workforce::api organization.workforce.api.ProfileVoidReason public static organization.workforce.api.ProfileVoidReason organization.workforce.api.ProfileVoidReason.valueOf(java.lang.String)
+organization.workforce::api organization.workforce.api.ProfileVoidReason public static organization.workforce.api.ProfileVoidReason[] organization.workforce.api.ProfileVoidReason.values()
 organization.workforce::api organization.workforce.api.RegionKind extends java.lang.Enum<organization.workforce.api.RegionKind>
 organization.workforce::api organization.workforce.api.RegionKind public final enum organization.workforce.api.RegionKind
 organization.workforce::api organization.workforce.api.RegionKind public static final organization.workforce.api.RegionKind organization.workforce.api.RegionKind.HEADQUARTERS
@@ -459,10 +517,14 @@ organization.workforce::api organization.workforce.api.WorkforceError public sta
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_FOUND
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_REASON_INVALID
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PROFILE_CHANGE_CONFIRMER_NOT_ALLOWED
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PROFILE_CHANGE_PENDING
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PROFILE_CHANGE_REQUEST_NOT_FOUND
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PROFILE_CHANGE_REQUEST_NOT_PENDING
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PROFILE_CHANGE_VOIDED
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_RELEASE_REASON_REQUIRED
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_FORBIDDEN
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_REFUSED
-organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_WECOM_USER_ID_CHANGE_NOT_ALLOWED
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_WECOM_USER_ID_TAKEN
 organization.workforce::api organization.workforce.api.WorkforceError public static organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.valueOf(java.lang.String)
 organization.workforce::api organization.workforce.api.WorkforceError public static organization.workforce.api.WorkforceError[] organization.workforce.api.WorkforceError.values()
