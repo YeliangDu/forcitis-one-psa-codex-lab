@@ -1,4 +1,4 @@
-# platform.integration 提议术语（proposed，待业务评审，ADR-0018）。
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
 terms:
 - id: error__platform_integration_delivery_transition_illegal
   zh: 外发投递状态转换非法
@@ -13,24 +13,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
-- id: registration
-  zh: 登记
-  en: Registration
-  snake: registration
-  kind: command
-  bc: platform.integration
-  scope: acl
-  acl_class: "长期"
-  definition: 由人把一条来源对照录入系统，先处于待确认，等另一个人确认或拒绝；现在只有核算组织编码可以人工登记
-  standard_ref:
-  - adr/ADR-0033.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_integration_source_reference_not_found
   zh: 来源对照不存在或无生效的已确认对照
   en: PlatformIntegrationSourceReferenceNotFound
@@ -44,8 +29,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_integration_source_reference_invalid
   zh: 来源对照内容非法
   en: PlatformIntegrationSourceReferenceInvalid
@@ -59,8 +45,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_integration_source_reference_conflict
   zh: 来源对照冲突
   en: PlatformIntegrationSourceReferenceConflict
@@ -74,8 +61,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_integration_source_reference_already_decided
   zh: 来源对照已决定
   en: PlatformIntegrationSourceReferenceAlreadyDecided
@@ -89,8 +77,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_integration_source_object_kind_not_allowed
   zh: 来源对象类别不允许人工登记
   en: PlatformIntegrationSourceObjectKindNotAllowed
@@ -104,8 +93,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_integration_confirmer_is_author
   zh: 确认人不得是登记人
   en: PlatformIntegrationConfirmerIsAuthor
@@ -119,167 +109,6 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
-- id: evidence
-  zh: 取证
-  en: Evidence
-  snake: evidence
-  kind: value_object
-  bc: platform.integration
-  scope: domain
-  definition: 只读核对老系统与 A8 生产数据，用于复刻老行为、迁入对账与新旧等价核对；用专用取证账号，只出计数或聚合，或落 ECS 数据盘，每次登记一行
-  standard_ref:
-  - adr/ADR-0037.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ADR-0037 登记（数据库登录名 one_evidence_ro），待用语确认
-- id: malware_scanner
-  zh: 恶意文件检测端口
-  en: MalwareScanner
-  snake: malware_scanner
-  kind: value_object
-  bc: platform.integration
-  scope: acl
-  acl_class: "长期"
-  definition: 集成层对文件服务提供的检测端口：按本地检测暂存路径交 clamd SCAN，判定之外一律不可用
-  standard_ref:
-  - ADR-0060 文件服务
-  - ADR-0070 恶意文件检测
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 'one-platform-file 2026-10-21 登记（单元 4）'
-- id: scan_outcome
-  zh: 检测结论
-  en: ScanOutcome
-  snake: scan_outcome
-  kind: value_object
-  bc: platform.integration
-  scope: acl
-  acl_class: "长期"
-  definition: CLEAN 通过 / INFECTED 未通过 / ENCRYPTED 加密不可检测；不可用不是结论，抛错
-  standard_ref:
-  - ADR-0060 文件服务
-  - ADR-0070 恶意文件检测
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 'one-platform-file 2026-10-21 登记（单元 4）'
-- id: clean
-  zh: 检测通过
-  en: Clean
-  snake: clean
-  kind: state
-  bc: platform.integration
-  scope: acl
-  acl_class: "长期"
-  definition: 检测结论取值：引擎未检出
-  standard_ref:
-  - ADR-0060 文件服务
-  - ADR-0070 恶意文件检测
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 'one-platform-file 2026-10-21 登记（单元 4）'
-- id: infected
-  zh: 检测未通过
-  en: Infected
-  snake: infected
-  kind: state
-  bc: platform.integration
-  scope: acl
-  acl_class: "长期"
-  definition: 检测结论取值：引擎检出，文件服务隔离
-  standard_ref:
-  - ADR-0060 文件服务
-  - ADR-0070 恶意文件检测
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 'one-platform-file 2026-10-21 登记（单元 4）'
-- id: platform_integration__threat_name
-  zh: 病毒名
-  en: ThreatName
-  snake: threat_name
-  kind: value_object
-  bc: platform.integration
-  scope: acl
-  acl_class: "长期"
-  definition: 引擎检出时报告的特征名
-  standard_ref:
-  - ADR-0060 文件服务
-  - ADR-0070 恶意文件检测
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 'one-platform-file 2026-10-21 登记（单元 4）'
-  homonyms:
-  - platform_file__threat_name
-- id: presign_download
-  zh: 签发下载链接
-  en: PresignDownload
-  snake: presign_download
-  kind: command
-  bc: platform.integration
-  scope: acl
-  acl_class: "长期"
-  definition: 以签发身份为正式键生成预签名 GET 链接，强制附件下载；临时区与隔离键拒绝
-  standard_ref:
-  - ADR-0060 文件服务
-  - ADR-0070 恶意文件检测
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 'one-platform-file 2026-10-21 登记（单元 4）'
-- id: promote_file_object
-  zh: 转入正式区
-  en: PromoteFileObject
-  snake: promote_file_object
-  kind: command
-  bc: platform.integration
-  scope: acl
-  acl_class: "长期"
-  definition: 把临时区对象服务端复制到同一文件的正式键，禁止覆盖并读回核对
-  standard_ref:
-  - ADR-0060 文件服务
-  - ADR-0070 恶意文件检测
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 'one-platform-file 2026-10-21 登记（单元 4）'
-common_words:
-- background
-- call
-- connection
-- external
-- interactive
-- listener
-- publication
-- resubmission
-- retry
-- sent
-- serialized
-- verifier
-- integration
-- age
-- archive
-- cleanup
-- exhausted
-- incomplete
-- jdbc
-- maximum
-- minimum
-- republish
-- stale
-- statistic
-- recheck
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）

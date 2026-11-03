@@ -1,4 +1,4 @@
-# `tail_adjustment`（尾调）、`rounding_residual`（舍入差）、`prorate`（按权重拆分）由用户 2026-10-15 XD-07「同意 (Recommended)」确认登记（`docs/architecture/cross-cutting-decisions.md`）。`reversal_document`、`correction_document`、`document_nature`、`reversal_category`、`reversible_balance`、`derived_reversal`、`original_period`、`change_order_document`、`reverse_action`、`correct_action` 十条是 ADR-0031 第 8 项的提议，待用语确认（U-4）。
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
 terms:
 - id: error__kernel_transition_illegal
   zh: 状态转换不合法
@@ -13,8 +13,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__kernel_concurrent_change
   zh: 被他人同时修改
   en: KernelConcurrentChange
@@ -28,8 +29,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__kernel_reason_required
   zh: 原因不能为空
   en: KernelReasonRequired
@@ -43,44 +45,6 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: 取代 organization.administration 提议的 EMPLOYEE_ACTIVITY_CANCEL_REASON_REQUIRED；码的实现归 kernel owner。中文名不与 cost.timesheet、platform.approval 已登记的「必须填写原因」同名（错误码中文名全局唯一）；这两个模块码已收进本条（IMP-1022-COO-04）。
-common_words:
-- contain
-- containing
-- coordinate
-- followed
-- negate
-- positive
-- whole
-- aggregate
-- causation
-- correlation
-- domain
-- envelope
-- draft
-- occurred
-- schema
-- wrap
-- related
-- builder
-- build
-- conflict
-- configuration
-- drain
-- enter
-- forbidden
-- frame
-- kernel
-- machine
-- publish
-- successor
-- today
-- unauthenticated
-- unprocessable
-- zone
-- ordered
-- instant
-- audited
-- canonical
-- random
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
