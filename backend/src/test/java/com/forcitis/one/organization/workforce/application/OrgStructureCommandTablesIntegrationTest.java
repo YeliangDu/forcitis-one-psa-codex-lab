@@ -250,13 +250,21 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
         refused("fk_org_structure_commands_merge_into", () -> pending("gen_random_uuid()", "MERGE", ", merge_into_org_unit_id", ", gen_random_uuid()"));
     }
 
+    /** The employee's PRIMARY root (created when missing), as a SQL expression for the target assignment of a transfer (#711). */
+    private String primaryRoot(String employee) {
+        jdbc.sql("insert into organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at)"
+                + " select uuidv7(), id, 'PRIMARY', now(), now() from organization_workforce.employees where id = " + employee + " on conflict (employee_id) where assignment_kind = 'PRIMARY' do nothing").update();
+        return "(select assignment_id from organization_workforce.employee_assignments where employee_id = " + employee + " and assignment_kind = 'PRIMARY')";
+    }
+
     @Test
     @DisplayName("IMP-1030-ORG-F1 a personnel command's org structure command must exist")
     void personnelCommandForeignKey() {
         // #908 (DD §3, note §4.5): a transfer made by a merge needs the merge IN_PROGRESS, so the fixture merge is already in progress; the assertions below are unchanged.
         command(COMMAND, "MERGE", "ORG_UNIT", "IN_PROGRESS", ", merge_into_org_unit_id, affected_employee_count, transferred_employee_count", ", " + OTHER_UNIT + ", 1, 0");
         String insert = "insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id,"
-                + " org_structure_command_id, created_at, created_by, updated_at) values (gen_random_uuid(), " + EMPLOYEE + ", 'TRANSFER', date '2026-11-10', 'PENDING', " + OTHER_UNIT + ", ";
+                + " target_assignment_id, target_assignment_kind, org_structure_command_id, created_at, created_by, updated_at) values (gen_random_uuid(), " + EMPLOYEE
+                + ", 'TRANSFER', date '2026-11-10', 'PENDING', " + OTHER_UNIT + ", " + primaryRoot(EMPLOYEE) + ", 'PRIMARY', ";
         refused("fk_personnel_commands_org_structure_command_id", () -> jdbc.sql(insert + "gen_random_uuid(), now(), " + USER + ", now())").update());
         assertThat(jdbc.sql(insert + COMMAND + ", now(), " + USER + ", now())").update()).isEqualTo(1);
     }

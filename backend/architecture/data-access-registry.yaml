@@ -160,6 +160,8 @@ tables:
     mutability: CONDITIONAL_UPDATE
     condition: 状态只按 PENDING 到 EFFECTIVE、WITHDRAWN、HELD，HELD 到 EFFECTIVE、WITHDRAWN、PENDING（放行原生效日在将来的待放行离职），待法人归属会签到 PENDING、EFFECTIVE、WITHDRAWN 前进（转入待法人归属会签只在建立时），时刻列由空变非空一次，内容列不变（触发器 tg_personnel_commands_append_only，ADR-0068 第 1 条）
     business_key: [personnel_command_id]
+    fk_exceptions:
+      target_assignment_id: carried by the composite foreign key fk_personnel_commands_target_assignment (target_assignment_id, employee_id, target_assignment_kind), which also pins it to the command's employee and kind
     retention: {policy: PERMANENT}  # 个人任职史随员工清除：离职满 10 年由 purge_employee_history 删除（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
     writers: [organization.workforce]
