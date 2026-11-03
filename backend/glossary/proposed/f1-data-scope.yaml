@@ -1,0 +1,35 @@
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
+terms:
+- id: error__platform_identity_role_custom_org_units_invalid
+  zh: 角色自定义部门不合规
+  en: PlatformIdentityRoleCustomOrgUnitsInvalid
+  snake: platform_identity_role_custom_org_units_invalid
+  kind: error_code
+  bc: platform.identity
+  scope: domain
+  definition: 范围类型为 CUSTOM_ORG_UNITS 却没有列任何部门（含更新时传空数组，或沿用的原值为空）、同一部门列了两次、其他范围类型却列了部门，或部门缺部门 ID、缺「含下级」（400，F-1 不变量 7，调度裁定走请求校验）
+  standard_ref:
+  - docs/architecture/implementation-cards/f-1.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 登记会话 one-1a-par（#728）
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_identity_role_scope_not_allowed
+  zh: 角色数据范围不允许
+  en: PlatformIdentityRoleScopeNotAllowed
+  snake: platform_identity_role_scope_not_allowed
+  kind: error_code
+  bc: platform.identity
+  scope: domain
+  definition: 含双人逐人级权限的角色只许 ALL、CUSTOM_ORG_UNITS、SELF，自定义部门只许「仅本部门」；选相对范围或「含下级」拒绝并审计 platform.identity.grant.refused，不开授权申请（422，ADR-0032 第 3 项、ADR-0044 第 1 项、F1-01）
+  standard_ref:
+  - docs/adr/ADR-0032.md
+  - docs/adr/ADR-0044.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 登记会话 one-1a-par（#728）
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）

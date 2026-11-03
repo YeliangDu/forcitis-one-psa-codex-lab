@@ -1,0 +1,82 @@
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
+terms:
+- id: error__platform_numbering_rule_invalid
+  zh: 编号规则无效
+  en: PlatformNumberingRuleInvalid
+  snake: platform_numbering_rule_invalid
+  kind: error_code
+  bc: platform.numbering
+  scope: domain
+  definition: 模板或重置周期不符合规则（422）
+  standard_ref:
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_numbering_rule_transition_illegal
+  zh: 编号规则状态转换非法
+  en: PlatformNumberingRuleTransitionIllegal
+  snake: platform_numbering_rule_transition_illegal
+  kind: error_code
+  bc: platform.numbering
+  scope: domain
+  definition: 编号规则已经确认，不能再次确认（409）
+  standard_ref:
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_numbering_concurrent_update
+  zh: 编号规则并发修改
+  en: PlatformNumberingConcurrentUpdate
+  snake: platform_numbering_concurrent_update
+  kind: error_code
+  bc: platform.numbering
+  scope: domain
+  definition: 规则已被他人修改（409）
+  standard_ref:
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_numbering_single_operator_mode_required
+  zh: 须开启单人运维模式
+  en: PlatformNumberingSingleOperatorModeRequired
+  snake: platform_numbering_single_operator_mode_required
+  kind: error_code
+  bc: platform.numbering
+  scope: domain
+  definition: 编号运维起草命令只在单人运维模式开启时可用，模式关闭时一律拒绝（403）
+  standard_ref:
+  - docs/adr/ADR-0030.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 登记会话 one-1a-par（派工卡 SINGLE-OP P3）；ErrorKind 与 HTTP 状态由实现者按 CS-2.24 复核
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_numbering_document_type_unregistered
+  zh: 单据类型未登记
+  en: PlatformNumberingDocumentTypeUnregistered
+  snake: platform_numbering_document_type_unregistered
+  kind: error_code
+  bc: platform.numbering
+  scope: domain
+  definition: 单据类型码不在登记表中，或不在生效期内（422）
+  standard_ref:
+  - ADR-0066 决定 4
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: REG-1（IMP-1021-NX5-01）新增
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）

@@ -1,0 +1,50 @@
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
+terms:
+- id: error__platform_identity_role_transition_illegal
+  zh: 角色状态转换非法
+  en: PlatformIdentityRoleTransitionIllegal
+  snake: platform_identity_role_transition_illegal
+  kind: error_code
+  bc: platform.identity
+  scope: domain
+  definition: 角色已经处于目标状态（409）
+  standard_ref:
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_identity_account_transition_illegal
+  zh: 账号状态转换非法
+  en: PlatformIdentityAccountTransitionIllegal
+  snake: platform_identity_account_transition_illegal
+  kind: error_code
+  bc: platform.identity
+  scope: domain
+  definition: 账号已经处于目标状态（409）
+  standard_ref:
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_identity_concurrent_update
+  zh: 身份模块并发修改
+  en: PlatformIdentityConcurrentUpdate
+  snake: platform_identity_concurrent_update
+  kind: error_code
+  bc: platform.identity
+  scope: domain
+  definition: 角色或账号已被他人修改（409）
+  standard_ref:
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）

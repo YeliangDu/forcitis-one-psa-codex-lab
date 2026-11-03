@@ -1,0 +1,770 @@
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
+terms:
+- id: error__organization_administration_seal_usage_request_not_found
+  zh: 用印申请不存在
+  en: OrganizationAdministrationSealUsageRequestNotFound
+  snake: organization_administration_seal_usage_request_not_found
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 按标识找不到用印申请，或调用方无权知道它（404）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_seal_usage_legal_entity_invalid
+  zh: 用印法人无效
+  en: OrganizationAdministrationSealUsageLegalEntityInvalid
+  snake: organization_administration_seal_usage_legal_entity_invalid
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 用印法人不是申请日有效的法人主体，申请留在草稿（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: R-B31-1
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_seal_usage_not_approved
+  zh: 用印申请尚未批准
+  en: OrganizationAdministrationSealUsageNotApproved
+  snake: organization_administration_seal_usage_not_approved
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 实际用印须基于已批准的申请（INV-118，409）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_seal_usage_copies_exceeded
+  zh: 超过批准份数
+  en: OrganizationAdministrationSealUsageCopiesExceeded
+  snake: organization_administration_seal_usage_copies_exceeded
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 本申请累计登记份数将超过批准份数（INV-119，409）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_seal_usage_evidence_mismatch
+  zh: 用印凭据与拟发文件不符
+  en: OrganizationAdministrationSealUsageEvidenceMismatch
+  snake: organization_administration_seal_usage_evidence_mismatch
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 报价版本、用印法人、拟发文件与实际盖章凭据不能核验对应，拒绝并告警（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2、§4.4
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_seal_usage_attachment_required
+  zh: 担保类用印须附决议或授权文件
+  en: OrganizationAdministrationSealUsageAttachmentRequired
+  snake: organization_administration_seal_usage_attachment_required
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 担保类用印未附决议或授权文件，不予盖章（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q2
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_seal_usage_review_evidence_missing
+  zh: 缺法务或财务复核证据
+  en: OrganizationAdministrationSealUsageReviewEvidenceMissing
+  snake: organization_administration_seal_usage_review_evidence_missing
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 担保或跨法人事项缺所需的法务、财务复核证据，拒绝（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §9 第 2 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_seal_usage_already_closed
+  zh: 用印申请已关闭
+  en: OrganizationAdministrationSealUsageAlreadyClosed
+  snake: organization_administration_seal_usage_already_closed
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 已关闭的用印申请不再接受登记或放弃（409）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.2
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_seal_approver_unavailable
+  zh: 高风险用印缺少可用审批人
+  en: OrganizationAdministrationSealApproverUnavailable
+  snake: organization_administration_seal_approver_unavailable
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 高风险用途的第一审批人不可用，且不得改派备用审批人，挂起并告警（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 2 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_pre_stamp_not_allowed
+  zh: 非投标用印不得预盖空白页
+  en: OrganizationAdministrationPreStampNotAllowed
+  snake: organization_administration_pre_stamp_not_allowed
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 只有投标用印可以预盖空白页或待填栏（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_pre_stamp_limit_exceeded
+  zh: 超过预盖张数上限
+  en: OrganizationAdministrationPreStampLimitExceeded
+  snake: organization_administration_pre_stamp_limit_exceeded
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 登记的预盖张数超过行政填写的上限（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_pre_stamp_limit_unset
+  zh: 预盖张数上限未设定
+  en: OrganizationAdministrationPreStampLimitUnset
+  snake: organization_administration_pre_stamp_limit_unset
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 预盖张数上限尚未定版，不允许预盖（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §11 第 1 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_prior_approval_number_required
+  zh: 缺既有审批单号
+  en: OrganizationAdministrationPriorApprovalNumberRequired
+  snake: organization_administration_prior_approval_number_required
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 过渡通道的用印申请未填既有审批单号（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_prior_approval_page_required
+  zh: 缺既有审批页
+  en: OrganizationAdministrationPriorApprovalPageRequired
+  snake: organization_administration_prior_approval_page_required
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 过渡通道的用印申请未上传批准页附件（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_prior_approval_copies_exceeded
+  zh: 超过既有审批份数
+  en: OrganizationAdministrationPriorApprovalCopiesExceeded
+  snake: organization_administration_prior_approval_copies_exceeded
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 同一既有审批单号累计用印份数将超过批准页所载份数（409）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_prior_approval_not_verified
+  zh: 既有审批页尚未核对
+  en: OrganizationAdministrationPriorApprovalNotVerified
+  snake: organization_administration_prior_approval_not_verified
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 行政尚未核对批准页就办理用印（409）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_transition_channel_closed
+  zh: 用印过渡通道已废止
+  en: OrganizationAdministrationTransitionChannelClosed
+  snake: organization_administration_transition_channel_closed
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 合同、报价、投标模块上线后过渡通道已废止，不再接受既有审批系统来源（409）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q7
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_it_service_ticket_not_found
+  zh: 信息技术服务工单不存在
+  en: OrganizationAdministrationItServiceTicketNotFound
+  snake: organization_administration_it_service_ticket_not_found
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 按标识找不到信息技术服务工单，或调用方无权知道它（404）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_it_service_category_not_listed
+  zh: 工单类别未列入类别表
+  en: OrganizationAdministrationItServiceCategoryNotListed
+  snake: organization_administration_it_service_category_not_listed
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 提交的类别不在有效的信息技术服务类别表中，拒绝并告警，不默认常规支持（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_it_service_conclusion_required
+  zh: 缺少处理结论
+  en: OrganizationAdministrationItServiceConclusionRequired
+  snake: organization_administration_it_service_conclusion_required
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 解决或关闭工单须有处理结论（INV-120，422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_it_service_not_requester
+  zh: 不是工单提出人
+  en: OrganizationAdministrationItServiceNotRequester
+  snake: organization_administration_it_service_not_requester
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 关闭、撤回或重提工单的人不是提出人（403）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.3
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_access_validity_required
+  zh: 开通权限须写有效期或复核日
+  en: OrganizationAdministrationAccessValidityRequired
+  snake: organization_administration_access_validity_required
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 开通新权限的工单未写有效期或复核日（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q5
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_it_asset_already_in_use
+  zh: 资产已有使用人
+  en: OrganizationAdministrationItAssetAlreadyInUse
+  snake: organization_administration_it_asset_already_in_use
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 资产存在未结束的使用期间，领用或调拨登记被拒（INV-121，409）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_it_asset_unavailable
+  zh: 资产不可用于使用登记
+  en: OrganizationAdministrationItAssetUnavailable
+  snake: organization_administration_it_asset_unavailable
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 资产卡片不存在、已处置、不属信息技术资产类别或不在同一核算主体（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_it_asset_over_entitlement
+  zh: 超出岗位资产配置标准
+  en: OrganizationAdministrationItAssetOverEntitlement
+  snake: organization_administration_it_asset_over_entitlement
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 领用超出岗位资产配置标准，超配允许条件未定前拒绝，不转人审（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §0 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_it_asset_transfer_cross_entity
+  zh: 跨法人转让不在调拨办理
+  en: OrganizationAdministrationItAssetTransferCrossEntity
+  snake: organization_administration_it_asset_transfer_cross_entity
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 调拨双方不在同一核算主体，跨法人转让归固定资产流程（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_it_asset_not_current_user
+  zh: 调出方不是资产当前使用人
+  en: OrganizationAdministrationItAssetNotCurrentUser
+  snake: organization_administration_it_asset_not_current_user
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 申请或登记调拨的调出方不是资产当前使用人（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_it_asset_receiver_not_employed
+  zh: 调入使用人不在职
+  en: OrganizationAdministrationItAssetReceiverNotEmployed
+  snake: organization_administration_it_asset_receiver_not_employed
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 调入使用人在调拨日不在职（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_it_asset_usage_period_not_open
+  zh: 资产没有未结束的使用期间
+  en: OrganizationAdministrationItAssetUsagePeriodNotOpen
+  snake: organization_administration_it_asset_usage_period_not_open
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 归还资产时找不到未结束的使用期间，待办重复或已先行归还（409）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.4
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_it_asset_self_handling_forbidden
+  zh: 不得自行登记本人名下资产
+  en: OrganizationAdministrationItAssetSelfHandlingForbidden
+  snake: organization_administration_it_asset_self_handling_forbidden
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 使用人登记自己的领用或调拨，或管理员验收自己名下资产的归还，职责分离不允许（403）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §6.3
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_it_asset_fault_reporter_not_user
+  zh: 报修人不是资产当前使用人
+  en: OrganizationAdministrationItAssetFaultReporterNotUser
+  snake: organization_administration_it_asset_fault_reporter_not_user
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 报修人不是该资产当前使用人，资产管理员代报时须选使用人（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_it_asset_repair_order_not_found
+  zh: 信息技术资产维修单不存在
+  en: OrganizationAdministrationItAssetRepairOrderNotFound
+  snake: organization_administration_it_asset_repair_order_not_found
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 按标识找不到维修单，或调用方无权知道它（404）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.5
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_employee_activity_request_not_found
+  zh: 员工活动申请不存在
+  en: OrganizationAdministrationEmployeeActivityRequestNotFound
+  snake: organization_administration_employee_activity_request_not_found
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 按标识找不到员工活动申请，或调用方无权知道它（404）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_employee_activity_type_not_listed
+  zh: 活动类型未列入或已停用
+  en: OrganizationAdministrationEmployeeActivityTypeNotListed
+  snake: organization_administration_employee_activity_type_not_listed
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 登记的活动类型不在有效的类型清单中或已停用（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §3.6
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_employee_activity_estimate_required
+  zh: 缺少活动费用预估
+  en: OrganizationAdministrationEmployeeActivityEstimateRequired
+  snake: organization_administration_employee_activity_estimate_required
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 有花费的员工活动未填预估金额（422）；预估金额为 0 表示无费用，允许（T-R1）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q6
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_employee_activity_applicant_not_employed
+  zh: 申请人未在职
+  en: OrganizationAdministrationEmployeeActivityApplicantNotEmployed
+  snake: organization_administration_employee_activity_applicant_not_employed
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 员工活动申请人不是在职员工（422）
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 卡 C 契约新提议（T-G2）。
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_employee_activity_participant_unknown
+  zh: 参与人不存在
+  en: OrganizationAdministrationEmployeeActivityParticipantUnknown
+  snake: organization_administration_employee_activity_participant_unknown
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 员工活动登记的参与人不在员工表中（422）
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 卡 C 契约新提议（T-G2）。
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_config_set_version_missing
+  zh: 配置集缺少生效版本
+  en: OrganizationAdministrationConfigSetVersionMissing
+  snake: organization_administration_config_set_version_missing
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 所需配置集没有生效版本，所有配置集共用（422）
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 卡 C 契约新提议（T-G2）。
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_employee_activity_type_system_only
+  zh: 活动类型仅系统生成
+  en: OrganizationAdministrationEmployeeActivityTypeSystemOnly
+  snake: organization_administration_employee_activity_type_system_only
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 手工提交或重登了标为仅系统生成的活动类型（422）
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 卡 C 契约新提议（T-G6）。
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_employee_activity_participant_not_employed
+  zh: 参与人已离职
+  en: OrganizationAdministrationEmployeeActivityParticipantNotEmployed
+  snake: organization_administration_employee_activity_participant_not_employed
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 参与人中有登记业务日当天不在职的员工（422）
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 卡 C 契约新提议（T-G6）。
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_employee_activity_already_reregistered
+  zh: 活动登记已重登
+  en: OrganizationAdministrationEmployeeActivityAlreadyReregistered
+  snake: organization_administration_employee_activity_already_reregistered
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 被取消登记已有内容不同的重登记录，响应带后继编号（409）
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CARD_C_API.md §6
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 卡 C 契约新提议（T-G6）。
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_hire_date_unavailable
+  zh: 入职日期不可得
+  en: OrganizationAdministrationHireDateUnavailable
+  snake: organization_administration_hire_date_unavailable
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 周年生成时读不到员工本次入职日期，拒绝并告警（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §5.3
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_contract_original_already_lent
+  zh: 合同原件已有未归还借出
+  en: OrganizationAdministrationContractOriginalAlreadyLent
+  snake: organization_administration_contract_original_already_lent
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 同一份合同原件同时只能有一笔未归还的借出（INV-125，409）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q8
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_loan_return_date_required
+  zh: 缺借阅归还日
+  en: OrganizationAdministrationLoanReturnDateRequired
+  snake: organization_administration_loan_return_date_required
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 借出时未填归还日（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_loan_period_exceeded
+  zh: 借阅期限超过三十天
+  en: OrganizationAdministrationLoanPeriodExceeded
+  snake: organization_administration_loan_period_exceeded
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 借阅期限超过 30 天且没有公司负责人批准（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_loan_renewal_limit_reached
+  zh: 借阅已续借过一次
+  en: OrganizationAdministrationLoanRenewalLimitReached
+  snake: organization_administration_loan_renewal_limit_reached
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 每笔借阅至多续借一次（409）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_loan_renewal_approver_mismatch
+  zh: 续借须原批准人同意
+  en: OrganizationAdministrationLoanRenewalApproverMismatch
+  snake: organization_administration_loan_renewal_approver_mismatch
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 续借的批准人不是原批准人（403）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q10
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_administration_offsite_loan_details_required
+  zh: 外借须写用途地点与携带人
+  en: OrganizationAdministrationOffsiteLoanDetailsRequired
+  snake: organization_administration_offsite_loan_details_required
+  kind: error_code
+  bc: organization.administration
+  scope: domain
+  definition: 外借未写明用途、地点或携带人（422）。
+  standard_ref:
+  - docs/architecture/proposals/closeout/people/b31-rules/B31_CONSTRUCTION_DESIGN.md §10 Q9
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）

@@ -1,0 +1,114 @@
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
+terms:
+- id: error__platform_integration_delivery_transition_illegal
+  zh: 外发投递状态转换非法
+  en: PlatformIntegrationDeliveryTransitionIllegal
+  snake: platform_integration_delivery_transition_illegal
+  kind: error_code
+  bc: platform.integration
+  scope: domain
+  definition: 投递只能从待发送离开一次（409）
+  standard_ref:
+  - docs/architecture/proposals/phase1-a-platform-conventions.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_integration_source_reference_not_found
+  zh: 来源对照不存在或无生效的已确认对照
+  en: PlatformIntegrationSourceReferenceNotFound
+  snake: platform_integration_source_reference_not_found
+  kind: error_code
+  bc: platform.integration
+  scope: domain
+  definition: 没有这条来源对照，或出站时按自有 ID 查不到当日生效的已确认对照（404）；出站查不到时投递挂起并告警
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_integration_source_reference_invalid
+  zh: 来源对照内容非法
+  en: PlatformIntegrationSourceReferenceInvalid
+  snake: platform_integration_source_reference_invalid
+  kind: error_code
+  bc: platform.integration
+  scope: domain
+  definition: 核算组织编码必须是正整数、必须给出生效日、所指法人必须存在（422）
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_integration_source_reference_conflict
+  zh: 来源对照冲突
+  en: PlatformIntegrationSourceReferenceConflict
+  snake: platform_integration_source_reference_conflict
+  kind: error_code
+  bc: platform.integration
+  scope: domain
+  definition: 确认会使同一来源标识或同一自有对象的已确认对照在同一时点重叠，或后继的生效日不晚于生效中对照的生效日（409）
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_integration_source_reference_already_decided
+  zh: 来源对照已决定
+  en: PlatformIntegrationSourceReferenceAlreadyDecided
+  snake: platform_integration_source_reference_already_decided
+  kind: error_code
+  bc: platform.integration
+  scope: domain
+  definition: 该来源对照已被确认或拒绝，不能再次决定（409）
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_integration_source_object_kind_not_allowed
+  zh: 来源对象类别不允许人工登记
+  en: PlatformIntegrationSourceObjectKindNotAllowed
+  snake: platform_integration_source_object_kind_not_allowed
+  kind: error_code
+  bc: platform.integration
+  scope: domain
+  definition: 人工登记只接受（核算系统，法人主体）；组织源、老系统与其他类别只由同步或导入写入（422，拒绝的尝试写审计）
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_integration_confirmer_is_author
+  zh: 确认人不得是登记人
+  en: PlatformIntegrationConfirmerIsAuthor
+  snake: platform_integration_confirmer_is_author
+  kind: error_code
+  bc: platform.integration
+  scope: domain
+  definition: 登记来源对照的人不能确认或拒绝它，同一人持有两个权限也不行（403，四眼）
+  standard_ref:
+  - adr/ADR-0033.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）

@@ -1,0 +1,50 @@
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
+terms:
+- id: error__kernel_transition_illegal
+  zh: 状态转换不合法
+  en: KernelTransitionIllegal
+  snake: kernel_transition_illegal
+  kind: error_code
+  bc: kernel
+  scope: kernel
+  definition: 对象在当前状态下不能做这个操作（409）；各模块的状态机没有自己的转换错误码时默认用它（CS-2.24，IMP-1022-COO-02）
+  standard_ref:
+  - docs/architecture/proposals/b31-adm02-rulings-2026-10-22.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__kernel_concurrent_change
+  zh: 被他人同时修改
+  en: KernelConcurrentChange
+  snake: kernel_concurrent_change
+  kind: error_code
+  bc: kernel
+  scope: kernel
+  definition: 对象在读取后被别人改过，版本或唯一键冲突（409）（CS-2.24，IMP-1022-COO-02）
+  standard_ref:
+  - docs/architecture/proposals/b31-adm02-rulings-2026-10-22.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__kernel_reason_required
+  zh: 原因不能为空
+  en: KernelReasonRequired
+  snake: kernel_reason_required
+  kind: error_code
+  bc: kernel
+  scope: kernel
+  definition: 取消、驳回等须写原因的操作未填写原因（422）；各模块没有自己的缺原因错误码时默认用它（CS-2.24，T-A2，B31_CARD_C_API）
+  standard_ref:
+  - docs/architecture/proposals/b31-adm02-rulings-2026-10-22.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: 取代 organization.administration 提议的 EMPLOYEE_ACTIVITY_CANCEL_REASON_REQUIRED；码的实现归 kernel owner。中文名不与 cost.timesheet、platform.approval 已登记的「必须填写原因」同名（错误码中文名全局唯一）；这两个模块码已收进本条（IMP-1022-COO-04）。
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）

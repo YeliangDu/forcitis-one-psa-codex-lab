@@ -1,0 +1,18 @@
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
+terms:
+- id: error__organization_attendance_locked_day_unconfirmed
+  zh: 修改锁定日期未经确认
+  en: OrganizationAttendanceLockedDayUnconfirmed
+  snake: organization_attendance_locked_day_unconfirmed
+  kind: error_code
+  bc: organization.attendance
+  scope: domain
+  definition: 工作日历中早于今天的日期被修改而没有经过确认（422，数据打分卡 T2）；确认走组织数据管理员的独立用例
+  standard_ref:
+  - docs/data/data-scorecard.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）

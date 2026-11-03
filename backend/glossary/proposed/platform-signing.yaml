@@ -1,0 +1,50 @@
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
+terms:
+- id: error__platform_signing_no_version_at
+  zh: 用印时刻无有效印章台账版本
+  en: PlatformSigningNoVersionAt
+  snake: platform_signing_no_version_at
+  kind: error_code
+  bc: platform.signing
+  scope: domain
+  definition: 按用印时刻找不到有效的印章台账条目版本（422）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_signing_version_not_editable
+  zh: 印章台账版本只许关闭不许改写
+  en: PlatformSigningVersionNotEditable
+  snake: platform_signing_version_not_editable
+  kind: error_code
+  bc: platform.signing
+  scope: domain
+  definition: 版本表只追加，只许关闭当前版本、不许改写（409）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_signing_confirmer_is_author
+  zh: 印章类型确认人与作者相同
+  en: PlatformSigningConfirmerIsAuthor
+  snake: platform_signing_confirmer_is_author
+  kind: error_code
+  bc: platform.signing
+  scope: domain
+  definition: 印章类型清单版本的确认人不得是作者（422）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
