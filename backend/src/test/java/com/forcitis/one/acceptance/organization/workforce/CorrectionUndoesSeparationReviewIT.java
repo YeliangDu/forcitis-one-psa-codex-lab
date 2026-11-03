@@ -635,7 +635,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
     }
 
     @Test
-    @DisplayName("#730 SCOPE_REVIEW 7b：新部门的负责人就是被转岗的人本人时，与没有负责人相同：范围复核接收人为空，没有外发卡，并恰好一条以 \"ALERT P3 platform.identity \" 开头、含条目 id、不含工号与姓名的日志（one-design 裁定，#730 评论 6604945364）")
+    @DisplayName("#730 SCOPE_REVIEW 7b：新部门的负责人就是被转岗的人本人时，与没有负责人相同：范围复核接收人为空，没有外发卡，并恰好一条以 \"ALERT P3 platform.identity \" 开头、含事件 id 与条目 id、不含工号与姓名的日志（one-design 裁定，#730 评论 6604945364 与 6605327331）")
     void aMovedPersonWhoHeadsTheNewDepartmentIsTreatedLikeNoHead() throws Exception {
         UUID employee = employedHolding();
         grantByOperations(employee, customRole("scoped-self-head", unit));
