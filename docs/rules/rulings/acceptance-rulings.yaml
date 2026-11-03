@@ -385,3 +385,11 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/OrgCountersignNames.java
     reason: '#1040 设计第 6 节（#1040 comment 6591756163）给合并预览加 primaryInUnit 与 concurrentAssignmentCount；#910 读路径字段白名单 READ_PATH_FIELDS 只放进这两个名字，仍为封闭子集检查，未加通配、未删既有项、未放进个人或 L3 字段'
     ref: "commit bea78482f (branch claude/one-test-1040-acceptance); review-1040-whitelist-sonnet.md"
+  - id: RULING-LEAD-20261103-05
+    date: 2026-11-03
+    ruled_by: independent sonnet reviewer rv980s (dispatched by one-test, given only the diff), recorded by one-lead
+    implementer: one-dev-identity
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/ProfileChangeRequestRevocationIT.java
+    reason: 'revokeSessions 为 @Transactional(MANDATORY)，测试在无事务线程上对代理打桩先被事务切面拒绝；只把打桩与两处 reset 移到代理后面的间谍对象（AopTestUtils.getUltimateTargetObject），注入的失败仍经代理传出，断言、值、用例不变；#980 实现上分支后须全量重跑，非实现原因不绿则重开本裁定'
+    ref: "commit 13292f974 (#980 acceptance, PR #1059); review-980-stub-sonnet.md"
