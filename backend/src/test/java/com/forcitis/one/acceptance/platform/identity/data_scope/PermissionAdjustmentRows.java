@@ -72,6 +72,16 @@ final class PermissionAdjustmentRows {
                 .with("before_position_id", UUID.randomUUID()).with("after_position_id", UUID.randomUUID());
     }
 
+    /**
+     * Sensitive role review raised when a correction undoes a wrong separation (not employed before, employed now; user decision 2026-11-03,
+     * one-design ruling on #730): the unit field is the trigger, there is no unit or position before, and the person item names no role.
+     */
+    Row sensitiveReinstatement() throws SQLException {
+        return base("SENSITIVE_ROLE_REVIEW", "ASSIGNMENT_CHANGE").with("user_id", db.account()).with("trigger_personnel_command_id", UUID.randomUUID())
+                .with("trigger_field_kind", "ORG_UNIT").with("before_org_unit_id", null).with("after_org_unit_id", UUID.randomUUID())
+                .with("after_position_id", UUID.randomUUID());
+    }
+
     /** Scope review origin 1: a holder of custom org units moved; the item goes to the new unit's head (ADR-0032 item 4 clause 2). */
     Row scopeReviewTransfer() throws SQLException {
         return base("SCOPE_REVIEW", "ASSIGNMENT_CHANGE").with("user_id", db.account()).with("trigger_personnel_command_id", UUID.randomUUID())

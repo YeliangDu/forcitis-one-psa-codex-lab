@@ -459,6 +459,7 @@ tables:
       adjusted_audit_entry_id: an audit entry of platform_audit, another schema
       closure_personnel_command_id: the separation command, another schema; no foreign key
     retention: {policy: PERMANENT}
+    writers: [platform.identity]
     lineage: {source: NEW}
   platform_identity.account_role_grants:
     # Retention as role_versions above (0034-Q2; owner one-1a-par; due within 30 months after the first production deployment; purge job built with the audit online deletion; account_role_grants is purged before role_versions).
