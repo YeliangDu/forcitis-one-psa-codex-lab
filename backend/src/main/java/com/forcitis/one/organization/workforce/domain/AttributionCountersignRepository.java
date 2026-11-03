@@ -25,6 +25,9 @@ public interface AttributionCountersignRepository {
     /** As {@link #ofCommand} for an org-structure command. */
     List<AttributionCountersign> ofOrgCommand(OrgStructureCommandId command);
 
+    /** The requests of the org-structure command, locked for the rest of the transaction and read after the lock, so a decision or escalation that committed meanwhile is seen. */
+    List<AttributionCountersign> lockOfOrgCommand(OrgStructureCommandId command);
+
     void insert(AttributionCountersign request);
 
     /** Records the request's own state change; {@code parent} is the personnel or org-structure command that needs the countersign (the transition table keeps it as a plain id). */

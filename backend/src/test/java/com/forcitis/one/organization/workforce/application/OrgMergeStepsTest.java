@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -13,6 +14,7 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
@@ -20,6 +22,8 @@ import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
 import com.forcitis.one.organization.workforce.api.OrgStructureTargetKind;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.AssignmentKind;
+import com.forcitis.one.organization.workforce.domain.AttributionCountersign;
+import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
 import com.forcitis.one.organization.workforce.domain.HeldPost;
 import com.forcitis.one.organization.workforce.domain.OrgCommandStatus;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommand;
@@ -52,8 +56,10 @@ class OrgMergeStepsTest {
 
     final OrgStructureCommandRepository commands = mock(OrgStructureCommandRepository.class);
     final PersonnelCommandService personnel = mock(PersonnelCommandService.class);
+    final AttributionCountersignRepository countersigns = mock(AttributionCountersignRepository.class);
+    final CountersignRequests requests = mock(CountersignRequests.class);
     final OrgMergeSteps steps = new OrgMergeSteps(commands, mock(OrgStructureRules.class), mock(OrgMergeProgress.class), mock(OrgMergeCompletion.class), personnel,
-            mock(IdGenerator.class), Clock.fixed(NOW, ZoneOffset.UTC), new BusinessZone(ZoneId.of("Asia/Shanghai")));
+            countersigns, requests, mock(IdGenerator.class), Clock.fixed(NOW, ZoneOffset.UTC), new BusinessZone(ZoneId.of("Asia/Shanghai")));
 
     private void stored(OrgCommandStatus status) {
         OrgStructureCommand merge = OrgStructureCommand.restore(MERGE, OrgStructureTargetKind.ORG_UNIT, OrgStructureCommandKind.MERGE, MERGED, null, DAY, null, null, null, null, null,
@@ -102,5 +108,24 @@ class OrgMergeStepsTest {
         ArgumentCaptor<EnterPersonnelCommand> entered = ArgumentCaptor.forClass(EnterPersonnelCommand.class);
         verify(personnel).enter(entered.capture(), any(), any());
         assertThat(entered.getValue().targetAssignmentId()).isEqualTo(OTHER_ROOT);
+    }
+
+    @Test
+    @DisplayName("#1146: the start of a due merge lapses the open requests it locked, the withdrawal set that nobody can decide any more; a merge already in progress lapses nothing")
+    void startingTheMergeLapsesItsOpenRequests() {
+        stored(OrgCommandStatus.PENDING);
+        when(commands.postsIn(MERGED, DAY)).thenReturn(List.of(PRIMARY));
+        AttributionCountersign open = mock(AttributionCountersign.class);
+        when(countersigns.lockOfOrgCommand(MERGE)).thenReturn(List.of(open));
+
+        steps.start(MERGE, ACTOR);
+
+        verify(requests).lapse(any(CountersignRequests.Parent.class), eq(List.of(open)), eq(ActorType.SYSTEM), eq(ACTOR), any(), any(), any());
+
+        stored(OrgCommandStatus.IN_PROGRESS);
+
+        steps.start(MERGE, ACTOR);
+
+        verify(requests, org.mockito.Mockito.times(1)).lapse(any(CountersignRequests.Parent.class), any(), any(), any(), any(), any(), any());
     }
 }

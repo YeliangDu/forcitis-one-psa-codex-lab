@@ -100,6 +100,9 @@ public interface OrgStructureCommandRepository {
 
     List<OrgCountersignBasis> basisOf(OrgStructureCommandId command);
 
+    /** The pending commands whose day is not after the given one, earliest day first. */
+    List<OrgStructureCommand> due(LocalDate day);
+
     /** The org-structure commands that wait for the attribution countersign, whatever their day. */
     List<OrgStructureCommand> awaitingCountersign();
 
