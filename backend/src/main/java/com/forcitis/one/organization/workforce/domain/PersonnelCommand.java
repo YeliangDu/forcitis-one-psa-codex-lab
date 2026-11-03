@@ -6,6 +6,7 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
@@ -18,6 +19,7 @@ import com.forcitis.one.organization.workforce.api.WorkforceError;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -38,6 +40,8 @@ public final class PersonnelCommand extends AggregateRoot {
     private final @Nullable EmployeeId targetReportsToEmployeeId;
     private final @Nullable Boolean isTargetFeeEarner;
     private final @Nullable EmploymentPhaseKind targetEmploymentPhaseKind;
+    private @Nullable AssignmentId targetAssignmentId;
+    private @Nullable AssignmentKind targetAssignmentKind;
     private final UserId createdBy;
     private final Instant createdAt;
     private CommandStatus status;
@@ -49,8 +53,8 @@ public final class PersonnelCommand extends AggregateRoot {
 
     private PersonnelCommand(PersonnelCommandId id, EmployeeId employeeId, PersonnelCommandKind kind, LocalDate effectiveDate, CommandStatus status,
                              @Nullable OrgUnitId targetOrgUnitId, @Nullable PositionId targetPositionId, @Nullable EmployeeId targetReportsToEmployeeId,
-                             @Nullable Boolean isTargetFeeEarner, @Nullable EmploymentPhaseKind targetEmploymentPhaseKind, UserId createdBy, Instant createdAt,
-                             @Nullable Instant appliedAt, long version, long eventSequence) {
+                             @Nullable Boolean isTargetFeeEarner, @Nullable EmploymentPhaseKind targetEmploymentPhaseKind, @Nullable AssignmentId targetAssignmentId,
+                             @Nullable AssignmentKind targetAssignmentKind, UserId createdBy, Instant createdAt, @Nullable Instant appliedAt, long version, long eventSequence) {
         super(version, eventSequence);
         this.id = Objects.requireNonNull(id, "id");
         this.employeeId = Objects.requireNonNull(employeeId, "employeeId");
@@ -62,6 +66,8 @@ public final class PersonnelCommand extends AggregateRoot {
         this.targetReportsToEmployeeId = targetReportsToEmployeeId;
         this.isTargetFeeEarner = isTargetFeeEarner;
         this.targetEmploymentPhaseKind = targetEmploymentPhaseKind;
+        this.targetAssignmentId = targetAssignmentId;
+        this.targetAssignmentKind = targetAssignmentKind;
         this.createdBy = Objects.requireNonNull(createdBy, "createdBy");
         this.createdAt = createdAt;
         this.appliedAt = appliedAt;
@@ -92,7 +98,8 @@ public final class PersonnelCommand extends AggregateRoot {
         // A correction is immediate whatever its day (ck_personnel_commands_correction_immediate); it never waits.
         CommandStatus status = kind != PersonnelCommandKind.CORRECTION && effective.isAfter(today) ? CommandStatus.PENDING : CommandStatus.EFFECTIVE;
         PersonnelCommand command = new PersonnelCommand(id, employee, kind, effective, status, request.targetOrgUnitId(),
-                request.targetPositionId(), request.targetReportsToEmployeeId(), request.isTargetFeeEarner(), request.targetEmploymentPhaseKind(), createdBy, now,
+                request.targetPositionId(), request.targetReportsToEmployeeId(), request.isTargetFeeEarner(), request.targetEmploymentPhaseKind(), request.targetAssignmentId(), null,
+                createdBy, now,
                 status == CommandStatus.EFFECTIVE ? now : null, 0, employeeEventSequence);
         command.requireShapeOfKind();
         return command;
@@ -101,10 +108,10 @@ public final class PersonnelCommand extends AggregateRoot {
     /** A stored command. */
     public static PersonnelCommand restore(PersonnelCommandId id, EmployeeId employeeId, PersonnelCommandKind kind, LocalDate effectiveDate, CommandStatus status,
                                            @Nullable OrgUnitId targetOrgUnitId, @Nullable PositionId targetPositionId, @Nullable EmployeeId targetReportsToEmployeeId,
-                                           @Nullable Boolean isTargetFeeEarner, @Nullable EmploymentPhaseKind targetEmploymentPhaseKind, UserId createdBy,
-                                           Instant createdAt, @Nullable Instant appliedAt, long version, long employeeEventSequence) {
+                                           @Nullable Boolean isTargetFeeEarner, @Nullable EmploymentPhaseKind targetEmploymentPhaseKind, @Nullable AssignmentId targetAssignmentId,
+                                           @Nullable AssignmentKind targetAssignmentKind, UserId createdBy, Instant createdAt, @Nullable Instant appliedAt, long version, long employeeEventSequence) {
         return new PersonnelCommand(id, employeeId, kind, effectiveDate, status, targetOrgUnitId, targetPositionId, targetReportsToEmployeeId, isTargetFeeEarner,
-                targetEmploymentPhaseKind, createdBy, createdAt, appliedAt, version, employeeEventSequence);
+                targetEmploymentPhaseKind, targetAssignmentId, targetAssignmentKind, createdBy, createdAt, appliedAt, version, employeeEventSequence);
     }
 
     /** The merge that generated this transfer (ck_personnel_commands_org_structure_command: only a transfer); call before the command is stored. */
@@ -138,6 +145,17 @@ public final class PersonnelCommand extends AggregateRoot {
                     throw invalid("a CORRECTION names what it corrects: department, position, manager, fee-earner flag or phase");
                 }
             }
+            case START_CONCURRENT -> {
+                if (targetOrgUnitId == null || targetPositionId == null || targetReportsToEmployeeId != null || isTargetFeeEarner != null
+                        || targetEmploymentPhaseKind != null) {
+                    throw invalid("a START_CONCURRENT names the department and the position, and no manager, fee-earner flag or phase: a concurrent post has no reporting line");
+                }
+            }
+            case END_CONCURRENT -> {
+                if (targets + count(targetEmploymentPhaseKind) > 0) {
+                    throw invalid("an END_CONCURRENT carries no target but the post it ends");
+                }
+            }
             case REGULARIZE, SEPARATE, UNPAID_LEAVE_START, UNPAID_LEAVE_END -> {
                 if (targets + count(targetEmploymentPhaseKind) > 0) {
                     throw invalid("a " + kind + " carries no target");
@@ -147,6 +165,38 @@ public final class PersonnelCommand extends AggregateRoot {
         if (employeeId.equals(targetReportsToEmployeeId)) {
             throw invalid("an employee does not report to themself");
         }
+    }
+
+    /**
+     * Settles which post the command acts on and stores it with the command (#711): a transfer, and a correction that names a department, a position
+     * or a manager, act on the post they name, or on the primary post when they name none; an end of a concurrent post must name its post; every other
+     * kind names none. A concurrent post has no manager and no fee-earner flag, so a command on one carries neither. Call after the history is read and
+     * before the command is stored.
+     *
+     * @param primaryRoot the person's primary root, made when it does not exist yet
+     */
+    public void actOnPost(PersonnelHistory history, Supplier<AssignmentRoot> primaryRoot) {
+        boolean names = kind == PersonnelCommandKind.TRANSFER || kind == PersonnelCommandKind.CORRECTION
+                && (targetOrgUnitId != null || targetPositionId != null || targetReportsToEmployeeId != null);
+        if (!names && kind != PersonnelCommandKind.END_CONCURRENT) {
+            if (targetAssignmentId != null) {
+                throw invalid("a " + kind + " names no post");
+            }
+            return;
+        }
+        if (kind == PersonnelCommandKind.END_CONCURRENT && targetAssignmentId == null) {
+            throw invalid("an END_CONCURRENT names the concurrent post it ends");
+        }
+        AssignmentRoot root = targetAssignmentId == null ? primaryRoot.get()
+                : history.root(targetAssignmentId).orElseThrow(() -> invalid("the post does not belong to the employee"));
+        if (kind == PersonnelCommandKind.END_CONCURRENT && root.kind() != AssignmentKind.CONCURRENT) {
+            throw invalid("the primary post is not ended by itself: separate the employee");
+        }
+        if (root.kind() == AssignmentKind.CONCURRENT && (targetReportsToEmployeeId != null || isTargetFeeEarner != null || targetEmploymentPhaseKind != null)) {
+            throw invalid("a concurrent post has no manager and no fee-earner flag");
+        }
+        targetAssignmentId = root.id();
+        targetAssignmentKind = root.kind();
     }
 
     /** The administrator-separation hold decided at entry (ADR-0068 item 2); only a separation can be held, and nothing was applied yet. */
@@ -261,6 +311,19 @@ public final class PersonnelCommand extends AggregateRoot {
 
     public @Nullable EmploymentPhaseKind targetEmploymentPhaseKind() {
         return targetEmploymentPhaseKind;
+    }
+
+    public @Nullable AssignmentId targetAssignmentId() {
+        return targetAssignmentId;
+    }
+
+    public @Nullable AssignmentKind targetAssignmentKind() {
+        return targetAssignmentKind;
+    }
+
+    /** Whether the command is about a concurrent post: a post the workforce events, the data scope and the approvals do not read (#711). */
+    public boolean isOnConcurrentPost() {
+        return kind == PersonnelCommandKind.START_CONCURRENT || targetAssignmentKind == AssignmentKind.CONCURRENT;
     }
 
     public UserId createdBy() {

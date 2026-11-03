@@ -11,10 +11,23 @@ import org.jspecify.annotations.Nullable;
  * kind carries effectiveDate. The target components are the ones of the kind: a transfer names what changes, a hire or reinstatement names all.
  * A hire of a new person carries no employeeId (the server makes it) and the profile that goes to the employee root; no other kind carries a profile.
  * There is no employee code: the system numbers it (user answer Q2 of 2026-10-30).
+ * targetAssignmentId names the post a transfer, a correction or an end of a concurrent post acts on; left out, a transfer or a correction acts on the
+ * primary post, and a start of a concurrent post never names one (#711).
  */
 public record EnterPersonnelCommand(@Nullable EmployeeId employeeId, PersonnelCommandKind commandKind, @Nullable LocalDate effectiveDate,
                                     @Nullable LocalDate lastWorkingDay, @Nullable OrgUnitId targetOrgUnitId, @Nullable PositionId targetPositionId,
                                     @Nullable EmployeeId targetReportsToEmployeeId, @Nullable Boolean isTargetFeeEarner,
                                     @Nullable EmploymentPhaseKind targetEmploymentPhaseKind,
-                                    @Nullable String displayName, @Nullable Gender gender, @Nullable String email, @Nullable WecomUserId wecomUserId) {
+                                    @Nullable String displayName, @Nullable Gender gender, @Nullable String email, @Nullable WecomUserId wecomUserId,
+                                    @Nullable AssignmentId targetAssignmentId) {
+
+    /** A command that names no post: a transfer or a correction acts on the primary post. */
+    public EnterPersonnelCommand(@Nullable EmployeeId employeeId, PersonnelCommandKind commandKind, @Nullable LocalDate effectiveDate,
+                                 @Nullable LocalDate lastWorkingDay, @Nullable OrgUnitId targetOrgUnitId, @Nullable PositionId targetPositionId,
+                                 @Nullable EmployeeId targetReportsToEmployeeId, @Nullable Boolean isTargetFeeEarner,
+                                 @Nullable EmploymentPhaseKind targetEmploymentPhaseKind,
+                                 @Nullable String displayName, @Nullable Gender gender, @Nullable String email, @Nullable WecomUserId wecomUserId) {
+        this(employeeId, commandKind, effectiveDate, lastWorkingDay, targetOrgUnitId, targetPositionId, targetReportsToEmployeeId, isTargetFeeEarner,
+                targetEmploymentPhaseKind, displayName, gender, email, wecomUserId, null);
+    }
 }

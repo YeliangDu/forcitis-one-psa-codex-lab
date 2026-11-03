@@ -12,6 +12,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
@@ -42,6 +43,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -128,6 +130,7 @@ class PersonnelCommandService implements PersonnelCommands {
                     "the department has a merge in progress, or one dated on or before " + command.effectiveDate() + "; nobody can be placed there from then on");
         }
         PersonnelHistory history = commands.load(employee);
+        command.actOnPost(history, () -> commands.primaryRoot(employee, now));
         PersonnelCommandRules.check(command, history);
         SeparationReview.@Nullable Verdict leaveVerdict = command.kind() == PersonnelCommandKind.UNPAID_LEAVE_START ? leaveFloor.check(command) : null;
         boolean held = command.kind() == PersonnelCommandKind.SEPARATE && holdCheck.holds(command);
@@ -140,6 +143,9 @@ class PersonnelCommandService implements PersonnelCommands {
         PersonnelCommandRules.requirePositionOnCommandRows(plans.get(VersionTable.ASSIGNMENT));
         commands.insert(command);
         commands.insertTransition(COMMAND, command.id().value(), command.version(), null, command.status().name(), ActorType.USER, by.value(), today, now, command.id(), correlation());
+        if (command.kind() == PersonnelCommandKind.START_CONCURRENT) {
+            commands.insertConcurrentRoot(employee, startedPost(plans.get(VersionTable.ASSIGNMENT)), now);
+        }
         for (Map.Entry<VersionTable, VersionPlan> plan : plans.entrySet()) {
             commands.insertVersions(employee, plan.getKey(), plan.getValue(), command.id(), now);
         }
@@ -151,7 +157,8 @@ class PersonnelCommandService implements PersonnelCommands {
             events.publish(command);
             commands.saveEventSequence(employee, command.eventSequenceAfterSave());
         } else if (command.status() == CommandStatus.EFFECTIVE && !(command.kind() == PersonnelCommandKind.CORRECTION && command.effectiveDate().isAfter(today))) {
-            VersionRow assignmentBefore = history.currentAssignmentRows().stream().filter(r -> r.covers(command.effectiveDate().minusDays(1))).findFirst().orElse(null);
+            VersionRow assignmentBefore = command.targetAssignmentId() == null ? null : history.currentAssignmentRows(command.targetAssignmentId()).stream()
+                    .filter(r -> r.covers(command.effectiveDate().minusDays(1))).findFirst().orElse(null);
             // A separation's envelope names the entity of the last day the employee was employed: on the effective day itself the assignment has just ended.
             LocalDate entityDay = command.kind() == PersonnelCommandKind.SEPARATE ? command.effectiveDate().minusDays(1) : command.effectiveDate();
             command.recordEffect(assignmentBefore, legalEntityOn(employee, entityDay));
@@ -196,6 +203,11 @@ class PersonnelCommandService implements PersonnelCommands {
         commands.holdOf(command.id()).filter(hold -> hold.status() == HoldStatus.HELD).ifPresent(hold -> withdrawHold(hold, command, by, today, now));
         audit.record(new AuditEntry("organization.workforce.personnel-command.withdrawn", by, null, AuditSubject.of(AuditSubjectKind.EMPLOYEE, command.employeeId().value()),
                 "command " + command.id() + " " + command.kind() + "; reason: " + command.withdrawalReason().replaceAll("\\p{Cntrl}", " ")));
+    }
+
+    /** The post a start made: the one root its first row carries. */
+    private static AssignmentId startedPost(VersionPlan assignments) {
+        return new AssignmentId(Objects.requireNonNull(assignments.inserts().getFirst().root(), "root"));
     }
 
     private void withdrawHold(SeparationHold hold, PersonnelCommand command, UserId by, LocalDate today, Instant now) {

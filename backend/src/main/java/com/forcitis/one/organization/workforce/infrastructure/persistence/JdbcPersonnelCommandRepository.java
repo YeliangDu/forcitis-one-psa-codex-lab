@@ -7,6 +7,7 @@ import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.SeparationReview;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
 import com.forcitis.one.organization.workforce.api.Gender;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -15,6 +16,8 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.api.SeparationHoldId;
+import com.forcitis.one.organization.workforce.domain.AssignmentKind;
+import com.forcitis.one.organization.workforce.domain.AssignmentRoot;
 import com.forcitis.one.organization.workforce.domain.CommandEffects;
 import com.forcitis.one.organization.workforce.domain.HoldStatus;
 import com.forcitis.one.organization.workforce.domain.SeparationHold;
@@ -202,15 +205,18 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
                   from organization_workforce.employee_versions where employee_id = :id order by effective_from_date, revision_number
                 """).param("id", employee.value()).query((rs, n) -> row(rs, VersionTable.EMPLOYEE)).list();
         List<VersionRow> assignmentRows = jdbc.sql("""
-                select assignment_version_id as id, effective_from_date, effective_to_date, org_unit_id, position_id, reports_to_employee_id,
+                select assignment_version_id as id, assignment_id, effective_from_date, effective_to_date, org_unit_id, position_id, reports_to_employee_id,
                        change_channel_kind, change_command_id, version_audit_entry_id, corrected_from_version_id, superseded_at is not null as superseded
                   from organization_workforce.assignment_versions where employee_id = :id order by effective_from_date, revision_number
                 """).param("id", employee.value()).query((rs, n) -> row(rs, VersionTable.ASSIGNMENT)).list();
+        List<AssignmentRoot> roots = jdbc.sql("select assignment_id, assignment_kind from organization_workforce.employee_assignments where employee_id = :id order by created_at, assignment_id")
+                .param("id", employee.value()).query((rs, n) -> new AssignmentRoot(new AssignmentId(rs.getObject("assignment_id", UUID.class)),
+                        AssignmentKind.valueOf(rs.getString("assignment_kind")))).list();
         List<PersonnelCommand> all = jdbc.sql(COMMAND_COLUMNS + " where c.employee_id = :id order by c.effective_date, c.created_at")
                 .param("id", employee.value()).query((rs, n) -> command(rs)).list();
         Map<UUID, PersonnelCommand> byId = new HashMap<>();
         all.forEach(c -> byId.put(c.id().value(), c));
-        return new PersonnelHistory(employeeRows, assignmentRows, all.stream().filter(c -> c.status() != CommandStatus.WITHDRAWN).toList(), byId);
+        return new PersonnelHistory(employeeRows, assignmentRows, roots, all.stream().filter(c -> c.status() != CommandStatus.WITHDRAWN).toList(), byId);
     }
 
     private static VersionRow row(ResultSet rs, VersionTable table) throws SQLException {
@@ -231,12 +237,13 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
                 ? ChangeSource.ofCommand(new PersonnelCommandId(rs.getObject("change_command_id", UUID.class)),
                 new AuditEntryId(rs.getObject("version_audit_entry_id", UUID.class))) : ChangeSource.MIGRATION;
         return new VersionRow(rs.getObject("id", UUID.class), rs.getObject("effective_from_date", LocalDate.class), rs.getObject("effective_to_date", LocalDate.class),
-                values, source, rs.getObject("corrected_from_version_id", UUID.class), rs.getBoolean("superseded"));
+                values, source, rs.getObject("corrected_from_version_id", UUID.class), rs.getBoolean("superseded"),
+                table == VersionTable.ASSIGNMENT ? rs.getObject("assignment_id", UUID.class) : null);
     }
 
     private static final String COMMAND_COLUMNS = """
             select c.personnel_command_id, c.employee_id, c.command_kind, c.effective_date, c.status, c.target_org_unit_id, c.target_position_id,
-                   c.target_reports_to_employee_id, c.is_target_fee_earner, c.target_employment_phase_kind, c.created_by, c.created_at, c.applied_at, c.version,
+                   c.target_reports_to_employee_id, c.is_target_fee_earner, c.target_employment_phase_kind, c.target_assignment_id, c.target_assignment_kind, c.created_by, c.created_at, c.applied_at, c.version,
                    e.event_count
               from organization_workforce.personnel_commands c join organization_workforce.employees e on e.id = c.employee_id
             """;
@@ -246,13 +253,16 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
         UUID position = rs.getObject("target_position_id", UUID.class);
         UUID reportsTo = rs.getObject("target_reports_to_employee_id", UUID.class);
         String phase = rs.getString("target_employment_phase_kind");
+        UUID post = rs.getObject("target_assignment_id", UUID.class);
+        String postKind = rs.getString("target_assignment_kind");
         OffsetDateTime applied = rs.getObject("applied_at", OffsetDateTime.class);
         return PersonnelCommand.restore(new PersonnelCommandId(rs.getObject("personnel_command_id", UUID.class)),
                 new EmployeeId(rs.getObject("employee_id", UUID.class)), PersonnelCommandKind.valueOf(rs.getString("command_kind")),
                 rs.getObject("effective_date", LocalDate.class), CommandStatus.valueOf(rs.getString("status")),
                 unit == null ? null : new OrgUnitId(unit), position == null ? null : new PositionId(position),
                 reportsTo == null ? null : new EmployeeId(reportsTo), (Boolean) rs.getObject("is_target_fee_earner"),
-                phase == null ? null : EmploymentPhaseKind.valueOf(phase), new UserId(rs.getObject("created_by", UUID.class)),
+                phase == null ? null : EmploymentPhaseKind.valueOf(phase), post == null ? null : new AssignmentId(post),
+                postKind == null ? null : AssignmentKind.valueOf(postKind), new UserId(rs.getObject("created_by", UUID.class)),
                 rs.getObject("created_at", OffsetDateTime.class).toInstant(), applied == null ? null : applied.toInstant(), rs.getLong("version"),
                 rs.getLong("event_count"));
     }
@@ -264,9 +274,6 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
 
     @Override
     public void insert(PersonnelCommand c) {
-        // Until the use cases name the post (#711), a transfer, and a correction that carries an assignment column, act on the primary post.
-        boolean names = c.kind() == PersonnelCommandKind.TRANSFER || (c.kind() == PersonnelCommandKind.CORRECTION
-                && (c.targetOrgUnitId() != null || c.targetPositionId() != null || c.targetReportsToEmployeeId() != null));
         Boolean onLeave = c.kind() == PersonnelCommandKind.UNPAID_LEAVE_START ? Boolean.TRUE : c.kind() == PersonnelCommandKind.UNPAID_LEAVE_END ? Boolean.FALSE : null;
         jdbc.sql("""
                 insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status,
@@ -282,10 +289,20 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
                 .param("feeEarner", c.isTargetFeeEarner(), Types.BOOLEAN)
                 .param("phase", c.targetEmploymentPhaseKind() == null ? null : c.targetEmploymentPhaseKind().name(), Types.VARCHAR)
                 .param("onLeave", onLeave, Types.BOOLEAN)
-                .param("root", names ? PrimaryAssignmentRoot.of(jdbc, ids, c.employeeId().value(), c.createdAt()) : null, Types.OTHER)
-                .param("rootKind", names ? "PRIMARY" : null, Types.VARCHAR)
+                .param("root", c.targetAssignmentId() == null ? null : c.targetAssignmentId().value(), Types.OTHER)
+                .param("rootKind", c.targetAssignmentKind() == null ? null : c.targetAssignmentKind().name(), Types.VARCHAR)
                 .param("orgCommand", c.orgStructureCommandId() == null ? null : c.orgStructureCommandId().value(), Types.OTHER).param("appliedAt", at(c.appliedAt()), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("createdAt", at(c.createdAt())).param("createdBy", c.createdBy().value()).param("version", c.version()).update();
+    }
+
+    @Override
+    public AssignmentRoot primaryRoot(EmployeeId employee, Instant at) {
+        return new AssignmentRoot(new AssignmentId(PrimaryAssignmentRoot.of(jdbc, ids, employee.value(), at)), AssignmentKind.PRIMARY);
+    }
+
+    @Override
+    public void insertConcurrentRoot(EmployeeId employee, AssignmentId root, Instant at) {
+        ConcurrentAssignmentRoot.insert(jdbc, root.value(), employee.value(), at);
     }
 
     private static final String CLOSE_EMPLOYEE = "update organization_workforce.employee_versions set effective_to_date = :to, closed_at = :at, updated_at = :at"
@@ -345,9 +362,9 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
                 insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
                        effective_to_date, org_unit_id, position_id, reports_to_employee_id, revision_number, change_channel_kind, change_command_id,
                        version_audit_entry_id, closed_at, corrected_from_version_id, created_at, updated_at)
-                values (:id, :employee, :root, 'PRIMARY', :from, :to, :unit, :position, :reportsTo, :revision, :channel, :command, :audit, :closedAt, :correctedFrom, :at, :at)
+                values (:id, :employee, :root, (select assignment_kind from organization_workforce.employee_assignments where assignment_id = :root), :from, :to, :unit, :position, :reportsTo, :revision, :channel, :command, :audit, :closedAt, :correctedFrom, :at, :at)
                 """)
-                .param("id", row.id()).param("employee", employee.value()).param("root", PrimaryAssignmentRoot.of(jdbc, ids, employee.value(), at))
+                .param("id", row.id()).param("employee", employee.value()).param("root", row.root() != null ? row.root() : PrimaryAssignmentRoot.of(jdbc, ids, employee.value(), at))
                 .param("from", row.from()).param("to", row.to(), Types.DATE)
                 .param("unit", v.get(CommandEffects.ORG_UNIT)).param("position", v.get(CommandEffects.POSITION), Types.OTHER)
                 .param("reportsTo", v.get(CommandEffects.REPORTS_TO), Types.OTHER).param("revision", revision)

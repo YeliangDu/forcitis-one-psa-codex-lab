@@ -51,6 +51,8 @@ public final class CommandEffects {
                 v.put(START_DATE, null);
                 v.put(START_BASIS, null);
             }
+            case START_CONCURRENT, END_CONCURRENT -> {
+            }
             case REGULARIZE -> v.put(PHASE, "REGULAR");
             case UNPAID_LEAVE_START -> v.put(ON_LEAVE, true);
             case UNPAID_LEAVE_END -> v.put(ON_LEAVE, false);
@@ -69,7 +71,7 @@ public final class CommandEffects {
     /** The assignment version columns the command sets. */
     public static Map<String, Object> assignmentValues(PersonnelCommand c) {
         Map<String, Object> v = new LinkedHashMap<>();
-        if (c.kind() == PersonnelCommandKind.HIRE || c.kind() == PersonnelCommandKind.REINSTATE) {
+        if (c.kind() == PersonnelCommandKind.HIRE || c.kind() == PersonnelCommandKind.REINSTATE || c.kind() == PersonnelCommandKind.START_CONCURRENT) {
             v.put(ORG_UNIT, Objects.requireNonNull(c.targetOrgUnitId(), "department").value());
             v.put(POSITION, Objects.requireNonNull(c.targetPositionId(), "position").value());
             v.put(REPORTS_TO, c.targetReportsToEmployeeId() == null ? null : c.targetReportsToEmployeeId().value());
@@ -91,7 +93,7 @@ public final class CommandEffects {
     public static Predicate<VersionRow> employeeFilter(PersonnelCommand c) {
         return switch (c.kind()) {
             case HIRE, REINSTATE, SEPARATE -> ANY;
-            case REGULARIZE, UNPAID_LEAVE_START, UNPAID_LEAVE_END, TRANSFER, CORRECTION -> EMPLOYED;
+            case REGULARIZE, UNPAID_LEAVE_START, UNPAID_LEAVE_END, TRANSFER, CORRECTION, START_CONCURRENT, END_CONCURRENT -> EMPLOYED;
         };
     }
 
@@ -100,7 +102,7 @@ public final class CommandEffects {
         return c.kind() == PersonnelCommandKind.HIRE || c.kind() == PersonnelCommandKind.REINSTATE;
     }
 
-    /** A separation ends the assignment instead of changing a column of it. */
+    /** A separation ends every post of the person instead of changing a column of it. */
     public static boolean endsAssignment(PersonnelCommand c) {
         return c.kind() == PersonnelCommandKind.SEPARATE;
     }

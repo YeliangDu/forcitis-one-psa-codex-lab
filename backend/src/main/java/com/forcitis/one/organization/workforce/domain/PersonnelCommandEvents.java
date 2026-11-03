@@ -30,6 +30,9 @@ final class PersonnelCommandEvents {
     }
 
     static Optional<PendingEvent> of(PersonnelCommand c, @Nullable VersionRow assignmentBefore, @Nullable LegalEntityId legalEntity) {
+        if (c.isOnConcurrentPost()) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(switch (c.kind()) {
             case HIRE -> (PendingEvent) (envelopes, sequence) -> new EmployeeHired(envelopes.wrap(draft("EmployeeHired", c, legalEntity, sequence)), c.id(),
                     c.employeeId(), c.effectiveDate());
@@ -42,7 +45,7 @@ final class PersonnelCommandEvents {
             case CORRECTION -> (envelopes, sequence) -> new EmployeeCorrected(envelopes.wrap(draft("EmployeeCorrected", c, legalEntity, sequence)), c.id(),
                     c.employeeId(), c.effectiveDate(), null);
             case TRANSFER -> transferred(c, assignmentBefore, legalEntity);
-            case UNPAID_LEAVE_START, UNPAID_LEAVE_END -> null;
+            case UNPAID_LEAVE_START, UNPAID_LEAVE_END, START_CONCURRENT, END_CONCURRENT -> null;
         });
     }
 

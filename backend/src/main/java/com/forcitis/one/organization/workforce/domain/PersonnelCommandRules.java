@@ -6,6 +6,7 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
@@ -23,6 +24,7 @@ public final class PersonnelCommandRules {
         requireDayFree(command, others);
         requireSeparationOrder(command, others);
         requireStateOnTheDay(command, history.currentEmployeeRows());
+        requireLiveConcurrentPost(command, history);
         requireCorrectionOpenEnded(command, history);
     }
 
@@ -34,7 +36,8 @@ public final class PersonnelCommandRules {
         if (command.kind() != PersonnelCommandKind.CORRECTION) {
             return;
         }
-        requireConstant(CommandEffects.assignmentValues(command).keySet(), history.currentAssignmentRows(), command.effectiveDate(), row -> true);
+        List<VersionRow> post = command.targetAssignmentId() == null ? List.of() : history.currentAssignmentRows(command.targetAssignmentId());
+        requireConstant(CommandEffects.assignmentValues(command).keySet(), post, command.effectiveDate(), row -> true);
         requireConstant(CommandEffects.employeeValues(command).keySet(), history.currentEmployeeRows(), command.effectiveDate(), CommandEffects.employeeFilter(command));
     }
 
@@ -47,10 +50,31 @@ public final class PersonnelCommandRules {
         }
     }
 
+    /** One open command a day for the person and the primary post together, one for each concurrent post; a start of a concurrent post is not counted (#711). */
     private static void requireDayFree(PersonnelCommand command, List<PersonnelCommand> others) {
-        if (command.kind() != PersonnelCommandKind.CORRECTION
-                && others.stream().anyMatch(o -> o.status().isOpen() && o.effectiveDate().equals(command.effectiveDate()))) {
+        Object bucket = dayBucket(command);
+        if (command.kind() != PersonnelCommandKind.CORRECTION && bucket != null
+                && others.stream().anyMatch(o -> o.status().isOpen() && o.effectiveDate().equals(command.effectiveDate()) && bucket.equals(dayBucket(o)))) {
             throw refused("the employee already has an open command for " + command.effectiveDate());
+        }
+    }
+
+    private static final Object PERSON = new Object();
+
+    private static @Nullable Object dayBucket(PersonnelCommand command) {
+        if (command.kind() == PersonnelCommandKind.START_CONCURRENT) {
+            return null;
+        }
+        return command.targetAssignmentKind() == AssignmentKind.CONCURRENT ? command.targetAssignmentId() : PERSON;
+    }
+
+    /** A command on a concurrent post needs a version of that post in force on its day: a post that has ended, or never started, takes no command (#711). */
+    private static void requireLiveConcurrentPost(PersonnelCommand command, PersonnelHistory history) {
+        if (command.targetAssignmentKind() != AssignmentKind.CONCURRENT) {
+            return;
+        }
+        if (history.currentAssignmentRows(Objects.requireNonNull(command.targetAssignmentId())).stream().noneMatch(row -> row.covers(command.effectiveDate()))) {
+            throw refused("the concurrent post has no version on " + command.effectiveDate());
         }
     }
 

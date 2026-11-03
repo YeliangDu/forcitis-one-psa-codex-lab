@@ -138,9 +138,9 @@ public class ApplyDueCommand {
 
     /** Only a transfer reads the assignment of the day before; its versions were written at the entry, so the old row still ends where the new one starts. */
     private @Nullable VersionRow assignmentBefore(PersonnelCommand command) {
-        if (command.kind() != PersonnelCommandKind.TRANSFER) {
+        if (command.kind() != PersonnelCommandKind.TRANSFER || command.targetAssignmentId() == null) {
             return null;
         }
-        return commands.load(command.employeeId()).currentAssignmentRows().stream().filter(row -> row.covers(command.effectiveDate().minusDays(1))).findFirst().orElse(null);
+        return commands.load(command.employeeId()).currentAssignmentRows(command.targetAssignmentId()).stream().filter(row -> row.covers(command.effectiveDate().minusDays(1))).findFirst().orElse(null);
     }
 }
