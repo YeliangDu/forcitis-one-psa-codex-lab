@@ -60,7 +60,7 @@ class OrgMergeProgress {
 
     /** The merge is locked and in progress. */
     void recount(OrgStructureCommand merge) {
-        int left = commands.employedIn(merge.targetOrgUnitId(), merge.effectiveDate()).size();
+        int left = OrgMergeSteps.employeesOf(commands.postsIn(merge.targetOrgUnitId(), merge.effectiveDate()));
         if (merge.recordRemaining(left)) {
             commands.update(merge, clock.instant(), merge.version());
         }

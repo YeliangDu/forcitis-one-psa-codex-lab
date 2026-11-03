@@ -7,6 +7,7 @@ import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.ActorType;
+import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.BlockingArrival;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
@@ -16,7 +17,9 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.api.RegionKind;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
+import com.forcitis.one.organization.workforce.domain.AssignmentKind;
 import com.forcitis.one.organization.workforce.domain.ChangeSource;
+import com.forcitis.one.organization.workforce.domain.HeldPost;
 import com.forcitis.one.organization.workforce.domain.OrgCommandStatus;
 import com.forcitis.one.organization.workforce.domain.OrgCountersignBasis;
 import com.forcitis.one.organization.workforce.domain.OrgEffects;
@@ -473,7 +476,6 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
         }
     }
 
-    /** The people the merge moves: primary posts only until the merge moves concurrent posts too (#1040); a transfer without a post would move the primary of a person who holds only a concurrent post here. */
     @Override
     public List<EmployeeId> employedIn(OrgUnitId orgUnit, LocalDate day) {
         return jdbc.sql("""
@@ -484,6 +486,21 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
                    and e.effective_from_date <= :day and (e.effective_to_date is null or e.effective_to_date > :day)
                  group by a.employee_id order by min(a.effective_from_date), a.employee_id
                 """).param("unit", orgUnit.value()).param("day", day).query((rs, n) -> new EmployeeId(rs.getObject(1, UUID.class))).list();
+    }
+
+    @Override
+    public List<HeldPost> postsIn(OrgUnitId orgUnit, LocalDate day) {
+        return jdbc.sql("""
+                select a.employee_id, a.assignment_id, a.assignment_kind
+                  from organization_workforce.assignment_versions a join organization_workforce.employee_versions e on e.employee_id = a.employee_id
+                 where a.org_unit_id = :unit and a.superseded_at is null and e.superseded_at is null and e.employment_status = 'EMPLOYED'
+                   and a.effective_from_date <= :day and (a.effective_to_date is null or a.effective_to_date > :day)
+                   and e.effective_from_date <= :day and (e.effective_to_date is null or e.effective_to_date > :day)
+                 group by a.employee_id, a.assignment_id, a.assignment_kind
+                 order by a.employee_id, a.assignment_kind, a.assignment_id
+                """).param("unit", orgUnit.value()).param("day", day)
+                .query((rs, n) -> new HeldPost(new EmployeeId(rs.getObject("employee_id", UUID.class)), new AssignmentId(rs.getObject("assignment_id", UUID.class)),
+                        AssignmentKind.valueOf(rs.getString("assignment_kind")))).list();
     }
 
     @Override
@@ -510,16 +527,16 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
                 select c.org_structure_command_id from organization_workforce.org_structure_commands c
                  where c.command_kind = 'MERGE' and c.status = 'IN_PROGRESS'
                    and exists (select 1 from organization_workforce.assignment_versions a
-                                where a.employee_id = :employee and a.org_unit_id = c.target_org_unit_id and a.assignment_kind = 'PRIMARY' and a.superseded_at is null
+                                where a.employee_id = :employee and a.org_unit_id = c.target_org_unit_id and a.superseded_at is null
                                   and a.effective_from_date <= c.effective_date and (a.effective_to_date is null or a.effective_to_date > c.effective_date))
                  order by c.effective_date, c.target_org_unit_id, c.org_structure_command_id
                 """).param("employee", employee.value()).query((rs, n) -> new OrgStructureCommandId(rs.getObject(1, UUID.class))).list();
     }
 
     @Override
-    public boolean hasGeneratedTransfer(OrgStructureCommandId merge, EmployeeId employee) {
-        return jdbc.sql("select 1 from organization_workforce.personnel_commands where org_structure_command_id = :merge and employee_id = :employee limit 1")
-                .param("merge", merge.value()).param("employee", employee.value()).query(Integer.class).optional().isPresent();
+    public boolean hasGeneratedTransfer(OrgStructureCommandId merge, AssignmentId assignment) {
+        return jdbc.sql("select 1 from organization_workforce.personnel_commands where org_structure_command_id = :merge and target_assignment_id = :assignment limit 1")
+                .param("merge", merge.value()).param("assignment", assignment.value()).query(Integer.class).optional().isPresent();
     }
 
     @Override
