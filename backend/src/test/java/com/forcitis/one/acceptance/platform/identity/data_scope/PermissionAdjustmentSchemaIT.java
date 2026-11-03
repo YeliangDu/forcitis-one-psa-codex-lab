@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 /**
  * F-1 card (#729) section 7.1: platform_identity.permission_adjustments is exactly what the card declares (columns, the only two
  * defaults, constraint and index names, RESTRICT foreign keys, partial unique indexes, comments on the table and every column), read from
- * the migrated database. Behaviour of each constraint is in PermissionAdjustmentConstraintIT; this class pins the shape the card's
+ * the migrated database. Behaviour of each constraint is in PermissionAdjustmentShapeIT and PermissionAdjustmentLifecycleIT; this class pins the shape the card's
  * "only these differences" rule (section 7, gate 1.4 item 1) fixes.
  */
 class PermissionAdjustmentSchemaIT {
@@ -82,7 +82,7 @@ class PermissionAdjustmentSchemaIT {
     }
 
     @Test
-    @DisplayName("F-1 7.1 / 不变量 9–14、19、23、25、28–30、35 约束名集合与卡一致（pk、6 个 fk、uk 原条目、17 个 ck），主键单列；没有权限码或范围列（不变量 31）")
+    @DisplayName("F-1 7.1 / 不变量 9–14、19、23、25、28–30、35 约束名集合与卡一致（pk、6 个 fk、uk 原条目、19 个 ck），主键单列；没有权限码或范围列（不变量 31）")
     void constraintsAreTheCards() throws SQLException {
         assertThat(db.column("select conname || ' ' || contype::text from pg_constraint where conrelid = ?::regclass and contype <> 'n' order by conname collate \"C\"", TABLE))
                 .containsExactly(

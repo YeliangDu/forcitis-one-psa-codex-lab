@@ -27,7 +27,7 @@ backend/mvnw -B -f backend/pom.xml verify -Dit.test='PermissionAdjustment*IT,Per
 
 ## 假定（卡没有写死、测试照此断言）
 
-- 拒绝按约束名断言（`getConstraint()`）；一行同时违反多条 CHECK 时 PostgreSQL 按约束名字母序检查，用例尽量只破一条。未知 `origin_kind` 会同时破好几条，只断言是本表的 CHECK 拒绝。
+- 拒绝按约束名断言（`getConstraint()`）；一行同时违反多条 CHECK 时 PostgreSQL 按约束名字母序检查，用例尽量只破一条。未知 `origin_kind`（行上不带触发列）只会破 `kind_origin` 与 `origin_kind` 两条，断言是其中之一。
 - 7.2：卡写「`ck_audit_entries_subject_kind` 加取值」，现行基线已按 ADR-0069 第 14 条把类别改为登记表 `platform_audit.audit_subject_kinds`；测试断言登记行（`platform.identity`、有对象、`ACTIVE`），不断言 CHECK。
 - 维持原因的库内检查是 `char_length(btrim(uphold_reason)) BETWEEN 1 AND 500`，`btrim` 只去空格；只含制表符等其他空白的原因库里拦不住，「非空白」由 #730 的接口 400 承担。库内用例只断言全空格与空串被拒。
 - 行内时刻全是字面量，不用库时钟。

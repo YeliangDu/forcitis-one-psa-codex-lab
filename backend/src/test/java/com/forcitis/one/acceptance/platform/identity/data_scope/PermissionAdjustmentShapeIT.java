@@ -51,11 +51,13 @@ class PermissionAdjustmentShapeIT {
         rows.refusedByCheck("ck_permission_adjustments_kind", rows.sensitiveOrgUnitChange().with("kind", "ROLE_REVIEW"));
         rows.refusedByCheck("ck_permission_adjustments_status", rows.sensitiveOrgUnitChange().with("status", "CLOSED"));
         rows.refusedByCheck("ck_permission_adjustments_trigger_field_kind", rows.sensitiveOrgUnitChange().with("trigger_field_kind", "DEPARTMENT"));
-        // an unknown origin breaks several origin-keyed checks at once; only that it is a CHECK refusal on this table is asserted
-        Row unknownOrigin = rows.sensitiveOrgUnitChange().with("origin_kind", "GRANT_MODE_UPGRADE");
+        // an unknown origin on a row with no trigger columns satisfies every origin-keyed check except the two that list the origins
+        Row unknownOrigin = rows.sensitiveOrgUnitChange().with("origin_kind", "GRANT_MODE_UPGRADE").with("trigger_sync_run_id", null)
+                .with("trigger_field_kind", null).with("before_org_unit_id", null).with("after_org_unit_id", null);
         PSQLException refusal = db.refused(PermissionAdjustmentRows.insertSql(unknownOrigin), unknownOrigin.columns.values().toArray());
         assertThat(refusal.getSQLState()).as(refusal.getMessage()).isEqualTo(PermissionAdjustmentRows.CHECK_VIOLATION);
-        assertThat(refusal.getServerErrorMessage().getConstraint()).startsWith("ck_permission_adjustments_");
+        assertThat(refusal.getServerErrorMessage().getConstraint()).as(refusal.getMessage())
+                .isIn("ck_permission_adjustments_kind_origin", "ck_permission_adjustments_origin_kind");
     }
 
     @Test
