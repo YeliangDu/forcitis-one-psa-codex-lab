@@ -97,7 +97,7 @@ class OrgStructureRules {
     /** Names who blocks the merge and which command put them there, so HR knows what to withdraw or re-enter (ids only). */
     static String describe(List<BlockingArrival> arrivals, LocalDate day) {
         StringBuilder text = new StringBuilder("these employees join the org unit after " + day + " and would be left in a revoked unit; withdraw or re-enter their commands first:");
-        arrivals.stream().limit(20).forEach(a -> text.append(" employee ").append(a.employeeId()).append(" from ").append(a.arrivesOn())
+        arrivals.stream().limit(20).forEach(a -> text.append(" employee ").append(a.employeeId()).append(" from ").append(a.startDate())
                 .append(a.personnelCommandId() == null ? " (migrated row)" : " (command " + a.personnelCommandId() + ")").append(";"));
         if (arrivals.size() > 20) {
             text.append(" and ").append(arrivals.size() - 20).append(" more");

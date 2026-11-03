@@ -574,7 +574,7 @@ class OrgMergeSafetyIT {
         assertThat(preview.employees()).containsExactly(new EmployeeId(resident));
         assertThat(preview.blocking()).singleElement().satisfies(blocking -> {
             assertThat(blocking.employeeId()).isEqualTo(new EmployeeId(coming));
-            assertThat(blocking.arrivesOn()).isEqualTo(day.plusDays(3));
+            assertThat(blocking.startDate()).isEqualTo(day.plusDays(3));
             assertThat(blocking.personnelCommandId()).isEqualTo(command);
         });
         assertThat(refused).isInstanceOf(DomainException.class).hasMessageContaining(coming.toString()).hasMessageContaining(command.toString());
