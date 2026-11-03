@@ -80,6 +80,24 @@ class ClassificationRegisterTest {
     }
 
     @Test
+    @DisplayName("#980 ADR-0043 :202: the class word of an email column is not a physical address: email_address needs only INTERNAL with the mark PI; every other address stays sensitive")
+    void anEmailAddressColumnIsNotAPhysicalAddress() {
+        Map<String, ClassificationRegister.Row> register = Map.of(
+                "x.t.email_address", new ClassificationRegister.Row("INTERNAL", "PI", "用途：x"),
+                "x.t.base_email_address", new ClassificationRegister.Row("INTERNAL", "PI", "用途：x"),
+                "x.t.home_address", new ClassificationRegister.Row("INTERNAL", "PI", "用途：x"),
+                "x.t.last_login_address", new ClassificationRegister.Row("INTERNAL", "PI", "用途：x"),
+                "x.t.email_address_hash", new ClassificationRegister.Row("INTERNAL", "PI", "用途：x"));
+        List<String> problems = ClassificationRegister.problems(
+                Set.of("x.t.email_address", "x.t.base_email_address", "x.t.home_address", "x.t.last_login_address", "x.t.email_address_hash"), register);
+        assertThat(problems).noneMatch(p -> p.startsWith("x.t.email_address ") || p.startsWith("x.t.base_email_address"))
+                .anyMatch(p -> p.startsWith("x.t.home_address") && p.contains("SENSITIVE or RESTRICTED"))
+                .anyMatch(p -> p.startsWith("x.t.last_login_address") && p.contains("SENSITIVE or RESTRICTED"))
+                .anyMatch(p -> p.startsWith("x.t.email_address_hash") && p.contains("SENSITIVE or RESTRICTED"));
+        assertThat(ClassificationRegister.PERSON_NAME.matcher("email_address").find()).as("the mark PI stays required (DataArchitectureTest D5)").isTrue();
+    }
+
+    @Test
     @DisplayName("the real register parses with the strict four-segment rules")
     void theRealRegisterParses() throws IOException {
         assertThat(ClassificationRegister.read()).isNotEmpty();
