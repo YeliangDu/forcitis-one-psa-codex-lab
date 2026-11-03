@@ -56,15 +56,16 @@ public final class PermissionAdjustment extends AggregateRoot {
     }
 
     /**
-     * One item for a person who holds sensitive roles and is employed again after a wrong separation was corrected: the department before is empty
-     * and so is the position (ADR-0082 decision 2). It names no role; the reviewer sees what the person holds today.
+     * One sensitive-role review for a person whose assignment changed in one field (ADR-0032 decision 5). It names no role; the reviewer sees what
+     * the person holds today. The department before is empty only when a wrong separation was undone (ADR-0082 decision 2), and then so is the position.
      */
-    public static PermissionAdjustment separationCorrectionReview(PermissionAdjustmentId id, UserId user, PersonnelCommandId command, OrgUnitId toOrgUnit,
-            @Nullable PositionId toPosition, Instant escalationDueAt, Instant at) {
-        PermissionAdjustment item = new PermissionAdjustment(id, PermissionAdjustmentKind.SENSITIVE_ROLE_REVIEW, user, command, TriggerFieldKind.ORG_UNIT,
-                null, toOrgUnit, null, toPosition, escalationDueAt, at);
+    public static PermissionAdjustment assignmentChangeReview(PermissionAdjustmentId id, UserId user, PersonnelCommandId command, TriggerFieldKind field,
+            @Nullable OrgUnitId beforeOrgUnit, OrgUnitId afterOrgUnit, @Nullable PositionId beforePosition, @Nullable PositionId afterPosition,
+            Instant escalationDueAt, Instant at) {
+        PermissionAdjustment item = new PermissionAdjustment(id, PermissionAdjustmentKind.SENSITIVE_ROLE_REVIEW, user, command, field,
+                beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition, escalationDueAt, at);
         item.record((envelopes, version) -> new PermissionAdjustmentOpened(envelopes.wrap(item.draft("PermissionAdjustmentOpened", version)),
-                id, user, item.kind, item.origin, command, item.triggerField, null, toOrgUnit, escalationDueAt));
+                id, user, item.kind, item.origin, command, field, beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition, escalationDueAt));
         return item;
     }
 

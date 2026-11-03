@@ -29,7 +29,7 @@ class PermissionAdjustmentTest {
         OrgUnitId unit = new OrgUnitId(UUID.randomUUID());
 
         PersonnelCommandId command = new PersonnelCommandId(UUID.randomUUID());
-        PermissionAdjustment item = PermissionAdjustment.separationCorrectionReview(id, USER, command, unit, null,
+        PermissionAdjustment item = PermissionAdjustment.assignmentChangeReview(id, USER, command, TriggerFieldKind.ORG_UNIT, null, unit, null, null,
                 AT.plusSeconds(86_400), AT);
 
         assertThat(item.kind()).isEqualTo(PermissionAdjustmentKind.SENSITIVE_ROLE_REVIEW);

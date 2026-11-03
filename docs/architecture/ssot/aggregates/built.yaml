@@ -431,7 +431,7 @@ aggregates:
   tables:
   - platform_identity.permission_adjustments
   commands:
-  - HandleEmployeeCorrected
+  - OpenSensitiveRoleReview
   events:
   - platform.identity.PermissionAdjustmentOpened
   events_in_module:

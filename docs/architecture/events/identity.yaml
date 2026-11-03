@@ -470,6 +470,18 @@ components:
             format: uuid
             x-type: OrgUnitId
             description: 触发后的部门
+          beforePositionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            nullable: true
+            description: 触发前的岗位；那时没有岗位或没有任职时为空
+          afterPositionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            nullable: true
+            description: 触发后的岗位；没有岗位时为空
           escalationDueAt:
             type: string
             format: date-time

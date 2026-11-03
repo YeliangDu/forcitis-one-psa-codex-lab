@@ -68,10 +68,11 @@ class HandleEmployeeCorrectedEscalationTest {
     final IdGenerator ids = mock(IdGenerator.class);
     final UserId user = TestAccounts.account(1001);
     final EmployeeId employee = TestAccounts.employee(1001);
-    final HandleEmployeeCorrected handler = new HandleEmployeeCorrected(TestAccounts.everyoneHasOne(), accounts, roles, adjustments, deadlines, events, ids,
-            Clock.fixed(NOW, ZoneOffset.UTC), new BusinessZone(ZoneId.of("Asia/Shanghai")));
+    final HandleEmployeeCorrected handler = new HandleEmployeeCorrected(TestAccounts.everyoneHasOne(),
+            new OpenSensitiveRoleReview(accounts, roles, adjustments, deadlines, events, ids, Clock.fixed(NOW, ZoneOffset.UTC),
+                    new BusinessZone(ZoneId.of("Asia/Shanghai"))));
     final ListAppender<ILoggingEvent> log = new ListAppender<>();
-    final Logger logger = (Logger) LoggerFactory.getLogger(HandleEmployeeCorrected.class);
+    final Logger logger = (Logger) LoggerFactory.getLogger(OpenSensitiveRoleReview.class);
 
     @BeforeEach
     void setUp() {
@@ -94,11 +95,15 @@ class HandleEmployeeCorrectedEscalationTest {
     }
 
     private EmployeeCorrected undoneSeparation(LegalEntityId legalEntity) {
+        return correction(legalEntity, List.of(TriggerFieldKind.ORG_UNIT), null);
+    }
+
+    private EmployeeCorrected correction(LegalEntityId legalEntity, List<TriggerFieldKind> kinds, OrgUnitId previousOrgUnit) {
         EventEnvelope base = TestEnvelopes.of("organization.workforce.EmployeeCorrected", "Employee", employee.value());
         EventEnvelope envelope = new EventEnvelope(base.eventId(), base.eventType(), base.schemaVersion(), base.occurredAt(), base.aggregateType(),
                 base.aggregateId(), base.aggregateVersion(), base.correlationId(), null, ActorType.SYSTEM, base.actorId(), legalEntity, null, null, List.of());
         return new EmployeeCorrected(envelope, new PersonnelCommandId(UUID.randomUUID()), employee, LocalDate.of(2026, 11, 2), null,
-                List.of(TriggerFieldKind.ORG_UNIT), null, new OrgUnitId(UUID.randomUUID()), null, null);
+                kinds, previousOrgUnit, new OrgUnitId(UUID.randomUUID()), null, null);
     }
 
     private void handle(EmployeeCorrected event) {
@@ -151,5 +156,22 @@ class HandleEmployeeCorrectedEscalationTest {
 
         verify(adjustments, never()).insert(any());
         assertThat(alerts()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("a correction that moves an employed person between departments is not an undone separation: a holder of a sensitive role gets no item")
+    void aMoveBetweenDepartmentsRaisesNothing() {
+        handle(correction(new LegalEntityId(UUID.randomUUID()), List.of(TriggerFieldKind.ORG_UNIT), new OrgUnitId(UUID.randomUUID())));
+
+        verify(adjustments, never()).insert(any());
+        verify(deadlines, never()).endOfWorkdayAfter(any(), eq(5), any());
+    }
+
+    @Test
+    @DisplayName("a correction that changes only the position raises nothing")
+    void aPositionOnlyCorrectionRaisesNothing() {
+        handle(correction(new LegalEntityId(UUID.randomUUID()), List.of(TriggerFieldKind.POSITION), null));
+
+        verify(adjustments, never()).insert(any());
     }
 }

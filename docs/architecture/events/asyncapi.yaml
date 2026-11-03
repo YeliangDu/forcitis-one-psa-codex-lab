@@ -3069,6 +3069,8 @@ components:
         - triggerFieldKind
         - beforeOrgUnitId
         - afterOrgUnitId
+        - beforePositionId
+        - afterPositionId
         - escalationDueAt
         properties:
           envelope:
@@ -3120,6 +3122,18 @@ components:
             format: uuid
             x-type: OrgUnitId
             description: 触发后的部门
+          beforePositionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            nullable: true
+            description: 触发前的岗位；那时没有岗位或没有任职时为空
+          afterPositionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            nullable: true
+            description: 触发后的岗位；没有岗位时为空
           escalationDueAt:
             type: string
             format: date-time
@@ -5355,7 +5369,7 @@ x-system-actors:
 - name: platform.identity.permission-adjustment
   actorId: b40b9e70-0e57-5079-9711-1ba819de79a6
   module: platform.identity
-  description: 监听器 HandleEmployeeCorrected：撤销误离职的更正后，给持有敏感角色的人生成敏感角色复核条目（待调整权限，#730）
+  description: 监听器 HandleEmployeeCorrected、HandleEmployeeTransferred：撤销误离职的更正或调岗后，给持有敏感角色的人生成敏感角色复核条目（待调整权限，#730）
 - name: platform.identity.separation
   actorId: 1da01607-dce4-5fbc-9490-f0ae7628d6d1
   module: platform.identity

@@ -25,7 +25,7 @@ platform.identity.authorization | 39e3e313-517f-55c7-add4-a4c531b5831a | platfor
 platform.identity.credential.purge | fca6f0b7-8fb1-594c-aa7b-c1b3eaeca283 | platform.identity | 作业：清理过期的一次性凭据
 platform.identity.emergency.admin.check | 99dc9df0-233b-5089-99e2-5e286ac8f761 | platform.identity | 作业：应急账号每日核对
 platform.identity.operations | 26758f3f-e27f-55a8-9789-834245457756 | platform.identity | 运维命令（identity-operations 档案）
-platform.identity.permission-adjustment | b40b9e70-0e57-5079-9711-1ba819de79a6 | platform.identity | 监听器 HandleEmployeeCorrected：撤销误离职的更正后，给持有敏感角色的人生成敏感角色复核条目（待调整权限，#730）
+platform.identity.permission-adjustment | b40b9e70-0e57-5079-9711-1ba819de79a6 | platform.identity | 监听器 HandleEmployeeCorrected、HandleEmployeeTransferred：撤销误离职的更正或调岗后，给持有敏感角色的人生成敏感角色复核条目（待调整权限，#730）
 platform.identity.separation | 1da01607-dce4-5fbc-9490-f0ae7628d6d1 | platform.identity | 离职处理：HandleOrgSnapshotChange、HandleEmployeeSeparated、DisableEmergencyAdminOnSeparation、RevokeBrowserIdentifiersOnSeparation
 platform.identity.session.purge | 7f82e786-478f-594a-a1ff-ad168fbc4775 | platform.identity | 作业：清理过期会话
 platform.identity.system-role-declaration | 964051ef-678b-59d2-ab64-f99acf3f520f | platform.identity | 启动对账 SystemRoleReconciliation：按系统角色声明写入或修订系统角色的 SEED 版本（ADR-0034 第 1 项第 7 条）
