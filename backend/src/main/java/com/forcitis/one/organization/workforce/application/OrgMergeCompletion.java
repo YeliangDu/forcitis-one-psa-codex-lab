@@ -8,6 +8,7 @@ import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.BlockingArrival;
+import com.forcitis.one.organization.workforce.api.HeldSeparation;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommand;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository;
@@ -56,8 +57,13 @@ class OrgMergeCompletion {
     void finish(OrgStructureCommand merge, UUID actor) {
         if (!unitIsEmpty(merge)) {
             List<BlockingArrival> arrivals = commands.arrivalsAfter(merge.targetOrgUnitId(), merge.effectiveDate());
-            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ORG_STRUCTURE_MERGE_INCOMPLETE, ErrorKind.CONFLICT, arrivals.isEmpty()
-                    ? "somebody is still in the merged unit on the merge day" : OrgStructureRules.describe(arrivals, merge.effectiveDate()));
+            List<HeldSeparation> held = commands.heldSeparationsIn(merge.targetOrgUnitId(), merge.effectiveDate());
+            StringBuilder text = new StringBuilder(arrivals.isEmpty() ? "somebody is still in the merged unit on the merge day" : OrgStructureRules.describe(arrivals, merge.effectiveDate()));
+            if (!held.isEmpty()) {
+                text.append("; their separation is held, transfer them out of the unit by hand:");
+                held.stream().limit(20).forEach(h -> text.append(" employee ").append(h.employeeId()).append(" (held command ").append(h.personnelCommandId()).append(");"));
+            }
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ORG_STRUCTURE_MERGE_INCOMPLETE, ErrorKind.CONFLICT, text.toString());
         }
         Instant now = clock.instant();
         LocalDate today = zone.dateOf(now);

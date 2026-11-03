@@ -37,6 +37,6 @@ public final class CountersignReadViews {
     }
 
     public record MergeLine(UUID employeeId, String displayName, String employeeCode, UUID orgUnitId, @Nullable String orgUnitName, @Nullable UUID previousLegalEntityId, @Nullable String previousLegalEntityName,
-                            @Nullable UUID newLegalEntityId, @Nullable String newLegalEntityName, boolean needsAttributionCountersign) {
+                            @Nullable UUID newLegalEntityId, @Nullable String newLegalEntityName, boolean needsAttributionCountersign, boolean primaryInUnit, int concurrentAssignmentCount) {
     }
 }

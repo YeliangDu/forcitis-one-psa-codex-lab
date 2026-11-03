@@ -11,6 +11,7 @@ import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.EnterOrgStructureCommand;
+import com.forcitis.one.organization.workforce.api.MergedPosts;
 import com.forcitis.one.organization.workforce.api.OrgMergePreview;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
@@ -19,6 +20,8 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PreviewOrgUnitMerge;
 import com.forcitis.one.organization.workforce.api.WithdrawOrgStructureCommand;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
+import com.forcitis.one.organization.workforce.domain.AssignmentKind;
+import com.forcitis.one.organization.workforce.domain.HeldPost;
 import com.forcitis.one.organization.workforce.domain.OrgCommandStatus;
 import com.forcitis.one.organization.workforce.domain.OrgCountersignBasis;
 import com.forcitis.one.organization.workforce.domain.OrgEffects;
@@ -35,9 +38,11 @@ import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
@@ -175,7 +180,12 @@ class OrgStructureCommandService implements OrgStructureCommands {
         if (!commands.orgUnitExists(preview.targetOrgUnitId()) || !commands.orgUnitExists(preview.mergeIntoOrgUnitId())) {
             throw notAllowed("the org unit does not exist");
         }
-        return new OrgMergePreview(commands.employedIn(preview.targetOrgUnitId(), preview.effectiveDate()), commands.arrivalsAfter(preview.targetOrgUnitId(), preview.effectiveDate()));
+        Map<EmployeeId, List<HeldPost>> held = commands.postsIn(preview.targetOrgUnitId(), preview.effectiveDate()).stream()
+                .collect(Collectors.groupingBy(HeldPost::employee, LinkedHashMap::new, Collectors.toList()));
+        List<MergedPosts> posts = held.entrySet().stream().map(one -> new MergedPosts(one.getKey(), one.getValue().stream().anyMatch(post -> post.kind() == AssignmentKind.PRIMARY),
+                (int) one.getValue().stream().filter(post -> post.kind() == AssignmentKind.CONCURRENT).count())).toList();
+        return new OrgMergePreview(List.copyOf(held.keySet()), commands.arrivalsAfter(preview.targetOrgUnitId(), preview.effectiveDate()), posts,
+                commands.heldSeparationsIn(preview.targetOrgUnitId(), preview.effectiveDate()));
     }
 
     @Override

@@ -9,6 +9,7 @@ import com.forcitis.one.kernel.SystemActors;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
@@ -58,19 +59,21 @@ public class ApplyDueCommand {
     private final LegalEntityResolutionSources legalEntities;
     private final CountersignRequests countersignRequests;
     private final AttributionCountersignRepository countersigns;
+    private final OrgMergeProgress mergeProgress;
     private final DomainEvents events;
     private final IdGenerator ids;
     private final Clock clock;
     private final BusinessZone zone;
 
     ApplyDueCommand(PersonnelCommandRepository commands, PersonnelPlans timelines, SeparationHoldCheck holdCheck,
-                    LegalEntityResolutionSources legalEntities, CountersignRequests countersignRequests, AttributionCountersignRepository countersigns, DomainEvents events, IdGenerator ids, Clock clock, BusinessZone zone) {
+                    LegalEntityResolutionSources legalEntities, CountersignRequests countersignRequests, AttributionCountersignRepository countersigns, OrgMergeProgress mergeProgress, DomainEvents events, IdGenerator ids, Clock clock, BusinessZone zone) {
         this.commands = commands;
         this.timelines = timelines;
         this.holdCheck = holdCheck;
         this.legalEntities = legalEntities;
         this.countersignRequests = countersignRequests;
         this.countersigns = countersigns;
+        this.mergeProgress = mergeProgress;
         this.events = events;
         this.ids = ids;
         this.clock = clock;
@@ -136,6 +139,11 @@ public class ApplyDueCommand {
         commands.update(command, now, loaded);
         UUID correlation = WorkContext.correlationId().orElseGet(ids::next);
         commands.insertTransition(COMMAND, command.id().value(), loaded + 1, before, command.status().name(), ActorType.SYSTEM, actor, today, now, command.id(), correlation);
+        // The hold stands whatever a merge is doing (last-administrator safety rule, one-design ruling on #1098, S1b); the merge reports the person instead of finishing.
+        for (OrgStructureCommandId merge : mergeProgress.holding(command.employeeId())) {
+            LOG.error("ALERT organization.workforce held separation {} keeps employee {} in a unit whose merge {} is in progress; HR transfers the person out before it can finish", command.id().value(),
+                    command.employeeId().value(), merge.value());
+        }
         SeparationHold hold = SeparationHold.of(new SeparationHoldId(ids.next()), command);
         commands.insertHold(hold, now);
         commands.insertTransition(HOLD, hold.id().value(), hold.version(), null, hold.status().name(), ActorType.SYSTEM, actor, today, now, command.id(), correlation);
