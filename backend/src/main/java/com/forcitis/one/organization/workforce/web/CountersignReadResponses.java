@@ -1,5 +1,9 @@
 package com.forcitis.one.organization.workforce.web;
 
+import com.forcitis.one.organization.workforce.api.CountersignCommandKind;
+import com.forcitis.one.organization.workforce.api.CountersignCommandStatus;
+import com.forcitis.one.organization.workforce.api.CountersignDecisionKind;
+import com.forcitis.one.organization.workforce.api.CountersignRequestKind;
 import com.forcitis.one.organization.workforce.application.CountersignReadViews;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -19,7 +23,7 @@ final class CountersignReadResponses {
         }
     }
 
-    record CommandResponse(@Nullable UUID orgStructureCommandId, @Nullable UUID personnelCommandId, String commandKind, LocalDate effectiveDate, String status,
+    record CommandResponse(@Nullable UUID orgStructureCommandId, @Nullable UUID personnelCommandId, CountersignCommandKind commandKind, LocalDate effectiveDate, CountersignCommandStatus status,
                            @Nullable String withdrawalReason, @Nullable PersonResponse employee, @Nullable UUID previousLegalEntityId, @Nullable String previousLegalEntityName,
                            @Nullable UUID newLegalEntityId, @Nullable String newLegalEntityName, @Nullable UUID orgUnitId, @Nullable String orgUnitName) {
         static CommandResponse of(CountersignReadViews.Command c) {
@@ -29,8 +33,8 @@ final class CountersignReadResponses {
         }
     }
 
-    record RequestResponse(UUID attributionCountersignId, String requestKind, int requestSequenceNumber, UUID legalEntityId, @Nullable String legalEntityName, Instant requestedAt,
-                           @Nullable String requestedByDisplayName, LocalDate dueOnDate, int escalationLevel, @Nullable String decisionKind, @Nullable Instant decidedAt,
+    record RequestResponse(UUID attributionCountersignId, CountersignRequestKind requestKind, int requestSequenceNumber, UUID legalEntityId, @Nullable String legalEntityName, Instant requestedAt,
+                           @Nullable String requestedByDisplayName, LocalDate dueOnDate, int escalationLevel, @Nullable CountersignDecisionKind decisionKind, @Nullable Instant decidedAt,
                            @Nullable String decidedByDisplayName, @Nullable String decisionReason) {
         static RequestResponse of(CountersignReadViews.Request r) {
             return new RequestResponse(r.attributionCountersignId(), r.requestKind(), r.requestSequenceNumber(), r.legalEntityId(), r.legalEntityName(), r.requestedAt(),

@@ -1,5 +1,9 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.organization.workforce.api.CountersignCommandKind;
+import com.forcitis.one.organization.workforce.api.CountersignCommandStatus;
+import com.forcitis.one.organization.workforce.api.CountersignDecisionKind;
+import com.forcitis.one.organization.workforce.api.CountersignRequestKind;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -16,13 +20,13 @@ public final class CountersignReadViews {
     }
 
     /** The command a request belongs to: exactly one of the two ids, the employee only for a personnel command, the org unit only for an org-structure command. */
-    public record Command(@Nullable UUID orgStructureCommandId, @Nullable UUID personnelCommandId, String commandKind, LocalDate effectiveDate, String status,
+    public record Command(@Nullable UUID orgStructureCommandId, @Nullable UUID personnelCommandId, CountersignCommandKind commandKind, LocalDate effectiveDate, CountersignCommandStatus status,
                           @Nullable String withdrawalReason, @Nullable Person employee, @Nullable UUID previousLegalEntityId, @Nullable String previousLegalEntityName,
                           @Nullable UUID newLegalEntityId, @Nullable String newLegalEntityName, @Nullable UUID orgUnitId, @Nullable String orgUnitName) {
     }
 
-    public record Request(UUID attributionCountersignId, String requestKind, int requestSequenceNumber, UUID legalEntityId, @Nullable String legalEntityName, Instant requestedAt,
-                          @Nullable String requestedByDisplayName, LocalDate dueOnDate, int escalationLevel, @Nullable String decisionKind, @Nullable Instant decidedAt,
+    public record Request(UUID attributionCountersignId, CountersignRequestKind requestKind, int requestSequenceNumber, UUID legalEntityId, @Nullable String legalEntityName, Instant requestedAt,
+                          @Nullable String requestedByDisplayName, LocalDate dueOnDate, int escalationLevel, @Nullable CountersignDecisionKind decisionKind, @Nullable Instant decidedAt,
                           @Nullable String decidedByDisplayName, @Nullable String decisionReason) {
     }
 

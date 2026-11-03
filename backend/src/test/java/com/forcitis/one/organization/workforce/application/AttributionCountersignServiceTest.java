@@ -28,7 +28,7 @@ import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepo
 import com.forcitis.one.organization.workforce.domain.ChangeSource;
 import com.forcitis.one.organization.workforce.domain.CommandEffects;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
-import com.forcitis.one.organization.workforce.domain.CountersignRequestKind;
+import com.forcitis.one.organization.workforce.api.CountersignRequestKind;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolutionSources;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
