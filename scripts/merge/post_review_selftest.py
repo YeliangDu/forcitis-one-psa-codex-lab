@@ -366,6 +366,10 @@ def case_issue_body_refused():
         assert "新增的第八节" in msg, msg   # 模板多一节，旧正文就缺它：表是现读的
     with mock.patch.object(issue_gate, "TEMPLATE", "/nonexistent/card.md"):
         assert "失败关闭" in refused(good)
+    for tpl in ("<!-- 选一：ops 运维。 -->\n没有小节\n", "## 类型\n## 目标\n没有类型表\n"):   # 解析不出小节 / 类型表：失败关闭，不能退成放行
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(issue_gate, "TEMPLATE", os.path.join(d, "card.md")):
+            open(issue_gate.TEMPLATE, "w", encoding="utf-8").write(tpl)
+            assert "失败关闭" in refused(Stub(issue_body="## 类型\nops\n")), tpl
 
 
 def case_issue_pending_or_hung_refused():
