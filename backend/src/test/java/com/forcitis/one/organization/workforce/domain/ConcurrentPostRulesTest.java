@@ -96,13 +96,13 @@ class ConcurrentPostRulesTest {
         PersonnelCommand end = endOfPost(DAY, CommandStatus.PENDING);
         for (LocalDate separationDay : new LocalDate[] {DAY, DAY.plusDays(3)}) {
             PersonnelCommand separation = separation(separationDay, CommandStatus.PENDING);
-            assertThatThrownBy(() -> PersonnelCommandRules.requireWithdrawable(end, history(end, separation))).isInstanceOf(DomainException.class)
+            assertThatThrownBy(() -> PersonnelCommandRules.requireNoSeparationAtOrAfter(end, history(end, separation))).isInstanceOf(DomainException.class)
                     .hasMessageContaining("withdraw the separation first");
         }
         PersonnelCommand earlier = separation(DAY.minusDays(1), CommandStatus.EFFECTIVE);
-        assertThatCode(() -> PersonnelCommandRules.requireWithdrawable(end, history(end, earlier))).doesNotThrowAnyException();
+        assertThatCode(() -> PersonnelCommandRules.requireNoSeparationAtOrAfter(end, history(end, earlier))).doesNotThrowAnyException();
         PersonnelCommand withdrawn = separation(DAY, CommandStatus.WITHDRAWN);
-        assertThatCode(() -> PersonnelCommandRules.requireWithdrawable(end, history(end, withdrawn))).doesNotThrowAnyException();
+        assertThatCode(() -> PersonnelCommandRules.requireNoSeparationAtOrAfter(end, history(end, withdrawn))).doesNotThrowAnyException();
     }
 
     private static EnterPersonnelCommand request(PersonnelCommandKind kind, AssignmentId post, LegalEntityId entity, OrgUnitId unit) {

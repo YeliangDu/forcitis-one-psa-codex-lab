@@ -54,7 +54,7 @@ public final class PersonnelCommandRules {
     }
 
     /** The end of a concurrent post is taken back only while no separation written on or after its day would have ended the post anyway (#711). */
-    public static void requireWithdrawable(PersonnelCommand command, PersonnelHistory history) {
+    public static void requireNoSeparationAtOrAfter(PersonnelCommand command, PersonnelHistory history) {
         if (command.kind() == PersonnelCommandKind.END_CONCURRENT && history.commands().stream().anyMatch(o -> o.kind() == PersonnelCommandKind.SEPARATE
                 && writesVersions(o) && !o.effectiveDate().isBefore(command.effectiveDate()))) {
             throw refused("the employee separates on or after " + command.effectiveDate() + "; withdraw the separation first");

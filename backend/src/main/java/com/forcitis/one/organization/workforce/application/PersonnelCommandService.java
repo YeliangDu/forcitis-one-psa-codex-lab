@@ -216,7 +216,7 @@ class PersonnelCommandService implements PersonnelCommands {
         }
         PersonnelHistory history = commands.load(command.employeeId());
         if (before == CommandStatus.PENDING) {
-            PersonnelCommandRules.requireWithdrawable(command, history);
+            PersonnelCommandRules.requireNoSeparationAtOrAfter(command, history);
             Map<VersionTable, VersionPlan> plans = timelines.forWithdrawal(command, history);
             PersonnelCommandRules.requirePositionOnCommandRows(plans.get(VersionTable.ASSIGNMENT));
             for (Map.Entry<VersionTable, VersionPlan> plan : plans.entrySet()) {
