@@ -345,9 +345,9 @@ def case_issue_scheduled_passes():
 def case_issue_body_refused():
     """卡正文缺小节、小节为空（含只剩注释）、类型不是剧本类型一律拒；补好后放行；小节表现读模板，不另存（#1158）。"""
     names = list(issue_gate.sections(open(issue_gate.TEMPLATE, encoding="utf-8").read()))
-    assert len(names) == 7 and "类型" in names, names
+    assert {"类型", "目标", "完成标准", "文件范围", "依据", "消费方", "不得做"} <= set(names), names   # 模板可以加节（#1165 的前置），不能少这七节
     kinds = issue_gate.card_kinds(open(issue_gate.TEMPLATE, encoding="utf-8").read())
-    assert len(kinds) == 7, kinds   # 与剧本文件名一致由 check_playbooks 守
+    assert "ops" in kinds, kinds   # 与剧本文件名一致由 check_playbooks 守
     for name in names:
         for over in ({name: None}, {name: ""}, {name: "   \n"}, {name: "<!-- 只有注释 -->"}):
             msg = refused(Stub(issue_body=card_body(**over)))
