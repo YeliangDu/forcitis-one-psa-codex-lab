@@ -28,6 +28,9 @@ categories:
   - platform.identity.operations.account.role.granted
   - platform.identity.operations.account.role.revoked
   - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.permission-adjustment.viewed
   - platform.identity.privileged.request
   - platform.identity.role-version.closed
   - platform.identity.role-version.opened
