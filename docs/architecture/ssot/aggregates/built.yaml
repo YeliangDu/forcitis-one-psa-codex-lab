@@ -497,6 +497,7 @@ aggregates:
   - MarkPermissionAdjustmentAdjusted
   - OpenAssignmentReviews
   - PermissionAdjustmentAccess
+  - PermissionAdjustmentEscalationNotice
   - PermissionAdjustmentTransitions
   - PermissionAdjustmentView
   - UpholdPermissionAdjustment
@@ -548,6 +549,7 @@ aggregates:
   - ForceUserLogout
   - GrantRoleByOperations
   - OrgUnitScopes
+  - PermissionAdjustmentEscalationNotice
   - ReplaceAccountRoles
   - RevokeRoleByOperations
   - RoleScopeRefusal
