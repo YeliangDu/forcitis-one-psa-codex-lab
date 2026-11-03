@@ -38,7 +38,36 @@ test('registered terms, proposed terms and allowed plain words pass', () => {
   assert.deepEqual(kinds('工时单'), []);
   assert.deepEqual(kinds('待办'), []);
   assert.deepEqual(kinds('老系统'), []);
-  for (const proposed of ['新系统', '组织浏览', '当前节点', '触发方式', '被中止']) assert.deepEqual(kinds(proposed), [], proposed);
+  for (const proposed of ['新系统', '组织浏览', '当前节点']) assert.deepEqual(kinds(proposed), [], proposed);
+  // a proposed term of a throwaway proposed directory passes too, so this case does not depend on which real terms are still proposed
+  const proposedDirectory = mkdtempSync(join(tmpdir(), 'copy-glossary-proposed-'));
+  writeFileSync(join(proposedDirectory, 'fixture.yaml'), `terms:
+- id: fixture_only_term
+  zh: 夹具专用词
+  en: FixtureOnlyTerm
+  snake: fixture_only_term
+  kind: value_object
+  bc: platform.integration
+  scope: acl
+  acl_class: "过渡期"
+  definition: 只给本测试用的拟议术语
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: test fixture
+`);
+  const withFixture = loadVocabulary({
+    officialTerms: join(repository, 'docs', 'glossary', 'terms.yaml'),
+    backendTerms: join(repository, 'backend', 'glossary', 'terms.yaml'),
+    proposedDirectory,
+    allowList: join(frontend, 'scripts', 'copy-allow-list.yaml'),
+    contexts: join(repository, 'docs', 'glossary', 'bcs.yaml'),
+  });
+  assert.deepEqual(withFixture.problems, []);
+  assert.deepEqual(problemsOfText('夹具专用词', withFixture), []);
+  assert.notDeepEqual(problemsOfText('夹具专用词', glossary), [], 'the fixture term is not in the real glossary');
   for (const plain of ['确定', '取消', '加载中']) assert.deepEqual(kinds(plain), [], plain);
 });
 

@@ -46,7 +46,7 @@ public final class P5Names {
     public static final String LEGAL_ENTITY_ATTRIBUTION = "LEGAL_ENTITY_ATTRIBUTION";
     public static final List<String> KINDS_WITH_OBJECT = List.of("USER_ACCOUNT", "EMPLOYEE", "ORG_UNIT", "EMERGENCY_ADMIN", "ROLE", "APPROVAL_TASK",
             "APPROVAL_REQUEST", "SYNC_RUN", "LEGAL_ENTITY", "LEGAL_ENTITY_ATTRIBUTION", "TIMESHEET", "WORK_CALENDAR_YEAR", "NUMBERING_RULE",
-            "SOURCE_REFERENCE", "SOURCE_REFERENCE_REFUSAL", "AUTHORIZATION_REQUEST", "STORED_FILE");
+            "SOURCE_REFERENCE", "SOURCE_REFERENCE_REFUSAL", "AUTHORIZATION_REQUEST", "PERMISSION_ADJUSTMENT", "STORED_FILE", "ORG_STRUCTURE_COMMAND");
     public static final List<String> KINDS_WITHOUT_OBJECT = List.of("REQUEST", "OPERATION", "LOGIN_ATTEMPT");
 
     /** The new and the retired names of the two renamed approval events (one-glossary-b2). */
@@ -66,11 +66,12 @@ public final class P5Names {
             "platform_integration.event_publication", "platform_integration.event_publication_archive", "platform_scheduling.scheduler_locks");
 
     /** schema, table, and the columns of the key the table had before RULING-P5-D12 (now a named unique constraint). */
-    public static final List<String[]> REKEYED_TABLES = List.of(
+    public static final List<String[]> REKEYED_TABLES = List.<String[]>of(
             // role_permissions is retired by ADR-0034-IMPL PR-2a (card 7.2 "删除整张 role_permissions"); role_versions takes its place:
             // single uuid key role_version_id (card 7.1, pk_role_versions) and the named unique constraint on (role_id, version_number).
-            new String[] {"platform_identity", "role_versions", "role_id,version_number"},
-            new String[] {"organization_workforce", "sync_run_held_separations", "sync_run_id,employee_id"});
+            new String[] {"platform_identity", "role_versions", "role_id,version_number"});
+    // sync_run_held_separations, also rekeyed by RULING-P5-D12, was dropped with the old sync by #934 (ADR-0068 section 2.5 D2): the ruling
+    // covers "the old tables that are still there".
 
     /** RULING-P5-1 (D-13): the ids the OpenAPI guard still lets through as "other", by full name. */
     public static final Set<String> OTHER_ID_NAMES = Set.of("InboxItemResponse.taskId", "SyncDiffResponse.subjectKey");

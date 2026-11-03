@@ -27,7 +27,7 @@ GENERIC_LAST = ("data", "info", "manager", "handler", "helper", "util", "utils",
 PARTICLES = ("off", "out", "up", "down", "in", "over", "back", "away", "on")
 PREPOSITIONS = ("for", "to", "by", "from", "in", "on", "at", "with", "of", "into", "after", "before")
 IRREGULAR_PAST = ("sent", "built", "held", "made", "paid", "set", "put", "read", "lost", "kept", "begun", "taken", "given", "written", "shown", "run", "bound", "found", "left", "met", "spent", "split", "cut", "hit", "closed", "reset", "frozen", "chosen", "broken", "undone", "overridden", "withdrawn", "drawn", "known", "seen", "gone", "become", "come",
-                  "won", "done", "sold", "bought", "withheld", "repaid", "prepaid", "overpaid", "underpaid", "told", "brought", "shut", "let", "rebuilt", "overdrawn")
+                  "won", "done", "sold", "bought", "withheld", "repaid", "prepaid", "overpaid", "underpaid", "told", "brought", "shut", "let", "rebuilt", "overdrawn", "upheld")
 # 系动词过去式后接一个补语，如 BecameOverdue（任务已超时）：事件名同样是「聚合名加过去式业务动词」
 LINKING_PAST = ("became",)
 NOT_PARTICIPLES = ("need", "speed", "feed", "seed", "embed", "proceed", "exceed", "succeed", "bed", "red", "shed")

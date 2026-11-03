@@ -16,7 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
 
-/** The SELECTs and row mappers of the org snapshot: the repository loads the snapshot rows for a sync, the queries browse as of a business day. */
+/** The SELECTs and row mappers of the org snapshot: the repository loads the snapshot rows for the reconciliation, the queries browse as of a business day. */
 final class OrgSnapshotRows {
     private OrgSnapshotRows() {
     }
@@ -27,7 +27,7 @@ final class OrgSnapshotRows {
               from organization_workforce.org_units
             """;
 
-    /** The snapshot rows as the sync wrote them; for the sync's own comparison only, readers use SELECT_STAFF_ON_DAY. */
+    /** The snapshot rows as stored; for the reconciliation's own comparison only, readers use SELECT_STAFF_ON_DAY. */
     static final String SELECT_STAFF = """
             select e.id, e.employee_code, e.display_name, e.login_name, e.email, e.gender, e.wecom_user_id,
                    e.employment_status, e.is_fee_earner,
@@ -53,7 +53,7 @@ final class OrgSnapshotRows {
                 cross join lateral (select exists (select 1 from organization_workforce.employee_versions x where x.employee_id = e.id) as versioned) v
                 left join organization_workforce.employee_versions ev on v.versioned and ev.employee_id = e.id and ev.superseded_at is null
                      and ev.effective_from_date <= :day and (ev.effective_to_date is null or :day < ev.effective_to_date)
-                left join organization_workforce.assignment_versions av on v.versioned and av.employee_id = e.id and av.superseded_at is null
+                left join organization_workforce.assignment_versions av on v.versioned and av.employee_id = e.id and av.assignment_kind = 'PRIMARY' and av.superseded_at is null
                      and av.effective_from_date <= :day and (av.effective_to_date is null or :day < av.effective_to_date)
                 left join organization_workforce.assignments a on not v.versioned and a.employee_id = e.id
             ) s

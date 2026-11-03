@@ -4,6 +4,7 @@ import static com.forcitis.one.acceptance.organization.workforce.PersonnelComman
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.acceptance.AssignmentRoots;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
@@ -53,7 +54,7 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
 
     protected UUID unit;
     protected UUID legalEntity;
-    private SignedIn administrator;
+    protected SignedIn administrator;
 
     /** A person with an account: the employee behind it and the login session. */
     protected record Staff(UUID employeeId, SignedIn session) {
@@ -74,16 +75,28 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
         grantByOperations(admin, "org_data_admin");
         administrator = signIn(admin);
         legalEntity = createLegalEntity(administrator, newLegalEntityCode("PC"), "Synthetic personnel command entity");
-        hr = staff(PERSONNEL_SPECIALIST_ROLE);
-        actIn(hr);
+        hr = buildPersonnelSpecialist();
+        if (hr != null) {
+            actIn(hr);
+        }
     }
 
-    protected PersonnelCommandsProbe commands() {
+    /** The 人事专员 of the world; the org-structure tests (#906) tolerate the role not being seeded yet, so that their red run shows their own reasons. */
+    protected Staff buildPersonnelSpecialist() throws Exception {
+        return staff(PERSONNEL_SPECIALIST_ROLE);
+    }
+
+    /** Sets the thread's security context to the acting caller again (see {@link #actIn}); the org-structure command tests (#906) share it. */
+    protected void restoreActing() {
         if (acting == null) {
             SecurityContextHolder.clearContext();
         } else {
             SecurityContextHolder.setContext(acting);
         }
+    }
+
+    protected PersonnelCommandsProbe commands() {
+        restoreActing();
         return PersonnelCommandsProbe.of(context, AccountsAcceptanceSupport::employeeIdOf);
     }
 
@@ -113,9 +126,18 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
     }
 
     private UUID employed(String phase, boolean withPosition) throws Exception {
-        UUID position = withPosition ? newPosition() : null;
+        return employedIn(unit, phase, withPosition);
+    }
+
+    /** As {@link #employed}, in the given unit (the org-structure command tests of #906 need people in several units). */
+    protected UUID employedIn(UUID orgUnit, String phase, boolean withPosition) throws Exception {
+        return employedAs(orgUnit, phase, withPosition ? newPosition() : null);
+    }
+
+    /** As {@link #employedIn}, holding the given position (null: a legacy assignment without one). */
+    protected UUID employedAs(UUID orgUnit, String phase, UUID position) throws Exception {
         UUID id = newEmployeeId();
-        employee(id, unit, null);
+        employee(id, orgUnit, null);
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, """
                     insert into employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
@@ -128,11 +150,13 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
             // personnel command api, which is the point of the red run, and not on the seed. With #880 the row is always written.
             if (!query(workforce, "select 1 as present from information_schema.columns where table_schema = 'organization_workforce' and table_name = ? and column_name = ?",
                     ASSIGNMENT_VERSIONS, "change_channel_kind").isEmpty()) {
-                update(workforce, """
+                // #711: the version hangs on the employee's PRIMARY root once employee_assignments exists (AssignmentRoots).
+                UUID root = AssignmentRoots.primaryOf(workforce, stored(id));
+                update(workforce, AssignmentRoots.withRoot("""
                     insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
-                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""",
-                    Uuids.timeOrdered(NOW), stored(id), SINCE, stored(unit), position, OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC),
-                    OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC));
+                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root),
+                    AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), stored(id), SINCE, stored(orgUnit), position,
+                    OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC), OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC)));
             }
         }
         attributeEmployee(administrator, id, legalEntity);

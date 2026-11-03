@@ -1,7 +1,7 @@
 # 由 panorama/scan_aggregates.py 生成，勿手改
 meta:
-  count: 17
-  code_only: 6
+  count: 19
+  code_only: 8
   registry_only: 0
   both: 11
   sources:
@@ -51,6 +51,44 @@ aggregates:
   events:
   - organization.attendance.WorkCalendarLockedDaysChanged
   - organization.attendance.WorkCalendarYearMaintained
+- id: organization.workforce/EmployeeLegalEntityChange
+  bc: organization.workforce
+  root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/EmployeeLegalEntityChange.java
+  source:
+  - code
+  tables: []
+  commands:
+  - OrgCountersigns
+  events:
+  - organization.workforce.EmployeeLegalEntityChanged
+  events_in_module:
+  - organization.workforce.EmployeeCorrected
+  - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
+  - organization.workforce.EmployeeRegistered
+  - organization.workforce.EmployeeRegularized
+  - organization.workforce.EmployeeReinstated
+  - organization.workforce.EmployeeSeparated
+  - organization.workforce.EmployeeTransferred
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
+  - organization.workforce.SeparationHeld
+  - organization.workforce.SeparationHoldReleased
 - id: organization.workforce/LegalEntity
   bc: organization.workforce
   root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/LegalEntity.java
@@ -73,6 +111,7 @@ aggregates:
   events_in_module:
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
   - organization.workforce.EmployeeRegistered
   - organization.workforce.EmployeeRegularized
   - organization.workforce.EmployeeReinstated
@@ -86,14 +125,17 @@ aggregates:
   - organization.workforce.LegalEntityDeactivated
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
-  - organization.workforce.OrgSnapshotChanged
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
   - organization.workforce.SeparationHeld
   - organization.workforce.SeparationHoldReleased
-  - organization.workforce.SyncRunFailed
-  - organization.workforce.SyncRunHeld
-  - organization.workforce.SyncRunHoldReleased
-  - organization.workforce.SyncRunReleased
-  - organization.workforce.SyncRunSucceeded
 - id: organization.workforce/LegalEntityAttribution
   bc: organization.workforce
   root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/LegalEntityAttribution.java
@@ -117,6 +159,7 @@ aggregates:
   events_in_module:
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
   - organization.workforce.EmployeeRegistered
   - organization.workforce.EmployeeRegularized
   - organization.workforce.EmployeeReinstated
@@ -130,14 +173,64 @@ aggregates:
   - organization.workforce.LegalEntityDeactivated
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
-  - organization.workforce.OrgSnapshotChanged
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
   - organization.workforce.SeparationHeld
   - organization.workforce.SeparationHoldReleased
-  - organization.workforce.SyncRunFailed
-  - organization.workforce.SyncRunHeld
-  - organization.workforce.SyncRunHoldReleased
-  - organization.workforce.SyncRunReleased
-  - organization.workforce.SyncRunSucceeded
+- id: organization.workforce/OrgStructureCommand
+  bc: organization.workforce
+  root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/OrgStructureCommand.java
+  source:
+  - code
+  tables: []
+  commands:
+  - CountersignRequests
+  - OrgCommandWrites
+  - OrgCountersignBases
+  - OrgCountersignFreeze
+  - OrgCountersigns
+  - OrgMergeCompletion
+  - OrgMergeProgress
+  - OrgMergeSteps
+  - OrgPlans
+  - OrgStructureCommandService
+  - OrgStructureRules
+  events: []
+  events_in_module:
+  - organization.workforce.EmployeeCorrected
+  - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
+  - organization.workforce.EmployeeRegistered
+  - organization.workforce.EmployeeRegularized
+  - organization.workforce.EmployeeReinstated
+  - organization.workforce.EmployeeSeparated
+  - organization.workforce.EmployeeTransferred
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
+  - organization.workforce.SeparationHeld
+  - organization.workforce.SeparationHoldReleased
 - id: organization.workforce/PersonnelCommand
   bc: organization.workforce
   root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/PersonnelCommand.java
@@ -147,7 +240,12 @@ aggregates:
   commands:
   - AdministratorHoldCheck
   - ApplyDueCommand
+  - AttributionCountersignService
+  - CountersignBases
+  - CountersignRequests
+  - EffectPublisher
   - HeldSeparationRelease
+  - OrgCountersignFreeze
   - PersonnelCommandService
   - PersonnelPlans
   - ReleaseSeparationHoldByOperations
@@ -158,6 +256,7 @@ aggregates:
   events_in_module:
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
   - organization.workforce.EmployeeRegistered
   - organization.workforce.EmployeeRegularized
   - organization.workforce.EmployeeReinstated
@@ -171,14 +270,17 @@ aggregates:
   - organization.workforce.LegalEntityDeactivated
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
-  - organization.workforce.OrgSnapshotChanged
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
   - organization.workforce.SeparationHeld
   - organization.workforce.SeparationHoldReleased
-  - organization.workforce.SyncRunFailed
-  - organization.workforce.SyncRunHeld
-  - organization.workforce.SyncRunHoldReleased
-  - organization.workforce.SyncRunReleased
-  - organization.workforce.SyncRunSucceeded
 - id: organization.workforce/RegisteredEmployee
   bc: organization.workforce
   root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/RegisteredEmployee.java
@@ -192,6 +294,7 @@ aggregates:
   events_in_module:
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
   - organization.workforce.EmployeeRegistered
   - organization.workforce.EmployeeRegularized
   - organization.workforce.EmployeeReinstated
@@ -205,62 +308,17 @@ aggregates:
   - organization.workforce.LegalEntityDeactivated
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
-  - organization.workforce.OrgSnapshotChanged
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
   - organization.workforce.SeparationHeld
   - organization.workforce.SeparationHoldReleased
-  - organization.workforce.SyncRunFailed
-  - organization.workforce.SyncRunHeld
-  - organization.workforce.SyncRunHoldReleased
-  - organization.workforce.SyncRunReleased
-  - organization.workforce.SyncRunSucceeded
-- id: organization.workforce/SyncRun
-  bc: organization.workforce
-  root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/SyncRun.java
-  source:
-  - code
-  - registry
-  tables:
-  - organization_workforce.sync_diffs
-  - organization_workforce.sync_run_held_separations
-  - organization_workforce.sync_runs
-  commands:
-  - ApplySourceSnapshot
-  - BeginSyncRun
-  - FailSyncRun
-  - RecordSyncRunRelease
-  - ReleaseSyncRun
-  - ReleaseSyncRunHolds
-  events:
-  - organization.workforce.OrgSnapshotChanged
-  - organization.workforce.SyncRunFailed
-  - organization.workforce.SyncRunHeld
-  - organization.workforce.SyncRunHoldReleased
-  - organization.workforce.SyncRunReleased
-  - organization.workforce.SyncRunSucceeded
-  events_in_module:
-  - organization.workforce.EmployeeCorrected
-  - organization.workforce.EmployeeHired
-  - organization.workforce.EmployeeRegistered
-  - organization.workforce.EmployeeRegularized
-  - organization.workforce.EmployeeReinstated
-  - organization.workforce.EmployeeSeparated
-  - organization.workforce.EmployeeTransferred
-  - organization.workforce.LegalEntityActivated
-  - organization.workforce.LegalEntityAttributed
-  - organization.workforce.LegalEntityAttributionCorrected
-  - organization.workforce.LegalEntityAttributionEnded
-  - organization.workforce.LegalEntityCodeCorrected
-  - organization.workforce.LegalEntityDeactivated
-  - organization.workforce.LegalEntityRegistered
-  - organization.workforce.LegalEntityRenamed
-  - organization.workforce.OrgSnapshotChanged
-  - organization.workforce.SeparationHeld
-  - organization.workforce.SeparationHoldReleased
-  - organization.workforce.SyncRunFailed
-  - organization.workforce.SyncRunHeld
-  - organization.workforce.SyncRunHoldReleased
-  - organization.workforce.SyncRunReleased
-  - organization.workforce.SyncRunSucceeded
 - id: platform.approval/ApprovalRequest
   bc: platform.approval
   root_class: backend/src/main/java/com/forcitis/one/platform/approval/domain/ApprovalRequest.java
@@ -338,12 +396,15 @@ aggregates:
   - ApplyConfirmedAuthorization
   - AuthorizationGate
   - AuthorizationRequestView
+  - AuthorizationVoiding
   - ConfirmAuthorizationRequest
   - RejectAuthorizationRequest
+  - ReplaceAccountRoles
   events:
   - platform.identity.AuthorizationConfirmed
   - platform.identity.AuthorizationOpened
   - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
   events_in_module:
   - platform.identity.AccountDisabled
   - platform.identity.AccountEnabled
@@ -353,10 +414,16 @@ aggregates:
   - platform.identity.AuthorizationConfirmed
   - platform.identity.AuthorizationOpened
   - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
   - platform.identity.EmergencyAdminCredentialsReset
   - platform.identity.EmergencyAdminDisabled
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
   - platform.identity.RoleCreated
   - platform.identity.RoleDeleted
   - platform.identity.RoleDisabled
@@ -394,10 +461,63 @@ aggregates:
   - platform.identity.AuthorizationConfirmed
   - platform.identity.AuthorizationOpened
   - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
   - platform.identity.EmergencyAdminCredentialsReset
   - platform.identity.EmergencyAdminDisabled
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
+  - platform.identity.RoleCreated
+  - platform.identity.RoleDeleted
+  - platform.identity.RoleDisabled
+  - platform.identity.RoleEnabled
+  - platform.identity.RoleRevised
+- id: platform.identity/PermissionAdjustment
+  bc: platform.identity
+  root_class: backend/src/main/java/com/forcitis/one/platform/identity/domain/PermissionAdjustment.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_identity.permission_adjustments
+  commands:
+  - GetPermissionAdjustment
+  - ListPermissionAdjustments
+  - MarkPermissionAdjustmentAdjusted
+  - OpenAssignmentReviews
+  - PermissionAdjustmentAccess
+  - PermissionAdjustmentTransitions
+  - PermissionAdjustmentView
+  - UpholdPermissionAdjustment
+  events:
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
+  events_in_module:
+  - platform.identity.AccountDisabled
+  - platform.identity.AccountEnabled
+  - platform.identity.AccountOpened
+  - platform.identity.AccountRolesReplaced
+  - platform.identity.AccountSeparated
+  - platform.identity.AuthorizationConfirmed
+  - platform.identity.AuthorizationOpened
+  - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
+  - platform.identity.EmergencyAdminCredentialsReset
+  - platform.identity.EmergencyAdminDisabled
+  - platform.identity.EmergencyAdminEnabled
+  - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
   - platform.identity.RoleCreated
   - platform.identity.RoleDeleted
   - platform.identity.RoleDisabled
@@ -420,6 +540,7 @@ aggregates:
   - DeleteRole
   - ForceUserLogout
   - GrantRoleByOperations
+  - OrgUnitScopes
   - ReplaceAccountRoles
   - RevokeRoleByOperations
   - RoleScopeRefusal
@@ -440,10 +561,16 @@ aggregates:
   - platform.identity.AuthorizationConfirmed
   - platform.identity.AuthorizationOpened
   - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
   - platform.identity.EmergencyAdminCredentialsReset
   - platform.identity.EmergencyAdminDisabled
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
   - platform.identity.RoleCreated
   - platform.identity.RoleDeleted
   - platform.identity.RoleDisabled
@@ -457,6 +584,7 @@ aggregates:
   - registry
   tables:
   - platform_identity.account_role_grants
+  - platform_identity.handled_personnel_commands
   - platform_identity.user_accounts
   commands:
   - AccountGrants
@@ -487,10 +615,16 @@ aggregates:
   - platform.identity.AuthorizationConfirmed
   - platform.identity.AuthorizationOpened
   - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
   - platform.identity.EmergencyAdminCredentialsReset
   - platform.identity.EmergencyAdminDisabled
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
   - platform.identity.RoleCreated
   - platform.identity.RoleDeleted
   - platform.identity.RoleDisabled

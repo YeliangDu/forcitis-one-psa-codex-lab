@@ -6,6 +6,7 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
@@ -18,12 +19,46 @@ public final class PersonnelCommandRules {
     private PersonnelCommandRules() {
     }
 
+    /** The command may be the one stored already (an awaiting command judged again at its last countersign): it is not its own other. */
     public static void check(PersonnelCommand command, PersonnelHistory history) {
-        List<PersonnelCommand> others = history.commands();
+        List<PersonnelCommand> others = history.commands().stream().filter(o -> !o.id().equals(command.id())).toList();
         requireDayFree(command, others);
         requireSeparationOrder(command, others);
         requireStateOnTheDay(command, history.currentEmployeeRows());
+        requireLiveConcurrentPost(command, history);
         requireCorrectionOpenEnded(command, history);
+        requirePostsEndWithTheSeparation(command, others);
+    }
+
+    /**
+     * A separation ends every post at its day and its withdrawal reopens what ends on that day, so a post is neither started past a written separation nor ended on
+     * the day of one (#711): the end of the post would come back with the separation's withdrawal, and the start would stay open after it.
+     */
+    private static void requirePostsEndWithTheSeparation(PersonnelCommand command, List<PersonnelCommand> others) {
+        if (command.kind() == PersonnelCommandKind.START_CONCURRENT && others.stream().anyMatch(o -> o.kind() == PersonnelCommandKind.SEPARATE && writesVersions(o)
+                && o.effectiveDate().isAfter(command.effectiveDate()))) {
+            throw refused("the employee separates after " + command.effectiveDate() + "; a concurrent post is started after the separation is withdrawn, or not at all");
+        }
+        PersonnelCommandKind clash = switch (command.kind()) {
+            case SEPARATE -> PersonnelCommandKind.END_CONCURRENT;
+            case END_CONCURRENT -> PersonnelCommandKind.SEPARATE;
+            default -> null;
+        };
+        if (clash != null && others.stream().anyMatch(o -> o.kind() == clash && o.status() != CommandStatus.WITHDRAWN && o.effectiveDate().equals(command.effectiveDate()))) {
+            throw refused("a separation and the end of a concurrent post may not share the day " + command.effectiveDate());
+        }
+    }
+
+    private static boolean writesVersions(PersonnelCommand command) {
+        return command.status() == CommandStatus.PENDING || command.status() == CommandStatus.EFFECTIVE;
+    }
+
+    /** The end of a concurrent post is taken back only while no separation written on or after its day would have ended the post anyway (#711). */
+    public static void requireNoSeparationAtOrAfter(PersonnelCommand command, PersonnelHistory history) {
+        if (command.kind() == PersonnelCommandKind.END_CONCURRENT && history.commands().stream().anyMatch(o -> o.kind() == PersonnelCommandKind.SEPARATE
+                && writesVersions(o) && !o.effectiveDate().isBefore(command.effectiveDate()))) {
+            throw refused("the employee separates on or after " + command.effectiveDate() + "; withdraw the separation first");
+        }
     }
 
     /**
@@ -34,7 +69,9 @@ public final class PersonnelCommandRules {
         if (command.kind() != PersonnelCommandKind.CORRECTION) {
             return;
         }
-        requireConstant(CommandEffects.assignmentValues(command).keySet(), history.currentAssignmentRows(), command.effectiveDate(), row -> true);
+        List<VersionRow> post = command.targetAssignmentId() == null ? List.of() : history.currentAssignmentRows(command.targetAssignmentId());
+        requireConstant(CommandEffects.assignmentValues(command).keySet(), post, command.effectiveDate(), row -> true);
+        requireConstant(CommandEffects.legalEntityValues(command).keySet(), history.currentLegalEntityRows(), command.effectiveDate(), row -> true);
         requireConstant(CommandEffects.employeeValues(command).keySet(), history.currentEmployeeRows(), command.effectiveDate(), CommandEffects.employeeFilter(command));
     }
 
@@ -47,10 +84,42 @@ public final class PersonnelCommandRules {
         }
     }
 
+    /** One open command a day for the person and the primary post together, one for each concurrent post; a start of a concurrent post is not counted (#711). */
     private static void requireDayFree(PersonnelCommand command, List<PersonnelCommand> others) {
-        if (command.kind() != PersonnelCommandKind.CORRECTION
-                && others.stream().anyMatch(o -> o.status().isOpen() && o.effectiveDate().equals(command.effectiveDate()))) {
+        Object bucket = dayBucket(command);
+        if (command.kind() != PersonnelCommandKind.CORRECTION && bucket != null
+                && others.stream().anyMatch(o -> o.status().isOpen() && o.effectiveDate().equals(command.effectiveDate()) && bucket.equals(dayBucket(o)))) {
             throw refused("the employee already has an open command for " + command.effectiveDate());
+        }
+    }
+
+    private static final Object PERSON = new Object();
+
+    private static @Nullable Object dayBucket(PersonnelCommand command) {
+        if (command.kind() == PersonnelCommandKind.START_CONCURRENT) {
+            return null;
+        }
+        return command.targetAssignmentKind() == AssignmentKind.CONCURRENT ? command.targetAssignmentId() : PERSON;
+    }
+
+    /** A command on a concurrent post needs a version of that post in force on its day: a post that has ended, or never started, takes no command (#711). */
+    private static void requireLiveConcurrentPost(PersonnelCommand command, PersonnelHistory history) {
+        if (command.targetAssignmentKind() != AssignmentKind.CONCURRENT) {
+            return;
+        }
+        if (history.currentAssignmentRows(Objects.requireNonNull(command.targetAssignmentId())).stream().noneMatch(row -> row.covers(command.effectiveDate()))) {
+            throw refused("the concurrent post has no version on " + command.effectiveDate());
+        }
+    }
+
+    /**
+     * While an employee has a command awaiting countersign, no command dated on or after it is entered (user answer Q4 of 2026-10-30): its versions are not written,
+     * so a later command would be judged without it and could switch the cost legal entity back when the awaiting one is written. Earlier ones are judged at their own approval.
+     * Checked at entry only; the approval of the awaiting command re-judges the basis instead.
+     */
+    public static void requireNoAwaitingOnOrBefore(PersonnelCommand command, PersonnelHistory history) {
+        if (history.commands().stream().anyMatch(o -> o.status() == CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN && !o.effectiveDate().isAfter(command.effectiveDate()))) {
+            throw refused("the employee has a command awaiting the legal entity countersign on or before " + command.effectiveDate() + "; wait for it or withdraw it first");
         }
     }
 
@@ -69,8 +138,8 @@ public final class PersonnelCommandRules {
         if (uncovered.isPresent() && command.effectiveDate().isAfter(uncovered.get().effectiveDate())) {
             throw refused("the employee separates on " + uncovered.get().effectiveDate() + "; only a reinstatement can be dated later");
         }
-        if (command.kind() == PersonnelCommandKind.SEPARATE && others.stream().anyMatch(o -> o.effectiveDate().isAfter(command.effectiveDate()))) {
-            throw refused("a separation dated before another command of the employee is refused; correct those commands first");
+        if (command.kind() == PersonnelCommandKind.SEPARATE && others.stream().anyMatch(o -> o.status() != CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN && o.effectiveDate().isAfter(command.effectiveDate()))) {
+            throw refused("a separation dated before another command of the employee is refused; correct those commands first (a command still awaiting countersign has written nothing; its approval judges it again)");
         }
     }
 

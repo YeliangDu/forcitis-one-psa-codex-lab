@@ -27,8 +27,7 @@ import org.springframework.test.context.DynamicPropertySource;
  * ADR-0078 (replaces the unique-key part of ADR-0033 guard 7): the employee code is unique over all employees, including the separated,
  * and is fixed once issued. The only key over it is uk_employees_employee_code, a single-column unique constraint without a condition;
  * no primary key, foreign key, exclusion constraint, other unique constraint or unique index has the column, and no repository or query
- * interface of the main sources fetches a single object by it. A second person with a code already issued is isolated by the sync, which
- * is in SourceIdMatchingIT.
+ * interface of the main sources fetches a single object by it.
  */
 class EmployeeCodeUniquenessIT extends AcceptanceSupport {
 

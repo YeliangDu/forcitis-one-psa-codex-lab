@@ -24,6 +24,10 @@ final class ProblemDetails {
     static ProblemDetail of(ErrorCode code, ErrorKind kind, Map<String, String> extensions) {
         ProblemDetail problem = of(HttpStatusCode.valueOf(kind.status()), code, outwardText(kind));
         extensions.forEach(problem::setProperty);
+        if (kind == ErrorKind.NOT_FOUND) {
+            // Spring would fill instance with the request path; a 404 of an item out of the caller's scope must read like that of an absent id and not echo it.
+            problem.setInstance(java.net.URI.create(TYPE_PREFIX + "not-found"));
+        }
         return problem;
     }
 

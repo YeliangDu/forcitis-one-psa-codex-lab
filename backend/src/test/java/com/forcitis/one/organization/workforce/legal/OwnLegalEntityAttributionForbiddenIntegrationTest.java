@@ -22,9 +22,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.workforce.application.CreateLegalEntity;
-import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
+import com.forcitis.one.organization.workforce.application.SnapshotSeeder;
 import com.forcitis.one.organization.workforce.application.WorkforceIntegrationSupport;
-import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.organization.workforce.application.VersionTables;
@@ -64,9 +63,6 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
     MockMvc mvc;
 
     @Autowired
-    SyncOrgSnapshot sync;
-
-    @Autowired
     CreateLegalEntity createLegalEntity;
 
     @Autowired
@@ -82,7 +78,7 @@ class OwnLegalEntityAttributionForbiddenIntegrationTest extends WorkforceIntegra
         legalEntity = createLegalEntity.execute("FST", "Synthetic one").legalEntityId();
         orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L), unit(4, null)), List.of(head(2, 1)), List.of(post(100)),
                 List.of(person(1, 2, 100L, null), person(2, 3, 100L, 1L), person(3, 4, 100L, null)));
-        sync.execute(SyncTrigger.SCHEDULED, false);
+        SnapshotSeeder.seed(jdbc, orgSource.snapshot);
     }
 
     private String body() {

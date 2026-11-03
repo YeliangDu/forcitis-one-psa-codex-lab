@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.domain;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.TestEnvelopes;
@@ -16,6 +17,7 @@ import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.organization.workforce.events.EmployeeCorrected;
 import com.forcitis.one.organization.workforce.events.EmployeeHired;
+import com.forcitis.one.organization.workforce.events.EmployeeLegalEntityChanged;
 import com.forcitis.one.organization.workforce.events.EmployeeRegularized;
 import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
@@ -55,7 +57,11 @@ class PersonnelCommandEventsTest {
     }
 
     private static DomainEvent published(PersonnelCommand command, VersionRow before) {
-        command.recordEffect(before, null);
+        return published(command, before, null);
+    }
+
+    private static DomainEvent published(PersonnelCommand command, VersionRow before, VersionRow after) {
+        command.recordEffect(before, after, null);
         List<DomainEvent> events = command.drainEvents(TestEnvelopes.INSTANCE);
         assertThat(events).hasSize(1);
         assertThat(events.getFirst().envelope().aggregateType()).as("the envelope is about the employee").isEqualTo("Employee");
@@ -99,8 +105,67 @@ class PersonnelCommandEventsTest {
             assertThat(e.newPositionId()).as("the position did not change").isEqualTo(POSITION);
         });
         PersonnelCommand leave = command(PersonnelCommandKind.UNPAID_LEAVE_START, request(PersonnelCommandKind.UNPAID_LEAVE_START, DAY, null, null, null, null, null));
-        leave.recordEffect(null, null);
+        leave.recordEffect(null, null, null);
         assertThat(leave.hasPendingEvents()).isFalse();
+    }
+
+    private static VersionRow assignment(OrgUnitId unit, PositionId position) {
+        java.util.Map<String, Object> values = new java.util.HashMap<>();
+        values.put(CommandEffects.ORG_UNIT, unit.value());
+        values.put(CommandEffects.POSITION, position == null ? null : position.value());
+        return new VersionRow(UUID.fromString("019a0000-0000-7000-8000-0000000000d2"), LocalDate.of(2026, 1, 1), null, values, ChangeSource.MIGRATION, null, false);
+    }
+
+    private static EmployeeCorrected corrected(VersionRow before, VersionRow after) {
+        return (EmployeeCorrected) published(command(PersonnelCommandKind.CORRECTION, request(PersonnelCommandKind.CORRECTION, DAY, null, NEW_UNIT, null, null, null)), before, after);
+    }
+
+    @Test
+    @DisplayName("#1089 a correction that changes today's department lists ORG_UNIT with the department of today before and after; one that changes the position lists POSITION")
+    void aCorrectionNamesWhatChangedToday() {
+        PositionId other = new PositionId(UUID.fromString("019a0000-0000-7000-8000-0000000000b4"));
+
+        EmployeeCorrected unitOnly = corrected(assignment(OLD_UNIT, POSITION), assignment(NEW_UNIT, POSITION));
+        assertThat(unitOnly.triggerFieldKinds()).containsExactly(TriggerFieldKind.ORG_UNIT);
+        assertThat(unitOnly.previousOrgUnitId()).isEqualTo(OLD_UNIT);
+        assertThat(unitOnly.newOrgUnitId()).isEqualTo(NEW_UNIT);
+        assertThat(unitOnly.previousPositionId()).isEqualTo(POSITION);
+        assertThat(unitOnly.newPositionId()).isEqualTo(POSITION);
+
+        EmployeeCorrected both = corrected(assignment(OLD_UNIT, POSITION), assignment(NEW_UNIT, other));
+        assertThat(both.triggerFieldKinds()).containsExactly(TriggerFieldKind.ORG_UNIT, TriggerFieldKind.POSITION);
+        assertThat(both.previousPositionId()).isEqualTo(POSITION);
+        assertThat(both.newPositionId()).isEqualTo(other);
+    }
+
+    @Test
+    @DisplayName("#1089 a correction that changes neither department nor position publishes an empty list and the same ids on both sides; no assignment today on a side leaves that side null")
+    void aCorrectionOfSomethingElseListsNothing() {
+        EmployeeCorrected manager = corrected(assignment(OLD_UNIT, POSITION), assignment(OLD_UNIT, POSITION));
+        assertThat(manager.triggerFieldKinds()).isEmpty();
+        assertThat(manager.previousOrgUnitId()).isEqualTo(OLD_UNIT);
+        assertThat(manager.newOrgUnitId()).isEqualTo(OLD_UNIT);
+
+        EmployeeCorrected nobody = corrected(null, null);
+        assertThat(nobody.triggerFieldKinds()).isEmpty();
+        assertThat(nobody.previousOrgUnitId()).isNull();
+        assertThat(nobody.newPositionId()).isNull();
+
+        EmployeeCorrected noPositionBefore = corrected(assignment(OLD_UNIT, null), assignment(OLD_UNIT, POSITION));
+        assertThat(noPositionBefore.triggerFieldKinds()).containsExactly(TriggerFieldKind.POSITION);
+        assertThat(noPositionBefore.previousPositionId()).isNull();
+    }
+
+    @Test
+    @DisplayName("#1089 (ADR-0082 decision 2) a correction that undoes a separation lists ORG_UNIT only, never POSITION, with the previous ids null and the new ones set")
+    void undoingASeparationListsTheDepartmentOnly() {
+        EmployeeCorrected undone = corrected(null, assignment(NEW_UNIT, POSITION));
+
+        assertThat(undone.triggerFieldKinds()).containsExactly(TriggerFieldKind.ORG_UNIT);
+        assertThat(undone.previousOrgUnitId()).isNull();
+        assertThat(undone.previousPositionId()).isNull();
+        assertThat(undone.newOrgUnitId()).isEqualTo(NEW_UNIT);
+        assertThat(undone.newPositionId()).isEqualTo(POSITION);
     }
 
     @Test
@@ -119,7 +184,7 @@ class PersonnelCommandEventsTest {
 
         UserId releaser = new UserId(UUID.fromString("019a0000-0000-7000-8000-0000000000bb"));
         separation.releaseHeld(NOW, DAY);
-        separation.recordEffect(null, null);
+        separation.recordEffect(null, null, null);
         separation.recordReleased(hold, releaser, null);
         List<DomainEvent> events = separation.drainEvents(TestEnvelopes.INSTANCE);
         assertThat(events).hasSize(2);
@@ -129,5 +194,62 @@ class PersonnelCommandEventsTest {
             assertThat(e.effectiveDate()).as("the original effective date").isEqualTo(DAY);
         });
         assertThat(events.get(1).envelope().aggregateVersion()).as("numbered after the separation event").isEqualTo(events.get(0).envelope().aggregateVersion() + 1);
+    }
+
+    @Test
+    @DisplayName("#895 (ADR-0073 item 3.7): a command that waited for the countersign publishes EmployeeLegalEntityChanged once, after its own event, with the new entity in the envelope")
+    void aCountersignedCommandPublishesTheLegalEntityChange() {
+        LegalEntityId previous = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f1"));
+        LegalEntityId next = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f2"));
+        PersonnelCommand change = command(PersonnelCommandKind.CHANGE_LEGAL_ENTITY, new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.CHANGE_LEGAL_ENTITY, DAY, null,
+                null, null, null, null, null, next, null, null, null, null, null));
+        change.requireCountersign(previous, next);
+        assertThat(change.status()).isEqualTo(CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN);
+        assertThat(change.hasPendingEvents()).as("nothing is published while it waits").isFalse();
+
+        change.completeCountersign(NOW, DAY);
+        change.recordEffect(null, null, next);
+
+        assertThat(change.status()).isEqualTo(CommandStatus.EFFECTIVE);
+        assertThat(change.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(EmployeeLegalEntityChanged.class, e -> {
+            assertThat(e.personnelCommandId()).isEqualTo(change.id());
+            assertThat(e.employeeId()).isEqualTo(EMPLOYEE);
+            assertThat(e.effectiveDate()).isEqualTo(DAY);
+            assertThat(e.previousLegalEntityId()).isEqualTo(previous);
+            assertThat(e.newLegalEntityId()).isEqualTo(next);
+            assertThat(e.envelope().legalEntityId()).isEqualTo(next);
+        });
+    }
+
+    @Test
+    @DisplayName("#895 ck_personnel_commands_correction_immediate: a correction dated after today becomes effective when its countersign completes, never pending")
+    void aFutureCorrectionIsEffectiveWhenCountersigned() {
+        LegalEntityId next = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f2"));
+        PersonnelCommand correction = command(PersonnelCommandKind.CORRECTION, new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.CORRECTION, DAY.plusDays(3), null,
+                null, null, null, null, null, next, null, null, null, null, null));
+        correction.requireCountersign(new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f1")), next);
+
+        correction.completeCountersign(NOW, DAY);
+
+        assertThat(correction.status()).isEqualTo(CommandStatus.EFFECTIVE);
+        assertThat(correction.appliedAt()).isEqualTo(NOW);
+    }
+
+    @Test
+    @DisplayName("#895 user answer Q2: a countersigned command can be asked to be withdrawn only while pending and before its effective day; on the day itself the versions are in force")
+    void aWithdrawalRequestIsAllowedBeforeTheDayOnly() {
+        LegalEntityId previous = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f1"));
+        LegalEntityId next = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000f2"));
+        PersonnelCommand later = PersonnelCommand.restore(new PersonnelCommandId(UUID.fromString("019a0000-0000-7000-8000-0000000000c2")), EMPLOYEE,
+                PersonnelCommandKind.CHANGE_LEGAL_ENTITY, DAY.plusDays(1), CommandStatus.PENDING, null, null, null, null, null, next, previous, next, null, null,
+                new UserId(UUID.fromString("019a0000-0000-7000-8000-0000000000aa")), NOW, null, 0, 0);
+        PersonnelCommand sameDay = PersonnelCommand.restore(new PersonnelCommandId(UUID.fromString("019a0000-0000-7000-8000-0000000000c3")), EMPLOYEE,
+                PersonnelCommandKind.CHANGE_LEGAL_ENTITY, DAY, CommandStatus.PENDING, null, null, null, null, null, next, previous, next, null, null,
+                new UserId(UUID.fromString("019a0000-0000-7000-8000-0000000000aa")), NOW, null, 0, 0);
+
+        later.requireWithdrawalAllowed("plan changed", DAY);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> sameDay.requireWithdrawalAllowed("plan changed", DAY))
+                .isInstanceOf(com.forcitis.one.kernel.DomainException.class);
     }
 }

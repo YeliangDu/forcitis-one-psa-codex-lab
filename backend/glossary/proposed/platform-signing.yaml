@@ -1,155 +1,5 @@
-# 签章服务（platform.signing）提议术语（one-glossary 2026-10-22，NAM-1021-GLO-16；准入第 6 条，proposed）。模块标识 platform.signing、schema platform_signing、权限码前缀 platform.signing（由 bcs.yaml 的 platform.signing 派生，英文名 SigningService，用户 2026-10-21 同意）。英文 seal 只指印章；文件封存用 hold，不用 seal。
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
 terms:
-- id: seal_ledger
-  zh: 印章台账
-  en: SealLedger
-  snake: seal_ledger
-  kind: aggregate
-  bc: platform.signing
-  scope: domain
-  definition: 公司各法人各类印章的台账，管印章有哪些、什么载体、是否启用、谁保管；用印登记引用其条目（ADR-0064 决定 3）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: seal_ledger_entry
-  zh: 印章台账条目
-  en: SealLedgerEntry
-  snake: seal_ledger_entry
-  kind: entity
-  bc: platform.signing
-  scope: domain
-  definition: 台账中一枚印章的一条记录：粒度为法人 × 印章类型，自有主键 UUIDv7，带载体（实体或电子）与启停状态，同一法人同一印章类型任一时点至多一条启用（ADR-0064 决定 3）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: seal_ledger_entry_version
-  zh: 印章台账条目版本
-  en: SealLedgerEntryVersion
-  snake: seal_ledger_entry_version
-  kind: entity
-  bc: platform.signing
-  scope: domain
-  definition: 印章台账条目的版本行：生效日、失效日左闭右开，只追加、只许关闭不许改写；载体、启停、保管部门进版本表，用印登记按用印时刻取当时有效版本（ADR-0064 决定 3，D17）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: seal_type
-  zh: 印章类型
-  en: SealType
-  snake: seal_type
-  kind: value_object
-  bc: platform.signing
-  scope: domain
-  definition: 印章的种类，如公章、合同章、出图专用章；台账条目由法人加印章类型确定；取值清单随先行上线批登记（ADR-0064 决定 3）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: signing_record
-  zh: 签章记录
-  en: SigningRecord
-  snake: signing_record
-  kind: entity
-  bc: platform.signing
-  scope: domain
-  definition: 签章服务的只追加记录：请求方与申请 ID、台账条目版本或执业印章、经办人或签章人、签前件与签后件的文件标识和内容哈希、服务商交易号、验章结果、时刻；不改不删，更正用新记录关联；只指本模块的记录（ADR-0064 决定 7）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: seal_carrier
-  zh: 印章载体
-  en: SealCarrier
-  snake: seal_carrier
-  kind: value_object
-  bc: platform.signing
-  scope: domain
-  definition: 印章的载体，取值实体章、电子章；台账条目版本上记载体，先行期全部按实体章办理（ADR-0064 决定 3、5）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: custody_department
-  zh: 保管部门
-  en: CustodyDepartment
-  snake: custody_department
-  kind: value_object
-  bc: platform.signing
-  scope: domain
-  definition: 印章台账条目版本上记的保管该印章的部门（ADR-0064 决定 3）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: seal_type_list
-  zh: 印章类型清单
-  en: SealTypeList
-  snake: seal_type_list
-  kind: entity
-  bc: platform.signing
-  scope: domain
-  definition: 行政提供的印章类型取值清单，做成版本化配置表（根表加版本表），不写死枚举；作者与确认人分离，决定出处必填（ADR-0064 决定 3，D15）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: seal_type_list_version
-  zh: 印章类型清单版本
-  en: SealTypeListVersion
-  snake: seal_type_list_version
-  kind: entity
-  bc: platform.signing
-  scope: domain
-  definition: 印章类型清单的一个版本：生效日、决定出处、作者；确认人不得是作者（ADR-0064 决定 3，D15）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: error__platform_signing_ledger_entry_not_found
-  zh: 印章台账条目不存在
-  en: PlatformSigningLedgerEntryNotFound
-  snake: platform_signing_ledger_entry_not_found
-  kind: error_code
-  bc: platform.signing
-  scope: domain
-  definition: 按标识找不到印章台账条目，或调用方无权知道它（404）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__platform_signing_no_version_at
   zh: 用印时刻无有效印章台账版本
   en: PlatformSigningNoVersionAt
@@ -163,7 +13,56 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_signing_version_not_editable
+  zh: 印章台账版本只许关闭不许改写
+  en: PlatformSigningVersionNotEditable
+  snake: platform_signing_version_not_editable
+  kind: error_code
+  bc: platform.signing
+  scope: domain
+  definition: 版本表只追加，只许关闭当前版本、不许改写（409）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_signing_confirmer_is_author
+  zh: 印章类型确认人与作者相同
+  en: PlatformSigningConfirmerIsAuthor
+  snake: platform_signing_confirmer_is_author
+  kind: error_code
+  bc: platform.signing
+  scope: domain
+  definition: 印章类型清单版本的确认人不得是作者（422）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__platform_signing_ledger_entry_not_found
+  zh: 印章台账条目不存在
+  en: PlatformSigningLedgerEntryNotFound
+  snake: platform_signing_ledger_entry_not_found
+  kind: error_code
+  bc: platform.signing
+  scope: domain
+  definition: 按标识找不到印章台账条目，或调用方无权知道它（404）
+  standard_ref:
+  - ADR-0064
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
   note: ''
 - id: error__platform_signing_seal_type_unknown
   zh: 印章类型未登记
@@ -178,7 +77,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
   note: ''
 - id: error__platform_signing_active_entry_exists
   zh: 同一法人同一印章类型已有启用的印章台账条目
@@ -193,111 +93,6 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
   note: ''
-- id: error__platform_signing_version_not_editable
-  zh: 印章台账版本只许关闭不许改写
-  en: PlatformSigningVersionNotEditable
-  snake: platform_signing_version_not_editable
-  kind: error_code
-  bc: platform.signing
-  scope: domain
-  definition: 版本表只追加，只许关闭当前版本、不许改写（409）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: error__platform_signing_confirmer_is_author
-  zh: 印章类型确认人与作者相同
-  en: PlatformSigningConfirmerIsAuthor
-  snake: platform_signing_confirmer_is_author
-  kind: error_code
-  bc: platform.signing
-  scope: domain
-  definition: 印章类型清单版本的确认人不得是作者（422）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: physical
-  zh: 实体章
-  en: Physical
-  snake: physical
-  kind: state
-  bc: platform.signing
-  scope: domain
-  definition: 印章载体的取值之一：实体印章；先行期全部台账条目按实体章办理，电子章随电子印章批追加（ADR-0064 决定 3、5）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 一个 bc 内中英文名查重已做；随签章 api PR 登记，请 one-glossary 复核
-- id: electronic_seal
-  zh: 电子印章
-  en: ElectronicSeal
-  snake: electronic_seal
-  kind: value_object
-  bc: platform.signing
-  scope: domain
-  definition: 由省级明确的制作管理单位制作并备案、与实物印章同等效力的印章，绑定数字证书；系统不保管私钥，只登记其元数据（ADR-0064 决定 4）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: electronic_seal_usage
-  zh: 电子用印
-  en: ElectronicSealUsage
-  snake: electronic_seal_usage
-  kind: value_object
-  bc: platform.signing
-  scope: domain
-  definition: 以电子印章对签前件完成的用印，由签章服务发起并回收结果，产出签后件与签章记录；先行期不开放，随电子印章批按印章类型切换（ADR-0064 决定 2、4、5）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: practice_seal
-  zh: 执业印章
-  en: PracticeSeal
-  snake: practice_seal
-  kind: entity
-  bc: platform.signing
-  scope: domain
-  definition: 注册执业人员（自然人）持有的印章，台账条目的持有人为自然人；图纸签章登记引用其条目与注册执业证书记录，不在先行期建（ADR-0064 决定 3、6）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden:
-  - 注册执业章
-  status: proposed
-  note: '统一叫执业印章；印章类型取值中的出图专用章已含于印章类型定义，不另立'
-- id: digital_certificate
-  zh: 数字证书
-  en: DigitalCertificate
-  snake: digital_certificate
-  kind: entity
-  bc: platform.signing
-  scope: domain
-  definition: 依法设立的电子认证服务机构签发、电子印章所绑定的证书；系统只登记颁发机构、序列号、主体、用途、有效期、状态、关联印章等元数据，不保管私钥（ADR-0064 决定 5）
-  standard_ref:
-  - ADR-0064
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: '与注册执业证书等其他证书分名（ADR-0064 one-glossary 第 3 项）'

@@ -81,16 +81,6 @@ class AuditDetailGuardTest {
     }
 
     @Test
-    @DisplayName("DATA-REPAIR-timesheet-audit TB-01 injected: the detail of ReleaseSyncRun is scanned past its \"; session mode: \" literal")
-    void releaseSyncRunDetailIsScannedToTheEnd() throws IOException {
-        String source = Files.readString(MAIN.resolve("com/forcitis/one/organization/workforce/application/ReleaseSyncRun.java"));
-        String marker = "\"; remaining super_admin: \" + ";
-        assertThat(source).contains("\"; session mode: \"").contains(marker);
-        assertThat(AuditDetailPolicy.breaches(source)).isEmpty();
-        assertThat(AuditDetailPolicy.breaches(source.replace(marker, marker + "owner.name() + "))).as("a person name after the literals").isNotEmpty();
-    }
-
-    @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TB-01: the classes that supply an audit text through AuditDetail are exactly the registered ones")
     void auditDetailImplementationsAreRegistered() throws IOException {
         List<String> found = new ArrayList<>();

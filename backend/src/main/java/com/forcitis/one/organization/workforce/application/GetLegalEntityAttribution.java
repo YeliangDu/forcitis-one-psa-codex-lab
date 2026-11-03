@@ -46,7 +46,7 @@ public class GetLegalEntityAttribution {
     @Transactional(readOnly = true)
     public LegalEntityAttributionView execute(AttributionKind kind, UUID subjectId) {
         var subject = subjects.require(kind, subjectId);
-        Set<OrgUnitId> allowed = OrgUnitVisibility.idsIn(snapshot.findAllOrgUnits(), access.visibleOrgUnits(OrgUnitVisibility.ORG_UNIT_READ));
+        Set<OrgUnitId> allowed = OrgUnitVisibility.idsInForDetail(snapshot.findAllOrgUnits(), access);
         boolean permitted = switch (kind) {
             case ORG_UNIT -> allowed.contains(new OrgUnitId(subjectId));
             case EMPLOYEE -> snapshot.findStaff(new EmployeeId(subjectId)).map(staff -> allowed.contains(staff.assignment().orgUnitId())).orElse(false);

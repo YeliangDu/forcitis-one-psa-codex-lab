@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -42,13 +43,13 @@ class WorkCalendarService implements WorkCalendar {
 
     @Override
     public boolean isWorkday(LocalDate date, LegalEntityId legalEntityId) {
+        Objects.requireNonNull(legalEntityId, "legalEntityId");
         return isWorkday(date, legalEntityId, new HashMap<>());
     }
 
     @Override
-    public Instant endOfWorkdayAfter(LocalDate startDate, int n, LegalEntityId legalEntityId) {
+    public Instant endOfWorkdayAfter(LocalDate startDate, int n, @Nullable LegalEntityId legalEntityId) {
         Objects.requireNonNull(startDate, "startDate");
-        Objects.requireNonNull(legalEntityId, "legalEntityId");
         if (n < 1 || n > MAX_WORKDAYS) {
             throw new IllegalArgumentException("n must be 1.." + MAX_WORKDAYS + ": " + n);
         }
@@ -64,9 +65,8 @@ class WorkCalendarService implements WorkCalendar {
         return day.plusDays(1).atStartOfDay(businessZone.zone()).toInstant();
     }
 
-    private boolean isWorkday(LocalDate date, LegalEntityId legalEntityId, Map<Integer, WorkCalendarYearRecord> loaded) {
+    private boolean isWorkday(LocalDate date, @Nullable LegalEntityId legalEntityId, Map<Integer, WorkCalendarYearRecord> loaded) {
         Objects.requireNonNull(date, "date");
-        Objects.requireNonNull(legalEntityId, "legalEntityId");
         WorkCalendarYearRecord year = loaded.get(date.getYear());
         if (year == null) {
             year = calendars.find(new WorkCalendarKey(legalEntityId, date.getYear()))

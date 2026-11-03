@@ -417,6 +417,276 @@ components:
         audit: audited
         publisherTest: com.forcitis.one.platform.identity.domain.EmergencyAdminTest
         noConsumer: 暂无消费方：应急账号的登记、停用与重置只需留痕；现在就发布，是因为这些变化只在发生当时可被记录，补不回
+    PermissionAdjustmentOpened:
+      name: PermissionAdjustmentOpened
+      title: 待调整权限条目生成
+      payload:
+        type: object
+        properties:
+          permissionAdjustmentId:
+            type: string
+            format: uuid
+            x-type: PermissionAdjustmentId
+          userId:
+            type: string
+            x-type: UserId
+            format: uuid
+            description: 稳定 ID 的字符串形式
+          kind:
+            type: string
+            enum:
+            - SENSITIVE_ROLE_REVIEW
+            - SCOPE_REVIEW
+            x-type: PermissionAdjustmentKind
+            description: 条目类型：敏感角色复核或范围复核
+          originKind:
+            type: string
+            enum:
+            - ASSIGNMENT_CHANGE
+            - UPHOLD_EXPIRY
+            - ORG_UNIT_INACTIVE
+            x-type: PermissionAdjustmentOrigin
+            description: 条目来源：任职变化、维持到期、部门停用
+          triggerPersonnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            nullable: true
+            description: 触发条目的人事命令（调岗或更正）；维持到期重新生成的条目为空
+          triggerFieldKind:
+            type: string
+            enum:
+            - ORG_UNIT
+            - POSITION
+            x-type: TriggerFieldKind
+            nullable: true
+            description: 触发条目的任职字段；维持到期重新生成的条目为空
+          beforeOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            nullable: true
+            description: 触发前的部门；撤销误离职时那时没有任职，为空（ADR-0082 第 2 项）
+          afterOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            nullable: true
+            description: 触发后的部门；维持到期重新生成的条目为空
+          beforePositionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            nullable: true
+            description: 触发前的岗位；那时没有岗位或没有任职时为空
+          afterPositionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            nullable: true
+            description: 触发后的岗位；没有岗位时为空
+          originalPermissionAdjustmentId:
+            type: string
+            format: uuid
+            x-type: PermissionAdjustmentId
+            nullable: true
+            description: 维持到期重新生成的条目所接替的已到期条目；其他来源为空
+          escalationDueAt:
+            type: string
+            format: date-time
+            description: 升级时刻，条目生成日起第 5 个工作日结束（工作日历按事件所属法人，缺法人用默认日历）
+      x-event:
+        eventType: platform.identity.PermissionAdjustmentOpened
+        version: 1
+        class: com.forcitis.one.platform.identity.events.PermissionAdjustmentOpened
+        aggregate: PermissionAdjustment
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.PermissionAdjustmentTest
+        noConsumer: 暂无消费方：条目只需留痕，办理走本模块的接口；现在就发布，是因为生成只在发生当时可被记录，补不回
+    PermissionAdjustmentUpheld:
+      name: PermissionAdjustmentUpheld
+      title: 待调整权限条目被维持
+      payload:
+        type: object
+        properties:
+          permissionAdjustmentId:
+            type: string
+            format: uuid
+            x-type: PermissionAdjustmentId
+          upheldBy:
+            type: string
+            x-type: UserId
+            format: uuid
+            description: 办理人账号
+          kind:
+            type: string
+            enum:
+            - SENSITIVE_ROLE_REVIEW
+            - SCOPE_REVIEW
+            x-type: PermissionAdjustmentKind
+            description: 条目类型：敏感角色复核或范围复核
+          businessOwnerEmployeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            nullable: true
+            description: 业务负责人（员工 ID），只有敏感角色复核有
+          upholdExpiresAt:
+            type: string
+            format: date-time
+            nullable: true
+            description: 维持有效至，维持之后下一自然季度首日 00:00（业务时区），只有敏感角色复核有
+          reason:
+            type: string
+            x-type: Reason
+            description: 办理人填写的维持理由，进审计条目的变更原因列，不进明细
+      x-event:
+        eventType: platform.identity.PermissionAdjustmentUpheld
+        version: 1
+        class: com.forcitis.one.platform.identity.events.PermissionAdjustmentUpheld
+        aggregate: PermissionAdjustment
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.PermissionAdjustmentTest
+        noConsumer: 暂无消费方：维持只需留痕；现在就发布，是因为办理只在发生当时可被记录，补不回
+    PermissionAdjustmentAdjusted:
+      name: PermissionAdjustmentAdjusted
+      title: 待调整权限条目被标记已调整
+      payload:
+        type: object
+        properties:
+          permissionAdjustmentId:
+            type: string
+            format: uuid
+            x-type: PermissionAdjustmentId
+          adjustedBy:
+            type: string
+            x-type: UserId
+            format: uuid
+            description: 办理人账号
+          kind:
+            type: string
+            enum:
+            - SENSITIVE_ROLE_REVIEW
+            - SCOPE_REVIEW
+            x-type: PermissionAdjustmentKind
+            description: 条目类型：敏感角色复核或范围复核
+          authorizationRequestId:
+            type: string
+            format: uuid
+            x-type: AuthorizationRequestId
+            nullable: true
+            description: 调整所凭的授权申请，与审计条目恰有其一
+          auditEntryId:
+            type: string
+            format: uuid
+            x-type: AuditEntryId
+            nullable: true
+            description: 调整所凭的授予审计条目，与授权申请恰有其一
+      x-event:
+        eventType: platform.identity.PermissionAdjustmentAdjusted
+        version: 1
+        class: com.forcitis.one.platform.identity.events.PermissionAdjustmentAdjusted
+        aggregate: PermissionAdjustment
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.PermissionAdjustmentTest
+        noConsumer: 暂无消费方：标记已调整只需留痕；现在就发布，是因为办理只在发生当时可被记录，补不回
+    PermissionAdjustmentExpired:
+      name: PermissionAdjustmentExpired
+      title: 待调整权限条目到期
+      payload:
+        type: object
+        properties:
+          permissionAdjustmentId:
+            type: string
+            format: uuid
+            x-type: PermissionAdjustmentId
+          kind:
+            type: string
+            enum:
+            - SENSITIVE_ROLE_REVIEW
+            - SCOPE_REVIEW
+            x-type: PermissionAdjustmentKind
+            description: 条目类型：敏感角色复核或范围复核
+          upholdExpiresAt:
+            type: string
+            format: date-time
+            description: 维持有效至
+          expiredAt:
+            type: string
+            format: date-time
+            description: 到期作业转已到期的时刻（作业用的时钟，不早于有效至）
+      x-event:
+        eventType: platform.identity.PermissionAdjustmentExpired
+        version: 1
+        class: com.forcitis.one.platform.identity.events.PermissionAdjustmentExpired
+        aggregate: PermissionAdjustment
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.PermissionAdjustmentTest
+        noConsumer: 暂无消费方：到期只需留痕；现在就发布，是因为到期只在作业运行当时可被记录，补不回
+    PermissionAdjustmentEscalated:
+      name: PermissionAdjustmentEscalated
+      title: 待调整权限条目超期升级
+      payload:
+        type: object
+        properties:
+          permissionAdjustmentId:
+            type: string
+            format: uuid
+            x-type: PermissionAdjustmentId
+          kind:
+            type: string
+            enum:
+            - SENSITIVE_ROLE_REVIEW
+            - SCOPE_REVIEW
+            x-type: PermissionAdjustmentKind
+            description: 条目类型：敏感角色复核或范围复核
+          escalationDueAt:
+            type: string
+            format: date-time
+            description: 被超过的升级期限
+      x-event:
+        eventType: platform.identity.PermissionAdjustmentEscalated
+        version: 1
+        class: com.forcitis.one.platform.identity.events.PermissionAdjustmentEscalated
+        aggregate: PermissionAdjustment
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.PermissionAdjustmentTest
+        noConsumer: 暂无消费方：升级只需留痕；给 account-role:update 持有人的送达另行交付；现在就发布，是因为升级只在作业运行当时可被记录，补不回
     AuthorizationOpened:
       name: AuthorizationOpened
       title: 敏感授权申请开立
@@ -505,5 +775,29 @@ components:
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
         audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.AuthorizationRequestTest
+        noConsumer: 暂无消费方：授权申请只需留痕，确认后的执行由本模块的监听器完成；现在就发布，是因为申请与确认只在发生当时可被记录，补不回
+    AuthorizationVoided:
+      name: AuthorizationVoided
+      title: 敏感授权申请作废（基准已变或确认后无法应用）
+      payload:
+        type: object
+        properties:
+          requestId:
+            type: string
+            format: uuid
+            x-type: AuthorizationRequestId
+      x-event:
+        eventType: platform.identity.AuthorizationVoided
+        version: 1
+        class: com.forcitis.one.platform.identity.events.AuthorizationVoided
+        aggregate: AuthorizationRequest
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: 'not-audited: authorization.voided 同事务直写（#938）'
         publisherTest: com.forcitis.one.platform.identity.domain.AuthorizationRequestTest
         noConsumer: 暂无消费方：授权申请只需留痕，确认后的执行由本模块的监听器完成；现在就发布，是因为申请与确认只在发生当时可被记录，补不回

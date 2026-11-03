@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import com.forcitis.one.TestDatabase;
+import com.forcitis.one.acceptance.AssignmentRoots;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.Uuids;
@@ -11,6 +12,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Stream;
@@ -157,11 +159,16 @@ class WorkforceRowConstraintsIT extends AccountsAcceptanceSupport {
     }
 
     private void assignmentVersion(String position, String reportsTo) throws SQLException {
-        execute("""
+        UUID root;
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            // #711: on the person's PRIMARY root once employee_assignments exists (AssignmentRoots).
+            root = AssignmentRoots.primaryOf(workforce, person);
+        }
+        execute(AssignmentRoots.withRoot("""
                 insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
                     reports_to_employee_id)
-                values (?, ?, ?, ?, ?::uuid, ?::uuid)""",
-                Uuids.timeOrdered(NOW), person, TODAY.minusDays(30), unit, position, reportsTo);
+                values (?, ?, ?, ?, ?::uuid, ?::uuid)""", root),
+                AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), person, TODAY.minusDays(30), unit, position, reportsTo));
     }
 
     @Test
@@ -210,7 +217,7 @@ class WorkforceRowConstraintsIT extends AccountsAcceptanceSupport {
         UUID later = UUID.randomUUID();
         String versionSql = """
                 insert into org_unit_versions (org_unit_version_id, org_unit_id, effective_from_date, effective_to_date, name, status,
-                    is_delivery_unit, head_employee_id) values (?, ?, ?, ?, 'Synthetic unit', 'ACTIVE', false, ?)""";
+                    is_delivery_unit, head_employee_id, closed_at) values (?, ?, ?, ?, 'Synthetic unit', 'ACTIVE', false, ?, ?)""";
         try (Connection workforce = schemaConnection("organization_workforce")) {
             workforce.setAutoCommit(false);
             try (PreparedStatement version = workforce.prepareStatement(versionSql);
@@ -222,6 +229,7 @@ class WorkforceRowConstraintsIT extends AccountsAcceptanceSupport {
                 version.setObject(3, TODAY.minusDays(30));
                 version.setObject(4, null);
                 version.setObject(5, later);
+                version.setObject(6, null);
                 version.executeUpdate();
                 employeeRow.setObject(1, later);
                 employeeRow.executeUpdate();
@@ -237,6 +245,7 @@ class WorkforceRowConstraintsIT extends AccountsAcceptanceSupport {
                     version.setObject(3, TODAY.minusDays(90));
                     version.setObject(4, TODAY.minusDays(60));
                     version.setObject(5, UUID.randomUUID());
+                    version.setObject(6, NOW.atOffset(ZoneOffset.UTC));
                     version.executeUpdate();
                     workforce.commit();
                 }

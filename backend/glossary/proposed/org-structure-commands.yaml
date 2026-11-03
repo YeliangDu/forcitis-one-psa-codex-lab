@@ -1,241 +1,123 @@
 # 组织结构命令与组织一侧的法人归属会签（设计 docs/architecture/proposals/org-structure-commands.md，#897；one-design 2026-10-30，#911）。中文名用户已确认（2026-10-30「采纳」，经 lead 转达）。
 terms:
-- id: org_structure_command
-  zh: 组织结构命令
-  en: OrgStructureCommand
-  snake: org_structure_command
-  kind: entity
+- id: error__organization_workforce_org_structure_command_invalid
+  zh: 组织结构命令内容不合法
+  en: OrganizationWorkforceOrgStructureCommandInvalid
+  snake: organization_workforce_org_structure_command_invalid
+  kind: error_code
   bc: organization.workforce
   scope: domain
-  definition: 组织单元新建、撤销、调整属性、合并、调整上级、指定负责人、指定区域应收负责人、指定法人，以及岗位新建、停用的第一手记录，只追加；组织单元与岗位命令同表，按目标种类归属组织单元或岗位
+  definition: 录入的组织结构命令缺内容、内容与种类不符、引用的单元或员工不存在或类型枚举不认识（422）
   standard_ref:
   - ADR-0068 第 4 条
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
-  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: ADR-0068 待登记用语「组织命令」；表 org_structure_commands（#905）
-- id: set_attributes
-  zh: 调整属性
-  en: SetAttributes
-  snake: set_attributes
-  kind: command
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_workforce_org_structure_command_not_allowed
+  zh: 组织结构命令不被允许
+  en: OrganizationWorkforceOrgStructureCommandNotAllowed
+  snake: organization_workforce_org_structure_command_not_allowed
+  kind: error_code
   bc: organization.workforce
   scope: domain
-  definition: 组织结构命令种类之一，只用于组织单元：一条命令表达一次完整调整，可改名称、简称、总部或区域、是否交付单元，至少改一项；取代原「改名」
-  standard_ref:
-  - ADR-0073 第 2 条第 1 项
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: 种类值 SET_ATTRIBUTES；原暂名 RENAME 不再用
-- id: assign_legal_entity
-  zh: 指定法人
-  en: AssignLegalEntity
-  snake: assign_legal_entity
-  kind: command
-  bc: organization.workforce
-  scope: domain
-  definition: 组织结构命令种类之一，只用于组织单元：写部门到法人的对照（组织单元法人归属期间）；使员工成本法人变化时进待法人归属会签
-  standard_ref:
-  - ADR-0073 第 3 条第 2 项
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: 种类值 ASSIGN_LEGAL_ENTITY；人事一侧的对应种类为「变更法人归属」change_legal_entity
-- id: attribution_countersign_basis
-  zh: 法人归属会签依据
-  en: AttributionCountersignBasis
-  snake: attribution_countersign_basis
-  kind: value_object
-  bc: organization.workforce
-  scope: domain
-  definition: 组织结构命令登记时计算的、成本法人将变化的员工清单，每人记变更前与变更后的成本法人；财务据此会签，合并逐人执行时与之比对决定是否免会签
-  standard_ref:
-  - ADR-0073 第 3 条第 4 项
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: ADR-0073 原文「会签依据」，按用户 2026-10-30 对「会签」一律限定为「法人归属会签」的改名，表名建议 attribution_countersign_bases（#908；设计说明暂写 org_structure_countersign_bases）
-- id: org_unit_created
-  zh: 组织单元已新建
-  en: OrgUnitCreated
-  snake: org_unit_created
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 新建组织单元的组织结构命令已生效
+  definition: 命令违反跨行规则：目标当天不在用、当天已有未生效命令、单元里仍有在职员工或在用下级、会成环、挂在将被合并或撤销的单元之下、岗位编码已被占用等（422），或状态不允许该操作（409）
   standard_ref:
   - ADR-0068 第 4 条
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
-  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: ''
-- id: org_unit_dissolved
-  zh: 组织单元已撤销
-  en: OrgUnitDissolved
-  snake: org_unit_dissolved
-  kind: domain_event
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_workforce_org_legal_entity_conflict
+  zh: 组织命令法人归属冲突
+  en: OrganizationWorkforceOrgLegalEntityConflict
+  snake: organization_workforce_org_legal_entity_conflict
+  kind: error_code
   bc: organization.workforce
   scope: domain
-  definition: 撤销组织单元的组织结构命令已生效（单元须已无在职员工与启用的下级单元）；合并完成时被并入方的撤销不发本事件，只发「组织单元已合并」
+  definition: 法人归属命令倒签到单元已有的更晚归属期之前，或命令会让已有法人的员工失去成本法人，录入时拒绝，什么都不写（422）
+  standard_ref:
+  - ADR-0073 第 2 至 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#910 评论 6608979043，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_workforce_org_structure_command_not_found
+  zh: 组织结构命令不存在
+  en: OrganizationWorkforceOrgStructureCommandNotFound
+  snake: organization_workforce_org_structure_command_not_found
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 没有这条组织结构命令（404）
   standard_ref:
   - ADR-0068 第 4 条
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
-  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: F-1 来源②由撤销与合并触发
-- id: org_unit_attributes_set
-  zh: 组织单元属性已调整
-  en: OrgUnitAttributesSet
-  snake: org_unit_attributes_set
-  kind: domain_event
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_workforce_org_structure_command_reason_invalid
+  zh: 组织结构命令撤回原因不合法
+  en: OrganizationWorkforceOrgStructureCommandReasonInvalid
+  snake: organization_workforce_org_structure_command_reason_invalid
+  kind: error_code
   bc: organization.workforce
   scope: domain
-  definition: 调整属性命令已生效：名称、简称、总部或区域、是否交付单元中的若干项自生效日起改变
+  definition: 撤回原因缺失、空白或超过 500 字（422）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_workforce_org_structure_merge_incomplete
+  zh: 组织单元合并未完成
+  en: OrganizationWorkforceOrgStructureMergeIncomplete
+  snake: organization_workforce_org_structure_merge_incomplete
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 合并还有人没转完或被并入单元里仍有在职员工，不能转为已生效（409）；再次执行会继续剩下的人
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: error__organization_workforce_org_unit_merge_open
+  zh: 部门有未完成的合并
+  en: OrganizationWorkforceOrgUnitMergeOpen
+  snake: organization_workforce_org_unit_merge_open
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令要把人放进一个有未完成合并的部门，且日期不早于合并日，会把人留在即将撤销的单元里，录入被拒（409）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 随 #907，one-design 裁定（#907 评论 6596302513）
+- id: employee_legal_entity_change
+  zh: 员工法人归属变更
+  en: EmployeeLegalEntityChange
+  snake: employee_legal_entity_change
+  kind: aggregate
+  bc: organization.workforce
+  scope: domain
+  definition: 组织结构命令生效而使一名员工的成本法人变化时，只承载一条员工法人归属已变更事件的记录；信封说的是员工，序号接续员工自己的事件计数
   standard_ref:
   - ADR-0073 第 2 条
-  confidence: medium
+  confidence: low
   aliases: []
   forbidden: []
   status: proposed
-  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: ''
-- id: org_unit_merged
-  zh: 组织单元已合并
-  en: OrgUnitMerged
-  snake: org_unit_merged
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 合并命令的全部受影响员工已转入承接单元，被并入方已撤销
-  standard_ref:
-  - ADR-0068 第 4 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: ''
-- id: org_unit_reparented
-  zh: 组织单元上级已调整
-  en: OrgUnitReparented
-  snake: org_unit_reparented
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 调整上级命令已生效：组织单元自生效日起挂到新的上级单元
-  standard_ref:
-  - ADR-0068 第 4 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: ''
-- id: org_unit_head_assigned
-  zh: 部门负责人已指定
-  en: OrgUnitHeadAssigned
-  snake: org_unit_head_assigned
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 指定负责人命令已生效
-  standard_ref:
-  - ADR-0068 第 4 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: ''
-- id: org_unit_receivables_manager_assigned
-  zh: 区域应收负责人已指定
-  en: OrgUnitReceivablesManagerAssigned
-  snake: org_unit_receivables_manager_assigned
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 指定区域应收负责人命令已生效
-  standard_ref:
-  - ADR-0068 第 4 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: ''
-- id: org_unit_legal_entity_assigned
-  zh: 组织单元法人已指定
-  en: OrgUnitLegalEntityAssigned
-  snake: org_unit_legal_entity_assigned
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 指定法人命令已生效：组织单元自生效日起对照新的法人；成本法人因此变化的员工另各发「员工法人归属已变更」
-  standard_ref:
-  - ADR-0073 第 3 条第 2 项
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: ''
-- id: position_created
-  zh: 岗位已新建
-  en: PositionCreated
-  snake: position_created
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 新建岗位的组织结构命令已生效
-  standard_ref:
-  - ADR-0068 第 4 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: 岗位按 W2 设计第 3.3 节为聚合根
-- id: position_disabled
-  zh: 岗位已停用
-  en: PositionDisabled
-  snake: position_disabled
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 停用岗位的组织结构命令已生效（岗位须已无在任员工）
-  standard_ref:
-  - ADR-0068 第 4 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  confirmed: 2026-10-30（用户，「采纳」，经 lead 转达，#911）
-  note: 岗位不设删除（ADR-0068 第 15 条第 4 项）
-- id: into
-  zh: 并入
-  en: Into
-  snake: into
-  kind: value_object
-  bc: organization.workforce
-  scope: domain
-  definition: 合并命令里承接方的列名用语（merge_into_org_unit_id）：被并入方的员工与下级转入的组织单元
-  standard_ref:
-  - ADR-0068 第 4 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 随 #905 建表登记，列名取自 one-design 签发的 DDL；编码时才发现的用语，请 one-design 复核
+  note: 无自己的表；#910 第一片

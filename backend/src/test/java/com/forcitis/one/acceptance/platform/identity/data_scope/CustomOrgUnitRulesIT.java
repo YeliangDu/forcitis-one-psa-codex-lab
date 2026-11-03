@@ -52,7 +52,7 @@ class CustomOrgUnitRulesIT extends DataScopeSupport {
         for (String key : List.of("admin1", "admin2", "oda")) {
             person(key, "F1-ROOT", "F1-P1");
         }
-        synchronise();
+        seedOrganisation();
         administrator("admin1");
         administrator("admin2");
         grantByOperations("oda", ORG_DATA_ADMIN);
@@ -330,7 +330,7 @@ class CustomOrgUnitRulesIT extends DataScopeSupport {
     void nullUnitsOnUpdateKeepTheStoredUnits() throws Exception {
         String roleId = ordinaryRole(admin(), "f1-keep-units", "CUSTOM_ORG_UNITS", List.of(withDescendants(id("F1-A")), onlyUnit(id("F1-B"))), ORG_UNIT_READ);
 
-        MockHttpServletResponse omitted = reviseRole(admin(), roleId, roleBody("f1-keep-units", "CUSTOM_ORG_UNITS", null, ORG_UNIT_READ, SYNC_RUN_READ));
+        MockHttpServletResponse omitted = reviseRole(admin(), roleId, roleBody("f1-keep-units", "CUSTOM_ORG_UNITS", null, ORG_UNIT_READ, NUMBERING_RULE_READ));
         assertThat(omitted.getStatus()).as(omitted.getContentAsString()).isEqualTo(200);
         assertThat(customOrgUnitIds(readRole(admin(), roleId))).containsExactlyInAnyOrder(id("F1-A"), id("F1-B"));
         assertThat(unitsWithDescendants(readRole(admin(), roleId))).containsExactly(id("F1-A"));

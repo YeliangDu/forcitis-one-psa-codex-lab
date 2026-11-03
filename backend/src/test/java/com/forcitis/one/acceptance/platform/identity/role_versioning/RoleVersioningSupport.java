@@ -60,8 +60,11 @@ abstract class RoleVersioningSupport extends AccountsAcceptanceSupport {
         }
     }
 
-    /** Non-sensitive codes that a custom role may hold (none reserved to the administrator mode), none of them in the seeded employee role (card 7.2 seed). */
-    static final List<String> PLAIN_CODES = List.of("organization.workforce:org-unit:read", "organization.workforce:sync-run:read",
+    /**
+     * Non-sensitive codes that a custom role may hold (none reserved to the administrator mode), none of them in the seeded employee role (card 7.2
+     * seed). The sync run read code that stood second went with the old sync (#934; ADR-0055 section 6) and is no longer grantable.
+     */
+    static final List<String> PLAIN_CODES = List.of("organization.workforce:org-unit:read", "cost.timesheet:timesheet:submit",
             "platform.numbering:numbering-rule:read", "organization.attendance:work-calendar:read", "platform.numbering:legacy-number:read");
 
     /** A super_admin holder (operations command), signed in through WeCom and in the administrator mode of their own session. */

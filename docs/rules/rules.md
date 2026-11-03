@@ -8,7 +8,7 @@ Enforced by: gitleaks, prod_write_gate, new_intent, main_checkout_gate, backend;
 See `CLAUDE.md`.
 
 ## ② Cards and handoff
-Enforced by: handoff, start_sheet; manual: lead / weekly review
+Enforced by: handoff, start_sheet, card_handover; manual: lead / weekly review
 
 One card = one acceptable result, one owning session, one bc, one Issue; if entry conditions fail, stop and tell lead. When a card is handed over (PR merged or closed), overwrite the handoff file first (cap: `policy.json` `start.handoff_max_kb`), then end the session or `/clear`; correct records that contradict the facts; check the actual state when starting. Lead opens every new session with start_session. Session messages only wake someone up; content goes on the card or PR. Send a session message only when someone can now review, use, decide or unblock something (lead: only when blocked, when the user must decide, or on an incident); never repeat an unchanged status; while waiting on CI, the queue, a review or lead, end the turn and let a background task, Monitor or message wake you instead of polling. A dev session that finishes a card takes the next one in its handoff order without waiting for lead; lead changes the order in the handoff. A card with a prerequisite starts after it merges; to work in parallel, stack the branch on the prerequisite's PR branch and rebase after it merges.
 
@@ -25,7 +25,7 @@ One item per commit, with the Session trailer. Pushing runs no tests; tests run 
 ## ⑤ PRs and review
 Enforced by: post_review; manual: first-round review / every PR
 
-A PR merges and reverts on its own and follows the template. First line `Closes #<card>` only on the PR that completes the card; earlier PRs of the same card use `Refs`. Guards, CI, hooks, cross-bc interfaces, mechanical renames and deploy blockers each get their own PR, and main stays green after each. The author dispatches a fresh reviewer per `scripts/review/PROMPT.md` (model and scope there); it only writes the verdict file, the dispatcher posts it with post_review; security, production, hook and parser changes add an opus final review. 必改 is limited to correctness, hard constraints and the baseline; lead releases 必改 fixes after reading the diff; on lead's own PRs a fresh reviewer checks the fix instead.
+A PR merges and reverts on its own and follows the template. First line `Closes #<card>` only on the PR that completes the card; earlier PRs of the same card use `Refs`. Guards, CI, hooks, cross-bc interfaces, mechanical renames and deploy blockers each get their own PR, and main stays green after each. The author dispatches a fresh reviewer per `scripts/review/PROMPT.md` (model and scope there); it only writes the verdict file, the dispatcher posts it with post_review on the reviewed head before pushing anything else, since post_review refuses once the head has moved; security, production, hook and parser changes add an opus final review. 必改 is limited to correctness, hard constraints and the baseline; lead releases 必改 fixes after reading the diff; on lead's own PRs a fresh reviewer checks the fix instead.
 
 ## ⑥ Queue and merge
 Enforced by: mq, relevant_change; manual: lead / every PR

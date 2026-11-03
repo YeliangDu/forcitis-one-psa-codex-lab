@@ -22,6 +22,7 @@ import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.Gender;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
+import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolutionSources;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
 import com.forcitis.one.organization.workforce.domain.SeparationHoldCheck;
@@ -55,7 +56,8 @@ class HireProfileRefusalTest {
         when(currentUser.userId()).thenReturn(USER);
         when(commands.lockEmployee(any())).thenReturn(true);
         service = new PersonnelCommandService(commands, new NewEmployees(commands, numbers, ids), new PersonnelPlans(ids), mock(SeparationHoldCheck.class),
-                mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids,
+                mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), mock(CountersignBases.class), mock(CountersignRequests.class), new OrgCountersignFreeze(mock(com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository.class)),
+                mock(AttributionCountersignRepository.class), mock(OwnAttributionGuard.class), mock(OrgMergeProgress.class), mock(EffectPublisher.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids,
                 Clock.fixed(NOW, ZoneOffset.UTC), new BusinessZone(ZoneId.of("Asia/Shanghai")));
     }
 
