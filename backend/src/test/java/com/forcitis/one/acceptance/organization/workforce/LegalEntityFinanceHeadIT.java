@@ -138,8 +138,10 @@ class LegalEntityFinanceHeadIT extends CountersignSupport {
         List<Map<String, Object>> history = versions(entity);
         assertThat(history.stream().map(version -> String.valueOf(headOf(version))).toList()).as("the history keeps the old head").contains(first.toString(), second.toString());
         Map<String, Object> closed = history.stream().filter(version -> first.toString().equals(String.valueOf(headOf(version)))).findFirst().orElseThrow();
-        assertThat(closed.get("effective_to_date")).isNotNull();
+        assertThat(String.valueOf(closed.get("effective_to_date"))).as("the old head's version is closed at today").isEqualTo(TODAY.toString());
         Awaitility.await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(auditQuery(null, null, CHANGED)).hasSize(audited + 1));
+        assertThat(auditQuery(null, null, CHANGED).stream().map(entry -> String.valueOf(entry.get("detail"))).toList())
+                .contains("legal entity " + entity + " finance head " + second + " effective " + TODAY);
     }
 
     @Test

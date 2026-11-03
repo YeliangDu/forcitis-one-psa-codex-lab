@@ -202,6 +202,12 @@ class CountersignReadPathIT extends CountersignSupport {
         Staff escalated = account(ESCALATED_ROLE);
         String level1 = idOf(waiting.command(), e1);
         String level2 = idOf(waiting.command(), e2);
+
+        assertThat(idsOf(list(escalated, null))).as("level 0 rows of any entity are hidden").doesNotContain(level1, level2);
+        Throwable atLevelZero = refusal(() -> get(escalated, UUID.fromString(level2)));
+        assertThat(atLevelZero).isInstanceOf(DomainException.class);
+        assertThat(((DomainException) atLevelZero).errorCode().code()).isEqualTo("ORGANIZATION_WORKFORCE_COUNTERSIGN_NOT_FOUND");
+
         escalateTo(waiting.command(), KIND_CHANGE, e1, 1);
         escalateTo(waiting.command(), KIND_CHANGE, e2, 2);
 
@@ -209,7 +215,7 @@ class CountersignReadPathIT extends CountersignSupport {
         Throwable failure = refusal(() -> get(escalated, UUID.fromString(level1)));
         assertThat(failure).isInstanceOf(DomainException.class);
         assertThat(((DomainException) failure).errorCode().code()).isEqualTo("ORGANIZATION_WORKFORCE_COUNTERSIGN_NOT_FOUND");
-        assertThat(get(escalated, UUID.fromString(level2)).get("escalationLevel")).isEqualTo(2);
+        assertThat(((Number) get(escalated, UUID.fromString(level2)).get("escalationLevel")).intValue()).isEqualTo(2);
 
         escalateTo(waiting.command(), KIND_CHANGE, e1, 3);
         assertThat(idsOf(list(escalated, null))).contains(level1, level2);
@@ -244,6 +250,7 @@ class CountersignReadPathIT extends CountersignSupport {
         assertThat(idsOf(list(headE1, null))).doesNotContain(row);
         Throwable failure = refusal(() -> get(headE1, UUID.fromString(row)));
         assertThat(failure).isInstanceOf(DomainException.class);
+        assertThat(((DomainException) failure).errorCode().code()).isEqualTo("ORGANIZATION_WORKFORCE_COUNTERSIGN_NOT_FOUND");
     }
 
     @Test
