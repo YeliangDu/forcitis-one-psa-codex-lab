@@ -84,6 +84,13 @@ class PermissionAdjustmentLifecycleIT {
     }
 
     @Test
+    @DisplayName("F-1 不变量 14 补空格撑过 500 字的维持原因拒绝（长度按原串计，不按去空格后计）")
+    void aPaddedUpholdReasonOverFiveHundredCharactersIsRefused() throws SQLException {
+        rows.refusedByCheck("ck_permission_adjustments_uphold_reason", rows.upheld(rows.scopeReviewInactiveUnit()).with("uphold_reason", "留" + " ".repeat(500)));
+        rows.refusedByCheck("ck_permission_adjustments_uphold_reason", rows.upheld(rows.scopeReviewInactiveUnit()).with("uphold_reason", " ".repeat(300) + "留" + " ".repeat(300)));
+    }
+
+    @Test
     @DisplayName("F-1 不变量 23（库内部分）有效至晚于维持时刻：等于或早于维持时刻都拒绝")
     void theExpiryIsAfterTheUphold() throws SQLException {
         rows.refusedByCheck("ck_permission_adjustments_uphold_expires_at", rows.upheld(rows.sensitiveOrgUnitChange()).with("uphold_expires_at", T1));
