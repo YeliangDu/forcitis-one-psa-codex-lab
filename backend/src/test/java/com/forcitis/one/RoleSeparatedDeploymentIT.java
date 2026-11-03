@@ -172,7 +172,7 @@ class RoleSeparatedDeploymentIT {
         assertThatThrownBy(() -> jdbc.sql("truncate table organization_workforce.org_unit_versions").update()).rootCause().hasMessageContaining("permission denied");
         assertThatThrownBy(() -> jdbc.sql("delete from platform_audit.audit_entries").update()).rootCause().hasMessageContaining("permission denied");
         assertThatThrownBy(() -> jdbc.sql("update platform_audit.audit_entries set detail = 'x'").update()).rootCause().hasMessageContaining("permission denied");
-        for (String table : List.of("platform_identity.role_versions", "platform_identity.account_role_grants")) {
+        for (String table : List.of("platform_identity.role_versions", "platform_identity.account_role_grants", "platform_identity.permission_adjustments")) {
             assertThatThrownBy(() -> jdbc.sql("delete from " + table).update()).as(table).rootCause().hasMessageContaining("permission denied");
             assertThatThrownBy(() -> jdbc.sql("truncate table " + table).update()).as(table).rootCause().hasMessageContaining("permission denied");
         }
