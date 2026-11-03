@@ -71,13 +71,14 @@ class AttributionCountersignServiceTest {
     final AccountRoles roles = mock(AccountRoles.class);
     final OwnAttributionGuard ownGuard = mock(OwnAttributionGuard.class);
     final CountersignBases bases = mock(CountersignBases.class);
+    final OrgMergeProgress mergeProgress = mock(OrgMergeProgress.class);
     final EffectPublisher effects = mock(EffectPublisher.class);
     final CurrentUser currentUser = mock(CurrentUser.class);
     final IdGenerator ids = mock(IdGenerator.class);
     final Clock clock = Clock.fixed(NOW, ZoneOffset.UTC);
     final BusinessZone zone = new BusinessZone(ZoneId.of("Asia/Shanghai"));
     final AttributionCountersignService service = new AttributionCountersignService(countersigns, commands, requests, bases,
-            new PersonnelPlans(ids), effects, ownGuard, mock(OrgMergeProgress.class), new CountersignDeciders(countersigns, roles, currentUser), mock(OrgCountersigns.class), mock(AuditLog.class), currentUser, ids, clock, zone);
+            new PersonnelPlans(ids), effects, ownGuard, mergeProgress, new CountersignDeciders(countersigns, roles, currentUser), mock(OrgCountersigns.class), mock(AuditLog.class), currentUser, ids, clock, zone);
 
     AttributionCountersignServiceTest() {
         when(ids.next()).thenReturn(COMMAND.value());
@@ -111,6 +112,18 @@ class AttributionCountersignServiceTest {
         when(roles.holds(DECIDER, "business_admin")).thenReturn(true);
         service.approve(new ApproveAttributionCountersign(ROW1, null));
         verify(requests).approved(any(), any(PersonnelCommand.class), anyLong(), any(), any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("#910 QF1: a decision takes the merged units that hold the person before the employee row, then recounts them, so a merge step and a decision lock in one order")
+    void theHoldingUnitsAreLockedBeforeTheEmployee() {
+        when(roles.holds(DECIDER, "business_admin")).thenReturn(true);
+
+        service.approve(new ApproveAttributionCountersign(ROW1, null));
+
+        org.mockito.InOrder order = org.mockito.Mockito.inOrder(commands, mergeProgress);
+        order.verify(mergeProgress).lockHolding(EMPLOYEE);
+        order.verify(commands).lockEmployee(EMPLOYEE);
     }
 
     @Test
