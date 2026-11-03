@@ -374,6 +374,8 @@ aggregates:
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
   - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
   - platform.identity.PermissionAdjustmentOpened
   - platform.identity.PermissionAdjustmentUpheld
   - platform.identity.RoleCreated
@@ -419,6 +421,8 @@ aggregates:
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
   - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
   - platform.identity.PermissionAdjustmentOpened
   - platform.identity.PermissionAdjustmentUpheld
   - platform.identity.RoleCreated
@@ -440,10 +444,13 @@ aggregates:
   - MarkPermissionAdjustmentAdjusted
   - OpenAssignmentReviews
   - PermissionAdjustmentAccess
+  - PermissionAdjustmentTransitions
   - PermissionAdjustmentView
   - UpholdPermissionAdjustment
   events:
   - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
   - platform.identity.PermissionAdjustmentOpened
   - platform.identity.PermissionAdjustmentUpheld
   events_in_module:
@@ -461,6 +468,8 @@ aggregates:
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
   - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
   - platform.identity.PermissionAdjustmentOpened
   - platform.identity.PermissionAdjustmentUpheld
   - platform.identity.RoleCreated
@@ -511,6 +520,8 @@ aggregates:
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
   - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
   - platform.identity.PermissionAdjustmentOpened
   - platform.identity.PermissionAdjustmentUpheld
   - platform.identity.RoleCreated
@@ -563,6 +574,8 @@ aggregates:
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
   - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
   - platform.identity.PermissionAdjustmentOpened
   - platform.identity.PermissionAdjustmentUpheld
   - platform.identity.RoleCreated

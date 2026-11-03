@@ -123,32 +123,31 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
 
     @Override
     public List<PermissionAdjustmentId> dueToExpire(Instant now, int limit) {
-        return ids("""
+        return ids(jdbc.sql("""
                 select permission_adjustment_id from platform_identity.permission_adjustments
                  where status = 'UPHELD' and uphold_expires_at <= :now order by uphold_expires_at, permission_adjustment_id limit :limit
-                """, now, limit);
+                """).param("now", utc(now)).param("limit", limit));
     }
 
     @Override
     public List<PermissionAdjustmentId> pendingRegeneration(int limit) {
-        return ids("""
+        return ids(jdbc.sql("""
                 select permission_adjustment_id from platform_identity.permission_adjustments
                  where status = 'EXPIRED' and regeneration_decided_at is null order by expired_at, permission_adjustment_id limit :limit
-                """, null, limit);
+                """).param("limit", limit));
     }
 
     @Override
     public List<PermissionAdjustmentId> overdueOpen(Instant now, int limit) {
-        return ids("""
+        return ids(jdbc.sql("""
                 select permission_adjustment_id from platform_identity.permission_adjustments
                  where status = 'OPEN' and escalated_at is null and escalation_due_at <= :now
                  order by escalation_due_at, permission_adjustment_id limit :limit
-                """, now, limit);
+                """).param("now", utc(now)).param("limit", limit));
     }
 
-    private List<PermissionAdjustmentId> ids(String sql, @Nullable Instant now, int limit) {
-        var statement = jdbc.sql(sql).param("limit", limit);
-        return (now == null ? statement : statement.param("now", utc(now))).query((row, ignored) -> new PermissionAdjustmentId(row.getObject(1, UUID.class))).list();
+    private static List<PermissionAdjustmentId> ids(JdbcClient.StatementSpec query) {
+        return query.query((row, ignored) -> new PermissionAdjustmentId(row.getObject(1, UUID.class))).list();
     }
 
     private static @Nullable OffsetDateTime utc(@Nullable Instant instant) {
