@@ -246,6 +246,18 @@ public final class OrgStructureCommand extends AggregateRoot {
         transferredEmployeeCount = done + 1;
     }
 
+    /**
+     * Nobody is left in the merged unit, so everyone the merge counted is out of it. A person who was refused and then moved out by another effective command
+     * counts as done (design note section 8, user answer QF1 a); only the check "nobody is left" lets this be called.
+     */
+    public void countRemainingAsMovedOut() {
+        requireKind(OrgStructureCommandKind.MERGE);
+        if (status != OrgCommandStatus.IN_PROGRESS) {
+            throw notAllowed("the merge is not in progress");
+        }
+        transferredEmployeeCount = affectedEmployeeCount;
+    }
+
     /** A merge is effective only when everyone it counted has been moved (ck_org_structure_commands_merge_progress). */
     public void completeMerge(Instant now) {
         requireKind(OrgStructureCommandKind.MERGE);

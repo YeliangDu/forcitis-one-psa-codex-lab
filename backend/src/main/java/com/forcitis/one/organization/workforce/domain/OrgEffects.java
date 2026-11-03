@@ -77,7 +77,7 @@ public final class OrgEffects {
         return v;
     }
 
-    /** The columns the command's own rows set: the whole row for a create or a dissolve of the whole state, else what it names. */
+    /** The columns the command's own rows set: what its values name; a merge sets only the status of the merged unit. */
     public static Set<String> columnsOf(OrgStructureCommand c) {
         if (c.kind() == OrgStructureCommandKind.MERGE) {
             return mergeValues().keySet();

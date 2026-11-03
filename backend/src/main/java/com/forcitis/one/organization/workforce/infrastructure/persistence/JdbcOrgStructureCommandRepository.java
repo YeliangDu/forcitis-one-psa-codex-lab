@@ -72,6 +72,11 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     }
 
     @Override
+    public void lockOrgTree() {
+        jdbc.sql("select pg_advisory_xact_lock(hashtextextended('organization.workforce.org-tree', 0))").query().singleRow();
+    }
+
+    @Override
     public boolean orgUnitExists(OrgUnitId orgUnit) {
         return jdbc.sql("select 1 from organization_workforce.org_units where id = :id").param("id", orgUnit.value()).query(Integer.class).optional().isPresent();
     }
@@ -195,6 +200,13 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     public boolean hasOpenMerge(OrgUnitId orgUnit) {
         return jdbc.sql("select 1 from organization_workforce.org_structure_commands where target_org_unit_id = :id and command_kind = 'MERGE'"
                 + " and status in ('PENDING', 'IN_PROGRESS') limit 1").param("id", orgUnit.value()).query(Integer.class).optional().isPresent();
+    }
+
+    @Override
+    public boolean hasOpenMergeInto(OrgUnitId orgUnit, LocalDate onOrBefore) {
+        return jdbc.sql("select 1 from organization_workforce.org_structure_commands where merge_into_org_unit_id = :id and command_kind = 'MERGE'"
+                + " and status in ('PENDING', 'IN_PROGRESS') and effective_date <= :day limit 1")
+                .param("id", orgUnit.value()).param("day", onOrBefore).query(Integer.class).optional().isPresent();
     }
 
     @Override

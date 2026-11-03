@@ -24,6 +24,12 @@ public interface OrgStructureCommandRepository {
      */
     boolean lockOrgUnit(OrgUnitId orgUnit);
 
+    /**
+     * Takes the transaction-level advisory lock every write of the org tree takes first (entering and withdrawing a command, starting a merge): the tree rules
+     * read rows of other units, so two commands that are fine alone but wrong together would otherwise both pass. Order: this lock, then the unit root, then the employee root.
+     */
+    void lockOrgTree();
+
     boolean orgUnitExists(OrgUnitId orgUnit);
 
     boolean positionExists(PositionId position);
@@ -50,6 +56,9 @@ public interface OrgStructureCommandRepository {
 
     /** Whether a merge of the unit is pending or in progress, whatever its day: nothing may be placed below a unit that is about to disappear. */
     boolean hasOpenMerge(OrgUnitId orgUnit);
+
+    /** Whether a merge into the unit is pending or in progress with an effective date on or before the day: its people will arrive by then. */
+    boolean hasOpenMergeInto(OrgUnitId orgUnit, LocalDate onOrBefore);
 
     /** The snapshot row of a new org unit, in the command's transaction; its versions follow. */
     void insertOrgUnit(OrgStructureCommand command, Instant at);

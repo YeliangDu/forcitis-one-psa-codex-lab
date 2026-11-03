@@ -60,11 +60,13 @@ class OrgStructureRules {
             case DISSOLVE -> {
                 requireInForce(unit, day, tree);
                 requireEmptyForGood(unit, day, tree);
+                requireNoMergeArriving(unit, day);
             }
             case MERGE -> {
                 requireInForce(unit, day, tree);
-                requireInForce(c.mergeIntoOrgUnitId(), day, tree);
+                requireRoomBelow(c.mergeIntoOrgUnitId(), day, tree);
                 requireEmptyOfUnits(unit, day, tree);
+                requireNoMergeArriving(unit, day);
             }
             default -> requireInForce(unit, day, tree);
         }
@@ -75,7 +77,9 @@ class OrgStructureRules {
 
     /** Execution looks at the children once more: a unit may have been put below the merged one after the merge was entered (for example by a load). */
     void checkMergeStillPossible(OrgStructureCommand merge) {
-        requireEmptyOfUnits(merge.targetOrgUnitId(), merge.effectiveDate(), new OrgTree(commands.currentUnitRows()));
+        OrgTree tree = new OrgTree(commands.currentUnitRows());
+        requireEmptyOfUnits(merge.targetOrgUnitId(), merge.effectiveDate(), tree);
+        requireRoomBelow(merge.mergeIntoOrgUnitId(), merge.effectiveDate(), tree);
     }
 
     private void checkPosition(OrgStructureCommand c, LocalDate day) {
@@ -116,6 +120,13 @@ class OrgStructureRules {
         }
         if (commands.hasOpenMerge(parent)) {
             throw refused("the parent org unit is about to be merged away");
+        }
+    }
+
+    /** People are about to arrive in the unit by a merge dated on or before the day: it cannot be dissolved or merged away on that day with them still to come. */
+    private void requireNoMergeArriving(OrgUnitId unit, LocalDate day) {
+        if (commands.hasOpenMergeInto(unit, day)) {
+            throw refused("a merge into the org unit is due on or before " + day + "; its people are still to arrive");
         }
     }
 

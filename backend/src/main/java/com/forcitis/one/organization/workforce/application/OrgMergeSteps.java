@@ -38,7 +38,6 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 class OrgMergeSteps {
-    static final String AUDIT_COMPLETED = "organization.workforce.org-structure-command.completed";
 
     private final OrgStructureCommandRepository commands;
     private final OrgStructureRules rules;
@@ -68,6 +67,7 @@ class OrgMergeSteps {
     public List<EmployeeId> start(OrgStructureCommandId id, UUID actor) {
         Instant now = clock.instant();
         LocalDate today = zone.dateOf(now);
+        commands.lockOrgTree();
         OrgStructureCommand merge = lockedMerge(id);
         if (merge.status() == OrgCommandStatus.EFFECTIVE) {
             return List.of();
@@ -90,7 +90,7 @@ class OrgMergeSteps {
         return people;
     }
 
-    /** Moves one person into the receiving unit, or counts them as done when something else has already moved them out. */
+    /** Moves one person into the receiving unit; one who something else has moved out since the list was made is counted as done. */
     @Transactional
     public void move(OrgStructureCommandId id, EmployeeId employee, UUID actor) {
         OrgStructureCommand merge = lockedMerge(id);
@@ -106,7 +106,7 @@ class OrgMergeSteps {
         commands.update(merge, clock.instant(), loaded);
     }
 
-    /** Revokes the merged unit once nobody is left in it and everybody counted is moved; the merge is then effective. */
+    /** Revokes the merged unit once nobody is left in it; whoever is counted and no longer there has been moved, by the merge or by another command. The merge is then effective. */
     @Transactional
     public void finish(OrgStructureCommandId id, UUID actor) {
         Instant now = clock.instant();
@@ -120,9 +120,10 @@ class OrgMergeSteps {
         }
         long loaded = merge.version();
         String before = merge.status().name();
-        AuditEntryId auditEntry = audit.record(new AuditEntry(AUDIT_COMPLETED, null, null, AuditSubject.of(AuditSubjectKind.ORG_UNIT, merge.targetOrgUnitId().value()),
+        AuditEntryId auditEntry = audit.record(new AuditEntry("organization.workforce.org-structure-command.completed", null, null, AuditSubject.of(AuditSubjectKind.ORG_UNIT, merge.targetOrgUnitId().value()),
                 "command " + merge.id() + " " + merge.kind() + " effective " + merge.effectiveDate()));
         OrgTimeline timeline = commands.unitTimeline(merge.targetOrgUnitId());
+        merge.countRemainingAsMovedOut();
         merge.completeMerge(now);
         commands.insertUnitVersions(merge.targetOrgUnitId(), plans.forMergeCompletion(merge, timeline, auditEntry), merge.id(), now);
         commands.update(merge, now, loaded);

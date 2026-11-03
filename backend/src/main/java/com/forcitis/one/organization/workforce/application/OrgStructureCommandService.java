@@ -42,15 +42,13 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Entering and withdrawing org-structure commands (ADR-0068 item 4). One transaction holds the unit's root row locked, the cross-row rules, the command,
+ * Entering and withdrawing org-structure commands (ADR-0068 item 4). One transaction holds the tree lock and the target unit's root row (a position command only the tree lock), the cross-row rules, the command,
  * the version rows (W2 design section 2), the transition, the audit entry and, when the command takes effect, the event. The permission is checked before
  * anything about the content is read. A merge writes nothing but its command when entered; {@link OrgMergeExecution} moves its people later.
  */
 @Component
 class OrgStructureCommandService implements OrgStructureCommands {
     static final String PERMISSION = "organization.workforce:org-structure-command:create";
-    static final String AUDIT_ENTERED = "organization.workforce.org-structure-command.entered";
-    static final String AUDIT_WITHDRAWN = "organization.workforce.org-structure-command.withdrawn";
 
     private final OrgStructureCommandRepository commands;
     private final OrgPlans plans;
@@ -85,6 +83,7 @@ class OrgStructureCommandService implements OrgStructureCommands {
         LocalDate today = zone.dateOf(now);
         UserId by = currentUser.userId();
         OrgStructureCommand command = OrgStructureCommand.enter(new OrgStructureCommandId(ids.next()), request, ids.next(), by, now, today);
+        commands.lockOrgTree();
         OrgUnitId unit = command.targetOrgUnitId();
         boolean creates = command.kind() == OrgStructureCommandKind.CREATE;
         if (unit != null && !creates) {
@@ -119,6 +118,7 @@ class OrgStructureCommandService implements OrgStructureCommands {
         Instant now = clock.instant();
         LocalDate today = zone.dateOf(now);
         UserId by = currentUser.userId();
+        commands.lockOrgTree();
         OrgStructureCommand found = commands.find(request.orgStructureCommandId()).orElseThrow(OrgStructureCommandService::notFound);
         if (found.targetOrgUnitId() != null) {
             commands.lockOrgUnit(found.targetOrgUnitId());
@@ -136,7 +136,7 @@ class OrgStructureCommandService implements OrgStructureCommands {
         }
         commands.update(command, now, loadedVersion);
         commands.insertTransition(command.id(), loadedVersion + 1, before.name(), command.status().name(), ActorType.USER, by.value(), today, now, correlation());
-        audit.record(new AuditEntry(AUDIT_WITHDRAWN, by, null, subjectOf(command), "command " + command.id() + " " + command.kind() + "; reason: "
+        audit.record(new AuditEntry("organization.workforce.org-structure-command.withdrawn", by, null, subjectOf(command), "command " + command.id() + " " + command.kind() + "; reason: "
                 + command.withdrawalReason().replaceAll("\\p{Cntrl}", " ")));
     }
 
@@ -200,7 +200,7 @@ class OrgStructureCommandService implements OrgStructureCommands {
                     .findFirst().orElse(Map.of());
             after.forEach((column, value) -> detail.append("; ").append(column).append(": ").append(inForce.get(column)).append(" -> ").append(value));
         }
-        return new AuditEntry(AUDIT_ENTERED, by, null, subjectOf(c), detail.toString().replaceAll("\\p{Cntrl}", " "));
+        return new AuditEntry("organization.workforce.org-structure-command.entered", by, null, subjectOf(c), detail.toString().replaceAll("\\p{Cntrl}", " "));
     }
 
     private static AuditSubject subjectOf(OrgStructureCommand c) {

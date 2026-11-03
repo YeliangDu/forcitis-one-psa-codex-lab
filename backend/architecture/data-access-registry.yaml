@@ -204,7 +204,7 @@ tables:
     retention: {policy: PERMANENT}  # 与 personnel_commands 相同：随员工清除，离职满 10 年由 purge_employee_history 删除（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
     writers: [organization.workforce]
-  # 岗位命令同表，按 target_kind 归属岗位；注册表只能记一个聚合，取组织单元。尚无写入方（后续卡随仓储登记 writers）。
+  # 岗位命令同表，按 target_kind 归属岗位；注册表只能记一个聚合，取组织单元。写入方是组织结构命令用例（#907）。
   organization_workforce.org_structure_commands:
     role: AGGREGATE_CHILD
     aggregate: OrgUnit
@@ -225,7 +225,7 @@ tables:
     condition: 关闭列对与作废列对各只能由空变非空一次，已关闭的行也可被作废，其余列不变，不删除（触发器 tg_org_unit_versions_append_only，W2 设计第 2 节）
     references: {regional_receivables_manager_id: organization_workforce.employees, corrected_from_version_id: organization_workforce.org_unit_versions}
     writers: [organization.workforce]  # the org-structure command line (#907); the sync that wrote it is gone since #934
-  # D17 rule 2: effective basis DECLARED. Empty table: the root positions keeps its columns and the sync-era path keeps writing the root until root narrowing (W2 section 9); no writer yet.
+  # D17 rule 2: effective basis DECLARED. The root positions keeps its columns; the org-structure command line (#907) writes the versions of a position it creates or disables, root narrowing is W2 section 9.
   organization_workforce.position_versions:
     role: DIMENSION_VERSIONED
     mutability: APPEND_ONLY
