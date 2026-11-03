@@ -6,6 +6,7 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.SeparationReview;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.ReleaseSeparationHold;
 import com.forcitis.one.organization.workforce.api.SeparationHolds;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
@@ -34,15 +35,17 @@ class SeparationHoldService implements SeparationHolds {
     private final PersonnelCommandRepository commands;
     private final SeparationReview review;
     private final HeldSeparationRelease release;
+    private final OrgMergeProgress mergeProgress;
     private final SeparationHoldNotice notice;
     private final CurrentUser currentUser;
     private final Clock clock;
 
-    SeparationHoldService(PersonnelCommandRepository commands, SeparationReview review, HeldSeparationRelease release, SeparationHoldNotice notice, CurrentUser currentUser,
-                          Clock clock) {
+    SeparationHoldService(PersonnelCommandRepository commands, SeparationReview review, HeldSeparationRelease release, OrgMergeProgress mergeProgress, SeparationHoldNotice notice,
+                          CurrentUser currentUser, Clock clock) {
         this.commands = commands;
         this.review = review;
         this.release = release;
+        this.mergeProgress = mergeProgress;
         this.notice = notice;
         this.currentUser = currentUser;
         this.clock = clock;
@@ -58,6 +61,7 @@ class SeparationHoldService implements SeparationHolds {
         SeparationHold found = commands.findHold(request.separationHoldId()).orElseThrow(SeparationHoldService::notFound);
         PersonnelCommand command = commands.find(found.commandId()).orElseThrow(SeparationHoldService::notFound);
         EmployeeId employee = command.employeeId();
+        List<OrgStructureCommandId> holding = mergeProgress.lockHolding(employee);
         commands.lockEmployee(employee);
         SeparationHold hold = commands.findHold(request.separationHoldId()).orElseThrow(SeparationHoldService::notFound);
         command = commands.find(found.commandId()).orElseThrow(SeparationHoldService::notFound);
@@ -75,7 +79,7 @@ class SeparationHoldService implements SeparationHolds {
         String reason = hold.releaseReason().replaceAll("\\p{Cntrl}", " ");
         release.execute(command, commandVersion, hold, holdVersion, HeldSeparationRelease.Releaser.user(by), now, "reason: " + reason + "; session mode: "
                 + (verdict.sessionMode().isEmpty() ? "none" : verdict.sessionMode()) + "; command: " + command.id() + "; hold: " + hold.id()
-                + "; remaining super_admin: " + verdict.remainingAdministrators());
+                + "; remaining super_admin: " + verdict.remainingAdministrators(), holding);
         if (verdict.remainingAdministrators() == 1) {
             notice.remainingOne(hold, verdict.noticeRecipients(), commands.heldEmployees(), by);
         }

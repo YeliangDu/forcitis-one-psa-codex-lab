@@ -309,6 +309,12 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
     @DisplayName("IMP-1030-ORG-F1 an awaiting command moves to PENDING, EFFECTIVE or WITHDRAWN; nothing moves into the awaiting status after insert")
     void awaitingMoves() {
         command(COMMAND, "ASSIGN_LEGAL_ENTITY", "ORG_UNIT", "AWAITING_ATTRIBUTION_COUNTERSIGN", ", target_legal_entity_id", ", " + LEGAL_ENTITY);
+        // #910 S2: the database lets the command leave the wait only with every CHANGE countersign approved (the line is the acceptance part of OrgMergeTransferGuardIT).
+        jdbc.sql("insert into organization_workforce.attribution_countersigns (attribution_countersign_id, org_structure_command_id, drafted_by, request_kind, request_sequence_number,"
+                + " legal_entity_id, requested_at, requested_by, due_on_date, created_at, updated_at) values (gen_random_uuid(), " + COMMAND + ", " + USER + ", 'CHANGE', 1, " + LEGAL_ENTITY
+                + ", now(), " + USER + ", date '2026-12-31', now(), now())").update();
+        jdbc.sql("update organization_workforce.attribution_countersigns set decision_kind = 'APPROVED', decided_at = now(), decided_by = '019a0000-0000-7000-8000-0000000000ab'"
+                + ", decision_audit_entry_id = gen_random_uuid(), updated_at = now() where org_structure_command_id = " + COMMAND).update();
         bump("status = 'PENDING'");
         assertThatThrownBy(() -> bump("status = 'AWAITING_ATTRIBUTION_COUNTERSIGN'")).hasMessageContaining("cannot move");
         bump("status = 'EFFECTIVE', applied_at = now()");

@@ -255,14 +255,16 @@ public final class OrgStructureCommand extends AggregateRoot {
         this.transferredEmployeeCount = 0;
     }
 
-    /** One more person is moved. */
-    public void recordTransferred() {
+    /** Counts the people of the start who are out of the merged unit now (the others are {@code left} in it); the count only rises. Whether the count changed. */
+    public boolean recordRemaining(int left) {
         Integer affected = affectedEmployeeCount;
         Integer done = transferredEmployeeCount;
-        if (status != OrgCommandStatus.IN_PROGRESS || affected == null || done == null || done >= affected) {
-            throw notAllowed("no person is left to move");
+        if (status != OrgCommandStatus.IN_PROGRESS || affected == null || done == null) {
+            throw notAllowed("the merge is not in progress");
         }
-        transferredEmployeeCount = done + 1;
+        int now = Math.min(affected, Math.max(done, affected - left));
+        transferredEmployeeCount = now;
+        return now != done;
     }
 
     /**
