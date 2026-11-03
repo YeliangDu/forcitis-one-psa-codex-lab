@@ -57,6 +57,10 @@ class OrgCountersignBases {
         for (EmployeeId employee : affected(command)) {
             Optional<LegalEntityId> before = LegalEntityResolution.resolve(sources, employee, day);
             Optional<LegalEntityId> next = LegalEntityResolution.resolve(after, employee, day);
+            if (before.isPresent() && next.isEmpty()) {
+                throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ORG_LEGAL_ENTITY_CONFLICT, ErrorKind.UNPROCESSABLE,
+                        "the command would leave an employee without a cost legal entity on " + day);
+            }
             if (before.isPresent() && next.isPresent() && !before.get().equals(next.get())) {
                 basis.add(new OrgCountersignBasis(employee, before.get(), next.get()));
             }
