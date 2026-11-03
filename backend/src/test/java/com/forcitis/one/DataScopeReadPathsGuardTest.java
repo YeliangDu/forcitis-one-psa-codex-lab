@@ -207,6 +207,26 @@ class DataScopeReadPathsGuardTest {
         assertThat(problems).as("a known class adds nothing").hasSize(2);
     }
 
+    /** Not Spring's: only the simple name is the same. */
+    static class Lookalikes {
+        static class SimpleUrlHandlerMapping extends AbstractUrlHandlerMapping {
+            @Override
+            protected @Nullable Object getHandlerInternal(HttpServletRequest request) {
+                return null;
+            }
+        }
+    }
+
+    @Test
+    @DisplayName("#730 G1: a class that only shares the simple name of a known mapping is reported")
+    void aMappingWithAKnownSimpleNameIsReported() {
+        List<String> problems = new ArrayList<>();
+
+        DataScopeReadPaths.getHandlers(List.of(new Lookalikes.SimpleUrlHandlerMapping()), problems);
+
+        assertThat(problems).singleElement().asString().contains("does not know");
+    }
+
     @Test
     @DisplayName("#730 G1: a RouterFunction in the context is reported, and a url mapping's patterns are enumerated")
     void routerFunctionsAndUrlMappingsAreCaught() {
