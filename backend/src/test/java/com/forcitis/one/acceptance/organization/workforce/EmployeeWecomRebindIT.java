@@ -10,7 +10,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.DomainException;
-import com.forcitis.one.kernel.ErrorCode;
 import com.forcitis.one.kernel.Uuids;
 import com.jayway.jsonpath.JsonPath;
 import java.sql.Connection;
@@ -31,8 +30,9 @@ import org.springframework.test.context.DynamicPropertySource;
  * #959 security follow-up (user decision of 2026-11-02, WeCom rebind against impersonation, all three controls): employees.wecom_user_id
  * is the WeCom login binding, so a profile change must not let one person sign in as another.
  * ① nobody changes their own employee record; ② a rebind or clear of a non-empty WeCom user id of an employee whose account holds any
- * role beyond employee needs a second person, and until that flow exists (lead sequencing) it is refused with an error of its own, while
- * filling in an empty one stays single-person; ③ any change of the WeCom user id revokes that employee's sessions and browser identifiers
+ * role beyond employee needs a second person: #959 refused it, and since #980 (user answers Q1 a, Q2 a; RULING-LEAD-20261103-01) it waits
+ * for the second person (202, a PENDING request; the request flow itself is #980's acceptance), while filling in an empty one stays
+ * single-person; ③ any change of the WeCom user id revokes that employee's sessions and browser identifiers
  * in the same transaction, as separation does (I-13).
  */
 class EmployeeWecomRebindIT extends EmployeeHireSupport {
@@ -64,39 +64,18 @@ class EmployeeWecomRebindIT extends EmployeeHireSupport {
 
     @ParameterizedTest(name = "role {0}")
     @ValueSource(strings = {"super_admin", "org_data_admin", "business_admin", "security_auditor", "process_administrator", PERSONNEL_SPECIALIST_ROLE})
-    @DisplayName("#959 用户 2026-11-02 第②道（#959 先一律拒收）：账号持有普通员工以外角色的人，企业微信账号改绑与清空都被拒，错误与重复占用、本人修改不同；员工根、会话、浏览器标识、审计都不变")
-    void aPrivilegedRebindOrClearIsRefusedWithItsOwnError(String role) throws Exception {
-        Staff privileged = staff(role);
-        String held = wecomOf(privileged);
-        ErrorCode taken = errorOf(() -> change(staff().employeeId(), "Synthetic duplicate", null, null, held, TODAY));
-        actIn(hr);
-        Throwable ownRecord = catchThrowable(() -> change(hr.employeeId(), "Synthetic self", null, null, wecomOf(hr), TODAY));
-        ErrorCode self = ownRecord instanceof DomainException domain ? domain.errorCode() : null;
-        ErrorCode tooEarly = errorOf(() -> change(staff().employeeId(), "Synthetic too early", null, null, null, TODAY.plusDays(1)));
-
-        Throwable rebind = assertRefusedUnchanged(hr, privileged, "Synthetic rebound", syntheticWecom("rebind-" + role));
-        Throwable clear = assertRefusedUnchanged(hr, privileged, "Synthetic cleared", null);
-
-        for (Throwable failure : new Throwable[] {rebind, clear}) {
-            assertThat(failure).as(String.valueOf(failure)).isInstanceOf(DomainException.class);
-            ErrorCode code = ((DomainException) failure).errorCode();
-            assertThat(code).as("an error of its own: not the duplicate refusal").isNotEqualTo(taken);
-            assertThat(code).as("an error of its own: not the own-record refusal").isNotEqualTo(self);
-            assertThat(code).as("an error of its own: not the refusal of an invalid change (a future date)").isNotEqualTo(tooEarly);
-            assertThat(code.code()).as("the code of this control").isEqualTo(WECOM_CHANGE_NOT_ALLOWED);
-        }
-        assertThat(((DomainException) rebind).errorCode()).as("rebind and clear are the same control").isEqualTo(((DomainException) clear).errorCode());
+    @DisplayName("#959 用户 2026-11-02 第②道，#980 起（用户答复 Q1 a、Q2 a，RULING-LEAD-20261103-01）：账号持有普通员工以外角色的人，企业微信账号改绑与清空都不再被拒，而是等第二人复核：202 带请求 ID、一条待复核请求；员工根、会话、浏览器标识、档案修改审计都不变")
+    void aPrivilegedRebindOrClearWaitsForASecondPerson(String role) throws Exception {
+        assertWaitsUnchanged(staff(role), syntheticWecom("rebind-" + role));
+        assertWaitsUnchanged(staff(role), null);
     }
 
     @Test
-    @DisplayName("#959 用户 2026-11-02 第②道「普通员工以外的任何角色」：自定义角色的持有人、以及账号上没有 employee 角色行的超级管理员，企业微信账号改绑同样被拒，错误与种子角色时相同")
+    @DisplayName("#959 用户 2026-11-02 第②道「普通员工以外的任何角色」，#980 起（RULING-LEAD-20261103-01）：自定义角色的持有人、以及账号上没有 employee 角色行的超级管理员，企业微信账号改绑同样等第二人复核（202、待复核请求、什么都不变）")
     void aCustomRoleOrAnAdminWithoutTheEmployeeRoleCountsAsPrivileged() throws Exception {
-        ErrorCode seeded = ((DomainException) assertRefusedUnchanged(hr, staff("org_data_admin"), "Synthetic rebound", syntheticWecom("seeded"))).errorCode();
+        assertWaitsUnchanged(staff("org_data_admin"), syntheticWecom("seeded"));
 
-        Staff custom = staff(customRole());
-        Throwable customRefusal = assertRefusedUnchanged(hr, custom, "Synthetic rebound", syntheticWecom("custom"));
-        assertThat(customRefusal).as(String.valueOf(customRefusal)).isInstanceOf(DomainException.class);
-        assertThat(((DomainException) customRefusal).errorCode()).isEqualTo(seeded);
+        assertWaitsUnchanged(staff(customRole()), syntheticWecom("custom"));
 
         Staff admin = staff("super_admin");
         ensureAttestors();
@@ -107,9 +86,7 @@ class EmployeeWecomRebindIT extends EmployeeHireSupport {
                 new java.io.PrintStream(err, true, java.nio.charset.StandardCharsets.UTF_8));
         assertThat(revoked).as("premise: the employee role is taken from the administrator: " + err.toString(java.nio.charset.StandardCharsets.UTF_8)).isZero();
         admin = new Staff(admin.employeeId(), signIn(admin.employeeId())); // a role change ends the sessions; the case needs a live one
-        Throwable adminRefusal = assertRefusedUnchanged(hr, admin, "Synthetic rebound", syntheticWecom("admin-only"));
-        assertThat(adminRefusal).as(String.valueOf(adminRefusal)).isInstanceOf(DomainException.class);
-        assertThat(((DomainException) adminRefusal).errorCode()).isEqualTo(seeded);
+        assertWaitsUnchanged(admin, syntheticWecom("admin-only"));
     }
 
     @Test
@@ -195,18 +172,18 @@ class EmployeeWecomRebindIT extends EmployeeHireSupport {
     }
 
     @Test
-    @DisplayName("#959 opus 复审必改 1 的攻击链：人事专员把自己的企业微信账号挪走、写到超级管理员档案上、或清空超级管理员的账号都被拒；其企业微信登录仍只进自己的账号")
+    @DisplayName("#959 opus 复审必改 1 的攻击链，#980 起（RULING-LEAD-20261103-01）：人事专员挪走自己的企业微信账号、把它写到超级管理员档案上都被拒；清空超级管理员的账号、同伙改绑或清空该人事专员的账号都只能等第二人复核（202、什么都不变）；其企业微信登录仍只进自己的账号")
     void aSpecialistCannotTakeOverASuperAdmin() throws Exception {
         Staff admin = staff("super_admin");
         String own = wecomOf(hr);
 
         assertRefusedUnchanged(hr, hr, "Synthetic moved away", syntheticWecom("moved-away"));
         assertRefusedUnchanged(hr, admin, "Synthetic takeover", own);
-        assertRefusedUnchanged(hr, admin, "Synthetic takeover", null);
+        assertWaitsUnchanged(hr, admin, null);
 
         Staff accomplice = staff(PERSONNEL_SPECIALIST_ROLE);
-        assertRefusedUnchanged(accomplice, hr, "Synthetic moved by accomplice", syntheticWecom("moved-by-accomplice"));
-        assertRefusedUnchanged(accomplice, hr, "Synthetic cleared by accomplice", null);
+        withdraw(accomplice, assertWaitsUnchanged(accomplice, hr, syntheticWecom("moved-by-accomplice")));
+        assertWaitsUnchanged(accomplice, hr, null);
 
         assertThat(signInWith(wecomCodeOf(own), hr.employeeId()).userId()).as("the specialist's WeCom login opens only their own account").isEqualTo(hr.userId());
     }
@@ -254,6 +231,48 @@ class EmployeeWecomRebindIT extends EmployeeHireSupport {
         return failure;
     }
 
+    /**
+     * #980 (RULING-LEAD-20261103-01): the 人事专员's change of the target's WeCom user id waits for a second person: 202 with a request id
+     * and one PENDING row of employee_profile_change_requests; the target's root, session and browser identifiers and the changed audit stay
+     * as they were.
+     */
+    private UUID assertWaitsUnchanged(Staff target, String wecomUserId) throws Exception {
+        return assertWaitsUnchanged(hr, target, wecomUserId);
+    }
+
+    /** As {@link #assertWaitsUnchanged(Staff, String)} with the given caller; the caller's own session stays too. Answers the request id. */
+    private UUID assertWaitsUnchanged(Staff caller, Staff target, String wecomUserId) throws Exception {
+        browserIdentifier(target);
+        UUID person = target.employeeId();
+        Map<String, Object> rootBefore = root(person);
+        int audited = auditCount(AUDIT_PROFILE_CHANGED);
+        long identifiers = browserIdentifiers(target);
+        String wecom = wecomUserId == null ? "null" : "\"" + wecomUserId + "\"";
+
+        MockHttpServletResponse answer = mvc.perform(post("/api/v1/organization/employees/" + text(person) + ":change-profile").with(csrf()).with(session(caller.session()))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"displayName\":\"Synthetic waiting\",\"wecomUserId\":" + wecom + ",\"effectiveDate\":\"" + TODAY + "\"}"))
+                .andReturn().getResponse();
+
+        assertThat(answer.getStatus()).as("waits for a second person: " + answer.getContentAsString()).isEqualTo(202);
+        String request = JsonPath.read(answer.getContentAsString(), "$.requestId");
+        assertThat(rows("select request_status from employee_profile_change_requests where employee_profile_change_request_id = ?", UUID.fromString(request)))
+                .singleElement().satisfies(row -> assertThat(row.get("request_status")).isEqualTo("PENDING"));
+        assertThat(root(person)).as("the root is unchanged").isEqualTo(rootBefore);
+        assertThat(auditCount(AUDIT_PROFILE_CHANGED)).isEqualTo(audited);
+        assertThat(profileStatus(target)).as("the target's session stays").isEqualTo(200);
+        assertThat(browserIdentifiers(target)).as("no browser identifier of the target revoked").isEqualTo(identifiers);
+        assertThat(profileStatus(caller)).as("the caller's session stays").isEqualTo(200);
+        return UUID.fromString(request);
+    }
+
+    /** The requester withdraws the pending request (reason required; a pending request is version 0), so that the next change may be made. */
+    private void withdraw(Staff requester, UUID request) throws Exception {
+        MockHttpServletResponse withdrawn = mvc.perform(post("/api/v1/organization/employee-profile-change-requests/" + request + ":reject").header("If-Match", "\"0\"")
+                .with(csrf()).with(session(requester.session())).contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"synthetic: withdrawn\"}"))
+                .andReturn().getResponse();
+        assertThat(withdrawn.getStatus()).as("withdrawal: " + withdrawn.getContentAsString()).isEqualTo(200);
+    }
+
     /** A custom role (no permission codes) made through the role use case by a super_admin in administrator mode; returns its code. */
     private String customRole() throws Exception {
         Staff administrator = staff("super_admin");
@@ -270,18 +289,6 @@ class EmployeeWecomRebindIT extends EmployeeHireSupport {
         MockHttpServletResponse oldLogin = wecomLogin(wecomCodeOf(oldWecomUserId));
         assertThat(oldLogin.getStatus() != 200 || !text(person.userId()).equals(String.valueOf(JsonPath.read(oldLogin.getContentAsString(), "$.userId"))))
                 .as("the old WeCom user id no longer opens the account: " + oldLogin.getStatus()).isTrue();
-    }
-
-    private ErrorCode errorOf(ThrowingRunnable call) throws Exception {
-        actIn(hr);
-        Throwable failure = catchThrowable(call::run);
-        assertThat(failure).as(String.valueOf(failure)).isInstanceOf(DomainException.class);
-        return ((DomainException) failure).errorCode();
-    }
-
-    @FunctionalInterface
-    private interface ThrowingRunnable {
-        void run() throws Exception;
     }
 
     /** The status of the person's own profile in their login session: 200 while it lives, 401 or 403 when it is revoked. */
