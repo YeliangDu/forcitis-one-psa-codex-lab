@@ -448,7 +448,6 @@ tables:
       closure_sync_run_id: the run that closed the item, another module; no foreign key
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
-    writers: [platform.identity]
   platform_identity.account_role_grants:
     # Retention as role_versions above (0034-Q2; owner one-1a-par; due within 30 months after the first production deployment; purge job built with the audit online deletion; account_role_grants is purged before role_versions).
     # D17 rule 2: effective basis DECLARED; the current value is the row that is not closed.
