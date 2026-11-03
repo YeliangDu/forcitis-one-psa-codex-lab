@@ -26,7 +26,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
  * old F1_ACCEPTANCE.md): a small organisation with every kind of caller, and items written straight into
  * platform_identity.permission_adjustments in the valid shapes of the card (the listeners that generate them are slice S1/S2), so that
  * the API is judged on what it does with an item and not on how the item came to be. Paths, the {@code :uphold} and
- * {@code :mark-adjusted} commands and their field names are the contract's assumption.
+ * {@code :mark-adjusted} commands and their field names are confirmed by one-design (ruling 6602368110) until the implementation's OpenAPI replaces them.
  */
 abstract class PermissionAdjustmentApiSupport extends DataScopeSupport {
 

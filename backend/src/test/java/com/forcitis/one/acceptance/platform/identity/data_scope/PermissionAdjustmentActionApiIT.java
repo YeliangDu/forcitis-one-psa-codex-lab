@@ -206,7 +206,7 @@ class PermissionAdjustmentActionApiIT extends PermissionAdjustmentApiSupport {
     }
 
     @Test
-    @DisplayName("#730 S3 状态机（OPEN 才能转换）：已维持的条目再维持、再标记已调整都不是 2xx，维持人与原因不变")
+    @DisplayName("#730 S3 状态机（OPEN 才能转换）：已维持的条目再维持、再标记已调整都是 409，维持人与原因不变")
     void anUpheldItemTakesNoFurtherCommand() throws Exception {
         UUID item = openSensitive();
         assertThat(uphold(session("oda"), item.toString(), uphold("first", owner())).getStatus()).isEqualTo(200);
@@ -365,5 +365,21 @@ class PermissionAdjustmentActionApiIT extends PermissionAdjustmentApiSupport {
         assertThat(neither.getStatus()).isEqualTo(400);
         assertThat(both.getStatus()).isEqualTo(400);
         assertUntouched(item);
+    }
+
+    @Test
+    @DisplayName("#730 S3 标记已调整的办理资格（裁定第 3 条）：范围外的人（无角色者、原部门负责人）404，关于本人的条目 403，条目不变")
+    void markAdjustedIsRefusedOutOfScopeAndOnTheCallersOwnItem() throws Exception {
+        UUID item = openSensitive();
+        UUID own = sensitiveItemAbout("odaSubject");
+        String entry = anAuditEntryId();
+
+        for (String caller : List.of("plain", "headA")) {
+            assertThat(commandWithCurrentVersion(session(caller), item, "mark-adjusted", adjustedBy("auditEntryId", entry)).getStatus()).as(caller).isEqualTo(404);
+        }
+        MockHttpServletResponse ownAnswer = commandWithCurrentVersion(session("odaSubject"), own, "mark-adjusted", adjustedBy("auditEntryId", entry));
+        assertThat(ownAnswer.getStatus()).as(ownAnswer.getContentAsString()).isEqualTo(403);
+        assertUntouched(item);
+        assertUntouched(own);
     }
 }

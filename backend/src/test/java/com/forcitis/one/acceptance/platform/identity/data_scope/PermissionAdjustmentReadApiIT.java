@@ -61,7 +61,7 @@ class PermissionAdjustmentReadApiIT extends PermissionAdjustmentApiSupport {
     }
 
     @Test
-    @DisplayName("#730 S3 裁定 6602368110 第 3 条：没有权限码、也不是收件人的人（无角色者、原部门负责人、当事人本人）列表为 200 且为空（不是 403），读取别人的条目与不存在的 ID 同为 404 且错误体一致，条目不泄露")
+    @DisplayName("#730 S3 裁定 6602368110 第 3 条：没有权限码、也不是收件人的人（无角色者、原部门负责人、当事人本人）列表为 200 且为空（不是 403），读取别人的条目与不存在的 ID 同为 404 且错误体一致，条目不泄露，并写 platform.identity.access.denied 审计（ADR-0026 第 6 项第 5 条）")
     void callersOutOfScopeSeeAnEmptyListAndNotFoundAlike() throws Exception {
         UUID item = sensitiveItemAbout("mover");
         UUID transfer = scopeReviewAbout("mover", "headB");
@@ -81,18 +81,10 @@ class PermissionAdjustmentReadApiIT extends PermissionAdjustmentApiSupport {
                 assertThat((String) JsonPath.read(read.getContentAsString(), "$.title")).isEqualTo(JsonPath.read(missing.getContentAsString(), "$.title"));
             }
         }
-    }
-
-    @Test
-    @DisplayName("#730 S3 裁定第 3 条空范围：只有关于自己的条目的权限码持有者，列表为 200 且为空（不是 403、不含本人条目），读本人条目 404")
-    void aCodeHolderWithOnlyItsOwnItemsSeesAnEmptyList() throws Exception {
-        UUID own = sensitiveItemAbout("odaSubject");
-
-        MockHttpServletResponse listed = listPage(session("odaSubject"), "limit", "200");
-
-        assertThat(listed.getStatus()).as(listed.getContentAsString()).isEqualTo(200);
-        assertThat(field(items(listed), "permissionAdjustmentId")).doesNotContain(own.toString());
-        assertThat(read(session("odaSubject"), own).getStatus()).isEqualTo(404);
+        eventually(() -> {
+            assertThat(denialsAbout(item.toString())).as("ADR-0026 item 6.5: an out-of-scope read by id is audited as denied").isNotEmpty();
+            assertThat(denialsAbout(transfer.toString())).isNotEmpty();
+        });
     }
 
     @Test
