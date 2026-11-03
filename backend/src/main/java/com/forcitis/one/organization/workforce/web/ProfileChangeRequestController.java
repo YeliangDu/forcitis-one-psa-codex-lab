@@ -66,8 +66,8 @@ class ProfileChangeRequestController {
                                                         @RequestHeader(value = "If-Match", required = false) String ifMatch) {
         ExpectedVersion expected = ExpectedVersion.fromHeader(ifMatch);
         String reason = body.reason();
-        if (reason == null || reason.isBlank() || reason.length() > MAX_REASON_LENGTH) {
-            throw new InvalidRequestException("reason must be 1 to " + MAX_REASON_LENGTH + " characters and not blank");
+        if (reason == null || reason.isBlank() || reason.length() > MAX_REASON_LENGTH || reason.indexOf('\u0000') >= 0) {
+            throw new InvalidRequestException("reason must be 1 to " + MAX_REASON_LENGTH + " characters, not blank and without NUL");
         }
         ProfileChangeRequestView view = requests.reject(new ProfileChangeRequestId(requestId), reason, expected);
         return ResponseEntity.ok().eTag(ExpectedVersion.etag(view.version())).body(ProfileChangeRequestResponse.of(view));
