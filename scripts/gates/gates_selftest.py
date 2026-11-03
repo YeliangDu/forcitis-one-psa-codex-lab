@@ -799,13 +799,15 @@ def codex_gate_test():
         for command, needle in refused:
             reason = ask(command)
             assert reason and "拒绝" in reason and needle in reason, (command, needle, reason)
-        # only the caller's own worktree
-        for why, cwd, project in (("the main checkout", main, main), ("another worktree of the repository", w2, w1), ("a directory that is not a repository", plain, w1), ("no cwd", None, w1), ("a relative cwd", "w1", w1),
-                                  ("cwd gone", os.path.join(tmp, "gone"), w1), ("no CLAUDE_PROJECT_DIR", w1, None), ("CLAUDE_PROJECT_DIR is the main checkout", w1, main), ("CLAUDE_PROJECT_DIR is not a repository", w1, plain)):
-            reason = ask(f"{S} 'fix the bug'", cwd=cwd, project=project)
-            assert reason and "自己的 worktree" in reason, (why, reason)
+        # only a session worktree under .claude/worktrees/ (CLAUDE_PROJECT_DIR is the main checkout in app-started worktree sessions, so it is not compared)
+        for why, cwd in (("the main checkout", main), ("a directory that is not a repository", plain), ("no cwd", None), ("a relative cwd", "w1"), ("cwd gone", os.path.join(tmp, "gone"))):
+            reason = ask(f"{S} 'fix the bug'", cwd=cwd, project=main)
+            assert reason and "worktree" in reason, (why, reason)
+        for project in (main, w1, plain, None):
+            assert ask(f"{S} 'fix the bug'", project=project) is None, ("whatever CLAUDE_PROJECT_DIR says", project)
+        assert ask(f"{S} 'fix the bug'", cwd=w2, project=main) is None, "another session worktree of the repository"
         os.symlink(w2, os.path.join(tmp, "link"))
-        assert "自己的 worktree" in ask(f"{S} 'fix the bug'", cwd=os.path.join(tmp, "link")), "a symlink into another worktree resolves to it"
+        assert ask(f"{S} 'fix the bug'", cwd=os.path.join(tmp, "link")) is None and "不在 worktree" in ask(f"{S} 'fix the bug' > ../w1/x.txt", cwd=os.path.join(tmp, "link")), "a symlink resolves to the worktree it points at"
         os.symlink(tmp, os.path.join(w1, "escape"))
         assert "不在 worktree" in ask(f"{S} 'fix the bug' > escape/x.txt"), "a symlink out of the worktree does not make its target inside"
         # a repository whose worktree is not under .claude/worktrees/ is not an own worktree
