@@ -123,7 +123,7 @@ class OrgMergeSteps {
         AuditEntryId auditEntry = audit.record(new AuditEntry("organization.workforce.org-structure-command.completed", null, null, AuditSubject.of(AuditSubjectKind.ORG_UNIT, merge.targetOrgUnitId().value()),
                 "command " + merge.id() + " " + merge.kind() + " effective " + merge.effectiveDate()));
         OrgTimeline timeline = commands.unitTimeline(merge.targetOrgUnitId());
-        merge.countRemainingAsMovedOut();
+        merge.countRemainingAsTransferred();
         merge.completeMerge(now);
         commands.insertUnitVersions(merge.targetOrgUnitId(), plans.forMergeCompletion(merge, timeline, auditEntry), merge.id(), now);
         commands.update(merge, now, loaded);
