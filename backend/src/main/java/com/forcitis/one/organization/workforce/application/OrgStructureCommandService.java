@@ -175,7 +175,8 @@ class OrgStructureCommandService implements OrgStructureCommands {
         if (!commands.orgUnitExists(preview.targetOrgUnitId()) || !commands.orgUnitExists(preview.mergeIntoOrgUnitId())) {
             throw notAllowed("the org unit does not exist");
         }
-        return new OrgMergePreview(commands.employedIn(preview.targetOrgUnitId(), preview.effectiveDate()), commands.arrivalsAfter(preview.targetOrgUnitId(), preview.effectiveDate()));
+        return new OrgMergePreview(commands.employedIn(preview.targetOrgUnitId(), preview.effectiveDate()), commands.arrivalsAfter(preview.targetOrgUnitId(), preview.effectiveDate()),
+                commands.heldSeparationsIn(preview.targetOrgUnitId(), preview.effectiveDate()));
     }
 
     @Override

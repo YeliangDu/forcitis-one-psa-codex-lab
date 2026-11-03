@@ -8,6 +8,7 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.organization.workforce.api.BlockingArrival;
+import com.forcitis.one.organization.workforce.api.HeldSeparation;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
 import com.forcitis.one.organization.workforce.api.OrgStructureTargetKind;
@@ -522,6 +523,15 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
                     return new BlockingArrival(new EmployeeId(rs.getObject("employee_id", UUID.class)), rs.getObject("effective_from_date", LocalDate.class),
                             command == null ? null : new PersonnelCommandId(command));
                 }).list();
+    }
+
+    @Override
+    public List<HeldSeparation> heldSeparationsIn(OrgUnitId orgUnit, LocalDate day) {
+        return jdbc.sql("select a.employee_id, (select h.personnel_command_id from organization_workforce.separation_holds h where h.employee_id = a.employee_id and h.status = 'HELD') as held_command "
+                + OPEN_HOLDERS.formatted("org_unit_id") + " and a.assignment_kind = 'PRIMARY' and a.effective_from_date <= :day"
+                + " and exists (select 1 from organization_workforce.separation_holds h where h.employee_id = a.employee_id and h.status = 'HELD') order by a.employee_id")
+                .param("target", orgUnit.value()).param("day", day)
+                .query((rs, n) -> new HeldSeparation(new EmployeeId(rs.getObject(1, UUID.class)), new PersonnelCommandId(rs.getObject(2, UUID.class)))).list();
     }
 
     @Override

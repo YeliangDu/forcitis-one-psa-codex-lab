@@ -4,6 +4,8 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.organization.workforce.api.BlockingArrival;
+import com.forcitis.one.organization.workforce.api.HeldSeparation;
+import com.forcitis.one.organization.workforce.api.HeldSeparation;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PositionId;
@@ -125,6 +127,9 @@ public interface OrgStructureCommandRepository {
      * A person who is in the unit just before such a row (a later position or manager change) is a resident, not an arrival.
      */
     List<BlockingArrival> arrivalsAfter(OrgUnitId orgUnit, LocalDate day);
+
+    /** The people employed in the unit on the day whose separation is held, with the held command: a hold keeps them where they are. */
+    List<HeldSeparation> heldSeparationsIn(OrgUnitId orgUnit, LocalDate day);
 
     /** The merges in progress whose merged unit holds the employee's primary post on the merge day, ordered by merge day, merged unit, then id (the order their unit rows are locked in). */
     List<OrgStructureCommandId> mergesInProgressOf(EmployeeId employee);

@@ -32,9 +32,14 @@ class OrgMergeProgress {
         this.clock = clock;
     }
 
+    /** The merges in progress whose merged unit holds the employee on the merge day. */
+    List<OrgStructureCommandId> holding(EmployeeId employee) {
+        return commands.mergesInProgressOf(employee);
+    }
+
     /** The merges in progress that hold the employee, their merged units locked; call before the employee row is locked. */
     List<OrgStructureCommandId> lockHolding(EmployeeId employee) {
-        List<OrgStructureCommandId> holding = commands.mergesInProgressOf(employee);
+        List<OrgStructureCommandId> holding = holding(employee);
         for (OrgStructureCommandId id : holding) {
             commands.lockOrgUnit(commands.find(id).orElseThrow().targetOrgUnitId());
         }
