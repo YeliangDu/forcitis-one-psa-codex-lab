@@ -122,28 +122,33 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
     }
 
     @Override
-    public List<PermissionAdjustmentId> dueToExpire(Instant now, int limit) {
+    public List<PermissionAdjustmentId> dueToExpire(Instant now, @Nullable PermissionAdjustmentId after, int limit) {
         return ids(jdbc.sql("""
                 select permission_adjustment_id from platform_identity.permission_adjustments
-                 where status = 'UPHELD' and uphold_expires_at <= :now order by uphold_expires_at, permission_adjustment_id limit :limit
-                """).param("now", utc(now)).param("limit", limit));
+                 where status = 'UPHELD' and uphold_expires_at <= :now and (cast(:after as uuid) is null or (created_at, permission_adjustment_id)
+                       > (select created_at, permission_adjustment_id from platform_identity.permission_adjustments where permission_adjustment_id = :after))
+                 order by created_at, permission_adjustment_id limit :limit
+                """).param("now", utc(now)).param("after", after == null ? null : after.value(), Types.OTHER).param("limit", limit));
     }
 
     @Override
-    public List<PermissionAdjustmentId> pendingRegeneration(int limit) {
+    public List<PermissionAdjustmentId> pendingRegeneration(@Nullable PermissionAdjustmentId after, int limit) {
         return ids(jdbc.sql("""
                 select permission_adjustment_id from platform_identity.permission_adjustments
-                 where status = 'EXPIRED' and regeneration_decided_at is null order by expired_at, permission_adjustment_id limit :limit
-                """).param("limit", limit));
+                 where status = 'EXPIRED' and regeneration_decided_at is null and (cast(:after as uuid) is null or (created_at, permission_adjustment_id)
+                       > (select created_at, permission_adjustment_id from platform_identity.permission_adjustments where permission_adjustment_id = :after))
+                 order by created_at, permission_adjustment_id limit :limit
+                """).param("after", after == null ? null : after.value(), Types.OTHER).param("limit", limit));
     }
 
     @Override
-    public List<PermissionAdjustmentId> overdueOpen(Instant now, int limit) {
+    public List<PermissionAdjustmentId> overdueOpen(Instant now, @Nullable PermissionAdjustmentId after, int limit) {
         return ids(jdbc.sql("""
                 select permission_adjustment_id from platform_identity.permission_adjustments
-                 where status = 'OPEN' and escalated_at is null and escalation_due_at <= :now
-                 order by escalation_due_at, permission_adjustment_id limit :limit
-                """).param("now", utc(now)).param("limit", limit));
+                 where status = 'OPEN' and escalated_at is null and escalation_due_at <= :now and (cast(:after as uuid) is null or (created_at, permission_adjustment_id)
+                       > (select created_at, permission_adjustment_id from platform_identity.permission_adjustments where permission_adjustment_id = :after))
+                 order by created_at, permission_adjustment_id limit :limit
+                """).param("now", utc(now)).param("after", after == null ? null : after.value(), Types.OTHER).param("limit", limit));
     }
 
     private static List<PermissionAdjustmentId> ids(JdbcClient.StatementSpec query) {
