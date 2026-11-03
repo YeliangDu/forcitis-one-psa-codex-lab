@@ -561,6 +561,12 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
     put(os.path.join(shim, "git"), '#!/bin/bash\ncase " $* " in *" archive "*) /usr/bin/git "$@" || exit $?; exec head -c 1048576 /dev/zero ;; esac\nexec /usr/bin/git "$@"\n', 0o755)
     r = install(b, PATH=shim + os.pathsep + env["PATH"])
     assert r.returncode == 0 and points_to() == b and not leftovers(), ("the padding after the end of the archive is read, not left to SIGPIPE", r.returncode, r.stderr)
+    #      and a tar that really fails still fails the install: the drain keeps tar's own exit status (first round of #1188)
+    bad = os.path.join(tmp, "badtar")
+    os.makedirs(bad)
+    put(os.path.join(bad, "tar"), "#!/bin/bash\ncat >/dev/null\nexit 3\n", 0o755)
+    r = install(a, PATH=bad + os.pathsep + env["PATH"])
+    assert r.returncode == 1 and "文件或写清单失败" in r.stderr and "current 未改动" in r.stderr and points_to() == b and not leftovers(), ("a failing tar fails the install", r.returncode, r.stderr)
     # 4c. that fallback, deterministically: the target directory is locked (chflags uchg), so neither rename works. A target matching the fresh unpack counts as
     #     ready; one matching only its own manifest (another commit's files) does not, and current stays (O7 fix first review, suggestion 2). chflags is macOS/BSD.
     target = os.path.join(hooks, b)
