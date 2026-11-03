@@ -2,12 +2,13 @@
 (4-25 minutes, then a HOLD and a re-release). The guard is scripts/guards/acceptance_guard.py, the same one light.sh and CI run, against origin/main and the head the pull request has now.
 Fails open: when the head cannot be fetched or the guard itself cannot run, the pull request is queued and the output says the check did not happen."""
 import os
+import re
 import sys
 
 from mq_github import sh
 
 GUARD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "guards", "acceptance_guard.py")
-VIOLATION = "violating commit(s)"   # the guard's last line when it ran and found some; a guard that could not run (shallow history, old git) never prints it
+VIOLATIONS = re.compile(r"(?<![0-9])[1-9][0-9]* violating commit\(s\)")   # the guard's last line when it ran and found some (any count, 10 and 20 too); a guard that could not run (shallow history, old git) never prints it
 
 
 def check(root, number, head):
@@ -20,7 +21,7 @@ def check(root, number, head):
     text = (ran.stdout + ran.stderr).strip()
     if ran.returncode == 0:
         return None
-    if ran.returncode == 1 and VIOLATION in text and not text.endswith(f"0 {VIOLATION}"):
+    if ran.returncode == 1 and VIOLATIONS.search(text):
         return text
     print(f"mq: acceptance guard could not run for #{number} (exit {ran.returncode}): {text[:300]}; queued without the check", file=sys.stderr)
     return None

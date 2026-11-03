@@ -33,10 +33,16 @@ def run(mq, d):
     g(author, "checkout", "-q", "-b", "pr3", "main")
     plain = commit(author, "backend/src/main/Foo.java", "class Foo {}\n", "ordinary change"); g(author, "push", "-q", "origin", "HEAD:refs/pull/3/head")
 
+    g(author, "checkout", "-q", "-b", "pr4", "main")
+    for i in range(10):   # a count that ends in 0 is still a violation
+        many = commit(author, ACCEPTANCE_FILE, f"class FooIT {{ int i = {i}; }}\n", f"change {i}")
+    g(author, "push", "-q", "origin", "HEAD:refs/pull/4/head")
+
     err = io.StringIO()
     with contextlib.redirect_stderr(err):
         text = mq_acceptance.check(runner, 1, bad)
         assert text and bad[:10] in text and "Acceptance-Test-Author" in text, ("no trailer is refused with the guard's own message", text)
+        assert "10 violating commit(s)" in (mq_acceptance.check(runner, 4, many) or ""), "ten violating commits are refused, not read as a guard that could not run"
         assert mq_acceptance.check(runner, 2, good) is None and mq_acceptance.check(runner, 3, plain) is None, "a trailer, or no acceptance file, passes"
         assert mq_acceptance.check(runner, 9, bad) is None and "cannot fetch" in err.getvalue(), "a pull request that cannot be fetched fails open, said out loud"
     err = io.StringIO()
