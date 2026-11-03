@@ -23,9 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Unknown login name, wrong password, wrong code, locked and disabled all look the same and cost about the same time. After the
- * credentials the bound account must be enabled and hold super_admin now. A current organisation snapshot must list the bound
- * employee as employed; a snapshot that is missing or stale while the source is down lets the login through with an alert, but a person
- * it lists as separated is still refused (ADR-0027 section 1; ADR-0033 section 3 item 7).
+ * credentials the bound account must be enabled and hold super_admin now. The directory must judge the bound employee
+ * as employed, from the employee versions (or the snapshot row of a person without versions); a separated or unlisted person is refused
+ * (ADR-0027 section 1; ADR-0033 section 3 item 7).
  */
 @Service
 public class LoginAsEmergencyAdmin {
@@ -98,16 +98,14 @@ public class LoginAsEmergencyAdmin {
         switch (directory.employmentOf(bound)) {
             case SEPARATED -> {
                 return admission.reject(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED, method, admin.userId(),
-                        "the organisation snapshot lists the bound person as separated");
+                        "the bound person is separated");
             }
             case NOT_LISTED -> {
-                log.error("ALERT platform.identity emergency login of user {} refused: the organisation snapshot is current and does not list employee {}",
+                log.error("ALERT platform.identity emergency login of user {} refused: the directory does not list employee {}",
                         admin.userId().value(), bound.value());
                 return admission.reject(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED, method, admin.userId(),
-                        "the organisation snapshot is current and does not list the bound person");
+                        "the directory does not list the bound person");
             }
-            case SNAPSHOT_UNAVAILABLE -> log.error("ALERT platform.identity emergency login of user {} let through without a current organisation snapshot: "
-                    + "employee {} is not listed as separated, but the snapshot cannot confirm the employment", admin.userId().value(), bound.value());
             case EMPLOYED -> {
             }
         }

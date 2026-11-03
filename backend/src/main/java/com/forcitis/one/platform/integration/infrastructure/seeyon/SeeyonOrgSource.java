@@ -69,7 +69,7 @@ final class SeeyonOrgSource implements OrgSource {
         return translation.people(found);
     }
 
-    /** The message is stored in the sync run and the cause is dropped: SQL Server messages can carry column values (ADR-0037 item 3.5). */
+    /** The message reaches the reconciliation report and the callers of a login lookup, and the cause is dropped: SQL Server messages can carry column values (ADR-0037 item 3.5). */
     private static ExternalSystemUnavailableException unavailable(DataAccessException cause) {
         return new ExternalSystemUnavailableException("Seeyon views cannot be read (" + ExternalFailure.of(cause) + ")");
     }

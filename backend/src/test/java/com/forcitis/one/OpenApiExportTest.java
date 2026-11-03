@@ -97,9 +97,9 @@ class OpenApiExportTest {
     void pathsUseTheVersionSegmentAndResponseComponentsAreRequiredUnlessNullable() throws Exception {
         JsonNode document = json.readTree(mvc.perform(get("/v3/api-docs").with(user(TestAccounts.account(1).value().toString()))).andReturn().getResponse().getContentAsString());
         document.path("paths").propertyNames().forEach(path -> assertThat(path).startsWith("/api/v1/"));
-        JsonNode syncRun = document.path("components").path("schemas").path("SyncRunResponse").path("required");
-        assertThat(json.convertValue(syncRun, String[].class)).contains("syncRunId", "status", "startedAt")
-                .doesNotContain("finishedAt", "heldReason", "releasedBy");
+        JsonNode orgUnit = document.path("components").path("schemas").path("OrgUnitResponse").path("required");
+        assertThat(json.convertValue(orgUnit, String[].class)).contains("orgUnitId", "name", "status")
+                .doesNotContain("parentOrgUnitId", "headEmployeeId", "shortName");
         assertThat(document.path("components").path("schemas").path("DecideTaskRequest").path("required").toString()).doesNotContain("reason");
     }
 
@@ -107,12 +107,12 @@ class OpenApiExportTest {
     static final Set<String> OWN_ID_FIELDS = Set.of("AttributeLegalEntityRequest.legalEntityId", "AuditEntryResponse.entryId",
             "AuthorizationRequestResponse.requestId", "AuthorizationRequestResponse.roleId", "AwaitingConfirmationResponse.requestId", "HandledTaskResponse.recordId", "HistoryEntry.recordId",
             "LegacyNumberResponse.documentId", "LegacyNumberResponse.legalEntityId", "LegacyNumberResponse.migrationBatchId", "LegalEntityResponse.legalEntityId", "Period.legalEntityId",
-            "RoleResponse.roleId", "SyncRunResponse.syncRunId", "SyncRunResponse.releasedByRunId", "ProblemDetail.correlationId",
+            "RoleResponse.roleId", "ProblemDetail.correlationId",
             "RegisterSourceReferenceRequest.ownId", "SourceReferenceResponse.ownId", "SourceReferenceResponse.sourceReferenceId",
             "AuditEntryResponse.actorId", "AuditEntryResponse.onBehalfOfId", "AuditEntryResponse.subjectId", "AuthorizationRequestResponse.subjectUserId", "CurrentUserResponse.userId",
             "LoginResponse.userId", "UserAccountResponse.userId", "HandledTaskResponse.actorId", "HistoryEntry.actorId", "PendingTemplate.authorId",
             "parameter userId", "parameter actorId", "parameter onBehalfOfId", "parameter subjectId",
-            "parameter legalEntityId", "parameter ownId", "parameter syncRunId", "parameter requestId", "parameter roleId", "parameter sourceReferenceId", "parameter documentId /api/v1/platform/legacy-numbers",
+            "parameter legalEntityId", "parameter ownId", "parameter requestId", "parameter roleId", "parameter sourceReferenceId", "parameter documentId /api/v1/platform/legacy-numbers",
             "OrgUnitResponse.orgUnitId", "OrgUnitResponse.headEmployeeId", "OrgUnitResponse.parentOrgUnitId", "OrgUnitResponse.regionalReceivablesManagerId",
             "OrgUnitDetailResponse.ancestorOrgUnitIds", "OrgUnitDetailResponse.orgUnitAndBelowIds", "CurrentUserResponse.orgUnitId",
             "CustomOrgUnitRequest.orgUnitId", "CustomOrgUnitResponse.orgUnitId",
@@ -124,7 +124,7 @@ class OpenApiExportTest {
             "EnterPersonnelCommandRequest.employeeId", "EnterPersonnelCommandRequest.targetOrgUnitId", "EnterPersonnelCommandRequest.targetPositionId",
             "EnterPersonnelCommandRequest.targetReportsToEmployeeId", "PersonnelCommandResponse.personnelCommandId", "parameter personnelCommandId",
             "parameter separationHoldId",
-            "AuthorizationRequestResponse.requestedBy", "PendingTemplate.confirmedBy", "PendingTemplate.financeConfirmedBy", "SyncRunResponse.releasedBy",
+            "AuthorizationRequestResponse.requestedBy", "PendingTemplate.confirmedBy", "PendingTemplate.financeConfirmedBy",
             "TaskDetailResponse.initiator", "TaskDetailResponse.assignee", "TaskOverviewResponse.assignee");
 
     /** Employee ids whose names do not end in Id or By (D-10): named in full so the guard looks at them. */
@@ -133,10 +133,9 @@ class OpenApiExportTest {
 
     /**
      * Ids that are not ours, by full name. InboxItemResponse.taskId carries the old system's task key for the old system's items; it stays a plain
-     * string until the inbox contract is neutralised (ADR-0039 item 6, RULING-P4-D6) and is deleted here then. SyncDiffResponse.subjectKey is a
-     * "{type}:{id}" text key of the synchronisation (RULING-P5-1, D-13); it is deleted here when split a gives the differences their own columns.
+     * string until the inbox contract is neutralised (ADR-0039 item 6, RULING-P4-D6) and is deleted here then.
      */
-    static final Set<String> OTHER_ID_NAMES = Set.of("InboxItemResponse.taskId", "SyncDiffResponse.subjectKey");
+    static final Set<String> OTHER_ID_NAMES = Set.of("InboxItemResponse.taskId");
 
     /** Identifiers that belong to an external system and stay what that system gives: a plain string on the wire. */
     static final Set<String> EXTERNAL_ID_NAMES = Set.of("sourceId", "wecomUserId");

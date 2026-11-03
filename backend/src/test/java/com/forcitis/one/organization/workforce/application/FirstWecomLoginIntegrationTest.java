@@ -16,7 +16,6 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.SystemActors;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.kernel.event.ActorType;
-import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.organization.workforce.events.EmployeeRegistered;
 import com.forcitis.one.platform.integration.api.SsoTicketVerifier;
 import com.forcitis.one.platform.integration.api.SsoVerdict;
@@ -44,9 +43,6 @@ class FirstWecomLoginIntegrationTest extends WorkforceIntegrationSupport {
     MockMvc mvc;
 
     @Autowired
-    SyncOrgSnapshot sync;
-
-    @Autowired
     JsonMapper json;
 
     @Autowired
@@ -65,7 +61,7 @@ class FirstWecomLoginIntegrationTest extends WorkforceIntegrationSupport {
     private void aNewHireTheSnapshotDoesNotListYet() {
         orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L)), List.of(head(2, 1), manager(2, 2)), List.of(post(100)),
                 List.of(person(1, 2, 100L, null)));
-        sync.execute(SyncTrigger.SCHEDULED, false);
+        SnapshotSeeder.seed(jdbc, orgSource.snapshot);
         orgSource.singleLookupResult = List.of(person(3001, 2, 100L, 1L, "13900003001", "wx-new-hire"));
     }
 

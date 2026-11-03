@@ -11,7 +11,7 @@ public interface OrgDirectory {
     /** Falls back to a single-person source lookup when unknown; empty when nobody is found or the source is unavailable. */
     Optional<EmployeeProfile> findEmployeeByLogin(LoginLookup lookup);
 
-    /** What the snapshot can say about the employment of one employee, and whether it can be trusted to say it. */
+    /** Whether one employee is employed today, judged from their versions or, without versions, from the snapshot row. */
     EmploymentVerdict employmentOf(EmployeeId employeeId);
 
     /** Unpaid leave that day (a person on leave is still employed, but counts neither as available nor as retained, ADR-0068 section 3), and whether the person is held or leaving. */

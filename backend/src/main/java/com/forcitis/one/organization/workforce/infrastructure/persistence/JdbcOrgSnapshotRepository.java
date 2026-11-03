@@ -16,11 +16,9 @@ import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
 import com.forcitis.one.organization.workforce.domain.Position;
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.domain.PositionStatus;
-import com.forcitis.one.organization.workforce.domain.Reconciliation;
 import com.forcitis.one.organization.workforce.domain.RegisteredEmployee;
 import com.forcitis.one.organization.workforce.domain.RegionCategory;
 import com.forcitis.one.organization.workforce.domain.StaffEmployee;
-import com.forcitis.one.organization.workforce.api.SyncRunId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -71,41 +69,9 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
     }
 
     @Override
-    public void save(Reconciliation changes, SyncRunId syncRunId, Instant now, LocalDate snapshotDate) {
-        UUID run = syncRunId == null ? null : syncRunId.value();
-        OffsetDateTime at = OffsetDateTime.ofInstant(now, ZoneOffset.UTC);
-        for (Position p : changes.positions()) {
-            jdbc.sql("""
-                    insert into organization_workforce.positions (id, code, name, sort_order, status, created_at, updated_at)
-                    values (:id, :code, :name, :sortOrder, :status, :now, :now)
-                    on conflict (id) do update set code = excluded.code, name = excluded.name, sort_order = excluded.sort_order,
-                           status = excluded.status, updated_at = excluded.updated_at, version = positions.version + 1
-                    """)
-                    .param("id", p.positionId().value()).param("code", p.code()).param("name", p.name())
-                    .param("sortOrder", p.sortOrder()).param("status", p.status().name()).param("now", at).update();
-        }
-        for (OrgUnit u : changes.orgUnits()) {
-            upsertOrgUnit(u, run, at);
-        }
-        history.recordOrgUnits(changes.orgUnits(), snapshotDate);
-        // The unique WeCom key covers employed people only; clearing the batch first makes the write order irrelevant.
-        List<UUID> staffIds = changes.staff().stream().map(s -> s.employeeId().value()).toList();
-        if (!staffIds.isEmpty()) {
-            jdbc.sql("""
-                    update organization_workforce.employees set wecom_user_id = null where id in (:ids) and wecom_user_id is not null
-                    """)
-                    .param("ids", staffIds).update();
-        }
-        for (StaffEmployee s : changes.staff()) {
-            upsertStaff(s, at);
-        }
-        history.recordAssignments(changes.staff().stream().map(StaffEmployee::assignment).toList(), snapshotDate, now);
-    }
-
-    @Override
     public void saveRegisteredEmployee(RegisteredEmployee registered, Instant now) {
         LocalDate day = zone.dateOf(now);
-        upsertStaff(registered.staff(), OffsetDateTime.ofInstant(now, ZoneOffset.UTC));
+        insertStaff(registered.staff(), OffsetDateTime.ofInstant(now, ZoneOffset.UTC));
         history.recordAssignments(List.of(registered.staff().assignment()), day, now);
         jdbc.sql("""
                 update organization_workforce.employees set event_count = :sequence where id = :id
@@ -121,32 +87,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 .query(Long.class).optional().orElse(0L);
     }
 
-    private void upsertOrgUnit(OrgUnit u, UUID run, OffsetDateTime now) {
-        jdbc.sql("""
-                insert into organization_workforce.org_units (id, code, name, parent_org_unit_id, sort_order, status,
-                       head_employee_id, regional_receivables_manager_id, region_category, is_delivery_unit, short_name,
-                       revoked_at, last_sync_run_id, created_at, updated_at)
-                values (:id, :code, :name, :parent, :sortOrder, :status, :head, :manager, :category, :delivery, :shortName,
-                        case when cast(:status as text) = 'REVOKED' then cast(:now as timestamptz) end, :run, :now, :now)
-                on conflict (id) do update set code = excluded.code, name = excluded.name,
-                       parent_org_unit_id = excluded.parent_org_unit_id, sort_order = excluded.sort_order,
-                       status = excluded.status, head_employee_id = excluded.head_employee_id,
-                       regional_receivables_manager_id = excluded.regional_receivables_manager_id,
-                       region_category = excluded.region_category, is_delivery_unit = excluded.is_delivery_unit,
-                       revoked_at = case when excluded.status = 'REVOKED' then coalesce(org_units.revoked_at, excluded.updated_at) end,
-                       last_sync_run_id = excluded.last_sync_run_id, updated_at = excluded.updated_at, version = org_units.version + 1
-                """)
-                .param("id", u.orgUnitId().value()).param("code", u.code()).param("name", u.name())
-                .param("parent", u.parentOrgUnitId() == null ? null : u.parentOrgUnitId().value())
-                .param("sortOrder", u.sortOrder()).param("status", u.status().name())
-                .param("head", u.headEmployeeId() == null ? null : u.headEmployeeId().value())
-                .param("manager", u.regionalReceivablesManagerId() == null ? null : u.regionalReceivablesManagerId().value())
-                .param("category", u.regionCategory() == null ? null : u.regionCategory().name())
-                .param("delivery", u.deliveryUnit()).param("shortName", u.shortName())
-                .param("run", run).param("now", now).update();
-    }
-
-    private void upsertStaff(StaffEmployee s, OffsetDateTime now) {
+    private void insertStaff(StaffEmployee s, OffsetDateTime now) {
         Employee e = s.employee();
         Assignment a = s.assignment();
         jdbc.sql("""
@@ -154,13 +95,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                        wecom_user_id, employment_status, is_fee_earner, separated_at, created_at, updated_at, event_count)
                 values (:id, :code, :name, :login, :email, :gender, :wecom, :status, :feeEarner,
                         case when cast(:status as text) = 'SEPARATED' then cast(:now as timestamptz) end, :now, :now, 0)
-                on conflict (id) do update set display_name = excluded.display_name,
-                       login_name = excluded.login_name, email = excluded.email, gender = excluded.gender,
-                       wecom_user_id = excluded.wecom_user_id, employment_status = excluded.employment_status,
-                       is_fee_earner = excluded.is_fee_earner,
-                       separated_at = case when excluded.employment_status = 'SEPARATED'
-                                           then coalesce(employees.separated_at, excluded.updated_at) end,
-                       updated_at = excluded.updated_at, version = employees.version + 1
+                on conflict (id) do nothing
                 """)
                 .param("id", e.employeeId().value()).param("code", e.employeeCode()).param("name", e.displayName())
                 .param("login", e.loginName()).param("email", e.email()).param("gender", e.gender() == null ? null : e.gender().name())
@@ -171,9 +106,7 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 insert into organization_workforce.assignments (employee_id, org_unit_id, position_id, reports_to_employee_id,
                        created_at, updated_at)
                 values (:employee, :orgUnit, :position, :reportsTo, :now, :now)
-                on conflict (employee_id) do update set org_unit_id = excluded.org_unit_id, position_id = excluded.position_id,
-                       reports_to_employee_id = excluded.reports_to_employee_id, updated_at = excluded.updated_at,
-                       version = assignments.version + 1
+                on conflict (employee_id) do nothing
                 """)
                 .param("employee", a.employeeId().value()).param("orgUnit", a.orgUnitId().value())
                 .param("position", a.positionId() == null ? null : a.positionId().value())

@@ -1,0 +1,18 @@
+# 法人归属会签的起草人（#893，one-design 裁定 2026-11-02，Issue #893 评论 6589791372）。
+# 单独成片，不并入 attribution-countersign.yaml（该文件有排队中的 PR 在改）。
+terms:
+- id: drafted_by
+  zh: 起草人
+  en: DraftedBy
+  snake: drafted_by
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 录入某条人事命令（或组织结构命令）的账号，即该命令的录入人 created_by，由法人归属会签表对命令的复合外键约束；起草人不得对本命令的法人归属会签作决定（ADR-0073 第 3 条第 6 项，第 71 行）
+  standard_ref:
+  - ADR-0073 第 3 条第 6 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 列 attribution_countersigns.drafted_by（#893）

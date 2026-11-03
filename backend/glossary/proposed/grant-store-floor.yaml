@@ -120,3 +120,18 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: authorization_voided
+  zh: 授权申请已作废
+  en: AuthorizationVoided
+  snake: authorization_voided
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 已确认的授权申请在执行前发现基准（账号版本或相关角色版本）已变，什么都没有执行，申请作废
+  standard_ref:
+  - docs/adr/ADR-0034.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''

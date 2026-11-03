@@ -1,6 +1,6 @@
 package com.forcitis.one.organization.workforce.domain;
 
-/** incoming* are the numerators and previous* the denominators of the shrink guard. */
+/** Counts of one reconciliation of the source against the snapshot. */
 public record RunStats(int sourceOrgUnitCount, int sourceEmployeeCount, int incomingActiveOrgUnitCount,
                        int incomingEmployedCount, int previousActiveOrgUnitCount, int previousEmployedCount,
                        int orgUnitChangeCount, int employeeChangeCount, int positionChangeCount,

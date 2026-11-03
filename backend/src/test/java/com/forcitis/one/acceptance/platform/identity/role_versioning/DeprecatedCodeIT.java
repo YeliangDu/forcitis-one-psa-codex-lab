@@ -37,7 +37,8 @@ class DeprecatedCodeIT extends RoleVersioningSupport {
 
     static final String CURRENT_USER = "/api/v1/platform/sessions:current";
     static final String STAYS = "organization.workforce:org-unit:read";
-    static final String RETIRED = "organization.workforce:sync-run:read";
+    /** A code that is live in the catalogue, marked deprecated only for the length of the test (the sync run codes stood here until #934 retired them). */
+    static final String RETIRED = "platform.numbering:legacy-number:read";
 
     private static Permission permissionOf(String code) {
         for (Permission permission : Permission.values()) {

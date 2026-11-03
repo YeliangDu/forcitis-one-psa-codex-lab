@@ -16,8 +16,8 @@ class OrgReconciliationController {
     }
 
     /** The daily comparison on demand: snapshot against source, every difference listed. */
-    @PostMapping(path = "/sync-runs:reconcile")
-    @PreAuthorize("hasAuthority('" + WorkforcePermissions.SYNC_RUN_EXECUTE + "')")
+    @PostMapping(path = "/org-reconciliations:run")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.ORG_RECONCILIATION_EXECUTE + "')")
     OrgReconciliationResponse reconcile() {
         return OrgReconciliationResponse.of(reconciliation.execute());
     }

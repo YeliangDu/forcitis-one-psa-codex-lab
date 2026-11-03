@@ -1,4 +1,4 @@
-# C-7 剧本：四类告警配置与 dev 演练
+# C-7 剧本：三类告警配置与 dev 演练
 
 依据：`docs/architecture/proposals/phase1-a-platform-conventions.md` §4（告警表与「按级别分通道」）、INFRA_RUNBOOK E-13、§9。时点：出口前（出口条件 D-6）。性质：控制台配置属对外变更，执行前须用户确认；接收人见 A-5。
 
@@ -10,7 +10,6 @@
 |---|---|---|---|---|
 | 登录失败率 | P1 | `forcitis_platform_identity_login_total{outcome}` | 5 分钟失败率 > 20 % 且失败 ≥ 20 | `ONE_ALERT_P1` |
 | 未完成事件发布 / 死信 | P2 | `forcitis_platform_integration_event_publications_stale`、`…_exhausted`、`forcitis_platform_integration_deliveries_dead_letters` | 任一 > 0（stale 持续 1 分钟） | `ONE_ALERT_P2` |
-| 组织同步被扣留（HELD） | P2 | `forcitis_organization_workforce_sync_held_runs` | held > 0（同步已不再被调度，延迟告警已撤；处置见 infra-runbook「HELD 运行」） | `ONE_ALERT_P2` |
 | 作业失败 | P3 | `tasks_scheduled_execution_seconds_count{outcome="ERROR"}`、`forcitis_platform_approval_deadline_failed_total` | 15 分钟内 > 0 | 看板；汇总进 `ONE_ALERT_P2` |
 | 附加：日历未维护 | P2 | `forcitis_organization_attendance_calendar_unmaintained_total` | 1 小时内 > 0 | `ONE_ALERT_P2` |
 | 附加：应用不可达 | P1 | `up{job="forcitis-one"}` | = 0 持续 2 分钟 | `ONE_ALERT_P1` |
@@ -71,7 +70,7 @@ dev 演练（2026-10-21，ECS i-bp122xlpar8w2uylmal2，沿用既有 C-7 群机�
 | ECS CPU、内存、磁盘（/data 使用率 > 85 %）、实例状态 | 云监控基础监控阈值告警。2026-10-15 查询：云监控插件 `Status=running`，`OsMonitorStatus` 字段显示 stopped，但 2026-10-15 核对 `acs_ecs_dashboard` 的 `memory_usedutilization`、`diskusage_utilization`（含数据盘 `/dev/nvme1n1`）每分钟都有上报，以指标为准 | 免费；短信按云监控免费额度，超出另计 | 待 A-5 联系人后配置 |
 | RDS CPU、连接数、存储使用率（共用实例，阈值须与 it_portal 商定） | 云监控 RDS 基础指标告警 | 免费 | 同上 |
 | 应用不可达（`up == 0`） | ARMS Prometheus 抓取 | 按写入量计费（**付费项 P-1**） | 免费替代：本机 systemd `OnFailure=` + 群机器人，或下面的 SLS 规则 |
-| 四类业务告警（登录失败率、未完成发布 / 死信、组织同步、作业失败）与日历未维护 | ARMS Prometheus 抓 `/actuator/prometheus` 的自定义指标 | 按写入量计费（**付费项 P-1**）；指标约几十个时序，量很小，单价以费用中心为准 | 出口条件 D-6 必需 |
+| 四类业务告警（登录失败率、未完成发布 / 死信、作业失败）与日历未维护 | ARMS Prometheus 抓 `/actuator/prometheus` 的自定义指标 | 按写入量计费（**付费项 P-1**）；指标约几十个时序，量很小，单价以费用中心为准 | 出口条件 D-6 必需 |
 | 兜底：应用日志中的 `ALERT*` 行 | SLS Logstore + 日志告警 | SLS 写入、存储、索引按量计费（**付费项 P-2**）；Logstore 保留 30 天（E-17） | E-11 Logtail 安装后可配 |
 | 外部可用性探测（从公网访问 `https://one.forcitis.com`） | 云监控云拨测 | 付费（**付费项 P-3**） | 建议先不做：本机检查 + `up` 已覆盖进程与证书；网络层出问题时用户会先发现 |
 
@@ -134,8 +133,6 @@ SLS 中建两个行动策略：`ONE_ALERT_P1`（群机器人，24 × 7）、`ONE
 |---|---|---|---|
 | 登录失败率 | 用脚本对 `POST /api/v1/platform/sessions:wecom-login` 发 25 次无效 code（来源为测试机） | 5 分钟内运维群收到 P1 | 停止脚本 |
 | 未完成发布 | 在 dev 临时把 `WECOM_BASE_URL` 指向不可达地址并触发一条审批通知，等待超过 10 分钟 | stale > 0 告警；用尽后 exhausted / 死信告警 | 改回地址并重启；按 INFRA_RUNBOOK §9 处理残留 |
-| 组织同步 | dev 中把 `A8_DB_URL` 指向不可达地址并重启（或 DBA 临时撤销视图账号 CONNECT） | 10 分钟后 lag 告警 | 恢复配置 |
-| 缩水保护 | 在 dev 把 `A8_ROOT_PATH` 临时改为一个很小的子单位路径 | held > 0 告警，组织数据管理员收到企业微信 | 恢复配置，放行或等待自动恢复 |
 | 作业失败 | dev 中撤销 `one_dev_app` 对某作业表的权限（由 DBA 执行）或停 RDS 白名单 1 分钟 | 作业失败告警 | 恢复 |
 | 应用不可达 | `systemctl stop forcitis-one` | 2 分钟后 P1 | 启动 |
 

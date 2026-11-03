@@ -1,6 +1,8 @@
 # 组织与人员同步（Phase 1a）
 
 > **已退役（2026-10-21）**：本文件描述的是从 A8 同步组织与人员及登录补建。ADR-0055（自成体系：不接老系统与 A8，2026-10-17 已采纳）取消这一流程：人员由 `organization.workforce` 的人事命令维护。本文件仅作历史证据与迁入对账参考；拆除与改造顺序见 `phase1a/a8-split/SPLIT_PLAN.md`。
+>
+> **新代码侧已删除（#934，ADR-0068 §2.5）**：下文标「已实现」并指向 `BE/`、`BER/` 的旧同步实现（同步批次聚合与三张同步表、定时同步作业、放行接口及其两个权限码、同步延迟告警、上线前检查命令、同步配置键）已全部从仓库删除，只留作迁入对账的历史证据，路径与行号不再可查；保留的只有组织对账（`OrgReconciliation`，接口 `POST /api/v1/organization/org-reconciliations:run`，权限 `organization.workforce:org-reconciliation:execute`）。
 
 - 涉及 BC：`organization.workforce`（组织快照、同步批次、法人）、`platform.integration`（A8 视图适配器）、`platform.identity`（账号、会话、默认角色）、`platform.approval`（取人读快照）
 - 涉及的 A8 模板 / 老系统入口：A8 `ORG_UNIT` / `ORG_MEMBER` / `ORG_POST` / `ORG_RELATIONSHIP` / `formmain_0307`；老 XXL-JOB `syncDeptJob`、`syncUserJob`、`syncPostsJob`；老手工维护部门 / 用户 / Excel 导入

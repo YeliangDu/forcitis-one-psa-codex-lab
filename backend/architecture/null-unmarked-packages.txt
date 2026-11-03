@@ -14,7 +14,6 @@ com.forcitis.one.organization.workforce.api
 com.forcitis.one.organization.workforce.application
 com.forcitis.one.organization.workforce.events
 com.forcitis.one.organization.workforce.infrastructure.external
-com.forcitis.one.organization.workforce.infrastructure.metrics
 com.forcitis.one.organization.workforce.infrastructure.persistence
 com.forcitis.one.organization.workforce.infrastructure.scheduling
 com.forcitis.one.organization.workforce.web
