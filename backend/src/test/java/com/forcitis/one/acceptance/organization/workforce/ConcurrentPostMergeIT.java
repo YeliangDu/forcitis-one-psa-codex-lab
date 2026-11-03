@@ -10,6 +10,7 @@ import static com.forcitis.one.acceptance.organization.workforce.PersonnelComman
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.EMPLOYEE_ID;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.EVENT_TRANSFERRED;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.PENDING;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.REGULAR;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.TARGET_ORG_UNIT_ID;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.TARGET_POSITION_ID;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.TRANSFER;
@@ -45,7 +46,8 @@ import org.springframework.test.context.DynamicPropertySource;
  * transaction, publishes nothing. Progress counts employees across all their assignments in the unit; the merge is EFFECTIVE only when no
  * assignment is left there; while IN_PROGRESS nothing may move in, START_CONCURRENT included. The same post held twice keeps both. The
  * preview stays one item per employee and adds primaryInUnit and concurrentAssignmentCount. Concurrent posts are seeded in the #711 schema.
- * The merged and receiving units both inherit E1, so primary moves need no countersign here (#910 covers that).
+ * Unless a case says otherwise the merged and receiving units both inherit E1, so primary moves need no countersign (#910 covers that);
+ * the first case moves a concurrent post into a unit of E2, where only the post's unit changes, never the cost legal entity.
  */
 class ConcurrentPostMergeIT extends OrgCountersignSupport {
 
@@ -108,9 +110,10 @@ class ConcurrentPostMergeIT extends OrgCountersignSupport {
     }
 
     @Test
-    @DisplayName("#1040 完成标准 1、5：只在被并入单元兼职的员工：合并恰好为该兼职生成一条调岗（target_assignment_kind = CONCURRENT、EFFECTIVE、无会签行、无会签依据行），兼职落到承接单元，主任职不动；不发「员工已调岗」也不发「成本法人已变更」；合并 EFFECTIVE")
+    @DisplayName("#1040 完成标准 1、5：只在被并入单元兼职的员工（承接单元在另一法人 E2 下）：合并恰好为该兼职生成一条调岗（target_assignment_kind = CONCURRENT、EFFECTIVE、无会签行、无会签依据行），兼职落到承接单元，主任职不动；不发「员工已调岗」也不发「成本法人已变更」；合并 EFFECTIVE")
     void aConcurrentOnlyEmployeesPostMoves() throws Exception {
-        twoUnits();
+        merged = seedUnit(topE1);
+        receiving = seedUnit(topE2);
         UUID home = seedUnit(topE1);
         UUID person = inheritingIn(home);
         UUID post = concurrentIn(person, merged, newPosition());
@@ -152,18 +155,40 @@ class ConcurrentPostMergeIT extends OrgCountersignSupport {
         assertThat(fromStored(postOn(primary, TODAY).get("org_unit_id"))).isEqualTo(receiving);
         assertThat(fromStored(postOn(post, TODAY).get("org_unit_id"))).isEqualTo(receiving);
 
-        SQLException refused = catchThrowableOfType(SQLException.class, () -> {
-            try (Connection workforce = schemaConnection("organization_workforce")) {
-                OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
-                update(workforce, """
-                        insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id,
-                          target_assignment_id, target_assignment_kind, org_structure_command_id, created_at, created_by, updated_at)
-                        values (?, ?, 'TRANSFER', ?, 'PENDING', ?, ?, 'CONCURRENT', ?, ?, ?, ?)""",
-                        Uuids.timeOrdered(NOW), stored(person), TODAY.plusDays(1), stored(receiving), post, merge, at, hr.userId(), at);
-            }
-        });
-        assertThat((Throwable) refused).isNotNull();
+        // The finished merge is EFFECTIVE, where the #908 guard refuses any further transfer first; the key is shown on a merge in progress.
+        UUID inProgress = seededMergeInProgress();
+        UUID other = inheritingIn(seedUnit(topE1));
+        UUID otherPost = concurrentIn(other, seedUnit(topE1), newPosition());
+        insertMergeTransfer(other, otherPost, inProgress, TODAY.plusDays(1));
+        SQLException refused = catchThrowableOfType(SQLException.class, () -> insertMergeTransfer(other, otherPost, inProgress, TODAY.plusDays(2)));
+        assertThat((Throwable) refused).as("a second generated TRANSFER of the same root").isNotNull();
         assertThat(refused.getMessage()).contains("uk_personnel_commands_merge_assignment");
+    }
+
+    /** A MERGE in progress that needed no countersign (no rows at all), so that the #908 guard admits its transfers. */
+    private UUID seededMergeInProgress() throws Exception {
+        UUID id = Uuids.timeOrdered(NOW);
+        OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, """
+                    insert into org_structure_commands (org_structure_command_id, command_kind, target_kind, target_org_unit_id, effective_date, status,
+                      merge_into_org_unit_id, created_at, created_by, updated_at) values (?, 'MERGE', 'ORG_UNIT', ?, ?, 'PENDING', ?, ?, ?, ?)""",
+                    id, stored(seedUnit(topE1)), TODAY, stored(seedUnit(topE1)), at, orgAdmin.userId(), at);
+            update(workforce, "update org_structure_commands set status = 'IN_PROGRESS', affected_employee_count = 1, transferred_employee_count = 0, updated_at = ?"
+                    + " where org_structure_command_id = ?", at, id);
+        }
+        return id;
+    }
+
+    private void insertMergeTransfer(UUID person, UUID root, UUID merge, LocalDate day) throws Exception {
+        OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, """
+                    insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id,
+                      target_assignment_id, target_assignment_kind, org_structure_command_id, created_at, created_by, updated_at)
+                    values (?, ?, 'TRANSFER', ?, 'PENDING', ?, ?, 'CONCURRENT', ?, ?, ?, ?)""",
+                    Uuids.timeOrdered(NOW), stored(person), day, stored(seedUnit(topE1)), root, merge, at, hr.userId(), at);
+        }
     }
 
     /**
@@ -171,7 +196,7 @@ class ConcurrentPostMergeIT extends OrgCountersignSupport {
      * the merged unit on D and the generated move of the same root on the same day is refused (one open command per concurrent post and day).
      */
     private UUID obstacleOn(UUID person, UUID post, LocalDate day) throws Exception {
-        actIn(hr);
+        actInSpecialist();
         Map<String, Object> fields = new HashMap<>();
         fields.put(EMPLOYEE_ID, person);
         fields.put(COMMAND_KIND, TRANSFER);
@@ -207,7 +232,7 @@ class ConcurrentPostMergeIT extends OrgCountersignSupport {
         assertThat(unitOn(merged, day).get("status")).isNotEqualTo(REVOKED);
         assertThat(eventsOf(EVENT_MERGED, merge)).isZero();
 
-        actIn(hr);
+        actInSpecialist();
         commands().withdraw(obstacle, "synthetic: clears the way");
         actIn(orgAdmin);
         orgCommands().executeMerge(merge);
@@ -216,6 +241,8 @@ class ConcurrentPostMergeIT extends OrgCountersignSupport {
         assertThat(row.get("status")).isEqualTo(EFFECTIVE);
         assertThat(row.get("transferred_employee_count")).isEqualTo(2);
         assertThat(fromStored(postOn(bothPost, day).get("org_unit_id"))).isEqualTo(receiving);
+        assertThat(unitOn(merged, day).get("status")).as("revoked once no assignment is left").isEqualTo(REVOKED);
+        assertThat(eventsOf(EVENT_MERGED, merge)).isEqualTo(1);
     }
 
     @Test
@@ -233,7 +260,10 @@ class ConcurrentPostMergeIT extends OrgCountersignSupport {
         Object done = orgCommand(merge).get("transferred_employee_count");
         UUID outsider = inheritingIn(seedUnit(topE1));
         UUID outsidersPost = concurrentIn(outsider, seedUnit(topE1), newPosition());
-        actIn(hr);
+        actInSpecialist();
+        UUID elsewhere = seedUnit(topE1);
+        assertThat(commands().enter(fields(EMPLOYEE_ID, outsider, COMMAND_KIND, START_CONCURRENT, EFFECTIVE_DATE, day.plusDays(1),
+                TARGET_ORG_UNIT_ID, elsewhere, TARGET_POSITION_ID, newPosition()))).as("the twin: a start into another unit passes").isNotNull();
 
         for (LocalDate when : List.of(day, day.plusDays(2))) {
             assertRefused(() -> commands().enter(fields(EMPLOYEE_ID, outsider, COMMAND_KIND, START_CONCURRENT, EFFECTIVE_DATE, when,
@@ -242,6 +272,8 @@ class ConcurrentPostMergeIT extends OrgCountersignSupport {
                     TARGET_ASSIGNMENT_ID, outsidersPost, TARGET_ORG_UNIT_ID, merged)));
         }
 
+        assertThat(commands().enter(fields(EMPLOYEE_ID, outsider, COMMAND_KIND, TRANSFER, EFFECTIVE_DATE, day.plusDays(3),
+                TARGET_ASSIGNMENT_ID, outsidersPost, TARGET_ORG_UNIT_ID, elsewhere))).as("the twin: moving the post into another unit passes").isNotNull();
         actIn(orgAdmin);
         assertThat(orgCommand(merge).get("transferred_employee_count")).isEqualTo(done);
     }
@@ -251,10 +283,7 @@ class ConcurrentPostMergeIT extends OrgCountersignSupport {
     void theSamePostHeldTwiceKeepsBoth() throws Exception {
         twoUnits();
         UUID position = newPosition();
-        UUID person = inheritingIn(receiving);
-        try (Connection workforce = schemaConnection("organization_workforce")) {
-            update(workforce, "update assignment_versions set position_id = ? where assignment_id = ?", position, primaryRootOf(person));
-        }
+        UUID person = employedAs(receiving, REGULAR, position);
         UUID post = concurrentIn(person, merged, position);
         UUID merge = mergeToday();
 
@@ -285,7 +314,7 @@ class ConcurrentPostMergeIT extends OrgCountersignSupport {
         assertThat(items).extracting(item -> item.get("employeeId")).containsExactlyInAnyOrder(text(concurrentOnly), text(both));
         Map<String, Object> onlyConcurrent = items.stream().filter(item -> text(concurrentOnly).equals(item.get("employeeId"))).findFirst().orElseThrow();
         assertThat(onlyConcurrent.get(PRIMARY_IN_UNIT)).isEqualTo(false);
-        assertThat(((Number) onlyConcurrent.get(CONCURRENT_COUNT)).intValue()).isGreaterThanOrEqualTo(1);
+        assertThat(((Number) onlyConcurrent.get(CONCURRENT_COUNT)).intValue()).as("the one seeded post").isEqualTo(1);
         assertThat(onlyConcurrent.get("needsAttributionCountersign")).isEqualTo(false);
         assertThat(onlyConcurrent.get("previousLegalEntityId")).isNull();
         assertThat(onlyConcurrent.get("newLegalEntityId")).isNull();
