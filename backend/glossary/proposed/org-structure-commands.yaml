@@ -461,3 +461,18 @@ terms:
   forbidden: []
   status: proposed
   note: 随 #907 登记，编码时才发现的用语，请 one-design 复核
+- id: error__organization_workforce_org_unit_merge_open
+  zh: 部门有未完成的合并
+  en: OrganizationWorkforceOrgUnitMergeOpen
+  snake: organization_workforce_org_unit_merge_open
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令要把人放进一个有未完成合并的部门，且日期不早于合并日，会把人留在即将撤销的单元里，录入被拒（409）
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 随 #907，one-design 裁定（#907 评论 6596302513）

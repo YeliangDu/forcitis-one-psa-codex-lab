@@ -2,6 +2,7 @@ package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.organization.workforce.api.BlockingArrival;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommand;
@@ -10,6 +11,7 @@ import com.forcitis.one.organization.workforce.domain.OrgTimeline;
 import com.forcitis.one.organization.workforce.domain.OrgTree;
 import com.forcitis.one.organization.workforce.domain.VersionPlan;
 import java.time.LocalDate;
+import java.util.List;
 import org.springframework.stereotype.Component;
 
 /**
@@ -86,9 +88,21 @@ class OrgStructureRules {
 
     /** The merge moves the people of its day; somebody who joins the unit later would be left in a unit that is revoked from that day. */
     private void requireNoArrival(OrgUnitId unit, LocalDate day) {
-        if (commands.hasArrivalAfter(unit, day)) {
-            throw refused("somebody joins the org unit after " + day + "; the merge would leave them in a revoked unit");
+        List<BlockingArrival> arrivals = commands.arrivalsAfter(unit, day);
+        if (!arrivals.isEmpty()) {
+            throw refused(describe(arrivals, day));
         }
+    }
+
+    /** Names who blocks the merge and which command put them there, so HR knows what to withdraw or re-enter (ids only). */
+    static String describe(List<BlockingArrival> arrivals, LocalDate day) {
+        StringBuilder text = new StringBuilder("these employees join the org unit after " + day + " and would be left in a revoked unit; withdraw or re-enter their commands first:");
+        arrivals.stream().limit(20).forEach(a -> text.append(" employee ").append(a.employeeId()).append(" from ").append(a.arrivesOn())
+                .append(a.personnelCommandId() == null ? " (migrated row)" : " (command " + a.personnelCommandId() + ")").append(";"));
+        if (arrivals.size() > 20) {
+            text.append(" and ").append(arrivals.size() - 20).append(" more");
+        }
+        return text.toString();
     }
 
     private void checkPosition(OrgStructureCommand c, LocalDate day) {

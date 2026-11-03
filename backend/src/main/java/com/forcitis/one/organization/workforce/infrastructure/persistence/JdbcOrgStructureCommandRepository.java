@@ -7,10 +7,12 @@ import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.ActorType;
+import com.forcitis.one.organization.workforce.api.BlockingArrival;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
 import com.forcitis.one.organization.workforce.api.OrgStructureTargetKind;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.api.RegionKind;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
@@ -407,9 +409,14 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     }
 
     @Override
-    public boolean hasArrivalAfter(OrgUnitId orgUnit, LocalDate day) {
-        return jdbc.sql("select 1 " + OPEN_HOLDERS.formatted("org_unit_id") + " and a.effective_from_date > :day limit 1").param("target", orgUnit.value()).param("day", day)
-                .query(Integer.class).optional().isPresent();
+    public List<BlockingArrival> arrivalsAfter(OrgUnitId orgUnit, LocalDate day) {
+        return jdbc.sql("select a.employee_id, a.effective_from_date, a.change_command_id " + OPEN_HOLDERS.formatted("org_unit_id")
+                + " and a.effective_from_date > :day order by a.effective_from_date, a.employee_id").param("target", orgUnit.value()).param("day", day)
+                .query((rs, n) -> {
+                    UUID command = rs.getObject("change_command_id", UUID.class);
+                    return new BlockingArrival(new EmployeeId(rs.getObject("employee_id", UUID.class)), rs.getObject("effective_from_date", LocalDate.class),
+                            command == null ? null : new PersonnelCommandId(command));
+                }).list();
     }
 
     @Override

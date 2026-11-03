@@ -45,6 +45,9 @@ public interface PersonnelCommandRepository {
 
     boolean orgUnitExists(OrgUnitId orgUnit);
 
+    /** Whether a merge of the unit is pending or in progress with an effective date on or before the day: a person placed there from then on would be left in a revoked unit. */
+    boolean hasOpenMergeOnOrBefore(OrgUnitId orgUnit, LocalDate day);
+
     boolean positionExists(PositionId position);
 
     boolean employeeExists(EmployeeId employee);

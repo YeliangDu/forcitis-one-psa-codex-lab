@@ -9,6 +9,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvents;
+import com.forcitis.one.organization.workforce.api.BlockingArrival;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
@@ -116,7 +117,9 @@ class OrgMergeSteps {
             return;
         }
         if (commands.hasEmployedFrom(merge.targetOrgUnitId(), merge.effectiveDate())) {
-            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ORG_STRUCTURE_MERGE_INCOMPLETE, ErrorKind.CONFLICT, "somebody is still in the merged unit on or after the merge day");
+            List<BlockingArrival> arrivals = commands.arrivalsAfter(merge.targetOrgUnitId(), merge.effectiveDate());
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ORG_STRUCTURE_MERGE_INCOMPLETE, ErrorKind.CONFLICT, arrivals.isEmpty()
+                    ? "somebody is still in the merged unit on the merge day" : OrgStructureRules.describe(arrivals, merge.effectiveDate()));
         }
         long loaded = merge.version();
         String before = merge.status().name();

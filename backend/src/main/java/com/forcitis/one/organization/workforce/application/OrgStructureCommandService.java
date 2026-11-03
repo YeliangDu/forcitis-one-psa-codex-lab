@@ -11,6 +11,7 @@ import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.EnterOrgStructureCommand;
+import com.forcitis.one.organization.workforce.api.OrgMergePreview;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommands;
@@ -143,11 +144,11 @@ class OrgStructureCommandService implements OrgStructureCommands {
     @Override
     @Transactional(readOnly = true)
     @PreAuthorize("hasAuthority('" + PERMISSION + "')")
-    public List<EmployeeId> previewMerge(PreviewOrgUnitMerge preview) {
+    public OrgMergePreview previewMerge(PreviewOrgUnitMerge preview) {
         if (!commands.orgUnitExists(preview.targetOrgUnitId()) || !commands.orgUnitExists(preview.mergeIntoOrgUnitId())) {
             throw notAllowed("the org unit does not exist");
         }
-        return commands.employedIn(preview.targetOrgUnitId(), preview.effectiveDate());
+        return new OrgMergePreview(commands.employedIn(preview.targetOrgUnitId(), preview.effectiveDate()), commands.arrivalsAfter(preview.targetOrgUnitId(), preview.effectiveDate()));
     }
 
     @Override

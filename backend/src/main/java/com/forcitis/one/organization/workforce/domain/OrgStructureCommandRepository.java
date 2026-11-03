@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.domain;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.event.ActorType;
+import com.forcitis.one.organization.workforce.api.BlockingArrival;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PositionId;
@@ -89,8 +90,8 @@ public interface OrgStructureCommandRepository {
     /** Whether somebody is employed and in the unit on some day from the given one on, whatever the entered commands will make of them. */
     boolean hasEmployedFrom(OrgUnitId orgUnit, LocalDate day);
 
-    /** Whether somebody is employed and joins the unit after the day (a transfer into it dated later, or a person who joined after a back-dated day). */
-    boolean hasArrivalAfter(OrgUnitId orgUnit, LocalDate day);
+    /** The employed people who join the unit after the day (a transfer into it dated later, or a person who joined after a back-dated day), with the command that placed them. */
+    List<BlockingArrival> arrivalsAfter(OrgUnitId orgUnit, LocalDate day);
 
     /** Whether somebody is employed and holds the position on some day from the given one on. */
     boolean hasHolderFrom(PositionId position, LocalDate day);
