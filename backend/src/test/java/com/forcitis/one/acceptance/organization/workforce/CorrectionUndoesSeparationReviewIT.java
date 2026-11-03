@@ -396,4 +396,246 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
                     .isEmpty();
         }
     }
+
+    // ---- SCOPE_REVIEW from a transfer (one-design ruling, #730 comment 6602688198): one item per (person, command, ORG_UNIT) for a holder of a scoped grant ----
+
+    private static final String ORG_UNIT_READ = "organization.workforce:org-unit:read";
+    private static final String OPENED = "platform.identity.PermissionAdjustmentOpened";
+
+    /** An ordinary role (no sensitive permission) created through the role api by a super administrator; answers its code. */
+    private String roleWithScope(String code, String accessScope, UUID... customUnits) throws Exception {
+        SignedIn superAdministrator = administratorMode(signIn(superAdministratorEmployee()));
+        String units = customUnits.length == 0 ? "" : ",\"customOrgUnits\":["
+                + String.join(",", java.util.Arrays.stream(customUnits).map(u -> "{\"orgUnitId\":\"" + u + "\",\"includeDescendants\":false}").toList()) + "]";
+        String body = "{\"code\":\"" + code + "\",\"name\":\"Synthetic role " + code + "\",\"enabled\":true,\"accessScope\":\"" + accessScope + "\"" + units
+                + ",\"permissionCodes\":[\"" + ORG_UNIT_READ + "\"]}";
+        int status = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/platform/roles")
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf()).with(session(superAdministrator))
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse().getStatus();
+        assertThat(status).as("fixture: creating role " + code).isEqualTo(201);
+        return code;
+    }
+
+    private UUID superAdministratorEmployee() throws Exception {
+        UUID id = newEmployeeId();
+        employee(id, unit, null);
+        grantByOperations(id, "super_admin");
+        return id;
+    }
+
+    private String customRole(String code, UUID... units) throws Exception {
+        return roleWithScope(code + Uuids.timeOrdered(NOW).toString().substring(24), "CUSTOM_ORG_UNITS", units);
+    }
+
+    private void headOf(UUID orgUnit, UUID head) throws SQLException {
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, "update org_units set head_employee_id = ? where id = ?", stored(head), stored(orgUnit));
+        }
+    }
+
+    private List<Map<String, Object>> assignedCardsAbout(Object item) throws SQLException {
+        try (Connection registry = schemaConnection("platform_integration")) {
+            return query(registry, "select recipient_codes from outbound_deliveries where subject_kind = 'PERMISSION_ADJUSTMENT' and subject_id = ?"
+                    + " and purpose_kind = 'PERMISSION_ADJUSTMENT_ASSIGNED'", item);
+        }
+    }
+
+    private int openedAudits() throws Exception {
+        return auditCount(OPENED);
+    }
+
+    private static List<Object> kindsOf(List<Map<String, Object>> items) {
+        return items.stream().map(item -> item.get("kind")).toList();
+    }
+
+    @Test
+    @DisplayName("#730 SCOPE_REVIEW 1：持有自定义部门角色的人真实转岗（部门变化），生成恰好一条范围复核（来源为任职变动、触发命令为该命令、触发字段部门、触发前为原部门、触发后为新部门、接收人为新部门负责人），并有恰好一张 PERMISSION_ADJUSTMENT_ASSIGNED 外发卡和一条 PermissionAdjustmentOpened 审计")
+    void aRealTransferOfACustomOrgUnitHolderGivesOneScopeReviewForTheNewHead() throws Exception {
+        UUID head = employed(REGULAR);
+        UUID toUnit = newUnit();
+        headOf(toUnit, head);
+        UUID employee = employedHolding();
+        grantByOperations(employee, customRole("scoped-one", unit));
+        UUID user = accountOf(employee);
+        int auditsBefore = openedAudits();
+
+        UUID command = transfer(employee, TODAY, toUnit);
+
+        awaitItemsAbout(user, 1);
+        Map<String, Object> item = itemsAbout(user).getFirst();
+        assertThat(item).containsEntry("kind", "SCOPE_REVIEW").containsEntry("origin_kind", "ASSIGNMENT_CHANGE").containsEntry("status", "OPEN")
+                .containsEntry("trigger_field_kind", "ORG_UNIT").containsEntry("trigger_personnel_command_id", command)
+                .containsEntry("before_org_unit_id", unit).containsEntry("after_org_unit_id", toUnit).containsEntry("recipient_employee_id", head);
+        assertThat(item.get("role_id")).as("the item is about the person, not a role").isNull();
+        Object itemId = dueItemId(user);
+        Awaitility.await().atMost(SETTLE).untilAsserted(() -> {
+            assertThat(assignedCardsAbout(itemId)).as("one assigned card to the new head, in the same transaction").hasSize(1);
+            assertThat(openedAudits() - auditsBefore).isEqualTo(1);
+        });
+    }
+
+    private Object dueItemId(UUID user) throws SQLException {
+        try (Connection identity = schemaConnection("platform_identity")) {
+            return query(identity, "select permission_adjustment_id from permission_adjustments where user_id = ?", user).getFirst().get("permission_adjustment_id");
+        }
+    }
+
+    @Test
+    @DisplayName("#730 SCOPE_REVIEW 3：持有两个自定义部门角色的人转岗，仍然只有一条范围复核（人级、一次命令一条，不按角色分条）")
+    void twoScopedGrantsStillGiveOneScopeReview() throws Exception {
+        UUID head = employed(REGULAR);
+        UUID toUnit = newUnit();
+        headOf(toUnit, head);
+        UUID employee = employedHolding();
+        grantByOperations(employee, customRole("scoped-a", unit));
+        grantByOperations(employee, customRole("scoped-b", toUnit));
+        UUID user = accountOf(employee);
+        UUID control = employedHolding(SECURITY_AUDITOR);
+        UUID controlUser = accountOf(control);
+
+        transfer(employee, TODAY, toUnit);
+        transfer(control, TODAY, newUnit());
+
+        awaitItemsAbout(controlUser, 1);
+        Awaitility.await().atMost(SETTLE).untilAsserted(() -> assertThat(itemsAbout(user)).hasSize(1));
+        assertThat(kindsOf(itemsAbout(user))).containsExactly("SCOPE_REVIEW");
+        assertThat(itemsAbout(user).getFirst().get("role_id")).isNull();
+    }
+
+    @Test
+    @DisplayName("#730 SCOPE_REVIEW 4：只有全公司或本部门类数据范围角色的人转岗不生成范围复核（对照：同一人还持有敏感角色，得到恰好一条敏感角色复核，证明监听器在跑）")
+    void aHolderOfOnlyNonScopedGrantsGetsNoScopeReview() throws Exception {
+        UUID employee = employedHolding(SECURITY_AUDITOR);
+        grantByOperations(employee, roleWithScope("whole-" + Uuids.timeOrdered(NOW).toString().substring(24), "ALL"));
+        grantByOperations(employee, roleWithScope("own-unit-" + Uuids.timeOrdered(NOW).toString().substring(24), "OWN_ORG_UNIT"));
+        UUID user = accountOf(employee);
+
+        transfer(employee, TODAY, newUnit());
+
+        awaitItemsAbout(user, 1);
+        assertThat(kindsOf(itemsAbout(user))).containsExactly("SENSITIVE_ROLE_REVIEW");
+    }
+
+    @Test
+    @DisplayName("#730 SCOPE_REVIEW 5：只改岗位（触发字段只有岗位）的转岗事件，持有自定义部门角色的人不生成范围复核；同时持有敏感角色时仍得到恰好一条敏感角色复核")
+    void aPositionOnlyTransferGivesNoScopeReview() throws Exception {
+        UUID employee = employedHolding(SECURITY_AUDITOR);
+        grantByOperations(employee, customRole("scoped-pos", unit));
+        UUID user = accountOf(employee);
+        EventEnvelope envelope = new EventEnvelope(Uuids.timeOrdered(NOW), "organization.workforce.EmployeeTransferred", 1, NOW, "Employee", employee, 1,
+                Uuids.timeOrdered(NOW), null, ActorType.SYSTEM, com.forcitis.one.kernel.SystemActors.idOf("test.envelope"), new LegalEntityId(legalEntity),
+                BACK_ON, null, List.of());
+        EmployeeTransferred event = new EmployeeTransferred(envelope, new PersonnelCommandId(Uuids.timeOrdered(NOW)), employeeIdOf(employee), BACK_ON,
+                List.of(TriggerFieldKind.POSITION), new OrgUnitId(unit), new OrgUnitId(unit), new PositionId(newPosition()), new PositionId(newPosition()));
+
+        publish(event);
+        identityHandled(envelope.eventId().toString());
+
+        assertThat(kindsOf(itemsAbout(user))).as("only the sensitive role is reviewed").containsExactly("SENSITIVE_ROLE_REVIEW");
+    }
+
+    @Test
+    @DisplayName("#730 SCOPE_REVIEW 6：同一转岗事件重投递两次、同一命令的另一事件，仍然只有一条范围复核和一张外发卡")
+    void aReplayGivesOneScopeReviewAndOneCard() throws Exception {
+        UUID head = employed(REGULAR);
+        UUID toUnit = newUnit();
+        headOf(toUnit, head);
+        UUID employee = employedHolding();
+        grantByOperations(employee, customRole("scoped-replay", unit));
+        UUID user = accountOf(employee);
+        UUID command = Uuids.timeOrdered(NOW);
+        EmployeeTransferred event = transferredIn(employee, command, unit, toUnit, legalEntity);
+        EmployeeTransferred another = transferredIn(employee, command, unit, toUnit, legalEntity);
+
+        publish(event);
+        identityHandled(event.envelope().eventId().toString());
+        publish(event);
+        publish(another);
+        identityHandled(another.envelope().eventId().toString());
+        identityHandled(event.envelope().eventId().toString());
+
+        assertThat(itemsAbout(user)).hasSize(1);
+        assertThat(assignedCardsAbout(dueItemId(user))).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("#730 SCOPE_REVIEW 7：新部门没有负责人时仍生成范围复核，接收人为空，没有外发卡，并恰好一条以 \"ALERT P3 platform.identity \" 开头、含事件 id、不含工号与姓名的日志")
+    void aNewDepartmentWithoutAHeadGivesAnItemWithoutRecipientCardOrNothingButOneP3Alert() throws Exception {
+        UUID employee = employedHolding();
+        grantByOperations(employee, customRole("scoped-nohead", unit));
+        UUID user = accountOf(employee);
+        EmployeeTransferred event = transferredIn(employee, Uuids.timeOrdered(NOW), unit, newUnit(), legalEntity);
+        String eventId = event.envelope().eventId().toString();
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        ListAppender<ILoggingEvent> logged = new ListAppender<>();
+        logged.start();
+        root.addAppender(logged);
+        try {
+            publish(event);
+            identityHandled(eventId);
+        } finally {
+            root.detachAppender(logged);
+        }
+
+        List<Map<String, Object>> items = itemsAbout(user);
+        assertThat(items).hasSize(1);
+        assertThat(items.getFirst()).containsEntry("kind", "SCOPE_REVIEW");
+        assertThat(items.getFirst().get("recipient_employee_id")).isNull();
+        assertThat(assignedCardsAbout(dueItemId(user))).as("no recipient, no delivery").isEmpty();
+        List<ILoggingEvent> alerts = logged.list.stream().filter(line -> line.getFormattedMessage().startsWith("ALERT P3 platform.identity ")).toList();
+        assertThat(alerts).as("exactly one P3 alert line").hasSize(1);
+        Map<String, Object> person;
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            person = query(workforce, "select employee_code, display_name from employees where id = ?", stored(employee)).getFirst();
+        }
+        assertThat(alerts.getFirst().getFormattedMessage()).contains(eventId).doesNotContain(String.valueOf(person.get("employee_code")))
+                .doesNotContain(String.valueOf(person.get("display_name")));
+    }
+
+    @Test
+    @DisplayName("#730 SCOPE_REVIEW 8：既持有敏感角色又持有自定义部门角色的人转岗，同一命令得到两条（敏感角色复核与范围复核各一，各自去重）；只有范围复核有接收人")
+    void aSensitiveAndScopedHolderGetsOneItemOfEachKind() throws Exception {
+        UUID head = employed(REGULAR);
+        UUID toUnit = newUnit();
+        headOf(toUnit, head);
+        UUID employee = employedHolding(SECURITY_AUDITOR);
+        grantByOperations(employee, customRole("scoped-both", unit));
+        UUID user = accountOf(employee);
+
+        UUID command = transfer(employee, TODAY, toUnit);
+
+        awaitItemsAbout(user, 2);
+        List<Map<String, Object>> items = itemsAbout(user);
+        assertThat(kindsOf(items)).containsExactlyInAnyOrder("SENSITIVE_ROLE_REVIEW", "SCOPE_REVIEW");
+        assertThat(items).allSatisfy(item -> assertThat(item).containsEntry("trigger_personnel_command_id", command).containsEntry("trigger_field_kind", "ORG_UNIT"));
+        assertThat(items.stream().filter(item -> "SCOPE_REVIEW".equals(item.get("kind"))).findFirst().orElseThrow()).containsEntry("recipient_employee_id", head);
+        assertThat(items.stream().filter(item -> "SENSITIVE_ROLE_REVIEW".equals(item.get("kind"))).findFirst().orElseThrow().get("recipient_employee_id")).isNull();
+    }
+
+    @Test
+    @DisplayName("#730 SCOPE_REVIEW 9：EmployeeCorrected 触发字段含部门且更正前部门有值时按同一规则生成范围复核（ADR-0081 决定 3）；更正前部门为空（撤销误离职）不生成（ADR-0082 决定 3）。依赖 #1089 发布新载荷")
+    void aCorrectionOfTheDepartmentFollowsTheSameRule() throws Exception {
+        UUID head = employed(REGULAR);
+        UUID toUnit = newUnit();
+        headOf(toUnit, head);
+        UUID moved = employedHolding();
+        grantByOperations(moved, customRole("scoped-corr", unit));
+        UUID movedUser = accountOf(moved);
+        UUID undone = employedHolding();
+        grantByOperations(undone, customRole("scoped-undo", unit));
+        UUID undoneUser = accountOf(undone);
+
+        EmployeeCorrected movedEvent = corrected(moved, Uuids.timeOrdered(NOW), List.of(TriggerFieldKind.ORG_UNIT), unit, toUnit, null, null);
+        EmployeeCorrected undoneEvent = undoneSeparation(undone, Uuids.timeOrdered(NOW), toUnit, newPosition());
+        publish(movedEvent);
+        publish(undoneEvent);
+        identityHandled(movedEvent);
+        identityHandled(undoneEvent);
+
+        List<Map<String, Object>> items = itemsAbout(movedUser);
+        assertThat(items).hasSize(1);
+        assertThat(items.getFirst()).containsEntry("kind", "SCOPE_REVIEW").containsEntry("before_org_unit_id", unit).containsEntry("after_org_unit_id", toUnit)
+                .containsEntry("recipient_employee_id", head);
+        assertThat(itemsAbout(undoneUser)).as("nothing before the correction, nothing to review").isEmpty();
+    }
 }

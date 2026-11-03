@@ -10,7 +10,7 @@
 
 红：当前 main 上第一条「应接受」的插入即被 `ck_permission_adjustments_assignment_change` 拒绝。绿：用 one-design 裁定的放宽后 CHECK 作为临时迁移跑，`PermissionAdjustment*IT` 30 条全绿（临时迁移不提交）。
 
-## 事件驱动（`organization/workforce/CorrectionUndoesSeparationReviewIT`，9 条，按 #1089 的 `EmployeeCorrected` 最终载荷）
+## 事件驱动（`organization/workforce/CorrectionUndoesSeparationReviewIT`，17 条，按 #1089 的 `EmployeeCorrected` 最终载荷）
 
 | 测试 | 对应 |
 |---|---|
@@ -35,3 +35,23 @@ A-6 不覆盖/存疑：(b) 到期再生成用 `EmployeeLegalEntities.on` 属 S2�
 - 告警条的日志取自根 logger 的 ListAppender；事件类型是否出现在行内裁定写了但不好定格式，未断言（只断言事件 id）。
 - 「此刻持有的敏感角色」用 security_auditor、business_admin 两个角色代表；哪些角色算敏感由 `SensitivePermissions` 定，用例不自带第三方角色。
 - 撤销误离职后通常只剩 employee 一个角色，条目通常不生成：用户已于 2026-11-03 答 A（复核对象取更正时仍持有的敏感角色；决策片段 `docs/decisions/2026-11-03-095141-one-lead-复核对象取更正时仍持有的敏感角色.md`，PR #1101，ADR-0082），本批照此。
+
+
+## SCOPE_REVIEW from a transfer (ruling #730 comment 6602688198; 8 more cases in the same class)
+| Ruling case | Test |
+|---|---|
+| 1 custom-org-unit holder, real transfer: one row, recipient new head, trigger command/field, before/after, one ASSIGNED card, one Opened audit | `aRealTransferOfACustomOrgUnitHolderGivesOneScopeReviewForTheNewHead` |
+| 3 two scoped grants: one row | `twoScopedGrantsStillGiveOneScopeReview` |
+| 4 only ALL / OWN_ORG_UNIT grants: none (control: sensitive holder gets its one item) | `aHolderOfOnlyNonScopedGrantsGetsNoScopeReview` |
+| 5 POSITION-only transfer: none | `aPositionOnlyTransferGivesNoScopeReview` |
+| 6 replay and second event of one command: one row, one card | `aReplayGivesOneScopeReviewAndOneCard` |
+| 7 no head: NULL recipient, no card, one `ALERT P3 platform.identity ` line | `aNewDepartmentWithoutAHeadGivesAnItemWithoutRecipientCardOrNothingButOneP3Alert` |
+| 8 sensitive + scoped: two items, scope one has the recipient | `aSensitiveAndScopedHolderGetsOneItemOfEachKind` |
+| 9 EmployeeCorrected with ORG_UNIT and a before department: same rule; empty before: nothing | `aCorrectionOfTheDepartmentFollowsTheSameRule` (uses the #1089 payload, which the class already compiles against) |
+
+Red on baseline: all 8 fail (timeout waiting for the item or for identity to handle the event); the fixtures (roles through the role api by a super administrator, heads written in org_units) work.
+
+Not covered / doubts:
+- Case 2 (role with LISTED legal entities): the role schema on main has no such scope (`access_scope_kind` is ALL, CUSTOM_ORG_UNITS, OWN_ORG_UNIT, OWN_ORG_UNIT_SUBTREE, SELF, SELF_AND_DIRECT_REPORTS), so no fixture can be built; to be added when the scope exists. Question for one-design.
+- The recipient column of the ASSIGNED card is not asserted (recipient_codes format unknown); only subject kind, id and purpose.
+- Source 2 (ORG_UNIT_INACTIVE generation) has no acceptance, by ruling.
