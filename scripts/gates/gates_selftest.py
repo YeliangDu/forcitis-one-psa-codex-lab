@@ -554,6 +554,13 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
         runs = [subprocess.Popen([os.path.join(repo, "scripts/gates/install.sh"), b], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env, cwd=tmp) for _ in range(8)]
         outs = [(p.wait(timeout=120), p.stderr.read()) for p in runs]
         assert all(code == 0 for code, _ in outs) and points_to() == b and not leftovers(), (outs, points_to(), leftovers())
+    # 4b'. git archive writes after tar has stopped reading (the zero padding behind the end-of-archive marker; #1183, nightly 41719387871): tar exits at the marker, git
+    #      archive is killed by SIGPIPE (141) and pipefail fails the install, whenever tar is quicker than git archive. A git that pads the archive by 1 MB (more than a pipe holds) forces it.
+    shim = os.path.join(tmp, "shim")
+    os.makedirs(shim)
+    put(os.path.join(shim, "git"), '#!/bin/bash\ncase " $* " in *" archive "*) /usr/bin/git "$@" || exit $?; exec head -c 1048576 /dev/zero ;; esac\nexec /usr/bin/git "$@"\n', 0o755)
+    r = install(b, PATH=shim + os.pathsep + env["PATH"])
+    assert r.returncode == 0 and points_to() == b and not leftovers(), ("the padding after the end of the archive is read, not left to SIGPIPE", r.returncode, r.stderr)
     # 4c. that fallback, deterministically: the target directory is locked (chflags uchg), so neither rename works. A target matching the fresh unpack counts as
     #     ready; one matching only its own manifest (another commit's files) does not, and current stays (O7 fix first review, suggestion 2). chflags is macOS/BSD.
     target = os.path.join(hooks, b)
