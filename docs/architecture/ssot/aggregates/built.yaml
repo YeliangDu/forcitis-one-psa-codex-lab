@@ -58,6 +58,7 @@ aggregates:
   - code
   tables: []
   commands:
+  - ApplyDueOrgCommand
   - OrgCountersigns
   events:
   - organization.workforce.EmployeeLegalEntityChanged
@@ -192,6 +193,7 @@ aggregates:
   - code
   tables: []
   commands:
+  - ApplyDueOrgCommand
   - CountersignReadAccess
   - CountersignRequests
   - GetAttributionCountersign
@@ -203,8 +205,10 @@ aggregates:
   - OrgMergeProgress
   - OrgMergeSteps
   - OrgPlans
+  - OrgStructureCommandDueJob
   - OrgStructureCommandService
   - OrgStructureRules
+  - PersonnelCommandService
   - PreviewMergeAttribution
   events: []
   events_in_module:
@@ -496,6 +500,7 @@ aggregates:
   - MarkPermissionAdjustmentAdjusted
   - OpenAssignmentReviews
   - PermissionAdjustmentAccess
+  - PermissionAdjustmentEscalationNotice
   - PermissionAdjustmentTransitions
   - PermissionAdjustmentView
   - UpholdPermissionAdjustment
@@ -547,6 +552,7 @@ aggregates:
   - ForceUserLogout
   - GrantRoleByOperations
   - OrgUnitScopes
+  - PermissionAdjustmentEscalationNotice
   - ReplaceAccountRoles
   - RevokeRoleByOperations
   - RoleScopeRefusal

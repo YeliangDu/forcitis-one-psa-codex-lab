@@ -247,6 +247,15 @@ public final class OrgStructureCommand extends AggregateRoot {
         }
     }
 
+    /** The day of a pending command that is not a merge has come: its versions are in force since the entry or the last countersign, so it only turns effective. */
+    public void dueEffect(Instant now) {
+        if (kind == OrgStructureCommandKind.MERGE) {
+            throw notAllowed("a merge is effective only when its people are moved");
+        }
+        moveTo(OrgCommandStatus.EFFECTIVE);
+        this.appliedAt = now;
+    }
+
     /** A merge starts moving people: the number of employed people of that moment is written once. */
     public void startMerge(int affected) {
         requireKind(OrgStructureCommandKind.MERGE);

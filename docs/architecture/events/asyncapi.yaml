@@ -5739,6 +5739,10 @@ x-system-actors:
   actorId: 550a37fb-c036-51bb-be7a-9fd0874b9698
   module: organization.workforce
   description: 到日执行组织单元合并：逐人生成调岗，转完后撤销被并入单元（#907；到日作业本身另批）
+- name: organization.workforce.org.structure.command.due
+  actorId: 4737f619-4001-5185-819b-e2760387602b
+  module: organization.workforce
+  description: 作业：到日执行组织结构命令（待生效转已生效，发组织事件与员工成本法人已变更；#1146）
 - name: platform.identity.permission.adjustment.expire
   actorId: cf9e57dc-ff3d-5eba-8e8e-bc12a222bf2b
   module: platform.identity

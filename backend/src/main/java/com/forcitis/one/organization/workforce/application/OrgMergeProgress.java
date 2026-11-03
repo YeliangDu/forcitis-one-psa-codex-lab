@@ -8,7 +8,10 @@ import com.forcitis.one.organization.workforce.domain.OrgCommandStatus;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommand;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository;
 import java.time.Clock;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
@@ -29,13 +32,46 @@ class OrgMergeProgress {
         this.clock = clock;
     }
 
+    /** The merges in progress whose merged unit holds the employee on the merge day. */
+    List<OrgStructureCommandId> holding(EmployeeId employee) {
+        return commands.mergesInProgressOf(employee);
+    }
+
     /** The merges in progress that hold the employee, their merged units locked; call before the employee row is locked. */
     List<OrgStructureCommandId> lockHolding(EmployeeId employee) {
-        List<OrgStructureCommandId> holding = commands.mergesInProgressOf(employee);
+        List<OrgStructureCommandId> holding = holding(employee);
         for (OrgStructureCommandId id : holding) {
             commands.lockOrgUnit(commands.find(id).orElseThrow().targetOrgUnitId());
         }
         return holding;
+    }
+
+    /** The merges that are pending or in progress, their merged units locked; call before the employee row is locked. */
+    List<OrgStructureCommand> lockOpen() {
+        List<OrgStructureCommand> open = new ArrayList<>();
+        for (OrgStructureCommandId id : commands.openMerges()) {
+            OrgStructureCommand merge = commands.find(id).orElseThrow();
+            commands.lockOrgUnit(merge.targetOrgUnitId());
+            open.add(commands.find(id).orElseThrow());
+        }
+        return open;
+    }
+
+    /**
+     * The merges the employee is placed in the way of (one-design ruling on #1098, S1a): one in progress whose merged unit holds the person on the merge day, so the person
+     * is not among those it counted, or a pending one whose unit the person joins only after the merge day. Compared before and after a command writes versions that name no unit.
+     */
+    Set<OrgStructureCommandId> placedBy(List<OrgStructureCommand> open, EmployeeId employee) {
+        Set<OrgStructureCommandId> placed = new HashSet<>();
+        for (OrgStructureCommand merge : open) {
+            boolean in = merge.status() == OrgCommandStatus.IN_PROGRESS
+                    ? commands.postsIn(merge.targetOrgUnitId(), merge.effectiveDate()).stream().anyMatch(post -> post.employee().equals(employee))
+                    : commands.arrivalsAfter(merge.targetOrgUnitId(), merge.effectiveDate()).stream().anyMatch(a -> a.employeeId().equals(employee));
+            if (in) {
+                placed.add(merge.id());
+            }
+        }
+        return placed;
     }
 
     /**

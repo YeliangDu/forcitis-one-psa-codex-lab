@@ -41,13 +41,15 @@ class PermissionAdjustmentTransitions {
     private final LegalEntityOnDay legalEntities;
     private final HoldsSensitiveRole sensitiveRoles;
     private final WorkdayDeadlines deadlines;
+    private final PermissionAdjustmentEscalationNotice escalationNotice;
     private final DomainEvents events;
     private final IdGenerator ids;
     private final Clock clock;
     private final BusinessZone zone;
 
     PermissionAdjustmentTransitions(PermissionAdjustmentRepository adjustments, AccountEmployees accountEmployees, OrgDirectory directory,
-            LegalEntityOnDay legalEntities, HoldsSensitiveRole sensitiveRoles, WorkdayDeadlines deadlines, DomainEvents events, IdGenerator ids,
+            LegalEntityOnDay legalEntities, HoldsSensitiveRole sensitiveRoles, WorkdayDeadlines deadlines,
+            PermissionAdjustmentEscalationNotice escalationNotice, DomainEvents events, IdGenerator ids,
             Clock clock, BusinessZone zone) {
         this.adjustments = adjustments;
         this.accountEmployees = accountEmployees;
@@ -55,6 +57,7 @@ class PermissionAdjustmentTransitions {
         this.legalEntities = legalEntities;
         this.sensitiveRoles = sensitiveRoles;
         this.deadlines = deadlines;
+        this.escalationNotice = escalationNotice;
         this.events = events;
         this.ids = ids;
         this.clock = clock;
@@ -107,6 +110,7 @@ class PermissionAdjustmentTransitions {
         item.escalate(now);
         adjustments.update(item);
         events.publish(item);
+        escalationNotice.send(item);
     }
 
     private @Nullable EmployeeId personOf(PermissionAdjustment item) {

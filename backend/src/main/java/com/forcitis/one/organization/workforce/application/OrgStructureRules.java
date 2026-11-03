@@ -85,9 +85,9 @@ class OrgStructureRules {
             }
             case MERGE -> {
                 requireInForce(unit, day, tree);
-                requireRoomBelow(c.mergeIntoOrgUnitId(), day, tree);
+                requireReceiving(c.mergeIntoOrgUnitId(), day, tree);
                 requireEmptyOfUnits(unit, day, tree);
-                requireNoMergeArriving(unit, day);
+                requireNoMergeIntoDatedOnOrAfter(unit, day);
                 requireNoArrival(unit, day);
             }
             default -> requireInForce(unit, day, tree);
@@ -101,7 +101,7 @@ class OrgStructureRules {
     void checkMergeStillPossible(OrgStructureCommand merge) {
         OrgTree tree = new OrgTree(commands.currentUnitRows());
         requireEmptyOfUnits(merge.targetOrgUnitId(), merge.effectiveDate(), tree);
-        requireRoomBelow(merge.mergeIntoOrgUnitId(), merge.effectiveDate(), tree);
+        requireReceiving(merge.mergeIntoOrgUnitId(), merge.effectiveDate(), tree);
         requireNoArrival(merge.targetOrgUnitId(), merge.effectiveDate());
     }
 
@@ -162,6 +162,26 @@ class OrgStructureRules {
         }
         if (commands.hasOpenMerge(parent)) {
             throw refused("the parent org unit is about to be merged away");
+        }
+    }
+
+    /**
+     * The people of a merge are placed in the receiving unit on the merge day (one-design ruling on #1098, S2): it must be in force from then on and must not be going away
+     * by a merge of its own on or before that day, nor be emptied already (a merge in progress). A merge of the receiving unit dated later is a chain: the people arrive first and move on.
+     */
+    private void requireReceiving(OrgUnitId receiving, LocalDate day, OrgTree tree) {
+        if (!commands.orgUnitExists(receiving) || !tree.activeFrom(receiving.value(), day)) {
+            throw refused("the parent org unit does not exist or is not in force from " + day);
+        }
+        if (commands.hasMergeOfUnitOnOrBefore(receiving, day)) {
+            throw refused("the receiving org unit is merged away on or before " + day + ", or its merge is in progress");
+        }
+    }
+
+    /** A merge dated on the same day or later puts its people into the unit; this merge, dated on or before that, would take the unit away first. */
+    private void requireNoMergeIntoDatedOnOrAfter(OrgUnitId unit, LocalDate day) {
+        if (commands.hasMergeIntoOnOrAfter(unit, day)) {
+            throw refused("a merge into the org unit is dated on or after " + day + "; its people would arrive after the unit is merged away");
         }
     }
 

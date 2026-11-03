@@ -148,7 +148,7 @@ class AttributionCountersignServiceTest {
                 null, null, null, null, null, E2, E1, E2, null, null, DRAFTER, NOW, null, 0, 0);
         when(commands.find(COMMAND)).thenReturn(Optional.of(pending));
         ApplyDueCommand due = new ApplyDueCommand(commands, new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(LegalEntityResolutionSources.class), requests,
-                countersigns, mock(DomainEvents.class), ids, clock, zone);
+                countersigns, mock(OrgMergeProgress.class), mock(DomainEvents.class), ids, clock, zone);
 
         due.execute(COMMAND);
 

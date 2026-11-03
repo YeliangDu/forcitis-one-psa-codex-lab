@@ -13,6 +13,7 @@ import com.forcitis.one.organization.workforce.api.OrgStructureCommandKind;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.AssignmentKind;
+import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
 import com.forcitis.one.organization.workforce.domain.HeldPost;
 import com.forcitis.one.organization.workforce.domain.OrgCommandStatus;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommand;
@@ -38,17 +39,21 @@ class OrgMergeSteps {
     private final OrgMergeProgress progress;
     private final OrgMergeCompletion completion;
     private final PersonnelCommandService personnel;
+    private final AttributionCountersignRepository countersigns;
+    private final CountersignRequests requests;
     private final IdGenerator ids;
     private final Clock clock;
     private final BusinessZone zone;
 
     OrgMergeSteps(OrgStructureCommandRepository commands, OrgStructureRules rules, OrgMergeProgress progress, OrgMergeCompletion completion, PersonnelCommandService personnel,
-                  IdGenerator ids, Clock clock, BusinessZone zone) {
+                  AttributionCountersignRepository countersigns, CountersignRequests requests, IdGenerator ids, Clock clock, BusinessZone zone) {
         this.commands = commands;
         this.rules = rules;
         this.progress = progress;
         this.completion = completion;
         this.personnel = personnel;
+        this.countersigns = countersigns;
+        this.requests = requests;
         this.ids = ids;
         this.clock = clock;
         this.zone = zone;
@@ -81,6 +86,8 @@ class OrgMergeSteps {
             merge.startMerge(employeesOf(posts));
             commands.update(merge, now, loaded);
             commands.insertTransition(merge.id(), loaded + 1, before, merge.status().name(), ActorType.SYSTEM, actor, today, now, correlation());
+            // The merge has started, so a withdrawal request still open can no longer be decided (OrgCountersigns.requireDecidable): it lapses.
+            requests.lapse(CountersignRequests.Parent.of(merge), countersigns.lockOfOrgCommand(merge.id()), ActorType.SYSTEM, actor, now, today, correlation());
         }
         return posts;
     }
