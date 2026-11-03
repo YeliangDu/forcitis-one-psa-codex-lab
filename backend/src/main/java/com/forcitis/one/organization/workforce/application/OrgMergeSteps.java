@@ -115,8 +115,8 @@ class OrgMergeSteps {
         if (merge.status() == OrgCommandStatus.EFFECTIVE) {
             return;
         }
-        if (!commands.employedIn(merge.targetOrgUnitId(), merge.effectiveDate()).isEmpty()) {
-            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ORG_STRUCTURE_MERGE_INCOMPLETE, ErrorKind.CONFLICT, "somebody is still in the merged unit");
+        if (commands.hasEmployedFrom(merge.targetOrgUnitId(), merge.effectiveDate())) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ORG_STRUCTURE_MERGE_INCOMPLETE, ErrorKind.CONFLICT, "somebody is still in the merged unit on or after the merge day");
         }
         long loaded = merge.version();
         String before = merge.status().name();

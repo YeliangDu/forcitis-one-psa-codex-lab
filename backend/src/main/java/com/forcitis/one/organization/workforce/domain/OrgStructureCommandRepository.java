@@ -19,7 +19,7 @@ import org.jspecify.annotations.Nullable;
 public interface OrgStructureCommandRepository {
 
     /**
-     * Locks the root row of the org unit for the rest of the transaction; false when there is no such unit. Everything that changes what the unit's people
+     * Locks the root row of the org unit for the rest of the transaction (FOR NO KEY UPDATE: it excludes other such locks but not the key-share lock a foreign key check takes when a personnel command writes an assignment in the unit, so a personnel command, which locks the employee first, cannot deadlock with a merge); false when there is no such unit. Everything that changes what the unit's people
      * are, a merge's start and each person it moves, takes this lock before any employee row (lock order: org unit root, then employee root).
      */
     boolean lockOrgUnit(OrgUnitId orgUnit);
@@ -88,6 +88,9 @@ public interface OrgStructureCommandRepository {
 
     /** Whether somebody is employed and in the unit on some day from the given one on, whatever the entered commands will make of them. */
     boolean hasEmployedFrom(OrgUnitId orgUnit, LocalDate day);
+
+    /** Whether somebody is employed and joins the unit after the day (a transfer into it dated later, or a person who joined after a back-dated day). */
+    boolean hasArrivalAfter(OrgUnitId orgUnit, LocalDate day);
 
     /** Whether somebody is employed and holds the position on some day from the given one on. */
     boolean hasHolderFrom(PositionId position, LocalDate day);

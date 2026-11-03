@@ -68,7 +68,7 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
 
     @Override
     public boolean lockOrgUnit(OrgUnitId orgUnit) {
-        return jdbc.sql("select 1 from organization_workforce.org_units where id = :id for update").param("id", orgUnit.value()).query(Integer.class).optional().isPresent();
+        return jdbc.sql("select 1 from organization_workforce.org_units where id = :id for no key update").param("id", orgUnit.value()).query(Integer.class).optional().isPresent();
     }
 
     @Override
@@ -400,6 +400,12 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     @Override
     public boolean hasEmployedFrom(OrgUnitId orgUnit, LocalDate day) {
         return jdbc.sql("select 1 " + OPEN_HOLDERS.formatted("org_unit_id") + " limit 1").param("target", orgUnit.value()).param("day", day).query(Integer.class).optional().isPresent();
+    }
+
+    @Override
+    public boolean hasArrivalAfter(OrgUnitId orgUnit, LocalDate day) {
+        return jdbc.sql("select 1 " + OPEN_HOLDERS.formatted("org_unit_id") + " and a.effective_from_date > :day limit 1").param("target", orgUnit.value()).param("day", day)
+                .query(Integer.class).optional().isPresent();
     }
 
     @Override

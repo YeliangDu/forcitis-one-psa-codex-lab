@@ -67,6 +67,7 @@ class OrgStructureRules {
                 requireRoomBelow(c.mergeIntoOrgUnitId(), day, tree);
                 requireEmptyOfUnits(unit, day, tree);
                 requireNoMergeArriving(unit, day);
+                requireNoArrivals(unit, day);
             }
             default -> requireInForce(unit, day, tree);
         }
@@ -80,6 +81,14 @@ class OrgStructureRules {
         OrgTree tree = new OrgTree(commands.currentUnitRows());
         requireEmptyOfUnits(merge.targetOrgUnitId(), merge.effectiveDate(), tree);
         requireRoomBelow(merge.mergeIntoOrgUnitId(), merge.effectiveDate(), tree);
+        requireNoArrivals(merge.targetOrgUnitId(), merge.effectiveDate());
+    }
+
+    /** The merge moves the people of its day; somebody who joins the unit later would be left in a unit that is revoked from that day. */
+    private void requireNoArrivals(OrgUnitId unit, LocalDate day) {
+        if (commands.hasArrivalAfter(unit, day)) {
+            throw refused("somebody joins the org unit after " + day + "; the merge would leave them in a revoked unit");
+        }
     }
 
     private void checkPosition(OrgStructureCommand c, LocalDate day) {
