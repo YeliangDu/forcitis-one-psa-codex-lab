@@ -156,6 +156,14 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
                 .param("version", c.version()).update();
     }
 
+    private static final String CLOSE_UNIT = "update organization_workforce.org_unit_versions set effective_to_date = :to, closed_at = :at, updated_at = :at where org_unit_version_id = :id";
+    private static final String CLOSE_POSITION = "update organization_workforce.position_versions set effective_to_date = :to, closed_at = :at, updated_at = :at"
+            + " where position_version_id = :id";
+    private static final String SUPERSEDE_UNIT = "update organization_workforce.org_unit_versions set superseded_at = :at, superseding_org_structure_command_id = :command,"
+            + " updated_at = :at where org_unit_version_id = :id";
+    private static final String SUPERSEDE_POSITION = "update organization_workforce.position_versions set superseded_at = :at, superseding_org_structure_command_id = :command,"
+            + " updated_at = :at where position_version_id = :id";
+
     @Override
     public void update(OrgStructureCommand c, Instant at, long loadedVersion) {
         int updated = jdbc.sql("""
@@ -326,17 +334,9 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
         return units;
     }
 
-    private static final String CLOSE_UNIT = "update organization_workforce.org_unit_versions set effective_to_date = :to, closed_at = :at, updated_at = :at where org_unit_version_id = :id";
-    private static final String CLOSE_POSITION = "update organization_workforce.position_versions set effective_to_date = :to, closed_at = :at, updated_at = :at"
-            + " where position_version_id = :id";
-    private static final String SUPERSEDE_UNIT = "update organization_workforce.org_unit_versions set superseded_at = :at, superseding_org_structure_command_id = :command,"
-            + " updated_at = :at where org_unit_version_id = :id";
-    private static final String SUPERSEDE_POSITION = "update organization_workforce.position_versions set superseded_at = :at, superseding_org_structure_command_id = :command,"
-            + " updated_at = :at where position_version_id = :id";
-
     @Override
     public void insertUnitVersions(OrgUnitId orgUnit, VersionPlan plan, OrgStructureCommandId command, Instant at) {
-        apply(plan, command, at, CLOSE_UNIT, SUPERSEDE_UNIT);
+        apply(plan, command, at, true);
         for (VersionPlan.NewRow row : plan.inserts()) {
             Map<String, Object> v = row.values();
             int revision = jdbc.sql("select coalesce(max(revision_number) + 1, 0) from organization_workforce.org_unit_versions where org_unit_id = :unit"
@@ -361,7 +361,7 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
 
     @Override
     public void insertPositionVersions(PositionId position, VersionPlan plan, OrgStructureCommandId command, Instant at) {
-        apply(plan, command, at, CLOSE_POSITION, SUPERSEDE_POSITION);
+        apply(plan, command, at, false);
         for (VersionPlan.NewRow row : plan.inserts()) {
             Map<String, Object> v = row.values();
             int revision = jdbc.sql("select coalesce(max(revision_number) + 1, 0) from organization_workforce.position_versions where position_id = :position"
@@ -380,12 +380,12 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
         }
     }
 
-    private void apply(VersionPlan plan, OrgStructureCommandId command, Instant at, String close, String supersede) {
+    private void apply(VersionPlan plan, OrgStructureCommandId command, Instant at, boolean unit) {
         for (VersionPlan.Close one : plan.closes()) {
-            jdbc.sql(close).param("to", one.to()).param("at", at(at)).param("id", one.id()).update();
+            jdbc.sql(unit ? CLOSE_UNIT : CLOSE_POSITION).param("to", one.to()).param("at", at(at)).param("id", one.id()).update();
         }
         for (UUID id : plan.supersede()) {
-            jdbc.sql(supersede).param("at", at(at)).param("command", command.value()).param("id", id).update();
+            jdbc.sql(unit ? SUPERSEDE_UNIT : SUPERSEDE_POSITION).param("at", at(at)).param("command", command.value()).param("id", id).update();
         }
     }
 
