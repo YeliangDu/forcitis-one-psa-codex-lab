@@ -12,6 +12,8 @@
 #                    through two-person confirmation (ADR-0026 item 6.2, ADR-0027 item 3). The reason names the ADR row that registers the data GLOBAL and which form applies.
 #                    The reason is required; if a case-ii permission can be held by an ordinary role without two-person confirmation, the line is SCOPED.
 # The reason is kept on every line so that a reviewer of the mode does not have to open the handler. Modes ruled by one-design, #730 comments 6603659958, 6604041421 and 6604403956.
+GET /api/v1/organization/attribution-countersigns/{attributionCountersignId} | NOT_SCOPE_BOUND | case ii, first form: a countersign request names an employee but is read by its decider outside the decider's data scope, GLOBAL by the adopted decision of #910 amendment B (one-design ruling, comment 6588705997; ADR-0073 item 3.6); legal-entity-attribution:approve is held by the system roles legal_entity_finance_head and business_admin, and the application answers 404 to anyone who is not the row's decider
+GET /api/v1/organization/org-structure-commands/{orgStructureCommandId}/attribution-countersign-bases | NOT_SCOPE_BOUND | case ii, first form: the people whose cost legal entity a command changes, read by a finance head of an entity it asks or by the org data administrator whatever their data scope, GLOBAL by #910 amendment B (comment 6588705997; ADR-0073 items 2 to 4); both permissions are held by system roles and anyone else is answered 404
 GET /api/v1/organization/employee-legal-entities/{employeeId} | SCOPED | legal-entity periods of one employee
 GET /api/v1/organization/employee-profile-change-requests | SCOPED | pending profile changes, one employee each (name, gender, requester)
 GET /api/v1/organization/legal-entities | NOT_SCOPE_BOUND | legal-entity master data (code, name, status): company level, no unit or person
@@ -19,6 +21,7 @@ GET /api/v1/organization/legal-entities/{legalEntityId} | NOT_SCOPE_BOUND | one 
 GET /api/v1/organization/org-unit-legal-entities/{orgUnitId} | SCOPED | legal-entity periods of one org unit
 GET /api/v1/organization/org-units | SCOPED | org units; the read path that already refuses an unresolvable scope (OrgUnitScopeIntegrationTest)
 GET /api/v1/organization/org-units/{orgUnitId} | SCOPED | one org unit; out of scope answers 404
+GET /api/v1/organization/org-units/{orgUnitId}:preview-merge | NOT_SCOPE_BOUND | case ii, first form: the merge rehearsal lists the employed people of the merged unit for the org data administrator whatever its data scope, GLOBAL by #910 amendment B (comment 6588705997); org-structure-command:create is held by the system role org_data_admin
 GET /api/v1/organization/work-calendars | NOT_SCOPE_BOUND | the years a company work calendar is maintained for: no unit or person
 GET /api/v1/organization/work-calendars/{calendarYear} | NOT_SCOPE_BOUND | one year of the company work calendar (days, holidays): no unit or person
 GET /api/v1/platform/approval-task-overviews | NOT_SCOPE_BOUND | case ii, first form: open tasks of everyone, read only by holders of the process administrator system role (checked in ListAllTasks by role code; ADR-0032 section 1, ADR-0034 item 7, D-1a-61); an operations view, unit scope would make it useless
