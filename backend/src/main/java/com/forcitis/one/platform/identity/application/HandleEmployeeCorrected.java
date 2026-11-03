@@ -50,7 +50,7 @@ class HandleEmployeeCorrected {
                     review.openFor(user, event.envelope(), event.personnelCommandId(), field, event.previousOrgUnitId(), event.newOrgUnitId(),
                             event.previousPositionId(), event.newPositionId());
                     if (field == TriggerFieldKind.ORG_UNIT) {
-                        review.openScopeReviewFor(user, event.envelope(), event.personnelCommandId(), event.previousOrgUnitId(), event.newOrgUnitId(),
+                        review.openScopeReviewFor(user, event.employeeId(), event.envelope(), event.personnelCommandId(), event.previousOrgUnitId(), event.newOrgUnitId(),
                                 event.previousPositionId(), event.newPositionId());
                     }
                 }
