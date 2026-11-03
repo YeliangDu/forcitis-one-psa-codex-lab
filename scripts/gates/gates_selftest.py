@@ -723,7 +723,7 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
     assert r.returncode == 0 and points_to() == a and mount(gate_cmd, bash("ls")).returncode == 0
 
 def codex_gate_test():
-    """#1180: codex runs in one shape, in the caller's own worktree; everything else is refused."""
+    """#1180: codex runs in one shape, in a session worktree under .claude/worktrees/; everything else is refused."""
     with tempfile.TemporaryDirectory() as tmp:
         tmp = os.path.realpath(tmp)
         main, w1, w2, plain = (os.path.join(tmp, n) for n in ("main", "main/.claude/worktrees/w1", "main/.claude/worktrees/w2", "plain"))
@@ -799,13 +799,31 @@ def codex_gate_test():
         for command, needle in refused:
             reason = ask(command)
             assert reason and "拒绝" in reason and needle in reason, (command, needle, reason)
-        # only the caller's own worktree
-        for why, cwd, project in (("the main checkout", main, main), ("another worktree of the repository", w2, w1), ("a directory that is not a repository", plain, w1), ("no cwd", None, w1), ("a relative cwd", "w1", w1),
-                                  ("cwd gone", os.path.join(tmp, "gone"), w1), ("no CLAUDE_PROJECT_DIR", w1, None), ("CLAUDE_PROJECT_DIR is the main checkout", w1, main), ("CLAUDE_PROJECT_DIR is not a repository", w1, plain)):
-            reason = ask(f"{S} 'fix the bug'", cwd=cwd, project=project)
-            assert reason and "自己的 worktree" in reason, (why, reason)
+        # only a session worktree under .claude/worktrees/ (CLAUDE_PROJECT_DIR is the main checkout in app-started worktree sessions, so it is not compared)
+        for why, cwd in (("the main checkout", main), ("a directory that is not a repository", plain), ("no cwd", None), ("a relative cwd", "w1"), ("cwd gone", os.path.join(tmp, "gone"))):
+            reason = ask(f"{S} 'fix the bug'", cwd=cwd, project=main)
+            assert reason and any(k in reason for k in ("当前目录", "说不出", "不是 .claude/worktrees/")), (why, reason)
+        for project in (main, w1, plain, None):
+            assert ask(f"{S} 'fix the bug'", project=project) is None, ("whatever CLAUDE_PROJECT_DIR says", project)
+        assert ask(f"{S} 'fix the bug'", cwd=w2, project=main) is None, "another session worktree of the repository"
+        # git's top level redirected by core.worktree (adversarial round): a directory whose .git file points at a linked worktree configured onto a session worktree is not inside it
+        w3, fake = os.path.join(tmp, "w3"), os.path.join(main, "backend")
+        git(main, "worktree", "add", "-q", w3, "-b", "w3")
+        git(main, "config", "extensions.worktreeConfig", "true")
+        git(w3, "config", "--worktree", "core.worktree", w1)
+        os.makedirs(fake)
+        put(os.path.join(fake, ".git"), f"gitdir: {os.path.join(main, '.git', 'worktrees', 'w3')}\n", 0o644)
+        for cwd in (w3, fake):
+            reason = ask(f"{S} 'fix the bug'", cwd=cwd, project=main)
+            assert reason and "不在 git 报的顶层" in reason, (cwd, reason)
+        # a standalone clone placed under .claude/worktrees/ is a main checkout of its own, not a session worktree (first round)
+        clone = os.path.join(tmp, "clonehome/.claude/worktrees/c1")
+        os.makedirs(os.path.dirname(clone))
+        git(tmp, "clone", "-q", main, clone)
+        reason = ask(f"{S} 'fix the bug'", cwd=clone, project=main)
+        assert reason and "不是 .claude/worktrees/" in reason, reason
         os.symlink(w2, os.path.join(tmp, "link"))
-        assert "自己的 worktree" in ask(f"{S} 'fix the bug'", cwd=os.path.join(tmp, "link")), "a symlink into another worktree resolves to it"
+        assert ask(f"{S} 'fix the bug'", cwd=os.path.join(tmp, "link")) is None and "不在 worktree" in ask(f"{S} 'fix the bug' > ../w1/x.txt", cwd=os.path.join(tmp, "link")), "a symlink resolves to the worktree it points at"
         os.symlink(tmp, os.path.join(w1, "escape"))
         assert "不在 worktree" in ask(f"{S} 'fix the bug' > escape/x.txt"), "a symlink out of the worktree does not make its target inside"
         # a repository whose worktree is not under .claude/worktrees/ is not an own worktree

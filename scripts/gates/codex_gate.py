@@ -4,7 +4,7 @@
 放行的唯一形状（整条命令就是它，没有别的命令、管道、链、包装、替换）：
     codex exec --sandbox workspace-write   （也写 -s workspace-write、--sandbox=workspace-write）
       [-m|--model <名>]  [-c|--config model_reasoning_effort=<low|medium|high|xhigh>]  <一个提示词>  [< 输入文件]  [> 输出文件]  [2>&1]
-且当前目录在调用会话自己的 worktree 里（钩子输入的 cwd 的 git 顶层须在 .claude/worktrees/ 下、不是主检出、且就是 CLAUDE_PROJECT_DIR 的顶层）；
+且当前目录在一个会话 worktree 里（钩子输入的 cwd 的 git 顶层须在 .claude/worktrees/ 下、不是主检出；不比对 CLAUDE_PROJECT_DIR：app 起的 worktree 会话里它指向主检出，钩子分不出哪个 worktree 是调用会话自己的）；
 输入、输出重定向的目标也须在这个 worktree 里（/dev/null 除外；暂存目录不开例外：提示词写进 worktree 里的文件，或直接作参数）。
 其他一切拒：不带沙箱、别的沙箱值、绕过沙箱的开关、--full-auto、--oss、-p、-C、--add-dir、--enable、别的 -c 键、CODEX_HOME=、resume、别的子命令、裸 codex；
 也拒 codex 出现在包装（timeout、time、nice、nohup、stdbuf、command、builtin、noglob、env、sudo、xargs、find -exec…）、前置变量赋值、&& ; | 链、$(…) 与反引号、
@@ -48,7 +48,7 @@ WRAPPED = ("拒绝：codex 只放一种用法：整条命令就是 `codex exec -
            "这条命令里 codex 出现在包装、链、替换、变量赋值、路径或别的位置，按拒绝处理。")
 UNPARSED = "拒绝：命令里有 codex，但这条命令的写法解析不了，判断不了它跑什么，按拒绝处理（只放 `codex exec --sandbox workspace-write …` 一种形状）。"
 SHAPE = "拒绝：codex 只放 `codex exec --sandbox workspace-write [-m 模型] [-c model_reasoning_effort=low|medium|high|xhigh] <一个提示词>`（可带 < 输入文件、> 输出文件）：{why}。"
-PLACE = "拒绝：codex 只在调用会话自己的 worktree 里跑：{why}。"
+PLACE = "拒绝：codex 只在会话 worktree（.claude/worktrees/ 下）里跑：{why}。"
 
 
 class ParseError(Exception):
@@ -444,7 +444,7 @@ def uses_in(text, depth=0):
 
 
 def own_worktree(cwd):
-    """(top level of the calling session's own worktree, None) or (None, why not)."""
+    """(top level of the session worktree the command runs in, None) or (None, why not)."""
     if not (isinstance(cwd, str) and os.path.isabs(cwd) and os.path.isdir(cwd)):
         return None, "钩子输入里没有可用的当前目录（cwd）"
     sys.path.insert(0, HERE)
@@ -455,15 +455,8 @@ def own_worktree(cwd):
         return None, f"git 说不出当前目录属于哪个仓库（{error}）"
     if is_main or os.path.realpath(top).split(os.sep)[-3:-1] != [".claude", "worktrees"]:
         return None, f"{top} 不是 .claude/worktrees/ 下的 worktree（主检出或别处不放行）"
-    project = os.environ.get("CLAUDE_PROJECT_DIR")
-    if not project:
-        return None, "没有 CLAUDE_PROJECT_DIR，认不出哪个是会话自己的 worktree"
-    try:
-        own, own_main, _ = m.where(project)
-    except Exception as error:
-        return None, f"git 说不出 CLAUDE_PROJECT_DIR 属于哪个仓库（{error}）"
-    if own_main or os.path.realpath(own) != os.path.realpath(top):
-        return None, f"当前目录的 worktree（{top}）不是会话自己的 worktree（{own}）"
+    if not inside(cwd, os.path.realpath(top), cwd):   # git's top level can be redirected (core.worktree in a linked worktree's config): the directory itself must be below it
+        return None, f"当前目录 {cwd} 不在 git 报的顶层 {top} 之下"
     return os.path.realpath(top), None
 
 
