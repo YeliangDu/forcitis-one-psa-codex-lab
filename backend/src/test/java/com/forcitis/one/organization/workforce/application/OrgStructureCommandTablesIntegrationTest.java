@@ -313,7 +313,7 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
         jdbc.sql("insert into organization_workforce.attribution_countersigns (attribution_countersign_id, org_structure_command_id, drafted_by, request_kind, request_sequence_number,"
                 + " legal_entity_id, requested_at, requested_by, due_on_date, created_at, updated_at) values (gen_random_uuid(), " + COMMAND + ", " + USER + ", 'CHANGE', 1, " + LEGAL_ENTITY
                 + ", now(), " + USER + ", date '2026-12-31', now(), now())").update();
-        jdbc.sql("update organization_workforce.attribution_countersigns set decision_kind = 'APPROVED', decided_at = now(), decided_by = " + USER
+        jdbc.sql("update organization_workforce.attribution_countersigns set decision_kind = 'APPROVED', decided_at = now(), decided_by = '019a0000-0000-7000-8000-0000000000ab'"
                 + ", decision_audit_entry_id = gen_random_uuid(), updated_at = now() where org_structure_command_id = " + COMMAND).update();
         bump("status = 'PENDING'");
         assertThatThrownBy(() -> bump("status = 'AWAITING_ATTRIBUTION_COUNTERSIGN'")).hasMessageContaining("cannot move");
