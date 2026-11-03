@@ -1,3 +1,4 @@
+# 错误码词条（#955：one-design 2026-11-02 裁定为已批准内部名；错误码按模块留在 backend/glossary，ErrorCodeGlossaryTest 与验收测试在此查找）
 terms:
 - id: error__platform_web_request_invalid
   zh: 请求无效
@@ -12,8 +13,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_web_correlation_invalid
   zh: 关联号无效
   en: PlatformWebCorrelationInvalid
@@ -27,8 +29,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_web_source_unavailable
   zh: 外部系统不可用
   en: PlatformWebSourceUnavailable
@@ -42,8 +45,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_web_source_broken
   zh: 外部数据不可用
   en: PlatformWebSourceBroken
@@ -57,8 +61,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_web_unexpected
   zh: 意外错误
   en: PlatformWebUnexpected
@@ -72,9 +77,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
-
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 - id: error__platform_web_request_too_large
   zh: 请求体过大
   en: PlatformWebRequestTooLarge
@@ -82,26 +87,12 @@ terms:
   kind: error_code
   bc: platform.web
   scope: domain
-  definition: "带幂等键的写请求，请求体超过幂等过滤器的体积上限，未读完即拒（413），并写告警日志、计数"
+  definition: 带幂等键的写请求，请求体超过幂等过滤器的体积上限，未读完即拒（413），并写告警日志、计数
   standard_ref:
   - ADR-0060 文件服务
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
   note: ''
-
-common_words:
-- are
-- do
-- filter
-- global
-- handle
-- instantiated
-- property
-- singleton
-- web
-- formatter
-- module
-- query
-- oversize
+  confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）

@@ -326,7 +326,7 @@ def pre_commit_test():
     print("pre_commit self-test: ok")
 
 FAKE = "fake-prod-db.example.invalid"  # ── install ── fictitious production host, put on the temporary repository's origin/main table only
-ENTRIES = {"PreToolUse": ["scripts/gates/pre_tool_dispatch.py"], "SessionStart": ["scripts/hooks/git_ceiling_env.sh", "scripts/hooks/stop_language.py"], "Stop": ["scripts/hooks/stop_language.py"]}  # the start sheet hangs on the tool library (O23a)
+ENTRIES = {"PreToolUse": ["scripts/gates/pre_tool_dispatch.py"], "SessionStart": ["scripts/hooks/git_ceiling_env.sh", "scripts/hooks/stop_language.py"], "Stop": ["scripts/hooks/stop_language.py", "scripts/hooks/card_handover.py"]}  # the start sheet hangs on the tool library (O23a)
 SHELLS = ("/bin/sh", "/bin/bash")
 FIRST_ONLY = """#!/bin/bash
 read -r line
@@ -362,7 +362,7 @@ def settings_self_test():
               'else echo "【钩子告警】核对不了已装钩子（$V 缺失或不可执行）"; fi; ')  # runs from the session's repository, not from current (O7 final M2)
     hooks = settings["hooks"]
     assert "node_ready" not in raw and "stop_check" not in raw and "clear_session" not in raw, "#752: no hook points at the retired tools (stop_check, the clear_session gate)"
-    assert sorted(hooks) == ["PreToolUse", "SessionStart", "Stop"], sorted(hooks)  # #900: Stop carries only the language rule, no retired tool
+    assert sorted(hooks) == ["PreToolUse", "SessionStart", "Stop"], sorted(hooks)  # #900/#1080: Stop carries the language rule and the card handover, no retired tool
     assert [g["matcher"] for g in hooks["PreToolUse"]] == ["|".join(COMMAND_TOOLS + (LAUNCH_TOOL,))], "PreToolUse: only the production-write gate on the tools that run commands (#752 retired the clear_session gate)"
     assert json.dumps([*COMMAND_TOOLS, LAUNCH_TOOL]) in hooks["PreToolUse"][0]["hooks"][0]["command"], "the mount's own pre-filter names the same tools"
     assert [g["matcher"] for g in hooks["SessionStart"]] == ["startup|clear|compact|resume", "startup|clear|compact", "compact|resume"]
@@ -390,10 +390,12 @@ def settings_self_test():
     assert gate[2] == 120 and gate[1].endswith("exit 2") and "/usr/bin/python3 -I -c" in gate[1], "the gate mount: when the gate fails its own pre-filter decides, refusing by default (H4, C3)"
     tables = ['os.path.expanduser("~/' + gates["install_dir"][2:] + "/" + gates["install_current_link"] + '/scripts/gates/prod_targets.json")', '"scripts/gates/prod_targets.json"']  # #736: the same feature table, installed and the project's
     assert all(t in gate[1] for t in tables) and "far=" not in gate[1] and "ok=set" not in gate[1] and "not t or" in gate[1], "pre-filter reads the feature table, fails closed without one"
-    for flag, event in (("--stop", "Stop"), ("--session-start", "SessionStart")):  # #900: the language rule fails open (exit 0, no output) and is cut at 5 s
-        hook = hooks[event][-1]["hooks"][0]
+    for flag, event, index in (("--stop", "Stop", 0), ("--session-start", "SessionStart", -1)):  # #900: the language rule fails open (exit 0, no output) and is cut at 5 s
+        hook = hooks[event][index]["hooks"][0]
         assert hook["command"].endswith(f'/usr/bin/python3 -I "$H" {flag}; exit 0') and "exit 2" not in hook["command"] and hook["timeout"] == 5, (event, hook)
-    assert hooks["Stop"][0].get("matcher") is None and len(hooks["Stop"]) == 1
+    assert all(g.get("matcher") is None for g in hooks["Stop"]) and len(hooks["Stop"]) == 2
+    handover = hooks["Stop"][1]["hooks"][0]  # #1080: card_handover passes only its exit 2 on (the block); a missing or failing hook is exit 0, and its gh calls are cut at 30 s
+    assert handover["command"].endswith('/usr/bin/python3 -I "$H" --stop; c=$?; [ "$c" = 2 ] && exit 2; exit 0') and handover["timeout"] == 30, handover
     ceiling = commands["scripts/hooks/git_ceiling_env.sh"]
     assert ceiling[1].endswith("; exit 0") and "【钩子告警】" in ceiling[1] and "exit 2" not in ceiling[1] and ceiling[2] == 10, ceiling
     # an installed target without its exec bit never runs (O6 review item 1); the tool library's start sheet runs through python3, so it needs none

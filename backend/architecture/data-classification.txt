@@ -59,3 +59,6 @@ organization_workforce.employee_profile_change_requests.email_address | INTERNAL
 organization_workforce.employee_profile_change_requests.base_wecom_user_id | INTERNAL | PI | 用途：申请时的企业微信用户 ID，确认时比对档案；访问级别与档案同列一致
 organization_workforce.employee_profile_change_requests.wecom_user_id | INTERNAL | PI | 用途：拟改的企业微信用户 ID，确认后写入档案；访问级别与档案同列一致
 organization_workforce.employee_profile_change_requests.decision_reason | INTERNAL | PI | 用途：人填的拒绝或撤回原因；访问级别与档案同列一致
+platform_identity.permission_adjustments.recipient_employee_id | INTERNAL | PI | 用途：调动产生的范围复核发给新部门负责人，按此员工显示待办
+platform_identity.permission_adjustments.business_owner_employee_id | INTERNAL | PI | 用途：敏感角色复核维持时记录确认需要的业务负责人，供复核与审计取证
+platform_identity.permission_adjustments.uphold_reason | INTERNAL | PI | 用途：维持授权的理由，供办理、复核与审计取证；办理人自由填写

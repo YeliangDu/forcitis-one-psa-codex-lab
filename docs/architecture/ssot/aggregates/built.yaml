@@ -1,7 +1,7 @@
 # 由 panorama/scan_aggregates.py 生成，勿手改
 meta:
-  count: 16
-  code_only: 6
+  count: 17
+  code_only: 7
   registry_only: 0
   both: 10
   sources:
@@ -16,6 +16,10 @@ meta:
     owner: one-platform-file
     due: '2026-11-15'
     reason: 单元 3 基线建表，隔离读取申请代码未写（ADR-0070）；根类随 5a 补，11-01 前 5a 未开工先报改期（one-platform-file 2026-10-22）
+  - table: platform_identity.permission_adjustments
+    owner: one-dev-identity
+    due: '2026-11-20'
+    reason: F-1 第 2 块（#729）只建表；聚合 PermissionAdjustment 与写入随第 3 块（#730）补
 aggregates:
 - id: cost.timesheet/Timesheet
   bc: cost.timesheet
@@ -87,6 +91,15 @@ aggregates:
   - organization.workforce.LegalEntityDeactivated
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
   - organization.workforce.SeparationHeld
   - organization.workforce.SeparationHoldReleased
 - id: organization.workforce/LegalEntityAttribution
@@ -126,6 +139,55 @@ aggregates:
   - organization.workforce.LegalEntityDeactivated
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
+  - organization.workforce.SeparationHeld
+  - organization.workforce.SeparationHoldReleased
+- id: organization.workforce/OrgStructureCommand
+  bc: organization.workforce
+  root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/OrgStructureCommand.java
+  source:
+  - code
+  tables: []
+  commands:
+  - OrgMergeSteps
+  - OrgPlans
+  - OrgStructureCommandService
+  - OrgStructureRules
+  events: []
+  events_in_module:
+  - organization.workforce.EmployeeCorrected
+  - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
+  - organization.workforce.EmployeeRegistered
+  - organization.workforce.EmployeeRegularized
+  - organization.workforce.EmployeeReinstated
+  - organization.workforce.EmployeeSeparated
+  - organization.workforce.EmployeeTransferred
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
   - organization.workforce.SeparationHeld
   - organization.workforce.SeparationHoldReleased
 - id: organization.workforce/PersonnelCommand
@@ -166,6 +228,15 @@ aggregates:
   - organization.workforce.LegalEntityDeactivated
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
   - organization.workforce.SeparationHeld
   - organization.workforce.SeparationHoldReleased
 - id: organization.workforce/RegisteredEmployee
@@ -195,6 +266,15 @@ aggregates:
   - organization.workforce.LegalEntityDeactivated
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
   - organization.workforce.SeparationHeld
   - organization.workforce.SeparationHoldReleased
 - id: platform.approval/ApprovalRequest

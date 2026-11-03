@@ -321,6 +321,51 @@ channels:
     messages:
       SeparationHoldReleased:
         $ref: '#/components/messages/SeparationHoldReleased'
+  orgUnitCreated:
+    address: organization.workforce.OrgUnitCreated
+    messages:
+      OrgUnitCreated:
+        $ref: '#/components/messages/OrgUnitCreated'
+  orgUnitDissolved:
+    address: organization.workforce.OrgUnitDissolved
+    messages:
+      OrgUnitDissolved:
+        $ref: '#/components/messages/OrgUnitDissolved'
+  orgUnitAttributesSet:
+    address: organization.workforce.OrgUnitAttributesSet
+    messages:
+      OrgUnitAttributesSet:
+        $ref: '#/components/messages/OrgUnitAttributesSet'
+  orgUnitMerged:
+    address: organization.workforce.OrgUnitMerged
+    messages:
+      OrgUnitMerged:
+        $ref: '#/components/messages/OrgUnitMerged'
+  orgUnitReparented:
+    address: organization.workforce.OrgUnitReparented
+    messages:
+      OrgUnitReparented:
+        $ref: '#/components/messages/OrgUnitReparented'
+  orgUnitHeadAssigned:
+    address: organization.workforce.OrgUnitHeadAssigned
+    messages:
+      OrgUnitHeadAssigned:
+        $ref: '#/components/messages/OrgUnitHeadAssigned'
+  orgUnitReceivablesManagerAssigned:
+    address: organization.workforce.OrgUnitReceivablesManagerAssigned
+    messages:
+      OrgUnitReceivablesManagerAssigned:
+        $ref: '#/components/messages/OrgUnitReceivablesManagerAssigned'
+  positionCreated:
+    address: organization.workforce.PositionCreated
+    messages:
+      PositionCreated:
+        $ref: '#/components/messages/PositionCreated'
+  positionDisabled:
+    address: organization.workforce.PositionDisabled
+    messages:
+      PositionDisabled:
+        $ref: '#/components/messages/PositionDisabled'
 operations:
   publishApprovalCompleted:
     action: send
@@ -1260,6 +1305,69 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/separationHoldReleased/messages/SeparationHoldReleased'
+  publishOrgUnitCreated:
+    action: send
+    channel:
+      $ref: '#/channels/orgUnitCreated'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/orgUnitCreated/messages/OrgUnitCreated'
+  publishOrgUnitDissolved:
+    action: send
+    channel:
+      $ref: '#/channels/orgUnitDissolved'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/orgUnitDissolved/messages/OrgUnitDissolved'
+  publishOrgUnitAttributesSet:
+    action: send
+    channel:
+      $ref: '#/channels/orgUnitAttributesSet'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/orgUnitAttributesSet/messages/OrgUnitAttributesSet'
+  publishOrgUnitMerged:
+    action: send
+    channel:
+      $ref: '#/channels/orgUnitMerged'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/orgUnitMerged/messages/OrgUnitMerged'
+  publishOrgUnitReparented:
+    action: send
+    channel:
+      $ref: '#/channels/orgUnitReparented'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/orgUnitReparented/messages/OrgUnitReparented'
+  publishOrgUnitHeadAssigned:
+    action: send
+    channel:
+      $ref: '#/channels/orgUnitHeadAssigned'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/orgUnitHeadAssigned/messages/OrgUnitHeadAssigned'
+  publishOrgUnitReceivablesManagerAssigned:
+    action: send
+    channel:
+      $ref: '#/channels/orgUnitReceivablesManagerAssigned'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/orgUnitReceivablesManagerAssigned/messages/OrgUnitReceivablesManagerAssigned'
+  publishPositionCreated:
+    action: send
+    channel:
+      $ref: '#/channels/positionCreated'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/positionCreated/messages/PositionCreated'
+  publishPositionDisabled:
+    action: send
+    channel:
+      $ref: '#/channels/positionDisabled'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/positionDisabled/messages/PositionDisabled'
 components:
   schemas:
     EventEnvelope:
@@ -4588,6 +4696,415 @@ components:
             x-type: UserId
             nullable: true
             description: 界面放行时为放行人的用户账号 ID；经双人运维命令放行时为空，操作人与见证人只记审计（ADR-0068 第 2 条第 4 项）
+    OrgUnitCreated:
+      name: OrgUnitCreated
+      title: 组织单元已新建
+      description: 新建组织单元命令生效时发布（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      x-event:
+        eventType: organization.workforce.OrgUnitCreated
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.OrgUnitCreated
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：新建日，即组织单元的第一天
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - orgStructureCommandId
+        - orgUnitId
+        - parentOrgUnitId
+        - effectiveDate
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 新建的组织单元 ID（服务端生成）
+          parentOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            nullable: true
+            description: 上级组织单元 ID；根单元为空
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：新建日，即组织单元的第一天
+    OrgUnitDissolved:
+      name: OrgUnitDissolved
+      title: 组织单元已撤销
+      description: 撤销命令生效时发布（空单元的撤销；合并完成时不发本事件，只发 OrgUnitMerged）（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      x-event:
+        eventType: organization.workforce.OrgUnitDissolved
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.OrgUnitDissolved
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：撤销日，即已撤销状态的第一天
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - orgStructureCommandId
+        - orgUnitId
+        - effectiveDate
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 被撤销的组织单元 ID
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：撤销日，即已撤销状态的第一天
+    OrgUnitAttributesSet:
+      name: OrgUnitAttributesSet
+      title: 组织单元属性已调整
+      description: 调整属性命令生效时发布；具体改了哪些列见审计（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      x-event:
+        eventType: organization.workforce.OrgUnitAttributesSet
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.OrgUnitAttributesSet
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：调整日，即新属性的第一天
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - orgStructureCommandId
+        - orgUnitId
+        - effectiveDate
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 被调整的组织单元 ID
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：调整日，即新属性的第一天
+    OrgUnitMerged:
+      name: OrgUnitMerged
+      title: 组织单元已合并
+      description: 合并转完最后一个人、被并入单元已撤销时发布一次（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      x-event:
+        eventType: organization.workforce.OrgUnitMerged
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.OrgUnitMerged
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：合并生效日
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - orgStructureCommandId
+        - orgUnitId
+        - mergedIntoOrgUnitId
+        - effectiveDate
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 被并入（已撤销）的组织单元 ID
+          mergedIntoOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 承接单元 ID
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：合并生效日
+    OrgUnitReparented:
+      name: OrgUnitReparented
+      title: 组织单元上级已调整
+      description: 调整上级命令生效时发布（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      x-event:
+        eventType: organization.workforce.OrgUnitReparented
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.OrgUnitReparented
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：调整日，即新上级的第一天
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - orgStructureCommandId
+        - orgUnitId
+        - newParentOrgUnitId
+        - effectiveDate
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 被调整的组织单元 ID
+          newParentOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 新的上级组织单元 ID
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：调整日，即新上级的第一天
+    OrgUnitHeadAssigned:
+      name: OrgUnitHeadAssigned
+      title: 部门负责人已指定
+      description: 指定负责人命令生效时发布（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      x-event:
+        eventType: organization.workforce.OrgUnitHeadAssigned
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.OrgUnitHeadAssigned
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：指定日
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - orgStructureCommandId
+        - orgUnitId
+        - headEmployeeId
+        - effectiveDate
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 组织单元 ID
+          headEmployeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 新负责人（员工 ID）
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：指定日
+    OrgUnitReceivablesManagerAssigned:
+      name: OrgUnitReceivablesManagerAssigned
+      title: 区域应收负责人已指定
+      description: 指定区域应收负责人命令生效时发布（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      x-event:
+        eventType: organization.workforce.OrgUnitReceivablesManagerAssigned
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.OrgUnitReceivablesManagerAssigned
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：指定日
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - orgStructureCommandId
+        - orgUnitId
+        - receivablesManagerEmployeeId
+        - effectiveDate
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 组织单元 ID
+          receivablesManagerEmployeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 区域应收负责人（员工 ID）
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：指定日
+    PositionCreated:
+      name: PositionCreated
+      title: 岗位已新建
+      description: 新建岗位命令生效时发布（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      x-event:
+        eventType: organization.workforce.PositionCreated
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.PositionCreated
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：新建日，即岗位的第一天
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - orgStructureCommandId
+        - positionId
+        - effectiveDate
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          positionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            description: 新建的岗位 ID（服务端生成）
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：新建日，即岗位的第一天
+    PositionDisabled:
+      name: PositionDisabled
+      title: 岗位已停用
+      description: 停用岗位命令生效时发布（ADR-0068 第 4 条）。信封以组织结构命令为聚合（aggregateId 为命令 ID，序号 1：组织单元与岗位不带事件计数），businessDate 为生效日；负载只含 ID 与日期。
+      x-event:
+        eventType: organization.workforce.PositionDisabled
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.PositionDisabled
+        aggregate: OrgStructureCommand
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 生效日（effectiveDate）：停用日，即已停用状态的第一天
+        audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
+        publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
+        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - orgStructureCommandId
+        - positionId
+        - effectiveDate
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            description: 触发本事件的组织结构命令 ID（UUIDv7）
+          positionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            description: 被停用的岗位 ID
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 生效日（DECLARED）：停用日，即已停用状态的第一天
 x-system-actors:
 - name: cost.timesheet.approval-result
   actorId: 01070adc-19b2-5433-9ff5-f10eac533d00
@@ -4733,3 +5250,7 @@ x-system-actors:
   actorId: eb80b90a-6a1a-5c08-80c6-e90e0edc980c
   module: organization.workforce
   description: '作业：到日执行已放行的将来日离职（暂名，#931；一般待生效命令的到日执行是 #933）'
+- name: organization.workforce.org.structure.merge.execute
+  actorId: 550a37fb-c036-51bb-be7a-9fd0874b9698
+  module: organization.workforce
+  description: 到日执行组织单元合并：逐人生成调岗，转完后撤销被并入单元（#907；到日作业本身另批）

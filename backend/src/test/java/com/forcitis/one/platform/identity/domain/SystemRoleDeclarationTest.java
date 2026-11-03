@@ -40,8 +40,8 @@ class SystemRoleDeclarationTest {
                 "019a0000-0000-7000-8000-000000000101", "019a0000-0000-7000-8000-000000000102", "019a0000-0000-7000-8000-000000000103",
                 "019a0000-0000-7000-8000-000000000104", "019a0000-0000-7000-8000-000000000105", "019a0000-0000-7000-8000-000000000106",
                 "019a0000-0000-7000-8000-000000000107", "019a0000-0000-7000-8000-000000000108");
-        // org_data_admin's codes changed in #934 (sync-run:read/execute -> org-reconciliation:execute), so its revision is 2; business_admin's is 2 since #895 gave it legal-entity-attribution:approve; every other role is still at the first declaration
-        assertThat(SystemRoleDeclaration.CURRENT.roles()).allSatisfy(role -> assertThat(role.revisionNumber()).as(role.code().value()).isEqualTo(java.util.Set.of("org_data_admin", "business_admin").contains(role.code().value()) ? 2 : 1));
+        // org_data_admin's codes changed in #934 (sync-run:read/execute -> org-reconciliation:execute) and in #907 (org-structure-command:create added), so its revision is 3; business_admin's is 2 since #895 gave it legal-entity-attribution:approve; every other role is still at the first declaration
+        assertThat(SystemRoleDeclaration.CURRENT.roles()).allSatisfy(role -> assertThat(role.revisionNumber()).as(role.code().value()).isEqualTo(switch (role.code().value()) { case "org_data_admin" -> 3; case "business_admin" -> 2; default -> 1; }));
         assertThat(SystemRoleDeclaration.CURRENT.roles()).filteredOn(DeclaredRole::administrative).extracting(role -> role.code().value())
                 .containsExactly("super_admin");
         assertThat(SystemRoleDeclaration.CURRENT.roles()).allSatisfy(role -> assertThat(role.definition().permissionCodes()).allMatch(Permission::isLive));
