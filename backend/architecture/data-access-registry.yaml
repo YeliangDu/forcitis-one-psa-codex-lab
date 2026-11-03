@@ -122,7 +122,7 @@ tables:
     mutability: MUTABLE
     retention: {policy: CURRENT_STATE}
     lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
-    readers: [organization.workforce]  # no writer in main since #934 removed the org sync
+    writers: [organization.workforce]  # a created position's snapshot row, written by the org-structure command line (#907); the sync is gone since #934
   # 使用方未建，由同步原样入库 (no consumer built yet, stored as the sync gives them): regional_receivables_manager_id (exposed through
   # OrgDirectory.findRegionalReceivablesManager, no caller yet) and is_delivery_unit (read-only exposure in OrgUnitResponse).
   organization_workforce.org_units:
@@ -204,7 +204,7 @@ tables:
     retention: {policy: PERMANENT}  # 与 personnel_commands 相同：随员工清除，离职满 10 年由 purge_employee_history 删除（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
     writers: [organization.workforce]
-  # 岗位命令同表，按 target_kind 归属岗位；注册表只能记一个聚合，取组织单元。尚无写入方（后续卡随仓储登记 writers）。
+  # 岗位命令同表，按 target_kind 归属岗位；注册表只能记一个聚合，取组织单元。写入方是组织结构命令用例（#907）。
   organization_workforce.org_structure_commands:
     role: AGGREGATE_CHILD
     aggregate: OrgUnit
@@ -213,7 +213,7 @@ tables:
     business_key: [org_structure_command_id]
     retention: {policy: PERMANENT}  # 随组织记录保留，清除通道随 W2 第 8 节另批
     lineage: {source: NEW}
-    writers: []
+    writers: [organization.workforce]
   # Columns of org_units left out of the versions on purpose: sort_order (only orders siblings for display, nothing reads it by date), short_name (not a source column:
   # a cross-source column refreshed daily from the old system, valid until DA-8 lands, ADR-0033 item 2.6), revoked_at (follows from the start of the REVOKED version).
   # 使用方未建，由同步原样入库: regional_receivables_manager_id and is_delivery_unit, as on org_units.
@@ -224,8 +224,8 @@ tables:
     lineage: {source: ORG_SOURCE}
     condition: 关闭列对与作废列对各只能由空变非空一次，已关闭的行也可被作废，其余列不变，不删除（触发器 tg_org_unit_versions_append_only，W2 设计第 2 节）
     references: {regional_receivables_manager_id: organization_workforce.employees, corrected_from_version_id: organization_workforce.org_unit_versions}
-    readers: [organization.workforce]  # no writer in main since #934 removed the org sync
-  # D17 rule 2: effective basis DECLARED. Empty table: the root positions keeps its columns and the sync-era path keeps writing the root until root narrowing (W2 section 9); no writer yet.
+    writers: [organization.workforce]  # the org-structure command line (#907); the sync that wrote it is gone since #934
+  # D17 rule 2: effective basis DECLARED. The root positions keeps its columns; the org-structure command line (#907) writes the versions of a position it creates or disables, root narrowing is W2 section 9.
   organization_workforce.position_versions:
     role: DIMENSION_VERSIONED
     mutability: APPEND_ONLY
@@ -233,7 +233,7 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     references: {corrected_from_version_id: organization_workforce.position_versions}
-    writers: []
+    writers: [organization.workforce]
   # D17 rule 2: effective basis DECLARED (ADR-0068 item 6). Trigger tg_assignment_versions_append_only (ADR-0068 15.1, W2 design 2): the closing pair
   # (effective_to_date, closed_at) and the superseding pair (superseded_at, superseding_command_id) go from null to non-null once, a superseded row may be
   # open or closed, nothing else changes, nothing is deleted.

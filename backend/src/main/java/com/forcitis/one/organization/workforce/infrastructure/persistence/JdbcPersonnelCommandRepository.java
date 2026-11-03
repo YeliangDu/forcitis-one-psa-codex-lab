@@ -119,6 +119,18 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
     }
 
     @Override
+    public void lockOrgUnitForEntry(OrgUnitId orgUnit) {
+        jdbc.sql("select 1 from organization_workforce.org_units where id = :id for share").param("id", orgUnit.value()).query(Integer.class).optional();
+    }
+
+    @Override
+    public boolean hasOpenMergeFor(OrgUnitId orgUnit, LocalDate day) {
+        return jdbc.sql("select 1 from organization_workforce.org_structure_commands where target_org_unit_id = :id and command_kind = 'MERGE'"
+                + " and (status = 'IN_PROGRESS' or (status = 'PENDING' and effective_date <= :day)) limit 1")
+                .param("id", orgUnit.value()).param("day", day).query(Integer.class).optional().isPresent();
+    }
+
+    @Override
     public boolean orgUnitExists(OrgUnitId orgUnit) {
         return jdbc.sql("select 1 from organization_workforce.org_units where id = :id").param("id", orgUnit.value()).query(Integer.class).optional().isPresent();
     }
@@ -256,8 +268,8 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
         jdbc.sql("""
                 insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status,
                        target_org_unit_id, target_position_id, target_reports_to_employee_id, is_target_fee_earner, target_employment_phase_kind,
-                       is_target_on_unpaid_leave, applied_at, created_at, created_by, updated_at, version)
-                values (:id, :employee, :kind, :day, :status, :unit, :position, :reportsTo, :feeEarner, :phase, :onLeave, :appliedAt, :createdAt, :createdBy,
+                       is_target_on_unpaid_leave, org_structure_command_id, applied_at, created_at, created_by, updated_at, version)
+                values (:id, :employee, :kind, :day, :status, :unit, :position, :reportsTo, :feeEarner, :phase, :onLeave, :orgCommand, :appliedAt, :createdAt, :createdBy,
                         :createdAt, :version)
                 """)
                 .param("id", c.id().value()).param("employee", c.employeeId().value()).param("kind", c.kind().name()).param("day", c.effectiveDate())
@@ -266,7 +278,8 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
                 .param("reportsTo", c.targetReportsToEmployeeId() == null ? null : c.targetReportsToEmployeeId().value(), Types.OTHER)
                 .param("feeEarner", c.isTargetFeeEarner(), Types.BOOLEAN)
                 .param("phase", c.targetEmploymentPhaseKind() == null ? null : c.targetEmploymentPhaseKind().name(), Types.VARCHAR)
-                .param("onLeave", onLeave, Types.BOOLEAN).param("appliedAt", at(c.appliedAt()), Types.TIMESTAMP_WITH_TIMEZONE)
+                .param("onLeave", onLeave, Types.BOOLEAN)
+                .param("orgCommand", c.orgStructureCommandId() == null ? null : c.orgStructureCommandId().value(), Types.OTHER).param("appliedAt", at(c.appliedAt()), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("createdAt", at(c.createdAt())).param("createdBy", c.createdBy().value()).param("version", c.version()).update();
     }
 
