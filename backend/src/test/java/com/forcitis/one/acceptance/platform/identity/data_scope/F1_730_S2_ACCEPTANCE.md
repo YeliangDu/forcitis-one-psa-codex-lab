@@ -24,3 +24,5 @@ Red on baseline: all 9 cases (the two A-6 cases fail at the missing job entry). 
 - Batch size 100 and a second page of due items; concurrent job runs (version lock, ShedLock).
 - Regeneration of an item whose person lost the sensitive role between uphold and expiry by a role change (only "never had" via `plain`).
 - Escalation due dates (generation time, S1).
+
+- The job run id in the unresolvable-entity ALERT P3 line (ruling 6605327331 asks for the event or job run id plus the item id): the test calls the job's `execute()` directly and the run id is not observable there, so only the item id is asserted (and the absence of the person's name). Tell me where the run id can be read if it should be asserted.

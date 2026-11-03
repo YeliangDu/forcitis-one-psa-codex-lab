@@ -382,7 +382,7 @@ class PermissionAdjustmentJobsIT extends PermissionAdjustmentApiSupport {
     }
 
     @Test
-    @DisplayName("#730 S2 裁定 6600968506 完成标准 (c)：此人的法人解析不出来时，到期仍生成新条目，升级期限按默认日历（比自有日历的假日早一天），并恰好一条以 \"ALERT P3 platform.identity \" 开头的日志、不含此人姓名")
+    @DisplayName("#730 S2 裁定 6600968506 完成标准 (c)：此人的法人解析不出来时，到期仍生成新条目，升级期限按默认日历（比自有日历的假日早一天），并恰好一条以 \"ALERT P3 platform.identity \" 开头、含新条目 id、不含此人姓名的日志（#730 评论 6605327331）")
     void aPersonWithoutAResolvableEntityStillGetsTheRegeneratedItemWithTheDefaultCalendarAndOneP3Alert() throws Exception {
         String expires = "2027-01-05T04:00:00Z";
         UUID item = upheldAbout("stray", expires);
@@ -402,7 +402,8 @@ class PermissionAdjustmentJobsIT extends PermissionAdjustmentApiSupport {
         assertDueAtEndOfDay(regenerated.getFirst().get("escalation_due_at"), LocalDate.of(2027, 1, 12));
         List<ILoggingEvent> alerts = logged.list.stream().filter(line -> line.getFormattedMessage().startsWith("ALERT P3 platform.identity ")).toList();
         assertThat(alerts).as("exactly one P3 alert line").hasSize(1);
-        assertThat(alerts.getFirst().getFormattedMessage()).doesNotContain("Synthetic stray");
+        assertThat(alerts.getFirst().getFormattedMessage()).as("the line names the regenerated item (ruling 6605327331)")
+                .contains(String.valueOf(regenerated.getFirst().get("permission_adjustment_id"))).doesNotContain("Synthetic stray");
     }
 
     // ---- escalation ---------------------------------------------------------------------------------------------------------
