@@ -41,7 +41,8 @@ final class OrgHistory {
         Map<UUID, Values> open = new HashMap<>();
         jdbc.sql("""
                         select employee_id, effective_from_date, revision_number, org_unit_id, position_id, reports_to_employee_id
-                          from organization_workforce.assignment_versions where effective_to_date is null and superseded_at is null and employee_id in (:ids)
+                          from organization_workforce.assignment_versions
+                         where effective_to_date is null and superseded_at is null and assignment_kind = 'PRIMARY' and employee_id in (:ids)
                         """)
                 .param("ids", assignments.stream().map(a -> a.employeeId().value()).toList())
                 .query((rs, n) -> open.put(rs.getObject("employee_id", UUID.class), new Values(new OrgUnitId(rs.getObject("org_unit_id", UUID.class)),
@@ -55,19 +56,20 @@ final class OrgHistory {
                 continue;
             }
             int revision = revisionFor(before == null ? null : before.open(), day);
+            UUID root = PrimaryAssignmentRoot.of(jdbc, ids, a.employeeId().value(), now);
             if (before != null) {
                 jdbc.sql("""
                         update organization_workforce.assignment_versions set effective_to_date = :day, closed_at = :closedAt
-                         where employee_id = :id and effective_to_date is null and superseded_at is null
+                         where assignment_id = :root and effective_to_date is null and superseded_at is null
                         """)
-                        .param("id", a.employeeId().value()).param("day", day).param("closedAt", OffsetDateTime.ofInstant(now, ZoneOffset.UTC)).update();
+                        .param("root", root).param("day", day).param("closedAt", OffsetDateTime.ofInstant(now, ZoneOffset.UTC)).update();
             }
             jdbc.sql("""
-                            insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id,
-                                   position_id, reports_to_employee_id, revision_number)
-                            values (:versionId, :id, :day, :orgUnit, :position, :reportsTo, :revision)
+                            insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind,
+                                   effective_from_date, org_unit_id, position_id, reports_to_employee_id, revision_number)
+                            values (:versionId, :id, :root, 'PRIMARY', :day, :orgUnit, :position, :reportsTo, :revision)
                             """)
-                    .param("versionId", ids.next()).param("id", a.employeeId().value()).param("day", day).param("orgUnit", a.orgUnitId().value())
+                    .param("versionId", ids.next()).param("id", a.employeeId().value()).param("root", root).param("day", day).param("orgUnit", a.orgUnitId().value())
                     .param("position", position, java.sql.Types.OTHER).param("reportsTo", reportsTo, java.sql.Types.OTHER)
                     .param("revision", revision).update();
         }

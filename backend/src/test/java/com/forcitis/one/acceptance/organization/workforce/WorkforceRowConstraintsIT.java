@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import com.forcitis.one.TestDatabase;
+import com.forcitis.one.acceptance.AssignmentRoots;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.Uuids;
@@ -158,11 +159,16 @@ class WorkforceRowConstraintsIT extends AccountsAcceptanceSupport {
     }
 
     private void assignmentVersion(String position, String reportsTo) throws SQLException {
-        execute("""
+        UUID root;
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            // #711: on the person's PRIMARY root once employee_assignments exists (AssignmentRoots).
+            root = AssignmentRoots.primaryOf(workforce, person);
+        }
+        execute(AssignmentRoots.withRoot("""
                 insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
                     reports_to_employee_id)
-                values (?, ?, ?, ?, ?::uuid, ?::uuid)""",
-                Uuids.timeOrdered(NOW), person, TODAY.minusDays(30), unit, position, reportsTo);
+                values (?, ?, ?, ?, ?::uuid, ?::uuid)""", root),
+                AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), person, TODAY.minusDays(30), unit, position, reportsTo));
     }
 
     @Test

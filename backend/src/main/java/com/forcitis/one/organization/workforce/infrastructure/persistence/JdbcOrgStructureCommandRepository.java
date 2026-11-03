@@ -396,12 +396,13 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
         }
     }
 
+    /** The people the merge moves: primary posts only until the merge moves concurrent posts too (#1040); a transfer without a post would move the primary of a person who holds only a concurrent post here. */
     @Override
     public List<EmployeeId> employedIn(OrgUnitId orgUnit, LocalDate day) {
         return jdbc.sql("""
                 select a.employee_id
                   from organization_workforce.assignment_versions a join organization_workforce.employee_versions e on e.employee_id = a.employee_id
-                 where a.org_unit_id = :unit and a.superseded_at is null and e.superseded_at is null and e.employment_status = 'EMPLOYED'
+                 where a.org_unit_id = :unit and a.assignment_kind = 'PRIMARY' and a.superseded_at is null and e.superseded_at is null and e.employment_status = 'EMPLOYED'
                    and a.effective_from_date <= :day and (a.effective_to_date is null or a.effective_to_date > :day)
                    and e.effective_from_date <= :day and (e.effective_to_date is null or e.effective_to_date > :day)
                  group by a.employee_id order by min(a.effective_from_date), a.employee_id
