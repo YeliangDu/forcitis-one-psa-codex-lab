@@ -360,7 +360,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
     }
 
     @Test
-    @DisplayName("#730 A-6(c)：信封不带法人时条目仍然生成，escalation_due_at 按默认日历（11-09），并恰好一条以 \"ALERT P3 platform.identity \" 开头的日志，含事件 id、不含工号与姓名；事件处理完成不重试")
+    @DisplayName("#730 A-6(c)：信封不带法人时条目仍然生成，escalation_due_at 按默认日历（11-09），并恰好一条以 \"ALERT P3 platform.identity \" 开头的日志，含事件 id 与条目 id、不含工号与姓名（#730 评论 6605327331）；事件处理完成不重试")
     void anUnresolvableEntityStillGivesTheItemWithTheDefaultCalendarAndOneP3Alert() throws Exception {
         givenOwnCalendarWithAHoliday(legalEntity, HOLIDAY_OF_X);
         UUID employee = employedHolding(SECURITY_AUDITOR);
@@ -383,7 +383,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         List<ILoggingEvent> alerts = logged.list.stream().filter(line -> line.getFormattedMessage().startsWith("ALERT P3 platform.identity ")).toList();
         assertThat(alerts).as("exactly one P3 alert line").hasSize(1);
         String line = alerts.getFirst().getFormattedMessage();
-        assertThat(line).contains(eventId);
+        assertThat(line).contains(eventId).contains(String.valueOf(dueItemId(user)));
         Map<String, Object> person;
         try (Connection workforce = schemaConnection("organization_workforce")) {
             person = query(workforce, "select employee_code, display_name from employees where id = ?", stored(employee)).getFirst();
@@ -601,7 +601,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
     }
 
     @Test
-    @DisplayName("#730 SCOPE_REVIEW 7：新部门没有负责人时仍生成范围复核，接收人为空，没有外发卡，并恰好一条以 \"ALERT P3 platform.identity \" 开头、含事件 id、不含工号与姓名的日志")
+    @DisplayName("#730 SCOPE_REVIEW 7：新部门没有负责人时仍生成范围复核，接收人为空，没有外发卡，并恰好一条以 \"ALERT P3 platform.identity \" 开头、含事件 id 与条目 id、不含工号与姓名的日志（#730 评论 6605327331）")
     void aNewDepartmentWithoutAHeadGivesAnItemWithoutRecipientCardOrNothingButOneP3Alert() throws Exception {
         UUID employee = employedHolding();
         grantByOperations(employee, customRole("scoped-nohead", unit));
@@ -630,7 +630,42 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         try (Connection workforce = schemaConnection("organization_workforce")) {
             person = query(workforce, "select employee_code, display_name from employees where id = ?", stored(employee)).getFirst();
         }
-        assertThat(alerts.getFirst().getFormattedMessage()).contains(eventId).doesNotContain(String.valueOf(person.get("employee_code")))
+        assertThat(alerts.getFirst().getFormattedMessage()).contains(eventId).contains(String.valueOf(dueItemId(user))).doesNotContain(String.valueOf(person.get("employee_code")))
+                .doesNotContain(String.valueOf(person.get("display_name")));
+    }
+
+    @Test
+    @DisplayName("#730 SCOPE_REVIEW 7b：新部门的负责人就是被转岗的人本人时，与没有负责人相同：范围复核接收人为空，没有外发卡，并恰好一条以 \"ALERT P3 platform.identity \" 开头、含事件 id 与条目 id、不含工号与姓名的日志（one-design 裁定，#730 评论 6604945364 与 6605327331）")
+    void aMovedPersonWhoHeadsTheNewDepartmentIsTreatedLikeNoHead() throws Exception {
+        UUID employee = employedHolding();
+        grantByOperations(employee, customRole("scoped-self-head", unit));
+        UUID user = accountOf(employee);
+        UUID toUnit = headedUnit(employee);
+        EmployeeTransferred event = transferredIn(employee, Uuids.timeOrdered(NOW), unit, toUnit, legalEntity);
+        String eventId = event.envelope().eventId().toString();
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        ListAppender<ILoggingEvent> logged = new ListAppender<>();
+        logged.start();
+        root.addAppender(logged);
+        try {
+            publish(event);
+            identityHandled(eventId);
+        } finally {
+            root.detachAppender(logged);
+        }
+
+        List<Map<String, Object>> items = itemsAbout(user);
+        assertThat(items).hasSize(1);
+        assertThat(items.getFirst()).containsEntry("kind", "SCOPE_REVIEW");
+        assertThat(items.getFirst().get("recipient_employee_id")).as("the mover is not their own reviewer").isNull();
+        assertThat(assignedCardsAbout(dueItemId(user))).as("no recipient, no delivery").isEmpty();
+        List<ILoggingEvent> alerts = logged.list.stream().filter(line -> line.getFormattedMessage().startsWith("ALERT P3 platform.identity ")).toList();
+        assertThat(alerts).as("exactly one P3 alert line").hasSize(1);
+        Map<String, Object> person;
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            person = query(workforce, "select employee_code, display_name from employees where id = ?", stored(employee)).getFirst();
+        }
+        assertThat(alerts.getFirst().getFormattedMessage()).contains(eventId).contains(String.valueOf(dueItemId(user))).doesNotContain(String.valueOf(person.get("employee_code")))
                 .doesNotContain(String.valueOf(person.get("display_name")));
     }
 

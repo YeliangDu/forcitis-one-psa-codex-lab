@@ -10,7 +10,7 @@
 
 红：当前 main 上第一条「应接受」的插入即被 `ck_permission_adjustments_assignment_change` 拒绝。绿：用 one-design 裁定的放宽后 CHECK 作为临时迁移跑，`PermissionAdjustment*IT` 30 条全绿（临时迁移不提交）。
 
-## 事件驱动（`organization/workforce/CorrectionUndoesSeparationReviewIT`，25 条，按 #1089 的 `EmployeeCorrected` 最终载荷）
+## 事件驱动（`organization/workforce/CorrectionUndoesSeparationReviewIT`，26 条，按 #1089 的 `EmployeeCorrected` 最终载荷）
 
 | 测试 | 对应 |
 |---|---|
@@ -21,7 +21,7 @@
 | 真实转岗 `aRealTransferOfAHolderGivesOneItemDueByTheEntitysOwnCalendar` | 人事专员提交转岗命令：持有敏感角色者得一条敏感角色复核（触发字段部门、前后部门、触发命令）；A-6(a)：法人自有日历（11-04 假日）时 escalation_due_at 为第 5 个工作日结束 11-10 |
 | 真实转岗 `aRealTransferOfAPersonWithoutASensitiveRoleGivesNothing` | 只有 employee 角色者转岗无条目，持有者对照有 |
 | A-6(a) 对照 `anEntityWithoutItsOwnCalendarUsesTheDefaultOne` | 信封法人无自有日历：默认日历，11-09 |
-| A-6(c) `anUnresolvableEntityStillGivesTheItemWithTheDefaultCalendarAndOneP3Alert` | 信封无法人：仍生成条目、默认日历 11-09、恰好一条 `ALERT P3 platform.identity ` 含事件 id 不含工号姓名、事件 COMPLETED 一次 |
+| A-6(c) `anUnresolvableEntityStillGivesTheItemWithTheDefaultCalendarAndOneP3Alert` | 信封无法人：仍生成条目、默认日历 11-09、恰好一条 `ALERT P3 platform.identity ` 含事件 id 与条目 id 不含工号姓名、事件 COMPLETED 一次 |
 | A-6(d) `theTableHasNoLegalEntityColumn` | 表无法人列（现已绿，守住不加） |
 
 A-6 不覆盖/存疑：(b) 到期再生成用 `EmployeeLegalEntities.on` 属 S2，待 S2 作业用例；法人自有日历夹具直接写 `organization_attendance.work_calendar_years/days`（旧表，现行读取路径；日历维护 API 目前只管默认日历）——若实现改读版本表（`work_calendar_versions`），夹具要跟着改，请通知我；`escalation_due_at` 只断言落在第 5 个工作日当天（本地 00:00 之后、次日 00:00 及之前），不钉「结束」是 24:00 还是 23:59:59；范围复核（SCOPE_REVIEW）的真实转岗路径见下一节。
@@ -37,7 +37,7 @@ A-6 不覆盖/存疑：(b) 到期再生成用 `EmployeeLegalEntities.on` 属 S2�
 - 撤销误离职后通常只剩 employee 一个角色，条目通常不生成：用户已于 2026-11-03 答 A（复核对象取更正时仍持有的敏感角色；决策片段 `docs/decisions/2026-11-03-095141-one-lead-复核对象取更正时仍持有的敏感角色.md`，PR #1101，ADR-0082），本批照此。
 
 
-## SCOPE_REVIEW from a transfer (ruling #730 comment 6602688198; 8 more cases in the same class)
+## SCOPE_REVIEW from a transfer (ruling #730 comment 6602688198; 9 more cases in the same class)
 | Ruling case | Test |
 |---|---|
 | 1 custom-org-unit holder, real transfer: one row, recipient new head, trigger command/field, before/after, one ASSIGNED card, one Opened audit | `aRealTransferOfACustomOrgUnitHolderGivesOneScopeReviewForTheNewHead` |
@@ -45,7 +45,8 @@ A-6 不覆盖/存疑：(b) 到期再生成用 `EmployeeLegalEntities.on` 属 S2�
 | 4 only ALL / OWN_ORG_UNIT grants: none (control: sensitive holder gets its one item) | `aHolderOfOnlyNonScopedGrantsGetsNoScopeReview` |
 | 5 POSITION-only transfer: none | `aPositionOnlyTransferGivesNoScopeReview` |
 | 6 replay and second event of one command: one row, one card | `aReplayGivesOneScopeReviewAndOneCard` |
-| 7 no head: NULL recipient, no card, one `ALERT P3 platform.identity ` line | `aNewDepartmentWithoutAHeadGivesAnItemWithoutRecipientCardOrNothingButOneP3Alert` |
+| 7 no head: NULL recipient, no card, one `ALERT P3 platform.identity ` line with the event id and the item id | `aNewDepartmentWithoutAHeadGivesAnItemWithoutRecipientCardOrNothingButOneP3Alert` |
+| 7b the moved person heads the new department (ruling #730 comment 6604945364): same as no head: NULL recipient, no card, one `ALERT P3 platform.identity ` line with the event id and the item id, no personal data (ruling #730 comment 6605327331: every ALERT line carries the event/job-run id, the item id when an item exists, nothing personal) | `aMovedPersonWhoHeadsTheNewDepartmentIsTreatedLikeNoHead` |
 | 8 sensitive + scoped: two items, scope one has the recipient | `aSensitiveAndScopedHolderGetsOneItemOfEachKind` |
 | 9 EmployeeCorrected with ORG_UNIT and a before department: same rule; empty before: nothing | `aCorrectionOfTheDepartmentFollowsTheSameRule` (uses the #1089 payload, which the class already compiles against) |
 
