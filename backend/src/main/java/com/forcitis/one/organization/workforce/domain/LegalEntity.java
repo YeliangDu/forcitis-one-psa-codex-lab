@@ -2,6 +2,7 @@ package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.AggregateRoot;
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.StateMachine;
@@ -15,6 +16,7 @@ import com.forcitis.one.organization.workforce.events.LegalEntityRegistered;
 import com.forcitis.one.organization.workforce.events.LegalEntityRenamed;
 import java.util.List;
 import java.util.Objects;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A legal entity maintained in this system. The code feeds {LE} in document numbers, so it can be corrected only while no number
@@ -34,8 +36,10 @@ public final class LegalEntity extends AggregateRoot {
     private LegalEntityCode code;
     private String name;
     private LegalEntityStatus status;
+    private @Nullable EmployeeId financeHead;
 
-    private LegalEntity(LegalEntityId legalEntityId, LegalEntityCode code, String name, LegalEntityStatus status, long version, long eventSequence) {
+    private LegalEntity(LegalEntityId legalEntityId, LegalEntityCode code, String name, LegalEntityStatus status, @Nullable EmployeeId financeHead, long version,
+                        long eventSequence) {
         super(version, eventSequence);
         this.legalEntityId = legalEntityId;
         this.code = Objects.requireNonNull(code, "code");
@@ -43,20 +47,21 @@ public final class LegalEntity extends AggregateRoot {
         this.name = requireName(name);
         this.status = Objects.requireNonNull(status, "status");
         this.loadedStatus = status;
+        this.financeHead = financeHead;
     }
 
     /** A legal entity about to be inserted; its id is made by the caller, never by the repository. */
     public static LegalEntity register(LegalEntityId legalEntityId, LegalEntityCode code, String name) {
-        LegalEntity entity = new LegalEntity(Objects.requireNonNull(legalEntityId, "legalEntityId"), code, name, LegalEntityStatus.ACTIVE, 0, 0);
+        LegalEntity entity = new LegalEntity(Objects.requireNonNull(legalEntityId, "legalEntityId"), code, name, LegalEntityStatus.ACTIVE, null, 0, 0);
         entity.record((envelopes, version) -> new LegalEntityRegistered(envelopes.wrap(entity.draft("LegalEntityRegistered", version)),
                 entity.legalEntityId, entity.code));
         return entity;
     }
 
     public static LegalEntity restore(LegalEntityId legalEntityId, LegalEntityCode code, String name, String status,
-                                      long version, long eventSequence) {
+                                      @Nullable EmployeeId financeHead, long version, long eventSequence) {
         return new LegalEntity(Objects.requireNonNull(legalEntityId, "legalEntityId"), code, name, LegalEntityStatus.valueOf(status),
-                version, eventSequence);
+                financeHead, version, eventSequence);
     }
 
     public LegalEntityId legalEntityId() {
@@ -81,6 +86,20 @@ public final class LegalEntity extends AggregateRoot {
 
     public LegalEntityStatus loadedStatus() {
         return loadedStatus;
+    }
+
+    /** The finance head in force today, read from the open version; empty until one is appointed. */
+    public @Nullable EmployeeId financeHead() {
+        return financeHead;
+    }
+
+    /** Appoints or, with null, clears the finance head; false when it is already that person, so nothing is saved or audited. */
+    public boolean changeFinanceHead(@Nullable EmployeeId head) {
+        if (Objects.equals(head, financeHead)) {
+            return false;
+        }
+        this.financeHead = head;
+        return true;
     }
 
     public void rename(String newName) {

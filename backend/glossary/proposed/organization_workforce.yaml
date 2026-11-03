@@ -414,3 +414,48 @@ terms:
   forbidden: []
   status: proposed
   note: 法人归属会签用例（#895）
+- id: appointment
+  zh: 任命
+  en: Appointment
+  snake: appointment
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 指定某名在职员工担任法人的财务负责人；清除是任命为空，不是撤销历史
+  standard_ref:
+  - ADR-0073 第 3 条第 6 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 法人财务负责人设置（#895 收尾 b）
+- id: error__organization_workforce_finance_head_employee_invalid
+  zh: 财务负责人不是在职员工
+  en: OrganizationWorkforceFinanceHeadEmployeeInvalid
+  snake: organization_workforce_finance_head_employee_invalid
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 要任命的员工不存在，或今天不在职（400）
+  standard_ref:
+  - ADR-0073 第 3 条第 6 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 法人财务负责人设置（#895 收尾 b）
+- id: error__organization_workforce_finance_head_self_appointment_forbidden
+  zh: 不能任命自己为财务负责人
+  en: OrganizationWorkforceFinanceHeadSelfAppointmentForbidden
+  snake: organization_workforce_finance_head_self_appointment_forbidden
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 调用者要把自己任命为法人的财务负责人（403）
+  standard_ref:
+  - ADR-0073 第 3 条第 6 项
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 法人财务负责人设置（#895 收尾 b）

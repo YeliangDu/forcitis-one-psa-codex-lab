@@ -107,7 +107,7 @@ class OpenApiExportTest {
     static final Set<String> OWN_ID_FIELDS = Set.of("AttributeLegalEntityRequest.legalEntityId", "AuditEntryResponse.entryId",
             "AuthorizationRequestResponse.requestId", "AuthorizationRequestResponse.roleId", "AwaitingConfirmationResponse.requestId", "HandledTaskResponse.recordId", "HistoryEntry.recordId",
             "LegacyNumberResponse.documentId", "LegacyNumberResponse.legalEntityId", "LegacyNumberResponse.migrationBatchId", "LegalEntityResponse.legalEntityId", "Period.legalEntityId",
-            "RoleResponse.roleId", "ProblemDetail.correlationId",
+            "RoleResponse.roleId", "ProblemDetail.correlationId", "ChangeFinanceHeadRequest.financeHeadEmployeeId", "LegalEntityResponse.financeHeadEmployeeId",
             "PermissionAdjustmentResponse.permissionAdjustmentId", "PermissionAdjustmentResponse.userId", "PermissionAdjustmentResponse.roleId",
             "PermissionAdjustmentResponse.orgUnitId", "PermissionAdjustmentResponse.businessOwnerEmployeeId", "UpholdPermissionAdjustmentRequest.businessOwnerEmployeeId",
             "MarkPermissionAdjustmentAdjustedRequest.authorizationRequestId", "MarkPermissionAdjustmentAdjustedRequest.auditEntryId",
