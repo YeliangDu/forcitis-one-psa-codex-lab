@@ -57,7 +57,11 @@ class PersonnelCommandEventsTest {
     }
 
     private static DomainEvent published(PersonnelCommand command, VersionRow before) {
-        command.recordEffect(before, null);
+        return published(command, before, null);
+    }
+
+    private static DomainEvent published(PersonnelCommand command, VersionRow before, VersionRow after) {
+        command.recordEffect(before, after, null);
         List<DomainEvent> events = command.drainEvents(TestEnvelopes.INSTANCE);
         assertThat(events).hasSize(1);
         assertThat(events.getFirst().envelope().aggregateType()).as("the envelope is about the employee").isEqualTo("Employee");
@@ -101,8 +105,67 @@ class PersonnelCommandEventsTest {
             assertThat(e.newPositionId()).as("the position did not change").isEqualTo(POSITION);
         });
         PersonnelCommand leave = command(PersonnelCommandKind.UNPAID_LEAVE_START, request(PersonnelCommandKind.UNPAID_LEAVE_START, DAY, null, null, null, null, null));
-        leave.recordEffect(null, null);
+        leave.recordEffect(null, null, null);
         assertThat(leave.hasPendingEvents()).isFalse();
+    }
+
+    private static VersionRow assignment(OrgUnitId unit, PositionId position) {
+        java.util.Map<String, Object> values = new java.util.HashMap<>();
+        values.put(CommandEffects.ORG_UNIT, unit.value());
+        values.put(CommandEffects.POSITION, position == null ? null : position.value());
+        return new VersionRow(UUID.fromString("019a0000-0000-7000-8000-0000000000d2"), LocalDate.of(2026, 1, 1), null, values, ChangeSource.MIGRATION, null, false);
+    }
+
+    private static EmployeeCorrected corrected(VersionRow before, VersionRow after) {
+        return (EmployeeCorrected) published(command(PersonnelCommandKind.CORRECTION, request(PersonnelCommandKind.CORRECTION, DAY, null, NEW_UNIT, null, null, null)), before, after);
+    }
+
+    @Test
+    @DisplayName("#1089 a correction that changes today's department lists ORG_UNIT with the department of today before and after; one that changes the position lists POSITION")
+    void aCorrectionNamesWhatChangedToday() {
+        PositionId other = new PositionId(UUID.fromString("019a0000-0000-7000-8000-0000000000b4"));
+
+        EmployeeCorrected unitOnly = corrected(assignment(OLD_UNIT, POSITION), assignment(NEW_UNIT, POSITION));
+        assertThat(unitOnly.triggerFieldKinds()).containsExactly(TriggerFieldKind.ORG_UNIT);
+        assertThat(unitOnly.previousOrgUnitId()).isEqualTo(OLD_UNIT);
+        assertThat(unitOnly.newOrgUnitId()).isEqualTo(NEW_UNIT);
+        assertThat(unitOnly.previousPositionId()).isEqualTo(POSITION);
+        assertThat(unitOnly.newPositionId()).isEqualTo(POSITION);
+
+        EmployeeCorrected both = corrected(assignment(OLD_UNIT, POSITION), assignment(NEW_UNIT, other));
+        assertThat(both.triggerFieldKinds()).containsExactly(TriggerFieldKind.ORG_UNIT, TriggerFieldKind.POSITION);
+        assertThat(both.previousPositionId()).isEqualTo(POSITION);
+        assertThat(both.newPositionId()).isEqualTo(other);
+    }
+
+    @Test
+    @DisplayName("#1089 a correction that changes neither department nor position publishes an empty list and the same ids on both sides; no assignment today on a side leaves that side null")
+    void aCorrectionOfSomethingElseListsNothing() {
+        EmployeeCorrected manager = corrected(assignment(OLD_UNIT, POSITION), assignment(OLD_UNIT, POSITION));
+        assertThat(manager.triggerFieldKinds()).isEmpty();
+        assertThat(manager.previousOrgUnitId()).isEqualTo(OLD_UNIT);
+        assertThat(manager.newOrgUnitId()).isEqualTo(OLD_UNIT);
+
+        EmployeeCorrected nobody = corrected(null, null);
+        assertThat(nobody.triggerFieldKinds()).isEmpty();
+        assertThat(nobody.previousOrgUnitId()).isNull();
+        assertThat(nobody.newPositionId()).isNull();
+
+        EmployeeCorrected noPositionBefore = corrected(assignment(OLD_UNIT, null), assignment(OLD_UNIT, POSITION));
+        assertThat(noPositionBefore.triggerFieldKinds()).containsExactly(TriggerFieldKind.POSITION);
+        assertThat(noPositionBefore.previousPositionId()).isNull();
+    }
+
+    @Test
+    @DisplayName("#1089 (ADR-0082 decision 2) a correction that undoes a separation lists ORG_UNIT only, never POSITION, with the previous ids null and the new ones set")
+    void undoingASeparationListsTheDepartmentOnly() {
+        EmployeeCorrected undone = corrected(null, assignment(NEW_UNIT, POSITION));
+
+        assertThat(undone.triggerFieldKinds()).containsExactly(TriggerFieldKind.ORG_UNIT);
+        assertThat(undone.previousOrgUnitId()).isNull();
+        assertThat(undone.previousPositionId()).isNull();
+        assertThat(undone.newOrgUnitId()).isEqualTo(NEW_UNIT);
+        assertThat(undone.newPositionId()).isEqualTo(POSITION);
     }
 
     @Test
@@ -121,7 +184,7 @@ class PersonnelCommandEventsTest {
 
         UserId releaser = new UserId(UUID.fromString("019a0000-0000-7000-8000-0000000000bb"));
         separation.releaseHeld(NOW, DAY);
-        separation.recordEffect(null, null);
+        separation.recordEffect(null, null, null);
         separation.recordReleased(hold, releaser, null);
         List<DomainEvent> events = separation.drainEvents(TestEnvelopes.INSTANCE);
         assertThat(events).hasSize(2);
@@ -145,7 +208,7 @@ class PersonnelCommandEventsTest {
         assertThat(change.hasPendingEvents()).as("nothing is published while it waits").isFalse();
 
         change.completeCountersign(NOW, DAY);
-        change.recordEffect(null, next);
+        change.recordEffect(null, null, next);
 
         assertThat(change.status()).isEqualTo(CommandStatus.EFFECTIVE);
         assertThat(change.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(EmployeeLegalEntityChanged.class, e -> {

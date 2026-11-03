@@ -176,7 +176,7 @@ class AttributionCountersignService implements AttributionCountersigns {
         }
         // A correction is effective at once whatever its day, and no due-date step looks at an effective command: its events leave here or never.
         if (command.status() == CommandStatus.EFFECTIVE) {
-            effects.publish(command, history);
+            effects.publish(command, history, today);
         }
     }
 

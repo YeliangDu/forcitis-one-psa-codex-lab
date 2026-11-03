@@ -177,7 +177,7 @@ class PersonnelCommandService implements PersonnelCommands {
         } else if (awaiting) {
             requests.open(command, CountersignRequestKind.CHANGE, null, List.of(), by, now, today, correlation());
         } else if (command.status() == CommandStatus.EFFECTIVE && !(command.kind() == PersonnelCommandKind.CORRECTION && command.effectiveDate().isAfter(today))) {
-            effects.publish(command, history);
+            effects.publish(command, history, today);
         }
         if (leaveVerdict != null) {
             leaveFloor.announce(command, leaveVerdict, by);

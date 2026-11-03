@@ -92,7 +92,7 @@ class HeldSeparationRelease {
                 correlation);
         LegalEntityId legalEntity = LegalEntityResolution.resolve(legalEntities, employee, command.effectiveDate().minusDays(1)).orElse(null);
         if (command.status() == CommandStatus.EFFECTIVE) {
-            command.recordEffect(null, legalEntity);
+            command.recordEffect(null, null, legalEntity);
         }
         command.recordReleased(hold.id(), releaser.account(), legalEntity);
         events.publish(command);

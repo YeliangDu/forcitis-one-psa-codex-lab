@@ -163,7 +163,7 @@ class AttributionCountersignServiceTest {
         service.approve(new ApproveAttributionCountersign(ROW1, null));
 
         assertThat(correction.status()).isEqualTo(CommandStatus.EFFECTIVE);
-        verify(effects).publish(any(), any());
+        verify(effects).publish(any(), any(), any());
     }
 
     @Test

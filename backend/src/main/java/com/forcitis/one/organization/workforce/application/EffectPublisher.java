@@ -28,13 +28,18 @@ class EffectPublisher {
         this.events = events;
     }
 
-    /** @param historyBefore the employee's history as it was before the command's versions were written (the transfer reads the assignment of the day before) */
-    void publish(PersonnelCommand command, PersonnelHistory historyBefore) {
-        VersionRow assignmentBefore = historyBefore.currentAssignmentRows().stream().filter(r -> r.covers(command.effectiveDate().minusDays(1))).findFirst().orElse(null);
+    /**
+     * @param historyBefore the employee's history as it was before the command's versions were written (a transfer reads the assignment of the day before,
+     *                      a correction the assignment today, before and after it; ADR-0081 decision 3)
+     */
+    void publish(PersonnelCommand command, PersonnelHistory historyBefore, LocalDate today) {
+        boolean correction = command.kind() == PersonnelCommandKind.CORRECTION;
+        VersionRow assignmentBefore = historyBefore.assignmentOn(correction ? today : command.effectiveDate().minusDays(1));
+        VersionRow assignmentAfter = correction ? commands.load(command.employeeId()).assignmentOn(today) : null;
         // A separation's envelope names the entity of the last day the employee was employed: on the effective day itself the assignment has just ended.
         LocalDate entityDay = command.kind() == PersonnelCommandKind.SEPARATE ? command.effectiveDate().minusDays(1) : command.effectiveDate();
         LegalEntityId legalEntity = LegalEntityResolution.resolve(legalEntities, command.employeeId(), entityDay).orElse(null);
-        command.recordEffect(assignmentBefore, legalEntity);
+        command.recordEffect(assignmentBefore, assignmentAfter, legalEntity);
         if (command.hasPendingEvents()) {
             events.publish(command);
             commands.saveEventSequence(command.employeeId(), command.eventSequenceAfterSave());

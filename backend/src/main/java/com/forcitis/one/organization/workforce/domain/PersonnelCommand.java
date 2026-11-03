@@ -274,11 +274,12 @@ public final class PersonnelCommand extends AggregateRoot {
     /**
      * Records the event of a command that took effect (nothing for unpaid leave, whose events are not named yet, contract question Q1).
      *
-     * @param assignmentBefore the assignment the day before the effective date, if any; only a transfer reads it
+     * @param assignmentBefore a transfer's: the assignment the day before the effective date, if any; a correction's: the assignment today before it; others ignore it
+     * @param assignmentAfter a correction's: the assignment today after it, if any; others pass null
      * @param legalEntity the employee's legal entity on the effective date, null when none can be resolved
      */
-    public void recordEffect(@Nullable VersionRow assignmentBefore, @Nullable LegalEntityId legalEntity) {
-        PersonnelCommandEvents.of(this, assignmentBefore, legalEntity).ifPresent(this::record);
+    public void recordEffect(@Nullable VersionRow assignmentBefore, @Nullable VersionRow assignmentAfter, @Nullable LegalEntityId legalEntity) {
+        PersonnelCommandEvents.of(this, assignmentBefore, assignmentAfter, legalEntity).ifPresent(this::record);
         if (countersignNewLegalEntityId != null) {
             record(PersonnelCommandEvents.legalEntityChanged(this, Objects.requireNonNull(countersignPreviousLegalEntityId), countersignNewLegalEntityId));
         }

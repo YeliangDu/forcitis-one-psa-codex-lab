@@ -167,7 +167,7 @@ export const ERROR_MESSAGES: Readonly<Record<ErrorCode, string | null>> = {
   PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL: null,
   PLATFORM_IDENTITY_SSO_UNAVAILABLE: '致远暂时无法验证登录，请稍后重试或回到老系统登录',
   PLATFORM_IDENTITY_STATE_INVALID: '登录已失效，请重新登录',
-  PLATFORM_IDENTITY_TICKET_INVALID: '单点登录票据无效，请从门户重新进入',
+  PLATFORM_IDENTITY_TICKET_INVALID: '登录凭证无效，请从门户重新进入',
   PLATFORM_IDENTITY_TICKET_REPLAYED: '单点登录票据已经使用，请从门户重新进入',
   PLATFORM_IDENTITY_WECOM_CODE_INVALID: '企业微信授权已失效，请重新登录',
   PLATFORM_IDENTITY_WECOM_NOT_BOUND: '企业微信用户尚未对应到员工，请联系管理员',

@@ -1,37 +1,6 @@
 # Phase 1a organization.workforce 新增术语（proposed，待业务评审，ADR-0018）
 # 新词一律 status: proposed；通用技术词放 common_words，业务概念放 terms。
 terms:
-- id: employment_verdict
-  zh: 在职判定
-  en: EmploymentVerdict
-  snake: employment_verdict
-  kind: value_object
-  bc: organization.workforce
-  scope: domain
-  definition: 组织快照对某员工是否在职的判定：在职 EMPLOYED、离职 SEPARATED、未列出 NOT_LISTED（ADR-0033 第 3 项第 7 条，应急登录在职校验用；快照不可用的取值已随旧同步删除，#934）
-  standard_ref:
-  - ADR-0033 第 3 项第 7 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: R-1b P2-H2
-- id: login_lookup
-  zh: 登录查人
-  en: LoginLookup
-  snake: login_lookup
-  kind: value_object
-  bc: organization.workforce
-  scope: acl
-  acl_class: 过渡期
-  definition: 按外部登录标识（企业微信 userid 或外部登录名）在组织快照中找员工；随 DA-3 外部身份移到 identity 后删除
-  standard_ref:
-  - ADR-0033 第 4 项
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: R-1b P2-H2，两个按登录标识查人的方法合一以守住 api 方法上限
 - id: error__organization_workforce_legal_entity_transition_illegal
   zh: 法人状态转换非法
   en: OrganizationWorkforceLegalEntityTransitionIllegal
@@ -45,7 +14,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_legal_entity_not_found
   zh: 法人不存在
@@ -60,7 +30,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_legal_entity_code_taken
   zh: 法人代码已被使用
@@ -75,7 +46,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_legal_entity_code_locked
   zh: 法人代码已锁定
@@ -90,7 +62,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_legal_entity_code_invalid
   zh: 法人代码无效
@@ -105,7 +78,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_legal_entity_name_invalid
   zh: 法人名称无效
@@ -120,7 +94,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_legal_entity_status_unknown
   zh: 法人状态未知
@@ -135,7 +110,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
 - id: error__organization_workforce_concurrent_update
   zh: 组织模块并发修改
@@ -150,275 +126,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: ''
-- id: workforce__sync_diff
-  zh: 同步差异
-  en: SyncDiff
-  snake: sync_diff
-  kind: entity
-  bc: platform.integration
-  scope: acl
-  acl_class: "过渡期"
-  definition: 一次同步运行改动的对象与字段，以及发现的数据例外（供数据管理员处理）
-  standard_ref:
-  - RULE-373
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: workforce__login_name
-  zh: 登录名
-  en: LoginName
-  snake: login_name
-  kind: value_object
-  bc: platform.integration
-  scope: acl
-  acl_class: "过渡期"
-  definition: 员工在组织源的登录名（手机号）；没有即离职（RULE-363）
-  standard_ref:
-  - RULE-363
-  confidence: high
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: workforce__staff_employee
-  zh: 员工任职快照
-  en: StaffEmployee
-  snake: staff_employee
-  kind: value_object
-  bc: organization.workforce
-  scope: acl
-  acl_class: "过渡期"
-  definition: 一名员工连同其任职，是同步比较与写入的单位
-  standard_ref:
-  - REIMAGINED_ARCHITECTURE.md §3.3
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: workforce__relationship
-  zh: 关系
-  en: Relationship
-  snake: relationship
-  kind: value_object
-  bc: platform.integration
-  scope: acl
-  acl_class: "过渡期"
-  definition: A8 中人员与组织单元之间的关系（部门负责人、区域应收负责人），类型 ID 为配置项
-  standard_ref:
-  - RULE-356
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: separation_observed_at
-  zh: 离职观察时间
-  en: SeparationObservedAt
-  snake: separation_observed_at
-  kind: value_object
-  bc: platform.integration
-  scope: acl
-  acl_class: "过渡期"
-  definition: 组织同步第一次把员工判为离职、并写入快照的那一轮同步的提交时刻；只表示新系统这样判定了，不是人事生效日
-  standard_ref:
-  - docs/business/rules/workforce-history-rules.md
-  confidence: medium
-  aliases: []
-  forbidden: [离职日期, separation_date]
-  status: proposed
-  note: 单说离职日期有歧义，须写明预计离职日期或离职观察时间
-- id: attribution_subject
-  zh: 法人归属对象
-  en: AttributionSubject
-  snake: attribution_subject
-  kind: value_object
-  bc: organization.workforce
-  scope: domain
-  definition: 法人归属所指的对象，是一个组织单元或一名员工，由对象类别与对象 ID 共同确定；同一对象在同一时点只归属一个法人
-  standard_ref:
-  - ADR-0033 第 7 项第 4 条（DA-5）
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 类型 AttributionSubjectId 为它的标识（kind + subjectId，docs/architecture/events/workforce.yaml x-type）；落库按 DA-5 拆为 org_unit_id / employee_id 两列
-- id: personnel_command
-  zh: 人事命令
-  en: PersonnelCommand
-  snake: personnel_command
-  kind: aggregate
-  bc: organization.workforce
-  scope: domain
-  definition: 员工聚合内的人事异动第一手记录：入职、转正、调岗、离职、复职、更正、停薪留职开始与结束，只追加；生效日为人事业务生效日
-  standard_ref:
-  - ADR-0068 第 1 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: W2 PR-B，IMP-1022-PAR-01；IMP-1030-PAR-B3（#872）起代码里以聚合根承载员工事件序号并发布生效事件（聚合类型仍是 Employee），故种类由 entity 改 aggregate，待 one-design 核定
-- id: unpaid_leave
-  zh: 停薪留职
-  en: UnpaidLeave
-  snake: unpaid_leave
-  kind: value_object
-  bc: organization.workforce
-  scope: domain
-  definition: 员工在职期间暂停发薪的状态，不是雇佣状态；员工版本以 is_on_unpaid_leave 记录，人事命令以开始、结束两种种类改变它
-  standard_ref:
-  - ADR-0068 第 3 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: W2 PR-B，IMP-1022-PAR-01
-- id: employee_hired
-  zh: 员工入职已生效
-  en: EmployeeHired
-  snake: employee_hired
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 入职命令已生效：员工自生效日（入职日）起在职；负载为人事命令 ID、员工 ID 与生效日
-  standard_ref:
-  - ADR-0068 第 1 条第 9 项
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1028-PAR-PCA（#737）；聚合 Employee
-- id: employee_regularized
-  zh: 员工转正已生效
-  en: EmployeeRegularized
-  snake: employee_regularized
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 转正命令已生效：员工自生效日起由试用阶段转为正式阶段，在职状态不变
-  standard_ref:
-  - ADR-0068 第 1 条第 9 项
-  - ADR-0068 第 1 条第 3 项
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1028-PAR-PCA（#737）；与 contract.agreement 的 regularized「转正」（授权复核关闭）同名异义：中英文名都不同，不能列 homonyms，在此互注，交 one-glossary
-- id: employee_transferred
-  zh: 员工调岗已生效
-  en: EmployeeTransferred
-  snake: employee_transferred
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 调岗命令已生效：员工自生效日起任职改变；负载另带触发字段与生效日前后的部门
-  standard_ref:
-  - ADR-0068 第 1 条第 9 项
-  - ADR-0032 第 4 项
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1028-PAR-PCA（#737）；F-1 订阅
-- id: employee_separated
-  zh: 员工离职已生效
-  en: EmployeeSeparated
-  snake: employee_separated
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 离职命令已生效：员工自生效日（人事所填最后工作日的次日）起离职；待放行的离职放行后才发布
-  standard_ref:
-  - ADR-0068 第 1 条第 9 项
-  - ADR-0068 第 1 条第 5 项
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1028-PAR-PCA（#737）；中文名避开 platform.identity 错误码「员工已离职」
-- id: employee_reinstated
-  zh: 员工复职已生效
-  en: EmployeeReinstated
-  snake: employee_reinstated
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 复职命令已生效：已离职的员工自生效日起重新在职
-  standard_ref:
-  - ADR-0068 第 1 条第 9 项
-  - ADR-0068 第 1 条第 10 项
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1028-PAR-PCA（#737）；取代撤销的 WF-REINSTATE
-- id: employee_corrected
-  zh: 员工人事已更正
-  en: EmployeeCorrected
-  snake: employee_corrected
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 更正命令改变了员工截至今天的部门、岗位、在职状态或直属领导；只改历史时只写审计、不发布；负载为人事命令 ID、员工 ID 与受影响区间
-  standard_ref:
-  - ADR-0068 第 1 条第 9 项
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1028-PAR-PCA（#737）
-- id: separation_held
-  zh: 离职已转待放行
-  en: SeparationHeld
-  snake: separation_held
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 离职命令因管理员离职保护转为待放行：员工保持在职，不发布员工离职已生效
-  standard_ref:
-  - ADR-0068 第 1 条第 9 项
-  - ADR-0068 第 2 条第 2 项
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1028-PAR-PCA（#737）；载体为待放行离职 separation_hold
-- id: separation_hold_released
-  zh: 待放行离职已放行
-  en: SeparationHoldReleased
-  snake: separation_hold_released
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 待放行的离职经有权的人放行，按原生效日执行
-  standard_ref:
-  - ADR-0068 第 1 条第 9 项
-  - ADR-0068 第 2 条第 3 项
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1028-PAR-PCA（#737）
-- id: trigger_field_kind
-  zh: 触发字段
-  en: TriggerFieldKind
-  snake: trigger_field_kind
-  kind: value_object
-  bc: organization.workforce
-  scope: domain
-  definition: 调岗改变的任职字段：ORG_UNIT 部门 / POSITION 岗位；员工调岗已生效的负载带它，供待调整权限去重（人，人事命令 ID，触发字段）
-  standard_ref:
-  - ADR-0032 第 4 项第 3 条
-  - ADR-0055 决定 4
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1028-PAR-PCA（#737）；F-1 在 platform.identity 的 trigger_field_kind 列取同样的值
 - id: error__organization_workforce_personnel_command_invalid
   zh: 人事命令内容不合法
   en: OrganizationWorkforcePersonnelCommandInvalid
@@ -432,7 +142,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: IMP-1030-PAR-B3（#872）
 - id: error__organization_workforce_personnel_command_not_allowed
   zh: 人事命令不允许
@@ -447,7 +158,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: IMP-1030-PAR-B3（#872）
 - id: error__organization_workforce_personnel_command_not_found
   zh: 人事命令不存在
@@ -462,7 +174,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: IMP-1030-PAR-B3（#872）
 - id: error__organization_workforce_personnel_command_reason_invalid
   zh: 撤回原因不合法
@@ -477,7 +190,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: IMP-1030-PAR-B3（#872）
 - id: error__organization_workforce_personnel_command_transition_illegal
   zh: 人事命令状态转换不合法
@@ -492,84 +206,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: IMP-1030-PAR-B3（#872）
-- id: probation
-  zh: 试用
-  en: Probation
-  snake: probation
-  kind: state
-  bc: organization.workforce
-  scope: domain
-  definition: 雇佣阶段之一：入职后到转正前；员工版本的雇佣阶段取值 PROBATION
-  standard_ref:
-  - ADR-0068 第 1 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1030-PAR-B3（#872）
-- id: regular
-  zh: 正式
-  en: Regular
-  snake: regular
-  kind: state
-  bc: organization.workforce
-  scope: domain
-  definition: 雇佣阶段之一：转正之后；员工版本的雇佣阶段取值 REGULAR
-  standard_ref:
-  - ADR-0068 第 1 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1030-PAR-B3（#872）
-- id: regularize
-  zh: 转正命令
-  en: Regularize
-  snake: regularize
-  kind: command
-  bc: organization.workforce
-  scope: domain
-  definition: 人事命令种类 REGULARIZE：雇佣阶段由试用转为正式，在职状态不变；命令生效发布 EmployeeRegularized
-  standard_ref:
-  - ADR-0068 第 1 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1030-PAR-B3（#872）
-- id: reinstate
-  zh: 复职命令
-  en: Reinstate
-  snake: reinstate
-  kind: command
-  bc: organization.workforce
-  scope: domain
-  definition: 人事命令种类 REINSTATE：已离职的员工回到在职，生效日须晚于离职生效日；命令生效发布 EmployeeReinstated
-  standard_ref:
-  - ADR-0068 第 1 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1030-PAR-B3（#872）
-- id: separate
-  zh: 离职命令
-  en: Separate
-  snake: separate
-  kind: command
-  bc: organization.workforce
-  scope: domain
-  definition: 人事命令种类 SEPARATE：人事填最后工作日，离职版本生效日为其次日；命令生效发布 EmployeeSeparated
-  standard_ref:
-  - ADR-0068 第 1 条
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: IMP-1030-PAR-B3（#872）
-
 - id: error__organization_workforce_employee_not_found
   zh: 员工不存在
   en: OrganizationWorkforceEmployeeNotFound
@@ -583,7 +222,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: 入职建员工并可改档案（#959）
 - id: error__organization_workforce_employee_profile_invalid
   zh: 员工档案内容不合法
@@ -598,7 +238,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: 入职建员工并可改档案（#959）
 - id: error__organization_workforce_employee_code_taken
   zh: 工号已被占用
@@ -613,7 +254,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: 入职建员工并可改档案（#959）
 - id: error__organization_workforce_wecom_user_id_taken
   zh: 企业微信账号已被占用
@@ -628,7 +270,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: 入职建员工并可改档案（#959）
 - id: error__organization_workforce_profile_change_pending
   zh: 员工档案变更待复核
@@ -643,7 +286,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: 改绑第二人复核（#980）
 - id: error__organization_workforce_profile_change_confirmer_not_allowed
   zh: 不能确认或拒绝该档案变更
@@ -658,7 +302,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: 改绑第二人复核（#980）
 - id: error__organization_workforce_profile_change_request_not_found
   zh: 员工档案变更申请不存在
@@ -673,7 +318,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: 改绑第二人复核（#980）
 - id: error__organization_workforce_profile_change_request_not_pending
   zh: 员工档案变更申请已处理
@@ -688,7 +334,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: 改绑第二人复核（#980）
 - id: error__organization_workforce_profile_change_voided
   zh: 员工档案变更已作废
@@ -703,7 +350,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: 改绑第二人复核（#980）
 - id: error__organization_workforce_own_profile_change_forbidden
   zh: 不能修改本人档案
@@ -718,23 +366,9 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: 入职建员工并可改档案（#959）
-- id: error__organization_workforce_initial_version_migration_refused
-  zh: 初始迁入被拒绝
-  en: OrganizationWorkforceInitialVersionMigrationRefused
-  snake: organization_workforce_initial_version_migration_refused
-  kind: error_code
-  bc: organization.workforce
-  scope: domain
-  definition: 有进行中的同步时，现有员工初始迁入版本表的运维命令被拒绝（422）
-  standard_ref:
-  - one-design 数据设计签发（#960 评论 6529863330）
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: 迁入命令 migrate-initial-versions（#960）
 - id: error__organization_workforce_countersign_not_found
   zh: 法人归属会签不存在
   en: OrganizationWorkforceCountersignNotFound
@@ -780,95 +414,3 @@ terms:
   forbidden: []
   status: proposed
   note: 法人归属会签用例（#895）
-common_words:
-- listed
-- lookup
-- accept
-- after
-- begin
-- below
-- compare
-- content
-- disabled
-- display
-- drop
-- duplicate
-- empty
-- evaluate
-- failed
-- failure
-- female
-- fetch
-- field
-- for
-- found
-- include
-- incoming
-- isolation
-- lag
-- latest
-- limit
-- load
-- male
-- manual
-- message
-- mismatch
-- missing
-- multiple
-- not
-- 'null'
-- path
-- previous
-- raw
-- reader
-- recent
-- reconcile
-- reconciler
-- refresh
-- region
-- rehired
-- released
-- report
-- revived
-- running
-- scheduled
-- seconds
-- self
-- started
-- stat
-- succeeded
-- synced
-- text
-- trigger
-- unavailable
-- unexpected
-- verdict
-- with
-- without
-- write
-- abandoned
-- concurrent
-- discard
-- except
-- fail
-- hold
-- illegal
-- loaded
-- succeed
-- taken
-- transition
-- unsaved
-- activate
-- activated
-- corrected
-- deactivate
-- deactivated
-- declare
-- rename
-- renamed
-- usage
-- applied
-- superseding
-- affected
-- planner
-- interface
