@@ -38,6 +38,9 @@ public final class PersonnelCommand extends AggregateRoot {
     private final @Nullable EmployeeId targetReportsToEmployeeId;
     private final @Nullable Boolean isTargetFeeEarner;
     private final @Nullable EmploymentPhaseKind targetEmploymentPhaseKind;
+    private final @Nullable LegalEntityId targetLegalEntityId;
+    private @Nullable LegalEntityId countersignPreviousLegalEntityId;
+    private @Nullable LegalEntityId countersignNewLegalEntityId;
     private final UserId createdBy;
     private final Instant createdAt;
     private CommandStatus status;
@@ -49,8 +52,9 @@ public final class PersonnelCommand extends AggregateRoot {
 
     private PersonnelCommand(PersonnelCommandId id, EmployeeId employeeId, PersonnelCommandKind kind, LocalDate effectiveDate, CommandStatus status,
                              @Nullable OrgUnitId targetOrgUnitId, @Nullable PositionId targetPositionId, @Nullable EmployeeId targetReportsToEmployeeId,
-                             @Nullable Boolean isTargetFeeEarner, @Nullable EmploymentPhaseKind targetEmploymentPhaseKind, UserId createdBy, Instant createdAt,
-                             @Nullable Instant appliedAt, long version, long eventSequence) {
+                             @Nullable Boolean isTargetFeeEarner, @Nullable EmploymentPhaseKind targetEmploymentPhaseKind, @Nullable LegalEntityId targetLegalEntityId,
+                             @Nullable LegalEntityId countersignPreviousLegalEntityId, @Nullable LegalEntityId countersignNewLegalEntityId, UserId createdBy,
+                             Instant createdAt, @Nullable Instant appliedAt, long version, long eventSequence) {
         super(version, eventSequence);
         this.id = Objects.requireNonNull(id, "id");
         this.employeeId = Objects.requireNonNull(employeeId, "employeeId");
@@ -62,6 +66,9 @@ public final class PersonnelCommand extends AggregateRoot {
         this.targetReportsToEmployeeId = targetReportsToEmployeeId;
         this.isTargetFeeEarner = isTargetFeeEarner;
         this.targetEmploymentPhaseKind = targetEmploymentPhaseKind;
+        this.targetLegalEntityId = targetLegalEntityId;
+        this.countersignPreviousLegalEntityId = countersignPreviousLegalEntityId;
+        this.countersignNewLegalEntityId = countersignNewLegalEntityId;
         this.createdBy = Objects.requireNonNull(createdBy, "createdBy");
         this.createdAt = createdAt;
         this.appliedAt = appliedAt;
@@ -92,7 +99,8 @@ public final class PersonnelCommand extends AggregateRoot {
         // A correction is immediate whatever its day (ck_personnel_commands_correction_immediate); it never waits.
         CommandStatus status = kind != PersonnelCommandKind.CORRECTION && effective.isAfter(today) ? CommandStatus.PENDING : CommandStatus.EFFECTIVE;
         PersonnelCommand command = new PersonnelCommand(id, employee, kind, effective, status, request.targetOrgUnitId(),
-                request.targetPositionId(), request.targetReportsToEmployeeId(), request.isTargetFeeEarner(), request.targetEmploymentPhaseKind(), createdBy, now,
+                request.targetPositionId(), request.targetReportsToEmployeeId(), request.isTargetFeeEarner(), request.targetEmploymentPhaseKind(),
+                request.targetLegalEntityId(), null, null, createdBy, now,
                 status == CommandStatus.EFFECTIVE ? now : null, 0, employeeEventSequence);
         command.requireShapeOfKind();
         return command;
@@ -101,10 +109,13 @@ public final class PersonnelCommand extends AggregateRoot {
     /** A stored command. */
     public static PersonnelCommand restore(PersonnelCommandId id, EmployeeId employeeId, PersonnelCommandKind kind, LocalDate effectiveDate, CommandStatus status,
                                            @Nullable OrgUnitId targetOrgUnitId, @Nullable PositionId targetPositionId, @Nullable EmployeeId targetReportsToEmployeeId,
-                                           @Nullable Boolean isTargetFeeEarner, @Nullable EmploymentPhaseKind targetEmploymentPhaseKind, UserId createdBy,
+                                           @Nullable Boolean isTargetFeeEarner, @Nullable EmploymentPhaseKind targetEmploymentPhaseKind,
+                                           @Nullable LegalEntityId targetLegalEntityId, @Nullable LegalEntityId countersignPreviousLegalEntityId,
+                                           @Nullable LegalEntityId countersignNewLegalEntityId, UserId createdBy,
                                            Instant createdAt, @Nullable Instant appliedAt, long version, long employeeEventSequence) {
         return new PersonnelCommand(id, employeeId, kind, effectiveDate, status, targetOrgUnitId, targetPositionId, targetReportsToEmployeeId, isTargetFeeEarner,
-                targetEmploymentPhaseKind, createdBy, createdAt, appliedAt, version, employeeEventSequence);
+                targetEmploymentPhaseKind, targetLegalEntityId, countersignPreviousLegalEntityId, countersignNewLegalEntityId, createdBy, createdAt, appliedAt, version,
+                employeeEventSequence);
     }
 
     /** The merge that generated this transfer (ck_personnel_commands_org_structure_command: only a transfer); call before the command is stored. */
@@ -129,13 +140,13 @@ public final class PersonnelCommand extends AggregateRoot {
                 }
             }
             case TRANSFER -> {
-                if (targets == 0 || targetEmploymentPhaseKind != null) {
-                    throw invalid("a TRANSFER names what changes: department, position, manager or fee-earner flag");
+                if (targets + count(targetLegalEntityId) == 0 || targetEmploymentPhaseKind != null) {
+                    throw invalid("a TRANSFER names what changes: department, position, manager, fee-earner flag or legal entity");
                 }
             }
             case CORRECTION -> {
-                if (targets + count(targetEmploymentPhaseKind) == 0) {
-                    throw invalid("a CORRECTION names what it corrects: department, position, manager, fee-earner flag or phase");
+                if (targets + count(targetEmploymentPhaseKind, targetLegalEntityId) == 0) {
+                    throw invalid("a CORRECTION names what it corrects: department, position, manager, fee-earner flag, phase or legal entity");
                 }
             }
             case REGULARIZE, SEPARATE, UNPAID_LEAVE_START, UNPAID_LEAVE_END -> {
@@ -143,6 +154,14 @@ public final class PersonnelCommand extends AggregateRoot {
                     throw invalid("a " + kind + " carries no target");
                 }
             }
+            case CHANGE_LEGAL_ENTITY -> {
+                if (targetLegalEntityId == null || targets + count(targetEmploymentPhaseKind) > 0) {
+                    throw invalid("a CHANGE_LEGAL_ENTITY names the legal entity and nothing else");
+                }
+            }
+        }
+        if (targetLegalEntityId != null && kind != PersonnelCommandKind.CHANGE_LEGAL_ENTITY && kind != PersonnelCommandKind.TRANSFER && kind != PersonnelCommandKind.CORRECTION) {
+            throw invalid("a " + kind + " carries no target legal entity");
         }
         if (employeeId.equals(targetReportsToEmployeeId)) {
             throw invalid("an employee does not report to themself");
@@ -156,6 +175,30 @@ public final class PersonnelCommand extends AggregateRoot {
         }
         status = CommandStatus.HELD;
         appliedAt = null;
+    }
+
+    /**
+     * The cost legal entity changes between before and after the command (ADR-0073 item 3.4): the command waits for the finance countersign at entry, the basis is
+     * recorded and never changes, and no version is written until every required countersign is approved.
+     */
+    public void requireCountersign(LegalEntityId previous, LegalEntityId next) {
+        if (previous.equals(next) || countersignNewLegalEntityId != null) {
+            throw invalid("a countersign basis names two different legal entities, once");
+        }
+        countersignPreviousLegalEntityId = previous;
+        countersignNewLegalEntityId = next;
+        status = CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN;
+        appliedAt = null;
+    }
+
+    /**
+     * Every required countersign is approved: the command is pending, or effective when its day has come; its versions are written by the caller in the same
+     * transaction. A correction is immediate whatever its day (ck_personnel_commands_correction_immediate), so it becomes effective here too.
+     */
+    public void completeCountersign(Instant at, LocalDate today) {
+        boolean due = !effectiveDate.isAfter(today) || kind == PersonnelCommandKind.CORRECTION;
+        status = CommandStatus.MACHINE.require(status, due ? CommandStatus.EFFECTIVE : CommandStatus.PENDING, WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL);
+        appliedAt = due ? Objects.requireNonNull(at, "at") : null;
     }
 
     /**
@@ -197,7 +240,22 @@ public final class PersonnelCommand extends AggregateRoot {
         record(PersonnelCommandEvents.released(this, hold, releasedBy, legalEntity));
     }
 
-    /** Takes a pending or held command back; the reason is 1 to 500 characters and not blank (ADR-0068 item 1.6). */
+    /**
+     * The drafter's wish to take a countersigned pending command back (ADR-0073 item 3.6, user answer Q2): the command stands, finance decides, so only the reason and the
+     * state are judged here. Once the day has come the versions are in force whatever the due-date job has done yet, and only a countersigned correction undoes them.
+     */
+    public void requireWithdrawalAllowed(@Nullable String reason, LocalDate today) {
+        if (reason == null || reason.isBlank() || reason.length() > MAX_REASON_LENGTH) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_REASON_INVALID, ErrorKind.UNPROCESSABLE,
+                    "a withdrawal needs a reason of 1 to " + MAX_REASON_LENGTH + " characters that is not blank");
+        }
+        if (status != CommandStatus.PENDING || countersignNewLegalEntityId == null || !effectiveDate.isAfter(today)) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_ALLOWED, ErrorKind.CONFLICT,
+                    "a countersigned command can be asked to be withdrawn only while it is pending and its day has not come");
+        }
+    }
+
+    /** Takes a pending, held or awaiting command back; the reason is 1 to 500 characters and not blank (ADR-0068 item 1.6). */
     public void withdraw(UserId by, @Nullable String reason, Instant at) {
         if (reason == null || reason.isBlank() || reason.length() > MAX_REASON_LENGTH) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_REASON_INVALID, ErrorKind.UNPROCESSABLE,
@@ -205,7 +263,7 @@ public final class PersonnelCommand extends AggregateRoot {
         }
         if (!status.isOpen()) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_ALLOWED, ErrorKind.CONFLICT,
-                    "only a pending or held command can be withdrawn, this one is " + status);
+                    "only a pending, held or awaiting command can be withdrawn, this one is " + status);
         }
         status = CommandStatus.MACHINE.require(status, CommandStatus.WITHDRAWN, WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL);
         withdrawnBy = Objects.requireNonNull(by, "by");
@@ -222,6 +280,9 @@ public final class PersonnelCommand extends AggregateRoot {
      */
     public void recordEffect(@Nullable VersionRow assignmentBefore, @Nullable VersionRow assignmentAfter, @Nullable LegalEntityId legalEntity) {
         PersonnelCommandEvents.of(this, assignmentBefore, assignmentAfter, legalEntity).ifPresent(this::record);
+        if (countersignNewLegalEntityId != null) {
+            record(PersonnelCommandEvents.legalEntityChanged(this, Objects.requireNonNull(countersignPreviousLegalEntityId), countersignNewLegalEntityId));
+        }
     }
 
     public PersonnelCommandId id() {
@@ -262,6 +323,20 @@ public final class PersonnelCommand extends AggregateRoot {
 
     public @Nullable EmploymentPhaseKind targetEmploymentPhaseKind() {
         return targetEmploymentPhaseKind;
+    }
+
+    public @Nullable LegalEntityId targetLegalEntityId() {
+        return targetLegalEntityId;
+    }
+
+    /** The cost legal entity before the command, as recorded when it began to wait; empty when it never needed a countersign. */
+    public @Nullable LegalEntityId countersignPreviousLegalEntityId() {
+        return countersignPreviousLegalEntityId;
+    }
+
+    /** The cost legal entity after the command, as recorded when it began to wait; empty when it never needed a countersign. */
+    public @Nullable LegalEntityId countersignNewLegalEntityId() {
+        return countersignNewLegalEntityId;
     }
 
     public UserId createdBy() {
