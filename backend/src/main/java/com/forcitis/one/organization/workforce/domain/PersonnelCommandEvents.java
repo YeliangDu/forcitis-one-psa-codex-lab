@@ -29,7 +29,7 @@ final class PersonnelCommandEvents {
     private PersonnelCommandEvents() {
     }
 
-    static Optional<PendingEvent> of(PersonnelCommand c, @Nullable VersionRow assignmentBefore, @Nullable LegalEntityId legalEntity) {
+    static Optional<PendingEvent> of(PersonnelCommand c, @Nullable VersionRow assignmentBefore, @Nullable VersionRow assignmentAfter, @Nullable LegalEntityId legalEntity) {
         return Optional.ofNullable(switch (c.kind()) {
             case HIRE -> (PendingEvent) (envelopes, sequence) -> new EmployeeHired(envelopes.wrap(draft("EmployeeHired", c, legalEntity, sequence)), c.id(),
                     c.employeeId(), c.effectiveDate());
@@ -39,8 +39,7 @@ final class PersonnelCommandEvents {
                     c.employeeId(), c.effectiveDate());
             case REINSTATE -> (envelopes, sequence) -> new EmployeeReinstated(envelopes.wrap(draft("EmployeeReinstated", c, legalEntity, sequence)), c.id(),
                     c.employeeId(), c.effectiveDate());
-            case CORRECTION -> (envelopes, sequence) -> new EmployeeCorrected(envelopes.wrap(draft("EmployeeCorrected", c, legalEntity, sequence)), c.id(),
-                    c.employeeId(), c.effectiveDate(), null);
+            case CORRECTION -> corrected(c, assignmentBefore, assignmentAfter, legalEntity);
             case TRANSFER -> transferred(c, assignmentBefore, legalEntity);
             case UNPAID_LEAVE_START, UNPAID_LEAVE_END -> null;
         });
@@ -57,9 +56,8 @@ final class PersonnelCommandEvents {
     }
 
     private static PendingEvent transferred(PersonnelCommand c, @Nullable VersionRow before, @Nullable LegalEntityId legalEntity) {
-        OrgUnitId previousUnit = before == null ? null : new OrgUnitId((UUID) before.values().get(CommandEffects.ORG_UNIT));
-        PositionId previousPosition = before == null || before.values().get(CommandEffects.POSITION) == null ? null
-                : new PositionId((UUID) before.values().get(CommandEffects.POSITION));
+        OrgUnitId previousUnit = unitOf(before);
+        PositionId previousPosition = positionOf(before);
         OrgUnitId newUnit = c.targetOrgUnitId() != null ? c.targetOrgUnitId() : previousUnit;
         PositionId newPosition = c.targetPositionId() != null ? c.targetPositionId() : previousPosition;
         List<TriggerFieldKind> triggers = new ArrayList<>();
@@ -73,6 +71,31 @@ final class PersonnelCommandEvents {
         OrgUnitId to = Objects.requireNonNull(newUnit, "department");
         return (envelopes, sequence) -> new EmployeeTransferred(envelopes.wrap(draft("EmployeeTransferred", c, legalEntity, sequence)), c.id(), c.employeeId(),
                 c.effectiveDate(), triggers, from, to, previousPosition, newPosition);
+    }
+
+    private static PendingEvent corrected(PersonnelCommand c, @Nullable VersionRow before, @Nullable VersionRow after, @Nullable LegalEntityId legalEntity) {
+        OrgUnitId previousUnit = unitOf(before);
+        OrgUnitId newUnit = unitOf(after);
+        PositionId previousPosition = positionOf(before);
+        PositionId newPosition = positionOf(after);
+        List<TriggerFieldKind> triggers = new ArrayList<>();
+        if (!Objects.equals(previousUnit, newUnit)) {
+            triggers.add(TriggerFieldKind.ORG_UNIT);
+        }
+        // Reinstating by correction gives the employee a position too, but it is one review of the department (ADR-0082 decision 2).
+        if (before != null && !Objects.equals(previousPosition, newPosition)) {
+            triggers.add(TriggerFieldKind.POSITION);
+        }
+        return (envelopes, sequence) -> new EmployeeCorrected(envelopes.wrap(draft("EmployeeCorrected", c, legalEntity, sequence)), c.id(), c.employeeId(),
+                c.effectiveDate(), null, triggers, previousUnit, newUnit, previousPosition, newPosition);
+    }
+
+    private static @Nullable OrgUnitId unitOf(@Nullable VersionRow row) {
+        return row == null ? null : new OrgUnitId((UUID) row.values().get(CommandEffects.ORG_UNIT));
+    }
+
+    private static @Nullable PositionId positionOf(@Nullable VersionRow row) {
+        return row == null || row.values().get(CommandEffects.POSITION) == null ? null : new PositionId((UUID) row.values().get(CommandEffects.POSITION));
     }
 
     private static EventDraft draft(String name, PersonnelCommand c, @Nullable LegalEntityId legalEntity, long sequence) {
