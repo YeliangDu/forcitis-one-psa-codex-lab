@@ -8,7 +8,7 @@ terms:
   kind: value_object
   bc: organization.workforce
   scope: domain
-  definition: 组织快照对某员工是否在职的判定：在职 EMPLOYED、离职 SEPARATED、快照可用而未列出 NOT_LISTED、快照不可用或过期 SNAPSHOT_UNAVAILABLE（ADR-0033 第 3 项第 7 条，应急登录在职校验用）
+  definition: 组织快照对某员工是否在职的判定：在职 EMPLOYED、离职 SEPARATED、未列出 NOT_LISTED（ADR-0033 第 3 项第 7 条，应急登录在职校验用；快照不可用的取值已随旧同步删除，#934）
   standard_ref:
   - ADR-0033 第 3 项第 7 条
   confidence: medium
@@ -32,36 +32,6 @@ terms:
   forbidden: []
   status: proposed
   note: R-1b P2-H2，两个按登录标识查人的方法合一以守住 api 方法上限
-- id: error__organization_workforce_sync_run_transition_illegal
-  zh: 同步记录状态转换非法
-  en: OrganizationWorkforceSyncRunTransitionIllegal
-  snake: organization_workforce_sync_run_transition_illegal
-  kind: error_code
-  bc: organization.workforce
-  scope: domain
-  definition: 同步记录不能从当前状态进入目标状态（409）
-  standard_ref:
-  - docs/architecture/proposals/phase1-a-platform-conventions.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
-- id: error__organization_workforce_sync_run_not_found
-  zh: 同步记录不存在
-  en: OrganizationWorkforceSyncRunNotFound
-  snake: organization_workforce_sync_run_not_found
-  kind: error_code
-  bc: organization.workforce
-  scope: domain
-  definition: 没有这条同步记录（404）
-  standard_ref:
-  - docs/architecture/proposals/phase1-a-platform-conventions.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: ''
 - id: error__organization_workforce_legal_entity_transition_illegal
   zh: 法人状态转换非法
   en: OrganizationWorkforceLegalEntityTransitionIllegal
@@ -660,21 +630,81 @@ terms:
   forbidden: []
   status: proposed
   note: 入职建员工并可改档案（#959）
-- id: error__organization_workforce_wecom_user_id_change_not_allowed
-  zh: 企业微信账号不允许一人改动
-  en: OrganizationWorkforceWecomUserIdChangeNotAllowed
-  snake: organization_workforce_wecom_user_id_change_not_allowed
+- id: error__organization_workforce_profile_change_pending
+  zh: 员工档案变更待复核
+  en: OrganizationWorkforceProfileChangePending
+  snake: organization_workforce_profile_change_pending
   kind: error_code
   bc: organization.workforce
   scope: domain
-  definition: 账号持有普通员工以外角色的员工，其已有的企业微信账号改绑或清空须两人经办，目前一律拒收（403）
+  definition: 该员工已有一条待第二人复核的档案变更，期间任何档案修改都被拒绝，请求人先撤回（409）
   standard_ref:
-  - 用户决定 2026-11-02（企业微信账号改绑防冒用）
+  - 用户决定 2026-11-02（企业微信账号改绑防冒用，第 2 道）
   confidence: medium
   aliases: []
   forbidden: []
   status: proposed
-  note: 入职建员工并可改档案（#959）
+  note: 改绑第二人复核（#980）
+- id: error__organization_workforce_profile_change_confirmer_not_allowed
+  zh: 不能确认或拒绝该档案变更
+  en: OrganizationWorkforceProfileChangeConfirmerNotAllowed
+  snake: organization_workforce_profile_change_confirmer_not_allowed
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 档案变更的请求人和被改档案的人自己不能确认，被改档案的人自己也不能拒绝（403）
+  standard_ref:
+  - 用户决定 2026-11-02（企业微信账号改绑防冒用，第 2 道）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 改绑第二人复核（#980）
+- id: error__organization_workforce_profile_change_request_not_found
+  zh: 员工档案变更申请不存在
+  en: OrganizationWorkforceProfileChangeRequestNotFound
+  snake: organization_workforce_profile_change_request_not_found
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 没有这条员工档案变更申请（404）
+  standard_ref:
+  - 用户决定 2026-11-02（企业微信账号改绑防冒用，第 2 道）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 改绑第二人复核（#980）
+- id: error__organization_workforce_profile_change_request_not_pending
+  zh: 员工档案变更申请已处理
+  en: OrganizationWorkforceProfileChangeRequestNotPending
+  snake: organization_workforce_profile_change_request_not_pending
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 申请已确认、已拒绝或已作废，不再接受确认或拒绝（409）
+  standard_ref:
+  - 用户决定 2026-11-02（企业微信账号改绑防冒用，第 2 道）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 改绑第二人复核（#980）
+- id: error__organization_workforce_profile_change_voided
+  zh: 员工档案变更已作废
+  en: OrganizationWorkforceProfileChangeVoided
+  snake: organization_workforce_profile_change_voided
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 确认时发现档案已不是申请时的样子，或拟改的企业微信账号已被别的员工占用，申请作废、什么都没写，请从当前档案重新申请（409）
+  standard_ref:
+  - 用户决定 2026-11-02（企业微信账号改绑防冒用，第 2 道）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 改绑第二人复核（#980）
 - id: error__organization_workforce_own_profile_change_forbidden
   zh: 不能修改本人档案
   en: OrganizationWorkforceOwnProfileChangeForbidden

@@ -27,9 +27,8 @@ import java.util.UUID;
 import org.springframework.test.context.event.ApplicationEvents;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.LegalEntityDirectory;
-import com.forcitis.one.organization.workforce.application.SyncOrgSnapshot;
+import com.forcitis.one.organization.workforce.application.SnapshotSeeder;
 import com.forcitis.one.organization.workforce.application.WorkforceIntegrationSupport;
-import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.identity.api.Permission;
 import java.util.List;
@@ -56,9 +55,6 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
 
     @Autowired
     LegalEntityDirectory directory;
-
-    @Autowired
-    SyncOrgSnapshot sync;
 
     @Autowired
     ApplicationEvents events;
@@ -248,8 +244,8 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
         UUID one = create("FST", "One");
         orgSource.snapshot = tree(person(1, 2, 100L, null));
 
-        sync.execute(SyncTrigger.SCHEDULED, false);
-        sync.execute(SyncTrigger.SCHEDULED, false);
+        SnapshotSeeder.seed(jdbc, orgSource.snapshot);
+        SnapshotSeeder.seed(jdbc, orgSource.snapshot);
 
         assertThat(count()).isEqualTo(1);
         assertThat(directory.findCode(new LegalEntityId(one))).contains(new LegalEntityCode("FST"));

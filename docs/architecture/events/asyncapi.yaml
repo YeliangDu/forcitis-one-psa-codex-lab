@@ -161,6 +161,11 @@ channels:
     messages:
       AuthorizationRejected:
         $ref: '#/components/messages/AuthorizationRejected'
+  authorizationVoided:
+    address: platform.identity.AuthorizationVoided
+    messages:
+      AuthorizationVoided:
+        $ref: '#/components/messages/AuthorizationVoided'
   sourceReferenceRegistered:
     address: platform.integration.SourceReferenceRegistered
     messages:
@@ -226,36 +231,6 @@ channels:
     messages:
       TimesheetApprovalWithdrawn:
         $ref: '#/components/messages/TimesheetApprovalWithdrawn'
-  syncRunSucceeded:
-    address: organization.workforce.SyncRunSucceeded
-    messages:
-      SyncRunSucceeded:
-        $ref: '#/components/messages/SyncRunSucceeded'
-  syncRunHeld:
-    address: organization.workforce.SyncRunHeld
-    messages:
-      SyncRunHeld:
-        $ref: '#/components/messages/SyncRunHeld'
-  syncRunFailed:
-    address: organization.workforce.SyncRunFailed
-    messages:
-      SyncRunFailed:
-        $ref: '#/components/messages/SyncRunFailed'
-  syncRunReleased:
-    address: organization.workforce.SyncRunReleased
-    messages:
-      SyncRunReleased:
-        $ref: '#/components/messages/SyncRunReleased'
-  syncRunHoldReleased:
-    address: organization.workforce.SyncRunHoldReleased
-    messages:
-      SyncRunHoldReleased:
-        $ref: '#/components/messages/SyncRunHoldReleased'
-  orgSnapshotChanged:
-    address: organization.workforce.OrgSnapshotChanged
-    messages:
-      OrgSnapshotChanged:
-        $ref: '#/components/messages/OrgSnapshotChanged'
   legalEntityRegistered:
     address: organization.workforce.LegalEntityRegistered
     messages:
@@ -811,6 +786,13 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/authorizationRejected/messages/AuthorizationRejected'
+  publishAuthorizationVoided:
+    action: send
+    channel:
+      $ref: '#/channels/authorizationVoided'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/authorizationVoided/messages/AuthorizationVoided'
   publishSourceReferenceRegistered:
     action: send
     channel:
@@ -993,90 +975,6 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/timesheetApprovalWithdrawn/messages/TimesheetApprovalWithdrawn'
-  publishSyncRunSucceeded:
-    action: send
-    channel:
-      $ref: '#/channels/syncRunSucceeded'
-    summary: organization.workforce 发布
-    messages:
-    - $ref: '#/channels/syncRunSucceeded/messages/SyncRunSucceeded'
-  publishSyncRunHeld:
-    action: send
-    channel:
-      $ref: '#/channels/syncRunHeld'
-    summary: organization.workforce 发布
-    messages:
-    - $ref: '#/channels/syncRunHeld/messages/SyncRunHeld'
-  handleSyncRunHeldInPlatformAudit:
-    action: receive
-    channel:
-      $ref: '#/channels/syncRunHeld'
-    summary: platform.audit 消费
-    messages:
-    - $ref: '#/channels/syncRunHeld/messages/SyncRunHeld'
-  publishSyncRunFailed:
-    action: send
-    channel:
-      $ref: '#/channels/syncRunFailed'
-    summary: organization.workforce 发布
-    messages:
-    - $ref: '#/channels/syncRunFailed/messages/SyncRunFailed'
-  handleSyncRunFailedInPlatformAudit:
-    action: receive
-    channel:
-      $ref: '#/channels/syncRunFailed'
-    summary: platform.audit 消费
-    messages:
-    - $ref: '#/channels/syncRunFailed/messages/SyncRunFailed'
-  publishSyncRunReleased:
-    action: send
-    channel:
-      $ref: '#/channels/syncRunReleased'
-    summary: organization.workforce 发布
-    messages:
-    - $ref: '#/channels/syncRunReleased/messages/SyncRunReleased'
-  handleSyncRunReleasedInPlatformAudit:
-    action: receive
-    channel:
-      $ref: '#/channels/syncRunReleased'
-    summary: platform.audit 消费
-    messages:
-    - $ref: '#/channels/syncRunReleased/messages/SyncRunReleased'
-  publishSyncRunHoldReleased:
-    action: send
-    channel:
-      $ref: '#/channels/syncRunHoldReleased'
-    summary: organization.workforce 发布
-    messages:
-    - $ref: '#/channels/syncRunHoldReleased/messages/SyncRunHoldReleased'
-  handleSyncRunHoldReleasedInPlatformAudit:
-    action: receive
-    channel:
-      $ref: '#/channels/syncRunHoldReleased'
-    summary: platform.audit 消费
-    messages:
-    - $ref: '#/channels/syncRunHoldReleased/messages/SyncRunHoldReleased'
-  publishOrgSnapshotChanged:
-    action: send
-    channel:
-      $ref: '#/channels/orgSnapshotChanged'
-    summary: organization.workforce 发布
-    messages:
-    - $ref: '#/channels/orgSnapshotChanged/messages/OrgSnapshotChanged'
-  handleOrgSnapshotChangedInPlatformIdentity:
-    action: receive
-    channel:
-      $ref: '#/channels/orgSnapshotChanged'
-    summary: platform.identity 消费
-    messages:
-    - $ref: '#/channels/orgSnapshotChanged/messages/OrgSnapshotChanged'
-  handleOrgSnapshotChangedInPlatformAudit:
-    action: receive
-    channel:
-      $ref: '#/channels/orgSnapshotChanged'
-    summary: platform.audit 消费
-    messages:
-    - $ref: '#/channels/orgSnapshotChanged/messages/OrgSnapshotChanged'
   publishLegalEntityRegistered:
     action: send
     channel:
@@ -1217,6 +1115,13 @@ operations:
     summary: organization.workforce 发布
     messages:
     - $ref: '#/channels/employeeHired/messages/EmployeeHired'
+  handleEmployeeHiredInPlatformIdentity:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeHired'
+    summary: platform.identity 消费
+    messages:
+    - $ref: '#/channels/employeeHired/messages/EmployeeHired'
   handleEmployeeHiredInPlatformAudit:
     action: receive
     channel:
@@ -1278,6 +1183,13 @@ operations:
     channel:
       $ref: '#/channels/employeeReinstated'
     summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/employeeReinstated/messages/EmployeeReinstated'
+  handleEmployeeReinstatedInPlatformIdentity:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeReinstated'
+    summary: platform.identity 消费
     messages:
     - $ref: '#/channels/employeeReinstated/messages/EmployeeReinstated'
   handleEmployeeReinstatedInPlatformAudit:
@@ -3075,6 +2987,35 @@ components:
             x-type: UserId
             format: uuid
             description: 稳定 ID 的字符串形式
+    AuthorizationVoided:
+      name: AuthorizationVoided
+      title: 敏感授权申请作废（基准已变或确认后无法应用）
+      x-event:
+        eventType: platform.identity.AuthorizationVoided
+        version: 1
+        class: com.forcitis.one.platform.identity.events.AuthorizationVoided
+        aggregate: AuthorizationRequest
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
+        audit: 'not-audited: authorization.voided 同事务直写（#938）'
+        publisherTest: com.forcitis.one.platform.identity.domain.AuthorizationRequestTest
+        noConsumer: 暂无消费方：授权申请只需留痕，确认后的执行由本模块的监听器完成；现在就发布，是因为申请与确认只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - requestId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          requestId:
+            type: string
+            format: uuid
+            x-type: AuthorizationRequestId
     SourceReferenceRegistered:
       name: SourceReferenceRegistered
       title: 有人登记了一条来源对照（核算组织编码），等待他人确认
@@ -3812,236 +3753,6 @@ components:
               value:
                 type: string
             description: 撤销原因
-    SyncRunSucceeded:
-      name: SyncRunSucceeded
-      title: 组织同步成功
-      x-event:
-        eventType: organization.workforce.SyncRunSucceeded
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.SyncRunSucceeded
-        aggregate: SyncRun
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers: []
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: 'not-audited: 每 5 分钟一次的同步会淹没审计记录；同步记录表本身就是它的记录，中止、失败、放行仍然审计'
-        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
-        noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
-      payload:
-        type: object
-        required:
-        - envelope
-        - syncRunId
-        properties:
-          envelope:
-            $ref: '#/components/schemas/EventEnvelope'
-          syncRunId:
-            type: string
-            format: uuid
-            x-type: SyncRunId
-            description: 稳定 ID 的字符串形式
-    SyncRunHeld:
-      name: SyncRunHeld
-      title: 组织同步被缩水保护中止
-      x-event:
-        eventType: organization.workforce.SyncRunHeld
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.SyncRunHeld
-        aggregate: SyncRun
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers:
-        - platform.audit
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
-        noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
-      payload:
-        type: object
-        required:
-        - envelope
-        - syncRunId
-        properties:
-          envelope:
-            $ref: '#/components/schemas/EventEnvelope'
-          syncRunId:
-            type: string
-            format: uuid
-            x-type: SyncRunId
-            description: 稳定 ID 的字符串形式
-    SyncRunFailed:
-      name: SyncRunFailed
-      title: 组织同步失败
-      x-event:
-        eventType: organization.workforce.SyncRunFailed
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.SyncRunFailed
-        aggregate: SyncRun
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers:
-        - platform.audit
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
-        noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
-      payload:
-        type: object
-        required:
-        - envelope
-        - syncRunId
-        properties:
-          envelope:
-            $ref: '#/components/schemas/EventEnvelope'
-          syncRunId:
-            type: string
-            format: uuid
-            x-type: SyncRunId
-            description: 稳定 ID 的字符串形式
-    SyncRunReleased:
-      name: SyncRunReleased
-      title: 被中止的同步已由管理员放行或被后续成功同步取代
-      x-event:
-        eventType: organization.workforce.SyncRunReleased
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.SyncRunReleased
-        aggregate: SyncRun
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers:
-        - platform.audit
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
-        noConsumer: 暂无消费方：运维看板与告警（告警通道待用户指定）将订阅；现在就发布，是因为中止与失败只在发生当时有告警价值，事后补不回
-      payload:
-        type: object
-        required:
-        - envelope
-        - syncRunId
-        - reason
-        - releasedByRunId
-        properties:
-          envelope:
-            $ref: '#/components/schemas/EventEnvelope'
-          syncRunId:
-            type: string
-            format: uuid
-            x-type: SyncRunId
-            description: 稳定 ID 的字符串形式
-          reason:
-            type: string
-            x-type: Reason
-            nullable: true
-            description: 放行人填写的原因；由下一次成功同步自动放行时为空
-          releasedByRunId:
-            type: string
-            format: uuid
-            x-type: SyncRunId
-            description: 稳定 ID 的字符串形式
-    SyncRunHoldReleased:
-      name: SyncRunHoldReleased
-      title: 被暂停的同步的一类暂停已被有权的人解除，另一类仍在时运行保持暂停
-      x-event:
-        eventType: organization.workforce.SyncRunHoldReleased
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.SyncRunHoldReleased
-        aggregate: SyncRun
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers:
-        - platform.audit
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
-        noConsumer: 暂无消费方：放行告警（告警通道待用户指定）将订阅；现在就发布，是因为放行只在发生当时有告警价值，事后补不回
-      payload:
-        type: object
-        required:
-        - envelope
-        - syncRunId
-        - holdKind
-        - releasedBy
-        properties:
-          envelope:
-            $ref: '#/components/schemas/EventEnvelope'
-          syncRunId:
-            type: string
-            format: uuid
-            x-type: SyncRunId
-            description: 稳定 ID 的字符串形式
-          holdKind:
-            type: string
-            enum:
-            - SHRINK_GUARD
-            - ADMINISTRATOR_SEPARATION
-            x-type: HoldKind
-          releasedBy:
-            type: string
-            x-type: UserId
-            format: uuid
-            description: 稳定 ID 的字符串形式
-    OrgSnapshotChanged:
-      name: OrgSnapshotChanged
-      title: 组织快照因同步发生变化
-      x-event:
-        eventType: organization.workforce.OrgSnapshotChanged
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.OrgSnapshotChanged
-        aggregate: SyncRun
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers:
-        - platform.identity
-        - platform.audit
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 快照截止日：同步运行开始当天（Asia/Shanghai），即读取组织源快照的业务日；effectiveFrom 在负载
-        audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.domain.SyncRunStateMachineTest
-      payload:
-        type: object
-        required:
-        - envelope
-        - changedEmployees
-        - separatedEmployees
-        - changedOrgUnits
-        - effectiveFrom
-        properties:
-          envelope:
-            $ref: '#/components/schemas/EventEnvelope'
-          changedEmployees:
-            type: array
-            items:
-              type: string
-              x-type: EmployeeId
-              format: uuid
-          separatedEmployees:
-            type: array
-            items:
-              type: string
-              x-type: EmployeeId
-              format: uuid
-          changedOrgUnits:
-            type: array
-            items:
-              type: string
-              x-type: OrgUnitId
-              format: uuid
-          effectiveFrom:
-            type: string
-            x-type: LocalDate
-            description: 变化从哪一天起生效（含）；组织源不给变更日期，取快照截止日
     LegalEntityRegistered:
       name: LegalEntityRegistered
       title: 法人新增
@@ -4410,13 +4121,13 @@ components:
         idempotencyKey: eventId
         publisher: organization.workforce
         consumers:
+        - platform.identity
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 人事业务生效日（effectiveDate）：入职命令的生效日
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
-        noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
       payload:
         type: object
         required:
@@ -4618,13 +4329,13 @@ components:
         idempotencyKey: eventId
         publisher: organization.workforce
         consumers:
+        - platform.identity
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 人事业务生效日（effectiveDate）：复职命令的生效日
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
-        noConsumer: 暂无消费方：契约先行（SPLIT_PLAN A，#737），发布方随人事命令实现卡（#738）落地，platform.identity 在 C 卡订阅（ADR-0068 第 2 条第 5 项）；先登记，是为了发布方与订阅方按同一份契约并行开工，事件只在命令生效时发布，漏发补不回
       payload:
         type: object
         required:

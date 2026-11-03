@@ -25,7 +25,7 @@ class AuditWritePointsGuardTest {
     /** Row 26 (#959, ADR-0043 U-7(b)): the one write point that may put the changed L2 profile columns into before and after text, and the only one that may be class PI. */
     static final String PROFILE_WRITER = "src/main/java/com/forcitis/one/organization/workforce/application/EmployeeProfileService.java";
     static final String PROFILE_ROW = "26";
-    static final int LAST_ROW = 26;
+    static final int LAST_ROW = 28;
     static final Pattern WRITE = Pattern.compile("new\\s+AuditEntry\\s*\\(|\\.withChange\\s*\\(");
 
     record Writer(int writes, String rows, String personalData) {
@@ -130,7 +130,7 @@ class AuditWritePointsGuardTest {
             changeTexts(source.getValue()).forEach(wrong -> problems.add(source.getKey() + " writes a before or after text: " + wrong));
         }
         assertThat(problems).as(GuardMessage.of("DATA-REPAIR-timesheet-audit TB-01", "a file writes an audit entry without a register line, with another number of write places, or with a before or after text", "register the file in " + REGISTER + " with its row of the allowed-content table and write count, or delete a stale line, and pass the literal null as before and after text of withChange")).isEmpty();
-        assertThat(register).as("the card counted 35 files, rows 20 and 21 add the start-up audit and the relaxation mark of the single operator mode, RevokeRoleByOperations is a writer of row 15, row 22 adds the file service gate and row 23 its links, holds and reads, ADR-0034-IMPL PR-2 adds RoleVersionAudit (rows 4 and 6: ids, enum names and clock readings of role versions), F-1 #728 adds CreateRole (grant.refused for a two-person role's scope: reason code, scope kind and org unit ids), IMP-1030-PAR-B6 #875 adds SeparationHoldService (row 17: the release reason typed by a person, session mode, ids and the remaining count), #959 adds EmployeeProfileService (row 26: the changed L2 profile columns as before and after text, never the employee code), IMP-1030-PAR-B3 #872 adds PersonnelCommandService (rows 24 and 25: the ids, kind and date of an entry, and the withdrawal reason typed by a person with control characters replaced), #960 adds MigrateInitialVersions (row 15: operator and witness ids and the counts of one run). " + GuardMessage.of("DATA-REPAIR-timesheet-audit TB-01", "the number of registered audit writers changed", "update the expected count here only together with the allowed-content row of the new writer")).hasSize(46);
+        assertThat(register).as("the card counted 35 files, rows 20 and 21 add the start-up audit and the relaxation mark of the single operator mode, RevokeRoleByOperations is a writer of row 15, row 22 adds the file service gate and row 23 its links, holds and reads, ADR-0034-IMPL PR-2 adds RoleVersionAudit (rows 4 and 6: ids, enum names and clock readings of role versions), F-1 #728 adds CreateRole (grant.refused for a two-person role's scope: reason code, scope kind and org unit ids), IMP-1030-PAR-B6 #875 adds SeparationHoldService (row 17: the release reason typed by a person, session mode, ids and the remaining count), #959 adds EmployeeProfileService (row 26: the changed L2 profile columns as before and after text, never the employee code), IMP-1030-PAR-B3 #872 adds PersonnelCommandService (rows 24 and 25: the ids, kind and date of an entry, and the withdrawal reason typed by a person with control characters replaced), #960 adds MigrateInitialVersions (row 15: operator and witness ids and the counts of one run), #938 adds AuthorizationVoiding (rows 1 and 4: the id of the voided request and, since #1032, the refusal's error enum); #934 removes RecordSyncRunRelease (row 17: the old sync release), and the separation writes of HandleOrgSnapshotChange, which it deletes, sit in AccountGrants and SessionRevocation as on main.  #980 adds ProfileChangeRequestService (row 28: the id of the request and the void reason enum) and rows 27 and the amended 26 of EmployeeProfileService (the request id; the changed-profile entry of a confirmation is still written by EmployeeProfileService, the only writer of row 26)." + GuardMessage.of("DATA-REPAIR-timesheet-audit TB-01", "the number of registered audit writers changed", "update the expected count here only together with the allowed-content row of the new writer")).hasSize(47);
     }
 
     @Test
@@ -182,7 +182,7 @@ class AuditWritePointsGuardTest {
         List<String> problems = new ArrayList<>();
         assertThat(parse(List.of("# c", "", "A.java | 1 | 1,2 | POSSIBLE"), problems)).containsOnlyKeys("A.java");
         assertThat(problems).isEmpty();
-        for (String bad : List.of("A.java | 1 | 1", "A.java | 1 | 27 | NONE", "A.java | 1 | 0 | NONE", "A.java | 1 | 1 | SECRET", "A.java | 0 | 1 | NONE",
+        for (String bad : List.of("A.java | 1 | 1", "A.java | 1 | 29 | NONE", "A.java | 1 | 0 | NONE", "A.java | 1 | 1 | SECRET", "A.java | 0 | 1 | NONE",
                 "A.java | x | 1 | NONE", "A.java | 1 | | NONE")) {
             List<String> one = new ArrayList<>();
             assertThat(parse(List.of(bad), one)).as(bad).isEmpty();

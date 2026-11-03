@@ -47,7 +47,7 @@ class RoleScopeGrantIT extends DataScopeSupport {
         for (String key : List.of("admin1", "admin2", "oda", "holder", "sensitive-holder")) {
             person(key, "F1-ROOT", "F1-P1");
         }
-        synchronise();
+        seedOrganisation();
         administrator("admin1");
         administrator("admin2");
         grantByOperations("oda", ORG_DATA_ADMIN);

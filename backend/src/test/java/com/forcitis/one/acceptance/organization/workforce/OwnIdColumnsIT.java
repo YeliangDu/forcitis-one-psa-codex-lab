@@ -65,7 +65,6 @@ class OwnIdColumnsIT extends AcceptanceSupport {
             new String[] {WORKFORCE, "legal_entity_attributions", "employee_id"},
             new String[] {WORKFORCE, "legal_entity_attribution_corrections", "org_unit_id"},
             new String[] {WORKFORCE, "legal_entity_attribution_corrections", "employee_id"},
-            new String[] {WORKFORCE, "sync_run_held_separations", "employee_id"},
             new String[] {"platform_identity", "user_accounts", "employee_id"},
             new String[] {"cost_timesheet", "timesheets", "employee_id"},
             new String[] {"cost_timesheet", "timesheets", "project_manager_id"},
@@ -87,15 +86,15 @@ class OwnIdColumnsIT extends AcceptanceSupport {
     /** table, unique constraint, its columns in order (DDL-01: the natural key stays unique). */
     static final List<String[]> NATURAL_KEYS = List.of(
             new String[] {"org_unit_versions", "uk_org_unit_versions_revision", "org_unit_id,effective_from_date,revision_number"},
-            new String[] {"assignment_versions", "uk_assignment_versions_revision", "employee_id,effective_from_date,revision_number"},
-            new String[] {"org_unit_legal_entities", "uk_org_unit_legal_entities_effective_from", "org_unit_id,effective_from_date"});
+            new String[] {"assignment_versions", "uk_assignment_versions_revision", "employee_id,effective_from_date,revision_number"});
 
     /**
      * table, partial unique index, its columns in order: natural keys of attribution period tables that took the W2 common set (W2 design
-     * section 3.6, #892): no revision number, so the key is unique among the rows not superseded.
+     * section 3.6, #892, #904): no revision number, so the key is unique among the rows not superseded.
      */
-    static final List<String[]> CURRENT_ROW_NATURAL_KEYS = List.<String[]>of(
-            new String[] {"employee_legal_entities", "uk_employee_legal_entities_effective_from", "employee_id,effective_from_date"});
+    static final List<String[]> CURRENT_ROW_NATURAL_KEYS = List.of(
+            new String[] {"employee_legal_entities", "uk_employee_legal_entities_effective_from", "employee_id,effective_from_date"},
+            new String[] {"org_unit_legal_entities", "uk_org_unit_legal_entities_effective_from", "org_unit_id,effective_from_date"});
 
     /** table, index, leading column (DDL-06). */
     static final List<String[]> FOREIGN_KEY_INDEXES = List.of(
@@ -188,7 +187,7 @@ class OwnIdColumnsIT extends AcceptanceSupport {
     }
 
     @Test
-    @DisplayName("R-1b P3b DDL-01 与 W2 第 3.6 节（#892）：员工法人归属期间表的自然键改为只管未作废行的部分唯一索引 uk_employee_legal_entities_effective_from (employee_id, effective_from_date) WHERE superseded_at IS NULL")
+    @DisplayName("R-1b P3b DDL-01 与 W2 第 3.6 节（#892、#904）：员工与组织单元法人归属期间表的自然键改为只管未作废行的部分唯一索引 uk_*_effective_from (主体, effective_from_date) WHERE superseded_at IS NULL")
     void theNaturalKeysOfVersionedPeriodsStayUniqueAmongCurrentRows() throws Exception {
         List<String> wrong = new ArrayList<>();
         try (Connection catalogue = schemaConnection("public")) {
@@ -247,20 +246,5 @@ class OwnIdColumnsIT extends AcceptanceSupport {
         }
 
         assertThat(missing).as("foreign key indexes of DDL-06").isEmpty();
-    }
-
-    @Test
-    @DisplayName("R-1b P5 RULING-P5-D12 / ADR-0033：sync_run_held_separations 为 uuid 单列主键，(sync_run_id, employee_id) 是命名唯一约束，外键仍指向员工，employee_id 为 uuid")
-    void theHeldSeparationsHaveASingleUuidKeyAndAUniquePair() throws Exception {
-        try (Connection catalogue = schemaConnection("public")) {
-            assertThat(constraintColumns(catalogue, "sync_run_held_separations", "pk_sync_run_held_separations", "p"))
-                    .isEqualTo("sync_run_held_separation_id");
-            assertThat(typeOf(catalogue, WORKFORCE, "sync_run_held_separations", "sync_run_held_separation_id")).isEqualTo("uuid");
-            assertThat(constraintColumns(catalogue, "sync_run_held_separations", "uk_sync_run_held_separations_sync_run_id_employee_id", "u"))
-                    .isEqualTo("sync_run_id,employee_id");
-            assertThat(constraintColumns(catalogue, "sync_run_held_separations", "fk_sync_run_held_separations_employee_id", "f"))
-                    .isEqualTo("employee_id");
-            assertThat(typeOf(catalogue, WORKFORCE, "sync_run_held_separations", "employee_id")).isEqualTo("uuid");
-        }
     }
 }

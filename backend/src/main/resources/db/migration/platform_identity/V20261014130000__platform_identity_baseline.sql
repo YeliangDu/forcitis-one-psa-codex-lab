@@ -265,7 +265,7 @@ CREATE TABLE platform_identity.authorization_requests (
     permission_codes  text[]      NOT NULL DEFAULT '{}',
     base_account_version_number bigint,
     base_role_version_ids       uuid[]      NOT NULL DEFAULT '{}',
-    request_status    text        NOT NULL CHECK (request_status IN ('PENDING', 'CONFIRMED', 'REJECTED')),
+    request_status    text        NOT NULL,
     decided_by        uuid,
     decided_at        timestamptz,
     version           bigint      NOT NULL DEFAULT 0,
@@ -273,6 +273,9 @@ CREATE TABLE platform_identity.authorization_requests (
     created_at        timestamptz NOT NULL DEFAULT now(),
     updated_at        timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT pk_authorization_requests PRIMARY KEY (request_id),
+    CONSTRAINT ck_authorization_requests_request_status CHECK (request_status IN ('PENDING', 'CONFIRMED', 'REJECTED', 'VOIDED')),
+    CONSTRAINT ck_authorization_requests_base CHECK ((request_kind = 'REPLACE_ROLES') = (base_account_version_number IS NOT NULL)
+        AND (request_kind <> 'UPDATE_ROLE' OR cardinality(base_role_version_ids) = 1) AND (request_kind <> 'CREATE_ROLE' OR cardinality(base_role_version_ids) = 0)),
     CONSTRAINT ck_authorization_requests_two_people CHECK (decided_by IS NULL OR (decided_by <> requested_by AND decided_by IS DISTINCT FROM subject_user_id) OR request_status = 'REJECTED')
 );
 COMMENT ON TABLE platform_identity.authorization_requests IS '授权申请：授予敏感权限、或把角色改成含敏感权限，先建申请，另一人确认后由监听器执行。粒度：每个申请一行';
@@ -290,7 +293,7 @@ COMMENT ON COLUMN platform_identity.authorization_requests.access_scope_kind IS 
 COMMENT ON COLUMN platform_identity.authorization_requests.permission_codes IS '角色的完整权限码集合：CREATE_ROLE、UPDATE_ROLE 才有';
 COMMENT ON COLUMN platform_identity.authorization_requests.base_account_version_number IS '基准账号版本：账号授权申请记申请时 user_accounts.version；为空表示不是账号授权申请';
 COMMENT ON COLUMN platform_identity.authorization_requests.base_role_version_ids IS '基准角色版本：申请时相关角色的当前 role_version_id；账号授权申请为申请后集合与当时持有集合中每个角色，角色修改申请为该角色一个；新建角色为空数组（列名见待裁定 A-3）';
-COMMENT ON COLUMN platform_identity.authorization_requests.request_status IS '申请状态：PENDING 待确认 / CONFIRMED 已确认并交监听器执行 / REJECTED 已拒绝';
+COMMENT ON COLUMN platform_identity.authorization_requests.request_status IS '申请状态：PENDING 待确认 / CONFIRMED 已确认并交监听器执行 / REJECTED 已拒绝 / VOIDED 已作废：确认后执行前发现基准（账号版本或相关角色版本）已变，什么都没有执行';
 COMMENT ON COLUMN platform_identity.authorization_requests.decided_by IS '确认人或拒绝人用户 ID；确认人不是申请人，也不是受益人';
 COMMENT ON COLUMN platform_identity.authorization_requests.decided_at IS '确认或拒绝的时间';
 COMMENT ON COLUMN platform_identity.authorization_requests.version IS '乐观锁版本';
@@ -455,6 +458,34 @@ CREATE INDEX ix_account_role_grants_grant_authorization_request_id ON platform_i
     WHERE grant_authorization_request_id IS NOT NULL;
 CREATE INDEX ix_account_role_grants_revocation_authorization_request_id ON platform_identity.account_role_grants (revocation_authorization_request_id)
     WHERE revocation_authorization_request_id IS NOT NULL;
+
+-- 已处理的人事命令：消费人事事件的监听器记下「这条命令已判定过」，重投时不再按当时状态重新判定（#939，数据设计签发 #939 修订）。只追加。
+CREATE TABLE platform_identity.handled_personnel_commands (
+    personnel_command_id  uuid        NOT NULL,
+    user_id               uuid        NOT NULL,
+    command_kind          text        NOT NULL,
+    outcome_kind          text        NOT NULL,
+    account_role_grant_id uuid,
+    handled_at            timestamptz NOT NULL,
+    created_at            timestamptz NOT NULL DEFAULT now(),
+    updated_at            timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT pk_handled_personnel_commands PRIMARY KEY (personnel_command_id),
+    CONSTRAINT fk_handled_personnel_commands_user_id FOREIGN KEY (user_id) REFERENCES platform_identity.user_accounts (user_id),
+    CONSTRAINT ck_handled_personnel_commands_command_kind CHECK (command_kind IN ('REINSTATE')),
+    CONSTRAINT ck_handled_personnel_commands_outcome_kind CHECK (outcome_kind IN ('GRANT_OPENED', 'NOT_EMPLOYED', 'ALREADY_GRANTED')),
+    CONSTRAINT ck_handled_personnel_commands_grant CHECK ((outcome_kind = 'GRANT_OPENED') = (account_role_grant_id IS NOT NULL))
+);
+CREATE INDEX ix_handled_personnel_commands_user_id ON platform_identity.handled_personnel_commands (user_id);
+CREATE INDEX ix_handled_personnel_commands_account_role_grant_id ON platform_identity.handled_personnel_commands (account_role_grant_id) WHERE account_role_grant_id IS NOT NULL;
+COMMENT ON TABLE platform_identity.handled_personnel_commands IS '已处理的人事命令：监听器对一条人事命令判定后记一行（无论开了授予与否），重投时见到该行就跳过，不再按当时状态重新判定；只追加。粒度：每条已判定的人事命令一行';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.personnel_command_id IS '人事命令 ID（跨模块，只存 ID、不建外键）';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.user_id IS '用户 ID：命令所涉员工的账号';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.command_kind IS '命令类别：REINSTATE 复职；将来别的人事命令增加时扩展本检查';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.outcome_kind IS '判定结果：GRANT_OPENED 开了基础角色授予 / NOT_EMPLOYED 目录显示不在职、没开 / ALREADY_GRANTED 账号已有开放授予、没开';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.account_role_grant_id IS '角色授予 ID：本命令开出的授予；只在 GRANT_OPENED 时有';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.handled_at IS '判定时刻（注入时钟）';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.created_at IS '创建时间';
+COMMENT ON COLUMN platform_identity.handled_personnel_commands.updated_at IS '更新时间（行只追加，等于创建时间；命名标准要求每表有）';
 
 CREATE FUNCTION platform_identity.require_open_role_version() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 BEGIN

@@ -78,7 +78,7 @@ reboot                                                              # 若 E-2 �
    # platform_approval），FLOWABLE_SCHEMA_UPDATE=true，SPRING_FLYWAY_DEFAULT_SCHEMA=one_migration（否则 currentSchema 会把 Flyway 历史表也带进 platform_approval）
    systemd-run --wait --pipe --unit=one-migrate --uid=forcitis --gid=forcitis \
      -p EnvironmentFile=/etc/forcitis-one/one.env -p EnvironmentFile=/etc/forcitis-one/migrate.env \
-     -p Environment=WORKFORCE_SYNC_ENABLED=false -p Environment=WECOM_ENABLED=false -p Environment=APPROVAL_DEADLINE_ENABLED=false \
+     -p Environment=WECOM_ENABLED=false -p Environment=APPROVAL_DEADLINE_ENABLED=false \
      -p Environment=EVENT_PUBLICATION_JOBS_ENABLED=false -p Environment=FLOWABLE_ASYNC_EXECUTOR=false \
      /usr/bin/java -Duser.timezone=UTC -jar /data/forcitis-one/releases/<ver>/forcitis-one.jar --spring.main.web-application-type=none
    ```

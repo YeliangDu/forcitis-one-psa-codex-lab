@@ -6,7 +6,7 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Asked before a sync run turns people into separated ones. Implemented by whoever owns administrator access, so that a wrong
+ * Asked before people are turned into separated ones. Implemented by whoever owns administrator access, so that a wrong
  * source can never take every administrator away at once (ADR-0027 section 1, ADR-0028).
  */
 public interface SeparationReview {
@@ -19,7 +19,7 @@ public interface SeparationReview {
     String SEPARATION_LOCK_KEY = "com.forcitis.one.kernel.SeparationReview.separation-decision";
 
     /**
-     * releaser is the account releasing a held run, null for a scheduled run; the implementation finds the releaser's employee to set
+     * releaser is the account releasing a held separation, null when no one releases; the implementation finds the releaser's employee to set
      * against the separating ones. sessionMode is the mode of the releaser's session, empty text when there is no releaser or no
      * signed-in session. held are the employees already counted as gone (the caller's one count): separation held, or released and waiting for its date, or an unpaid-leave start entered and not yet started: they still are employed, but they do not
      * count as available administrators for the remainder, nor as the retained releaser (ADR-0068 item 2.2, 2.3).
@@ -35,7 +35,7 @@ public interface SeparationReview {
      */
     Verdict review(List<EmployeeId> separating, Set<EmployeeId> held, UserId releaser, @Nullable LocalDate separatingDay);
 
-    /** The sync path has no held set. */
+    /** For callers that have no held set. */
     default Verdict review(List<EmployeeId> separating, UserId releaser) {
         return review(separating, Set.of(), releaser);
     }

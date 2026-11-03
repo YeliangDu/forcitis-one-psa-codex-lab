@@ -122,7 +122,7 @@ tables:
     mutability: MUTABLE
     retention: {policy: CURRENT_STATE}
     lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
-    writers: [organization.workforce]
+    readers: [organization.workforce]  # no writer in main since #934 removed the org sync
   # 使用方未建，由同步原样入库 (no consumer built yet, stored as the sync gives them): regional_receivables_manager_id (exposed through
   # OrgDirectory.findRegionalReceivablesManager, no caller yet) and is_delivery_unit (read-only exposure in OrgUnitResponse).
   organization_workforce.org_units:
@@ -130,8 +130,6 @@ tables:
     mutability: MUTABLE
     retention: {policy: CURRENT_STATE}
     lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
-    fk_exceptions:
-      last_sync_run_id: sync runs are deleted after two years while the snapshot row lives on
     references: {regional_receivables_manager_id: organization_workforce.employees}
     writers: [organization.workforce]
   # is_fee_earner: 使用方未建，由同步原样入库 (cost.costing and others are not built); exposed through EmployeeProfile, and it does not mean billable.
@@ -160,9 +158,39 @@ tables:
     role: AGGREGATE_CHILD
     aggregate: Employee
     mutability: CONDITIONAL_UPDATE
-    condition: 状态只按 PENDING 到 EFFECTIVE、WITHDRAWN、HELD 以及 HELD 到 EFFECTIVE、WITHDRAWN 前进，时刻列由空变非空一次，内容列不变（触发器 tg_personnel_commands_append_only，ADR-0068 第 1 条）
+    condition: 状态只按 PENDING 到 EFFECTIVE、WITHDRAWN、HELD，HELD 到 EFFECTIVE、WITHDRAWN、PENDING（放行原生效日在将来的待放行离职），待法人归属会签到 PENDING、EFFECTIVE、WITHDRAWN 前进（转入待法人归属会签只在建立时），时刻列由空变非空一次，内容列不变（触发器 tg_personnel_commands_append_only，ADR-0068 第 1 条）
     business_key: [personnel_command_id]
     retention: {policy: PERMANENT}  # 个人任职史随员工清除：离职满 10 年由 purge_employee_history 删除（W2 第 8 节，清理作业另批）
+    lineage: {source: NEW}
+    writers: [organization.workforce]
+  organization_workforce.attribution_countersigns:
+    role: AGGREGATE_CHILD
+    aggregate: Employee
+    mutability: CONDITIONAL_UPDATE
+    condition: 决定各列由空变非空一次，升级级别只升不降且决定后不再变，其余列不变（触发器 tg_attribution_countersigns_append_only，ADR-0073 第 3 至 4 条）
+    business_key: [attribution_countersign_id]
+    fk_exceptions:
+      employee_id: carried by the composite foreign key fk_attribution_countersigns_command (personnel_command_id, employee_id, drafted_by), which also pins it to the command's employee
+      decision_audit_entry_id: the id of an audit entry of another module, stored without a key across modules
+    retention: {policy: PERMANENT}  # 同人事命令：个人任职史随员工清除，离职满 10 年删除（W2 第 8 节，清理作业另批）
+    lineage: {source: NEW}
+    writers: []  # 尚无写入方（#895 随用例登记）
+  organization_workforce.attribution_countersign_bases:
+    role: AGGREGATE_CHILD
+    aggregate: OrgUnit
+    mutability: APPEND_ONLY
+    condition: 任何 UPDATE 都拒绝，DELETE 只放行表属主（触发器 tg_attribution_countersign_bases_append_only，ADR-0073 第 2 至 4 条）
+    business_key: [org_structure_command_id, employee_id]
+    retention: {policy: PERMANENT}  # 随组织记录保留，清除通道随 W2 第 8 节另批
+    lineage: {source: NEW}
+    writers: []  # 尚无写入方（F4a 随用例登记）
+  organization_workforce.employee_profile_change_requests:
+    role: AGGREGATE_CHILD
+    aggregate: Employee
+    mutability: CONDITIONAL_UPDATE
+    condition: 状态只按 PENDING 到 CONFIRMED、REJECTED、VOIDED 前进，处理人、处理时刻、作废原因、拒绝原因由空变非空一次，其余内容列不变（触发器 tg_employee_profile_change_requests_append_only，#980）
+    business_key: [employee_profile_change_request_id]
+    retention: {policy: PERMANENT}  # 随员工任职史清除：离职满 10 年删除该员工的行（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
     writers: [organization.workforce]
   organization_workforce.separation_holds:
@@ -187,16 +215,25 @@ tables:
     lineage: {source: NEW}
     writers: []
   # Columns of org_units left out of the versions on purpose: sort_order (only orders siblings for display, nothing reads it by date), short_name (not a source column:
-  # a cross-source column refreshed daily from the old system, valid until DA-8 lands, ADR-0033 item 2.6), revoked_at (follows from the start of the REVOKED version),
-  # last_sync_run_id (moves to the change set with split a).
+  # a cross-source column refreshed daily from the old system, valid until DA-8 lands, ADR-0033 item 2.6), revoked_at (follows from the start of the REVOKED version).
   # 使用方未建，由同步原样入库: regional_receivables_manager_id and is_delivery_unit, as on org_units.
   organization_workforce.org_unit_versions:
     role: DIMENSION_VERSIONED
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
     lineage: {source: ORG_SOURCE}
-    references: {regional_receivables_manager_id: organization_workforce.employees}
-    writers: [organization.workforce]
+    condition: 关闭列对与作废列对各只能由空变非空一次，已关闭的行也可被作废，其余列不变，不删除（触发器 tg_org_unit_versions_append_only，W2 设计第 2 节）
+    references: {regional_receivables_manager_id: organization_workforce.employees, corrected_from_version_id: organization_workforce.org_unit_versions}
+    readers: [organization.workforce]  # no writer in main since #934 removed the org sync
+  # D17 rule 2: effective basis DECLARED. Empty table: the root positions keeps its columns and the sync-era path keeps writing the root until root narrowing (W2 section 9); no writer yet.
+  organization_workforce.position_versions:
+    role: DIMENSION_VERSIONED
+    mutability: APPEND_ONLY
+    condition: 关闭列对与作废列对各只能由空变非空一次，已关闭的行也可被作废，其余列不变，不删除（触发器 tg_position_versions_append_only，W2 设计第 2、3.3 节）
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    references: {corrected_from_version_id: organization_workforce.position_versions}
+    writers: []
   # D17 rule 2: effective basis DECLARED (ADR-0068 item 6). Trigger tg_assignment_versions_append_only (ADR-0068 15.1, W2 design 2): the closing pair
   # (effective_to_date, closed_at) and the superseding pair (superseded_at, superseding_command_id) go from null to non-null once, a superseded row may be
   # open or closed, nothing else changes, nothing is deleted.
@@ -207,27 +244,6 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: ORG_SOURCE}
     references: {corrected_from_version_id: organization_workforce.assignment_versions, change_command_id: organization_workforce.personnel_commands, superseding_command_id: organization_workforce.personnel_commands}
-    writers: [organization.workforce]
-  organization_workforce.sync_runs:
-    role: AGGREGATE_ROOT
-    aggregate: SyncRun
-    mutability: MUTABLE
-    retention: {policy: 2y, job: organization.workforce.sync.purge}
-    lineage: {source: NEW}
-    writers: [organization.workforce]
-  organization_workforce.sync_diffs:
-    role: AGGREGATE_CHILD
-    aggregate: SyncRun
-    mutability: APPEND_ONLY
-    retention: {policy: 1y, job: organization.workforce.sync.purge}
-    lineage: {source: NEW}
-    writers: [organization.workforce]
-  organization_workforce.sync_run_held_separations:
-    role: AGGREGATE_CHILD
-    aggregate: SyncRun
-    mutability: REPLACE_SET
-    retention: {policy: 1y, job: organization.workforce.sync.purge}
-    lineage: {source: NEW}
     writers: [organization.workforce]
   # legal_entities is the current-value projection of the open row of legal_entity_versions: code, name and status are written in the same transaction as the version
   # (history in the versions table); WorkforceRowConstraintsIntegrationTest checks that the root equals its open version.
@@ -256,6 +272,8 @@ tables:
     role: DIMENSION_VERSIONED
     aggregate: LegalEntityAttribution
     mutability: APPEND_ONLY
+    condition: 关闭列对与作废列对各只能由空变非空一次，已关闭的行也可被作废，其余列不变，不删除（触发器 tg_org_unit_legal_entities_append_only，W2 设计第 2、3.6 节）
+    references: {corrected_from_version_id: organization_workforce.org_unit_legal_entities}
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [organization.workforce]
@@ -371,6 +389,17 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [platform.identity]
+  platform_identity.handled_personnel_commands:
+    # Retention as account_role_grants (0034-Q2; data design sign-off #939): purged with it, before it (no foreign key: the purge job deletes these rows before the grant rows they name). Only surrogate keys and codes.
+    role: IDEMPOTENCY
+    aggregate: UserAccount
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    references: {user_id: platform_identity.user_accounts}
+    fk_exceptions:
+      account_role_grant_id: a key into account_role_grants would make the database refuse TRUNCATE of the grant history with 0A000 before its append-only trigger answers (GrantHistoryAppendOnlyIT requires the trigger's 23001); the id is written in the same transaction as the grant row it names
+    writers: [platform.identity]
   platform_identity.role_versions:
     # Retention (ADR-0034 0034-Q2): 3 years online, archived until 10 years. The purge job is built with the online deletion of audit entries (ADR-0034, impact list), then this becomes {policy: 3y, job: ...}.
     # Owner: one-1a-par. Due: within 30 months after the first production deployment. The purge runs in dependency order: account_role_grants first, then role_versions, then the rows they reference
@@ -404,6 +433,8 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     references: {granted_by: platform_identity.user_accounts, revoked_by: platform_identity.user_accounts}
+    fk_exceptions:
+      revocation_separation_command_id: the id of a separation command of another module (organization.workforce personnel_commands), stored without a key across modules; it is not a row of handled_personnel_commands, which records only the reinstatement commands this module handled
     writers: [platform.identity]
   platform_identity.navigation_items:
     # uk_navigation_items_parent_item_id_name (parent_item_id, name) is the business key and also serves as the index of the parent_item_id foreign key (DATA-REPAIR-identity ID-11).

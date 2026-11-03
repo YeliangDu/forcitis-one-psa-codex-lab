@@ -18,7 +18,6 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.simple.JdbcClient;
@@ -26,7 +25,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** #960 review: the lock of the initial migration and its test for a stopped sync, against real PostgreSQL without the application. */
+/** #960 review: the lock of the initial migration, against real PostgreSQL without the application. */
 class JdbcInitialVersionMigrationRepositoryIT {
 
     static final TestDatabase postgres = TestPostgres.database(JdbcInitialVersionMigrationRepositoryIT.class, TestPostgres.MIGRATED);
@@ -35,11 +34,6 @@ class JdbcInitialVersionMigrationRepositoryIT {
     private final TransactionTemplate transaction = new TransactionTemplate(new DataSourceTransactionManager(source));
     private final JdbcInitialVersionMigrationRepository repository = new JdbcInitialVersionMigrationRepository(JdbcClient.create(source), UUID::randomUUID,
             new BusinessZone(ZoneId.of("Asia/Shanghai")));
-
-    @BeforeEach
-    void empty() throws SQLException {
-        execute("truncate table organization_workforce.sync_runs cascade");
-    }
 
     private void execute(String sql) throws SQLException {
         try (Connection c = DriverManager.getConnection(postgres.url(), postgres.username(), postgres.password()); Statement s = c.createStatement()) {
@@ -75,23 +69,5 @@ class JdbcInitialVersionMigrationRepositoryIT {
             holder.commit();
             assertThat(migration.get()).extracting(InitialVersionPlan.SnapshotPerson::id).doesNotContain(person);
         }
-    }
-
-    @Test
-    @DisplayName("#960 数据设计第 2 节：进行中的同步和截止时刻之后开始的同步算同步未停，更早结束的不算")
-    void onlyARunningOrRecentSyncCounts() throws Exception {
-        Instant now = Instant.parse("2026-11-02T02:00:00Z");
-        Instant cutoff = now.minus(Duration.ofMinutes(15));
-        assertThat(repository.syncRunRecent(cutoff)).isFalse();
-        execute("insert into organization_workforce.sync_runs (id, trigger_kind, status, started_at) values (uuidv7(), 'SCHEDULED', 'SUCCEEDED', timestamptz '"
-                + now.minus(Duration.ofMinutes(20)) + "')");
-        assertThat(repository.syncRunRecent(cutoff)).isFalse();
-        execute("insert into organization_workforce.sync_runs (id, trigger_kind, status, started_at) values (uuidv7(), 'SCHEDULED', 'SUCCEEDED', timestamptz '"
-                + now.minus(Duration.ofMinutes(5)) + "')");
-        assertThat(repository.syncRunRecent(cutoff)).isTrue();
-        execute("truncate table organization_workforce.sync_runs cascade");
-        execute("insert into organization_workforce.sync_runs (id, trigger_kind, status, started_at) values (uuidv7(), 'MANUAL', 'RUNNING', timestamptz '"
-                + now.minus(Duration.ofMinutes(60)) + "')");
-        assertThat(repository.syncRunRecent(cutoff)).isTrue();
     }
 }

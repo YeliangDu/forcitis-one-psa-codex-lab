@@ -13,7 +13,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
-import com.forcitis.one.organization.workforce.domain.SyncTrigger;
 import java.sql.Connection;
 import java.util.List;
 import javax.sql.DataSource;
@@ -28,9 +27,6 @@ class LoginMissTransactionIntegrationTest extends WorkforceIntegrationSupport {
 
     @Autowired
     OrgDirectory directory;
-
-    @Autowired
-    SyncOrgSnapshot sync;
 
     @Autowired
     PlatformTransactionManager transactions;
@@ -58,7 +54,7 @@ class LoginMissTransactionIntegrationTest extends WorkforceIntegrationSupport {
     void registeringTheEmployeeCommitsApartFromTheLoginTransaction() {
         orgSource.snapshot = source(List.of(unit(1, null), unit(2, 1L)), List.of(head(2, 1), manager(2, 2)), List.of(post(100)),
                 List.of(person(1, 2, 100L, null)));
-        sync.execute(SyncTrigger.SCHEDULED, false);
+        SnapshotSeeder.seed(jdbc, orgSource.snapshot);
         orgSource.singleLookupResult = List.of(person(3001, 2, 100L, 1L, "13900003001", "wx-new-hire"));
         boolean[] lockFreeInsideTheLoginTransaction = new boolean[1];
 
