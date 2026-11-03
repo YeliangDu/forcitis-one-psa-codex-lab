@@ -71,13 +71,14 @@ class PermissionAdjustmentActionApiIT extends PermissionAdjustmentApiSupport {
     }
 
     @Test
-    @DisplayName("#730 S3 契约第 12a 条（ADR-0044 第 2 项第 2 条）：有效至 = 维持之后下一自然季度首日 00:00（Asia/Shanghai）：11-02 维持得 2026-12-31T16:00Z；12-31 23:59 维持仍得 2026-12-31T16:00Z；恰在季度首日 00:00 维持得再下一季度；10-01 08:00（Asia/Shanghai，即 UTC 00:00）维持得 2026-12-31T16:00Z")
+    @DisplayName("#730 S3 契约第 12a 条（ADR-0044 第 2 项第 2 条）：有效至 = 维持之后下一自然季度首日 00:00（Asia/Shanghai）：11-02 维持得 2026-12-31T16:00Z；12-31 23:59 维持仍得 2026-12-31T16:00Z；恰在季度首日 00:00 维持得再下一季度；10-01 00:00（Asia/Shanghai，即 09-30T16:00Z）维持得 2026-12-31T16:00Z")
     void theExpiryIsTheNextQuarterStartInShanghai() throws Exception {
         Map<String, String> expected = new java.util.LinkedHashMap<>();
         expected.put("2026-11-02T02:00:00Z", "2026-12-31T16:00:00Z");
         expected.put("2026-12-31T15:59:00Z", "2026-12-31T16:00:00Z");
         expected.put("2026-12-31T16:00:00Z", "2027-03-31T16:00:00Z");
-        expected.put("2026-10-01T00:00:00Z", "2026-12-31T16:00:00Z");
+        expected.put("2026-09-30T16:00:00Z", "2026-12-31T16:00:00Z");
+        ensureAuditPartition(java.time.LocalDate.of(2026, 9, 1));
         for (Map.Entry<String, String> at : expected.entrySet()) {
             UUID item = openSensitive();
             advanceTo(Instant.parse(at.getKey()));
