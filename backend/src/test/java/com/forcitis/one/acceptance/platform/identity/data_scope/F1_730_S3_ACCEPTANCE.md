@@ -29,7 +29,7 @@ backend/mvnw -B -f backend/pom.xml verify -Dit.test='PermissionAdjustmentReadApi
 | 十种无效请求 400 且条目不变；500 字边界（不变量 14、20、21） | `invalidUpholdRequestsAreRefusedAndChangeNothing`、`aReasonOfExactlyFiveHundredCharactersIsAccepted` |
 | 缺 If-Match 428、过期 412（ADR-0035 第 8 项） | `upholdNeedsTheCurrentVersion` |
 | 只有另一位管理员能维持敏感角色复核；本人条目 403 带指定错误码（契约 13、14；不变量 19、22） | `onlyAnotherAdministratorMayUpholdASensitiveReview` |
-| 维持写 upheld 审计，文字含业务负责人 ID 不含姓名 | `upholdingIsAudited` |
+| 维持写 PermissionAdjustmentUpheld 审计（事件类型名，one-design 裁定 6602101721；adjusted 同理，viewed 保持 permission-adjustment.viewed），文字含业务负责人 ID 不含姓名 | `upholdingIsAudited` |
 | 已维持的条目不再转换（状态机） | `anUpheldItemTakesNoFurtherCommand` |
 | 来源①由收件人凭原因维持，无有效至、无业务负责人，其余角色 403（契约 16） | `onlyTheRecipientUpholdsATransferScopeReview` |
 | 收件人为空由管理员办；多重角色（契约 16；N1-09） | `anItemWithoutARecipientGoesToTheAdministratorAndTwoRolesAddUp` |
@@ -54,3 +54,5 @@ backend/mvnw -B -f backend/pom.xml verify -Dit.test='PermissionAdjustmentReadApi
 - 超期升级、到期作业、重新生成属 S2；通用 fail-closed 读取守护属 S4；条目生成监听器属 S1。
 - 升级与「无可办理的管理员」是否发卡未定（R-4），7.3 不断言。
 - 新部门负责人是否可经条目看到当事人账号 ID（userId 字段）卡没写，未断言。
+- Doubt (review suggestion): callers with only the recipient relation (headA/headB/plain) are asserted 403 on list/read, following old contract item 13. security-invariants I-10 and ruling A2 would instead give 404 for an out-of-scope by-id read, and 200 with zero rows for an empty-scope list. The register mode of this detail path is not classified; one-design to say which applies, then the assertions change.
+- Not covered: empty scope for the code holders (odaSubject with only own items → 200, empty list); positive uphold by oda/oda2 on the item about odaSubject; own-item `:mark-adjusted` error code; byte-counting of the 500-character limit (ASCII only).

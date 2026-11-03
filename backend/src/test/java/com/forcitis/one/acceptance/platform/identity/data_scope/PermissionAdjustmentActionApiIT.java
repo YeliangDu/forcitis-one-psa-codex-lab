@@ -180,13 +180,13 @@ class PermissionAdjustmentActionApiIT extends PermissionAdjustmentApiSupport {
     }
 
     @Test
-    @DisplayName("#730 S3 契约第 12 条的审计：维持写 permission-adjustment.upheld（对象类别 PERMISSION_ADJUSTMENT、对象为该条目、操作人为办理人），文字含业务负责人的员工 ID，不含姓名")
+    @DisplayName("#730 S3 契约第 12 条的审计：维持写 PermissionAdjustmentUpheld（对象类别 PERMISSION_ADJUSTMENT、对象为该条目、操作人为办理人），文字含业务负责人的员工 ID，不含姓名")
     void upholdingIsAudited() throws Exception {
         UUID item = openSensitive();
         assertThat(uphold(session("oda"), item.toString(), uphold("audited uphold", owner())).getStatus()).isEqualTo(200);
 
         eventually(() -> {
-            List<Map<String, Object>> entries = auditEntries(AUDIT_PREFIX + "upheld");
+            List<Map<String, Object>> entries = auditEntries(UPHELD_ACTION);
             assertThat(entries).anySatisfy(entry -> {
                 assertThat(entry).containsEntry("subjectKind", "PERMISSION_ADJUSTMENT").containsEntry("subjectId", item.toString())
                         .containsEntry("actorId", userId("oda"));
@@ -260,13 +260,16 @@ class PermissionAdjustmentActionApiIT extends PermissionAdjustmentApiSupport {
     }
 
     private String anAuditEntryId() throws Exception {
-        return String.valueOf(auditEntries("platform.identity").getFirst().get("entryId"));
+        String mover = userId("mover");
+        String moverEmployee = employeeIdOf("mover");
+        return auditEntries("platform.identity.operations.account.role.granted").stream()
+                .filter(entry -> auditText(entry).contains(mover) || auditText(entry).contains(moverEmployee) || mover.equals(String.valueOf(entry.get("subjectId")))).map(entry -> String.valueOf(entry.get("entryId"))).findFirst()
+                .orElseThrow(() -> new AssertionError("fixture: no grant audit entry about mover"));
     }
 
     @Test
-    @DisplayName("#730 S3 契约第 12c 条与不变量 28：组织数据管理员凭一条授予审计条目标记已调整，200、ADJUSTED，库里调整人为本人并关联该审计条目，审计 permission-adjustment.adjusted；安全审计员 403 条目不变")
+    @DisplayName("#730 S3 契约第 12c 条与不变量 28：组织数据管理员凭一条授予审计条目标记已调整，200、ADJUSTED，库里调整人为本人并关联该审计条目，审计 PermissionAdjustmentAdjusted；安全审计员 403 条目不变")
     void anAdministratorMarksAnItemAdjusted() throws Exception {
-        grantAuditTrail();
         UUID item = openSensitive();
         String entry = anAuditEntryId();
 
@@ -281,14 +284,13 @@ class PermissionAdjustmentActionApiIT extends PermissionAdjustmentApiSupport {
         assertThat(row).containsEntry("status", "ADJUSTED");
         assertThat(row.get("adjusted_by").toString()).isEqualTo(userId("oda"));
         assertThat(row.get("adjusted_audit_entry_id").toString()).isEqualTo(entry);
-        eventually(() -> assertThat(auditEntries(AUDIT_PREFIX + "adjusted")).anySatisfy(logged -> assertThat(logged)
+        eventually(() -> assertThat(auditEntries(ADJUSTED_ACTION)).anySatisfy(logged -> assertThat(logged)
                 .containsEntry("subjectKind", "PERMISSION_ADJUSTMENT").containsEntry("subjectId", item.toString()).containsEntry("actorId", userId("oda"))));
     }
 
     @Test
     @DisplayName("#730 S3 不变量 28、契约第 12c 条：标记已调整必须恰好关联授权申请或授予审计条目其一——两个都不带、两个都带都是 400，条目不变")
     void markAdjustedNeedsExactlyOneReference() throws Exception {
-        grantAuditTrail();
         UUID item = openSensitive();
         String entry = anAuditEntryId();
 
@@ -299,10 +301,5 @@ class PermissionAdjustmentActionApiIT extends PermissionAdjustmentApiSupport {
         assertThat(neither.getStatus()).isEqualTo(400);
         assertThat(both.getStatus()).isEqualTo(400);
         assertUntouched(item);
-    }
-
-    /** Some audit entries exist already (grants and logins of the world); nothing to do, kept so a reader sees where the reference comes from. */
-    private void grantAuditTrail() throws Exception {
-        assertThat(auditEntries("platform.identity")).as("the world left audit entries to refer to").isNotEmpty();
     }
 }

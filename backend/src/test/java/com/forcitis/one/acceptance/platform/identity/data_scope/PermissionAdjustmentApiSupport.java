@@ -33,7 +33,10 @@ abstract class PermissionAdjustmentApiSupport extends DataScopeSupport {
     static final String CREATED = "2026-09-01T02:00:00Z";
     static final String DUE = "2026-09-08T02:00:00Z";
     static final String OWN_ITEM_ERROR = "PLATFORM_IDENTITY_OWN_PERMISSION_ADJUSTMENT_FORBIDDEN";
+    /** Only viewed has no domain event and keeps this kebab name; event-born actions use the event type name (one-design ruling, #730 comment 6602101721). */
     static final String AUDIT_PREFIX = "platform.identity.permission-adjustment.";
+    static final String UPHELD_ACTION = "platform.identity.PermissionAdjustmentUpheld";
+    static final String ADJUSTED_ACTION = "platform.identity.PermissionAdjustmentAdjusted";
 
     private static final Set<String> TIMESTAMPS = Set.of("escalation_due_at", "created_at", "updated_at");
 
@@ -77,15 +80,15 @@ abstract class PermissionAdjustmentApiSupport extends DataScopeSupport {
     /** An open sensitive role review about the person, raised by a transfer between two units (constraint table rows 9-11). */
     protected UUID sensitiveItemAbout(String key) throws Exception {
         return insertItem(base("SENSITIVE_ROLE_REVIEW", "ASSIGNMENT_CHANGE").with("user_id", UUID.fromString(userId(key)))
-                .with("trigger_personnel_command_id", UUID.randomUUID()).with("trigger_field_kind", "ORG_UNIT").with("before_org_unit_id", UUID.randomUUID())
-                .with("after_org_unit_id", UUID.randomUUID()));
+                .with("trigger_personnel_command_id", UUID.randomUUID()).with("trigger_field_kind", "ORG_UNIT").with("before_org_unit_id", UUID.fromString(orgUnitId(session("oda"), "F1-A")))
+                .with("after_org_unit_id", UUID.fromString(orgUnitId(session("oda"), "F1-B"))));
     }
 
     /** An open scope review about the person, for the head of the new unit (row 12); recipientKey null: the new unit has no head. */
     protected UUID scopeReviewAbout(String key, String recipientKey) throws Exception {
         return insertItem(base("SCOPE_REVIEW", "ASSIGNMENT_CHANGE").with("user_id", UUID.fromString(userId(key)))
-                .with("trigger_personnel_command_id", UUID.randomUUID()).with("trigger_field_kind", "ORG_UNIT").with("before_org_unit_id", UUID.randomUUID())
-                .with("after_org_unit_id", UUID.randomUUID())
+                .with("trigger_personnel_command_id", UUID.randomUUID()).with("trigger_field_kind", "ORG_UNIT").with("before_org_unit_id", UUID.fromString(orgUnitId(session("oda"), "F1-A")))
+                .with("after_org_unit_id", UUID.fromString(orgUnitId(session("oda"), "F1-B")))
                 .with("recipient_employee_id", recipientKey == null ? null : UUID.fromString(employeeIdOf(recipientKey))));
     }
 
