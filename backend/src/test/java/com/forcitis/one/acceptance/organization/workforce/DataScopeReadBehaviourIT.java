@@ -63,6 +63,8 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
     static final String ORG_UNIT_ENTITIES = "/api/v1/organization/org-unit-legal-entities/{orgUnitId}";
     static final String EMPLOYEE_ENTITIES = "/api/v1/organization/employee-legal-entities/{employeeId}";
     static final String ORG_UNIT = "/api/v1/organization/org-units/{orgUnitId}";
+    static final String ADJUSTMENTS = "/api/v1/platform/permission-adjustments";
+    static final String ADJUSTMENT = ADJUSTMENTS + "/{permissionAdjustmentId}";
 
     /** The org unit of the row, or null for a row of no unit the world knows. */
     private record ListPath(String register, String path, List<String> queries, boolean paged, String idField, Function<Map<String, Object>, String> unitOfRow) {
@@ -73,6 +75,8 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
 
     private final Map<String, String> unitIds = new LinkedHashMap<>();
     private final Map<String, String> unitOfEmployee = new LinkedHashMap<>();
+    /** Permission adjustments are scoped by relation, not by unit: "F1-B" stands for the items addressed to scopeB, "F1-A" for every other item. */
+    private final Map<String, String> unitOfAdjustment = new LinkedHashMap<>();
 
     @MockitoSpyBean
     OrgDirectory organisation;
@@ -105,10 +109,12 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
         roleWith("f1-read-nothing", "CUSTOM_ORG_UNITS", List.of(onlyUnit(UUID.randomUUID().toString())), perms);
         roleWith("f1-read-own", "OWN_ORG_UNIT", null, perms);
         grantOrdinaryRoles(administrator("admin1"), "everything", "f1-read-all");
+        grantByOperations("everything", ORG_DATA_ADMIN);
         grantOrdinaryRoles(administrator("admin1"), "scopeB", "f1-read-b");
         grantOrdinaryRoles(administrator("admin1"), "dangling", "f1-read-nothing");
         grantOrdinaryRoles(administrator("admin1"), "nohome", "f1-read-own");
         grantOrdinaryRoles(administrator("admin1"), "broken", "f1-read-own");
+        seedAdjustments();
         try (Connection workforce = schemaConnection("organization_workforce")) {
             OffsetDateTime at = OffsetDateTime.of(2026, 10, 1, 9, 0, 0, 0, ZoneOffset.UTC);
             int minute = 0;
@@ -130,6 +136,36 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
                     statement.executeUpdate();
                 }
             }
+        }
+    }
+
+    /** Two scope reviews addressed to scopeB (the "B" rows) and, for the "A" rows, one addressed to another head and one sensitive review with no recipient. */
+    private void seedAdjustments() throws Exception {
+        OffsetDateTime at = OffsetDateTime.of(2026, 9, 1, 2, 0, 0, 0, ZoneOffset.UTC);
+        UUID from = UUID.fromString(unitIds.get("F1-A"));
+        UUID to = UUID.fromString(unitIds.get("F1-B"));
+        int minute = 0;
+        for (String[] item : new String[][] {{"a1", "a2", "F1-A"}, {"b1", "scopeB", "F1-B"}, {"b2", "scopeB", "F1-B"}, {"a2", null, "F1-A"}}) {
+            UUID id = UUID.randomUUID();
+            OffsetDateTime created = at.plusMinutes(minute++);
+            String kind = item[1] == null ? "SENSITIVE_ROLE_REVIEW" : "SCOPE_REVIEW";
+            try (Connection identity = schemaConnection("platform_identity"); PreparedStatement statement = identity.prepareStatement("""
+                    insert into permission_adjustments (permission_adjustment_id, kind, origin_kind, status, escalation_due_at, created_at, updated_at, user_id,
+                        trigger_personnel_command_id, trigger_field_kind, before_org_unit_id, after_org_unit_id, recipient_employee_id)
+                    values (?, ?, 'ASSIGNMENT_CHANGE', 'OPEN', ?, ?, ?, ?, ?, 'ORG_UNIT', ?, ?, ?)""")) {
+                statement.setObject(1, id);
+                statement.setString(2, kind);
+                statement.setObject(3, created.plusDays(7));
+                statement.setObject(4, created);
+                statement.setObject(5, created);
+                statement.setObject(6, UUID.fromString(userId(item[0])));
+                statement.setObject(7, UUID.randomUUID());
+                statement.setObject(8, from);
+                statement.setObject(9, to);
+                statement.setObject(10, item[1] == null ? null : UUID.fromString(employeeIdOf(item[1])));
+                statement.executeUpdate();
+            }
+            unitOfAdjustment.put(id.toString(), item[2]);
         }
     }
 
@@ -156,14 +192,21 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
         return List.of(
                 new ListPath("GET /api/v1/organization/org-units", ORG_UNITS, List.of("", "?includeRevoked=true", "?includeRevoked=false"), false, "orgUnitId",
                         row -> unitCodeOf(String.valueOf(row.get("orgUnitId")))),
-                new ListPath("GET " + REQUESTS, REQUESTS, List.of("?status=PENDING"), true, "requestId", row -> unitOfEmployee.get(String.valueOf(row.get("employeeId")))));
+                new ListPath("GET " + REQUESTS, REQUESTS, List.of("?status=PENDING"), true, "requestId", row -> unitOfEmployee.get(String.valueOf(row.get("employeeId")))),
+                new ListPath("GET " + ADJUSTMENTS, ADJUSTMENTS, List.of(""), true, "permissionAdjustmentId",
+                        row -> unitOfAdjustment.get(String.valueOf(row.get("permissionAdjustmentId")))));
     }
 
     private List<DetailPath> details() {
         return List.of(
                 new DetailPath("GET " + ORG_UNIT, unitIds.get("F1-A"), unitIds.get("F1-B")),
                 new DetailPath("GET " + ORG_UNIT_ENTITIES, unitIds.get("F1-A"), unitIds.get("F1-B")),
-                new DetailPath("GET " + EMPLOYEE_ENTITIES, employeeIdOf("a1"), employeeIdOf("b1")));
+                new DetailPath("GET " + EMPLOYEE_ENTITIES, employeeIdOf("a1"), employeeIdOf("b1")),
+                new DetailPath("GET " + ADJUSTMENT, adjustmentIn("F1-A"), adjustmentIn("F1-B")));
+    }
+
+    private String adjustmentIn(String unit) {
+        return unitOfAdjustment.entrySet().stream().filter(item -> item.getValue().equals(unit)).map(Map.Entry::getKey).findFirst().orElseThrow();
     }
 
     private String unitCodeOf(String unitId) {
