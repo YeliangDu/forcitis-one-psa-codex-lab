@@ -13,7 +13,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * A profile change that waits for a second person (design note wecom-rebind-second-person.md section 4): the whole proposed profile and the profile it was made
  * against. It ends once: CONFIRMED (applied by the confirming transaction), REJECTED (by another person, or withdrawn by the requester) or VOIDED (the base moved or
- * the proposed WeCom user id was taken). The decision columns are written together, never before the request was made (the table's checks and trigger).
+ * the proposed WeCom user id was taken). The decision columns are written together (the table's checks and trigger); that a decision is never dated before the request is held by this class alone.
  */
 public final class ProfileChangeRequest {
     public static final int MAX_REASON_LENGTH = 500;
