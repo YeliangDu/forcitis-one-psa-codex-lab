@@ -3,10 +3,13 @@ package com.forcitis.one.platform.identity.domain;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.api.RoleCode;
+import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
+import com.forcitis.one.platform.identity.api.AccountRoleGrantId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.jspecify.annotations.Nullable;
 
 public interface AccountRepository {
 
@@ -14,6 +17,12 @@ public interface AccountRepository {
 
     /** As {@link #find}, taking the account row FOR UPDATE: after the separation advisory lock where the path takes it, before any role row lock. */
     Optional<UserAccount> findForUpdate(UserId userId);
+
+    /** Whether the listener already decided this personnel command (handled_personnel_commands); read under the account row lock. */
+    boolean isHandled(PersonnelCommandId command);
+
+    /** Records the decision on a personnel command in the transaction of the decision; grant is the grant it opened, only for GRANT_OPENED. */
+    void saveHandled(PersonnelCommandId command, UserId user, HandledOutcome outcome, @Nullable AccountRoleGrantId grant);
 
     /** The grants open now, with the role code each belongs to. */
     List<HeldGrant> openGrants(UserId userId);
