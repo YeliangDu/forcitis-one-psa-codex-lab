@@ -368,3 +368,12 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/EmployeeWecomRebindIT.java
     reason: '用户 2026-11-02 #980 Q1a Q2a 把特权账号的企业微信改绑/清空由直接拒绝改为等第二人复核；#959 受影响用例只把期望结果由拒收码改为 202 + PENDING，六种角色、自定义角色、无员工角色的超管与接管链用例全部保留，保留的拒绝不变；仅删去比较已不存在的拒收码的检查'
     ref: "commit 5b634e94e (#980 acceptance, PR #1059); review-980-959-rewrite-sonnet.md"
+  - id: RULING-LEAD-20261103-03
+    date: 2026-11-03
+    ruled_by: independent sonnet reviewer rv1040b (dispatched by one-test, given only the diffs), recorded by one-lead
+    implementer: one-test
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/PersonnelCommandSupport.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/OrgCountersignSupport.java
+    reason: '#1040 验收分支合并 #910 与 #711 两个验收 head：PersonnelCommandSupport 冲突取两边之并（#906 的单元参数链与 #711 先建主任职根）；OrgCountersignSupport.inheritingIn 按 #711 设计 §7 M7 先建主任职根。仅夹具，未改断言、期望值或用例'
+    ref: "merge bb126a402 and commit 1b017b2af (branch claude/one-test-1040-acceptance); rv1040b"
