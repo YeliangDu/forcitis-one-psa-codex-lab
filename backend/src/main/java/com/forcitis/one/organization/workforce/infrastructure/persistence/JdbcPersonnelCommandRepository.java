@@ -59,7 +59,6 @@ import org.springframework.stereotype.Repository;
 /** Personnel commands and their version rows in the workforce schema. Rows are only inserted, superseded or closed (W2 design section 2); the triggers hold the rest. */
 @Repository
 class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, PersonnelCommandQueries {
-    private static final String SCHEMA = "organization_workforce.";
     private final JdbcClient jdbc;
     private final IdGenerator ids;
 

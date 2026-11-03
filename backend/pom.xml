@@ -99,7 +99,7 @@
             <arg>-XDcompilePolicy=simple</arg>
             <arg>--should-stop=ifError=FLOW</arg>
             <!-- NullAway (#810): named explicitly at ERROR, since -XepDisableAllChecks switches off every check it does not name; only @NullMarked packages are checked -->
-            <arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:CollectionIncompatibleType:ERROR -Xep:EqualsIncompatibleType:ERROR -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:JSpecifyMode=true</arg>
+            <arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:UnusedVariable:ERROR -Xep:IdentityBinaryExpression:ERROR -Xep:CollectionIncompatibleType:ERROR -Xep:EqualsIncompatibleType:ERROR -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:JSpecifyMode=true</arg>
           </compilerArgs>
           <annotationProcessorPaths>
             <path><groupId>com.google.errorprone</groupId><artifactId>error_prone_core</artifactId><version>${error-prone.version}</version></path>
@@ -112,7 +112,7 @@
           <execution><id>default-testCompile</id><configuration><compilerArgs combine.self="override">
             <arg>-XDcompilePolicy=simple</arg>
             <arg>--should-stop=ifError=FLOW</arg>
-            <arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:CollectionIncompatibleType:ERROR -Xep:EqualsIncompatibleType:ERROR</arg>
+            <arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:UnusedVariable:ERROR -Xep:IdentityBinaryExpression:ERROR -Xep:CollectionIncompatibleType:ERROR -Xep:EqualsIncompatibleType:ERROR</arg>
           </compilerArgs></configuration></execution>
         </executions>
       </plugin>

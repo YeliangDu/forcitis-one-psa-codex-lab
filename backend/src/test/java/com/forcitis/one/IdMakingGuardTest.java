@@ -188,6 +188,7 @@ class IdMakingGuardTest {
         }
     }
 
+    @SuppressWarnings("unused")
     static final class RootWithAnIdTheRepositoryFills extends AggregateRoot {
         private UUID id;
 
@@ -196,6 +197,7 @@ class IdMakingGuardTest {
         }
     }
 
+    @SuppressWarnings("unused")
     static final class RootWithAFinalId extends AggregateRoot {
         private final UUID id = null;
         private String status;
@@ -205,6 +207,7 @@ class IdMakingGuardTest {
         }
     }
 
+    @SuppressWarnings("unused")
     static final class RootWithNoIdField extends AggregateRoot {
         private String status;
 
@@ -213,6 +216,7 @@ class IdMakingGuardTest {
         }
     }
 
+    @SuppressWarnings("unused")
     static final class RootWithOddlyNamedId extends AggregateRoot {
         private final UUID key = null;
         private UUID roleId;
