@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.domain;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PositionId;
@@ -83,6 +84,12 @@ public interface PersonnelCommandRepository {
     long eventSequence(EmployeeId employee);
 
     PersonnelHistory load(EmployeeId employee);
+
+    /** The employee's one primary post root, made when the employee has none yet (the employee row is locked). */
+    AssignmentRoot primaryRoot(EmployeeId employee, Instant at);
+
+    /** Makes the root of a concurrent post, in the transaction of the command that starts it. */
+    void insertConcurrentRoot(EmployeeId employee, AssignmentId root, Instant at);
 
     Optional<PersonnelCommand> find(PersonnelCommandId id);
 

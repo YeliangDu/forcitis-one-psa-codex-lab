@@ -55,8 +55,19 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
     }
 
     private String commandSql(String id, String employee, String kind, String status, String extraColumns, String extraValues) {
+        if (kind.equals("TRANSFER")) {
+            extraColumns += ", target_assignment_id, target_assignment_kind";
+            extraValues += ", " + primaryRoot(employee) + ", 'PRIMARY'";
+        }
         return "insert into " + PC + " (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at" + extraColumns + ") values (" + id + ", "
                 + employee + ", '" + kind + "', " + day + ", '" + status + "', now(), " + DRAFTER + ", now()" + extraValues + ")";
+    }
+
+    /** The employee's PRIMARY root (created when missing), as a SQL expression for the target assignment of a transfer (#711). */
+    private String primaryRoot(String employee) {
+        jdbc.sql("insert into organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at)"
+                + " select uuidv7(), id, 'PRIMARY', now(), now() from organization_workforce.employees where id = " + employee + " on conflict (employee_id) where assignment_kind = 'PRIMARY' do nothing").update();
+        return "(select assignment_id from organization_workforce.employee_assignments where employee_id = " + employee + " and assignment_kind = 'PRIMARY')";
     }
 
     private static final String BASIS_COLUMNS = ", countersign_previous_legal_entity_id, countersign_new_legal_entity_id";
@@ -91,6 +102,14 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
     }
 
     // ---- personnel_commands ----
+
+    @Test
+    @DisplayName("#711 an END_CONCURRENT command names a concurrent post: no target and a primary target are both refused")
+    void endConcurrentNeedsAConcurrentTarget() {
+        refused("\"ck_personnel_commands_target_assignment\"", commandSql(COMMAND, EMPLOYEE, "END_CONCURRENT", "PENDING", "", ""));
+        refused("\"ck_personnel_commands_target_assignment\"", commandSql(COMMAND, EMPLOYEE, "END_CONCURRENT", "PENDING", ", target_assignment_id, target_assignment_kind",
+                ", " + primaryRoot(EMPLOYEE) + ", 'PRIMARY'"));
+    }
 
     @Test
     @DisplayName("IMP-1030-FC-B CHANGE_LEGAL_ENTITY needs its target legal entity and no other target; the target is allowed for TRANSFER, CORRECTION, HIRE, REINSTATE and refused for every other kind")
