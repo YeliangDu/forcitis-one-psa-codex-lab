@@ -64,6 +64,35 @@ abstract class CountersignSupport extends SeparationHoldSupport {
         actIn(hr);
     }
 
+    /**
+     * Moving the clock past TODAY puts every session signed in before it past the 24 h absolute lifetime (SessionSettings), and actIn reads
+     * the session over HTTP, so a later call as one of this world's people would answer 401 whatever the implementation does (and a refusal
+     * expected there would pass for the wrong reason). The 人事专员, the org data admin and the three finance heads therefore sign in again,
+     * as the same employees with the same roles (RULING-LEAD-20261103-08).
+     */
+    @Override
+    protected void setToday(LocalDate day) {
+        super.setToday(day);
+        if (day.isAfter(TODAY)) {
+            hr = signedInAgain(hr);
+            orgAdmin = signedInAgain(orgAdmin);
+            headE1 = signedInAgain(headE1);
+            headE2 = signedInAgain(headE2);
+            headE3 = signedInAgain(headE3);
+        }
+    }
+
+    private Staff signedInAgain(Staff who) {
+        if (who == null) {
+            return null;
+        }
+        try {
+            return new Staff(who.employeeId(), signIn(who.employeeId()));
+        } catch (Exception failure) {
+            throw new IllegalStateException("signing " + who.employeeId() + " in again after the clock moved", failure);
+        }
+    }
+
     // ---- world ----
 
     protected UUID attributedUnit(UUID entity) throws Exception {
