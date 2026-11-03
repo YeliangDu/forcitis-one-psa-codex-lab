@@ -20,6 +20,7 @@ import com.forcitis.one.organization.workforce.api.PreviewOrgUnitMerge;
 import com.forcitis.one.organization.workforce.api.WithdrawOrgStructureCommand;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.OrgCommandStatus;
+import com.forcitis.one.organization.workforce.domain.OrgCountersignBasis;
 import com.forcitis.one.organization.workforce.domain.OrgEffects;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommand;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository;
@@ -54,6 +55,10 @@ class OrgStructureCommandService implements OrgStructureCommands {
     private final OrgStructureCommandRepository commands;
     private final OrgPlans plans;
     private final OrgStructureRules rules;
+    private final OrgCommandWrites writes;
+    private final OrgCountersignBases countersignBases;
+    private final OrgCountersignFreeze freeze;
+    private final OrgCountersigns countersigns;
     private final OrgMergeExecution merges;
     private final AuditLog audit;
     private final DomainEvents events;
@@ -62,11 +67,16 @@ class OrgStructureCommandService implements OrgStructureCommands {
     private final Clock clock;
     private final BusinessZone zone;
 
-    OrgStructureCommandService(OrgStructureCommandRepository commands, OrgPlans plans, OrgStructureRules rules, OrgMergeExecution merges, AuditLog audit,
+    OrgStructureCommandService(OrgStructureCommandRepository commands, OrgPlans plans, OrgStructureRules rules, OrgCommandWrites writes,
+                               OrgCountersignBases countersignBases, OrgCountersignFreeze freeze, OrgCountersigns countersigns, OrgMergeExecution merges, AuditLog audit,
                                DomainEvents events, CurrentUser currentUser, IdGenerator ids, Clock clock, BusinessZone zone) {
         this.commands = commands;
         this.plans = plans;
         this.rules = rules;
+        this.writes = writes;
+        this.countersignBases = countersignBases;
+        this.freeze = freeze;
+        this.countersigns = countersigns;
         this.merges = merges;
         this.audit = audit;
         this.events = events;
@@ -92,16 +102,31 @@ class OrgStructureCommandService implements OrgStructureCommands {
         } else if (command.targetPositionId() != null && !creates && !commands.positionExists(command.targetPositionId())) {
             throw notAllowed("the position does not exist");
         }
-        OrgTimeline timeline = timelineOf(command);
+        OrgTimeline timeline = writes.timelineOf(command);
         AuditEntryId auditEntry = audit.record(enteredAudit(command, timeline, by));
         VersionPlan plan = timeline == null ? VersionPlan.empty() : plans.forEntry(command, timeline, auditEntry);
         rules.check(command, plan);
+        List<OrgCountersignBasis> basis = List.of();
+        if (unit != null) {
+            freeze.requireNotFrozen(command);
+            countersignBases.requireDrafterUnaffected(command, by);
+            basis = countersignBases.of(command);
+        }
+        boolean awaiting = !basis.isEmpty();
+        if (awaiting) {
+            command.awaitCountersign();
+        }
         if (creates) {
             insertTarget(command, now);
         }
         commands.insert(command);
         commands.insertTransition(command.id(), command.version(), null, command.status().name(), ActorType.USER, by.value(), today, now, correlation());
-        writeVersions(command, plan, now);
+        if (awaiting) {
+            commands.insertBasis(command.id(), basis, now);
+            countersigns.openChange(command, basis, by, now, today, correlation());
+            return command.id();
+        }
+        writes.apply(command, plan, auditEntry, now);
         if (creates && command.targetLegalEntityId() != null) {
             commands.insertInitialAttribution(command.targetOrgUnitId(), command.targetLegalEntityId(), command.effectiveDate(), command.id(), auditEntry, now);
         }
@@ -125,20 +150,21 @@ class OrgStructureCommandService implements OrgStructureCommands {
             commands.lockOrgUnit(found.targetOrgUnitId());
         }
         OrgStructureCommand command = commands.find(request.orgStructureCommandId()).orElseThrow(OrgStructureCommandService::notFound);
+        if (countersigns.requestWithdrawal(command, request.reason(), by, now, today, correlation())) {
+            return;
+        }
         long loadedVersion = command.version();
         OrgCommandStatus before = command.status();
         command.withdraw(by, request.reason(), now);
-        OrgTimeline timeline = timelineOf(command);
-        if (timeline != null) {
-            writeVersions(command, plans.forWithdrawal(command, timeline), now);
-        }
-        if (command.kind() == OrgStructureCommandKind.CREATE && command.targetLegalEntityId() != null) {
-            commands.updateInitialAttributionVoided(command.targetOrgUnitId(), command.id(), now);
+        AuditEntryId auditEntry = audit.record(new AuditEntry("organization.workforce.org-structure-command.withdrawn", by, null, subjectOf(command), "command " + command.id() + " "
+                + command.kind() + "; reason: " + command.withdrawalReason().replaceAll("\\p{Cntrl}", " ")));
+        if (before == OrgCommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN) {
+            countersigns.lapseAwaiting(command, by, now, today, correlation());
+        } else {
+            writes.takeBack(command, auditEntry, now);
         }
         commands.update(command, now, loadedVersion);
         commands.insertTransition(command.id(), loadedVersion + 1, before.name(), command.status().name(), ActorType.USER, by.value(), today, now, correlation());
-        audit.record(new AuditEntry("organization.workforce.org-structure-command.withdrawn", by, null, subjectOf(command), "command " + command.id() + " " + command.kind() + "; reason: "
-                + command.withdrawalReason().replaceAll("\\p{Cntrl}", " ")));
     }
 
     @Override
@@ -162,33 +188,11 @@ class OrgStructureCommandService implements OrgStructureCommands {
         }
     }
 
-    /** The timeline the command extends or takes back; none for a merge (nothing is written at entry) and for the create of a unit or position (it starts empty). */
-    private @Nullable OrgTimeline timelineOf(OrgStructureCommand command) {
-        if (command.kind() == OrgStructureCommandKind.MERGE) {
-            return null;
-        }
-        if (command.kind() == OrgStructureCommandKind.CREATE && command.status() != OrgCommandStatus.WITHDRAWN) {
-            return new OrgTimeline(List.of(), Map.of());
-        }
-        return command.targetPositionId() != null ? commands.positionTimeline(command.targetPositionId()) : commands.unitTimeline(command.targetOrgUnitId());
-    }
-
     private void insertTarget(OrgStructureCommand command, Instant now) {
         if (command.targetOrgUnitId() != null) {
             commands.insertOrgUnit(command, now);
         } else {
             commands.insertPosition(command, now);
-        }
-    }
-
-    private void writeVersions(OrgStructureCommand command, VersionPlan plan, Instant now) {
-        if (plan.isEmpty()) {
-            return;
-        }
-        if (command.targetPositionId() != null) {
-            commands.insertPositionVersions(command.targetPositionId(), plan, command.id(), now);
-        } else {
-            commands.insertUnitVersions(command.targetOrgUnitId(), plan, command.id(), now);
         }
     }
 

@@ -180,6 +180,7 @@ public final class OrgStructureCommand extends AggregateRoot {
             case ASSIGN_HEAD -> required.add(Part.HEAD);
             case ASSIGN_RECEIVABLES_MANAGER -> required.add(Part.RECEIVABLES_MANAGER);
             case MERGE -> required.add(Part.MERGE_INTO);
+            case ASSIGN_LEGAL_ENTITY -> required.add(Part.LEGAL_ENTITY);
             case DISSOLVE, DISABLE -> {
             }
         }
@@ -226,6 +227,24 @@ public final class OrgStructureCommand extends AggregateRoot {
         this.withdrawnAt = now;
         this.withdrawnBy = by;
         this.withdrawalReason = reason;
+    }
+
+    /** The command changes people's cost legal entity: nothing is written until every finance head has approved. Only a command being entered may start here. */
+    public void awaitCountersign() {
+        if (status != OrgCommandStatus.PENDING && status != OrgCommandStatus.EFFECTIVE) {
+            throw notAllowed("only a command being entered waits for the countersign");
+        }
+        this.status = OrgCommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN;
+        this.appliedAt = null;
+    }
+
+    /** Every required finance head approved: the command goes on as it would have when entered, effective at once when its day is not after today (a merge is effective only when its people are moved). */
+    public void completeCountersign(Instant now, LocalDate today) {
+        boolean due = kind != OrgStructureCommandKind.MERGE && !effectiveDate.isAfter(today);
+        moveTo(due ? OrgCommandStatus.EFFECTIVE : OrgCommandStatus.PENDING);
+        if (due) {
+            this.appliedAt = now;
+        }
     }
 
     /** A merge starts moving people: the number of employed people of that moment is written once. */

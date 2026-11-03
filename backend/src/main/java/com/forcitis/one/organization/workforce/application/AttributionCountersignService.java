@@ -1,6 +1,5 @@
 package com.forcitis.one.organization.workforce.application;
 
-import com.forcitis.one.kernel.AccountRoles;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
@@ -52,8 +51,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 class AttributionCountersignService implements AttributionCountersigns {
     static final String PERMISSION = "organization.workforce:legal-entity-attribution:approve";
-    /** The role that may decide a request from escalation level 2 on (user answer Q3 of 2026-10-30). */
-    static final String ESCALATED_ROLE = "business_admin";
     private static final String COMMAND = "PersonnelCommand";
 
     private final AttributionCountersignRepository countersigns;
@@ -63,7 +60,8 @@ class AttributionCountersignService implements AttributionCountersigns {
     private final PersonnelPlans timelines;
     private final EffectPublisher effects;
     private final OwnAttributionGuard ownGuard;
-    private final AccountRoles roles;
+    private final CountersignDeciders deciders;
+    private final OrgCountersigns orgCountersigns;
     private final AuditLog audit;
     private final CurrentUser currentUser;
     private final IdGenerator ids;
@@ -71,7 +69,7 @@ class AttributionCountersignService implements AttributionCountersigns {
     private final BusinessZone zone;
 
     AttributionCountersignService(AttributionCountersignRepository countersigns, PersonnelCommandRepository commands, CountersignRequests requests, CountersignBases bases,
-                                  PersonnelPlans timelines, EffectPublisher effects, OwnAttributionGuard ownGuard, AccountRoles roles, AuditLog audit,
+                                  PersonnelPlans timelines, EffectPublisher effects, OwnAttributionGuard ownGuard, CountersignDeciders deciders, OrgCountersigns orgCountersigns, AuditLog audit,
                                   CurrentUser currentUser, IdGenerator ids, Clock clock, BusinessZone zone) {
         this.countersigns = countersigns;
         this.commands = commands;
@@ -80,7 +78,8 @@ class AttributionCountersignService implements AttributionCountersigns {
         this.timelines = timelines;
         this.effects = effects;
         this.ownGuard = ownGuard;
-        this.roles = roles;
+        this.deciders = deciders;
+        this.orgCountersigns = orgCountersigns;
         this.audit = audit;
         this.currentUser = currentUser;
         this.ids = ids;
@@ -107,7 +106,12 @@ class AttributionCountersignService implements AttributionCountersigns {
         LocalDate today = zone.dateOf(now);
         UserId by = currentUser.userId();
         UUID correlation = WorkContext.correlationId().orElseGet(ids::next);
-        EmployeeId employee = countersigns.find(id).orElseThrow(AttributionCountersignService::notFound).employeeId();
+        AttributionCountersign found = countersigns.find(id).orElseThrow(AttributionCountersignService::notFound);
+        if (found.isOrg()) {
+            orgCountersigns.decide(id, reason, approve);
+            return;
+        }
+        EmployeeId employee = found.employeeId();
         commands.lockEmployee(employee);
         AttributionCountersign row = countersigns.find(id).orElseThrow(AttributionCountersignService::notFound);
         PersonnelCommand command = commands.find(row.commandId()).orElseThrow(AttributionCountersignService::notFound);
@@ -221,25 +225,11 @@ class AttributionCountersignService implements AttributionCountersigns {
         }
     }
 
-    /**
-     * The decider is the finance head of the row's legal entity in today's version, or a business administrator when the row has escalated to level 2 (user answer Q3);
-     * never the drafter or the requester, and never the employee whose entry changes.
-     */
+    /** The decider is the one who may decide the row (see {@link CountersignDeciders}) and is not the employee whose entry changes. */
     private void requireDecider(AttributionCountersign row, PersonnelCommand command, UserId by, LocalDate today) {
-        if (by.equals(row.draftedBy()) || by.equals(row.requestedBy())) {
-            throw forbidden("the drafter and the requester of a countersign do not decide it");
-        }
+        deciders.requireNotParty(row, by);
         ownGuard.requireNotOwn(AttributionSubject.of(command.employeeId()), by);
-        boolean head = countersigns.isFinanceHead(row.legalEntityId(), currentUser.employeeId(), today);
-        boolean escalated = row.escalationLevel() >= AttributionCountersign.ESCALATED_FROM_LEVEL && roles.holds(by, ESCALATED_ROLE);
-        if (!head && !escalated) {
-            throw forbidden("only the finance head of the legal entity decides this countersign, a business administrator from escalation level "
-                    + AttributionCountersign.ESCALATED_FROM_LEVEL);
-        }
-    }
-
-    private static DomainException forbidden(String message) {
-        return new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_COUNTERSIGN_FORBIDDEN, ErrorKind.FORBIDDEN, message);
+        deciders.requireHead(row, by, today);
     }
 
     private static DomainException notFound() {

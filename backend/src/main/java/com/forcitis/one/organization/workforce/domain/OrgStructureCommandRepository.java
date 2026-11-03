@@ -72,8 +72,23 @@ public interface OrgStructureCommandRepository {
     /** Writes the initial legal entity of a new unit: the attribution root and its first open period, from the command's day. */
     void insertInitialAttribution(OrgUnitId orgUnit, LegalEntityId legalEntity, LocalDate from, OrgStructureCommandId command, AuditEntryId audit, Instant at);
 
-    /** Takes the period the command wrote out again (a withdrawal): superseded, not deleted. */
-    void updateInitialAttributionVoided(OrgUnitId orgUnit, OrgStructureCommandId command, Instant at);
+    /** From the day on the unit belongs to the legal entity: closes the open period at the day and appends one, both from the command; the unit's attribution root is created if the unit never had one. */
+    void attributeUnit(OrgUnitId orgUnit, LegalEntityId legalEntity, LocalDate from, OrgStructureCommandId command, AuditEntryId audit, Instant at);
+
+    /**
+     * Takes back every period the command wrote (a withdrawal): superseded, not deleted; a period the command closed is superseded and appended again as it was, open,
+     * so the unit belongs to the entity it did before the command.
+     */
+    void voidAttribution(OrgUnitId orgUnit, OrgStructureCommandId command, AuditEntryId audit, Instant at);
+
+    /** The countersign basis of the command, one row per employee whose cost legal entity it changes. Written once, at entry. */
+    void insertBasis(OrgStructureCommandId command, List<OrgCountersignBasis> basis, Instant at);
+
+    List<OrgCountersignBasis> basisOf(OrgStructureCommandId command);
+
+    /** The org-structure commands that wait for the attribution countersign, whatever their day. */
+    List<OrgStructureCommand> awaitingCountersign();
+
 
     OrgTimeline unitTimeline(OrgUnitId orgUnit);
 

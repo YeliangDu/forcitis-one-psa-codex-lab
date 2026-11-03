@@ -51,6 +51,12 @@ class OrgStructureRules {
                 requireRoomBelow(c.targetParentOrgUnitId(), day, tree);
                 tree.requireNoCycle(unit.value(), day, unitPlan);
             }
+            case ASSIGN_LEGAL_ENTITY -> {
+                requireInForce(unit, day, tree);
+                if (!commands.legalEntityExists(c.targetLegalEntityId())) {
+                    throw refused("the legal entity does not exist");
+                }
+            }
             case ASSIGN_HEAD -> {
                 requireInForce(unit, day, tree);
                 requireEmployee(c.targetHeadEmployeeId());
