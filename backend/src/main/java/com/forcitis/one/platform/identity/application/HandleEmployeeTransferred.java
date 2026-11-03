@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * A transfer raises one sensitive-role review per changed field (department, position) for a person whose account holds a sensitive role when
- * the event is handled (ADR-0032 decision 5). A transfer with no department before it cannot be a transfer (ADR-0081 decision 3, ADR-0082
+ * the event is handled (ADR-0032 decision 5), and, when the department changed, one scope review for a person who holds a role scoped to custom departments. A transfer with no department before it cannot be a transfer (ADR-0081 decision 3, ADR-0082
  * decision 2): it is refused with one alert line and consumed, because a redelivery would be refused the same way.
  */
 @SystemActorName("platform.identity.permission-adjustment")
@@ -23,9 +23,9 @@ class HandleEmployeeTransferred {
     private static final String ACTOR = HandleEmployeeTransferred.class.getAnnotation(SystemActorName.class).value();
 
     private final AccountEmployees accountEmployees;
-    private final OpenSensitiveRoleReview review;
+    private final OpenAssignmentReviews review;
 
-    HandleEmployeeTransferred(AccountEmployees accountEmployees, OpenSensitiveRoleReview review) {
+    HandleEmployeeTransferred(AccountEmployees accountEmployees, OpenAssignmentReviews review) {
         this.accountEmployees = accountEmployees;
         this.review = review;
     }
@@ -42,6 +42,10 @@ class HandleEmployeeTransferred {
                 for (TriggerFieldKind field : event.triggerFieldKinds()) {
                     review.openFor(user, event.envelope(), event.personnelCommandId(), field, event.previousOrgUnitId(), event.newOrgUnitId(),
                             event.previousPositionId(), event.newPositionId());
+                    if (field == TriggerFieldKind.ORG_UNIT) {
+                        review.openScopeReviewFor(user, event.envelope(), event.personnelCommandId(), event.previousOrgUnitId(), event.newOrgUnitId(),
+                                event.previousPositionId(), event.newPositionId());
+                    }
                 }
             });
         }

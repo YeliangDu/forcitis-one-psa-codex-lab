@@ -5,7 +5,6 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.platform.identity.api.PermissionAdjustmentKind;
 import com.forcitis.one.platform.identity.domain.PermissionAdjustment;
-import com.forcitis.one.platform.identity.api.PermissionAdjustmentKind;
 import com.forcitis.one.platform.identity.domain.PermissionAdjustmentRepository;
 import java.sql.Types;
 import java.time.OffsetDateTime;
@@ -39,9 +38,9 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
         jdbc.sql("""
                 insert into platform_identity.permission_adjustments (permission_adjustment_id, kind, origin_kind, status, user_id,
                         trigger_personnel_command_id, trigger_field_kind, before_org_unit_id, after_org_unit_id, before_position_id, after_position_id,
-                        escalation_due_at, version, event_count, created_at, updated_at)
+                        recipient_employee_id, escalation_due_at, version, event_count, created_at, updated_at)
                 values (:id, :kind, :origin, :status, :user, :command, :field, :beforeUnit, :afterUnit, :beforePosition, :afterPosition,
-                        :escalationDueAt, :version, :eventSequence, :at, :at)
+                        :recipient, :escalationDueAt, :version, :eventSequence, :at, :at)
                 """)
                 .param("id", opened.id().value()).param("kind", opened.kind().name()).param("origin", opened.origin().name())
                 .param("status", opened.status().name()).param("user", opened.user().value())
@@ -50,6 +49,7 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
                 .param("afterUnit", opened.afterOrgUnit().value())
                 .param("beforePosition", opened.beforePosition() == null ? null : opened.beforePosition().value(), Types.OTHER)
                 .param("afterPosition", opened.afterPosition() == null ? null : opened.afterPosition().value(), Types.OTHER)
+                .param("recipient", opened.recipient() == null ? null : opened.recipient().value(), Types.OTHER)
                 .param("escalationDueAt", OffsetDateTime.ofInstant(opened.escalationDueAt(), ZoneOffset.UTC))
                 .param("version", opened.versionAfterSave()).param("eventSequence", opened.eventSequenceAfterSave()).param("at", at).update();
     }

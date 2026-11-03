@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.identity.domain;
 
 import com.forcitis.one.kernel.AggregateRoot;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -33,12 +34,13 @@ public final class PermissionAdjustment extends AggregateRoot {
     private final OrgUnitId afterOrgUnit;
     private final @Nullable PositionId beforePosition;
     private final @Nullable PositionId afterPosition;
+    private final @Nullable EmployeeId recipient;
     private final Instant escalationDueAt;
     private final Instant createdAt;
 
     private PermissionAdjustment(PermissionAdjustmentId id, PermissionAdjustmentKind kind, UserId user, PersonnelCommandId triggerCommand,
             TriggerFieldKind triggerField, @Nullable OrgUnitId beforeOrgUnit, OrgUnitId afterOrgUnit, @Nullable PositionId beforePosition,
-            @Nullable PositionId afterPosition, Instant escalationDueAt, Instant createdAt) {
+            @Nullable PositionId afterPosition, @Nullable EmployeeId recipient, Instant escalationDueAt, Instant createdAt) {
         super(0, 0);
         this.id = Objects.requireNonNull(id, "id");
         this.kind = Objects.requireNonNull(kind, "kind");
@@ -51,6 +53,7 @@ public final class PermissionAdjustment extends AggregateRoot {
         this.afterOrgUnit = Objects.requireNonNull(afterOrgUnit, "afterOrgUnit");
         this.beforePosition = beforePosition;
         this.afterPosition = afterPosition;
+        this.recipient = recipient;
         this.escalationDueAt = Objects.requireNonNull(escalationDueAt, "escalationDueAt");
         this.createdAt = Objects.requireNonNull(createdAt, "createdAt");
     }
@@ -62,8 +65,26 @@ public final class PermissionAdjustment extends AggregateRoot {
     public static PermissionAdjustment assignmentChangeReview(PermissionAdjustmentId id, UserId user, PersonnelCommandId command, TriggerFieldKind field,
             @Nullable OrgUnitId beforeOrgUnit, OrgUnitId afterOrgUnit, @Nullable PositionId beforePosition, @Nullable PositionId afterPosition,
             Instant escalationDueAt, Instant at) {
-        PermissionAdjustment item = new PermissionAdjustment(id, PermissionAdjustmentKind.SENSITIVE_ROLE_REVIEW, user, command, field,
-                beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition, escalationDueAt, at);
+        return opened(PermissionAdjustmentKind.SENSITIVE_ROLE_REVIEW, id, user, command, field, beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition,
+                null, escalationDueAt, at);
+    }
+
+    /**
+     * One scope review for a person whose department changed, addressed to the head of the new department, or to nobody when it has none
+     * (ADR-0032 decision 4, N1-09). It names no role.
+     */
+    public static PermissionAdjustment departmentChangeScopeReview(PermissionAdjustmentId id, UserId user, PersonnelCommandId command, OrgUnitId beforeOrgUnit,
+            OrgUnitId afterOrgUnit, @Nullable PositionId beforePosition, @Nullable PositionId afterPosition, @Nullable EmployeeId recipient,
+            Instant escalationDueAt, Instant at) {
+        return opened(PermissionAdjustmentKind.SCOPE_REVIEW, id, user, command, TriggerFieldKind.ORG_UNIT, beforeOrgUnit, afterOrgUnit, beforePosition,
+                afterPosition, recipient, escalationDueAt, at);
+    }
+
+    private static PermissionAdjustment opened(PermissionAdjustmentKind kind, PermissionAdjustmentId id, UserId user, PersonnelCommandId command,
+            TriggerFieldKind field, @Nullable OrgUnitId beforeOrgUnit, OrgUnitId afterOrgUnit, @Nullable PositionId beforePosition,
+            @Nullable PositionId afterPosition, @Nullable EmployeeId recipient, Instant escalationDueAt, Instant at) {
+        PermissionAdjustment item = new PermissionAdjustment(id, kind, user, command, field, beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition,
+                recipient, escalationDueAt, at);
         item.record((envelopes, version) -> new PermissionAdjustmentOpened(envelopes.wrap(item.draft("PermissionAdjustmentOpened", version)),
                 id, user, item.kind, item.origin, command, field, beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition, escalationDueAt));
         return item;
@@ -111,6 +132,10 @@ public final class PermissionAdjustment extends AggregateRoot {
 
     public @Nullable PositionId afterPosition() {
         return afterPosition;
+    }
+
+    public @Nullable EmployeeId recipient() {
+        return recipient;
     }
 
     public Instant escalationDueAt() {

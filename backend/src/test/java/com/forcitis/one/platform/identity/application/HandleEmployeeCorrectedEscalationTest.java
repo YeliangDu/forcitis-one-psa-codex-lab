@@ -24,6 +24,15 @@ import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.organization.workforce.api.EmploymentStatus;
+import com.forcitis.one.platform.integration.api.WecomCard;
+import com.forcitis.one.platform.integration.api.DeliverySubject;
+import com.forcitis.one.platform.integration.api.DeliveryPurpose;
+import com.forcitis.one.platform.identity.api.PermissionAdjustmentKind;
+import com.forcitis.one.platform.identity.api.AccessScopeKind;
+import com.forcitis.one.organization.workforce.api.EmployeeProfile;
+import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
@@ -38,6 +47,7 @@ import com.forcitis.one.platform.identity.domain.PermissionAdjustmentRepository;
 import com.forcitis.one.platform.identity.domain.Role;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
 import com.forcitis.one.platform.identity.domain.UserAccount;
+import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -66,13 +76,15 @@ class HandleEmployeeCorrectedEscalationTest {
     final WorkdayDeadlines deadlines = mock(WorkdayDeadlines.class);
     final DomainEvents events = mock(DomainEvents.class);
     final IdGenerator ids = mock(IdGenerator.class);
+    final OrgDirectory directory = mock(OrgDirectory.class);
+    final WecomGateway wecom = mock(WecomGateway.class);
     final UserId user = TestAccounts.account(1001);
     final EmployeeId employee = TestAccounts.employee(1001);
     final HandleEmployeeCorrected handler = new HandleEmployeeCorrected(TestAccounts.everyoneHasOne(),
-            new OpenSensitiveRoleReview(accounts, roles, adjustments, deadlines, events, ids, Clock.fixed(NOW, ZoneOffset.UTC),
-                    new BusinessZone(ZoneId.of("Asia/Shanghai"))));
+            new OpenAssignmentReviews(accounts, roles, adjustments, deadlines, events, ids, Clock.fixed(NOW, ZoneOffset.UTC),
+                    new BusinessZone(ZoneId.of("Asia/Shanghai")), directory, wecom));
     final ListAppender<ILoggingEvent> log = new ListAppender<>();
-    final Logger logger = (Logger) LoggerFactory.getLogger(OpenSensitiveRoleReview.class);
+    final Logger logger = (Logger) LoggerFactory.getLogger(OpenAssignmentReviews.class);
 
     @BeforeEach
     void setUp() {
@@ -173,5 +185,29 @@ class HandleEmployeeCorrectedEscalationTest {
         handle(correction(new LegalEntityId(UUID.randomUUID()), List.of(TriggerFieldKind.POSITION), null));
 
         verify(adjustments, never()).insert(any());
+    }
+
+    @Test
+    @DisplayName("a correction that moves a holder of a custom-department role to another department raises one scope review for the head of the new department and sends it one card")
+    void aMoveGivesTheNewHeadAScopeReview() {
+        Role scoped = mock(Role.class);
+        when(scoped.accessScope()).thenReturn(AccessScopeKind.CUSTOM_ORG_UNITS);
+        RoleId roleId = new RoleId(UUID.randomUUID());
+        when(accounts.openGrants(user)).thenReturn(List.of(new HeldGrant(new AccountRoleGrantId(UUID.randomUUID()), roleId, new RoleCode("scoped"))));
+        when(roles.findById(roleId)).thenReturn(Optional.of(scoped));
+        EmployeeCorrected event = correction(new LegalEntityId(UUID.randomUUID()), List.of(TriggerFieldKind.ORG_UNIT), new OrgUnitId(UUID.randomUUID()));
+        EmployeeId head = TestAccounts.employee(2002);
+        when(directory.findOrgUnitHead(event.newOrgUnitId())).thenReturn(Optional.of(head));
+        when(directory.findEmployee(head)).thenReturn(Optional.of(new EmployeeProfile(head, "Head", event.newOrgUnitId(), new WecomUserId("head-wecom"), EmploymentStatus.EMPLOYED, false)));
+
+        handle(event);
+
+        PermissionAdjustment item = inserted();
+        assertThat(item.kind()).isEqualTo(PermissionAdjustmentKind.SCOPE_REVIEW);
+        assertThat(item.recipient()).isEqualTo(head);
+        ArgumentCaptor<WecomCard> card = ArgumentCaptor.forClass(WecomCard.class);
+        verify(wecom).send(card.capture());
+        assertThat(card.getValue().wecomUserIds()).containsExactly(new WecomUserId("head-wecom"));
+        assertThat(card.getValue().subject()).isEqualTo(DeliverySubject.of(DeliveryPurpose.PERMISSION_ADJUSTMENT_ASSIGNED, item.id().value()));
     }
 }
