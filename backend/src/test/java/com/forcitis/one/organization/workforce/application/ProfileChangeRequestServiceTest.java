@@ -114,4 +114,24 @@ class ProfileChangeRequestServiceTest {
         when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenReturn(OrgUnitAccess.Visible.nothing());
         org.assertj.core.api.Assertions.assertThat(service.pending(com.forcitis.one.kernel.PageRequest.of(50, null, "profile-change-requests")).items()).isEmpty();
     }
+
+    @Test
+    @DisplayName("#730 S4: a cursor naming a request outside the scope or none at all answers the same empty page")
+    void aForgedCursorCannotProbeIds() {
+        when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenReturn(OrgUnitAccess.Visible.nothing());
+        when(snapshots.findAllOrgUnits()).thenReturn(java.util.List.of());
+        ProfileChangeRequest existing = decided(ProfileChangeStatus.REJECTED);
+        when(requests.find(ID)).thenReturn(Optional.of(existing));
+        when(snapshots.findStaff(EMPLOYEE)).thenReturn(Optional.empty());
+        UUID unknown = UUID.fromString("019a0000-0000-7000-8000-0000000000c9");
+        when(requests.find(new ProfileChangeRequestId(unknown))).thenReturn(Optional.empty());
+
+        var known = service.pending(com.forcitis.one.kernel.PageRequest.of(50, com.forcitis.one.kernel.PageRequest.encode("profile-change-requests", ID.value().toString()), "profile-change-requests"));
+        var missing = service.pending(com.forcitis.one.kernel.PageRequest.of(50, com.forcitis.one.kernel.PageRequest.encode("profile-change-requests", unknown.toString()), "profile-change-requests"));
+
+        org.assertj.core.api.Assertions.assertThat(known.items()).isEmpty();
+        org.assertj.core.api.Assertions.assertThat(missing.items()).isEmpty();
+        org.assertj.core.api.Assertions.assertThat(known.nextCursor()).isEqualTo(missing.nextCursor());
+        org.mockito.Mockito.verify(requests, org.mockito.Mockito.never()).pending(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyInt());
+    }
 }

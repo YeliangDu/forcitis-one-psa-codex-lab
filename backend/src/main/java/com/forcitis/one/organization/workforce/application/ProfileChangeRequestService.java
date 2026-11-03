@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,13 +80,19 @@ class ProfileChangeRequestService implements ProfileChangeRequests {
     public CursorPage<ProfileChangeRequestView> pending(PageRequest page) {
         OrgUnitAccess.Visible visible = unitAccess.visibleOrgUnits(PERMISSION);
         Set<OrgUnitId> allowed = visible.everything() ? Set.of() : OrgUnitVisibility.idsIn(snapshots.findAllOrgUnits(), visible);
+        Predicate<ProfileChangeRequest> inScope = request -> visible.everything()
+                || snapshots.findStaff(request.employeeId()).map(staff -> allowed.contains(staff.assignment().orgUnitId())).orElse(false);
         List<ProfileChangeRequest> items = new ArrayList<>();
         boolean more = false;
         UUID after = page.cursorUuid();
+        // a cursor names a request the caller was shown; one outside the scope or unknown answers the same empty page, so a forged cursor cannot probe ids
+        if (after != null && !requests.find(new ProfileChangeRequestId(after)).filter(inScope).isPresent()) {
+            return CursorPage.of(List.of(), null);
+        }
         while (!more) {
             List<ProfileChangeRequest> found = requests.pending(after, page.limit() + 1);
             for (ProfileChangeRequest request : found) {
-                if (visible.everything() || snapshots.findStaff(request.employeeId()).map(staff -> allowed.contains(staff.assignment().orgUnitId())).orElse(false)) {
+                if (inScope.test(request)) {
                     more = items.size() == page.limit();
                     if (more) {
                         break;
