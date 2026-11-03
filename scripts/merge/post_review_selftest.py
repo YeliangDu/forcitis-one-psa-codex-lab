@@ -22,6 +22,15 @@ LABEL = LABELS["review_passed"]
 SHA, OTHER, PR = "a" * 40, "b" * 40, 42
 R1, R2 = f"opus-{FIRST}-r1", f"opus-{FINAL}-a1"
 ISSUE, SESSION_LABEL = 7, "会话:one-ops"
+
+
+def card_body(**over):
+    """一张合格的卡正文：小节名现读卡模板，类型取剧本类型；over 里的小节改写（None 删去该节）。"""
+    template = open(issue_gate.TEMPLATE, encoding="utf-8").read()
+    names, kind = list(issue_gate.sections(template)), issue_gate.card_kinds(template)[0]
+    parts = {n: (kind if n == "类型" else "内容") for n in names}
+    parts.update(over)
+    return "\n\n".join(f"## {n}\n{t}" for n, t in parts.items() if t is not None)
 BODY = f"Closes #{ISSUE}\n\n## 改动说明\n"
 HOME = "Owner/Repo"   # 桩里本 PR 所在仓库；大小写混写，核对不分大小写
 
@@ -46,13 +55,14 @@ class Stub:
 
     def __init__(self, heads=(SHA,), view_rc=0, review_rc=0, post_out=None, edit_rc=0,
                  labels=(), labels_rc=0, labels_out=None, reviews=(), reviews_rc=0, reviews_out=None,
-                 body=BODY, body_rc=0, body_out=None, issue_state="OPEN", issue_labels=(SESSION_LABEL,), issue_rc=0, issue_out=None, issue_title="fix(q): 修复排队",
+                 body=BODY, body_rc=0, body_out=None, issue_state="OPEN", issue_labels=(SESSION_LABEL,), issue_rc=0, issue_out=None, issue_title="fix(q): 修复排队", issue_body=None,
                  refs=None, refs_rc=0, refs_out=None, home_out=None, files=("docs/notes.md",), files_rc=0, files_out=None, title=None):
         self.title = title
         self.files, self.files_rc, self.files_out = files, files_rc, files_out   # PR 改动的文件（#856：守护类由 final_paths 判定）；缺省不命中
         self.body, self.body_rc, self.body_out = body, body_rc, body_out   # 关联 Issue 检查（#24）：PR 正文、GitHub 算的关闭集合与 Issue 的桩；缺省为已排期
         self.refs, self.refs_rc, self.refs_out, self.home_out = refs, refs_rc, refs_out, home_out
         self.issue_state, self.issue_labels, self.issue_rc, self.issue_out, self.issue_title = issue_state, issue_labels, issue_rc, issue_out, issue_title
+        self.issue_body = card_body() if issue_body is None else issue_body
         self.calls, self.heads, self.view_rc, self.review_rc, self.post_out = [], list(heads), view_rc, review_rc, post_out
         self.edit_rc, self.labels, self.labels_rc, self.labels_out = edit_rc, labels, labels_rc, labels_out
         self.reviews, self.reviews_rc, self.reviews_out = list(reviews), reviews_rc, reviews_out
@@ -71,7 +81,7 @@ class Stub:
         if args[:2] == ["pr", "view"] and "body,title" in args:
             return self.body_rc, json.dumps({"body": self.body, "title": self.title if self.title is not None else f"fix(x): 修复（#{(re.match(r'(?:Closes|Refs) #(\d+)', str(self.body)) or [0, ISSUE])[1]}）"}) if self.body_out is None else self.body_out
         if args[:2] == ["issue", "view"]:
-            out = json.dumps({"state": self.issue_state, "labels": [{"name": n} for n in self.issue_labels], "title": self.issue_title})
+            out = json.dumps({"state": self.issue_state, "labels": [{"name": n} for n in self.issue_labels], "title": self.issue_title, "body": self.issue_body})
             return self.issue_rc, out if self.issue_out is None else self.issue_out
         if args[:2] == ["pr", "view"] and "labels" in args:
             out = json.dumps({"labels": [{"name": n} for n in self.labels]})
@@ -325,11 +335,37 @@ def case_issue_scheduled_passes():
     s = Stub()
     assert run(s, repo="o/r")[0] == 0 and s.edits()[0][-2:] == [pr_mod.ADD_FLAG, LABEL]
     issue_calls = [c[0] for c in s.calls if c[0][0] == "issue"]
-    assert issue_calls == [["issue", "view", str(ISSUE), "-R", "o/r", "--json", "state,labels,title"]], issue_calls   # 只读，不取正文
+    assert issue_calls == [["issue", "view", str(ISSUE), "-R", "o/r", "--json", "state,labels,title,body"]], issue_calls   # 只读
     s = Stub(issue_labels=(SESSION_LABEL, "enhancement"))   # 其他标签不碍事
     assert run(s)[0] == 0
     for verdict, reviewer in ((FIX, R1), (PASS, R2)):
         assert run(Stub(), verdict=verdict, reviewer=reviewer)[0] == 0
+
+
+def case_issue_body_refused():
+    """卡正文缺小节、小节为空（含只剩注释）、类型不是剧本类型一律拒；补好后放行；小节表现读模板，不另存（#1158）。"""
+    names = list(issue_gate.sections(open(issue_gate.TEMPLATE, encoding="utf-8").read()))
+    assert len(names) == 7 and "类型" in names, names
+    kinds = issue_gate.card_kinds(open(issue_gate.TEMPLATE, encoding="utf-8").read())
+    assert len(kinds) == 7, kinds   # 与剧本文件名一致由 check_playbooks 守
+    for name in names:
+        for over in ({name: None}, {name: ""}, {name: "   \n"}, {name: "<!-- 只有注释 -->"}):
+            msg = refused(Stub(issue_body=card_body(**over)))
+            assert "拒绝提交" in msg and f"#{ISSUE}" in msg and name in msg, (over, msg)
+    for kind in ("运维", "Ops", "ops 运维与 CI", "ops\nimpl", "nope"):
+        msg = refused(Stub(issue_body=card_body(类型=kind)))
+        assert "类型" in msg and "拒绝提交" in msg, (kind, msg)
+    for body in (None, ""):
+        assert "拒绝提交" in refused(Stub(issue_body="" if body is None else body))
+    assert "拒绝提交" in refused(Stub(issue_out=json.dumps({"state": "OPEN", "labels": [{"name": SESSION_LABEL}], "title": "fix(q): 修复"})))   # 回答里没有 body
+    assert run(Stub(issue_body=card_body()))[0] == 0   # 对照：合格正文放行
+    old_body, good = card_body(), Stub()
+    with tempfile.TemporaryDirectory() as d, mock.patch.object(issue_gate, "TEMPLATE", os.path.join(d, "card.md")):
+        open(issue_gate.TEMPLATE, "w", encoding="utf-8").write("## 类型\n<!-- 选一：ops 运维。 -->\n## 目标\n## 新增的第八节\n")
+        msg = refused(Stub(issue_body=old_body))
+        assert "新增的第八节" in msg, msg   # 模板多一节，旧正文就缺它：表是现读的
+    with mock.patch.object(issue_gate, "TEMPLATE", "/nonexistent/card.md"):
+        assert "失败关闭" in refused(good)
 
 
 def case_issue_pending_or_hung_refused():
