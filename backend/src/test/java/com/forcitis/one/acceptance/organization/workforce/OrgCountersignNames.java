@@ -69,6 +69,8 @@ final class OrgCountersignNames {
             // previous and new cost legal entity, previous and new (or current) org unit
             "previousLegalEntityId", "previousLegalEntityName", "newLegalEntityId", "newLegalEntityName",
             "previousOrgUnitId", "previousOrgUnitName", "newOrgUnitId", "newOrgUnitName", "orgUnitId", "orgUnitName", "needsAttributionCountersign",
+            // merge preview: concurrent posts of the person in the unit (#1040 design, comment 6591756163, section 6; RULING-LEAD-20261103-04)
+            "primaryInUnit", "concurrentAssignmentCount",
             // the countersign rows of the same command
             "requests", "attributionCountersignId", "requestKind", "requestSequenceNumber", "legalEntityId", "legalEntityName", "requestedAt",
             "requestedByDisplayName", "dueOnDate", "escalationLevel", "decisionKind", "decidedAt", "decidedByDisplayName", "decisionReason",
