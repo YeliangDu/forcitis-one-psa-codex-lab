@@ -347,7 +347,7 @@ terms:
   status: proposed
   note: 随 #907 登记，编码时才发现的用语，请 one-design 复核
 - id: take
-  zh: 生效
+  zh: 录入即生效
   en: Take
   snake: take
   kind: value_object
