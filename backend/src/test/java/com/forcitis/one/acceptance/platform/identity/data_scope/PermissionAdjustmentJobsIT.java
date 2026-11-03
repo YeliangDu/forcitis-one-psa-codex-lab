@@ -1,15 +1,21 @@
 package com.forcitis.one.acceptance.platform.identity.data_scope;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +23,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -48,11 +55,13 @@ class PermissionAdjustmentJobsIT extends PermissionAdjustmentApiSupport {
     @BeforeAll
     void organisation() throws Exception {
         apiWorld();
+        maintainDefaultCalendar(2026);
+        maintainDefaultCalendar(2027);
     }
 
     // ---- fixtures -----------------------------------------------------------------------------------------------------------
 
-    /** An upheld sensitive role review about the person, valid until the given instant, as the uphold command leaves it. */
+    /** An upheld sensitive role review about the person, valid until the given instant; written straight into the table (how the uphold command picks the instant is S3's). */
     private UUID upheldAbout(String key, String expiresAt) throws Exception {
         return insertItem(base("SENSITIVE_ROLE_REVIEW", "ASSIGNMENT_CHANGE").with("user_id", UUID.fromString(userId(key)))
                 .with("trigger_personnel_command_id", UUID.randomUUID()).with("trigger_field_kind", "ORG_UNIT")
@@ -60,6 +69,66 @@ class PermissionAdjustmentJobsIT extends PermissionAdjustmentApiSupport {
                 .with("status", "UPHELD").with("upheld_at", "2026-09-30T02:00:00Z").with("upheld_by", UUID.fromString(userId("oda")))
                 .with("uphold_reason", "still needed for the audit").with("business_owner_employee_id", UUID.fromString(employeeIdOf("owner")))
                 .with("uphold_expires_at", expiresAt).with("updated_at", "2026-09-30T02:00:00Z"));
+    }
+
+    /** The default calendar of the year (weekends off, no holidays), saved by an organisation data administrator unless it is already there. */
+    private void maintainDefaultCalendar(int year) throws Exception {
+        String path = "/api/v1/organization/work-calendars/" + year;
+        String admin = session("oda");
+        if (mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(path).with(as(admin))).andReturn().getResponse().getStatus() == 200) {
+            return;
+        }
+        MockHttpServletResponse saved = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(path).header("If-Match", "\"0\"").with(csrf())
+                .with(as(admin)).contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"days\":[],\"lockedDaysConfirmed\":true}")).andReturn().getResponse();
+        assertThat(saved.getStatus()).as(saved.getContentAsString()).isEqualTo(200);
+    }
+
+    /** A new legal entity with its own calendar of the year holding one weekday holiday, and the person attributed to it from before the fixed today. */
+    private void attributeToEntityWithHoliday(String key, LocalDate holiday) throws Exception {
+        String admin = session("oda");
+        MockHttpServletResponse created = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(LEGAL_ENTITIES).with(csrf()).with(as(admin))
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"" + newLegalEntityCode("JB") + "\",\"name\":\"Synthetic jobs entity\"}")).andReturn().getResponse();
+        assertThat(created.getStatus()).as(created.getContentAsString()).isEqualTo(201);
+        UUID entity = UUID.fromString(com.jayway.jsonpath.JsonPath.read(created.getContentAsString(), "$.legalEntityId"));
+        UUID year = UUID.randomUUID();
+        try (Connection attendance = schemaConnection("organization_attendance")) {
+            try (PreparedStatement insert = attendance.prepareStatement("insert into work_calendar_years (id, legal_entity_id, year_number) values (?, ?, ?)")) {
+                insert.setObject(1, year);
+                insert.setObject(2, stored(entity));
+                insert.setInt(3, holiday.getYear());
+                insert.executeUpdate();
+            }
+            try (PreparedStatement insert = attendance.prepareStatement("insert into work_calendar_days (id, work_calendar_year_id, calendar_date, day_kind) values (?, ?, ?, 'HOLIDAY')")) {
+                insert.setObject(1, UUID.randomUUID());
+                insert.setObject(2, year);
+                insert.setObject(3, holiday);
+                insert.executeUpdate();
+            }
+        }
+        MockHttpServletResponse attributed = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .put("/api/v1/organization/employee-legal-entities/" + employeeIdOf(key)).header("If-Match", "\"0\"").with(csrf()).with(as(admin))
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"legalEntityId\":\"" + entity + "\",\"effectiveFrom\":\"" + TODAY.minusDays(30) + "\"}")).andReturn().getResponse();
+        assertThat(attributed.getStatus()).as(attributed.getContentAsString()).isEqualTo(200);
+    }
+
+    /** The due instant is the end of the given workday in the business zone: the local midnight that follows it, within one second. */
+    private static void assertDueAtEndOfDay(Object due, LocalDate fifthWorkday) {
+        Instant end = fifthWorkday.plusDays(1).atStartOfDay(ZoneId.of("Asia/Shanghai")).toInstant();
+        assertThat(Instant.parse((String) due)).as("the end of workday " + fifthWorkday).isBetween(end.minusSeconds(1), end);
+    }
+
+    private List<Map<String, Object>> escalationAuditsAbout(UUID item) throws Exception {
+        return auditEntries(ESCALATED_ACTION).stream().filter(entry -> item.toString().equals(String.valueOf(entry.get("subjectId")))).toList();
+    }
+
+    private long openPublications() throws SQLException {
+        try (Connection registry = schemaConnection("platform_integration"); PreparedStatement count = registry
+                .prepareStatement("select count(*) from event_publication where completion_date is null"); ResultSet rows = count.executeQuery()) {
+            rows.next();
+            return rows.getLong(1);
+        }
     }
 
     private UUID openDue(String due) throws Exception {
@@ -207,6 +276,7 @@ class PermissionAdjustmentJobsIT extends PermissionAdjustmentApiSupport {
 
         assertThat(read.getStatus()).isEqualTo(200);
         assertThat(read.getContentAsString()).contains("\"status\":\"UPHELD\"");
+        assertThat(Instant.parse(com.jayway.jsonpath.JsonPath.read(read.getContentAsString(), "$.upholdExpiresAt"))).as("the expiry is still shown").isEqualTo(EXPIRY);
         assertThat(rowOf(item)).containsEntry("status", "UPHELD");
         runJob("ExpirePermissionAdjustments");
         assertThat(rowOf(item)).containsEntry("status", "EXPIRED");
@@ -295,6 +365,46 @@ class PermissionAdjustmentJobsIT extends PermissionAdjustmentApiSupport {
         assertThat(rowOf(notYet)).containsEntry("status", "UPHELD");
     }
 
+    @Test
+    @DisplayName("#730 S2 裁定 6600968506 完成标准 (b)：到期再生成的新条目，升级期限按此人在办理日所属法人的自有日历算第 5 个工作日结束（该法人有一个与默认日历不同的假日），起算日为办理日")
+    void aRegeneratedItemIsDueByTheCalendarOfThePersonsEntityOnTheHandlingDay() throws Exception {
+        LocalDate holiday = LocalDate.of(2027, 1, 7);
+        attributeToEntityWithHoliday("bound", holiday);
+        String expires = "2027-01-05T04:00:00Z";
+        UUID item = upheldAbout("bound", expires);
+        advanceTo(Instant.parse(expires));
+
+        runJob("ExpirePermissionAdjustments");
+
+        List<Map<String, Object>> regenerated = regeneratedFrom(item);
+        assertThat(regenerated).hasSize(1);
+        assertDueAtEndOfDay(regenerated.getFirst().get("escalation_due_at"), LocalDate.of(2027, 1, 13));
+    }
+
+    @Test
+    @DisplayName("#730 S2 裁定 6600968506 完成标准 (c)：此人的法人解析不出来时，到期仍生成新条目，升级期限按默认日历（比自有日历的假日早一天），并恰好一条以 \"ALERT P3 platform.identity \" 开头的日志、不含此人姓名")
+    void aPersonWithoutAResolvableEntityStillGetsTheRegeneratedItemWithTheDefaultCalendarAndOneP3Alert() throws Exception {
+        String expires = "2027-01-05T04:00:00Z";
+        UUID item = upheldAbout("stray", expires);
+        advanceTo(Instant.parse(expires));
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        ListAppender<ILoggingEvent> logged = new ListAppender<>();
+        logged.start();
+        root.addAppender(logged);
+        try {
+            runJob("ExpirePermissionAdjustments");
+        } finally {
+            root.detachAppender(logged);
+        }
+
+        List<Map<String, Object>> regenerated = regeneratedFrom(item);
+        assertThat(regenerated).as("a lost review is worse than an approximate date").hasSize(1);
+        assertDueAtEndOfDay(regenerated.getFirst().get("escalation_due_at"), LocalDate.of(2027, 1, 12));
+        List<ILoggingEvent> alerts = logged.list.stream().filter(line -> line.getFormattedMessage().startsWith("ALERT P3 platform.identity ")).toList();
+        assertThat(alerts).as("exactly one P3 alert line").hasSize(1);
+        assertThat(alerts.getFirst().getFormattedMessage()).doesNotContain("Synthetic stray");
+    }
+
     // ---- escalation ---------------------------------------------------------------------------------------------------------
 
     @Test
@@ -328,10 +438,12 @@ class PermissionAdjustmentJobsIT extends PermissionAdjustmentApiSupport {
         assertThat(rowOf(upheld).get("escalated_at")).as("only open items escalate").isNull();
         assertThat(roleCodesOf(administrator("admin1"), "mover")).containsExactlyInAnyOrderElementsOf(rolesBefore);
 
+        eventually(() -> assertThat(escalationAuditsAbout(sensitive)).as("the first run's audit entry has landed").hasSize(1));
+
         advanceTo(dueAt.plusSeconds(86400));
         runJob("EscalatePermissionAdjustments");
         assertThat(rowOf(sensitive)).as("escalated once, never moved").containsEntry("escalated_at", due);
-        eventually(() -> assertThat(auditEntries(ESCALATED_ACTION).stream().filter(entry -> sensitive.toString().equals(String.valueOf(entry.get("subjectId")))).toList())
-                .as("one escalation audit entry for the item").hasSize(1));
+        eventually(() -> assertThat(openPublications()).as("every event of both runs is handled before counting").isZero());
+        assertThat(escalationAuditsAbout(sensitive)).as("one escalation audit entry for the item").hasSize(1);
     }
 }

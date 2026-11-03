@@ -39,7 +39,7 @@ abstract class PermissionAdjustmentApiSupport extends DataScopeSupport {
     static final String ADJUSTED_ACTION = "platform.identity.PermissionAdjustmentAdjusted";
 
     /** The people of the world; their display names are "Synthetic " + key (DataScopeSupport). */
-    static final List<String> PEOPLE = List.of("admin1", "oda", "oda2", "auditor", "multi", "headA", "headB", "mover", "mover2", "odaSubject", "owner", "gone", "plain", "held", "leaver");
+    static final List<String> PEOPLE = List.of("admin1", "oda", "oda2", "auditor", "multi", "headA", "headB", "mover", "mover2", "odaSubject", "owner", "gone", "plain", "held", "leaver", "bound", "stray");
 
     private static final Set<String> TIMESTAMPS = Set.of("escalation_due_at", "created_at", "updated_at", "upheld_at", "uphold_expires_at", "expired_at",
             "regeneration_decided_at", "escalated_at");
@@ -79,6 +79,8 @@ abstract class PermissionAdjustmentApiSupport extends DataScopeSupport {
         grantByOperations("mover2", BUSINESS_ADMIN);
         grantByOperations("held", BUSINESS_ADMIN);
         grantByOperations("leaver", BUSINESS_ADMIN);
+        grantByOperations("bound", BUSINESS_ADMIN);
+        grantByOperations("stray", BUSINESS_ADMIN);
     }
 
     // ---- items --------------------------------------------------------------------------------------------------------------

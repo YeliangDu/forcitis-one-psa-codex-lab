@@ -13,7 +13,7 @@ Stacked on S3 (#1119): it reuses `PermissionAdjustmentApiSupport` (world, item s
 | Audit `PermissionAdjustmentExpired` (original) and `PermissionAdjustmentOpened` (new item), per one-design ruling 6602101721 | `expiryAndRegenerationAreAudited` |
 | Escalation (invariant 30): not one second before the due time; at it OPEN items of both kinds get `escalated_at` = job clock, stay OPEN; not-yet-due and UPHELD items untouched; once only; roles unchanged; one `PermissionAdjustmentEscalated` audit entry | `anOverdueOpenItemIsEscalatedOnceAndNothingIsRevoked` |
 
-Red on baseline: 7/7. Six fail with "no bean of a type named ExpirePermissionAdjustments / EscalatePermissionAdjustments in platform.identity" after the fixtures ran, one (`readingDoesNotExpireAnItem`) fails on the detail 404 (no route). Green: not possible before the implementation.
+Red on baseline: all 9 cases (the two A-6 cases fail at the missing job entry). Six fail with "no bean of a type named ExpirePermissionAdjustments / EscalatePermissionAdjustments in platform.identity" after the fixtures ran, one (`readingDoesNotExpireAnItem`) fails on the detail 404 (no route). Green: not possible before the implementation.
 
 ## Assumed, not ruled (please confirm or tell me the real names)
 - Job entries are beans of platform.identity whose type or interface is named `ExpirePermissionAdjustments` and `EscalatePermissionAdjustments`, public no-argument `execute()` (the first name is the one `DataScopeSupport.runUpholdExpiry` already assumes). The `@Scheduled` cron (00:05 Asia/Shanghai) is not tested.
