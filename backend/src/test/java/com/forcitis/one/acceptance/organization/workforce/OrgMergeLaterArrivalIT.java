@@ -2,6 +2,15 @@ package com.forcitis.one.acceptance.organization.workforce;
 
 import static com.forcitis.one.acceptance.organization.workforce.OrgStructureCommandNames.*;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.ASSIGNMENT_VERSIONS;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.BUSINESS_ADMIN;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.COMMAND_KIND;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.DISPLAY_NAME;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.EMPLOYEE_DOCUMENT_TYPE;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.HIRE;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.IS_TARGET_FEE_EARNER;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.TARGET_EMPLOYMENT_PHASE_KIND;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.TARGET_POSITION_ID;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.WECOM_USER_ID;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.EFFECTIVE;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.PENDING;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.PROBATION;
@@ -20,6 +29,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.RecordComponent;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.sql.Connection;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -44,7 +54,6 @@ import org.springframework.test.context.DynamicPropertySource;
  * The refusals and the merge preview name the blocking employees and their command ids. The error codes, the wording that carries the blockers
  * (the exception message, ProblemDetail detail) and the preview's shape are the implementer's names, given by one-dev-org on 2026-11-03 at the
  * request of one-design ("the response field names for the blockers come from the implementer"); see the constants below.
- * Not covered: a HIRE into the merged unit (part 1 says it counts the same as a TRANSFER).
  */
 class OrgMergeLaterArrivalIT extends OrgStructureCommandSupport {
 
@@ -191,6 +200,39 @@ class OrgMergeLaterArrivalIT extends OrgStructureCommandSupport {
 
         assertThat(commandCount(mover)).isZero();
         assertThat(unitOfEmployee(mover, D)).isEqualTo(elsewhere);
+    }
+
+    /** A HIRE of a new person into the merged unit; the WeCom user id is unique to the call (#1038). */
+    private UUID hireInto(UUID orgUnit, LocalDate effective) throws Exception {
+        String wecomUserId = "late-hire-" + UUID.randomUUID().toString().substring(0, 13);
+        Map<String, Object> fields = new HashMap<>();
+        fields.put(COMMAND_KIND, HIRE);
+        fields.put(EFFECTIVE_DATE, effective);
+        fields.put(TARGET_ORG_UNIT_ID, orgUnit);
+        fields.put(TARGET_POSITION_ID, newPosition());
+        fields.put(IS_TARGET_FEE_EARNER, true);
+        fields.put(TARGET_EMPLOYMENT_PHASE_KIND, PROBATION);
+        fields.put(DISPLAY_NAME, "Synthetic hire " + wecomUserId);
+        fields.put(WECOM_USER_ID, wecomUserId);
+        return commands().enter(fields);
+    }
+
+    @Test
+    @DisplayName("#907 one-design 裁定 6596302513 第 1 条（入职与调入同样处理）：合并待生效时，入职到被并入单元、生效日为合并日或其后一天，录入被拒（同一具名冲突错误），不留员工与命令行")
+    void aHireOnOrAfterTheMergeDayIsRefusedWhileTheMergeIsOpen() throws Exception {
+        world();
+        enterMerge(D);
+        // A hire issues an employee code: the template is confirmed as in HireOpensAccountIT, so the refusal can only be the merge's.
+        confirmSeededNumberingRule(EMPLOYEE_DOCUMENT_TYPE, staff(BUSINESS_ADMIN).session());
+        actInSpecialist();
+        long employees = (long) rows("select count(*) as n from employees").get(0).get("n");
+        long commands = (long) rows("select count(*) as n from personnel_commands").get(0).get("n");
+
+        refused(MERGE_OPEN, () -> hireInto(merged, D));
+        refused(MERGE_OPEN, () -> hireInto(merged, D.plusDays(1)));
+
+        assertThat((long) rows("select count(*) as n from employees").get(0).get("n")).isEqualTo(employees);
+        assertThat((long) rows("select count(*) as n from personnel_commands").get(0).get("n")).isEqualTo(commands);
     }
 
     @Test
