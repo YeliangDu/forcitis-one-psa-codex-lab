@@ -47,7 +47,7 @@ class AuditSubjectKindRegistryIT {
             + " values (uuidv7(), '%s', 'platform.audit', true, '%s', DATE '2026-01-01', %s, now(), now())";
 
     @Test
-    @DisplayName("the twenty-one seeded kinds are there, SYNC_RUN is RETIRED on 2026-11-02 (#934), and audit_entries.subject_kind is a foreign key to the registry code")
+    @DisplayName("the twenty-one registered kinds are there (ORG_STRUCTURE_COMMAND #907), SYNC_RUN is RETIRED on 2026-11-02 (#934), and audit_entries.subject_kind is a foreign key to the registry code")
     void seedsAndForeignKey() {
         assertThat(jdbc.sql("select count(*) from platform_audit.audit_subject_kinds where audit_subject_kind_id::text like '019a0000-0000-7000-8000-000000000%'").query(Long.class).single()).isEqualTo(21L);
         assertThat(jdbc.sql("select status || ' ' || retired_date from platform_audit.audit_subject_kinds where code = 'SYNC_RUN'").query(String.class).single())
