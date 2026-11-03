@@ -446,3 +446,18 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
+- id: arrival
+  zh: 调入
+  en: Arrival
+  snake: arrival
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 有人在合并日之后才进入被并入的组织单元（将来日期的调入，或补登过去日期的合并之后加入的人）；这样的合并被拒，免得把人留在已撤销的单元里
+  standard_ref:
+  - ADR-0068 第 4 条
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 随 #907 登记，编码时才发现的用语，请 one-design 复核
