@@ -4877,7 +4877,7 @@ components:
     EmployeeLegalEntityChanged:
       name: EmployeeLegalEntityChanged
       title: 员工法人归属已变更
-      description: 改变员工成本法人的人事命令（调岗、更正或变更法人归属）经法人财务负责人会签后生效时发布，不论命令种类（调岗同时发布 EmployeeTransferred）。会签期间不发布，待生效的命令也不发布（ADR-0073 第 3 条第 7 项、会签设计说明
+      description: 改变员工成本法人的命令经法人财务负责人会签后生效时发布：人事命令（调岗、更正或变更法人归属，不论命令种类，调岗同时发布 EmployeeTransferred），或组织结构命令（指定法人、调整上级、合并，依据里每位员工各发一次；合并经它生成的调岗发布，不重复发布）。会签期间不发布，待生效的命令也不发布（ADR-0073 第 3 条第 7 项、会签设计说明
       x-event:
         eventType: organization.workforce.EmployeeLegalEntityChanged
         version: 1
@@ -4898,6 +4898,7 @@ components:
         required:
         - envelope
         - personnelCommandId
+        - orgStructureCommandId
         - employeeId
         - effectiveDate
         - previousLegalEntityId
@@ -4909,7 +4910,14 @@ components:
             type: string
             format: uuid
             x-type: PersonnelCommandId
-            description: 触发本事件的人事命令 ID（UUIDv7）
+            nullable: true
+            description: 触发本事件的人事命令 ID（UUIDv7）；由组织结构命令触发时为空，两者恰有一个
+          orgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            nullable: true
+            description: 触发本事件的组织结构命令 ID（UUIDv7）：指定法人、调整上级、合并经会签生效后改变了员工成本法人时有值；由人事命令触发时为空
           employeeId:
             type: string
             format: uuid
@@ -4918,7 +4926,7 @@ components:
           effectiveDate:
             type: string
             x-type: LocalDate
-            description: 人事业务生效日（DECLARED）：员工在新成本法人的第一天
+            description: 业务生效日（DECLARED）：员工在新成本法人的第一天
           previousLegalEntityId:
             type: string
             format: uuid

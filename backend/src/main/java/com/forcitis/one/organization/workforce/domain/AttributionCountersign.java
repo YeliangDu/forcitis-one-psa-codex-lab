@@ -6,6 +6,7 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.AttributionCountersignId;
+import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import java.time.Instant;
@@ -23,8 +24,9 @@ public final class AttributionCountersign {
     public static final int ESCALATED_FROM_LEVEL = 2;
 
     private final AttributionCountersignId id;
-    private final PersonnelCommandId commandId;
-    private final EmployeeId employeeId;
+    private final @Nullable PersonnelCommandId commandId;
+    private final @Nullable OrgStructureCommandId orgCommandId;
+    private final @Nullable EmployeeId employeeId;
     private final UserId draftedBy;
     private final CountersignRequestKind requestKind;
     private final int requestSequenceNumber;
@@ -40,12 +42,17 @@ public final class AttributionCountersign {
     private @Nullable UserId decidedBy;
     private @Nullable String decisionReason;
 
-    private AttributionCountersign(AttributionCountersignId id, PersonnelCommandId commandId, EmployeeId employeeId, UserId draftedBy, CountersignRequestKind requestKind,
+    private AttributionCountersign(AttributionCountersignId id, @Nullable PersonnelCommandId commandId, @Nullable OrgStructureCommandId orgCommandId,
+                                   @Nullable EmployeeId employeeId, UserId draftedBy, CountersignRequestKind requestKind,
                                    int requestSequenceNumber, LegalEntityId legalEntityId, Instant requestedAt, UserId requestedBy, LocalDate dueOn, int escalationLevel,
                                    @Nullable String requestReason, long version, CountersignStatus status) {
         this.id = Objects.requireNonNull(id, "id");
-        this.commandId = Objects.requireNonNull(commandId, "commandId");
-        this.employeeId = Objects.requireNonNull(employeeId, "employeeId");
+        if ((commandId == null) == (orgCommandId == null) || (commandId == null) != (employeeId == null)) {
+            throw new IllegalArgumentException("a request belongs to a personnel command and its employee, or to an org-structure command");
+        }
+        this.commandId = commandId;
+        this.orgCommandId = orgCommandId;
+        this.employeeId = employeeId;
         this.draftedBy = Objects.requireNonNull(draftedBy, "draftedBy");
         this.requestKind = Objects.requireNonNull(requestKind, "requestKind");
         this.requestSequenceNumber = requestSequenceNumber;
@@ -68,16 +75,30 @@ public final class AttributionCountersign {
         if (requestReason != null) {
             requireReason(requestReason);
         }
-        return new AttributionCountersign(id, command.id(), command.employeeId(), command.createdBy(), kind, sequence, legalEntity, at, requestedBy, dueOn, 0,
+        return new AttributionCountersign(id, command.id(), null, command.employeeId(), command.createdBy(), kind, sequence, legalEntity, at, requestedBy, dueOn, 0,
                 requestReason, 0, CountersignStatus.OPEN);
     }
 
-    public static AttributionCountersign restore(AttributionCountersignId id, PersonnelCommandId commandId, EmployeeId employeeId, UserId draftedBy,
+    /** As {@link #open} for an org-structure command: the employees it touches are in its basis, not on the request. */
+    public static AttributionCountersign openForOrg(AttributionCountersignId id, OrgStructureCommand command, CountersignRequestKind kind, int sequence, LegalEntityId legalEntity,
+                                                    UserId requestedBy, Instant at, LocalDate dueOn, @Nullable String requestReason) {
+        if ((kind == CountersignRequestKind.WITHDRAWAL) != (requestReason != null)) {
+            throw new IllegalArgumentException("a withdrawal request carries the requester's reason and a change request none");
+        }
+        if (requestReason != null) {
+            requireReason(requestReason);
+        }
+        return new AttributionCountersign(id, null, command.id(), null, command.createdBy(), kind, sequence, legalEntity, at, requestedBy, dueOn, 0,
+                requestReason, 0, CountersignStatus.OPEN);
+    }
+
+    public static AttributionCountersign restore(AttributionCountersignId id, @Nullable PersonnelCommandId commandId, @Nullable OrgStructureCommandId orgCommandId,
+                                                 @Nullable EmployeeId employeeId, UserId draftedBy,
                                                  CountersignRequestKind requestKind, int requestSequenceNumber, LegalEntityId legalEntityId, Instant requestedAt,
                                                  UserId requestedBy, LocalDate dueOn, int escalationLevel, @Nullable String requestReason, long version,
                                                  @Nullable String decision,
                                                  @Nullable Instant decidedAt, @Nullable UserId decidedBy, @Nullable String decisionReason) {
-        AttributionCountersign row = new AttributionCountersign(id, commandId, employeeId, draftedBy, requestKind, requestSequenceNumber, legalEntityId, requestedAt,
+        AttributionCountersign row = new AttributionCountersign(id, commandId, orgCommandId, employeeId, draftedBy, requestKind, requestSequenceNumber, legalEntityId, requestedAt,
                 requestedBy, dueOn, escalationLevel, requestReason, version,
                 decision == null ? CountersignStatus.OPEN : CountersignStatus.valueOf(decision));
         row.decidedAt = decidedAt;
@@ -127,12 +148,21 @@ public final class AttributionCountersign {
         return id;
     }
 
+    /** The personnel command of a request about one employee's entry; an org-structure command's request answers {@link #orgCommandId()}. */
     public PersonnelCommandId commandId() {
-        return commandId;
+        return Objects.requireNonNull(commandId, "the request belongs to an org-structure command");
+    }
+
+    public @Nullable OrgStructureCommandId orgCommandId() {
+        return orgCommandId;
+    }
+
+    public boolean isOrg() {
+        return orgCommandId != null;
     }
 
     public EmployeeId employeeId() {
-        return employeeId;
+        return Objects.requireNonNull(employeeId, "the request belongs to an org-structure command");
     }
 
     public UserId draftedBy() {
