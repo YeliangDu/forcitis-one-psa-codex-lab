@@ -509,6 +509,12 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         });
     }
 
+    private Object dueItemId(UUID user, String kind) throws SQLException {
+        try (Connection identity = schemaConnection("platform_identity")) {
+            return query(identity, "select permission_adjustment_id from permission_adjustments where user_id = ? and kind = ?", user, kind).getFirst().get("permission_adjustment_id");
+        }
+    }
+
     private Object dueItemId(UUID user) throws SQLException {
         try (Connection identity = schemaConnection("platform_identity")) {
             return query(identity, "select permission_adjustment_id from permission_adjustments where user_id = ?", user).getFirst().get("permission_adjustment_id");
@@ -673,5 +679,190 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         assertThat(items.getFirst()).containsEntry("kind", "SCOPE_REVIEW").containsEntry("before_org_unit_id", unit).containsEntry("after_org_unit_id", toUnit)
                 .containsEntry("recipient_employee_id", head);
         assertThat(itemsAbout(undoneUser)).as("nothing before the correction, nothing to review").isEmpty();
+    }
+
+    // ---- EmployeeCorrected with both departments behaves like a transfer (one-design ruling, #730 comment 6604000297) ----
+
+    private static final List<TriggerFieldKind> UNIT = List.of(TriggerFieldKind.ORG_UNIT);
+    private static final List<TriggerFieldKind> POSITION = List.of(TriggerFieldKind.POSITION);
+    private static final List<TriggerFieldKind> BOTH = List.of(TriggerFieldKind.ORG_UNIT, TriggerFieldKind.POSITION);
+
+    /** The kind and field of every item about the user, sorted: the shape of what the listener raised. */
+    private List<String> shapeOf(UUID user) throws SQLException {
+        return itemsAbout(user).stream().map(item -> item.get("kind") + "/" + item.get("trigger_field_kind")).sorted().toList();
+    }
+
+    private UUID headedUnit(UUID head) throws Exception {
+        UUID toUnit = newUnit();
+        headOf(toUnit, head);
+        return toUnit;
+    }
+
+    @Test
+    @DisplayName("#730 更正如转岗 1：更正把持有敏感角色的人从 X 部门改到 Y 部门（触发字段部门），生成恰好一条敏感角色复核（触发字段部门、触发命令为该更正命令、触发前后部门、无接收人），没有范围复核")
+    void aDepartmentCorrectionOfASensitiveHolderGivesOneSensitiveItem() throws Exception {
+        UUID employee = employedHolding(SECURITY_AUDITOR);
+        UUID user = accountOf(employee);
+        UUID toUnit = newUnit();
+        UUID command = Uuids.timeOrdered(NOW);
+        EmployeeCorrected event = corrected(employee, command, UNIT, unit, toUnit, null, null);
+
+        publish(event);
+        identityHandled(event);
+
+        List<Map<String, Object>> items = itemsAbout(user);
+        assertThat(items).hasSize(1);
+        assertThat(items.getFirst()).containsEntry("kind", "SENSITIVE_ROLE_REVIEW").containsEntry("origin_kind", "ASSIGNMENT_CHANGE").containsEntry("status", "OPEN")
+                .containsEntry("trigger_field_kind", "ORG_UNIT").containsEntry("trigger_personnel_command_id", command).containsEntry("before_org_unit_id", unit)
+                .containsEntry("after_org_unit_id", toUnit).containsEntry("recipient_employee_id", null);
+    }
+
+    @Test
+    @DisplayName("#730 更正如转岗 2：同一个人还持有自定义部门数据范围角色，除敏感角色复核外多一条范围复核，接收人为 Y 部门负责人，并有恰好一张发给该负责人的外发卡")
+    void aDepartmentCorrectionOfASensitiveAndScopedHolderAlsoGivesAScopeReviewForTheNewHead() throws Exception {
+        UUID head = employed(REGULAR);
+        UUID toUnit = headedUnit(head);
+        UUID employee = employedHolding(SECURITY_AUDITOR);
+        grantByOperations(employee, customRole("scoped-c2", unit));
+        UUID user = accountOf(employee);
+        EmployeeCorrected event = corrected(employee, Uuids.timeOrdered(NOW), UNIT, unit, toUnit, null, null);
+
+        publish(event);
+        identityHandled(event);
+
+        assertThat(shapeOf(user)).containsExactly("SCOPE_REVIEW/ORG_UNIT", "SENSITIVE_ROLE_REVIEW/ORG_UNIT");
+        Map<String, Object> scope = itemsAbout(user).stream().filter(item -> "SCOPE_REVIEW".equals(item.get("kind"))).findFirst().orElseThrow();
+        assertThat(scope).containsEntry("recipient_employee_id", head).containsEntry("before_org_unit_id", unit).containsEntry("after_org_unit_id", toUnit);
+        Awaitility.await().atMost(SETTLE).untilAsserted(() -> {
+            List<Map<String, Object>> cards = assignedCardsAbout(dueItemId(user, "SCOPE_REVIEW"));
+            assertThat(cards).hasSize(1);
+            assertThat(cards.getFirst().get("recipients")).isEqualTo(storedWecomUserId(head));
+        });
+    }
+
+    @Test
+    @DisplayName("#730 更正如转岗 3：只改岗位（触发字段岗位）的更正，持有敏感角色（也持有自定义部门角色）的人得到恰好一条敏感角色复核（触发字段岗位、触发前后岗位），没有范围复核")
+    void aPositionCorrectionGivesOnePositionItemAndNoScopeReview() throws Exception {
+        UUID employee = employedHolding(SECURITY_AUDITOR);
+        grantByOperations(employee, customRole("scoped-c3", unit));
+        UUID user = accountOf(employee);
+        UUID fromPosition = newPosition();
+        UUID toPosition = newPosition();
+        EmployeeCorrected event = corrected(employee, Uuids.timeOrdered(NOW), POSITION, unit, unit, fromPosition, toPosition);
+
+        publish(event);
+        identityHandled(event);
+
+        List<Map<String, Object>> items = itemsAbout(user);
+        assertThat(items).hasSize(1);
+        assertThat(items.getFirst()).containsEntry("kind", "SENSITIVE_ROLE_REVIEW").containsEntry("trigger_field_kind", "POSITION")
+                .containsEntry("before_position_id", fromPosition).containsEntry("after_position_id", toPosition);
+    }
+
+    @Test
+    @DisplayName("#730 更正如转岗 4：同时改部门与岗位（触发字段部门与岗位）的更正，敏感角色复核一个字段一条（共两条），持有自定义部门角色时再加一条范围复核（部门字段），共三条")
+    void aCorrectionOfBothFieldsGivesOneSensitiveItemPerFieldAndTheScopeReview() throws Exception {
+        UUID head = employed(REGULAR);
+        UUID toUnit = headedUnit(head);
+        UUID employee = employedHolding(SECURITY_AUDITOR);
+        grantByOperations(employee, customRole("scoped-c4", unit));
+        UUID user = accountOf(employee);
+        EmployeeCorrected event = corrected(employee, Uuids.timeOrdered(NOW), BOTH, unit, toUnit, newPosition(), newPosition());
+
+        publish(event);
+        identityHandled(event);
+
+        assertThat(shapeOf(user)).containsExactly("SCOPE_REVIEW/ORG_UNIT", "SENSITIVE_ROLE_REVIEW/ORG_UNIT", "SENSITIVE_ROLE_REVIEW/POSITION");
+    }
+
+    @Test
+    @DisplayName("#730 更正如转岗 5：既不持有敏感角色也不持有自定义部门角色的人（只有 employee 与全公司范围角色）被更正不生成任何条目（对照：同一时刻持有敏感角色者的更正生成，证明监听器在跑）")
+    void aCorrectionOfAPersonWithNeitherGrantGivesNothing() throws Exception {
+        UUID plain = employedHolding();
+        grantByOperations(plain, roleWithScope("whole-c5-" + Uuids.timeOrdered(NOW).toString().substring(24), "ALL"));
+        UUID plainUser = accountOf(plain);
+        UUID holder = employedHolding(SECURITY_AUDITOR);
+        UUID holderUser = accountOf(holder);
+        EmployeeCorrected plainEvent = corrected(plain, Uuids.timeOrdered(NOW), BOTH, unit, newUnit(), newPosition(), newPosition());
+        EmployeeCorrected holderEvent = corrected(holder, Uuids.timeOrdered(NOW), UNIT, unit, newUnit(), null, null);
+
+        publish(plainEvent);
+        publish(holderEvent);
+        identityHandled(plainEvent);
+        identityHandled(holderEvent);
+
+        assertThat(itemsAbout(plainUser)).isEmpty();
+        assertThat(itemsAbout(holderUser)).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("#730 更正如转岗 6：同一更正事件重投递，以及同一更正命令的另一个事件，都不新增条目也不新增外发卡（三类条目各自去重）")
+    void aReplayOfACorrectionAddsNothing() throws Exception {
+        UUID head = employed(REGULAR);
+        UUID toUnit = headedUnit(head);
+        UUID employee = employedHolding(SECURITY_AUDITOR);
+        grantByOperations(employee, customRole("scoped-c6", unit));
+        UUID user = accountOf(employee);
+        UUID command = Uuids.timeOrdered(NOW);
+        UUID fromPosition = newPosition();
+        UUID toPosition = newPosition();
+        EmployeeCorrected event = corrected(employee, command, BOTH, unit, toUnit, fromPosition, toPosition);
+        EmployeeCorrected another = corrected(employee, command, BOTH, unit, toUnit, fromPosition, toPosition);
+
+        publish(event);
+        identityHandled(event);
+        List<String> first = shapeOf(user);
+        publish(event);
+        publish(another);
+        identityHandled(another);
+        identityHandled(event);
+
+        assertThat(first).containsExactly("SCOPE_REVIEW/ORG_UNIT", "SENSITIVE_ROLE_REVIEW/ORG_UNIT", "SENSITIVE_ROLE_REVIEW/POSITION");
+        assertThat(shapeOf(user)).isEqualTo(first);
+        assertThat(assignedCardsAbout(dueItemId(user, "SCOPE_REVIEW"))).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("#730 更正如转岗 7：触发字段为空（更正既没改部门也没改岗位）不生成任何条目，持有敏感角色和自定义部门角色也一样；事件处理完成不重试（对照：同一人的部门更正生成）")
+    void aCorrectionWithoutTriggerFieldsGivesNothing() throws Exception {
+        UUID employee = employedHolding(SECURITY_AUDITOR);
+        grantByOperations(employee, customRole("scoped-c7", unit));
+        UUID user = accountOf(employee);
+        EmployeeCorrected quiet = corrected(employee, Uuids.timeOrdered(NOW), List.of(), null, null, null, null);
+
+        publish(quiet);
+        identityHandled(quiet);
+
+        assertThat(itemsAbout(user)).isEmpty();
+        assertThat(publicationsOf(quiet.envelope().eventId().toString())).allSatisfy(row -> assertThat(row).containsEntry("status", "COMPLETED").containsEntry("completion_attempts", 1));
+        EmployeeCorrected moved = corrected(employee, Uuids.timeOrdered(NOW), UNIT, unit, newUnit(), null, null);
+        publish(moved);
+        identityHandled(moved);
+        assertThat(itemsAbout(user)).as("the listener runs").isNotEmpty();
+    }
+
+    @Test
+    @DisplayName("#730 更正如转岗 8：更正使在职者不再在职（更正前有部门、更正后没有）不生成任何条目（持有敏感角色和自定义部门角色也一样），不重试，也不记任何以 \"ALERT\" 开头的日志")
+    void aCorrectionThatSeparatesGivesNothingAndRaisesNoAlert() throws Exception {
+        UUID employee = employedHolding(SECURITY_AUDITOR);
+        grantByOperations(employee, customRole("scoped-c8", unit));
+        UUID user = accountOf(employee);
+        EmployeeCorrected event = endedEmployment(employee, Uuids.timeOrdered(NOW), unit, newPosition());
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        ListAppender<ILoggingEvent> logged = new ListAppender<>();
+        logged.start();
+        root.addAppender(logged);
+        try {
+            publish(event);
+            identityHandled(event);
+            publish(event);
+            identityHandled(event);
+        } finally {
+            root.detachAppender(logged);
+        }
+
+        assertThat(itemsAbout(user)).isEmpty();
+        assertThat(publicationsOf(event.envelope().eventId().toString())).allSatisfy(row -> assertThat(row).containsEntry("status", "COMPLETED").containsEntry("completion_attempts", 1));
+        assertThat(logged.list.stream().map(ILoggingEvent::getFormattedMessage).filter(message -> message.startsWith("ALERT")).toList()).as("no alert").isEmpty();
     }
 }

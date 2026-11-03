@@ -10,7 +10,7 @@
 
 红：当前 main 上第一条「应接受」的插入即被 `ck_permission_adjustments_assignment_change` 拒绝。绿：用 one-design 裁定的放宽后 CHECK 作为临时迁移跑，`PermissionAdjustment*IT` 30 条全绿（临时迁移不提交）。
 
-## 事件驱动（`organization/workforce/CorrectionUndoesSeparationReviewIT`，17 条，按 #1089 的 `EmployeeCorrected` 最终载荷）
+## 事件驱动（`organization/workforce/CorrectionUndoesSeparationReviewIT`，25 条，按 #1089 的 `EmployeeCorrected` 最终载荷）
 
 | 测试 | 对应 |
 |---|---|
@@ -53,5 +53,23 @@ Red on baseline: all 8 fail (timeout waiting for the item or for identity to han
 
 Not covered / doubts:
 - Case 2 (role with LISTED legal entities): the role schema on main has no such scope (`access_scope_kind` is ALL, CUSTOM_ORG_UNITS, OWN_ORG_UNIT, OWN_ORG_UNIT_SUBTREE, SELF, SELF_AND_DIRECT_REPORTS), so no fixture can be built; to be added when the scope exists. Question for one-design.
-- The ASSIGNED card of case 1 is asserted to go to exactly the new head's WeCom user id (`recipient_codes`, one element), per ruling 6602940790.
+- The ASSIGNED card of case 1 is asserted to go to exactly the new head's WeCom user id (through the `WecomGateway` mock: one `WecomCard` with purpose PERMISSION_ADJUSTMENT_ASSIGNED and the item id, one WeCom user id; acceptance tests mock the gateway, so nothing reaches the delivery table), per ruling 6602940790.
 - Source 2 (ORG_UNIT_INACTIVE generation) has no acceptance, by ruling.
+
+## EmployeeCorrected behaves like a transfer (ruling #730 comment 6604000297)
+
+`EmployeeCorrected` on main already carries `triggerFieldKinds` and the before/after department and position, so none of the cases waits for #1089.
+
+| Ruling case | Case |
+|---|---|
+| 1 department correction, sensitive holder: one SENSITIVE_ROLE_REVIEW (field ORG_UNIT, trigger command, before/after unit, no recipient) | `aDepartmentCorrectionOfASensitiveHolderGivesOneSensitiveItem` |
+| 2 also a CUSTOM_ORG_UNITS grant: plus one SCOPE_REVIEW, recipient head of Y, one assigned card to that head | `aDepartmentCorrectionOfASensitiveAndScopedHolderAlsoGivesAScopeReviewForTheNewHead` |
+| 3 position-only: one SENSITIVE_ROLE_REVIEW (field POSITION, before/after position), no scope review although the person holds a scoped grant | `aPositionCorrectionGivesOnePositionItemAndNoScopeReview` |
+| 4 both fields: two sensitive items (one per field) plus the scope item | `aCorrectionOfBothFieldsGivesOneSensitiveItemPerFieldAndTheScopeReview` |
+| 5 neither a sensitive role nor a scoped grant: no row (control: a holder's correction raises one) | `aCorrectionOfAPersonWithNeitherGrantGivesNothing` |
+| 6 replay and a second event of the same command: no new rows, no new card | `aReplayOfACorrectionAddsNothing` |
+| 7 empty `triggerFieldKinds`: no row, completed once (control: a department correction raises one) | `aCorrectionWithoutTriggerFieldsGivesNothing` |
+| 8 correction that separates: no row, completed once, no log line starting with `ALERT` | `aCorrectionThatSeparatesGivesNothingAndRaisesNoAlert` |
+| 9 undone separation as ADR-0082 | already `anUndoneSeparationGivesOnePersonItemForAHolderOfSensitiveRoles` (A-U1) and the undone half of `aCorrectionOfTheDepartmentFollowsTheSameRule` |
+
+Not covered: the dedupe of a transfer against a correction of the same person (different commands, so no dedupe; only stated by the ruling).
