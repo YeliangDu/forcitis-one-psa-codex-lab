@@ -1,7 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.AccountEmployees;
-import com.forcitis.one.kernel.AccountRoles;
+import com.forcitis.one.kernel.RoleHolders;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
@@ -32,12 +32,12 @@ class CountersignEscalationNotice {
     private static final String TARGET_URL = "https://one.forcitis.com/";
 
     private final AttributionCountersignRepository countersigns;
-    private final AccountRoles roles;
+    private final RoleHolders roles;
     private final AccountEmployees accountEmployees;
     private final OrgDirectory directory;
     private final WecomGateway wecom;
 
-    CountersignEscalationNotice(AttributionCountersignRepository countersigns, AccountRoles roles, AccountEmployees accountEmployees, OrgDirectory directory, WecomGateway wecom) {
+    CountersignEscalationNotice(AttributionCountersignRepository countersigns, RoleHolders roles, AccountEmployees accountEmployees, OrgDirectory directory, WecomGateway wecom) {
         this.countersigns = countersigns;
         this.roles = roles;
         this.accountEmployees = accountEmployees;
@@ -65,8 +65,8 @@ class CountersignEscalationNotice {
     private static DeliveryPurpose purpose(int level) {
         return switch (level) {
             case 1 -> DeliveryPurpose.COUNTERSIGN_OVERDUE_REMINDER;
-            case 2 -> DeliveryPurpose.COUNTERSIGN_ESCALATED_LEVEL_TWO;
-            case AttributionCountersign.LAST_ESCALATION_LEVEL -> DeliveryPurpose.COUNTERSIGN_ESCALATED_LEVEL_THREE;
+            case 2 -> DeliveryPurpose.COUNTERSIGN_ESCALATED_TO_ADMINS;
+            case AttributionCountersign.LAST_ESCALATION_LEVEL -> DeliveryPurpose.COUNTERSIGN_ESCALATED_FINAL;
             default -> throw new IllegalArgumentException("no notice for escalation level " + level);
         };
     }

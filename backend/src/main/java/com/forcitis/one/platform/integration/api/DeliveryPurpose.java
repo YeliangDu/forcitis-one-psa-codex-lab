@@ -14,8 +14,8 @@ public enum DeliveryPurpose {
     ACCOUNT_DISABLE_NOTICE(DeliverySubjectKind.USER_ACCOUNT, true),
     PERMISSION_ADJUSTMENT_ASSIGNED(DeliverySubjectKind.PERMISSION_ADJUSTMENT, false),
     COUNTERSIGN_OVERDUE_REMINDER(DeliverySubjectKind.ATTRIBUTION_COUNTERSIGN, false),
-    COUNTERSIGN_ESCALATED_LEVEL_TWO(DeliverySubjectKind.ATTRIBUTION_COUNTERSIGN, false),
-    COUNTERSIGN_ESCALATED_LEVEL_THREE(DeliverySubjectKind.ATTRIBUTION_COUNTERSIGN, false);
+    COUNTERSIGN_ESCALATED_TO_ADMINS(DeliverySubjectKind.ATTRIBUTION_COUNTERSIGN, false),
+    COUNTERSIGN_ESCALATED_FINAL(DeliverySubjectKind.ATTRIBUTION_COUNTERSIGN, false);
 
     private final DeliverySubjectKind subjectKind;
     private final boolean perEvent;

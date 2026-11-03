@@ -34,7 +34,7 @@ class EscalateCountersign {
     }
 
     @Transactional
-    void execute(AttributionCountersignId id, LocalDate today) {
+    public void execute(AttributionCountersignId id, LocalDate today) {
         AttributionCountersign row = countersigns.find(id).orElseThrow(() -> new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_COUNTERSIGN_NOT_FOUND, ErrorKind.NOT_FOUND,
                 "no countersign request " + id.value()));
         if (!row.isOpen()) {

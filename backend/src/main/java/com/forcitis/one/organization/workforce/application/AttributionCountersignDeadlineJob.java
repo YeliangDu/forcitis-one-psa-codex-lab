@@ -33,7 +33,7 @@ public class AttributionCountersignDeadlineJob {
     }
 
     @Scheduled(cron = "0 10 0 * * *", zone = "Asia/Shanghai")
-    @SchedulerLock(name = "organization.workforce.attribution-countersign.deadline", lockAtMostFor = "PT10M")
+    @SchedulerLock(name = "organization.workforce.countersign.deadline", lockAtMostFor = "PT10M")
     public void run() {
         runOnce();
     }
