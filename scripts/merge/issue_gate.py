@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""post_review 的前置检查：PR 关联的 Issue 须已排期（定稿 1.8 第 5 点；二乙 #24）。只读：gh pr view 取正文首行与 GitHub 算出的关闭集合，gh issue view 只取状态与标签。
+"""post_review 的前置检查：PR 关联的 Issue 须已排期（定稿 1.8 第 5 点；二乙 #24）。只读：gh pr view 取正文首行与 GitHub 算出的关闭集合，gh issue view 只取状态、标签与标题。
 PR 正文首行须恰为「Closes #<卡号>」（与 .github/pull_request_template.md 一致），或「Refs #<卡号>」（卡 #736：只关联不关卡）；本脚本不解析正文其余部分，改问 GitHub 这个 PR 实际会关闭哪些 Issue
 （gh pr view --json closingIssuesReferences）：Closes 时集合须恰为首行那一张卡且与本 PR 同仓库（owner、name 比较不分大小写），多一张、少一张、号不一致、跨仓库都拒；
 Refs 时集合须为空（正文别处写了 Closes 等于要关卡，须写在首行）。两种写法首行那张卡都须已排期。
@@ -50,6 +50,14 @@ def title_problem(title, body):
     return None
 
 
+def issue_title_problem(title):
+    """卡（Issue）标题须为「类型(范围): 含中文的摘要」（CS-7.8，与 PR 标题同形、不带（#卡号））；合格返回 None，否则返回原因。标题缺失或不是字符串也拒（失败关闭）。"""
+    head = TITLE_HEAD.fullmatch(title) if isinstance(title, str) else None
+    if head is None or not CJK.search(head.group("summary")):
+        return f"的标题须为「类型(范围): 中文摘要」（范围可省，摘要含中文，冒号后一个空格；CS-7.8），现为 {title!r}"
+    return None
+
+
 def closing_mismatch(pr, run, scope, num, refs_only=False):
     """GitHub 算出的关闭集合恰为本仓库的 #num（首行 Refs 时须为空）返回 None，否则返回原因。"""
     refs = (fetch(run, ["pr", "view", str(pr), *scope, "--json", "closingIssuesReferences"]) or {}).get("closingIssuesReferences")
@@ -86,7 +94,7 @@ def unscheduled(pr, run, scope):
         return why + "，拒绝提交"
     if (why := closing_mismatch(pr, run, scope, num, link.group(1) == "Refs")) is not None:
         return why
-    issue = fetch(run, ["issue", "view", num, *scope, "--json", "state,labels"])
+    issue = fetch(run, ["issue", "view", num, *scope, "--json", "state,labels,title"])
     if issue is None:
         return f"读不到 Issue #{num}（gh 不可用、出错或输出不是 JSON 对象），拒绝提交（失败关闭）"
     labels = issue.get("labels")
@@ -99,4 +107,6 @@ def unscheduled(pr, run, scope):
         return f"Issue #{num} 带「{HANG}」或「{HOLD}」标签，未排期，拒绝提交"
     if len([n for n in names if n.startswith(SESSION) and n[len(SESSION):].strip()]) != 1:
         return f"Issue #{num} 没有恰好一个「{SESSION}<名>」标签（待做或归属不明），拒绝提交"
+    if (why := issue_title_problem(issue.get("title"))) is not None:
+        return f"Issue #{num} {why}，拒绝提交"
     return None

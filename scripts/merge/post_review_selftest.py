@@ -46,13 +46,13 @@ class Stub:
 
     def __init__(self, heads=(SHA,), view_rc=0, review_rc=0, post_out=None, edit_rc=0,
                  labels=(), labels_rc=0, labels_out=None, reviews=(), reviews_rc=0, reviews_out=None,
-                 body=BODY, body_rc=0, body_out=None, issue_state="OPEN", issue_labels=(SESSION_LABEL,), issue_rc=0, issue_out=None,
+                 body=BODY, body_rc=0, body_out=None, issue_state="OPEN", issue_labels=(SESSION_LABEL,), issue_rc=0, issue_out=None, issue_title="fix(q): 修复排队",
                  refs=None, refs_rc=0, refs_out=None, home_out=None, files=("docs/notes.md",), files_rc=0, files_out=None, title=None):
         self.title = title
         self.files, self.files_rc, self.files_out = files, files_rc, files_out   # PR 改动的文件（#856：守护类由 final_paths 判定）；缺省不命中
         self.body, self.body_rc, self.body_out = body, body_rc, body_out   # 关联 Issue 检查（#24）：PR 正文、GitHub 算的关闭集合与 Issue 的桩；缺省为已排期
         self.refs, self.refs_rc, self.refs_out, self.home_out = refs, refs_rc, refs_out, home_out
-        self.issue_state, self.issue_labels, self.issue_rc, self.issue_out = issue_state, issue_labels, issue_rc, issue_out
+        self.issue_state, self.issue_labels, self.issue_rc, self.issue_out, self.issue_title = issue_state, issue_labels, issue_rc, issue_out, issue_title
         self.calls, self.heads, self.view_rc, self.review_rc, self.post_out = [], list(heads), view_rc, review_rc, post_out
         self.edit_rc, self.labels, self.labels_rc, self.labels_out = edit_rc, labels, labels_rc, labels_out
         self.reviews, self.reviews_rc, self.reviews_out = list(reviews), reviews_rc, reviews_out
@@ -71,7 +71,7 @@ class Stub:
         if args[:2] == ["pr", "view"] and "body,title" in args:
             return self.body_rc, json.dumps({"body": self.body, "title": self.title if self.title is not None else f"fix(x): 修复（#{(re.match(r'(?:Closes|Refs) #(\d+)', str(self.body)) or [0, ISSUE])[1]}）"}) if self.body_out is None else self.body_out
         if args[:2] == ["issue", "view"]:
-            out = json.dumps({"state": self.issue_state, "labels": [{"name": n} for n in self.issue_labels]})
+            out = json.dumps({"state": self.issue_state, "labels": [{"name": n} for n in self.issue_labels], "title": self.issue_title})
             return self.issue_rc, out if self.issue_out is None else self.issue_out
         if args[:2] == ["pr", "view"] and "labels" in args:
             out = json.dumps({"labels": [{"name": n} for n in self.labels]})
@@ -325,7 +325,7 @@ def case_issue_scheduled_passes():
     s = Stub()
     assert run(s, repo="o/r")[0] == 0 and s.edits()[0][-2:] == [pr_mod.ADD_FLAG, LABEL]
     issue_calls = [c[0] for c in s.calls if c[0][0] == "issue"]
-    assert issue_calls == [["issue", "view", str(ISSUE), "-R", "o/r", "--json", "state,labels"]], issue_calls   # 只读，不取正文
+    assert issue_calls == [["issue", "view", str(ISSUE), "-R", "o/r", "--json", "state,labels,title"]], issue_calls   # 只读，不取正文
     s = Stub(issue_labels=(SESSION_LABEL, "enhancement"))   # 其他标签不碍事
     assert run(s)[0] == 0
     for verdict, reviewer in ((FIX, R1), (PASS, R2)):
@@ -342,6 +342,16 @@ def case_issue_pending_or_hung_refused():
     assert "待做" in refused(Stub(issue_labels=()))
     assert "不是 open" in refused(Stub(issue_state="CLOSED"))
     assert "不是 open" in refused(Stub(issue_state=None))
+
+
+def case_issue_title_refused():
+    """卡标题不合 CS-7.8（类型(范围): 中文摘要）一律拒；改成合格后同一桩放行（#1158）。"""
+    for title in ("fix the thing", "fix: fix the thing", "修复排队", "fix（q）: 修复", "fix(q):修复", "Fix(q): 修复", "fix(q): ", None, 7):
+        for reviewer, guard in ((R1, False), (R2, True)):
+            msg = refused(Stub(issue_title=title), reviewer=reviewer, guard=guard)
+            assert "拒绝提交" in msg and f"#{ISSUE}" in msg and "标题" in msg and "CS-7.8" in msg, (title, msg)
+    for title in ("fix(q): 修复排队", "feat: 加一个检查", "ci(merge): 入队查验收守卫，后端词表改动触发前端用语检查"):
+        assert run(Stub(issue_title=title))[0] == 0, title
 
 
 def case_issue_not_scheduled_fix_still_posts():
