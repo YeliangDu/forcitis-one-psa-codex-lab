@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
+import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.InvalidCursorException;
 import com.forcitis.one.kernel.LegalEntityId;
@@ -7,6 +8,7 @@ import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.CountersignReadQueries;
 import com.forcitis.one.organization.workforce.domain.OrgCountersignBasis;
+import java.time.Clock;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,9 +22,13 @@ import org.springframework.stereotype.Repository;
 @Repository
 class JdbcCountersignReadQueries implements CountersignReadQueries {
     private final JdbcClient jdbc;
+    private final Clock clock;
+    private final BusinessZone zone;
 
-    JdbcCountersignReadQueries(JdbcClient jdbc) {
+    JdbcCountersignReadQueries(JdbcClient jdbc, Clock clock, BusinessZone zone) {
         this.jdbc = jdbc;
+        this.clock = clock;
+        this.zone = zone;
     }
 
     @Override
@@ -49,7 +55,13 @@ class JdbcCountersignReadQueries implements CountersignReadQueries {
 
     @Override
     public Optional<String> orgUnitName(OrgUnitId orgUnit) {
-        return jdbc.sql("select name from organization_workforce.org_units where id = :id").param("id", orgUnit.value()).query(String.class).optional();
+        return jdbc.sql("""
+                select coalesce(v.name, u.name) as name
+                  from organization_workforce.org_units u
+                  left join organization_workforce.org_unit_versions v on v.org_unit_id = u.id and v.superseded_at is null
+                       and v.effective_from_date <= :day and (v.effective_to_date is null or :day < v.effective_to_date)
+                 where u.id = :id
+                """).param("id", orgUnit.value()).param("day", zone.today(clock)).query(String.class).optional();
     }
 
     @Override
