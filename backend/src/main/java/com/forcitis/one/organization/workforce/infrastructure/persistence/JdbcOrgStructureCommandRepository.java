@@ -88,7 +88,7 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     public boolean hasAttributionAfter(OrgUnitId orgUnit, LocalDate day) {
         return jdbc.sql("""
                 select 1 from organization_workforce.org_unit_legal_entities
-                 where org_unit_id = :unit and superseded_at is null and effective_from_date >= :day
+                 where org_unit_id = :unit and superseded_at is null and (effective_from_date >= :day or effective_to_date > :day)
                 """).param("unit", orgUnit.value()).param("day", day).query(Integer.class).optional().isPresent();
     }
 
@@ -279,10 +279,10 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
 
     @Override
     public void voidAttribution(OrgUnitId orgUnit, OrgStructureCommandId command, AuditEntryId audit, Instant at) {
-        record Closed(UUID id, UUID legalEntity, LocalDate from, LocalDate to) {
+        record Closed(UUID id, UUID legalEntity, LocalDate from, @Nullable LocalDate commandEnd) {
         }
         List<Closed> closedByCommand = jdbc.sql("""
-                select p.org_unit_legal_entity_id, p.legal_entity_id, p.effective_from_date, p.effective_to_date
+                select p.org_unit_legal_entity_id, p.legal_entity_id, p.effective_from_date, w.effective_to_date
                   from organization_workforce.org_unit_legal_entities p
                   join organization_workforce.org_unit_legal_entities w on w.org_unit_id = p.org_unit_id and w.effective_from_date = p.effective_to_date
                  where p.org_unit_id = :unit and p.superseded_at is null and w.superseded_at is null and w.change_org_structure_command_id = :command
@@ -295,7 +295,7 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
                 """).param("at", at(at)).param("command", command.value()).param("unit", orgUnit.value())
                 .param("closed", closedByCommand.isEmpty() ? List.of(command.value()) : closedByCommand.stream().map(Closed::id).toList()).update();
         for (Closed period : closedByCommand) {
-            insertPeriod(ids.next(), orgUnit, new LegalEntityId(period.legalEntity()), period.from(), null, command, audit, period.id(), at);
+            insertPeriod(ids.next(), orgUnit, new LegalEntityId(period.legalEntity()), period.from(), period.commandEnd(), command, audit, period.id(), at);
         }
     }
 

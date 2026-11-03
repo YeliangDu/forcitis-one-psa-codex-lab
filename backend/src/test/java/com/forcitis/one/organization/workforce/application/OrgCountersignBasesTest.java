@@ -57,7 +57,7 @@ class OrgCountersignBasesTest {
     }
 
     /** The person sits in UNIT; UNIT has no entity of its own and is below OLD_PARENT (attributed to ENTITY or not); NEW_PARENT has none. */
-    private void world(boolean oldParentAttributed) {
+    private void world(boolean oldParentAttributed, boolean newParentAttributed) {
         when(commands.currentUnitRows()).thenReturn(Map.of(UNIT.value(), List.of(new VersionRow(UUID.randomUUID(), TODAY.minusYears(1), null,
                 Map.of(OrgEffects.LIFECYCLE, "ACTIVE", OrgEffects.PARENT, OLD_PARENT.value()), ChangeSource.MIGRATION, null, false, null))));
         when(commands.employedIn(UNIT, DAY)).thenReturn(List.of(PERSON));
@@ -67,14 +67,14 @@ class OrgCountersignBasesTest {
         when(sources.parentUnit(UNIT, DAY)).thenReturn(Optional.of(OLD_PARENT));
         when(sources.orgUnitAttribution(OLD_PARENT, DAY)).thenReturn(oldParentAttributed ? Optional.of(ENTITY) : Optional.empty());
         when(sources.parentUnit(OLD_PARENT, DAY)).thenReturn(Optional.empty());
-        when(sources.orgUnitAttribution(NEW_PARENT, DAY)).thenReturn(Optional.empty());
+        when(sources.orgUnitAttribution(NEW_PARENT, DAY)).thenReturn(newParentAttributed ? Optional.of(ENTITY) : Optional.empty());
         when(sources.parentUnit(NEW_PARENT, DAY)).thenReturn(Optional.empty());
     }
 
     @Test
     @DisplayName("#910 design ruling: a person who has an entity before and would have none after is refused with the legal entity conflict error, nothing is returned")
     void leavingSomeoneWithoutAnEntityIsRefused() {
-        world(true);
+        world(true, false);
 
         assertThatThrownBy(() -> bases.of(reparentUnderNewParent())).isInstanceOfSatisfying(DomainException.class,
                 refused -> assertThat(refused.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_ORG_LEGAL_ENTITY_CONFLICT));
@@ -83,7 +83,7 @@ class OrgCountersignBasesTest {
     @Test
     @DisplayName("#910 design ruling: a person who has no entity before (first attribution) is not a change: no basis row, no request")
     void aFirstAttributionHasNoBasisRow() {
-        world(false);
+        world(false, true);
 
         assertThat(bases.of(reparentUnderNewParent())).isEmpty();
     }

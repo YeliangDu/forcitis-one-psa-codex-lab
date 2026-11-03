@@ -42,7 +42,7 @@ public interface OrgStructureCommandRepository {
 
     boolean legalEntityExists(LegalEntityId legalEntity);
 
-    /** Whether the unit has an attribution period that starts on or after the day: appending a period from that day would need the W2 void-and-append split, which is not built. */
+    /** Whether the unit has an attribution period that starts on or after the day, or a closed one that ends after it: appending a period from that day would need the W2 void-and-append split, which is not built. */
     boolean hasAttributionAfter(OrgUnitId orgUnit, LocalDate day);
 
     /** Whether any position, current or not, ever had the code (codes are company-unique and never reused). */
@@ -79,7 +79,7 @@ public interface OrgStructureCommandRepository {
     void attributeUnit(OrgUnitId orgUnit, LegalEntityId legalEntity, LocalDate from, OrgStructureCommandId command, AuditEntryId audit, Instant at);
 
     /**
-     * Takes back every period the command wrote (a withdrawal): superseded, not deleted; a period the command closed is superseded and appended again as it was, open,
+     * Takes back every period the command wrote (a withdrawal): superseded, not deleted; a period the command closed is superseded and appended again as it was, up to where the command's own period ended (open when no later command followed),
      * so the unit belongs to the entity it did before the command.
      */
     void voidAttribution(OrgUnitId orgUnit, OrgStructureCommandId command, AuditEntryId audit, Instant at);
