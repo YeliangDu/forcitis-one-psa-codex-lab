@@ -70,10 +70,17 @@ class OrgCountersignTablesIntegrationTest extends WorkforceIntegrationSupport {
                 + ", 'DISSOLVE', 'ORG_UNIT', " + UNIT + ", date '2026-12-15', 'PENDING', now(), " + DRAFTER + ", now())").update();
     }
 
+    /** The employee's PRIMARY root (created when missing), as a SQL expression for the target assignment of a transfer (#711). */
+    private String primaryRoot(String employee) {
+        jdbc.sql("insert into organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at)"
+                + " select uuidv7(), id, 'PRIMARY', now(), now() from organization_workforce.employees where id = " + employee + " on conflict (employee_id) where assignment_kind = 'PRIMARY' do nothing").update();
+        return "(select assignment_id from organization_workforce.employee_assignments where employee_id = " + employee + " and assignment_kind = 'PRIMARY')";
+    }
+
     private String transferSql(String employee, String orgCommand, String status) {
-        return "insert into " + PC + " (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id, org_structure_command_id, created_at, created_by, updated_at"
+        return "insert into " + PC + " (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id, target_assignment_id, target_assignment_kind, org_structure_command_id, created_at, created_by, updated_at"
                 + (status.equals("AWAITING_ATTRIBUTION_COUNTERSIGN") ? ", countersign_previous_legal_entity_id, countersign_new_legal_entity_id" : "") + ") values (gen_random_uuid(), "
-                + employee + ", 'TRANSFER', " + day + ", '" + status + "', " + OTHER_UNIT + ", " + orgCommand + ", now(), " + DRAFTER + ", now()"
+                + employee + ", 'TRANSFER', " + day + ", '" + status + "', " + OTHER_UNIT + ", " + primaryRoot(employee) + ", 'PRIMARY', " + orgCommand + ", now(), " + DRAFTER + ", now()"
                 + (status.equals("AWAITING_ATTRIBUTION_COUNTERSIGN") ? ", " + ENTITY_A + ", " + ENTITY_B : "") + ")";
     }
 

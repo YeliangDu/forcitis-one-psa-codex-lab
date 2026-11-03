@@ -85,7 +85,7 @@ class AttributionCountersignServiceTest {
         when(currentUser.employeeId()).thenReturn(DECIDER_EMPLOYEE);
         when(commands.lockEmployee(any())).thenReturn(true);
         PersonnelCommand awaiting = PersonnelCommand.restore(COMMAND, EMPLOYEE, PersonnelCommandKind.CHANGE_LEGAL_ENTITY, TODAY.plusDays(5),
-                CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN, null, null, null, null, null, E2, E1, E2, DRAFTER, NOW, null, 0, 0);
+                CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN, null, null, null, null, null, E2, E1, E2, null, null, DRAFTER, NOW, null, 0, 0);
         when(commands.find(COMMAND)).thenReturn(Optional.of(awaiting));
         AttributionCountersign one = row(ROW1, E1, 2, DRAFTER);
         AttributionCountersign two = row(ROW2, E2, 0, DRAFTER);
@@ -132,7 +132,7 @@ class AttributionCountersignServiceTest {
     @DisplayName("#895 user answer Q2: the due-date step lapses the withdrawal requests of a countersigned command that are still open")
     void theDayLapsesOpenWithdrawalRequests() {
         PersonnelCommand pending = PersonnelCommand.restore(COMMAND, EMPLOYEE, PersonnelCommandKind.CHANGE_LEGAL_ENTITY, TODAY, CommandStatus.PENDING,
-                null, null, null, null, null, E2, E1, E2, DRAFTER, NOW, null, 0, 0);
+                null, null, null, null, null, E2, E1, E2, null, null, DRAFTER, NOW, null, 0, 0);
         when(commands.find(COMMAND)).thenReturn(Optional.of(pending));
         ApplyDueCommand due = new ApplyDueCommand(commands, new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(LegalEntityResolutionSources.class), requests,
                 countersigns, mock(DomainEvents.class), ids, clock, zone);
@@ -147,7 +147,7 @@ class AttributionCountersignServiceTest {
     @DisplayName("#895 a correction dated after today is effective at the last approval, and its events leave there: no due-date step looks at an effective command")
     void aFutureCorrectionPublishesWhenCountersigned() {
         PersonnelCommand correction = PersonnelCommand.restore(COMMAND, EMPLOYEE, PersonnelCommandKind.CORRECTION, TODAY.plusDays(5),
-                CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN, null, null, null, null, null, E2, E1, E2, DRAFTER, NOW, null, 0, 0);
+                CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN, null, null, null, null, null, E2, E1, E2, null, null, DRAFTER, NOW, null, 0, 0);
         AttributionCountersign open = row(ROW1, E1, 0, DRAFTER);
         AttributionCountersign approved = AttributionCountersign.restore(ROW2, COMMAND, EMPLOYEE, DRAFTER, CountersignRequestKind.CHANGE, 1, E2, NOW, DRAFTER,
                 TODAY.plusDays(3), 0, null, 1, "APPROVED", NOW, DECIDER, null);
@@ -158,7 +158,7 @@ class AttributionCountersignServiceTest {
         when(bases.of(any(), any())).thenReturn(Optional.of(new CountersignBases.Basis(E1, E2)));
         VersionRow employed = new VersionRow(UUID.fromString("019a0000-0000-7000-8000-0000000000b1"), TODAY.minusDays(100), null,
                 Map.of(CommandEffects.EMPLOYMENT, "EMPLOYED"), ChangeSource.MIGRATION, null, false);
-        when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(employed), List.of(), List.of(), List.of(), Map.of()));
+        when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(employed), List.of(), List.of(), List.of(), List.of(), Map.of()));
 
         service.approve(new ApproveAttributionCountersign(ROW1, null));
 
@@ -170,7 +170,7 @@ class AttributionCountersignServiceTest {
     @DisplayName("#895 ADR-0073 item 3.5: the employee whose legal entity changed cannot ask to take the change back; the guard that refuses the entry refuses this too")
     void theEmployeeCannotAskToWithdrawTheirOwnChange() {
         PersonnelCommand countersigned = PersonnelCommand.restore(COMMAND, EMPLOYEE, PersonnelCommandKind.CHANGE_LEGAL_ENTITY, TODAY.plusDays(5), CommandStatus.PENDING,
-                null, null, null, null, null, E2, E1, E2, DRAFTER, NOW, null, 0, 0);
+                null, null, null, null, null, E2, E1, E2, null, null, DRAFTER, NOW, null, 0, 0);
         when(commands.find(COMMAND)).thenReturn(Optional.of(countersigned));
         org.mockito.Mockito.doThrow(new DomainException(com.forcitis.one.organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_OWN_ATTRIBUTION_FORBIDDEN,
                 ErrorKind.FORBIDDEN, "own")).when(ownGuard).requireNotOwn(any(), any());

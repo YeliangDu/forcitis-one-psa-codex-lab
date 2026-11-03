@@ -49,7 +49,7 @@ class CountersignRequestsTest {
     private static PersonnelCommand countersigned() {
         return PersonnelCommand.restore(new PersonnelCommandId(UUID.fromString("019a0000-0000-7000-8000-0000000000c1")),
                 new EmployeeId(UUID.fromString("019a0000-0000-7000-8000-000000000001")), PersonnelCommandKind.CHANGE_LEGAL_ENTITY, LocalDate.of(2026, 11, 9),
-                CommandStatus.PENDING, null, null, null, null, null, E2, E1, E2, new UserId(UUID.fromString("019a0000-0000-7000-8000-0000000000aa")), NOW, null, 0, 0);
+                CommandStatus.PENDING, null, null, null, null, null, E2, E1, E2, null, null, new UserId(UUID.fromString("019a0000-0000-7000-8000-0000000000aa")), NOW, null, 0, 0);
     }
 
     @Test

@@ -51,6 +51,15 @@ organization.workforce::api organization.workforce.api.ApproveAttributionCounter
 organization.workforce::api organization.workforce.api.ApproveAttributionCountersign public java.lang.String organization.workforce.api.ApproveAttributionCountersign.reason()
 organization.workforce::api organization.workforce.api.ApproveAttributionCountersign public organization.workforce.api.ApproveAttributionCountersign(organization.workforce.api.AttributionCountersignId,java.lang.String)
 organization.workforce::api organization.workforce.api.ApproveAttributionCountersign public organization.workforce.api.AttributionCountersignId organization.workforce.api.ApproveAttributionCountersign.attributionCountersignId()
+organization.workforce::api organization.workforce.api.AssignmentId component value: java.util.UUID
+organization.workforce::api organization.workforce.api.AssignmentId extends java.lang.Record
+organization.workforce::api organization.workforce.api.AssignmentId public final boolean organization.workforce.api.AssignmentId.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.AssignmentId public final int organization.workforce.api.AssignmentId.hashCode()
+organization.workforce::api organization.workforce.api.AssignmentId public final record organization.workforce.api.AssignmentId
+organization.workforce::api organization.workforce.api.AssignmentId public java.lang.String organization.workforce.api.AssignmentId.toString()
+organization.workforce::api organization.workforce.api.AssignmentId public java.util.UUID organization.workforce.api.AssignmentId.value()
+organization.workforce::api organization.workforce.api.AssignmentId public organization.workforce.api.AssignmentId(java.util.UUID)
+organization.workforce::api organization.workforce.api.AssignmentId public static organization.workforce.api.AssignmentId organization.workforce.api.AssignmentId.parse(java.lang.String)
 organization.workforce::api organization.workforce.api.AttributionCountersignId component value: java.util.UUID
 organization.workforce::api organization.workforce.api.AttributionCountersignId extends java.lang.Record
 organization.workforce::api organization.workforce.api.AttributionCountersignId public final boolean organization.workforce.api.AttributionCountersignId.equals(java.lang.Object)
@@ -231,6 +240,7 @@ organization.workforce::api organization.workforce.api.EnterPersonnelCommand com
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component gender: organization.workforce.api.Gender
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component isTargetFeeEarner: java.lang.Boolean
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component lastWorkingDay: java.time.LocalDate
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetAssignmentId: organization.workforce.api.AssignmentId
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetEmploymentPhaseKind: organization.workforce.api.EmploymentPhaseKind
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetLegalEntityId: kernel.LegalEntityId
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetOrgUnitId: organization.workforce.api.OrgUnitId
@@ -251,9 +261,10 @@ organization.workforce::api organization.workforce.api.EnterPersonnelCommand pub
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public kernel.EmployeeId organization.workforce.api.EnterPersonnelCommand.targetReportsToEmployeeId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public kernel.LegalEntityId organization.workforce.api.EnterPersonnelCommand.targetLegalEntityId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public kernel.WecomUserId organization.workforce.api.EnterPersonnelCommand.wecomUserId()
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.AssignmentId organization.workforce.api.EnterPersonnelCommand.targetAssignmentId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.EmploymentPhaseKind organization.workforce.api.EnterPersonnelCommand.targetEmploymentPhaseKind()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.EnterPersonnelCommand(kernel.EmployeeId,organization.workforce.api.PersonnelCommandKind,java.time.LocalDate,java.time.LocalDate,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,kernel.EmployeeId,java.lang.Boolean,organization.workforce.api.EmploymentPhaseKind,java.lang.String,organization.workforce.api.Gender,java.lang.String,kernel.WecomUserId)
-organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.EnterPersonnelCommand(kernel.EmployeeId,organization.workforce.api.PersonnelCommandKind,java.time.LocalDate,java.time.LocalDate,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,kernel.EmployeeId,java.lang.Boolean,organization.workforce.api.EmploymentPhaseKind,kernel.LegalEntityId,java.lang.String,organization.workforce.api.Gender,java.lang.String,kernel.WecomUserId)
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.EnterPersonnelCommand(kernel.EmployeeId,organization.workforce.api.PersonnelCommandKind,java.time.LocalDate,java.time.LocalDate,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,kernel.EmployeeId,java.lang.Boolean,organization.workforce.api.EmploymentPhaseKind,kernel.LegalEntityId,java.lang.String,organization.workforce.api.Gender,java.lang.String,kernel.WecomUserId,organization.workforce.api.AssignmentId)
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.Gender organization.workforce.api.EnterPersonnelCommand.gender()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.OrgUnitId organization.workforce.api.EnterPersonnelCommand.targetOrgUnitId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.PersonnelCommandKind organization.workforce.api.EnterPersonnelCommand.commandKind()
@@ -385,10 +396,12 @@ organization.workforce::api organization.workforce.api.PersonnelCommandKind exte
 organization.workforce::api organization.workforce.api.PersonnelCommandKind public final enum organization.workforce.api.PersonnelCommandKind
 organization.workforce::api organization.workforce.api.PersonnelCommandKind public static final organization.workforce.api.PersonnelCommandKind organization.workforce.api.PersonnelCommandKind.CHANGE_LEGAL_ENTITY
 organization.workforce::api organization.workforce.api.PersonnelCommandKind public static final organization.workforce.api.PersonnelCommandKind organization.workforce.api.PersonnelCommandKind.CORRECTION
+organization.workforce::api organization.workforce.api.PersonnelCommandKind public static final organization.workforce.api.PersonnelCommandKind organization.workforce.api.PersonnelCommandKind.END_CONCURRENT
 organization.workforce::api organization.workforce.api.PersonnelCommandKind public static final organization.workforce.api.PersonnelCommandKind organization.workforce.api.PersonnelCommandKind.HIRE
 organization.workforce::api organization.workforce.api.PersonnelCommandKind public static final organization.workforce.api.PersonnelCommandKind organization.workforce.api.PersonnelCommandKind.REGULARIZE
 organization.workforce::api organization.workforce.api.PersonnelCommandKind public static final organization.workforce.api.PersonnelCommandKind organization.workforce.api.PersonnelCommandKind.REINSTATE
 organization.workforce::api organization.workforce.api.PersonnelCommandKind public static final organization.workforce.api.PersonnelCommandKind organization.workforce.api.PersonnelCommandKind.SEPARATE
+organization.workforce::api organization.workforce.api.PersonnelCommandKind public static final organization.workforce.api.PersonnelCommandKind organization.workforce.api.PersonnelCommandKind.START_CONCURRENT
 organization.workforce::api organization.workforce.api.PersonnelCommandKind public static final organization.workforce.api.PersonnelCommandKind organization.workforce.api.PersonnelCommandKind.TRANSFER
 organization.workforce::api organization.workforce.api.PersonnelCommandKind public static final organization.workforce.api.PersonnelCommandKind organization.workforce.api.PersonnelCommandKind.UNPAID_LEAVE_END
 organization.workforce::api organization.workforce.api.PersonnelCommandKind public static final organization.workforce.api.PersonnelCommandKind organization.workforce.api.PersonnelCommandKind.UNPAID_LEAVE_START

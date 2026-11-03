@@ -106,9 +106,14 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
                   from organization_workforce.org_units
                 """).param("day", today()).update();
         jdbc.sql("""
-                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
-                       reports_to_employee_id, revision_number)
-                select uuidv7(), employee_id, :day, org_unit_id, position_id, reports_to_employee_id, 0 from organization_workforce.assignments
+                insert into organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at)
+                select uuidv7(), employee_id, 'PRIMARY', now(), now() from organization_workforce.assignments
+                """).update();
+        jdbc.sql("""
+                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                       org_unit_id, position_id, reports_to_employee_id, revision_number)
+                select uuidv7(), a.employee_id, r.assignment_id, r.assignment_kind, :day, a.org_unit_id, a.position_id, a.reports_to_employee_id, 0
+                  from organization_workforce.assignments a join organization_workforce.employee_assignments r on r.employee_id = a.employee_id and r.assignment_kind = 'PRIMARY'
                 """).param("day", today()).update();
     }
 

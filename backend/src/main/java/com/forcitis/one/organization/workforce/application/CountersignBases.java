@@ -34,6 +34,9 @@ class CountersignBases {
                 return Optional.empty();
             }
         }
+        if (command.isOnConcurrentPost()) {
+            return Optional.empty();
+        }
         LocalDate day = command.effectiveDate();
         boolean employed = history.currentEmployeeRows().stream().anyMatch(row -> row.covers(day) && "EMPLOYED".equals(row.values().get(CommandEffects.EMPLOYMENT)));
         if (!employed) {

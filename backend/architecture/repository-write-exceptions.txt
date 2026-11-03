@@ -21,3 +21,4 @@ com/forcitis/one/platform/identity/infrastructure/persistence/JdbcBrowserIdentif
 com/forcitis/one/platform/identity/infrastructure/persistence/JdbcBrowserIdentifiers.java#purge  # removes identifiers past their lifetime; nothing refers to them
 com/forcitis/one/platform/idempotency/infrastructure/JdbcIdempotentResponses.java#purgeExpired  # removes answers past their 24 hours; nothing refers to them
 com/forcitis/one/organization/workforce/infrastructure/persistence/LegalEntityHistory.java#recordLegalEntity  # effective-dated history of the legal entity: closed and appended in the transaction of the save that changed it
+com/forcitis/one/organization/workforce/infrastructure/persistence/PrimaryAssignmentRoot.java#of  # finds the employee's one PRIMARY root or creates it (insert on conflict do nothing on the partial unique index) in the transaction of the version or command write that needs it; the roots are append-only
