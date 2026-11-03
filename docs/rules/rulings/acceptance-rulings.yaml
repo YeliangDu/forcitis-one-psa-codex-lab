@@ -454,3 +454,11 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/role_versioning/SystemRoleRaisedRevisionIT.java
     reason: '#895 新增系统角色 legal_entity_finance_head（SELF、非管理员、仅 organization.workforce:legal-entity-attribution:approve、修订号 1）并给业务管理员授该码（修订号 1→2）；系统角色数与对账探针 7→8，显示名改为八个，新角色逐项钉住；其他角色与断言不变。与 #907（RULING-LEAD-20261103-11）同改 SystemRoleDeclarationIT：后合入者在合并提交中同时保留两边改动（org_data_admin 修订号 3 与 org-structure-command:create；business_admin 修订号 2 与 approve 码；8 个角色、新角色钉住），并带该 PR 自己的 Acceptance-Ruling 尾注'
     ref: "commit 0d0c0635c (PR #1077), patch-id 3918582bf273b6659d9158b03d9b342757b39a14; review-895-seed-sonnet.md, review-895-seed-2-sonnet.md"
+  - id: RULING-LEAD-20261103-13
+    date: 2026-11-03
+    ruled_by: independent sonnet reviewer (dispatched by one-test, given only the diff and card 7.2), verdict 通过, recorded by one-lead
+    implementer: one-dev-identity
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/P5Names.java
+    reason: '#729 卡 7.2 新增审计对象类别 PERMISSION_ADJUSTMENT（有对象）；KINDS_WITH_OBJECT 在 AUTHORIZATION_REQUEST 之后加该项；其他列表与断言不变'
+    ref: "commit de0e515e8 (PR #1082), patch-id fc5e4490c6ace67151836231f80942e5ec5135be; review_p5names.md"
