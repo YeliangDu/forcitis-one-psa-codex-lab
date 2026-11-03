@@ -46,7 +46,7 @@ class CountersignEscalationNotice {
     }
 
     void send(AttributionCountersign row, int level, LocalDate today) {
-        List<EmployeeId> people = level == 2 ? administrators() : countersigns.financeHeadOn(row.legalEntityId(), today).stream().toList();
+        List<EmployeeId> people = level == 2 ? administrators(row) : countersigns.financeHeadOn(row.legalEntityId(), today).stream().toList();
         List<WecomUserId> recipients = new ArrayList<>();
         for (EmployeeId person : people) {
             directory.findEmployee(person).map(profile -> profile.wecomUserId()).ifPresent(recipients::add);
@@ -58,8 +58,9 @@ class CountersignEscalationNotice {
         wecom.send(new WecomCard(recipients, title(level), "一项法人归属会签已超过期限，仍待决定。请尽快处理。", TARGET_URL, DeliverySubject.of(purpose(level), row.id().value())));
     }
 
-    private List<EmployeeId> administrators() {
-        return roles.enabledHolders(CountersignDeciders.ESCALATED_ROLE).stream().flatMap(account -> accountEmployees.employeeOf(account).stream()).distinct().toList();
+    /** The drafter and the requester are left out: the table does not let them decide the row, so a card to them would ask for what they may not do. */
+    private List<EmployeeId> administrators(AttributionCountersign row) {
+        return roles.enabledHolders(CountersignDeciders.ESCALATED_ROLE).stream().filter(account -> !account.equals(row.draftedBy()) && !account.equals(row.requestedBy())).flatMap(account -> accountEmployees.employeeOf(account).stream()).distinct().toList();
     }
 
     private static DeliveryPurpose purpose(int level) {
