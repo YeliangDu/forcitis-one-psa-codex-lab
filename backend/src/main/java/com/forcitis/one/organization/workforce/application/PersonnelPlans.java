@@ -16,7 +16,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import org.springframework.stereotype.Component;
 
-/** Plans what a command does to the two version tables, and what taking it back does; the plans are only values, the use case writes them. */
+/** Plans what a command does to the version tables (employee, assignment and the employee's own legal entity attribution), and what taking it back does; the plans are only values, the use case writes them. */
 @Component
 class PersonnelPlans {
     private final IdGenerator ids;
@@ -33,6 +33,11 @@ class PersonnelPlans {
         if (!employee.isEmpty()) {
             plans.put(VersionTable.EMPLOYEE, VersionPlanner.apply(history.currentEmployeeRows(), new VersionPlanner.Change(command.effectiveDate(), employee,
                     CommandEffects.employeeFilter(command), CommandEffects.coversEmptyDay(command)), source, setters(history, VersionTable.EMPLOYEE), ids::next));
+        }
+        Map<String, Object> legalEntity = CommandEffects.legalEntityValues(command);
+        if (!legalEntity.isEmpty()) {
+            plans.put(VersionTable.LEGAL_ENTITY, VersionPlanner.apply(history.currentLegalEntityRows(), new VersionPlanner.Change(command.effectiveDate(), legalEntity,
+                    row -> true, true), source, setters(history, VersionTable.LEGAL_ENTITY), ids::next));
         }
         if (CommandEffects.endsAssignment(command)) {
             plans.put(VersionTable.ASSIGNMENT, VersionPlanner.endAt(history.currentAssignmentRows(), command.effectiveDate(), ids::next));
@@ -54,6 +59,11 @@ class PersonnelPlans {
             plans.put(VersionTable.EMPLOYEE, VersionPlanner.revert(history.currentEmployeeRows(), id -> history.row(id), command.id(), command.effectiveDate(),
                     employee.keySet(), CommandEffects.employeeFilter(command), setters(history, VersionTable.EMPLOYEE), ids::next));
         }
+        Map<String, Object> legalEntity = CommandEffects.legalEntityValues(command);
+        if (!legalEntity.isEmpty()) {
+            plans.put(VersionTable.LEGAL_ENTITY, VersionPlanner.revert(history.currentLegalEntityRows(), id -> history.row(id), command.id(), command.effectiveDate(),
+                    legalEntity.keySet(), row -> true, setters(history, VersionTable.LEGAL_ENTITY), ids::next));
+        }
         if (CommandEffects.endsAssignment(command)) {
             plans.put(VersionTable.ASSIGNMENT, VersionPlanner.reopenAt(history.currentAssignmentRows(), command.effectiveDate(), ids::next));
         } else {
@@ -68,13 +78,21 @@ class PersonnelPlans {
 
     /** The columns the row's own command set: everything for a migrated row, what the command names for a command row. */
     private static Function<VersionRow, Set<String>> setters(PersonnelHistory history, VersionTable table) {
-        Set<String> all = table == VersionTable.EMPLOYEE ? CommandEffects.EMPLOYEE_COLUMNS : CommandEffects.ASSIGNMENT_COLUMNS;
+        Set<String> all = switch (table) {
+            case EMPLOYEE -> CommandEffects.EMPLOYEE_COLUMNS;
+            case ASSIGNMENT -> CommandEffects.ASSIGNMENT_COLUMNS;
+            case LEGAL_ENTITY -> CommandEffects.LEGAL_ENTITY_COLUMNS;
+        };
         return row -> {
             if (!row.source().command()) {
                 return all;
             }
             PersonnelCommand c = history.lookup().get(row.source().commandId().value());
-            return table == VersionTable.EMPLOYEE ? CommandEffects.employeeValues(c).keySet() : CommandEffects.assignmentValues(c).keySet();
+            return switch (table) {
+                case EMPLOYEE -> CommandEffects.employeeValues(c).keySet();
+                case ASSIGNMENT -> CommandEffects.assignmentValues(c).keySet();
+                case LEGAL_ENTITY -> CommandEffects.legalEntityValues(c).keySet();
+            };
         };
     }
 }

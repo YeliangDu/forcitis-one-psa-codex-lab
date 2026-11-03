@@ -9,5 +9,6 @@ public enum PersonnelCommandKind {
     REINSTATE,
     CORRECTION,
     UNPAID_LEAVE_START,
-    UNPAID_LEAVE_END
+    UNPAID_LEAVE_END,
+    CHANGE_LEGAL_ENTITY
 }

@@ -296,6 +296,11 @@ channels:
     messages:
       EmployeeSeparated:
         $ref: '#/components/messages/EmployeeSeparated'
+  employeeLegalEntityChanged:
+    address: organization.workforce.EmployeeLegalEntityChanged
+    messages:
+      EmployeeLegalEntityChanged:
+        $ref: '#/components/messages/EmployeeLegalEntityChanged'
   employeeReinstated:
     address: organization.workforce.EmployeeReinstated
     messages:
@@ -1223,6 +1228,20 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/employeeSeparated/messages/EmployeeSeparated'
+  publishEmployeeLegalEntityChanged:
+    action: send
+    channel:
+      $ref: '#/channels/employeeLegalEntityChanged'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/employeeLegalEntityChanged/messages/EmployeeLegalEntityChanged'
+  handleEmployeeLegalEntityChangedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeLegalEntityChanged'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/employeeLegalEntityChanged/messages/EmployeeLegalEntityChanged'
   publishEmployeeReinstated:
     action: send
     channel:
@@ -4425,6 +4444,61 @@ components:
             type: string
             x-type: LocalDate
             description: 人事业务生效日（DECLARED）：人事所填最后工作日的次日，即离职的第一天（ADR-0068 第 1 条第 5 项）
+    EmployeeLegalEntityChanged:
+      name: EmployeeLegalEntityChanged
+      title: 员工法人归属已变更
+      description: 改变员工成本法人的人事命令（调岗、更正或变更法人归属）经法人财务负责人会签后生效时发布，不论命令种类（调岗同时发布 EmployeeTransferred）。会签期间不发布，待生效的命令也不发布（ADR-0073 第 3 条第 7 项、会签设计说明
+      x-event:
+        eventType: organization.workforce.EmployeeLegalEntityChanged
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.EmployeeLegalEntityChanged
+        aggregate: Employee
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 人事业务生效日（effectiveDate）：改变成本法人的命令的生效日
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
+        noConsumer: 暂无消费方：先登记，是为了成本归集等下游按同一份契约并行开工（ADR-0073 第 3 条第 7 项）；事件只在命令生效时发布，漏发补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - personnelCommandId
+        - employeeId
+        - effectiveDate
+        - previousLegalEntityId
+        - newLegalEntityId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          personnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            description: 触发本事件的人事命令 ID（UUIDv7）
+          employeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 员工 ID，与信封的 aggregateId 相同
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 人事业务生效日（DECLARED）：员工在新成本法人的第一天
+          previousLegalEntityId:
+            type: string
+            format: uuid
+            x-type: LegalEntityId
+            description: 命令生效前一天的成本法人，即会签依据的原法人
+          newLegalEntityId:
+            type: string
+            format: uuid
+            x-type: LegalEntityId
+            description: 生效日起的成本法人，即会签依据的新法人，与信封 legalEntityId 相同
     EmployeeReinstated:
       name: EmployeeReinstated
       title: 员工复职已生效
