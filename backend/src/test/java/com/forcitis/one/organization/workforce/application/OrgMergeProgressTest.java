@@ -121,4 +121,19 @@ class OrgMergeProgressTest {
         order.verify(commands).mergesInProgressOf(A);
         order.verify(commands).lockOrgUnit(MERGED);
     }
+
+    @Test
+    @DisplayName("#1098 S1a: a pending merge places a person in its way only when they join the unit after the merge day; one in progress, when they are in the unit on the merge day")
+    void placedByLooksAtArrivalsOfAPendingMergeAndAtMembersOfOneInProgress() {
+        OrgStructureCommand pending = OrgStructureCommand.restore(MERGE, OrgStructureTargetKind.ORG_UNIT, OrgStructureCommandKind.MERGE, MERGED, null, DAY, null, null, null, null, null, null, null,
+                null, RECEIVING, null, OrgCommandStatus.PENDING, 0, 0, new UserId(UUID.randomUUID()), NOW, null, 0);
+        when(commands.arrivalsAfter(MERGED, DAY)).thenReturn(List.of(new com.forcitis.one.organization.workforce.api.BlockingArrival(A, DAY.plusDays(3), null)));
+        when(commands.employedIn(MERGED, DAY)).thenReturn(List.of(B));
+        OrgStructureCommand running = merge(2, 0);
+
+        assertThat(progress.placedBy(List.of(pending), A)).containsExactly(MERGE);
+        assertThat(progress.placedBy(List.of(pending), B)).as("being in the unit on the day is counted by the merge").isEmpty();
+        assertThat(progress.placedBy(List.of(running), B)).containsExactly(MERGE);
+        assertThat(progress.placedBy(List.of(running), A)).isEmpty();
+    }
 }
