@@ -134,4 +134,46 @@ class ProfileChangeRequestServiceTest {
         org.assertj.core.api.Assertions.assertThat(known.nextCursor()).isEqualTo(missing.nextCursor());
         org.mockito.Mockito.verify(requests, org.mockito.Mockito.never()).pending(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyInt());
     }
+
+    private ProfileChangeRequest pendingOfEmployee() {
+        ProfileChangeRequest request = ProfileChangeRequest.restore(ID, EMPLOYEE, REQUESTER, AT, new PersonalProfile("Synthetic name", null, null, new WecomUserId("old")),
+                new PersonalProfile("Synthetic name", null, null, new WecomUserId("new")), ProfileChangeStatus.PENDING, 3, null, null, null, null);
+        when(requests.find(ID)).thenReturn(Optional.of(request));
+        when(employees.lockEmployee(EMPLOYEE)).thenReturn(true);
+        when(currentUser.userId()).thenReturn(THIRD);
+        return request;
+    }
+
+    private void assertNotFoundWithoutTouchingAnything(String what, org.assertj.core.api.ThrowableAssert.ThrowingCallable call) {
+        assertThatThrownBy(call).as(what).isInstanceOfSatisfying(DomainException.class,
+                refused -> assertThat(refused.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_PROFILE_CHANGE_REQUEST_NOT_FOUND));
+        verify(employees, org.mockito.Mockito.never()).lockEmployee(any());
+        verify(employees, org.mockito.Mockito.never()).updateProfile(any(), any(), any());
+        verifyNoInteractions(access, audit, profiles);
+    }
+
+    @Test
+    @DisplayName("#1153: a request outside the caller's scope answers the same not found as an unknown id, also with a stale version, and nothing is locked or written")
+    void anOutOfScopeRequestIsNotFoundBeforeTheVersionCheck() {
+        pendingOfEmployee();
+        when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenReturn(OrgUnitAccess.Visible.nothing());
+        when(snapshots.findAllOrgUnits()).thenReturn(java.util.List.of());
+        when(snapshots.findStaff(EMPLOYEE)).thenReturn(Optional.empty());
+
+        assertNotFoundWithoutTouchingAnything("confirm, stale version", () -> service.confirm(ID, ExpectedVersion.of(0)));
+        assertNotFoundWithoutTouchingAnything("reject, stale version", () -> service.reject(ID, "synthetic", ExpectedVersion.of(0)));
+        assertNotFoundWithoutTouchingAnything("confirm, current version", () -> service.confirm(ID, ExpectedVersion.of(3)));
+    }
+
+    @Test
+    @DisplayName("#1153: a scope that cannot be worked out shows nothing, so the id answers like an unknown one (security-invariants I-10)")
+    void anUnknownScopeIsNotFound() {
+        pendingOfEmployee();
+        // any FORBIDDEN refusal stands for platform.identity's PLATFORM_IDENTITY_ACCESS_SCOPE_UNAVAILABLE, which a workforce test does not import
+        when(unitAccess.visibleOrgUnits(PersonnelCommandService.PERMISSION)).thenThrow(
+                new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PROFILE_CHANGE_CONFIRMER_NOT_ALLOWED, com.forcitis.one.kernel.ErrorKind.FORBIDDEN, "scope unavailable"));
+
+        assertNotFoundWithoutTouchingAnything("confirm", () -> service.confirm(ID, ExpectedVersion.of(0)));
+        assertNotFoundWithoutTouchingAnything("reject", () -> service.reject(ID, "synthetic", ExpectedVersion.of(0)));
+    }
 }
