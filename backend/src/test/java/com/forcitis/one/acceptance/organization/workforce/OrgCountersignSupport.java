@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
+import com.forcitis.one.acceptance.AssignmentRoots;
 import com.forcitis.one.kernel.Uuids;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -91,10 +92,12 @@ abstract class OrgCountersignSupport extends OrgStructureCommandSupport {
                       change_channel_kind, created_at, updated_at)
                     values (?, ?, ?, 0, 'EMPLOYED', ?, false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""",
                     Uuids.timeOrdered(NOW), stored(id), SINCE, REGULAR, SINCE, at, at);
-            update(workforce, """
+            // #711: on the employee's PRIMARY root once employee_assignments exists (AssignmentRoots).
+            UUID root = AssignmentRoots.primaryOf(workforce, stored(id));
+            update(workforce, AssignmentRoots.withRoot("""
                     insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
-                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""",
-                    Uuids.timeOrdered(NOW), stored(id), SINCE, stored(orgUnit), newPosition(), at, at);
+                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root),
+                    AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), stored(id), SINCE, stored(orgUnit), newPosition(), at, at));
         }
         return id;
     }
