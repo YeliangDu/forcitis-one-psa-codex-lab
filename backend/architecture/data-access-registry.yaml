@@ -424,6 +424,30 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [platform.identity]
+  platform_identity.permission_adjustments:
+    # F-1 (#729): review items that remind someone to look at an authorization again; they never grant and never revoke (ADR-0032 sections 4 and 5,
+    # ADR-0044 sections 2 and 3, RULE-387). The wide table is deliberate: one aggregate, each item is upheld, adjusted or closed once, and the
+    # CHECK constraints keep the stages apart. Retention follows authorization_requests (N1-10: 3 years online, archived until 10 years; purged by chain
+    # through original_permission_adjustment_id).
+    role: AGGREGATE_ROOT
+    aggregate: PermissionAdjustment
+    mutability: MUTABLE
+    business_key: [permission_adjustment_id]
+    references: {upheld_by: platform_identity.user_accounts, adjusted_by: platform_identity.user_accounts}
+    fk_exceptions:
+      org_unit_id: an org unit of organization_workforce.org_units (another schema); the item exists because that unit is disabled or revoked
+      trigger_personnel_command_id: the transfer command, another schema (organization_workforce); no foreign key
+      trigger_org_structure_command_id: the dissolve or merge command, another schema; no foreign key
+      before_org_unit_id: the department before the change, another schema
+      after_org_unit_id: the department after the change, another schema
+      before_position_id: the position before the change, another schema
+      after_position_id: the position after the change, another schema
+      recipient_employee_id: the head of the new department when raised, another schema
+      business_owner_employee_id: an employee of organization_workforce.employees, another schema
+      adjusted_audit_entry_id: an audit entry of platform_audit, another schema
+      closure_personnel_command_id: the separation command, another schema; no foreign key
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
   platform_identity.account_role_grants:
     # Retention as role_versions above (0034-Q2; owner one-1a-par; due within 30 months after the first production deployment; purge job built with the audit online deletion; account_role_grants is purged before role_versions).
     # D17 rule 2: effective basis DECLARED; the current value is the row that is not closed.

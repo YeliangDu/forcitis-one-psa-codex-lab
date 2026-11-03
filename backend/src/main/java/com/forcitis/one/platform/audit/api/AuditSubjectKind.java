@@ -19,6 +19,7 @@ public enum AuditSubjectKind {
     SOURCE_REFERENCE(true),
     SOURCE_REFERENCE_REFUSAL(true),
     AUTHORIZATION_REQUEST(true),
+    PERMISSION_ADJUSTMENT(true),
     STORED_FILE(true),
     REQUEST(false),
     OPERATION(false),
