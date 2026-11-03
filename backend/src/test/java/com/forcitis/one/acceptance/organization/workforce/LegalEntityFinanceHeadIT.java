@@ -5,6 +5,7 @@ import static com.forcitis.one.acceptance.organization.workforce.PersonnelComman
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.forcitis.one.TestDatabase;
@@ -25,7 +26,7 @@ import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * #895 leftover (b), setting and changing the finance head (one-design contract on #895, comment 6603037487; design note comment
- * 6518142765 items 1-2): {@code PUT /api/v1/organization/legal-entities/{id}/finance-head} with {@code {"financeHeadEmployeeId": uuid|null}}, If-Match,
+ * 6518142765 items 1-2): {@code POST /api/v1/organization/legal-entities/{id}:set-finance-head} with {@code {"financeHeadEmployeeId": uuid|null}}, If-Match,
  * effective on today's business date, permission legal-entity:update; the finance head rides every new legal entity version.
  */
 class LegalEntityFinanceHeadIT extends CountersignSupport {
@@ -52,7 +53,7 @@ class LegalEntityFinanceHeadIT extends CountersignSupport {
     }
 
     private MockHttpServletResponse setHead(Staff caller, UUID entity, String ifMatch, String body) throws Exception {
-        var request = put(path(entity) + "/finance-head").with(csrf()).with(session(caller.session())).contentType(MediaType.APPLICATION_JSON).content(body);
+        var request = post(path(entity) + ":set-finance-head").with(csrf()).with(session(caller.session())).contentType(MediaType.APPLICATION_JSON).content(body);
         return mvc.perform(ifMatch == null ? request : request.header("If-Match", ifMatch)).andReturn().getResponse();
     }
 
