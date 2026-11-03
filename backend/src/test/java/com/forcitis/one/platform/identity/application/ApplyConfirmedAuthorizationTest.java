@@ -1,6 +1,8 @@
 package com.forcitis.one.platform.identity.application;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -13,13 +15,16 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.kernel.event.TestEnvelopes;
+import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
+import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.AuthorizationRequestId;
 import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.api.RoleVersionId;
 import com.forcitis.one.platform.identity.domain.AuthorizationBase;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequest;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequestRepository;
+import com.forcitis.one.platform.identity.domain.AuthorizationRequestStatus;
 import com.forcitis.one.platform.identity.domain.RoleDraft;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
 import com.forcitis.one.platform.identity.events.AuthorizationConfirmed;
@@ -45,7 +50,8 @@ class ApplyConfirmedAuthorizationTest {
     final UpdateRole updateRole = mock(UpdateRole.class);
     final RoleRepository roles = mock(RoleRepository.class);
     final DomainEvents events = mock(DomainEvents.class);
-    final AuthorizationVoiding voiding = new AuthorizationVoiding(roles, mock(com.forcitis.one.platform.audit.api.AuditLog.class));
+    final AuditLog audit = mock(AuditLog.class);
+    final AuthorizationVoiding voiding = new AuthorizationVoiding(roles, audit);
     final ApplyConfirmedAuthorization listener = new ApplyConfirmedAuthorization(requests, createRole, updateRole, voiding, roles, events);
 
     private AuthorizationRequest pendingRoleChange() {
@@ -84,6 +90,21 @@ class ApplyConfirmedAuthorizationTest {
         verify(requests).find(request.requestId());
         verifyNoMoreInteractions(requests);
         verifyNoInteractions(events, updateRole, createRole);
+    }
+
+    @Test
+    @DisplayName("#1032 the apply is refused after the confirmation (the base itself is unmoved): the request ends VOIDED, saved and published, with its void audit")
+    void aRefusedApplyVoidsTheRequest() {
+        AuthorizationRequest request = confirmedRoleChange();
+        when(roles.currentVersions(List.of(BASE_VERSION))).thenReturn(Set.of(BASE_VERSION));
+        when(updateRole.applyConfirmed(any(), any(), any(), any())).thenReturn(new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED));
+
+        deliver(request);
+
+        assertThat(request.status()).isEqualTo(AuthorizationRequestStatus.VOIDED);
+        verify(requests).save(request);
+        verify(events).publish(request);
+        verify(audit).record(argThat(entry -> entry.action().equals("platform.identity.authorization.voided")));
     }
 
     @Test

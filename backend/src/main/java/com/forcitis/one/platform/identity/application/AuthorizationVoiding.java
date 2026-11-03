@@ -44,10 +44,15 @@ class AuthorizationVoiding {
         return !roles.currentVersions(base.roleVersions()).containsAll(base.roleVersions());
     }
 
-    /** Ends the request VOIDED and writes the audit entry; the caller saves and publishes the request. */
+    /** Ends the request VOIDED because its base moved and writes the audit entry; the caller saves and publishes the request. */
     void voidRequest(AuthorizationRequest request) {
+        voidRequest(request, "the base of the request moved after it was made; nothing was applied");
+    }
+
+    /** Ends the request VOIDED with the audit entry saying why; the caller saves and publishes the request. */
+    void voidRequest(AuthorizationRequest request, String why) {
         request.markVoided();
         audit.record(new AuditEntry("platform.identity.authorization.voided", null, null,
-                AuditSubject.of(AuditSubjectKind.AUTHORIZATION_REQUEST, request.requestId().value()), "the base of the request moved after it was made; nothing was applied"));
+                AuditSubject.of(AuditSubjectKind.AUTHORIZATION_REQUEST, request.requestId().value()), why));
     }
 }
