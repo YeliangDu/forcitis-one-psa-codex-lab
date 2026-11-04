@@ -35,6 +35,8 @@
       "scripts/release/",
       ".claude/",
       "policy.json",
+      "AGENTS.md",
+      ".codex/",
       ".gitleaks.toml",
       ".gitleaksignore",
       "tools/ops/",

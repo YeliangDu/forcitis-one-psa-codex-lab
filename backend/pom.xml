@@ -115,8 +115,10 @@
           </compilerArgs></configuration></execution>
         </executions>
       </plugin>
+      <!-- Mockito as a java agent (its javadoc: dependency:properties exports the jar path, argLine loads it), so it needs no self-attach, which a sandboxed JVM refuses -->
+      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-dependency-plugin</artifactId><executions><execution><id>mockito-agent-path</id><goals><goal>properties</goal></goals></execution></executions></plugin>
       <!-- *IT classes (Testcontainers) run in the integration-test phase; surefire only runs *Test (Boot parent) - added by platform.approval -->
-      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-failsafe-plugin</artifactId><configuration><excludes><exclude>${legacy.it.acceptance}</exclude><exclude>**/*MssqlIT.java</exclude><exclude>**/*$*</exclude></excludes><reportsDirectory>${integration.reports}</reportsDirectory><summaryFile>${integration.reports}/failsafe-summary.xml</summaryFile><forkCount>${it.forks}</forkCount><reuseForks>true</reuseForks><argLine>@{argLine} ${test.jvm}</argLine><forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds><forkedProcessTimeoutInSeconds>${test.fork.timeout}</forkedProcessTimeoutInSeconds></configuration></plugin>
+      <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-failsafe-plugin</artifactId><configuration><excludes><exclude>${legacy.it.acceptance}</exclude><exclude>**/*MssqlIT.java</exclude><exclude>**/*$*</exclude></excludes><reportsDirectory>${integration.reports}</reportsDirectory><summaryFile>${integration.reports}/failsafe-summary.xml</summaryFile><forkCount>${it.forks}</forkCount><reuseForks>true</reuseForks><argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar} ${test.jvm}</argLine><forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds><forkedProcessTimeoutInSeconds>${test.fork.timeout}</forkedProcessTimeoutInSeconds></configuration></plugin>
       <!-- At JVM exit the cached Spring contexts close after Testcontainers stopped the database; each waits for its connection timeout, so a fork with many contexts needs more than the default 30 s to leave. -->
       <!-- every test class owns its Testcontainers database, so classes run in parallel JVMs: ./mvnw verify -Dtest.forks=1 restores serial runs -->
       <!-- test.fork.timeout: total seconds a reused fork may run (0 = no limit); CI sets it so a hung fork is killed, after its watchdog took thread dumps -->
@@ -125,7 +127,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <forkCount>${test.forks}</forkCount><reuseForks>true</reuseForks><argLine>@{argLine} ${test.jvm}</argLine><forkedProcessTimeoutInSeconds>${test.fork.timeout}</forkedProcessTimeoutInSeconds>
+          <forkCount>${test.forks}</forkCount><reuseForks>true</reuseForks><argLine>@{argLine} -javaagent:${org.mockito:mockito-core:jar} ${test.jvm}</argLine><forkedProcessTimeoutInSeconds>${test.fork.timeout}</forkedProcessTimeoutInSeconds>
           <excludes><exclude>**/OpenApiExportTest.java</exclude></excludes>
         </configuration>
         <executions>
