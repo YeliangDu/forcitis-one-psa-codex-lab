@@ -149,6 +149,7 @@ class SignedTicketLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(redeem(ticket(1001)).getResponse().getStatus()).isEqualTo(401);
     }
 
+    // RULE-456
     @Test
     @DisplayName("C1a-03 a ticket can never bring in an administrator, whatever the issuer is configured for")
     void administratorsAreRefused() throws Exception {
@@ -195,6 +196,7 @@ class SignedTicketLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(redeem(ticket(424242)).getResponse().getStatus()).isEqualTo(401);
     }
 
+    // RULE-457
     @Test
     @DisplayName("ADR-0033 the subject is the organisation source's person id: an employee without that source reference cannot be named, and the refusal is audited")
     void subjectWithoutSourceReference() throws Exception {
@@ -212,6 +214,7 @@ class SignedTicketLoginIntegrationTest extends IdentityIntegrationTest {
         });
     }
 
+    // RULE-458
     @Test
     @DisplayName("C-M7 a ticket from another site starts a session that holds no permission until the person confirms the account is theirs")
     void ticketSessionNeedsConfirmation() throws Exception {

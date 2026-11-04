@@ -87,6 +87,7 @@ class SourceReferenceQueryIT extends SourceReferenceHttpSupport {
         return rows;
     }
 
+    // RULE-471
     @Test
     @DisplayName("R-1b P3a 复审 M4（ADR-0033 第 5 项第 4 条）：审批人从待确认列表取得 sourceReferenceId 并据此确认；列表只含待确认行，可按游标翻页")
     void theApproverFindsWhatWaits() throws Exception {
@@ -135,6 +136,7 @@ class SourceReferenceQueryIT extends SourceReferenceHttpSupport {
         assertThat(ids(list(APPROVER, accountingCodes("confirmationStatus", "PENDING")))).doesNotContain(listed);
     }
 
+    // RULE-461
     @Test
     @DisplayName("R-1b P3a 复审 M4（ADR-0033 第 5 项第 3、4 条）：待确认列表需 source-reference:approve 或 :update 之一——未登录 401，只有法人维护权限 403")
     void listingNeedsUpdateOrApprove() throws Exception {
@@ -152,6 +154,7 @@ class SourceReferenceQueryIT extends SourceReferenceHttpSupport {
         assertThat(ids(byRecorder)).contains(waiting.sourceReferenceId().toString());
     }
 
+    // RULE-471
     @Test
     @DisplayName("R-1b P3a 复审 M4（ADR-0033 第 5 项第 3 条）：按法人自有 ID 查到当前已确认编码与全部历史行（含已关闭、待确认、已拒绝），不含其他法人；未登录 401，无权限 403")
     void oneLegalEntityShowsItsCurrentCodeAndHistory() throws Exception {

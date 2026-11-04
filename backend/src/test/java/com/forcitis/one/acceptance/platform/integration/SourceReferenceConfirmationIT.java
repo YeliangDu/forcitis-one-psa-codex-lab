@@ -38,6 +38,7 @@ class SourceReferenceConfirmationIT extends SourceReferenceHttpSupport {
         postgres.register(registry);
     }
 
+    // RULE-463
     @Test
     @DisplayName("R-1b P3a ADR-0033 第 5 项第 4 条：核算组织编码登记为待确认；录入人即使持确认权限也不能自己确认（403），无确认权限 403，他人确认后生效")
     void fourEyes() throws Exception {
@@ -59,6 +60,7 @@ class SourceReferenceConfirmationIT extends SourceReferenceHttpSupport {
         assertThat(outboundAccountingCode(legalEntity, TODAY)).isEqualTo(1021L);
     }
 
+    // RULE-464
     @Test
     @DisplayName("R-1b P3a ADR-0033 第 5 项第 2、4 条：从未确认过编码的法人，出站查不到即失败并告警（投递挂起）")
     void neverConfirmedMeansNoOutbound() throws Exception {
@@ -72,6 +74,7 @@ class SourceReferenceConfirmationIT extends SourceReferenceHttpSupport {
         assertThat(alertsSince(mark).stream().filter(line -> line.startsWith("ALERT platform.integration"))).hasSizeGreaterThanOrEqualTo(2);
     }
 
+    // RULE-465
     @Test
     @DisplayName("R-1b P3a ADR-0033 第 2 项第 1 条、第 5 项第 4 条：更正待确认期间出站仍用原已确认行；确认时同一事务关闭旧行并启用新行，两行的来源 ID 与自有 ID 都不改写")
     void correctionClosesTheOldRowOnConfirmation() throws Exception {
@@ -90,6 +93,7 @@ class SourceReferenceConfirmationIT extends SourceReferenceHttpSupport {
         assertThat(outboundAccountingCode(legalEntity, later)).isEqualTo(2102L);
     }
 
+    // RULE-467
     @Test
     @DisplayName("R-1b P3a ADR-0033 第 2 项第 1 条、第 5 项第 4 条：拒绝的行置为已拒绝，不影响已确认行、出站与之后的登记")
     void rejectionLeavesEverythingElseAlone() throws Exception {
@@ -111,6 +115,7 @@ class SourceReferenceConfirmationIT extends SourceReferenceHttpSupport {
         assertThat(row(wrong.sourceReferenceId())).startsWith("REJECTED ");
     }
 
+    // RULE-468
     @Test
     @DisplayName("R-1b P3a ADR-0033 第 2 项第 1 条：编码已确认给另一法人时，待确认可以登记，确认失败（409）且不静默覆盖，行仍待确认")
     void confirmingATakenCodeFails() throws Exception {
@@ -127,6 +132,7 @@ class SourceReferenceConfirmationIT extends SourceReferenceHttpSupport {
         assertThat(outboundAccountingCode(holder, TODAY)).isEqualTo(4101L);
     }
 
+    // RULE-470
     @Test
     @DisplayName("R-1b P3a ADR-0033 第 5 项第 4 条：登记、确认、拒绝都写审计")
     void everyStepIsAudited() throws Exception {
@@ -160,6 +166,7 @@ class SourceReferenceConfirmationIT extends SourceReferenceHttpSupport {
         return items.get(0);
     }
 
+    // RULE-466
     @Test
     @DisplayName("R-1b P3a 复审 M2（ADR-0033 第 2 项第 1 条、第 5 项第 4 条，用户口径「允许同日更正」）：已确认编码 A 自 D 起生效，同日 D 生效的更正 B 由他人确认后，出站自 D 起取到 B；A 行仍在、区间为空 [D, D)、来源 ID 不改写，确认写审计")
     void aCorrectionFromTheSameDayReplacesAWrongCode() throws Exception {
@@ -191,6 +198,7 @@ class SourceReferenceConfirmationIT extends SourceReferenceHttpSupport {
                 .hasSizeGreaterThan(confirmationsBefore));
     }
 
+    // RULE-463
     @Test
     @DisplayName("R-1b P3a 复审 M2（ADR-0033 第 5 项第 4 条，用户口径「允许同日更正」，同样四眼）：同日更正由录入人自己确认得 403，行仍待确认、出站仍用原编码；他人确认后才生效")
     void aSameDayCorrectionStillNeedsASecondPerson() throws Exception {
@@ -212,6 +220,7 @@ class SourceReferenceConfirmationIT extends SourceReferenceHttpSupport {
         assertThat(row(wrong.sourceReferenceId())).endsWith(" 9501 " + legalEntity + " [" + day + ", " + day + ")");
     }
 
+    // RULE-466
     @Test
     @DisplayName("R-1b P3a 复审 M2 回归（ADR-0033 第 2 项第 1 条）：生效日早于在用编码的更正仍被拒绝（4xx），在用编码不变；晚于的更正照旧关闭旧行并生效")
     void aCorrectionBeforeTheCodeStartsIsStillRefused() throws Exception {
@@ -269,6 +278,7 @@ class SourceReferenceConfirmationIT extends SourceReferenceHttpSupport {
         }
     }
 
+    // RULE-468
     @Test
     @DisplayName("R-1b P3a 复审 L9（ADR-0033 第 2 项第 1 条）：同一法人两笔更正由两人并发确认——一笔成功、后者 409 且仍待确认；任一日期只有一行已确认")
     void concurrentCorrectionsConfirmOnlyOne() throws Exception {

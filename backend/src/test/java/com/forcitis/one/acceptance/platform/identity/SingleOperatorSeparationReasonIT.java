@@ -41,6 +41,7 @@ class SingleOperatorSeparationReasonIT extends SingleOperatorIdentitySupport {
         assertThat(on.sessionMode()).isEqualTo(off.sessionMode());
     }
 
+    // RULE-436
     @Test
     @DisplayName("SINGLE-OP P2-15 同一输入（两名超管都离职，剩 0 个）：模式开启与关闭给出相同的 separatedAdministrators、actorRetained、remaining；只有 reason 里的下限不同（开启 at least 1，关闭 at least 2）")
     void p215_onlyTheMinimumInTheReasonDiffers() {
@@ -59,6 +60,7 @@ class SingleOperatorSeparationReasonIT extends SingleOperatorIdentitySupport {
         assertThat(on.reason().replace("at least 1", "at least 2")).as("nothing else in the text differs").isEqualTo(off.reason());
     }
 
+    // RULE-436
     @Test
     @DisplayName("SINGLE-OP P2-15 剩 1 个超管：关闭时原因点名「只剩 1 个、至少 2 个」，开启时不再写 at least 2；其余判定字段相同，仍等人确认")
     void p215_oneRemainingIsAShortageOnlyWithTheModeOff() {
@@ -76,6 +78,7 @@ class SingleOperatorSeparationReasonIT extends SingleOperatorIdentitySupport {
         assertThat(on.separatedAdministrators()).as("still held for a person").containsExactly(employeeId(1));
     }
 
+    // RULE-436
     @Test
     @DisplayName("SINGLE-OP P2-15 剩余超管足够（3 名中 1 名离职）：两种模式的 reason 逐字相同")
     void p215_enoughRemainingGivesTheSameReason() {
@@ -91,6 +94,7 @@ class SingleOperatorSeparationReasonIT extends SingleOperatorIdentitySupport {
         assertThat(on.reason()).contains("1 separated person(s)").contains("another holder must confirm").doesNotContain("would remain");
     }
 
+    // RULE-435
     @Test
     @DisplayName("SINGLE-OP P2-16 对唯一超管离职：两种模式下都等人放行（separatedAdministrators 非空），放行人须留任：本人离职或无放行人时 actorRetained 为假，留任的安全审计员为真；模式不改变放行条件")
     void p216_theSoleSuperAdministratorSeparatingIsHeldInBothModes() {
@@ -116,6 +120,7 @@ class SingleOperatorSeparationReasonIT extends SingleOperatorIdentitySupport {
         assertSameApartFromTheReason(verdict(true, separating, retainedAuditor), verdict(false, separating, retainedAuditor));
     }
 
+    // RULE-435
     @Test
     @DisplayName("SINGLE-OP P2-16 不涉及管理员的离职两种模式下都不等人：separatedAdministrators 为空、reason 为空")
     void p216_ordinarySeparationsAreNotHeldInEitherMode() {

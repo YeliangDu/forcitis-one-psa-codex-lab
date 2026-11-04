@@ -193,6 +193,7 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
         return unit;
     }
 
+    // RULE-420
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 7 条（U-4 已答：拒绝并告警）：快照可用但查不到绑定账号的员工 → 拒绝应急登录、不建会话、记登录失败并告警")
     void aWorkingSnapshotWithoutTheBoundEmployeeRefuses() throws Exception {
@@ -210,6 +211,7 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
         assertThat(auditedActions("platform.identity.login.failed")).isNotEmpty();
     }
 
+    // RULE-420
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 7 条 / ADR-0027 第 1 项第 3 条（对照）：快照可用且绑定员工在职 → 放行，进入管理模式")
     void aWorkingSnapshotWithTheBoundEmployeeEmployedLetsThrough() throws Exception {

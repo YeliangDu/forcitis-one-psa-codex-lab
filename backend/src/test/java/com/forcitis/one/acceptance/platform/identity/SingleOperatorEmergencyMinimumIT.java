@@ -33,6 +33,7 @@ class SingleOperatorEmergencyMinimumIT extends SingleOperatorIdentitySupport {
                 """).param("at", java.time.OffsetDateTime.ofInstant(clock.instant(), java.time.ZoneOffset.UTC)).param("employee", TestAccounts.employee(id).value()).update();
     }
 
+    // RULE-428
     @Test
     @DisplayName("SINGLE-OP P2-11 每日核对：模式开启、可用应急账号 1 个 → 无问题、不告警")
     void p211_oneUsableAccountIsEnoughWithTheModeOn() {
@@ -43,6 +44,7 @@ class SingleOperatorEmergencyMinimumIT extends SingleOperatorIdentitySupport {
         assertThat(entries(CHECK_FAILED)).isEmpty();
     }
 
+    // RULE-428
     @Test
     @DisplayName("SINGLE-OP P2-11 每日核对：模式开启、可用 0 个（没有任何应急账号）→ 告警，消息写 at least 1")
     void p211_noneUsableAlertsWithTheModeOn() {
@@ -54,6 +56,7 @@ class SingleOperatorEmergencyMinimumIT extends SingleOperatorIdentitySupport {
         assertThat(entries(CHECK_FAILED)).hasSize(1);
     }
 
+    // RULE-429
     @Test
     @DisplayName("SINGLE-OP P2-11 每日核对：模式开启、唯一账号的绑定人已不持有 super_admin → 告警")
     void p211_boundPersonLostSuperAdminAlerts() {
@@ -79,6 +82,7 @@ class SingleOperatorEmergencyMinimumIT extends SingleOperatorIdentitySupport {
         assertThat(entries(CHECK_FAILED)).hasSize(1);
     }
 
+    // RULE-429
     @Test
     @DisplayName("SINGLE-OP P2-11 每日核对：模式开启、唯一的应急账号本身停用 → 告警")
     void p211_theAccountItselfDisabledAlerts() {
@@ -91,6 +95,7 @@ class SingleOperatorEmergencyMinimumIT extends SingleOperatorIdentitySupport {
         assertThat(problems).singleElement().asString().contains("only 0 usable").contains("at least 1 are required");
     }
 
+    // RULE-429
     @Test
     @DisplayName("SINGLE-OP P2-11 每日核对：模式开启、一个可用加一个绑定人已不持有 super_admin → 仍告警（绑定规则不因下限放宽），消息点名该账号的用户")
     void p211_aBrokenSecondAccountStillAlertsWithTheModeOn() {
@@ -104,6 +109,7 @@ class SingleOperatorEmergencyMinimumIT extends SingleOperatorIdentitySupport {
         assertThat(problems).singleElement().asString().contains("no longer holds super_admin").contains(accountOf(8).toString());
     }
 
+    // RULE-427
     @Test
     @DisplayName("SINGLE-OP P2-12 每日核对：模式关闭、可用 1 个 → 仍告警（下限 2），消息仍写 at least 2")
     void p212_oneUsableAccountStillAlertsWithTheModeOff() {
@@ -115,6 +121,7 @@ class SingleOperatorEmergencyMinimumIT extends SingleOperatorIdentitySupport {
         assertThat(entries(CHECK_FAILED)).hasSize(1);
     }
 
+    // RULE-427
     @Test
     @DisplayName("SINGLE-OP P2-12 每日核对：模式关闭、可用 0 个 → 告警，消息写 at least 2；两个可用则无问题")
     void p212_noneAlertsAndTwoPassWithTheModeOff() {
@@ -132,6 +139,7 @@ class SingleOperatorEmergencyMinimumIT extends SingleOperatorIdentitySupport {
                 .toList();
     }
 
+    // RULE-428
     @Test
     @DisplayName("SINGLE-OP P2-13 登记提示：模式开启登记第 1 个账号后不再提示「至少 2 个」；模式关闭时仍提示；提示文本之外的输出（凭证展示）两种模式下相同")
     void p213_registrationPromptFollowsTheMode() {
@@ -151,6 +159,7 @@ class SingleOperatorEmergencyMinimumIT extends SingleOperatorIdentitySupport {
         assertThat(withoutTheSecretsAndTheWarning(on.out())).isEqualTo(withoutTheSecretsAndTheWarning(off.out())).hasSizeGreaterThan(3);
     }
 
+    // RULE-428
     @Test
     @DisplayName("SINGLE-OP P2-13 登记提示：再次登记同一登录名时同样按模式提示（开启不含 at least 2，关闭含）")
     void p213_alreadyRegisteredPromptFollowsTheMode() {
@@ -164,6 +173,7 @@ class SingleOperatorEmergencyMinimumIT extends SingleOperatorIdentitySupport {
         assertThat(on.out()).contains("already registered").doesNotContain("at least 2");
     }
 
+    // RULE-430
     @Test
     @DisplayName("SINGLE-OP P2-14 应急账号只能绑定当前的 super_admin 持有人：模式开启下绑定不持有 super_admin 的人、无账号的人、账号停用的 super_admin 持有人仍被拒，无写入、无标注")
     void p214_bindingStaysRestrictedToSuperAdminHolders() {
@@ -184,6 +194,7 @@ class SingleOperatorEmergencyMinimumIT extends SingleOperatorIdentitySupport {
         assertNothingChanged(before);
     }
 
+    // RULE-430
     @Test
     @DisplayName("SINGLE-OP P2-14 启用也要求绑定人当前持有 super_admin：模式开启下绑定人失去 super_admin 后 enable 仍被拒")
     void p214_enableStillNeedsTheBinding() {
@@ -201,6 +212,7 @@ class SingleOperatorEmergencyMinimumIT extends SingleOperatorIdentitySupport {
 
     private static final String MARK = "relaxation=EMERGENCY_ACCOUNT_MINIMUM_ONE";
 
+    // RULE-431
     @Test
     @DisplayName("SINGLE-OP P2-11 模式开启且可用恰为 1：每日核对恰写一条标注 platform.identity.single-operator-mode.applied，detail 恰为 relaxation=EMERGENCY_ACCOUNT_MINIMUM_ONE")
     void p211_oneUsableWithTheModeOnWritesExactlyOneMark() {
@@ -212,6 +224,7 @@ class SingleOperatorEmergencyMinimumIT extends SingleOperatorIdentitySupport {
         assertThat(applied()).singleElement().satisfies(entry -> assertThat(entry.detail()).isEqualTo(MARK));
     }
 
+    // RULE-431
     @Test
     @DisplayName("SINGLE-OP P2-11 可用为 0、可用为 2（模式开启）与模式关闭（可用 0、1、2）：每日核对都不写该标注")
     void p211_otherCasesWriteNoMark() {
@@ -236,6 +249,7 @@ class SingleOperatorEmergencyMinimumIT extends SingleOperatorIdentitySupport {
 
     static final String ORIGINAL_WARNING = "WARNING: only 1 usable emergency account(s); at least 2, bound to different super_admin holders, are required";
 
+    // RULE-427
     @Test
     @DisplayName("SINGLE-OP P2-13 模式关闭时登记提示的完整文本与 P2 之前逐字相同（含 bound to different super_admin holders）；模式开启时没有任何含 at least 2 的 WARNING 行")
     void p213_theWarningTextIsKeptWithTheModeOff() {
