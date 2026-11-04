@@ -7,7 +7,10 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.organization.attendance.api.AttendanceError;
+import com.forcitis.one.organization.attendance.api.StandardHoursMinutes;
+import com.forcitis.one.organization.attendance.api.StandardHoursScopeKind;
 import com.forcitis.one.organization.attendance.api.StandardHoursVersionId;
+import com.forcitis.one.organization.attendance.api.StandardHoursVersionNumber;
 import com.forcitis.one.organization.attendance.events.StandardHoursVersionPublished;
 import com.forcitis.one.platform.audit.api.AuditEntryId;
 import java.time.Instant;
@@ -93,7 +96,9 @@ public final class StandardHours extends AggregateRoot {
                 workdayMinutes, adjustedWorkdayMinutes, basisRef, dateOverrides, confirmedBy, confirmedAt, decisionAuditEntryId);
         version.record((envelopes, sequence) -> new StandardHoursVersionPublished(envelopes.wrap(new EventDraft(
                 "organization.attendance.StandardHoursVersionPublished", 1, "StandardHours", id, sequence, legalEntityId, effectiveFromDate,
-                List.of())), new StandardHoursVersionId(id), effectiveFromDate));
+                List.of())), new StandardHoursVersionId(id),
+                legalEntityId == null ? StandardHoursScopeKind.DEFAULT : StandardHoursScopeKind.LEGAL_ENTITY, legalEntityId, effectiveFromDate,
+                new StandardHoursMinutes(workdayMinutes), new StandardHoursMinutes(adjustedWorkdayMinutes), new StandardHoursVersionNumber(version.versionNumber)));
         return version;
     }
 

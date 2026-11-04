@@ -74,10 +74,33 @@ components:
             format: uuid
             x-type: StandardHoursVersionId
             description: 新发布的标准工时版本
+          scopeKind:
+            type: string
+            enum: [DEFAULT, LEGAL_ENTITY]
+            x-type: StandardHoursScopeKind
+            description: 版本适用的范围：默认时间线或某个法人自有时间线
+          legalEntityId:
+            type: string
+            format: uuid
+            nullable: true
+            x-type: LegalEntityId
+            description: 法人自有版本的法人；默认范围为空
           effectiveFromDate:
             type: string
             x-type: LocalDate
             description: 新版本的生效日期
+          workdayMinutes:
+            type: integer
+            x-type: StandardHoursMinutes
+            description: 上班日的标准分钟数
+          adjustedWorkdayMinutes:
+            type: integer
+            x-type: StandardHoursMinutes
+            description: 调休日的标准分钟数
+          versionNumber:
+            type: integer
+            x-type: StandardHoursVersionNumber
+            description: 版本在其范围内的序号，从 1 起，作废的也占号
       x-event:
         eventType: organization.attendance.StandardHoursVersionPublished
         version: 1
