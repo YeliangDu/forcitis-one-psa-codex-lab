@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
 import com.forcitis.one.kernel.BusinessZone;
+import com.forcitis.one.kernel.InvalidCursorException;
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.domain.PositionQueries;
 import com.forcitis.one.organization.workforce.domain.PositionStatus;
@@ -40,7 +41,7 @@ class JdbcPositionQueries implements PositionQueries {
 
     @Override
     public List<Row> list(@Nullable String status, @Nullable PositionId after, int limit) {
-        return jdbc.sql(CURRENT + """
+        var rows = jdbc.sql(CURRENT + """
                 , filtered_positions as (
                     select position_id, code, name, status, effective_from_date, effective_to_date from current_positions
                      where cast(:status as text) is null or status = :status
@@ -51,6 +52,12 @@ class JdbcPositionQueries implements PositionQueries {
                  order by coalesce(code, ''), position_id limit :limit
                 """).param("day", zone.today(clock)).param("status", status, Types.VARCHAR)
                 .param("after", after == null ? null : after.value(), Types.OTHER).param("limit", limit).query((rs, n) -> row(rs)).list();
+        if (rows.isEmpty() && after != null && jdbc.sql(CURRENT + SELECT + " where position_id = :id and (cast(:status as text) is null or status = :status)")
+                .param("day", zone.today(clock)).param("status", status, Types.VARCHAR).param("id", after.value()).query((rs, n) -> 1).list().isEmpty()) {
+            // A cursor row that left the filtered set between two pages must not look like the end of the list.
+            throw new InvalidCursorException("the cursor row is no longer in the result");
+        }
+        return rows;
     }
 
     @Override

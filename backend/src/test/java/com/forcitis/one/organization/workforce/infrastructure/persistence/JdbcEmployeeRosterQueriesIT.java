@@ -1,11 +1,13 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.IdGenerator;
+import com.forcitis.one.kernel.InvalidCursorException;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.EmployeeRosterQueries.Row;
@@ -94,12 +96,43 @@ class JdbcEmployeeRosterQueriesIT {
                     is_on_unpaid_leave, is_fee_earner, change_channel_kind, superseded_at, superseding_command_id, created_at, updated_at)
                 values (:version, :id, date '2025-06-01', 1, 'SEPARATED', false, false, 'MIGRATION', now(), :command, now(), now())""")
                 .param("command", command).param("version", ids.next()).param("id", person.value()).update();
+        UUID positionCommand = ids.next();
+        jdbc.sql("""
+                insert into organization_workforce.org_structure_commands (org_structure_command_id, command_kind, target_kind, target_position_id, effective_date, status,
+                    applied_at, created_at, created_by, updated_at)
+                values (:id, 'DISABLE', 'POSITION', :position, date '2026-01-01', 'EFFECTIVE', now(), now(), :actor, now())""")
+                .param("id", positionCommand).param("position", position).param("actor", ids.next()).update();
+        jdbc.sql("""
+                insert into organization_workforce.position_versions (position_version_id, position_id, effective_from_date, revision_number, code, name, status,
+                    change_channel_kind, superseded_at, superseding_org_structure_command_id)
+                values (:id, :position, date '2025-06-01', 1, 'RS-P', 'withdrawn name', 'ACTIVE', 'MIGRATION', now(), :command)""")
+                .param("id", ids.next()).param("position", position).param("command", positionCommand).update();
         JdbcEmployeeRosterQueries queries = new JdbcEmployeeRosterQueries(jdbc, Clock.fixed(TODAY.atTime(4, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC), zone);
 
+        assertThat(queries.find(new Visible(true, Set.of()), person).orElseThrow().assignments()).extracting(a -> a.positionName()).containsExactly("post");
         assertThat(codes(queries.list(new Visible(false, Set.of(withdrawn)), null, null, null, 10))).isEmpty();
         assertThat(queries.find(new Visible(false, Set.of(withdrawn)), person)).isEmpty();
         assertThat(codes(queries.list(new Visible(false, Set.of(current)), null, null, null, 10))).containsExactly("RS-1");
         assertThat(codes(queries.list(new Visible(true, Set.of()), null, EmploymentStatus.SEPARATED, null, 10))).doesNotContain("RS-1");
+    }
+
+    @Test
+    @DisplayName("#1171 a cursor row that left the result between two pages is an invalid cursor, not the end of the list")
+    void aCursorRowThatLeftTheResultIsRejected() {
+        OrgUnitId unit = unit("RX-A");
+        UUID position = ids.next();
+        jdbc.sql("insert into organization_workforce.positions (id, code, name, sort_order, status) values (:id, 'RX-P', 'post', 1, 'ACTIVE')").param("id", position).update();
+        EmployeeId first = person("RX-1", unit, position, "SEPARATED", SEPARATED_ON);
+        person("RX-2", unit, position, "EMPLOYED", LocalDate.of(2025, 1, 1));
+        EmployeeId last = person("RX-3", unit, position, "EMPLOYED", LocalDate.of(2025, 1, 1));
+        JdbcEmployeeRosterQueries queries = new JdbcEmployeeRosterQueries(jdbc, Clock.fixed(TODAY.atTime(4, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC), zone);
+        Visible all = new Visible(true, Set.of());
+
+        assertThat(codes(queries.list(all, unit, null, first, 10))).containsExactly("RX-2", "RX-3");
+        assertThat(queries.list(all, unit, null, last, 10)).as("the last row as cursor is the true end").isEmpty();
+        assertThat(queries.list(new Visible(false, Set.of(unit)), null, null, first, 10)).hasSize(2);
+        assertThatThrownBy(() -> queries.list(new Visible(false, Set.of(unit("RX-B"))), null, null, first, 10)).isInstanceOf(InvalidCursorException.class);
+        assertThatThrownBy(() -> queries.list(all, unit, EmploymentStatus.EMPLOYED, first, 10)).isInstanceOf(InvalidCursorException.class);
     }
 
     private static List<String> codes(List<Row> rows) {

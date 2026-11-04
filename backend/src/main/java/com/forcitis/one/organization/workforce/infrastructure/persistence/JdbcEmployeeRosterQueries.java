@@ -2,6 +2,7 @@ package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.InvalidCursorException;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PositionId;
@@ -86,6 +87,11 @@ class JdbcEmployeeRosterQueries implements EmployeeRosterQueries {
                 """), visible, orgUnit, status, day)
                 .param("after", after == null ? null : after.value(), Types.OTHER).param("limit", limit)
                 .query((rs, n) -> row(rs)).list();
+        if (rows.isEmpty() && after != null && visibleQuery(jdbc.sql(CURRENT + VISIBLE + " where id = :id"), visible, orgUnit, status, day)
+                .param("id", after.value()).query((rs, n) -> 1).list().isEmpty()) {
+            // A cursor row that left the caller's result set between two pages must not look like the end of the list.
+            throw new InvalidCursorException("the cursor row is no longer in the result");
+        }
         return withAssignments(rows, day);
     }
 
