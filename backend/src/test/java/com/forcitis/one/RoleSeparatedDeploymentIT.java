@@ -135,7 +135,7 @@ class RoleSeparatedDeploymentIT {
     com.forcitis.one.platform.audit.api.AuditPartitions auditPartitions;
 
     @Autowired
-    com.forcitis.one.organization.workforce.api.EmployeeExistence employeeExistence;
+    com.forcitis.one.organization.workforce.api.EmployeeLabels employeeLabels;
 
     @Test
     @DisplayName("the runtime account alone is enough: a write through the application (entity, versions, event registry, audit by listener) and a read both work")
@@ -160,7 +160,8 @@ class RoleSeparatedDeploymentIT {
         assertThat(jdbc.sql("select current_user").query(String.class).single()).isEqualTo(RUNTIME);
         assertThat(auditPartitions.exists(now)).as("the month the job pre-created").isTrue();
         assertThat(auditPartitions.exists(now.plusYears(30))).isFalse();
-        assertThat(employeeExistence.exists(new com.forcitis.one.kernel.EmployeeId(UUID.randomUUID()))).isFalse();
+        com.forcitis.one.kernel.EmployeeId unknown = new com.forcitis.one.kernel.EmployeeId(UUID.randomUUID());
+        assertThat(employeeLabels.labelsOf(java.util.Set.of(unknown)).containsKey(unknown)).isFalse();
     }
 
     @Test

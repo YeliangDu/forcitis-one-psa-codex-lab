@@ -4,7 +4,7 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.WorkContext;
-import com.forcitis.one.organization.workforce.api.EmployeeExistence;
+import com.forcitis.one.organization.workforce.api.EmployeeLabels;
 import com.forcitis.one.platform.audit.api.AuditPartitions;
 import com.forcitis.one.platform.identity.api.SingleOperatorMode;
 import java.io.PrintStream;
@@ -42,13 +42,13 @@ public class OperationsCommands {
     private final GrantRoleByOperations grant;
     private final RevokeRoleByOperations revoke;
     private final SingleOperatorMode mode;
-    private final EmployeeExistence employees;
+    private final EmployeeLabels employees;
     private final AuditPartitions auditPartitions;
     private final Clock clock;
 
     OperationsCommands(RegisterEmergencyAdmin register, ResetEmergencyAdminCredentials reset, DisableEmergencyAdmin disable,
             EnableEmergencyAdmin enable, GrantRoleByOperations grant, RevokeRoleByOperations revoke, SingleOperatorMode mode,
-            EmployeeExistence employees, AuditPartitions auditPartitions, Clock clock) {
+            EmployeeLabels employees, AuditPartitions auditPartitions, Clock clock) {
         this.register = register;
         this.reset = reset;
         this.disable = disable;
@@ -148,9 +148,13 @@ public class OperationsCommands {
 
     /** Separated employees and employees without an assignment still count: the snapshot keeps them, and the audit trail must be able to name them. The witness is checked only when one was given. */
     private void requireExisting(OperationAttestation attestation) {
-        if (!employees.exists(attestation.operator()) || (!attestation.witnessOmitted() && !employees.exists(attestation.witness()))) {
+        if (!exists(attestation.operator()) || (!attestation.witnessOmitted() && !exists(attestation.witness()))) {
             throw OperationAttestation.required();
         }
+    }
+
+    private boolean exists(EmployeeId employee) {
+        return employees.labelsOf(Set.of(employee)).containsKey(employee);
     }
 
     private int registerAdmin(OperationAttestation attestation, EmployeeId employeeId, String loginName, PrintStream out) {
