@@ -69,7 +69,7 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     @Test
     @DisplayName("默认范围首版与两个日期例外完整回读，确认人为登录用户且发布留审计")
     void defaultVersionRoundTripsAllFieldsAndAuditsPublication() throws Exception {
-        Map<String, Object> body = publication(null, TODAY.minusDays(30));
+        Map<String, Object> body = publication(null, TODAY);
         body.put("dateOverrides", List.of(
                 override(TODAY.plusDays(5), 240, "Synthetic half-day schedule"),
                 override(TODAY.plusDays(6), 360, "Synthetic adjusted schedule")));
@@ -110,7 +110,7 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     @DisplayName("同范围后续版本递增并倒序列出，前版关闭区间但保留生效状态与原工时")
     void successorClosesButNeverEditsPredecessorMinutes() throws Exception {
         UUID scope = newScope();
-        String firstId = publish(publication(scope, TODAY.minusDays(10)), 1);
+        String firstId = publish(publication(scope, TODAY), 1);
         Map<String, Object> secondBody = publication(scope, TODAY.plusDays(10));
         secondBody.put("workdayMinutes", 450);
         secondBody.put("adjustedWorkdayMinutes", 390);
@@ -134,7 +134,7 @@ class StandardHoursVersionIT extends AcceptanceSupport {
         assertThat(first.get("status")).as("closed predecessor stays IN_EFFECT").isEqualTo("IN_EFFECT");
         assertThat(first.get("workdayMinutes")).as("first version is never rewritten to successor minutes").isEqualTo(480);
         assertThat(first.get("adjustedWorkdayMinutes")).as("first adjusted minutes are immutable").isEqualTo(420);
-        assertThat(first.get("effectiveFromDate")).as("first effective date is immutable").isEqualTo(TODAY.minusDays(10).toString());
+        assertThat(first.get("effectiveFromDate")).as("first effective date is immutable").isEqualTo(TODAY.toString());
     }
 
     @Test
@@ -146,8 +146,8 @@ class StandardHoursVersionIT extends AcceptanceSupport {
         assertThat(versions(entity)).as("a new entity scope is an empty items list").isEmpty();
         assertThat(versions(otherEntity)).as("another new entity scope is independently empty").isEmpty();
 
-        String entityId = publish(publication(entity, TODAY.minusDays(3)), 1);
-        String otherId = publish(publication(otherEntity, TODAY.minusDays(3)), 1);
+        String entityId = publish(publication(entity, TODAY), 1);
+        String otherId = publish(publication(otherEntity, TODAY), 1);
 
         List<Map<String, Object>> entityItems = versions(entity);
         assertThat(entityItems).as("entity list contains only its own version").hasSize(1);
@@ -210,23 +210,24 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     }
 
     @Test
-    @DisplayName("首版允许追溯，后续版早于上海今天返回422及BACKDATED，今天生效则接受")
-    void onlyTheFirstVersionMayStartBeforeShanghaiToday() throws Exception {
-        UUID scope = newScope();
-        String firstId = publish(publication(scope, TODAY.minusDays(10)), 1);
-        List<Map<String, Object>> before = versions(scope);
-        assertThat(before.get(0).get("effectiveFromDate")).as("the first version may begin in the past")
-                .isEqualTo(TODAY.minusDays(10).toString());
+    @DisplayName("任何早于上海今天的生效日一律422及BACKDATED：无版本的范围、仅有已作废版本的范围，今天生效则接受")
+    void noVersionMayStartBeforeShanghaiToday() throws Exception {
+        UUID empty = newScope();
+        assertError(postPublication(publication(empty, TODAY.minusDays(1)), PUBLISHER), 422, "BACKDATED",
+                "a scope with no version yet still refuses yesterday");
+        assertThat(versions(empty)).as("backdated first publication stores nothing").isEmpty();
 
-        assertError(postPublication(publication(scope, TODAY.minusDays(1)), PUBLISHER), 422, "BACKDATED",
-                "second version is later than predecessor but before Shanghai today");
-        assertThat(versions(scope)).as("backdated successor stores nothing and does not close its predecessor").isEqualTo(before);
+        UUID voided = newScope();
+        String futureId = publish(publication(voided, TODAY.plusDays(5)), 1);
+        assertStatus(voidVersion(futureId, Map.of("reason", "Synthetic cancellation"), PUBLISHER), 200, "the only version is voided");
+        List<Map<String, Object>> before = versions(voided);
+        assertError(postPublication(publication(voided, TODAY.minusDays(1)), PUBLISHER), 422, "BACKDATED",
+                "a scope whose versions are all voided refuses yesterday");
+        assertThat(versions(voided)).as("backdated publication into an all-voided scope stores nothing").isEqualTo(before);
 
-        String todayId = publish(publication(scope, TODAY), 2);
-        List<Map<String, Object>> found = versions(scope);
-        assertThat(found).as("today is an accepted boundary for a successor")
-                .extracting(item -> item.get("standardHoursVersionId")).containsExactly(todayId, firstId);
-        assertThat(found.get(0).get("effectiveFromDate")).as("accepted successor starts on Shanghai today").isEqualTo(TODAY.toString());
+        String todayId = publish(publication(voided, TODAY), 2);
+        assertThat(versions(voided)).as("today is an accepted boundary even after the voided version")
+                .extracting(item -> item.get("standardHoursVersionId")).first().isEqualTo(todayId);
     }
 
     @Test
@@ -257,7 +258,7 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     @DisplayName("最新未来版可作废且保留VOIDED记录，前版重新开放并可在原日期发布新版本，作废留审计")
     void voidFutureLatestReopensPredecessorAndAllowsReplacement() throws Exception {
         UUID scope = newScope();
-        String firstId = publish(publication(scope, TODAY.minusDays(10)), 1);
+        String firstId = publish(publication(scope, TODAY), 1);
         LocalDate futureDate = TODAY.plusDays(10);
         String futureId = publish(publication(scope, futureDate), 2);
         assertThat(versions(scope).get(1).get("effectiveToDate")).as("future publication initially closes predecessor").isNotNull();
@@ -312,7 +313,7 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     }
 
     private static Stream<LocalDate> nonFutureDates() {
-        return Stream.of(TODAY, TODAY.minusDays(1));
+        return Stream.of(TODAY);
     }
 
     @Test

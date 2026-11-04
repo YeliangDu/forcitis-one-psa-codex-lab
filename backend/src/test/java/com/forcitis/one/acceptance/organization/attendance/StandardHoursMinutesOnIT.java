@@ -49,7 +49,31 @@ class StandardHoursMinutesOnIT extends AcceptanceSupport {
     }
 
     private static final String VERSIONS = "/api/v1/organization/standard-hours-versions";
-    private static final String CALENDAR = "/api/v1/organization/work-calendars/2026";
+
+    /** Real Shanghai date: the database triggers use the real clock, and a version never starts before it. */
+    private static final LocalDate TODAY = LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
+    /** First Monday on or after today with four weeks left in its year; the calendar fixtures and every assertion hang off it. */
+    private static final LocalDate A = anchor();
+    private static final int YEAR = A.getYear();
+    private static final String CALENDAR = "/api/v1/organization/work-calendars/" + YEAR;
+
+    private static LocalDate anchor() {
+        LocalDate monday = TODAY;
+        while (monday.getDayOfWeek() != java.time.DayOfWeek.MONDAY) {
+            monday = monday.plusDays(1);
+        }
+        if (monday.plusDays(28).getYear() != monday.getYear()) {
+            monday = LocalDate.of(monday.getYear() + 1, 1, 1);
+            while (monday.getDayOfWeek() != java.time.DayOfWeek.MONDAY) {
+                monday = monday.plusDays(1);
+            }
+        }
+        return monday;
+    }
+
+    private static String d(int days) {
+        return A.plusDays(days).toString();
+    }
     private static final RequestPostProcessor PUBLISHER = person(31, "organization.attendance:standard-hours:publish");
     private static final RequestPostProcessor MAINTAINER = person(21, "organization.attendance:work-calendar:read",
             "organization.attendance:work-calendar:update", "organization.attendance:locked-day:update");
@@ -64,9 +88,9 @@ class StandardHoursMinutesOnIT extends AcceptanceSupport {
         MockHttpServletResponse found = mvc.perform(get(CALENDAR).with(MAINTAINER)).andReturn().getResponse();
         if (found.getStatus() != 200) {
             Map<String, Object> body = Map.of("lockedDaysConfirmed", true, "days", List.of(
-                    Map.of("calendarDate", "2026-11-10", "dayKind", "HOLIDAY"),
-                    Map.of("calendarDate", "2026-11-14", "dayKind", "MAKE_UP_WORKDAY"),
-                    Map.of("calendarDate", "2026-11-21", "dayKind", "MAKE_UP_WORKDAY")));
+                    Map.of("calendarDate", d(1), "dayKind", "HOLIDAY"),
+                    Map.of("calendarDate", d(5), "dayKind", "MAKE_UP_WORKDAY"),
+                    Map.of("calendarDate", d(12), "dayKind", "MAKE_UP_WORKDAY")));
             MockHttpServletResponse maintained = mvc.perform(put(CALENDAR).header("If-Match", "\"0\"")
                     .with(MAINTAINER).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                     .content(JSON.writeValueAsString(body))).andReturn().getResponse();
@@ -78,34 +102,34 @@ class StandardHoursMinutesOnIT extends AcceptanceSupport {
     @DisplayName("工作日取普通分钟、调休取调整分钟，日期例外仅覆盖上班日且不影响相邻日")
     void calendarKindDecidesAndOverridesApplyOnWorkingDaysOnly() throws Exception {
         UUID scope = newScope();
-        Map<String, Object> body = publication(scope, TODAY);
+        Map<String, Object> body = publication(scope, A);
         body.put("dateOverrides", List.of(
-                override(LocalDate.of(2026, 11, 8), 180, "Synthetic Sunday override"),
-                override(LocalDate.of(2026, 11, 10), 210, "Synthetic holiday override"),
-                override(LocalDate.of(2026, 11, 12), 240, "Synthetic workday override"),
-                override(LocalDate.of(2026, 11, 21), 300, "Synthetic make-up override")));
+                override(A.plusDays(6), 180, "Synthetic Sunday override"),
+                override(A.plusDays(1), 210, "Synthetic holiday override"),
+                override(A.plusDays(3), 240, "Synthetic workday override"),
+                override(A.plusDays(12), 300, "Synthetic make-up override")));
         publish(body, 1);
 
-        assertMinutes(scope, "2026-11-04", 480, "ordinary Wednesday uses workdayMinutes");
-        assertMinutes(scope, "2026-11-07", 0, "ordinary Saturday rests");
-        assertMinutes(scope, "2026-11-08", 0, "Sunday rests even with an override");
-        assertMinutes(scope, "2026-11-10", 0, "weekday holiday rests even with an override");
-        assertMinutes(scope, "2026-11-14", 420, "make-up Saturday without an override uses adjustedWorkdayMinutes");
-        assertMinutes(scope, "2026-11-21", 300, "make-up Saturday override wins over adjustedWorkdayMinutes");
-        assertMinutes(scope, "2026-11-12", 240, "ordinary workday override wins over workdayMinutes");
-        assertMinutes(scope, "2026-11-09", 480, "day before the holiday retains ordinary minutes");
-        assertMinutes(scope, "2026-11-11", 480, "day before the workday override retains ordinary minutes");
-        assertMinutes(scope, "2026-11-13", 480, "day after the workday override retains ordinary minutes");
-        assertMinutes(scope, "2026-11-20", 480, "Friday before the make-up override retains ordinary minutes");
-        assertMinutes(scope, "2026-11-22", 0, "Sunday after the make-up override still rests");
+        assertMinutes(scope, d(2), 480, "ordinary Wednesday uses workdayMinutes");
+        assertMinutes(scope, d(19), 0, "ordinary Saturday rests");
+        assertMinutes(scope, d(6), 0, "Sunday rests even with an override");
+        assertMinutes(scope, d(1), 0, "weekday holiday rests even with an override");
+        assertMinutes(scope, d(5), 420, "make-up Saturday without an override uses adjustedWorkdayMinutes");
+        assertMinutes(scope, d(12), 300, "make-up Saturday override wins over adjustedWorkdayMinutes");
+        assertMinutes(scope, d(3), 240, "ordinary workday override wins over workdayMinutes");
+        assertMinutes(scope, d(0), 480, "day before the holiday retains ordinary minutes");
+        assertMinutes(scope, d(2), 480, "day before the workday override retains ordinary minutes");
+        assertMinutes(scope, d(4), 480, "day after the workday override retains ordinary minutes");
+        assertMinutes(scope, d(11), 480, "Friday before the make-up override retains ordinary minutes");
+        assertMinutes(scope, d(13), 0, "Sunday after the make-up override still rests");
     }
 
     @Test
     @DisplayName("后续版从生效当天接替前版，前一天仍取前版且日期例外不跨版本泄漏")
     void successorStartsInclusivelyAndUsesOnlyItsOwnOverrides() throws Exception {
         UUID scope = newScope();
-        LocalDate successor = futureTuesday();
-        Map<String, Object> first = publication(scope, TODAY);
+        LocalDate successor = A.plusDays(15);
+        Map<String, Object> first = publication(scope, A);
         first.put("dateOverrides", List.of(override(successor.plusDays(2), 195, "Synthetic predecessor override")));
         publish(first, 1);
         Map<String, Object> second = publication(scope, successor);
@@ -114,23 +138,23 @@ class StandardHoursMinutesOnIT extends AcceptanceSupport {
         second.put("dateOverrides", List.of(override(successor.plusDays(1), 285, "Synthetic successor override")));
         publish(second, 2);
 
-        assertMinutes(scope, "2026-11-02", 480, "first version applies on its effective start date");
+        assertMinutes(scope, d(0), 480, "first version applies on its effective start date");
         assertMinutes(scope, successor.minusDays(1).toString(), 480, "day before successor still uses predecessor");
         assertMinutes(scope, successor.toString(), 360, "successor applies on its effective start date");
         assertMinutes(scope, successor.plusDays(1).toString(), 285, "successor uses its own date override");
         assertMinutes(scope, successor.plusDays(2).toString(), 360, "predecessor override cannot leak into successor interval");
-        assertMinutes(scope, "2026-12-31", 360, "latest version remains open ended within the maintained year");
+        assertMinutes(scope, d(21), 360, "latest version remains open ended within the maintained year");
     }
 
     @Test
     @DisplayName("法人首版之前无生效版本即报缺失并记录一条告警，首版生效后正常且无告警")
     void dateBeforeFirstOwnVersionIsMissingWithoutDefaultFallback() throws Exception {
         UUID scope = newScope();
-        publish(publication(scope, LocalDate.of(2026, 11, 20)), 1);
+        publish(publication(scope, A.plusDays(7)), 1);
 
-        assertMissing(scope, "2026-11-19", "before first own version with DEFAULT absent");
-        assertMinutes(scope, "2026-11-20", 480, "first own version starts inclusively");
-        assertMinutes(scope, "2026-11-23", 480, "workday after first own version answers without ALERT");
+        assertMissing(scope, d(4), "before first own version with DEFAULT absent");
+        assertMinutes(scope, d(7), 480, "first own version starts inclusively");
+        assertMinutes(scope, d(8), 480, "workday after first own version answers without ALERT");
     }
 
     @Test
@@ -138,16 +162,16 @@ class StandardHoursMinutesOnIT extends AcceptanceSupport {
     void absentTimelineFailsOnBothWorkdaysAndRestDays() throws Exception {
         UUID scope = newScope();
 
-        assertMissing(scope, "2026-11-04", "missing workday must throw instead of inventing 450, 480 or 7.5");
-        assertMissing(scope, "2026-11-07", "missing weekend must throw instead of short-circuiting to zero");
+        assertMissing(scope, d(2), "missing workday must throw instead of inventing 450, 480 or 7.5");
+        assertMissing(scope, d(19), "missing weekend must throw instead of short-circuiting to zero");
     }
 
     @Test
     @DisplayName("未来最新版本作废前在起始日取新值，作废后同日恢复前版分钟")
     void voidedFutureVersionIsExcludedFromTheTimeline() throws Exception {
         UUID scope = newScope();
-        publish(publication(scope, TODAY), 1);
-        LocalDate start = futureTuesday();
+        publish(publication(scope, A), 1);
+        LocalDate start = A.plusDays(15);
         Map<String, Object> future = publication(scope, start);
         future.put("workdayMinutes", 360);
         String futureId = publish(future, 2);
@@ -164,9 +188,9 @@ class StandardHoursMinutesOnIT extends AcceptanceSupport {
     @DisplayName("标准工时版本覆盖到未维护的年度时透传日历年度缺失错误，不转换为标准工时缺失")
     void unmaintainedYearPropagatesTheCalendarError() throws Exception {
         UUID scope = newScope();
-        publish(publication(scope, TODAY), 1);
+        publish(publication(scope, A), 1);
 
-        assertThatThrownBy(() -> standardHours.minutesOn(new LegalEntityId(scope), LocalDate.of(2027, 1, 4)))
+        assertThatThrownBy(() -> standardHours.minutesOn(new LegalEntityId(scope), LocalDate.of(YEAR + 1, 1, 4)))
                 .as("an open-ended version must still consult the unmaintained 2027 calendar")
                 .isInstanceOfSatisfying(DomainException.class, failure ->
                         assertThat(failure.errorCode()).as("calendar error propagates without standard-hours translation")
@@ -178,17 +202,17 @@ class StandardHoursMinutesOnIT extends AcceptanceSupport {
     @DisplayName("成功查询普通工作日、休息日、节假日、调休及日期例外均不记录告警，重复读取结果稳定")
     void successfulReadsNeverEmitAlerts() throws Exception {
         UUID scope = newScope();
-        Map<String, Object> body = publication(scope, TODAY.minusDays(10));
-        body.put("dateOverrides", List.of(override(LocalDate.of(2026, 11, 12), 255, "Synthetic silent override")));
+        Map<String, Object> body = publication(scope, A);
+        body.put("dateOverrides", List.of(override(A.plusDays(3), 255, "Synthetic silent override")));
         publish(body, 1);
         int mark = logMark();
 
         for (int read = 0; read < 2; read++) {
-            assertMinutes(scope, "2026-11-04", 480, "successful ordinary workday read " + read);
-            assertMinutes(scope, "2026-11-07", 0, "successful rest day read " + read);
-            assertMinutes(scope, "2026-11-10", 0, "successful holiday read " + read);
-            assertMinutes(scope, "2026-11-14", 420, "successful make-up workday read " + read);
-            assertMinutes(scope, "2026-11-12", 255, "successful override read " + read);
+            assertMinutes(scope, d(2), 480, "successful ordinary workday read " + read);
+            assertMinutes(scope, d(19), 0, "successful rest day read " + read);
+            assertMinutes(scope, d(1), 0, "successful holiday read " + read);
+            assertMinutes(scope, d(5), 420, "successful make-up workday read " + read);
+            assertMinutes(scope, d(3), 255, "successful override read " + read);
         }
 
         assertThat(alertsSince(mark)).as("all successful initial and repeated reads produce no ALERT lines").isEmpty();
@@ -256,16 +280,6 @@ class StandardHoursMinutesOnIT extends AcceptanceSupport {
         assertThat((Integer) JsonPath.read(content, "$.versionNumber")).as("publication returns its per-scope version number")
                 .isEqualTo(expectedNumber);
         return id;
-    }
-
-    /** First Tuesday on or after the later of eight days from the real Shanghai date and 2026-11-24 (beyond the calendar fixtures); the database triggers use the real clock. */
-    private static LocalDate futureTuesday() {
-        LocalDate earliest = LocalDate.now(java.time.ZoneId.of("Asia/Shanghai")).plusDays(8);
-        LocalDate day = earliest.isAfter(LocalDate.of(2026, 11, 24)) ? earliest : LocalDate.of(2026, 11, 24);
-        while (day.getDayOfWeek() != java.time.DayOfWeek.TUESDAY) {
-            day = day.plusDays(1);
-        }
-        return day;
     }
 
     private MockHttpServletResponse voidVersion(String id, Map<String, Object> body, RequestPostProcessor caller) throws Exception {

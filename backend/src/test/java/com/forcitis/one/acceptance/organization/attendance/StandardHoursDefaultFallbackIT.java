@@ -50,7 +50,31 @@ class StandardHoursDefaultFallbackIT extends AcceptanceSupport {
     }
 
     private static final String VERSIONS = "/api/v1/organization/standard-hours-versions";
-    private static final String CALENDAR = "/api/v1/organization/work-calendars/2026";
+
+    /** Real Shanghai date: the database triggers use the real clock, and a version never starts before it. */
+    private static final LocalDate TODAY = LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
+    /** First Monday on or after today with four weeks left in its year; the calendar fixtures and every assertion hang off it. */
+    private static final LocalDate A = anchor();
+    private static final int YEAR = A.getYear();
+    private static final String CALENDAR = "/api/v1/organization/work-calendars/" + YEAR;
+
+    private static LocalDate anchor() {
+        LocalDate monday = TODAY;
+        while (monday.getDayOfWeek() != java.time.DayOfWeek.MONDAY) {
+            monday = monday.plusDays(1);
+        }
+        if (monday.plusDays(28).getYear() != monday.getYear()) {
+            monday = LocalDate.of(monday.getYear() + 1, 1, 1);
+            while (monday.getDayOfWeek() != java.time.DayOfWeek.MONDAY) {
+                monday = monday.plusDays(1);
+            }
+        }
+        return monday;
+    }
+
+    private static String d(int days) {
+        return A.plusDays(days).toString();
+    }
     private static final RequestPostProcessor PUBLISHER = person(31, "organization.attendance:standard-hours:publish");
     private static final RequestPostProcessor MAINTAINER = person(21, "organization.attendance:work-calendar:read",
             "organization.attendance:work-calendar:update", "organization.attendance:locked-day:update");
@@ -66,9 +90,9 @@ class StandardHoursDefaultFallbackIT extends AcceptanceSupport {
         MockHttpServletResponse found = mvc.perform(get(CALENDAR).with(MAINTAINER)).andReturn().getResponse();
         if (found.getStatus() != 200) {
             Map<String, Object> body = Map.of("lockedDaysConfirmed", true, "days", List.of(
-                    Map.of("calendarDate", "2026-11-10", "dayKind", "HOLIDAY"),
-                    Map.of("calendarDate", "2026-11-14", "dayKind", "MAKE_UP_WORKDAY"),
-                    Map.of("calendarDate", "2026-11-21", "dayKind", "MAKE_UP_WORKDAY")));
+                    Map.of("calendarDate", d(1), "dayKind", "HOLIDAY"),
+                    Map.of("calendarDate", d(5), "dayKind", "MAKE_UP_WORKDAY"),
+                    Map.of("calendarDate", d(12), "dayKind", "MAKE_UP_WORKDAY")));
             MockHttpServletResponse maintained = mvc.perform(put(CALENDAR).header("If-Match", "\"0\"")
                     .with(MAINTAINER).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                     .content(JSON.writeValueAsString(body))).andReturn().getResponse();
@@ -82,15 +106,15 @@ class StandardHoursDefaultFallbackIT extends AcceptanceSupport {
         UUID scope = newScope();
         ensureDefaultVersion();
 
-        assertMinutes(scope, "2026-11-04", 465, "entity without own version uses DEFAULT workdayMinutes");
-        assertMinutes(scope, "2026-11-07", 0, "DEFAULT ordinary Saturday rests");
-        assertMinutes(scope, "2026-11-08", 0, "DEFAULT Sunday override cannot turn rest into work");
-        assertMinutes(scope, "2026-11-10", 0, "DEFAULT holiday override cannot turn rest into work");
-        assertMinutes(scope, "2026-11-14", 405, "DEFAULT make-up day uses adjustedWorkdayMinutes");
-        assertMinutes(scope, "2026-11-21", 315, "DEFAULT make-up day override wins");
-        assertMinutes(scope, "2026-11-12", 255, "DEFAULT ordinary workday override wins");
-        assertMinutes(scope, "2026-11-11", 465, "DEFAULT override leaves preceding workday unchanged");
-        assertMinutes(scope, "2026-11-13", 465, "DEFAULT override leaves following workday unchanged");
+        assertMinutes(scope, d(2), 465, "entity without own version uses DEFAULT workdayMinutes");
+        assertMinutes(scope, d(19), 0, "DEFAULT ordinary Saturday rests");
+        assertMinutes(scope, d(6), 0, "DEFAULT Sunday override cannot turn rest into work");
+        assertMinutes(scope, d(1), 0, "DEFAULT holiday override cannot turn rest into work");
+        assertMinutes(scope, d(5), 405, "DEFAULT make-up day uses adjustedWorkdayMinutes");
+        assertMinutes(scope, d(12), 315, "DEFAULT make-up day override wins");
+        assertMinutes(scope, d(3), 255, "DEFAULT ordinary workday override wins");
+        assertMinutes(scope, d(2), 465, "DEFAULT override leaves preceding workday unchanged");
+        assertMinutes(scope, d(4), 465, "DEFAULT override leaves following workday unchanged");
     }
 
     @Test
@@ -99,17 +123,17 @@ class StandardHoursDefaultFallbackIT extends AcceptanceSupport {
         UUID scope = newScope();
         UUID defaultOnly = newScope();
         ensureDefaultVersion();
-        Map<String, Object> own = publication(scope, LocalDate.of(2026, 11, 20));
+        Map<String, Object> own = publication(scope, A.plusDays(7));
         own.put("workdayMinutes", 390);
         own.put("adjustedWorkdayMinutes", 330);
         publish(own, 1);
 
-        assertMinutes(defaultOnly, "2026-11-19", 465, "DEFAULT actually covers the date before the own timeline starts");
-        assertMissing(scope, "2026-11-19", "own timeline forbids fallback even though DEFAULT covers the date");
-        assertMinutes(scope, "2026-11-20", 390, "own workday minutes win from the exact first effective date");
-        assertMinutes(scope, "2026-11-23", 390, "own workday minutes win over different DEFAULT minutes");
-        assertMinutes(scope, "2026-11-21", 330, "own adjusted minutes win without importing DEFAULT's date override");
-        assertMinutes(defaultOnly, "2026-11-21", 315, "another entity still sees the DEFAULT override on the same date");
+        assertMinutes(defaultOnly, d(4), 465, "DEFAULT actually covers the date before the own timeline starts");
+        assertMissing(scope, d(4), "own timeline forbids fallback even though DEFAULT covers the date");
+        assertMinutes(scope, d(7), 390, "own workday minutes win from the exact first effective date");
+        assertMinutes(scope, d(8), 390, "own workday minutes win over different DEFAULT minutes");
+        assertMinutes(scope, d(12), 330, "own adjusted minutes win without importing DEFAULT's date override");
+        assertMinutes(defaultOnly, d(12), 315, "another entity still sees the DEFAULT override on the same date");
     }
 
     @Test
@@ -118,20 +142,20 @@ class StandardHoursDefaultFallbackIT extends AcceptanceSupport {
         UUID scope = newScope();
         UUID defaultOnly = newScope();
         ensureDefaultVersion();
-        assertMinutes(scope, "2026-11-04", 465, "before own publication ordinary workday uses DEFAULT");
-        assertMinutes(scope, "2026-11-12", 255, "before own publication date override comes from DEFAULT");
-        assertMinutes(scope, "2026-11-14", 405, "before own publication make-up workday uses DEFAULT");
+        assertMinutes(scope, d(2), 465, "before own publication ordinary workday uses DEFAULT");
+        assertMinutes(scope, d(3), 255, "before own publication date override comes from DEFAULT");
+        assertMinutes(scope, d(5), 405, "before own publication make-up workday uses DEFAULT");
 
-        Map<String, Object> own = publication(scope, TODAY);
+        Map<String, Object> own = publication(scope, A);
         own.put("workdayMinutes", 390);
         own.put("adjustedWorkdayMinutes", 330);
         publish(own, 1);
 
-        assertMinutes(scope, "2026-11-04", 390, "same entity and date switch to own workday minutes after publication");
-        assertMinutes(scope, "2026-11-12", 390, "cached DEFAULT override is discarded when own timeline appears");
-        assertMinutes(scope, "2026-11-14", 330, "same make-up date switches to own adjusted minutes");
-        assertMinutes(defaultOnly, "2026-11-04", 465, "another entity continues using DEFAULT ordinary minutes");
-        assertMinutes(defaultOnly, "2026-11-12", 255, "another entity retains the DEFAULT date override");
+        assertMinutes(scope, d(2), 390, "same entity and date switch to own workday minutes after publication");
+        assertMinutes(scope, d(3), 390, "cached DEFAULT override is discarded when own timeline appears");
+        assertMinutes(scope, d(5), 330, "same make-up date switches to own adjusted minutes");
+        assertMinutes(defaultOnly, d(2), 465, "another entity continues using DEFAULT ordinary minutes");
+        assertMinutes(defaultOnly, d(3), 255, "another entity retains the DEFAULT date override");
     }
 
     @Test
@@ -139,7 +163,7 @@ class StandardHoursDefaultFallbackIT extends AcceptanceSupport {
     void entityWhoseOnlyOwnVersionIsVoidedFallsBackToDefault() throws Exception {
         UUID scope = newScope();
         ensureDefaultVersion();
-        LocalDate start = futureTuesday();
+        LocalDate start = A.plusDays(15);
         Map<String, Object> own = publication(scope, start);
         own.put("workdayMinutes", 390);
         String ownId = publish(own, 1);
@@ -149,18 +173,8 @@ class StandardHoursDefaultFallbackIT extends AcceptanceSupport {
                 "publisher can void the only own future version");
 
         assertMinutes(scope, start.toString(), 465, "a voided own version does not block the DEFAULT fallback on its former start date");
-        assertMinutes(scope, "2026-11-04", 465, "dates before the voided start also come from DEFAULT");
-        assertMinutes(scope, "2026-11-12", 255, "DEFAULT date override applies again to the entity");
-    }
-
-    /** First Tuesday on or after the later of eight days from the real Shanghai date and 2026-11-24, which is beyond the calendar fixtures. */
-    private static LocalDate futureTuesday() {
-        LocalDate earliest = LocalDate.now(java.time.ZoneId.of("Asia/Shanghai")).plusDays(8);
-        LocalDate day = earliest.isAfter(LocalDate.of(2026, 11, 24)) ? earliest : LocalDate.of(2026, 11, 24);
-        while (day.getDayOfWeek() != java.time.DayOfWeek.TUESDAY) {
-            day = day.plusDays(1);
-        }
-        return day;
+        assertMinutes(scope, d(2), 465, "dates before the voided start also come from DEFAULT");
+        assertMinutes(scope, d(3), 255, "DEFAULT date override applies again to the entity");
     }
 
     private MockHttpServletResponse voidVersion(String id, Map<String, Object> body) throws Exception {
@@ -171,14 +185,14 @@ class StandardHoursDefaultFallbackIT extends AcceptanceSupport {
     private void ensureDefaultVersion() throws Exception {
         synchronized (StandardHoursDefaultFallbackIT.class) {
             if (!defaultPublished) {
-                Map<String, Object> body = publication(null, TODAY.minusDays(30));
+                Map<String, Object> body = publication(null, A);
                 body.put("workdayMinutes", 465);
                 body.put("adjustedWorkdayMinutes", 405);
                 body.put("dateOverrides", List.of(
-                        override(LocalDate.of(2026, 11, 8), 195, "Synthetic DEFAULT Sunday override"),
-                        override(LocalDate.of(2026, 11, 10), 180, "Synthetic DEFAULT holiday override"),
-                        override(LocalDate.of(2026, 11, 12), 255, "Synthetic DEFAULT workday override"),
-                        override(LocalDate.of(2026, 11, 21), 315, "Synthetic DEFAULT make-up override")));
+                        override(A.plusDays(6), 195, "Synthetic DEFAULT Sunday override"),
+                        override(A.plusDays(1), 180, "Synthetic DEFAULT holiday override"),
+                        override(A.plusDays(3), 255, "Synthetic DEFAULT workday override"),
+                        override(A.plusDays(12), 315, "Synthetic DEFAULT make-up override")));
                 publish(body, 1);
                 defaultPublished = true;
             }
