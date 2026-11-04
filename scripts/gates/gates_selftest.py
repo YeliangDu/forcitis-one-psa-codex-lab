@@ -884,7 +884,52 @@ def codex_gate_test():
             assert prefilter_allows(command) and ask(command) is None, ("text only: the pre-filter lets it through too", command)
     print("codex_gate self-test: ok")
 
-SECTIONS = {"prod_write_gate": prod_write_gate_test, "codex_gate": codex_gate_test, "pre_tool_dispatch": pre_tool_dispatch_test, "main_checkout_gate": main_checkout_gate_test, "pre_commit": pre_commit_test, "install": install_test}
+def pkill_gate_test():
+    """#1311: no pkill/killall by bare name and no kill of a pid list from an unscoped pgrep/ps on the shared build Mac; the own worktree's path scopes, a recorded pid is free."""
+    import pkill_cases as cases
+    import pkill_gate
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = os.path.realpath(tmp)
+        main, w1, plain = (os.path.join(tmp, n) for n in ("main", "main/.claude/worktrees/w1", "plain"))
+        os.makedirs(main)
+        os.makedirs(plain)
+        git(main, "init", "-q", "-b", "main")
+        git(main, "commit", "-q", "--allow-empty", "-m", "base")
+        git(main, "worktree", "add", "-q", w1, "-b", "w1")
+        os.makedirs(os.path.join(w1, "sub"))
+        for command in cases.ALLOWED:
+            command = command.replace("@W@", w1)
+            assert pkill_gate.check(command, w1) is None, ("allowed", command, pkill_gate.check(command, w1))
+            assert pkill_gate.check(command, os.path.join(w1, "sub")) is None or "$PWD" in command or "pwd" in command, ("allowed in a subdirectory", command)
+        for command in cases.REFUSED:
+            command = command.replace("@W@", w1)
+            reason = pkill_gate.check(command, w1)
+            assert reason and "拒绝" in reason and "pkill -f" in reason, ("refused with the way to scope it", command, reason)
+        assert pkill_gate.check("pkill -f failsafe", w1).count("#1311") == 1
+        # a path outside the own worktree is no scope; the main checkout and a plain directory have no own path at all
+        assert pkill_gate.check(f'pkill -f "{main}/backend"', w1), "the main checkout's path is not the own worktree"
+        for cwd in (main, plain):
+            assert "没有可作范围的路径" in pkill_gate.check(f'pkill -f "{w1}/backend"', cwd), cwd
+            assert pkill_gate.check("kill $PID", cwd) is None and pkill_gate.check("echo pkill", cwd) is None
+        # $PWD means the hook's cwd only while nothing in the command moves; PWD of the subdirectory is still inside the own worktree
+        assert pkill_gate.check('pkill -f "$PWD/backend"', os.path.join(w1, "sub")) is None
+        assert pkill_gate.check('cd /tmp; pkill -f "$PWD/backend"', w1) and pkill_gate.check('pushd /tmp >/dev/null && pkill -f "${PWD}/x"', w1)
+        # through the dispatcher and the mounted entry point (exit code 2 and the reason on stderr), for every tool that runs a shell command
+        for tool in COMMAND_TOOLS:
+            code, out, err = d.dispatch(payload("pkill -f failsafe", cwd=w1, tool_name=tool))
+            assert code == 2 and "#1311" in err, (tool, code, err)
+            assert d.dispatch(payload(f'pkill -f "{w1}/backend/target"', cwd=w1, tool_name=tool))[0] == 0, tool
+        r = subprocess.run([PYTHON, "-I", DISPATCH], input=payload("killall java", cwd=w1), capture_output=True, text=True, env={"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), "CLAUDE_PROJECT_DIR": w1})
+        assert r.returncode == 2 and "killall" in r.stderr, (r.returncode, r.stderr)
+        # the gate's own crash is the dispatcher's exit 3 (fail open in the mounted entry point), not a refusal
+        def boom():
+            raise RuntimeError("boom")
+        with mock.patch("sys.stdin", io.StringIO(payload("pkill -f failsafe", cwd=w1))), contextlib.redirect_stderr(io.StringIO()):
+            assert d.main(pkill_loader=boom) == 3, "a crashed pkill gate is the dispatcher's exit 3 (the mounted entry point lets it through with a warning)"
+    print("pkill_gate self-test: ok")
+
+
+SECTIONS = {"prod_write_gate": prod_write_gate_test, "codex_gate": codex_gate_test, "pkill_gate": pkill_gate_test, "pre_tool_dispatch": pre_tool_dispatch_test, "main_checkout_gate": main_checkout_gate_test, "pre_commit": pre_commit_test, "install": install_test}
 
 if __name__ == "__main__":
     unknown = [name for name in sys.argv[1:] if name not in SECTIONS]
