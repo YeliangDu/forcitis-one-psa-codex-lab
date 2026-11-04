@@ -25,8 +25,8 @@ public enum Permission {
     PLATFORM_AUDIT_ENTRY_EXPORT(Codes.PLATFORM_AUDIT_ENTRY_EXPORT),
     PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ(Codes.PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ),
     ORGANIZATION_WORKFORCE_ORG_UNIT_READ(Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ),
-    ORGANIZATION_WORKFORCE_ORG_RECONCILIATION_EXECUTE(Codes.ORGANIZATION_WORKFORCE_ORG_RECONCILIATION_EXECUTE),
     // Retired with the old sync (#934); kept so that old role versions still read (ADR-0034 decision 1 item 3), no longer granted.
+    ORGANIZATION_WORKFORCE_ORG_RECONCILIATION_EXECUTE("organization.workforce:org-reconciliation:execute", true),
     ORGANIZATION_WORKFORCE_SYNC_RUN_READ("organization.workforce:sync-run:read", true),
     ORGANIZATION_WORKFORCE_SYNC_RUN_EXECUTE("organization.workforce:sync-run:execute", true),
     ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE(Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE),
@@ -97,7 +97,6 @@ public enum Permission {
         String PLATFORM_AUDIT_ENTRY_EXPORT = "platform.audit:audit-entry:export";
         String PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ = "platform.audit:own-login-record:read";
         String ORGANIZATION_WORKFORCE_ORG_UNIT_READ = "organization.workforce:org-unit:read";
-        String ORGANIZATION_WORKFORCE_ORG_RECONCILIATION_EXECUTE = "organization.workforce:org-reconciliation:execute";
         String ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE = "organization.workforce:separation-hold:approve";
         String ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_CREATE = "organization.workforce:personnel-command:create";
         String ORGANIZATION_WORKFORCE_EMPLOYEE_READ = "organization.workforce:employee:read";
