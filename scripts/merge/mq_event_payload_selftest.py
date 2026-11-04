@@ -16,6 +16,10 @@ def fragment(a_fields="id", b_fields="id", a_desc="d", extra=""):
     return "components:\n  messages:\n" + message("Alpha", a_fields, a_desc) + message("Beta", b_fields, "d") + extra
 
 
+def agg(v):   # a file that has a message but is not a fragment (the generated aggregate, a `_` file)
+    return f"components:\n  messages:\n    Agg:\n      payload:\n        v: {v}\n"
+
+
 def run(mq, d):
     def g(cwd, *a):
         r = subprocess.run(["git", "-c", "commit.gpgsign=false", "-c", "user.name=t", "-c", "user.email=t@t", *a], cwd=cwd, capture_output=True, text=True)
@@ -25,6 +29,9 @@ def run(mq, d):
     def pr(author, n, files):   # a branch off main with the given files, published as refs/pull/n/head; returns its head
         g(author, "checkout", "-q", "-b", f"pr{n}", "main")
         for path, text in files.items():
+            if text is None:
+                g(author, "rm", "-q", path)
+                continue
             os.makedirs(os.path.dirname(os.path.join(author, path)), exist_ok=True)
             open(os.path.join(author, path), "w").write(text)
             g(author, "add", path)
@@ -36,22 +43,28 @@ def run(mq, d):
     origin, author, runner = (os.path.join(base, n) for n in ("o.git", "author", "runner"))
     g(base, "init", "-q", "--bare", "-b", "main", origin); g(base, "clone", "-q", origin, author)
     os.makedirs(os.path.join(author, "docs/architecture/events"))
-    open(os.path.join(author, FRAG), "w").write(fragment()); open(os.path.join(author, "docs/architecture/events/asyncapi.yaml"), "w").write("generated: 1\n")
+    open(os.path.join(author, FRAG), "w").write(fragment()); [open(os.path.join(author, "docs/architecture/events", f), "w").write(agg(1)) for f in ("asyncapi.yaml", "_x.yaml")]
     g(author, "add", "-A"); g(author, "commit", "-q", "-m", "base"); g(author, "push", "-q", "origin", "main")
     g(base, "clone", "-q", origin, runner)
     heads = {
         1: pr(author, 1, {FRAG: fragment(a_fields="id,more")}),                                  # an existing payload gains a field
         2: pr(author, 2, {FRAG: fragment(a_desc="a new description")}),                          # only a description changes
         3: pr(author, 3, {FRAG: fragment(extra="    Gamma:\n      name: Gamma\n      payload:\n        type: object\n")}),   # a new message
-        4: pr(author, 4, {"docs/architecture/events/asyncapi.yaml": "generated: 2\n"}),          # the generated aggregate is not a fragment
+        4: pr(author, 4, {"docs/architecture/events/asyncapi.yaml": agg(2)}),                    # the generated aggregate is not a fragment
+        8: pr(author, 8, {"docs/architecture/events/_x.yaml": agg(2)}),                          # nor is a `_` file
+        10: pr(author, 10, {FRAG: fragment().replace("    Alpha:", "    Gone:", 1).replace("name: Alpha", "name: Gone", 1), "docs/architecture/events/moved.yaml": fragment(a_fields="id,moved").split("    Beta:")[0]}),   # Alpha moves to another fragment, payload changed
+        11: pr(author, 11, {FRAG: None, "docs/architecture/events/renamed.yaml": fragment(a_fields="id,renamed")}),   # the fragment is renamed, payload changed
         5: pr(author, 5, {FRAG: fragment(b_fields="id,x")}),                                     # another message's payload
         6: pr(author, 6, {FRAG: "components: [broken\n"}),                                       # a fragment that cannot be read
     }
     err = io.StringIO()
     with contextlib.redirect_stderr(err):
-        assert mq_event_payload.changed(runner, 1, heads[1]) == [f"{FRAG}: Alpha"] and mq_event_payload.changed(runner, 5, heads[5]) == [f"{FRAG}: Beta"], "a changed payload is named"
+        assert mq_event_payload.changed(runner, 1, heads[1]) == [f"Alpha ({FRAG})"] and mq_event_payload.changed(runner, 5, heads[5]) == [f"Beta ({FRAG})"], "a changed payload is named"
         assert mq_event_payload.changed(runner, 2, heads[2]) == [] and mq_event_payload.changed(runner, 3, heads[3]) == [], "a description, a new message pass"
-        assert mq_event_payload.changed(runner, 4, heads[4]) == [], "asyncapi.yaml is generated, not a fragment"
+        assert mq_event_payload.changed(runner, 4, heads[4]) == [] and mq_event_payload.changed(runner, 8, heads[8]) == [], "asyncapi.yaml is generated and _x.yaml is not read: neither is a fragment"
+        moved, renamed = (mq_event_payload.changed(runner, n, heads[n]) for n in (10, 11))
+        assert moved == [f"Alpha ({FRAG} -> docs/architecture/events/moved.yaml)"], moved   # matched by name across fragments, so a move hides nothing
+        assert renamed == [f"Alpha ({FRAG} -> docs/architecture/events/renamed.yaml)"], renamed
         assert mq_event_payload.changed(runner, 9, heads[1]) is None and "cannot fetch" in err.getvalue(), "a pull request that cannot be fetched fails open, said out loud"
         assert mq_event_payload.changed(runner, 6, heads[6]) is None and "not run for #6" in err.getvalue(), "an unreadable fragment fails open, said out loud"
     g(author, "checkout", "-q", "main")   # main moves on after pr2 left it: that change is not the pull request's

@@ -8,7 +8,7 @@ You own the implementation and evidence within the card; nothing outside it.
 6. Delete speculative code; ask what else can go.
 7. Review per CLAUDE.md.
 8. Open the PR, enqueue, read back the result after merge.
-9. Unsure about a business rule or acceptance treatment: tell lead. Technical choices are yours; write them in the PR.
+9. Unsure about a business rule or acceptance treatment: stop and tell lead. Technical choices are yours; write them in the PR.
 A skipped step stays listed as `skip: <reason>`.
 
 Report must include:
