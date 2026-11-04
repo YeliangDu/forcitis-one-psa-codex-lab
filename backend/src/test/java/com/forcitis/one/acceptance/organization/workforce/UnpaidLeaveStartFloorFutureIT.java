@@ -81,6 +81,7 @@ class UnpaidLeaveStartFloorFutureIT extends UnpaidLeaveStartFloorSupport {
         assertThat(commandStatus(command)).isEqualTo(EFFECTIVE);
         assertThat(recipientsOf(theAlertOf(command))).containsExactlyInAnyOrderElementsOf(wecomIdsOf(b));
         assertAlertLine(alertsSince(mark));
+        assertThat(reviewsAbout(a.userId())).as("the leave started today: its sensitive role review is opened (needs the maintained work calendar)").isNotEmpty();
     }
 
     @Test
@@ -95,5 +96,6 @@ class UnpaidLeaveStartFloorFutureIT extends UnpaidLeaveStartFloorSupport {
 
         assertThat(commandStatus(command)).isEqualTo(EFFECTIVE);
         assertThat(recipientsOf(theAlertOf(command))).containsExactlyInAnyOrderElementsOf(wecomIdsOf(b));
+        assertThat(reviewsAbout(a.userId())).as("the leave started today: its sensitive role review is opened (needs the maintained work calendar)").isNotEmpty();
     }
 }

@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { currentUserBody, problemBody, stubServer } from '@forcitis/core/testing';
@@ -46,6 +46,30 @@ describe('应用外壳与登录状态', () => {
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/session-expired'));
     expect(await screen.findByText('登录已过期')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '重新登录' })).toBeInTheDocument();
+  });
+
+  it('授权申请页挂在 /admin/authorization-requests', async () => {
+    stubServer({ 'GET sessions:current': { body: currentUserBody([], NAVIGATION) }, 'GET authorization-requests': { body: { items: [] } } });
+    renderWithProviders(<AppRoutes />, { route: '/admin/authorization-requests' });
+
+    expect(await screen.findByText('暂无待确认的授权申请')).toBeInTheDocument();
+  });
+
+  it('授权申请页里申请人自己确认被拒（403 带业务码）：留在本页并显示提示，不进权限不足页', async () => {
+    const FIRST = '019a0000-0000-7000-8000-000000009001';
+    stubServer({
+      'GET sessions:current': { body: currentUserBody([], NAVIGATION) },
+      'GET authorization-requests': { body: { items: [{ requestId: FIRST, kind: 'UPDATE_ROLE', roleName: '合成角色甲', roleCodes: ['synthetic_a'], permissionCodes: [], requestedBy: '019a0000-0000-7000-8000-000000001001', requestedAt: '2026-11-03T01:00:00Z' }] } },
+      [`POST authorization-requests/${FIRST}:confirm`]: { status: 403, body: problemBody(403, 'PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED') },
+    });
+    renderWithProviders(<AppRoutes />, { route: '/admin/authorization-requests' });
+
+    await userEvent.click(await screen.findByRole('button', { name: '确认' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: '确认' }));
+
+    expect(await within(dialog).findByText('申请人和被授权用户不能确认自己的授权申请，请让其他确认人处理')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/admin/authorization-requests');
   });
 
   it('接口返回 403：进入权限不足页', async () => {

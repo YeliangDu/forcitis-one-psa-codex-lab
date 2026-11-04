@@ -52,6 +52,7 @@ t_guards|policy_keys_read (self-test)|python3 -I scripts/guards/policy_keys_read
 t_guards|sql_values (self-test)|python3 -I scripts/guards/sql_values.py --self-test
 t_guards|rule_sizes (self-test)|python3 -I scripts/guards/rule_sizes.py --self-test
 t_guards|file_lines (self-test)|python3 -I scripts/guards/file_lines.py --self-test
+t_guards|cited_paths (self-test)|python3 -I scripts/guards/cited_paths.py --self-test
 t_guards|null_marked (self-test)|python3 -I scripts/guards/null_marked.py --self-test
 t_evidence_imports|evidence tools: imports resolve (self-test)|python3 -I scripts/ci/evidence_imports.py --self-test
 t_gates|gates (gates_selftest.py)|python3 scripts/gates/gates_selftest.py
