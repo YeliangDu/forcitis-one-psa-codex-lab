@@ -3,7 +3,7 @@
 
 只看跑 shell 命令的工具（门的 COMMAND_TOOLS）；其他工具（Agent、Read…）直接放行。先过 codex 门（它自己解析命令文本，不靠预筛），再用生产写门自己的保守预筛 could_concern（只在门必然放行时才跳过），命中再在本进程里调门的 decide。
 钩子输入读不懂（含 Bash 而 command 缺失或不是字符串）退出码 2（拒绝）。门导入失败、运行出错、DEADLINE 秒内没有结论，退出码 3 并给一句中文原因：
-由 settings.json 的挂载入口接手，跑不依赖门的保守预筛，命中才拒、未命中放行并告警（定稿 H4 安全门失败关闭、其余放行；外部复核 C3）；预筛见 codex 字样也拒（codex 门坏了，codex 失败关闭，#1180）。
+由 settings.json 的挂载入口接手，跑不依赖门的保守预筛，命中才拒、未命中放行并告警（定稿 H4 安全门失败关闭、其余放行；外部复核 C3）；预筛见 codex 的执行用法或看不出是否执行也拒，只出现在文本里（提交信息、grep 的参数…）的放行（codex 门坏了，codex 失败关闭，#1180；#1206）。
 入口直接运行时 3 对 PreToolUse 是「不拦」，所以只经挂载入口用。挂载超时 120 秒在 Claude Code 里也算「不拦」，门内 git 卡住时靠时限先交给预筛（O7 终审建议 1）。
 到点抛的 Overdue 是 BaseException 而不是 TimeoutError（OSError 子类）：门里 `except OSError`／`except Exception` 接不住它，不会吞掉时限（O7 修终审 M1）。
 退出码 2 + 标准错误 = 拒绝；0 = 放行（门的告警以 JSON additionalContext 写标准输出）；3 = 门出错（见上）。
@@ -15,7 +15,7 @@ import signal
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-FAIL = "生产写门出错（{}；codex 门出错同此处理），交挂载入口的保守预筛判定（含 codex 字样的命令一律拒）；请把报错转 one-ops。"
+FAIL = "生产写门出错（{}；codex 门出错同此处理），交挂载入口的保守预筛判定（codex 的执行用法与看不出是否执行的命令拒，文本里的字样放行）；请把报错转 one-ops。"
 DEADLINE = 100
 
 
