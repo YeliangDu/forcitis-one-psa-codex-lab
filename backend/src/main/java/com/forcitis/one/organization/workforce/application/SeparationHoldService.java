@@ -16,7 +16,6 @@ import com.forcitis.one.organization.workforce.domain.SeparationHold;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.Set;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,14 +32,14 @@ class SeparationHoldService implements SeparationHolds {
     static final String PERMISSION = "organization.workforce:separation-hold:approve";
 
     private final PersonnelCommandRepository commands;
-    private final SeparationReview review;
+    private final SeparationHoldReview review;
     private final HeldSeparationRelease release;
     private final OrgMergeProgress mergeProgress;
     private final SeparationHoldNotice notice;
     private final CurrentUser currentUser;
     private final Clock clock;
 
-    SeparationHoldService(PersonnelCommandRepository commands, SeparationReview review, HeldSeparationRelease release, OrgMergeProgress mergeProgress, SeparationHoldNotice notice,
+    SeparationHoldService(PersonnelCommandRepository commands, SeparationHoldReview review, HeldSeparationRelease release, OrgMergeProgress mergeProgress, SeparationHoldNotice notice,
                           CurrentUser currentUser, Clock clock) {
         this.commands = commands;
         this.review = review;
@@ -68,8 +67,7 @@ class SeparationHoldService implements SeparationHolds {
         long holdVersion = hold.version();
         long commandVersion = command.version();
         hold.release(by, request.reason(), now);
-        Set<EmployeeId> leaving = commands.excludedEmployees();
-        SeparationReview.Verdict verdict = review.review(List.of(employee), leaving, by);
+        SeparationReview.Verdict verdict = review.review(employee, by);
         if (!verdict.actorRetained()) {
             throw refused("the releaser is not a retained administrator: not an available holder, held, or on unpaid leave");
         }

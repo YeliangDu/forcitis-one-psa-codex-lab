@@ -35,7 +35,7 @@ public class IntegrationOperationsCommands {
     public int run(ApplicationArguments arguments, PrintStream out, PrintStream err) {
         String operation = single(arguments, OPERATION);
         if (!FIND_ACCOUNTS.equals(operation)) {
-            err.println("usage: --operation=" + FIND_ACCOUNTS + " --provider-kind=<SEEYON_LOGIN_NAME|WECOM_USER_ID> --external-subject=<text>");
+            err.println("usage: --operation=" + FIND_ACCOUNTS + " --provider-kind=<WECOM_USER_ID> --external-subject=<text>");
             return 2;
         }
         String kind = single(arguments, PROVIDER_KIND);
@@ -44,7 +44,7 @@ public class IntegrationOperationsCommands {
         try {
             provider = ProviderKind.valueOf(kind == null ? "" : kind);
         } catch (IllegalArgumentException unknown) {
-            err.println("wrong usage: --provider-kind must be one of SEEYON_LOGIN_NAME, WECOM_USER_ID, was " + kind);
+            err.println("wrong usage: --provider-kind must be WECOM_USER_ID, was " + kind);
             return 2;
         }
         if (subject == null || subject.isBlank()) {
@@ -52,7 +52,6 @@ public class IntegrationOperationsCommands {
             return 2;
         }
         List<EmployeeId> found = switch (provider) {
-            case SEEYON_LOGIN_NAME -> employees.withExternalLoginName(subject);
             case WECOM_USER_ID -> employees.withMessagingAccountId(subject);
         };
         if (found.isEmpty()) {

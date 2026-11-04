@@ -1,6 +1,6 @@
 # 14 张有状态表：BC、聚合、法人归属（供 ADR-0058 起草，one-data，2026-10-17）
 
-来源：`scripts/ci/measurable_ddl_scan.py` 对 `origin/main` 的 M3 扫描（14 张，状态列有枚举 CHECK、所在 schema 没有 `state_transitions`；版本表自身即历史，已排除）。聚合与 role 取自 `data-access-registry.yaml`；状态值取自 CHECK（表上有时列表不全，以代码枚举为准，实现时核）。法人栏：表上有 `legal_entity_id` 列为「有」，没有则写判断与建议理由。
+来源：对 `origin/main` 的 M3 扫描（14 张，状态列有枚举 CHECK、所在 schema 没有 `state_transitions`；版本表自身即历史，已排除）。聚合与 role 取自 `data-access-registry.yaml`；状态值取自 CHECK（表上有时列表不全，以代码枚举为准，实现时核）。法人栏：表上有 `legal_entity_id` 列为「有」，没有则写判断与建议理由。
 
 按 schema 分组，每个 schema 一张 `state_transitions`（ADR-0058 第 2 条）：
 

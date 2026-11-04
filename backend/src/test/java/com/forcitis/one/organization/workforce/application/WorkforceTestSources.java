@@ -22,10 +22,4 @@ public class WorkforceTestSources {
     public com.forcitis.one.fixture.doubles.AggregateWriteGuard aggregateWriteGuard() {
         return new com.forcitis.one.fixture.doubles.AggregateWriteGuard();
     }
-
-    @Bean
-    @Primary
-    public FakeShortNameSource fakeShortNameSource() {
-        return new FakeShortNameSource();
-    }
 }

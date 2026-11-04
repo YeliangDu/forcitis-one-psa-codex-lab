@@ -74,6 +74,8 @@ abstract class RevokeDisableFloorSupport extends AccountsAcceptanceSupport {
     protected static final String SUPER_ADMIN = "super_admin";
     protected static final String AUDITOR = "security_auditor";
     protected static final String ORDINARY_ROLE = "business_admin";
+    /** Opens the account of a person who is given no role, so that the first login does not (the login opening an account is alerted, #1174). */
+    protected static final String DEFAULT_ROLE = "employee";
     protected static final String REASON = "synthetic: confirmed with the department";
     /** The last working day before today: the separation takes effect today and runs inside the entry transaction. */
     protected static final LocalDate LAST_DAY = TODAY.minusDays(1);
@@ -219,12 +221,15 @@ abstract class RevokeDisableFloorSupport extends AccountsAcceptanceSupport {
         return id;
     }
 
-    /** An employed person with an account and the given roles (granted before the login, so the session carries them). */
+    /** An employed person with an account and the given roles (granted before the login, so the session carries them); with no role the default role opens the account. */
     protected Person account(String... roles) throws Exception {
         UUID id = employed();
         made.add(id);
         for (String role : roles) {
             grantByOperations(id, role);
+        }
+        if (roles.length == 0) {
+            grantByOperations(id, DEFAULT_ROLE);
         }
         return new Person(id, signIn(id));
     }

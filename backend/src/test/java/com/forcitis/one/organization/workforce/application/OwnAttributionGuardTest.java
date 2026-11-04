@@ -44,7 +44,7 @@ class OwnAttributionGuardTest {
     final OwnAttributionGuard guard = new OwnAttributionGuard(snapshot, audit, TestAccounts.everyoneHasOne());
 
     OwnAttributionGuardTest() {
-        Employee employee = new Employee(ACTING_EMPLOYEE, "E1001", "Actor", "actor", null, null, null, EmploymentStatus.EMPLOYED, false);
+        Employee employee = new Employee(ACTING_EMPLOYEE, "E1001", "Actor", null, null, null, EmploymentStatus.EMPLOYED, false);
         when(snapshot.findStaff(ACTING_EMPLOYEE)).thenReturn(Optional.of(new StaffEmployee(employee, new Assignment(ACTING_EMPLOYEE, OWN_UNIT, null, null))));
         when(snapshot.findAncestors(OWN_UNIT)).thenReturn(List.of(UNIT_ABOVE, TestOrgIds.orgUnit(1)));
     }

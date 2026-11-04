@@ -27,20 +27,12 @@ class WorkforceConfigurationTest {
     }
 
     @Test
-    @DisplayName("the short-name refresh is off unless switched on; the connections they read live in platform.integration")
-    void safeDefaults() throws IOException {
+    @DisplayName("ADR-0069 s8 no short-name refresh is configured, and the workforce properties hold no connection or credential setting")
+    void noShortNameJobAndNoConnections() throws IOException {
         Properties p = load();
 
-        assertThat(p.getProperty("forcitis.organization.workforce.short-name.enabled")).as(GuardMessage.of("org-and-personnel-sync", "the short-name refresh is not off by default", "set forcitis.organization.workforce.short-name.enabled to ${WORKFORCE_SHORT_NAME_ENABLED:false}")).isEqualTo("${WORKFORCE_SHORT_NAME_ENABLED:false}");
+        assertThat(p.stringPropertyNames()).as(GuardMessage.of("ADR-0069 s8", "a short-name refresh setting is back in the workforce properties", "short_name is read from org_unit_versions; do not schedule a refresh from the legacy system")).noneMatch(k -> k.contains("short-name"));
         assertThat(Files.readString(CONFIG)).as(GuardMessage.of("CS-1.3 / CS-6.5", "the workforce properties hold a connection or credential setting", "keep connections and credentials in platform_integration.properties as environment placeholders; workforce reads through platform.integration")).doesNotContain("jdbc:").doesNotContain("password").doesNotContain("username");
-    }
-
-    @Test
-    @DisplayName("the short names refresh once a day")
-    void periods() throws IOException {
-        CronExpression names = CronExpression.parse(load().getProperty("forcitis.organization.workforce.short-name.cron"));
-        LocalDateTime day1 = names.next(LocalDateTime.of(2026, 10, 14, 0, 0));
-        assertThat(java.time.Duration.between(day1, names.next(day1))).as(GuardMessage.of("org-and-personnel-sync", "the short-name cron does not run once a day", "set forcitis.organization.workforce.short-name.cron to a daily period")).isEqualTo(java.time.Duration.ofHours(24));
     }
 
     @Test

@@ -9,8 +9,13 @@
 其他一切拒：不带沙箱、别的沙箱值、绕过沙箱的开关、--full-auto、--oss、-p、-C、--add-dir、--enable、别的 -c 键、CODEX_HOME=、resume、别的子命令、裸 codex；
 也拒 codex 出现在包装（timeout、time、nice、nohup、stdbuf、command、builtin、noglob、env、sudo、xargs、find -exec…）、前置变量赋值、&& ; | 链、$(…) 与反引号、
 bash -c、sh -c、zsh -c、eval、here-document 喂给解释器、绝对或相对路径、npx 之下的任何地方。
+只拦执行，不拦字样（用户 2026-11-04，#1206）：codex 只出现在文本里（提交信息、PR 正文、grep 的参数、rm 的文件名、喂给 cat 的 here-document）不拒；
+最外层的 sh/bash/zsh/dash/ksh -c 串、eval 的参数、不带展开的 here-document 喂给这些 shell 时，门自己把串当脚本读，里面没有 codex 的用法就放行（static_text）；
+python、node、perl、ruby、php、lua、awk 的内联代码里出现 codex 仍拒（读不出它跑不跑）；
+数据类程序被告知去运行它也拒：git -c <键>=<值>、rg --pre、sort --compress-program 这类选项的值，GIT_PAGER=codex 这类前置变量，!codex 形式的别名（names_command）。
 命令文本上看不到的（脚本文件里写的、拼接出来的名字）门放行，与生产写门同一立场；解析不了的命令：文本里有 codex 就拒，没有就放行。
-门本身出错（导入失败、崩溃、超时）由 pre_tool_dispatch 退出码 3 交给 settings.json 的预筛，预筛见 codex 字样就拒（失败关闭）。
+放行与拒绝的用例在 codex_cases.py，主门与 settings.json 的预筛共用；预筛（门崩溃时才跑）可以比门多拒，不可少拒。
+门本身出错（导入失败、崩溃、超时）由 pre_tool_dispatch 退出码 3 交给 settings.json 的预筛，预筛拒 codex 的执行用法和看不出是否执行的（失败关闭），文本里的字样放行。
 用法：codex_gate.py --self-test（自测在 gates_selftest.py 的 codex_gate 段）
 """
 import fnmatch
@@ -38,6 +43,8 @@ DATA = {  # programs that only read their arguments as data (names, patterns, me
     "export", "unset", "local", "declare", "readonly", "printenv", "tee",
 }
 INTERPRETERS = {"python", "python3", "python2", "node", "nodejs", "perl", "ruby", "php", "lua", "sh", "bash", "zsh", "dash", "ksh"}
+SHELLS = {"sh", "bash", "zsh", "dash", "ksh"}   # shells whose text this gate reads itself (a -c string, a here-document); eval is read the same way
+CMD_OPTS = ("--pre", "--compress-program", "--pager", "--editor", "--exec", "--upload-pack", "--receive-pack", "--ssh-command", "--hostname-bin")   # options of otherwise harmless programs whose value is a command to run (rg --pre, sort --compress-program, git --upload-pack...); git -c <key>=<value> is the same, see names_command
 SANDBOX_OK = "workspace-write"
 EFFORT = re.compile(r"""model_reasoning_effort=("?)(low|medium|high|xhigh)\1""")
 MODEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@-]*")
@@ -360,11 +367,19 @@ def braces(word):
     return [w for alt in alts for w in braces(word[:m.start()] + alt + word[m.end():])][:64]
 
 
+BRACKET = re.compile(r"\[[!^]?\]?[^\]]*\]")   # a shell bracket expression: [abc], [!a-c], [^x], []x]
+
+
+def glob_matches_codex(base):
+    """fnmatch of "codex" against the word with every bracket expression read as `?` (any one character, a superset of what the bracket matches). Python reads brackets differently from bash and zsh (`[^-+]` negates there, `[z-ac]` keeps `c`) and may fail to compile them, so the bracket's own meaning is not trusted; a superset can only refuse more, and it always compiles (#1205)."""
+    return fnmatch.fnmatchcase("codex", BRACKET.sub("?", base))
+
+
 def could_be_codex(word):
     """True when the shell may expand this word to a path ending in codex: co{dex,}, cod?x, c*x, /x/c[o]dex (a bare variable cannot be judged and is the accepted gap)."""
     for w in braces(word):
         base = os.path.basename(w.rstrip("/")).replace("\0", "*")
-        if base.strip("*") and fnmatch.fnmatchcase("codex", base.lower()):
+        if base.strip("*") and glob_matches_codex(base.lower()):
             return True
     return False
 
@@ -384,6 +399,45 @@ def runs_file(name, cmd):
         else:
             return t if t != "-" and not w.expands and re.search(r"[./]", t) else None
     return None
+
+
+def static_text(name, cmd, nxt):
+    """True when the text a shell or eval runs is written in the command itself (a -c string, eval arguments, a here-document with no expansion in it) and no variable, substitution or pipe decides it: the loop in uses_in then reads that text as a script of its own, so a use of the tool in it is found there. A script file is judged by file_run, a pipe into a bare shell stays dynamic."""
+    args = cmd.words[nxt:]
+    if name == "eval":
+        return not cmd.bodies and not any(w.expands for w in args)
+    if name not in SHELLS:
+        return False
+    for k, w in enumerate(args):
+        t = w.text
+        if not t.startswith("-") or t == "-" or t.startswith("--"):
+            return False   # a script file or a positional word first: not a text given here
+        if "c" in t[1:]:
+            return k + 1 < len(args) and not args[k + 1].expands and not cmd.bodies
+    return bool(cmd.bodies)
+
+
+def names_command(cmd, name, nxt):
+    """True when a program that only reads its arguments as data is told to run codex: a variable in front (GIT_PAGER=codex git log), an option whose value is a command (rg --pre codex), git -c <key>=<value> (core.pager=..., alias.x=!codex ...), or a `!`-form shell alias."""
+    words = [w.text for w in cmd.words]
+    for t in words[:nxt - 1]:
+        if ASSIGN.match(t) and (TOKEN.search(t) or could_be_codex(t.split("=", 1)[1])):
+            return True
+    for i, t in enumerate(words[nxt:], nxt):
+        key, _, tail = t.partition("=")
+        if key in CMD_OPTS and tail:
+            value = tail
+        elif t in CMD_OPTS or (name == "git" and t in ("-c", "--config-env")):
+            value = words[i + 1] if i + 1 < len(words) else ""
+        elif re.search(r"(^|=)!", t):
+            if name == "git" and (re.match(r"alias\.[^=]*=!", t) or (i and re.match(r"alias\.", words[i - 1]))):
+                return True   # git runs a !-alias through sh: its quoting (c"o"dex) is not judged here, any such alias is refused
+            value = t
+        else:
+            continue
+        if TOKEN.search(value) or could_be_codex(value):
+            return True
+    return False
 
 
 def written_files(cmds):
@@ -425,21 +479,25 @@ def uses_in(text, depth=0):
         name = os.path.basename(prog.text.rstrip("/")).lower()
         script = runs_file(name, cmd) or (prog.text if "/" in prog.text and not prog.expands and name not in RUNNERS and name not in DYNAMIC else None)   # a script run by path or by an interpreter: its arguments are data
         file_run = script is not None and script not in written and os.path.normpath(script) not in {os.path.normpath(w) for w in written}   # unless this command wrote it
-        dynamic = dynamic or prog.expands or (name in DYNAMIC and not file_run) or (script is not None and not file_run)
+        dynamic = dynamic or prog.expands or (name in DYNAMIC and not file_run and not (depth == 0 and static_text(name, cmd, nxt))) or (script is not None and not file_run)
         texts = [w.text for w in cmd.words] + cmd.bodies
         if name == "codex" and prog.text == "codex" and not prog.expands and cmd.assigns == 0 and cmd.words[0] is prog:
             found.append(Use("direct", cmd, nxt))
         elif name == "codex" or TOKEN.search(prog.text) or could_be_codex(prog.text):
             found.append(Use("indirect"))
         elif name not in DATA and not file_run:
-            if any(could_be_codex(t) or ("=" in t and could_be_codex(t.split("=", 1)[1])) for t in texts):   # codex (or a brace or glob spelling of it) as a word of its own, or as the value of x=codex
+            if any(not re.search(r"\s", t) and (could_be_codex(t) or ("=" in t and could_be_codex(t.split("=", 1)[1]))) for t in texts):   # codex (or a brace or glob spelling of it) as a word of its own, or as the value of x=codex; a string with blanks is text, read by the loop below
                 found.append(Use("indirect"))
             else:
-                for t in texts[1:]:   # a shell string, an eval or trap argument, a script on stdin: read as a script of its own
-                    if TOKEN.search(bare(t)):
+                if name == "eval":   # eval runs its arguments joined by blanks: one script, a # in one argument comments out the start of the next
+                    texts = [prog.text, " ".join(w.text for w in cmd.words[nxt:])] + cmd.bodies
+                for t in texts[1:]:   # a shell string, an eval or trap argument, a script on stdin: read as a script of its own (every string of a shell or eval: a glob spelling of the name is no TOKEN)
+                    if name in SHELLS or name == "eval" or TOKEN.search(bare(t)):
                         inner, inner_dynamic = nested_uses(t, depth + 1)
                         found += [Use("indirect") for _ in inner]
                         dynamic = dynamic or inner_dynamic
+        elif name in DATA and names_command(cmd, name, nxt):
+            found.append(Use("indirect"))
     return found, cmds, single, dynamic
 
 

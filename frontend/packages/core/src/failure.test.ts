@@ -44,7 +44,7 @@ describe('describeFailure', () => {
   });
 
   it('登录失败时带出回到老系统登录的地址', () => {
-    expect(failureOf(apiError(503, 'PLATFORM_IDENTITY_SSO_UNAVAILABLE', { legacyLoginUrl: 'https://old.example.com/login' })).legacyLoginUrl).toBe('https://old.example.com/login');
+    expect(failureOf(apiError(503, 'PLATFORM_IDENTITY_TICKET_INVALID', { legacyLoginUrl: 'https://old.example.com/login' })).legacyLoginUrl).toBe('https://old.example.com/login');
   });
 });
 

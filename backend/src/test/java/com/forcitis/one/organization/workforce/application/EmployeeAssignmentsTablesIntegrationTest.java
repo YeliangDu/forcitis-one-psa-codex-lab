@@ -13,7 +13,6 @@ import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.domain.Assignment;
 import com.forcitis.one.organization.workforce.domain.Employee;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
-import com.forcitis.one.organization.workforce.domain.RegisteredEmployee;
 import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -54,32 +53,6 @@ class EmployeeAssignmentsTablesIntegrationTest extends WorkforceIntegrationSuppo
             }
         }
         assertThat(jdbc.sql("select count(*) from " + ROOTS).query(Integer.class).single()).isEqualTo(1);
-    }
-
-    @Test
-    @DisplayName("#711 a snapshot write for a person with a primary and a concurrent post closes the primary post only")
-    void aSnapshotWriteClosesThePrimaryPostOnly() {
-        PersonnelSeedSupport.Person person = PersonnelSeedSupport.employed(jdbc, clock, "AP-5");
-        UUID root = Uuids.timeOrdered(clock);
-        UUID elsewhere = PersonnelSeedSupport.orgUnit(jdbc, clock);
-        UUID other = PersonnelSeedSupport.orgUnit(jdbc, clock);
-        jdbc.sql("insert into " + ROOTS + " (assignment_id, employee_id, assignment_kind, created_at, updated_at) values (:root, :e, 'CONCURRENT', now(), now())")
-                .param("root", root).param("e", person.employee()).update();
-        jdbc.sql("""
-                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
-                  org_unit_id, revision_number, change_channel_kind, created_at, updated_at)
-                values (:id, :e, :root, 'CONCURRENT', :since, :unit, 1, 'MIGRATION', now(), now())""")
-                .param("id", Uuids.timeOrdered(clock)).param("e", person.employee()).param("root", root).param("since", PersonnelSeedSupport.SINCE).param("unit", elsewhere).update();
-        EmployeeId id = new EmployeeId(person.employee());
-        Employee employee = new Employee(id, "AP-5", "Synthetic person", null, null, null, null, EmploymentStatus.EMPLOYED, false);
-
-        snapshots.saveRegisteredEmployee(RegisteredEmployee.onFirstLogin(new StaffEmployee(employee, new Assignment(id, new OrgUnitId(other), null, null)), 0, 0),
-                java.time.Instant.parse("2026-11-03T02:00:00Z"));
-
-        assertThat(jdbc.sql("select count(*) from organization_workforce.assignment_versions where assignment_id = :root and effective_to_date is null and superseded_at is null")
-                .param("root", root).query(Integer.class).single()).as("the concurrent post stays open").isEqualTo(1);
-        assertThat(jdbc.sql("select org_unit_id from organization_workforce.assignment_versions where employee_id = :e and assignment_kind = 'PRIMARY' and effective_to_date is null and superseded_at is null")
-                .param("e", person.employee()).query(UUID.class).single()).as("the primary post moved").isEqualTo(other);
     }
 
     @Test

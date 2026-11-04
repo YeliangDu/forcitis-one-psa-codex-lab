@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 
-/** A bean of its own, like EmployeeExistenceService, so that a test double of OrgDirectory does not take it away. */
+/** A bean of its own, so that a test double of OrgDirectory does not take it away. */
 @Component
 class EmployeeLabelsService implements EmployeeLabels {
     private final OrgSnapshotQueries snapshots;

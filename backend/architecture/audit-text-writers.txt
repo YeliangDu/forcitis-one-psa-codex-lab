@@ -15,6 +15,7 @@ src/main/java/com/forcitis/one/organization/workforce/application/EmployeeProfil
 src/main/java/com/forcitis/one/organization/workforce/application/ProfileChangeRequestService.java | 3 | 1,28 | SURROGATE
 src/main/java/com/forcitis/one/organization/workforce/application/GetLegalEntityAttribution.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/organization/workforce/application/GetOrgUnit.java | 1 | 1 | NONE
+src/main/java/com/forcitis/one/organization/workforce/application/GetPersonnelCommand.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/organization/workforce/application/HeldSeparationRelease.java | 1 | 17 | POSSIBLE
 src/main/java/com/forcitis/one/organization/workforce/application/MigrateInitialVersions.java | 1 | 15 | SURROGATE
 src/main/java/com/forcitis/one/organization/workforce/application/OwnAttributionGuard.java | 1 | 1 | NONE
@@ -45,7 +46,7 @@ src/main/java/com/forcitis/one/platform/identity/application/ExitAdministratorMo
 src/main/java/com/forcitis/one/platform/identity/application/ForceUserLogout.java | 1 | 16 | POSSIBLE
 src/main/java/com/forcitis/one/platform/identity/application/GetPermissionAdjustment.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/GrantRoleByOperations.java | 1 | 15 | SURROGATE
-src/main/java/com/forcitis/one/platform/identity/application/LoginAdmission.java | 3 | 4,10,12,13 | NONE
+src/main/java/com/forcitis/one/platform/identity/application/LoginAdmission.java | 4 | 4,10,12,13 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/Logout.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/PermissionAdjustmentAccess.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/PurgeExpiredSessions.java | 1 | 4 | NONE

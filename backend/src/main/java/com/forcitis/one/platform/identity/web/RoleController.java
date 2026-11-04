@@ -6,7 +6,10 @@ import com.forcitis.one.kernel.ExpectedVersion;
 import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.Permission;
+import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleId;
+import com.forcitis.one.platform.identity.application.AccountGrantItem;
+import com.forcitis.one.platform.identity.application.AccountListItem;
 import com.forcitis.one.platform.identity.application.AdminOutcome;
 import com.forcitis.one.platform.identity.application.ChangeAccountStatus;
 import com.forcitis.one.platform.identity.application.CreateRole;
@@ -14,7 +17,9 @@ import com.forcitis.one.platform.identity.application.DeleteRole;
 import com.forcitis.one.platform.identity.application.GetRole;
 import com.forcitis.one.platform.identity.application.GetUserAccount;
 import com.forcitis.one.platform.identity.application.UserAccountView;
+import com.forcitis.one.platform.identity.application.ListAccountRoleGrants;
 import com.forcitis.one.platform.identity.application.ListRoles;
+import com.forcitis.one.platform.identity.application.ListUserAccounts;
 import com.forcitis.one.platform.identity.application.ReplaceAccountRoles;
 import com.forcitis.one.platform.identity.application.RoleView;
 import com.forcitis.one.platform.identity.application.SaveRoleCommand;
@@ -28,6 +33,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -56,9 +62,14 @@ class RoleController {
     private final ReplaceAccountRoles replaceAccountRoles;
     private final ChangeAccountStatus changeAccountStatus;
     private final GetUserAccount getUserAccount;
+    private final ListUserAccounts listUserAccounts;
+    private final ListAccountRoleGrants listAccountRoleGrants;
 
     RoleController(ListRoles listRoles, GetRole getRole, CreateRole createRole, UpdateRole updateRole, DeleteRole deleteRole,
-            ReplaceAccountRoles replaceAccountRoles, ChangeAccountStatus changeAccountStatus, GetUserAccount getUserAccount) {
+            ReplaceAccountRoles replaceAccountRoles, ChangeAccountStatus changeAccountStatus, GetUserAccount getUserAccount, ListUserAccounts listUserAccounts,
+            ListAccountRoleGrants listAccountRoleGrants) {
+        this.listUserAccounts = listUserAccounts;
+        this.listAccountRoleGrants = listAccountRoleGrants;
         this.getUserAccount = getUserAccount;
         this.listRoles = listRoles;
         this.getRole = getRole;
@@ -132,6 +143,22 @@ class RoleController {
             case AdminOutcome.Refused<Long> refused -> throw refusal(refused.error());
             case AdminOutcome.Awaiting<Long> awaiting -> ResponseEntity.accepted().body(new AwaitingConfirmationResponse(UUID.fromString(awaiting.requestId())));
         };
+    }
+
+    @GetMapping(path = "/user-accounts")
+    @PreAuthorize(READ)
+    CursorPage<AccountListItemResponse> accounts(@RequestParam(required = false) String status, @RequestParam(required = false) String roleCode,
+            @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
+        CursorPage<AccountListItem> page = listUserAccounts.execute(status, StringUtils.hasText(roleCode) ? new RoleCode(roleCode) : null,
+                PageRequest.of(limit, cursor, "user-accounts"));
+        return CursorPage.of(page.items().stream().map(AccountListItemResponse::of).toList(), page.nextCursor());
+    }
+
+    @GetMapping(path = "/account-role-grants")
+    @PreAuthorize(READ)
+    CursorPage<AccountGrantResponse> grants(@RequestParam UUID userId, @RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
+        CursorPage<AccountGrantItem> page = listAccountRoleGrants.execute(AccountPath.user(userId), PageRequest.of(limit, cursor, "role-grants"));
+        return CursorPage.of(page.items().stream().map(AccountGrantResponse::of).toList(), page.nextCursor());
     }
 
     @GetMapping(path = "/user-accounts/{userId}")

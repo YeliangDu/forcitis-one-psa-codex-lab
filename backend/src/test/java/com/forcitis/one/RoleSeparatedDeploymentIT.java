@@ -47,8 +47,7 @@ class RoleSeparatedDeploymentIT {
     static final String[] JOBS_OFF = {"forcitis.platform.integration.archive-store.enabled=false", "forcitis.platform.approval.process-archive.enabled=false",
             "forcitis.platform.audit.archive.enabled=false", "forcitis.cost.timesheet.consumed-events.enabled=false",
             "forcitis.platform.integration.outbound-purge.enabled=false",
-            "forcitis.platform.integration.event-publication.jobs-enabled=false", "forcitis.platform.scheduling.jobs-enabled=false",
-            "forcitis.platform.identity.sso.enabled=false"};
+            "forcitis.platform.integration.event-publication.jobs-enabled=false", "forcitis.platform.scheduling.jobs-enabled=false"};
 
     static final PostgreSQLContainer POSTGRES = TestPostgres.container().withDatabaseName(DATABASE)
             .withCommand("sh", "-c", "openssl req -new -x509 -days 1 -nodes -subj /CN=localhost -out /var/lib/postgresql/server.crt -keyout /var/lib/postgresql/server.key"
@@ -136,7 +135,7 @@ class RoleSeparatedDeploymentIT {
     com.forcitis.one.platform.audit.api.AuditPartitions auditPartitions;
 
     @Autowired
-    com.forcitis.one.organization.workforce.api.EmployeeExistence employeeExistence;
+    com.forcitis.one.organization.workforce.api.EmployeeLabels employeeLabels;
 
     @Test
     @DisplayName("the runtime account alone is enough: a write through the application (entity, versions, event registry, audit by listener) and a read both work")
@@ -161,7 +160,8 @@ class RoleSeparatedDeploymentIT {
         assertThat(jdbc.sql("select current_user").query(String.class).single()).isEqualTo(RUNTIME);
         assertThat(auditPartitions.exists(now)).as("the month the job pre-created").isTrue();
         assertThat(auditPartitions.exists(now.plusYears(30))).isFalse();
-        assertThat(employeeExistence.exists(new com.forcitis.one.kernel.EmployeeId(UUID.randomUUID()))).isFalse();
+        com.forcitis.one.kernel.EmployeeId unknown = new com.forcitis.one.kernel.EmployeeId(UUID.randomUUID());
+        assertThat(employeeLabels.labelsOf(java.util.Set.of(unknown)).containsKey(unknown)).isFalse();
     }
 
     @Test
