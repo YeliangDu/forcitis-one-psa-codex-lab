@@ -127,7 +127,7 @@ class StandardHoursMigrationIT {
     void inEffectPeriodsDoNotOverlapWithinEitherKindOfScope() throws Exception {
         try (Connection db = connect()) {
             db.setAutoCommit(false);
-            LocalDate from = today(db).minusDays(10);
+            LocalDate from = today(db);
             UUID entity = UUID.randomUUID();
             UUID first = version(db, entity, 1, from);
             UUID other = version(db, UUID.randomUUID(), 1, from);
@@ -175,21 +175,20 @@ class StandardHoursMigrationIT {
     }
 
     @Test
-    @DisplayName("#1310 生效日：首版可以补历史，后续版本须晚于本范围最新版本且不早于库的上海事务日期")
+    @DisplayName("#1310 生效日：任何版本都不早于库的上海事务日期（含首版与只剩已作废版本的范围），后续版本须晚于本范围最新有效版本")
     void successorDatesAdvanceAndDoNotActOnThePast() throws Exception {
         try (Connection db = connect()) {
             db.setAutoCommit(false);
             LocalDate today = today(db);
             UUID entity = UUID.randomUUID();
-            UUID first = version(db, entity, 1, today.minusDays(10));
+            refused(db, CHECK_VIOLATION, "earlier than today", () -> version(db, entity, 1, today.minusDays(1)));
+            refused(db, CHECK_VIOLATION, "earlier than today", () -> version(db, null, 1, today.minusDays(10)));
+            UUID first = version(db, entity, 1, today);
             assertThat(text(db, "select effective_from_date::text from organization_attendance.standard_hours_versions where id = ?", first))
-                    .as("the first version may start before the database's Shanghai date").isEqualTo(today.minusDays(10).toString());
-            refused(db, CHECK_VIOLATION, "must be later than the latest version", () -> version(db, entity, 2, today.minusDays(11)));
-            refused(db, CHECK_VIOLATION, "must be later than the latest version", () -> version(db, entity, 2, today.minusDays(10)));
-            refused(db, CHECK_VIOLATION, "earlier than today", () -> version(db, entity, 2, today.minusDays(1)));
-            UUID second = version(db, entity, 2, today);
-            assertThat(text(db, "select effective_from_date::text from organization_attendance.standard_hours_versions where id = ?", second))
-                    .as("a successor may start exactly on the database's Shanghai date").isEqualTo(today.toString());
+                    .as("the first version may start on the database's Shanghai date").isEqualTo(today.toString());
+            refused(db, CHECK_VIOLATION, "must be later than the latest version", () -> version(db, entity, 2, today.minusDays(1)));
+            refused(db, CHECK_VIOLATION, "must be later than the latest version", () -> version(db, entity, 2, today));
+            version(db, entity, 2, today.plusDays(1));
             UUID third = version(db, entity, 3, today.plusDays(10));
             refused(db, CHECK_VIOLATION, "must be later than the latest version", () -> version(db, entity, 4, today.plusDays(9)));
             voidVersion(db, third, "synthetic-cancellation");
@@ -197,6 +196,10 @@ class StandardHoursMigrationIT {
             UUID fourth = version(db, entity, 4, today.plusDays(9));
             assertThat(text(db, "select version_number::text from organization_attendance.standard_hours_versions where id = ?", fourth))
                     .as("a voided version no longer blocks an earlier date but keeps its number 3").isEqualTo("4");
+
+            UUID allVoided = UUID.randomUUID();
+            voidVersion(db, version(db, allVoided, 1, today.plusDays(5)), "synthetic-cancellation");
+            refused(db, CHECK_VIOLATION, "earlier than today", () -> version(db, allVoided, 2, today.minusDays(1)));
             db.rollback();
         }
     }
@@ -212,12 +215,12 @@ class StandardHoursMigrationIT {
                     versionOf(db, "LEGAL_ENTITY", entity, 1, "VOIDED", today, null, 480, 480, "synthetic-basis"));
             refused(db, CHECK_VIOLATION, "a new standard-hours version is IN_EFFECT and open", () ->
                     versionOf(db, "LEGAL_ENTITY", entity, 1, "IN_EFFECT", today, today.plusDays(1), 480, 480, "synthetic-basis"));
-            UUID first = version(db, entity, 1, today.minusDays(1));
+            UUID first = version(db, entity, 1, today);
             assertThat(text(db, "select status from organization_attendance.standard_hours_versions where id = ?", first))
                     .as("a newly inserted version is IN_EFFECT").isEqualTo("IN_EFFECT");
             assertThat(text(db, "select effective_to_date::text from organization_attendance.standard_hours_versions where id = ?", first))
                     .as("a newly inserted version is open").isNull();
-            UUID other = version(db, UUID.randomUUID(), 1, today.minusDays(1));
+            UUID other = version(db, UUID.randomUUID(), 1, today);
             UUID second = version(db, entity, 2, today.plusDays(10));
             assertThat(text(db, "select effective_to_date::text from organization_attendance.standard_hours_versions where id = ?", first))
                     .as("the predecessor ends on the successor's start, exclusively").isEqualTo(today.plusDays(10).toString());
@@ -275,13 +278,11 @@ class StandardHoursMigrationIT {
             db.setAutoCommit(false);
             LocalDate today = today(db);
             UUID entity = UUID.randomUUID();
-            UUID past = version(db, entity, 1, today.minusDays(10));
+            UUID past = version(db, entity, 1, today);
             refused(db, CHECK_VIOLATION, "a version in force or in the past cannot be voided", () -> voidVersion(db, past, "synthetic-cancellation"));
-            UUID current = version(db, entity, 2, today);
+            UUID future = version(db, entity, 2, today.plusDays(10));
+            UUID latest = version(db, entity, 3, today.plusDays(20));
             refused(db, CHECK_VIOLATION, "a version in force or in the past cannot be voided", () -> voidVersion(db, past, "synthetic-closed-past"));
-            refused(db, CHECK_VIOLATION, "a version in force or in the past cannot be voided", () -> voidVersion(db, current, "synthetic-cancellation"));
-            UUID future = version(db, entity, 3, today.plusDays(10));
-            UUID latest = version(db, entity, 4, today.plusDays(20));
             refused(db, CHECK_VIOLATION, "only the latest version of a scope can be voided", () -> voidVersion(db, future, "synthetic-cancellation"));
             for (int mask = 0; mask < 7; mask++) {
                 UUID by = (mask & 1) == 0 ? null : VOIDER;
@@ -301,7 +302,7 @@ class StandardHoursMigrationIT {
                     VOIDER, VOIDED_AT, "synthetic-cancellation", latest)).as("all three void evidence columns are stored").isEqualTo("t");
             assertThat(text(db, "select effective_to_date::text from organization_attendance.standard_hours_versions where id = ?", future))
                     .as("voiding the successor reopens its predecessor").isNull();
-            assertThat(text(db, "select effective_to_date::text from organization_attendance.standard_hours_versions where id = ?", current))
+            assertThat(text(db, "select effective_to_date::text from organization_attendance.standard_hours_versions where id = ?", past))
                     .as("voiding does not reopen older closed versions").isEqualTo(today.plusDays(10).toString());
             assertThat(text(db, "select status from organization_attendance.standard_hours_versions where id = ?", other))
                     .as("voiding does not change another scope").isEqualTo("IN_EFFECT");
