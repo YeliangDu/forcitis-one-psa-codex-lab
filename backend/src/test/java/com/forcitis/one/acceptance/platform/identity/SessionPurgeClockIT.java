@@ -76,6 +76,7 @@ class SessionPurgeClockIT extends AccountsAcceptanceSupport {
         assertThat(statusOf(signedIn)).as("the session after the purge").isEqualTo(200);
     }
 
+    // RULE-425
     @Test
     @DisplayName("FLAKY-SESS（对照）会话的最后访问时间早于空闲期（10 小时）之前，清理删除该会话，带会话请求得 401")
     void anIdleSessionIsStillPurged() throws Exception {

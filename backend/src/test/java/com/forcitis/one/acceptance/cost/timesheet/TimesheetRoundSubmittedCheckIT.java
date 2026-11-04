@@ -231,6 +231,7 @@ class TimesheetRoundSubmittedCheckIT extends ApprovalIntegrationSupport {
         awaitApprovalRound(id, 2);
     }
 
+    // RULE-476
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TA-01 审批通过、审批驳回的回写不改轮次与提交日")
     void approvalResultsDoNotTouchRoundOrSubmittedDate() {
@@ -313,6 +314,7 @@ class TimesheetRoundSubmittedCheckIT extends ApprovalIntegrationSupport {
         return jdbc.queryForObject("select count(*) from cost_timesheet.timesheets where employee_id = ?", Long.class, employeeId);
     }
 
+    // RULE-475
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {"SUBMITTED", "RETURNED", "APPROVED", "REJECTED"})
     @DisplayName("DATA-REPAIR-timesheet-audit TA-01 直接插入 SUBMITTED、RETURNED、APPROVED、REJECTED 且轮次为 0、提交日为空、版本 ID 非空，被拒，SQLState 23514，约束名为 ck_timesheets_round_after_submit")
@@ -324,6 +326,7 @@ class TimesheetRoundSubmittedCheckIT extends ApprovalIntegrationSupport {
         assertThat(rowsOf(who)).isZero();
     }
 
+    // RULE-475
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TA-01 轮次 ≥ 1 而提交日为空被拒，轮次为 0 而提交日非空被拒，约束名为 ck_timesheets_round_submitted")
     void roundAndSubmittedDateMustBeZeroAndEmptyTogether() {
@@ -339,6 +342,7 @@ class TimesheetRoundSubmittedCheckIT extends ApprovalIntegrationSupport {
         assertThat(rowsOf(who)).isZero();
     }
 
+    // RULE-475
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TA-01 草稿且轮次 0、提交日空可以插入；草稿且轮次 ≥ 1、提交日非空（撤销审批后的形态）可以插入")
     void draftsInBothShapesCanBeInserted() throws SQLException {
@@ -350,6 +354,7 @@ class TimesheetRoundSubmittedCheckIT extends ApprovalIntegrationSupport {
         assertThat(rowsOf(who)).isEqualTo(2);
     }
 
+    // RULE-475
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TA-01 迁入单（APPROVED、轮次 0、提交日空、版本 ID 空）可以插入；同一形态但版本 ID 非空被拒")
     void aMigratedTimesheetWithoutARuleVersionCanBeInsertedButOneWithAVersionCannot() throws SQLException {

@@ -40,6 +40,7 @@ class OwnAttributionIT extends AccountsAcceptanceSupport {
                 .andReturn().getResponse();
     }
 
+    // RULE-502
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 3 条 / ADR-0027 第 2 项第 2 条：不能改自己的法人归属（操作人即本人，按员工 ID 与其部门链比较）：本人条目、本部门、上级部门都 403；他人条目照常可改")
     void nobodyChangesTheirOwnAttribution() throws Exception {
