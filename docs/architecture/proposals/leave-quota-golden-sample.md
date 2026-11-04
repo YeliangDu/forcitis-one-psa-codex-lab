@@ -9,6 +9,8 @@ Read on origin/main 2026-11-04 (verified by search): no document describes how t
 
 ## 1. The ten computations the user must run (aggregates only)
 
+Note: the L0..L10 list below is the first draft; the current runnable L0 is `docs/data/evidence/dba-handoff/leave-quota-l0.sql` (A8 form definitions, formmain_0777/0787/1227/0789 and the payroll forms) and L1..L10 are rewritten against its output.
+
 Rules for every query: read-only evidence account only; no names, employee numbers, login names, ids or free text in the output; every result cell that counts fewer than 5 people is reported as `<5` (or merged into a neighbouring band); output as CSV with the headers given; if a query needs a table the user cannot name, answer step L0 first and tell lead the names, do not guess.
 
 | id | question the legacy system answers | what to run (output columns) |
@@ -60,16 +62,16 @@ inputs:
   requests: [{type: ANNUAL, from: 2026-06-10, to: 2026-06-12, expected_decision: ACCEPT}]
 treatments: {T-1: <value>, T-3: <value>}     # the decided parameters the expected values assume
 expected:
-  entitlement_days: <decimal>
-  used_days: <decimal>
-  held_days: <decimal>
-  balance_days: <decimal>
-  carry_out_days: <decimal>
+  entitlement_quantity: <decimal>   # in the type's ledger unit
+  used_quantity: <decimal>
+  held_quantity: <decimal>
+  balance_quantity: <decimal>
+  carry_out_quantity: <decimal>
   request_decisions: [ACCEPT]
 legacy_source: {query: L3, run_on: <date>, note: "aggregate or instance screen"}
 ```
 
-Units: the golden file states quantities in minutes as well as days (`entitlement_minutes`), because leave is stored in whole minutes (`docs/business/rules/timesheet-filing-rules.md:118`); one day = the entity's standard hours for that day.
+Units: `DAY` leave types (annual leave) are stated in hundredths of a day only; `MINUTE` types (comp time) in whole minutes. A yearly entitlement belongs to no single day, so no conversion between the two is asserted; the per-day minutes of a request (`leave_request_days.minutes`) are asserted separately from that day's standard hours (INV-116). Rename the sample field `entitlement_minutes` accordingly: `entitlement_quantity` plus the type's unit.
 
 ## 4. Done-when per case (for the test engineer)
 

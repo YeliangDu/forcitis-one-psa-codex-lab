@@ -10,7 +10,7 @@ Scope: new context `organization.leave` (bc tag `organization.leave`, B-27): lea
 | RULE-512 | leave | A rejected or withdrawn request releases its hold; a recalled leave gives back its used minutes; nothing is deleted | P0 | No |
 | RULE-513 | leave | A balance account is opened by leave year and the rule version in force, never implicitly; a missing version fails and alerts | P0 | No |
 | RULE-514 | leave | A sealed leave year is never rewritten; corrections and carry-over are new lines in the open year | P0 | No |
-| RULE-515 | leave | Entitlement changes caused by hiring, separation, unpaid leave or a legal-entity change are new ledger lines computed from the rule version | P0 | No |
+| RULE-515 | leave | Entitlement changes caused by hiring, separation, correction of employment history, unpaid leave or a change of the employer entity are new ledger lines computed from the rule version | P0 | No |
 | RULE-516 | leave | Comp time is granted per overtime record with its own expiry and used earliest-expiry first; at expiry the minutes are reported to payroll and nothing is paid here | P1 | No |
 | RULE-517 | leave | Overtime is approved through the approval platform; statutory-holiday overtime can only be paid; overtime overlapping an approved leave is refused | P1 | No |
 | RULE-518 | leave | Monthly confirmation is generated only when every day of the month has an import batch; after lock nothing changes and later changes go to the next month marked with the original month | P0 | No |
@@ -77,7 +77,7 @@ Scope: new context `organization.leave` (bc tag `organization.leave`, B-27): lea
 **Tests:** to be written with the slice that implements it.
 **Confidence:** High.
 
-### RULE-515: Entitlement changes caused by hiring, separation, unpaid leave or a legal-entity change are new ledger lines computed from the rule version
+### RULE-515: Entitlement changes caused by hiring, separation, correction of employment history, unpaid leave or a change of the employer entity are new ledger lines computed from the rule version
 **Category:** Calculation
 **Priority:** P0
 **Source:** ADR-0079:99; golden sample G2..G6
@@ -93,7 +93,7 @@ Scope: new context `organization.leave` (bc tag `organization.leave`, B-27): lea
 **Source:** closeout people commands, 计入补休额度 / 补休到期转计薪; PRC-178; U15
 **Plain English:** Each comp-time grant is a ledger line with an expiry date. Use consumes the line expiring first. An expired remainder produces an expire line and an event with the minutes; pay is computed by payroll.
 **Specification:**
-- Given two grants expiring in June and September, When 60 minutes are used, Then the June grant is consumed first.
+- Given two grants expiring in June and September, When 60 minutes are used, Then the June grant is consumed first; a leave day after a lot's expiry date never draws from that lot; minutes returned to an expired lot are expired at once and reported.
 **Tests:** to be written with the slice that implements it.
 **Confidence:** Medium — validity period is open (U15).
 
@@ -131,8 +131,8 @@ Scope: new context `organization.leave` (bc tag `organization.leave`, B-27): lea
 **Category:** Policy
 **Priority:** P0
 **Source:** RULE-412; module edge guard
-**Plain English:** Other modules read leave through the context's api and published events only, never its tables. The only consumer before payroll exists is `cost.timesheet`, through the edge added by the timesheet seam card (spec 4.3).
+**Plain English:** Other modules read leave through the context's api and published events only, never its tables. The consumers are the approved edge list: `cost.timesheet` through the seam card (spec 4.3) and, later, payroll and the delivery resource plan (ADR-0079:91).
 **Specification:**
-- An architecture test fails when any module other than `cost.timesheet` (after the seam card) depends on `organization.leave`, or when `cost.timesheet` depends on anything beyond the leave-hours api and the leave events.
+- An architecture test fails when a module outside the approved edge list depends on `organization.leave`, or when `cost.timesheet` depends on anything beyond the leave-hours api and the leave events.
 **Tests:** to be written with the slice that implements it.
 **Confidence:** High.
