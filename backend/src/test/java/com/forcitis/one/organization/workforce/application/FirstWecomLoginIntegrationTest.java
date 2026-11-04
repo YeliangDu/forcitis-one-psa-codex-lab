@@ -9,6 +9,7 @@ import static com.forcitis.one.organization.workforce.domain.Fixtures.source;
 import static com.forcitis.one.organization.workforce.domain.Fixtures.unit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.kernel.AccountEmployees;
@@ -46,8 +47,9 @@ class FirstWecomLoginIntegrationTest extends WorkforceIntegrationSupport {
     @Autowired
     AccountEmployees accountEmployees;
 
+    /** csrf() swaps the token repository of the shared filter chain for good (other classes in this context use it too), so a hand-made cookie token is no longer read once one of them ran first. */
     private static MockHttpServletRequestBuilder withXsrf(MockHttpServletRequestBuilder request) {
-        return request.cookie(new Cookie("XSRF-TOKEN", "test-xsrf-token")).header("X-XSRF-TOKEN", "test-xsrf-token");
+        return request.with(csrf());
     }
 
     private void aNewHireTheSnapshotDoesNotListYet() {
