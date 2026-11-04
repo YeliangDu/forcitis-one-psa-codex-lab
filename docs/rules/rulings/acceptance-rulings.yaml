@@ -543,3 +543,11 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/DataScopeReadBehaviourIT.java
     reason: '#1172 按 everyScopedLineHasAnAdapter（每条 SCOPED 登记行有适配器）：实现登记人事命令列表与详情两条 SCOPED 行，故只增这两个适配器并按行写入每人一条待生效人事命令作夹具；组织结构命令按用户 2026-11-03 A1/A4 全公司可见（NOT_SCOPE_BOUND），不加适配器；只有新增行，断言一条不改'
     ref: "commit 10516964edb9f54b634af161f05cc0c65190dee0 on claude/one-test-1172-command-reads (#1172 acceptance part), patch-id --verbatim 0186cf5b4a3afefe9e8184b709848e015c294a35"
+  - id: RULING-LEAD-20261104-23
+    date: 2026-11-04
+    ruled_by: independent opus reviewer dispatched by one-test on commit 393786003 alone (round 1 必改 on a stale DisplayName, fixed by amend; round 2 通过 on the final sha), recorded by one-lead
+    implementer: one-test
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/role_versioning/SystemRoleDeclarationIT.java
+    reason: '#1171 按用户决定 2026-11-03-214823（名册只给人事角色）给 personnel_specialist 加 organization.workforce:employee:read，声明内容变化按 #907/#934 惯例修订号 1→2：assertPersonnelSpecialistSeeded 钉住修订号 2 并要求权限含该码，DisplayName 与注释同步；其余断言不变'
+    ref: "commit 393786003e86f9f628f00970fe284c301d4107ea on claude/one-test-1171-roster-reads (#1171 acceptance part, PR #1229), patch-id --verbatim b9240c2b3b051f7c7369916b0f4229d6670ba4d5"
