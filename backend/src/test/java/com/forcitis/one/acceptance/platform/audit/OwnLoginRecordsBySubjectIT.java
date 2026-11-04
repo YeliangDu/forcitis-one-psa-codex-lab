@@ -39,6 +39,7 @@ class OwnLoginRecordsBySubjectIT extends P5Support {
         postgres.register(registry);
     }
 
+    // RULE-487
     @Test
     @DisplayName("R-1b P5 ADR-0033 第 7 项第 2 条 / ADR-0027 第 3 项第 3 条：员工查本人登录记录只按「用户账号 + 本人用户 ID」取——本人的登录成功、失败、登出都在；他人的不在；类别不同而对象 ID 恰为本人用户 ID 的条目不在")
     void ownRecordsAreFoundByKindAndUserId() throws Exception {
@@ -63,6 +64,7 @@ class OwnLoginRecordsBySubjectIT extends P5Support {
         assertThat(own.getContentAsString()).doesNotContain("subjectKind", "subjectId", "subjectKey", "actorId", "detail");
     }
 
+    // RULE-487
     @Test
     @DisplayName("R-1b P5 ADR-0027 第 3 项第 3 条：本人登录记录的字段白名单不变（发生时间、动作、结果、来源地址、登录方式），另一人只看到自己的")
     void theFieldWhitelistIsUnchanged() throws Exception {

@@ -157,6 +157,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         assertThat(resolver.on(user(2), first.plusDays(3))).as("after the move under unit 4").isEqualTo(le2);
     }
 
+    // RULE-481
     @Test
     @DisplayName("ADR-0026 an employee takes the legal entity of the nearest attributed department; an employee's own attribution wins from its day")
     void resolution() throws Exception {
@@ -178,6 +179,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         assertThat(events.stream(LegalEntityAttributed.class)).hasSize(3);
     }
 
+    // RULE-482
     @Test
     @DisplayName("B-1 no legal entity applies: the lookup fails with a domain exception, it never answers a default")
     void unresolvedFails() throws Exception {
@@ -193,6 +195,7 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
         assertThat(resolver.on(user(2), day)).isEqualTo(le1);
     }
 
+    // RULE-483
     @Test
     @DisplayName("D-1a-27 the attribution endpoints: maintained by the legal entity maintainer, readable with org-unit read, bad input is refused")
     void endpoints() throws Exception {

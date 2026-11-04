@@ -157,6 +157,7 @@ class LegacyNumberSourceIT extends AcceptanceSupport {
         assertThat(insert(withoutSource, false)).isEqualTo(NOT_NULL_VIOLATION);
     }
 
+    // RULE-488
     @Test
     @DisplayName("R-1b P3a ADR-0033 第 2 项第 7 条（DA-11）：同一 (来源系统, 单据类型, 原编号) 唯一，由具名唯一约束 uk_legacy_numbers_source_system_document_type_id_legacy_number 保证；不同来源系统可有相同原编号")
     void uniquePerSourceSystem() throws Exception {
@@ -180,6 +181,7 @@ class LegacyNumberSourceIT extends AcceptanceSupport {
         assertThat(keyColumns).containsExactly("source_system", "document_type_id", "legacy_number");
     }
 
+    // RULE-488
     @Test
     @DisplayName("R-1b P3a ADR-0010 第 5 条、#129 G-MG1：原编号只追加——更新与删除都被数据库拒绝")
     void appendOnly() throws Exception {

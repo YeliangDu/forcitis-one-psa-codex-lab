@@ -142,6 +142,7 @@ class AuditArchiveAndOutcomeConstraintsIT extends AcceptanceSupport {
         }
     }
 
+    // RULE-486
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TB-08：有登录方式而无结果被 ck_audit_entries_login_method_outcome 拒（23514），每种登录方式都一样")
     void methodWithoutOutcomeIsRefused() throws Exception {
@@ -154,6 +155,7 @@ class AuditArchiveAndOutcomeConstraintsIT extends AcceptanceSupport {
         }
     }
 
+    // RULE-486
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TB-08：有结果无方式、两者皆空、两者皆有都通过")
     void otherCombinationsOfOutcomeAndMethodAreAccepted() throws Exception {

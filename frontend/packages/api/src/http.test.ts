@@ -121,6 +121,30 @@ describe('HTTP client', () => {
     expect(onForbidden).not.toHaveBeenCalled();
   });
 
+  it('keepBusinessForbidden: a 403 with a problem code reaches the caller, a bare 403 and a 401 still hit the guards', async () => {
+    const onUnauthenticated = vi.fn();
+    const onForbidden = vi.fn();
+    const handlers = { onUnauthenticated, onForbidden };
+    const business = clientWith({ status: 403, body: problem(403, 'PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED') }, { handlers });
+    await expect(business.client.request('post', '/things', { body: {} }, { keepBusinessForbidden: true })).rejects.toMatchObject({ status: 403, problem: { errorCode: 'PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED' } });
+    expect(onForbidden).not.toHaveBeenCalled();
+
+    const bare = clientWith({ status: 403 }, { handlers });
+    await expect(bare.client.request('post', '/things', { body: {} }, { keepBusinessForbidden: true })).rejects.toMatchObject({ status: 403 });
+    expect(onForbidden).toHaveBeenCalledTimes(1);
+
+    const unauthenticated = clientWith({ status: 401, body: problem(401, 'PLATFORM_WEB_UNAUTHENTICATED') }, { handlers });
+    await expect(unauthenticated.client.request('post', '/things', { body: {} }, { keepBusinessForbidden: true })).rejects.toMatchObject({ status: 401 });
+    expect(onUnauthenticated).toHaveBeenCalledTimes(1);
+  });
+
+  it('without the option a 403 with a problem code still redirects (default unchanged)', async () => {
+    const onForbidden = vi.fn();
+    const { client } = clientWith({ status: 403, body: problem(403, 'PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED') }, { handlers: { onForbidden } });
+    await expect(client.request('post', '/things', { body: {} })).rejects.toMatchObject({ status: 403 });
+    expect(onForbidden).toHaveBeenCalledTimes(1);
+  });
+
   it('does not treat other failures as redirects and keeps the business error code', async () => {
     const onUnauthenticated = vi.fn();
     const onForbidden = vi.fn();

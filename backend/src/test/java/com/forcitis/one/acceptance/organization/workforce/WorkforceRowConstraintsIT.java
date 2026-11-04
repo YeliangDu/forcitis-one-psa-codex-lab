@@ -372,6 +372,7 @@ class WorkforceRowConstraintsIT extends AccountsAcceptanceSupport {
         correction(null, person, TODAY.minusDays(20), TODAY.minusDays(10));
     }
 
+    // RULE-503
     @Test
     @DisplayName("DATA-REPAIR-workforce WF-12：空更正（新旧结束日相同）被 ck_legal_entity_attribution_corrections_changes 拒绝，结束日不同通过")
     void wf12EmptyCorrectionIsRefused() throws SQLException {
