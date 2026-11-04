@@ -360,12 +360,15 @@ def braces(word):
     return [w for alt in alts for w in braces(word[:m.start()] + alt + word[m.end():])][:64]
 
 
+BRACKET = re.compile(r"\[[!^]?\]?[^\]]*\]")   # a shell bracket expression: [abc], [!a-c], [^x], []x]
+
+
 def glob_matches_codex(base):
-    """fnmatch of "codex" against the word; a word whose bracket does not compile (a range running backwards, `[z-a]`) is literal in the shell, so it can only match itself (#1205)."""
+    """fnmatch of "codex" against the word. Python rejects brackets the shell accepts (`[^-+]`, `[z-ac]`) and the shell may still expand them to codex, so a word that does not compile is matched again with every bracket as `?` (any one character, a superset), which always compiles (#1205)."""
     try:
         return fnmatch.fnmatchcase("codex", base)
     except re.error:
-        return base == "codex"
+        return fnmatch.fnmatchcase("codex", BRACKET.sub("?", base))
 
 
 def could_be_codex(word):
