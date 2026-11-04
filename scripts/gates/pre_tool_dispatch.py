@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""PreToolUse 分发（Bash、Monitor、终端面板）：挂生产写门 prod_write_gate（底线 4，生产只读）和 codex 门 codex_gate（只放 codex exec 工作区沙箱一种用法，#1180）。
+"""PreToolUse 分发（Bash、Monitor、终端面板）：挂生产写门 prod_write_gate（底线 4，生产只读）、codex 门 codex_gate（只放 codex exec 工作区沙箱一种用法，#1180）和 pkill 门 pkill_gate（不许无范围地杀进程，#1311）。
 
 只看跑 shell 命令的工具（门的 COMMAND_TOOLS）；其他工具（Agent、Read…）直接放行。先过 codex 门（它自己解析命令文本，不靠预筛），再过 pkill 门 pkill_gate（共享构建机上不许无范围地杀进程，#1311；同样自己解析，失败放行），再用生产写门自己的保守预筛 could_concern（只在门必然放行时才跳过），命中再在本进程里调门的 decide。
 钩子输入读不懂（含 Bash 而 command 缺失或不是字符串）退出码 2（拒绝）。门导入失败、运行出错、DEADLINE 秒内没有结论，退出码 3 并给一句中文原因：
@@ -37,12 +37,6 @@ def load_codex():
     sys.path.insert(0, HERE)
     import codex_gate
     return codex_gate
-
-
-def load_pkill():
-    sys.path.insert(0, HERE)
-    import pkill_gate
-    return pkill_gate
 
 
 def load_pkill():

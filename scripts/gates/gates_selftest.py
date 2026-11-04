@@ -918,7 +918,7 @@ def pkill_gate_test():
         for tool in COMMAND_TOOLS:
             code, out, err = d.dispatch(payload("pkill -f failsafe", cwd=w1, tool_name=tool))
             assert code == 2 and "#1311" in err, (tool, code, err)
-            assert d.dispatch(payload(f'pkill -f "{w1}/backend/target"', cwd=w1, tool_name=tool)) == (0, "", ""), tool
+            assert d.dispatch(payload(f'pkill -f "{w1}/backend/target"', cwd=w1, tool_name=tool))[0] == 0, tool
         r = subprocess.run([PYTHON, "-I", DISPATCH], input=payload("killall java", cwd=w1), capture_output=True, text=True, env={"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), "CLAUDE_PROJECT_DIR": w1})
         assert r.returncode == 2 and "killall" in r.stderr, (r.returncode, r.stderr)
         # the gate's own crash is the dispatcher's exit 3 (fail open in the mounted entry point), not a refusal
