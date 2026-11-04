@@ -15,8 +15,8 @@ import {
 } from '../api/workforce-api';
 import type { EmploymentFilter } from '../model/employee';
 
-export function useOrgUnits(includeRevoked: boolean) {
-  return useQuery({ queryKey: ['workforce', 'org-units', includeRevoked], queryFn: () => fetchOrgUnits(includeRevoked) });
+export function useOrgUnits(includeRevoked: boolean, enabled = true) {
+  return useQuery({ queryKey: ['workforce', 'org-units', includeRevoked], queryFn: () => fetchOrgUnits(includeRevoked), enabled });
 }
 
 export function useEmployees(employmentStatus: EmploymentFilter, orgUnitId: string | undefined) {
@@ -67,10 +67,10 @@ export function useEmployeeChoices() {
   return useQuery({ queryKey: ['workforce', 'employee-choices'], queryFn: fetchEmployeeChoices });
 }
 
-export function usePositionChoices() {
-  return useQuery({ queryKey: ['workforce', 'position-choices'], queryFn: fetchPositionChoices });
+export function usePositionChoices(enabled = true) {
+  return useQuery({ queryKey: ['workforce', 'position-choices'], queryFn: fetchPositionChoices, enabled });
 }
 
-export function useLegalEntityChoices() {
-  return useQuery({ queryKey: ['workforce', 'legal-entity-choices'], queryFn: fetchLegalEntityChoices });
+export function useLegalEntityChoices(enabled = true) {
+  return useQuery({ queryKey: ['workforce', 'legal-entity-choices'], queryFn: fetchLegalEntityChoices, enabled });
 }

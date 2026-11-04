@@ -12,9 +12,10 @@ import {
   KIND_FIELDS,
   PHASE_OPTIONS,
   SUBMITTABLE_KINDS,
+  type SubmittableKind,
   bodyOf,
+  isSubmittableKind,
   personnelCommandPath,
-  submittableKindOf,
 } from '../model/personnel-command';
 
 const NONE = { value: '', label: '请选择' };
@@ -23,17 +24,18 @@ const KIND_OPTIONS = SUBMITTABLE_KINDS.map((kind) => ({ value: kind, label: COMM
 export function PersonnelCommandFormPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const [kind, setKind] = useState(submittableKindOf('TRANSFER'));
+  const [kind, setKind] = useState<SubmittableKind>('REGULARIZE');
   const [draft, setDraft] = useState<CommandDraft>({ ...EMPTY_DRAFT, employeeId: params.get('employeeId') ?? '' });
+  const fields = KIND_FIELDS[kind];
+  // Only the lists the chosen kind shows are read: the roles that may submit do not all hold the read of every list.
   const employees = useEmployeeChoices();
-  const units = useOrgUnits(false);
-  const positions = usePositionChoices();
-  const legalEntities = useLegalEntityChoices();
+  const units = useOrgUnits(false, fields.orgUnit !== undefined);
+  const positions = usePositionChoices(fields.position !== undefined);
+  const legalEntities = useLegalEntityChoices(fields.legalEntity !== undefined);
   const enter = useEnterPersonnelCommand();
 
-  const fields = KIND_FIELDS[kind];
   const set = (key: keyof CommandDraft) => (value: string) => setDraft((current) => ({ ...current, [key]: value }));
-  const choices = [employees, units, positions, legalEntities];
+  const choices = [employees, ...(fields.orgUnit === undefined ? [] : [units]), ...(fields.position === undefined ? [] : [positions]), ...(fields.legalEntity === undefined ? [] : [legalEntities])];
   const failed = choices.find((query) => query.isError);
   if (failed?.isError) return <Notice tone="error" title="加载失败">{describeFailure(failed.error)}</Notice>;
   if (choices.some((query) => query.isPending)) return <LoadingState />;
@@ -49,7 +51,7 @@ export function PersonnelCommandFormPage() {
   return (
     <>
       <PageTitle text="发起人事命令" />
-      <SelectField label="命令类型" value={kind} options={KIND_OPTIONS} onChange={(value) => { setKind(submittableKindOf(value)); enter.reset(); }} />
+      <SelectField label="命令类型" value={kind} options={KIND_OPTIONS} onChange={(value) => { if (isSubmittableKind(value)) setKind(value); enter.reset(); }} />
       {fields.newPerson === true ? (
         <>
           <TextField label="姓名" value={draft.displayName} onChange={set('displayName')} />

@@ -61,8 +61,8 @@ export const KIND_FIELDS: Readonly<Record<SubmittableKind, KindFields>> = {
   UNPAID_LEAVE_END: { date: 'effectiveDate' },
 };
 
-export function submittableKindOf(value: string): SubmittableKind {
-  return SUBMITTABLE_KINDS.find((kind) => kind === value) ?? 'TRANSFER';
+export function isSubmittableKind(value: string): value is SubmittableKind {
+  return SUBMITTABLE_KINDS.some((kind) => kind === value);
 }
 
 /** What the form holds; empty text is "not stated". */

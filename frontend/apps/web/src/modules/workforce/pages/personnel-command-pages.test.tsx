@@ -126,6 +126,7 @@ describe('发起人事命令', () => {
     const server = stubServer({ ...CHOICES, 'POST personnel-commands': { body: { personnelCommandId: COMMAND_ID } } });
     render(`/admin/personnel-commands/new?employeeId=${EMPLOYEE_ID}`);
 
+    await userEvent.selectOptions(await screen.findByLabelText('命令类型'), 'TRANSFER');
     await userEvent.selectOptions(await screen.findByLabelText('目标组织单元'), UNIT_ID);
     await userEvent.type(screen.getByLabelText('生效日期'), '2026-12-01');
     await userEvent.click(screen.getByRole('button', { name: '提交' }));
@@ -155,6 +156,14 @@ describe('发起人事命令', () => {
       commandKind: 'HIRE', displayName: '李四', gender: 'FEMALE', email: 'li@example.com', effectiveDate: '2026-12-01',
       targetOrgUnitId: UNIT_ID, targetPositionId: POSITION_ID, isTargetFeeEarner: true, targetEmploymentPhaseKind: 'PROBATION',
     });
+  });
+
+  it('打开时只读员工列表：人事专员没有组织单元和法人的读权限，读了就被服务端拒绝', async () => {
+    const server = stubServer({ 'GET employees': CHOICES['GET employees'] });
+    render();
+
+    expect(await screen.findByLabelText('员工')).toBeInTheDocument();
+    expect(server.calls.some((call) => /org-units|positions|legal-entities/.test(call.url))).toBe(false);
   });
 
   it('离职填最后工作日，不填生效日期', async () => {
