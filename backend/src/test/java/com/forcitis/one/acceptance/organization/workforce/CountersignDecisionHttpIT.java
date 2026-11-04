@@ -17,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
@@ -24,6 +25,7 @@ import com.jayway.jsonpath.JsonPath;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -330,7 +332,7 @@ class CountersignDecisionHttpIT extends OrgCountersignSupport {
     }
 
     @Test
-    @DisplayName("#1170 完成标准第 3 条（排序与分页）：同一天到期的两行按 id 先后；晚几天录入、到期日更晚的第三行排在它们之后；逐页取（limit=1，沿游标）得到的顺序与一次取完相同，没有重复，游标用尽后下一页为空")
+    @DisplayName("#1170 完成标准第 3 条（排序与分页）：同一天到期的两行都排在晚几天录入、到期日更晚的第三行之前（同日两行之间的先后在此不单独断言）；先录入但到期日更晚的行排在后录入但到期日更早的行之后（工作日历在两次录入之间改过，到期日先于 id）；逐页取（limit=1，沿游标）得到的顺序与一次取完相同，没有重复，游标用尽后下一页为空")
     void theListIsOrderedByDueDateThenIdAndPaged() throws Exception {
         UUID first = request(personnel().command(), false, KIND_CHANGE, e1);
         UUID second = request(personnel().command(), false, KIND_CHANGE, e1);
@@ -342,7 +344,7 @@ class CountersignDecisionHttpIT extends OrgCountersignSupport {
         List<UUID> whole = listed(headE1, "").stream().map(UUID::fromString).toList();
 
         assertThat(whole).containsSubsequence(first, second, later);
-        List<UUID> paged = new java.util.ArrayList<>();
+        List<UUID> paged = new ArrayList<>();
         String cursor = null;
         do {
             MockHttpServletResponse page = read(headE1, PATH + "?limit=1" + (cursor == null ? "" : "&cursor=" + cursor));
@@ -353,6 +355,30 @@ class CountersignDecisionHttpIT extends OrgCountersignSupport {
             cursor = JsonPath.read(page.getContentAsString(), "$.nextCursor");
         } while (cursor != null && paged.size() <= whole.size());
         assertThat(paged).isEqualTo(whole);
+    }
+
+    @Test
+    @DisplayName("#1170 完成标准第 3 条（先到期的在前，与 id 先后无关）：先录入的请求因工作日历当时有假日而到期更晚，之后日历改掉再录入的请求到期更早；列表里后者在前")
+    void theDueDateComesBeforeTheId() throws Exception {
+        Staff maintainer = person("org_data_admin");
+        maintainCalendar(maintainer, "{\"calendarDate\":\"" + TODAY.plusDays(1) + "\",\"dayKind\":\"HOLIDAY\"},{\"calendarDate\":\"" + TODAY.plusDays(2) + "\",\"dayKind\":\"HOLIDAY\"}");
+        UUID slow = request(personnel().command(), false, KIND_CHANGE, e1);
+        maintainCalendar(maintainer, "");
+        UUID quick = request(personnel().command(), false, KIND_CHANGE, e1);
+
+        assertThat(dueOf(slow)).isAfter(dueOf(quick));
+        assertThat(slow.toString().compareTo(quick.toString())).as("the later entry was made second").isNegative();
+        assertThat(listed(headE1, "").stream().map(UUID::fromString)).containsSubsequence(quick, slow);
+    }
+
+    /** Re-maintains 2026 through the attendance endpoint; the first call creates it (If-Match 0), later ones take the stored ETag. */
+    private void maintainCalendar(Staff maintainer, String days) throws Exception {
+        String year = "/api/v1/organization/work-calendars/2026";
+        MockHttpServletResponse stored = read(maintainer, year);
+        String tag = stored.getStatus() == 200 ? stored.getHeader("ETag") : "\"0\"";
+        MockHttpServletResponse maintained = mvc.perform(put(year).header("If-Match", tag).with(csrf()).with(session(maintainer.session()))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"days\":[" + days + "],\"lockedDaysConfirmed\":true}")).andReturn().getResponse();
+        assertThat(maintained.getStatus()).as("maintaining 2026: " + maintained.getContentAsString()).isEqualTo(200);
     }
 
     @Test
@@ -374,9 +400,15 @@ class CountersignDecisionHttpIT extends OrgCountersignSupport {
         assertThat(found).hasSize(1);
         Map<String, Object> item = found.get(0);
         assertThat(item.toString()).contains(name).doesNotContain(number);
-        assertThat(item.keySet()).noneMatch(key -> key.toLowerCase().contains("number") || key.toLowerCase().contains("code"));
+        assertThat(item).doesNotContainKey("employeeNumber").doesNotContainKey("employeeCode");
         assertThat(item.get("requestKind")).isEqualTo(KIND_CHANGE);
         assertThat(item.get("status")).isEqualTo("OPEN");
+        UUID orgId = request(orgWaiting(), true, KIND_CHANGE, e1);
+        List<Map<String, Object>> orgFound = JsonPath.read(read(headE1, PATH).getContentAsString(), "$.items[?(@.attributionCountersignId == '" + orgId + "')]");
+        assertThat(orgFound).hasSize(1);
+        assertThat(orgFound.get(0)).doesNotContainKey("employeeNumber").doesNotContainKey("employeeCode");
+        assertThat(orgFound.get(0).get("requestKind")).isEqualTo(KIND_CHANGE);
+        assertThat(orgFound.get(0).get("status")).isEqualTo("OPEN");
     }
 
     @Test
@@ -403,6 +435,8 @@ class CountersignDecisionHttpIT extends OrgCountersignSupport {
         escalate(level2, 2);
 
         assertThat(listed(administrator, "").stream().map(UUID::fromString)).contains(level2).doesNotContain(level1);
+        assertThat(listed(headE2, "").stream().map(UUID::fromString)).as("escalating does not widen the heads' view").doesNotContain(level1);
+        assertThat(listed(headE3, "").stream().map(UUID::fromString)).doesNotContain(level1, level2);
     }
 
     // ---- refusals ----
@@ -423,6 +457,8 @@ class CountersignDecisionHttpIT extends OrgCountersignSupport {
         UUID id = request(waiting.command(), false, KIND_CHANGE, e1);
         Staff unbound = person(FINANCE_HEAD_ROLE);
         Staff administrator = person(ESCALATED_ROLE);
+        assertAnswered(approveHttp(administrator, id, "{}"), 403, FORBIDDEN);
+        assertAnswered(rejectHttp(administrator, id, "synthetic: level 0"), 403, FORBIDDEN);
         escalate(id, 1);
 
         for (Staff who : List.of(headE3, headE2, unbound, administrator)) {
