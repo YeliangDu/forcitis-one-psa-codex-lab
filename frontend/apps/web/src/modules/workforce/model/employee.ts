@@ -16,8 +16,8 @@ export const EMPLOYMENT_STATUS_LABELS: Readonly<Record<string, string>> = {
 };
 
 export const ASSIGNMENT_KIND_LABELS: Readonly<Record<string, string>> = {
-  PRIMARY: '主任职',
-  CONCURRENT: '兼任',
+  PRIMARY: '主岗',
+  CONCURRENT: '兼岗',
 };
 
 export function employmentFilterOf(value: string): EmploymentFilter {

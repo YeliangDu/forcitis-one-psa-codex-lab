@@ -10,7 +10,7 @@ const ASSIGNMENT_COLUMNS: DataColumn<Assignment>[] = [
   { key: 'kind', title: '任职类型', render: (assignment) => ASSIGNMENT_KIND_LABELS[assignment.assignmentKind] ?? assignment.assignmentKind },
   { key: 'unit', title: '组织单元', render: (assignment) => assignment.orgUnitName },
   { key: 'position', title: '岗位', render: (assignment) => assignment.positionName ?? '—' },
-  { key: 'reportsTo', title: '汇报对象', render: (assignment) => assignment.reportsToDisplayName ?? '—' },
+  { key: 'reportsTo', title: '直属上级', render: (assignment) => assignment.reportsToDisplayName ?? '—' },
 ];
 
 export function EmployeeDetailPage() {
