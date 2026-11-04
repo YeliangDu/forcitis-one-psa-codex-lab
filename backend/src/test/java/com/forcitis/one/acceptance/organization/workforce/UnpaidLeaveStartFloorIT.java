@@ -7,7 +7,6 @@ import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.platform.integration.api.WecomCard;
 import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -26,11 +25,6 @@ class UnpaidLeaveStartFloorIT extends UnpaidLeaveStartFloorSupport {
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
         postgres.register(registry);
-    }
-
-    @BeforeEach
-    void workCalendar() throws Exception {
-        maintainWorkCalendar(account("org_data_admin").session()); // a started leave of a holder opens a review whose escalation due fails loud on an unmaintained calendar
     }
 
     // ---- 0 remain: refused ----
