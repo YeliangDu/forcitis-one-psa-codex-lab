@@ -12,6 +12,7 @@ import com.forcitis.one.kernel.TransitionTable;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.TestEnvelopes;
+import com.forcitis.one.platform.identity.api.AccountOpeningRoute;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleId;
@@ -129,12 +130,13 @@ class IdentityStateMachineTest {
     @Test
     @DisplayName("opening an account is enabled from the start, holds the given roles and announces AccountOpened")
     void opening() {
-        UserAccount opened = UserAccount.open(TestAccounts.account(2002), TestAccounts.employee(2002), Set.of(new RoleId(TestIds.uuid(4)), new RoleId(TestIds.uuid(2))));
+        UserAccount opened = UserAccount.open(TestAccounts.account(2002), TestAccounts.employee(2002), Set.of(new RoleId(TestIds.uuid(4)), new RoleId(TestIds.uuid(2))), AccountOpeningRoute.LOGIN);
 
         assertThat(opened.status()).isEqualTo(ENABLED);
         assertThat(opened.isStored()).isFalse();
         assertThat(opened.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(AccountOpened.class, e -> {
             assertThat(e.roleIds()).containsExactly(new RoleId(TestIds.uuid(2)), new RoleId(TestIds.uuid(4)));
+            assertThat(e.openingRoute()).isEqualTo(AccountOpeningRoute.LOGIN);
             assertThat(e.envelope().aggregateVersion()).isEqualTo(1);
         });
     }

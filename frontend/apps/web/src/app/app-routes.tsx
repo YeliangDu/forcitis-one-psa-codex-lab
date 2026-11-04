@@ -27,7 +27,6 @@ export function AppRoutes() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/login/wecom" element={<LoginCallbackPage kind="wecom" />} />
-        <Route path="/login/sso" element={<LoginCallbackPage kind="sso" />} />
         <Route path="/login/ticket" element={<LoginCallbackPage kind="ticket" />} />
         <Route path="/emergency" element={<EmergencyLoginPage />} />
         <Route path="/session-expired" element={<SessionExpiredPage />} />

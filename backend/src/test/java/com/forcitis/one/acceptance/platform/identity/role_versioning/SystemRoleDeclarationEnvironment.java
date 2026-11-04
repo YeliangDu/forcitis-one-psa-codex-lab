@@ -44,7 +44,7 @@ final class SystemRoleDeclarationEnvironment {
             "forcitis.platform.audit.archive.enabled=false", "forcitis.cost.timesheet.consumed-events.enabled=false",
             "forcitis.organization.workforce.sync-purge.enabled=false", "forcitis.platform.integration.outbound-purge.enabled=false",
             "forcitis.platform.integration.event-publication.jobs-enabled=false", "forcitis.platform.scheduling.jobs-enabled=false",
-            "forcitis.platform.identity.sso.enabled=false", "forcitis.platform.identity.emergency.check.enabled=false"};
+            "forcitis.platform.identity.emergency.check.enabled=false"};
 
     /** The dev profile refuses a database connection that is not encrypted, so the server gets a throw-away certificate (as SingleOperatorModeEnvironment). */
     static final PostgreSQLContainer POSTGRES = TestPostgres.container().withDatabaseName(FIRST_DATABASE).withUsername(USER).withPassword(PASSWORD)

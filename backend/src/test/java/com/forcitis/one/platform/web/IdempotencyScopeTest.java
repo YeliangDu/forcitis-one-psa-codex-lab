@@ -38,7 +38,7 @@ class IdempotencyScopeTest {
         assertThat(scope.applies("POST", "/api/v1/organization/org-reconciliations:run")).isFalse();
         assertThat(scope.applies("POST", "/api/v1/platform/source-references")).isFalse();
         assertThat(scope.applies("POST", "/api/v1/platform/source-references/0192f8a0-0000-7000-8000-000000000001:confirm")).isFalse();
-        assertThat(scope.applies("POST", "/api/v1/platform/sessions:sso-login")).isFalse();
+        assertThat(scope.applies("POST", "/api/v1/platform/sessions:ticket-login")).isFalse();
         assertThat(scope.applies("POST", "/api/v1/platform/login-states")).isFalse();
     }
 }

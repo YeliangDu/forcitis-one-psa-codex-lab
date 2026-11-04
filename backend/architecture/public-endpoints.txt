@@ -5,6 +5,5 @@
 # Format: METHOD path  # reason (exactly the reason of the annotation)
 POST /api/v1/platform/login-states  # One-time OAuth state for the WeCom login redirect; creates no session. ADR-0009 §3, RULE-322/324, I-9
 POST /api/v1/platform/sessions:wecom-login  # WeCom OAuth login (workbench, mini program, PC scan): identity proven by the WeCom code and a one-time state. ADR-0009 §3, RULE-322/323/324/326/327, I-3, I-9
-POST /api/v1/platform/sessions:sso-login  # Portal single sign-on: the server checks the one-time ticket against the portal. ADR-0009 §3, RULE-320/321, I-3, I-9
 POST /api/v1/platform/sessions:ticket-login  # Signed one-time ticket from an allow-listed external system (HMAC, at most 60 s, nonce used once). ADR-0009 §3, RULE-318, C1a-03, I-2, I-3, I-9
 POST /api/v1/platform/sessions:emergency-login  # Break-glass administrator: Argon2id password plus TOTP, internal network only, locked after 5 failures. ADR-0009 §3, RULE-316/317, C1a-04, I-3
