@@ -69,7 +69,7 @@ inputs:
 treatments: {T-1: <value>, T-3: <value>}     # the decided parameters the expected values assume
 expected:                         # one block per relationship account
   R1:
-      entitlement_quantity: <decimal>   # in the type's ledger unit
+    entitlement_quantity: <decimal>   # in the type's ledger unit
     used_quantity: <decimal>
     held_quantity: <decimal>
     balance_quantity: <decimal>
@@ -82,6 +82,6 @@ Units: `DAY` leave types (annual leave) are stated in hundredths of a day only; 
 
 ## 4. Done-when per case (for the test engineer)
 
-For each case G1..G8: (1) the acceptance test opens the year's account through the public commands only (hire, separation, unpaid leave and attribution-change facts are delivered through the real relationship-level events [R], not SQL); (2) every `expected` field equals the value read back through the read API; (3) re-delivering any input event changes nothing (idempotent); (4) the audit entry of each balance-changing command exists with the register text from the spec; (5) a case whose treatment is still pending is not written yet, and its absence is listed in the test report, not skipped silently.
+For each case G1..G10: (1) the acceptance test opens the year's account through the public commands only (hire, separation, unpaid leave and attribution-change facts are delivered through the real relationship-level events [R], not SQL); (2) every `expected` field equals the value read back through the read API; (3) re-delivering any input event changes nothing (idempotent); (4) the audit entry of each balance-changing command exists with the register text from the spec; (5) a case whose treatment is still pending is not written yet, and its absence is listed in the test report, not skipped silently.
 
 Case-specific checks: G2 band change takes effect on the date the treatment says; G4 balance after separation follows T-4; G6 balances and entitlement are identical to the same person without the attribution move (nothing in leave reads the attribution entity); G9 [R] two accounts exist, each request draws only from its named relationship, the day-overlap treatment T-11 is applied, and the total entitlement follows T-12; G10 [R] the successor's opening follows T-6 and the predecessor's open holds are released on its `EmploymentRelationshipEnded`; G7 carry-over use order and expiry follow T-7; G8 grant, partial use and expiry produce three ledger lines and the expired amount is reported to the payroll seam (W4) as an event, not paid here.
