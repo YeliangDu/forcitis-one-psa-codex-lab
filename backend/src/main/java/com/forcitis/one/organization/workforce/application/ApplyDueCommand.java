@@ -115,7 +115,7 @@ public class ApplyDueCommand {
                     command.id(), WorkContext.correlationId().orElseGet(ids::next));
             // The day has come: the versions are in force, so a withdrawal still awaiting its countersign lapses (user answer Q2 of 2026-10-30).
             if (command.countersignNewLegalEntityId() != null) {
-                countersignRequests.lapse(command, countersigns.ofCommand(command.id()), ActorType.SYSTEM, actor, now, today, WorkContext.correlationId().orElseGet(ids::next));
+                countersignRequests.lapse(command, countersigns.lockOfCommand(command.id()), ActorType.SYSTEM, actor, now, today, WorkContext.correlationId().orElseGet(ids::next));
             }
             // As at the entry: a separation's envelope names the entity of the last day employed, any other command the entity of its effective day.
             LocalDate entityDay = command.kind() == PersonnelCommandKind.SEPARATE ? command.effectiveDate().minusDays(1) : command.effectiveDate();
