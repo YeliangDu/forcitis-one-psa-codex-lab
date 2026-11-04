@@ -498,3 +498,19 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/IntegrationOperationsProfileIT.java
     reason: '#1174 按 ADR-0069 第 9 节（EmployeeRegistered 同批删除）、第 10 节 H-1 与 11.2（删致远单点登录与 SeeyonTicketVerifier）：并发用例去掉 EmployeeRegistered 入口（HireOpensAccountIT 四入口缩为三，AccountEntriesConcurrencyIT 缩为二），三个环境类不再设 sso.enabled；其余入口的断言原样保留'
     ref: "commit 6f2792ccdd6a42ee9847e8b2175ce9f791d0c540 on claude/one-test-1174-sso-removal (#1174 acceptance part); review1174.md"
+  - id: RULING-LEAD-20261104-18
+    date: 2026-11-04
+    ruled_by: independent opus reviewer opus-终审-review1173-guard2 (review1173-guard2.md on commit 91d250b2d, verdict 通过, no 必改; first-round 必改 on DisplayName and javadoc resolved), recorded by one-lead
+    implementer: one-test
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/grant_store/CurrentGrantPredicateGuardTest.java
+    reason: '#1173 按用户决定 2026-11-03-214823（账号查询按账号看授予历史）与 ADR-0034 第 412 行守护文字的延伸：ALLOWED_READERS 只增 JdbcFullGrantHistory.java（全量授予历史读取，仅放这一条语句），JdbcGrantHistory.java 与其他文件仍受检；其余断言不变'
+    ref: "commit 91d250b2db378f60cbdde7d7db5a19fa096b9126 (#1173 acceptance part), patch-id --verbatim dc224f92d088a146a33ec583fa2d1c8bd5c36b7f; review1173-guard2.md"
+  - id: RULING-LEAD-20261104-19
+    date: 2026-11-04
+    ruled_by: independent opus reviewer opus-首轮-1174b (review1174b.md on commit e37a2ed37, verdict 通过, no 必改; red without the change and 20/20 green with it reproduced), recorded by one-lead
+    implementer: one-test
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/RevokeDisableFloorSupport.java
+    reason: '#1174 按 ADR-0069 第 9 节（登录开户记 ALERT）：RevokeDisableFloorSupport.account() 无角色账号改由运维授默认角色 employee 开户，不再靠登录开户，账号状态不变（仅默认角色）；RevokeDisableFloorIT 的不发卡、不告警断言与观察窗口原样保留'
+    ref: "commit e37a2ed37f04bc2512f6157366fb6313a57546c9 on claude/one-test-1174-revoke-floor-fix, patch-id --verbatim 9a746421e0ae1531cfe435a90c4bcdc3c8b25cc9; review1174b.md"
