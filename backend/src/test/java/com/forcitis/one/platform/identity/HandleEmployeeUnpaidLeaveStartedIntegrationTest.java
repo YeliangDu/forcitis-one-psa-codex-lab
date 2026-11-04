@@ -130,4 +130,28 @@ class HandleEmployeeUnpaidLeaveStartedIntegrationTest extends IdentityIntegratio
                   from platform_identity.roles limit 1""").update())
                 .hasMessageContaining("ck_permission_adjustments_subject");
     }
+
+    @Test
+    @DisplayName("a scope review cannot come from an unpaid-leave start (ck_permission_adjustments_kind_origin)")
+    void aScopeReviewFromALeaveIsRefused() {
+        createAccount(7206, "employee");
+        assertThatThrownBy(() -> jdbc.sql("""
+                insert into platform_identity.permission_adjustments (permission_adjustment_id, kind, origin_kind, status, user_id,
+                    trigger_personnel_command_id, escalation_due_at, created_at, updated_at)
+                values (uuidv7(), 'SCOPE_REVIEW', 'UNPAID_LEAVE_START', 'OPEN', :user, uuidv7(), now() + interval '1 day', now(), now())""")
+                .param("user", TestAccounts.account(7206).value()).update())
+                .hasMessageContaining("ck_permission_adjustments_kind_origin");
+    }
+
+    @Test
+    @DisplayName("a leave review names its personnel command (ck_permission_adjustments_trigger_command)")
+    void aLeaveReviewWithoutACommandIsRefused() {
+        createAccount(7207, "employee");
+        assertThatThrownBy(() -> jdbc.sql("""
+                insert into platform_identity.permission_adjustments (permission_adjustment_id, kind, origin_kind, status, user_id,
+                    escalation_due_at, created_at, updated_at)
+                values (uuidv7(), 'SENSITIVE_ROLE_REVIEW', 'UNPAID_LEAVE_START', 'OPEN', :user, now() + interval '1 day', now(), now())""")
+                .param("user", TestAccounts.account(7207).value()).update())
+                .hasMessageContaining("ck_permission_adjustments_trigger_command");
+    }
 }
