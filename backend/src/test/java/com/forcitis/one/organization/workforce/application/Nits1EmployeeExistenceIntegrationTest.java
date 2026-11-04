@@ -6,7 +6,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.EmployeeId;
-import com.forcitis.one.organization.workforce.api.EmployeeExistence;
+import com.forcitis.one.organization.workforce.api.EmployeeLabels;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @DisplayName("NITS-1 项5（DR-TB01-FU1-1）：员工存在 = employees 有该 ID 的行，不要求任职，也不要求在职")
 class Nits1EmployeeExistenceIntegrationTest extends WorkforceIntegrationSupport {
     @Autowired
-    EmployeeExistence existence;
+    EmployeeLabels labels;
 
     @Autowired
     OrgDirectory directory;
@@ -23,6 +23,10 @@ class Nits1EmployeeExistenceIntegrationTest extends WorkforceIntegrationSupport 
     private void rowOnly(EmployeeId id, long serial) {
         jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values (:id, :code, :name, 'EMPLOYED')")
                 .param("id", id.value()).param("code", "ROW" + serial).param("name", "Synthetic row-only person " + serial).update();
+    }
+
+    private boolean exists(EmployeeId id) {
+        return labels.labelsOf(java.util.Set.of(id)).containsKey(id);
     }
 
     @Test
@@ -34,10 +38,10 @@ class Nits1EmployeeExistenceIntegrationTest extends WorkforceIntegrationSupport 
         EmployeeId withoutAssignment = TestAccounts.employee(500);
         rowOnly(withoutAssignment, 500);
 
-        assertThat(existence.exists(TestAccounts.employee(1))).as("employed, with an assignment").isTrue();
-        assertThat(existence.exists(TestAccounts.employee(2))).as("separated").isTrue();
-        assertThat(existence.exists(withoutAssignment)).as("a row and no assignment").isTrue();
-        assertThat(existence.exists(TestAccounts.employee(999))).as("no row").isFalse();
+        assertThat(exists(TestAccounts.employee(1))).as("employed, with an assignment").isTrue();
+        assertThat(exists(TestAccounts.employee(2))).as("separated").isTrue();
+        assertThat(exists(withoutAssignment)).as("a row and no assignment").isTrue();
+        assertThat(exists(TestAccounts.employee(999))).as("no row").isFalse();
     }
 
     @Test
