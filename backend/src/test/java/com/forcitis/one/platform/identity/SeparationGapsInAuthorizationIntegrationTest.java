@@ -154,4 +154,34 @@ class SeparationGapsInAuthorizationIntegrationTest extends IdentityIntegrationTe
         assertThat(confirm(second, requestId).getResponse().getStatus()).isEqualTo(409);
         assertThat(holds(1001, "security_auditor")).isFalse();
     }
+
+    @Test
+    @DisplayName("#1322 (e) the requester separated and the event is not handled yet: confirming their request grants nothing (TLA+ rule 4)")
+    void confirmingARequestOfADepartedRequester() throws Exception {
+        String first = administratorSession(9);
+        String second = administratorSession(10);
+        loginWithWecom(1001);
+        String requestId = pendingRequest(first, 1001, "employee", "security_auditor");
+        knownEmployee(9, EmploymentStatus.SEPARATED);
+
+        MvcResult confirmed = confirm(second, requestId);
+
+        assertThat(confirmed.getResponse().getStatus()).as(confirmed.getResponse().getContentAsString()).isGreaterThanOrEqualTo(400);
+        assertThat(holds(1001, "security_auditor")).isFalse();
+    }
+
+    @Test
+    @DisplayName("#1322 (f) the confirmer separated and the event is not handled yet: their confirmation grants nothing (TLA+ rule 4)")
+    void aDepartedConfirmerConfirmsNothing() throws Exception {
+        String first = administratorSession(9);
+        String second = administratorSession(10);
+        loginWithWecom(1001);
+        String requestId = pendingRequest(first, 1001, "employee", "security_auditor");
+        knownEmployee(10, EmploymentStatus.SEPARATED);
+
+        MvcResult confirmed = confirm(second, requestId);
+
+        assertThat(confirmed.getResponse().getStatus()).as(confirmed.getResponse().getContentAsString()).isGreaterThanOrEqualTo(400);
+        assertThat(holds(1001, "security_auditor")).isFalse();
+    }
 }

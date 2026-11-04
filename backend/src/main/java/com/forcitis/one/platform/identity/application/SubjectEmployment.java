@@ -1,7 +1,9 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmploymentVerdict;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
+import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.UserAccount;
 import org.springframework.stereotype.Component;
 
@@ -14,12 +16,19 @@ import org.springframework.stereotype.Component;
 class SubjectEmployment {
 
     private final OrgDirectory directory;
+    private final AccountRepository accounts;
 
-    SubjectEmployment(OrgDirectory directory) {
+    SubjectEmployment(OrgDirectory directory, AccountRepository accounts) {
+        this.accounts = accounts;
         this.directory = directory;
     }
 
     boolean isEmployed(UserAccount account) {
         return directory.employmentOf(account.employeeId()) == EmploymentVerdict.EMPLOYED;
+    }
+
+    /** False also for a user without an account: nobody who cannot be placed in the directory confirms or has a request confirmed. */
+    boolean isEmployed(UserId user) {
+        return accounts.find(user).map(this::isEmployed).orElse(false);
     }
 }
