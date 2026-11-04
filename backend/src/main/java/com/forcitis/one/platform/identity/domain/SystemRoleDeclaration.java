@@ -25,7 +25,7 @@ public record SystemRoleDeclaration(List<DeclaredRole> roles) {
      * process_administrator receives the tasks nobody can be found for (D-1a-61); org_data_admin, business_admin and security_auditor
      * are the system business roles of ADR-0027 sections 2 and 3, with ADR-0028 (security_auditor releases a separation hold) and
      * RULE-385 (org_data_admin corrects a legal entity attribution);
-     * personnel_specialist (人事专员, user decision 2026-10-30) enters and withdraws personnel commands (ADR-0068 item 1.6);
+     * personnel_specialist (人事专员, user decision 2026-10-30) enters and withdraws personnel commands (ADR-0068 item 1.6) and, at revision 2, reads the employee roster (#1171, user decision 2026-11-03, intent 214823);
      * legal_entity_finance_head (法人财务负责人) countersigns a change of the cost legal entity when it is the finance head of the entity, and business_admin
      * may from escalation level 2 (ADR-0073 item 3.6, user answer Q3 of 2026-10-30; the rule is in organization.workforce, the role only holds the permission);
      * org_data_admin enters and withdraws org-structure commands (ADR-0073 item 2.4, ADR-0027 item 2.1).
@@ -49,12 +49,12 @@ public record SystemRoleDeclaration(List<DeclaredRole> roles) {
             declared("019a0000-0000-7000-8000-000000000106", "security_auditor", "安全审计员", AccessScopeKind.ALL, false, 2,
                     Codes.PLATFORM_AUDIT_ENTRY_READ, Codes.PLATFORM_AUDIT_ENTRY_EXPORT, Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE,
                     Codes.PLATFORM_IDENTITY_PERMISSION_ADJUSTMENT_READ),
-            declared("019a0000-0000-7000-8000-000000000107", "personnel_specialist", "人事专员", AccessScopeKind.ALL, false,
-                    Codes.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_CREATE),
+            declared("019a0000-0000-7000-8000-000000000107", "personnel_specialist", "人事专员", AccessScopeKind.ALL, false, 2,
+                    Codes.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_CREATE, Codes.ORGANIZATION_WORKFORCE_EMPLOYEE_READ),
             declared("019a0000-0000-7000-8000-000000000108", "legal_entity_finance_head", "法人财务负责人", AccessScopeKind.SELF, false,
                     Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_APPROVE)));
 
-    /** The revision every role of the first declaration carries (card 7.2: 声明修订号 1); org_data_admin is at 2 since #934 swapped its sync-run codes for org-reconciliation:execute, at 3 since #907 added org-structure-command:create, at 4 since it holds permission-adjustment:read and :update (#730 S3); security_auditor is at 2 since it holds permission-adjustment:read; business_admin is at 2 since it holds legal-entity-attribution:approve. */
+    /** The revision every role of the first declaration carries (card 7.2: 声明修订号 1); org_data_admin is at 2 since #934 swapped its sync-run codes for org-reconciliation:execute, at 3 since #907 added org-structure-command:create, at 4 since it holds permission-adjustment:read and :update (#730 S3); security_auditor is at 2 since it holds permission-adjustment:read; business_admin is at 2 since it holds legal-entity-attribution:approve; personnel_specialist is at 2 since it holds employee:read (#1171). */
     static final int FIRST_REVISION = 1;
 
     public SystemRoleDeclaration {

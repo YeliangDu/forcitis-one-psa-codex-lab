@@ -2,6 +2,7 @@ package com.forcitis.one.organization.workforce.web;
 
 /** Copies of platform.identity Permission.Codes (workforce may not depend on identity); NamingSurfaceTest G43 checks them. */
 final class WorkforcePermissions {
+    static final String EMPLOYEE_READ = "organization.workforce:employee:read";
     static final String ORG_UNIT_READ = "organization.workforce:org-unit:read";
     static final String ORG_RECONCILIATION_EXECUTE = "organization.workforce:org-reconciliation:execute";
     static final String SEPARATION_HOLD_APPROVE = "organization.workforce:separation-hold:approve";
