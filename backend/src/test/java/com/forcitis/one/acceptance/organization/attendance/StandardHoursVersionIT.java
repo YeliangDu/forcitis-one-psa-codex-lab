@@ -399,7 +399,16 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     }
 
     private UUID newScope() throws Exception {
-        return createLegalEntity("SH1310-" + UUID.randomUUID().toString().substring(0, 8), "Synthetic card 1310 entity");
+        return createLegalEntity(newEntityCode(), "Synthetic card 1310 entity");
+    }
+
+    /** A legal entity code is 2 to 10 upper-case letters: SH and eight random letters. */
+    private static String newEntityCode() {
+        StringBuilder code = new StringBuilder("SH");
+        for (int i = 0; i < 8; i++) {
+            code.append((char) ('A' + java.util.concurrent.ThreadLocalRandom.current().nextInt(26)));
+        }
+        return code.toString();
     }
 
     private static Map<String, Object> publication(UUID scope, LocalDate effectiveDate) {

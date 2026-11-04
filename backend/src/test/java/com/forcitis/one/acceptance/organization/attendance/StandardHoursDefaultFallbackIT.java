@@ -53,7 +53,7 @@ class StandardHoursDefaultFallbackIT extends AcceptanceSupport {
     private static final String CALENDAR = "/api/v1/organization/work-calendars/2026";
     private static final RequestPostProcessor PUBLISHER = person(31, "organization.attendance:standard-hours:publish");
     private static final RequestPostProcessor MAINTAINER = person(21, "organization.attendance:work-calendar:read",
-            "organization.attendance:work-calendar:update");
+            "organization.attendance:work-calendar:update", "organization.attendance:locked-day:update");
     private static final JsonMapper JSON = JsonMapper.builder().build();
     private static boolean defaultPublished;
 
@@ -170,7 +170,16 @@ class StandardHoursDefaultFallbackIT extends AcceptanceSupport {
     }
 
     private UUID newScope() throws Exception {
-        return createLegalEntity("SH1310-" + UUID.randomUUID().toString().substring(0, 8), "Synthetic card 1310 entity");
+        return createLegalEntity(newEntityCode(), "Synthetic card 1310 entity");
+    }
+
+    /** A legal entity code is 2 to 10 upper-case letters: SH and eight random letters. */
+    private static String newEntityCode() {
+        StringBuilder code = new StringBuilder("SH");
+        for (int i = 0; i < 8; i++) {
+            code.append((char) ('A' + java.util.concurrent.ThreadLocalRandom.current().nextInt(26)));
+        }
+        return code.toString();
     }
 
     private static Map<String, Object> publication(UUID scope, LocalDate effectiveDate) {
