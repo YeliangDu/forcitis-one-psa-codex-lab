@@ -3,6 +3,7 @@ package com.forcitis.one.platform.identity.application;
 import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.events.EmployeeHired;
+import com.forcitis.one.platform.identity.api.AccountOpeningRoute;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +27,6 @@ public class HandleEmployeeHired {
 
     @ApplicationModuleListener
     public void on(EmployeeHired event) {
-        directory.findEmployee(event.employeeId()).flatMap(provisioning::ensureAccount).ifPresent(cache::evict);
+        directory.findEmployee(event.employeeId()).flatMap(employee -> provisioning.ensureAccount(employee, AccountOpeningRoute.HIRE)).ifPresent(provisioned -> cache.evict(provisioned.userId()));
     }
 }

@@ -112,7 +112,7 @@ class OperationsProfileSmokeTest {
                 "--flowable.database-schema-update=true", "--spring.flyway.create-schemas=true", "--forcitis.cost.timesheet.consumed-events.enabled=false",
                 "--forcitis.platform.approval.process-archive.enabled=false",
                 "--forcitis.platform.integration.outbound-purge.enabled=false", "--forcitis.platform.integration.archive-store.enabled=false",
-                "--forcitis.platform.audit.archive.enabled=false", "--forcitis.platform.approval.process-administrator-required=false", "--forcitis.platform.identity.sso.enabled=false",
+                "--forcitis.platform.audit.archive.enabled=false", "--forcitis.platform.approval.process-administrator-required=false",
                 "--forcitis.platform.identity.emergency.totp-encryption-key=" + Base64.getEncoder().encodeToString(random(32)),
                 "--FORCITIS_TICKET_KEY_KM=" + HexFormat.of().formatHex(random(32))};
         String[] all = Stream.concat(Arrays.stream(infrastructure), Arrays.stream(commandLine))

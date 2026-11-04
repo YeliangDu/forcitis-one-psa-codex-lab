@@ -2,6 +2,7 @@ package com.forcitis.one.platform.identity.application;
 
 import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
+import com.forcitis.one.platform.identity.api.AccountOpeningRoute;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
@@ -56,8 +57,12 @@ class LoginAdmission {
         if (employee.employmentStatus() != EmploymentStatus.EMPLOYED) {
             return Optional.of(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED);
         }
-        UserAccount account = provisioning.ensureAccount(employee).flatMap(accounts::find)
+        AccountProvisioning.Provisioned provisioned = provisioning.ensureAccount(employee, AccountOpeningRoute.LOGIN)
                 .orElseThrow(() -> new IllegalStateException("account vanished right after creation"));
+        if (provisioned.opened()) {
+            announceAccountOpenedAtLogin(provisioned.userId());
+        }
+        UserAccount account = accounts.find(provisioned.userId()).orElseThrow(() -> new IllegalStateException("account vanished right after creation"));
         return account.isEnabled() ? Optional.empty() : Optional.of(IdentityError.PLATFORM_IDENTITY_ACCOUNT_DISABLED);
     }
 
@@ -82,6 +87,13 @@ class LoginAdmission {
         }
         return new LoginResult.Authenticated(userId, started.absoluteExpiresAt(), started.administratorModeExpiresAt(),
                 !identityConfirmed, browserIdentifier);
+    }
+
+    /** An account opened by a login is rare and worth a look (ADR-0069 section 9): one audit entry and one ALERT line, no card; the hire and operations routes raise nothing. */
+    private void announceAccountOpenedAtLogin(UserId userId) {
+        audit.record(new AuditEntry("platform.identity.account.opened-at-login", userId, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
+                "account opened by the login of an employed person; route " + AccountOpeningRoute.LOGIN));
+        log.error("ALERT platform.identity account {} opened by a login, not by the hiring or an operations command", userId.value());
     }
 
     private void announceEmergencyLogin(UserId userId, Instant administratorModeExpiresAt) {
