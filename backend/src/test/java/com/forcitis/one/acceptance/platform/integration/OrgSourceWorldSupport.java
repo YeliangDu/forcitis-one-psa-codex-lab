@@ -121,14 +121,6 @@ abstract class OrgSourceWorldSupport extends AccountsAcceptanceSupport {
 
     // ---- the old system ----
 
-    static void legacyShortName(long legacyUnit, String shortName) throws SQLException {
-        try (Connection c = World.admin(World.LEGACY_WORLD); PreparedStatement insert = c.prepareStatement("INSERT dbo.short_name_rows VALUES (?, ?)")) {
-            insert.setLong(1, legacyUnit);
-            insert.setString(2, shortName);
-            insert.executeUpdate();
-        }
-    }
-
     // ---- source references and the snapshot, read black-box ----
 
     /** Allocates an own id for a source object through the integration service, as a one-off import (P6) would make the reference. */

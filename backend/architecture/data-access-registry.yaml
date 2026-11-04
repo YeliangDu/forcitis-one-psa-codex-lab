@@ -144,7 +144,7 @@ tables:
     mutability: MUTABLE
     retention: {policy: CURRENT_STATE}
     lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
-    writers: [organization.workforce]
+    readers: [organization.workforce]  # nothing writes it any more since ADR-0069 s9: the snapshot sync is the last reader path; the table goes with the reconciliation (#1222)
   # W2 PR-B (data design W2_EMPLOYEE_POSITION_VERSIONING_DESIGN section 3.2, signed in reviews/W2-PR-B.md): no writer yet, the personnel commands and the reads land with the next cards.
   organization_workforce.employee_versions:
     role: DIMENSION_VERSIONED

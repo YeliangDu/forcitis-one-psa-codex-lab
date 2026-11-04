@@ -76,7 +76,6 @@ categories:
   - organization.workforce.org-structure-command.completed
 - name: 法人
   actions:
-  - organization.workforce.EmployeeRegistered
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected

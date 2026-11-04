@@ -18,13 +18,7 @@ public interface OrgSnapshotRepository {
 
     OrgSnapshot loadAll();
 
-    void saveRegisteredEmployee(RegisteredEmployee registered, Instant now);
-
-    long findEmployeeEventSequence(EmployeeId employeeId);
-
     Set<OrgUnitId> findOrgUnitIds();
 
     Set<PositionId> findPositionIds();
-
-    int updateShortNames(Map<OrgUnitId, String> shortNames, Instant now);
 }

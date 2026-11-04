@@ -168,9 +168,9 @@ public abstract class DataScopeSupport extends AccountsAcceptanceSupport {
             }
             for (Person person : people.values()) {
                 write(workforce, """
-                        insert into employees (id, employee_code, display_name, login_name, email, gender, wecom_user_id, employment_status, is_fee_earner)
-                        values (?, ?, ?, ?, ?, 'FEMALE', ?, 'EMPLOYED', false)""", stored(person.id()), employeeCode(person.key()), "Synthetic " + person.key(),
-                        "f1-login-" + person.key(), person.key() + "@example.test", wecomUserId(person.key()));
+                        insert into employees (id, employee_code, display_name, email, gender, wecom_user_id, employment_status, is_fee_earner)
+                        values (?, ?, ?, ?, 'FEMALE', ?, 'EMPLOYED', false)""", stored(person.id()), employeeCode(person.key()), "Synthetic " + person.key(),
+                        person.key() + "@example.test", wecomUserId(person.key()));
                 write(workforce, "insert into assignments (employee_id, org_unit_id, position_id) values (?, ?, ?)", stored(person.id()),
                         stored(known(units, person.unitCode()).id()), known(positions, person.positionCode()).id());
             }

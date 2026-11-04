@@ -25,7 +25,6 @@ public final class SyncedFields {
     public static final List<Field<StaffEmployee>> STAFF = List.of(
             new Field<>("employeeCode", s -> s.employee().employeeCode()),
             new Field<>("displayName", s -> s.employee().displayName()),
-            new Field<>("loginName", s -> s.employee().loginName()),
             new Field<>("email", s -> s.employee().email()),
             new Field<>("gender", s -> s.employee().gender()),
             new Field<>("wecomUserId", s -> s.employee().wecomUserId()),

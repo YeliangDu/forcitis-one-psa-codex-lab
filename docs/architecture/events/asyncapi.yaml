@@ -281,11 +281,6 @@ channels:
     messages:
       LegalEntityCodeCorrected:
         $ref: '#/components/messages/LegalEntityCodeCorrected'
-  employeeRegistered:
-    address: organization.workforce.EmployeeRegistered
-    messages:
-      EmployeeRegistered:
-        $ref: '#/components/messages/EmployeeRegistered'
   legalEntityAttributed:
     address: organization.workforce.LegalEntityAttributed
     messages:
@@ -1190,20 +1185,6 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/legalEntityCodeCorrected/messages/LegalEntityCodeCorrected'
-  publishEmployeeRegistered:
-    action: send
-    channel:
-      $ref: '#/channels/employeeRegistered'
-    summary: organization.workforce 发布
-    messages:
-    - $ref: '#/channels/employeeRegistered/messages/EmployeeRegistered'
-  handleEmployeeRegisteredInPlatformAudit:
-    action: receive
-    channel:
-      $ref: '#/channels/employeeRegistered'
-    summary: platform.audit 消费
-    messages:
-    - $ref: '#/channels/employeeRegistered/messages/EmployeeRegistered'
   publishLegalEntityAttributed:
     action: send
     channel:
@@ -4478,37 +4459,6 @@ components:
           newCode:
             type: string
             x-type: LegalEntityCode
-    EmployeeRegistered:
-      name: EmployeeRegistered
-      title: 员工在首次登录时被登记进组织快照
-      x-event:
-        eventType: organization.workforce.EmployeeRegistered
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.EmployeeRegistered
-        aggregate: Employee
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers:
-        - platform.audit
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.domain.RegisteredEmployeeTest
-        noConsumer: '暂无消费方：审计之外无人订阅；登录不再登记员工，此事件随 #1175 一并撤除'
-      payload:
-        type: object
-        required:
-        - envelope
-        - employeeId
-        properties:
-          envelope:
-            $ref: '#/components/schemas/EventEnvelope'
-          employeeId:
-            type: string
-            x-type: EmployeeId
-            format: uuid
-            description: 稳定 ID 的字符串形式
     LegalEntityAttributed:
       name: LegalEntityAttributed
       title: 部门或员工从某日起归属某法人
