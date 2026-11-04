@@ -60,6 +60,7 @@ class PersonnelCommandReadHttpIT extends CommandReadHttpSupport {
     @Override String idField() { return "personnelCommandId"; }
     @Override String permission() { return "organization.workforce:personnel-command:create"; }
     @Override String denied() { return "organization.workforce.personnel-command.denied"; }
+    @Override String mode() { return "SCOPED"; }
 
     @Override
     void seedCommands() throws Exception {
@@ -126,6 +127,50 @@ class PersonnelCommandReadHttpIT extends CommandReadHttpSupport {
         assertThat(ids(all("all", "status=WITHDRAWN"))).contains(id);
         assertAuditHasNoEmployeeCodes("organization.workforce.personnel-command.");
     }
+
+    @Test
+    @DisplayName("#1172 完成标准第 1、2、4 条：本部门、子树、自选部门、全部与空范围；每个可见 id 的详情也可读，逐页无范围泄露")
+    void scopeMatrixOnListsAndDetails() throws Exception {
+        Map<String, List<String>> expected = Map.of("own", List.of("READ-A"), "subtree", List.of("READ-A", "READ-CHILD"),
+                "custom", List.of("READ-B"), "all", List.of(), "empty", List.of());
+        for (var entry : expected.entrySet()) {
+            List<String> wanted = commandUnits.entrySet().stream().filter(c -> entry.getKey().equals("all") || c.getValue() != null && entry.getValue().contains(c.getValue())).map(Map.Entry::getKey).toList();
+            List<String> actual = ids(all(entry.getKey(), ""));
+            assertThat(actual).isSubsetOf(commandUnits.keySet());
+            if (!entry.getKey().equals("all") && !entry.getKey().equals("empty")) actual = actual.stream().filter(id -> commandUnits.get(id) != null).toList();
+            assertThat(actual).containsExactlyInAnyOrderElementsOf(wanted);
+            for (String id : wanted) assertThat(row(entry.getKey(), id).get(idField())).isEqualTo(id);
+        }
+        require(read("empty", resource() + "/" + commands.get("b")), 404, "empty scope detail");
+    }
+
+    @Test
+    @DisplayName("#1172 完成标准第 1、2、6 条：范围外 id 与不存在 id 同为 404 同错误码；只为存在的范围外 id 追加 N 条 denied，审计不含工号")
+    void deniedIdsAreIndistinguishableAndAuditedExactly() throws Exception {
+        int before = auditEntries(denied()).size();
+        MockHttpServletResponse absent = read("custom", resource() + "/" + UUID.randomUUID());
+        require(absent, 404, "unknown command");
+        assertThat(auditEntries(denied())).hasSize(before);
+        List<String> outside = commandUnits.entrySet().stream().filter(e -> e.getValue() != null && !"READ-B".equals(e.getValue())).map(Map.Entry::getKey).toList();
+        for (String id : outside) {
+            MockHttpServletResponse answer = read("custom", resource() + "/" + id);
+            require(answer, 404, "out-of-scope command");
+            assertThat(errorCode(answer)).isEqualTo(errorCode(absent));
+        }
+        eventually(() -> assertThat(auditEntries(denied())).hasSize(before + outside.size()));
+        assertAuditHasNoEmployeeCodes(denied());
+    }
+
+    @Test
+    @DisplayName("#1172 完成标准第 1、2 条（#730 A4）：无法解析范围时列表 403、已存在与不存在的详情 404")
+    void unresolvedScopeFailsClosed() throws Exception {
+        require(read("broken", CURRENT_SESSION), 200, "priming the cached principal");
+        String employee = employeeIdOf("broken");
+        doThrow(new IllegalStateException("Synthetic directory failure")).when(organisation).findEmployee(argThat(id -> id != null && employee.equals(id.value().toString())));
+        require(read("broken", resource()), 403, "unresolvable list scope");
+        require(read("broken", resource() + "/" + commands.get("b")), 404, "unresolvable detail scope");
+        require(read("broken", resource() + "/" + UUID.randomUUID()), 404, "unknown detail with unresolvable scope");
+    }
 }
 
 /** Shared HTTP assertions keep both scoped resources on the same #730 fail-closed matrix. */
@@ -142,6 +187,7 @@ abstract class CommandReadHttpSupport extends DataScopeSupport {
     abstract String idField();
     abstract String permission();
     abstract String denied();
+    abstract String mode();
     abstract void seedCommands() throws Exception;
 
     @BeforeAll
@@ -155,7 +201,7 @@ abstract class CommandReadHttpSupport extends DataScopeSupport {
         for (String key : List.of("a", "heldAdmin", "own")) person(key, "READ-A", "READ-P");
         person("child", "READ-CHILD", "READ-P");
         person("b", "READ-B", "READ-P");
-        for (String key : List.of("admin1", "admin2", "finance", "all", "subtree", "custom", "empty", "broken", "orgOnly")) person(key, "READ-X", "READ-P");
+        for (String key : List.of("admin1", "admin2", "finance", "all", "subtree", "custom", "empty", "broken", "orgOnly", "receiver", "recorder")) person(key, "READ-X", "READ-P");
         for (String key : List.of("oda", "writer")) person(key, "READ-W", "READ-P");
         seedOrganisation();
         administrator("admin1");
@@ -171,6 +217,8 @@ abstract class CommandReadHttpSupport extends DataScopeSupport {
         role("custom", "CUSTOM_ORG_UNITS", List.of(onlyUnit(unitsByCode.get("READ-B"))), permission());
         role("empty", "CUSTOM_ORG_UNITS", List.of(onlyUnit(UUID.randomUUID().toString())), permission());
         role("orgOnly", "ALL", null, ORG_UNIT_READ);
+        role("receiver", "CUSTOM_ORG_UNITS", List.of(onlyUnit(unitsByCode.get("READ-X"))), permission());
+        role("recorder", "CUSTOM_ORG_UNITS", List.of(onlyUnit(orgUnitId(session("oda"), "READ-W"))), permission());
         seedVersions();
         fixtureEntity = createLegalEntity(signedIn("writer"), "RDA", "Synthetic read entity");
         for (String id : unitsByCode.values()) {
@@ -274,53 +322,9 @@ abstract class CommandReadHttpSupport extends DataScopeSupport {
         return JsonPath.parse(answer.getContentAsString()).read("$");
     }
 
-    @Test
-    @DisplayName("#1172 完成标准第 1、2、4 条：本部门、子树、自选部门、全部与空范围；每个可见 id 的详情也可读，逐页无范围泄露")
-    void scopeMatrixOnListsAndDetails() throws Exception {
-        Map<String, List<String>> expected = Map.of("own", List.of("READ-A"), "subtree", List.of("READ-A", "READ-CHILD"),
-                "custom", List.of("READ-B"), "all", List.of(), "empty", List.of());
-        for (var entry : expected.entrySet()) {
-            List<String> wanted = commandUnits.entrySet().stream().filter(c -> entry.getKey().equals("all") || c.getValue() != null && entry.getValue().contains(c.getValue())).map(Map.Entry::getKey).toList();
-            List<String> actual = ids(all(entry.getKey(), ""));
-            assertThat(actual).isSubsetOf(commandUnits.keySet());
-            if (!entry.getKey().equals("all") && !entry.getKey().equals("empty")) actual = actual.stream().filter(id -> commandUnits.get(id) != null).toList();
-            assertThat(actual).containsExactlyInAnyOrderElementsOf(wanted);
-            for (String id : wanted) assertThat(row(entry.getKey(), id).get(idField())).isEqualTo(id);
-        }
-        require(read("empty", resource() + "/" + commands.get("b")), 404, "empty scope detail");
-    }
-
-    @Test
-    @DisplayName("#1172 完成标准第 1、2、6 条：范围外 id 与不存在 id 同为 404 同错误码；只为存在的范围外 id 追加 N 条 denied，审计不含工号")
-    void deniedIdsAreIndistinguishableAndAuditedExactly() throws Exception {
-        int before = auditEntries(denied()).size();
-        MockHttpServletResponse absent = read("custom", resource() + "/" + UUID.randomUUID());
-        require(absent, 404, "unknown command");
-        assertThat(auditEntries(denied())).hasSize(before);
-        List<String> outside = commandUnits.entrySet().stream().filter(e -> e.getValue() != null && !"READ-B".equals(e.getValue())).map(Map.Entry::getKey).toList();
-        for (String id : outside) {
-            MockHttpServletResponse answer = read("custom", resource() + "/" + id);
-            require(answer, 404, "out-of-scope command");
-            assertThat(errorCode(answer)).isEqualTo(errorCode(absent));
-        }
-        eventually(() -> assertThat(auditEntries(denied())).hasSize(before + outside.size()));
-        assertAuditHasNoEmployeeCodes(denied());
-    }
-
     void assertAuditHasNoEmployeeCodes(String action) throws Exception {
         for (Map<String, Object> entry : auditEntries(action)) for (String key : List.of("a", "child", "b", "heldAdmin"))
             assertThat(auditText(entry)).doesNotContain(employeeCode(key));
-    }
-
-    @Test
-    @DisplayName("#1172 完成标准第 1、2 条（#730 A4）：无法解析范围时列表 403、已存在与不存在的详情 404")
-    void unresolvedScopeFailsClosed() throws Exception {
-        require(read("broken", CURRENT_SESSION), 200, "priming the cached principal");
-        String employee = employeeIdOf("broken");
-        doThrow(new IllegalStateException("Synthetic directory failure")).when(organisation).findEmployee(argThat(id -> id != null && employee.equals(id.value().toString())));
-        require(read("broken", resource()), 403, "unresolvable list scope");
-        require(read("broken", resource() + "/" + commands.get("b")), 404, "unresolvable detail scope");
-        require(read("broken", resource() + "/" + UUID.randomUUID()), 404, "unknown detail with unresolvable scope");
     }
 
     @Test
@@ -355,9 +359,9 @@ abstract class CommandReadHttpSupport extends DataScopeSupport {
     }
 
     @Test
-    @DisplayName("#1172 完成标准第 4、8 条：两个 GET 登记 SCOPED 与理由，OpenAPI 包含两个 GET")
+    @DisplayName("#1172 完成标准第 4、8 条：两个 GET 登记（人事命令 SCOPED、组织结构命令 NOT_SCOPE_BOUND）与理由，OpenAPI 包含两个 GET")
     void readsAreRegisteredAndPublished() throws Exception {
-        assertRegistration(resource(), idField(), "SCOPED");
+        assertRegistration(resource(), idField(), mode());
         MockHttpServletResponse openapi = mvc.perform(get("/v3/api-docs").with(as(session("writer")))).andReturn().getResponse();
         require(openapi, 200, "OpenAPI document");
         assertOpenApi(openapi, resource(), idField());

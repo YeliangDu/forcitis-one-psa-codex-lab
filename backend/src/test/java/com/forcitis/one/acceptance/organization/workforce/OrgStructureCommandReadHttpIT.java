@@ -18,6 +18,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -30,12 +31,11 @@ import org.springframework.test.context.DynamicPropertySource;
  * #1172 completion lines 2, 4, 6-8; ADR-0068 section 4 and org-structure-commands.md sections 4-5.
  * Contract fixed here: page {@code items, nextCursor} (null at the end); list/detail rows
  * {@code orgStructureCommandId, commandKind, targetKind, targetOrgUnitId, targetPositionId, effectiveDate, status,
- * countersigns, mergeProgress}; each countersign has {@code attributionCountersignId, requestKind, legalEntityId, decisionKind};
+ * countersigns, mergeProgress}; each countersign has {@code attributionCountersignId, requestKind, legalEntityId, decisionKind (null while the request is open)};
  * merge progress has {@code affectedEmployeeCount, transferredEmployeeCount}. Non-merges may omit/null mergeProgress;
  * no countersign means an empty array. Target ids unused for a target kind may be absent/null.
- * Scope follows the target unit, never the recorder or receiving unit. The card does not assign a unit to a POSITION command:
- * its content is tested under ALL; narrower-scope position visibility remains unspecified, rather than inventing a business rule.
- * Unresolvable scope is list 403/detail 404, matching the sibling ITs. No additional list filters are introduced.
+ * Company-wide for every holder of org-structure-command:create whatever the data scope ("whoever can enter can see", user 2026-11-03 A1 and A4,
+ * lead correction of the card on 2026-11-04); an unknown id is 404. No additional list filters are introduced.
  */
 class OrgStructureCommandReadHttpIT extends CommandReadHttpSupport {
     static final TestDatabase postgres = TestPostgres.database(OrgStructureCommandReadHttpIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
@@ -56,6 +56,7 @@ class OrgStructureCommandReadHttpIT extends CommandReadHttpSupport {
     @Override String idField() { return "orgStructureCommandId"; }
     @Override String permission() { return "organization.workforce:org-structure-command:create"; }
     @Override String denied() { return "organization.workforce.org-structure-command.denied"; }
+    @Override String mode() { return "NOT_SCOPE_BOUND"; }
 
     @Override
     void seedCommands() throws Exception {
@@ -145,7 +146,8 @@ class OrgStructureCommandReadHttpIT extends CommandReadHttpSupport {
             assertThat(row).containsEntry("status", "AWAITING_ATTRIBUTION_COUNTERSIGN");
             List<Map<String, Object>> requests = JsonPath.parse(row).read("$.countersigns");
             assertThat(requests).hasSize(2).allSatisfy(request -> {
-                assertThat(request).containsEntry("requestKind", "CHANGE").containsEntry("decisionKind", "OPEN");
+                assertThat(request).containsEntry("requestKind", "CHANGE");
+                assertThat(request.get("decisionKind")).as("an undecided request has no decision kind").isNull();
                 assertThat(request.get("attributionCountersignId")).isNotNull();
             });
             assertThat(requests).extracting(request -> request.get("legalEntityId")).containsExactlyInAnyOrder(fixtureEntity.toString(), otherEntity.toString());
@@ -153,13 +155,30 @@ class OrgStructureCommandReadHttpIT extends CommandReadHttpSupport {
     }
 
     @Test
-    @DisplayName("#1172 完成标准第 2 条：合并命令显示真实已转与受影响人数，按被合并目标部门可见而不是接收部门或录入人部门")
-    void aMergeShowsProgressAndUsesTheTargetScope() throws Exception {
-        for (Map<String, Object> row : List.of(row("custom", merged), listed("custom", merged))) {
+    @DisplayName("#1172 完成标准第 2 条：合并命令显示真实已转与受影响人数")
+    void aMergeShowsProgress() throws Exception {
+        for (Map<String, Object> row : List.of(row("all", merged), listed("all", merged))) {
             assertThat(row).containsEntry("commandKind", "MERGE").containsEntry("targetOrgUnitId", unitsByCode.get("READ-B")).containsEntry("status", "EFFECTIVE");
             Map<String, Object> progress = JsonPath.parse(row).read("$.mergeProgress");
             assertThat(progress).containsEntry("affectedEmployeeCount", 1).containsEntry("transferredEmployeeCount", 1);
         }
-        require(read("own", resource() + "/" + merged), 404, "the caller does not cover the merged target");
+    }
+
+    @Test
+    @DisplayName("#1172 完成标准第 2、4 条（A1/A4 全公司）：持录入权限的人不论数据范围（本部门、子树、自选部门、空范围、范围算不出来）都看到全部组织与岗位命令，列表与详情一致；未知 id 是 404 且错误码以 _NOT_FOUND 结尾")
+    void everyHolderOfTheCreatePermissionSeesEveryCommand() throws Exception {
+        require(read("broken", CURRENT_SESSION), 200, "priming the cached principal");
+        String employee = employeeIdOf("broken");
+        org.mockito.Mockito.doThrow(new IllegalStateException("Synthetic directory failure")).when(organisation)
+                .findEmployee(org.mockito.ArgumentMatchers.argThat(id -> id != null && employee.equals(id.value().toString())));
+        for (String reader : List.of("own", "subtree", "custom", "empty", "receiver", "recorder", "broken")) {
+            assertThat(ids(all(reader, ""))).as(reader + " lists every org-structure command").containsAll(commandUnits.keySet());
+            for (String id : commandUnits.keySet()) {
+                assertThat(row(reader, id).get(idField())).as(reader + " reads " + id).isEqualTo(id);
+            }
+        }
+        MockHttpServletResponse unknown = read("custom", resource() + "/" + UUID.randomUUID());
+        require(unknown, 404, "an unknown command");
+        assertThat(errorCode(unknown)).endsWith("_NOT_FOUND");
     }
 }
