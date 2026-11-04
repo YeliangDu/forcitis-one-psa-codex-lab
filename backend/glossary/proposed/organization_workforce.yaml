@@ -225,6 +225,20 @@ terms:
   status: approved
   confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: 入职建员工并可改档案（#959）
+- id: error__organization_workforce_position_not_found
+  zh: 岗位不存在
+  en: OrganizationWorkforcePositionNotFound
+  snake: organization_workforce_position_not_found
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 岗位目录中查询的岗位不存在（404）
+  standard_ref:
+  - "#1171 岗位目录"
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
 - id: error__organization_workforce_employee_profile_invalid
   zh: 员工档案内容不合法
   en: OrganizationWorkforceEmployeeProfileInvalid
@@ -459,3 +473,17 @@ terms:
   forbidden: []
   status: proposed
   note: 法人财务负责人设置（#895 收尾 b）
+- id: roster
+  zh: 员工名册
+  en: Roster
+  snake: roster
+  kind: read_model
+  bc: organization.workforce
+  scope: domain
+  definition: 人事角色按数据范围查看的员工列表，只含基础列（姓名、工号、部门、岗位、在职状态、入职日期），不含证件号
+  standard_ref:
+  - 用户 2026-11-03 决定（名册只给人事角色，intent 214823）
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
