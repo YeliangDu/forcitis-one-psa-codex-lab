@@ -11,6 +11,7 @@ import sys
 import tempfile
 import threading
 import time
+from unittest import mock
 
 import driftscan_selftest
 import gapscan_selftest
@@ -619,7 +620,8 @@ def _queue(mq, d):
     q = mq.Queue(qpath)
     q.enqueue(*range(100, 110))
     me = os.path.abspath(mq.__file__)
-    procs = [subprocess.Popen([sys.executable, me, "--queue", qpath, op, str(n)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) for op, ns in (("enqueue", range(1, 11)), ("remove", range(100, 110))) for n in ns]
+    stub = "import sys; sys.path.insert(0, sys.argv[1]); import mq; mq.mq_title.enforce = lambda *a: None; mq.main(sys.argv[2:])"   # the title check has its own case (mq_title_selftest); this one is about the queue file, not gh
+    procs = [subprocess.Popen([sys.executable, "-c", stub, os.path.dirname(me), "--queue", qpath, op, str(n)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) for op, ns in (("enqueue", range(1, 11)), ("remove", range(100, 110))) for n in ns]
     assert all(p.wait() == 0 for p in procs) and sorted(q.numbers()) == list(range(1, 11))
     real_replace = os.replace
     os.replace = lambda *a: (_ for _ in ()).throw(OSError("disk full"))
@@ -678,7 +680,7 @@ def _queue(mq, d):
 
     def cli(*args):
         err = io.StringIO()
-        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()) as out:
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()) as out, mock.patch.object(mq.mq_title, "enforce", lambda *a: None):   # the title check has its own case (mq_title_selftest)
             try:
                 mq.main(["--queue", qpath, "--log", lpath, *args])
                 code = 0
@@ -818,7 +820,7 @@ def _head_changed(mq, d):
     gh.prs[6]["reviews"] = [review("c" * 40)]
     assert once(mq, d, "h6", gh, 6)[0] == "MERGED", "nothing recorded: nothing to compare"
     # enqueue asks gh only for the view (card #736): no comment, review or label call
-    probe, real = type("ViewOnly", (), {"view": lambda self, n: {"state": "OPEN", "merge": "CLEAN", "labels": [], "branch": "b", "head": f"{n:040x}"}})(), mq.Gh
+    probe, real = type("ViewOnly", (), {"view": lambda self, n: {"state": "OPEN", "merge": "CLEAN", "labels": [], "branch": "b", "head": f"{n:040x}", "title": f"fix(q): 修复（#{n}）", "body": f"Closes #{n}\n"}})(), mq.Gh
     mq.Gh, enforce = (lambda: probe), mq.mq_acceptance.enforce
     mq.mq_acceptance.enforce = lambda *args: None   # the guard has its own case (mq_acceptance_selftest); this one must not touch the network
     try:

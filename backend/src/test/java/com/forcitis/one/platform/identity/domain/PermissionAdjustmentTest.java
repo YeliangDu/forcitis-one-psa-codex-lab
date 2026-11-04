@@ -64,6 +64,17 @@ class PermissionAdjustmentTest {
                 });
     }
 
+    @Test
+    void theLeaveStartDetailHasNoFieldClause() {
+        PersonnelCommandId command = new PersonnelCommandId(UUID.randomUUID());
+        PermissionAdjustmentId id = new PermissionAdjustmentId(UUID.randomUUID());
+        PermissionAdjustment item = PermissionAdjustment.unpaidLeaveReview(id, USER, command, AT.plusSeconds(86_400), AT);
+
+        assertThat(item.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(PermissionAdjustmentOpened.class,
+                opened -> assertThat(opened.auditDetail()).isEqualTo("item " + id.value() + " SENSITIVE_ROLE_REVIEW origin UNPAID_LEAVE_START; user " + USER.value()
+                        + "; trigger command " + command.value() + "; escalation due " + AT.plusSeconds(86_400)));
+    }
+
     private static PermissionAdjustment open() {
         PermissionAdjustment item = PermissionAdjustment.assignmentChangeReview(new PermissionAdjustmentId(UUID.randomUUID()), USER,
                 new PersonnelCommandId(UUID.randomUUID()), TriggerFieldKind.ORG_UNIT, new OrgUnitId(UUID.randomUUID()), new OrgUnitId(UUID.randomUUID()), null, null,

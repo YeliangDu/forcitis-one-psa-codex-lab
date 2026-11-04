@@ -61,7 +61,7 @@ sys.path.insert(0, HERE)
 import driftscan   # noqa: E402
 import gapscan   # noqa: E402
 import issue_gate   # noqa: E402  (one title check for post_review and the merge)
-import mq_acceptance   # noqa: E402  (the acceptance guard at enqueue)
+import mq_acceptance, mq_title   # noqa: E402  (the acceptance guard and the title check at enqueue)
 import mq_waiting   # noqa: E402  (the label of a pull request waiting for its turn)
 import post_review   # noqa: E402  (the machine-read header of a review: one parser for the poster and the queue)
 from mq_github import Gh, SignalError, failure_detail, sh, update_over_ssh   # noqa: E402,F401  (the GitHub and git side)
@@ -941,7 +941,7 @@ def main(argv=None):
                 print(f"mq: line not understood, never started, kept as it is: {l!r}", file=sys.stderr)
         print("\n".join(f"{n}" + (f" after={','.join(map(str, sorted(q.deps(n))))}" if q.deps(n) else "") for n in q.numbers()))
     elif a.cmd == "enqueue":
-        mq_acceptance.enforce(repo_root(), Gh(), a.prs)
+        mq_title.enforce(gh := Gh(), a.prs); mq_acceptance.enforce(repo_root(), gh, a.prs)
         try:
             added = q.enqueue(*a.prs, after=a.after)
         except ValueError as e:
