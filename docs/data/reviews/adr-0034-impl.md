@@ -1,5 +1,7 @@
 ## 数据设计审查：ADR-0034-IMPL
 
+> 冻结（2026-11-04，#1263）：复审记录，不再更新。
+
 - 审查：one-data，2026-10-17，依据卡 `claude/one-1a-par-adr0034-card@bc7c14bc`（`phase1a/cards/ADR-0034-IMPL.md`，数据设计一节与第 7 节；基线 `cfb04dd4`）。门禁 B1 对授权表以「授权数据归 `platform.identity`、不进信息图」（one-architecture 对 F-1 A-1 的裁定，A-12 同）为出处，通过。
 - 总体结论：**部分通过**，按门禁 §1.3 拆分签发：PR-1 的两张新表与 PR-2 的 `roles` 收窄可签；`authorization_requests` 的改动（两列、`VOIDED`、`ck_authorization_requests_base`）因 A-3、A-7、A-11 未裁，不签；B 组（ID-01、ID-02、ID-10、ID-13、AQ-2、AQ-6）卡自己标「待 C-3」，不在本次范围，并入后补审。
 

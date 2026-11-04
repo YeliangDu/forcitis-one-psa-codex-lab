@@ -1,5 +1,7 @@
 # 数据设计审查：platform_approval / platform_integration / platform_numbering（13 张自有与框架表）
 
+> 冻结（2026-11-04，#1263）：表审查记录，已完成，不再更新。
+
 - 审查：one-data 子代理（中文），2026-10-16，基线迁移 `backend/src/main/resources/db/migration/{platform_approval,platform_integration,platform_numbering}/*_baseline.sql`。
 - 标尺：`docs/data/data-design-gate.md` §3。该文件在本分支只有 B1–B8、O1–O14、C1–C5、A1–A8、T1–T4、E1–E3，没有 B3a、O15 与附录 C；本次把「状态 CHECK ↔ 事件目录 ↔ Java 状态机三方一致」按 B3 / B5 的精神判定并标「B3a」，未找到 O15、C4 新要求原文，C4 按 ADR-0043 原文判。
 - 方法：迁移 SQL 逐行读、Java 仓储 SQL 与领域类逐文件读、注册表与分级文件、事件目录、ADR-0033 / 0036 / 0039 / 0043 对照；脚本核对了列注释（有无、可空列是否写「为空表示」）、未具名 CHECK、跨模块 SQL 引用。未跑 EXPLAIN、未起库。
