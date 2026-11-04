@@ -498,7 +498,7 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
             for command, code in (("ls", 0), ("ls -la | wc -l", 0), ("git status", 0), ("gh pr list", 0), ("git -c core.pager='sh w.sh' log -1", 0), ("GIT_EXTERNAL_DIFF=./w.sh git diff", 0), ("PATH=./bin:/usr/bin ls", 0),
                                   ("echo x > /dev/tcp/10.0.0.5/6379", 0), ("sort --compress-program=./w.sh x", 0), (f"psql -h {PROD_P} -c 'delete from t'", 2), ("./deploy.sh", 0), ("echo `deploy`", 0), ("rg --pre deploy x", 0),
                                   ("ssh dev uptime", 0), ("curl -s https://x.example.invalid", 0), ("codex exec --sandbox workspace-write 'a b'", 2), ('co""dex exec x', 2), ("$'\\x63odex' exec x", 2),
-                                  ("co{dex,} exec x", 2), ("co{d..d}ex exec x", 2), ("co\\\ndex exec x", 2), ("cod?x exec x", 2), ("c\\odex exec x", 2), ("ls src/{a,b}", 2), ("grep -E '^[-+][^-+]' x", 0), ("ls [z-a]", 0), ("[z-a] ; c[o]dex exec x", 2), ("[^-+]odex exec x", 2), ("[^+-]odex exec x", 2), ("[z-ac]odex exec x", 2), ("git commit -m 'codex'", 2), ("echo CoDeX", 2),   # #1180: a broken gate refuses codex, even the one allowed shape
+                                  ("co{dex,} exec x", 2), ("co{d..d}ex exec x", 2), ("co\\\ndex exec x", 2), ("cod?x exec x", 2), ("c\\odex exec x", 2), ("ls src/{a,b}", 2), ("grep -E '^[-+][^-+]' x", 0), ("ls [z-a]", 0), ("[z-a] ; c[o]dex exec x", 2), ("[^-+]odex exec x", 2), ("[^+-]odex exec x", 2), ("[z-ac]odex exec x", 2), ("echo codex | bash", 2), ("git -c alias.x='!codex exec y' x", 2), ("git commit -m 'codex'", 0), ("echo CoDeX", 0),   # #1180: a broken gate refuses codex, even the one allowed shape; #1206 (user, intent 2026-11-04-081723): the word in a commit message or an argument is no use of it, so the last two are let through (were 2)
                                    (f"grep -rn {PROD_H} docs", 2), (f"s''sh {PROD_H} uptime", 2), (f"echo {PROD_D.upper()}", 2),
                                   (f"c\\url https://{PROD_P[:3]}\\{PROD_P[3:]}/", 0),  # split by a backslash: not on the text as written, allowed by design (202019)
                                   *((c, 0) for c in MISBLOCKED), *((c, 2) for c in extra)):
@@ -862,6 +862,26 @@ def codex_gate_test():
         # as the hook process, with its stderr
         r = subprocess.run([PYTHON, "-I", DISPATCH], input=payload(f"env {S} 'a b'", cwd=w1), capture_output=True, text=True, env={"LC_ALL": "C", "PATH": os.environ.get("PATH", ""), "CLAUDE_PROJECT_DIR": w1})
         assert r.returncode == 2 and "codex 只放" in r.stderr, (r.returncode, r.stderr)
+        # #1206 (user, intent 2026-11-04-081723): the word in text is no use of the tool, running it is. One case table (codex_cases.py) for the gate and for the pre-filter in settings.json
+        import codex_cases as cases
+        for command in cases.ALLOWED:
+            assert ask(command) is None, ("only names the tool: allowed", command, ask(command))
+        for command in cases.REFUSED:
+            reason = ask(command)
+            assert reason and "拒绝" in reason, ("runs or may run the tool: refused", command, reason)
+        hook = json.loads(Path(ROOT, ".claude/settings.json").read_text(encoding="utf-8"))["hooks"]["PreToolUse"][0]["hooks"][0]["command"]
+        script = re.search(r"-c '(.*?)'; then", hook, re.S).group(1)
+        assert set(re.search(r'D=set\("(.*?)"\.split\(\)\)', script).group(1).split()) == codex_gate.DATA, "the pre-filter's data programs are the gate's"
+        assert set(re.search(r'O="(.*?)"\.split\(\)', script).group(1).split()) == set(codex_gate.CMD_OPTS) | {"-c"}, "the pre-filter's command options are the gate's (and -c)"
+
+        def prefilter_allows(command):  # the pre-filter alone, as the hook runs it when the gate has crashed (exit 0 = lets the command through)
+            r = subprocess.run([PYTHON, "-I", "-c", script], input=payload(command), capture_output=True, text=True, env={"HOME": tmp, "CLAUDE_PROJECT_DIR": ROOT})
+            assert r.returncode in (0, 1), (command, r.returncode, r.stderr[-300:])
+            return r.returncode == 0
+        for command in cases.ALLOWED + cases.REFUSED:   # it may refuse more than the gate, never less
+            assert not prefilter_allows(command) or ask(command) is None, ("the pre-filter allows what the gate refuses", command)
+        for command in cases.PREFILTER_ALLOWS:
+            assert prefilter_allows(command) and ask(command) is None, ("text only: the pre-filter lets it through too", command)
     print("codex_gate self-test: ok")
 
 SECTIONS = {"prod_write_gate": prod_write_gate_test, "codex_gate": codex_gate_test, "pre_tool_dispatch": pre_tool_dispatch_test, "main_checkout_gate": main_checkout_gate_test, "pre_commit": pre_commit_test, "install": install_test}
