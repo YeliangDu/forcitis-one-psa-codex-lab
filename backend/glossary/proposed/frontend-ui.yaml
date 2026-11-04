@@ -1,2 +1,47 @@
 # 前端界面用语中尚不在正式词表里的业务术语（proposed，待用语确认，ADR-0018）。无待确认项时保持空壳：copy 检查指向此文件。
-terms: []
+terms:
+- id: request_applicant
+  zh: 申请人
+  en: RequestApplicant
+  snake: request_applicant
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 提出授权申请的用户；确认人不能是他
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-04 「照建议」 (#1281)
+  note: 授权申请确认页的列名（#1281），对应接口字段 requestedBy
+- id: request_applied_time
+  zh: 申请时间
+  en: RequestAppliedTime
+  snake: request_applied_time
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 授权申请提出的时刻
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-04 「照建议」 (#1281)
+  note: 授权申请确认页的列名（#1281），对应接口字段 requestedAt
+- id: authorized_user
+  zh: 被授权用户
+  en: AuthorizedUser
+  snake: authorized_user
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 授权申请里将得到角色的用户
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-04 「照建议」 (#1281)
+  note: 授权申请确认页的列名（#1281），对应接口字段 subjectUserId
