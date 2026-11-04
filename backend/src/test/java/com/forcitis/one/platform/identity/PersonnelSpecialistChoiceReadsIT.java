@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
@@ -54,9 +55,9 @@ class PersonnelSpecialistChoiceReadsIT extends DataScopeSupport {
     @Test
     @DisplayName("#1306 完成标准 1：人事专员仍不能录入组织结构命令，也不能更新法人（都是 403）")
     void theSpecialistStillCannotWrite() throws Exception {
-        MockHttpServletResponse structure = mvc.perform(post("/api/v1/organization/org-structure-commands").with(as(session("hr"))).contentType(MediaType.APPLICATION_JSON).content("{}"))
+        MockHttpServletResponse structure = mvc.perform(post("/api/v1/organization/org-structure-commands").with(csrf()).with(as(session("hr"))).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andReturn().getResponse();
-        MockHttpServletResponse legalEntity = mvc.perform(post("/api/v1/organization/legal-entities").with(as(session("hr"))).contentType(MediaType.APPLICATION_JSON).content("{}"))
+        MockHttpServletResponse legalEntity = mvc.perform(post("/api/v1/organization/legal-entities").with(csrf()).with(as(session("hr"))).contentType(MediaType.APPLICATION_JSON).content("{}"))
                 .andReturn().getResponse();
 
         assertThat(structure.getStatus()).as("org-structure command: " + structure.getContentAsString()).isEqualTo(403);
