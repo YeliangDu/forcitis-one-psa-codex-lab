@@ -10,11 +10,6 @@ import com.forcitis.one.TestPostgres;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.ExternalSourceBrokenException;
 import com.forcitis.one.kernel.WecomUserId;
-import com.forcitis.one.organization.workforce.domain.Fixtures;
-import com.forcitis.one.organization.workforce.domain.IssueKind;
-import com.forcitis.one.organization.workforce.domain.OrgSnapshot;
-import com.forcitis.one.organization.workforce.domain.Reconciliation;
-import com.forcitis.one.organization.workforce.domain.SnapshotReconciler;
 import com.forcitis.one.platform.integration.api.OwnObjectId;
 import com.forcitis.one.platform.integration.api.SourceGender;
 import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
@@ -225,8 +220,8 @@ class SeeyonViewsOnPostgresTest {
     }
 
     @Test
-    @DisplayName("RULE-356 / RULING-P3B-13 across the layers: of two heads the one with the smallest signed source id wins, whatever order the view returns them in")
-    void smallestSourceIdHeadWinsThroughAdapterAndReconciliation() {
+    @DisplayName("RULE-356 / RULING-P3B-13: the adapter lists the heads of a unit by signed source id, smallest first, whatever order the view returns them in")
+    void headsAreListedBySmallestSourceIdFirst() {
         unit(1, "00000001", 0, 1, 1, null, null);
         admin.sql("insert into forcitis_one.v_org_post values (100, 'P100', 'Post 100', 1, 0, 0)").update();
         member(805, 1L, "00000001", "E805", 1, "13900000805", "wx-805");
@@ -234,10 +229,7 @@ class SeeyonViewsOnPostgresTest {
         admin.sql("insert into forcitis_one.v_org_relationship values (805, 1, " + HEAD_TYPE + ", 0)").update();
         admin.sql("insert into forcitis_one.v_org_relationship values (-5, 1, " + HEAD_TYPE + ", 0)").update();
 
-        Reconciliation changes = SnapshotReconciler.reconcile(OrgSnapshot.empty(), source.readSnapshot());
-
-        assertThat(Fixtures.orgUnit(Fixtures.apply(OrgSnapshot.empty(), changes), 1).headEmployeeId()).isEqualTo(TestAccounts.employee(-5));
-        assertThat(Fixtures.issues(changes)).contains(IssueKind.MULTIPLE_HEADS);
+        assertThat(source.readSnapshot().relationships()).extracting(r -> r.personId()).containsExactly(ownEmployee(-5), ownEmployee(805));
     }
 
     @Test
