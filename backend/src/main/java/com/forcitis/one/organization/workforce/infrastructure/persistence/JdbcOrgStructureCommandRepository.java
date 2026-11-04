@@ -336,6 +336,7 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
                   join organization_workforce.org_unit_legal_entities w on w.org_unit_id = p.org_unit_id and w.effective_from_date = p.effective_to_date
                  where p.org_unit_id = :unit and p.superseded_at is null and w.superseded_at is null and w.change_org_structure_command_id = :command
                    and p.change_org_structure_command_id is distinct from :command
+                   and p.closed_at = w.created_at
                 """).param("unit", orgUnit.value()).param("command", command.value())
                 .query((rs, n) -> attributionPeriod(rs)).list();
         jdbc.sql("""

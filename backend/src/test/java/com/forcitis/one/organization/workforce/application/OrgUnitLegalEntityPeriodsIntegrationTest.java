@@ -172,6 +172,27 @@ class OrgUnitLegalEntityPeriodsIntegrationTest extends WorkforceIntegrationSuppo
     }
 
     @Test
+    @DisplayName("#1147 review: withdrawing an assignment that starts on the end day of a period closed earlier does not stretch that period over the gap that follows")
+    void withdrawingAnAssignmentBesideAnEndedPeriodKeepsTheGap() {
+        assign(START, ENTITIES[0], command(START, ENTITIES[0]));
+        LocalDate end = LocalDate.of(2026, 11, 1);
+        jdbc.sql("update organization_workforce.org_unit_legal_entities set effective_to_date = :end, closed_at = now() where org_unit_id = :unit").param("end", end)
+                .param("unit", UNIT).update();
+        LocalDate later = LocalDate.of(2026, 12, 1);
+        assign(later, ENTITIES[2], command(later, ENTITIES[2]));
+        OrgStructureCommandId beside = command(end, ENTITIES[1]);
+
+        assign(end, ENTITIES[1], beside);
+        assertThat(current()).hasSize(3);
+        commands.voidAttribution(new OrgUnitId(UNIT), beside, new AuditEntryId(UUID.randomUUID()), AT);
+
+        List<Map<String, Object>> rows = current();
+        assertThat(rows).hasSize(2);
+        assertThat(rows.getFirst()).containsEntry("legal_entity_id", ENTITIES[0]).containsEntry("effective_to_date", java.sql.Date.valueOf(end));
+        assertThat(rows.getLast()).containsEntry("legal_entity_id", ENTITIES[2]).containsEntry("effective_from_date", java.sql.Date.valueOf(later));
+    }
+
+    @Test
     @DisplayName("#910 rv910s1r3 M2: withdrawing an earlier assignment after a later one on the unit puts the earlier period back up to where its own period ended, no overlap")
     void withdrawingAnEarlierAssignmentKeepsTheLaterOne() {
         assign(START, ENTITIES[0], command(START, ENTITIES[0]));
