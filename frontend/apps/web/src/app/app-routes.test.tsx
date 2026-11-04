@@ -48,6 +48,13 @@ describe('应用外壳与登录状态', () => {
     expect(screen.getByRole('button', { name: '重新登录' })).toBeInTheDocument();
   });
 
+  it('授权申请页挂在 /admin/authorization-requests', async () => {
+    stubServer({ 'GET sessions:current': { body: currentUserBody([], NAVIGATION) }, 'GET authorization-requests': { body: { items: [] } } });
+    renderWithProviders(<AppRoutes />, { route: '/admin/authorization-requests' });
+
+    expect(await screen.findByText('暂无待确认的授权申请')).toBeInTheDocument();
+  });
+
   it('接口返回 403：进入权限不足页', async () => {
     stubServer({ 'GET sessions:current': { body: currentUserBody([], NAVIGATION) }, 'GET approval-tasks': { status: 403, body: {} } });
     renderWithProviders(<AppRoutes />, { route: '/inbox' });
