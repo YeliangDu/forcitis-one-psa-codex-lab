@@ -167,9 +167,26 @@ Audit entries: written by each balance- or state-changing command, event-type na
 | T-7 | Carry-over | none; capped carry-over expiring on a date; unlimited | follow L6; capped with expiry |
 | T-8 | Comp time validity, and what happens at expiry | N days then lost; N days then paid by payroll; never expires | follow L10; expiry reported to payroll as an event |
 | T-9 | Overtime approval: the approval platform (ADR-0079:125) or the punch check (closeout) | approver through the platform plus punch validation at submit; punch check only | platform plus punch validation |
+| T-10 | Unused annual leave at separation: paid, lost, or paid only the statutory part | paid for the statutory part; company part per A8 | follow A8 (payroll form definitions in L0) and the law note |
 | Q-1 | Include AGG-118 (rule version) in this context although the card names five aggregates | include / split to its own card | include |
 | Q-2 | Leave year | calendar year / hire anniversary | calendar year (matches the golden sample) |
 | Q-3 | Retention of leave and ledger records beyond the 2-year attendance minimum | per ADR default / longer | ledger kept with the employee record period |
+
+## 9a. Payroll seam (what payroll reads from this context)
+
+Full payroll design stays the W4 card (B-15, AGG-73, 93, 119). This section fixes only what payroll reads from `organization.leave`, because it decides the shape of AGG-97 and of the ledger. Sources: `planned.yaml` AGG-73, closeout `commands.yaml` (计算月度薪酬, PRC-178), RULE-516; the legacy payroll forms (`formmain_0800/0858/0864/1318`, unpaid-leave form `0863`) are read in L0 as definitions only. A line marked **open** needs the legacy definition or the user.
+
+| Fact payroll reads | Grain | Source in this context | Frozen when | Status |
+|---|---|---|---|---|
+| Attendance days, leave minutes by type, overtime minutes by compensation mode | employee x month | AGG-97 `monthly_confirmation_lines` | `LOCKED` (INV-105); payroll computes only when every in-service person of the legal entity is locked, otherwise "待锁定" | settled by the sources |
+| Unpaid-leave days and sick-leave days in the month | employee x month x leave type, minutes | AGG-97 lines by leave type (`is_paid` of the leave type decides whether payroll deducts) | same lock | which types deduct and at what rate is payroll's rule (W4), **open** |
+| Overtime hours by kind (workday, rest day, statutory holiday) paid as pay | employee x month x day kind | AGG-97 overtime lines with `compensation_mode = PAY` | same lock | settled; day kind is carried on the overtime request |
+| Comp time converted to pay | account line id, minutes, source (expired / separation), payroll month | event `LeaveCompTimeExpired` (expiry) and the read API of unused comp-time minutes (separation); payroll registers the conversion (PRC-178) | the registration, not this context | settled by the sources; one conversion per ledger line (idempotent) |
+| Unused annual-leave days at separation (settlement) | employee, minutes | read API `LeaveBalances.unused(employee, leave type, as of date)` on `EmployeeSeparated` | at the separation date, per RULE-514 | whether unused annual leave is paid at separation is a business treatment (T-10, **open**) |
+| Corrections after lock | employee x original month | AGG-97 correction rows of the next month | n/a | settled (INV-105) |
+| Standard hours for the hourly rate | day | `organization.attendance` (AGG-108), not this context | n/a | out of this seam |
+
+What this forces on the shapes: (1) AGG-97 lines are minutes by leave type and by overtime compensation mode, with the leave type's `is_paid` copied onto the line at generate time so a later rule change does not alter a locked month; (2) payroll never reads ledger lines or requests, only AGG-97 snapshots, the expiry event and two read-API calls; (3) comp-time conversion identity is the ledger line id; (4) the unpaid-leave start in workforce (`EmployeeUnpaidLeaveStarted`) is an input to entitlement (RULE-515), while the unpaid days of a month reach payroll through AGG-97, never through the workforce event.
 
 ## 10. Slice plan (implementation cards to open after sign-off)
 
