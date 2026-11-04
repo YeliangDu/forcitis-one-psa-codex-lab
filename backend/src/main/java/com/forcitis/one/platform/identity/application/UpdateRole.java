@@ -86,7 +86,7 @@ public class UpdateRole {
             }
             Set<String> added = new HashSet<>(SensitivePermissions.within(role.permissionCodes()));
             added.removeAll(before);
-            boolean widened = !SensitivePermissions.within(role.permissionCodes()).isEmpty() && SensitivePermissions.isBroader(definitionBefore, role.definition());
+            boolean widened = !SensitivePermissions.within(role.permissionCodes()).isEmpty() && SensitivePermissions.addsReach(definitionBefore, role.definition());
             if (!added.isEmpty() || widened) {
                 if (!ceiling.mayRequest(role.permissionCodes(), role.administrative())) {
                     return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED);
