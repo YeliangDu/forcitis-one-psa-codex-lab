@@ -32,9 +32,9 @@ class SystemRoleDeclarationIT {
     static final String EMPLOYEE = "019a0000-0000-7000-8000-000000000102";
 
     /**
-     * One system role as the identity baseline seeded it on main f62af6ae8 (V20261014130000 :523-586), the 「改前」 of card 0034-G8-02, with one
-     * ruled change: org_data_admin's two sync run codes became organization.workforce:org-reconciliation:execute when #934 removed the old
-     * sync (lead ruling 2026-11-02, point 4: the reconciliation is kept under that code with the same grants), and #907 granted it
+     * One system role as the identity baseline seeded it on main f62af6ae8 (V20261014130000 :523-586), the 「改前」 of card 0034-G8-02, with
+     * ruled changes: org_data_admin's two sync run codes were dropped when #934 removed the old sync and #1222 removed the org reconciliation
+     * that had kept one of them (organization.workforce:org-reconciliation:execute is deprecated, ADR-0034 decision 1 item 3), and #907 granted it
      * organization.workforce:org-structure-command:create (card #907: the permission for 组织数据管理员, permissions.yaml updated).
      */
     record SeededRole(String roleId, String code, String name, String accessScope, boolean administrative, List<String> permissionCodes) {
@@ -48,7 +48,7 @@ class SystemRoleDeclarationIT {
             new SeededRole("019a0000-0000-7000-8000-000000000104", "org_data_admin", "组织数据管理员", "ALL", false, List.of(
                     "organization.attendance:locked-day:update", "organization.attendance:work-calendar:read", "organization.attendance:work-calendar:update",
                     "organization.workforce:legal-entity-attribution-correction:create", "organization.workforce:legal-entity:update",
-                    "organization.workforce:org-reconciliation:execute", "organization.workforce:org-structure-command:create", "organization.workforce:org-unit:read",
+                    "organization.workforce:org-structure-command:create", "organization.workforce:org-unit:read",
                     "platform.identity:permission-adjustment:read", "platform.identity:permission-adjustment:update", "platform.integration:source-reference:update", "platform.numbering:numbering-rule:read", "platform.numbering:numbering-rule:update")),
             new SeededRole("019a0000-0000-7000-8000-000000000105", "business_admin", "业务管理员", "SELF", false, List.of(
                     "organization.workforce:legal-entity-attribution:approve", "platform.integration:source-reference:approve", "platform.numbering:numbering-rule:approve",
@@ -102,8 +102,8 @@ class SystemRoleDeclarationIT {
             assertThat(version.get(3)).as("change_channel_kind of %s", role.code()).isEqualTo("SEED");
             // org_data_admin's declared content changed (sync run codes -> org-reconciliation:execute): under the declaration convention changed content raises
             // the revision, so existing dev databases reconcile instead of refusing to start (lead ruling 2026-11-02 on #1014); #907 changed org_data_admin again.
-            int revision = role.code().equals("org_data_admin") ? 4 : role.code().equals("business_admin") || role.code().equals("security_auditor") ? 2 : 1;
-            assertThat(version.get(4)).as("declaration_revision_number of %s (card 7.2: 声明修订号 1; org_data_admin 2 since #934, 3 since #907, 4 since #730 S3; business_admin 2 since #895; security_auditor 2 since #730 S3)", role.code()).isEqualTo(revision);
+            int revision = role.code().equals("org_data_admin") ? 5 : role.code().equals("business_admin") || role.code().equals("security_auditor") ? 2 : 1;
+            assertThat(version.get(4)).as("declaration_revision_number of %s (card 7.2: 声明修订号 1; org_data_admin 2 since #934, 3 since #907, 4 since #730 S3, 5 since #1222; business_admin 2 since #895; security_auditor 2 since #730 S3)", role.code()).isEqualTo(revision);
             assertThat(version.get(5)).as("recorded_by of a SEED version").isNull();
             assertThat(version.get(6)).as("authorization_request_id of a SEED version").isNull();
             assertThat((String) version.get(7)).as("change_reason of %s", role.code()).isNotBlank();

@@ -36,6 +36,9 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     MockMvc mvc;
 
     @Autowired
+    org.springframework.context.ApplicationContext context;
+
+    @Autowired
     @org.springframework.beans.factory.annotation.Qualifier("requestMappingHandlerMapping")
     org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping handlerMapping;
 
@@ -44,7 +47,6 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     private static final RequestPostProcessor READ_ORG = caller(Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ);
-    private static final RequestPostProcessor RECONCILER = caller(Permission.Codes.ORGANIZATION_WORKFORCE_ORG_RECONCILIATION_EXECUTE);
 
     @org.junit.jupiter.api.BeforeEach
     void theCallerIsTheOrganisationDataAdministrator() {
@@ -76,22 +78,18 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
         for (String path : List.of(ORG_UNITS, ORG_UNITS + "/" + unitText(2))) {
             mvc.perform(get(path)).andExpect(status().isUnauthorized());
             mvc.perform(get(path).with(caller("some.other:thing:read"))).andExpect(status().isForbidden());
-            mvc.perform(get(path).with(RECONCILER)).andExpect(status().isForbidden());
         }
-        mvc.perform(post(RECONCILE).with(csrf())).andExpect(status().isUnauthorized());
-        mvc.perform(post(RECONCILE).with(csrf()).with(READ_ORG)).andExpect(status().isForbidden());
-        mvc.perform(post(RECONCILE).with(RECONCILER)).andExpect(status().isForbidden());
     }
 
     @Test
-    @DisplayName("RULE-359/368/369 org data is read-only in the new system: the only writes are the read-only comparison trigger and, since #933, the three personnel command endpoints and, since #959, the profile change and, since #980, its confirmation and rejection and, since #1169, the two org-structure command endpoints and, since #1170, the two countersign decisions; the list pins writes only, a new read cannot edit org data")
+    @DisplayName("RULE-359/368/369 org data is read-only in the new system: the only writes are, since #933, the three personnel command endpoints and, since #959, the profile change and, since #980, its confirmation and rejection and, since #1169, the two org-structure command endpoints and, since #1170, the two countersign decisions; the list pins writes only, a new read cannot edit org data")
     void orgDataHasNoEditEndpoints() {
         List<String> writes = new ArrayList<>();
         handlerMapping.getHandlerMethods().keySet().forEach(info -> info.getPatternValues().stream()
                 .filter(p -> p.contains("/organization/") && !p.contains("/legal-entities") && !p.contains("-legal-entities/") && !p.contains("/work-calendars")).forEach(p -> info.getMethodsCondition().getMethods().stream()
                         .filter(m -> !m.name().equals("GET")).forEach(m -> writes.add(m.name() + " " + p))));
 
-        assertThat(writes).containsExactlyInAnyOrder("POST /api/v1/organization/org-reconciliations:run",
+        assertThat(writes).containsExactlyInAnyOrder(
                 "POST /api/v1/organization/personnel-commands", "POST /api/v1/organization/personnel-commands/{personnelCommandId}:withdraw",
                 "POST /api/v1/organization/separation-holds/{separationHoldId}:release", "POST /api/v1/organization/employees/{employeeId}:change-profile",
                 // #980: the second person of a WeCom user id rebind confirms or rejects the waiting profile change; the list of the waiting ones is the third read.
@@ -140,11 +138,14 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
 
 
     @Test
-    @DisplayName("D-1a-10 the comparison can be triggered by hand by the org reconciliation executor and lists the differences")
-    void reconciliationOnDemand() throws Exception {
-        synced();
-        mvc.perform(post(RECONCILE).with(csrf()).with(RECONCILER)).andExpect(status().isOk())
-                .andExpect(jsonPath("$.zeroDifference").value(true));
-        mvc.perform(post(RECONCILE).with(csrf()).with(READ_ORG)).andExpect(status().isForbidden());
+    @DisplayName("#1222 the daily org reconciliation is gone: no workforce bean is a reconciliation (job, use case, controller) and its endpoint is not found")
+    void theReconciliationIsGone() throws Exception {
+        for (String name : context.getBeanDefinitionNames()) {
+            Class<?> type = context.getType(name);
+            if (type != null && type.getName().startsWith("com.forcitis.one.organization.workforce.")) {
+                assertThat(type.getSimpleName().toLowerCase(java.util.Locale.ROOT)).as("bean " + name).doesNotContain("reconcil");
+            }
+        }
+        mvc.perform(post(RECONCILE).with(csrf()).with(READ_ORG)).andExpect(status().isNotFound());
     }
 }

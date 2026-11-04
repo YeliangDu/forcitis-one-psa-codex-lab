@@ -28,8 +28,7 @@ class OrgDataAdminRoleIntegrationTest extends IdentityIntegrationTest {
         List<String> permissions = body(mvc.perform(get(SessionLifecycleIntegrationTest.CURRENT).cookie(new Cookie("SESSION", session))).andReturn())
                 .path("permissionCodes").valueStream().map(n -> n.asString()).toList();
 
-        assertThat(permissions).contains(Permission.Codes.ORGANIZATION_WORKFORCE_ORG_RECONCILIATION_EXECUTE,
-                Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE, Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE,
+        assertThat(permissions).contains(Permission.Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE, Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE,
                 Permission.Codes.ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE);
         assertThat(permissions).as("no sensitive permission and no confirmation of a template").doesNotContainAnyElementsOf(SensitivePermissions.CODES);
         assertThat(permissions).noneMatch(code -> code.startsWith("cost.") || code.startsWith("delivery.") || code.contains(":approve") && !code.startsWith("platform.approval"));
