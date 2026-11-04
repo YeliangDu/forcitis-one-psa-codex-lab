@@ -184,7 +184,9 @@ class AuthorizationRequestNamesIT extends AccountsAcceptanceSupport {
                 .containsEntry("requestedBy", requester.userId().toString())
                 .containsEntry("requestedByName", displayNameOf(requester))
                 .containsEntry("roleName", name);
+        assertThat(item).as("the key subjectUserId is present as an explicit null, not omitted").containsKey("subjectUserId");
         assertThat(item.get("subjectUserId")).as("a role request has no subject user").isNull();
+        assertThat(item).as("the key subjectUserName is present as an explicit null, not omitted").containsKey("subjectUserName");
         assertThat(item.get("subjectUserName")).as("so it has no subject name either").isNull();
     }
 
@@ -204,6 +206,7 @@ class AuthorizationRequestNamesIT extends AccountsAcceptanceSupport {
         assertThat(item).as("a missing applicant employee is JSON null, not an omitted name or a lost request")
                 .containsEntry("requestedBy", requester.userId().toString())
                 .containsEntry("subjectUserId", beneficiary.userId().toString()).containsEntry("subjectUserName", displayNameOf(beneficiary));
+        assertThat(item).as("the key requestedByName is present as an explicit null, not omitted").containsKey("requestedByName");
         assertThat(item.get("requestedByName")).as("the applicant name is null once no employee is left behind the account").isNull();
         // Not covered: a role row gone behind a pending request (no HTTP way to delete a role; no state-changing SQL here).
     }
@@ -224,9 +227,12 @@ class AuthorizationRequestNamesIT extends AccountsAcceptanceSupport {
         assertThat(item).as("a missing beneficiary employee is JSON null while both account ids and the applicant name remain")
                 .containsEntry("requestedBy", requester.userId().toString()).containsEntry("requestedByName", displayNameOf(requester))
                 .containsEntry("subjectUserId", beneficiary.userId().toString());
+        assertThat(item).as("the key subjectUserName is present as an explicit null, not omitted").containsKey("subjectUserName");
         assertThat(item.get("subjectUserName")).as("the beneficiary name is null once no employee is left behind the account").isNull();
     }
 
+    // No scope case (lead ruling on #1286): same exposure as the account list, ADR-0026 (user_accounts and roles are GLOBAL),
+    // so only the permission gate is asserted here.
     @Test
     @DisplayName("#1286 授权申请读取沿用账号角色更新权限：默认员工返回 403，管理员模式返回 200")
     void readStaysUnderItsPermission() throws Exception {
