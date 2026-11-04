@@ -78,6 +78,18 @@ class PersonnelCommandScopeIT {
     }
 
     @Test
+    @DisplayName("#1172 a TRANSFER stays with the unit being left, not the target unit")
+    void transferStaysWithTheUnitBeingLeft() {
+        UUID left = unit();
+        UUID target = unit();
+        UUID employee = employee();
+        primary(employee, left, "2026-01-01", null);
+        UUID command = command(employee, "TRANSFER", "PENDING", "2027-06-01", target);
+        assertThat(visible(left)).contains(command);
+        assertThat(visible(target)).doesNotContain(command);
+    }
+
+    @Test
     @DisplayName("#1172 a command whose department cannot be resolved is out of scope")
     void unresolvableDepartmentIsOutOfScope() {
         UUID unit = unit();
@@ -108,8 +120,8 @@ class PersonnelCommandScopeIT {
                 .param("id", root).param("employee", employee).param("kind", kind).update();
         jdbc.sql("""
                 insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, effective_to_date, closed_at, org_unit_id, assignment_id, assignment_kind)
-                values (:id, :employee, cast(:from as date), cast(:to as date), now(), :unit, :root, :kind)
-                """).param("id", ids.next()).param("employee", employee).param("from", from).param("to", to).param("unit", unit).param("root", root).param("kind", kind).update();
+                values (:id, :employee, cast(:from as date), cast(:to as date), case when cast(:to as date) is null then null else now() end, :unit, :root, :kind)
+                """).param("id", ids.next()).param("employee", employee).param("from", from).param("to", to, java.sql.Types.VARCHAR).param("unit", unit).param("root", root).param("kind", kind).update();
     }
 
     private UUID position() {
@@ -130,10 +142,10 @@ class PersonnelCommandScopeIT {
         UUID id = ids.next();
         UUID position = kind.equals("HIRE") ? position() : null;
         jdbc.sql("""
-                insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id, target_position_id, is_target_fee_earner, target_employment_phase_kind, applied_at, created_at, created_by, updated_at)
-                values (:id, :employee, :kind, cast(:effective as date), :status, :unit, :position, case when cast(:kind as text) = 'HIRE' then false end, case when cast(:kind as text) = 'HIRE' then 'PROBATION' end, case when cast(:status as text) = 'EFFECTIVE' then now() end, now(), :by, now())
+                insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id, target_position_id, is_target_fee_earner, target_employment_phase_kind, target_assignment_id, target_assignment_kind, applied_at, created_at, created_by, updated_at)
+                values (:id, :employee, :kind, cast(:effective as date), :status, :unit, :position, case when cast(:kind as text) = 'HIRE' then false end, case when cast(:kind as text) = 'HIRE' then 'PROBATION' end, :root, case when cast(:root as uuid) is null then null else 'PRIMARY' end, case when cast(:status as text) = 'EFFECTIVE' then now() end, now(), :by, now())
                 """).param("id", id).param("employee", employee).param("kind", kind).param("effective", effective).param("status", status)
-                .param("unit", targetUnit, java.sql.Types.OTHER).param("position", position, java.sql.Types.OTHER).param("by", ids.next()).update();
+                .param("unit", targetUnit, java.sql.Types.OTHER).param("position", position, java.sql.Types.OTHER).param("root", kind.equals("TRANSFER") ? jdbc.sql("select assignment_id from organization_workforce.employee_assignments where employee_id = :e and assignment_kind = 'PRIMARY'").param("e", employee).query(UUID.class).single() : null, java.sql.Types.OTHER).param("by", ids.next()).update();
         return id;
     }
 }

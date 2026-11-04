@@ -69,8 +69,8 @@ class JdbcCommandReadRepository implements CommandReadQueries {
               join organization_workforce.employees e on e.id = c.employee_id
               left join organization_workforce.separation_holds h on h.personnel_command_id = c.personnel_command_id
                          where (:everything
-                    or (c.command_kind in ('HIRE', 'REINSTATE', 'TRANSFER') and c.target_org_unit_id = any(:units))
-                    or (c.command_kind not in ('HIRE', 'REINSTATE', 'TRANSFER') and exists (
+                    or (c.command_kind in ('HIRE', 'REINSTATE') and c.target_org_unit_id = any(:units))
+                    or (c.command_kind not in ('HIRE', 'REINSTATE') and exists (
                         select 1 from assignment_ranges a
                          where a.employee_id = c.employee_id and a.org_unit_id = any(:units)
                            and a.from_date <= c.effective_date - 1 and (a.to_date is null or c.effective_date - 1 < a.to_date))))
