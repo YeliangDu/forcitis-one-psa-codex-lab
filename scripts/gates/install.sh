@@ -46,7 +46,7 @@ tmp=$(mktemp -d "$dir/.tmp.XXXXXX") || fail "建不了临时目录"
 paths=$(git -C "$repo" ls-tree -d --name-only "$sha" scripts/gates scripts/hooks)
 [ -n "$paths" ] || fail "提交 $sha 没有 scripts/gates、scripts/hooks"
 # shellcheck disable=SC2086
-git -C "$repo" archive "$sha" $paths | { tar -x -C "$tmp"; st=$?; cat >/dev/null; exit $st; } && "$repo/scripts/gates/hooks_manifest.sh" "$tmp" >"$tmp/.manifest" || fail "取 $sha 的文件或写清单失败"
+git -C "$repo" archive "$sha" $paths | { tar -x -C "$tmp"; st=$?; cat >/dev/null; (exit "$st"); } && "$repo/scripts/gates/hooks_manifest.sh" "$tmp" >"$tmp/.manifest" || fail "取 $sha 的文件或写清单失败"
 check "$tmp" || fail "版本 $sha 自检不过（入口缺失、分发器不放行 ls、或有 target 的生产写不拦）"
 chmod -R a-w "$tmp" || fail "设不了只读：$tmp"
 old="$tmp.old"
