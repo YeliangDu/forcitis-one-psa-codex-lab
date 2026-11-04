@@ -66,6 +66,18 @@ class PersonnelCommandScopeIT {
     }
 
     @Test
+    @DisplayName("#1172 an effective SEPARATE is also seen by the unit of a concurrent assignment that was in force the day before")
+    void effectiveSeparationIsSeenByTheConcurrentUnitToo() {
+        UUID primary = unit();
+        UUID concurrent = unit();
+        UUID employee = employee();
+        primary(employee, primary, "2026-01-01", "2026-07-01");
+        assignment(employee, concurrent, "2026-02-01", "2026-07-01", "CONCURRENT");
+        UUID command = command(employee, "SEPARATE", "EFFECTIVE", "2026-07-01", null);
+        assertThat(visible(concurrent)).contains(command);
+    }
+
+    @Test
     @DisplayName("#1172 a command whose department cannot be resolved is out of scope")
     void unresolvableDepartmentIsOutOfScope() {
         UUID unit = unit();
@@ -87,13 +99,17 @@ class PersonnelCommandScopeIT {
     }
 
     private void primary(UUID employee, UUID unit, String from, String to) {
+        assignment(employee, unit, from, to, "PRIMARY");
+    }
+
+    private void assignment(UUID employee, UUID unit, String from, String to, String kind) {
         UUID root = ids.next();
-        jdbc.sql("insert into organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at) values (:id, :employee, 'PRIMARY', now(), now())")
-                .param("id", root).param("employee", employee).update();
+        jdbc.sql("insert into organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at) values (:id, :employee, :kind, now(), now())")
+                .param("id", root).param("employee", employee).param("kind", kind).update();
         jdbc.sql("""
                 insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, effective_to_date, closed_at, org_unit_id, assignment_id, assignment_kind)
-                values (:id, :employee, cast(:from as date), cast(:to as date), now(), :unit, :root, 'PRIMARY')
-                """).param("id", ids.next()).param("employee", employee).param("from", from).param("to", to).param("unit", unit).param("root", root).update();
+                values (:id, :employee, cast(:from as date), cast(:to as date), now(), :unit, :root, :kind)
+                """).param("id", ids.next()).param("employee", employee).param("from", from).param("to", to).param("unit", unit).param("root", root).param("kind", kind).update();
     }
 
     private UUID position() {

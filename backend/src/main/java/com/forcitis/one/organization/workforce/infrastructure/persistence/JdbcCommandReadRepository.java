@@ -50,12 +50,12 @@ class JdbcCommandReadRepository implements CommandReadQueries {
             )
             """;
     // ADR-0026 decision 1 item 9: a command belongs to the department it acts in, so a hire into a unit is seen by that unit before any post exists,
-    // and a separation stays with the unit being left after it is effective. Nothing resolvable means out of scope.
-    private static final String PRIMARY_UNIT_RANGES = """
-            with primary_ranges as (
+    // and a separation stays with the units being left (primary and concurrent) after it is effective. Nothing resolvable means out of scope.
+    private static final String ASSIGNMENT_RANGES = """
+            with assignment_ranges as (
                 select av.employee_id, av.org_unit_id, av.effective_from_date as from_date, av.effective_to_date as to_date
                   from organization_workforce.assignment_versions av
-                 where av.assignment_kind = 'PRIMARY' and av.superseded_at is null
+                 where av.superseded_at is null
                 union all
                 select a.employee_id, a.org_unit_id, date '0001-01-01', null from organization_workforce.assignments a
                  where not exists (select 1 from organization_workforce.employee_versions ev where ev.employee_id = a.employee_id)
@@ -71,7 +71,7 @@ class JdbcCommandReadRepository implements CommandReadQueries {
                          where (:everything
                     or (c.command_kind in ('HIRE', 'REINSTATE', 'TRANSFER') and c.target_org_unit_id = any(:units))
                     or (c.command_kind not in ('HIRE', 'REINSTATE', 'TRANSFER') and exists (
-                        select 1 from primary_ranges a
+                        select 1 from assignment_ranges a
                          where a.employee_id = c.employee_id and a.org_unit_id = any(:units)
                            and a.from_date <= c.effective_date - 1 and (a.to_date is null or c.effective_date - 1 < a.to_date))))
             """;
@@ -106,7 +106,7 @@ class JdbcCommandReadRepository implements CommandReadQueries {
     @Override
     public List<Personnel> personnel(Scope scope, @Nullable CommandStatus status, @Nullable PersonnelCommandKind kind, @Nullable EmployeeId employee,
                                     @Nullable Position after, int limit) {
-        return position(scoped(jdbc.sql(PRIMARY_UNIT_RANGES + PERSONNEL + """
+        return position(scoped(jdbc.sql(ASSIGNMENT_RANGES + PERSONNEL + """
                  and (cast(:status as text) is null or c.status = :status)
                  and (cast(:kind as text) is null or c.command_kind = :kind)
                  and (cast(:employee as uuid) is null or c.employee_id = :employee)
@@ -121,7 +121,7 @@ class JdbcCommandReadRepository implements CommandReadQueries {
 
     @Override
     public Optional<Personnel> personnel(Scope scope, PersonnelCommandId id) {
-        return scoped(jdbc.sql(PRIMARY_UNIT_RANGES + PERSONNEL + """
+        return scoped(jdbc.sql(ASSIGNMENT_RANGES + PERSONNEL + """
                  and c.personnel_command_id = :id
                 """), scope).param("id", id.value()).query((rs, n) -> personnel(rs)).optional();
     }
