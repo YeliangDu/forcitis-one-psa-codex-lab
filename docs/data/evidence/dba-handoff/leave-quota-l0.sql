@@ -5,10 +5,8 @@
 -- 另含薪酬接缝所需的 7 张表单（薪资计算 0800、薪资计算档案 0858、工资条 0864、工资补录 1318、停薪留职申请单 0863、调薪申请单 0834、调薪档案表 0841；form_id 同 a8-forms.tsv）：只读定义与物理列，绝不读任何工资数值。
 -- 不输出人员、工号、单据；A1–A5 读的是表单定义而不是表单数据。用只读取证账号执行（与 timesheet-filing-duty.sql 同一个）。只含 SELECT。
 -- 未核实：JK_* 的列名按 Quartz 标准写（仓库证据只有表名）；若 B1 报列名不存在，只回报错信息，我改后重发。
--- 用法：A 段在 a8_db 上执行一次；C 段在 a8_db 与 ruoyi-vue-pro 各执行一次（改 USE）；每个结果集存成 CSV：legacy-L0-<段号>.csv 发回。
+-- 用法：取证工具对 a8_db 与 ruoyi-vue-pro 各跑一次整个文件（库名守卫，只在对应库出结果）；每个结果集存成 CSV：legacy-L0-<段号>.csv 发回。
 SET LOCK_TIMEOUT 1000;
-USE [a8_db];
-GO
 -- A1 目标表单的定义是否是 JSON、各有多少字段（先确认读得到）
 SELECT f.ID AS form_id, f.NAME AS form_name, ISJSON(CAST(f.FIELD_INFO AS nvarchar(max))) AS is_json,
        (SELECT COUNT_BIG(*) FROM OPENJSON(CAST(f.FIELD_INFO AS nvarchar(max)), '$.front_formmain.fieldInfo')) AS field_count
@@ -86,13 +84,12 @@ SELECT o.name AS table_name, SUM(CASE WHEN p.index_id IN (0, 1) THEN p.row_count
      OR o.name LIKE N'%BIND%' OR o.name LIKE N'%SCHEDULE%' OR o.name LIKE N'%TIMER%')
  GROUP BY o.name ORDER BY o.name;
 GO
--- C ruoyi-vue-pro 一侧：对象名与列（只查元数据）。在 ruoyi-vue-pro 上执行（改 USE）；a8_db 上也可执行，a8_db 侧可能为空
--- USE [ruoyi-vue-pro];
+-- C ruoyi-vue-pro 一侧：对象名与估计行数（只查元数据）；库名用 DB_NAME() 守卫，只在 ruoyi-vue-pro 出结果
 SELECT s.name AS schema_name, o.name AS object_name, o.type_desc,
        SUM(CASE WHEN p.index_id IN (0, 1) THEN p.row_count ELSE 0 END) AS est_rows
   FROM sys.objects AS o JOIN sys.schemas AS s ON s.schema_id = o.schema_id
   LEFT JOIN sys.dm_db_partition_stats AS p ON p.object_id = o.object_id
- WHERE o.type IN ('U', 'V')
+ WHERE DB_NAME() = N'ruoyi-vue-pro' AND o.type IN ('U', 'V')
    AND (LOWER(o.name) LIKE '%leave%' OR LOWER(o.name) LIKE '%vacation%' OR LOWER(o.name) LIKE '%quota%' OR LOWER(o.name) LIKE '%annual%'
      OR LOWER(o.name) LIKE '%overtime%' OR LOWER(o.name) LIKE '%compens%' OR LOWER(o.name) LIKE '%attend%' OR LOWER(o.name) LIKE '%absence%')
  GROUP BY s.name, o.name, o.type_desc ORDER BY s.name, o.name;

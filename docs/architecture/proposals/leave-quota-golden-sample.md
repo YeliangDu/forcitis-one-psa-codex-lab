@@ -38,10 +38,10 @@ All people, dates, entities and ids are invented; names `G1`..`G8`. "Treatment T
 | G1 | employed the whole year, service years 4 at 1 Jan, crosses no band | baseline entitlement and usage | T-1 formula |
 | G2 | service years 9 on 1 Jan, completes 10 years on 15 Jun | band change inside the year: which date decides the band | T-1, T-2 |
 | G3 | hired 1 Apr 2026 with 3 prior years elsewhere | first-year proration, rounding, service-years basis | T-1, T-3 rounding |
-| G4 | separated 30 Sep 2026, took more days than accrued | separation proration, no claw-back, no negative | T-3, T-4 negative |
+| G4 | separated 30 Sep 2026, took more days than accrued | separation proration, claw-back and negative balance per T-3/T-4 | T-3, T-4 negative |
 | G5 | unpaid leave 1 Jul to 31 Aug 2026 | effect of unpaid leave on entitlement | T-5 |
 | G6 | moves from legal entity A to B on 1 Sep 2026 | balance follows the person or resets | T-6 |
-| G7 | 5 days carried from 2025, usage in Q1 and Q4 | carry-over cap, expiry, use order (carry-over first) | T-7 |
+| G7 | 5 days carried from 2025, usage in Q1 and Q4 | carry-over cap, expiry and use order per T-7 | T-7 |
 | G8 | 8 hours rest-day overtime on 3 May 2026 granting comp time, partly used, partly expired | comp-time grant, validity, expiry | T-8 |
 
 Each case also lists one request that exceeds the balance (to test the refusal or the allowance, T-4) and one request on a non-workday inside the range (non-workdays are not deducted; uses `organization.attendance` work calendar of the person's entity on that day).
@@ -75,4 +75,4 @@ Units: the golden file states quantities in minutes as well as days (`entitlemen
 
 For each case G1..G8: (1) the acceptance test opens the year's account through the public commands only (hire, separation, unpaid leave, transfer events are delivered through the real events, not SQL); (2) every `expected` field equals the value read back through the read API; (3) re-delivering any input event changes nothing (idempotent); (4) the audit entry of each balance-changing command exists with the register text from the spec; (5) a case whose treatment is still pending is not written yet, and its absence is listed in the test report, not skipped silently.
 
-Case-specific checks: G2 band change takes effect on the date the treatment says; G4 balance never below zero after separation; G6 totals across the move equal the single-entity total (or the reset, per T-6); G7 carry-over is consumed before the new year's days and expires at the T-7 date; G8 grant, partial use and expiry produce three ledger lines and the expired amount is reported to the payroll seam (W4) as an event, not paid here.
+Case-specific checks: G2 band change takes effect on the date the treatment says; G4 balance after separation follows T-4; G6 totals across the move equal the single-entity total (or the reset, per T-6); G7 carry-over use order and expiry follow T-7; G8 grant, partial use and expiry produce three ledger lines and the expired amount is reported to the payroll seam (W4) as an event, not paid here.

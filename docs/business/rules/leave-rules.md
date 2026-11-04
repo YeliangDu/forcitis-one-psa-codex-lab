@@ -4,7 +4,7 @@ Scope: new context `organization.leave` (bc tag `organization.leave`, B-27): lea
 
 | ID | Domain | Title | Priority | Review |
 |---|---|---|---|---|
-| RULE-509 | leave | A leave request holds balance in the same transaction it is submitted; it is refused when the balance is not enough, unless the rule version allows it | P0 | No |
+| RULE-509 | leave | A leave request holds balance in the same transaction it is submitted; it is refused when the balance is not enough, unless the rule version allows it (ADR-0079:99 says never negative; an exception needs approval and an ADR note, T-4) | P0 | No |
 | RULE-510 | leave | Leave minutes are split by the standard hours of each day; a non-workday counts zero; a missing standard-hours version refuses the request | P0 | No |
 | RULE-511 | leave | A request inside quota, allowed by the rule version, under the exempt threshold and needing no proof is approved without a person; any other request goes to approval | P1 | No |
 | RULE-512 | leave | A rejected or withdrawn request releases its hold; a recalled leave gives back its used minutes; nothing is deleted | P0 | No |
@@ -17,7 +17,7 @@ Scope: new context `organization.leave` (bc tag `organization.leave`, B-27): lea
 | RULE-519 | leave | Attendance records are append-only; a make-up punch is a separate record | P0 | No |
 | RULE-520 | leave | The leave read API is the only way other modules see leave hours, balances, overtime approvals or comp time | P0 | No |
 
-### RULE-509: A leave request holds balance in the same transaction it is submitted; it is refused when the balance is not enough, unless the rule version allows it
+### RULE-509: A leave request holds balance in the same transaction it is submitted; it is refused when the balance is not enough, unless the rule version allows it (ADR-0079:99 says never negative; an exception needs approval and an ADR note, T-4)
 **Category:** Calculation
 **Priority:** P0
 **Source:** INV-68; ADR-0079:99 (quota held first, never deducted into negative)
@@ -131,8 +131,8 @@ Scope: new context `organization.leave` (bc tag `organization.leave`, B-27): lea
 **Category:** Policy
 **Priority:** P0
 **Source:** RULE-412; module edge guard
-**Plain English:** Other modules read leave through the context's api only; they never read its tables or events directly except the published ones.
+**Plain English:** Other modules read leave through the context's api and published events only, never its tables. The only consumer before payroll exists is `cost.timesheet`, through the edge added by the timesheet seam card (spec 4.3).
 **Specification:**
-- An architecture test fails when a module other than the listed consumers depends on `organization.leave` internals.
+- An architecture test fails when any module other than `cost.timesheet` (after the seam card) depends on `organization.leave`, or when `cost.timesheet` depends on anything beyond the leave-hours api and the leave events.
 **Tests:** to be written with the slice that implements it.
 **Confidence:** High.
