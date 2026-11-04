@@ -62,6 +62,7 @@ DECLARE
     today date := (transaction_timestamp() AT TIME ZONE 'Asia/Shanghai')::date;
     closed integer;
 BEGIN
+    PERFORM set_config('forcitis.standard_hours_new_versions', coalesce(current_setting('forcitis.standard_hours_new_versions', true), '') || NEW.id::text || ',', true);
     IF NEW.status <> 'IN_EFFECT' OR NEW.effective_to_date IS NOT NULL THEN
         RAISE EXCEPTION 'a new standard-hours version is IN_EFFECT and open: effective_to_date is set when the next version is published' USING ERRCODE = 'check_violation';
     END IF;
@@ -132,17 +133,17 @@ END $$;
 CREATE FUNCTION organization_attendance.guard_standard_hours_override_insert() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
     parent_from date;
-    parent_xmin bigint;
 BEGIN
-    SELECT effective_from_date, xmin::text::bigint INTO parent_from, parent_xmin FROM organization_attendance.standard_hours_versions WHERE id = NEW.standard_hours_version_id;
+    SELECT effective_from_date INTO parent_from FROM organization_attendance.standard_hours_versions WHERE id = NEW.standard_hours_version_id;
     IF parent_from IS NULL THEN
         RAISE EXCEPTION 'standard-hours version % does not exist', NEW.standard_hours_version_id USING ERRCODE = 'foreign_key_violation';
     END IF;
     IF NEW.work_date < parent_from THEN
         RAISE EXCEPTION 'work_date % is earlier than the effective_from_date % of its version', NEW.work_date, parent_from USING ERRCODE = 'check_violation';
     END IF;
-    -- 覆盖行只能在创建父版本的同一事务里插入：父行的创建事务就是当前事务（父行此后只被关闭或作废，那是新事务，不能再加覆盖行）。
-    IF parent_xmin <> (pg_current_xact_id()::text::bigint % 4294967296) THEN
+    -- 覆盖行只能在创建父版本的同一事务里插入：插入版本的触发器把本事务新建的版本 ID 记在事务级设置里，这里只认这些 ID
+    -- （不能看父行的 xmin：关闭上一版本、作废重开都会给已提交的旧行换 xmin）。
+    IF position(NEW.standard_hours_version_id::text || ',' IN coalesce(current_setting('forcitis.standard_hours_new_versions', true), '')) = 0 THEN
         RAISE EXCEPTION 'override rows are written in the transaction that creates their version: version % is already committed', NEW.standard_hours_version_id USING ERRCODE = 'restrict_violation';
     END IF;
     RETURN NEW;
