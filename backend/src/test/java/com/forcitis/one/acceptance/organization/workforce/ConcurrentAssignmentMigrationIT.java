@@ -20,8 +20,8 @@ import org.springframework.test.context.DynamicPropertySource;
 /**
  * #711 acceptance part, done-when 9b (one-design ruling on #711 comment 6590431312, after #934 removes the periodic sync; DD revision 2
  * section 4.3 M5): the initial version migration finds or creates the person's PRIMARY root and writes only that root's versions; an open
- * CONCURRENT version the person already has stays open and unchanged. Done-when 9c (OrgHistory through login-miss registration) is covered
- * here, because registration only reaches a person who is not yet an employee and so has no concurrent post.
+ * CONCURRENT version the person already has stays open and unchanged. Login-miss registration no longer exists (ADR-0069 section 9), so this
+ * migration is the only path that finds or creates the PRIMARY root of a person who already has a concurrent post.
  */
 class ConcurrentAssignmentMigrationIT extends InitialVersionMigrationSupport {
 
