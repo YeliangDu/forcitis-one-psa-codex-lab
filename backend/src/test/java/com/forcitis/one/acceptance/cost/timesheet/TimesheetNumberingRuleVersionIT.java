@@ -47,6 +47,7 @@ class TimesheetNumberingRuleVersionIT extends TimesheetWorkerSupport {
                 .query((rs, n) -> rs.getObject(1, UUID.class)).list().getFirst();
     }
 
+    // RULE-474
     @Test
     @DisplayName("TS-UNIQ 新建的工时单记录发号时所用的编号规则版本 ID，且等于发号时生效的已确认版本；新建路径取不到版本 ID 时失败并告警，不写空值（库内该列可空，为迁入行保留）")
     void aNewTimesheetKeepsTheRuleVersionItsNumberWasIssuedUnder() throws Exception {
@@ -68,6 +69,7 @@ class TimesheetNumberingRuleVersionIT extends TimesheetWorkerSupport {
         assertThat(storedVersionOf(created)).as("numbering_rule_version_id of the new row").isEqualTo(inForce);
     }
 
+    // RULE-474
     @Test
     @DisplayName("TS-UNIQ 迁入行（编号规则版本 ID 为空）仍可读取：该列为空表示未经本系统发号")
     void aMigratedRowWithoutARuleVersionCanStillBeRead() throws Exception {

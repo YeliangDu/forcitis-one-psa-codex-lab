@@ -78,6 +78,7 @@ class SingleOperatorEndToEndIT extends AccountsAcceptanceSupport {
         return auditQuery(null, null, action);
     }
 
+    // RULE-426
     @Test
     @DisplayName("SINGLE-OP P2-22 端到端：identity-operations+dev、键为 true、库名 forcitis_one_dev、用户 one_dev_app，子进程运行 grant-role 不带 --witness：退出码 0、进程自行结束；库内出现授予、正常审计、标注审计，启动 WARN 与 enabled 审计各一；不带 process-administrator-required=false 也能完成")
     void p222_grantRoleWithoutWitnessEndToEnd() throws Exception {
@@ -110,6 +111,7 @@ class SingleOperatorEndToEndIT extends AccountsAcceptanceSupport {
         assertThat(enabled).allSatisfy(entry -> assertThat(entry.get("actorId")).isNull());
     }
 
+    // RULE-422
     @Test
     @DisplayName("SINGLE-OP P2-22 同一命令键未设置时退出码 1（须有见证人）且无变化：无授予、无账号、无标注、无 enabled 审计、无 ADR-0030 的 WARN")
     void p222_theSameCommandWithoutTheKeyIsRefused() throws Exception {

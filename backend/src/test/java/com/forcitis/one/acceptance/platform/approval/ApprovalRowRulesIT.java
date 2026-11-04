@@ -191,6 +191,7 @@ class ApprovalRowRulesIT extends ApprovalP4Support {
         assertThat(requestRow(c.request())).containsEntry("status", "RETURNED").containsEntry("result_reason", "synthetic: attachment missing");
     }
 
+    // RULE-493
     @Test
     @DisplayName("DATA-REPAIR-approval AP-01：转交无原因被拒 422，办理记录不增加；有原因通过")
     void transferWithoutAReasonIsRefused() throws Exception {
@@ -212,6 +213,7 @@ class ApprovalRowRulesIT extends ApprovalP4Support {
                 .singleElement().satisfies(row -> assertThat(row.get("record_reason")).isEqualTo("synthetic: on leave"));
     }
 
+    // RULE-493
     @Test
     @DisplayName("DATA-REPAIR-approval AP-01：改派无原因被拒 422，办理记录不增加；有原因通过")
     void reassignmentWithoutAReasonIsRefused() throws Exception {
@@ -365,6 +367,7 @@ class ApprovalRowRulesIT extends ApprovalP4Support {
                 "ck_approval_tasks_pending_unassigned");
     }
 
+    // RULE-495
     @Test
     @DisplayName("DATA-REPAIR-approval AP-02：办理结果与办理效力不成对被拒（只有一个）")
     void outcomeAndEffectComeInPairs() throws Exception {
@@ -375,6 +378,7 @@ class ApprovalRowRulesIT extends ApprovalP4Support {
                 Timestamp.from(NOW), task), "23514", null);
     }
 
+    // RULE-495
     @Test
     @DisplayName("DATA-REPAIR-approval AP-02：系统自动通过的任务其结果只能是通过（ck_approval_tasks_automatic）")
     void anAutomaticPassIsAnApproval() throws Exception {
@@ -383,6 +387,7 @@ class ApprovalRowRulesIT extends ApprovalP4Support {
                 + " result_reason = 'synthetic: x' where task_id = ?", Timestamp.from(NOW), task), "23514", "ck_approval_tasks_automatic");
     }
 
+    // RULE-495
     @Test
     @DisplayName("DATA-REPAIR-approval AP-02：通过时内容摘要只随正式通过出现（ck_approval_tasks_approved_hash）")
     void anApprovedHashBelongsToABindingApproval() throws Exception {
@@ -472,6 +477,7 @@ class ApprovalRowRulesIT extends ApprovalP4Support {
 
     // ---- AP-05 ------------------------------------------------------------------------------------------------
 
+    // RULE-496
     @Test
     @DisplayName("DATA-REPAIR-approval AP-05：发起轮次只追加——UPDATE、DELETE 被拒（23001），行不变；新的发起照常写入")
     void startRoundsCannotBeChanged() throws Exception {
@@ -488,6 +494,7 @@ class ApprovalRowRulesIT extends ApprovalP4Support {
         assertThat(rows("select 1 from start_rounds where approval_request_id = ?", another)).hasSize(1);
     }
 
+    // RULE-496
     @Test
     @DisplayName("DATA-REPAIR-approval AP-05：发起轮次只追加——TRUNCATE 被拒（0A000，外键引用先拒绝），行仍在；目录里有 BEFORE TRUNCATE 触发器")
     void startRoundsCannotBeTruncated() throws Exception {
