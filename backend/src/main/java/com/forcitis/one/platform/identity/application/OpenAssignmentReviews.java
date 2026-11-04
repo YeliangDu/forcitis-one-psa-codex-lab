@@ -39,7 +39,9 @@ import org.springframework.stereotype.Component;
  * The review items a changed assignment raises. A sensitive-role review per changed field if the account holds a sensitive role when the event is
  * handled (ADR-0032 decision 5); one scope review per department change if it holds a role scoped to custom departments, addressed to the head of
  * the new department (ADR-0032 decision 4; ADR-0032 ruling on #730). The account row is locked first, so two events of one command cannot both pass the existence check; the key is
- * (kind, person, command, field), so a repeated delivery adds nothing. Runs inside the listener's transaction.
+ * (kind, person, command, field), so a repeated delivery adds nothing. An unpaid-leave start (ADR-0068 decision 3) raises one sensitive-role review
+ * through {@link #openForLeave}, keyed by (person, command) with no field, under the same account row lock; the table has no unique index behind it.
+ * Runs inside the listener's transaction.
  */
 @Component
 class OpenAssignmentReviews {
@@ -85,6 +87,21 @@ class OpenAssignmentReviews {
             Instant dueAt = escalationDueAt(trigger, id);
             PermissionAdjustment item = PermissionAdjustment.assignmentChangeReview(id, user, command, field,
                     beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition, dueAt, now);
+            adjustments.insert(item);
+            events.publish(item);
+        });
+    }
+
+    /** The sensitive-role review of an unpaid-leave start, if the account holds a sensitive role when the event is handled (ADR-0068 decision 3). */
+    void openForLeave(UserId user, EventEnvelope trigger, PersonnelCommandId command) {
+        accounts.findForUpdate(user).ifPresent(account -> {
+            boolean holdsSensitiveRole = accounts.openGrants(user).stream()
+                    .anyMatch(grant -> roles.findById(grant.roleId()).map(SensitivePermissions::roleIsSensitive).orElse(false));
+            if (!holdsSensitiveRole || adjustments.existsForLeave(user, command)) {
+                return;
+            }
+            PermissionAdjustmentId id = new PermissionAdjustmentId(ids.next());
+            PermissionAdjustment item = PermissionAdjustment.unpaidLeaveReview(id, user, command, escalationDueAt(trigger, id), clock.instant());
             adjustments.insert(item);
             events.publish(item);
         });

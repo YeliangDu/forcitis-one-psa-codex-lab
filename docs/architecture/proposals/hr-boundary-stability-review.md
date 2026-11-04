@@ -268,6 +268,13 @@ Source: issue comment https://github.com/FORCITIS/forcitis-one-psa/issues/1295#i
 | F4 | design: performance and result-to-bonus link | Propose the evaluation model and the result-to-bonus link for the user to rule; designed new, A8 aggregates (formmain_1140, 1275, 1270 and bonus forms) optional baseline only; places performance per ADR-0084 |
 | F5 | design: competency zone (skills and certificates) | Placement (recommended: own context), aggregates (G18–G21 and AGG-66), the consumer reads for delivery, and the ADR; uses the F3 result |
 
+### User rulings after review (2026-11-04, issue #1295 comment 6639148601)
+
+- ADR-0084 and ADR-0085: adopted (user: 「采纳」). Both set to adopted in the follow-up docs PR.
+- Dual employment (answers F1 question (iii)): social insurance, IIT withholding and leave entitlement are computed **per employment relationship**, not merged per person (按雇佣关系各算). The legal clauses behind this are **unverified [U]**; the F1 card checks them. Consequence for F1: the relationship is the unit of leave entitlement, social-insurance enrolment and withholding, so payroll and leave key those by relationship id, and RULE-515 style "all entities" scopes become a stop-gap only.
+- Timing: recruitment and performance are built after leave and payroll (「请假、工资之后」); skills and certificates now. ADR-0084/0085 therefore carry stage W5 (my choice of the batch id after W4 payroll; the user gave no batch id).
+- F4 (performance design) is opened after payroll; F1, F2, F3, F5 now.
+
 Other actions from this note stay as listed in section 8 (R1–R4) and section 9. ADR-0084 and ADR-0085 stay proposals until the user adopts them.
 
 ## 9. Rulings and errata proposed in this PR
