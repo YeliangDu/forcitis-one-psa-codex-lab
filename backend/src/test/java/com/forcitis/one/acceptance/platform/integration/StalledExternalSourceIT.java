@@ -10,7 +10,6 @@ import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WorkContext;
-import com.forcitis.one.organization.workforce.application.RegisterEmployeeOnLoginName;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.SessionRoles;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
@@ -124,9 +123,6 @@ class StalledExternalSourceIT {
     MockMvc mvc;
 
     @Autowired
-    RegisterEmployeeOnLoginName loginLookup;
-
-    @Autowired
     OrgSource a8;
 
     @Autowired
@@ -208,18 +204,12 @@ class StalledExternalSourceIT {
         assertLoginLookupDegrades();
     }
 
-    /** The port says "unavailable" (that is what the caller turns into "nobody found"), and the login use case built on it returns instead of throwing. */
+    /** The port says "unavailable" (that is what the caller turns into "nobody found"), within the budget of an external call. */
     private void assertLoginLookupDegrades() {
         Outcome<?> port = timed(HARD_CAP_INTERACTIVE, () -> a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME)));
         assertThat(port.hung()).as("the login lookup is still waiting for A8 after %s: it holds a request thread", HARD_CAP_INTERACTIVE).isFalse();
         assertThat(port.elapsed()).as("login answers within the 3 s budget of an external call").isLessThanOrEqualTo(INTERACTIVE_BUDGET);
         assertThat(port.failure()).as("an unreachable source is reported as such, not as an empty answer").isInstanceOf(ExternalSystemUnavailableException.class);
-
-        Outcome<Boolean> useCase = timed(HARD_CAP_INTERACTIVE, () -> loginLookup.execute(LOGIN_NAME).isPresent());
-        assertThat(useCase.hung()).isFalse();
-        assertThat(useCase.elapsed()).isLessThanOrEqualTo(INTERACTIVE_BUDGET);
-        assertThat(useCase.failure()).isNull();
-        assertThat(useCase.value()).isFalse();
     }
 
     @Test

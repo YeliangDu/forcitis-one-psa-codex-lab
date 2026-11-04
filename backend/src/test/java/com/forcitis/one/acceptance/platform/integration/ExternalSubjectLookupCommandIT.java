@@ -32,7 +32,7 @@ import org.springframework.util.ClassUtils;
 
 /**
  * R-1b P3b, ADR-0033 section 3 item 6 and RULING-P3B-D8 / RULING-P3B-7: the read-only operations command that lists the employee ids and
- * user ids of the people an external subject (an organisation source login name or a WeCom user id) belongs to. The provider kinds are
+ * user ids of the people an external subject (a WeCom user id) belongs to. The provider kinds are
  * external identity values and live in platform.integration only (ADR-0039 items 1 and 4), so the command's entry is there: a bean of
  * platform.integration with {@code int run(ApplicationArguments, PrintStream out, PrintStream err)}, the same shape as the operations
  * commands of identity; it is looked up at run time, and a missing one fails the test.
@@ -51,7 +51,6 @@ class ExternalSubjectLookupCommandIT extends AccountsAcceptanceSupport {
     static final String EXTERNAL_SUBJECT = "external-subject";
     static final String PROVIDER_KIND = "provider-kind";
     /** Values of --provider-kind (provider_kind, one-glossary 2026-10-15). */
-    static final String SEEYON_LOGIN_NAME = "SEEYON_LOGIN_NAME";
     static final String WECOM_USER_ID = "WECOM_USER_ID";
     static final String INTEGRATION = "com.forcitis.one.platform.integration";
 
@@ -128,38 +127,6 @@ class ExternalSubjectLookupCommandIT extends AccountsAcceptanceSupport {
         return rows;
     }
 
-    private void loginName(UUID employee, String loginName) throws SQLException {
-        try (Connection workforce = schemaConnection("organization_workforce");
-             PreparedStatement update = workforce.prepareStatement("update employees set login_name = ? where id = ?")) {
-            update.setString(1, loginName);
-            update.setObject(2, stored(employee));
-            update.executeUpdate();
-        }
-    }
-
-    @Test
-    @DisplayName("R-1b P3b ADR-0033 第 3 项第 6 条 / RULING-P3B-D8：只读命令按组织源登录名返回匹配的员工 ID 与 user_id 列表（同名两人都列出），不写任何数据")
-    void theReadOnlyCommandListsEveryoneWithTheLoginName() throws Exception {
-        UUID first = newEmployeeId();
-        UUID second = newEmployeeId();
-        UUID other = newEmployeeId();
-        employee(first, unit, null);
-        employee(second, unit, null);
-        employee(other, unit, null);
-        String shared = "acceptance-login-" + serialOf(first);
-        loginName(first, shared);
-        loginName(second, shared);
-        loginName(other, "acceptance-login-" + serialOf(other));
-        UUID firstAccount = signIn(first).userId();
-        List<Integer> before = identityRows();
-
-        Outcome found = find(SEEYON_LOGIN_NAME, shared);
-
-        assertThat(found.exit()).as(found.err()).isZero();
-        assertThat(found.out()).contains(first.toString(), firstAccount.toString(), second.toString()).doesNotContain(other.toString());
-        assertThat(identityRows()).as("a read-only command writes nothing").isEqualTo(before);
-    }
-
     @Test
     @DisplayName("R-1b P3b ADR-0033 第 3 项第 6 条 / RULING-P3B-D8：只读命令按企业微信 userid 返回员工 ID 与 user_id；查无此人时不列出任何员工")
     void theReadOnlyCommandFindsThePersonByWecomUserId() throws Exception {
@@ -168,6 +135,7 @@ class ExternalSubjectLookupCommandIT extends AccountsAcceptanceSupport {
         employee(person, unit, null);
         employee(other, unit, null);
         UUID account = signIn(person).userId();
+        List<Integer> before = identityRows();
 
         Outcome found = find(WECOM_USER_ID, wecomUserIdOf(person));
         Outcome nobody = find(WECOM_USER_ID, "acceptance-nobody-" + serialOf(person));
@@ -175,6 +143,7 @@ class ExternalSubjectLookupCommandIT extends AccountsAcceptanceSupport {
         assertThat(found.exit()).as(found.err()).isZero();
         assertThat(found.out()).contains(person.toString(), account.toString()).doesNotContain(other.toString());
         assertThat(nobody.out()).doesNotContain(person.toString()).doesNotContain(other.toString());
+        assertThat(identityRows()).as("a read-only command writes nothing").isEqualTo(before);
     }
 
     /** Rows of the audit log, read once no event publication is still waiting for or in its listeners (the audit listener is asynchronous). */
@@ -196,8 +165,9 @@ class ExternalSubjectLookupCommandIT extends AccountsAcceptanceSupport {
         }
     }
 
+
     @Test
-    @DisplayName("R-1b P3b RULING-P3B-15：--provider-kind 不是 SEEYON_LOGIN_NAME / WECOM_USER_ID 之一时退出码 2（用法错误），不列出任何员工")
+    @DisplayName("R-1b P3b RULING-P3B-15：--provider-kind 不是 WECOM_USER_ID 时退出码 2（用法错误），不列出任何员工")
     void anUnknownProviderKindIsWrongUsage() throws Exception {
         UUID person = newEmployeeId();
         employee(person, unit, null);
@@ -234,7 +204,7 @@ class ExternalSubjectLookupCommandIT extends AccountsAcceptanceSupport {
         UUID person = newEmployeeId();
         employee(person, unit, null);
 
-        Outcome outcome = find(SEEYON_LOGIN_NAME, "acceptance-nobody-" + serialOf(person));
+        Outcome outcome = find(WECOM_USER_ID, "acceptance-nobody-" + serialOf(person));
 
         assertThat(outcome.exit()).as(outcome.err()).isEqualTo(1);
         assertThat(outcome.out()).doesNotContain(person.toString());
