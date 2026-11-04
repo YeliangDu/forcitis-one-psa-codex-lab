@@ -360,11 +360,19 @@ def braces(word):
     return [w for alt in alts for w in braces(word[:m.start()] + alt + word[m.end():])][:64]
 
 
+def glob_matches_codex(base):
+    """fnmatch of "codex" against the word; a word whose bracket does not compile (a range running backwards, `[z-a]`) is literal in the shell, so it can only match itself (#1205)."""
+    try:
+        return fnmatch.fnmatchcase("codex", base)
+    except re.error:
+        return base == "codex"
+
+
 def could_be_codex(word):
     """True when the shell may expand this word to a path ending in codex: co{dex,}, cod?x, c*x, /x/c[o]dex (a bare variable cannot be judged and is the accepted gap)."""
     for w in braces(word):
         base = os.path.basename(w.rstrip("/")).replace("\0", "*")
-        if base.strip("*") and fnmatch.fnmatchcase("codex", base.lower()):
+        if base.strip("*") and glob_matches_codex(base.lower()):
             return True
     return False
 
