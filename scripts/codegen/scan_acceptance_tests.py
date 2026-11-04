@@ -258,6 +258,10 @@ def render_yaml(tests):
     return '\n'.join(lines) + '\n'
 
 
+def cited_ids(tests):
+    return {cover for test in tests for cover in test['covers']}
+
+
 def render_gaps(root, tests):
     rules_file = root / 'docs/architecture/ssot/constraint-rules/rules.yaml'
     rule_dir = root / 'docs/business/rules'
@@ -266,8 +270,7 @@ def render_gaps(root, tests):
     rules = set()
     for path in [rules_file] + sorted(rule_dir.glob('*.md')):
         rules.update(RULE.findall(path.read_text(encoding='utf-8')))
-    covered = {cover for test in tests for cover in test['covers']}
-    missing = sorted(rules - covered)
+    missing = sorted(rules - cited_ids(tests))
     unnamed = [test for test in tests if not test['covers']]
     groups = defaultdict(list)
     for test in unnamed:
@@ -384,7 +387,7 @@ def main():
             items = [t for t in tests if t['kind'] == kind]
             count = sum(bool(t['covers']) for t in items)
             print(f'{kind}: 方法 {len(items)}；covers 非空 {count}（{count / len(items) if items else 0:.2%}）')
-        covered = {c for t in tests for c in t['covers']}
+        covered = cited_ids(tests)
         print(f'被覆盖 RULE {sum(c.startswith("RULE-") for c in covered)}；'
               f'INV {sum(c.startswith("INV-") for c in covered)}')
         for path in different:

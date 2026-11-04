@@ -37,6 +37,7 @@ TRIGGER_KEYS='t_shell t_guards t_guards_config t_evidence_imports t_gates t_sess
 TRIGGERED_CHECKS='t_shell|shell syntax (bash -n)|shell_syntax
 t_guards|migrations_immutable (self-test)|python3 scripts/guards/migrations_immutable.py --self-test
 t_guards|system_actors_append_only (self-test)|python3 scripts/guards/system_actors_append_only.py --self-test
+t_guards|rule_tests (self-test)|python3 -I scripts/guards/rule_tests.py --self-test
 t_guards|acceptance_guard (self-test)|python3 scripts/guards/acceptance_guard.py --self-test
 t_guards_config|acceptance_reports (self-test)|python3 scripts/guards/acceptance_reports.py --self-test
 t_guards_config|acceptance_rulings (self-test)|python3 scripts/guards/acceptance_rulings.py --self-test
