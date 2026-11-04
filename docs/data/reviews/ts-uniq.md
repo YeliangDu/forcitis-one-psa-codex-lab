@@ -1,4 +1,7 @@
 ## 数据设计审查
+
+> 冻结（2026-11-04，#1263）：复审记录，不再更新。
+
 - 审查：one-data，2026-10-16，依据 `docs/modernization/phase1a/cards/TS-UNIQ.md`（分支 `claude/one-1a-par-ts-uniq` @40edf239）
 - 核对：卡对基线、状态机、事件目录、注册表的陈述我抽查了状态机 `MACHINE`、`CHECK` 五值、事件五个与转换的对应、唯一约束与旧索引，与卡一致
 - 判定：

@@ -54,13 +54,13 @@ components:
         aggregate: Role
         idempotencyKey: eventId
         publisher: platform.identity
-        consumers: []
+        consumers:
+        - platform.identity
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
         audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
         publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
-        noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
     RoleEnabled:
       name: RoleEnabled
       title: 角色启用
@@ -439,7 +439,20 @@ components:
             type: string
             x-type: UserId
             format: uuid
-            description: 稳定 ID 的字符串形式
+            nullable: true
+            description: 条目关于的人的账号；关于角色的条目（部门停用或撤销）为空
+          roleId:
+            type: string
+            x-type: RoleId
+            format: uuid
+            nullable: true
+            description: 条目关于的角色；只有部门停用或撤销产生的条目有
+          orgUnitId:
+            type: string
+            x-type: OrgUnitId
+            format: uuid
+            nullable: true
+            description: 被撤销或合并走、仍被该角色当前版本列出的部门；只有部门停用或撤销产生的条目有
           kind:
             type: string
             enum:
@@ -461,7 +474,13 @@ components:
             format: uuid
             x-type: PersonnelCommandId
             nullable: true
-            description: 触发条目的人事命令（调岗、更正或停薪留职开始）；维持到期重新生成的条目为空
+            description: 触发条目的人事命令（调岗、更正或停薪留职开始）；维持到期重新生成的条目和部门停用或撤销产生的条目为空
+          triggerOrgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            nullable: true
+            description: 触发条目的组织结构命令（撤销或合并部门）；只有部门停用或撤销产生的条目有
           triggerFieldKind:
             type: string
             enum:
@@ -585,7 +604,8 @@ components:
             type: string
             x-type: UserId
             format: uuid
-            description: 办理人账号
+            nullable: true
+            description: 办理人账号；角色出新版本后由系统转为已调整的条目为空
           kind:
             type: string
             enum:
@@ -620,6 +640,48 @@ components:
         audit: audited
         publisherTest: com.forcitis.one.platform.identity.domain.PermissionAdjustmentTest
         noConsumer: 暂无消费方：标记已调整只需留痕；现在就发布，是因为办理只在发生当时可被记录，补不回
+    PermissionAdjustmentClosedBySeparation:
+      name: PermissionAdjustmentClosedBySeparation
+      title: 待调整权限条目因当事人离职关闭
+      payload:
+        type: object
+        properties:
+          permissionAdjustmentId:
+            type: string
+            format: uuid
+            x-type: PermissionAdjustmentId
+          userId:
+            type: string
+            x-type: UserId
+            format: uuid
+            description: 当事人账号
+          kind:
+            type: string
+            enum:
+            - SENSITIVE_ROLE_REVIEW
+            - SCOPE_REVIEW
+            x-type: PermissionAdjustmentKind
+            description: 条目类型：敏感角色复核或范围复核
+          closurePersonnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            description: 使条目关闭的离职命令
+      x-event:
+        eventType: platform.identity.PermissionAdjustmentClosedBySeparation
+        version: 1
+        class: com.forcitis.one.platform.identity.events.PermissionAdjustmentClosedBySeparation
+        aggregate: PermissionAdjustment
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.PermissionAdjustmentTest
+        noConsumer: 暂无消费方：关闭只需留痕；现在就发布，是因为关闭只在发生当时可被记录，补不回
     PermissionAdjustmentExpired:
       name: PermissionAdjustmentExpired
       title: 待调整权限条目到期

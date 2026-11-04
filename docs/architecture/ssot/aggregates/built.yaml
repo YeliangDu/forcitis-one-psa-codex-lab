@@ -392,6 +392,7 @@ aggregates:
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
   - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentClosedBySeparation
   - platform.identity.PermissionAdjustmentEscalated
   - platform.identity.PermissionAdjustmentExpired
   - platform.identity.PermissionAdjustmentOpened
@@ -439,6 +440,7 @@ aggregates:
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
   - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentClosedBySeparation
   - platform.identity.PermissionAdjustmentEscalated
   - platform.identity.PermissionAdjustmentExpired
   - platform.identity.PermissionAdjustmentOpened
@@ -457,10 +459,13 @@ aggregates:
   tables:
   - platform_identity.permission_adjustments
   commands:
+  - AdjustInactiveOrgUnitReviewsOnRoleRevised
+  - ClosePermissionAdjustmentsOnSeparation
   - GetPermissionAdjustment
   - ListPermissionAdjustments
   - MarkPermissionAdjustmentAdjusted
   - OpenAssignmentReviews
+  - OpenInactiveOrgUnitReviews
   - PermissionAdjustmentAccess
   - PermissionAdjustmentEscalationNotice
   - PermissionAdjustmentTransitions
@@ -468,6 +473,7 @@ aggregates:
   - UpholdPermissionAdjustment
   events:
   - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentClosedBySeparation
   - platform.identity.PermissionAdjustmentEscalated
   - platform.identity.PermissionAdjustmentExpired
   - platform.identity.PermissionAdjustmentOpened
@@ -487,6 +493,7 @@ aggregates:
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
   - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentClosedBySeparation
   - platform.identity.PermissionAdjustmentEscalated
   - platform.identity.PermissionAdjustmentExpired
   - platform.identity.PermissionAdjustmentOpened
@@ -507,6 +514,7 @@ aggregates:
   - platform_identity.role_versions
   - platform_identity.roles
   commands:
+  - AdjustInactiveOrgUnitReviewsOnRoleRevised
   - AdministratorSeparationReview
   - ChangeAccountStatus
   - CreateRole
@@ -541,6 +549,7 @@ aggregates:
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
   - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentClosedBySeparation
   - platform.identity.PermissionAdjustmentEscalated
   - platform.identity.PermissionAdjustmentExpired
   - platform.identity.PermissionAdjustmentOpened
@@ -595,6 +604,7 @@ aggregates:
   - platform.identity.EmergencyAdminEnabled
   - platform.identity.EmergencyAdminRegistered
   - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentClosedBySeparation
   - platform.identity.PermissionAdjustmentEscalated
   - platform.identity.PermissionAdjustmentExpired
   - platform.identity.PermissionAdjustmentOpened

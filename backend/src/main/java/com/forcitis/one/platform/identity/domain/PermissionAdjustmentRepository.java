@@ -2,10 +2,12 @@ package com.forcitis.one.platform.identity.domain;
 
 import com.forcitis.one.platform.identity.api.PermissionAdjustmentStatus;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.platform.identity.api.PermissionAdjustmentId;
 import com.forcitis.one.platform.identity.api.PermissionAdjustmentKind;
+import com.forcitis.one.platform.identity.api.RoleId;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -31,6 +33,15 @@ public interface PermissionAdjustmentRepository {
 
     /** At most limit EXPIRED items that were held when they expired and wait for the decision about their successor and whose id sorts after the given one, in creation order. */
     List<PermissionAdjustmentId> pendingRegeneration(@Nullable PermissionAdjustmentId after, int limit);
+
+    /** The person's OPEN items, oldest first. */
+    List<PermissionAdjustmentId> openOf(UserId user);
+
+    /** The OPEN items of the role that are about a dissolved or merged-away org unit, oldest first. */
+    List<PermissionAdjustmentId> openForInactiveUnitsOf(RoleId role);
+
+    /** Stores a source-2 item when the role has no OPEN or UPHELD one about the org unit yet (the table allows one at a time); false when it stored nothing. */
+    boolean insertOpenForInactiveUnit(PermissionAdjustment opened);
 
     /** At most limit OPEN items not escalated yet whose escalation due time is at or before now and whose id sorts after the given one, in creation order. */
     List<PermissionAdjustmentId> overdueOpen(Instant now, @Nullable PermissionAdjustmentId after, int limit);

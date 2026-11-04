@@ -1,8 +1,10 @@
 package com.forcitis.one.platform.identity.domain;
 
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
 import com.forcitis.one.platform.identity.api.CustomOrgUnit;
 import com.forcitis.one.platform.identity.api.Permission;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -39,6 +41,23 @@ public final class SensitivePermissions {
 
     public static boolean roleIsSensitive(Role role) {
         return role.administrative() || Role.isReserved(role.code()) || !within(role.permissionCodes()).isEmpty();
+    }
+
+    private static final List<AccessScopeKind> BREADTH = List.of(AccessScopeKind.SELF, AccessScopeKind.CUSTOM_ORG_UNITS, AccessScopeKind.ALL);
+
+    /**
+     * A change that makes a role take effect for more than before (ADR-0032 decision 1 item 3): a broader scope kind (SELF, CUSTOM_ORG_UNITS, ALL in that
+     * order), custom org units that the old units do not cover, or a disabled role enabled again. Added codes are judged apart, by {@link #within}.
+     */
+    public static boolean addsReach(RoleDefinition before, RoleDefinition after) {
+        if (before.status() == RoleStatus.DISABLED && after.status() == RoleStatus.ENABLED) {
+            return true;
+        }
+        if (before.accessScope() != after.accessScope()) {
+            return BREADTH.indexOf(after.accessScope()) > BREADTH.indexOf(before.accessScope());
+        }
+        Set<OrgUnitId> covered = before.customOrgUnits().stream().map(CustomOrgUnit::orgUnitId).collect(Collectors.toSet());
+        return after.customOrgUnits().stream().map(CustomOrgUnit::orgUnitId).anyMatch(unit -> !covered.contains(unit));
     }
 
     /**

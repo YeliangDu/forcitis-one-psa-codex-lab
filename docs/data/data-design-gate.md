@@ -60,7 +60,7 @@
 
 ## 2. 术语
 
-- **信息图**：`architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md`（列：关键状态、主要关系与基数、关键规则、产生的事实；这些列写的是业务概念与关键项，**不是**完整状态集与完整不变量）。信息图仍是草案，采纳后以正式位置为准。
+- **信息图**：`docs/architecture/ssot/objects/enterprise-info-map.md`（列：关键状态、主要关系与基数、关键规则、产生的事实；这些列写的是业务概念与关键项，**不是**完整状态集与完整不变量）。
 - **注册表**：`backend/architecture/data-access-registry.yaml`。其中本清单要求登记而**现在没有的字段**见 §6 DG-0；字段建成前，对应信息写在卡「数据设计」一节同名小节，视为已登记。
 - **预期 diff**：卡 §7 的表结构预期差异。
 
@@ -78,7 +78,7 @@
 | B3 | 状态落点 | 信息图「关键状态」列出的每个状态，都在状态列的 `CHECK` 取值里；`CHECK` 多出的取值须在卡上写来由（规则卡或聚合状态机）；「原因必填」的终态有原因列，并有成对 `CHECK`（状态 = 该终态 ⇒ 原因非空） | §14.1 D2、D5 |
 | B3a | 状态—事件—状态机三方一致 | ① 事件目录里每个状态转换事件的目标状态都在状态列 `CHECK` 内；② `CHECK` 每个取值都有进入它的转换（初始状态除外）；③ `CHECK` 取值集合 = Java 状态枚举 = 状态机转换表的状态集（与 G-D12 同一测试）；④ 事件与转换一一对应，事件改名（如 `…Cancelled` → `…Withdrawn`）在目录、类、`CHECK`、列注释同步 | §14 第 2、3 项；NAMING_STANDARD §2.4a-6；G-D12 |
 | B4 | 关系与基数落点 | 信息图「主要关系与基数」每条有落点：`1` → `NOT NULL` 外键；`0..1` → 可空外键，列注释写「为空表示」；`N ↔ N` → 关联表，两列联合唯一；跨 BC → 只存 ID、不建外键（同 schema 内才建外键） | §14.1 D2；NAMING_STANDARD §2.4a-3 |
-| B5 | 不变量落点 | 不变量由 one-data **独立枚举**，不只核对卡作者列出的：来源包括规则卡、`ssot/i03-aggregates/` 的聚合登记、信息图「关键规则」、用户决定（intent、Q 编号）、`contract.md`、流程差异 D 编号。「拒」类逐条标承担者：数据库约束（优先）/ 聚合方法 / 规则卡编号；卡漏列的不变量记为不通过 | DATA_DESIGN_CHECKLIST §14.1 D2；§14 第 1、2 项；METHODS M4 |
+| B5 | 不变量落点 | 不变量由 one-data **独立枚举**，不只核对卡作者列出的：来源包括规则卡、`docs/architecture/ssot/aggregates/` 的聚合登记、信息图「关键规则」、用户决定（intent、Q 编号）、`contract.md`、流程差异 D 编号。「拒」类逐条标承担者：数据库约束（优先）/ 聚合方法 / 规则卡编号；卡漏列的不变量记为不通过 | DATA_DESIGN_CHECKLIST §14.1 D2；§14 第 1、2 项；METHODS M4 |
 | B6 | 「产生的事实」落点 | 信息图「产生的事实」每条有落点：事件（在事件目录登记）或事实行（表） | METHOD 接缝 2、5 |
 | B7 | 未定项与未建模块不落库 | 信息图标「暂不定」的属性、状态、基数（如 Q09、Q11），以及枚举 `CHECK`、种子数据里指向**本阶段还没建的模块或对象**的取值（对照 `docs/architecture/ssot/transitions/transitions.yaml` 阶段与 `module-dependencies.txt`，例：审批请求的 `document_type` 含尚未建的报价、记账凭证），都不写进列、约束、`CHECK`、种子。卡需要用到时：能用最小形态避开的，写出最小形态并说明可无损扩展；避不开的，退回 one-architecture，不先建后改。**判定样例**：过——Q09 未定，项目状态列只写已定的状态值，注释写明可无损追加；不过——把「已暂停」「已终止」连同原因列一起落进 `CHECK`。 | CS-1.8、CS-1.9 |
 | B8 | 用语 | 表、列、枚举值、事件名、错误码都能在 `terms.yaml` 查到，同一 bc 内中英文查过重；查不到的已登记提议术语并写明使用范围与 bc | CLAUDE.md 第 2、10 条；`check_legacy_name.py` |
@@ -199,7 +199,7 @@ D1–D19 逐项对应，一项不漏：
 |---|---|---|
 | DG-0 | 注册表字段扩展（前置） | 现有字段见注册表文件头；本清单要求而**尚无**的：`business_key`、数据类别（D17 细则 1）、`OBSERVED / DECLARED`、查询路径（过滤列 / 排序列 / 预期行数）、分区键、`jsonb` 用途、个人信息标记。ADR-0043 的 4 段 `data-classification.txt` 同此。建成前，对应信息写在卡「数据设计」一节同名小节 |
 | DG-1 | PR 引用签发行 | 改动 `backend/src/main/resources/db/migration/**` 的 PR，正文须含「数据设计：通过（one-data，」及日期；没有则 CI 失败 |
-| DG-2 | 卡模板 | `templates/WORK_CARD.md` 增「数据设计」一节（附录 A）；涉数据而无该节的卡，卡校验失败 |
+| DG-2 | 卡模板 | 已不在树内的 `templates/WORK_CARD.md`（见 git 历史）增「数据设计」一节（附录 A）；涉数据而无该节的卡，卡校验失败 |
 | DG-3 | 预期 diff 对照 | 表结构 PR 的 `pg_dump --schema-only` 实际 diff 与卡 §7 预期 diff 的表名集合一致（先表级，后列级） |
 
 DG-1 至 DG-3 实现前，由 one-data 与 one-coordinator 人工把关。
@@ -218,7 +218,7 @@ DG-1 至 DG-3 实现前，由 one-data 与 one-coordinator 人工把关。
 1. **派子代理前**：提示里写明门禁清单与卡的提交号，并核对工作区所在分支含 B0、B3a、O15、附录 C（DATA-003）。
 2. **子代理的「缺失 / 不存在 / 没有」结论**：本会话自己 grep 原文复核后才对外发；报告里写「已核」及所用命令（DATA-001、013）。
 3. **列「待用户决定」之前**：先查 intent 与收件箱已答复项，已答复的写出处、不再列（DATA-005）。
-4. **取证结果文件**：不打印行内容；先跑 `docs/data/evidence/name_pattern_scan.py <文件>`，只看行号与个数，命中行由人在源文件里处置（DATA-018）。
+4. **取证结果文件**：不打印行内容；先跑已不在树内的 `docs/data/evidence/name_pattern_scan.py <文件>`（见 git 历史），只看行号与个数，命中行由人在源文件里处置（DATA-018）。
 
 ## 附录 A：卡「数据设计」一节的材料（卡作者填）
 

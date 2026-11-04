@@ -806,13 +806,13 @@ components:
         aggregate: OrgStructureCommand
         idempotencyKey: eventId
         publisher: organization.workforce
-        consumers: []
+        consumers:
+        - platform.identity
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 生效日（effectiveDate）：撤销日，即已撤销状态的第一天
         audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
         publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
-        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
     OrgUnitAttributesSet:
       name: OrgUnitAttributesSet
       title: 组织单元属性已调整
@@ -881,13 +881,13 @@ components:
         aggregate: OrgStructureCommand
         idempotencyKey: eventId
         publisher: organization.workforce
-        consumers: []
+        consumers:
+        - platform.identity
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 生效日（effectiveDate）：合并生效日
         audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
         publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
-        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
     OrgUnitReparented:
       name: OrgUnitReparented
       title: 组织单元上级已调整

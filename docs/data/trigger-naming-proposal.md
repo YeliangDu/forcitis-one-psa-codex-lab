@@ -1,5 +1,7 @@
 # 触发器命名条款提议（交 NAMING_STANDARD §2.4）
 
+> 冻结（2026-11-04，#1263）：提议稿，未写入规则；触发器命名以基线迁移与 `DdlNamingTest` 为准。
+
 - 起草：one-data，2026-10-16；来源：PR-3 签发时的承诺（`reviews/DATA-REPAIR-timesheet-audit-PR3.md` 裁定 4：触发器统一命名转卡）。**提议稿，不是已采纳规则**：条款落进 NAMING_STANDARD、改全库的小卡由 one-coordinator 排，条款用语交 one-glossary 查重。
 - 现状（`origin/main` 基线迁移 `CREATE TRIGGER` 共 27 个）：
   - `tg_<表名>_<用途>`：19 个（`tg_org_unit_versions_append_only`、`tg_..._append_only_truncate`、`tg_source_references_guard`、`tg_source_references_never_deleted` 等），占多数；

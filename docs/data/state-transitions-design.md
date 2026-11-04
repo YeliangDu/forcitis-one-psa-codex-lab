@@ -1,5 +1,7 @@
 # state_transitions 数据设计（ADR-0058 落地；模板 DDL、登记、清理、守护）——第 2 版
 
+> 冻结（2026-11-04，#1263）：第 2 版设计稿，不再更新；已落地内容见 ADR-0058、ADR-0075。
+
 - 作者：one-data，2026-10-17。依据：ADR-0058（已采纳，用户 2026-10-17 批准，提交号 `ADR58-20261017-225508-gjl`）；输入 `data/STATE_TRANSITION_TABLES.md`；独立复核 `~/.modernize/psa/handoff/reviews/STATE_TRANSITIONS_DESIGN-review-1.md`（opus，基于第 1 版 d038b09c，结论修后可签发，阻断 B1–B3、应改 S1–S9、建议 N1、N3、N4）。
 - **状态：第 2 版已改完复核意见，待 sonnet 复核后我签发**（见末尾「复核意见处理表」）。保留期一节在用户认可前不进表结构 PR（S9）。
 - 分工：数据设计、签发、表结构 PR 复核归我；kernel、迁移、仓储、守护代码归开发会话（第 8 节派工）。

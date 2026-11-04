@@ -129,7 +129,7 @@ E-11 SLS Logtail：在 SLS 控制台为本 ECS 生成安装命令后执行；采
 E-12 ARMS Prometheus：抓取 127.0.0.1:8081/actuator/prometheus（先确认 one.env 已暴露 prometheus）。
 E-13 告警：见 docs/ops/runbooks/alerts.md。
 E-14 安全组出方向：见 docs/ops/runbooks/ecs-init.md 表格，在 ECS 控制台配置。
-E-15 企业微信：见 docs/ops/handoffs/b-2-wecom-app.md。
-E-16 致远：见 docs/ops/handoffs/b-3-a8-sso-return.md。
+E-15 企业微信：见 docs/ops/handoffs/wecom-app.md。
+E-16 致远：见 docs/ops/handoffs/a8-sso-return.md。
 E-17 备份：RDS 见 C-2；ECS 数据盘快照策略在控制台设置（每日、保留 7 天）。
 TXT

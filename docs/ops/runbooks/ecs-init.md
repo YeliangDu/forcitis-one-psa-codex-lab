@@ -8,12 +8,12 @@
 |---|---|
 | `tools/ops/ecs/scripts/ecs_init.sh` | E-1..E-10；默认只打印，`--apply` 才执行；`--only E-2,E-3` 只做部分 |
 | `tools/ops/ecs/scripts/ecs_check.sh` | E-1..E-17 只读检查，PASS / FAIL / MANUAL；`--public-check` 加公网检查 |
-| `files/forcitis-one.service` | systemd 单元（E-6） |
-| `files/forcitis-one.logrotate` | 本机日志轮转 7 天（SLS 保留 30 天） |
-| `files/nginx-one.conf` | nginx（E-8..E-10），访问日志不记查询串 |
-| `files/one.env.template` | `/etc/forcitis-one/one.env` 模板，只有变量名与非机密默认值 |
+| `tools/ops/ecs/files/forcitis-one.service` | systemd 单元（E-6） |
+| `tools/ops/ecs/files/forcitis-one.logrotate` | 本机日志轮转 7 天（SLS 保留 30 天） |
+| `tools/ops/ecs/files/nginx-one.conf` | nginx（E-8..E-10），访问日志不记查询串 |
+| `tools/ops/ecs/files/one.env.template` | `/etc/forcitis-one/one.env` 模板，只有变量名与非机密默认值 |
 
-把仓库的 `tools/ops/ecs/` 目录（`scripts/` 与 `files/`，#742 起从 `runbooks/` 搬到这里）经云助手「发送文件」上传到 ECS 的 `/root/one-runbooks/`（只含脚本与模板，无机密），再执行；服务器上的目录结构不变。
+把仓库的 `tools/ops/ecs/` 目录（`scripts/` 与 `tools/ops/ecs/files/`，#742 起从 `runbooks/` 搬到这里）经云助手「发送文件」上传到 ECS 的 `/root/one-runbooks/`（只含脚本与模板，无机密），再执行；服务器上的目录结构不变。
 
 ## 执行前确认点
 
@@ -82,7 +82,7 @@ reboot                                                              # 若 E-2 �
      -p Environment=EVENT_PUBLICATION_JOBS_ENABLED=false -p Environment=FLOWABLE_ASYNC_EXECUTOR=false \
      /usr/bin/java -Duser.timezone=UTC -jar /data/forcitis-one/releases/<ver>/forcitis-one.jar --spring.main.web-application-type=none
    ```
-   应用会在迁移与引擎建表后保持运行（非 Web 模式没有退出逻辑时），看到 `Started` 日志后 `systemctl stop one-migrate`。随后跑 `sql/c3_dev_db_verify.sql` 的 V8。
+   应用会在迁移与引擎建表后保持运行（非 Web 模式没有退出逻辑时），看到 `Started` 日志后 `systemctl stop one-migrate`。随后跑 `sql/dev-db-verify.sql` 的 V8。
 3. `ln -sfn /data/forcitis-one/releases/<ver> /data/forcitis-one/current && systemctl start forcitis-one`；`curl -s 127.0.0.1:8081/actuator/health` 为 UP。
 4. 冒烟（INFRA_RUNBOOK §7 第 5 步）与 `ecs_check.sh --public-check`。
 5. 回滚：`current` 指回上一版本并重启；1a 不做破坏性迁移。
