@@ -72,9 +72,9 @@ class StandardHoursPublishedEventIT extends AcceptanceSupport {
         UUID scope = newScope();
         LocalDate effectiveDate = TODAY.plusDays(10);
 
-        String id = publish(publication(scope, effectiveDate), 1);
+        String id = publish(publication(scope, effectiveDate, 450, 390), 1);
 
-        assertPublishedEvent(id, effectiveDate, scope);
+        assertPublishedEvent(id, effectiveDate, scope, 450, 390, 1);
     }
 
     @Test
@@ -90,14 +90,14 @@ class StandardHoursPublishedEventIT extends AcceptanceSupport {
                 .as("invalid publication emits no StandardHoursVersionPublished").isEmpty();
 
         String id = publish(publication(scope, effectiveDate), 1);
-        assertPublishedEvent(id, effectiveDate, scope);
+        assertPublishedEvent(id, effectiveDate, scope, 480, 420, 1);
         long beforeOverlap = events.stream(StandardHoursVersionPublished.class).count();
 
         assertStatus(postPublication(publication(scope, effectiveDate), PUBLISHER), 409,
                 "an effective date equal to the latest version refuses publication");
         assertThat(events.stream(StandardHoursVersionPublished.class).count())
                 .as("overlap refusal adds no StandardHoursVersionPublished for any version").isEqualTo(beforeOverlap);
-        assertPublishedEvent(id, effectiveDate, scope);
+        assertPublishedEvent(id, effectiveDate, scope, 480, 420, 1);
     }
 
     @Test
@@ -106,7 +106,7 @@ class StandardHoursPublishedEventIT extends AcceptanceSupport {
         UUID scope = newScope();
         LocalDate firstDate = TODAY.plusDays(10);
         String firstId = publish(publication(scope, firstDate), 1);
-        assertPublishedEvent(firstId, firstDate, scope);
+        assertPublishedEvent(firstId, firstDate, scope, 480, 420, 1);
         long beforeVoid = events.stream(StandardHoursVersionPublished.class).count();
 
         assertStatus(voidVersion(firstId, Map.of("reason", "Synthetic policy correction"), PUBLISHER), 200,
@@ -114,14 +114,14 @@ class StandardHoursPublishedEventIT extends AcceptanceSupport {
 
         assertThat(events.stream(StandardHoursVersionPublished.class).count())
                 .as("void emits no StandardHoursVersionPublished for any version").isEqualTo(beforeVoid);
-        assertPublishedEvent(firstId, firstDate, scope);
+        assertPublishedEvent(firstId, firstDate, scope, 480, 420, 1);
 
         LocalDate secondDate = TODAY.plusDays(20);
-        String secondId = publish(publication(scope, secondDate), 2);
+        String secondId = publish(publication(scope, secondDate, 360, 330), 2);
 
         assertThat(secondId).as("second publication has its own version identifier").isNotEqualTo(firstId);
-        assertPublishedEvent(secondId, secondDate, scope);
-        assertPublishedEvent(firstId, firstDate, scope);
+        assertPublishedEvent(secondId, secondDate, scope, 360, 330, 2);
+        assertPublishedEvent(firstId, firstDate, scope, 480, 420, 1);
         assertThat(events.stream(StandardHoursVersionPublished.class).count())
                 .as("two publications and one void produce exactly two publication events").isEqualTo(2L);
     }
@@ -131,12 +131,13 @@ class StandardHoursPublishedEventIT extends AcceptanceSupport {
     void defaultPublicationEmitsOneEventWithoutLegalEntity() throws Exception {
         LocalDate effectiveDate = TODAY.minusDays(10);
 
-        String id = publish(publication(null, effectiveDate), 1);
+        String id = publish(publication(null, effectiveDate, 465, 405), 1);
 
-        assertPublishedEvent(id, effectiveDate, null);
+        assertPublishedEvent(id, effectiveDate, null, 465, 405, 1);
     }
 
-    private void assertPublishedEvent(String id, LocalDate effectiveDate, UUID scope) {
+    private void assertPublishedEvent(String id, LocalDate effectiveDate, UUID scope, int workdayMinutes, int adjustedWorkdayMinutes,
+            int versionNumber) {
         StandardHoursVersionId versionId = new StandardHoursVersionId(UUID.fromString(id));
         assertThat(events.stream(StandardHoursVersionPublished.class)
                 .filter(event -> versionId.equals(event.standardHoursVersionId())))
@@ -154,6 +155,12 @@ class StandardHoursPublishedEventIT extends AcceptanceSupport {
                             .isEqualTo(UUID.fromString(principalName(CONFIRMER)));
                     assertThat(envelope.correlationId()).as("publication has a correlation ID").isNotNull();
                     assertThat(envelope.businessDate()).as("business date is the published effective start date").isEqualTo(effectiveDate);
+                    assertThat(component(event, "scopeKind")).as("payload scope kind").hasToString(scope == null ? "DEFAULT" : "LEGAL_ENTITY");
+                    assertThat(component(event, "legalEntityId")).as("payload legal entity id (null for the DEFAULT scope)")
+                            .isEqualTo(scope == null ? null : new LegalEntityId(scope));
+                    assertThat(component(event, "workdayMinutes")).as("payload workday minutes").isEqualTo(workdayMinutes);
+                    assertThat(component(event, "adjustedWorkdayMinutes")).as("payload adjusted workday minutes").isEqualTo(adjustedWorkdayMinutes);
+                    assertThat(component(event, "versionNumber")).as("payload per-scope version number").isEqualTo(versionNumber);
                     if (scope == null) {
                         assertThat(envelope.legalEntityId()).as("DEFAULT event has no legal entity").isNull();
                     } else {
@@ -161,6 +168,20 @@ class StandardHoursPublishedEventIT extends AcceptanceSupport {
                                 .isEqualTo(new LegalEntityId(scope));
                     }
                 });
+    }
+
+    /** Reads a record component by name so a missing payload field is a red assertion, not a compile error for the whole module. */
+    private static Object component(StandardHoursVersionPublished event, String name) {
+        for (java.lang.reflect.RecordComponent candidate : StandardHoursVersionPublished.class.getRecordComponents()) {
+            if (candidate.getName().equals(name)) {
+                try {
+                    return candidate.getAccessor().invoke(event);
+                } catch (ReflectiveOperationException failure) {
+                    throw new AssertionError("payload component " + name + " is not readable", failure);
+                }
+            }
+        }
+        throw new AssertionError("StandardHoursVersionPublished has no payload component " + name);
     }
 
     private UUID newScope() throws Exception {
@@ -174,6 +195,13 @@ class StandardHoursPublishedEventIT extends AcceptanceSupport {
             code.append((char) ('A' + java.util.concurrent.ThreadLocalRandom.current().nextInt(26)));
         }
         return code.toString();
+    }
+
+    private static Map<String, Object> publication(UUID scope, LocalDate effectiveDate, int workdayMinutes, int adjustedWorkdayMinutes) {
+        Map<String, Object> body = publication(scope, effectiveDate);
+        body.put("workdayMinutes", workdayMinutes);
+        body.put("adjustedWorkdayMinutes", adjustedWorkdayMinutes);
+        return body;
     }
 
     private static Map<String, Object> publication(UUID scope, LocalDate effectiveDate) {
