@@ -36,7 +36,7 @@ def run(mq, d):
     directory = os.path.join(d, "gapscan")
     q = mq.Queue(os.path.join(directory, "merge.queue")); q.enqueue(7)
     log = mq.Log(os.path.join(directory, "merge.log"), echo=False)
-    listing = lambda rows: type("L", (), {"open_prs": lambda self: rows})()
+    listing = lambda rows: type("L", (), {"open_prs": lambda self: rows, "merged_prs": lambda self, since: [], "card": lambda self, n: None})()
     assert len(gapscan.scan(listing(prs), q, directory, log, now=now, owners=owners)) == 5 and gapscan.scan(listing(prs), q, directory, log, now=now, owners=owners) == []
     text = open(os.path.join(directory, "gaps.md"), encoding="utf-8").read()
     assert "* #1 [one-a] CONFLICT" in text and text.count("* #") == 5 and sum(" GAPS " in l for l in log.lines) == 1
@@ -49,7 +49,7 @@ def run(mq, d):
         if len(calls) == 1:
             raise RuntimeError("boom")
         return []
-    proc = mq.Processor(type("B", (), {"open_prs": lambda self: boom()})(), q, log, "/repo", sleep=slept.append, lane=lambda g, n: "code", docs_only_fn=lambda f: False)
+    proc = mq.Processor(type("B", (), {"open_prs": lambda self: boom(), "merged_prs": lambda self, since: [], "card": lambda self, n: None})(), q, log, "/repo", sleep=slept.append, lane=lambda g, n: "code", docs_only_fn=lambda f: False)
     mq.run_scan(proc, directory, every=1800, first=60, stop=lambda: len(slept) > 3)
     assert slept[:3] == [60, 1800, 1800] and len(calls) == 3 and any("gap scan: RuntimeError: boom" in l for l in log.lines), "scans on its own clock and survives a failing scan"
     # the owner comes from policy.json sessions.config alone (#856: no aliases); an old or unknown name is reported, not guessed
@@ -113,7 +113,7 @@ def run_cards(mq, d):
     cards[10] = card("open card", "CLOSED", "会话:one-a")
     gh.opened = [open_pr(201, "Refs #15\n")]
     cards[14] = card("held", "OPEN", "会话:one-a")
-    assert [g["pr"] for g in gapscan.scan(gh, q, directory, log, now=later(hours=8), owners=owners)] == [14], "closed, named by an open pull request, released"
+    assert [g["pr"] for g in gapscan.scan(gh, q, directory, log, now=later(hours=8), owners=owners) if g["reason"] == "CARD_OPEN"] == [14], "closed, named by an open pull request, released"
     assert sorted(json.load(open(os.path.join(directory, "gaps.state.json")))["_cards"]) == ["14"]
     # a cut open list, a failing merged list and a failing card read report nothing and move no marker
     cut = Gh([merged(300, "Refs #10\n")], {10: card("c", "OPEN")}, [open_pr(1000 + i, "x") for i in range(gapscan.OPEN_LIMIT)])
@@ -126,9 +126,11 @@ def run_cards(mq, d):
     assert gapscan.scan(unreadable, q, directory, log, now=later(hours=11), owners=owners) == [] and "16" in json.load(open(os.path.join(directory, "gaps.state.json")))["_cards"], "a card gh cannot read stays a candidate"
     # the real Gh against the fake gh binary
     mq_selftest.fake_gh(d, [(["pr", "list", "--state", "merged"], json.dumps([{"number": 1, "body": "Refs #2", "mergedAt": "t"}]), "", 0), (["issue", "view", "2"], json.dumps({"state": "OPEN", "labels": [{"name": "会话:one-a"}], "title": "x"}), "", 0),
-                            (["issue", "view", "3"], "", "down", 1)])
+                            (["issue", "view", "3"], "", "down", 1), (["pr", "list", "--state", "open"], "[]", "", 0)])
     real = mq.Gh()
-    assert real.merged_prs(now) == [{"number": 1, "body": "Refs #2", "mergedAt": "t"}] and real.card(2) == {"state": "OPEN", "labels": ["会话:one-a"], "title": "x"} and real.card(3) is None
+    assert real.merged_prs(now) == [{"number": 1, "body": "Refs #2", "mergedAt": "t"}] and real.card(2) == {"state": "OPEN", "labels": ["会话:one-a"], "title": "x"} and real.card(3) is None and real.open_prs() == []
     calls = [json.loads(l) for l in open(os.environ["FAKE_GH_LOG"]).read().splitlines()]
     assert ["pr", "list", "--state", "merged", "--search", "merged:>=2026-11-04T12:00:00Z", "--limit", str(gapscan.MERGED_LIMIT), "--json", "number,body,mergedAt"] in calls
+    assert ["issue", "view", "2", "--json", "state,labels,title"] in calls
+    assert any(c[:3] == ["pr", "list", "--state"] and c[3] == "open" and ",body," in c[c.index("--json") + 1] for c in calls), "the open list carries the body: the first line of an open pull request names its card"
     mq_selftest.fake_gh(d, [])
