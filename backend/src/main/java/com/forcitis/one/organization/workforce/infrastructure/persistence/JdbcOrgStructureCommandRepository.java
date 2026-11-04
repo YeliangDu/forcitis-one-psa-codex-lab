@@ -89,14 +89,6 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     }
 
     @Override
-    public boolean hasAttributionAfter(OrgUnitId orgUnit, LocalDate day) {
-        return jdbc.sql("""
-                select 1 from organization_workforce.org_unit_legal_entities
-                 where org_unit_id = :unit and superseded_at is null and (effective_from_date >= :day or effective_to_date > :day)
-                """).param("unit", orgUnit.value()).param("day", day).query(Integer.class).optional().isPresent();
-    }
-
-    @Override
     public boolean orgUnitExists(OrgUnitId orgUnit) {
         return jdbc.sql("select 1 from organization_workforce.org_units where id = :id").param("id", orgUnit.value()).query(Integer.class).optional().isPresent();
     }
@@ -294,44 +286,107 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
                 insert into organization_workforce.legal_entity_attributions (attribution_id, org_unit_id, created_at, updated_at)
                 select :id, :unit, :at, :at where not exists (select 1 from organization_workforce.legal_entity_attributions where org_unit_id = :unit)
                 """).param("id", ids.next()).param("unit", orgUnit.value()).param("at", at(at)).update();
+        boolean backdated = jdbc.sql("""
+                select 1 from organization_workforce.org_unit_legal_entities
+                 where org_unit_id = :unit and superseded_at is null and (effective_from_date >= :from or effective_to_date > :from)
+                 limit 1
+                """).param("unit", orgUnit.value()).param("from", from).query(Integer.class).optional().isPresent();
+        if (backdated) {
+            updateBackdatedAttribution(orgUnit, legalEntity, from, command, audit, at);
+            return;
+        }
         jdbc.sql("""
                 update organization_workforce.org_unit_legal_entities set effective_to_date = :from, closed_at = :at, updated_at = :at
                  where org_unit_id = :unit and effective_to_date is null and superseded_at is null and effective_from_date < :from
                 """).param("from", from).param("at", at(at)).param("unit", orgUnit.value()).update();
-        insertPeriod(ids.next(), orgUnit, legalEntity, from, null, command, audit, null, at);
+        insertPeriod(ids.next(), orgUnit, legalEntity, from, null, "COMMAND", command.value(), audit.value(), null, at);
+    }
+
+    /** The new period ends where the period that contained the day ended (a gap after it stays); in a gap it ends at the next period, open when there is none (one-design, #1147 ruling a). */
+    private void updateBackdatedAttribution(OrgUnitId orgUnit, LegalEntityId legalEntity, LocalDate from, OrgStructureCommandId command, AuditEntryId audit, Instant at) {
+        List<AttributionPeriod> voided = jdbc.sql("""
+                update organization_workforce.org_unit_legal_entities set superseded_at = :at, superseding_org_structure_command_id = :command, updated_at = :at
+                 where org_unit_id = :unit and superseded_at is null and effective_from_date <= :from and (effective_to_date is null or effective_to_date > :from)
+                returning org_unit_legal_entity_id, legal_entity_id, effective_from_date, effective_to_date, change_channel_kind,
+                          change_org_structure_command_id, version_audit_entry_id
+                """).param("at", at(at)).param("command", command.value()).param("unit", orgUnit.value()).param("from", from)
+                .query((rs, n) -> attributionPeriod(rs)).list();
+        LocalDate end = voided.isEmpty()
+                ? jdbc.sql("""
+                        select effective_from_date from organization_workforce.org_unit_legal_entities
+                         where org_unit_id = :unit and superseded_at is null and effective_from_date > :from
+                         order by effective_from_date, org_unit_legal_entity_id limit 1
+                        """).param("unit", orgUnit.value()).param("from", from).query(LocalDate.class).optional().orElse(null)
+                : voided.getFirst().to();
+        for (AttributionPeriod period : voided) {
+            if (period.from().isBefore(from)) {
+                insertPeriod(ids.next(), orgUnit, new LegalEntityId(period.legalEntity()), period.from(), from, period.channel(), period.command(), period.audit(), period.id(), at);
+            }
+        }
+        insertPeriod(ids.next(), orgUnit, legalEntity, from, end, "COMMAND", command.value(), audit.value(), null, at);
     }
 
     @Override
     public void voidAttribution(OrgUnitId orgUnit, OrgStructureCommandId command, AuditEntryId audit, Instant at) {
-        record Closed(UUID id, UUID legalEntity, LocalDate from, @Nullable LocalDate commandEnd) {
-        }
-        List<Closed> closedByCommand = jdbc.sql("""
-                select p.org_unit_legal_entity_id, p.legal_entity_id, p.effective_from_date, w.effective_to_date
+        updateCoveredAttributionsForWithdrawal(orgUnit, command, at);
+        List<AttributionPeriod> closedByCommand = jdbc.sql("""
+                select p.org_unit_legal_entity_id, p.legal_entity_id, p.effective_from_date, w.effective_to_date, p.change_channel_kind,
+                       p.change_org_structure_command_id, p.version_audit_entry_id
                   from organization_workforce.org_unit_legal_entities p
                   join organization_workforce.org_unit_legal_entities w on w.org_unit_id = p.org_unit_id and w.effective_from_date = p.effective_to_date
                  where p.org_unit_id = :unit and p.superseded_at is null and w.superseded_at is null and w.change_org_structure_command_id = :command
                    and p.change_org_structure_command_id is distinct from :command
                 """).param("unit", orgUnit.value()).param("command", command.value())
-                .query((rs, n) -> new Closed(rs.getObject(1, UUID.class), rs.getObject(2, UUID.class), rs.getObject(3, LocalDate.class), rs.getObject(4, LocalDate.class))).list();
+                .query((rs, n) -> attributionPeriod(rs)).list();
         jdbc.sql("""
                 update organization_workforce.org_unit_legal_entities set superseded_at = :at, superseding_org_structure_command_id = :command, updated_at = :at
                  where org_unit_id = :unit and superseded_at is null and (change_org_structure_command_id = :command or org_unit_legal_entity_id in (:closed))
                 """).param("at", at(at)).param("command", command.value()).param("unit", orgUnit.value())
-                .param("closed", closedByCommand.isEmpty() ? List.of(command.value()) : closedByCommand.stream().map(Closed::id).toList()).update();
-        for (Closed period : closedByCommand) {
-            insertPeriod(ids.next(), orgUnit, new LegalEntityId(period.legalEntity()), period.from(), period.commandEnd(), command, audit, period.id(), at);
+                .param("closed", closedByCommand.isEmpty() ? List.of(command.value()) : closedByCommand.stream().map(AttributionPeriod::id).toList()).update();
+        for (AttributionPeriod period : closedByCommand) {
+            insertPeriod(ids.next(), orgUnit, new LegalEntityId(period.legalEntity()), period.from(), period.to(), period.channel(), period.command(), period.audit(), period.id(), at);
         }
     }
 
-    private void insertPeriod(UUID id, OrgUnitId orgUnit, LegalEntityId legalEntity, LocalDate from, @Nullable LocalDate to, OrgStructureCommandId command, AuditEntryId audit,
+    private void updateCoveredAttributionsForWithdrawal(OrgUnitId orgUnit, OrgStructureCommandId command, Instant at) {
+        List<AttributionPeriod> covered = jdbc.sql("""
+                select p.org_unit_legal_entity_id, p.legal_entity_id, p.effective_from_date, p.effective_to_date, p.change_channel_kind,
+                       p.change_org_structure_command_id, p.version_audit_entry_id
+                  from organization_workforce.org_unit_legal_entities p
+                 where p.org_unit_id = :unit and p.superseded_at is not null and p.superseding_org_structure_command_id = :command
+                   and not exists (select 1 from organization_workforce.org_unit_legal_entities r where r.corrected_from_version_id = p.org_unit_legal_entity_id)
+                """).param("unit", orgUnit.value()).param("command", command.value()).query((rs, n) -> attributionPeriod(rs)).list();
+        if (covered.isEmpty()) {
+            return;
+        }
+        // Free the command's interval before restoring the covered facts; the exclusion constraint is immediate.
+        jdbc.sql("""
+                update organization_workforce.org_unit_legal_entities set superseded_at = :at, superseding_org_structure_command_id = :command, updated_at = :at
+                 where org_unit_id = :unit and superseded_at is null and change_org_structure_command_id = :command
+                """).param("at", at(at)).param("command", command.value()).param("unit", orgUnit.value()).update();
+        for (AttributionPeriod period : covered) {
+            insertPeriod(ids.next(), orgUnit, new LegalEntityId(period.legalEntity()), period.from(), period.to(), period.channel(), period.command(), period.audit(), period.id(), at);
+        }
+    }
+
+    private record AttributionPeriod(UUID id, UUID legalEntity, LocalDate from, @Nullable LocalDate to, String channel, @Nullable UUID command, @Nullable UUID audit) {
+    }
+
+    private static AttributionPeriod attributionPeriod(ResultSet rs) throws SQLException {
+        return new AttributionPeriod(rs.getObject("org_unit_legal_entity_id", UUID.class), rs.getObject("legal_entity_id", UUID.class), rs.getObject("effective_from_date", LocalDate.class),
+                rs.getObject("effective_to_date", LocalDate.class), rs.getString("change_channel_kind"), rs.getObject("change_org_structure_command_id", UUID.class),
+                rs.getObject("version_audit_entry_id", UUID.class));
+    }
+
+    private void insertPeriod(UUID id, OrgUnitId orgUnit, LegalEntityId legalEntity, LocalDate from, @Nullable LocalDate to, String channel, @Nullable UUID command, @Nullable UUID audit,
                               @Nullable UUID correctedFrom, Instant at) {
         jdbc.sql("""
                 insert into organization_workforce.org_unit_legal_entities (org_unit_legal_entity_id, org_unit_id, legal_entity_id, effective_from_date, effective_to_date,
                        closed_at, change_channel_kind, change_org_structure_command_id, version_audit_entry_id, corrected_from_version_id, created_at, updated_at)
-                values (:id, :unit, :legalEntity, :from, :to, :closedAt, 'COMMAND', :command, :audit, :correctedFrom, :at, :at)
+                values (:id, :unit, :legalEntity, :from, :to, :closedAt, :channel, :command, :audit, :correctedFrom, :at, :at)
                 """)
                 .param("id", id).param("unit", orgUnit.value()).param("legalEntity", legalEntity.value()).param("from", from).param("to", to, Types.DATE)
-                .param("closedAt", to == null ? null : at(at), Types.TIMESTAMP_WITH_TIMEZONE).param("command", command.value()).param("audit", audit.value())
+                .param("closedAt", to == null ? null : at(at), Types.TIMESTAMP_WITH_TIMEZONE).param("channel", channel).param("command", command, Types.OTHER).param("audit", audit, Types.OTHER)
                 .param("correctedFrom", correctedFrom, Types.OTHER).param("at", at(at)).update();
     }
 
