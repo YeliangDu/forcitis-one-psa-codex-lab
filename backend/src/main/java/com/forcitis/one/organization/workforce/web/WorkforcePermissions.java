@@ -4,7 +4,6 @@ package com.forcitis.one.organization.workforce.web;
 final class WorkforcePermissions {
     static final String EMPLOYEE_READ = "organization.workforce:employee:read";
     static final String ORG_UNIT_READ = "organization.workforce:org-unit:read";
-    static final String ORG_RECONCILIATION_EXECUTE = "organization.workforce:org-reconciliation:execute";
     static final String SEPARATION_HOLD_APPROVE = "organization.workforce:separation-hold:approve";
     static final String PERSONNEL_COMMAND_CREATE = "organization.workforce:personnel-command:create";
     static final String LEGAL_ENTITY_UPDATE = "organization.workforce:legal-entity:update";
