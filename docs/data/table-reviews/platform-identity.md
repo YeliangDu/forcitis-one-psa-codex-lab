@@ -1,5 +1,7 @@
 # 数据设计审查：platform_identity（13 张表）
 
+> 冻结（2026-11-04，#1263）：表审查记录，已完成，不再更新。
+
 - 审查：one-data 子代理，2026-10-16；基线 `backend/src/main/resources/db/migration/platform_identity/V20261014130000__platform_identity_baseline.sql`（366 行，下称「迁移」）。
 - 标尺：门禁清单。本分支的 `DATA_DESIGN_GATE.md` 是旧版（无 B0、B3a、O15、附录 C），实际按 `claude/one-data-gate-v2` 分支的版本（`git show` 只读）判定。
 - 整表不适用并视同通过：A1–A8（无分析事实）、O11（无大表，保留期均短）、O13（不进过账、不受法人 × 期间闸门）、A6 / D7（无业务单据）、E2 / E3（无读模型、无迁入映射）、T 系列（基线开放期，随库重建）。

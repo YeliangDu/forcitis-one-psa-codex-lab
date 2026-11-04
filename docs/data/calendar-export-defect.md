@@ -1,5 +1,7 @@
 # C-6 日历导出缺陷：影响复核（one-data，2026-10-17）
 
+> 冻结（2026-11-04，#1263）：缺陷复核记录，不再更新；导出 SQL 现为 `docs/ops/runbooks/sql/legacy-readonly-export.sql`。
+
 起因：one-ops 发现 `c6_legacy_readonly_export.sql` STEP 3 的 HOLIDAY 条件写成 `workday = 0`，而老系统取值是 1 上班 / 2 休息，导出的 `legacy-calendar.csv` 因此没有任何法定假日，只有 65 个调休日。派工人：one-coordinator。本页只读仓库做影响复核，没有连任何数据库（生产取证不在本页范围）。
 
 ## 1. 缺陷确认与范围
