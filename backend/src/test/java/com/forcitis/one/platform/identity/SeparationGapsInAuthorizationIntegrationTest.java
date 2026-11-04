@@ -135,7 +135,8 @@ class SeparationGapsInAuthorizationIntegrationTest extends IdentityIntegrationTe
 
         MvcResult confirmed = confirm(second, requestId);
 
-        assertThat(confirmed.getResponse().getStatus()).as(confirmed.getResponse().getContentAsString()).isGreaterThanOrEqualTo(400);
+        assertThat(confirmed.getResponse().getStatus()).as(confirmed.getResponse().getContentAsString()).isEqualTo(403);
+        assertThat(body(confirmed).path("errorCode").asString()).isEqualTo("PLATFORM_IDENTITY_EMPLOYEE_SEPARATED");
         assertThat(holds(1005, "security_auditor")).isFalse();
     }
 
@@ -166,7 +167,8 @@ class SeparationGapsInAuthorizationIntegrationTest extends IdentityIntegrationTe
 
         MvcResult confirmed = confirm(second, requestId);
 
-        assertThat(confirmed.getResponse().getStatus()).as(confirmed.getResponse().getContentAsString()).isGreaterThanOrEqualTo(400);
+        assertThat(confirmed.getResponse().getStatus()).as(confirmed.getResponse().getContentAsString()).isEqualTo(403);
+        assertThat(body(confirmed).path("errorCode").asString()).isEqualTo("PLATFORM_IDENTITY_EMPLOYEE_SEPARATED");
         assertThat(holds(1001, "security_auditor")).isFalse();
     }
 
@@ -181,7 +183,8 @@ class SeparationGapsInAuthorizationIntegrationTest extends IdentityIntegrationTe
 
         MvcResult confirmed = confirm(second, requestId);
 
-        assertThat(confirmed.getResponse().getStatus()).as(confirmed.getResponse().getContentAsString()).isGreaterThanOrEqualTo(400);
+        assertThat(confirmed.getResponse().getStatus()).as(confirmed.getResponse().getContentAsString()).isEqualTo(403);
+        assertThat(body(confirmed).path("errorCode").asString()).isEqualTo("PLATFORM_IDENTITY_EMPLOYEE_SEPARATED");
         assertThat(holds(1001, "security_auditor")).isFalse();
     }
 }

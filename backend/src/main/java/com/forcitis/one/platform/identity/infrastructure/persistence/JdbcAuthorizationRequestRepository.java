@@ -78,7 +78,7 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
                 select
                 """ + COLUMNS + """
                  from platform_identity.authorization_requests
-                where request_status = 'PENDING' and (subject_user_id = :user or requested_by = :user) order by requested_at
+                where request_status = 'PENDING' and (subject_user_id = :user or requested_by = :user) order by requested_at for update
                 """)
                 .param("user", user.value())
                 .query((rs, n) -> row(rs)).list());
