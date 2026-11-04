@@ -13,13 +13,13 @@ External input: user-supplied plan R001, 2026-11-04 (six contexts, 21 aggregates
 | 1 | Performance (AGG-106) | **Own bounded context**, not workforce, not payroll | New ADR-0084 (proposed) partly supersedes ADR-0079 | Free today (no code). Built inside workforce first: items 1–8 of section 2.3 |
 | 2a | Recruitment | **Own bounded context**; candidates never enter `employees` | ADR-0085 (proposed; separate from ADR-0084 because the two can be adopted separately) | Free today; highest of all zones once built inside workforce |
 | 2b | Labour contract + employer entity | **Stays in workforce**; employer entity is its own dated dimension with its own names | ADR-0079 stands | Low if the names are kept apart now |
-| 2c | Practice certificates | **Stays in workforce** under split-ready conditions | ADR-0084 (conditions only) | Moderate; low if the conditions hold |
-| 2d | Skills | Placement **not decided now**; whether and when is business scope (B3) | ADR-0079 stands as default; ADR-0084 conditions apply at build | Zero code, zero A8 evidence |
+| 2c | Practice certificates | Built with skills as one competency zone (user answer B3, lead B4); placement as row 2d | decided with the F5 card | Moderate; low if built to the split-ready conditions |
+| 2d | Skills (and certificates, after B3/B4) | User answer: skills are built now, certificates with them as one competency zone. Placement: by ADR-0084 criteria the zone fails the "same driver, actors, consumer" test, so **recommended: own context**, decided with its design card (follow-up F5) | ADR-0079 stands as default until that card's ADR | Zero code, zero A8 evidence for skills |
 | 2e | "Split later = move packages and tables" | **False** for this code base | ADR-0084 replaces the sentence | See section 2.3 |
 | 3 | Standard hours owner | `organization.attendance`, AGG-108; timesheet holds no parameter today, so there is nothing to switch | ADR-0079 stands | Low; high only if timesheet ships its own parameter first |
 | 4 | Overtime/comp-time seam vs RULE-412 | RULE-412 and FD2-05 win; ADR-0079 decision 4 row 6 is read together with RULE-412: timesheet does not subscribe to overtime approval | ADR-0079 stands + erratum E-012 | Low |
 | 5 | Leave→payroll seam | Owners fixed in section 6; seven open items must close before payroll design | ADR-0079 stands | Low |
-| 6 | Plan R001 mapping, G04 | Every G-aggregate has a home; four have no aggregate in `planned.yaml`; G04 is **not** an own aggregate now, with a named trigger | No new ADR | G04 retrofit is the most expensive change in this note (section 7.3) |
+| 6 | Plan R001 mapping, G04 | Every G-aggregate has a home; four have no aggregate in `planned.yaml`. **G04: option (b), an own employment-relationship aggregate, because the user confirmed concurrent employment by two legal entities exists today (B5)**; design card before the employment-type card | No ADR yet: the G04 design card will need one that partly supersedes ADR-0079 decision 3 item 1 and invariants 1 and 4 | Retrofit later is the most expensive change in this note (7.3); deciding now is cheap |
 
 ## 1. Method and independence
 
@@ -219,20 +219,22 @@ Options:
 - (b) Add the plan's relationship aggregate between employee and versions: `employee -> relationship(period, employer, type) -> versions`. It gives a stable id per stint and allows overlap.
 - (c) Put employer and type on the contract. Fails: interns, retirees and dispatched staff have no labour contract.
 
-**Ruling: (a) now, with a trigger.** (b) buys exactly one thing, overlap (a stint id is derivable from a run of versions), and no evidence of overlapping employment exists in our population [U]. Cost of (b) later is the highest in this note: `employee_versions` gains a relationship key, personnel commands and events target a relationship, and the single in-service judgement (ADR-0079 invariant 1, consumed by identity, approval, timesheet) must be rewritten around it. **Trigger:** the user says one person can be employed by two employers (for example two group entities) at once, or an externally settled professional is to be modelled as an employee. It must be answered **before the card that builds the employment type** (B5); that card is the last cheap point to choose. A read-only aggregate fact fork exists if lead wants evidence first (B5, option 2).
+**Ruling (revised on 2026-11-04 after user answer B5): option (b).** The trigger below was met the same day: the user confirmed that one person is employed by two legal entities at once and that this exists today (the second entity keeps its enterprise qualification). The overlap case is therefore a present fact, not a possibility, and (a) cannot hold it. A design card for the relationship aggregate comes **before the card that builds the employment type** (follow-up F1). Original ruling (a) with its trigger, kept for history: "(b) buys exactly one thing, overlap; no evidence of overlapping employment exists [U]; trigger: the user says one person can be employed by two employers at once; it must be answered before the employment-type card." The cost reasoning stands and now argues for deciding early: retrofitting `employee_versions` with a relationship key, retargeting personnel commands and events, and rewriting the single in-service judgement (ADR-0079 invariant 1, consumed by identity, approval, timesheet) is the highest cost in this note, and nothing of it is built yet in the employment-type or employer dimension.
 
-## 8. Questions and findings for lead (none decided here)
+Questions the F1 design card must settle (none decided here; those that are business go to the user through lead): (i) the in-service judgement per person versus per relationship: identity login release, approval approver resolution and timesheet filing each consume `EmploymentStatus` by employee today; (ii) which relationship is primary for data scope and the cost entity (ADR-0073, ADR-0079 invariant 4); (iii) whether leave entitlement, social insurance and withholding are per relationship or per person (a business and legal question for the user); (iv) employee id and code stay per person for life (ADR-0078) unless the card shows otherwise; (v) how the employer entity attaches to the relationship; (vi) a new ADR that partly supersedes ADR-0079 decision 3 item 1 and invariants 1 and 4.
+
+## 8. Questions and findings for lead (history; all of B1–B6 answered, see 8a)
 
 Business questions, with options and recommendation:
 
 | # | Question | Options | Recommendation |
 |---|---|---|---|
-| B1 | Is recruitment built at all, and in which stage? ADR-0079 lists it as capability C2, the stage is unset | (a) not in W0–W4; (b) after W4; (c) earlier | No preference: scope is the user's. Technical default if built: own context (Q2a) |
-| B2 | Do evaluation results decide bonus amounts, and how? The repo has only a label, no field-level link | (a) yes, by a rule the user states; (b) results are records only, bonus stays manual; (c) read the A8 forms' definitions (aggregate, read-only, same shape as `leave-quota-l0.sql`) to find the link | (c) first, then ask |
-| B3 | Skills catalogue and assessment (C22, user Q13 C): when, and who consumes it (delivery resource plan)? | (a) with the delivery resource plan; (b) after W4; (c) drop | (a): build with its consumer |
-| B4 | Practice certificates: where do they live today and at what volume? The dat1020 result was never committed | (a) rerun `dat1020-discover.sql`, aggregates only; (b) defer certificates until delivery sign-off (INV-47) needs them | (a) |
-| B5 | Can one person be employed by two employers at once, or do externally settled professionals count as employees? Decides G04 (7.3) | (1) no, ever: (a) stays; (2) unknown: aggregate query over the legacy employee archive (count of people with two concurrent employers, no names); (3) yes: open a design card for (b) before the employment-type card | (2), then decide |
-| B6 | Is the employer entity in scope now (labour contract, ADR-0079 C5/C6)? Leave RULE-515 and payroll social insurance wait for it | (a) now, with the leave slices; (b) with payroll W4; (c) leave scope stays "all entities" | (a) or (b); the user decides |
+| B1 | **Answered (user): recruitment is built; stage not stated.** | Is recruitment built at all, and in which stage? ADR-0079 lists it as capability C2, the stage is unset | (a) not in W0–W4; (b) after W4; (c) earlier | No preference: scope is the user's. Technical default if built: own context (Q2a) |
+| B2 | **Answered (user): results decide bonus; rule not stated, F4 first.** | Do evaluation results decide bonus amounts, and how? The repo has only a label, no field-level link | (a) yes, by a rule the user states; (b) results are records only, bonus stays manual; (c) read the A8 forms' definitions (aggregate, read-only, same shape as `leave-quota-l0.sql`) to find the link | (c) first, then ask |
+| B3 | **Answered (user): skills now.** | Skills catalogue and assessment (C22, user Q13 C): when, and who consumes it (delivery resource plan)? | (a) with the delivery resource plan; (b) after W4; (c) drop | (a): build with its consumer |
+| B4 | **Answered (lead, delegated): rerun now (F3); certificates with skills.** | Practice certificates: where do they live today and at what volume? The dat1020 result was never committed | (a) rerun `dat1020-discover.sql`, aggregates only; (b) defer certificates until delivery sign-off (INV-47) needs them | (a) |
+| B5 | **Answered (user): yes, exists today; option (3), design card F1.** | Can one person be employed by two employers at once, or do externally settled professionals count as employees? Decides G04 (7.3) | (1) no, ever: (a) stays; (2) unknown: aggregate query over the legacy employee archive (count of people with two concurrent employers, no names); (3) yes: open a design card for (b) before the employment-type card | (2), then decide |
+| B6 | **Answered (lead, delegated): now, with the leave slices (F2).** | Is the employer entity in scope now (labour contract, ADR-0079 C5/C6)? Leave RULE-515 and payroll social insurance wait for it | (a) now, with the leave slices; (b) with payroll W4; (c) leave scope stays "all entities" | (a) or (b); the user decides |
 
 Findings and actions that are not business questions:
 
@@ -242,6 +244,31 @@ Findings and actions that are not business questions:
 | R2 | `planned.yaml` AGG-62 candidate stage and `contexts.yaml` notes of payroll/incentive contradict ADR-0079 decision 2 and, after adoption, ADR-0084 | SSOT follow-up card after ADR-0084 is adopted (the ADR must not be cited as decided before) |
 | R3 | ADR-0079 cites deleted attachments | Erratum E-013 (section 9) |
 | R4 | The timesheet seam guard card ("card B") and the standard-hours card ("card A") are drafted in lead's notes; neither opens before PR #1283 merges | no new action |
+
+## 8a. User answers 2026-11-04
+
+Source: issue comment https://github.com/FORCITIS/forcitis-one-psa/issues/1295#issuecomment-6638890281 (user's words verbatim there: 「招聘做；绩效结果决定奖金；技能现在做；执业证书听你建议；一个人可以同时受雇两个法人（目前就存在，另一家法人为了维护企业资质）；用人单位什么时间做听你建议，宜早不宜迟，除非现在功能不清楚」). B4 and B6 were delegated by the user to lead.
+
+| # | Answer | What it changes in this note |
+|---|---|---|
+| B1 | Recruitment is built (user). Stage not stated | ADR-0085 stays the route; "whether" is settled, "when" is open |
+| B2 | Performance results decide bonus (user); the rule itself is open | The performance-to-bonus link is now a business fact, not a label. Edge `payroll -> performance (api)` of ADR-0084 stands. The rule goes to the user after the aggregate read of the A8 forms (F4) |
+| B3 | Skills are built now (user) | Skills enter the first build wave; placement is decided with certificates (F5) |
+| B4 | Lead: rerun `dat1020-discover.sql` now (aggregates only); certificates are built with skills | One competency zone for skills and certificates. Recommendation on placement: own context, because by the ADR-0084 criteria its driver (delivery staffing, professional regulators), actors (employee reports, qualification administrator) and consumers (delivery acceptance and resource plan) differ from the employee record, and it needs no workforce write transaction. The F5 card decides it and carries the ADR, so the ADR-0084 conditions are not enough for this zone |
+| B5 | Yes: one person is employed by two legal entities at once, today (user) | G04 option (b) (7.3). The employer entity (B6) becomes an attribute of the relationship, so F2 depends on F1's shape. ADR-0079 invariant 1 and decision 3 item 1 will need a partial supersession by the F1 ADR |
+| B6 | Lead: employer entity now, with the leave slices | Leave RULE-515 scope "all entities" is a stop-gap only until F2; the employer entity is not an add-on after payroll |
+
+### Follow-up cards these answers create (lead opens them after #1299 merges)
+
+| # | Card | One line |
+|---|---|---|
+| F1 | design: employment relationship (G04 option b) | Aggregate between employee and versions, many per person, overlap allowed; settles questions (i)–(vi) of 7.3 and writes the ADR that partly supersedes ADR-0079 decision 3 item 1 and invariants 1 and 4; must precede the employment-type card |
+| F2 | design: employer entity | The dated employer dimension (own table, api, event, names via glossary) as part of F1's relationship; unblocks leave RULE-515 and payroll social insurance; shares card C of lead's leave notes |
+| F3 | evidence: dat1020 rerun | Rerun `docs/data/evidence/dba-handoff/dat1020-discover.sql`, aggregates only, result summary into the repo (no rows) |
+| F4 | evidence: A8 performance-to-bonus read | Aggregate read of the monthly-evaluation forms (formmain_1140, 1275, 1270) and the bonus forms to find the link; then the exact rule goes to the user |
+| F5 | design: competency zone (skills and certificates) | Placement (recommended: own context), aggregates (G18–G21 and AGG-66), the consumer reads for delivery, and the ADR; uses the F3 result |
+
+Other actions from this note stay as listed in section 8 (R1–R4) and section 9. ADR-0084 and ADR-0085 stay proposals until the user adopts them.
 
 ## 9. Rulings and errata proposed in this PR
 
