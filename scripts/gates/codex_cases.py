@@ -53,6 +53,9 @@ REFUSED = [
     # a harmless program told to run it
     "git -c alias.x='!codex exec y' x", "git -c core.pager=codex log", "git config alias.x '!codex exec y'", "GIT_PAGER=codex git log", "rg --pre codex x", "sort --compress-program=codex x",
     "git ls-remote --upload-pack codex origin",
+    # review of #1206: eval joins its arguments, any !-alias is refused whatever its quoting, the pre-filter sees quotes stripped
+    "eval 'true #' 'cat <<E\ncodex exec y\nE'", 'eval "$(echo codex) exec x"', 'X=codex; eval "$X exec x"', "bash <<E\n$(echo codex) exec x\nE",
+    "git -c 'alias.x=!c\"o\"dex exec y' x", "git -c 'alias.x=! codex exec y' x", "git config alias.x '! codex exec y' && git x", "git config alias.x '!c\"o\"dex exec y' && git x",
 ]
 
 PREFILTER_ALLOWS = [

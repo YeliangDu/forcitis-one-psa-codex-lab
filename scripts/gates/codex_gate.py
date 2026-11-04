@@ -15,7 +15,7 @@ python、node、perl、ruby、php、lua、awk 的内联代码里出现 codex 仍
 数据类程序被告知去运行它也拒：git -c <键>=<值>、rg --pre、sort --compress-program 这类选项的值，GIT_PAGER=codex 这类前置变量，!codex 形式的别名（names_command）。
 命令文本上看不到的（脚本文件里写的、拼接出来的名字）门放行，与生产写门同一立场；解析不了的命令：文本里有 codex 就拒，没有就放行。
 放行与拒绝的用例在 codex_cases.py，主门与 settings.json 的预筛共用；预筛（门崩溃时才跑）可以比门多拒，不可少拒。
-门本身出错（导入失败、崩溃、超时）由 pre_tool_dispatch 退出码 3 交给 settings.json 的预筛，预筛见 codex 字样就拒（失败关闭）。
+门本身出错（导入失败、崩溃、超时）由 pre_tool_dispatch 退出码 3 交给 settings.json 的预筛，预筛拒 codex 的执行用法和看不出是否执行的（失败关闭），文本里的字样放行。
 用法：codex_gate.py --self-test（自测在 gates_selftest.py 的 codex_gate 段）
 """
 import fnmatch
@@ -414,7 +414,7 @@ def static_text(name, cmd, nxt):
             return False   # a script file or a positional word first: not a text given here
         if "c" in t[1:]:
             return k + 1 < len(args) and not args[k + 1].expands and not cmd.bodies
-    return bool(cmd.bodies) and not any("$" in b or "`" in b for b in cmd.bodies)
+    return bool(cmd.bodies)
 
 
 def names_command(cmd, name, nxt):
@@ -430,6 +430,8 @@ def names_command(cmd, name, nxt):
         elif t in CMD_OPTS or (name == "git" and t in ("-c", "--config-env")):
             value = words[i + 1] if i + 1 < len(words) else ""
         elif re.search(r"(^|=)!", t):
+            if name == "git" and (re.match(r"alias\.[^=]*=!", t) or (i and re.match(r"alias\.", words[i - 1]))):
+                return True   # git runs a !-alias through sh: its quoting (c"o"dex) is not judged here, any such alias is refused
             value = t
         else:
             continue
@@ -487,6 +489,8 @@ def uses_in(text, depth=0):
             if any(not re.search(r"\s", t) and (could_be_codex(t) or ("=" in t and could_be_codex(t.split("=", 1)[1]))) for t in texts):   # codex (or a brace or glob spelling of it) as a word of its own, or as the value of x=codex; a string with blanks is text, read by the loop below
                 found.append(Use("indirect"))
             else:
+                if name == "eval":   # eval runs its arguments joined by blanks: one script, a # in one argument comments out the start of the next
+                    texts = [prog.text, " ".join(w.text for w in cmd.words[nxt:])] + cmd.bodies
                 for t in texts[1:]:   # a shell string, an eval or trap argument, a script on stdin: read as a script of its own (every string of a shell or eval: a glob spelling of the name is no TOKEN)
                     if name in SHELLS or name == "eval" or TOKEN.search(bare(t)):
                         inner, inner_dynamic = nested_uses(t, depth + 1)
