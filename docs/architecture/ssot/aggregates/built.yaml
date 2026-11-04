@@ -365,6 +365,7 @@ aggregates:
   - AuthorizationRequestView
   - AuthorizationVoiding
   - ConfirmAuthorizationRequest
+  - ListAuthorizationRequests
   - RejectAuthorizationRequest
   - ReplaceAccountRoles
   events:
@@ -516,6 +517,7 @@ aggregates:
   - DeleteRole
   - ForceUserLogout
   - GrantRoleByOperations
+  - ListAuthorizationRequests
   - OrgUnitScopes
   - PermissionAdjustmentEscalationNotice
   - ReplaceAccountRoles
