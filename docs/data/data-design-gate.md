@@ -60,7 +60,7 @@
 
 ## 2. 术语
 
-- **信息图**：已不在树内的 `architecture/proposals/ENTERPRISE_INFO_MAP_DRAFT.md`（见 git 历史）（列：关键状态、主要关系与基数、关键规则、产生的事实；这些列写的是业务概念与关键项，**不是**完整状态集与完整不变量）。信息图仍是草案，采纳后以正式位置为准。
+- **信息图**：`docs/architecture/ssot/objects/enterprise-info-map.md`（列：关键状态、主要关系与基数、关键规则、产生的事实；这些列写的是业务概念与关键项，**不是**完整状态集与完整不变量）。
 - **注册表**：`backend/architecture/data-access-registry.yaml`。其中本清单要求登记而**现在没有的字段**见 §6 DG-0；字段建成前，对应信息写在卡「数据设计」一节同名小节，视为已登记。
 - **预期 diff**：卡 §7 的表结构预期差异。
 
