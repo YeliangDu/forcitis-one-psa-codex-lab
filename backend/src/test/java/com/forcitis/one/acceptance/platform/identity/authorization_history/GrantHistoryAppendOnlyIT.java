@@ -37,6 +37,7 @@ class GrantHistoryAppendOnlyIT {
         db.close();
     }
 
+    // RULE-443
     @Test
     @DisplayName("0034-G1-01 两张新表各有开放行与已关闭行：DELETE 与 TRUNCATE 均被触发器 refuse_history_rewrite 以 restrict_violation（23001）拒绝")
     void deleteAndTruncateAreRefusedOnBothTables() throws SQLException {
@@ -62,6 +63,7 @@ class GrantHistoryAppendOnlyIT {
         assertThat(db.count("select count(*) from platform_identity.account_role_grants where user_id = ?", account)).isEqualTo(2);
     }
 
+    // RULE-443
     @Test
     @DisplayName("0034-G1-02 已关闭的角色版本与已关闭的授予行：任何 UPDATE（含关闭列、updated_at、原值写回）都被 refuse_history_rewrite 以 23001 拒绝")
     void aClosedRowNeverChanges() throws SQLException {
@@ -91,6 +93,7 @@ class GrantHistoryAppendOnlyIT {
                 + " revocation_audit_entry_id = null" + grant, revoked);
     }
 
+    // RULE-444
     @Test
     @DisplayName("0034-G1-03 开放的角色版本：改 role_id、permission_codes、role_name 等关闭列以外的列被 23001 拒；只改 updated_at 被拒；关闭时夹带改名被拒；只写 effective_to_at 与 updated_at 关闭成功；再改一次被拒")
     void anOpenVersionCanOnlyBeClosedOnce() throws SQLException {
@@ -120,6 +123,7 @@ class GrantHistoryAppendOnlyIT {
         db.refusedByTrigger(REWRITE, "update platform_identity.role_versions set effective_to_at = ?::timestamptz, updated_at = ?::timestamptz" + where, T2, T2, current);
     }
 
+    // RULE-444
     @Test
     @DisplayName("0034-G1-03 角色删除：开放版本同时写 effective_to_at、closed_by、closure_reason、closure_audit_entry_id、updated_at 关闭成功；再改一次被 23001 拒")
     void anOpenVersionIsClosedByDeletingTheRole() throws SQLException {
@@ -136,6 +140,7 @@ class GrantHistoryAppendOnlyIT {
         db.refusedByTrigger(REWRITE, close, T2, deleter, "role deleted again", UUID.randomUUID(), T2, current);
     }
 
+    // RULE-444
     @Test
     @DisplayName("0034-G1-03 开放授予：改 role_id、grant_channel_kind、user_id 等关闭列以外的列被 23001 拒；只改 updated_at 被拒；收回时夹带改渠道被拒；同时写 effective_to_at 与收回列成功；再改一次被拒")
     void anOpenGrantCanOnlyBeRevokedOnce() throws SQLException {
@@ -191,6 +196,7 @@ class GrantHistoryAppendOnlyIT {
                 .isEqualTo(2);
     }
 
+    // RULE-444
     @Test
     @DisplayName("0034-G1-04 开放授予只置 effective_to_at、不写 revocation_cause_kind 与审计条目 ID：通过触发器后被成对 CHECK ck_account_role_grants_revocation（23514）拒；只缺审计条目 ID 或只缺原因亦被拒")
     void revokingWithoutCauseAndAuditEntryIsRefusedByThePairedCheck() throws SQLException {
@@ -215,6 +221,7 @@ class GrantHistoryAppendOnlyIT {
                 .as("the grant is still current").isEqualTo(1);
     }
 
+    // RULE-445
     @Test
     @DisplayName("0034-G1-05 角色没有开放版本（从无版本，或唯一版本已关闭即已删除）：插入该角色的授予被 BEFORE INSERT 触发器 require_open_role_version 以 23001 拒；有开放版本的角色可授予")
     void aRoleWithoutCurrentVersionCannotBeGranted() throws SQLException {

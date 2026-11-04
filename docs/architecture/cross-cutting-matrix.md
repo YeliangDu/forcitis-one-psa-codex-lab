@@ -1,3 +1,5 @@
+> 冻结（2026-11-04）：横切关注点矩阵，不再更新；已答事项的一部分落在 ADR-0031、0043、0045、0046、0053、0060，现行规则见 `docs/rules/coding-standard.md`，现行决定见 `docs/adr/current.md`。
+
 # 横切关注点矩阵
 
 日期：2026-10-14 · 会话：one-crosscut（由 one-coordinator 派出）· 决定单：`CROSS_CUTTING_DECISIONS.md`

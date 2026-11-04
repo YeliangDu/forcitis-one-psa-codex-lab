@@ -1,5 +1,7 @@
 # W2 PR-B DDL 草案复核（employee_versions 加入职日期、personnel_commands、employees 收窄第一步）
 
+> 冻结（2026-11-04，#1263）：复审记录，不再更新。
+
 - 复核：one-data，2026-10-22；草案：claude/one-1a-par-w2-versions @0adc05a6d `data/W2_PR_B_EMPLOYEE_VERSIONS_DDL_DRAFT.md`；依据：W2 设计第 4 版 §2、§3.1、§3.2，`EMPLOYMENT_START_DATE_OPINION.md` §1、§5，ADR-0068 附件。
 - 结论：**数据设计：通过，附三项改动（下 C1–C3）**；改完在 PR 的预期表结构 diff 里体现，我复核实际 diff 后签表结构 PR。
 

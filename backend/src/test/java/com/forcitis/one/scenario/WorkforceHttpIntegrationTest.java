@@ -115,6 +115,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                 "GET /api/v1/organization/separation-holds", "GET /api/v1/organization/separation-holds/{separationHoldId}");
     }
 
+    // RULE-484
     @Test
     @DisplayName("the org tree lists parents first with string ids; revoked units only on request")
     void orgTree() throws Exception {

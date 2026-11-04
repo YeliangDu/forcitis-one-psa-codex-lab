@@ -52,6 +52,7 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
         return com.forcitis.one.platform.integration.api.DeliverySubject.of(com.forcitis.one.platform.integration.api.DeliveryPurpose.TASK_ASSIGNED, task.value());
     }
 
+    // RULE-499
     @Test
     @DisplayName("Q-3 one card to every candidate, with the dedup key and a link to the task; no broadcast fields exist on the card")
     void everyCandidateGetsTheCard() {
@@ -75,6 +76,7 @@ class TaskNotificationIT extends ApprovalIntegrationSupport {
         assertThat(card.title() + card.description()).doesNotContain("cost_timesheet_approval").doesNotContain("timesheet:");
     }
 
+    // RULE-499
     @Test
     @DisplayName("Q-3 a claim marks the SAME card handled by the claimer and sends no further reminder")
     void claimMarksTheCardHandled() {

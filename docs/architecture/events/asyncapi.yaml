@@ -161,6 +161,11 @@ channels:
     messages:
       PermissionAdjustmentAdjusted:
         $ref: '#/components/messages/PermissionAdjustmentAdjusted'
+  permissionAdjustmentClosedBySeparation:
+    address: platform.identity.PermissionAdjustmentClosedBySeparation
+    messages:
+      PermissionAdjustmentClosedBySeparation:
+        $ref: '#/components/messages/PermissionAdjustmentClosedBySeparation'
   permissionAdjustmentExpired:
     address: platform.identity.PermissionAdjustmentExpired
     messages:
@@ -660,6 +665,13 @@ operations:
     summary: platform.identity 发布
     messages:
     - $ref: '#/channels/roleRevised/messages/RoleRevised'
+  handleRoleRevisedInPlatformIdentity:
+    action: receive
+    channel:
+      $ref: '#/channels/roleRevised'
+    summary: platform.identity 消费
+    messages:
+    - $ref: '#/channels/roleRevised/messages/RoleRevised'
   publishRoleEnabled:
     action: send
     channel:
@@ -849,6 +861,20 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/permissionAdjustmentAdjusted/messages/PermissionAdjustmentAdjusted'
+  publishPermissionAdjustmentClosedBySeparation:
+    action: send
+    channel:
+      $ref: '#/channels/permissionAdjustmentClosedBySeparation'
+    summary: platform.identity 发布
+    messages:
+    - $ref: '#/channels/permissionAdjustmentClosedBySeparation/messages/PermissionAdjustmentClosedBySeparation'
+  handlePermissionAdjustmentClosedBySeparationInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/permissionAdjustmentClosedBySeparation'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/permissionAdjustmentClosedBySeparation/messages/PermissionAdjustmentClosedBySeparation'
   publishPermissionAdjustmentExpired:
     action: send
     channel:
@@ -1402,6 +1428,13 @@ operations:
     summary: organization.workforce 发布
     messages:
     - $ref: '#/channels/orgUnitDissolved/messages/OrgUnitDissolved'
+  handleOrgUnitDissolvedInPlatformIdentity:
+    action: receive
+    channel:
+      $ref: '#/channels/orgUnitDissolved'
+    summary: platform.identity 消费
+    messages:
+    - $ref: '#/channels/orgUnitDissolved/messages/OrgUnitDissolved'
   publishOrgUnitAttributesSet:
     action: send
     channel:
@@ -1414,6 +1447,13 @@ operations:
     channel:
       $ref: '#/channels/orgUnitMerged'
     summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/orgUnitMerged/messages/OrgUnitMerged'
+  handleOrgUnitMergedInPlatformIdentity:
+    action: receive
+    channel:
+      $ref: '#/channels/orgUnitMerged'
+    summary: platform.identity 消费
     messages:
     - $ref: '#/channels/orgUnitMerged/messages/OrgUnitMerged'
   publishOrgUnitReparented:
@@ -2639,13 +2679,13 @@ components:
         aggregate: Role
         idempotencyKey: eventId
         publisher: platform.identity
-        consumers: []
+        consumers:
+        - platform.identity
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
         audit: 'not-audited: role-version.opened/closed 同事务直写（A-6）'
         publisherTest: com.forcitis.one.platform.identity.domain.IdentityStateMachineTest
-        noConsumer: 暂无消费方：数据权限（ADR-0026）与会话缓存失效将订阅；现在就发布，是因为授权变化只在发生当时可被记录，补不回
       payload:
         type: object
         required:
@@ -3122,9 +3162,12 @@ components:
         - envelope
         - permissionAdjustmentId
         - userId
+        - roleId
+        - orgUnitId
         - kind
         - originKind
         - triggerPersonnelCommandId
+        - triggerOrgStructureCommandId
         - triggerFieldKind
         - beforeOrgUnitId
         - afterOrgUnitId
@@ -3143,7 +3186,20 @@ components:
             type: string
             x-type: UserId
             format: uuid
-            description: 稳定 ID 的字符串形式
+            nullable: true
+            description: 条目关于的人的账号；关于角色的条目（部门停用或撤销）为空
+          roleId:
+            type: string
+            x-type: RoleId
+            format: uuid
+            nullable: true
+            description: 条目关于的角色；只有部门停用或撤销产生的条目有
+          orgUnitId:
+            type: string
+            x-type: OrgUnitId
+            format: uuid
+            nullable: true
+            description: 被撤销或合并走、仍被该角色当前版本列出的部门；只有部门停用或撤销产生的条目有
           kind:
             type: string
             enum:
@@ -3164,7 +3220,13 @@ components:
             format: uuid
             x-type: PersonnelCommandId
             nullable: true
-            description: 触发条目的人事命令（调岗或更正）；维持到期重新生成的条目为空
+            description: 触发条目的人事命令（调岗或更正）；维持到期重新生成的条目和部门停用或撤销产生的条目为空
+          triggerOrgStructureCommandId:
+            type: string
+            format: uuid
+            x-type: OrgStructureCommandId
+            nullable: true
+            description: 触发条目的组织结构命令（撤销或合并部门）；只有部门停用或撤销产生的条目有
           triggerFieldKind:
             type: string
             enum:
@@ -3307,7 +3369,8 @@ components:
             type: string
             x-type: UserId
             format: uuid
-            description: 办理人账号
+            nullable: true
+            description: 办理人账号；角色出新版本后由系统转为已调整的条目为空
           kind:
             type: string
             enum:
@@ -3327,6 +3390,56 @@ components:
             x-type: AuditEntryId
             nullable: true
             description: 调整所凭的授予审计条目，与授权申请恰有其一
+    PermissionAdjustmentClosedBySeparation:
+      name: PermissionAdjustmentClosedBySeparation
+      title: 待调整权限条目因当事人离职关闭
+      x-event:
+        eventType: platform.identity.PermissionAdjustmentClosedBySeparation
+        version: 1
+        class: com.forcitis.one.platform.identity.events.PermissionAdjustmentClosedBySeparation
+        aggregate: PermissionAdjustment
+        idempotencyKey: eventId
+        publisher: platform.identity
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 无：不是带日期的业务里程碑
+        audit: audited
+        publisherTest: com.forcitis.one.platform.identity.domain.PermissionAdjustmentTest
+        noConsumer: 暂无消费方：关闭只需留痕；现在就发布，是因为关闭只在发生当时可被记录，补不回
+      payload:
+        type: object
+        required:
+        - envelope
+        - permissionAdjustmentId
+        - userId
+        - kind
+        - closurePersonnelCommandId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          permissionAdjustmentId:
+            type: string
+            format: uuid
+            x-type: PermissionAdjustmentId
+          userId:
+            type: string
+            x-type: UserId
+            format: uuid
+            description: 当事人账号
+          kind:
+            type: string
+            enum:
+            - SENSITIVE_ROLE_REVIEW
+            - SCOPE_REVIEW
+            x-type: PermissionAdjustmentKind
+            description: 条目类型：敏感角色复核或范围复核
+          closurePersonnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            description: 使条目关闭的离职命令
     PermissionAdjustmentExpired:
       name: PermissionAdjustmentExpired
       title: 待调整权限条目到期
@@ -5185,13 +5298,13 @@ components:
         aggregate: OrgStructureCommand
         idempotencyKey: eventId
         publisher: organization.workforce
-        consumers: []
+        consumers:
+        - platform.identity
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 生效日（effectiveDate）：撤销日，即已撤销状态的第一天
         audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
         publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
-        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
       payload:
         type: object
         required:
@@ -5269,13 +5382,13 @@ components:
         aggregate: OrgStructureCommand
         idempotencyKey: eventId
         publisher: organization.workforce
-        consumers: []
+        consumers:
+        - platform.identity
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 生效日（effectiveDate）：合并生效日
         audit: 'not-audited: 命令录入同事务直写审计 organization.workforce.org-structure-command.entered，合并完成直写 …completed'
         publisherTest: com.forcitis.one.organization.workforce.domain.OrgCommandEventsTest
-        noConsumer: 暂无消费方：契约先行，发布方随组织结构命令实现卡（#907）落地；事件只在命令生效时发布，漏发补不回
       payload:
         type: object
         required:

@@ -441,6 +441,10 @@ class ApplicationIntegrationTest {
             for (int i = 0; i < components.length; i++) {
                 types[i] = components[i].getType();
                 args[i] = sample(types[i]);
+                if (type == com.forcitis.one.platform.identity.events.PermissionAdjustmentOpened.class
+                        && Set.of("roleId", "orgUnitId", "triggerOrgStructureCommandId").contains(components[i].getName())) {
+                    args[i] = null; // the sample is an assignment-change item about a person; the role subject belongs to the other origin
+                }
             }
             try {
                 var constructor = type.getDeclaredConstructor(types);

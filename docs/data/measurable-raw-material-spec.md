@@ -1,5 +1,7 @@
 # 建表规范草稿：业务库 DDL 的「可度量原料」五条
 
+> 冻结（2026-11-04，#1263）：建表规范草稿，未采纳；现行规则见 `docs/rules/naming-standard.md` 与 `docs/rules/data-design-checklist.md`。
+
 - 作者：one-data，2026-10-17（度量设计第③项，one-coordinator 派工，one-architecture 对口；依据 Kimball《数据仓库工具箱》第 3 版的事实表类型、Adamson 的星型模式、Snodgrass 的时态数据）。
 - 状态：**草稿**。采纳后写入 NAMING_STANDARD 新节（建议 §2.4b）与 DATA_DESIGN_CHECKLIST §14 的建表检查；我的分支落后 main 约 1000 提交，等用户在应用里确认 origin 后同步，再改这两个共享文件（避免合并冲突）。
 - 总线矩阵对齐：行（度量事件）与列（维度）的口径由 one-architecture 定，草稿出来后我对这五条里与之相关的项（时间、币种、单位、状态转换、版本）逐项核对。
