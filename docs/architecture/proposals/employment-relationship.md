@@ -1,6 +1,6 @@
 # Employment relationship and employer entity (design, #1308)
 
-Status: proposal for the user's adoption through ADR-0086 (proposed). Author: one-design, 2026-11-04 (revised after the opus review of #1315). Combines follow-ups F1 and F2 of [hr-boundary-stability-review.md](hr-boundary-stability-review.md) section 8a. No code, no migration here: table shapes below are the data design to be signed under `docs/data/data-design-gate.md` (appendix A) before the schema PR.
+Status: adopted through ADR-0086 (user 「采纳 ADR-0086」, issue #1308 comment 6640981419). Author: one-design, 2026-11-04 (revised after the opus review of #1315). Combines follow-ups F1 and F2 of [hr-boundary-stability-review.md](hr-boundary-stability-review.md) section 8a. No code, no migration here: table shapes below are the data design to be signed under `docs/data/data-design-gate.md` (appendix A) before the schema PR.
 
 Evidence marks: **[V]** verified by me in the repo or against the cited source on 2026-11-04; **[U]** unverified or only secondary sources; **[B]** a business question, not mine to decide (section 9).
 
@@ -119,6 +119,7 @@ Event envelope stays the employee (aggregate) with `businessDate`; every event g
 | EmployeeRegularized | each relationship's regularization (payload names the relationship) |
 | EmployeeTransferred | each TRANSFER (payload names the relationship and assignment) |
 | EmployeeCorrected | each CORRECTION (payload names the relationship) |
+| EmployeeUnpaidLeaveStarted | each UNPAID_LEAVE_START takes effect (built by PR #1287; payload names the relationship once ADR-0086 is built); identity's sensitive-role review reads it |
 | EmployeeLegalEntityChanged | unchanged (attribution) |
 
 Relationship-level events (new; glossary names in the proposed file): **EmploymentRelationshipStarted** (HIRE or REINSTATE takes effect, or a second relationship begins), **EmploymentRelationshipEnded** (SEPARATE takes effect), **EmploymentRelationshipPhaseChanged** (regularization; later also type changes), **EmploymentRelationshipUnpaidLeaveChanged** (start and end), **EmploymentRelationshipCorrected**. Leave (RULE-515 triggers: start, regularization, unpaid-leave change, end, correction) and payroll subscribe to these, not to the person-level ones; identity keeps its five subscriptions unchanged.
@@ -159,17 +160,19 @@ One relationship per employee; `employer_legal_entity_id` = the attribution enti
 | Dual labour relations are not forbidden; the first employer may dismiss if the second seriously affects the work (劳动合同法第三十九条第四项); part-time work may be with several employers | law-firm articles | **[U]** statute text not read |
 | Social insurance is in practice enrolled by one unit per person; the second unit has trouble covering work injury | law-firm articles | **[U]**, and it **conflicts with** the user's ruling that social insurance is per relationship (B-C) |
 
-## 9. Business questions for lead (none decided here)
+## 9. Business questions: answered by the user 2026-11-04
 
-- **B-A** Does the second-entity relationship have an org unit, position and reporting line there, or none? Both supported. Recommendation: none unless HR needs the person in that entity's org tree; then CONCURRENT.
-- **B-B** Who confirms the backfilled employer of each existing employee, and when? Recommendation: HR, before payroll or leave read it. Also who lists persons already employed twice.
-- **B-C** Does the second entity actually enrol the person in social insurance and housing fund? The model holds an enrolment state per relationship including "not enrolled here"; the rule needs the user and HR/legal before payroll design.
-- **B-D** Do the two employers' statutory leave entitlements stack, and does company-granted leave follow each employer's own rule? Recommendation: each relationship earns its own quota by cumulative working time and its employer's rules, so they stack unless legal advises otherwise.
-- **B-E** Employer change in continuous service: does it carry service years and unused leave balance? Probation: ADR-0079 invariant 13 already says a cross-entity move has no new probation (lead default); a HIRE with a predecessor therefore defaults to no probation, the user may override. Recommendation for service years: carry (statute counts different employers); unused-leave carry-over is the user's.
-- **B-F** Handover and account access when one relationship ends and another continues. Recommendation: only on person-level separation, unless the user names an asset class.
-- **B-G** Build the employer-succession record (4.3) in the first schema PR or when the first merger arises? Recommendation: later; refuse until then.
-- **B-H** May a TRANSFER or concurrent assignment place a person in an org unit whose attribution entity is not the relationship's employer? Recommendation: allowed (independent meanings); HR chooses employer change explicitly, the system never infers it.
-- **B-I** Person-level behaviours with two relationships: (a) unpaid leave in one entity, working in the other: may the person submit time? (b) whose approver applies to hours worked for the second entity? (c) separation hold: one held separation blocks which decisions? Recommendation: the rules in 6.2 (conservative); timesheet and approver follow the person's PRIMARY assignment until the user names another.
+The user answered all of B-A to B-I and the withholding point with 「按建议」 (issue #1308 comment 6640858641): each recommendation below is the ruling. Still open: B-C's rule with HR/legal before payroll design, and the carry-over of unused leave in B-E (the user's, T-6 in the leave spec).
+
+- **B-A** [answered] Does the second-entity relationship have an org unit, position and reporting line there, or none? Both supported. Recommendation: none unless HR needs the person in that entity's org tree; then CONCURRENT.
+- **B-B** [answered] Who confirms the backfilled employer of each existing employee, and when? Recommendation: HR, before payroll or leave read it. Also who lists persons already employed twice.
+- **B-C** [answered] Does the second entity actually enrol the person in social insurance and housing fund? The model holds an enrolment state per relationship including "not enrolled here"; the rule needs the user and HR/legal before payroll design.
+- **B-D** [answered] Do the two employers' statutory leave entitlements stack, and does company-granted leave follow each employer's own rule? Recommendation: each relationship earns its own quota by cumulative working time and its employer's rules, so they stack unless legal advises otherwise.
+- **B-E** [answered] Employer change in continuous service: does it carry service years and unused leave balance? Probation: ADR-0079 invariant 13 already says a cross-entity move has no new probation (lead default); a HIRE with a predecessor therefore defaults to no probation, the user may override. Recommendation for service years: carry (statute counts different employers); unused-leave carry-over is the user's.
+- **B-F** [answered] Handover and account access when one relationship ends and another continues. Recommendation: only on person-level separation, unless the user names an asset class.
+- **B-G** [answered] Build the employer-succession record (4.3) in the first schema PR or when the first merger arises? Recommendation: later; refuse until then.
+- **B-H** [answered] May a TRANSFER or concurrent assignment place a person in an org unit whose attribution entity is not the relationship's employer? Recommendation: allowed (independent meanings); HR chooses employer change explicitly, the system never infers it.
+- **B-I** [answered] Person-level behaviours with two relationships: (a) unpaid leave in one entity, working in the other: may the person submit time? (b) whose approver applies to hours worked for the second entity? (c) separation hold: one held separation blocks which decisions? Recommendation: the rules in 6.2 (conservative); timesheet and approver follow the person's PRIMARY assignment until the user names another.
 
 ## 10. ADR-0086 (proposed) and what it supersedes
 
