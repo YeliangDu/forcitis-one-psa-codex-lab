@@ -77,8 +77,8 @@ class OpenInactiveOrgUnitReviews {
                 PermissionAdjustment item = PermissionAdjustment.openForInactiveOrgUnit(id, role, orgUnit, command, escalationDueAt(), now);
                 adjustments.insert(item);
                 events.publish(item);
-                LOG.error("ALERT P3 platform.identity event {} opened scope review item {} for a dissolved or merged org unit: no recipient, handled by the organization data administrator",
-                        trigger.eventId(), id.value());
+                LOG.error("ALERT P3 platform.identity permission-adjustment source-2 opened; event {}; item {}; role {}; org unit {}; trigger command {}", trigger.eventId(),
+                        id.value(), role.value(), orgUnit.value(), command.value());
             }
         }
     }
