@@ -232,15 +232,13 @@ terms:
   kind: error_code
   bc: organization.workforce
   scope: domain
-  definition: 档案修改所指的岗位不存在（404）
+  definition: 岗位目录中查询的岗位不存在（404）
   standard_ref:
   - #1171 岗位目录
   confidence: medium
   aliases: []
   forbidden: []
-  status: approved
-  confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
-  note: 入职建员工并可改档案（#959）
+  status: proposed
 - id: error__organization_workforce_employee_profile_invalid
   zh: 员工档案内容不合法
   en: OrganizationWorkforceEmployeeProfileInvalid

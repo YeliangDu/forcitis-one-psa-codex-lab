@@ -24,12 +24,16 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 class JdbcEmployeeRosterQueries implements EmployeeRosterQueries {
-    /** As in OrgSnapshotRows, only employees without any versions may still be read from the snapshot during migration. */
+    /**
+     * As in OrgSnapshotRows, only employees without any versions may still be read from the snapshot during migration. A separation
+     * ends every post on the separation day, so a separated person belongs to the units of their last posts (the day before).
+     */
     private static final String CURRENT = """
             with employee_rows as (
                 select e.id, e.employee_code, e.display_name,
                        case when v.versioned then ev.employment_status else e.employment_status end as employment_status,
-                       ev.employment_start_date as hire_date
+                       ev.employment_start_date as hire_date,
+                       case when ev.employment_status = 'SEPARATED' then ev.effective_from_date - 1 else :day end as posts_day
                   from organization_workforce.employees e
                   cross join lateral (select exists (select 1 from organization_workforce.employee_versions x where x.employee_id = e.id) as versioned) v
                   left join organization_workforce.employee_versions ev on v.versioned and ev.employee_id = e.id and ev.superseded_at is null
@@ -38,8 +42,10 @@ class JdbcEmployeeRosterQueries implements EmployeeRosterQueries {
             ), assignment_rows as (
                 select av.employee_id, av.assignment_kind, av.org_unit_id, av.position_id, av.reports_to_employee_id
                   from organization_workforce.assignment_versions av
-                 where av.superseded_at is null and av.effective_from_date <= :day
-                   and (av.effective_to_date is null or :day < av.effective_to_date)
+                  join employee_rows e on e.id = av.employee_id
+                 where av.superseded_at is null
+                   and ((av.effective_from_date <= :day and (av.effective_to_date is null or :day < av.effective_to_date))
+                        or (av.effective_from_date <= e.posts_day and (av.effective_to_date is null or e.posts_day < av.effective_to_date)))
                 union all
                 select a.employee_id, 'PRIMARY', a.org_unit_id, a.position_id, a.reports_to_employee_id
                   from organization_workforce.assignments a

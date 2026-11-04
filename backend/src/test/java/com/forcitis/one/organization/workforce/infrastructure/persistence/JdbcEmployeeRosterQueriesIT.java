@@ -1,0 +1,108 @@
+package com.forcitis.one.organization.workforce.infrastructure.persistence;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.forcitis.one.TestPostgres;
+import com.forcitis.one.kernel.BusinessZone;
+import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.IdGenerator;
+import com.forcitis.one.organization.workforce.api.EmploymentStatus;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.organization.workforce.domain.EmployeeRosterQueries.Row;
+import com.forcitis.one.organization.workforce.domain.EmployeeRosterQueries.Visible;
+import com.forcitis.one.platform.integration.api.WecomGateway;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+@SpringBootTest(properties = {"flowable.async-executor-activate=false"})
+class JdbcEmployeeRosterQueriesIT {
+    private static final LocalDate TODAY = LocalDate.of(2026, 11, 2);
+    private static final LocalDate SEPARATED_ON = LocalDate.of(2026, 10, 1);
+
+    @ServiceConnection
+    static final PostgreSQLContainer postgres = TestPostgres.container().withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
+
+    static {
+        postgres.start();
+    }
+
+    @MockitoBean
+    WecomGateway wecomGateway;
+
+    @Autowired
+    JdbcClient jdbc;
+
+    @Autowired
+    BusinessZone zone;
+
+    @Autowired
+    IdGenerator ids;
+
+    @Test
+    @DisplayName("#1171 a separated person stays in the roster of the unit of their last posts after the separation closed every post")
+    void aSeparatedPersonBelongsToTheUnitOfTheirLastPosts() {
+        OrgUnitId unitA = unit("RQ-A");
+        OrgUnitId unitB = unit("RQ-B");
+        UUID position = ids.next();
+        jdbc.sql("insert into organization_workforce.positions (id, code, name, sort_order, status) values (:id, 'RQ-P', 'post', 1, 'ACTIVE')").param("id", position).update();
+        EmployeeId gone = person("RQ-1", unitA, position, "SEPARATED", SEPARATED_ON);
+        EmployeeId stays = person("RQ-2", unitB, position, "EMPLOYED", LocalDate.of(2025, 1, 1));
+        JdbcEmployeeRosterQueries queries = new JdbcEmployeeRosterQueries(jdbc, Clock.fixed(TODAY.atTime(4, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC), zone);
+
+        Visible onlyA = new Visible(false, Set.of(unitA));
+        assertThat(codes(queries.list(onlyA, null, EmploymentStatus.SEPARATED, null, 10))).containsExactly("RQ-1");
+        assertThat(codes(queries.list(new Visible(false, Set.of(unitB)), null, EmploymentStatus.SEPARATED, null, 10))).isEmpty();
+        assertThat(codes(queries.list(new Visible(true, Set.of()), unitA, EmploymentStatus.SEPARATED, null, 10))).containsExactly("RQ-1");
+        Row row = queries.find(onlyA, gone).orElseThrow();
+        assertThat(row.assignments()).extracting(a -> a.orgUnitId()).containsExactly(unitA);
+        assertThat(queries.find(onlyA, stays)).isEmpty();
+    }
+
+    private static List<String> codes(List<Row> rows) {
+        return rows.stream().map(Row::employeeCode).toList();
+    }
+
+    private OrgUnitId unit(String code) {
+        OrgUnitId unit = new OrgUnitId(ids.next());
+        jdbc.sql("insert into organization_workforce.org_units (id, code, name, status, sort_order) values (:id, :code, :code, 'ACTIVE', 1)")
+                .param("id", unit.value()).param("code", code).update();
+        return unit;
+    }
+
+    /** A separated person has every post closed on the separation day, exactly as the separation command writes it. */
+    private EmployeeId person(String code, OrgUnitId unit, UUID position, String status, LocalDate from) {
+        UUID id = ids.next();
+        boolean employed = status.equals("EMPLOYED");
+        jdbc.sql("""
+                insert into organization_workforce.employees (id, employee_code, display_name, employment_status, is_fee_earner)
+                values (:id, :code, :code, :status, false)""").param("id", id).param("code", code).param("status", status).update();
+        jdbc.sql("""
+                insert into organization_workforce.employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+                    employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind, change_channel_kind, created_at, updated_at)
+                values (:version, :id, :from, 0, :status, :phase, false, false, :start, :basis, 'MIGRATION', now(), now())""")
+                .param("version", ids.next()).param("id", id).param("from", from).param("status", status).param("phase", employed ? "REGULAR" : null)
+                .param("start", employed ? from : null).param("basis", employed ? "DECLARED" : null).update();
+        UUID root = ids.next();
+        jdbc.sql("insert into organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at) values (:root, :id, 'PRIMARY', now(), now())")
+                .param("root", root).param("id", id).update();
+        jdbc.sql("""
+                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                    effective_to_date, closed_at, revision_number, org_unit_id, position_id, change_channel_kind, created_at, updated_at)
+                values (:version, :id, :root, 'PRIMARY', :since, :until, case when cast(:until as date) is null then null else now() end, 0, :unit, :position, 'MIGRATION', now(), now())""")
+                .param("version", ids.next()).param("id", id).param("root", root).param("since", LocalDate.of(2025, 1, 1))
+                .param("until", employed ? null : from).param("unit", unit.value()).param("position", position).update();
+        return new EmployeeId(id);
+    }
+}
