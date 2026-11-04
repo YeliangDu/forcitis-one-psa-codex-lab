@@ -60,7 +60,7 @@ class ExternalConnectionIsolationTest {
     void seeyonIsOnlyReachedFromTheSeeyonPackage() {
         noClasses().that().resideOutsideOfPackage(SEEYON)
                 .should().dependOnClassesThat().resideInAPackage(SEEYON)
-                .because(GuardMessage.of("CS-1.3", "a class outside platform.integration.infrastructure.seeyon depends on a class in it", "call Seeyon through the platform.integration api ports (OrgSource, SsoTicketVerifier) instead of the adapter class"))
+                .because(GuardMessage.of("CS-1.3", "a class outside platform.integration.infrastructure.seeyon depends on a class in it", "call Seeyon through the platform.integration api ports (OrgSource) instead of the adapter class"))
                 .check(CLASSES);
         noClasses().that().resideOutsideOfPackages(SEEYON, WECOM)
                 .should().dependOnClassesThat().resideInAPackage("java.net.http..")

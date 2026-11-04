@@ -8,7 +8,6 @@ import org.springframework.test.context.TestPropertySource;
 
 @TestPropertySource(properties = {"forcitis.platform.identity.login-throttle.limits.login-states=3",
         "forcitis.platform.identity.login-throttle.limits.wecom-login=4",
-        "forcitis.platform.identity.login-throttle.limits.sso-login=2",
         "forcitis.platform.identity.login-throttle.limits.ticket-login=2",
         "forcitis.platform.identity.login-throttle.limits.emergency-login=2"})
 class LoginThrottleIntegrationTest extends IdentityIntegrationTest {
@@ -30,8 +29,7 @@ class LoginThrottleIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("H-4 each kind has its own budget: the ticket and emergency logins are counted too, and one kind running out does not block another")
     void everyLoginKindHasItsOwnBudget() throws Exception {
-        String[][] logins = {{"/api/v1/platform/sessions:sso-login", "{\"ticket\":\"x\"}"},
-                {"/api/v1/platform/sessions:ticket-login", "{\"ticket\":\"x\"}"},
+        String[][] logins = {{"/api/v1/platform/sessions:ticket-login", "{\"ticket\":\"x\"}"},
                 {"/api/v1/platform/sessions:emergency-login", "{\"loginName\":\"nobody\",\"password\":\"x\",\"totpCode\":\"000000\"}"}};
         for (String[] login : logins) {
             for (int i = 0; i < 2; i++) {

@@ -172,7 +172,6 @@ export const ERROR_MESSAGES: Readonly<Record<ErrorCode, string | null>> = {
   PLATFORM_IDENTITY_ROLE_SCOPE_NOT_ALLOWED: '这个角色的数据范围不能按岗位变化，自定义部门不能选择含下级',
   PLATFORM_IDENTITY_ROLE_SYSTEM_FROZEN: null,
   PLATFORM_IDENTITY_ROLE_TRANSITION_ILLEGAL: null,
-  PLATFORM_IDENTITY_SSO_UNAVAILABLE: '致远暂时无法验证登录，请稍后重试或回到老系统登录',
   PLATFORM_IDENTITY_STATE_INVALID: '登录已失效，请重新登录',
   PLATFORM_IDENTITY_TICKET_INVALID: '登录凭证无效，请从门户重新进入',
   PLATFORM_IDENTITY_TICKET_REPLAYED: '单点登录票据已经使用，请从门户重新进入',

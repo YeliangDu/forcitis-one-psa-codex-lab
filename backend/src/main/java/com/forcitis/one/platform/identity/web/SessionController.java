@@ -15,11 +15,9 @@ import com.forcitis.one.platform.identity.application.EmergencyLoginCommand;
 import com.forcitis.one.platform.identity.application.GetCurrentUserProfile;
 import com.forcitis.one.platform.identity.application.LoginAsEmergencyAdmin;
 import com.forcitis.one.platform.identity.application.LoginResult;
-import com.forcitis.one.platform.identity.application.LoginWithSso;
 import com.forcitis.one.platform.identity.application.LoginWithSignedTicket;
 import com.forcitis.one.platform.identity.application.LoginWithWecom;
 import com.forcitis.one.platform.identity.application.Logout;
-import com.forcitis.one.platform.identity.application.SsoSettings;
 import com.forcitis.one.platform.identity.application.WecomLoginCommand;
 import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.http.HttpHeaders;
@@ -39,32 +37,28 @@ class SessionController {
 
     private final BeginWecomLogin beginWecomLogin;
     private final LoginWithWecom loginWithWecom;
-    private final LoginWithSso loginWithSso;
     private final LoginWithSignedTicket loginWithSignedTicket;
     private final LoginAsEmergencyAdmin loginAsEmergencyAdmin;
     private final Logout logout;
     private final ConfirmIdentity confirmIdentity;
     private final GetCurrentUserProfile getCurrentUserProfile;
-    private final SsoSettings ssoSettings;
     private final LoginThrottle throttle;
     private final ClientOrigin clientOrigin;
     private final SessionSettings sessionSettings;
     private final BrowserIdentifierSettings identifierSettings;
 
-    SessionController(BeginWecomLogin beginWecomLogin, LoginWithWecom loginWithWecom, LoginWithSso loginWithSso,
+    SessionController(BeginWecomLogin beginWecomLogin, LoginWithWecom loginWithWecom,
             LoginWithSignedTicket loginWithSignedTicket, LoginAsEmergencyAdmin loginAsEmergencyAdmin, Logout logout, ConfirmIdentity confirmIdentity,
-            GetCurrentUserProfile getCurrentUserProfile, SsoSettings ssoSettings, LoginThrottle throttle, ClientOrigin clientOrigin,
+            GetCurrentUserProfile getCurrentUserProfile, LoginThrottle throttle, ClientOrigin clientOrigin,
             SessionSettings sessionSettings, BrowserIdentifierSettings identifierSettings) {
         this.identifierSettings = identifierSettings;
         this.beginWecomLogin = beginWecomLogin;
         this.loginWithWecom = loginWithWecom;
-        this.loginWithSso = loginWithSso;
         this.loginWithSignedTicket = loginWithSignedTicket;
         this.loginAsEmergencyAdmin = loginAsEmergencyAdmin;
         this.logout = logout;
         this.confirmIdentity = confirmIdentity;
         this.getCurrentUserProfile = getCurrentUserProfile;
-        this.ssoSettings = ssoSettings;
         this.throttle = throttle;
         this.clientOrigin = clientOrigin;
         this.sessionSettings = sessionSettings;
@@ -88,16 +82,8 @@ class SessionController {
     ResponseEntity<LoginResponse> loginWithWecom(@RequestBody WecomLoginRequest request,
             @CookieValue(name = LoginStateCookie.NAME, required = false) String binding) {
         throttle("wecom-login");
-        LoginResponse response = respond(loginWithWecom.execute(new WecomLoginCommand(request.code(), request.state(), binding, request.entry())), null);
+        LoginResponse response = respond(loginWithWecom.execute(new WecomLoginCommand(request.code(), request.state(), binding, request.entry())));
         return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, LoginStateCookie.clear(sessionSettings.secureCookie()).toString()).body(response);
-    }
-
-    @PostMapping(path = "/sessions:sso-login")
-    @PublicEndpoint(reason = "Portal single sign-on: the server checks the one-time ticket against the portal. ADR-0009 §3, RULE-320/321, I-3, I-9")
-    ResponseEntity<LoginResponse> loginWithSso(@RequestBody TicketLoginRequest request,
-            @Parameter(hidden = true) @CookieValue(name = BrowserIdentifierCookie.NAME, required = false) String browserIdentifier) {
-        throttle("sso-login");
-        return withIdentifierCookie(loginWithSso.execute(request.ticket(), browserIdentifier), emptyToNull(ssoSettings.legacyLoginUrl()));
     }
 
     @PostMapping(path = "/sessions:ticket-login")
@@ -105,14 +91,14 @@ class SessionController {
     ResponseEntity<LoginResponse> loginWithSignedTicket(@RequestBody TicketLoginRequest request,
             @Parameter(hidden = true) @CookieValue(name = BrowserIdentifierCookie.NAME, required = false) String browserIdentifier) {
         throttle("ticket-login");
-        return withIdentifierCookie(loginWithSignedTicket.execute(request.ticket(), browserIdentifier), null);
+        return withIdentifierCookie(loginWithSignedTicket.execute(request.ticket(), browserIdentifier));
     }
 
     @PostMapping(path = "/sessions:emergency-login")
     @PublicEndpoint(reason = "Break-glass administrator: Argon2id password plus TOTP, internal network only, locked after 5 failures. ADR-0009 §3, RULE-316/317, C1a-04, I-3")
     LoginResponse loginAsEmergencyAdmin(@RequestBody EmergencyLoginRequest request) {
         throttle("emergency-login");
-        return respond(loginAsEmergencyAdmin.execute(new EmergencyLoginCommand(request.loginName(), request.password(), request.totpCode())), null);
+        return respond(loginAsEmergencyAdmin.execute(new EmergencyLoginCommand(request.loginName(), request.password(), request.totpCode())));
     }
 
     @PostMapping(path = "/sessions:logout")
@@ -141,8 +127,8 @@ class SessionController {
         }
     }
 
-    private ResponseEntity<LoginResponse> withIdentifierCookie(LoginResult result, String legacyLoginUrl) {
-        LoginResponse response = respond(result, legacyLoginUrl);
+    private ResponseEntity<LoginResponse> withIdentifierCookie(LoginResult result) {
+        LoginResponse response = respond(result);
         ResponseEntity.BodyBuilder ok = ResponseEntity.ok();
         if (result instanceof LoginResult.Authenticated authenticated && authenticated.browserIdentifier() != null) {
             ok.header(HttpHeaders.SET_COOKIE, BrowserIdentifierCookie.issue(authenticated.browserIdentifier(), identifierSettings.lifetime()).toString());
@@ -150,18 +136,11 @@ class SessionController {
         return ok.body(response);
     }
 
-    private static LoginResponse respond(LoginResult result, String legacyLoginUrl) {
+    private static LoginResponse respond(LoginResult result) {
         return switch (result) {
             case LoginResult.Authenticated ok -> new LoginResponse(ok.userId().value(), ok.absoluteExpiresAt(), ok.administratorModeExpiresAt(),
                     ok.identityConfirmationRequired());
-            case LoginResult.Rejected rejected -> {
-                DomainException refusal = rejected.error().refusal("login refused");
-                throw legacyLoginUrl == null ? refusal : refusal.withExtension("legacyLoginUrl", legacyLoginUrl);
-            }
+            case LoginResult.Rejected rejected -> throw rejected.error().refusal("login refused");
         };
-    }
-
-    private static String emptyToNull(String value) {
-        return value == null || value.isBlank() ? null : value;
     }
 }
