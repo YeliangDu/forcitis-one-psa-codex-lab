@@ -3,8 +3,12 @@ package com.forcitis.one.acceptance.organization.workforce;
 import static com.forcitis.one.acceptance.organization.workforce.OrgCountersignNames.*;
 import static com.forcitis.one.acceptance.organization.workforce.OrgStructureCommandNames.ORG_UNIT_LEGAL_ENTITIES;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.EFFECTIVE;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.PENDING;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.WITHDRAWN;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
@@ -17,6 +21,8 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
@@ -235,5 +241,143 @@ class OrgBackdatedAttributionIT extends OrgCountersignSupport {
 
         assertThat(statusOf(command)).isEqualTo(WITHDRAWN);
         assertThat(allRows(unit)).isEqualTo(before);
+    }
+
+    // ---- a row closed by :end, and the withdrawal of a command whose rows voided another (one-design rulings on #1147, 2026-11-04) ----
+
+    /** What a reader of the current facts sees of a row; ids are left out because a re-appended row is a new row. */
+    private Map<String, Object> shape(Map<String, Object> row) {
+        Map<String, Object> kept = new LinkedHashMap<>();
+        for (String column : List.of("effective_from_date", "effective_to_date", "legal_entity_id", "change_channel_kind", "change_org_structure_command_id", "version_audit_entry_id")) {
+            kept.put(column, row.get(column));
+        }
+        return kept;
+    }
+
+    private List<Map<String, Object>> shapesOf(UUID unit) throws SQLException {
+        return unitAttributions(unit).stream().map(this::shape).toList();
+    }
+
+    /** Ends the unit's attribution through the :end endpoint, as the attribution maintainer does. */
+    private void endAttribution(UUID unit, LocalDate to) throws Exception {
+        String url = "/api/v1/organization/org-unit-legal-entities/" + text(unit);
+        MockHttpServletResponse read = mvc.perform(get(url).with(session(orgAdmin.session()))).andReturn().getResponse();
+        assertThat(read.getStatus()).as("reading the attribution before ending it").isEqualTo(200);
+        MockHttpServletResponse ended = mvc.perform(post(url + ":end").header("If-Match", read.getHeader("ETag")).with(csrf()).with(session(orgAdmin.session()))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"effectiveTo\":\"" + to + "\"}")).andReturn().getResponse();
+        assertThat(ended.getStatus()).as("ending the attribution: " + ended.getContentAsString()).isEqualTo(200);
+    }
+
+    private void countersignAll(UUID command, String kind) throws Exception {
+        for (UUID entity : requestedEntities(command, kind)) {
+            approve(headOf(entity), command, kind, entity);
+        }
+    }
+
+    @Test
+    @DisplayName("#1147 完成标准第 1 条（一个设计裁定 a，落在 :end 关闭的行中间）：单元自 30 天前归 E1，30 天后经 :end 止于 T，今天已是 40 天后，补登 10 天后（D）归 E3：命令 EFFECTIVE 且无 ORG_LEGAL_ENTITY_CONFLICT；原行 [F, T) 被作废、内容未改；当前事实恰两行：[F, D) E1 重新追加（来源照抄原行、corrected_from 指向原行）与 [D, T) E3（来源为本命令）；T 及以后没有归属，空档原样保留")
+    void aBackDatedAssignmentIntoARowClosedByEndStopsWhereThatRowStopped() throws Exception {
+        UUID unit = attributedUnit(topE1, e1);
+        LocalDate closedAt = TODAY.plusDays(30);
+        endAttribution(unit, closedAt);
+        Map<String, Object> original = unitAttributions(unit).getFirst();
+        Map<String, Object> before = content(original);
+        assertThat(original.get("effective_to_date")).as("the row is closed by :end and has no successor").isEqualTo(closedAt);
+        LocalDate back = TODAY.plusDays(10);
+        setToday(TODAY.plusDays(40));
+
+        UUID command = assignLegalEntity(unit, back, e3);
+
+        assertThat(statusOf(command)).as("nobody is affected, so it takes effect on entry").isEqualTo(EFFECTIVE);
+        Map<String, Object> voided = rowById(unit, original.get("org_unit_legal_entity_id"));
+        assertThat(content(voided)).as("a superseded row keeps its content").isEqualTo(before);
+        assertThat(voided.get("effective_to_date")).isEqualTo(closedAt);
+        assertThat(voided.get("superseded_at")).isNotNull();
+        assertThat(voided.get("superseding_org_structure_command_id")).isEqualTo(command);
+        List<Map<String, Object>> current = unitAttributions(unit);
+        assertThat(current).hasSize(2);
+        Map<String, Object> front = current.get(0);
+        assertThat(front.get("effective_from_date")).isEqualTo(TODAY.minusDays(30));
+        assertThat(front.get("effective_to_date")).isEqualTo(back);
+        assertThat(front.get("legal_entity_id")).isEqualTo(e1);
+        assertThat(front.get("change_channel_kind")).isEqualTo(voided.get("change_channel_kind"));
+        assertThat(commandOf(front)).isEqualTo(commandOf(voided));
+        assertThat(front.get("version_audit_entry_id")).isEqualTo(voided.get("version_audit_entry_id"));
+        assertThat(front.get("corrected_from_version_id")).isEqualTo(voided.get("org_unit_legal_entity_id"));
+        Map<String, Object> fresh = current.get(1);
+        assertThat(fresh.get("effective_from_date")).isEqualTo(back);
+        assertThat(fresh.get("effective_to_date")).as("the new row ends where the row that contained D ended; :end was a command").isEqualTo(closedAt);
+        assertThat(fresh.get("legal_entity_id")).isEqualTo(e3);
+        assertThat(commandOf(fresh)).isEqualTo(command);
+    }
+
+    /** C1 (E1 to E2 from D1) countersigned and PENDING; the unit's rows are then the old E1 row closed at D1 and the E2 row from D1. */
+    private UUID pendingMoveTo(UUID unit, LocalDate day, UUID entity) throws Exception {
+        UUID command = assignLegalEntity(unit, day, entity);
+        assertThat(statusOf(command)).isEqualTo(AWAITING);
+        countersignAll(command, KIND_CHANGE);
+        assertThat(statusOf(command)).isEqualTo(PENDING);
+        return command;
+    }
+
+    private void withdrawWithEveryHead(UUID command) throws Exception {
+        orgCommands().withdraw(command, "synthetic: plan changed");
+        assertThat(statusOf(command)).as("withdrawing a countersigned command needs every head").isEqualTo(PENDING);
+        countersignAll(command, KIND_WITHDRAWAL);
+        assertThat(statusOf(command)).isEqualTo(WITHDRAWN);
+    }
+
+    @Test
+    @DisplayName("#1147 完成标准第 1 条（一个设计裁定 b，撤回待生效命令）：C1 于 D1、C2 于 D2（D2 在 D1 之后）都已会签待生效，C2 的行作废了 C1 的开放行；撤回 C2（WITHDRAWAL 全体负责人批准）后：C2 转已撤回、C1 仍待生效；当前事实与 C2 会签前完全相同（区间、法人、来源命令、审计）；C2 自己写的行全部作废，被它作废的 C1 行以新行原样重现（corrected_from 指向被作废的行）；没有员工法人变更事件")
+    void withdrawingALaterPendingCommandBringsTheEarlierRowsBack() throws Exception {
+        UUID unit = attributedUnit(topE1, e1);
+        UUID person = inheritingIn(unit);
+        LocalDate d1 = TODAY.plusDays(10);
+        LocalDate d2 = TODAY.plusDays(20);
+        UUID c1 = pendingMoveTo(unit, d1, e2);
+        List<Map<String, Object>> beforeC2 = shapesOf(unit);
+        assertThat(beforeC2).hasSize(2);
+        UUID c2 = assignLegalEntity(unit, d2, e3);
+        assertThat(statusOf(c2)).isEqualTo(AWAITING);
+        assertThat(requestedEntities(c2, KIND_CHANGE)).as("the basis on D2 moves the person from E2 to E3").containsExactlyInAnyOrder(e2, e3);
+        countersignAll(c2, KIND_CHANGE);
+        assertThat(statusOf(c2)).isEqualTo(PENDING);
+        assertThat(shapesOf(unit)).as("C2 split C1's open row and added its own").hasSize(3).isNotEqualTo(beforeC2);
+        Map<String, Object> c1Original = unitAttributions(unit).stream().filter(row -> c1.equals(commandOf(row))).findFirst().orElseThrow();
+        List<Map<String, Object>> everythingBefore = allRows(unit);
+
+        withdrawWithEveryHead(c2);
+
+        assertThat(statusOf(c1)).as("the earlier command is untouched").isEqualTo(PENDING);
+        assertThat(shapesOf(unit)).as("readers see the facts they had before C2").isEqualTo(beforeC2);
+        List<Map<String, Object>> history = allRows(unit);
+        assertThat(history).as("history only grows: the rows of C2 are voided, the rows it voided come back as new rows").hasSizeGreaterThan(everythingBefore.size());
+        assertThat(history.stream().filter(row -> c2.equals(commandOf(row))).toList()).isNotEmpty().allSatisfy(row -> assertThat(row.get("superseded_at")).isNotNull());
+        Map<String, Object> back = unitAttributions(unit).stream().filter(row -> c1.equals(commandOf(row))).findFirst().orElseThrow();
+        assertThat(back.get("effective_to_date")).as("C1's row is open-ended again").isNull();
+        assertThat(back.get("org_unit_legal_entity_id")).as("a voided row is never un-voided: it comes back as a new row").isNotEqualTo(c1Original.get("org_unit_legal_entity_id"));
+        assertThat(back.get("corrected_from_version_id")).isNotNull();
+        assertThat(rowById(unit, back.get("corrected_from_version_id")).get("superseded_at")).as("it re-creates a voided row").isNotNull();
+        assertThat(legalEntityChangesOf(person)).as("neither command took effect").isZero();
+    }
+
+    @Test
+    @DisplayName("#1147 完成标准第 1 条（一个设计裁定 b，落在更早行内）：单元自 30 天前归 E1（开放行），C2 于将来 D2 改归 E2 已会签待生效，它作废了那条开放行并重追加前半段；撤回 C2 后当前事实与会签前相同（E1 自 30 天前、无限期，来源与审计照旧），C2 的行全部作废，E1 行以新行原样重现且 corrected_from 指向被作废的行；没有员工法人变更事件")
+    void withdrawingACommandInsideAnEarlierRowReopensIt() throws Exception {
+        UUID unit = attributedUnit(topE1, e1);
+        UUID person = inheritingIn(unit);
+        List<Map<String, Object>> beforeC2 = shapesOf(unit);
+        assertThat(beforeC2).hasSize(1);
+        UUID c2 = pendingMoveTo(unit, TODAY.plusDays(15), e2);
+        assertThat(shapesOf(unit)).hasSize(2).isNotEqualTo(beforeC2);
+
+        withdrawWithEveryHead(c2);
+
+        assertThat(shapesOf(unit)).as("readers see the facts they had before C2").isEqualTo(beforeC2);
+        assertThat(allRows(unit).stream().filter(row -> c2.equals(commandOf(row))).toList()).isNotEmpty().allSatisfy(row -> assertThat(row.get("superseded_at")).isNotNull());
+        Map<String, Object> back = unitAttributions(unit).getFirst();
+        assertThat(back.get("corrected_from_version_id")).isNotNull();
+        assertThat(rowById(unit, back.get("corrected_from_version_id")).get("superseded_at")).as("it re-creates a voided row").isNotNull();
+        assertThat(legalEntityChangesOf(person)).as("the command never took effect").isZero();
     }
 }
