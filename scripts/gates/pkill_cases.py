@@ -2,6 +2,9 @@
 ALLOWED: the gate lets these through. REFUSED: it must refuse these (every refusal says 拒绝)."""
 
 ALLOWED = [
+    "ps -o pid= -p $PID | xargs kill",
+    "env -S 'echo ok'",
+    "pkill -P 4242,4243",
     'pkill --parent $PID',
     'pkill --pidfile "$PIDFILE"',
     'pkill -f -- "@W@/x"',
@@ -62,6 +65,17 @@ ALLOWED = [
 ]
 
 REFUSED = [
+    'pkill -P $(pgrep -f maven)',
+    "pgrep -f maven | xargs -I{} pkill -P {}",
+    "pgrep java | pkill -F /dev/stdin",
+    "pgrep -f failsafe | xargs -I{} sh -c 'kill {}'",
+    "pkill -P 1,2",
+    "pkill -P 123,1",
+    "pkill -P 01",
+    "kill -9 00",
+    "kill -9 +0",
+    "env -S 'pkill -f failsafe'",
+    "ps -A -p 1 | grep java | xargs kill",
     'pkill -f failsafe "@W@/x"',
     'pkill -f "@W@/x" failsafe',
     'pkill -f -- failsafe',

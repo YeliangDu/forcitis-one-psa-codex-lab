@@ -81,6 +81,13 @@ def program_of(cmd):
     return None, k
 
 
+def pids_ok(value, flag):
+    """Whether the value of -P/--parent (a ppid list) or -F/--pidfile (a file) names the session's own pids: no ppid 0 or 1 in the list (01 and 1,2 too), no device file such as /dev/stdin."""
+    if flag == "F":
+        return not value.startswith("/dev/")
+    return not any(re.fullmatch(r"0*[01]", part) for part in value.split(","))
+
+
 def patterns_of(args):
     """(every pattern word, whether -P/-F/--parent/--pidfile names the pids, whether -x/--exact is given) of a pkill/pgrep argument list."""
     patterns, pid_scoped, exact, k = [], False, False, 0
@@ -94,7 +101,7 @@ def patterns_of(args):
             k += 1
         elif t.startswith("--"):
             if t.split("=")[0] in ("--parent", "--pidfile"):
-                pid_scoped = pid_scoped or (t.split("=", 1)[1] if "=" in t else args[k + 1].text if k + 1 < len(args) else "") not in ("0", "1")
+                pid_scoped = pid_scoped or pids_ok(t.split("=", 1)[1] if "=" in t else args[k + 1].text if k + 1 < len(args) else "", "P" if t.startswith("--parent") else "F")
             k += 2 if t in LONG_VALUE else 1
         elif SIGNAL.fullmatch(t):   # -9, -KILL, -HUP: a signal, not a flag cluster
             k += 1
@@ -104,7 +111,7 @@ def patterns_of(args):
                 if c in ARG_FLAGS:
                     attached = t[i + 1:]
                     value = attached or (args[k + 1].text if k + 1 < len(args) else "")
-                    pid_scoped = pid_scoped or (c in "PF" and value not in ("0", "1"))
+                    pid_scoped = pid_scoped or (c in "PF" and pids_ok(value, c))
                     k += 0 if attached else 1
                     break
             k += 1
@@ -167,14 +174,33 @@ def pipelines(toks):
     return [g for g in groups if g]
 
 
+PS_PLAIN = {"-w", "-ww", "-c", "-f", "-l", "-j", "-v", "-m"}   # ps options that do not select processes
+
+
+def lists_given_pids(args):
+    """Whether a ps names its processes with -p and selects nothing else (`ps -A -p 1` lists everything, `ps -o pid= -p $PID` only the one)."""
+    texts, k, named = [w.text for w in args], 0, False
+    while k < len(texts):
+        t = texts[k]
+        if t == "-p":
+            named, k = True, k + 2
+        elif t == "-o":
+            k += 2
+        elif t in PS_PLAIN:
+            k += 1
+        else:
+            return False
+    return named
+
+
 def source_ok(name, cmd, nxt, pipeline, top):
     """Whether one pid source is scoped to the worktree: a pgrep whose every pattern is (or -P), a ps that lists given pids or is narrowed by a positive filter in its pipeline."""
     args = cmd.words[nxt:]
     if name == "pgrep":
-        patterns, pid_scoped, exact = patterns_of(args)
-        return not exact and (pid_scoped or (bool(patterns) and all(scoped(p, top) for p in patterns)))
+        patterns, pid_scoped, _ = patterns_of(args)
+        return pid_scoped or (bool(patterns) and all(scoped(p, top) for p in patterns))
     if name == "ps":
-        if any(w.text in ("-p", "--pid") or (w.text.startswith("-") and not w.text.startswith("--") and w.text.endswith("p")) for w in args):
+        if lists_given_pids(args):
             return True
         for other in pipeline:
             oname, onxt = program_of(other)
@@ -185,11 +211,11 @@ def source_ok(name, cmd, nxt, pipeline, top):
 
 
 def xargs_runs_kill(cmd):
-    """Whether the command is (a wrapper around) xargs whose program is kill."""
+    """Whether the command is (a wrapper around) xargs whose program kills or can run a kill (kill, pkill, a shell, env, eval)."""
     for i, w in enumerate(cmd.words):
         if os.path.basename(w.text) == "xargs":
             j = inner_program(cmd.words, i + 1, "xargs")
-            return j is not None and os.path.basename(cmd.words[j].text) == "kill"
+            return j is not None and os.path.basename(cmd.words[j].text) in ("kill", "pkill", "env", "eval") + tuple(SHELLS)
     return False
 
 
@@ -207,6 +233,13 @@ def scan(text, top, why, depth=0):
     for group in groups:
         named = [(c,) + program_of(c) for c in group]
         for cmd, name, nxt in named:
+            ws = cmd.words
+            if depth < DEPTH and any(os.path.basename(w.text) == "env" for w in ws[:3]):   # env -S "cmd args" runs the string (wrapper option value, so program_of skips it)
+                for i, w in enumerate(ws[1:], 1):
+                    if ws[i - 1].text in ("-S", "--split-string") and not w.expands:
+                        problem = scan(w.text, top, why, depth + 1)
+                        if problem:
+                            return problem
             if name is None:
                 continue
             args = cmd.words[nxt:]
@@ -214,8 +247,9 @@ def scan(text, top, why, depth=0):
                 problem = pkill_problem(args, top, why, name)
                 if problem:
                     return problem
+                operand_kill = operand_kill or any(w.expands for w in args)   # pkill -P $(pgrep …): the substitution fills a pid list that reaches a kill
             elif name == "kill":
-                if any(o == "0" or (o.startswith("-") and len(o) > 1) for o in kill_operands(args)):
+                if any(re.fullmatch(r"[+-]?0+", o) or (o.startswith("-") and len(o) > 1) for o in kill_operands(args)):
                     return GROUP
                 operand_kill = operand_kill or any(w.expands for w in args)
             elif name in SHELLS or name == "eval":
