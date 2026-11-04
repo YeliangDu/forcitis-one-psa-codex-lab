@@ -2,8 +2,8 @@ package com.forcitis.one.organization.workforce.api;
 
 /**
  * Entering and withdrawing org-structure commands (ADR-0068 item 4) and the due-date step of a merge. Entering, withdrawing and previewing need
- * organization.workforce:org-structure-command:create, checked before anything about the content. There is no REST surface and no due-date job in this phase
- * (ADR-0068 item 2.5).
+ * organization.workforce:org-structure-command:create, checked before anything about the content. The REST surface is
+ * OrgStructureCommandController; the due-date step is OrgStructureCommandDueJob (ADR-0068 item 2.5).
  */
 public interface OrgStructureCommands {
 

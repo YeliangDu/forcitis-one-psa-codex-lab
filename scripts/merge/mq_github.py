@@ -1,6 +1,7 @@
 """The GitHub and git side of the merge queue (mq.py): the gh calls, patch-id, the ssh update. mq_selftest.py replaces Gh with a fake and runs the real one against a fake gh binary."""
 import json
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -17,6 +18,42 @@ def sh(args, cwd=None, check=False, timeout=180):
     if check and r.returncode:
         raise SystemExit(f"{' '.join(args[:3])} failed ({r.returncode}): {(r.stderr or r.stdout).strip()[:300]}")
     return r
+
+
+LOG_PREFIX = re.compile(r"^[^\t]*\t[^\t]*\t\S+Z ")   # `gh run view --log-failed` lines: job, step, timestamp, text
+LIGHT_FAIL = re.compile(r"^FAIL  (.+?)(?:\s+\d+ s|$)")   # scripts/ci/light.sh: `FAIL  <check name>   3 s（退出 1）`
+TEST_FAIL = re.compile(r"^\[ERROR\]\s+([\w.$]+(?:Test|IT)(?:\.\w+)?)\b")   # surefire and failsafe: `[ERROR]   FooIT.bar:42 ...`, `[ERROR] FooIT.bar`
+SHELLCHECK_FILE = re.compile(r"^In (\S+) line \d+:$")   # shellcheck: `In scripts/gates/install.sh line 14:`
+LOG_TIMEOUT = 30
+DETAIL_NAMES, DETAIL_NAME_LEN, DETAIL_LEN, DETAIL_LINE_LEN = 4, 70, 400, 300
+
+
+def failure_names(log):
+    """The first few failing check and test names in the text of a failed run's log (names only, never log lines), in order of appearance."""
+    found = []
+    for line in log.splitlines():
+        line = "".join(ch for ch in LOG_PREFIX.sub("", line[:DETAIL_LINE_LEN]).strip() if ch.isprintable())   # a cut line keeps the patterns linear; control characters never reach the log
+        m = LIGHT_FAIL.match(line) or TEST_FAIL.match(line) or SHELLCHECK_FILE.match(line)
+        name = ("shellcheck " + m.group(1) if m.re is SHELLCHECK_FILE else m.group(1))[:DETAIL_NAME_LEN] if m else None
+        if name and name not in found:
+            found.append(name)
+    return found[:DETAIL_NAMES]
+
+
+def failure_detail(gh, runs, steps):
+    """Text for the RERUN-FAILED and HOLD log lines: the failed steps and the first failing check or test names, so a later review can tell flaky from real once the CI logs have expired; short, never raises."""
+    try:
+        failed = sorted({x for r in runs for x in (steps.get(r) or [])})
+        names = []
+        for r in runs[:2]:
+            got = gh.failure_names(r)
+            if got is None:
+                return " | details not available" if not failed else f" | steps: {', '.join(failed)[:DETAIL_LEN]} | names not available"
+            names += [x for x in got if x not in names]
+        text = (f" | steps: {', '.join(failed)}" if failed else "") + (f" | failed: {', '.join(names[:DETAIL_NAMES])}" if names else "")
+        return text[:DETAIL_LEN] or " | details not available"   # nothing to say is not the same as not having looked
+    except Exception:   # a log line must never stop the queue
+        return " | details not available"
 
 
 class SignalError(Exception):
@@ -77,6 +114,11 @@ class Gh:
         """Names of the steps that failed in a ci run, or None when gh cannot say."""
         r = sh(["gh", "run", "view", str(run), "--json", "jobs", "--jq", '.jobs[].steps[] | select(.conclusion == "failure") | .name'])
         return r.stdout.splitlines() if r.returncode == 0 else None
+
+    def failure_names(self, run):
+        """Failing check and test names read from the run's failed-step log, or None when gh cannot say (log expired, gh down)."""
+        r = sh(["gh", "run", "view", str(run), "--log-failed"], timeout=LOG_TIMEOUT)   # read before the rerun starts: a slow gh must not hold the rerun for long
+        return failure_names(r.stdout) if r.returncode == 0 else None
 
     def docker_ok(self):
         return sh(["docker", "info"], timeout=60).returncode == 0

@@ -22,6 +22,9 @@ public interface AttributionCountersignRepository {
     /** Every request of the command, oldest first, decided ones included. */
     List<AttributionCountersign> ofCommand(PersonnelCommandId command);
 
+    /** The requests of the personnel command, locked for the rest of the transaction and read after the lock, so a decision or escalation that committed meanwhile is seen. */
+    List<AttributionCountersign> lockOfCommand(PersonnelCommandId command);
+
     /** As {@link #ofCommand} for an org-structure command. */
     List<AttributionCountersign> ofOrgCommand(OrgStructureCommandId command);
 

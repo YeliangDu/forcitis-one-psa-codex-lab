@@ -2,6 +2,7 @@ package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.organization.workforce.api.EmployeeLabel;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.OrgSnapshotQueries;
 import com.forcitis.one.organization.workforce.domain.OrgUnit;
@@ -10,9 +11,11 @@ import com.forcitis.one.kernel.BusinessZone;
 import java.time.Clock;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -41,6 +44,17 @@ class JdbcOrgSnapshotQueries implements OrgSnapshotQueries {
                 select exists(select 1 from organization_workforce.employees where id = :id)
                 """)
                 .param("id", employeeId.value()).query(Boolean.class).single());
+    }
+
+    @Override
+    public Map<EmployeeId, EmployeeLabel> findLabels(Set<EmployeeId> employeeIds) {
+        return jdbc.sql("""
+                select id, display_name, employee_code from organization_workforce.employees where id = any(:ids)
+                """)
+                .param("ids", employeeIds.stream().map(EmployeeId::value).toArray(UUID[]::new))
+                .query((rs, n) -> Map.entry(new EmployeeId(rs.getObject("id", UUID.class)),
+                        new EmployeeLabel(rs.getString("display_name"), rs.getString("employee_code"))))
+                .list().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     @Override
