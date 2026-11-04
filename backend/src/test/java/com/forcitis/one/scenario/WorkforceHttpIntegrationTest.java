@@ -107,7 +107,10 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                 "GET /api/v1/organization/attribution-countersigns",
                 // #910 S3: the decider's read of a countersign request, the basis of an org-structure command and the merge rehearsal.
                 "GET /api/v1/organization/attribution-countersigns/{attributionCountersignId}", "GET /api/v1/organization/attribution-countersign-bases/{orgStructureCommandId}",
-                "GET /api/v1/organization/org-units/{orgUnitId}:preview-merge");
+                "GET /api/v1/organization/org-units/{orgUnitId}:preview-merge",
+                // #1171: the roster of people (data-scoped, HR role) and the position directory; reads only.
+                "GET /api/v1/organization/employees", "GET /api/v1/organization/employees/{employeeId}",
+                "GET /api/v1/organization/positions", "GET /api/v1/organization/positions/{positionId}");
     }
 
     @Test
