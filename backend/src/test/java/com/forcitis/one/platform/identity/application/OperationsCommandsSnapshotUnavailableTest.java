@@ -3,7 +3,7 @@ package com.forcitis.one.platform.identity.application;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.kernel.EmployeeId;
-import com.forcitis.one.organization.workforce.api.EmployeeExistence;
+import com.forcitis.one.organization.workforce.api.EmployeeLabels;
 import com.forcitis.one.platform.audit.api.AuditPartitions;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -31,8 +31,8 @@ class OperationsCommandsSnapshotUnavailableTest {
         DisableEmergencyAdmin disable = Mockito.mock(DisableEmergencyAdmin.class);
         EnableEmergencyAdmin enable = Mockito.mock(EnableEmergencyAdmin.class);
         RevokeRoleByOperations revoke = Mockito.mock(RevokeRoleByOperations.class);
-        EmployeeExistence employees = Mockito.mock(EmployeeExistence.class);
-        Mockito.when(employees.exists(Mockito.any(EmployeeId.class))).thenThrow(new DataAccessResourceFailureException("snapshot down"));
+        EmployeeLabels employees = Mockito.mock(EmployeeLabels.class);
+        Mockito.when(employees.labelsOf(Mockito.anySet())).thenThrow(new DataAccessResourceFailureException("snapshot down"));
         AuditPartitions partitions = month -> true;
         OperationsCommands commands = new OperationsCommands(register, reset, disable, enable, grant, revoke, () -> false, employees, partitions,
                 Clock.fixed(Instant.parse("2026-10-17T00:00:00Z"), ZoneOffset.UTC));

@@ -11,6 +11,7 @@ import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
+import com.forcitis.one.platform.identity.api.AccountOpeningRoute;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleId;
@@ -50,35 +51,40 @@ class AccountProvisioning {
 
     /** For an operations command naming an employee (ADR-0033 section 3 item 6): the account they have, or one opened now if they are employed. */
     UserId accountForOperations(EmployeeId employeeId) {
-        return existingOrOpened(employeeId).orElseThrow(() -> new DomainException(IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND, ErrorKind.NOT_FOUND,
+        return existingOrOpened(employeeId, AccountOpeningRoute.OPERATIONS).orElseThrow(() -> new DomainException(IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND, ErrorKind.NOT_FOUND,
                 "employee " + employeeId.value() + " has no account and is not an employed person who could get one"));
     }
 
-    Optional<UserId> existingOrOpened(EmployeeId employeeId) {
-        return accounts.findByEmployee(employeeId).or(() -> directory.findEmployee(employeeId).flatMap(this::ensureAccount));
+    Optional<UserId> existingOrOpened(EmployeeId employeeId, AccountOpeningRoute route) {
+        return accounts.findByEmployee(employeeId).or(() -> directory.findEmployee(employeeId).flatMap(employee -> ensureAccount(employee, route)).map(Provisioned::userId));
     }
 
-    /** The account of an employed person, opened if they have none; empty for anyone not employed. */
-    Optional<UserId> ensureAccount(EmployeeProfile employee) {
+    /** The account of an employed person and whether this call opened it; empty for anyone not employed. */
+    record Provisioned(UserId userId, boolean opened) {
+    }
+
+    Optional<Provisioned> ensureAccount(EmployeeProfile employee, AccountOpeningRoute route) {
         if (employee.employmentStatus() != EmploymentStatus.EMPLOYED) {
             return Optional.empty();
         }
         Optional<UserId> existing = accounts.findByEmployee(employee.employeeId());
         if (existing.isPresent()) {
-            return existing;
+            return Optional.of(new Provisioned(existing.get(), false));
         }
         RoleId initial = roles.findByCode(new RoleCode(defaultRole)).orElseThrow(() -> new DomainException(
                 IdentityError.PLATFORM_IDENTITY_DEFAULT_ROLE_MISSING, ErrorKind.UNAVAILABLE, "the default role " + defaultRole + " does not exist"))
                 .roleId();
-        UserAccount opened = UserAccount.open(new UserId(ids.next()), employee.employeeId(), Set.of(initial));
-        if (accounts.insertIfAbsent(opened)) {
+        UserAccount opened = UserAccount.open(new UserId(ids.next()), employee.employeeId(), Set.of(initial), route);
+        boolean won = accounts.insertIfAbsent(opened);
+        if (won) {
             try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null),
                     ACTOR)) {
                 grants.replace(opened, Set.of(initial), AccountGrants.Origin.defaultRole());
                 events.publish(opened);
             }
         }
-        return Optional.of(accounts.findByEmployee(employee.employeeId()).orElseThrow(() -> new IllegalStateException(
-                "no account of employee " + employee.employeeId().value() + " right after opening it")));
+        UserId account = accounts.findByEmployee(employee.employeeId()).orElseThrow(() -> new IllegalStateException(
+                "no account of employee " + employee.employeeId().value() + " right after opening it"));
+        return Optional.of(new Provisioned(account, won));
     }
 }

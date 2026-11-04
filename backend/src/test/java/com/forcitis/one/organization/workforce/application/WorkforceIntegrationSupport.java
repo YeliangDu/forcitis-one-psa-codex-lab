@@ -51,9 +51,6 @@ public abstract class WorkforceIntegrationSupport {
     @Autowired
     protected AdjustableClock clock;
 
-    @Autowired
-    protected FakeShortNameSource oldSystem;
-
     private WorkContext.Scope acting;
 
     @BeforeEach
@@ -93,8 +90,6 @@ public abstract class WorkforceIntegrationSupport {
         orgSource.afterRead = () -> { };
         orgSource.singleLookupResult = java.util.List.of();
         orgSource.singleLookups.set(0);
-        oldSystem.unavailable = false;
-        oldSystem.names = java.util.Map.of();
     }
 
     // TRUNCATE takes an exclusive lock: listeners of the previous test's events (identity, audit) must have finished first,

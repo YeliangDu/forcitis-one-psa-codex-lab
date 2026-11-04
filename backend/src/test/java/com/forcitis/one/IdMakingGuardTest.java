@@ -78,8 +78,7 @@ class IdMakingGuardTest {
             "EmergencyAdmin", "userId",
             "AuthorizationRequest", "requestId",
             "SourceReferenceRefusal", "refusalId",
-            "OutboundDelivery", "deliveryId",
-            "RegisteredEmployee", "staff");
+            "OutboundDelivery", "deliveryId");
 
     /**
      * The id of an aggregate root is final: a repository cannot hand a root its id later, whether in a method that returns the root, a void save or a

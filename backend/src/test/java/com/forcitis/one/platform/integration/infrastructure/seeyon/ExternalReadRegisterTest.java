@@ -27,7 +27,6 @@ class ExternalReadRegisterTest {
     static final Map<String, String> OWN_COLUMN = Map.of(
             "forcitis_one.v_org_member.NAME", "employees.display_name",
             "forcitis_one.v_org_member.CODE", "employees.employee_code",
-            "forcitis_one.v_org_member.LOGIN_NAME", "employees.login_name",
             "forcitis_one.v_org_member.WE_COM_ID", "employees.wecom_user_id",
             "forcitis_one.v_org_member.ENTERPRISE_EMAIL", "employees.email",
             "forcitis_one.v_org_member.GENDER", "employees.gender");

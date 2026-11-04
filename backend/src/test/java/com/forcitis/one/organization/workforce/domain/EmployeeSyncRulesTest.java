@@ -64,7 +64,6 @@ class EmployeeSyncRulesTest {
         assertThat(employed(staff(snapshot, 2))).isFalse();
         assertThat(employed(staff(snapshot, 3))).isFalse();
         assertThat(employed(staff(snapshot, 4))).isTrue();
-        assertThat(staff(snapshot, 3).employee().loginName()).isNull();
     }
 
     @Test

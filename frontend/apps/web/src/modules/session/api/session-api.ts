@@ -12,10 +12,6 @@ export function loginWithWecomCode(code: string, state: string): Promise<void> {
   return loginWithWecom(code, state, QR_ENTRY);
 }
 
-export async function loginWithSso(ticket: string): Promise<void> {
-  await operations.postPlatformSessionsSsoLogin({ body: { ticket } }, UNGUARDED);
-}
-
 export async function loginWithSignedTicket(ticket: string): Promise<void> {
   await operations.postPlatformSessionsTicketLogin({ body: { ticket } }, UNGUARDED);
 }

@@ -95,9 +95,11 @@ class CurrentGrantPredicateGuardTest {
 
     // ---- every SQL text that reads the grant or role version tables ----
 
-    /** Files that may read the tables without the predicate constant, each with its reason (ADR-0034 decision 4 items 3 and 5). */
+    /** Files that may read the tables without the predicate constant, each with its reason (ADR-0034 decision 4 items 3 and 5; the full-history read is an extension of the guard text at ADR-0034 line 412, per #1173 and user intent 2026-11-03-214823, not ADR items 3 and 5). */
     static final java.util.Map<String, String> ALLOWED_READERS = java.util.Map.of("AuthorizationHistory.java",
-            "the read-only as-of restore: it reads by a range test at a moment, not the current rows");
+            "the read-only as-of restore: it reads by a range test at a moment, not the current rows",
+            "JdbcFullGrantHistory.java",
+            "the full-history read of one account (#1173): it returns open and closed grant rows, so it cannot contain the current-grant predicate");
     static final Pattern TOUCHES = Pattern.compile("\\b(?:account_role_grants|role_versions)\\b", Pattern.CASE_INSENSITIVE);
     static final Pattern WRITER = Pattern.compile("\\b(?:insert\\s+into|update|delete\\s+from|lock\\s+table)\\b", Pattern.CASE_INSENSITIVE);
     static final Pattern SELECT = Pattern.compile("\\bselect\\b", Pattern.CASE_INSENSITIVE);
@@ -125,7 +127,7 @@ class CurrentGrantPredicateGuardTest {
     }
 
     @Test
-    @DisplayName("0034-G3-03 / ADR-0034 第 4 项第 3 条（行 412）：src/main 中触及 account_role_grants、role_versions 的每条读取 SQL 都引用那个谓词常量，或在写明理由的白名单文件（AuthorizationHistory）里；没有谓词的读取、coalesce 写法都被拦下")
+    @DisplayName("0034-G3-03 / ADR-0034 第 4 项第 3 条（行 412）：src/main 中触及 account_role_grants、role_versions 的每条读取 SQL 都引用那个谓词常量，或在写明理由的白名单文件（AuthorizationHistory、JdbcFullGrantHistory）里；没有谓词的读取、coalesce 写法都被拦下")
     void everyReadOfTheTablesUsesTheConstantOrIsAllowed() throws IOException {
         String constantName = null;
         List<String> sources = new ArrayList<>();
@@ -164,5 +166,7 @@ class CurrentGrantPredicateGuardTest {
         assertThat(unguardedReads("A.java", guarded, "CURRENT_GRANTS")).isEmpty();
         assertThat(unguardedReads("A.java", writer, "CURRENT_GRANTS")).isEmpty();
         assertThat(unguardedReads("AuthorizationHistory.java", coalesce, "CURRENT_GRANTS")).isEmpty();
+        assertThat(unguardedReads("JdbcFullGrantHistory.java", none, "CURRENT_GRANTS")).isEmpty();
+        assertThat(unguardedReads("JdbcGrantHistory.java", none, "CURRENT_GRANTS")).hasSize(1);
     }
 }

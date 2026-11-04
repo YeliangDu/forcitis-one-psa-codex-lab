@@ -7,8 +7,8 @@ import com.forcitis.one.organization.workforce.api.Gender;
 import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
-/** Empty loginName means separated; no birthday (sensitive, not in the view). */
-public record Employee(EmployeeId employeeId, String employeeCode, String displayName, @Nullable String loginName, @Nullable String email,
+/** No birthday (sensitive, not in the view). */
+public record Employee(EmployeeId employeeId, String employeeCode, String displayName, @Nullable String email,
                        @Nullable Gender gender, @Nullable WecomUserId wecomUserId, EmploymentStatus employmentStatus, boolean feeEarner) {
     public Employee {
         Objects.requireNonNull(employeeId, "employeeId");
@@ -18,10 +18,10 @@ public record Employee(EmployeeId employeeId, String employeeCode, String displa
     }
 
     public Employee withEmployeeCode(String newCode) {
-        return new Employee(employeeId, newCode, displayName, loginName, email, gender, wecomUserId, employmentStatus, feeEarner);
+        return new Employee(employeeId, newCode, displayName, email, gender, wecomUserId, employmentStatus, feeEarner);
     }
 
     public Employee withEmploymentStatus(EmploymentStatus newStatus) {
-        return new Employee(employeeId, employeeCode, displayName, loginName, email, gender, wecomUserId, newStatus, feeEarner);
+        return new Employee(employeeId, employeeCode, displayName, email, gender, wecomUserId, newStatus, feeEarner);
     }
 }

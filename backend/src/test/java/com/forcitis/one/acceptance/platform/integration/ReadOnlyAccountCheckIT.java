@@ -9,10 +9,7 @@ import com.forcitis.one.TestMssql;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.WorkContext;
-import com.forcitis.one.organization.workforce.application.RefreshShortNames;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
-import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -42,7 +39,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * ADR37-1 (ADR-0037 item 4, implementation card of one-coordinator and one-ops 2026-10-15): every read-only external connection is checked
- * against the RDS platform baseline when the application starts and again before each short-name refresh; anything more, anything less or
+ * against the RDS platform baseline when the application starts and again before each short-name read; anything more, anything less or
  * anything that cannot be determined refuses. The application is started for real (black box) against a real SQL Server, one start per case.
  * The re-check before an organisation sync run went with the sync in #934 (ADR-0055 section 6).
  *
@@ -551,8 +548,8 @@ class ReadOnlyAccountCheckIT {
     }
 
     @Test
-    @DisplayName("ADR37-1 运行期重检：启动后部门简称账号多了一项写权限，下一次简称刷新开始前重检失败，适配器停止并写 ALERT，不再读取")
-    void writeGrantedAfterStartupStopsTheShortNameAdapterBeforeTheNextRefresh(CapturedOutput output) throws SQLException {
+    @DisplayName("ADR37-1 运行期重检：启动后部门简称账号多了一项写权限，下一次读简称前重检失败，适配器停止并写 ALERT，不再读取")
+    void writeGrantedAfterStartupStopsTheShortNameAdapterBeforeTheNextRead(CapturedOutput output) throws SQLException {
         Account account = baselineAccount(ReadOnlyConnection.LEGACY_NAMES);
         try (ConfigurableApplicationContext context = start(Map.of(ReadOnlyConnection.LEGACY_NAMES, account))) {
             OrgShortNames names = context.getBean(OrgShortNames.class);
@@ -561,10 +558,9 @@ class ReadOnlyAccountCheckIT {
 
             grantWriteBehindTheDatabaseDeny(account);
             long readsBefore = baseTableReads(LEGACY_WORLD, "short_name_rows");
-            double failedBefore = shortNameRefreshFailures(context);
-            context.getBean(RefreshShortNames.class).execute();
 
-            assertThat(shortNameRefreshFailures(context)).as("the refresh is counted as failed").isEqualTo(failedBefore + 1);
+            assertThatThrownBy(names::readShortNames).isInstanceOf(ExternalSystemUnavailableException.class);
+
             assertThat(output.getAll()).as("the failed re-check raises an ALERT naming item (b)").containsPattern("ALERT[^\\n]*[(（]b[)）]");
             assertThat(baseTableReads(LEGACY_WORLD, "short_name_rows")).as("nothing is read from the old system once the re-check has failed")
                     .isEqualTo(readsBefore);
@@ -584,11 +580,6 @@ class ReadOnlyAccountCheckIT {
         try (WorkContext.Scope job = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.snapshot.sync")) {
             SourceReferencesProbe.of(context).allocate("LEGACY_SYSTEM", "ORG_UNIT", 2);
         }
-    }
-
-    static double shortNameRefreshFailures(ConfigurableApplicationContext context) {
-        Counter failures = context.getBean(MeterRegistry.class).find("forcitis.organization.workforce.short.name.refresh.failures").counter();
-        return failures == null ? 0 : failures.count();
     }
 
     static void grantWriteBehindTheDatabaseDeny(Account account) throws SQLException {

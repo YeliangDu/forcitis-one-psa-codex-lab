@@ -49,6 +49,12 @@ public interface AccountRepository {
 
     Set<RoleCode> findAssignedRoleCodes(UserId userId);
 
+    /** The place of an account in the list order: the moment it was opened, then its id. */
+    record ListPosition(Instant createdAt, UserId userId) {}
+
+    /** At most limit accounts ordered by opening moment, then user id, after the given position; roleCode matches the grants open now; null filters match everything. */
+    List<AccountListRow> list(@Nullable AccountStatus status, @Nullable RoleCode roleCode, @Nullable ListPosition after, int limit);
+
     /** Employment is checked by the caller. */
     Set<UserId> findEnabledHolders(RoleCode roleCode);
 }

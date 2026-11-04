@@ -10,7 +10,6 @@ import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.ExternalSystemUnavailableException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WorkContext;
-import com.forcitis.one.organization.workforce.application.RegisterEmployeeOnLoginName;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.identity.api.SessionRoles;
 import com.forcitis.one.platform.integration.api.OrgShortNames;
@@ -124,9 +123,6 @@ class StalledExternalSourceIT {
     MockMvc mvc;
 
     @Autowired
-    RegisterEmployeeOnLoginName loginLookup;
-
-    @Autowired
     OrgSource a8;
 
     @Autowired
@@ -190,7 +186,7 @@ class StalledExternalSourceIT {
     }
 
     @Test
-    @DisplayName("D1-1 A8 视图卡住时登录按登录名查人在预算内报告来源不可用，登录流程继续")
+    @DisplayName("D1-1 A8 视图卡住时按登录名查人在外部调用预算内报告来源不可用")
     void stalledA8ViewsDegradeTheLoginLookup() throws Exception {
         blockers.add(Blocker.hold(A8_WORLD, "dbo.ORG_MEMBER"));
         assertBlocked(A8_WORLD, "SELECT COUNT(*) FROM forcitis_one.v_org_member");
@@ -200,7 +196,7 @@ class StalledExternalSourceIT {
     }
 
     @Test
-    @DisplayName("D1-1 A8 视图查询不加锁只是极慢时登录按登录名查人同样在预算内降级")
+    @DisplayName("D1-1 A8 视图查询不加锁只是极慢时按登录名查人同样在外部调用预算内报告来源不可用")
     void slowA8ViewWithoutLocksDegradesTheLoginLookup() throws Exception {
         replaceView(A8_WORLD, "forcitis_one.v_org_member", SLOW_MEMBER_VIEW);
         viewsToRestore.add(new ViewRestore(A8_WORLD, "forcitis_one.v_org_member", MEMBER_VIEW));
@@ -208,18 +204,12 @@ class StalledExternalSourceIT {
         assertLoginLookupDegrades();
     }
 
-    /** The port says "unavailable" (that is what the caller turns into "nobody found"), and the login use case built on it returns instead of throwing. */
+    /** The A8 port says "unavailable" within the budget of an external call. It has no runtime caller; the code stays for the intake adapter (ADR-0069 section 11). */
     private void assertLoginLookupDegrades() {
         Outcome<?> port = timed(HARD_CAP_INTERACTIVE, () -> a8.findStaffByLogin(new StaffLookup.ByLoginName(LOGIN_NAME)));
-        assertThat(port.hung()).as("the login lookup is still waiting for A8 after %s: it holds a request thread", HARD_CAP_INTERACTIVE).isFalse();
-        assertThat(port.elapsed()).as("login answers within the 3 s budget of an external call").isLessThanOrEqualTo(INTERACTIVE_BUDGET);
+        assertThat(port.hung()).as("the A8 lookup is still waiting for A8 after %s: it holds a thread", HARD_CAP_INTERACTIVE).isFalse();
+        assertThat(port.elapsed()).as("the A8 lookup answers within the 3 s budget of an external call").isLessThanOrEqualTo(INTERACTIVE_BUDGET);
         assertThat(port.failure()).as("an unreachable source is reported as such, not as an empty answer").isInstanceOf(ExternalSystemUnavailableException.class);
-
-        Outcome<Boolean> useCase = timed(HARD_CAP_INTERACTIVE, () -> loginLookup.execute(LOGIN_NAME).isPresent());
-        assertThat(useCase.hung()).isFalse();
-        assertThat(useCase.elapsed()).isLessThanOrEqualTo(INTERACTIVE_BUDGET);
-        assertThat(useCase.failure()).isNull();
-        assertThat(useCase.value()).isFalse();
     }
 
     @Test

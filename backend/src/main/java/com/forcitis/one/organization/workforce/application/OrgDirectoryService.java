@@ -25,22 +25,17 @@ import org.springframework.stereotype.Component;
 @Component
 class OrgDirectoryService implements OrgDirectory {
     private final OrgSnapshotQueries snapshots;
-    private final RegisterEmployeeOnLogin registerOnLogin;
-    private final RegisterEmployeeOnLoginName registerOnLoginName;
     private final EmployeeVersionQueries versions;
     private final Clock clock;
     private final BusinessZone zone;
     private final PersonnelCommandQueries commands;
 
-    OrgDirectoryService(OrgSnapshotQueries snapshots, RegisterEmployeeOnLogin registerOnLogin,
-                        RegisterEmployeeOnLoginName registerOnLoginName, EmployeeVersionQueries versions, PersonnelCommandQueries commands, Clock clock, BusinessZone zone) {
+    OrgDirectoryService(OrgSnapshotQueries snapshots, EmployeeVersionQueries versions, PersonnelCommandQueries commands, Clock clock, BusinessZone zone) {
         this.commands = commands;
         this.versions = versions;
         this.clock = clock;
         this.zone = zone;
         this.snapshots = snapshots;
-        this.registerOnLogin = registerOnLogin;
-        this.registerOnLoginName = registerOnLoginName;
     }
 
     @Override
@@ -52,7 +47,6 @@ class OrgDirectoryService implements OrgDirectory {
     public Optional<EmployeeProfile> findEmployeeByLogin(LoginLookup lookup) {
         return switch (lookup) {
             case LoginLookup.ByWecomUser wecom -> findEmployeeByWecomUser(wecom.wecomUserId());
-            case LoginLookup.ByLoginName login -> findEmployeeByLoginName(login.loginName());
         };
     }
 
@@ -84,19 +78,7 @@ class OrgDirectoryService implements OrgDirectory {
     }
 
     private Optional<EmployeeProfile> findEmployeeByWecomUser(WecomUserId wecomUserId) {
-        return snapshots.findStaffByWecomUser(wecomUserId)
-                .or(() -> snapshots.findEmployeeIdsByWecomUser(wecomUserId).isEmpty() ? registerOnLogin.execute(wecomUserId).flatMap(registered -> snapshots.findStaff(registered.employeeId())) : Optional.empty())
-                .map(this::profile);
-    }
-
-    private Optional<EmployeeProfile> findEmployeeByLoginName(String loginName) {
-        if (loginName == null || loginName.isBlank()) {
-            return Optional.empty();
-        }
-        String key = loginName.trim();
-        return snapshots.findStaffByLoginName(key)
-                .or(() -> snapshots.findEmployeeIdsByLoginName(key).isEmpty() ? registerOnLoginName.execute(key).flatMap(registered -> snapshots.findStaff(registered.employeeId())) : Optional.empty())
-                .map(this::profile);
+        return snapshots.findStaffByWecomUser(wecomUserId).map(this::profile);
     }
 
     @Override

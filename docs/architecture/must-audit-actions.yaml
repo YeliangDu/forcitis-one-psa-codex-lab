@@ -8,6 +8,7 @@ categories:
   - platform.identity.login.failed
   - platform.identity.login.identity-check
   - platform.identity.login.succeeded
+  - platform.identity.account.opened-at-login
   - platform.identity.logout
   - platform.identity.session.identity-confirmed
 - name: 会话
@@ -75,7 +76,6 @@ categories:
   - organization.workforce.org-structure-command.completed
 - name: 法人
   actions:
-  - organization.workforce.EmployeeRegistered
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected
