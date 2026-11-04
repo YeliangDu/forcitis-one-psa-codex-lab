@@ -33,6 +33,7 @@ DOMAIN_BC = {  # the `domain` column of a rule row -> the BC that owns it (evide
     "numbering": "platform.numbering",
     "audit": "platform.audit",
     "attendance": "organization.attendance",
+    "leave": "organization.leave",  # planned, not built: RT-1 asks for tests only once the BC is built
     "timesheet": "cost.timesheet",
     "org": "organization.workforce",
     "workforce": "organization.workforce",
