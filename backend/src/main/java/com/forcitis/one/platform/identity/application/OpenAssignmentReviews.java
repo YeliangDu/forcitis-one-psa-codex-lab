@@ -90,6 +90,21 @@ class OpenAssignmentReviews {
         });
     }
 
+    /** The sensitive-role review of an unpaid-leave start, if the account holds a sensitive role when the event is handled (ADR-0068 decision 3). */
+    void openForLeave(UserId user, EventEnvelope trigger, PersonnelCommandId command) {
+        accounts.findForUpdate(user).ifPresent(account -> {
+            boolean holdsSensitiveRole = accounts.openGrants(user).stream()
+                    .anyMatch(grant -> roles.findById(grant.roleId()).map(SensitivePermissions::roleIsSensitive).orElse(false));
+            if (!holdsSensitiveRole || adjustments.existsForLeave(user, command)) {
+                return;
+            }
+            PermissionAdjustmentId id = new PermissionAdjustmentId(ids.next());
+            PermissionAdjustment item = PermissionAdjustment.unpaidLeaveReview(id, user, command, escalationDueAt(trigger, id), clock.instant());
+            adjustments.insert(item);
+            events.publish(item);
+        });
+    }
+
     void openScopeReviewFor(UserId user, EmployeeId mover, EventEnvelope trigger, PersonnelCommandId command, OrgUnitId beforeOrgUnit, OrgUnitId afterOrgUnit,
             @Nullable PositionId beforePosition, @Nullable PositionId afterPosition) {
         accounts.findForUpdate(user).ifPresent(account -> {

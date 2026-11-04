@@ -20,6 +20,7 @@ import com.forcitis.one.organization.workforce.events.EmployeeHired;
 import com.forcitis.one.organization.workforce.events.EmployeeLegalEntityChanged;
 import com.forcitis.one.organization.workforce.events.EmployeeRegularized;
 import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
+import com.forcitis.one.organization.workforce.events.EmployeeUnpaidLeaveStarted;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
 import com.forcitis.one.organization.workforce.events.EmployeeTransferred;
 import com.forcitis.one.organization.workforce.events.SeparationHeld;
@@ -91,8 +92,8 @@ class PersonnelCommandEventsTest {
     }
 
     @Test
-    @DisplayName("IMP-1030-PAR-B3 a transfer names what changed and the department and position of the day before; unpaid leave publishes nothing")
-    void aTransferCarriesItsTriggersAndUnpaidLeaveNothing() {
+    @DisplayName("IMP-1030-PAR-B3 a transfer names what changed and the department and position of the day before; the end of an unpaid leave publishes nothing")
+    void aTransferCarriesItsTriggersAndTheEndOfLeaveNothing() {
         VersionRow before = new VersionRow(UUID.fromString("019a0000-0000-7000-8000-0000000000d1"), LocalDate.of(2026, 1, 1), null,
                 Map.of(CommandEffects.ORG_UNIT, OLD_UNIT.value(), CommandEffects.POSITION, POSITION.value()), ChangeSource.MIGRATION, null, false);
         PersonnelCommand transfer = command(request(PersonnelCommandKind.TRANSFER, DAY, null, NEW_UNIT, null, null, null));
@@ -104,9 +105,21 @@ class PersonnelCommandEventsTest {
             assertThat(e.previousPositionId()).isEqualTo(POSITION);
             assertThat(e.newPositionId()).as("the position did not change").isEqualTo(POSITION);
         });
+        PersonnelCommand leaveEnd = command(request(PersonnelCommandKind.UNPAID_LEAVE_END, DAY, null, null, null, null, null));
+        leaveEnd.recordEffect(null, null, null);
+        assertThat(leaveEnd.hasPendingEvents()).isFalse();
+    }
+
+    @Test
+    @DisplayName("#918 the start of an unpaid leave publishes EmployeeUnpaidLeaveStarted with the command id, the employee and the first day on leave")
+    void theStartOfLeavePublishesItsEvent() {
         PersonnelCommand leave = command(request(PersonnelCommandKind.UNPAID_LEAVE_START, DAY, null, null, null, null, null));
-        leave.recordEffect(null, null, null);
-        assertThat(leave.hasPendingEvents()).isFalse();
+
+        assertThat(published(leave, null)).isInstanceOfSatisfying(EmployeeUnpaidLeaveStarted.class, e -> {
+            assertThat(e.personnelCommandId()).isEqualTo(leave.id());
+            assertThat(e.employeeId()).isEqualTo(EMPLOYEE);
+            assertThat(e.effectiveDate()).isEqualTo(DAY);
+        });
     }
 
     private static VersionRow assignment(OrgUnitId unit, PositionId position) {

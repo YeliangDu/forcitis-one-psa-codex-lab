@@ -216,6 +216,13 @@ public final class PermissionAdjustment extends AggregateRoot {
                 null, escalationDueAt, at);
     }
 
+    /** One sensitive-role review for a person whose unpaid leave started (ADR-0068 decision 3); it names no role and no changed field. */
+    public static PermissionAdjustment unpaidLeaveReview(PermissionAdjustmentId id, UserId user, PersonnelCommandId command, Instant escalationDueAt,
+            Instant at) {
+        return opened(PermissionAdjustmentKind.SENSITIVE_ROLE_REVIEW, PermissionAdjustmentOrigin.UNPAID_LEAVE_START, id, user, command, null, null, null,
+                null, null, null, null, escalationDueAt, at);
+    }
+
     /**
      * One scope review for a person whose department changed, addressed to the head of the new department, or to nobody when it has none
      * (ADR-0032 decision 4, N1-09). It names no role.

@@ -61,6 +61,7 @@ categories:
   - organization.workforce.EmployeeReinstated
   - organization.workforce.EmployeeSeparated
   - organization.workforce.EmployeeTransferred
+  - organization.workforce.EmployeeUnpaidLeaveStarted
   - organization.workforce.attribution-countersign.approved
   - organization.workforce.attribution-countersign.lapsed
   - organization.workforce.attribution-countersign.rejected

@@ -54,6 +54,16 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
     }
 
     @Override
+    public boolean existsForLeave(UserId user, PersonnelCommandId command) {
+        return jdbc.sql("""
+                select exists (select 1 from platform_identity.permission_adjustments
+                                where origin_kind = 'UNPAID_LEAVE_START' and user_id = :user and trigger_personnel_command_id = :command)
+                """)
+                .param("user", user.value()).param("command", command.value())
+                .query(Boolean.class).single();
+    }
+
+    @Override
     public void insert(PermissionAdjustment opened) {
         OffsetDateTime at = OffsetDateTime.ofInstant(opened.createdAt(), ZoneOffset.UTC);
         jdbc.sql("""

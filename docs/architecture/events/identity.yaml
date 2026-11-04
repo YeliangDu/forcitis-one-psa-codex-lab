@@ -453,14 +453,15 @@ components:
             - ASSIGNMENT_CHANGE
             - UPHOLD_EXPIRY
             - ORG_UNIT_INACTIVE
+            - UNPAID_LEAVE_START
             x-type: PermissionAdjustmentOrigin
-            description: 条目来源：任职变化、维持到期、部门停用
+            description: 条目来源：任职变化、维持到期、部门停用、停薪留职开始
           triggerPersonnelCommandId:
             type: string
             format: uuid
             x-type: PersonnelCommandId
             nullable: true
-            description: 触发条目的人事命令（调岗或更正）；维持到期重新生成的条目为空
+            description: 触发条目的人事命令（调岗、更正或停薪留职开始）；维持到期重新生成的条目为空
           triggerFieldKind:
             type: string
             enum:

@@ -538,6 +538,42 @@ components:
         businessDate: 人事业务生效日（effectiveDate）：复职命令的生效日
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
+    EmployeeUnpaidLeaveStarted:
+      name: EmployeeUnpaidLeaveStarted
+      title: 员工停薪留职已开始
+      description: 停薪留职开始命令生效时发布：员工自生效日起处于停薪留职，在职状态不变（ADR-0068 第 1 条第 9 项、第 3 条）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人。platform.identity 据此为持有敏感角色的人生成敏感角色复核（ADR-0068 第 3 条，#918）。
+      payload:
+        type: object
+        properties:
+          personnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            description: 触发本事件的人事命令 ID（UUIDv7）
+          employeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 员工 ID，与信封的 aggregateId 相同
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 人事业务生效日（DECLARED）：停薪留职的第一天
+      x-event:
+        eventType: organization.workforce.EmployeeUnpaidLeaveStarted
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.EmployeeUnpaidLeaveStarted
+        aggregate: Employee
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.identity
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 人事业务生效日（effectiveDate）：停薪留职开始命令的生效日
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
     EmployeeCorrected:
       name: EmployeeCorrected
       title: 员工人事已更正

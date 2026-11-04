@@ -16,6 +16,9 @@ public interface PermissionAdjustmentRepository {
     /** Whether the person already has an item of the kind for this trigger (one per triggering command and field; a redelivery adds none). */
     boolean existsForTrigger(PermissionAdjustmentKind kind, UserId user, PersonnelCommandId command, TriggerFieldKind field);
 
+    /** Whether the person already has the sensitive-role review of this unpaid-leave start (a redelivery adds none). */
+    boolean existsForLeave(UserId user, PersonnelCommandId command);
+
     void insert(PermissionAdjustment opened);
 
     Optional<PermissionAdjustment> findById(PermissionAdjustmentId id);
