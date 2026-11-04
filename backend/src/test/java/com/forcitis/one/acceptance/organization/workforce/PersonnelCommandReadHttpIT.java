@@ -145,6 +145,20 @@ class PersonnelCommandReadHttpIT extends CommandReadHttpSupport {
     }
 
     @Test
+    @DisplayName("#1172 完成标准第 1、2、4 条（多角色）：一个角色范围为全部但只有 org-unit:read，另一个角色只含自选部门 B 且有录入权限；调用者只看到 B 的命令，A 的详情 404 并留 denied 审计，宽角色不放大范围")
+    void aWideRoleWithoutThePermissionDoesNotWidenTheNarrowOne() throws Exception {
+        List<String> inB = commandUnits.entrySet().stream().filter(e -> "READ-B".equals(e.getValue())).map(Map.Entry::getKey).toList();
+        List<String> outside = commandUnits.entrySet().stream().filter(e -> e.getValue() != null && !"READ-B".equals(e.getValue())).map(Map.Entry::getKey).toList();
+        assertThat(inB).isNotEmpty();
+        assertThat(outside).isNotEmpty();
+        List<String> seen = ids(all("multi", "")).stream().filter(commandUnits::containsKey).toList();
+        assertThat(seen).containsExactlyInAnyOrderElementsOf(inB);
+        int before = auditEntries(denied()).size();
+        for (String id : outside) require(read("multi", resource() + "/" + id), 404, "a command outside the permitted role's scope");
+        eventually(() -> assertThat(auditEntries(denied())).hasSize(before + outside.size()));
+    }
+
+    @Test
     @DisplayName("#1172 完成标准第 1、2、6 条：范围外 id 与不存在 id 同为 404 同错误码；只为存在的范围外 id 追加 N 条 denied，审计不含工号")
     void deniedIdsAreIndistinguishableAndAuditedExactly() throws Exception {
         int before = auditEntries(denied()).size();
@@ -173,7 +187,7 @@ class PersonnelCommandReadHttpIT extends CommandReadHttpSupport {
     }
 }
 
-/** Shared HTTP assertions keep both scoped resources on the same #730 fail-closed matrix. */
+/** Shared HTTP assertions for the three command reads; the #730 fail-closed scope matrix applies to personnel commands only, org-structure commands are company-wide. */
 abstract class CommandReadHttpSupport extends DataScopeSupport {
     static final LocalDate DUE = TODAY.plusDays(10);
     static final Pattern FORBIDDEN_KEY = Pattern.compile("(?i)id.?card|idnumber|identity.?(card|number)|ethnic|household|national.?id");
@@ -201,7 +215,7 @@ abstract class CommandReadHttpSupport extends DataScopeSupport {
         for (String key : List.of("a", "heldAdmin", "own")) person(key, "READ-A", "READ-P");
         person("child", "READ-CHILD", "READ-P");
         person("b", "READ-B", "READ-P");
-        for (String key : List.of("admin1", "admin2", "finance", "all", "subtree", "custom", "empty", "broken", "orgOnly", "receiver", "recorder")) person(key, "READ-X", "READ-P");
+        for (String key : List.of("admin1", "admin2", "finance", "all", "subtree", "custom", "empty", "broken", "orgOnly", "receiver", "recorder", "multi")) person(key, "READ-X", "READ-P");
         for (String key : List.of("oda", "writer")) person(key, "READ-W", "READ-P");
         seedOrganisation();
         administrator("admin1");
@@ -219,6 +233,7 @@ abstract class CommandReadHttpSupport extends DataScopeSupport {
         role("orgOnly", "ALL", null, ORG_UNIT_READ);
         role("receiver", "CUSTOM_ORG_UNITS", List.of(onlyUnit(unitsByCode.get("READ-X"))), permission());
         role("recorder", "CUSTOM_ORG_UNITS", List.of(onlyUnit(orgUnitId(session("oda"), "READ-W"))), permission());
+        grantOrdinaryRoles(administrator("admin1"), "multi", "read-orgOnly", "read-custom");
         seedVersions();
         fixtureEntity = createLegalEntity(signedIn("writer"), "RDA", "Synthetic read entity");
         for (String id : unitsByCode.values()) {
