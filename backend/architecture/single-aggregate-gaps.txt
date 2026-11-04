@@ -1,0 +1,4 @@
+# DDD-1 / G-T1: @Transactional use cases that write through two or more aggregate repositories (full class names). Shrink only: SingleAggregateGuardTest#useCasesWriteOneAggregate.
+com.forcitis.one.organization.workforce.application.ApplyDueOrgCommand
+com.forcitis.one.organization.workforce.application.EmployeeProfileService
+com.forcitis.one.organization.workforce.application.ProfileChangeRequestService
