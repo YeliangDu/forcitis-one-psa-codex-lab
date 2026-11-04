@@ -94,11 +94,11 @@ public class WorkforceOperationsCommands {
         }
     }
 
-    /** A misspelt own option must not read as an absent witness; configuration options (dotted or environment-style names) are Spring's and pass. */
     private boolean exists(EmployeeId employee) {
         return employees.labelsOf(Set.of(employee)).containsKey(employee);
     }
 
+    /** A misspelt own option must not read as an absent witness; configuration options (dotted or environment-style names) are Spring's and pass. */
     private static void rejectUnknownOptions(ApplicationArguments arguments, boolean release) {
         Set<String> own = release ? OWN_OPTIONS : MIGRATE_OPTIONS;
         if (!arguments.getNonOptionArgs().isEmpty()) {

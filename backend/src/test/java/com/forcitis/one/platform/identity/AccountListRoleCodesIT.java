@@ -10,6 +10,9 @@ import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.AccountRepository.ListPosition;
 import com.forcitis.one.platform.identity.domain.GrantChanges;
 import com.forcitis.one.platform.identity.domain.GrantClosing;
+import com.forcitis.one.platform.identity.domain.GrantHistory;
+import com.forcitis.one.platform.identity.domain.GrantHistory.RowPosition;
+import com.forcitis.one.platform.identity.domain.GrantRow;
 import com.forcitis.one.platform.identity.domain.HeldGrant;
 import com.forcitis.one.platform.identity.domain.RevocationCause;
 import java.time.Instant;
@@ -26,6 +29,9 @@ class AccountListRoleCodesIT extends IdentityIntegrationTest {
 
     @Autowired
     AccountRepository accounts;
+
+    @Autowired
+    GrantHistory history;
 
     @Test
     @DisplayName("#1173 a role whose grant was closed is not in the role codes of the list row and the role code filter does not find the account by it")
@@ -71,5 +77,46 @@ class AccountListRoleCodesIT extends IdentityIntegrationTest {
         }
 
         assertThat(seen).containsExactlyElementsOf(byId);
+    }
+
+    @Test
+    @DisplayName("#1173 grants that started at the same moment keep the grant id descending order across page boundaries, whatever order their rows are stored in")
+    void grantsStartedTogetherAreOrderedByGrantIdDescending() {
+        pagesThroughGrantsStartedTogether(9201, true);
+        pagesThroughGrantsStartedTogether(9202, false);
+    }
+
+    private void pagesThroughGrantsStartedTogether(long person, boolean ascendingInsert) {
+        List<UUID> roles = jdbc.sql("select role_id from platform_identity.roles").query(UUID.class).list();
+        assertThat(roles).hasSizeGreaterThanOrEqualTo(3);
+        createAccount(person);
+        UserId user = new UserId(accountOf(person));
+        Instant start = Instant.parse("2026-11-04T00:00:00Z");
+        List<UUID> byIdDescending = new ArrayList<>();
+        // Stored in ascending or in descending id order, so the heap order is the reverse of the wanted one or the wanted one itself.
+        for (int n = 1; n <= 3; n++) {
+            int idNumber = ascendingInsert ? n : 4 - n;
+            UUID grantId = UUID.fromString("01900000-0000-7000-8000-0000000" + person + idNumber);
+            byIdDescending.add(grantId);
+            jdbc.sql("""
+                    insert into platform_identity.account_role_grants (account_role_grant_id, user_id, role_id, effective_from_at, grant_channel_kind,
+                           grant_audit_entry_id, created_at, updated_at)
+                    values (:grant, :user, :role, :start, 'OPERATIONS', uuidv7(), now(), now())
+                    """).param("grant", grantId).param("user", user.value()).param("role", roles.get(n - 1))
+                    .param("start", java.time.OffsetDateTime.ofInstant(start, java.time.ZoneOffset.UTC)).update();
+        }
+
+        List<UUID> seen = new ArrayList<>();
+        RowPosition after = null;
+        while (true) {
+            List<GrantRow> page = history.rowsOf(user, after, 2);
+            page.forEach(row -> seen.add(row.grantId().value()));
+            if (page.size() < 2) {
+                break;
+            }
+            after = new RowPosition(start, page.getLast().grantId());
+        }
+
+        assertThat(seen).containsExactlyElementsOf(byIdDescending.stream().sorted(Comparator.comparing(UUID::toString).reversed()).toList());
     }
 }
