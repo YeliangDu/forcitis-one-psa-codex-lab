@@ -57,6 +57,12 @@ class JdbcAttributionCountersignRepository implements AttributionCountersignRepo
     }
 
     @Override
+    public List<AttributionCountersign> lockOfCommand(PersonnelCommandId command) {
+        return jdbc.sql(COLUMNS + " where personnel_command_id = :command order by request_kind, request_sequence_number, legal_entity_id for update")
+                .param("command", command.value()).query((rs, n) -> row(rs)).list();
+    }
+
+    @Override
     public List<AttributionCountersign> ofOrgCommand(OrgStructureCommandId command) {
         return jdbc.sql(COLUMNS + " where org_structure_command_id = :command order by request_kind, request_sequence_number, legal_entity_id")
                 .param("command", command.value()).query((rs, n) -> row(rs)).list();
