@@ -112,7 +112,7 @@ class SystemRoleDeclarationIT {
 
     /**
      * The 人事专员 role: SYSTEM, not administrative, holding the entry permission and, since #1171 (user decision 2026-11-03-214823: roster for HR roles),
-     * the roster read permission, with exactly one current SEED version 1 of revision 2 (changed declared content raises the revision, #907/#934 convention).
+     * the roster read permission, and since #1306 (user decision: personnel_specialist reads org units) the org-unit read permission, with exactly one current SEED version 1 of revision 3 (changed declared content raises the revision, #907/#934 convention).
      */
     private static void assertPersonnelSpecialistSeeded(String database) throws SQLException {
         List<List<Object>> role = rows(database, "select role_id::text, kind, is_administrative from platform_identity.roles where code = ?", PERSONNEL_SPECIALIST);
@@ -122,7 +122,7 @@ class SystemRoleDeclarationIT {
         assertThat(versions).as("%s has exactly one version", PERSONNEL_SPECIALIST).hasSize(1);
         List<Object> version = versions.getFirst();
         assertThat(List.of(version.get(1), version.get(2), version.get(3), version.get(4))).as("number, current, channel and revision of %s", PERSONNEL_SPECIALIST)
-                .isEqualTo(List.of(1, true, "SEED", 2));
+                .isEqualTo(List.of(1, true, "SEED", 3));
         assertThat(version.get(5)).as("recorded_by of a SEED version").isNull();
         assertThat(version.get(6)).as("authorization_request_id of a SEED version").isNull();
         assertThat(((List<?>) version.get(11)).stream().map(String::valueOf).toList()).as("permission codes of %s", PERSONNEL_SPECIALIST)
@@ -162,7 +162,7 @@ class SystemRoleDeclarationIT {
     }
 
     @Test
-    @DisplayName("0034-G8-01 空库启动：建出八个系统角色——六个沿用基线种子（role_id 为声明固定值 019a…101 至 …106、kind SYSTEM、编码与是否管理员角色同声明）加人事专员 personnel_specialist（#872）和法人财务负责人 legal_entity_finance_head（#895），每个恰有版本 1：当前、渠道 SEED、声明修订号 1（组织数据管理员为 4，业务管理员、安全审计员与人事专员为 2：#934/#907/#730 改了组织数据管理员的声明内容，#895 给业务管理员加了法人归属会签权限，#730 给安全审计员加了权限，#1171 给人事专员加了员工花名册读取权限）、无记录人、无授权申请")
+    @DisplayName("0034-G8-01 空库启动：建出八个系统角色——六个沿用基线种子（role_id 为声明固定值 019a…101 至 …106、kind SYSTEM、编码与是否管理员角色同声明）加人事专员 personnel_specialist（#872）和法人财务负责人 legal_entity_finance_head（#895），每个恰有版本 1：当前、渠道 SEED、声明修订号 1（组织数据管理员为 4，业务管理员与安全审计员为 2，人事专员为 3：#934/#907/#730 改了组织数据管理员的声明内容，#895 给业务管理员加了法人归属会签权限，#730 给安全审计员加了权限，#1171 给人事专员加了员工花名册读取权限、#1306 又加了组织单元读取权限）、无记录人、无授权申请")
     void anEmptyDatabaseGetsTheSixSystemRoles() throws Exception {
         Outcome outcome = firstStart();
 
