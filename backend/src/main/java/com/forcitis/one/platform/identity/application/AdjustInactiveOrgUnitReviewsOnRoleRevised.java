@@ -6,6 +6,7 @@ import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.identity.api.PermissionAdjustmentId;
 import com.forcitis.one.platform.identity.domain.PermissionAdjustment;
 import com.forcitis.one.platform.identity.domain.PermissionAdjustmentRepository;
+import com.forcitis.one.platform.identity.domain.Role;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
 import com.forcitis.one.platform.identity.events.RoleRevised;
 import org.springframework.modulith.events.ApplicationModuleListener;
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Component;
 /**
  * A role was revised (RULE-387): each OPEN item that asks to review a dissolved or merged-away org unit of this role turns ADJUSTED, with the audit entry of
  * the named role version, when that version no longer lists the unit. The event also names the kept version when nothing changed, so a version that still
- * lists the unit leaves the item as it is. An UPHELD item is not touched. Nobody is named as the handler.
+ * lists the unit leaves the item as it is. A redelivered event naming a version that is no longer the role's current one is ignored: the newer version has its own event. An UPHELD item is not touched. Nobody is named as the handler.
  */
 @SystemActorName("platform.identity.permission-adjustment")
 @Component
@@ -35,6 +36,10 @@ class AdjustInactiveOrgUnitReviewsOnRoleRevised {
     @ApplicationModuleListener
     void on(RoleRevised event) {
         try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null), ACTOR)) {
+            Role role = roles.findById(event.roleId()).orElse(null);
+            if (role == null || !event.roleVersionId().equals(role.roleVersionId())) {
+                return;
+            }
             for (PermissionAdjustmentId id : adjustments.openForInactiveUnitsOf(event.roleId())) {
                 PermissionAdjustment item = adjustments.findById(id).orElseThrow();
                 if (roles.versionLists(event.roleVersionId(), item.inactiveOrgUnit())) {

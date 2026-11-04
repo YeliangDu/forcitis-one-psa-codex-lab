@@ -509,6 +509,7 @@ aggregates:
   - platform_identity.role_versions
   - platform_identity.roles
   commands:
+  - AdjustInactiveOrgUnitReviewsOnRoleRevised
   - AdministratorSeparationReview
   - ChangeAccountStatus
   - CreateRole

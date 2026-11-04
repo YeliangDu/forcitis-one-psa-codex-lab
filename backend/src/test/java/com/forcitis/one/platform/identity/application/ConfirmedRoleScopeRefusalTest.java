@@ -112,4 +112,27 @@ class ConfirmedRoleScopeRefusalTest {
         assertThat(outcome).isInstanceOf(AdminOutcome.Done.class);
         verify(roles).update(any(), any());
     }
+
+    @Test
+    @DisplayName("widening a two-person role that accounts hold is a conflict, at the request and again when it is confirmed")
+    void wideningAHeldRoleIsAConflict() {
+        Role role = storedTwoPersonRole(AccessScopeKind.SELF, "ENABLED");
+        when(currentUser.userId()).thenReturn(REQUESTER);
+        when(ceiling.mayRequest(any(), org.mockito.ArgumentMatchers.anyBoolean())).thenReturn(true);
+        when(roles.findById(role.roleId())).thenReturn(Optional.of(role));
+        when(roles.held(role.roleId())).thenReturn(true);
+        SaveRoleCommand widen = new SaveRoleCommand("f1-widening", "Synthetic", true, AccessScopeKind.ALL, TWO_PERSON, null);
+
+        AdminOutcome<RoleView> asked = updateRole.execute(role.roleId(), com.forcitis.one.kernel.ExpectedVersion.of(0), widen);
+        Role again = storedTwoPersonRole(AccessScopeKind.SELF, "ENABLED");
+        when(roles.findById(again.roleId())).thenReturn(Optional.of(again));
+        when(roles.held(again.roleId())).thenReturn(true);
+        AdminOutcome<RoleView> confirmed = updateRole.applyConfirmed(again.roleId(), widen, REQUESTER, new AuthorizationRequestId(UUID.randomUUID()));
+
+        for (AdminOutcome<RoleView> outcome : java.util.List.of(asked, confirmed)) {
+            assertThat(outcome).isInstanceOfSatisfying(AdminOutcome.Refused.class, refused -> assertThat(refused.error()).isEqualTo(IdentityError.PLATFORM_IDENTITY_ROLE_IN_USE));
+        }
+        verify(gate, never()).openUpdateRole(any(), any(), any(), any());
+        verify(roles, never()).update(any(), any());
+    }
 }

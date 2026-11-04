@@ -84,10 +84,10 @@ public class UpdateRole {
             if (scopeRefused.isPresent()) {
                 return new AdminOutcome.Refused<>(scopeRefused.get());
             }
-            Set<String> added = new HashSet<>(SensitivePermissions.within(role.permissionCodes()));
-            added.removeAll(before);
-            boolean widened = !SensitivePermissions.within(role.permissionCodes()).isEmpty() && SensitivePermissions.addsReach(definitionBefore, role.definition());
-            if (!added.isEmpty() || widened) {
+            if (extendsReach(before, definitionBefore, role)) {
+                if (roles.held(roleId)) {
+                    return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_IN_USE);
+                }
                 if (!ceiling.mayRequest(role.permissionCodes(), role.administrative())) {
                     return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED);
                 }
@@ -112,7 +112,12 @@ public class UpdateRole {
         }
         try {
             Role role = existing.get();
+            Set<String> before = new HashSet<>(role.permissionCodes());
+            RoleDefinition definitionBefore = role.definition();
             revise(role, command);
+            if (extendsReach(before, definitionBefore, role) && roles.held(roleId)) {
+                return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_IN_USE);
+            }
             Optional<IdentityError> scopeRefused = refuseScope(requestedBy, role);
             if (scopeRefused.isPresent()) {
                 return new AdminOutcome.Refused<>(scopeRefused.get());
@@ -121,6 +126,12 @@ public class UpdateRole {
         } catch (RoleRuleException refused) {
             return new AdminOutcome.Refused<>(RoleErrors.of(refused.violation()));
         }
+    }
+
+    /** Sensitive permission codes were added, or a role that has them now reaches more org units (ADR-0032 decision 1 item 3): needs a second person, and no holder. */
+    private static boolean extendsReach(Set<String> codesBefore, RoleDefinition definitionBefore, Role role) {
+        Set<String> sensitive = SensitivePermissions.within(role.permissionCodes());
+        return !sensitive.isEmpty() && (!codesBefore.containsAll(sensitive) || SensitivePermissions.addsReach(definitionBefore, role.definition()));
     }
 
     /** accessScope null keeps the role's scope kind, customOrgUnits null keeps its units (one-coordinator ruling for #728). */

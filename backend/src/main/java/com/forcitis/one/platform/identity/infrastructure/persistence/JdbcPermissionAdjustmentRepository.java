@@ -56,13 +56,24 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
 
     @Override
     public void insert(PermissionAdjustment opened) {
+        insertRow(opened);
+    }
+
+    /** The partial unique index on (role, unit) is the arbiter, so two deliveries racing for the same pair add one row between them. */
+    @Override
+    public boolean insertOpenForInactiveUnit(PermissionAdjustment opened) {
+        return insertRow(opened) == 1;
+    }
+
+    private int insertRow(PermissionAdjustment opened) {
         OffsetDateTime at = OffsetDateTime.ofInstant(opened.createdAt(), ZoneOffset.UTC);
-        jdbc.sql("""
+        return jdbc.sql("""
                 insert into platform_identity.permission_adjustments (permission_adjustment_id, kind, origin_kind, status, user_id, role_id, org_unit_id,
                         trigger_personnel_command_id, trigger_org_structure_command_id, trigger_field_kind, before_org_unit_id, after_org_unit_id, before_position_id, after_position_id,
                         recipient_employee_id, original_permission_adjustment_id, escalation_due_at, version, event_count, created_at, updated_at)
                 values (:id, :kind, :origin, :status, :user, :role, :inactiveUnit, :command, :structureCommand, :field, :beforeUnit, :afterUnit, :beforePosition, :afterPosition,
                         :recipient, :original, :escalationDueAt, :version, :eventSequence, :at, :at)
+                on conflict (role_id, org_unit_id) where origin_kind = 'ORG_UNIT_INACTIVE' and status in ('OPEN', 'UPHELD') do nothing
                 """)
                 .param("id", opened.id().value()).param("kind", opened.kind().name()).param("origin", opened.origin().name())
                 .param("status", opened.status().name()).param("user", opened.user() == null ? null : opened.user().value(), Types.OTHER)
@@ -172,14 +183,6 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
                 select permission_adjustment_id from platform_identity.permission_adjustments
                  where role_id = :role and origin_kind = 'ORG_UNIT_INACTIVE' and status = 'OPEN' order by created_at, permission_adjustment_id
                 """).param("role", role.value()));
-    }
-
-    @Override
-    public boolean existsOpenOrUpheldForInactiveUnit(RoleId role, OrgUnitId orgUnit) {
-        return jdbc.sql("""
-                select exists (select 1 from platform_identity.permission_adjustments
-                                where origin_kind = 'ORG_UNIT_INACTIVE' and role_id = :role and org_unit_id = :unit and status in ('OPEN', 'UPHELD'))
-                """).param("role", role.value()).param("unit", orgUnit.value()).query(Boolean.class).single();
     }
 
     private static List<PermissionAdjustmentId> ids(JdbcClient.StatementSpec query) {

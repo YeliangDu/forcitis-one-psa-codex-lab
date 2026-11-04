@@ -27,7 +27,7 @@ import org.springframework.stereotype.Component;
  * An org unit was dissolved or merged away (RULE-387, ADR-0032 decision 4): every role whose current version lists it, enabled or not and with or without
  * holders, gets one scope review item about (role, unit), for the organization data administrator to handle. One item stays OPEN or UPHELD at a time per pair, so
  * a repeated delivery adds nothing. The unit a merge moved the people to is never written into the role. No recipient and no outbound message; one P3 alert
- * line per item opened carries the item and event ids only.
+ * line per item opened carries the event, item, role, org unit and trigger command ids, no names.
  */
 @SystemActorName("platform.identity.permission-adjustment")
 @Component
@@ -69,13 +69,12 @@ class OpenInactiveOrgUnitReviews {
     private void open(EventEnvelope trigger, OrgUnitId orgUnit, OrgStructureCommandId command) {
         try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null), ACTOR)) {
             for (RoleId role : roles.currentRolesWithUnit(orgUnit)) {
-                if (adjustments.existsOpenOrUpheldForInactiveUnit(role, orgUnit)) {
-                    continue;
-                }
                 PermissionAdjustmentId id = new PermissionAdjustmentId(ids.next());
                 Instant now = clock.instant();
                 PermissionAdjustment item = PermissionAdjustment.openForInactiveOrgUnit(id, role, orgUnit, command, escalationDueAt(), now);
-                adjustments.insert(item);
+                if (!adjustments.insertOpenForInactiveUnit(item)) {
+                    continue;
+                }
                 events.publish(item);
                 LOG.error("ALERT P3 platform.identity permission-adjustment source-2 opened; event {}; item {}; role {}; org unit {}; trigger command {}", trigger.eventId(),
                         id.value(), role.value(), orgUnit.value(), command.value());

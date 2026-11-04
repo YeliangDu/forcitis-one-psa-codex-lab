@@ -288,4 +288,55 @@ class PermissionAdjustmentCloseoutIntegrationTest extends IdentityIntegrationTes
 
         assertThat(row(item).get("status")).isEqualTo("UPHELD");
     }
+
+    @Test
+    @DisplayName("RULE-387: a redelivered RoleRevised that names a version no longer current leaves the OPEN item, because the current version still lists the unit")
+    void aStaleRoleRevisedLeavesTheItem() {
+        OrgUnitId gone = unit();
+        OrgUnitId kept = unit();
+        RoleId role = roleListing("f1-stale", "ENABLED", kept);
+        RoleVersionId old = new RoleVersionId(jdbc.sql("select role_version_id from platform_identity.role_versions where role_id = :role and effective_to_at is null")
+                .param("role", role.value()).query(UUID.class).single());
+        revise(role, kept, gone);
+        deliver(dissolved(gone, new OrgStructureCommandId(UUID.randomUUID())));
+        PermissionAdjustmentId item = new PermissionAdjustmentId((UUID) itemsAbout(gone).getFirst().get("permission_adjustment_id"));
+
+        deliver(revised(role, old));
+
+        assertThat(row(item).get("status")).isEqualTo("OPEN");
+    }
+
+    @Test
+    @DisplayName("RULE-387: two deliveries for the same role and unit at once add one item, and neither fails")
+    void twoDeliveriesAtOnceAddOneItem() throws Exception {
+        OrgUnitId gone = unit();
+        roleListing("f1-race", "ENABLED", gone);
+        OrgStructureCommandId command = new OrgStructureCommandId(UUID.randomUUID());
+        java.util.concurrent.CyclicBarrier barrier = new java.util.concurrent.CyclicBarrier(2);
+        java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            List<java.util.concurrent.Future<?>> runs = List.of(
+                    pool.submit(() -> race(barrier, dissolved(gone, command))),
+                    pool.submit(() -> race(barrier, new OrgUnitMerged(TestEnvelopes.of("organization.workforce.OrgUnitMerged", "OrgStructureCommand", command.value()), command, gone,
+                            unit(), LocalDate.of(2026, 11, 3)))));
+            for (java.util.concurrent.Future<?> run : runs) {
+                run.get(DELIVERY.toSeconds(), java.util.concurrent.TimeUnit.SECONDS);
+            }
+        } finally {
+            pool.shutdownNow();
+        }
+
+        assertThat(itemsAbout(gone)).hasSize(1);
+    }
+
+    private void race(java.util.concurrent.CyclicBarrier barrier, DomainEvent event) {
+        try {
+            barrier.await();
+        } catch (InterruptedException | java.util.concurrent.BrokenBarrierException e) {
+            throw new IllegalStateException(e);
+        }
+        tx.executeWithoutResult(status -> events.publishEvent(event));
+        await().atMost(DELIVERY).untilAsserted(() -> assertThat(jdbc.sql("select count(*) from platform_integration.event_publication p where p.completion_date is null and p.serialized_event like :event")
+                .param("event", "%" + event.envelope().eventId() + "%").query(Long.class).single()).isZero());
+    }
 }

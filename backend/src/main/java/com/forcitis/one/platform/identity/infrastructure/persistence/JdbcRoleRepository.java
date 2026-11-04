@@ -140,11 +140,7 @@ class JdbcRoleRepository implements RoleRepository {
     public void delete(Role role, UserId deletedBy, String reason) {
         Instant now = clock.instant();
         CurrentVersion current = lockCurrent(role);
-        boolean held = jdbc.sql("""
-                select exists (select 1 from platform_identity.account_role_grants where role_id = :id and %s)
-                """.formatted(Validity.CURRENT))
-                .param("id", role.roleId().value()).query(Boolean.class).single();
-        if (held) {
+        if (held(role.roleId())) {
             throw IdentityError.PLATFORM_IDENTITY_ROLE_IN_USE.refusal("role " + role.roleId().value() + " is still held by accounts");
         }
         Instant to = jdbc.sql("""
@@ -384,6 +380,14 @@ class JdbcRoleRepository implements RoleRepository {
                  order by created_at, role_id for %s
                 """.formatted(Validity.CURRENT, forWrite ? "update" : "share")).param("versions", versions.stream().map(RoleVersionId::value).toList())
                 .query(UUID.class).list();
+    }
+
+    @Override
+    public boolean held(RoleId role) {
+        return jdbc.sql("""
+                select exists (select 1 from platform_identity.account_role_grants where role_id = :id and %s)
+                """.formatted(Validity.CURRENT))
+                .param("id", role.value()).query(Boolean.class).single();
     }
 
     @Override

@@ -29,16 +29,16 @@ public interface PermissionAdjustmentRepository {
     List<PermissionAdjustmentId> dueToExpire(Instant now, @Nullable PermissionAdjustmentId after, int limit);
 
     /** At most limit EXPIRED items that were held when they expired and wait for the decision about their successor and whose id sorts after the given one, in creation order. */
+    List<PermissionAdjustmentId> pendingRegeneration(@Nullable PermissionAdjustmentId after, int limit);
+
     /** The person's OPEN items, oldest first. */
     List<PermissionAdjustmentId> openOf(UserId user);
 
     /** The OPEN items of the role that are about a dissolved or merged-away org unit, oldest first. */
     List<PermissionAdjustmentId> openForInactiveUnitsOf(RoleId role);
 
-    /** Whether the role already has an OPEN or UPHELD item about the org unit (the table allows one at a time). */
-    boolean existsOpenOrUpheldForInactiveUnit(RoleId role, OrgUnitId orgUnit);
-
-    List<PermissionAdjustmentId> pendingRegeneration(@Nullable PermissionAdjustmentId after, int limit);
+    /** Stores a source-2 item when the role has no OPEN or UPHELD one about the org unit yet (the table allows one at a time); false when it stored nothing. */
+    boolean insertOpenForInactiveUnit(PermissionAdjustment opened);
 
     /** At most limit OPEN items not escalated yet whose escalation due time is at or before now and whose id sorts after the given one, in creation order. */
     List<PermissionAdjustmentId> overdueOpen(Instant now, @Nullable PermissionAdjustmentId after, int limit);
