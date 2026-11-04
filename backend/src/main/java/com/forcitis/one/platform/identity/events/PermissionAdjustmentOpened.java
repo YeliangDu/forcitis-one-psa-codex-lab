@@ -41,7 +41,7 @@ public record PermissionAdjustmentOpened(EventEnvelope envelope, PermissionAdjus
     public String auditDetail() {
         return "item " + permissionAdjustmentId.value() + " " + kind + " origin " + originKind
                 + (userId == null ? "; role " + roleId.value() + " org unit " + orgUnitId.value() : "; user " + userId.value())
-                + (triggerPersonnelCommandId == null ? "" : "; trigger command " + triggerPersonnelCommandId.value() + " field " + triggerFieldKind)
+                + (triggerPersonnelCommandId == null ? "" : "; trigger command " + triggerPersonnelCommandId.value() + (triggerFieldKind == null ? "" : " field " + triggerFieldKind))
                 + (triggerOrgStructureCommandId == null ? "" : "; trigger org structure command " + triggerOrgStructureCommandId.value())
                 + (beforeOrgUnitId == null ? "" : "; before org " + beforeOrgUnitId.value()
                         + (beforePositionId == null ? "" : " position " + beforePositionId.value()))

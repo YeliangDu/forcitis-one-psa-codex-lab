@@ -21,6 +21,7 @@ import com.forcitis.one.organization.workforce.events.EmployeeCorrected;
 import com.forcitis.one.organization.workforce.events.EmployeeHired;
 import com.forcitis.one.organization.workforce.events.EmployeeRegularized;
 import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
+import com.forcitis.one.organization.workforce.events.EmployeeUnpaidLeaveStarted;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
 import com.forcitis.one.organization.workforce.events.EmployeeTransferred;
 import com.forcitis.one.organization.workforce.events.SeparationHeld;
@@ -65,9 +66,9 @@ class PersonnelCommandContractTest {
     static final UserId RELEASER = new UserId(TestIds.uuid(741));
     static final String LEGAL_ENTITY_RULE = "信封 legalEntityId 为员工在生效日的法人";
 
-    /** ADR-0068 evidence attachment, 事件契约: the seven named events plus EmployeeCorrected; unpaid leave and legal entity events are not named yet. */
+    /** ADR-0068 evidence attachment, 事件契约: the seven named events plus EmployeeCorrected, and, named by #918 (item 3), EmployeeUnpaidLeaveStarted; the end of a leave has no event. */
     static final Set<String> ADR_0068_EVENTS = Set.of("EmployeeHired", "EmployeeRegularized", "EmployeeTransferred", "EmployeeSeparated",
-            "EmployeeReinstated", "SeparationHeld", "SeparationHoldReleased", "EmployeeCorrected");
+            "EmployeeReinstated", "SeparationHeld", "SeparationHoldReleased", "EmployeeCorrected", "EmployeeUnpaidLeaveStarted");
     /** ADR-0073 item 3.7 adds a ninth event that names the command; its contract is the publisher test of #895, not the eight of ADR-0068. */
     static final Set<String> ADR_0073_EVENTS = Set.of("EmployeeLegalEntityChanged");
     static final List<String> PERSONAL_DATA_WORDS = List.of("name", "email", "mail", "gender", "phone", "mobile", "birth", "address", "card",
@@ -196,6 +197,7 @@ class PersonnelCommandContractTest {
                         new OrgUnitId(TestIds.uuid(1)), new OrgUnitId(TestIds.uuid(2)), new PositionId(TestIds.uuid(3)), null),
                 new EmployeeSeparated(seal("EmployeeSeparated", DAY), COMMAND, EMPLOYEE, DAY),
                 new EmployeeReinstated(seal("EmployeeReinstated", DAY), COMMAND, EMPLOYEE, DAY),
+                new EmployeeUnpaidLeaveStarted(seal("EmployeeUnpaidLeaveStarted", DAY), COMMAND, EMPLOYEE, DAY),
                 new EmployeeCorrected(seal("EmployeeCorrected", DAY), COMMAND, EMPLOYEE, DAY.minusMonths(1), null, List.of(TriggerFieldKind.ORG_UNIT),
                         new OrgUnitId(TestIds.uuid(1)), new OrgUnitId(TestIds.uuid(2)), null, null),
                 new SeparationHeld(seal("SeparationHeld", DAY), COMMAND, EMPLOYEE, DAY, HOLD),
@@ -203,7 +205,7 @@ class PersonnelCommandContractTest {
     }
 
     @Test
-    @DisplayName("ADR-0068 第 1 条第 9 项：带人事命令 ID 的事件恰为附件「事件契约」列出的八个，不多不少")
+    @DisplayName("ADR-0068 第 1 条第 9 项：带人事命令 ID 的事件恰为附件「事件契约」列出的八个加第 3 条的停薪留职开始（#918），不多不少")
     void theEventsAreExactlyThoseAdr0068Names() {
         assertThat(names(personnelEvents())).isEqualTo(new TreeSet<>(ADR_0068_EVENTS));
     }
@@ -288,7 +290,7 @@ class PersonnelCommandContractTest {
         assertThat(extraPayload(SeparationHoldReleased.class)).containsExactly("separationHoldId:SeparationHoldId", "releasedBy:UserId");
         assertThat(extraPayload(EmployeeCorrected.class)).containsExactly("affectedFrom:LocalDate", "affectedTo:LocalDate", "triggerFieldKinds:List",
                 "previousOrgUnitId:OrgUnitId", "newOrgUnitId:OrgUnitId", "previousPositionId:PositionId", "newPositionId:PositionId");
-        for (Class<?> event : List.of(EmployeeHired.class, EmployeeRegularized.class, EmployeeSeparated.class, EmployeeReinstated.class)) {
+        for (Class<?> event : List.of(EmployeeHired.class, EmployeeRegularized.class, EmployeeSeparated.class, EmployeeReinstated.class, EmployeeUnpaidLeaveStarted.class)) {
             assertThat(extraPayload(event)).as(event.getSimpleName()).isEmpty();
         }
         assertThat(SeparationHoldId.class.getPackageName()).isEqualTo(PersonnelCommandId.class.getPackageName());

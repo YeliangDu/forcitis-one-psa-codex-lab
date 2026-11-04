@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -174,13 +173,14 @@ class UnpaidLeaveInServiceChecksIT extends SeparationHoldSupport {
         }
     }
 
-    @Disabled("moved to #918: needs F-1 permission_adjustments and a leave-start event; lead 2026-10-30")
     @Test
     @DisplayName("#873 ADR-0068 第 3 条（行 108）、ADR-0009 敏感权限：持有审计查询与导出（安全审计员）或编号模板确认（业务管理员）权限的人停薪留职开始时各生成「敏感角色复核」；只有默认角色的员工不生成")
     void aHolderOfASensitiveRoleGetsAReviewWhenTheLeaveStarts() throws Exception {
+        maintainWorkCalendar(account("org_data_admin").session()); // the review's escalation due fails loud on an unmaintained calendar
         Staff auditor = account(SECURITY_AUDITOR);
         Staff numbering = account("business_admin");
         Staff plain = account();
+        administrator(); // the super_admin floor of #943 (ADR-0068 2.2/2.3) needs an available one before anybody goes on leave
         assertThat(reviewsAbout(auditor.userId())).as("no review before the leave").isEmpty();
 
         startLeave(auditor);
@@ -192,11 +192,12 @@ class UnpaidLeaveInServiceChecksIT extends SeparationHoldSupport {
         assertThat(reviewsAbout(plain.userId())).as("nothing sensitive to review").isEmpty();
     }
 
-    @Disabled("moved to #918: needs F-1 permission_adjustments and a leave-start event; lead 2026-10-30")
     @Test
     @DisplayName("#873 ADR-0068 第 3 条（行 108）、ADR-0032 第 3 项：持有双人逐人级角色（超级管理员是保留角色，授予要第二人）的人停薪留职开始时生成「敏感角色复核」")
     void aTwoPersonRoleHolderGetsAReviewWhenTheLeaveStarts() throws Exception {
+        maintainWorkCalendar(account("org_data_admin").session()); // the review's escalation due fails loud on an unmaintained calendar
         Staff administrator = administrator();
+        administrator(); // the super_admin floor of #943 (ADR-0068 2.2/2.3): another one stays available while this one is on leave
 
         startLeave(administrator);
 

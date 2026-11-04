@@ -5,7 +5,7 @@ Your prompt starts with: "Read docs/rules/codex-preamble.md and the card, then w
 - `cd backend && ./mvnw -B -q -o test-compile` (if it finds no Java, set JAVA_HOME to the installed JDK for that command and say so)
 - named guard classes that touch your change: `cd backend && ./mvnw -B -q -o test-compile surefire:test -Dtest=<ClassA>,<ClassB> -Djacoco.skip=true`. Pick the class a guard message names, or the tests of the package you changed; take only classes that use neither Mockito nor sockets (`grep -L -E "Mockito|Socket|WireMock" <file>` lists them).
 - `bash scripts/ci/light.sh`
-- from `frontend/`: `node scripts/check-copy-glossary.mjs` and `node --test scripts/copy-glossary.test.mjs` (the other tests there read `openapi.json` and fail without it)
+- from `frontend/`: `node ./scripts/check-copy-glossary.mjs` and `node --test ./scripts/copy-glossary.test.mjs` (the other tests there read `openapi.json` and fail without it)
 - read-only git: `git status`, `git diff`, `git log`
 
 ## Never run or rely on

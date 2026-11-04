@@ -61,6 +61,7 @@ ALWAYS_RUN_READERS = (
     "scripts/guards/check_rules_enforced.py",   # reads rules, roles, the coding and naming standards and coding-core; runs on every event (#856, #860)
     "scripts/guards/rule_sizes.py",   # reads CLAUDE.md files and .claude/rules targets under docs/rules/; runs on every event (#810, #827)
     "scripts/guards/check_names.py",   # docs paths there are naming rules and the directory allowlist
+    "scripts/guards/cited_paths.py",   # reads every tracked .md/.yaml and the scripts to check the paths they cite; runs on every event (#1263)
     "scripts/codegen/scan_aggregates.py",
     "scripts/codegen/scan_acceptance_tests.py",   # imported by scan_aggregates.py
     "scripts/session/build_decisions.py",
