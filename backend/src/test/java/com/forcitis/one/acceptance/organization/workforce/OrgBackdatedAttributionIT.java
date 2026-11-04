@@ -31,9 +31,11 @@ import org.springframework.test.context.DynamicPropertySource;
  * void-and-append through the same countersign path. The rows covered by the new period are marked superseded (never deleted, content never
  * changed), the new row is appended from the effective date, a row that is cut in two is re-appended for its part before the date with its
  * original source and corrected_from_version_id, and the originals stay readable by their command id. The closed finance period is deferred by
- * the card and not tested. The new row of a back-dated assignment from D runs from D up to the start of the next existing attribution row (open-ended when
- * there is none); later rows stay as they are, only rows covered or split by that period are voided (one-design ruling, 2026-11-04, relayed by lead;
- * W2 section 2, ADR-0073 section 3 item 7: the basis is computed on the effective date only).
+ * the card and not tested. The new row of a back-dated assignment from D ends where the row that contains D ended (its effective_to_date, open when it was open);
+ * when D falls in a gap it ends at the start of the next row, open when there is none. Later rows stay as they are, only rows covered or split by that
+ * period are voided (one-design rulings, 2026-11-04, relayed by lead; W2 section 2, ADR-0073 section 3 item 7: the basis is computed on the effective date only).
+ * Withdrawing a countersigned PENDING command voids the rows it wrote and re-appends the rows it voided as new rows with their original source and
+ * corrected_from_version_id; a voided row is never un-voided (one-design ruling on #1147, comment 6630901727).
  */
 class OrgBackdatedAttributionIT extends OrgCountersignSupport {
 
@@ -328,7 +330,7 @@ class OrgBackdatedAttributionIT extends OrgCountersignSupport {
     }
 
     @Test
-    @DisplayName("#1147 完成标准第 1 条（一个设计裁定 b，撤回待生效命令）：C1 于 D1、C2 于 D2（D2 在 D1 之后）都已会签待生效，C2 的行作废了 C1 的开放行；撤回 C2（WITHDRAWAL 全体负责人批准）后：C2 转已撤回、C1 仍待生效；当前事实与 C2 会签前完全相同（区间、法人、来源命令、审计）；C2 自己写的行全部作废，被它作废的 C1 行以新行原样重现（corrected_from 指向被作废的行）；没有员工法人变更事件")
+    @DisplayName("#1147 完成标准第 1 条（一个设计裁定 b，撤回待生效命令）：C1 于 D1、C2 于 D2（D2 在 D1 之后）都已会签待生效，C2 关闭了 C1 的开放行；撤回 C2（WITHDRAWAL 全体负责人批准）后：C2 转已撤回、C1 仍待生效；当前事实与 C2 会签前完全相同（区间、法人、来源命令、审计）；C2 自己写的行全部作废，被它关闭的 C1 行以新行原样重现且那一行此时已作废（corrected_from 指向被作废的行）；没有员工法人变更事件")
     void withdrawingALaterPendingCommandBringsTheEarlierRowsBack() throws Exception {
         UUID unit = attributedUnit(topE1, e1);
         UUID person = inheritingIn(unit);
@@ -337,13 +339,14 @@ class OrgBackdatedAttributionIT extends OrgCountersignSupport {
         UUID c1 = pendingMoveTo(unit, d1, e2);
         List<Map<String, Object>> beforeC2 = shapesOf(unit);
         assertThat(beforeC2).hasSize(2);
+        UUID c1Row = (UUID) unitAttributions(unit).stream().filter(row -> c1.equals(commandOf(row))).findFirst().orElseThrow().get("org_unit_legal_entity_id");
+        Map<String, Object> c1Content = content(rowById(unit, c1Row));
         UUID c2 = assignLegalEntity(unit, d2, e3);
         assertThat(statusOf(c2)).isEqualTo(AWAITING);
         assertThat(requestedEntities(c2, KIND_CHANGE)).as("the basis on D2 moves the person from E2 to E3").containsExactlyInAnyOrder(e2, e3);
         countersignAll(c2, KIND_CHANGE);
         assertThat(statusOf(c2)).isEqualTo(PENDING);
-        assertThat(shapesOf(unit)).as("C2 split C1's open row and added its own").hasSize(3).isNotEqualTo(beforeC2);
-        Map<String, Object> c1Original = unitAttributions(unit).stream().filter(row -> c1.equals(commandOf(row))).findFirst().orElseThrow();
+        assertThat(shapesOf(unit)).as("C2 closed C1's open row and added its own").hasSize(3).isNotEqualTo(beforeC2);
         List<Map<String, Object>> everythingBefore = allRows(unit);
 
         withdrawWithEveryHead(c2);
@@ -355,29 +358,36 @@ class OrgBackdatedAttributionIT extends OrgCountersignSupport {
         assertThat(history.stream().filter(row -> c2.equals(commandOf(row))).toList()).isNotEmpty().allSatisfy(row -> assertThat(row.get("superseded_at")).isNotNull());
         Map<String, Object> back = unitAttributions(unit).stream().filter(row -> c1.equals(commandOf(row))).findFirst().orElseThrow();
         assertThat(back.get("effective_to_date")).as("C1's row is open-ended again").isNull();
-        assertThat(back.get("org_unit_legal_entity_id")).as("a voided row is never un-voided: it comes back as a new row").isNotEqualTo(c1Original.get("org_unit_legal_entity_id"));
-        assertThat(back.get("corrected_from_version_id")).isNotNull();
-        assertThat(rowById(unit, back.get("corrected_from_version_id")).get("superseded_at")).as("it re-creates a voided row").isNotNull();
+        assertThat(back.get("org_unit_legal_entity_id")).as("a voided row is never un-voided: it comes back as a new row").isNotEqualTo(c1Row);
+        assertThat(rowById(unit, c1Row).get("superseded_at")).as("the original row is voided by the withdrawal, never un-voided").isNotNull();
+        assertThat(back.get("corrected_from_version_id")).as("it re-creates the row C2 voided").isEqualTo(c1Row);
+        assertThat(content(back).get("effective_from_date")).isEqualTo(c1Content.get("effective_from_date"));
         assertThat(legalEntityChangesOf(person)).as("neither command took effect").isZero();
     }
 
     @Test
-    @DisplayName("#1147 完成标准第 1 条（一个设计裁定 b，落在更早行内）：单元自 30 天前归 E1（开放行），C2 于将来 D2 改归 E2 已会签待生效，它作废了那条开放行并重追加前半段；撤回 C2 后当前事实与会签前相同（E1 自 30 天前、无限期，来源与审计照旧），C2 的行全部作废，E1 行以新行原样重现且 corrected_from 指向被作废的行；没有员工法人变更事件")
+    @DisplayName("#1147 完成标准第 1 条（一个设计裁定 b，落在更早的已生效命令的行内）：单元自 30 天前归 E1、今天起经会签归 E2（C1 已生效，开放行），C2 于 15 天后改归 E3 已会签待生效，它关闭了 C1 的开放行；撤回 C2 后当前事实与会签前相同（来源命令与审计照旧、C1 的行重新无限期），C2 的行全部作废，C1 的行以新行原样重现且 corrected_from 指向被作废的原行；撤回的命令没有新增员工法人变更事件")
     void withdrawingACommandInsideAnEarlierRowReopensIt() throws Exception {
         UUID unit = attributedUnit(topE1, e1);
         UUID person = inheritingIn(unit);
+        UUID c1 = assignLegalEntity(unit, TODAY, e2);
+        approve(headE1, c1, KIND_CHANGE, e1);
+        approve(headE2, c1, KIND_CHANGE, e2);
+        assertThat(statusOf(c1)).isEqualTo(EFFECTIVE);
+        int changesBefore = legalEntityChangesOf(person);
         List<Map<String, Object>> beforeC2 = shapesOf(unit);
-        assertThat(beforeC2).hasSize(1);
-        UUID c2 = pendingMoveTo(unit, TODAY.plusDays(15), e2);
-        assertThat(shapesOf(unit)).hasSize(2).isNotEqualTo(beforeC2);
+        assertThat(beforeC2).as("E1 closed at today, then E2 open-ended from C1").hasSize(2);
+        UUID c2 = pendingMoveTo(unit, TODAY.plusDays(15), e3);
+        assertThat(shapesOf(unit)).hasSize(3).isNotEqualTo(beforeC2);
 
         withdrawWithEveryHead(c2);
 
         assertThat(shapesOf(unit)).as("readers see the facts they had before C2").isEqualTo(beforeC2);
         assertThat(allRows(unit).stream().filter(row -> c2.equals(commandOf(row))).toList()).isNotEmpty().allSatisfy(row -> assertThat(row.get("superseded_at")).isNotNull());
-        Map<String, Object> back = unitAttributions(unit).getFirst();
+        Map<String, Object> back = unitAttributions(unit).getLast();
+        assertThat(back.get("effective_to_date")).as("the open row of the effective command is open-ended again").isNull();
         assertThat(back.get("corrected_from_version_id")).isNotNull();
         assertThat(rowById(unit, back.get("corrected_from_version_id")).get("superseded_at")).as("it re-creates a voided row").isNotNull();
-        assertThat(legalEntityChangesOf(person)).as("the command never took effect").isZero();
+        assertThat(legalEntityChangesOf(person)).as("the withdrawn command never took effect").isEqualTo(changesBefore);
     }
 }
