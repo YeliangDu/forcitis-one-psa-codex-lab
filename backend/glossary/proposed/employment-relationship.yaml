@@ -7,7 +7,7 @@ terms:
   kind: aggregate
   bc: organization.workforce
   scope: domain
-  definition: 一个自然人与一个用人单位之间的在职关系；同一人可同时有多段（不同用人单位），同一人与同一用人单位只有一段，复职沿用；用人单位建立后不变
+  definition: 员工聚合内的实体，一个自然人与一个用人单位之间的在职关系；同一人可同时有多段（不同用人单位），同一人与同一用人单位只有一段，复职沿用；用人单位建立后不变
   standard_ref: []
   confidence: low
   aliases: []
@@ -21,13 +21,13 @@ terms:
   kind: value_object
   bc: organization.workforce
   scope: domain
-  definition: 雇佣关系的另一方法人，决定社保、个税扣缴与请假权益的口径；不同于员工的数据范围与成本归属法人
+  definition: 雇佣关系的另一方法人，决定社保公积金与请假权益的口径（个税扣缴按支付工资的法人，默认取用人单位）；不同于员工的数据范围与成本归属法人
   standard_ref: []
   confidence: low
   aliases: []
   forbidden: []
   status: proposed
-  note: '设计 employment-relationship.md；ADR-0079 不变量 4 的三种法人口径之一'
+  note: '设计 employment-relationship.md；ADR-0079 不变量 4 的第二种口径'
 - id: employment_relationship_started
   zh: 雇佣关系已开始
   en: EmploymentRelationshipStarted
@@ -35,7 +35,7 @@ terms:
   kind: domain_event
   bc: organization.workforce
   scope: domain
-  definition: 一段雇佣关系开始在职时发布，请假与薪资订阅；人员层的员工已入职事件只在此人从不在职变为在职时发布
+  definition: 一段雇佣关系开始在职（入职、复职、第二段关系开始）时发布，请假与薪资订阅；人员层的员工已入职事件只在此人从不在职变为在职时发布
   standard_ref: []
   confidence: low
   aliases: []
@@ -70,3 +70,59 @@ terms:
   forbidden: []
   status: proposed
   note: '请假切片 L3 读它'
+- id: employment_relationship_phase_changed
+  zh: 雇佣关系阶段已变更
+  en: EmploymentRelationshipPhaseChanged
+  snake: employment_relationship_phase_changed
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 一段雇佣关系的试用与正式阶段变更（转正）时发布；请假与薪资订阅
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: employment_relationship_unpaid_leave_changed
+  zh: 雇佣关系停薪留职已变更
+  en: EmploymentRelationshipUnpaidLeaveChanged
+  snake: employment_relationship_unpaid_leave_changed
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 一段雇佣关系的停薪留职开始或结束时发布；请假与薪资订阅
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: employment_relationship_corrected
+  zh: 雇佣关系已更正
+  en: EmploymentRelationshipCorrected
+  snake: employment_relationship_corrected
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 一段雇佣关系的已生效版本被更正命令更正时发布；请假与薪资订阅
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: employment_relationship_versions
+  zh: 雇佣关系版本
+  en: EmploymentRelationshipVersions
+  snake: employment_relationship_versions
+  kind: read_model
+  bc: organization.workforce
+  scope: domain
+  definition: 员工版本表在结构 PR 中更名后的名称，按雇佣关系保存在职状态、阶段、停薪留职与入职日期的生效区间
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '现名 employee_versions；更名在结构 PR'
