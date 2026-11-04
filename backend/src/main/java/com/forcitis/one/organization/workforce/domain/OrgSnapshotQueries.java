@@ -2,9 +2,12 @@ package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.organization.workforce.api.EmployeeLabel;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Reading side of the org snapshot: lookups and browsing, nothing is loaded for a change. The staff lookups answer as of the business day: a person with
@@ -15,6 +18,8 @@ public interface OrgSnapshotQueries {
 
     /** The employees row alone: no assignment is joined, unlike findStaff. */
     boolean employeeExists(EmployeeId employeeId);
+
+    Map<EmployeeId, EmployeeLabel> findLabels(Set<EmployeeId> employeeIds);
 
     /** Prefers the employed person. */
     Optional<StaffEmployee> findStaffByWecomUser(WecomUserId wecomUserId);
