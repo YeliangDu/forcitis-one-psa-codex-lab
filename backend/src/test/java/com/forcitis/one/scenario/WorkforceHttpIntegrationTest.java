@@ -84,7 +84,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-359/368/369 org data is read-only in the new system: the only writes are the read-only comparison trigger and, since #933, the three personnel command endpoints and, since #959, the profile change and, since #980, its confirmation and rejection and, since #1169, the two org-structure command endpoints")
+    @DisplayName("RULE-359/368/369 org data is read-only in the new system: the only writes are the read-only comparison trigger and, since #933, the three personnel command endpoints and, since #959, the profile change and, since #980, its confirmation and rejection and, since #1169, the two org-structure command endpoints and, since #1170, the two countersign decisions")
     void orgDataHasNoEditEndpoints() {
         List<String> writes = new ArrayList<>();
         List<String> reads = new ArrayList<>();
@@ -99,9 +99,12 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                 // #980: the second person of a WeCom user id rebind confirms or rejects the waiting profile change; the list of the waiting ones is the third read.
                 "POST /api/v1/organization/employee-profile-change-requests/{requestId}:confirm", "POST /api/v1/organization/employee-profile-change-requests/{requestId}:reject",
                 // #1169: org data is still not edited in place; a change to the org tree is entered as a command and withdrawn the same way, as for personnel commands.
-                "POST /api/v1/organization/org-structure-commands", "POST /api/v1/organization/org-structure-commands/{orgStructureCommandId}:withdraw");
+                "POST /api/v1/organization/org-structure-commands", "POST /api/v1/organization/org-structure-commands/{orgStructureCommandId}:withdraw",
+                // #1170: the finance head decides a countersign request; no data is edited in place.
+                "POST /api/v1/organization/attribution-countersigns/{attributionCountersignId}:approve", "POST /api/v1/organization/attribution-countersigns/{attributionCountersignId}:reject");
         assertThat(reads).containsExactlyInAnyOrder("GET /api/v1/organization/org-units", "GET /api/v1/organization/org-units/{orgUnitId}",
                 "GET /api/v1/organization/employee-profile-change-requests",
+                "GET /api/v1/organization/attribution-countersigns",
                 // #910 S3: the decider's read of a countersign request, the basis of an org-structure command and the merge rehearsal.
                 "GET /api/v1/organization/attribution-countersigns/{attributionCountersignId}", "GET /api/v1/organization/attribution-countersign-bases/{orgStructureCommandId}",
                 "GET /api/v1/organization/org-units/{orgUnitId}:preview-merge");
