@@ -8604,7 +8604,7 @@ terms:
   snake: sensitive_role_review
   kind: value_object
   bc: platform.identity
-  definition: 待调整权限类型：持有双人逐人级角色的人部门或岗位变化（ADR-0032 第 4 项第 3 条），送达组织数据管理员与安全审计员，不送本人
+  definition: 待调整权限类型：持有双人逐人级角色的人部门或岗位变化（ADR-0032 第 4 项第 3 条），或停薪留职开始（ADR-0068 第 3 条），送达组织数据管理员与安全审计员，不送本人
   standard_ref:
   - docs/adr/ADR-0032.md
   confidence: medium
@@ -22344,7 +22344,7 @@ terms:
   kind: value_object
   bc: platform.identity
   scope: domain
-  definition: 待调整权限由什么产生：任职变化、维持到期（重新生成）、自定义部门停用或撤销；列 origin_kind
+  definition: 待调整权限由什么产生：任职变化、停薪留职开始、维持到期（重新生成）、自定义部门停用或撤销；列 origin_kind
   standard_ref:
   - docs/adr/ADR-0032.md
   - docs/architecture/implementation-cards/f-1.md
