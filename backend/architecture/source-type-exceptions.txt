@@ -2,9 +2,6 @@
 # platform.integration 以外的 domain、application、api、events、web 包仍引用 platform.integration.api 的 Source* 类型或 workforce 的 SourceTerms 的文件。
 # 格式，每行一个文件：<相对 backend/ 的路径> | <理由> | <去向>。去向一律「拆分 a」：组织同步拆分 a 把来源快照的翻译移进集成层、交出组织变更集后删行。
 # 不新增行；文件不再引用时删掉对应行（过期行测试失败）。规则 SOURCE_OR_LEGACY_ID 没有例外清单。
-src/main/java/com/forcitis/one/organization/workforce/application/LoginMissRegistration.java | 登录建档收登录查人返回的来源人员并经 SourceTerms 换类型 | 拆分 a
-src/main/java/com/forcitis/one/organization/workforce/application/RegisterEmployeeOnLogin.java | 企业微信登录建档收来源人员 | 拆分 a
-src/main/java/com/forcitis/one/organization/workforce/application/RegisterEmployeeOnLoginName.java | 登录名登录建档收来源人员 | 拆分 a
 src/main/java/com/forcitis/one/organization/workforce/domain/EmployeeChecks.java | 来源人员的隔离与在职判定 | 拆分 a
 src/main/java/com/forcitis/one/organization/workforce/domain/OrgReconciliation.java | 对账比对来源快照与组织快照 | 拆分 a
 src/main/java/com/forcitis/one/organization/workforce/domain/SnapshotReconciler.java | 来源快照与组织快照的差异计算 | 拆分 a

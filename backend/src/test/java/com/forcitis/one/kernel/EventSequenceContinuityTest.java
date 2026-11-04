@@ -86,7 +86,7 @@ class EventSequenceContinuityTest {
         checkMany(() -> UserAccount.restore(TestAccounts.account(1), TestAccounts.employee(1), "ENABLED", Set.of(), 0, 0), List.of(
                 UserAccount::enable, UserAccount::disable, a -> a.declareEnabled(true), a -> a.declareEnabled(false),
                 a -> a.replaceRoles(Set.of(new RoleId(TestIds.uuid(2)), new RoleId(TestIds.uuid(3))))));
-        checkMany(() -> UserAccount.open(TestAccounts.account(2), TestAccounts.employee(2), Set.of(new RoleId(TestIds.uuid(1)))), List.of(UserAccount::disable, UserAccount::enable));
+        checkMany(() -> UserAccount.open(TestAccounts.account(2), TestAccounts.employee(2), Set.of(new RoleId(TestIds.uuid(1))), com.forcitis.one.platform.identity.api.AccountOpeningRoute.HIRE), List.of(UserAccount::disable, UserAccount::enable));
     }
 
     @Test
@@ -207,21 +207,6 @@ class EventSequenceContinuityTest {
                 a -> a.end(LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(800))),
                 a -> a.correct(LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(400)), LocalDate.of(2026, 1, 1).plusDays(dates.nextInt(800)),
                         new Reason("typo"), TestAccounts.account(1))));
-    }
-
-    @Test
-    @DisplayName("RegisteredEmployee: its one event is numbered after the stored sequence")
-    void registeredEmployee() {
-        com.forcitis.one.kernel.EmployeeId id = TestAccounts.employee(42);
-        var staff = new com.forcitis.one.organization.workforce.domain.StaffEmployee(
-                new com.forcitis.one.organization.workforce.domain.Employee(id, "E42", "Synthetic", "synthetic", null, null, null,
-                        com.forcitis.one.organization.workforce.api.EmploymentStatus.EMPLOYED, false),
-                new com.forcitis.one.organization.workforce.domain.Assignment(id, com.forcitis.one.fixture.doubles.TestOrgIds.orgUnit(3), null, null));
-        var registered = com.forcitis.one.organization.workforce.domain.RegisteredEmployee.onFirstLogin(staff, 4, 6);
-
-        assertThat(registered.drainEvents(TestEnvelopes.INSTANCE)).extracting(e -> e.envelope().aggregateVersion()).containsExactly(7L);
-        assertThat(registered.eventSequence()).isEqualTo(7);
-        assertThat(registered.version()).isEqualTo(5);
     }
 
     @Test

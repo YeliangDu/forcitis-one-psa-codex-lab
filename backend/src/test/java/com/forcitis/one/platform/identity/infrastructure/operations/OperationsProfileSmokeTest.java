@@ -10,13 +10,16 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.platform.audit.AuditPartitionsTestSupport;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
-import com.forcitis.one.organization.workforce.api.EmployeeExistence;
+import com.forcitis.one.organization.workforce.api.EmployeeLabel;
+import com.forcitis.one.organization.workforce.api.EmployeeLabels;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -69,9 +72,13 @@ class OperationsProfileSmokeTest {
         return directory;
     }
 
-    private static EmployeeExistence withAttestors(EmployeeExistence real) {
+    private static EmployeeLabels withAttestors(EmployeeLabels real) {
         Set<EmployeeId> attestors = Set.of(EmployeeId.parse(OPERATOR_ID), EmployeeId.parse(WITNESS_ID));
-        return id -> attestors.contains(id) || real.exists(id);
+        return ids -> {
+            Map<EmployeeId, EmployeeLabel> known = new HashMap<>(real.labelsOf(ids));
+            ids.stream().filter(attestors::contains).forEach(id -> known.putIfAbsent(id, new EmployeeLabel("Synthetic attestor", "SYN")));
+            return known;
+        };
     }
 
     /** The profile does not create partitions, so a command that writes audit needs the running month to exist; the function exists only once an earlier start has migrated. */
@@ -93,7 +100,7 @@ class OperationsProfileSmokeTest {
         application.addInitializers(context -> context.addBeanFactoryPostProcessor(beans -> beans.addBeanPostProcessor(new BeanPostProcessor() {
             @Override
             public Object postProcessAfterInitialization(Object bean, String beanName) {
-                if ("employeeExistenceService".equals(beanName) && bean instanceof EmployeeExistence real) {
+                if ("employeeLabelsService".equals(beanName) && bean instanceof EmployeeLabels real) {
                     return withAttestors(real);
                 }
                 return "orgDirectoryService".equals(beanName) && bean instanceof OrgDirectory real ? withAttestors(real) : bean;
@@ -105,7 +112,7 @@ class OperationsProfileSmokeTest {
                 "--flowable.database-schema-update=true", "--spring.flyway.create-schemas=true", "--forcitis.cost.timesheet.consumed-events.enabled=false",
                 "--forcitis.platform.approval.process-archive.enabled=false",
                 "--forcitis.platform.integration.outbound-purge.enabled=false", "--forcitis.platform.integration.archive-store.enabled=false",
-                "--forcitis.platform.audit.archive.enabled=false", "--forcitis.platform.approval.process-administrator-required=false", "--forcitis.platform.identity.sso.enabled=false",
+                "--forcitis.platform.audit.archive.enabled=false", "--forcitis.platform.approval.process-administrator-required=false",
                 "--forcitis.platform.identity.emergency.totp-encryption-key=" + Base64.getEncoder().encodeToString(random(32)),
                 "--FORCITIS_TICKET_KEY_KM=" + HexFormat.of().formatHex(random(32))};
         String[] all = Stream.concat(Arrays.stream(infrastructure), Arrays.stream(commandLine))

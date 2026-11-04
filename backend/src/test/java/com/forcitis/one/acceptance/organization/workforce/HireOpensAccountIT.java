@@ -18,7 +18,6 @@ import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelopes;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.events.EmployeeHired;
-import com.forcitis.one.organization.workforce.events.EmployeeRegistered;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.platform.identity.application.OperationsCommands;
 import java.io.ByteArrayOutputStream;
@@ -171,17 +170,6 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.personnel.command.due")) {
             return new EmployeeHired(envelopes.wrap(new EventDraft("organization.workforce.EmployeeHired", 1, "Employee", employee, 1,
                     new LegalEntityId(legalEntity), effective, List.of())), new PersonnelCommandId(command), employeeIdOf(employee), effective);
-        }
-    }
-
-    private UUID publishEmployeeRegistered(UUID employee) {
-        try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.login-registration")) {
-            return transactions.execute(status -> {
-                EmployeeRegistered event = new EmployeeRegistered(envelopes.wrap(new EventDraft("organization.workforce.EmployeeRegistered", 1, "Employee",
-                        employee, 1, null, null, List.of())), employeeIdOf(employee));
-                publisher.publishEvent(event);
-                return event.envelope().eventId();
-            });
         }
     }
 
@@ -461,9 +449,9 @@ class HireOpensAccountIT extends EmployeeHireSupport {
     }
 
     @Test
-    @DisplayName("#1015 并发（P2-M3、ADR-0033 第 3 项第 1 条）：同一新员工同时经 EmployeeHired、企业微信登录、EmployeeRegistered、运维 grant-role 四个入口建账号，多轮 → 只有一个账号、恰一条 AccountOpened、基础角色恰一条开放授予、四个入口都成功、没有唯一约束冲突、身份模块的投递都完成")
-    void fourEntriesAtOnceOpenOneAccount() throws Exception {
-        ExecutorService pool = Executors.newFixedThreadPool(4);
+    @DisplayName("#1015 并发（P2-M3、ADR-0033 第 3 项第 1 条）：同一新员工同时经 EmployeeHired、企业微信登录、运维 grant-role 三个入口建账号，多轮 → 只有一个账号、恰一条 AccountOpened、基础角色恰一条开放授予、三个入口都成功、没有唯一约束冲突、身份模块对 EmployeeHired 的投递完成")
+    void threeEntriesAtOnceOpenOneAccount() throws Exception {
+        ExecutorService pool = Executors.newFixedThreadPool(3);
         try {
             for (int round = 0; round < ROUNDS; round++) {
                 UUID person = newEmployeeId();
@@ -475,18 +463,13 @@ class HireOpensAccountIT extends EmployeeHireSupport {
                 CountDownLatch start = new CountDownLatch(1);
                 Future<UUID> hire = pool.submit(waiting(start, () -> publishEmployeeHired(hired)));
                 Future<SignedIn> login = pool.submit(waiting(start, () -> signInWith(code, person)));
-                Future<UUID> registered = pool.submit(waiting(start, () -> publishEmployeeRegistered(person)));
                 Future<String> granted = pool.submit(waiting(start, () -> grantRoleByOperations(person)));
                 start.countDown();
 
                 UUID account = login.get(60, TimeUnit.SECONDS).userId();
                 assertThat(granted.get(60, TimeUnit.SECONDS)).as("exit code and error output of grant-role").isEqualTo("0");
                 UUID hiredEvent = hire.get(60, TimeUnit.SECONDS);
-                UUID registeredEvent = registered.get(60, TimeUnit.SECONDS);
                 identityHandledEmployeeHired(hiredEvent.toString());
-                Awaitility.await().atMost(DELIVERY).pollInterval(Duration.ofMillis(100))
-                        .until(() -> registeredDelivery(registeredEvent), state -> !state.equals("OPEN"));
-                assertThat(registeredDelivery(registeredEvent)).as("delivery of EmployeeRegistered to identity").isEqualTo("COMPLETED");
 
                 assertThat(accountsOfEmployee(person)).as("accounts of employee %s", person).containsExactly(account);
                 assertThat(theOneAccount(person)).isEqualTo(account);
@@ -499,23 +482,6 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         } finally {
             pool.shutdownNow();
         }
-    }
-
-    private String registeredDelivery(UUID eventId) throws Exception {
-        try (Connection registry = schemaConnection("platform_integration")) {
-            for (String table : List.of("event_publication", "event_publication_archive")) {
-                try (PreparedStatement select = registry.prepareStatement("select completion_date is not null, status from " + table
-                        + " where listener_id like '%HandleEmployeeRegistered%' and serialized_event like ?")) {
-                    select.setString(1, "%" + eventId + "%");
-                    try (ResultSet rs = select.executeQuery()) {
-                        if (rs.next()) {
-                            return "FAILED".equals(rs.getString(2)) ? "FAILED" : rs.getBoolean(1) ? "COMPLETED" : "OPEN";
-                        }
-                    }
-                }
-            }
-        }
-        return "OPEN";
     }
 
     @Test

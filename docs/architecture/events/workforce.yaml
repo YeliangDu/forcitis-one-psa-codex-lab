@@ -140,32 +140,6 @@ components:
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityStateMachineTest
         noConsumer: 暂无消费方：法人是核算、授权与分析共同的维度，1b 的核算与分析模块将订阅；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
-    EmployeeRegistered:
-      name: EmployeeRegistered
-      title: 员工在首次登录时被登记进组织快照
-      payload:
-        type: object
-        properties:
-          employeeId:
-            type: string
-            x-type: EmployeeId
-            format: uuid
-            description: 稳定 ID 的字符串形式
-      x-event:
-        eventType: organization.workforce.EmployeeRegistered
-        version: 1
-        class: com.forcitis.one.organization.workforce.events.EmployeeRegistered
-        aggregate: Employee
-        idempotencyKey: eventId
-        publisher: organization.workforce
-        consumers:
-        - platform.identity
-        - platform.audit
-        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
-        formsFact: false
-        businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
-        audit: audited
-        publisherTest: com.forcitis.one.organization.workforce.domain.RegisteredEmployeeTest
     LegalEntityAttributed:
       name: LegalEntityAttributed
       title: 部门或员工从某日起归属某法人

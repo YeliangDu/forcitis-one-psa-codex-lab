@@ -9,6 +9,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
+import com.forcitis.one.platform.identity.api.AccountOpeningRoute;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.domain.EmergencyAdmin;
 import com.forcitis.one.platform.identity.domain.EmergencyAdminRepository;
@@ -59,7 +60,7 @@ public class RegisterEmergencyAdmin {
             throw new DomainException(IdentityError.PLATFORM_IDENTITY_EMERGENCY_BINDING_INVALID, ErrorKind.UNPROCESSABLE,
                     "the login name is 3 to 32 characters: a lower-case letter, then lower-case letters, digits, dot, dash or underscore");
         }
-        UserId person = provisioning.existingOrOpened(employeeId).orElseThrow(() -> new DomainException(
+        UserId person = provisioning.existingOrOpened(employeeId, AccountOpeningRoute.OPERATIONS).orElseThrow(() -> new DomainException(
                 IdentityError.PLATFORM_IDENTITY_EMERGENCY_BINDING_INVALID, ErrorKind.UNPROCESSABLE,
                 "employee " + employeeId.value() + " has no account and is not an employed person who could get one"));
         binding.requireValid(person);

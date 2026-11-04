@@ -7,23 +7,23 @@ import { EmergencyLoginPage } from './emergency-login-page';
 import { LoginPage } from './login-page';
 
 describe('登录页', () => {
-  it('提供企业微信扫码和致远单点登录入口，没有口令输入框', async () => {
+  it('只提供企业微信扫码入口，没有致远单点登录入口，也没有口令输入框', async () => {
     stubServer({ 'GET sessions:current': { status: 401, body: {} } });
     renderWithProviders(<LoginPage />, { route: '/login' });
 
     expect(await screen.findByText('企业微信扫码登录')).toBeInTheDocument();
-    expect(screen.getByText('致远单点登录')).toBeInTheDocument();
+    expect(screen.queryByText('致远单点登录')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('口令')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('动态口令')).not.toBeInTheDocument();
     expect(screen.queryByText('应急管理员登录')).not.toBeInTheDocument();
   });
 
-  it('入口尚未配置时置灰并说明', async () => {
+  it('企业微信入口尚未配置时置灰并说明', async () => {
     stubServer({ 'GET sessions:current': { status: 401, body: {} } });
     renderWithProviders(<LoginPage />, { route: '/login' });
 
     expect(await screen.findByText('尚未配置企业微信登录')).toBeInTheDocument();
-    expect(screen.getByText('尚未配置致远单点登录')).toBeInTheDocument();
+    expect(screen.queryByText('尚未配置致远单点登录')).not.toBeInTheDocument();
   });
 });
 

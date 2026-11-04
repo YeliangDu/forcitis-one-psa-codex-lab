@@ -41,7 +41,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
  * started a second time with that profile on the database the acceptance context migrated. The profile's runner ends the process with
  * System.exit, which would end the test JVM, so its bean definition (the one ApplicationRunner of platform.integration) is removed before
  * the context starts and the command is called directly. Besides that, the features whose configuration the test environment lacks are switched
- * off by property (the scheduled purges and consumers, SSO, the process-administrator requirement; see the arguments of application.run);
+ * off by property (the scheduled purges and consumers, the process-administrator requirement; see the arguments of application.run);
  * everything else starts as on the server.
  */
 @Testcontainers
@@ -92,7 +92,7 @@ class IntegrationOperationsProfileIT extends AccountsAcceptanceSupport {
                 "--forcitis.cost.timesheet.consumed-events.enabled=false", "--forcitis.platform.approval.process-archive.enabled=false",
                 "--forcitis.organization.workforce.sync-purge.enabled=false", "--forcitis.platform.integration.outbound-purge.enabled=false",
                 "--forcitis.platform.integration.archive-store.enabled=false", "--forcitis.platform.audit.archive.enabled=false",
-                "--forcitis.platform.approval.process-administrator-required=false", "--forcitis.platform.identity.sso.enabled=false",
+                "--forcitis.platform.approval.process-administrator-required=false",
                 "--forcitis.platform.identity.emergency.totp-encryption-key=" + Base64.getEncoder().encodeToString(random(32)),
                 "--FORCITIS_TICKET_KEY_KM=" + HexFormat.of().formatHex(random(32)));
     }

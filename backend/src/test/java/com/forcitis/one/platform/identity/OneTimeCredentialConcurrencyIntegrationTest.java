@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.platform.identity.domain.SignedTicket;
-import com.forcitis.one.platform.integration.api.SsoVerdict;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -52,18 +51,6 @@ class OneTimeCredentialConcurrencyIntegrationTest extends IdentityIntegrationTes
         assertThat(statuses.stream().filter(s -> s == 200).count()).as("successful logins: %s", statuses).isEqualTo(1);
         assertThat(statuses.stream().filter(s -> s == 401).count()).as("refused replays: %s", statuses).isEqualTo(ATTEMPTS - 1);
         assertThat(count("sessions")).as("exactly one session was created").isEqualTo(1);
-    }
-
-    @Test
-    @DisplayName("I-9 / RULE-320 the same portal ticket presented by many requests at once logs in exactly once")
-    void portalTicket() throws Exception {
-        when(ssoVerifier.verify("RACE")).thenReturn(new SsoVerdict.LoginName("13800000000"));
-        var employee = knownEmployee(1001, EmploymentStatus.EMPLOYED);
-        when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByLoginName("13800000000"))).thenReturn(Optional.of(employee));
-
-        List<Integer> statuses = race(() -> postJson(SsoLoginIntegrationTest.LOGIN, "{\"ticket\":\"RACE\"}").getResponse().getStatus());
-
-        assertExactlyOneSucceeded(statuses);
     }
 
     @Test

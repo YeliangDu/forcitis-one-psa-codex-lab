@@ -21,7 +21,6 @@ platform_identity.emergency_admins.account_name | SENSITIVE | PI | 用途：应�
 platform_identity.sessions.principal_name | SENSITIVE | NONE | 豁免：会话所属用户 ID，值为用户 UUID 文本，按代理键处理（ADR-0043 U-4 (b)）；级别是否下调未定，维持现级
 platform_audit.audit_entries.source_address | SENSITIVE | PI | 用途：说明动作来自哪里；带登录与会话轨迹的条目（登录、会话、管理员模式、拒绝访问、特权请求、强制下线）的客户端地址
 organization_workforce.employees.display_name | INTERNAL | PI | 用途：待办与通讯录中显示姓名；访问级别 L2 依 D-12（ADR-0043 第 3 项）
-organization_workforce.employees.login_name | SENSITIVE | PI | 用途：员工登录名，登录与账号匹配
 organization_workforce.employees.wecom_user_id | INTERNAL | PI | 用途：企业微信用户 ID，登录匹配与消息投递；访问级别 L2 依 D-6
 organization_workforce.employees.employee_code | INTERNAL | PI | 用途：工号，人事与来源系统对照；访问级别 L2（用户决定 2026-11-02-162028，U-2）
 platform_integration.outbound_deliveries.recipient_codes | INTERNAL | PI | 用途：外发消息的收件人（企业微信用户 ID），投递与追查；访问级别 L2（U-4 (b)）
