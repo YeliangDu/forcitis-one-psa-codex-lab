@@ -11,13 +11,13 @@ External input: user-supplied plan R001, 2026-11-04 (six contexts, 21 aggregates
 | Q | Question | Ruling | Route | Cost of changing later |
 |---|---|---|---|---|
 | 1 | Performance (AGG-106) | **Own bounded context**, not workforce, not payroll | New ADR-0084 (proposed) partly supersedes ADR-0079 | Free today (no code). Built inside workforce first: items 1–8 of section 2.3 |
-| 2a | Recruitment | **Own bounded context**; candidates never enter `employees` | ADR-0084 | Free today; highest of all zones once built inside workforce |
+| 2a | Recruitment | **Own bounded context**; candidates never enter `employees` | ADR-0085 (proposed; separate from ADR-0084 because the two can be adopted separately) | Free today; highest of all zones once built inside workforce |
 | 2b | Labour contract + employer entity | **Stays in workforce**; employer entity is its own dated dimension with its own names | ADR-0079 stands | Low if the names are kept apart now |
 | 2c | Practice certificates | **Stays in workforce** under split-ready conditions | ADR-0084 (conditions only) | Moderate; low if the conditions hold |
 | 2d | Skills | Placement **not decided now**; whether and when is business scope (B3) | ADR-0079 stands as default; ADR-0084 conditions apply at build | Zero code, zero A8 evidence |
 | 2e | "Split later = move packages and tables" | **False** for this code base | ADR-0084 replaces the sentence | See section 2.3 |
 | 3 | Standard hours owner | `organization.attendance`, AGG-108; timesheet holds no parameter today, so there is nothing to switch | ADR-0079 stands | Low; high only if timesheet ships its own parameter first |
-| 4 | Overtime/comp-time seam vs RULE-412 | RULE-412 and FD2-05 win; ADR-0079 decision 4 row 6 is read per event meaning | ADR-0079 stands + erratum E-012 | Low |
+| 4 | Overtime/comp-time seam vs RULE-412 | RULE-412 and FD2-05 win; ADR-0079 decision 4 row 6 is read together with RULE-412: timesheet does not subscribe to overtime approval | ADR-0079 stands + erratum E-012 | Low |
 | 5 | Leave→payroll seam | Owners fixed in section 6; seven open items must close before payroll design | ADR-0079 stands | Low |
 | 6 | Plan R001 mapping, G04 | Every G-aggregate has a home; four have no aggregate in `planned.yaml`; G04 is **not** an own aggregate now, with a named trigger | No new ADR | G04 retrofit is the most expensive change in this note (section 7.3) |
 
@@ -32,7 +32,7 @@ External input: user-supplied plan R001, 2026-11-04 (six contexts, 21 aggregates
 ### 2.1 Facts
 
 - [V] `backend/src/main/java/com/forcitis/one/organization/` holds only `administration`, `attendance`, `workforce`. No table, class, event or permission code exists for recruitment, labour contract, employer entity, performance, certificates or skills (the independent agent's grep over main code found none either [A]). **Every placement is free today; none stays free once a card builds it.**
-- [V] ADR-0079 decision 2 puts recruitment, labour contract, certificates, skills catalogue and assessment, and performance results in workforce, as six internal zones, "日后拆分只搬包与表". Its capability table gives C2 (recruitment), C6 (contract), C7 (certificates), C8 (performance), C22 (skills) to workforce. Invariant 9: recruitment, contract, separation request and performance use single-level approval inside workforce. ADR-0051 decision 4 item 5 and consequence 4 are the source: workforce may not depend on `platform.approval`.
+- [V] ADR-0079 decision 2 puts recruitment, labour contract, certificates, skills catalogue and assessment, and performance results in workforce, as six internal zones, "日后拆分只搬包与表". Its capability table gives C2 (recruitment), C6 (contract), C7 (certificates), C8 (performance), C22 (skills) to workforce. Invariant 9: recruitment, contract, separation request and performance use single-level approval inside workforce. ADR-0051 decision 4 item 5 and guard 3 are the source: workforce may not depend on `platform.approval`.
 - [V] `module-dependencies.txt`: `platform.approval -> organization.workforce`, `platform.identity -> organization.workforce`, `platform.numbering -> organization.workforce`, `cost.timesheet -> organization.workforce`; `organization.workforce -> platform.audit, platform.integration, organization.attendance`. Workforce sits below approval, identity and numbering. ADR-0051 guard 3 states "workforce, attendance may not depend on platform.approval" [V, ADR-0051:208].
 - [V] The downstream pattern already exists: `organization.administration -> organization.workforce, platform.approval, platform.audit, platform.file, platform.numbering`; `organization.leave` is planned the same way.
 - [V] A8 usage (`docs/legacy/runtime-usage/a8-templates.tsv`, production read-only counts of 2026-10-14):
@@ -58,14 +58,14 @@ External input: user-supplied plan R001, 2026-11-04 (six contexts, 21 aggregates
 |---|---|---|---|
 | D1 | Performance: own context | Performance results in workforce | **Independent wins.** Change driver (management templates, changed about yearly [A]), actors (line managers as evaluators, about 780 monthly evaluations a year [A]), lifecycle (periodic documents, about 12 a year per person) and sensitivity (ratings) differ from the employee record. The shared key is the person id. A downstream placement also lets it use `platform.approval` instead of a bespoke single-level command. |
 | D2 | "Single-level approval is a placement artifact, not a domain property" | Single-level approval inside workforce (invariant 9) | **Partly agree.** True that the dependency direction forces it. But the depth itself is a user answer (Q9 A, Q10 A: single level) and stays; a downstream BC can model it as one approval node. So approval does not decide the boundary; it only removes ADR-0079's stated reason for keeping the zones inside. |
-| D3 | Regularization reads performance, so a workforce-to-performance read would cycle | AGG-62 reads AGG-106 before regularizing (P-46) | **Resolved by direction.** P-46 itself says the result is "an input of regularization, not a refusal condition". So the regularize command does not read performance. The warning "no confirmed probation evaluation before probation ends" is raised by performance, reading probation end dates from workforce through an api. The screen shows both through two api calls. `performance -> workforce` only; no cycle. |
+| D3 | Regularization reads performance, so a workforce-to-performance read would cycle | P-46 (draft, `enterprise-aggregates-draft.md:327`): guard column "AGG-62 转正前读 AGG-106"; its text also says the result is "an input of regularization, not a refusal condition" | **Departure from P-46's guard placement, stated openly.** Because the result is an input and not a refusal condition, the regularize command need not read it; ADR-0084 replaces the placement "AGG-62 reads AGG-106" with: the regularize command does not read performance. The warning "no confirmed probation evaluation before probation ends" is raised by performance, reading probation end dates from workforce through an api; the screen shows both through two api calls. `performance -> workforce` only; no cycle. |
 | D4 | (not raised) | Unfit-for-work chain (labour contract law art. 40(2)) must back a separation basis in workforce (Q10) | **Addressed.** A separation record stores a reference to the evaluation records by id, not validated ("不校验", the repo's existing reference mode, e.g. AGG-12 to AGG-104). Cost: the system does not prove the referenced chain exists; HR confirms it, as it does today. |
-| D5 | Recruitment: own context | Recruitment is a workforce zone; candidates are not employees; hire is called into the core zone | **Independent wins, but not on its main argument.** Its argument "candidates inside AGG-62 break the schema" fights the stale SSOT text, not ADR-0079. The real reasons: external persons whose data needs a short retention versus permanent employee history; the zone needs `platform.approval`, `platform.file` and numbering that workforce cannot depend on; and the zone sits under the same persisted names and permission codes as the employee core. |
+| D5 | Recruitment: own context | Recruitment is a workforce zone; candidates are not employees; hire is called into the core zone | **Independent wins, but not on its main argument.** Its argument "candidates inside AGG-62 break the schema" fights the stale SSOT text, not ADR-0079. The real reasons: external persons whose data needs a short retention versus permanent employee history; the zone needs `platform.approval` and `platform.file`, which workforce cannot depend on (numbering already has a kernel port, `kernel.GlobalDocumentNumberSource`, `module-dependencies.txt:13`); and the zone sits under the same persisted names and permission codes as the employee core. |
 | D6 | Labour contract and employer entity stay in workforce | Same | Agree. Same actors (HR), same lifecycle (the contract gates the employment), no A8 approval flow in use (contract approval form: 0 rows [A]; only a renewal-intention form, 42 in 365 days [A]). |
 | D7 | Rename `EmployeeLegalEntities`, `EmployeeLegalEntityChanged`, `CHANGE_LEGAL_ENTITY` before any employer dimension exists | Invariant 4 keeps three legal-entity meanings apart; section 4: "已建事件保留名称" | **Disagree on the rename.** ADR-0073 item 3.7 defines the existing event as the cost/data-scope entity (the javadoc of `EmployeeLegalEntityChanged` says "cost legal entity (ADR-0073 item 3.7)" [V]), so the name is not unqualified, it is ADR-0073's. A rename hits persisted event class names (the agent's own item 1). **Agree on the substance:** the employer entity gets its own table, api query and event with distinct names (glossary decides the words), never an extra meaning on the existing event. |
 | D8 | Certificates: workforce with guardrails, build after the dat1020 result | C7 in workforce | Agree on placement with the guardrails. Timing and the missing dat1020 result go to lead (B4). |
 | D9 | Skills: not workforce; defer to its consumer | C22 in workforce (user Q13 C put skills in scope) | **Not decided here.** Skills have no aggregate in `planned.yaml` [V grep], no A8 form [A], no code. The user put C22 in scope (Q13 C), so whether and when is business. With zero code, the placement costs nothing at the build card. ADR-0084's conditions bind it then. |
-| D10 | Fallback: one shared "talent" context for performance and recruitment | none | **Reject the fallback.** External pre-employment candidates and employed evaluatees share nothing but the word HR; one context would mix two retention regimes and two actor sets. If lead wants fewer modules, performance alone is the better one to keep out of workforce. |
+| D10 | Fallback: one shared "talent" context for performance and recruitment | none | **Reject the fallback.** External pre-employment candidates and employed evaluatees share nothing but the word HR; one context would mix two retention regimes and two actor sets. If lead wants fewer modules, performance alone is the better one to keep out of workforce. Because the two can be adopted separately, they are two ADRs (ADR-0084 performance, ADR-0085 recruitment). |
 | D11 | "Split later = move packages and tables" is false | Stated as true | **Independent wins** (2.3). |
 | D12 | Side finding: personal data in `a8-templates.tsv` | — | Section 8, item R1. |
 
@@ -119,24 +119,29 @@ Not verified by anyone: whether HTTP paths include the module name (G41) [U]. En
 
 | Option | Cost |
 |---|---|
-| (a) Read row 6 per event meaning: the subscriber list names every subscriber of any event in the row; timesheet subscribes only to leave approval, rejection, withdrawal and recall; overtime approval and the monthly lock go to payroll only. Record it as erratum E-012 | One line in `readme-deviations.md`; no ADR. If one-architecture judges it changes meaning, it moves into a new ADR |
+| (a) Read row 6 together with RULE-412: `cost.timesheet` does not subscribe to overtime approval; the rest of the row reads as written. Record it as erratum E-012, limited to that conflict | One line in `readme-deviations.md`; no ADR. If one-architecture judges it changes meaning, it moves into a new ADR |
 | (b) A new ADR amending one table cell | An ADR for one cell: refuse (entropy) unless (a) is rejected |
 | (c) Accept the subscription and amend RULE-412 | Contradicts a user decision; only the user can do it |
 
-**Ruling: (a), ADR-0079 stands.** What the leave→timesheet edge may carry is fixed by "card B": the api `LeaveHours.forDay` and the four leave events; the guard stays red for any overtime or comp-time type. If timesheet later needs the monthly lock or overtime, that is a new user decision (RULE-412 says "之后再对接"). Cost of changing later: low (one guard and the event list).
+**Ruling: (a), ADR-0079 stands.** The exact list of leave events timesheet takes (and whether it takes the monthly lock) is not decided by the erratum: it follows `organization-leave.md` section 4.3 and "card B"; the guard stays red for any overtime or comp-time type (RULE-412). Keeping the monthly lock away from timesheet would need a new ADR clause, not an erratum. Cost of changing later: low (one guard and the event list).
 
-## 5. What ADR-0084 changes, and what it leaves
+## 5. What the ADRs change, and what they leave
 
-| Clause | Today | ADR-0084 (proposed) |
-|---|---|---|
-| ADR-0079 decision 1, rows C2 and C8 | owner workforce | recruitment and performance contexts |
-| ADR-0079 decision 2, "沿用 ADR-0051，不新增人事上下文" | no new HR context | two new contexts |
-| ADR-0079 decision 2, workforce row (recruitment, performance results) | owned by workforce | removed from that row |
-| ADR-0079 decision 2, "日后拆分只搬包与表" | stated as true | replaced by the split-ready conditions (2.3) |
-| ADR-0079 decision 4, row "绩效结果确认" | workforce publishes, payroll subscribes | performance owns it, payroll reads by api |
-| ADR-0079 invariant 9 | recruitment, contract, separation request, performance single-level inside workforce | contract and separation request stay; recruitment and performance use `platform.approval` with one node |
-| ADR-0051 decision 3 BC list; decision 4 item 5, recruitment sentence | 28 BCs; recruitment approved inside workforce | two more BCs; recruitment approval via `platform.approval` |
-| Left as is | C6, C7, C22 placement; invariants 1–4; decision 4 row 6 (E-012); ADR-0079 decision 5 | |
+ADR-0084 (performance, split-ready conditions) and ADR-0085 (recruitment) are separate proposals; each lists its own clauses in its `取代` field. Clauses touched, with the ADR carrying them:
+
+| Clause | Today | Change | ADR |
+|---|---|---|---|
+| ADR-0079 decision 1, row C8 and the probation evaluation in row C4 | owner workforce | performance context | 0084 |
+| ADR-0079 decision 1, row C2 | owner workforce | recruitment context | 0085 |
+| ADR-0079 decision 2, first sentence "不新增人事上下文" | no new HR context | one new context each | 0084, 0085 |
+| ADR-0079 decision 2, workforce row | owns recruitment and performance results | removed from the row | 0085 (recruitment), 0084 (performance) |
+| ADR-0079 decision 2, zone sentence "日后拆分只搬包与表" | stated as true | split-ready conditions | 0084 |
+| ADR-0079 decision 2, dependency-direction bullet, payroll part | payroll depends on workforce, attendance, leave, approval, ... | adds performance | 0084 |
+| ADR-0079 decision 4, row "绩效结果确认" | workforce publishes, payroll subscribes | performance owns it, payroll reads by api | 0084 |
+| ADR-0079 decision 5 item 9 | recruitment, contract, separation request, performance single-level inside workforce | contract and separation request stay; recruitment and performance via `platform.approval`, one node | 0084 (performance), 0085 (recruitment) |
+| ADR-0051 decision 3, row B-13 (AGG-65, AGG-106) and the business BC count | in workforce; 28 BCs | moved out; BC count plus one each | 0085 (AGG-65), 0084 (AGG-106) |
+| ADR-0051 decision 4 item 5 (recruitment sentence); decision 7 items 3 and 4 (approval aggregate list; "单级批准…招聘需求") | recruitment approved inside workforce | recruitment approval via `platform.approval` | 0085; item 3 also 0084 for AGG-106 |
+| Left as is | C6, C7, C22 placement; invariants 1–8 and 10–15; decision 4 row 6 | | |
 
 ## 6. Q5: the leave→payroll seam, owners before payroll is designed
 
@@ -169,7 +174,7 @@ Direction check: `payroll -> workforce, attendance, leave, performance, platform
 | G03 employment contract | AGG-67 labour contract, workforce | no | only for regular staff; interns, retirees, dispatched staff have none (ADR-0079 decision 3 item 3) |
 | G04 employment relationship | **no own aggregate**: employee versions of AGG-62 + AGG-67 + planned employer entity | partly | section 7.3 |
 | G05 assignment | AGG-63 assignment, workforce | yes | primary assignments do not overlap, part-time unlimited (ADR-0079 invariant 2) |
-| G06 requisition | AGG-65, recruitment (ADR-0084) | no | |
+| G06 requisition | AGG-65, recruitment (ADR-0085) | no | |
 | G07 application | **no aggregate** (AGG-62 candidate stage is stale, 2.1); recruitment | no | name it when recruitment is scheduled |
 | G08 appraisal | AGG-106, performance (ADR-0084) | no | |
 | G09 work calendar | AGG-68, attendance | yes | |
@@ -240,9 +245,9 @@ Findings and actions that are not business questions:
 
 ## 9. Rulings and errata proposed in this PR
 
-- `docs/adr/ADR-0084.md` (proposed): performance and recruitment leave workforce; the split-ready conditions replace "日后拆分只搬包与表". It is a proposal: other documents must not cite it as decided (`readme-lifecycle.md` section 8.4). Adoption needs the user.
+- `docs/adr/ADR-0084.md` (proposed): performance leaves workforce; the split-ready conditions replace "日后拆分只搬包与表". `docs/adr/ADR-0085.md` (proposed): recruitment leaves workforce. They are proposals: other documents must not cite it as decided (`readme-lifecycle.md` section 8.4). Adoption needs the user.
 - `docs/adr/readme-deviations.md`, errata table (one-architecture decides if either changes meaning; if so E-012 moves into a new ADR):
-  - E-012: ADR-0079 decision 4 row 6 subscriber list read per event meaning, source RULE-412 and FD2-05.
+  - E-012: ADR-0079 decision 4 row 6 read with RULE-412 and FD2-05: `cost.timesheet` does not subscribe to overtime approval; the rest of the row reads as written.
   - E-013: ADR-0079 attachments removed by PR #1219; read them at `fb798a0d1^`.
 - Not changed: any adopted ADR body, any rule, any code, `contexts.yaml`, `planned.yaml`.
 
