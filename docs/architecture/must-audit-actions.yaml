@@ -31,6 +31,7 @@ categories:
   - platform.identity.PermissionAdjustmentOpened
   - platform.identity.PermissionAdjustmentUpheld
   - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentClosedBySeparation
   - platform.identity.PermissionAdjustmentExpired
   - platform.identity.PermissionAdjustmentEscalated
   - platform.identity.permission-adjustment.viewed

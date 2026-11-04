@@ -16,6 +16,7 @@ import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.AuthorizationBase;
 import com.forcitis.one.platform.identity.domain.Role;
+import com.forcitis.one.platform.identity.domain.RoleDefinition;
 import com.forcitis.one.platform.identity.domain.RoleDraft;
 import com.forcitis.one.platform.identity.domain.RoleKind;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
@@ -31,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Permissions are resolved on every request, so a change is live once the cache is evicted. Nobody changes the definition of a role
- * they hold (I-12); giving a role a sensitive permission waits for a second person; a two-person role keeps a scope that does not follow
+ * they hold (I-12); giving a role a sensitive permission, or widening what a two-person role covers, waits for a second person; a two-person role keeps a scope that does not follow
  * the holder's job and names its custom org units without descendants (ADR-0032 section 3, ADR-0044 section 1).
  */
 @Service
@@ -77,6 +78,7 @@ public class UpdateRole {
         try {
             Role role = existing.get();
             Set<String> before = new HashSet<>(role.permissionCodes());
+            RoleDefinition definitionBefore = role.definition();
             revise(role, command);
             Optional<IdentityError> scopeRefused = refuseScope(caller, role);
             if (scopeRefused.isPresent()) {
@@ -84,7 +86,8 @@ public class UpdateRole {
             }
             Set<String> added = new HashSet<>(SensitivePermissions.within(role.permissionCodes()));
             added.removeAll(before);
-            if (!added.isEmpty()) {
+            boolean widened = !SensitivePermissions.within(role.permissionCodes()).isEmpty() && SensitivePermissions.widens(definitionBefore, role.definition());
+            if (!added.isEmpty() || widened) {
                 if (!ceiling.mayRequest(role.permissionCodes(), role.administrative())) {
                     return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED);
                 }

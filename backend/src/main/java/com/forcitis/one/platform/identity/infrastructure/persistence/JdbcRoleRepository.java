@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
 import com.forcitis.one.platform.identity.api.AuthorizationRequestId;
@@ -383,6 +384,30 @@ class JdbcRoleRepository implements RoleRepository {
                  order by created_at, role_id for %s
                 """.formatted(Validity.CURRENT, forWrite ? "update" : "share")).param("versions", versions.stream().map(RoleVersionId::value).toList())
                 .query(UUID.class).list();
+    }
+
+    @Override
+    public List<RoleId> currentRolesListing(OrgUnitId orgUnit) {
+        return jdbc.sql("""
+                select v.role_id from platform_identity.role_versions v
+                 where v.%s and v.access_scope_kind = 'CUSTOM_ORG_UNITS'
+                   and exists (select 1 from platform_identity.role_version_custom_org_units u where u.role_version_id = v.role_version_id and u.org_unit_id = :unit)
+                 order by v.role_id
+                """.formatted(Validity.CURRENT)).param("unit", orgUnit.value()).query((rs, n) -> new RoleId(rs.getObject(1, UUID.class))).list();
+    }
+
+    @Override
+    public boolean versionLists(RoleVersionId version, OrgUnitId orgUnit) {
+        return jdbc.sql("""
+                select exists (select 1 from platform_identity.role_version_custom_org_units where role_version_id = :version and org_unit_id = :unit)
+                """).param("version", version.value()).param("unit", orgUnit.value()).query(Boolean.class).single();
+    }
+
+    @Override
+    public AuditEntryId versionAuditEntry(RoleVersionId version) {
+        return jdbc.sql("""
+                select version_audit_entry_id from platform_identity.role_versions where role_version_id = :version
+                """).param("version", version.value()).query((rs, n) -> new AuditEntryId(rs.getObject(1, UUID.class))).single();
     }
 
     /** Any version of any role counts, open or closed: the version the request wrote may have been replaced since. */

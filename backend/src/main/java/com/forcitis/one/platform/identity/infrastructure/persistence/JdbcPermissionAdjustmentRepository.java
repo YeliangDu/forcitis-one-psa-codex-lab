@@ -2,6 +2,7 @@ package com.forcitis.one.platform.identity.infrastructure.persistence;
 
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PositionId;
@@ -57,15 +58,18 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
     public void insert(PermissionAdjustment opened) {
         OffsetDateTime at = OffsetDateTime.ofInstant(opened.createdAt(), ZoneOffset.UTC);
         jdbc.sql("""
-                insert into platform_identity.permission_adjustments (permission_adjustment_id, kind, origin_kind, status, user_id,
-                        trigger_personnel_command_id, trigger_field_kind, before_org_unit_id, after_org_unit_id, before_position_id, after_position_id,
+                insert into platform_identity.permission_adjustments (permission_adjustment_id, kind, origin_kind, status, user_id, role_id, org_unit_id,
+                        trigger_personnel_command_id, trigger_org_structure_command_id, trigger_field_kind, before_org_unit_id, after_org_unit_id, before_position_id, after_position_id,
                         recipient_employee_id, original_permission_adjustment_id, escalation_due_at, version, event_count, created_at, updated_at)
-                values (:id, :kind, :origin, :status, :user, :command, :field, :beforeUnit, :afterUnit, :beforePosition, :afterPosition,
+                values (:id, :kind, :origin, :status, :user, :role, :inactiveUnit, :command, :structureCommand, :field, :beforeUnit, :afterUnit, :beforePosition, :afterPosition,
                         :recipient, :original, :escalationDueAt, :version, :eventSequence, :at, :at)
                 """)
                 .param("id", opened.id().value()).param("kind", opened.kind().name()).param("origin", opened.origin().name())
                 .param("status", opened.status().name()).param("user", opened.user() == null ? null : opened.user().value(), Types.OTHER)
+                .param("role", opened.role() == null ? null : opened.role().value(), Types.OTHER)
+                .param("inactiveUnit", opened.inactiveOrgUnit() == null ? null : opened.inactiveOrgUnit().value(), Types.OTHER)
                 .param("command", opened.triggerCommand() == null ? null : opened.triggerCommand().value(), Types.OTHER)
+                .param("structureCommand", opened.triggerOrgStructureCommand() == null ? null : opened.triggerOrgStructureCommand().value(), Types.OTHER)
                 .param("field", opened.triggerField() == null ? null : opened.triggerField().name(), Types.VARCHAR)
                 .param("beforeUnit", opened.beforeOrgUnit() == null ? null : opened.beforeOrgUnit().value(), Types.OTHER)
                 .param("afterUnit", opened.afterOrgUnit() == null ? null : opened.afterOrgUnit().value(), Types.OTHER)
@@ -95,7 +99,8 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
                        adjusted_by = coalesce(adjusted_by, :adjustedBy),
                        adjusted_authorization_request_id = coalesce(adjusted_authorization_request_id, :request),
                        adjusted_audit_entry_id = coalesce(adjusted_audit_entry_id, :entry), escalated_at = coalesce(escalated_at, :escalatedAt),
-                       expired_at = coalesce(expired_at, :expiredAt), is_held_at_expiry = coalesce(is_held_at_expiry, :held),
+                       expired_at = coalesce(expired_at, :expiredAt), closed_at = coalesce(closed_at, :closedAt),
+                       closure_personnel_command_id = coalesce(closure_personnel_command_id, :closure), is_held_at_expiry = coalesce(is_held_at_expiry, :held),
                        regeneration_decided_at = coalesce(regeneration_decided_at, :decidedAt),
                        version = :next, event_count = :eventSequence, updated_at = :at
                  where permission_adjustment_id = :id and version = :version
@@ -106,12 +111,14 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
                 .param("reason", changed.upholdReason() == null ? null : changed.upholdReason().value(), Types.VARCHAR)
                 .param("owner", changed.businessOwner() == null ? null : changed.businessOwner().value(), Types.OTHER)
                 .param("expiresAt", utc(changed.upholdExpiresAt()), Types.TIMESTAMP_WITH_TIMEZONE)
-                .param("adjustedAt", changed.adjustedBy() == null ? null : at, Types.TIMESTAMP_WITH_TIMEZONE)
+                .param("adjustedAt", changed.status() == PermissionAdjustmentStatus.ADJUSTED ? at : null, Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("adjustedBy", changed.adjustedBy() == null ? null : changed.adjustedBy().value(), Types.OTHER)
                 .param("request", reference == null || reference.authorizationRequest() == null ? null : reference.authorizationRequest().value(), Types.OTHER)
                 .param("entry", reference == null || reference.auditEntry() == null ? null : reference.auditEntry().value(), Types.OTHER)
                 .param("escalatedAt", utc(changed.escalatedAt()), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("expiredAt", utc(changed.expiredAt()), Types.TIMESTAMP_WITH_TIMEZONE)
+                .param("closedAt", utc(changed.closedAt()), Types.TIMESTAMP_WITH_TIMEZONE)
+                .param("closure", changed.closurePersonnelCommand() == null ? null : changed.closurePersonnelCommand().value(), Types.OTHER)
                 .param("held", changed.heldAtExpiry(), Types.BOOLEAN)
                 .param("decidedAt", utc(changed.regenerationDecidedAt()), Types.TIMESTAMP_WITH_TIMEZONE)
                 .param("next", changed.versionAfterSave()).param("eventSequence", changed.eventSequenceAfterSave()).param("at", at)
@@ -151,6 +158,30 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
                 """).param("now", utc(now)).param("after", after == null ? null : after.value(), Types.OTHER).param("limit", limit));
     }
 
+    @Override
+    public List<PermissionAdjustmentId> openOf(UserId user) {
+        return ids(jdbc.sql("""
+                select permission_adjustment_id from platform_identity.permission_adjustments
+                 where user_id = :user and status = 'OPEN' order by created_at, permission_adjustment_id
+                """).param("user", user.value()));
+    }
+
+    @Override
+    public List<PermissionAdjustmentId> openAboutInactiveUnitsOf(RoleId role) {
+        return ids(jdbc.sql("""
+                select permission_adjustment_id from platform_identity.permission_adjustments
+                 where role_id = :role and origin_kind = 'ORG_UNIT_INACTIVE' and status = 'OPEN' order by created_at, permission_adjustment_id
+                """).param("role", role.value()));
+    }
+
+    @Override
+    public boolean existsOpenOrUpheldForInactiveUnit(RoleId role, OrgUnitId orgUnit) {
+        return jdbc.sql("""
+                select exists (select 1 from platform_identity.permission_adjustments
+                                where origin_kind = 'ORG_UNIT_INACTIVE' and role_id = :role and org_unit_id = :unit and status in ('OPEN', 'UPHELD'))
+                """).param("role", role.value()).param("unit", orgUnit.value()).query(Boolean.class).single();
+    }
+
     private static List<PermissionAdjustmentId> ids(JdbcClient.StatementSpec query) {
         return query.query((row, ignored) -> new PermissionAdjustmentId(row.getObject(1, UUID.class))).list();
     }
@@ -179,7 +210,7 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
     }
 
     private static final String COLUMNS = "permission_adjustment_id, kind, origin_kind, status, user_id, role_id, org_unit_id, trigger_personnel_command_id, "
-            + "trigger_field_kind, before_org_unit_id, after_org_unit_id, before_position_id, after_position_id, recipient_employee_id, escalation_due_at, "
+            + "trigger_org_structure_command_id, trigger_field_kind, before_org_unit_id, after_org_unit_id, before_position_id, after_position_id, recipient_employee_id, escalation_due_at, "
             + "created_at, upheld_by, business_owner_employee_id, uphold_expires_at, original_permission_adjustment_id, escalated_at, expired_at, is_held_at_expiry, "
             + "regeneration_decided_at, version, event_count";
 
@@ -188,6 +219,7 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
                 PermissionAdjustmentKind.valueOf(row.getString("kind")), PermissionAdjustmentOrigin.valueOf(row.getString("origin_kind")),
                 PermissionAdjustmentStatus.valueOf(row.getString("status")), mapped(row, "user_id", UserId::new), mapped(row, "role_id", RoleId::new),
                 mapped(row, "org_unit_id", OrgUnitId::new), mapped(row, "trigger_personnel_command_id", PersonnelCommandId::new),
+                mapped(row, "trigger_org_structure_command_id", OrgStructureCommandId::new),
                 row.getString("trigger_field_kind") == null ? null : TriggerFieldKind.valueOf(row.getString("trigger_field_kind")),
                 mapped(row, "before_org_unit_id", OrgUnitId::new), mapped(row, "after_org_unit_id", OrgUnitId::new),
                 mapped(row, "before_position_id", PositionId::new), mapped(row, "after_position_id", PositionId::new),

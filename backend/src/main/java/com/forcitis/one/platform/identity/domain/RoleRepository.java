@@ -1,6 +1,8 @@
 package com.forcitis.one.platform.identity.domain;
 
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.platform.identity.api.AuthorizationRequestId;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleId;
@@ -31,6 +33,15 @@ public interface RoleRepository {
      * {@link #currentVersions} reads next cannot change before the transaction ends.
      */
     void lockRolesOf(Collection<RoleVersionId> versions, boolean forWrite);
+
+    /** The roles whose current version has scope CUSTOM_ORG_UNITS and lists the org unit, enabled or not. */
+    List<RoleId> currentRolesListing(OrgUnitId orgUnit);
+
+    /** Whether the version lists the org unit (a version of any age, open or closed). */
+    boolean versionLists(RoleVersionId version, OrgUnitId orgUnit);
+
+    /** The audit entry written in the same transaction as the version. */
+    AuditEntryId versionAuditEntry(RoleVersionId version);
 
     /** True when a version of some role was written by the confirmed request: its change is already applied. */
     boolean versionWrittenBy(AuthorizationRequestId requestId);
