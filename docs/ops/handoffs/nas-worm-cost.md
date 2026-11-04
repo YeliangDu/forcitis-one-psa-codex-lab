@@ -1,4 +1,5 @@
 # NAS 2.04 TB 存档 + WORM 7 年：月度成本估算（one-ops，2026-10-21）
+> Frozen: the 2026-10-21 cost estimate behind the archive bucket retention, not updated. The decision is in `docs/adr/ADR-0061.md`; the live settings are in `docs/ops/infra-runbook.md` (archive store and retention).
 
 依据：用户在 #497 评论 6312937945 第 5 条（NAS 2.04 TB 与 WORM 7 年，单独出数，含请求费与提前删除罚则，B-13 前交）。INFRA_RUNBOOK §5.4（单一归档桶、WORM 合规保留 2557 天、锁定不可逆）、B-13（OSS 归档桶 WORM 待锁）。
 
