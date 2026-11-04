@@ -360,11 +360,19 @@ def braces(word):
     return [w for alt in alts for w in braces(word[:m.start()] + alt + word[m.end():])][:64]
 
 
+BRACKET = re.compile(r"\[[!^]?\]?[^\]]*\]")   # a shell bracket expression: [abc], [!a-c], [^x], []x]
+
+
+def glob_matches_codex(base):
+    """fnmatch of "codex" against the word with every bracket expression read as `?` (any one character, a superset of what the bracket matches). Python reads brackets differently from bash and zsh (`[^-+]` negates there, `[z-ac]` keeps `c`) and may fail to compile them, so the bracket's own meaning is not trusted; a superset can only refuse more, and it always compiles (#1205)."""
+    return fnmatch.fnmatchcase("codex", BRACKET.sub("?", base))
+
+
 def could_be_codex(word):
     """True when the shell may expand this word to a path ending in codex: co{dex,}, cod?x, c*x, /x/c[o]dex (a bare variable cannot be judged and is the accepted gap)."""
     for w in braces(word):
         base = os.path.basename(w.rstrip("/")).replace("\0", "*")
-        if base.strip("*") and fnmatch.fnmatchcase("codex", base.lower()):
+        if base.strip("*") and glob_matches_codex(base.lower()):
             return True
     return False
 
