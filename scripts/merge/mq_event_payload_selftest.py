@@ -33,7 +33,10 @@ def run(mq, d):
                 g(author, "rm", "-q", path)
                 continue
             os.makedirs(os.path.dirname(os.path.join(author, path)), exist_ok=True)
-            open(os.path.join(author, path), "w").write(text)
+            if isinstance(text, tuple):   # a symlink to the given target
+                os.symlink(text[0], os.path.join(author, path))
+            else:
+                open(os.path.join(author, path), "w").write(text)
             g(author, "add", path)
         g(author, "commit", "-q", "-m", f"change {n}")
         g(author, "push", "-q", "origin", f"HEAD:refs/pull/{n}/head")
@@ -53,6 +56,8 @@ def run(mq, d):
         4: pr(author, 4, {"docs/architecture/events/asyncapi.yaml": agg(2)}),                    # the generated aggregate is not a fragment
         8: pr(author, 8, {"docs/architecture/events/_x.yaml": agg(2)}),                          # nor is a `_` file
         10: pr(author, 10, {FRAG: fragment().replace("    Alpha:", "    Gone:", 1).replace("name: Alpha", "name: Gone", 1), "docs/architecture/events/moved.yaml": fragment(a_fields="id,moved").split("    Beta:")[0]}),   # Alpha moves to another fragment, payload changed
+        12: pr(author, 12, {FRAG: "components:\n  messages: {}\n", "docs/other/real.yaml": fragment(a_fields="id,sneaky"), "docs/architecture/events/zz.yaml": ("../../other/real.yaml",)}),   # the payload hides behind a symlinked fragment
+        13: pr(author, 13, {FRAG: fragment().split("    Beta:")[0]}),                        # a message is deleted: documented pass
         11: pr(author, 11, {FRAG: None, "docs/architecture/events/renamed.yaml": fragment(a_fields="id,renamed")}),   # the fragment is renamed, payload changed
         5: pr(author, 5, {FRAG: fragment(b_fields="id,x")}),                                     # another message's payload
         6: pr(author, 6, {FRAG: "components: [broken\n"}),                                       # a fragment that cannot be read
@@ -66,7 +71,10 @@ def run(mq, d):
         assert moved == [f"Alpha ({FRAG} -> docs/architecture/events/moved.yaml)"], moved   # matched by name across fragments, so a move hides nothing
         assert renamed == [f"Alpha ({FRAG} -> docs/architecture/events/renamed.yaml)"], renamed
         assert mq_event_payload.changed(runner, 9, heads[1]) is None and "cannot fetch" in err.getvalue(), "a pull request that cannot be fetched fails open, said out loud"
-        assert mq_event_payload.changed(runner, 6, heads[6]) is None and "not run for #6" in err.getvalue(), "an unreadable fragment fails open, said out loud"
+        unreadable = mq_event_payload.changed(runner, 6, heads[6])
+        assert len(unreadable) == 1 and "unreadable" in unreadable[0], unreadable   # fail closed: refused, not guessed
+        assert mq_event_payload.changed(runner, 12, heads[12]) and "unreadable" in mq_event_payload.changed(runner, 12, heads[12])[0], "a symlinked fragment is not a way round the check"
+        assert mq_event_payload.changed(runner, 13, heads[13]) == [], "deleting a message is a documented pass (EventCatalogueTest is the backstop)"
     g(author, "checkout", "-q", "main")   # main moves on after pr2 left it: that change is not the pull request's
     open(os.path.join(author, FRAG), "w").write(fragment(b_fields="id,later")); g(author, "commit", "-q", "-am", "main moves"); g(author, "push", "-q", "origin", "main")
     with contextlib.redirect_stderr(io.StringIO()):

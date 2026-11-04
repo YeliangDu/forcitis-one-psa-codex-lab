@@ -1,7 +1,7 @@
 """The event payload check at enqueue (#1327): a pull request whose title type is not docs (the design type) that changes the payload of a message that already
 exists in docs/architecture/events/<module>.yaml is refused before it is queued. The payload is signed at design (playbooks/design.md); the implementation ships what was signed
 (EventCatalogueTest compares catalogue and code), so a change of an existing payload goes back to design. A new message, a changed message description, a deleted message, passes; so does any pull request of the docs type. Every other title type is refused (an allowlist, fail closed). Messages are matched by name across all fragments, so moving one to another fragment or renaming a fragment does not hide a change.
-The base is the merge base with origin/main, so what main changed after the branch left is not counted. Fails open, said on stderr, when the head cannot be fetched or read."""
+The base is the merge base with origin/main, so what main changed after the branch left is not counted. Fails open, said on stderr, when the head cannot be fetched or git/PyYAML cannot answer; a head fragment that cannot be read as a catalogue is refused."""
 import os
 import subprocess
 import sys
@@ -43,8 +43,12 @@ def changed(root, number, head):
         print(f"mq: event payload check not run for #{number}: cannot fetch or diff it; queued without the check", file=sys.stderr)
         return None
     try:
-        old, new = messages(root, base), messages(root, head)
-    except Exception as e:   # YAML that does not parse, a shape that is not a catalogue, git failing
+        old = messages(root, base)
+        try:
+            new = messages(root, head)
+        except Exception as e:   # a head fragment that is not a readable catalogue (bad YAML, a symlink, a wrong shape, a failed git read): EventCatalogueTest may still read it, so refuse rather than guess
+            return [f"head fragment unreadable ({type(e).__name__})"]
+    except Exception as e:   # PyYAML missing, git failing, or main itself unreadable: the check cannot run
         print(f"mq: event payload check not run for #{number}: {type(e).__name__}; queued without the check", file=sys.stderr)
         return None
     return [f"{n} ({old[n][0]})" if old[n][0] == new[n][0] else f"{n} ({old[n][0]} -> {new[n][0]})" for n in sorted(old) if n in new and old[n][1] != new[n][1]]
