@@ -234,7 +234,7 @@ terms:
   scope: domain
   definition: 岗位目录中查询的岗位不存在（404）
   standard_ref:
-  - #1171 岗位目录
+  - "#1171 岗位目录"
   confidence: medium
   aliases: []
   forbidden: []

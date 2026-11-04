@@ -70,6 +70,38 @@ class JdbcEmployeeRosterQueriesIT {
         assertThat(queries.find(onlyA, stays)).isEmpty();
     }
 
+    @Test
+    @DisplayName("#1171 a superseded post or employee version never widens the scope or changes the status")
+    void supersededRowsAreIgnored() {
+        OrgUnitId current = unit("RS-C");
+        OrgUnitId withdrawn = unit("RS-D");
+        UUID position = ids.next();
+        jdbc.sql("insert into organization_workforce.positions (id, code, name, sort_order, status) values (:id, 'RS-P', 'post', 1, 'ACTIVE')").param("id", position).update();
+        EmployeeId person = person("RS-1", current, position, "EMPLOYED", LocalDate.of(2025, 1, 1));
+        UUID command = ids.next();
+        jdbc.sql("""
+                insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at, applied_at)
+                values (:id, :employee, 'CORRECTION', date '2025-06-01', 'EFFECTIVE', now(), :actor, now(), now())""")
+                .param("id", command).param("employee", person.value()).param("actor", ids.next()).update();
+        jdbc.sql("""
+                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                    revision_number, org_unit_id, position_id, change_channel_kind, superseded_at, superseding_command_id, created_at, updated_at)
+                select :version, employee_id, assignment_id, 'PRIMARY', date '2025-06-01', 1, :unit, :position, 'MIGRATION', now(), :command, now(), now()
+                  from organization_workforce.assignment_versions where employee_id = :id""")
+                .param("command", command).param("version", ids.next()).param("id", person.value()).param("unit", withdrawn.value()).param("position", position).update();
+        jdbc.sql("""
+                insert into organization_workforce.employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+                    is_on_unpaid_leave, is_fee_earner, change_channel_kind, superseded_at, superseding_command_id, created_at, updated_at)
+                values (:version, :id, date '2025-06-01', 1, 'SEPARATED', false, false, 'MIGRATION', now(), :command, now(), now())""")
+                .param("command", command).param("version", ids.next()).param("id", person.value()).update();
+        JdbcEmployeeRosterQueries queries = new JdbcEmployeeRosterQueries(jdbc, Clock.fixed(TODAY.atTime(4, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC), zone);
+
+        assertThat(codes(queries.list(new Visible(false, Set.of(withdrawn)), null, null, null, 10))).isEmpty();
+        assertThat(queries.find(new Visible(false, Set.of(withdrawn)), person)).isEmpty();
+        assertThat(codes(queries.list(new Visible(false, Set.of(current)), null, null, null, 10))).containsExactly("RS-1");
+        assertThat(codes(queries.list(new Visible(true, Set.of()), null, EmploymentStatus.SEPARATED, null, 10))).doesNotContain("RS-1");
+    }
+
     private static List<String> codes(List<Row> rows) {
         return rows.stream().map(Row::employeeCode).toList();
     }
