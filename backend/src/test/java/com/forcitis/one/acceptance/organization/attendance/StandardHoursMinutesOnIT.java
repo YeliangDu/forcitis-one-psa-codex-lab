@@ -104,20 +104,21 @@ class StandardHoursMinutesOnIT extends AcceptanceSupport {
     @DisplayName("后续版从生效当天接替前版，前一天仍取前版且日期例外不跨版本泄漏")
     void successorStartsInclusivelyAndUsesOnlyItsOwnOverrides() throws Exception {
         UUID scope = newScope();
+        LocalDate successor = futureTuesday();
         Map<String, Object> first = publication(scope, TODAY);
-        first.put("dateOverrides", List.of(override(LocalDate.of(2026, 12, 3), 195, "Synthetic predecessor override")));
+        first.put("dateOverrides", List.of(override(successor.plusDays(2), 195, "Synthetic predecessor override")));
         publish(first, 1);
-        Map<String, Object> second = publication(scope, LocalDate.of(2026, 12, 1));
+        Map<String, Object> second = publication(scope, successor);
         second.put("workdayMinutes", 360);
         second.put("adjustedWorkdayMinutes", 330);
-        second.put("dateOverrides", List.of(override(LocalDate.of(2026, 12, 2), 285, "Synthetic successor override")));
+        second.put("dateOverrides", List.of(override(successor.plusDays(1), 285, "Synthetic successor override")));
         publish(second, 2);
 
         assertMinutes(scope, "2026-11-02", 480, "first version applies on its effective start date");
-        assertMinutes(scope, "2026-11-30", 480, "day before successor still uses predecessor");
-        assertMinutes(scope, "2026-12-01", 360, "successor applies on its effective start date");
-        assertMinutes(scope, "2026-12-02", 285, "successor uses its own date override");
-        assertMinutes(scope, "2026-12-03", 360, "predecessor override cannot leak into successor interval");
+        assertMinutes(scope, successor.minusDays(1).toString(), 480, "day before successor still uses predecessor");
+        assertMinutes(scope, successor.toString(), 360, "successor applies on its effective start date");
+        assertMinutes(scope, successor.plusDays(1).toString(), 285, "successor uses its own date override");
+        assertMinutes(scope, successor.plusDays(2).toString(), 360, "predecessor override cannot leak into successor interval");
         assertMinutes(scope, "2026-12-31", 360, "latest version remains open ended within the maintained year");
     }
 
@@ -146,16 +147,17 @@ class StandardHoursMinutesOnIT extends AcceptanceSupport {
     void voidedFutureVersionIsExcludedFromTheTimeline() throws Exception {
         UUID scope = newScope();
         publish(publication(scope, TODAY), 1);
-        Map<String, Object> future = publication(scope, LocalDate.of(2026, 12, 1));
+        LocalDate start = futureTuesday();
+        Map<String, Object> future = publication(scope, start);
         future.put("workdayMinutes", 360);
         String futureId = publish(future, 2);
-        assertMinutes(scope, "2026-12-01", 360, "future version answers before it is voided");
+        assertMinutes(scope, start.toString(), 360, "future version answers before it is voided");
 
         assertStatus(voidVersion(futureId, Map.of("reason", "Synthetic card 1310 cancellation"), PUBLISHER),
                 200, "publisher can void the latest future version");
 
-        assertMinutes(scope, "2026-12-01", 480, "void excludes successor and reopens predecessor at the former boundary");
-        assertMinutes(scope, "2026-12-02", 480, "reopened predecessor remains in force after the voided start date");
+        assertMinutes(scope, start.toString(), 480, "void excludes successor and reopens predecessor at the former boundary");
+        assertMinutes(scope, start.plusDays(1).toString(), 480, "reopened predecessor remains in force after the voided start date");
     }
 
     @Test
@@ -254,6 +256,16 @@ class StandardHoursMinutesOnIT extends AcceptanceSupport {
         assertThat((Integer) JsonPath.read(content, "$.versionNumber")).as("publication returns its per-scope version number")
                 .isEqualTo(expectedNumber);
         return id;
+    }
+
+    /** First Tuesday on or after the later of eight days from the real Shanghai date and 2026-11-24 (beyond the calendar fixtures); the database triggers use the real clock. */
+    private static LocalDate futureTuesday() {
+        LocalDate earliest = LocalDate.now(java.time.ZoneId.of("Asia/Shanghai")).plusDays(8);
+        LocalDate day = earliest.isAfter(LocalDate.of(2026, 11, 24)) ? earliest : LocalDate.of(2026, 11, 24);
+        while (day.getDayOfWeek() != java.time.DayOfWeek.TUESDAY) {
+            day = day.plusDays(1);
+        }
+        return day;
     }
 
     private MockHttpServletResponse voidVersion(String id, Map<String, Object> body, RequestPostProcessor caller) throws Exception {

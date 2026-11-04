@@ -134,6 +134,40 @@ class StandardHoursDefaultFallbackIT extends AcceptanceSupport {
         assertMinutes(defaultOnly, "2026-11-12", 255, "another entity retains the DEFAULT date override");
     }
 
+    @Test
+    @DisplayName("法人唯一的自有版本被作废后不再算自有时间线，同一天回到默认时间线")
+    void entityWhoseOnlyOwnVersionIsVoidedFallsBackToDefault() throws Exception {
+        UUID scope = newScope();
+        ensureDefaultVersion();
+        LocalDate start = futureTuesday();
+        Map<String, Object> own = publication(scope, start);
+        own.put("workdayMinutes", 390);
+        String ownId = publish(own, 1);
+        assertMinutes(scope, start.toString(), 390, "own first version answers on its start date before the void");
+
+        assertStatus(voidVersion(ownId, Map.of("reason", "Synthetic card 1310 cancellation")), 200,
+                "publisher can void the only own future version");
+
+        assertMinutes(scope, start.toString(), 465, "a voided own version does not block the DEFAULT fallback on its former start date");
+        assertMinutes(scope, "2026-11-04", 465, "dates before the voided start also come from DEFAULT");
+        assertMinutes(scope, "2026-11-12", 255, "DEFAULT date override applies again to the entity");
+    }
+
+    /** First Tuesday on or after the later of eight days from the real Shanghai date and 2026-11-24, which is beyond the calendar fixtures. */
+    private static LocalDate futureTuesday() {
+        LocalDate earliest = LocalDate.now(java.time.ZoneId.of("Asia/Shanghai")).plusDays(8);
+        LocalDate day = earliest.isAfter(LocalDate.of(2026, 11, 24)) ? earliest : LocalDate.of(2026, 11, 24);
+        while (day.getDayOfWeek() != java.time.DayOfWeek.TUESDAY) {
+            day = day.plusDays(1);
+        }
+        return day;
+    }
+
+    private MockHttpServletResponse voidVersion(String id, Map<String, Object> body) throws Exception {
+        return mvc.perform(post(VERSIONS + "/" + id + ":void").with(PUBLISHER).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(JSON.writeValueAsString(body))).andReturn().getResponse();
+    }
+
     private void ensureDefaultVersion() throws Exception {
         synchronized (StandardHoursDefaultFallbackIT.class) {
             if (!defaultPublished) {
