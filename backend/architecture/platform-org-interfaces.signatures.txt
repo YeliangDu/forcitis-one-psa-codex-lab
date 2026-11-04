@@ -507,18 +507,8 @@ organization.workforce::api organization.workforce.api.LegalEntityDirectory publ
 organization.workforce::api organization.workforce.api.LegalEntityDirectory public abstract java.util.Optional<organization.workforce.api.LegalEntityCode> organization.workforce.api.LegalEntityDirectory.lockActiveCode(kernel.LegalEntityId)
 organization.workforce::api organization.workforce.api.LegalEntityNumberUsage public abstract boolean organization.workforce.api.LegalEntityNumberUsage.hasIssuedNumbers(kernel.LegalEntityId)
 organization.workforce::api organization.workforce.api.LegalEntityNumberUsage public abstract interface organization.workforce.api.LegalEntityNumberUsage
-organization.workforce::api organization.workforce.api.LoginLookup permits organization.workforce.api.LoginLookup$ByLoginName
 organization.workforce::api organization.workforce.api.LoginLookup permits organization.workforce.api.LoginLookup$ByWecomUser
 organization.workforce::api organization.workforce.api.LoginLookup public abstract sealed interface organization.workforce.api.LoginLookup
-organization.workforce::api organization.workforce.api.LoginLookup$ByLoginName component loginName: java.lang.String
-organization.workforce::api organization.workforce.api.LoginLookup$ByLoginName extends java.lang.Record
-organization.workforce::api organization.workforce.api.LoginLookup$ByLoginName implements organization.workforce.api.LoginLookup
-organization.workforce::api organization.workforce.api.LoginLookup$ByLoginName public final boolean organization.workforce.api.LoginLookup$ByLoginName.equals(java.lang.Object)
-organization.workforce::api organization.workforce.api.LoginLookup$ByLoginName public final int organization.workforce.api.LoginLookup$ByLoginName.hashCode()
-organization.workforce::api organization.workforce.api.LoginLookup$ByLoginName public final java.lang.String organization.workforce.api.LoginLookup$ByLoginName.toString()
-organization.workforce::api organization.workforce.api.LoginLookup$ByLoginName public java.lang.String organization.workforce.api.LoginLookup$ByLoginName.loginName()
-organization.workforce::api organization.workforce.api.LoginLookup$ByLoginName public organization.workforce.api.LoginLookup$ByLoginName(java.lang.String)
-organization.workforce::api organization.workforce.api.LoginLookup$ByLoginName public static final record organization.workforce.api.LoginLookup$ByLoginName
 organization.workforce::api organization.workforce.api.LoginLookup$ByWecomUser component wecomUserId: kernel.WecomUserId
 organization.workforce::api organization.workforce.api.LoginLookup$ByWecomUser extends java.lang.Record
 organization.workforce::api organization.workforce.api.LoginLookup$ByWecomUser implements organization.workforce.api.LoginLookup
@@ -905,17 +895,6 @@ organization.workforce::events organization.workforce.events.EmployeeLegalEntity
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public organization.workforce.api.OrgStructureCommandId organization.workforce.events.EmployeeLegalEntityChanged.orgStructureCommandId()
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeLegalEntityChanged.personnelCommandId()
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public organization.workforce.events.EmployeeLegalEntityChanged(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,organization.workforce.api.OrgStructureCommandId,kernel.EmployeeId,java.time.LocalDate,kernel.LegalEntityId,kernel.LegalEntityId)
-organization.workforce::events organization.workforce.events.EmployeeRegistered component employeeId: kernel.EmployeeId
-organization.workforce::events organization.workforce.events.EmployeeRegistered component envelope: kernel.event.EventEnvelope
-organization.workforce::events organization.workforce.events.EmployeeRegistered extends java.lang.Record
-organization.workforce::events organization.workforce.events.EmployeeRegistered implements kernel.event.DomainEvent
-organization.workforce::events organization.workforce.events.EmployeeRegistered public final boolean organization.workforce.events.EmployeeRegistered.equals(java.lang.Object)
-organization.workforce::events organization.workforce.events.EmployeeRegistered public final int organization.workforce.events.EmployeeRegistered.hashCode()
-organization.workforce::events organization.workforce.events.EmployeeRegistered public final java.lang.String organization.workforce.events.EmployeeRegistered.toString()
-organization.workforce::events organization.workforce.events.EmployeeRegistered public final record organization.workforce.events.EmployeeRegistered
-organization.workforce::events organization.workforce.events.EmployeeRegistered public kernel.EmployeeId organization.workforce.events.EmployeeRegistered.employeeId()
-organization.workforce::events organization.workforce.events.EmployeeRegistered public kernel.event.EventEnvelope organization.workforce.events.EmployeeRegistered.envelope()
-organization.workforce::events organization.workforce.events.EmployeeRegistered public organization.workforce.events.EmployeeRegistered(kernel.event.EventEnvelope,kernel.EmployeeId)
 organization.workforce::events organization.workforce.events.EmployeeRegularized component effectiveDate: java.time.LocalDate
 organization.workforce::events organization.workforce.events.EmployeeRegularized component employeeId: kernel.EmployeeId
 organization.workforce::events organization.workforce.events.EmployeeRegularized component envelope: kernel.event.EventEnvelope

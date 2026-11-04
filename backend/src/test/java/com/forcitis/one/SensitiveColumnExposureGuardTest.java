@@ -121,7 +121,7 @@ class SensitiveColumnExposureGuardTest {
     @DisplayName("the classification lists sensitive columns to guard against, and an INTERNAL personal column is not among them")
     void classificationIsRead() throws IOException {
         assertThat(sensitiveColumns()).as(GuardMessage.of("CS-2.13",
-                "architecture/data-classification.txt no longer lists password_hash, last_login_address and login_name as SENSITIVE or RESTRICTED",
-                "restore those classifications in " + CLASSIFICATION)).containsKeys("password_hash", "last_login_address", "login_name").doesNotContainKey("email");
+                "architecture/data-classification.txt no longer lists password_hash and last_login_address as SENSITIVE or RESTRICTED",
+                "restore those classifications in " + CLASSIFICATION)).containsKeys("password_hash", "last_login_address").doesNotContainKey("email");
     }
 }

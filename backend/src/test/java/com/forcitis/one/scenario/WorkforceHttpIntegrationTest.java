@@ -84,7 +84,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-359/368/369 org data is read-only in the new system: the only writes are the read-only comparison trigger and, since #933, the three personnel command endpoints and, since #959, the profile change and, since #980, its confirmation and rejection and, since #1169, the two org-structure command endpoints and, since #1170, the two countersign decisions")
+    @DisplayName("RULE-359/368/369 org data is read-only in the new system: the only writes are the read-only comparison trigger and, since #933, the three personnel command endpoints and, since #959, the profile change and, since #980, its confirmation and rejection and, since #1169, the two org-structure command endpoints and, since #1170, the two countersign decisions, and since #1172 the six reads of personnel commands, org-structure commands and held separations")
     void orgDataHasNoEditEndpoints() {
         List<String> writes = new ArrayList<>();
         List<String> reads = new ArrayList<>();
@@ -110,7 +110,11 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                 "GET /api/v1/organization/org-units/{orgUnitId}:preview-merge",
                 // #1171: the roster of people (data-scoped, HR role) and the position directory; reads only.
                 "GET /api/v1/organization/employees", "GET /api/v1/organization/employees/{employeeId}",
-                "GET /api/v1/organization/positions", "GET /api/v1/organization/positions/{positionId}");
+                "GET /api/v1/organization/positions", "GET /api/v1/organization/positions/{positionId}",
+                // #1172: reads of the commands entered above; personnel commands scoped, org-structure commands and held separations company-wide for their entering or approving permission.
+                "GET /api/v1/organization/personnel-commands", "GET /api/v1/organization/personnel-commands/{personnelCommandId}",
+                "GET /api/v1/organization/org-structure-commands", "GET /api/v1/organization/org-structure-commands/{orgStructureCommandId}",
+                "GET /api/v1/organization/separation-holds", "GET /api/v1/organization/separation-holds/{separationHoldId}");
     }
 
     @Test
