@@ -11,7 +11,8 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.kernel.event.DomainEvent;
-import com.forcitis.one.organization.workforce.api.EmployeeExistence;
+import com.forcitis.one.organization.workforce.api.EmployeeLabel;
+import com.forcitis.one.organization.workforce.api.EmployeeLabels;
 import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.EmploymentVerdict;
@@ -34,10 +35,12 @@ import jakarta.servlet.http.Cookie;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -153,9 +156,9 @@ public abstract class IdentityIntegrationTest {
     @MockitoBean
     protected OrgDirectory orgDirectory;
 
-    /** Exists where the double directory knows the person: the tests describe people through the directory. */
+    /** Has a label where the double directory knows the person: the tests describe people through the directory. */
     @MockitoBean
-    protected EmployeeExistence employeeExistence;
+    protected EmployeeLabels employeeLabels;
 
     @MockitoBean
     protected WecomGateway wecomGateway;
@@ -202,7 +205,15 @@ public abstract class IdentityIntegrationTest {
         domainEvents.clear();
         accessCache.evictAll();
         Mockito.reset(ssoVerifier);
-        when(employeeExistence.exists(ArgumentMatchers.any())).thenAnswer(call -> orgDirectory.findEmployee(call.getArgument(0)).isPresent());
+        when(employeeLabels.labelsOf(ArgumentMatchers.anySet())).thenAnswer(call -> {
+            Map<EmployeeId, EmployeeLabel> known = new HashMap<>();
+            for (EmployeeId id : call.<Set<EmployeeId>>getArgument(0)) {
+                if (orgDirectory.findEmployee(id).isPresent()) {
+                    known.put(id, new EmployeeLabel("Synthetic", "SYN"));
+                }
+            }
+            return known;
+        });
         // The emergency login is the only reader of the verdict; people the test does not describe (knownEmployee) may log in, as before #934.
         when(orgDirectory.employmentOf(ArgumentMatchers.any())).thenReturn(EmploymentVerdict.EMPLOYED);
         for (String attestor : List.of("01900000-0000-7000-8000-00000000a001", "01900000-0000-7000-8000-00000000a002")) {

@@ -3,7 +3,8 @@ package com.forcitis.one.organization.workforce.application;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.WorkContext;
-import com.forcitis.one.organization.workforce.api.EmployeeExistence;
+import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.organization.workforce.api.EmployeeLabels;
 import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.platform.audit.api.AuditPartitions;
 import java.io.PrintStream;
@@ -38,11 +39,11 @@ public class WorkforceOperationsCommands {
 
     private final ReleaseSeparationHoldByOperations releaseHold;
     private final MigrateInitialVersions migrateVersions;
-    private final EmployeeExistence employees;
+    private final EmployeeLabels employees;
     private final AuditPartitions auditPartitions;
     private final Clock clock;
 
-    WorkforceOperationsCommands(ReleaseSeparationHoldByOperations releaseHold, MigrateInitialVersions migrateVersions, EmployeeExistence employees, AuditPartitions auditPartitions, Clock clock) {
+    WorkforceOperationsCommands(ReleaseSeparationHoldByOperations releaseHold, MigrateInitialVersions migrateVersions, EmployeeLabels employees, AuditPartitions auditPartitions, Clock clock) {
         this.releaseHold = releaseHold;
         this.migrateVersions = migrateVersions;
         this.employees = employees;
@@ -79,7 +80,7 @@ public class WorkforceOperationsCommands {
                         + "this one-off command does not; start the resident application once or have operations create the partition, then run the command again");
                 return 1;
             }
-            if (!employees.exists(attestation.operator()) || !employees.exists(attestation.witness())) {
+            if (!exists(attestation.operator()) || !exists(attestation.witness())) {
                 throw WorkforceOperationAttestation.required();
             }
             out.println(action.apply(attestation));
@@ -94,6 +95,10 @@ public class WorkforceOperationsCommands {
     }
 
     /** A misspelt own option must not read as an absent witness; configuration options (dotted or environment-style names) are Spring's and pass. */
+    private boolean exists(EmployeeId employee) {
+        return employees.labelsOf(Set.of(employee)).containsKey(employee);
+    }
+
     private static void rejectUnknownOptions(ApplicationArguments arguments, boolean release) {
         Set<String> own = release ? OWN_OPTIONS : MIGRATE_OPTIONS;
         if (!arguments.getNonOptionArgs().isEmpty()) {
