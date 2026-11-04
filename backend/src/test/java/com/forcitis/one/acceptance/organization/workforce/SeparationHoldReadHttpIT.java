@@ -221,13 +221,12 @@ class SeparationHoldReadHttpIT extends FutureHoldSupport {
     }
 
     @Test
-    @DisplayName("#1172 完成标准第 7 条（越权）：人事专员与超级管理员（管理员模式）都没有 separation-hold:approve，列表与详情 403；持有者 limit=0 与 limit=201 是 400")
+    @DisplayName("#1172 完成标准第 7 条（越权）：没有 separation-hold:approve 的人事专员列表与详情 403，管理员模式的超级管理员持有它（ADR-0028 第 2、3 条）故列表与详情 200；持有者 limit=0 与 limit=201 是 400")
     void otherPrivilegedRolesAreRefusedAndTheLimitHasBounds() throws Exception {
         Scenario scenario = heldOnWithRemaining(1, DUE);
-        for (Staff caller : List.of(account("personnel_specialist"), inAdministratorMode(administrator()))) {
-            for (String url : List.of(HOLDS, HOLDS + "/" + scenario.held().hold())) {
-                require(read(caller, url), 403, "a role without separation-hold:approve");
-            }
+        for (String url : List.of(HOLDS, HOLDS + "/" + scenario.held().hold())) {
+            require(read(account("personnel_specialist"), url), 403, "a role without separation-hold:approve");
+            require(read(inAdministratorMode(administrator()), url), 200, "the administrator mode holds separation-hold:approve and may read the list (ADR-0028)");
         }
         for (String limit : List.of("0", "201")) {
             require(read(scenario.releaser(), HOLDS + "?status=HELD&limit=" + limit), 400, "limit " + limit);
