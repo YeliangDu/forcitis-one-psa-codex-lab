@@ -168,23 +168,29 @@ class SensitiveGrantTwoPersonIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("B1-R1 a holder of the role being changed cannot confirm adding a sensitive permission to it; a third administrator can")
+    @DisplayName("B1-R1 a person who gains the role while a request to add a sensitive permission to it waits cannot confirm it; with a holder the request is refused for everyone")
     void aHolderOfTheRoleCannotConfirmItsChange() throws Exception {
         String first = administratorSession(9);
         String holder = administratorSession(10);
         String third = administratorSession(11);
         assertThat(createRole(first, "reader3", "platform.approval:task:read").getResponse().getStatus()).isEqualTo(201);
         java.util.UUID role = jdbc.sql("select role_id from platform_identity.roles where code = 'reader3'").query(java.util.UUID.class).single();
-        createAccount(10, "reader3");
         accessCache.evictAll();
 
+        // ADR-0032 decision 1 item 3: a held role is refused at the request (409), so the request waits while the role has no holder
         String requestId = requestIdOf(mvc.perform(put("/api/v1/platform/roles/" + role).header("If-Match", roleVersion(role)).with(xsrf()).cookie(new Cookie("SESSION", first))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"name\":\"reader3\",\"enabled\":true,\"permissionCodes\":[\"platform.numbering:numbering-rule:approve\"]}")).andReturn());
+        createAccount(10, "reader3");
+        accessCache.evictAll();
 
         MvcResult byHolder = decide(holder, requestId, "confirm");
         assertThat(byHolder.getResponse().getStatus()).isEqualTo(403);
         assertThat(body(byHolder).path("errorCode").asString()).isEqualTo("PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED");
         assertThat(decide(third, requestId, "confirm").getResponse().getStatus()).isEqualTo(204);
+        // the confirmation is applied after it is stored: the re-check finds a holder and voids the request instead of widening the role
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(jdbc.sql("select request_status from platform_identity.authorization_requests where request_id = :id")
+                .param("id", java.util.UUID.fromString(requestId)).query(String.class).single()).isEqualTo("VOIDED"));
+        assertThat(jdbc.sql("select count(*) from platform_identity.roles r join platform_identity.role_versions v on v.role_id = r.role_id where r.code = 'reader3' and v.effective_to_at is null and 'platform.numbering:numbering-rule:approve' = any(v.permission_codes)").query(Long.class).single()).isZero();
     }
 }

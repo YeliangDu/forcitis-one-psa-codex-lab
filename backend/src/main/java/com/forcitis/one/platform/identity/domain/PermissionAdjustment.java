@@ -6,6 +6,7 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.Reason;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
+import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PositionId;
@@ -15,7 +16,9 @@ import com.forcitis.one.platform.identity.api.PermissionAdjustmentKind;
 import com.forcitis.one.platform.identity.api.PermissionAdjustmentOrigin;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleId;
+import com.forcitis.one.platform.audit.api.AuditEntryId;
 import com.forcitis.one.platform.identity.events.PermissionAdjustmentAdjusted;
+import com.forcitis.one.platform.identity.events.PermissionAdjustmentClosedBySeparation;
 import com.forcitis.one.platform.identity.events.PermissionAdjustmentEscalated;
 import com.forcitis.one.platform.identity.events.PermissionAdjustmentExpired;
 import com.forcitis.one.platform.identity.events.PermissionAdjustmentOpened;
@@ -40,6 +43,7 @@ public final class PermissionAdjustment extends AggregateRoot {
     private final @Nullable RoleId role;
     private final @Nullable OrgUnitId inactiveOrgUnit;
     private final @Nullable PersonnelCommandId triggerCommand;
+    private final @Nullable OrgStructureCommandId triggerOrgStructureCommand;
     private final @Nullable TriggerFieldKind triggerField;
     private final @Nullable OrgUnitId beforeOrgUnit;
     private final @Nullable OrgUnitId afterOrgUnit;
@@ -59,9 +63,11 @@ public final class PermissionAdjustment extends AggregateRoot {
     private @Nullable Instant expiredAt;
     private @Nullable Boolean heldAtExpiry;
     private @Nullable Instant regenerationDecidedAt;
+    private @Nullable Instant closedAt;
+    private @Nullable PersonnelCommandId closurePersonnelCommand;
 
-    private PermissionAdjustment(PermissionAdjustmentId id, PermissionAdjustmentKind kind, PermissionAdjustmentOrigin origin, UserId user,
-            @Nullable PersonnelCommandId triggerCommand, @Nullable TriggerFieldKind triggerField, @Nullable OrgUnitId beforeOrgUnit,
+    private PermissionAdjustment(PermissionAdjustmentId id, PermissionAdjustmentKind kind, PermissionAdjustmentOrigin origin, @Nullable UserId user,
+            @Nullable RoleId role, @Nullable OrgUnitId inactiveOrgUnit, @Nullable PersonnelCommandId triggerCommand, @Nullable OrgStructureCommandId triggerOrgStructureCommand, @Nullable TriggerFieldKind triggerField, @Nullable OrgUnitId beforeOrgUnit,
             @Nullable OrgUnitId afterOrgUnit, @Nullable PositionId beforePosition, @Nullable PositionId afterPosition, @Nullable EmployeeId recipient,
             @Nullable PermissionAdjustmentId original, Instant escalationDueAt, Instant createdAt) {
         super(0, 0);
@@ -69,10 +75,11 @@ public final class PermissionAdjustment extends AggregateRoot {
         this.kind = Objects.requireNonNull(kind, "kind");
         this.origin = origin;
         this.status = PermissionAdjustmentStatus.OPEN;
-        this.user = Objects.requireNonNull(user, "user");
-        this.role = null;
-        this.inactiveOrgUnit = null;
+        this.user = user;
+        this.role = role;
+        this.inactiveOrgUnit = inactiveOrgUnit;
         this.triggerCommand = triggerCommand;
+        this.triggerOrgStructureCommand = triggerOrgStructureCommand;
         this.triggerField = triggerField;
         this.beforeOrgUnit = beforeOrgUnit;
         this.afterOrgUnit = afterOrgUnit;
@@ -94,6 +101,7 @@ public final class PermissionAdjustment extends AggregateRoot {
         this.role = stored.role();
         this.inactiveOrgUnit = stored.inactiveOrgUnit();
         this.triggerCommand = stored.triggerCommand();
+        this.triggerOrgStructureCommand = stored.triggerOrgStructureCommand();
         this.triggerField = stored.triggerField();
         this.beforeOrgUnit = stored.beforeOrgUnit();
         this.afterOrgUnit = stored.afterOrgUnit();
@@ -115,7 +123,7 @@ public final class PermissionAdjustment extends AggregateRoot {
     /** An item as the table holds it, whichever origin raised it. */
     public record Stored(PermissionAdjustmentId id, PermissionAdjustmentKind kind, PermissionAdjustmentOrigin origin, PermissionAdjustmentStatus status,
                          @Nullable UserId user, @Nullable RoleId role, @Nullable OrgUnitId inactiveOrgUnit, @Nullable PersonnelCommandId triggerCommand,
-                         @Nullable TriggerFieldKind triggerField, @Nullable OrgUnitId beforeOrgUnit, @Nullable OrgUnitId afterOrgUnit,
+                         @Nullable OrgStructureCommandId triggerOrgStructureCommand, @Nullable TriggerFieldKind triggerField, @Nullable OrgUnitId beforeOrgUnit, @Nullable OrgUnitId afterOrgUnit,
                          @Nullable PositionId beforePosition, @Nullable PositionId afterPosition, @Nullable EmployeeId recipient, Instant escalationDueAt,
                          Instant createdAt, @Nullable UserId upheldBy, @Nullable EmployeeId businessOwner, @Nullable Instant upholdExpiresAt,
                          @Nullable PermissionAdjustmentId original, @Nullable Instant escalatedAt, @Nullable Instant expiredAt, @Nullable Boolean heldAtExpiry,
@@ -157,6 +165,38 @@ public final class PermissionAdjustment extends AggregateRoot {
         this.adjustedWith = reference;
         record((envelopes, version) -> new PermissionAdjustmentAdjusted(envelopes.wrap(draft("PermissionAdjustmentAdjusted", version)), id, by, kind,
                 reference.authorizationRequest(), reference.auditEntry()));
+    }
+
+    /**
+     * A role version no longer lists the org unit the item is about: the system marks the OPEN item adjusted with the audit entry of that version
+     * (RULE-387, invariant 28). Nobody is named as the handler. Only an item about a role takes this.
+     */
+    public void markAdjustedBySystem(AuditEntryId roleVersionEntry) {
+        if (origin != PermissionAdjustmentOrigin.ORG_UNIT_INACTIVE) {
+            throw new IllegalStateException("the item " + id.value() + " is not about a dissolved org unit");
+        }
+        requireOpen();
+        this.status = PermissionAdjustmentStatus.ADJUSTED;
+        this.adjustedWith = new AdjustmentReference(null, roleVersionEntry);
+        record((envelopes, version) -> new PermissionAdjustmentAdjusted(envelopes.wrap(draft("PermissionAdjustmentAdjusted", version)), id, null, kind,
+                null, roleVersionEntry));
+    }
+
+    /**
+     * The person the OPEN item is about was separated: it closes with the separation command that took effect (invariant 29). An UPHELD item stays as it
+     * is, and an item about a role has no person to separate.
+     */
+    public void closeBySeparation(PersonnelCommandId command, Instant now) {
+        if (user == null) {
+            throw new IllegalStateException("the item " + id.value() + " is about a role, not a person");
+        }
+        requireOpen();
+        this.status = PermissionAdjustmentStatus.CLOSED_BY_SEPARATION;
+        this.closedAt = now;
+        this.closurePersonnelCommand = Objects.requireNonNull(command, "command");
+        UserId person = user;
+        record((envelopes, version) -> new PermissionAdjustmentClosedBySeparation(envelopes.wrap(draft("PermissionAdjustmentClosedBySeparation", version)), id,
+                person, kind, command));
     }
 
     /**
@@ -248,10 +288,23 @@ public final class PermissionAdjustment extends AggregateRoot {
             @Nullable PersonnelCommandId command, @Nullable TriggerFieldKind field, @Nullable OrgUnitId beforeOrgUnit, @Nullable OrgUnitId afterOrgUnit,
             @Nullable PositionId beforePosition, @Nullable PositionId afterPosition, @Nullable EmployeeId recipient, @Nullable PermissionAdjustmentId original,
             Instant escalationDueAt, Instant at) {
-        PermissionAdjustment item = new PermissionAdjustment(id, kind, origin, user, command, field, beforeOrgUnit, afterOrgUnit, beforePosition,
+        PermissionAdjustment item = new PermissionAdjustment(id, kind, origin, user, null, null, command, null, field, beforeOrgUnit, afterOrgUnit, beforePosition,
                 afterPosition, recipient, original, escalationDueAt, at);
         item.record((envelopes, version) -> new PermissionAdjustmentOpened(envelopes.wrap(item.draft("PermissionAdjustmentOpened", version)),
-                id, user, item.kind, item.origin, command, field, beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition, original, escalationDueAt));
+                id, user, null, null, item.kind, item.origin, command, null, field, beforeOrgUnit, afterOrgUnit, beforePosition, afterPosition, original, escalationDueAt));
+        return item;
+    }
+
+    /**
+     * One scope review for a role whose current version lists an org unit that was dissolved or merged away (RULE-387, ADR-0032 decision 4). It is about the
+     * role and the unit, names no person, no recipient and no assignment change; the unit's successor is never written.
+     */
+    public static PermissionAdjustment openForInactiveOrgUnit(PermissionAdjustmentId id, RoleId role, OrgUnitId orgUnit, OrgStructureCommandId command,
+            Instant escalationDueAt, Instant at) {
+        PermissionAdjustment item = new PermissionAdjustment(id, PermissionAdjustmentKind.SCOPE_REVIEW, PermissionAdjustmentOrigin.ORG_UNIT_INACTIVE, null,
+                role, orgUnit, null, command, null, null, null, null, null, null, null, escalationDueAt, at);
+        item.record((envelopes, version) -> new PermissionAdjustmentOpened(envelopes.wrap(item.draft("PermissionAdjustmentOpened", version)),
+                id, null, role, orgUnit, item.kind, item.origin, null, command, null, null, null, null, null, null, escalationDueAt));
         return item;
     }
 
@@ -285,6 +338,18 @@ public final class PermissionAdjustment extends AggregateRoot {
 
     public @Nullable PersonnelCommandId triggerCommand() {
         return triggerCommand;
+    }
+
+    public @Nullable OrgStructureCommandId triggerOrgStructureCommand() {
+        return triggerOrgStructureCommand;
+    }
+
+    public @Nullable Instant closedAt() {
+        return closedAt;
+    }
+
+    public @Nullable PersonnelCommandId closurePersonnelCommand() {
+        return closurePersonnelCommand;
     }
 
     public @Nullable TriggerFieldKind triggerField() {
