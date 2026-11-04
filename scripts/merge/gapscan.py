@@ -1,4 +1,4 @@
-"""Gap scan of the open pull requests, run by `mq.py run` every 30 minutes whether or not the queue is empty (GOV-1022-MRG-05).
+"""Gap scan of the open pull requests and of the cards left open, run by `mq.py run` every 30 minutes whether or not the queue is empty (GOV-1022-MRG-05).
 
 A pull request nobody moves is found here, not when the queue happens to run dry. Reasons (REASONS): CONFLICT (text conflict with main), CI_RED (a check whose latest run failed),
 APPROVED_NOT_QUEUED (a dispatcher comment `调度批准入队 head <sha>` for the current head and the pull request is not queued), STALE (no commit and no comment for STALE_AFTER),
@@ -18,6 +18,7 @@ SCAN_EVERY = 30 * 60
 OPEN_LIMIT = 41   # gh pr list with commits and comments: 50 and more pull requests exceed GitHub's GraphQL node limit; 41 returned means the list was cut off at 40
 STALE_AFTER = 60 * 60
 REPEAT_AFTER = 4 * 60 * 60
+MERGED_OVERLAP = 60 * 60   # a scan searches from its marker minus this: the search index lags behind a merge, a pull request not yet in it must still be found by a later scan
 MERGED_LIMIT = 100   # gh pr list --state merged returns at most this many per scan; that many means the list may be cut off
 HELD, OWNER_LABEL = "挂起", "会话:"
 MARKER, CARDS = "_merged_since", "_cards"   # keys of gaps.state.json that are not "#n:REASON" times: where the merged-PR search resumes, and the cards still waiting for a closing
@@ -106,10 +107,10 @@ def card_named(body):
 
 def card_gaps(gh, prs, state, now, log):
     """CARD_OPEN gaps: an open card that a merged pull request names on its first line and that no open pull request names. Only the pull requests merged since the last scan are searched for cards
-    (state[MARKER], REPEAT_AFTER back when there is none); a card found stays a candidate in state[CARDS] until it is closed or an open pull request names it, so it is reported again every REPEAT_AFTER
+    (state[MARKER] minus MERGED_OVERLAP, REPEAT_AFTER back when there is none); a card found stays a candidate in state[CARDS] until it is closed or an open pull request names it, so it is reported again every REPEAT_AFTER
     (select_new). A card labelled 挂起 is held on purpose and not reported; the owner is its 会话:<name> label, `unknown` without one. Nothing changes in the state when gh cannot list the merged pull requests."""
     since = parse_time(state[MARKER]) if isinstance(state.get(MARKER), str) else None
-    merged = gh.merged_prs(since or now - datetime.timedelta(seconds=REPEAT_AFTER))
+    merged = gh.merged_prs(since - datetime.timedelta(seconds=MERGED_OVERLAP) if since else now - datetime.timedelta(seconds=REPEAT_AFTER))
     if merged is None:
         log.event("ERROR", None, None, None, "gap scan: gh pr list --state merged failed, no card looked at")
         return []

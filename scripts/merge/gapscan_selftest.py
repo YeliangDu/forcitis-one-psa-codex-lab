@@ -106,7 +106,7 @@ def run_cards(mq, d):
     assert state["_merged_since"] == now.isoformat(timespec="seconds") and sorted(state["_cards"]) == ["10", "14", "15"], state
     # nothing new merged: the candidates stay, are not reported again inside REPEAT_AFTER, and are reported again after it; the marker survives select_new's clean-up
     gh.merged_rows, gh.opened = [], []
-    assert gapscan.scan(gh, q, directory, log, now=later(minutes=30), owners=owners) == [] and gh.since == now, "the next scan looks since the marker"
+    assert gapscan.scan(gh, q, directory, log, now=later(minutes=30), owners=owners) == [] and gh.since == now - datetime.timedelta(seconds=gapscan.MERGED_OVERLAP), "the next scan looks since the marker minus the overlap"
     assert [g["pr"] for g in gapscan.scan(gh, q, directory, log, now=later(hours=4), owners=owners)] == [10, 15], "a candidate repeats every REPEAT_AFTER"
     assert json.load(open(os.path.join(directory, "gaps.state.json")))["_merged_since"] == later(hours=4).isoformat(timespec="seconds")
     # a candidate leaves when its card closes or an open pull request names it; a held card is looked at again once released
@@ -124,6 +124,10 @@ def run_cards(mq, d):
     assert json.load(open(os.path.join(directory, "gaps.state.json")))["_merged_since"] == later(hours=8).isoformat(timespec="seconds")
     unreadable = Gh([merged(301, "Refs #16\n")], {})
     assert gapscan.scan(unreadable, q, directory, log, now=later(hours=11), owners=owners) == [] and "16" in json.load(open(os.path.join(directory, "gaps.state.json")))["_cards"], "a card gh cannot read stays a candidate"
+    # the search index lags: a pull request merged before the last marker that only a later search shows is still found
+    late = Gh([dict(number=400, body="Refs #17\n", mergedAt=later(hours=10, minutes=59).isoformat().replace("+00:00", "Z"))], {17: card("late card", "OPEN", "会话:one-a")})
+    late.merged_prs = lambda since: [r for r in late.merged_rows if gapscan.parse_time(r["mergedAt"]) >= since]
+    assert [g["pr"] for g in gapscan.scan(late, q, directory, log, now=later(hours=12), owners=owners)] == [17], "a merge just before the marker is found by the overlap"
     # the real Gh against the fake gh binary
     mq_selftest.fake_gh(d, [(["pr", "list", "--state", "merged"], json.dumps([{"number": 1, "body": "Refs #2", "mergedAt": "t"}]), "", 0), (["issue", "view", "2"], json.dumps({"state": "OPEN", "labels": [{"name": "会话:one-a"}], "title": "x"}), "", 0),
                             (["issue", "view", "3"], "", "down", 1), (["pr", "list", "--state", "open"], "[]", "", 0)])
