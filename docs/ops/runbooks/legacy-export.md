@@ -49,7 +49,7 @@
 
 ## 执行记录（2026-10-15，one-ops）
 
-工具：`scripts/LegacyReadOnlyProbe.java`（只读连接、READ COMMITTED、只许 SELECT、每次最多 3,000 行）、`scripts/legacy_probe_run.sh`（老系统服务器上取驱动与主数据源、运行探针、结束删除工作目录）、`scripts/c6_relay.py`（运维机上的中转：分页查询、内存拼装、SendFile 分块写新 ECS 并核对 SHA256）、`sql/c6_step0_counts.sql`。执行账号即老系统应用的主数据源账号（实例上有建登录等权限，非 sysadmin）；只读由探针保证。
+工具：`tools/ops/ecs/scripts/LegacyReadOnlyProbe.java`（只读连接、READ COMMITTED、只许 SELECT、每次最多 3,000 行）、`tools/ops/ecs/scripts/legacy_probe_run.sh`（老系统服务器上取驱动与主数据源、运行探针、结束删除工作目录）、`tools/ops/ecs/scripts/c6_relay.py`（运维机上的中转：分页查询、内存拼装、SendFile 分块写新 ECS 并核对 SHA256）、`sql/legacy-export-step0-counts.sql`。执行账号即老系统应用的主数据源账号（实例上有建登录等权限，非 sysadmin）；只读由探针保证。
 
 | 步骤 | 结果 |
 |---|---|
