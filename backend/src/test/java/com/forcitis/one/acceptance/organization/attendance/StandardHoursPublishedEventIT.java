@@ -158,9 +158,9 @@ class StandardHoursPublishedEventIT extends AcceptanceSupport {
                     assertThat(component(event, "scopeKind")).as("payload scope kind").hasToString(scope == null ? "DEFAULT" : "LEGAL_ENTITY");
                     assertThat(component(event, "legalEntityId")).as("payload legal entity id (null for the DEFAULT scope)")
                             .isEqualTo(scope == null ? null : new LegalEntityId(scope));
-                    assertThat(component(event, "workdayMinutes")).as("payload workday minutes").isEqualTo(workdayMinutes);
-                    assertThat(component(event, "adjustedWorkdayMinutes")).as("payload adjusted workday minutes").isEqualTo(adjustedWorkdayMinutes);
-                    assertThat(component(event, "versionNumber")).as("payload per-scope version number").isEqualTo(versionNumber);
+                    assertThat(number(component(event, "workdayMinutes"))).as("payload workday minutes").isEqualTo(workdayMinutes);
+                    assertThat(number(component(event, "adjustedWorkdayMinutes"))).as("payload adjusted workday minutes").isEqualTo(adjustedWorkdayMinutes);
+                    assertThat(number(component(event, "versionNumber"))).as("payload per-scope version number").isEqualTo(versionNumber);
                     if (scope == null) {
                         assertThat(envelope.legalEntityId()).as("DEFAULT event has no legal entity").isNull();
                     } else {
@@ -182,6 +182,18 @@ class StandardHoursPublishedEventIT extends AcceptanceSupport {
             }
         }
         throw new AssertionError("StandardHoursVersionPublished has no payload component " + name);
+    }
+
+    /** A payload number is an int or a single-int value object with a value() accessor (the event catalogue forbids bare ints). */
+    private static Object number(Object payload) {
+        if (payload instanceof Integer) {
+            return payload;
+        }
+        try {
+            return payload.getClass().getMethod("value").invoke(payload);
+        } catch (ReflectiveOperationException failure) {
+            throw new AssertionError("payload number " + payload + " has no value() accessor", failure);
+        }
     }
 
     private UUID newScope() throws Exception {
