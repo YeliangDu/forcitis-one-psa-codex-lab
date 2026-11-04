@@ -364,11 +364,8 @@ BRACKET = re.compile(r"\[[!^]?\]?[^\]]*\]")   # a shell bracket expression: [abc
 
 
 def glob_matches_codex(base):
-    """fnmatch of "codex" against the word. Python rejects brackets the shell accepts (`[^-+]`, `[z-ac]`) and the shell may still expand them to codex, so a word that does not compile is matched again with every bracket as `?` (any one character, a superset), which always compiles (#1205)."""
-    try:
-        return fnmatch.fnmatchcase("codex", base)
-    except re.error:
-        return fnmatch.fnmatchcase("codex", BRACKET.sub("?", base))
+    """fnmatch of "codex" against the word with every bracket expression read as `?` (any one character, a superset of what the bracket matches). Python reads brackets differently from bash and zsh (`[^-+]` negates there, `[z-ac]` keeps `c`) and may fail to compile them, so the bracket's own meaning is not trusted; a superset can only refuse more, and it always compiles (#1205)."""
+    return fnmatch.fnmatchcase("codex", BRACKET.sub("?", base))
 
 
 def could_be_codex(word):
