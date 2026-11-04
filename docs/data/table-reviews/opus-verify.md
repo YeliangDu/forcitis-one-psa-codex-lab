@@ -1,5 +1,7 @@
 # 已建成表数据设计审查：opus 独立复核
 
+> 冻结（2026-11-04，#1263）：表审查记录，已完成，不再更新。
+
 - 复核：one-data 的 opus 复核子代理，2026-10-16；基线 main（本 worktree，分支 `claude/one-data-signoffs`）、`origin/claude/one-1a-next-4-r1b-p5`（下称 P5）、`origin/claude/one-data-gate-v2`（门禁 v2）。只读：未起容器、未连库、未跑测试，结论来自迁移、注册表、分级文件、事件目录、Java 源码、ADR 原文与 grep。
 - 被复核：`organization_workforce.md`（OW）、`platform_identity.md`（PI）、`platform_approval_integration_numbering.md`（PA）、`timesheet_attendance_audit_idem_sched.md`（TS）。
 - 级别口径：门禁 v2 本身不分级（§3「默认不通过即阻断签发」），四份报告的级别是子代理自定。本复核按：**阻断** = 违反已采纳 ADR / 用户决定且未排期、或数据完整性 / 安全不变量在库内可被破坏且影响大；**高** = 同类问题但已在 ADR 或计划里排定首次部署前完成、或首次部署前必须定的结构；**中** = 库内防线缺口但应用已保证、或合规登记缺口；**低** = 注释、命名、可读性。

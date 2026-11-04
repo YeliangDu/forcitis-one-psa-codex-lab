@@ -45,6 +45,7 @@ class AccountingCodeConfirmerAccountsIT extends AccountsAcceptanceSupport {
         return mvc.perform(request).andReturn().getResponse();
     }
 
+    // RULE-463
     @Test
     @DisplayName("P2-M2 核算组织编码四眼（真实账号、生产会话，按用户 ID 比较）：登记人不能确认自己登记的编码（403 PLATFORM_INTEGRATION_CONFIRMER_IS_AUTHOR），另一人可以；登记人与确认人记为两人的 uuid")
     void theRecorderCannotConfirmTheirOwnAccountingCode() throws Exception {

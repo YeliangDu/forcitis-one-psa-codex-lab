@@ -1,6 +1,6 @@
 ---
 卡号: DATA-REPAIR-workforce
-状态: 进行中
+状态: 冻结（2026-11-04，#1263）。核对到：WF-01 所涉 `sync_runs` 已由 `V20261102171000__organization_workforce_drop_sync.sql` 删除；其余条目未逐条核对
 负责会话: one-1a-par
 前置: R-1b-P5
 ---

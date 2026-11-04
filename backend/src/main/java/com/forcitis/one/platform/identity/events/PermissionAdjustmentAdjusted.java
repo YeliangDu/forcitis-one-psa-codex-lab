@@ -10,8 +10,8 @@ import com.forcitis.one.platform.identity.api.PermissionAdjustmentId;
 import com.forcitis.one.platform.identity.api.PermissionAdjustmentKind;
 import org.jspecify.annotations.Nullable;
 
-/** A review item was marked adjusted: the authorizations were changed through an authorization request or a grant that the audit trail shows. */
-public record PermissionAdjustmentAdjusted(EventEnvelope envelope, PermissionAdjustmentId permissionAdjustmentId, UserId adjustedBy, PermissionAdjustmentKind kind,
+/** A review item was marked adjusted (adjustedBy is empty when the system did, after a role version dropped the dissolved org unit): the authorizations were changed through an authorization request or a grant that the audit trail shows. */
+public record PermissionAdjustmentAdjusted(EventEnvelope envelope, PermissionAdjustmentId permissionAdjustmentId, @Nullable UserId adjustedBy, PermissionAdjustmentKind kind,
                                            @Nullable AuthorizationRequestId authorizationRequestId, @Nullable AuditEntryId auditEntryId) implements DomainEvent, AuditDetail {
 
     @Override

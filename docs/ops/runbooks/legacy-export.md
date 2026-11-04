@@ -2,7 +2,7 @@
 
 依据：ADR-0026 第 8 项与 D-9（老角色导出已授权，1a 切换前执行）、`docs/data/timesheet-replay.md`（回放导出需用户授权，Q-4）、D-1a-114（2016–2026 共 4,018 天迁入）。时点：dev 前。性质：读生产数据，**每一类导出执行前须用户单独确认**；只读，不写老库。
 
-查询：`sql/c6_legacy_readonly_export.sql`（STEP 1 列核对、STEP 2 角色、STEP 3 日历；STEP 4 回放按 TIMESHEET_REPLAY.md）。
+查询：`sql/legacy-readonly-export.sql`（STEP 1 列核对、STEP 2 角色、STEP 3 日历；STEP 4 回放按 TIMESHEET_REPLAY.md）。
 
 ## 执行前确认点
 

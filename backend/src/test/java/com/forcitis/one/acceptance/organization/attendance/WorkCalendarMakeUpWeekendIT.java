@@ -99,6 +99,7 @@ class WorkCalendarMakeUpWeekendIT extends AcceptanceSupport {
         throw new AssertionError(kind + " on " + date + " was accepted");
     }
 
+    // RULE-485
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TA-02 周六、周日的调休上班日可以直接插入")
     void makeUpWorkdayOnSaturdayAndSunday() throws SQLException {
@@ -111,6 +112,7 @@ class WorkCalendarMakeUpWeekendIT extends AcceptanceSupport {
         }
     }
 
+    // RULE-485
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {"2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09"})
     @DisplayName("DATA-REPAIR-timesheet-audit TA-02 周三的调休上班日被拒绝，SQLState 23514，约束名 ck_work_calendar_days_make_up_weekend（周一至周五各一例）")
@@ -122,6 +124,7 @@ class WorkCalendarMakeUpWeekendIT extends AcceptanceSupport {
         }
     }
 
+    // RULE-485
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TA-02 工作日与周末的节假日都可以直接插入")
     void holidaysOnWeekdaysAndWeekends() throws SQLException {
@@ -134,6 +137,7 @@ class WorkCalendarMakeUpWeekendIT extends AcceptanceSupport {
         }
     }
 
+    // RULE-485
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TA-02 经接口录入周三调休日仍返回 422 与 ORGANIZATION_ATTENDANCE_MAKE_UP_WORKDAY_ON_WEEKDAY，不是 500")
     void wednesdayMakeUpDayOverHttpIsA422() throws Exception {
@@ -148,6 +152,7 @@ class WorkCalendarMakeUpWeekendIT extends AcceptanceSupport {
         }
     }
 
+    // RULE-485
     @ParameterizedTest(name = "{0}")
     @ValueSource(strings = {"Asia/Shanghai", "America/Los_Angeles", "Pacific/Kiritimati"})
     @DisplayName("DATA-REPAIR-timesheet-audit TA-02 会话时区为非上海时区（如 America/Los_Angeles、Pacific/Kiritimati）时，同一日期的判定结果相同")

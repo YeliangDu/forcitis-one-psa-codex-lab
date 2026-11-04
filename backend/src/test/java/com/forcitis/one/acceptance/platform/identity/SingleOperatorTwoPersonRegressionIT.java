@@ -77,6 +77,7 @@ class SingleOperatorTwoPersonRegressionIT extends AccountsAcceptanceSupport {
         return JsonPath.read(read.getContentAsString(), "$.roleCodes");
     }
 
+    // RULE-442
     @Test
     @DisplayName("SINGLE-OP P2-23 模式开启下应用内敏感授予仍待第二人：申请人与受益人确认都是 403 PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED，第三人确认后才生效")
     void p223_sensitiveGrantStillNeedsASecondPerson() throws Exception {
@@ -99,6 +100,7 @@ class SingleOperatorTwoPersonRegressionIT extends AccountsAcceptanceSupport {
         Awaitility.await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(100)).untilAsserted(() -> assertThat(rolesOf(third, beneficiary)).contains("security_auditor"));
     }
 
+    // RULE-442
     @Test
     @DisplayName("SINGLE-OP P2-23 模式开启下 I-12 仍有效：管理员给自己授任何角色被拒（403 PLATFORM_IDENTITY_OWN_ROLES_FORBIDDEN），角色不变")
     void p223_noSelfGrantEither() throws Exception {
@@ -119,6 +121,7 @@ class SingleOperatorTwoPersonRegressionIT extends AccountsAcceptanceSupport {
         }
     }
 
+    // RULE-442
     @Test
     @DisplayName("SINGLE-OP P2-23 模式开启下直接改库仍被约束拦住：把申请人或受益人写成确认人并置已确认，违反 ck_authorization_requests_two_people，申请仍待确认")
     void p223_theDatabaseConstraintStillHolds() throws Exception {

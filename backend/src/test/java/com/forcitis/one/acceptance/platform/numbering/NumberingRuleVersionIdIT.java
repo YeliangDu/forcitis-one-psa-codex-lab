@@ -160,6 +160,7 @@ class NumberingRuleVersionIdIT {
         assertThat(issued.ruleVersionId()).isEqualTo(new NumberingRuleVersionId(versionRowId(1)));
     }
 
+    // RULE-491
     @Test
     @DisplayName("NV-02 规则新增版本后，新版本取号返回的是新版本的 ID，旧日期仍返回旧版本的 ID（生效日分界）")
     void eachBusinessDateGetsTheIdOfTheVersionInForceThen() throws Exception {

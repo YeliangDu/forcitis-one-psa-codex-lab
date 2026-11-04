@@ -213,6 +213,7 @@ class K3b4AuditPagingIT extends AcceptanceSupport {
         assertThat(pageSizes).containsExactly(2, 2, 1);
     }
 
+    // RULE-487
     @Test
     @DisplayName("K-3b-4 本人登录记录游标不能越出本人范围：把别人的条目 id 编进游标也取不到别人的行")
     void ownRecordsCursorCannotReachOtherPeoplesRows() throws Exception {

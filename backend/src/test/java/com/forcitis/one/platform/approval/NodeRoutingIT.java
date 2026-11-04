@@ -41,6 +41,7 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
         return start(key, initiator, manager, flags);
     }
 
+    // RULE-498
     @Test
     @DisplayName("D-1a-100 the shipped process answers per node for the routing flags given: routed, with the deadline recorded on each task it creates")
     void shippedProcessRoutesByItsAttributes() {
@@ -68,6 +69,7 @@ class NodeRoutingIT extends ApprovalIntegrationSupport {
                 "overheadHours");
     }
 
+    // RULE-498
     @Test
     @DisplayName("M-10 G-1 a routing flag no node declares is refused, not ignored; nothing is left behind")
     void anUnknownFlagIsRefused() {

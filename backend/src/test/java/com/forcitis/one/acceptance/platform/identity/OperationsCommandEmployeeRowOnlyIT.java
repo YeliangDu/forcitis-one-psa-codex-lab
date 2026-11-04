@@ -60,6 +60,7 @@ class OperationsCommandEmployeeRowOnlyIT extends AccountsAcceptanceSupport {
         }
     }
 
+    // RULE-423
     @Test
     @DisplayName("NITS-1 DR-TB01-FU1-1：操作人与见证人只有员工行、没有任职 → 运维证明通过，授角色成功（存在 = employees 有行，不要求任职）")
     void nits1AnOperatorAndWitnessWithoutAssignmentsAreAccepted() throws Exception {
