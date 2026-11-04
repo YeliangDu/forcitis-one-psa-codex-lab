@@ -36,6 +36,8 @@
       ".claude/",
       "policy.json",
       "AGENTS.md",
+      "docs/rules/codex-preamble.md",
+      "docs/rules/codex-false-red.txt",
       ".codex/",
       ".gitleaks.toml",
       ".gitleaksignore",
