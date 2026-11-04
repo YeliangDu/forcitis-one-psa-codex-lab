@@ -115,7 +115,7 @@ flowchart TD
 
 要点（依据；1a 实现状态）：
 
-1. **新待办 = Flowable 任务**：本人被指派的任务 + 本人在候选组且尚未被认领的任务；认领后只有认领人看得到。依据：`DOC/REIMAGINED_ARCHITECTURE.md:141`；Q-3 `:258`。实现：已实现 `BE/platform/approval/infrastructure/flowable/FlowableApprovalEngine.java:84-94`、`BE/platform/approval/application/ListInbox.java:28-44`；测试 `backend/src/test/.../MergedInboxIT.java:118-139`。
+1. **新待办 = Flowable 任务**：本人被指派的任务 + 本人在候选组且尚未被认领的任务；认领后只有认领人看得到。依据：`DOC/REIMAGINED_ARCHITECTURE.md:141`；Q-3 `:258`。实现：已实现 `BE/platform/approval/infrastructure/flowable/FlowableApprovalEngine.java:84-94`、`BE/platform/approval/application/ListInbox.java:28-44`；测试 `backend/src/test/java/com/forcitis/one/platform/approval/MergedInboxIT.java:118-139`。
 2. **老待办只读视图**：`bpm_task_ext.result=1` 且仍在 `ACT_RU_TASK`，只含 7 列（待办人、任务号、实例号、节点 key、节点名、标题、创建时间 UTC），账号按 ADR-0037 全库只读（视图冻结），启动时、至少每天由集成层连接工厂按 ADR-0037 第 4 项 (a)–(f) 校验，不通过或无法判定即拒绝启动或停掉连接。依据：`DOC/phase1a/LEGACY_INBOX_VIEW.sql`；SECURITY_INVARIANTS I-1 `DOC/phase1a/SECURITY_INVARIANTS.md:13`；ADR-0037。实现：读取 `BE/platform/approval/infrastructure/legacy/JdbcLegacyInbox.java`，校验 `BE/platform/integration/infrastructure/connection/ReadOnlyBaseline.java`；**视图本身是"提议，待 DBA 评审"的 SQL（`LEGACY_INBOX_VIEW.sql:1`），仓库内无证据已在老库创建**。
 3. **不缓存、不可读时明说**：每次打开查一次；读不到时只显示新待办并返回 `legacyAvailable=false`，前端出提示条。依据：`REIMAGINED_ARCHITECTURE.md:144`。实现：已实现 `JdbcLegacyInbox.java:20,42-45`、`MergedInbox.java:5-6`、`FE/apps/web/src/modules/approval/pages/inbox-page.tsx:55-60`。
 4. **同一用户计数一致**：行审批合并后 `totalCount = newCount + legacyCount`，前端三个过滤标签各带计数。依据：brief 出口条件 `DOC/MODERNIZATION_BRIEF.md:127`；`DOC/AI_NATIVE_SPEC.md:243`。实现：`MergedInboxIT.java:55-86`（用夹具表，不是真老库）。**与老系统口径是否一致见第 6 节 D1–D3。**

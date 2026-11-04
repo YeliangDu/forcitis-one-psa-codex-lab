@@ -75,6 +75,7 @@ Scope: Phase 1a `platform.identity`, data scope of roles whose access scope is `
 **Plain English:** When a person with a custom-department or listed-legal-entity scope transfers, the new department's head normally decides whether to keep or adjust the scope. If the new department has no head, the entry goes to the organization data administrator, the same path as a scope review caused by a revoked or merged department (RULE-387). The administrator only forwards the entry; keeping or adjusting is still confirmed by the person who needs the scope, and the administrator may name that person in the reason. The entry has no business owner field and no expiry. Generating such an entry is logged as an alert once. If a head is appointed later the entry is not reassigned.
 **Specification:**
 - Given a transfer into a department with no head, When the scope review is generated, Then the recipient is empty, the entry is handled by the organization data administrator, and one alert is logged.
+- Given a transfer into a department whose head is the person transferred, Then it is handled as a department with no head (user 2026-11-04, intent `2026-11-04-084725-one-lead-调动时新部门负责人就是被调动者本.md`).
 - Given a head appointed afterwards, Then the entry stays with the administrator.
 - Given the entry is kept, Then no business owner and no expiry are recorded; the reason may name who confirmed.
 **Tests:** with the F-1 card.

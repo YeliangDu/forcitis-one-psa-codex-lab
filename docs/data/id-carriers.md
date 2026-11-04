@@ -49,7 +49,7 @@ ADR-0033 第 7 项第 7 条要求 R-1b 交付：ID 出现的每一类位置，�
 | 信封 `aggregateId`、`actorId`、`relatedAggregates[].aggregateId` | `UUID`（Java）/ `format: uuid`（目录）；`aggregateId` 是该聚合自己的主键（审批请求事件为审批请求 ID，工作日历、法人归属、编号规则事件为各自表的主键） | `EventCatalogueTest`、验收 `EventEnvelopeAggregateIdIT` |
 | 信封 `source` | 已删除（ADR-0039 第 5 条第 1 款） | `EventEnvelopeContractTest`（验收） |
 | 负载里 `x-type` 为类型化 ID 的字段 | `format: uuid` | `EventCatalogueTest` |
-| 系统主体 | `actorId` 为 `system-actors.txt` 里名字的 UUIDv5；该目录只增不删 | `SystemActorCatalogueTest`、`scripts/ci/system_actors_append_only.py` |
+| 系统主体 | `actorId` 为 `system-actors.txt` 里名字的 UUIDv5；该目录只增不删 | `SystemActorCatalogueTest`、`scripts/guards/system_actors_append_only.py` |
 | 事件的聚合类型 → 审计对象类别 | 驼峰转大写下划线，换算不到即失败并告警；事件目录里每个聚合都能换算 | `AuditDomainEvents`、`EventCatalogueTest` |
 
 ## 6. 接口（OpenAPI）

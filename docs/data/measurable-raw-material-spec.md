@@ -1,7 +1,7 @@
 # 建表规范草稿：业务库 DDL 的「可度量原料」五条
 
 - 作者：one-data，2026-10-17（度量设计第③项，one-coordinator 派工，one-architecture 对口；依据 Kimball《数据仓库工具箱》第 3 版的事实表类型、Adamson 的星型模式、Snodgrass 的时态数据）。
-- 状态：**草稿**。采纳后写入 NAMING_STANDARD 新节（建议 §2.4b）与 DATA_DESIGN_CHECKLIST §14 的建表检查；我的分支落后 main 约 1000 提交，等用户在应用里确认 origin 后同步，再改这两个共享文件（避免合并冲突）。检查脚本 `scripts/ci/measurable_ddl_scan.py` 已写好，**现在只报告**，接进 `build_all --check` 的时点见第 7 节。
+- 状态：**草稿**。采纳后写入 NAMING_STANDARD 新节（建议 §2.4b）与 DATA_DESIGN_CHECKLIST §14 的建表检查；我的分支落后 main 约 1000 提交，等用户在应用里确认 origin 后同步，再改这两个共享文件（避免合并冲突）。
 - 总线矩阵对齐：行（度量事件）与列（维度）的口径由 one-architecture 定，草稿出来后我对这五条里与之相关的项（时间、币种、单位、状态转换、版本）逐项核对。
 
 ## 1. 金额带币种，数量带单位（M1）
@@ -48,7 +48,6 @@
 
 ## 7. 脚本与接入
 
-- `scripts/ci/measurable_ddl_scan.py`：M1–M5，`--self-test`，`--root`，`--json`；复用 `baseline_ddl_scan.py` 的解析器（同目录）。对 main 的首次结果：`docs/data/measurable-ddl-scan-2026-10-17.txt`。
 - 接入分两步：①**报告**（现在）：脚本只报告，不让任何检查失败；②**基线只减不增**：把 main 现有违反登记成基线（同 `ddl-naming-baseline.txt` 的做法），新违反失败，修好未删基线也失败，接进 `build_all --check` 与 `precheck.sh` 的 DDL 步骤。第②步要先同步 main 才能改这两个共享脚本，并走 PR 与 opus 复审（守护代码由 Claude 写，不交 Codex）。
 - 提议表的扫描在其卡有 DDL 之后用同一脚本做，进门禁条目 O9/O10 旁新增一条「可度量原料」自测。
 
