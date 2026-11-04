@@ -1,6 +1,6 @@
 ---
 卡号: DATA-REPAIR-timesheet-audit
-状态: 进行中
+状态: 冻结（2026-11-04，#1263）。核对到：`uk_timesheets_employee_id_work_date` 已在迁移中、`ix_timesheets_employee_id` 已无；其余条目未逐条核对
 负责会话: one-1a-par
 前置: R-1b-P5, TS-UNIQ
 ---

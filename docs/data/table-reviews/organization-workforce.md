@@ -1,5 +1,7 @@
 # 数据设计审查：organization_workforce（15 张表）
 
+> 冻结（2026-11-04，#1263）：表审查记录，已完成，不再更新。
+
 - 审查：one-data 子代理，2026-10-16；依据 `DATA_DESIGN_GATE.md`（草案）§3、DATA_DESIGN_CHECKLIST §14.1 D1–D19、NAMING_STANDARD §2.4 / §2.4a / §2.5、ADR-0033、ADR-0043、注册表、事件目录、规则卡、信息图。
 - 简称：`M` = `backend/src/main/resources/db/migration/organization_workforce/V20261014131000__organization_workforce_baseline.sql`；`REG` = `backend/architecture/data-access-registry.yaml`；`J/…` = `backend/src/main/java/com/forcitis/one/organization/workforce/…`。
 - 范围说明：只写不通过项；通过项不展开。**整表不适用**：A1–A8（本 schema 无分析事实表，版本表是维度）、O11（无大表，`sync_runs` 约 10.5 万行 / 年、保留 2 年）、O13（本 schema 就是法人 / 期间维度的来源）、T3 / E3（无迁入映射）。B1 无卡对照，按信息图推定：positions=OBJ-58，org_units=OBJ-55，employees=OBJ-56，assignments / assignment_versions=OBJ-57，legal_entities / legal_entity_versions=OBJ-54，两张归属期间表 = OBJ-55 / OBJ-56 的「默认法人」「数据范围法人」关系行，其余为技术表（SyncRun 用例）。

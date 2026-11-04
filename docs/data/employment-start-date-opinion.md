@@ -1,5 +1,7 @@
 # 入职日期口径（意见稿，不签表；答 one-1a-par/one-1a-admin，卡 E 前置）
 
+> 冻结（2026-11-04，#1263）：意见稿，不再更新；入职日期落地以 Flyway 迁移与 ADR-0068 为准。
+
 - 日期：2026-10-22；作者：one-data；依据：W2 设计 `W2_EMPLOYEE_POSITION_VERSIONING_DESIGN.md`（第 4 版）、ADR-0068、B31_ADM02_BLUEPRINT §4 与卡 E、DAT-1021-ARC-01 取证（老系统人员数据）；取证补充第 6 节待 one-ops 结果。
 
 ## 1. 放哪：`employee_versions`，不放 `employees`

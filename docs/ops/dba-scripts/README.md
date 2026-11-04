@@ -1,4 +1,5 @@
 # B-5 交接包：A8 与老系统库的只读视图和专用账号（给 DBA）
+> Status: executed on 2026-10-15 (see the execution line below) and not updated since. The top-level `a8-` and `legacy-` `10-apply`, `20-verify`, `90-rollback` scripts are the first, view-only set; the current grant shape is `read-all/` (ADR-0037).
 
 > #742：`tools/` 下的执行脚本 `b5_legacy_run.py`、`b5_read_all_run.py`、`b5_evidence_run.py`、`set_env.py` 已执行完毕并删除，原文见 `git show 7d3f2d2ea:docs/modernization/phase1a/infra/handoff/B-5-dba/tools/<文件>`；只读取证入口 `tools/ops/dba/b5_evidence_scan.py` 共用的通道函数在 `tools/ops/dba/b5_remote.py`。下文提到这些脚本处是执行记录。
 

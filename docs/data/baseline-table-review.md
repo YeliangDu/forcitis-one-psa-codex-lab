@@ -1,5 +1,7 @@
 # 已建成表数据设计审查（基线迁移）
 
+> 冻结（2026-11-04，#1263）：2026-10-16 的审查已完成，不再更新；现行表结构以 `backend/src/main/resources/db/migration/` 与 `backend/architecture/data-access-registry.yaml` 为准。
+
 - 日期：2026-10-16 · 会话：one-data · 起因：用户「目前已经建成的表要 review」（经 one-coordinator 派工）。
 - 标尺：数据设计门禁清单 `DATA_DESIGN_GATE.md`（v2，含 B0、B3a、O15、O16 与附录 C；#305，用户已定生效、热点阈值 10%）。其中 OW、PA 两份分报告按旧版清单判，O15 逐条对照未完整重做（见「未核实」）。
 - 范围：main 上 10 个 schema、49 张表（基线迁移 `backend/src/main/resources/db/migration/*`）、`backend/architecture/data-access-registry.yaml`、`data-classification.txt`、`docs/data/data-scorecard.md`。

@@ -1,4 +1,5 @@
 # 这台 RDS（pgm-bp13vak0sew3m003）的实际使用情况与处置方案（one-ops，2026-10-21，只读核实）
+> Frozen: a read-only usage assessment of 2026-10-21, not updated. The current RDS facts are in `docs/ops/infra-runbook.md`.
 
 依据：用户 PR #494 订正（评论 6313150898）与 one-coordinator 派工。本文只读，没有改库、没有付款。
 
@@ -38,4 +39,4 @@
 
 - 现状：`one_dev_app` 40、`one_dev_migrator` 2、`one_dev_readonly` 3、`one_dev_audit_maintainer` 1，合计 46（实例 `max_connections` 1600，另有 `it_portal_runtime` 等无上限角色）。
 - 观测：应用连接池 10 个常驻；运维命令（identity-operations、迁移）各自再开一个池，最多再 10 个，所以同时在跑的上限约 20。
-- **建议 n = 25**（`one_dev_app`，原 40）：留出 5 个余量，仍远低于实例上限；同时给 `it_portal_runtime` 设 5。变更为 `ALTER ROLE one_dev_app CONNECTION LIMIT 25`，已有连接不受影响，下次新建连接才受限；c3_dev_db.sql 与 c9 脚本、C-3 文档的预算（46→31）要同批改。**先报调度一行，批准后再改。**
+- **建议 n = 25**（`one_dev_app`，原 40）：留出 5 个余量，仍远低于实例上限；同时给 `it_portal_runtime` 设 5。变更为 `ALTER ROLE one_dev_app CONNECTION LIMIT 25`，已有连接不受影响，下次新建连接才受限；dev-db.sql 与 c9 脚本、C-3 文档的预算（46→31）要同批改。**先报调度一行，批准后再改。**
