@@ -5,6 +5,7 @@
 #   每次都从 git 重新解包，已装目录被改坏了也就此修好（O7 终审 M1）。回退不用本脚本（定稿 4.5，intent 2026-10-24-001330）：current 保持批一所装
 #   版本不动，靠第 ④ 步 git revert 恢复旧 settings.json 与 run_from_main；演练里的「切回」是切回上一个 flow-v2 版本。
 # install_dir 与链接名取本仓库 policy.json 的 gates.install_dir、gates.install_current_link；环境变量 HOOKS_INSTALL_DIR 优先（自测用临时目录）。
+# git archive 末尾补的零块 tar 不读（读到结束标记就退出），不排空的话 git archive 在 tar 退出后再写会 SIGPIPE，pipefail 下整条管道退出 141，负载高时偶发（#1183）；所以 tar 之后把余下的读掉。
 # 先校验参数再建目录；解包进临时目录，写校验和清单（hooks_manifest.sh），自检，chmod -R a-w，旧目录改名后放入新目录再删旧的；并发装同一提交时放入失败（短暂重试，别人正好把已装目录挪开的那一瞬间也算）
 # 而目录已就绪（与自己的清单、也与刚解包的清单一致）照常切换。current 用「临时链接再 rename 覆盖」原子切换（目标只会是 40 位 sha，不会自环；current 是目录时先挪开）。失败不动 current、不留半成品，退出 1。
 # shellcheck disable=SC2015  # `a && b || fail`: fail on either, on purpose
@@ -45,7 +46,7 @@ tmp=$(mktemp -d "$dir/.tmp.XXXXXX") || fail "建不了临时目录"
 paths=$(git -C "$repo" ls-tree -d --name-only "$sha" scripts/gates scripts/hooks)
 [ -n "$paths" ] || fail "提交 $sha 没有 scripts/gates、scripts/hooks"
 # shellcheck disable=SC2086
-git -C "$repo" archive "$sha" $paths | tar -x -C "$tmp" && "$repo/scripts/gates/hooks_manifest.sh" "$tmp" >"$tmp/.manifest" || fail "取 $sha 的文件或写清单失败"
+git -C "$repo" archive "$sha" $paths | { tar -x -C "$tmp"; st=$?; cat >/dev/null; (exit "$st"); } && "$repo/scripts/gates/hooks_manifest.sh" "$tmp" >"$tmp/.manifest" || fail "取 $sha 的文件或写清单失败"
 check "$tmp" || fail "版本 $sha 自检不过（入口缺失、分发器不放行 ls、或有 target 的生产写不拦）"
 chmod -R a-w "$tmp" || fail "设不了只读：$tmp"
 old="$tmp.old"
