@@ -52,16 +52,15 @@ public final class SnapshotSeeder {
         for (StaffEmployee s : rows.staff()) {
             Employee e = s.employee();
             jdbc.sql("""
-                    insert into organization_workforce.employees (id, employee_code, display_name, login_name, email, gender, wecom_user_id,
-                           employment_status, is_fee_earner, separated_at, created_at, updated_at, event_count)
-                    values (:id, :code, :name, :login, :email, :gender, :wecom, :status, :feeEarner,
-                            case when cast(:status as text) = 'SEPARATED' then cast(:now as timestamptz) end, :now, :now, 0)
-                    on conflict (id) do update set display_name = excluded.display_name, login_name = excluded.login_name, email = excluded.email,
+                    insert into organization_workforce.employees (id, employee_code, display_name, email, gender, wecom_user_id,
+                           employment_status, is_fee_earner, created_at, updated_at, event_count)
+                    values (:id, :code, :name, :email, :gender, :wecom, :status, :feeEarner, :now, :now, 0)
+                    on conflict (id) do update set display_name = excluded.display_name, email = excluded.email,
                            gender = excluded.gender, wecom_user_id = excluded.wecom_user_id, employment_status = excluded.employment_status,
-                           is_fee_earner = excluded.is_fee_earner, separated_at = excluded.separated_at
+                           is_fee_earner = excluded.is_fee_earner
                     """)
                     .param("id", e.employeeId().value()).param("code", e.employeeCode()).param("name", e.displayName())
-                    .param("login", e.loginName()).param("email", e.email()).param("gender", e.gender() == null ? null : e.gender().name())
+                    .param("email", e.email()).param("gender", e.gender() == null ? null : e.gender().name())
                     .param("wecom", e.wecomUserId() == null ? null : e.wecomUserId().value())
                     .param("status", e.employmentStatus().name()).param("feeEarner", e.feeEarner()).param("now", now).update();
         }

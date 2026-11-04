@@ -39,8 +39,7 @@ public final class EmployeeChecks {
     }
 
     public static Employee toEmployee(SourcePerson person, boolean keepWecomUserId) {
-        @Nullable String login = hasLogin(person.loginName()) ? person.loginName().trim() : null;
-        return new Employee(Objects.requireNonNull(SourceTerms.person(person.personId()), "SourcePerson requires personId"), person.employeeCode(), person.displayName(), login, person.email(),
+        return new Employee(Objects.requireNonNull(SourceTerms.person(person.personId()), "SourcePerson requires personId"), person.employeeCode(), person.displayName(), person.email(),
                 SourceTerms.gender(person.gender()), keepWecomUserId ? person.wecomUserId() : null, employmentOf(person), person.feeEarner());
     }
 }
