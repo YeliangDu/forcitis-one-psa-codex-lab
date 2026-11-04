@@ -82,14 +82,12 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @DisplayName("RULE-359/368/369 org data is read-only in the new system: the only writes are, since #933, the three personnel command endpoints and, since #959, the profile change and, since #980, its confirmation and rejection and, since #1169, the two org-structure command endpoints and, since #1170, the two countersign decisions, and since #1172 the six reads of personnel commands, org-structure commands and held separations")
+    @DisplayName("RULE-359/368/369 org data is read-only in the new system: the only writes are, since #933, the three personnel command endpoints and, since #959, the profile change and, since #980, its confirmation and rejection and, since #1169, the two org-structure command endpoints and, since #1170, the two countersign decisions; the list pins writes only, a new read cannot edit org data")
     void orgDataHasNoEditEndpoints() {
         List<String> writes = new ArrayList<>();
-        List<String> reads = new ArrayList<>();
         handlerMapping.getHandlerMethods().keySet().forEach(info -> info.getPatternValues().stream()
-                .filter(p -> p.contains("/organization/") && !p.contains("/legal-entities") && !p.contains("-legal-entities/") && !p.contains("/work-calendars")).forEach(p -> info.getMethodsCondition().getMethods().forEach(m -> {
-                    (m.name().equals("GET") ? reads : writes).add(m.name() + " " + p);
-                })));
+                .filter(p -> p.contains("/organization/") && !p.contains("/legal-entities") && !p.contains("-legal-entities/") && !p.contains("/work-calendars")).forEach(p -> info.getMethodsCondition().getMethods().stream()
+                        .filter(m -> !m.name().equals("GET")).forEach(m -> writes.add(m.name() + " " + p))));
 
         assertThat(writes).containsExactlyInAnyOrder(
                 "POST /api/v1/organization/personnel-commands", "POST /api/v1/organization/personnel-commands/{personnelCommandId}:withdraw",
@@ -100,21 +98,9 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                 "POST /api/v1/organization/org-structure-commands", "POST /api/v1/organization/org-structure-commands/{orgStructureCommandId}:withdraw",
                 // #1170: the finance head decides a countersign request; no data is edited in place.
                 "POST /api/v1/organization/attribution-countersigns/{attributionCountersignId}:approve", "POST /api/v1/organization/attribution-countersigns/{attributionCountersignId}:reject");
-        assertThat(reads).containsExactlyInAnyOrder("GET /api/v1/organization/org-units", "GET /api/v1/organization/org-units/{orgUnitId}",
-                "GET /api/v1/organization/employee-profile-change-requests",
-                "GET /api/v1/organization/attribution-countersigns",
-                // #910 S3: the decider's read of a countersign request, the basis of an org-structure command and the merge rehearsal.
-                "GET /api/v1/organization/attribution-countersigns/{attributionCountersignId}", "GET /api/v1/organization/attribution-countersign-bases/{orgStructureCommandId}",
-                "GET /api/v1/organization/org-units/{orgUnitId}:preview-merge",
-                // #1171: the roster of people (data-scoped, HR role) and the position directory; reads only.
-                "GET /api/v1/organization/employees", "GET /api/v1/organization/employees/{employeeId}",
-                "GET /api/v1/organization/positions", "GET /api/v1/organization/positions/{positionId}",
-                // #1172: reads of the commands entered above; personnel commands scoped, org-structure commands and held separations company-wide for their entering or approving permission.
-                "GET /api/v1/organization/personnel-commands", "GET /api/v1/organization/personnel-commands/{personnelCommandId}",
-                "GET /api/v1/organization/org-structure-commands", "GET /api/v1/organization/org-structure-commands/{orgStructureCommandId}",
-                "GET /api/v1/organization/separation-holds", "GET /api/v1/organization/separation-holds/{separationHoldId}");
     }
 
+    // RULE-484
     @Test
     @DisplayName("the org tree lists parents first with string ids; revoked units only on request")
     void orgTree() throws Exception {

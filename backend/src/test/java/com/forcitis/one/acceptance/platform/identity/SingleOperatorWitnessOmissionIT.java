@@ -34,6 +34,7 @@ class SingleOperatorWitnessOmissionIT extends SingleOperatorIdentitySupport {
         assertThat(normal.detail()).contains("operatorId=" + OPERATOR_ID + " witnessId=none").doesNotContain("witness=").doesNotContain("operator=");
     }
 
+    // RULE-437
     @Test
     @DisplayName("SINGLE-OP P2-01 模式开启：grant-role 省略 --witness 成功，授予生效；正常审计照写，detail 为 operatorId=<UUID> witnessId=none role=<码>")
     void p201_grantRoleWithoutWitnessSucceeds() {
@@ -49,6 +50,7 @@ class SingleOperatorWitnessOmissionIT extends SingleOperatorIdentitySupport {
         assertThat(onlyEntry(ROLE_GRANTED).subject()).isEqualTo(AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, accountOf(33)));
     }
 
+    // RULE-437
     @Test
     @DisplayName("SINGLE-OP P2-02 同一事务中另写标注审计 platform.identity.single-operator-mode.applied：subjectKey 与正常条目相同，detail 恰为放宽项代码 relaxation=WITNESS_OMITTED；标注与正常条目都经 record（加入调用方事务），不经 recordIndependently")
     void p202_markIsWrittenInTheSameTransaction() {
@@ -81,6 +83,7 @@ class SingleOperatorWitnessOmissionIT extends SingleOperatorIdentitySupport {
         assertThat(applied()).as("already registered: nothing changed, nothing marked").hasSize(1);
     }
 
+    // RULE-437
     @Test
     @DisplayName("SINGLE-OP P2-03 reset-emergency-admin-credentials 模式开启省略见证人成功并写一条标注")
     void p203_resetWithoutWitness() {
@@ -123,6 +126,7 @@ class SingleOperatorWitnessOmissionIT extends SingleOperatorIdentitySupport {
         assertThat(applied()).as("already enabled").hasSize(2);
     }
 
+    // RULE-438
     @Test
     @DisplayName("SINGLE-OP P2-03 grant-role 已持有该角色（无改动）不写标注、不写正常审计")
     void p203_grantAlreadyHeldIsNotMarked() {
@@ -138,6 +142,7 @@ class SingleOperatorWitnessOmissionIT extends SingleOperatorIdentitySupport {
         assertThat(entries(ROLE_GRANTED)).hasSize(1);
     }
 
+    // RULE-437
     @Test
     @DisplayName("SINGLE-OP P2-03 revoke-role 模式开启省略见证人成功并写一条标注")
     void p203_revokeWithoutWitness() {
@@ -153,6 +158,7 @@ class SingleOperatorWitnessOmissionIT extends SingleOperatorIdentitySupport {
         assertOmissionMarked(ROLE_REVOKED, 0);
     }
 
+    // RULE-439
     @Test
     @DisplayName("SINGLE-OP P2-04 模式开启：--operator 缺失仍被拒（退出码 1，PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED），库内无变化、无标注")
     void p204_operatorIsStillRequired() {
@@ -173,6 +179,7 @@ class SingleOperatorWitnessOmissionIT extends SingleOperatorIdentitySupport {
         assertThat(entries(ROLE_GRANTED)).isEmpty();
     }
 
+    // RULE-439
     @Test
     @DisplayName("RULING-COORD-20261017-01 单人模式开启、操作人在组织快照中不存在、不带 --witness：退出码 1（PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED），不写授予、不写 relaxation 标注")
     void rulingCoord20261017_01_unknownOperatorWithoutWitnessIsRefused() {
@@ -189,6 +196,7 @@ class SingleOperatorWitnessOmissionIT extends SingleOperatorIdentitySupport {
         assertNothingChanged(before);
     }
 
+    // RULE-440
     @Test
     @DisplayName("SINGLE-OP P2-05 模式开启：操作人与见证人同一员工 ID 仍被拒，无变化、无标注")
     void p205_sameEmployeeIsStillRefused() {
@@ -203,6 +211,7 @@ class SingleOperatorWitnessOmissionIT extends SingleOperatorIdentitySupport {
         assertNothingChanged(before);
     }
 
+    // RULE-440
     @ParameterizedTest(name = "[{index}] --witness={0}")
     @ValueSource(strings = {"01900000-0000-7000-8000-00000000A002", "alice", "01900000-0000-7000-8000", " 01900000-0000-7000-8000-00000000a002",
             "01900000-0000-7000-8000-00000000a002 ", "00000000-0000-0000-0000-000000000000", "7"})
@@ -249,6 +258,7 @@ class SingleOperatorWitnessOmissionIT extends SingleOperatorIdentitySupport {
         assertThat(recorded()).as("nothing was audited").isEmpty();
     }
 
+    // RULE-441
     @Test
     @DisplayName("SINGLE-OP P2-08 模式开启且给了合法的不同见证人：行为与模式关闭时逐字节相同（输出与 detail 为 operatorId=… witnessId=<UUID> role=…），不写标注")
     void p208_aGivenWitnessBehavesAsWithTheModeOff() {
@@ -266,6 +276,7 @@ class SingleOperatorWitnessOmissionIT extends SingleOperatorIdentitySupport {
         assertThat(applied()).isEmpty();
     }
 
+    // RULE-441
     @Test
     @DisplayName("SINGLE-OP P2-09 模式关闭：省略 --witness 仍被拒（退出码 1），库内无变化、无标注；同名仍被拒")
     void p209_withTheModeOffTheWitnessIsRequired() {
@@ -283,6 +294,7 @@ class SingleOperatorWitnessOmissionIT extends SingleOperatorIdentitySupport {
         assertThat(entries(ROLE_GRANTED)).isEmpty();
     }
 
+    // RULE-441
     @Test
     @DisplayName("SINGLE-OP P2-09 模式关闭：每个运维操作省略见证人都被拒，库内无变化、无标注")
     void p209_everyOperationNeedsTheWitnessWithTheModeOff() {

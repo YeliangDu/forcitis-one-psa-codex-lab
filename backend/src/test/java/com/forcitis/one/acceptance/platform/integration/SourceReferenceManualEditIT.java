@@ -28,6 +28,7 @@ class SourceReferenceManualEditIT extends SourceReferenceHttpSupport {
         postgres.register(registry);
     }
 
+    // RULE-461
     @Test
     @DisplayName("R-1b P3a ADR-0033 第 5 项第 3 条：登记核算组织编码需 platform.integration:source-reference:update——未登录 401、无权限 403 且无写入，有权限 201")
     void registeringNeedsThePermission() throws Exception {
@@ -44,6 +45,7 @@ class SourceReferenceManualEditIT extends SourceReferenceHttpSupport {
         assertThat(referencesOf(legalEntity)).isEqualTo(1);
     }
 
+    // RULE-460
     @Test
     @DisplayName("R-1b P3a ADR-0033 第 5 项第 4 条：人工登记只接受（核算系统, LEGAL_ENTITY）；组织源、老系统与其他类别一律 422，无写入且写审计")
     void onlyTheAccountingCodeOfALegalEntityIsEditable() throws Exception {
@@ -66,6 +68,7 @@ class SourceReferenceManualEditIT extends SourceReferenceHttpSupport {
         assertThat(allReferences()).as("nothing was written").isEqualTo(rowsBefore);
     }
 
+    // RULE-462
     @Test
     @DisplayName("R-1b P3a ADR-0033 第 2 项第 1 条、第 5 项第 4 条：核算组织编码须为正整数、法人须存在、生效日必填——否则 4xx 且无写入")
     void invalidInputIsRefused() throws Exception {
@@ -85,6 +88,7 @@ class SourceReferenceManualEditIT extends SourceReferenceHttpSupport {
         assertThat(allReferences()).isEqualTo(rowsBefore);
     }
 
+    // RULE-461
     @Test
     @DisplayName("R-1b P3a ADR-0033 第 5 项第 3 条（U-2、U-3）：两个新权限码进权限目录；登记授予组织数据管理员，确认授予业务管理员")
     void thePermissionsAndWhoHoldsThem() throws Exception {

@@ -298,6 +298,7 @@ class SourceReferenceConstraintIT extends AcceptanceSupport {
                 .as("the same row with its author and decider named").isEqualTo(ACCEPTED);
     }
 
+    // RULE-468
     @Test
     @DisplayName("R-1b P3a ADR-0033 第 2 项第 1 条：已确认行的两个自然键在任一时点各自唯一；区间不重叠的已确认行可以并存")
     void confirmedRowsAreUniqueAtEveryPointInTime() throws Exception {
@@ -320,6 +321,7 @@ class SourceReferenceConstraintIT extends AcceptanceSupport {
         assertThat(probe(twoPeopleOneOwnId)).as("two organisation-source persons, one own id").isIn(EXCLUSION_VIOLATION, UNIQUE_VIOLATION);
     }
 
+    // RULE-468
     @Test
     @DisplayName("R-1b P3a ADR-0033 第 2 项第 1 条：待确认行与已拒绝行不占约束，可与生效中的已确认行重叠")
     void pendingAndRejectedRowsTakeNoKey() throws Exception {
@@ -333,6 +335,7 @@ class SourceReferenceConstraintIT extends AcceptanceSupport {
                 .as("two pending corrections side by side").isEqualTo(ACCEPTED);
     }
 
+    // RULE-463
     @Test
     @DisplayName("R-1b P3a 复审 M1（ADR-0033 第 5 项第 4 条）：人工登记的行（有录入人）没有决定人时，库内直接改为已确认或已拒绝都被拒绝；写明他人为决定人才可以")
     void manualRowIsNeverDecidedWithoutADecider() throws Exception {
@@ -349,6 +352,7 @@ class SourceReferenceConstraintIT extends AcceptanceSupport {
                 .as("rejected by another person who is named as the decider").isEqualTo(ACCEPTED);
     }
 
+    // RULE-469
     @Test
     @DisplayName("R-1b P3a 复审 M1（ADR-0033 第 2 项第 1 条、§14.1 D17）：来源对照只关闭不删除——DELETE 与 TRUNCATE 都被数据库拒绝，行仍在")
     void referencesAreNeverDeleted() throws Exception {
@@ -404,6 +408,7 @@ class SourceReferenceConstraintIT extends AcceptanceSupport {
                 .as("the code in effect is still exclusive to its legal entity").isIn(EXCLUSION_VIOLATION, UNIQUE_VIOLATION);
     }
 
+    // RULE-469
     @Test
     @DisplayName("R-1b P3a ADR-0033 第 2 项第 1 条：既有行的来源 ID 与自有 ID 不得改写")
     void sourceIdAndOwnIdAreNeverRewritten() throws Exception {

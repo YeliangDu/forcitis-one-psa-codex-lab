@@ -54,7 +54,7 @@ def run(mq, d):
     # through the CLI: the refused pull request is not queued, a fixed one is
     class Probe:
         def view(self, n):
-            return {"state": "OPEN", "merge": "CLEAN", "labels": [], "branch": "b", "head": {1: bad, 2: good, 3: plain}[n]}
+            return {"state": "OPEN", "merge": "CLEAN", "labels": [], "branch": "b", "head": {1: bad, 2: good, 3: plain}[n], "title": f"fix(q): 修复（#{n}）", "body": f"Closes #{n}\n"}
     real_gh, real_root = mq.Gh, mq.repo_root
     mq.Gh, mq.repo_root = Probe, lambda: runner
     queue = os.path.join(d, "acc-q", "merge.queue")

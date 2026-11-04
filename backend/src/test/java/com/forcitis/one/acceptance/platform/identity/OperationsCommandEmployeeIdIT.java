@@ -116,6 +116,7 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
         assertThat(accountsOfEmployee(person)).isEmpty();
     }
 
+    // RULE-421
     @Test
     @DisplayName("R-1b P3b ADR-0033 守护 9：--employee-id 是规范 uuid 但员工不存在，退出码非 0，不写任何数据")
     void anEmployeeThatDoesNotExistIsRefused() throws Exception {
@@ -127,6 +128,7 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
         assertThat(identityRows()).isEqualTo(before);
     }
 
+    // RULE-421
     @Test
     @DisplayName("R-1b P3b ADR-0033 守护 9：--employee-id 为在职员工的规范 uuid 时取得或建立账号并授角色；再执行一次不另建账号")
     void aValidEmployeeIdOpensOrReusesTheAccount() throws Exception {
@@ -178,24 +180,28 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
         assertThat(auditEntryCount(null)).as("%s: no audit entry of any kind", why).isEqualTo(auditedBefore);
     }
 
+    // RULE-422
     @Test
     @DisplayName("DR-TB01-FU1：--operator 是规范 uuid 但员工不存在 → 退出码 1，错误码 PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED，不写数据、不写审计")
     void fu1AnOperatorWhoDoesNotExistIsRefused() throws Exception {
         assertRefusedAndNothingDone(UUID.randomUUID().toString(), WITNESS_ID, "operator does not exist");
     }
 
+    // RULE-422
     @Test
     @DisplayName("DR-TB01-FU1：--witness 是规范 uuid 但员工不存在 → 退出码 1，错误码 PLATFORM_IDENTITY_OPERATION_WITNESS_REQUIRED，不写数据、不写审计")
     void fu1AWitnessWhoDoesNotExistIsRefused() throws Exception {
         assertRefusedAndNothingDone(OPERATOR_ID, UUID.randomUUID().toString(), "witness does not exist");
     }
 
+    // RULE-422
     @Test
     @DisplayName("DR-TB01-FU1：操作人与见证人都不存在 → 同样被拒")
     void fu1NeitherExistsIsRefused() throws Exception {
         assertRefusedAndNothingDone(UUID.randomUUID().toString(), UUID.randomUUID().toString(), "neither exists");
     }
 
+    // RULE-422
     @Test
     @DisplayName("DR-TB01-FU1（对照，现行行为）：缺见证人、相同、非员工 ID → 退出码 1，错误码同上，不写数据、不写审计")
     void fu1MissingSameOrNotAnIdIsStillRefused() throws Exception {
@@ -205,6 +211,7 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
         assertRefusedAndNothingDone(OPERATOR_ID, "not-an-employee-id", "witness is no employee id");
     }
 
+    // RULE-422
     @Test
     @DisplayName("DR-TB01-FU1：两人都存在且不同 → 照常成功，审计记两人的员工 ID")
     void fu1TwoDifferentExistingEmployeesProceed() throws Exception {
@@ -220,6 +227,7 @@ class OperationsCommandEmployeeIdIT extends AccountsAcceptanceSupport {
         assertThat(auditEntryCount(detail)).as("an audit entry whose detail names the operator and the witness by employee id").isEqualTo(auditedBefore + 1);
     }
 
+    // RULE-423
     @Test
     @DisplayName("DR-TB01-FU1：已离职但仍在快照中的员工可作操作人或见证人（只要求存在，不要求在职）")
     void fu1ASeparatedEmployeeStillCounts() throws Exception {

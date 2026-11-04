@@ -71,6 +71,7 @@ class ApprovalStartOwnershipIT extends ApprovalIntegrationSupport {
                 && entry.actorId().equals(TestAccounts.account(userA))));
     }
 
+    // RULE-497
     @Test
     @DisplayName("P2 recheck L-4 a refused start is audited with the signed-in caller, not with the initiator the request names")
     void theRefusalNamesTheCallerNotTheInitiatorInTheRequest() {

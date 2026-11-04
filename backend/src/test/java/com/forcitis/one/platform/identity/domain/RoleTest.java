@@ -113,6 +113,7 @@ class RoleTest {
         assertThat(AccessProfile.of(List.of(system("super_admin", Set.of()))).hasAnyRole(List.of(new RoleCode("PMO")))).isFalse();
     }
 
+    // RULE-454
     @Test
     @DisplayName("INT-SEC-H2 customRoleCannotCarryAdministratorModePermission: the platform permissions live in the administrator mode only; separation-hold:approve may be held (ADR-0028)")
     void customRoleCannotCarryAdministratorModePermission() {
