@@ -122,7 +122,7 @@ Event envelope stays the employee (aggregate) with `businessDate`; every event g
 | EmployeeUnpaidLeaveStarted | each UNPAID_LEAVE_START takes effect (built by PR #1287; payload names the relationship once ADR-0086 is built); identity's sensitive-role review reads it |
 | EmployeeLegalEntityChanged | unchanged (attribution) |
 
-Relationship-level events (new; glossary names in the proposed file): **EmploymentRelationshipStarted** (HIRE or REINSTATE takes effect, or a second relationship begins), **EmploymentRelationshipEnded** (SEPARATE takes effect), **EmploymentRelationshipPhaseChanged** (regularization; later also type changes), **EmploymentRelationshipUnpaidLeaveChanged** (start and end), **EmploymentRelationshipCorrected**. Leave (RULE-515 triggers: start, regularization, unpaid-leave change, end, correction) and payroll subscribe to these, not to the person-level ones; identity keeps its five subscriptions unchanged.
+Relationship-level events (new; glossary names in the proposed file): **EmploymentRelationshipStarted** (HIRE or REINSTATE takes effect, or a second relationship begins), **EmploymentRelationshipEnded** (SEPARATE takes effect), **EmploymentRelationshipPhaseChanged** (regularization; later also type changes), **EmploymentRelationshipUnpaidLeaveChanged** (start and end), **EmploymentRelationshipCorrected**. Leave (RULE-515 triggers: start, regularization, unpaid-leave change, end, correction) and payroll subscribe to these, not to the person-level ones; identity keeps its existing subscriptions unchanged (the person-level events, including EmployeeUnpaidLeaveStarted).
 
 ### 6.2 Person-level reads over several relationships
 
