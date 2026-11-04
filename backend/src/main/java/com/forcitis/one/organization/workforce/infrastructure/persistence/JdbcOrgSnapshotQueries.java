@@ -66,22 +66,6 @@ class JdbcOrgSnapshotQueries implements OrgSnapshotQueries {
     }
 
     @Override
-    public Optional<StaffEmployee> findStaffByLoginName(String loginName) {
-        return jdbc.sql(OrgSnapshotRows.SELECT_STAFF_ON_DAY + """
-                 and s.login_name = :login order by (s.employment_status = 'EMPLOYED') desc, s.updated_at desc limit 1
-                """)
-                .param("day", zone.today(clock)).param("login", loginName).query((rs, n) -> OrgSnapshotRows.staff(rs)).optional();
-    }
-
-    @Override
-    public List<EmployeeId> findEmployeeIdsByLoginName(String loginName) {
-        return jdbc.sql("""
-                select id from organization_workforce.employees where login_name = :login order by updated_at desc, id
-                """)
-                .param("login", loginName).query(UUID.class).list().stream().map(EmployeeId::new).toList();
-    }
-
-    @Override
     public List<EmployeeId> findEmployeeIdsByWecomUser(WecomUserId wecomUserId) {
         return jdbc.sql("""
                 select id from organization_workforce.employees where wecom_user_id = :wecom order by updated_at desc, id

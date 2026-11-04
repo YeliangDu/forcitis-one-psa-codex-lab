@@ -83,7 +83,6 @@ class SyncedFieldsContractTest {
     static {
         // employeeCode is fixed once issued (ADR-0078): a source change is kept out of the diff and recorded as an issue, see EmployeeSyncRulesTest
         STAFF_CHANGES.put("displayName", b -> { b.displayName = "Changed name"; return b; });
-        STAFF_CHANGES.put("loginName", b -> { b.loginName = "13999999999"; return b; });
         STAFF_CHANGES.put("email", b -> { b.email = "changed@example.test"; return b; });
         STAFF_CHANGES.put("gender", b -> { b.gender = SourceGender.FEMALE; return b; });
         STAFF_CHANGES.put("wecomUserId", b -> { b.wecomUserId = new WecomUserId("wx-changed"); return b; });

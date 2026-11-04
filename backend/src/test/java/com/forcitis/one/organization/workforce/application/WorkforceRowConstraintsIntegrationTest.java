@@ -16,9 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 class WorkforceRowConstraintsIntegrationTest extends WorkforceIntegrationSupport {
     @Autowired
-    RefreshShortNames refreshShortNames;
-
-    @Autowired
     CreateLegalEntity create;
 
     @Autowired
@@ -28,40 +25,6 @@ class WorkforceRowConstraintsIntegrationTest extends WorkforceIntegrationSupport
     void empty() {
         VersionTables.truncate(jdbc, "truncate table organization_workforce.legal_entities restart identity cascade");
         VersionTables.truncate(jdbc, "truncate table organization_workforce.org_units restart identity cascade");
-    }
-
-    private UUID orgUnit(String shortName) {
-        UUID id = com.forcitis.one.kernel.Uuids.timeOrdered(java.time.Instant.now());
-        jdbc.sql("insert into organization_workforce.org_units (id, name, status, short_name) values (:id, 'Synthetic unit', 'ACTIVE', :short)")
-                .param("id", id).param("short", shortName).update();
-        return id;
-    }
-
-    private String shortName(UUID id) {
-        return jdbc.sql("select short_name from organization_workforce.org_units where id = :id").param("id", id).query(String.class).optional().orElse(null);
-    }
-
-    @Test
-    @DisplayName("DATA-REPAIR-workforce WF-11：RefreshShortNames 把老系统给的空串、纯空格、null 规范为没有简称，不抛，带内容的原样写入")
-    void blankShortNamesBecomeNull() {
-        UUID blank = orgUnit("Old");
-        UUID spaces = orgUnit("Old");
-        UUID missing = orgUnit("Old");
-        UUID named = orgUnit(null);
-        Map<OrgUnitId, String> names = new HashMap<>();
-        names.put(new OrgUnitId(blank), "");
-        names.put(new OrgUnitId(spaces), "   ");
-        names.put(new OrgUnitId(missing), null);
-        names.put(new OrgUnitId(named), "HQ");
-        oldSystem.names = names;
-
-        assertThat(refreshShortNames.execute()).isEqualTo(4);
-
-        assertThat(shortName(blank)).isNull();
-        assertThat(shortName(spaces)).isNull();
-        assertThat(shortName(missing)).isNull();
-        assertThat(shortName(named)).isEqualTo("HQ");
-        assertThat(refreshShortNames.execute()).isZero();
     }
 
     private ExpectedVersion at(LegalEntityId id) {

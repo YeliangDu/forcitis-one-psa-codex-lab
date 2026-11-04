@@ -8,7 +8,5 @@ import java.util.List;
  */
 public interface ExternalSubjectEmployees {
 
-    List<EmployeeId> withExternalLoginName(String externalLoginName);
-
     List<EmployeeId> withMessagingAccountId(String messagingAccountId);
 }

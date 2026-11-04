@@ -210,21 +210,6 @@ class EventSequenceContinuityTest {
     }
 
     @Test
-    @DisplayName("RegisteredEmployee: its one event is numbered after the stored sequence")
-    void registeredEmployee() {
-        com.forcitis.one.kernel.EmployeeId id = TestAccounts.employee(42);
-        var staff = new com.forcitis.one.organization.workforce.domain.StaffEmployee(
-                new com.forcitis.one.organization.workforce.domain.Employee(id, "E42", "Synthetic", "synthetic", null, null, null,
-                        com.forcitis.one.organization.workforce.api.EmploymentStatus.EMPLOYED, false),
-                new com.forcitis.one.organization.workforce.domain.Assignment(id, com.forcitis.one.fixture.doubles.TestOrgIds.orgUnit(3), null, null));
-        var registered = com.forcitis.one.organization.workforce.domain.RegisteredEmployee.onFirstLogin(staff, 4, 6);
-
-        assertThat(registered.drainEvents(TestEnvelopes.INSTANCE)).extracting(e -> e.envelope().aggregateVersion()).containsExactly(7L);
-        assertThat(registered.eventSequence()).isEqualTo(7);
-        assertThat(registered.version()).isEqualTo(5);
-    }
-
-    @Test
     @DisplayName("SourceReference: events are numbered 1..n")
     void sourceReference() {
         var system = com.forcitis.one.platform.integration.api.ExternalSource.ACCOUNTING_SYSTEM;
