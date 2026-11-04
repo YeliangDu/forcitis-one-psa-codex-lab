@@ -48,4 +48,21 @@ class StandardHoursPublishRefusalIT extends AcceptanceSupport {
         assertThat((java.util.List<?>) JsonPath.read(listed.getContentAsString(), "$.items")).as("nothing is stored for the unknown entity").isEmpty();
         assertThat(auditedActions("organization.attendance.standard-hours.")).as("a refused publication leaves no audit entry").isEmpty();
     }
+
+    @Test
+    @DisplayName("#1310 minutes that are not whole numbers (7.5) are refused with 400 INVALID instead of being cut to 7, in the version and in an override")
+    void fractionalMinutesAreRefusedNotTruncated() throws Exception {
+        String head = "{\"effectiveFromDate\":\"2030-01-01\",\"basisRef\":\"Synthetic basis\",";
+        for (String body : new String[] {head + "\"workdayMinutes\":7.5,\"adjustedWorkdayMinutes\":420}",
+                head + "\"workdayMinutes\":480,\"adjustedWorkdayMinutes\":7.5}",
+                head + "\"workdayMinutes\":480,\"adjustedWorkdayMinutes\":420,\"dateOverrides\":[{\"workDate\":\"2030-01-02\",\"minutes\":7.5,\"reason\":\"Synthetic\"}]}"}) {
+            MockHttpServletResponse refused = mvc.perform(post(VERSIONS).with(PUBLISHER).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andReturn().getResponse();
+
+            assertThat(refused.getStatus()).as(body + " -> " + refused.getContentAsString()).isEqualTo(400);
+            assertThat((String) JsonPath.read(refused.getContentAsString(), "$.errorCode")).isEqualTo("ORGANIZATION_ATTENDANCE_STANDARD_HOURS_INVALID");
+        }
+        MockHttpServletResponse listed = mvc.perform(get(VERSIONS).with(PUBLISHER)).andReturn().getResponse();
+        assertThat((java.util.List<?>) JsonPath.read(listed.getContentAsString(), "$.items")).as("nothing is stored").isEmpty();
+    }
 }
