@@ -83,12 +83,8 @@ public class AggregateWriteGuard {
         return result;
     }
 
-    /** Saved arguments that are a unit of work and not an aggregate, with the aggregate they change: OrgSnapshotRepository saves a Reconciliation of the snapshot. */
-    private static final java.util.Map<String, String> AGGREGATE_OF_UNIT_OF_WORK = java.util.Map.of("Reconciliation", "OrgSnapshot");
-
     private static String kindOf(ProceedingJoinPoint call) {
-        String argument = call.getArgs()[0].getClass().getSimpleName();
-        return AGGREGATE_OF_UNIT_OF_WORK.getOrDefault(argument, argument);
+        return call.getArgs()[0].getClass().getSimpleName();
     }
 
     /** The aggregates the events of the running transaction name: their own, and the ones they say were touched together. */
