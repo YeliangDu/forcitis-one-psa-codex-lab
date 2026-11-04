@@ -1,3 +1,5 @@
+> 冻结（2026-11-04）：签章服务第一段契约草案，不再更新；模块 `platform.signing` 已实现，现行契约以其 api 包与 ADR-0064、ADR-0066 为准。
+
 # 签章服务第一段契约（CS-1.10）
 
 - 作者：one-platform-file，2026-10-22；回应 one-architecture 准入裁定 `ADMISSION_PLATFORM_SIGNING_2026-10-22.md`（claude/one-architecture-admission-file @a62cb635）第 4、5、7、9 条。

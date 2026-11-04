@@ -1,3 +1,4 @@
+# 冻结（2026-11-04）：决策点清单，不再更新；DMN 暂缓（ADR-0040），判定在代码里，现行决定见 docs/adr/current.md。
 # 决策点清单（DMN 1.6）。1a 不引入 DMN（AI_NATIVE_SPEC），现有判定都在代码里：status: in-code，target: dmn-planned 表示进入对应阶段时评估是否改为决策表（METHOD 接缝 3）。
 # 初稿：2026-10-15 由 sonnet 子代理抽取，范围为 15 处主要判定点。维护：one-architecture。
 meta:
