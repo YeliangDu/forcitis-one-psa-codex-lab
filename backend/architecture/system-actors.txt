@@ -21,7 +21,7 @@ platform.audit.entry.archive | 821c149d-4ce7-53b3-b7cb-2798a78bba98 | platform.a
 platform.audit.entry.archive.probe | 304a2664-74ef-54c4-82d6-ceacbf79aa27 | platform.audit | 作业：审计归档探测
 platform.audit.entry.partitions | 1f8be478-7a1b-5986-b21a-577054158fb6 | platform.audit | 作业：预建审计月分区
 platform.idempotency.cleanup | 5dcad602-9ae4-5a53-be29-95914598ca0d | platform.idempotency | 作业：清理过期的幂等应答
-platform.identity.account-provisioning | 6405fb15-3e76-548c-b34c-479c690b2588 | platform.identity | 开通账号（入职事件监听器 HandleEmployeeRegistered 与各建账号入口）
+platform.identity.account-provisioning | 6405fb15-3e76-548c-b34c-479c690b2588 | platform.identity | 开通账号（入职事件监听器 HandleEmployeeHired 与各建账号入口）
 platform.identity.authorization | 39e3e313-517f-55c7-add4-a4c531b5831a | platform.identity | 监听器 ApplyConfirmedAuthorization：执行已确认的授权申请
 platform.identity.credential.purge | fca6f0b7-8fb1-594c-aa7b-c1b3eaeca283 | platform.identity | 作业：清理过期的一次性凭据
 platform.identity.emergency.admin.check | 99dc9df0-233b-5089-99e2-5e286ac8f761 | platform.identity | 作业：应急账号每日核对

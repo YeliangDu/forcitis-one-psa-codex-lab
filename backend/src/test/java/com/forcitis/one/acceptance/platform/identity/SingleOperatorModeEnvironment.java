@@ -49,7 +49,7 @@ final class SingleOperatorModeEnvironment {
             "forcitis.platform.audit.archive.enabled=false", "forcitis.cost.timesheet.consumed-events.enabled=false",
             "forcitis.organization.workforce.sync-purge.enabled=false", "forcitis.platform.integration.outbound-purge.enabled=false",
             "forcitis.platform.integration.event-publication.jobs-enabled=false", "forcitis.platform.scheduling.jobs-enabled=false",
-            "forcitis.platform.identity.sso.enabled=false", "forcitis.platform.identity.emergency.check.enabled=false"};
+            "forcitis.platform.identity.emergency.check.enabled=false"};
 
     static final PostgreSQLContainer POSTGRES = TestPostgres.container().withDatabaseName(DEV_DATABASE).withUsername(DEV_USER).withPassword(PASSWORD)
             .withCommand("sh", "-c", "openssl req -new -x509 -days 1 -nodes -subj /CN=localhost -out /var/lib/postgresql/server.crt -keyout /var/lib/postgresql/server.key"

@@ -1,10 +1,8 @@
 package com.forcitis.one.platform.identity;
 
 import com.forcitis.one.fixture.doubles.TestOrgIds;
-import com.forcitis.one.organization.workforce.api.LoginLookup;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -13,12 +11,11 @@ import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.identity.api.Permission;
-import com.forcitis.one.platform.integration.api.SsoVerdict;
+import com.forcitis.one.platform.identity.domain.SignedTicket;
+import java.util.UUID;
 import jakarta.servlet.http.Cookie;
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,20 +29,23 @@ class BrowserIdentifierIntegrationTest extends IdentityIntegrationTest {
     static final String IDENTIFIER = "__Host-browserIdentifier";
     static final String CONFIRM = "/api/v1/platform/sessions:confirm-identity";
 
-    private final AtomicInteger tickets = new AtomicInteger();
-
     @BeforeEach
     void people() {
+        jdbc.sql("""
+                        insert into platform_identity.ticket_issuers (ticket_issuer_id, issuer_code, signing_key_code, key_reference, is_enabled, allowed_role_codes)
+                        values (uuidv7(), 'km', 'km-key-1', 'env:FORCITIS_TICKET_KEY_KM', true, string_to_array('employee', ','))
+                        """).update();
         for (long id : new long[] {1001, 1002}) {
-            EmployeeProfile employee = knownEmployee(id, EmploymentStatus.EMPLOYED);
-            when(orgDirectory.findEmployeeByLogin(new LoginLookup.ByLoginName("login" + id))).thenReturn(Optional.of(employee));
+            knownEmployee(id, EmploymentStatus.EMPLOYED);
+            createAccount(id, "employee");
+            organisationSourceKnows(id);
         }
     }
 
     private MvcResult login(long id, String identifier) throws Exception {
-        String ticket = "T" + tickets.incrementAndGet();
-        when(ssoVerifier.verify(ticket)).thenReturn(new SsoVerdict.LoginName("login" + id));
-        var request = post(SsoLoginIntegrationTest.LOGIN).with(xsrf()).contentType(MediaType.APPLICATION_JSON).content("{\"ticket\":\"" + ticket + "\"}");
+        String ticket = SignedTicket.sign(SignedTicketLoginIntegrationTest.KM_SECRET, "km-key-1", "km", id, UUID.randomUUID().toString().replace("-", ""),
+                clock.instant().minusSeconds(1), clock.instant().plusSeconds(30));
+        var request = post(SignedTicketLoginIntegrationTest.LOGIN).with(xsrf()).contentType(MediaType.APPLICATION_JSON).content("{\"ticket\":\"" + ticket + "\"}");
         if (identifier != null) {
             request = request.cookie(new Cookie(IDENTIFIER, identifier));
         }
