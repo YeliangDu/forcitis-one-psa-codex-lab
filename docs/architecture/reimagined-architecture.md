@@ -1,3 +1,5 @@
+> 冻结（2026-11-04）：Phase 1a 平台桥接试点的架构稿，不再更新；技术栈与平台决定见 ADR-0001、ADR-0002 及其后各 ADR，现行决定见 `docs/adr/current.md`。
+
 # REIMAGINED_ARCHITECTURE — FORCITIS one · Phase 1a 平台桥接（试点）
 
 日期：2026-10-14 · 会话：psa-1a-platform-bridge-reimagine · 状态：**已批准（检查点 2，2026-10-14）**——修订稿已吸收 architecture-critic 评审；Q-1..Q-4 用户决定见 §7

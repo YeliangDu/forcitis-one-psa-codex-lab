@@ -56,6 +56,7 @@ class NumberingRowRulesIT {
         }
     }
 
+    // RULE-489
     @Test
     @DisplayName("DATA-REPAIR-approval AP-09: a CONFIRMED template version without a confirmer is refused by ck_numbering_rule_versions_confirmed")
     void confirmedWithoutConfirmerRefused() throws SQLException {
@@ -64,6 +65,7 @@ class NumberingRowRulesIT {
         version("CONFIRMED", null, false, UUID.randomUUID(), "ck_numbering_rule_versions_confirmed");
     }
 
+    // RULE-489
     @Test
     @DisplayName("DATA-REPAIR-approval AP-09: a CONFIRMED version with a confirmer, and a PENDING_CONFIRMATION version without one, go through")
     void confirmedWithConfirmerAndPendingWithoutAccepted() throws SQLException {
@@ -72,6 +74,7 @@ class NumberingRowRulesIT {
         version("PENDING_CONFIRMATION", null, false, null, null);
     }
 
+    // RULE-489
     @Test
     @DisplayName("DATA-REPAIR-approval AP-09: the rule is one-way, a PENDING or SUPERSEDED version keeping its business confirmation (finance still to confirm) goes through")
     void businessConfirmationOnUnconfirmedStatusStillAccepted() throws SQLException {

@@ -1,5 +1,7 @@
 # B31P 取证汇总（草稿）：A8 及外围里用印、IT 工单、资产领用、员工活动、入职周年贺卡的现行配置与计数
 
+> 冻结（2026-11-04，#1263）：取证草稿，不再更新；已执行的结果见 `docs/data/evidence/dba-handoff/b31p-*-result.md`。
+
 - 任务：ARC-1017-DAT-02（one-data；Codex gpt-6.1-sol xhigh 起草，两轮，one-data 审）。交 one-architecture 预填 B31 参数清单页。
 - 证据：one-ops 在取证通道的五批只读取证（`origin/claude/one-ops-r56` 的 `phase1a/infra/handoff/B-5-dba/evidence/b31p_r2…r5_result.md`，R2–R5），只含配置与计数；每批在 `phase1a/infra/legacy-read/` 登记。
 - **审稿结论（one-data）**：①本稿未复制任何姓名；②R4 §Q6-A「新增报价」l.c 里有一个硬编码的姓名常量（销售负责人比较条件），已通知 one-ops 脱敏并与调度商定分支历史处理，本稿只记「含硬编码姓名样式取值」；③稿中 B31P 状态逐题已核，没有整题「已核实」，与规格「预填与交付判定」一致；④属性缩写（a.d、s.n 等）含义未确认，任何地方都不得当作授权依据。

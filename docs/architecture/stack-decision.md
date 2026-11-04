@@ -1,3 +1,5 @@
+> 冻结（2026-11-04）：2026-10-14 的技术栈定稿，不再更新；技术栈与平台决定见 ADR-0001、ADR-0002 及其后各 ADR，现行决定见 `docs/adr/current.md`。
+
 # 目标技术栈定稿 — FORCITIS one 现代化
 
 日期：2026-10-14 · 产品：**FORCITIS one** · 入口：**one.forcitis.com**（ADR-0001）

@@ -55,7 +55,7 @@
 |---|---|
 | `forcitis-one.jar` | 可执行 jar（E-6 的固定文件名） |
 | `web-dev/`、`web-prod/` | 各环境的 PC 静态资源，内含 `h5/` |
-| `deploy/` | `forcitis-one.service`、`nginx-one.conf`、`forcitis-one.logrotate`、`one.env.template`、`remote_install.sh`（取自本目录 `files/` 与 `scripts/release/`） |
+| `deploy/` | `forcitis-one.service`、`nginx-one.conf`、`forcitis-one.logrotate`、`one.env.template`、`remote_install.sh`（取自本目录 `tools/ops/ecs/files/` 与 `scripts/release/`） |
 | `migrations.txt` | 全部 Flyway 迁移文件的 SHA256 与路径 |
 | `manifest.json` | 版本、git sha、提交时间、构建时间、JDK / Node / pnpm 版本、环境、构建期变量名（不含值）、迁移数与最新迁移、每个文件的 SHA256 与大小 |
 | `SHA256SUMS` | 除自身外每个文件（含 `manifest.json`）的 SHA256，`sha256sum -c` 可直接校验 |
@@ -135,7 +135,7 @@ Actions artifact 只用于同一次 release 运行中两个作业之间的传递
 
 **现状（核对代码与剧本）**：迁移只有 Spring Boot 启动时自动运行的 Flyway 一条路，代码中没有单独的迁移入口；未设 `spring.flyway.user`，所以 Flyway 用的是运行连接（`one_dev_app`）。而 C-3 的 `one_dev_app` 只有 DML、对 `one_migration` 没有 USAGE、`search_path` 为 `platform_approval`：常驻进程若照默认跑 Flyway，会在 `platform_approval` 找不到历史表、发现非空 schema 而拒绝启动。剧本（INFRA_RUNBOOK §2、§5）的意图是「迁移以 `one_dev_migrator` 单独执行，常驻进程不持有迁移凭据」。本流水线按该意图落地：
 
-- `one.env` 设 `SPRING_FLYWAY_ENABLED=false`（已加入 `files/one.env.template`，`ecs_check.sh` 检查）：常驻进程不跑 Flyway。
+- `one.env` 设 `SPRING_FLYWAY_ENABLED=false`（已加入 `tools/ops/ecs/files/one.env.template`，`ecs_check.sh` 检查）：常驻进程不跑 Flyway。
 - **迁移进程**：安装器每次部署起一个临时 systemd 单元：
   - 以独立用户 **`forcitis-migrate`**（主组 forcitis，只为读取发布目录；C-4 E-3）运行，`PrivateTmp`、`NoNewPrivileges`；
   - **凭据存放**：`/etc/forcitis-one/migrate/`（root 700），每个 Spring 属性一个文件（root 600，文件名即属性名），常规为 `spring.flyway.user`、`spring.flyway.password`。安装器逐个以 systemd `LoadCredential=` 交给该单元，进程在 `/run/credentials/<单元>/` 读到（只有该单元可读，单元结束即清除），Spring 以 `configtree:` 读取——**不经环境变量、不进命令行与进程列表**。同名设置若也在 `one.env` 中，以 `UnsetEnvironment=` 去掉，保证凭据目录的值生效。
@@ -153,7 +153,7 @@ Actions artifact 只用于同一次 release 运行中两个作业之间的传递
 
 ## 5. 服务器文件的变更
 
-systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身都随仓库版本管理（本目录 `files/` 与 `scripts/release/remote_install.sh`）。这些文件变了的版本，部署会因「服务器文件不一致」失败；须先由运维按 C-4 的方式（经用户确认）从**该版本的发布包** `deploy/` 中安装新文件（`nginx -t` 后 reload、`systemctl daemon-reload`），再部署。安装器的更新同理（§7 R-7）。
+systemd 单元、nginx 配置、logrotate、`one.env` 的键、安装器本身都随仓库版本管理（本目录 `tools/ops/ecs/files/` 与 `scripts/release/remote_install.sh`）。这些文件变了的版本，部署会因「服务器文件不一致」失败；须先由运维按 C-4 的方式（经用户确认）从**该版本的发布包** `deploy/` 中安装新文件（`nginx -t` 后 reload、`systemctl daemon-reload`），再部署。安装器的更新同理（§7 R-7）。
 
 ## 6. 构建期变量
 

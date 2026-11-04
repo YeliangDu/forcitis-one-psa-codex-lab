@@ -100,6 +100,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                 "POST /api/v1/organization/attribution-countersigns/{attributionCountersignId}:approve", "POST /api/v1/organization/attribution-countersigns/{attributionCountersignId}:reject");
     }
 
+    // RULE-484
     @Test
     @DisplayName("the org tree lists parents first with string ids; revoked units only on request")
     void orgTree() throws Exception {

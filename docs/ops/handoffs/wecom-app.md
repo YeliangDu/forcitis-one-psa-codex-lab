@@ -35,14 +35,14 @@ FORCITIS one 在 1a 只用到的接口：网页授权换身份（`auth/getuserin
 |---|---|---|---|
 | 企业 ID（我的企业 → 企业信息） | `WECOM_CORP_ID`（后端）、`VITE_WECOM_CORP_ID`（PC 构建）、`TARO_APP_WECOM_CORP_ID`（H5 构建） | 后端写 `/etc/forcitis-one/one.env`；前端两个在构建时注入（CI 变量） | 否 |
 | AgentId | `WECOM_AGENT_ID`（后端）、`VITE_WECOM_AGENT_ID`（PC 构建） | 同上 | 否 |
-| Secret（在应用详情页点「查看」，发到管理员企业微信客户端） | `WECOM_APP_SECRET` | 只写 `/etc/forcitis-one/one.env`，后续迁 KMS（`runbooks/C-8-kms.md`）；**轮换周期 180 天，泄露立即重置** | **是** |
+| Secret（在应用详情页点「查看」，发到管理员企业微信客户端） | `WECOM_APP_SECRET` | 只写 `/etc/forcitis-one/one.env`，后续迁 KMS（`runbooks/kms.md`）；**轮换周期 180 天，泄露立即重置** | **是** |
 
 Secret 交接：管理员在企业微信客户端查看后，当面或经密码管理器共享交运维，运维写入后确认，管理员删除客户端里的这条消息。
 
 ## 4. 验收标准
 
 - `https://one.forcitis.com/WW_verify_*.txt` 可访问，「可信域名」显示已验证。
-- 运维在 ECS 上用新 CorpID 与 Secret 调 `gettoken` 返回 `errcode=0`（`runbooks/C-4-ecs-init.md` E-15 校验命令）；从其他出口 IP 调用发消息接口被拒（可信 IP 生效）。
+- 运维在 ECS 上用新 CorpID 与 Secret 调 `gettoken` 返回 `errcode=0`（`runbooks/ecs-init.md` E-15 校验命令）；从其他出口 IP 调用发消息接口被拒（可信 IP 生效）。
 - dev 冒烟：可见范围内的成员 PC 扫码登录成功、企业微信工作台打开 H5 静默登录成功；范围外成员看不到应用。
 - 老应用配置与老 H5 入口均未改动。
 

@@ -2,7 +2,7 @@
 
 依据：ADR-0025 第 2 条（生产沿用现有实例、另建库与 `one_prod_*` 角色）、INFRA_RUNBOOK D-1。时点：生产前。性质：对外变更，执行前须用户确认。
 
-可执行脚本：`sql/c9_prod_db.sql` → `sql/c9_prod_db_verify.sql`；回滚 `sql/c9_prod_db_rollback.sql`。三者由 C-3 的 dev 脚本经 `sql/render_prod_sql.sh` 生成（只替换库名与角色名）；`render_prod_sql.sh --check` 证明两套脚本只差名称，改动一律改 dev 版再重新生成。
+可执行脚本：`sql/prod-db.sql` → `sql/prod-db-verify.sql`；回滚 `sql/prod-db-rollback.sql`。三者由 C-3 的 dev 脚本经 `sql/render-prod-sql.sh` 生成（只替换库名与角色名）；`render-prod-sql.sh --check` 证明两套脚本只差名称，改动一律改 dev 版再重新生成。
 
 ## 执行前确认点
 
@@ -18,9 +18,9 @@
 
 
 ```bash
-cd docs/ops/runbooks/sql && ./render_prod_sql.sh --check   # 必须通过
-psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one -f c9_prod_db.sql
-psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one_prod -f c9_prod_db_verify.sql | tee c9-verify-$(date +%F).txt
+cd docs/ops/runbooks/sql && ./render-prod-sql.sh --check   # 必须通过
+psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one -f prod-db.sql
+psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_one_prod -f prod-db-verify.sql | tee c9-verify-$(date +%F).txt
 ```
 
 口令：RDS 控制台为 `one_prod_migrator`、`one_prod_app`、`one_prod_readonly` 设口令；生产直接写入 KMS（C-8），不再落 one.env 明文。
@@ -31,4 +31,4 @@ psql -v ON_ERROR_STOP=1 -h <RDS 内网地址> -U <高权限账号> -d forcitis_o
 
 ## 回滚
 
-`sql/c9_prod_db_rollback.sql`，只在生产尚无业务数据时使用；有数据后不删库，改为撤销 `one_prod_app` 的 CONNECT 并停应用。
+`sql/prod-db-rollback.sql`，只在生产尚无业务数据时使用；有数据后不删库，改为撤销 `one_prod_app` 的 CONNECT 并停应用。

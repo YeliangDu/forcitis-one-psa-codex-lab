@@ -160,6 +160,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
                 """).param("id", id).param("created", createdMillis).param("expiry", expiryMillis).param("principal", principal).update();
     }
 
+    // RULE-455
     @Test
     @DisplayName("D-1a-45 a session that runs out is audited with its cause (idle or too old) and then removed; a live session is left alone")
     void expiredSessionsAreAuditedThenRemoved() {

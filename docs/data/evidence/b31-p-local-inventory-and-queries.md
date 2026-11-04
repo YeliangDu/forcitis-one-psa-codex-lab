@@ -1,5 +1,7 @@
 # B31P 取证准备：本地证据盘点与只读查询包（草稿）
 
+> 冻结（2026-11-04，#1263）：取证草稿，不再更新；已执行的结果见 `docs/data/evidence/dba-handoff/b31p-*-result.md`。
+
 - 任务：ARC-1017-DAT-01（one-data；输入 `claude/one-architecture-adr-governance@84ba2706` 的 `B31P_EVIDENCE_SPEC.md`）
 - 产出方式：Codex（gpt-6.1-sol，xhigh，read-only）起草，one-data 抽查：本地证据的路径与行号抽查 8 处，与原文一致（`docs/legacy/runtime-usage/a8-templates.tsv` 的用印申请、需求工单、IT 资产采购申请、IT 资产领用申请，`docs/legacy/runtime-usage/a8-forms.tsv`，`OA_PROCESS_INVENTORY.md:173`）。**其余行号未逐条核**。
 - 状态：**草稿，SQL 全部未执行、未编译**。含 `<…>` 的表与列是假设，必须先跑 Q00 元数据探查确认，禁止直接执行。生产取证只经 one-ops 的取证通道，每次登记一行（ADR-0037）；结果只留配置与计数，明细与个人信息不进会话和仓库。

@@ -16,6 +16,7 @@ import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.AuthorizationBase;
 import com.forcitis.one.platform.identity.domain.Role;
+import com.forcitis.one.platform.identity.domain.RoleDefinition;
 import com.forcitis.one.platform.identity.domain.RoleDraft;
 import com.forcitis.one.platform.identity.domain.RoleKind;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
@@ -31,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Permissions are resolved on every request, so a change is live once the cache is evicted. Nobody changes the definition of a role
- * they hold (I-12); giving a role a sensitive permission waits for a second person; a two-person role keeps a scope that does not follow
+ * they hold (I-12); giving a role a sensitive permission, or widening what a two-person role covers, waits for a second person; a two-person role keeps a scope that does not follow
  * the holder's job and names its custom org units without descendants (ADR-0032 section 3, ADR-0044 section 1).
  */
 @Service
@@ -77,14 +78,16 @@ public class UpdateRole {
         try {
             Role role = existing.get();
             Set<String> before = new HashSet<>(role.permissionCodes());
+            RoleDefinition definitionBefore = role.definition();
             revise(role, command);
             Optional<IdentityError> scopeRefused = refuseScope(caller, role);
             if (scopeRefused.isPresent()) {
                 return new AdminOutcome.Refused<>(scopeRefused.get());
             }
-            Set<String> added = new HashSet<>(SensitivePermissions.within(role.permissionCodes()));
-            added.removeAll(before);
-            if (!added.isEmpty()) {
+            if (extendsReach(before, definitionBefore, role)) {
+                if (roles.held(roleId)) {
+                    return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_IN_USE);
+                }
                 if (!ceiling.mayRequest(role.permissionCodes(), role.administrative())) {
                     return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_NOT_ALLOWED);
                 }
@@ -109,7 +112,12 @@ public class UpdateRole {
         }
         try {
             Role role = existing.get();
+            Set<String> before = new HashSet<>(role.permissionCodes());
+            RoleDefinition definitionBefore = role.definition();
             revise(role, command);
+            if (extendsReach(before, definitionBefore, role) && roles.held(roleId)) {
+                return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_ROLE_IN_USE);
+            }
             Optional<IdentityError> scopeRefused = refuseScope(requestedBy, role);
             if (scopeRefused.isPresent()) {
                 return new AdminOutcome.Refused<>(scopeRefused.get());
@@ -118,6 +126,12 @@ public class UpdateRole {
         } catch (RoleRuleException refused) {
             return new AdminOutcome.Refused<>(RoleErrors.of(refused.violation()));
         }
+    }
+
+    /** Sensitive permission codes were added, or a role that has them now reaches more org units (ADR-0032 decision 1 item 3): needs a second person, and no holder. */
+    private static boolean extendsReach(Set<String> codesBefore, RoleDefinition definitionBefore, Role role) {
+        Set<String> sensitive = SensitivePermissions.within(role.permissionCodes());
+        return !sensitive.isEmpty() && (!codesBefore.containsAll(sensitive) || SensitivePermissions.addsReach(definitionBefore, role.definition()));
     }
 
     /** accessScope null keeps the role's scope kind, customOrgUnits null keeps its units (one-coordinator ruling for #728). */

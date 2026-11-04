@@ -3,7 +3,7 @@
 - 作者：one-data，2026-10-21。第 1 版 @ae8e4621；独立复核 R-01…R-04 已改（`R-W2设计复核-2026-10-21.md` @13dd137e）；改后复核剩余两处（`repository-id-exceptions.txt:3`、三个 SyncRun 错误码）已补（`R2-W2设计改后复核-2026-10-21.md`）。
 - 起因：one-coordinator 派工；切分方案 PR-D2 删同步表（`sync_runs`、`sync_diffs`、`sync_run_held_separations`、两个 `last_sync_run_id`），`DATA-REPAIR-workforce.md` 的 WF-01/02/07/08/13/14 与 SD-1 失去对象（切分方案第 3 节第 15 条）。依据：ADR-0055 决定 6、ADR-0068 第 2、7 条。
 - **前提（R-04）**：以下「取消」成立的前提是 **D1、D2 在基线关闭前落地**。基线开放期可重建库、不产生迁移负担；基线关闭后再删表要按 ADR-0038 追加迁移，且 `sync_run_held_separations` 的 `ON DELETE CASCADE` 要在迁移里先断言行数为 0（ADR-0068 第 2 条 5）。
-- 状态：重判结论，待并入主卡（分支同步 main 后在 `DATA-REPAIR-workforce.md` 各条加「已取消」状态行；本页先作依据）。
+- 状态：重判结论（冻结，2026-11-04，#1263；未并入主卡）（分支同步 main 后在 `DATA-REPAIR-workforce.md` 各条加「已取消」状态行；本页先作依据）。
 
 ## 1. 逐条结论
 
