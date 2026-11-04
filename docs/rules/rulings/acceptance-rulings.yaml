@@ -576,3 +576,12 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/RoleScopeGrantIT.java
     reason: '#1244（#730 收尾）卡第 3 项：RoleScopeGrantIT 的 changingTheCustomOrgUnitsMovesTheHoldersScope 与 aTwoPersonRoleIsNotRevisedToIncludeDescendants 只删 @Disabled 行与无用 import，用例体与断言逐字不变；后者由 #1244 的 UpdateRole 放宽缺口修复转绿'
     ref: "commit f357c52da5283318b1609d0a89dacbc8792a216e (#1244 acceptance part, one-test), patch-id --verbatim c26401f4b477bbfa6177a72f5f8f0338d9ddd2ad"
+  - id: RULING-LEAD-20261104-27
+    date: 2026-11-04
+    ruled_by: independent opus reviewer dispatched by one-dev-org on commit 57be10360 alone (rv1222acc.md; substance confirmed, its one 必改 was a stale SeededRole javadoc, fixed comment-only in 5f34ad435 and read by lead), recorded by one-lead
+    implementer: one-dev-org
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/OldSyncRemovedIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/role_versioning/SystemRoleDeclarationIT.java
+    reason: '#1222 按 ADR-0069 第 11 节删组织每日对账：删 OldSyncRemovedIT.theReconciliationIsKeptUnderItsNewName（已删行为；接口与作业已去由非验收 WorkforceHttpIntegrationTest.theReconciliationIsGone 断言）；SystemRoleDeclarationIT 中 org_data_admin 声明修订号 4→5、预期码与种子比对去掉 org-reconciliation:execute（该码按 ADR-0034 第 3 项标停用不删），SeededRole javadoc 随之改写；其余断言不变'
+    ref: "commit 5f34ad435991a0e20845b2b75321627e1f044ccd (#1222, PR #1253), patch-id --verbatim c3d3ee56ea10d8780d8d530a2ee535f52ee16318; reviewed predecessor 57be10360 (patch-id b76a333fd); rv1222acc.md"
