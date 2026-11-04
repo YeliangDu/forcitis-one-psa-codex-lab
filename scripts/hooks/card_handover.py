@@ -177,7 +177,8 @@ def self_test():
     with tempfile.TemporaryDirectory() as d:
         root = os.path.join(d, "repo")
         os.makedirs(os.path.join(root, "scripts", "merge"))
-        shutil.copy(os.path.join(here, "..", "merge", "gapscan.py"), os.path.join(root, "scripts", "merge", "gapscan.py"))
+        for name in ("gapscan.py", "issue_gate.py"):
+            shutil.copy(os.path.join(here, "..", "merge", name), os.path.join(root, "scripts", "merge", name))
         subprocess.run(["git", "init", "-q", root], check=True)
         queue = os.path.join(root, ".git", "merge-queue")
         os.makedirs(queue)
