@@ -1,0 +1,37 @@
+import { describeFailure } from '@forcitis/core';
+import { DataTable, DescriptionList, LoadingState, Notice, PageTitle, StatusBadge, type DataColumn } from '@forcitis/ui';
+import { useParams } from 'react-router';
+import { useEmployee } from '../hooks/use-workforce';
+import { ASSIGNMENT_KIND_LABELS, EMPLOYMENT_STATUS_LABELS, type EmployeeDetail } from '../model/employee';
+
+type Assignment = EmployeeDetail['assignments'][number];
+
+const ASSIGNMENT_COLUMNS: DataColumn<Assignment>[] = [
+  { key: 'kind', title: '任职类型', render: (assignment) => ASSIGNMENT_KIND_LABELS[assignment.assignmentKind] ?? assignment.assignmentKind },
+  { key: 'unit', title: '组织单元', render: (assignment) => assignment.orgUnitName },
+  { key: 'position', title: '岗位', render: (assignment) => assignment.positionName ?? '—' },
+  { key: 'reportsTo', title: '汇报对象', render: (assignment) => assignment.reportsToDisplayName ?? '—' },
+];
+
+export function EmployeeDetailPage() {
+  const { employeeId = '' } = useParams();
+  const employee = useEmployee(employeeId);
+
+  if (employee.isPending) return <LoadingState />;
+  if (employee.isError) return <Notice tone="error" title="员工加载失败">{describeFailure(employee.error)}</Notice>;
+
+  const detail = employee.data;
+  return (
+    <>
+      <PageTitle text={detail.displayName} actions={<StatusBadge tone={detail.employmentStatus === 'EMPLOYED' ? 'posted' : 'neutral'}>{EMPLOYMENT_STATUS_LABELS[detail.employmentStatus] ?? detail.employmentStatus}</StatusBadge>} />
+      <DescriptionList
+        items={[
+          { label: '员工编码', value: detail.employeeCode },
+          { label: '姓名', value: detail.displayName },
+          { label: '入职日期', value: detail.hireDate ?? '—' },
+        ]}
+      />
+      <DataTable columns={ASSIGNMENT_COLUMNS} rows={detail.assignments} rowKey={(assignment) => `${assignment.assignmentKind}:${assignment.orgUnitId}:${assignment.positionId ?? ''}`} emptyText="暂无任职" />
+    </>
+  );
+}

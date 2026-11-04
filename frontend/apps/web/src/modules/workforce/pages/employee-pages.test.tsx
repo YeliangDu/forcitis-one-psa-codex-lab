@@ -1,0 +1,90 @@
+import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it } from 'vitest';
+import { problemBody, stubServer } from '@forcitis/core/testing';
+import { renderWithProviders } from '@/shared/testing/render-with-providers';
+import { EmployeeDetailPage } from './employee-detail-page';
+import { EmployeeRosterPage } from './employee-roster-page';
+
+const ID = '019a0000-0000-7000-8000-000000000a01';
+const UNIT = '019a0000-0000-7000-8000-000000000b01';
+const ROW = {
+  employeeId: ID,
+  employeeCode: 'E0001',
+  displayName: '张三',
+  employmentStatus: 'EMPLOYED',
+  hireDate: '2024-03-01',
+  assignments: [{ assignmentKind: 'PRIMARY', orgUnitId: UNIT, orgUnitName: '交付一部', positionId: null, positionName: '项目经理' }],
+};
+
+describe('员工名册', () => {
+  it('列出员工，默认只要在职，切换在职状态按服务端的筛选值重新取', async () => {
+    const server = stubServer({ 'GET employees': { body: { items: [ROW], nextCursor: null } } });
+    renderWithProviders(<EmployeeRosterPage />);
+
+    expect(await screen.findByText('张三')).toBeInTheDocument();
+    expect(screen.getByText('E0001')).toBeInTheDocument();
+    expect(screen.getByText('交付一部')).toBeInTheDocument();
+    expect(server.calls[0]?.url).toContain('employmentStatus=EMPLOYED');
+
+    await userEvent.selectOptions(screen.getByLabelText('在职状态'), 'SEPARATED');
+    await screen.findByText('张三');
+    expect(server.calls.some((call) => call.url.includes('employmentStatus=SEPARATED'))).toBe(true);
+  });
+
+  it('有下一页时显示「显示更多」，点后带着服务端给的游标取下一页', async () => {
+    const server = stubServer({
+      'GET employees': (request) => request.url.includes('cursor=c2')
+        ? { body: { items: [{ ...ROW, employeeId: '019a0000-0000-7000-8000-000000000a02', employeeCode: 'E0002', displayName: '李四' }], nextCursor: null } }
+        : { body: { items: [ROW], nextCursor: 'c2' } },
+    });
+    renderWithProviders(<EmployeeRosterPage />);
+
+    await userEvent.click(await screen.findByRole('button', { name: '显示更多' }));
+
+    expect(await screen.findByText('李四')).toBeInTheDocument();
+    expect(server.calls.some((call) => call.url.includes('cursor=c2'))).toBe(true);
+    expect(screen.queryByRole('button', { name: '显示更多' })).not.toBeInTheDocument();
+  });
+
+  it('没有员工时显示空状态', async () => {
+    stubServer({ 'GET employees': { body: { items: [], nextCursor: null } } });
+    renderWithProviders(<EmployeeRosterPage />);
+
+    expect(await screen.findByText('暂无员工')).toBeInTheDocument();
+  });
+
+  it('服务端拒绝（403）时显示可操作的提示，不显示服务端原文', async () => {
+    stubServer({ 'GET employees': { status: 403, body: problemBody(403, 'PLATFORM_WEB_ACCESS_DENIED', { detail: 'raw server detail' }) } });
+    renderWithProviders(<EmployeeRosterPage />);
+
+    expect(await screen.findByText('没有权限执行这个操作')).toBeInTheDocument();
+    expect(screen.queryByText(/raw server detail/)).not.toBeInTheDocument();
+  });
+});
+
+describe('员工详情', () => {
+  const DETAIL = { ...ROW, assignments: [{ ...ROW.assignments[0], reportsToEmployeeId: null, reportsToDisplayName: '王五' }] };
+
+  function render() {
+    return renderWithProviders(<EmployeeDetailPage />, { route: `/admin/employees/${ID}`, path: '/admin/employees/:employeeId' });
+  }
+
+  it('显示一个员工的基本信息和任职', async () => {
+    stubServer({ [`GET employees/${ID}`]: { body: DETAIL } });
+    render();
+
+    expect(await screen.findByText('E0001')).toBeInTheDocument();
+    expect(screen.getByText('2024-03-01')).toBeInTheDocument();
+    expect(screen.getByText('交付一部')).toBeInTheDocument();
+    expect(screen.getByText('项目经理')).toBeInTheDocument();
+    expect(screen.getByText('王五')).toBeInTheDocument();
+  });
+
+  it('服务端拒绝或找不到（403/404）时显示可操作的提示', async () => {
+    stubServer({ [`GET employees/${ID}`]: { status: 403, body: problemBody(403, 'PLATFORM_WEB_ACCESS_DENIED') } });
+    render();
+
+    expect(await screen.findByText('没有权限执行这个操作')).toBeInTheDocument();
+  });
+});
