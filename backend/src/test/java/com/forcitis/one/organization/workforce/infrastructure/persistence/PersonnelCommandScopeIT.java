@@ -1,0 +1,123 @@
+package com.forcitis.one.organization.workforce.infrastructure.persistence;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.forcitis.one.TestPostgres;
+import com.forcitis.one.kernel.IdGenerator;
+import com.forcitis.one.organization.workforce.domain.CommandReadQueries;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.organization.workforce.domain.CommandReadQueries.Scope;
+import com.forcitis.one.platform.integration.api.WecomGateway;
+import java.time.Instant;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+/** #1172 ruling (ADR-0026 decision 1 item 9): a personnel command is scoped by the department of the command, so people without a current primary post stay visible to their unit. */
+@SpringBootTest(properties = {"flowable.async-executor-activate=false"})
+class PersonnelCommandScopeIT {
+    @ServiceConnection
+    static final PostgreSQLContainer postgres = TestPostgres.container().withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");
+
+    static {
+        postgres.start();
+    }
+
+    @MockitoBean
+    WecomGateway wecomGateway;
+
+    @Autowired
+    JdbcClient jdbc;
+
+    @Autowired
+    IdGenerator ids;
+
+    @Autowired
+    CommandReadQueries queries;
+
+    @Test
+    @DisplayName("#1172 a future-dated HIRE with no post yet is seen by the target unit's scope and not by another unit's")
+    void futureHireIsScopedByItsTargetUnit() {
+        UUID mine = unit();
+        UUID other = unit();
+        UUID command = command(employee(), "HIRE", "PENDING", "2027-06-01", mine);
+        assertThat(visible(mine)).contains(command);
+        assertThat(visible(other)).doesNotContain(command);
+    }
+
+    @Test
+    @DisplayName("#1172 an effective SEPARATE stays with the unit that was left, not with a unit the person never held")
+    void effectiveSeparationStaysWithTheUnitLeft() {
+        UUID left = unit();
+        UUID other = unit();
+        UUID employee = employee();
+        primary(employee, left, "2026-01-01", "2026-07-01");
+        UUID command = command(employee, "SEPARATE", "EFFECTIVE", "2026-07-01", null);
+        assertThat(visible(left)).contains(command);
+        assertThat(visible(other)).doesNotContain(command);
+    }
+
+    @Test
+    @DisplayName("#1172 a command whose department cannot be resolved is out of scope")
+    void unresolvableDepartmentIsOutOfScope() {
+        UUID unit = unit();
+        UUID command = command(employee(), "REGULARIZE", "PENDING", "2027-06-01", null);
+        assertThat(visible(unit)).doesNotContain(command);
+        assertThat(queries.personnel(new Scope(false, Set.of()), null, null, null, null, 200)).isEmpty();
+    }
+
+    private List<UUID> visible(UUID unit) {
+        return queries.personnel(new Scope(false, Set.of(new OrgUnitId(unit))), null, null, null, null, 200).stream()
+                .map(row -> row.personnelCommandId().value()).toList();
+    }
+
+    private UUID unit() {
+        UUID unit = ids.next();
+        jdbc.sql("insert into organization_workforce.org_units (id, code, name, status) values (:id, :code, 'Example unit', 'ACTIVE')")
+                .param("id", unit).param("code", "SC-" + unit).update();
+        return unit;
+    }
+
+    private void primary(UUID employee, UUID unit, String from, String to) {
+        UUID root = ids.next();
+        jdbc.sql("insert into organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at) values (:id, :employee, 'PRIMARY', now(), now())")
+                .param("id", root).param("employee", employee).update();
+        jdbc.sql("""
+                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, effective_to_date, closed_at, org_unit_id, assignment_id, assignment_kind)
+                values (:id, :employee, cast(:from as date), cast(:to as date), now(), :unit, :root, 'PRIMARY')
+                """).param("id", ids.next()).param("employee", employee).param("from", from).param("to", to).param("unit", unit).param("root", root).update();
+    }
+
+    private UUID position() {
+        UUID position = ids.next();
+        jdbc.sql("insert into organization_workforce.positions (id, code, name, status) values (:id, :code, 'Example position', 'ACTIVE')")
+                .param("id", position).param("code", "SC-" + position).update();
+        return position;
+    }
+
+    private UUID employee() {
+        UUID employee = ids.next();
+        jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values (:id, :code, 'Example', 'EMPLOYED')")
+                .param("id", employee).param("code", "SC-" + employee).update();
+        return employee;
+    }
+
+    private UUID command(UUID employee, String kind, String status, String effective, UUID targetUnit) {
+        UUID id = ids.next();
+        UUID position = kind.equals("HIRE") ? position() : null;
+        jdbc.sql("""
+                insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id, target_position_id, is_target_fee_earner, target_employment_phase_kind, applied_at, created_at, created_by, updated_at)
+                values (:id, :employee, :kind, cast(:effective as date), :status, :unit, :position, case when cast(:kind as text) = 'HIRE' then false end, case when cast(:kind as text) = 'HIRE' then 'PROBATION' end, case when cast(:status as text) = 'EFFECTIVE' then now() end, now(), :by, now())
+                """).param("id", id).param("employee", employee).param("kind", kind).param("effective", effective).param("status", status)
+                .param("unit", targetUnit, java.sql.Types.OTHER).param("position", position, java.sql.Types.OTHER).param("by", ids.next()).update();
+        return id;
+    }
+}
