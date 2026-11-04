@@ -149,7 +149,7 @@ D1–D19 逐项对应，一项不漏：
 
 | # | 检查 | 通过判定 | 依据 |
 |---|---|---|---|
-| T1 | 基线 | 卡写明改动前的数据现状：现有表（注册表条目）或来源（老系统、A8）；没有现状的写「新建」。老系统的表、列、状态码只出现在本节与 E3 映射里，**不出现在目标表设计里** | §14.1 D16；CLAUDE.md 第 1、3、10 条；证据：`LegacyShapeTest`、`docs/check_legacy_name.py`（PR 里两者全绿；领域模块出现老系统或外部系统名称即不通过） |
+| T1 | 基线 | 卡写明改动前的数据现状：现有表（注册表条目）或来源（老系统、A8）；没有现状的写「新建」。老系统的表、列、状态码只出现在本节与 E3 映射里，**不出现在目标表设计里** | §14.1 D16；CLAUDE.md 第 1、3、10 条；证据：`LegacyShapeTest`（PR 里全绿；领域模块出现老系统或外部系统名称即不通过） |
 | T2 | 目标 | 卡写明目标表所属 BC 与阶段（`docs/architecture/ssot/transitions/transitions.yaml` 的 TA-xx）；其他 BC 读本卡的表时，沿用 C2 的 `cross_module` 规则，且依赖在 `module-dependencies.txt` 内 | ADR-0041 决定 1；`module-dependencies.txt` |
 | T3 | 过渡 | **基线开放期**（ADR-0038）：只要求写出该变更对在途的开发库与 `legacy_numbers` 的影响；**涉及迁入、换形态或改已有生产数据的卡**：写明迁入批次与顺序、源 → 目映射（E3）、对账口径（按期间 × 法人 × 来源单号的行数与金额，ADR-0021 第 4 条第 5 款）、在途单据处理、新旧并存窗口与切换点、回滚办法；数据过渡项登记到 `docs/architecture/ssot/transitions/transitions.yaml`（字段由 one-architecture 与 one-data 商定，商定前写在卡上） | ADR-0036；ADR-0038 |
 | T4 | 回滚 | 基线开放期：写「随库重建」（`docs/ops/runbooks/dev-db-rebuild.md`）；基线关闭后：写出「先扩后缩」两次发布或反向迁移与数据回退办法 | ADR-0038；NAMING_STANDARD §2.4a-9 |

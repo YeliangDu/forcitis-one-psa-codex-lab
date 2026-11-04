@@ -6,8 +6,8 @@
 
 | 文件 | 用途 |
 |---|---|
-| `scripts/ecs_init.sh` | E-1..E-10；默认只打印，`--apply` 才执行；`--only E-2,E-3` 只做部分 |
-| `scripts/ecs_check.sh` | E-1..E-17 只读检查，PASS / FAIL / MANUAL；`--public-check` 加公网检查 |
+| `tools/ops/ecs/scripts/ecs_init.sh` | E-1..E-10；默认只打印，`--apply` 才执行；`--only E-2,E-3` 只做部分 |
+| `tools/ops/ecs/scripts/ecs_check.sh` | E-1..E-17 只读检查，PASS / FAIL / MANUAL；`--public-check` 加公网检查 |
 | `files/forcitis-one.service` | systemd 单元（E-6） |
 | `files/forcitis-one.logrotate` | 本机日志轮转 7 天（SLS 保留 30 天） |
 | `files/nginx-one.conf` | nginx（E-8..E-10），访问日志不记查询串 |
