@@ -4495,7 +4495,7 @@ components:
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.RegisteredEmployeeTest
-        noConsumer: 暂无消费方：审计之外无人订阅；登录不再登记员工，此事件随
+        noConsumer: '暂无消费方：审计之外无人订阅；登录不再登记员工，此事件随 #1175 一并撤除'
       payload:
         type: object
         required:
@@ -5660,7 +5660,7 @@ x-system-actors:
 - name: platform.identity.account-provisioning
   actorId: 6405fb15-3e76-548c-b34c-479c690b2588
   module: platform.identity
-  description: 开通账号（入职事件监听器 HandleEmployeeRegistered 与各建账号入口）
+  description: 开通账号（入职事件监听器 HandleEmployeeHired 与各建账号入口）
 - name: platform.identity.authorization
   actorId: 39e3e313-517f-55c7-add4-a4c531b5831a
   module: platform.identity

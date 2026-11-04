@@ -68,7 +68,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** WeCom, the portal ticket check, the organisation directory and the audit trail belong to other modules and are doubles. */
+/** WeCom, the organisation directory and the audit trail belong to other modules and are doubles. */
 @SpringBootTest(properties = {
         "flowable.async-executor-activate=false",
         "forcitis.platform.identity.login-throttle.limits.login-states=100000",

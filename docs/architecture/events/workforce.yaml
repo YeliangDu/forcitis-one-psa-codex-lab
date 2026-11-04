@@ -165,7 +165,7 @@ components:
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.RegisteredEmployeeTest
-        noConsumer: 暂无消费方：审计之外无人订阅；登录不再登记员工，此事件随 #1175 一并撤除
+        noConsumer: "暂无消费方：审计之外无人订阅；登录不再登记员工，此事件随 #1175 一并撤除"
     LegalEntityAttributed:
       name: LegalEntityAttributed
       title: 部门或员工从某日起归属某法人

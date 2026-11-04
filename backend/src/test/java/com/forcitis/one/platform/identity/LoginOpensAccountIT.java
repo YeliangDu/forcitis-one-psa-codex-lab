@@ -18,8 +18,14 @@ import com.forcitis.one.platform.identity.events.AccountOpened;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
@@ -132,6 +138,52 @@ class LoginOpensAccountIT extends IdentityIntegrationTest {
         assertThat(domainEvents.of(AccountOpened.class)).isEmpty();
         assertThat(openedAtLogin()).isEmpty();
         assertThat(alerts).isEmpty();
+    }
+
+    @Test
+    @DisplayName("#1174 six logins of one employed person without an account at once open exactly one account: one event, one audit record, one ALERT line")
+    void concurrentLoginsRaiseTheAlertOnce() throws Exception {
+        int attempts = 6;
+        knownEmployee(8005, EmploymentStatus.EMPLOYED);
+        List<String[]> prepared = new ArrayList<>();
+        for (int i = 0; i < attempts; i++) {
+            String code = "race-" + i + "-" + UUID.randomUUID();
+            wecomAccepts(code, WecomEntry.WORKBENCH, 8005);
+            prepared.add(new String[] {code, newLoginState("WORKBENCH")});
+        }
+        ExecutorService pool = Executors.newFixedThreadPool(attempts);
+        CountDownLatch ready = new CountDownLatch(attempts);
+        CountDownLatch go = new CountDownLatch(1);
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        ListAppender<ILoggingEvent> logged = new ListAppender<>();
+        logged.start();
+        root.addAppender(logged);
+        List<Integer> statuses = new ArrayList<>();
+        try {
+            List<Future<Integer>> results = new ArrayList<>();
+            for (String[] login : prepared) {
+                results.add(pool.submit(() -> {
+                    ready.countDown();
+                    go.await();
+                    return postLogin("/api/v1/platform/sessions:wecom-login",
+                            "{\"code\":\"" + login[0] + "\",\"state\":\"" + login[1] + "\",\"entry\":\"WORKBENCH\"}", login[1]).getResponse().getStatus();
+                }));
+            }
+            assertThat(ready.await(30, TimeUnit.SECONDS)).isTrue();
+            go.countDown();
+            for (Future<Integer> result : results) {
+                statuses.add(result.get(60, TimeUnit.SECONDS));
+            }
+        } finally {
+            pool.shutdown();
+            root.detachAppender(logged);
+        }
+
+        assertThat(statuses).as("every login succeeds: %s", statuses).containsOnly(200);
+        assertThat(count("user_accounts")).isEqualTo(1);
+        assertThat(domainEvents.of(AccountOpened.class)).hasSize(1);
+        assertThat(openedAtLogin()).as("only the call that opened the account records it").hasSize(1);
+        assertThat(logged.list.stream().filter(line -> line.getFormattedMessage().startsWith("ALERT platform.identity account ")).toList()).hasSize(1);
     }
 
     @Test
