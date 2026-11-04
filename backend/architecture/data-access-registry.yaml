@@ -114,6 +114,21 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW, migrated_from: [old work calendar 2016-2026], via: ONE_OFF_IMPORT}
 
+  # #1310 AGG-108: standard hours are versioned config; a correction is a new version, never an edit.
+  organization_attendance.standard_hours_versions:
+    role: DIMENSION_VERSIONED
+    aggregate: StandardHours
+    mutability: APPEND_ONLY
+    condition: "the closing of the previous version (effective_to_date null to a date, by the publish of the next version), its reopening and the voiding of a future latest version (status IN_EFFECT to VOIDED once) are the only updates, nothing is deleted (triggers tg_standard_hours_versions_insert, tg_standard_hours_versions_change, tg_standard_hours_versions_void_reopens)"
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+  organization_attendance.standard_hours_date_overrides:
+    role: AGGREGATE_CHILD
+    aggregate: StandardHours
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+
   # Identity of positions, org_units and employees comes from platform_integration.source_references, unique on (source_system, source_object_kind, source_id).
   # positions.code, org_units.code and employees.employee_code are display only and not unique in the source (five employee codes sit on several rows, three of them on both
   # an employed and a separated record), so no local unique constraint exists; whether they are unique within some scope is open (card DATA-REPAIR-workforce, open item 4).
