@@ -54,7 +54,7 @@ class CommandReadPagingIT {
         for (UUID id : expected.reversed()) {
             personnelCommand(id, employee(), "REGULARIZE", "PENDING");
         }
-        assertThat(pages(after -> queries.personnel(new Scope(true, Set.of()), null, null, null, after, 2), row -> row.personnelCommandId().value())).containsSubsequence(expected);
+        assertThat(pages(after -> queries.personnel(new Scope(true, Set.of()), null, null, null, after, 1), row -> row.personnelCommandId().value(), expected)).containsExactlyElementsOf(expected);
     }
 
     @Test
@@ -71,7 +71,7 @@ class CommandReadPagingIT {
                     values (:id, 'DISABLE', 'POSITION', :position, date '2026-12-01', 'PENDING', :at, :by, :at)
                     """).param("id", id).param("position", position).param("at", java.time.OffsetDateTime.ofInstant(SAME, java.time.ZoneOffset.UTC)).param("by", ids.next()).update();
         }
-        assertThat(pages(after -> queries.structures(after, 2), row -> row.orgStructureCommandId().value())).containsSubsequence(expected);
+        assertThat(pages(after -> queries.structures(after, 1), row -> row.orgStructureCommandId().value(), expected)).containsExactlyElementsOf(expected);
     }
 
     @Test
@@ -87,7 +87,7 @@ class CommandReadPagingIT {
                     values (:id, :command, :employee, 'HELD', :at, :at)
                     """).param("id", id).param("command", command).param("employee", employee).param("at", java.time.OffsetDateTime.ofInstant(SAME, java.time.ZoneOffset.UTC)).update();
         }
-        assertThat(pages(after -> queries.holds(after, 2), row -> row.separationHoldId().value())).containsSubsequence(expected);
+        assertThat(pages(after -> queries.holds(after, 1), row -> row.separationHoldId().value(), expected)).containsExactlyElementsOf(expected);
     }
 
     /** Ids that sort ascending in the returned list but whose descending order is the insertion order. */
@@ -100,22 +100,20 @@ class CommandReadPagingIT {
         return found;
     }
 
-    private <T> List<UUID> pages(Function<Position, List<T>> page, Function<T, UUID> id) {
+    /** One row per page; only the ids this test inserted are kept, because the other cases of this class share the instant and the database. */
+    private <T> List<UUID> pages(Function<Position, List<T>> page, Function<T, UUID> id, List<UUID> own) {
         List<UUID> seen = new ArrayList<>();
         Position after = null;
-        for (int guard = 0; guard < 100; guard++) {
+        for (int guard = 0; guard < 1000; guard++) {
             List<T> rows = page.apply(after);
             if (rows.isEmpty()) {
                 return seen;
             }
-            rows.stream().map(id).forEach(seen::add);
+            rows.stream().map(id).filter(own::contains).forEach(seen::add);
             T last = rows.getLast();
             after = new Position(SAME, id.apply(last));
-            if (rows.size() < 2) {
-                return seen;
-            }
         }
-        throw new AssertionError("more than 100 pages");
+        throw new AssertionError("more than 1000 pages");
     }
 
     private UUID employee() {

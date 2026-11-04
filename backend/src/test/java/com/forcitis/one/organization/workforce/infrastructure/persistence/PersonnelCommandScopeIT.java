@@ -90,6 +90,41 @@ class PersonnelCommandScopeIT {
     }
 
     @Test
+    @DisplayName("#1172 a unit the person was corrected away from (superseded assignment version) grants no scope")
+    void supersededAssignmentVersionGrantsNoScope() {
+        UUID wrong = unit();
+        UUID right = unit();
+        UUID employee = employee();
+        UUID root = assignment(employee, right, "2026-01-01", "2026-07-01", "PRIMARY");
+        UUID correcting = command(employee, "CORRECTION", "EFFECTIVE", "2026-02-01", null);
+        UUID version = ids.next();
+        jdbc.sql("""
+                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, effective_to_date, closed_at, superseded_at,
+                  superseding_command_id, org_unit_id, assignment_id, assignment_kind, revision_number)
+                values (:id, :employee, date '2026-01-01', date '2026-07-01', now(), now(), :command, :unit, :root, 'PRIMARY', 1)
+                """).param("id", version).param("employee", employee).param("command", correcting).param("unit", wrong).param("root", root).update();
+        UUID command = command(employee, "SEPARATE", "EFFECTIVE", "2026-07-01", null);
+        assertThat(visible(right)).contains(command);
+        assertThat(visible(wrong)).doesNotContain(command);
+    }
+
+    @Test
+    @DisplayName("#1172 a person who has versions but no assignment version does not revive the snapshot post")
+    void versionedPersonDoesNotReviveTheSnapshotPost() {
+        UUID snapshot = unit();
+        UUID employee = employee();
+        jdbc.sql("insert into organization_workforce.assignments (employee_id, org_unit_id) values (:employee, :unit)").param("employee", employee).param("unit", snapshot).update();
+        UUID command = command(employee, "REGULARIZE", "PENDING", "2027-06-01", null);
+        assertThat(visible(snapshot)).as("a snapshot-only person is scoped by the snapshot post").contains(command);
+        jdbc.sql("""
+                insert into organization_workforce.employee_versions (employee_version_id, employee_id, effective_from_date, employment_status, employment_phase_kind,
+                  is_on_unpaid_leave, is_fee_earner, employment_start_basis_kind, change_channel_kind, created_at, updated_at)
+                values (:id, :employee, date '2026-01-01', 'EMPLOYED', 'REGULAR', false, false, 'UNKNOWN', 'MIGRATION', now(), now())
+                """).param("id", ids.next()).param("employee", employee).update();
+        assertThat(visible(snapshot)).as("once versioned, no assignment version means no scope").doesNotContain(command);
+    }
+
+    @Test
     @DisplayName("#1172 a command whose department cannot be resolved is out of scope")
     void unresolvableDepartmentIsOutOfScope() {
         UUID unit = unit();
@@ -114,7 +149,7 @@ class PersonnelCommandScopeIT {
         assignment(employee, unit, from, to, "PRIMARY");
     }
 
-    private void assignment(UUID employee, UUID unit, String from, String to, String kind) {
+    private UUID assignment(UUID employee, UUID unit, String from, String to, String kind) {
         UUID root = ids.next();
         jdbc.sql("insert into organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at) values (:id, :employee, :kind, now(), now())")
                 .param("id", root).param("employee", employee).param("kind", kind).update();
@@ -122,6 +157,7 @@ class PersonnelCommandScopeIT {
                 insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, effective_to_date, closed_at, org_unit_id, assignment_id, assignment_kind)
                 values (:id, :employee, cast(:from as date), cast(:to as date), case when cast(:to as date) is null then null else now() end, :unit, :root, :kind)
                 """).param("id", ids.next()).param("employee", employee).param("from", from).param("to", to, java.sql.Types.VARCHAR).param("unit", unit).param("root", root).param("kind", kind).update();
+        return root;
     }
 
     private UUID position() {
