@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { takeReturnPath } from '../api/return-path-storage';
-import { loginWithSignedTicket, loginWithSso, loginWithWecomCode } from '../api/session-api';
+import { loginWithSignedTicket, loginWithWecomCode } from '../api/session-api';
 
 interface Problem {
   message: string;
@@ -15,8 +15,8 @@ function legacyLoginUrlOf(error: unknown): string | undefined {
   return safeExternalUrl(failureOf(error).legacyLoginUrl);
 }
 
-/** Landing page of the WeCom redirect (code + state) and of the portal redirect (ticket). The one-time values leave the address bar at once. */
-export function LoginCallbackPage({ kind }: { kind: 'wecom' | 'sso' | 'ticket' }) {
+/** Landing page of the WeCom redirect (code + state) and of an external system's signed ticket. The one-time values leave the address bar at once. */
+export function LoginCallbackPage({ kind }: { kind: 'wecom' | 'ticket' }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const started = useRef(false);
@@ -25,17 +25,16 @@ export function LoginCallbackPage({ kind }: { kind: 'wecom' | 'sso' | 'ticket' }
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    // WeCom and the portal send their one-time values in the query; an external system's signed ticket travels in the fragment, which never reaches a server access log.
+    // WeCom sends its one-time values in the query; an external system's signed ticket travels in the fragment, which never reaches a server access log.
     const params = new URLSearchParams(kind === 'ticket' ? window.location.hash.slice(1) : window.location.search);
     window.history.replaceState(null, '', window.location.pathname);
     const code = params.get('code');
     const state = params.get('state');
     const ticket = params.get('ticket');
 
-    const signIn = kind === 'sso' ? loginWithSso : loginWithSignedTicket;
     const attempt = kind === 'wecom'
       ? (code !== null && state !== null ? loginWithWecomCode(code, state) : undefined)
-      : (ticket === null ? undefined : signIn(ticket));
+      : (ticket === null ? undefined : loginWithSignedTicket(ticket));
     if (attempt === undefined) {
       setProblem({ message: '登录信息不完整，请重新登录', legacyLoginUrl: undefined });
       return;

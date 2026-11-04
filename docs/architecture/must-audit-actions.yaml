@@ -8,6 +8,7 @@ categories:
   - platform.identity.login.failed
   - platform.identity.login.identity-check
   - platform.identity.login.succeeded
+  - platform.identity.account.opened-at-login
   - platform.identity.logout
   - platform.identity.session.identity-confirmed
 - name: 会话
