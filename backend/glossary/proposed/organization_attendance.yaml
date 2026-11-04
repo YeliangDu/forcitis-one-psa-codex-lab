@@ -156,3 +156,101 @@ terms:
   forbidden: []
   status: proposed
   note: '#1310 表结构 PR 新增，待 one-design 确认'
+- id: backdated
+  zh: 倒填日期
+  en: Backdated
+  snake: backdated
+  kind: value_object
+  bc: organization.attendance
+  scope: domain
+  definition: 标准工时的非首个版本，其生效日期早于业务时区的今天（倒填）；只用在错误码里
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1310 实现 PR 新增，待 one-design 确认'
+- id: voidable
+  zh: 可作废
+  en: Voidable
+  snake: voidable
+  kind: value_object
+  bc: organization.attendance
+  scope: domain
+  definition: 标准工时版本满足作废条件（生效中、生效日期晚于今天、是所属范围最新的一版）；只用在错误码里
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1310 实现 PR 新增，待 one-design 确认'
+- id: error__organization_attendance_standard_hours_invalid
+  zh: 标准工时填写不合规
+  en: OrganizationAttendanceStandardHoursInvalid
+  snake: organization_attendance_standard_hours_invalid
+  kind: error_code
+  bc: organization.attendance
+  scope: domain
+  definition: 标准工时版本的形状或数值不合规，例如分钟数超出范围、覆盖日期早于生效日期（400）
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1310 实现 PR 新增，待 one-design 确认'
+- id: error__organization_attendance_standard_hours_overlap
+  zh: 标准工时生效日期重叠
+  en: OrganizationAttendanceStandardHoursOverlap
+  snake: organization_attendance_standard_hours_overlap
+  kind: error_code
+  bc: organization.attendance
+  scope: domain
+  definition: 新版本的生效日期不晚于该范围已有的最新版本（409）
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1310 实现 PR 新增，待 one-design 确认'
+- id: error__organization_attendance_standard_hours_backdated
+  zh: 标准工时倒填日期
+  en: OrganizationAttendanceStandardHoursBackdated
+  snake: organization_attendance_standard_hours_backdated
+  kind: error_code
+  bc: organization.attendance
+  scope: domain
+  definition: 非首个版本的生效日期早于业务时区的今天（422）
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1310 实现 PR 新增，待 one-design 确认'
+- id: error__organization_attendance_standard_hours_not_voidable
+  zh: 标准工时不可作废
+  en: OrganizationAttendanceStandardHoursNotVoidable
+  snake: organization_attendance_standard_hours_not_voidable
+  kind: error_code
+  bc: organization.attendance
+  scope: domain
+  definition: 该版本不是生效中、生效日期不晚于今天，或不是所属范围最新的一版（422）
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1310 实现 PR 新增，待 one-design 确认'
+- id: error__organization_attendance_standard_hours_not_found
+  zh: 标准工时版本不存在
+  en: OrganizationAttendanceStandardHoursNotFound
+  snake: organization_attendance_standard_hours_not_found
+  kind: error_code
+  bc: organization.attendance
+  scope: domain
+  definition: 没有这个标准工时版本，或没有版本覆盖所查日期（404）
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1310 实现 PR 新增，待 one-design 确认'
