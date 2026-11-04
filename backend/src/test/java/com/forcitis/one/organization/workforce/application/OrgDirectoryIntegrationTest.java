@@ -107,6 +107,13 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
+    @DisplayName("ADR-0069 s7 employees keeps no login_name: the column is gone, so nothing can keep a second identity for a person")
+    void employeesHasNoLoginNameColumn() {
+        assertThat(jdbc.sql("select count(*) from information_schema.columns where table_schema = 'organization_workforce' and table_name = 'employees' and column_name = 'login_name'")
+                .query(Integer.class).single()).isZero();
+    }
+
+    @Test
     @DisplayName("RULE-372 the direct leader is the person-level leader; empty when none or not employed")
     void supervisor() {
         synced();
