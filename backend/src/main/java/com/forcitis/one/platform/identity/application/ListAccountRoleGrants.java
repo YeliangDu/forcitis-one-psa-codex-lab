@@ -11,7 +11,6 @@ import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.GrantHistory;
 import com.forcitis.one.platform.identity.domain.GrantHistory.RowPosition;
 import com.forcitis.one.platform.identity.domain.GrantRow;
-import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
@@ -55,7 +54,7 @@ public class ListAccountRoleGrants {
         }
         int cut = cursorValue.indexOf(SEPARATOR);
         try {
-            return new RowPosition(Instant.parse(cursorValue.substring(0, cut)), new AccountRoleGrantId(Uuids.parseCanonical(cursorValue.substring(cut + 1))));
+            return new RowPosition(CursorMoment.parse(cursorValue.substring(0, cut)), new AccountRoleGrantId(Uuids.parseCanonical(cursorValue.substring(cut + 1))));
         } catch (DateTimeParseException | IllegalArgumentException | StringIndexOutOfBoundsException notAPosition) {
             throw new InvalidCursorException("the cursor key is not a grant position");
         }

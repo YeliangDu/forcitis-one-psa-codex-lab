@@ -14,7 +14,6 @@ import com.forcitis.one.platform.identity.domain.AccountListRow;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.AccountRepository.ListPosition;
 import com.forcitis.one.platform.identity.domain.AccountStatus;
-import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +59,7 @@ public class ListUserAccounts {
         }
         int cut = cursorValue.indexOf(SEPARATOR);
         try {
-            return new ListPosition(Instant.parse(cursorValue.substring(0, cut)), new UserId(Uuids.parseCanonical(cursorValue.substring(cut + 1))));
+            return new ListPosition(CursorMoment.parse(cursorValue.substring(0, cut)), new UserId(Uuids.parseCanonical(cursorValue.substring(cut + 1))));
         } catch (DateTimeParseException | IllegalArgumentException | StringIndexOutOfBoundsException notAPosition) {
             throw new InvalidCursorException("the cursor key is not an account position");
         }
