@@ -2,6 +2,7 @@ package com.forcitis.one.platform.identity.infrastructure.persistence;
 
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.identity.domain.GrantHistory;
+import com.forcitis.one.platform.identity.domain.GrantRow;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -10,6 +11,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -18,9 +20,16 @@ import org.springframework.stereotype.Repository;
 class JdbcGrantHistory implements GrantHistory {
 
     private final JdbcClient jdbc;
+    private final JdbcFullGrantHistory fullHistory;
 
-    JdbcGrantHistory(JdbcClient jdbc) {
+    JdbcGrantHistory(JdbcClient jdbc, JdbcFullGrantHistory fullHistory) {
         this.jdbc = jdbc;
+        this.fullHistory = fullHistory;
+    }
+
+    @Override
+    public List<GrantRow> rowsOf(UserId user, @Nullable RowPosition after, int limit) {
+        return fullHistory.rowsOf(user, after, limit);
     }
 
     @Override

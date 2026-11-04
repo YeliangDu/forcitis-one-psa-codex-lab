@@ -113,7 +113,7 @@ class OpenApiExportTest {
             "MarkPermissionAdjustmentAdjustedRequest.authorizationRequestId", "MarkPermissionAdjustmentAdjustedRequest.auditEntryId",
             "RegisterSourceReferenceRequest.ownId", "SourceReferenceResponse.ownId", "SourceReferenceResponse.sourceReferenceId",
             "AuditEntryResponse.actorId", "AuditEntryResponse.onBehalfOfId", "AuditEntryResponse.subjectId", "AuthorizationRequestResponse.subjectUserId", "CurrentUserResponse.userId",
-            "LoginResponse.userId", "UserAccountResponse.userId", "HandledTaskResponse.actorId", "HistoryEntry.actorId", "PendingTemplate.authorId",
+            "LoginResponse.userId", "UserAccountResponse.userId", "AccountListItemResponse.userId", "AccountGrantResponse.grantedBy", "AccountGrantResponse.revokedBy","HandledTaskResponse.actorId", "HistoryEntry.actorId", "PendingTemplate.authorId",
             "parameter userId", "parameter actorId", "parameter onBehalfOfId", "parameter subjectId",
             "parameter legalEntityId", "parameter ownId", "parameter permissionAdjustmentId", "parameter requestId", "parameter roleId", "parameter sourceReferenceId", "parameter documentId /api/v1/platform/legacy-numbers",
             "OrgUnitResponse.orgUnitId", "OrgUnitResponse.headEmployeeId", "OrgUnitResponse.parentOrgUnitId", "OrgUnitResponse.regionalReceivablesManagerId",
