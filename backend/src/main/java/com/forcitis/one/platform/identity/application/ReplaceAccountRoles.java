@@ -55,10 +55,12 @@ public class ReplaceAccountRoles {
     private final AuthorizationVoiding voiding;
     private final AdministratorFloor floor;
     private final AdministratorFloorNotice notice;
+    private final SubjectEmployment employment;
 
     ReplaceAccountRoles(AccountRepository accounts, RoleRepository roles, PrivilegeCeiling ceiling, SessionRevocation revocation,
             AccessCache cache, DomainEvents events, CurrentUser currentUser, AuthorizationGate gate, AuditLog audit, AccountGrants grants,
-            AdministratorFloor floor, AdministratorFloorNotice notice, AuthorizationVoiding voiding) {
+            AdministratorFloor floor, AdministratorFloorNotice notice, AuthorizationVoiding voiding, SubjectEmployment employment) {
+        this.employment = employment;
         this.voiding = voiding;
         this.grants = grants;
         this.floor = floor;
@@ -97,6 +99,9 @@ public class ReplaceAccountRoles {
             wanted.add(role.get());
         }
         Set<RoleCode> alreadyHeld = accounts.findAssignedRoleCodes(account.userId());
+        if (givesARole(wanted, alreadyHeld) && !employment.isEmployed(account)) {
+            return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED);
+        }
         if (touchesSensitiveRole(wanted, alreadyHeld)) {
             Set<String> requested = new HashSet<>();
             boolean administrativeRole = false;
@@ -140,6 +145,9 @@ public class ReplaceAccountRoles {
             }
             wanted.add(role.get());
         }
+        if (givesARole(wanted, accounts.findAssignedRoleCodes(userId)) && !employment.isEmployed(found.get())) {
+            return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED);
+        }
         return new AdminOutcome.Done<>(replace(found.get(), wanted, AccountGrants.Origin.manual(request.requestedBy(), request.requestId()), request).isPresent());
     }
 
@@ -149,6 +157,11 @@ public class ReplaceAccountRoles {
         wanted.forEach(role -> versions.add(Objects.requireNonNull(role.roleVersionId())));
         alreadyHeld.forEach(code -> roles.findByCode(code).ifPresent(role -> versions.add(Objects.requireNonNull(role.roleVersionId()))));
         return new AuthorizationBase(account.version(), List.copyOf(versions));
+    }
+
+    /** Taking roles away from a person who left stays possible; giving one does not (#1322). */
+    private static boolean givesARole(List<Role> wanted, Set<RoleCode> alreadyHeld) {
+        return wanted.stream().anyMatch(role -> !alreadyHeld.contains(role.code()));
     }
 
     private boolean touchesSensitiveRole(List<Role> wanted, Set<RoleCode> alreadyHeld) {
