@@ -172,7 +172,6 @@ class HttpContractIT {
             }
         }
         assertThat(offered).as("the 21 endpoints of idempotent-endpoints.txt").isEqualTo(21);
-        assertThat(scope.applies("POST", "/api/v1/organization/org-reconciliations:run")).isFalse();
         assertThat(scope.applies("POST", "/api/v1/platform/source-references")).isFalse();
         assertThat(scope.applies("POST", "/api/v1/platform/sessions:logout")).isFalse();
         assertThat(scope.applies("POST", "/api/v1/platform/login-states")).isFalse();

@@ -36,8 +36,8 @@ public record SystemRoleDeclaration(List<DeclaredRole> roles) {
                     Codes.PLATFORM_APPROVAL_TASK_READ, Codes.PLATFORM_APPROVAL_TASK_APPROVE, Codes.PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ,
                     Codes.PLATFORM_FILE_FILE_CREATE, Codes.PLATFORM_FILE_FILE_READ),
             declared("019a0000-0000-7000-8000-000000000103", "process_administrator", "流程管理员", AccessScopeKind.SELF, false),
-            declared("019a0000-0000-7000-8000-000000000104", "org_data_admin", "组织数据管理员", AccessScopeKind.ALL, false, 4,
-                    Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ, Codes.ORGANIZATION_WORKFORCE_ORG_RECONCILIATION_EXECUTE,
+            declared("019a0000-0000-7000-8000-000000000104", "org_data_admin", "组织数据管理员", AccessScopeKind.ALL, false, 5,
+                    Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ,
                     Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE, Codes.ORGANIZATION_ATTENDANCE_WORK_CALENDAR_READ,
                     Codes.ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE, Codes.ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE,
                     Codes.PLATFORM_NUMBERING_RULE_READ, Codes.PLATFORM_NUMBERING_RULE_UPDATE, Codes.PLATFORM_INTEGRATION_SOURCE_REFERENCE_UPDATE,
@@ -54,7 +54,7 @@ public record SystemRoleDeclaration(List<DeclaredRole> roles) {
             declared("019a0000-0000-7000-8000-000000000108", "legal_entity_finance_head", "法人财务负责人", AccessScopeKind.SELF, false,
                     Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_APPROVE)));
 
-    /** The revision every role of the first declaration carries (card 7.2: 声明修订号 1); org_data_admin is at 2 since #934 swapped its sync-run codes for org-reconciliation:execute, at 3 since #907 added org-structure-command:create, at 4 since it holds permission-adjustment:read and :update (#730 S3); security_auditor is at 2 since it holds permission-adjustment:read; business_admin is at 2 since it holds legal-entity-attribution:approve; personnel_specialist is at 2 since it holds employee:read (#1171). */
+    /** The revision every role of the first declaration carries (card 7.2: 声明修订号 1); org_data_admin is at 2 since #934 swapped its sync-run codes for org-reconciliation:execute, at 3 since #907 added org-structure-command:create, at 4 since it holds permission-adjustment:read and :update (#730 S3), at 5 since org-reconciliation:execute is gone (#1222); security_auditor is at 2 since it holds permission-adjustment:read; business_admin is at 2 since it holds legal-entity-attribution:approve; personnel_specialist is at 2 since it holds employee:read (#1171). */
     static final int FIRST_REVISION = 1;
 
     public SystemRoleDeclaration {
