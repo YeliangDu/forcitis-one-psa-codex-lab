@@ -354,6 +354,18 @@ organization.workforce::api organization.workforce.api.CountersignRequestKind pu
 organization.workforce::api organization.workforce.api.CountersignRequestKind public static organization.workforce.api.CountersignRequestKind[] organization.workforce.api.CountersignRequestKind.values()
 organization.workforce::api organization.workforce.api.EmployeeExistence public abstract boolean organization.workforce.api.EmployeeExistence.exists(kernel.EmployeeId)
 organization.workforce::api organization.workforce.api.EmployeeExistence public abstract interface organization.workforce.api.EmployeeExistence
+organization.workforce::api organization.workforce.api.EmployeeLabel component displayName: java.lang.String
+organization.workforce::api organization.workforce.api.EmployeeLabel component employeeCode: java.lang.String
+organization.workforce::api organization.workforce.api.EmployeeLabel extends java.lang.Record
+organization.workforce::api organization.workforce.api.EmployeeLabel public final boolean organization.workforce.api.EmployeeLabel.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.EmployeeLabel public final int organization.workforce.api.EmployeeLabel.hashCode()
+organization.workforce::api organization.workforce.api.EmployeeLabel public final java.lang.String organization.workforce.api.EmployeeLabel.toString()
+organization.workforce::api organization.workforce.api.EmployeeLabel public final record organization.workforce.api.EmployeeLabel
+organization.workforce::api organization.workforce.api.EmployeeLabel public java.lang.String organization.workforce.api.EmployeeLabel.displayName()
+organization.workforce::api organization.workforce.api.EmployeeLabel public java.lang.String organization.workforce.api.EmployeeLabel.employeeCode()
+organization.workforce::api organization.workforce.api.EmployeeLabel public organization.workforce.api.EmployeeLabel(java.lang.String,java.lang.String)
+organization.workforce::api organization.workforce.api.EmployeeLabels public abstract interface organization.workforce.api.EmployeeLabels
+organization.workforce::api organization.workforce.api.EmployeeLabels public abstract java.util.Map<kernel.EmployeeId, organization.workforce.api.EmployeeLabel> organization.workforce.api.EmployeeLabels.labelsOf(java.util.Set<kernel.EmployeeId>)
 organization.workforce::api organization.workforce.api.EmployeeLegalEntities public abstract interface organization.workforce.api.EmployeeLegalEntities
 organization.workforce::api organization.workforce.api.EmployeeLegalEntities public abstract kernel.LegalEntityId organization.workforce.api.EmployeeLegalEntities.on(kernel.EmployeeId,java.time.LocalDate)
 organization.workforce::api organization.workforce.api.EmployeeProfile component employeeId: kernel.EmployeeId
