@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { currentUserBody, problemBody, stubServer } from '@forcitis/core/testing';
 import { renderWithProviders } from '@/shared/testing/render-with-providers';
 import { AuthorizationRequestsPage } from './authorization-requests-page';
@@ -150,6 +150,54 @@ describe('授权申请页', () => {
     const keys = server.calls.filter((call) => call.method === 'POST').map((call) => call.headers.get('Idempotency-Key'));
     expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
     expect(keys[1]).toBe(keys[0]);
+  });
+
+  it('服务端拒绝后再试同一个确认：换新的幂等键', async () => {
+    let attempts = 0;
+    const server = stubServer({
+      'GET sessions:current': { body: currentUserBody([UPDATE]) },
+      'GET authorization-requests': { body: { items: REQUESTS } },
+      [`POST authorization-requests/${FIRST}:confirm`]: () => (++attempts === 1 ? { status: 409, body: problemBody(409, 'PLATFORM_IDENTITY_ROLE_IN_USE') } : { status: 204 }),
+    });
+    renderWithProviders(<AuthorizationRequestsPage />);
+
+    await screen.findByText('合成角色甲');
+    const dialog = await decide('合成角色甲', '确认');
+    expect(await within(dialog).findByText('这个角色还有用户账号在用，暂时不能这样处理')).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: '确认' }));
+
+    await waitFor(() => expect(server.calls.filter((call) => call.method === 'POST')).toHaveLength(2));
+    const keys = server.calls.filter((call) => call.method === 'POST').map((call) => call.headers.get('Idempotency-Key'));
+    expect(keys[0]).not.toBeNull();
+    expect(keys[1]).not.toBeNull();
+    expect(keys[1]).not.toBe(keys[0]);
+  });
+
+  it('提交还没有得到答复时：申请仍在列表里（不做乐观更新）', async () => {
+    let confirmed = false;
+    stubServer({
+      'GET sessions:current': { body: currentUserBody([UPDATE]) },
+      'GET authorization-requests': () => ({ body: { items: confirmed ? [REQUESTS[1]] : REQUESTS } }),
+      [`POST authorization-requests/${FIRST}:confirm`]: () => {
+        confirmed = true;
+        return { status: 204 };
+      },
+    });
+    const answer = vi.fn<() => void>();
+    const gate = new Promise<void>((resolve) => answer.mockImplementation(resolve));
+    const respond = globalThis.fetch;
+    vi.stubGlobal('fetch', async (input: string, init?: RequestInit) => {
+      if ((init?.method ?? 'GET').toUpperCase() === 'POST') await gate;
+      return respond(input, init);
+    });
+    renderWithProviders(<AuthorizationRequestsPage />);
+
+    await screen.findByText('合成角色甲');
+    await decide('合成角色甲', '确认');
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.getByText('合成角色甲')).toBeInTheDocument();
+    answer();
+    await waitFor(() => expect(screen.queryByText('合成角色甲')).not.toBeInTheDocument());
   });
 
   it('驳回被服务端拒绝：显示驳回失败', async () => {
