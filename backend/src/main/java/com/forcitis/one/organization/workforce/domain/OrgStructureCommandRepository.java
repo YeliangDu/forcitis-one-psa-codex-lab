@@ -44,9 +44,6 @@ public interface OrgStructureCommandRepository {
 
     boolean legalEntityExists(LegalEntityId legalEntity);
 
-    /** Whether the unit has an attribution period that starts on or after the day, or a closed one that ends after it: appending a period from that day would need the W2 void-and-append split, which is not built. */
-    boolean hasAttributionAfter(OrgUnitId orgUnit, LocalDate day);
-
     /** Whether any position, current or not, ever had the code (codes are company-unique and never reused). */
     boolean positionCodeTaken(String code);
 
@@ -86,12 +83,12 @@ public interface OrgStructureCommandRepository {
     /** Writes the initial legal entity of a new unit: the attribution root and its first open period, from the command's day. */
     void insertInitialAttribution(OrgUnitId orgUnit, LegalEntityId legalEntity, LocalDate from, OrgStructureCommandId command, AuditEntryId audit, Instant at);
 
-    /** From the day on the unit belongs to the legal entity: closes the open period at the day and appends one, both from the command; the unit's attribution root is created if the unit never had one. */
+    /** Assigns the legal entity from the day until the next period: closes and appends for a later day, or voids and re-appends covered facts for a back-dated day; creates the attribution root if needed. */
     void attributeUnit(OrgUnitId orgUnit, LegalEntityId legalEntity, LocalDate from, OrgStructureCommandId command, AuditEntryId audit, Instant at);
 
     /**
      * Takes back every period the command wrote (a withdrawal): superseded, not deleted; a period the command closed is superseded and appended again as it was, up to where the command's own period ended (open when no later command followed),
-     * so the unit belongs to the entity it did before the command.
+     * so the unit belongs to the entity it did before the command. Fully covered facts the command voided are re-appended with their original range and source.
      */
     void voidAttribution(OrgUnitId orgUnit, OrgStructureCommandId command, AuditEntryId audit, Instant at);
 
