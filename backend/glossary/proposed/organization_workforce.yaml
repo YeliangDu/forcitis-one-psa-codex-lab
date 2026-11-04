@@ -547,3 +547,277 @@ terms:
   forbidden: []
   status: proposed
   note: 员工名册与详情页用语（#1280）
+- id: personnel_command_kind_hire
+  zh: 入职
+  en: PersonnelCommandKindHire
+  snake: personnel_command_kind_hire
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令种类 HIRE：新人入职，建立员工和主任职
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 人事命令页面用语（#1296）
+- id: personnel_command_kind_reinstate
+  zh: 复职
+  en: PersonnelCommandKindReinstate
+  snake: personnel_command_kind_reinstate
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令种类 REINSTATE：已离职员工恢复在职
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 人事命令页面用语（#1296）
+- id: personnel_command_kind_transfer
+  zh: 调岗
+  en: PersonnelCommandKindTransfer
+  snake: personnel_command_kind_transfer
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令种类 TRANSFER：改变部门、岗位、直属上级、是否计费人员或成本法人
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 人事命令页面用语（#1296）
+- id: personnel_command_kind_correction
+  zh: 更正
+  en: PersonnelCommandKindCorrection
+  snake: personnel_command_kind_correction
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令种类 CORRECTION：更正已有任职信息，立即生效
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 人事命令页面用语（#1296）
+- id: personnel_command_kind_start_concurrent
+  zh: 开始兼岗
+  en: PersonnelCommandKindStartConcurrent
+  snake: personnel_command_kind_start_concurrent
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令种类 START_CONCURRENT：开始一个兼岗
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 人事命令页面用语（#1296）
+- id: personnel_command_kind_end_concurrent
+  zh: 结束兼岗
+  en: PersonnelCommandKindEndConcurrent
+  snake: personnel_command_kind_end_concurrent
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令种类 END_CONCURRENT：结束一个兼岗
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 人事命令页面用语（#1296）
+- id: personnel_command_kind_unpaid_leave_start
+  zh: 停薪留职开始
+  en: PersonnelCommandKindUnpaidLeaveStart
+  snake: personnel_command_kind_unpaid_leave_start
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令种类 UNPAID_LEAVE_START：员工开始停薪留职
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 人事命令页面用语（#1296）
+- id: personnel_command_kind_unpaid_leave_end
+  zh: 停薪留职结束
+  en: PersonnelCommandKindUnpaidLeaveEnd
+  snake: personnel_command_kind_unpaid_leave_end
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令种类 UNPAID_LEAVE_END：员工结束停薪留职
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 人事命令页面用语（#1296）
+- id: personnel_command_status_held
+  zh: 待放行
+  en: PersonnelCommandStatusHeld
+  snake: personnel_command_status_held
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令状态 HELD 和离职挂起状态 HELD：离职命令等待放行（ADR-0068 第 2 条）
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 人事命令页面用语（#1296）
+- id: separation_hold_status_released
+  zh: 已放行
+  en: SeparationHoldStatusReleased
+  snake: separation_hold_status_released
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 离职挂起状态 RELEASED：挂起已被放行，离职命令继续
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 人事命令页面用语（#1296）
+- id: fee_earner_personnel_flag
+  zh: 是否计费人员
+  en: FeeEarnerPersonnelFlag
+  snake: fee_earner_personnel_flag
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令目标字段：任职后是否为计费人员
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 人事命令页面用语（#1296）
+- id: wecom_account
+  zh: 企业微信账号
+  en: WecomAccount
+  snake: wecom_account
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 入职时填写的企业微信账号，可不填
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 人事命令页面用语（#1296）
+- id: gender_male
+  zh: 男
+  en: GenderMale
+  snake: gender_male
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 性别取值 MALE
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 人事命令页面用语（#1296）
+- id: gender_female
+  zh: 女
+  en: GenderFemale
+  snake: gender_female
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 性别取值 FEMALE
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 人事命令页面用语（#1296）
+- id: personnel_command_status_pending
+  zh: 待生效
+  en: PersonnelCommandStatusPending
+  snake: personnel_command_status_pending
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 人事命令状态 PENDING：命令已录入，生效日期未到，到期后生效
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-04 批准（one-lead 转达，#1296）
+  note: 人事命令页面用语（#1296）
+- id: last_working_day
+  zh: 最后工作日
+  en: LastWorkingDay
+  snake: last_working_day
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 离职命令填写的最后工作日；离职版本自其次日起生效
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-04 批准（one-lead 转达，#1296）
+  note: 人事命令页面用语（#1296）
+- id: employment_phase
+  zh: 任职阶段
+  en: EmploymentPhase
+  snake: employment_phase
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 员工任职阶段（EmploymentPhaseKind）：试用期或正式
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-04 批准（one-lead 转达，#1296）
+  note: 人事命令页面用语（#1296）
+- id: separation_hold_status
+  zh: 放行状态
+  en: SeparationHoldStatus
+  snake: separation_hold_status
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 离职挂起的状态（HoldStatus）：待放行、已放行、已撤回
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1296)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-04 批准（one-lead 转达，#1296）
+  note: 人事命令页面用语（#1296）

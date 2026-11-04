@@ -336,6 +336,11 @@ channels:
     messages:
       EmployeeReinstated:
         $ref: '#/components/messages/EmployeeReinstated'
+  employeeUnpaidLeaveStarted:
+    address: organization.workforce.EmployeeUnpaidLeaveStarted
+    messages:
+      EmployeeUnpaidLeaveStarted:
+        $ref: '#/components/messages/EmployeeUnpaidLeaveStarted'
   employeeCorrected:
     address: organization.workforce.EmployeeCorrected
     messages:
@@ -1377,6 +1382,27 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/employeeReinstated/messages/EmployeeReinstated'
+  publishEmployeeUnpaidLeaveStarted:
+    action: send
+    channel:
+      $ref: '#/channels/employeeUnpaidLeaveStarted'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/employeeUnpaidLeaveStarted/messages/EmployeeUnpaidLeaveStarted'
+  handleEmployeeUnpaidLeaveStartedInPlatformIdentity:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeUnpaidLeaveStarted'
+    summary: platform.identity 消费
+    messages:
+    - $ref: '#/channels/employeeUnpaidLeaveStarted/messages/EmployeeUnpaidLeaveStarted'
+  handleEmployeeUnpaidLeaveStartedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeUnpaidLeaveStarted'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/employeeUnpaidLeaveStarted/messages/EmployeeUnpaidLeaveStarted'
   publishEmployeeCorrected:
     action: send
     channel:
@@ -3260,14 +3286,15 @@ components:
             - ASSIGNMENT_CHANGE
             - UPHOLD_EXPIRY
             - ORG_UNIT_INACTIVE
+            - UNPAID_LEAVE_START
             x-type: PermissionAdjustmentOrigin
-            description: 条目来源：任职变化、维持到期、部门停用
+            description: 条目来源：任职变化、维持到期、部门停用、停薪留职开始
           triggerPersonnelCommandId:
             type: string
             format: uuid
             x-type: PersonnelCommandId
             nullable: true
-            description: 触发条目的人事命令（调岗或更正）；维持到期重新生成的条目和部门停用或撤销产生的条目为空
+            description: 触发条目的人事命令（调岗、更正或停薪留职开始）；维持到期重新生成的条目和部门停用或撤销产生的条目为空
           triggerOrgStructureCommandId:
             type: string
             format: uuid
@@ -5092,6 +5119,49 @@ components:
             type: string
             x-type: LocalDate
             description: 人事业务生效日（DECLARED）：复职日，晚于对应离职的生效日
+    EmployeeUnpaidLeaveStarted:
+      name: EmployeeUnpaidLeaveStarted
+      title: 员工停薪留职已开始
+      description: 停薪留职开始命令生效时发布：员工自生效日起处于停薪留职，在职状态不变（ADR-0068 第 1 条第 9 项、第 3 条）。信封以员工为聚合（aggregateId 为员工 ID），businessDate 为人事业务生效日，occurredAt 为命令生效落地时刻；负载只含 ID 与日期，不含姓名等个人信息。信封 legalEntityId 为员工在生效日的法人。platform.identity 据此为持有敏感角色的人生成敏感角色复核（ADR-0068 第 3 条，#918）。
+      x-event:
+        eventType: organization.workforce.EmployeeUnpaidLeaveStarted
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.EmployeeUnpaidLeaveStarted
+        aggregate: Employee
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.identity
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 人事业务生效日（effectiveDate）：停薪留职开始命令的生效日
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - personnelCommandId
+        - employeeId
+        - effectiveDate
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          personnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            description: 触发本事件的人事命令 ID（UUIDv7）
+          employeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 员工 ID，与信封的 aggregateId 相同
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 人事业务生效日（DECLARED）：停薪留职的第一天
     EmployeeCorrected:
       name: EmployeeCorrected
       title: 员工人事已更正

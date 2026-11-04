@@ -1,5 +1,7 @@
 # Data dictionary (generated from PostgreSQL catalog)
 
+> 冻结（2026-11-04，#1263）：数据字典输出的样例，不再更新；现行输出由 `ApplicationIntegrationTest` 写到 `target/data-dictionary.md`，ADR-0011 仅作历史引用。
+
 ## delivery_execution.work_packages — 任务包（WorkPackage）：WBS 最底层的工时承载单元
 
 | column | type | nullable | description |

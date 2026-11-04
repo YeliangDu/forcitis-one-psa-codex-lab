@@ -980,6 +980,21 @@ organization.workforce::events organization.workforce.events.EmployeeTransferred
 organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.PositionId organization.workforce.events.EmployeeTransferred.newPositionId()
 organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.PositionId organization.workforce.events.EmployeeTransferred.previousPositionId()
 organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.events.EmployeeTransferred(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,java.util.List<organization.workforce.api.TriggerFieldKind>,organization.workforce.api.OrgUnitId,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,organization.workforce.api.PositionId)
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted component effectiveDate: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted extends java.lang.Record
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted public final boolean organization.workforce.events.EmployeeUnpaidLeaveStarted.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted public final int organization.workforce.events.EmployeeUnpaidLeaveStarted.hashCode()
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted public final java.lang.String organization.workforce.events.EmployeeUnpaidLeaveStarted.toString()
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted public final record organization.workforce.events.EmployeeUnpaidLeaveStarted
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted public java.time.LocalDate organization.workforce.events.EmployeeUnpaidLeaveStarted.effectiveDate()
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted public kernel.EmployeeId organization.workforce.events.EmployeeUnpaidLeaveStarted.employeeId()
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted public kernel.event.EventEnvelope organization.workforce.events.EmployeeUnpaidLeaveStarted.envelope()
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeUnpaidLeaveStarted.personnelCommandId()
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted public organization.workforce.events.EmployeeUnpaidLeaveStarted(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate)
 organization.workforce::events organization.workforce.events.LegalEntityActivated component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.LegalEntityActivated component legalEntityId: kernel.LegalEntityId
 organization.workforce::events organization.workforce.events.LegalEntityActivated extends java.lang.Record
