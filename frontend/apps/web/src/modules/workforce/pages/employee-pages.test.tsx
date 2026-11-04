@@ -25,11 +25,25 @@ describe('员工名册', () => {
     expect(await screen.findByText('张三')).toBeInTheDocument();
     expect(screen.getByText('E0001')).toBeInTheDocument();
     expect(screen.getByText('交付一部')).toBeInTheDocument();
-    expect(server.calls[0]?.url).toContain('employmentStatus=EMPLOYED');
+    expect(server.calls.find((call) => call.url.includes('/employees'))?.url).toContain('employmentStatus=EMPLOYED');
 
     await userEvent.selectOptions(screen.getByLabelText('在职状态'), 'SEPARATED');
     await screen.findByText('张三');
     expect(server.calls.some((call) => call.url.includes('employmentStatus=SEPARATED'))).toBe(true);
+  });
+
+  it('按组织单元筛选时请求带着组织单元', async () => {
+    const server = stubServer({
+      'GET org-units': { body: [{ orgUnitId: UNIT, name: '交付一部', code: 'D1', status: 'ACTIVE', deliveryUnit: true, sortOrder: 1 }] },
+      'GET employees': { body: { items: [ROW], nextCursor: null } },
+    });
+    renderWithProviders(<EmployeeRosterPage />);
+
+    await screen.findByText('张三');
+    await userEvent.selectOptions(await screen.findByLabelText('组织单元'), UNIT);
+
+    await screen.findByText('张三');
+    expect(server.calls.some((call) => call.url.includes('/employees') && call.url.includes(`orgUnitId=${UNIT}`))).toBe(true);
   });
 
   it('有下一页时显示「显示更多」，点后带着服务端给的游标取下一页', async () => {
@@ -81,7 +95,7 @@ describe('员工详情', () => {
     expect(screen.getByText('王五')).toBeInTheDocument();
   });
 
-  it('服务端拒绝或找不到（403/404）时显示可操作的提示', async () => {
+  it('服务端拒绝（403）时显示可操作的提示', async () => {
     stubServer({ [`GET employees/${ID}`]: { status: 403, body: problemBody(403, 'PLATFORM_WEB_ACCESS_DENIED') } });
     render();
 

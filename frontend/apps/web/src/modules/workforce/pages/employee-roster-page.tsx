@@ -2,13 +2,15 @@ import { describeFailure } from '@forcitis/core';
 import { Button, DataTable, LoadingState, Notice, PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
-import { useEmployees } from '../hooks/use-workforce';
+import { useEmployees, useOrgUnits } from '../hooks/use-workforce';
 import { EMPLOYMENT_FILTERS, EMPLOYMENT_STATUS_LABELS, type EmployeeRoster, type EmploymentFilter, employeePath, employmentFilterOf } from '../model/employee';
 
 export function EmployeeRosterPage() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<EmploymentFilter>('EMPLOYED');
-  const list = useEmployees(status, undefined);
+  const [orgUnitId, setOrgUnitId] = useState('');
+  const units = useOrgUnits(false);
+  const list = useEmployees(status, orgUnitId === '' ? undefined : orgUnitId);
 
   const columns: DataColumn<EmployeeRoster>[] = [
     { key: 'code', title: '员工编码', render: (employee) => employee.employeeCode },
@@ -31,6 +33,9 @@ export function EmployeeRosterPage() {
     <>
       <PageTitle text="员工名册" />
       <SelectField label="在职状态" value={status} options={EMPLOYMENT_FILTERS} onChange={(value) => setStatus(employmentFilterOf(value))} />
+      {units.isSuccess ? (
+        <SelectField label="组织单元" value={orgUnitId} options={[{ value: '', label: '全部' }, ...units.data.map((unit) => ({ value: unit.orgUnitId, label: unit.name }))]} onChange={setOrgUnitId} />
+      ) : null}
       {list.isPending ? <LoadingState /> : null}
       {list.isError ? <Notice tone="error" title="员工名册加载失败">{describeFailure(list.error)}</Notice> : null}
       {list.employees === undefined ? null : <DataTable columns={columns} rows={list.employees} rowKey={(employee) => employee.employeeId} emptyText="暂无员工" />}
