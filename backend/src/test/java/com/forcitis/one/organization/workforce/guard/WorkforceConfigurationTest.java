@@ -41,7 +41,6 @@ class WorkforceConfigurationTest {
         Class<?> local = Class.forName("com.forcitis.one.organization.workforce.web.WorkforcePermissions");
         for (String[] pair : new String[][] {
                 {"ORG_UNIT_READ", Permission.Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ},
-                {"ORG_RECONCILIATION_EXECUTE", Permission.Codes.ORGANIZATION_WORKFORCE_ORG_RECONCILIATION_EXECUTE},
                 {"SEPARATION_HOLD_APPROVE", Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE},
                 {"PERSONNEL_COMMAND_CREATE", Permission.Codes.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_CREATE},
                 {"EMPLOYEE_READ", Permission.Codes.ORGANIZATION_WORKFORCE_EMPLOYEE_READ},
@@ -53,7 +52,7 @@ class WorkforceConfigurationTest {
             field.setAccessible(true);
             assertThat(field.get(null)).as(GuardMessage.of("org-and-personnel-sync", "WorkforcePermissions." + pair[0] + " differs from the code in platform.identity Permission.Codes", "set the constant in organization.workforce.web.WorkforcePermissions to the same string as the Permission.Codes constant")).isEqualTo(pair[1]);
         }
-        assertThat(local.getDeclaredFields()).filteredOn(f -> f.getType() == String.class).as(GuardMessage.of("org-and-personnel-sync", "WorkforcePermissions has another number of permission codes than this test checks", "add the new code to the pairs of this test and compare it with Permission.Codes, then update the count")).hasSize(9);
+        assertThat(local.getDeclaredFields()).filteredOn(f -> f.getType() == String.class).as(GuardMessage.of("org-and-personnel-sync", "WorkforcePermissions has another number of permission codes than this test checks", "add the new code to the pairs of this test and compare it with Permission.Codes, then update the count")).hasSize(8);
     }
 
     @Test

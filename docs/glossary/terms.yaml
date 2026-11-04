@@ -23165,6 +23165,23 @@ terms:
   status: approved
   confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: IMP-1028-PAR-PCA（#737）；取代撤销的 WF-REINSTATE
+- id: employee_unpaid_leave_started
+  zh: 员工停薪留职已开始
+  en: EmployeeUnpaidLeaveStarted
+  snake: employee_unpaid_leave_started
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 停薪留职开始命令已生效：员工自生效日起处于停薪留职，在职状态不变；负载为人事命令 ID、员工 ID 与生效日
+  standard_ref:
+  - ADR-0068 第 1 条第 9 项
+  - ADR-0068 第 3 条
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-04 裁定（#918，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+  note: 只有开始事件有消费者（platform.identity 敏感角色复核）；结束事件待有消费者时再命名
 - id: employee_corrected
   zh: 员工人事已更正
   en: EmployeeCorrected
