@@ -111,10 +111,10 @@ describe('授权申请页', () => {
   });
 
   it.each([
-    ['角色已有持有人', 409, 'PLATFORM_IDENTITY_ROLE_IN_USE', '当前状态不允许这个操作，请刷新后重试'],
-    ['申请人不能自己确认', 403, 'PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED', '没有权限执行这个操作'],
-    ['申请已被处理', 409, 'PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_PENDING', '当前状态不允许这个操作，请刷新后重试'],
-    ['申请已不存在', 404, 'PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_FOUND', '找不到对应的数据，可能已被处理或删除'],
+    ['角色已有持有人', 409, 'PLATFORM_IDENTITY_ROLE_IN_USE', '这个角色还有账号在用，暂时不能这样处理'],
+    ['申请人不能自己确认', 403, 'PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED', '申请人和被授权的人不能确认自己的申请，请让其他确认人处理'],
+    ['申请已被处理', 409, 'PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_PENDING', '这个申请已经被确认或驳回，请刷新'],
+    ['申请已不存在', 404, 'PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_FOUND', '找不到这个申请，可能已被撤销，请刷新'],
   ])('确认被服务端拒绝（%s）：对话框保留并显示提示，重新读取列表，不显示服务端原文', async (_name, status, code, message) => {
     const server = stubServer({
       'GET sessions:current': { body: currentUserBody([UPDATE]) },
