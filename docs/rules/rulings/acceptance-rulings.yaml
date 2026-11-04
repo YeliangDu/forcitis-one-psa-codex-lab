@@ -522,3 +522,16 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/DataScopeReadBehaviourIT.java
     reason: '#1171 按用户决定 2026-11-03-214823（名册只给人事角色）与 2026-11-04-055504（多任职按任一部门入范围）：everyScopedLineHasAnAdapter 要求每条 SCOPED 登记行有适配器，实现登记员工列表与详情两行，故只增两个适配器（列表、详情），夹具角色加名册读取权限；断言一条不改'
     ref: "commit 97b58f68d1b2d332c42b67087a2b210a4fbac3b4 on claude/one-test (#1171 acceptance part, PR #1229), patch-id --verbatim 09ff210fce85c90fddf160332314ef222349b0f2"
+  - id: RULING-LEAD-20261104-21
+    date: 2026-11-04
+    ruled_by: independent opus reviewer opus-首轮-1175acc2 (review1175acc2.md on commit eb21972a1; its one 必改, StalledExternalSourceIT text still naming a deleted login caller, fixed in fbb732060 with text and dead-code changes only, no assertion changed, checked by one-lead), recorded by one-lead
+    implementer: one-dev-org
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/DataScopeSupport.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ExternalSubjectLookupCommandIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/LegacyReferencesIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/OrgSourceWorldSupport.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/ReadOnlyAccountCheckIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/integration/StalledExternalSourceIT.java
+    reason: '#1175 按 ADR-0069 第 7 节第 5 项（删 SEEYON_LOGIN_NAME）、第 8 节（删简称定时刷新）、第 9 节（登录不开户）与第 11 节：夹具 INSERT 去掉 login_name；删以被删行为为对象的用例（LegacyReferencesIT 整文件、ReadOnlyAccountCheckIT 刷新前重检用例、按登录名查人）；刷新失败计数断言改为直接断言重检抛异常；StalledExternalSourceIT 两个降级用例保留，文字改为只描述 A8 端口在外部调用预算内报告不可用；删无调用的 legacyShortName；其余断言不变'
+    ref: "commits eb21972a130935a8a523b3ebae32a2eb421e8b44 and fbb732060f86f0ab2f5b0d9601e9c3598516cf30 on claude/one-dev-org-1175-adr0069-workforce (PR #1231); review1175acc2.md"
