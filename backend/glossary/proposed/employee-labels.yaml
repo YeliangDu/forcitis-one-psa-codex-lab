@@ -1,0 +1,16 @@
+# 员工标签读取（#1173 第一个 PR：其他模块按员工 id 取显示名与工号的只读接口）。名字待 one-design 裁定。
+terms:
+- id: label
+  zh: 标签
+  en: Label
+  snake: label
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 一个员工在列表里显示的名字与工号，只读自员工行，不含版本与任职
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
