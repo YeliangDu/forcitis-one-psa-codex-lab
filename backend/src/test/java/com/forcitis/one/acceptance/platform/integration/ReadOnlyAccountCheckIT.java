@@ -39,7 +39,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * ADR37-1 (ADR-0037 item 4, implementation card of one-coordinator and one-ops 2026-10-15): every read-only external connection is checked
- * against the RDS platform baseline when the application starts; anything more, anything less or
+ * against the RDS platform baseline when the application starts and again before each short-name read; anything more, anything less or
  * anything that cannot be determined refuses. The application is started for real (black box) against a real SQL Server, one start per case.
  * The re-check before an organisation sync run went with the sync in #934 (ADR-0055 section 6).
  *
@@ -581,7 +581,6 @@ class ReadOnlyAccountCheckIT {
             SourceReferencesProbe.of(context).allocate("LEGACY_SYSTEM", "ORG_UNIT", 2);
         }
     }
-
 
     static void grantWriteBehindTheDatabaseDeny(Account account) throws SQLException {
         run(account.connection().database, "REVOKE INSERT FROM " + q(account.login()), "GRANT INSERT ON SCHEMA::dbo TO " + q(account.login()));

@@ -165,7 +165,6 @@ class ExternalSubjectLookupCommandIT extends AccountsAcceptanceSupport {
         }
     }
 
-
     @Test
     @DisplayName("R-1b P3b RULING-P3B-15：--provider-kind 不是 WECOM_USER_ID 时退出码 2（用法错误），不列出任何员工")
     void anUnknownProviderKindIsWrongUsage() throws Exception {
