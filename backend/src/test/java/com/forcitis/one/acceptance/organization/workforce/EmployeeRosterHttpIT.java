@@ -49,7 +49,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
  * assignments[]}; an assignment: {@code assignmentKind (PRIMARY|CONCURRENT), orgUnitId, orgUnitName, positionId, positionName}; the detail adds
  * {@code reportsToEmployeeId, reportsToDisplayName} to each assignment (null on a concurrent one). A page is {@code items} and {@code nextCursor}. A scope
  * that cannot be worked out answers 403 on the list and 404 on the detail (one-design, #730 comment 6597359528, as DataScopeReadBehaviourIT). The
- * fixture writes snapshot and version rows alike, so an implementation reading either agrees.
+ * roster is read from the versions (employee versions for status and hire date, assignment versions for unit, position and reporting line; the
+ * concurrent assignment exists only there). The snapshot rows are written too, only because sign-in and scope resolution need them; both agree on unit and position.
  */
 class EmployeeRosterHttpIT extends DataScopeSupport {
 
@@ -90,7 +91,7 @@ class EmployeeRosterHttpIT extends DataScopeSupport {
         person("b", "RS-B", "RS-P1");
         person("c", "RS-C", "RS-P2");
         person("multi", "RS-C", "RS-P2");
-        for (String key : List.of("admin1", "admin2", "hr", "oda", "allReader", "subtreeReader", "bReader", "emptyReader", "brokenReader", "orgOnly")) {
+        for (String key : List.of("admin1", "admin2", "hr", "oda", "allReader", "subtreeReader", "bReader", "emptyReader", "brokenReader", "orgOnly", "cReader")) {
             person(key, "RS-X", "RS-P1");
         }
         seedOrganisation();
@@ -105,12 +106,14 @@ class EmployeeRosterHttpIT extends DataScopeSupport {
         roleWith("rs-all", "ALL", null, perms);
         roleWith("rs-subtree-a", "CUSTOM_ORG_UNITS", List.of(withDescendants(unitIds.get("RS-A"))), perms);
         roleWith("rs-only-b", "CUSTOM_ORG_UNITS", List.of(onlyUnit(unitIds.get("RS-B"))), perms);
+        roleWith("rs-only-c", "CUSTOM_ORG_UNITS", List.of(onlyUnit(unitIds.get("RS-C"))), perms);
         roleWith("rs-nothing", "CUSTOM_ORG_UNITS", List.of(onlyUnit(UUID.randomUUID().toString())), perms);
         roleWith("rs-own", "OWN_ORG_UNIT", null, perms);
         roleWith("rs-org-unit-only", "ALL", null, ORG_UNIT_READ);
         grantOrdinaryRoles(administrator("admin1"), "allReader", "rs-all");
         grantOrdinaryRoles(administrator("admin1"), "subtreeReader", "rs-subtree-a");
         grantOrdinaryRoles(administrator("admin1"), "bReader", "rs-only-b");
+        grantOrdinaryRoles(administrator("admin1"), "cReader", "rs-only-c");
         grantOrdinaryRoles(administrator("admin1"), "emptyReader", "rs-nothing");
         grantOrdinaryRoles(administrator("admin1"), "ownReader", "rs-own");
         grantOrdinaryRoles(administrator("admin1"), "brokenReader", "rs-own");
@@ -148,7 +151,7 @@ class EmployeeRosterHttpIT extends DataScopeSupport {
                 Uuids.timeOrdered(NOW), stored(employee), employed ? started : SINCE, employed ? "EMPLOYED" : "SEPARATED", employed ? "REGULAR" : null, started,
                 employed ? "DECLARED" : null);
         UUID root = AssignmentRoots.primaryOf(workforce, stored(employee));
-        assignmentVersion(workforce, employee, root, AssignmentRoots.PRIMARY, unitCode, "RS-P1", reportsToKey == null ? null : UUID.fromString(employeeIdOf(reportsToKey)));
+        assignmentVersion(workforce, employee, root, AssignmentRoots.PRIMARY, unitCode, key.equals("c") || key.equals("multi") ? "RS-P2" : "RS-P1", reportsToKey == null ? null : UUID.fromString(employeeIdOf(reportsToKey)));
     }
 
     private void assignmentVersion(Connection workforce, UUID employee, UUID root, String kind, String unitCode, String positionCode, UUID reportsTo) throws Exception {
@@ -281,7 +284,7 @@ class EmployeeRosterHttpIT extends DataScopeSupport {
         assertThat(assignments).extracting(item -> item.get("orgUnitId")).containsExactlyInAnyOrder(unitIds.get("RS-C"), unitIds.get("RS-B"));
         assertThat(assignments).extracting(item -> item.get("orgUnitName")).containsExactlyInAnyOrder(unitName("RS-C"), unitName("RS-B"));
         assertThat(assignments).extracting(item -> item.get("positionName")).containsOnly(positionName("RS-P2"));
-        assertThat(worldKeys(all("allReader", ""))).contains("multi");
+        assertThat(worldKeys(all("cReader", ""))).containsExactly("c", "multi");
         assertThat(worldKeys(all("subtreeReader", ""))).doesNotContain("multi");
     }
 
@@ -293,6 +296,8 @@ class EmployeeRosterHttpIT extends DataScopeSupport {
         assertThat(worldKeys(itemsOf(whole))).isEqualTo(worldKeys(all("allReader", "")));
         assertThat(worldKeys(all("allReader", "orgUnitId=" + unitIds.get("RS-B")))).containsExactly("b", "multi");
         assertThat(worldKeys(all("allReader", "orgUnitId=" + unitIds.get("RS-A1")))).containsExactly("a1");
+        assertThat(all("bReader", "orgUnitId=" + unitIds.get("RS-A"))).as("the filter cannot widen the data scope").isEmpty();
+        assertThat(all("subtreeReader", "orgUnitId=" + unitIds.get("RS-C"))).as("the filter cannot widen the data scope").isEmpty();
     }
 
     // ---- the detail ----
@@ -340,6 +345,8 @@ class EmployeeRosterHttpIT extends DataScopeSupport {
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(auditedActions(DENIED)).as("one denied entry per out-of-scope read of an existing employee").hasSize(before + 2));
         assertThat(read("bReader", EMPLOYEES + "/" + employeeIdOf("b")).getStatus()).as("an employee in scope is readable").isEqualTo(200);
         assertThat(auditedActions(DENIED)).hasSize(before + 2);
+        assertThat(auditEntries(DENIED).stream().map(DataScopeSupport::auditText).collect(java.util.stream.Collectors.joining(" "))).as("no employee code in the audit text")
+                .doesNotContain(employeeCode("a"), employeeCode("c"));
     }
 
     // ---- what is never shown, who may read ----

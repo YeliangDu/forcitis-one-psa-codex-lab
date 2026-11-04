@@ -25,7 +25,7 @@ import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * #1171, the position directory: {@code GET /api/v1/organization/positions?status=&limit=&cursor=} and {@code GET .../positions/{positionId}} give every
- * position's code, name, status and the dates of its current version, nothing else (ADR-0068 section 3.x: no headcount, no duties), to every logged-in
+ * position's code, name, status and the dates of its current version, nothing else (ADR-0068 item 4: no headcount, no duties), to every logged-in
  * user (user 2026-11-04, intent 055504); an anonymous call answers 401. The register line is NOT_SCOPE_BOUND, company-level reference data.
  *
  * <p>Contract fixed here, because the card names no field: a row is {@code positionId, code, name, status, effectiveFromDate, effectiveToDate}
