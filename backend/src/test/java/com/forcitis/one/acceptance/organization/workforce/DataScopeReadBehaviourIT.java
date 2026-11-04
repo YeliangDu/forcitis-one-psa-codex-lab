@@ -110,7 +110,7 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
         for (String key : List.of("b1", "b2")) {
             unitOfEmployee.put(employeeIdOf(key), "F1-B");
         }
-        String[] perms = {ORG_UNIT_READ, PERSONNEL_COMMAND_CREATE};
+        String[] perms = {ORG_UNIT_READ, PERSONNEL_COMMAND_CREATE, EMPLOYEE_READ};
         roleWith("f1-read-all", "ALL", null, perms);
         roleWith("f1-read-b", "CUSTOM_ORG_UNITS", List.of(onlyUnit(unitIds.get("F1-B"))), perms);
         roleWith("f1-read-nothing", "CUSTOM_ORG_UNITS", List.of(onlyUnit(UUID.randomUUID().toString())), perms);
@@ -200,6 +200,7 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
                 new ListPath("GET /api/v1/organization/org-units", ORG_UNITS, List.of("", "?includeRevoked=true", "?includeRevoked=false"), false, "orgUnitId",
                         row -> unitCodeOf(String.valueOf(row.get("orgUnitId")))),
                 new ListPath("GET " + REQUESTS, REQUESTS, List.of("?status=PENDING"), true, "requestId", row -> unitOfEmployee.get(String.valueOf(row.get("employeeId")))),
+                new ListPath("GET " + EMPLOYEES, EMPLOYEES, List.of("", "?employmentStatus=ALL"), true, "employeeId", row -> unitOfEmployee.get(String.valueOf(row.get("employeeId")))),
                 new ListPath("GET " + ADJUSTMENTS, ADJUSTMENTS, List.of(""), true, "permissionAdjustmentId",
                         row -> unitOfAdjustment.get(String.valueOf(row.get("permissionAdjustmentId")))));
     }
@@ -209,6 +210,7 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
                 new DetailPath("GET " + ORG_UNIT, unitIds.get("F1-A"), unitIds.get("F1-B")),
                 new DetailPath("GET " + ORG_UNIT_ENTITIES, unitIds.get("F1-A"), unitIds.get("F1-B")),
                 new DetailPath("GET " + EMPLOYEE_ENTITIES, employeeIdOf("a1"), employeeIdOf("b1")),
+                new DetailPath("GET " + EMPLOYEES + "/{employeeId}", employeeIdOf("a1"), employeeIdOf("b1")),
                 new DetailPath("GET " + ADJUSTMENT, adjustmentIn("F1-A"), adjustmentIn("F1-B")));
     }
 
