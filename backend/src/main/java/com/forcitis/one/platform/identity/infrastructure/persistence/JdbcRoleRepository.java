@@ -387,12 +387,12 @@ class JdbcRoleRepository implements RoleRepository {
     }
 
     @Override
-    public List<RoleId> currentRolesListing(OrgUnitId orgUnit) {
+    public List<RoleId> currentRolesWithUnit(OrgUnitId orgUnit) {
         return jdbc.sql("""
                 select v.role_id from platform_identity.role_versions v
                  where v.%s and v.access_scope_kind = 'CUSTOM_ORG_UNITS'
                    and exists (select 1 from platform_identity.role_version_custom_org_units u where u.role_version_id = v.role_version_id and u.org_unit_id = :unit)
-                 order by v.role_id
+                 order by v.effective_from_at, v.role_id
                 """.formatted(Validity.CURRENT)).param("unit", orgUnit.value()).query((rs, n) -> new RoleId(rs.getObject(1, UUID.class))).list();
     }
 
@@ -406,8 +406,8 @@ class JdbcRoleRepository implements RoleRepository {
     @Override
     public AuditEntryId versionAuditEntry(RoleVersionId version) {
         return jdbc.sql("""
-                select version_audit_entry_id from platform_identity.role_versions where role_version_id = :version
-                """).param("version", version.value()).query((rs, n) -> new AuditEntryId(rs.getObject(1, UUID.class))).single();
+                select version_audit_entry_id from platform_identity.role_versions where role_version_id = :version and (%s or effective_to_at is not null)
+                """.formatted(Validity.CURRENT)).param("version", version.value()).query((rs, n) -> new AuditEntryId(rs.getObject(1, UUID.class))).single();
     }
 
     /** Any version of any role counts, open or closed: the version the request wrote may have been replaced since. */

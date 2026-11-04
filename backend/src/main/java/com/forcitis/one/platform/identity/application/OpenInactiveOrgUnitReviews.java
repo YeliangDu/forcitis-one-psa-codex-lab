@@ -68,7 +68,7 @@ class OpenInactiveOrgUnitReviews {
 
     private void open(EventEnvelope trigger, OrgUnitId orgUnit, OrgStructureCommandId command) {
         try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null), ACTOR)) {
-            for (RoleId role : roles.currentRolesListing(orgUnit)) {
+            for (RoleId role : roles.currentRolesWithUnit(orgUnit)) {
                 if (adjustments.existsOpenOrUpheldForInactiveUnit(role, orgUnit)) {
                     continue;
                 }

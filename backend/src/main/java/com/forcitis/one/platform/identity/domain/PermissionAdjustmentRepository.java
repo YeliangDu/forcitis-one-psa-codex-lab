@@ -33,7 +33,7 @@ public interface PermissionAdjustmentRepository {
     List<PermissionAdjustmentId> openOf(UserId user);
 
     /** The OPEN items of the role that are about a dissolved or merged-away org unit, oldest first. */
-    List<PermissionAdjustmentId> openAboutInactiveUnitsOf(RoleId role);
+    List<PermissionAdjustmentId> openForInactiveUnitsOf(RoleId role);
 
     /** Whether the role already has an OPEN or UPHELD item about the org unit (the table allows one at a time). */
     boolean existsOpenOrUpheldForInactiveUnit(RoleId role, OrgUnitId orgUnit);

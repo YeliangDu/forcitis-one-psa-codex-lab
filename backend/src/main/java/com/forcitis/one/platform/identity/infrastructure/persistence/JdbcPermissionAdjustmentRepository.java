@@ -167,7 +167,7 @@ class JdbcPermissionAdjustmentRepository implements PermissionAdjustmentReposito
     }
 
     @Override
-    public List<PermissionAdjustmentId> openAboutInactiveUnitsOf(RoleId role) {
+    public List<PermissionAdjustmentId> openForInactiveUnitsOf(RoleId role) {
         return ids(jdbc.sql("""
                 select permission_adjustment_id from platform_identity.permission_adjustments
                  where role_id = :role and origin_kind = 'ORG_UNIT_INACTIVE' and status = 'OPEN' order by created_at, permission_adjustment_id

@@ -49,7 +49,7 @@ public final class SensitivePermissions {
      * A change that makes a role take effect for more than before (ADR-0032 decision 1 item 3): a broader scope kind (SELF, CUSTOM_ORG_UNITS, ALL in that
      * order), custom org units that the old units do not cover, or a disabled role enabled again. Added codes are judged apart, by {@link #within}.
      */
-    public static boolean widens(RoleDefinition before, RoleDefinition after) {
+    public static boolean isBroader(RoleDefinition before, RoleDefinition after) {
         if (before.status() == RoleStatus.DISABLED && after.status() == RoleStatus.ENABLED) {
             return true;
         }

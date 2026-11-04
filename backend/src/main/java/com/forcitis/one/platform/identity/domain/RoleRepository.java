@@ -35,7 +35,7 @@ public interface RoleRepository {
     void lockRolesOf(Collection<RoleVersionId> versions, boolean forWrite);
 
     /** The roles whose current version has scope CUSTOM_ORG_UNITS and lists the org unit, enabled or not. */
-    List<RoleId> currentRolesListing(OrgUnitId orgUnit);
+    List<RoleId> currentRolesWithUnit(OrgUnitId orgUnit);
 
     /** Whether the version lists the org unit (a version of any age, open or closed). */
     boolean versionLists(RoleVersionId version, OrgUnitId orgUnit);

@@ -35,7 +35,7 @@ class AdjustInactiveOrgUnitReviewsOnRoleRevised {
     @ApplicationModuleListener
     void on(RoleRevised event) {
         try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null), ACTOR)) {
-            for (PermissionAdjustmentId id : adjustments.openAboutInactiveUnitsOf(event.roleId())) {
+            for (PermissionAdjustmentId id : adjustments.openForInactiveUnitsOf(event.roleId())) {
                 PermissionAdjustment item = adjustments.findById(id).orElseThrow();
                 if (roles.versionLists(event.roleVersionId(), item.inactiveOrgUnit())) {
                     continue;

@@ -27,14 +27,14 @@ class SensitivePermissionsWidensTest {
         UUID a = UUID.randomUUID();
         UUID b = UUID.randomUUID();
         RoleStatus on = RoleStatus.ENABLED;
-        assertThat(SensitivePermissions.widens(of(on, AccessScopeKind.SELF), of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a)))).isTrue();
-        assertThat(SensitivePermissions.widens(of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a)), of(on, AccessScopeKind.ALL))).isTrue();
-        assertThat(SensitivePermissions.widens(of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a)), of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a), unit(b)))).isTrue();
-        assertThat(SensitivePermissions.widens(of(RoleStatus.DISABLED, AccessScopeKind.SELF), of(on, AccessScopeKind.SELF))).isTrue();
+        assertThat(SensitivePermissions.isBroader(of(on, AccessScopeKind.SELF), of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a)))).isTrue();
+        assertThat(SensitivePermissions.isBroader(of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a)), of(on, AccessScopeKind.ALL))).isTrue();
+        assertThat(SensitivePermissions.isBroader(of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a)), of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a), unit(b)))).isTrue();
+        assertThat(SensitivePermissions.isBroader(of(RoleStatus.DISABLED, AccessScopeKind.SELF), of(on, AccessScopeKind.SELF))).isTrue();
 
-        assertThat(SensitivePermissions.widens(of(on, AccessScopeKind.ALL), of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a)))).isFalse();
-        assertThat(SensitivePermissions.widens(of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a), unit(b)), of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a)))).isFalse();
-        assertThat(SensitivePermissions.widens(of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a)), of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a)))).isFalse();
-        assertThat(SensitivePermissions.widens(of(on, AccessScopeKind.SELF), of(RoleStatus.DISABLED, AccessScopeKind.SELF))).isFalse();
+        assertThat(SensitivePermissions.isBroader(of(on, AccessScopeKind.ALL), of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a)))).isFalse();
+        assertThat(SensitivePermissions.isBroader(of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a), unit(b)), of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a)))).isFalse();
+        assertThat(SensitivePermissions.isBroader(of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a)), of(on, AccessScopeKind.CUSTOM_ORG_UNITS, unit(a)))).isFalse();
+        assertThat(SensitivePermissions.isBroader(of(on, AccessScopeKind.SELF), of(RoleStatus.DISABLED, AccessScopeKind.SELF))).isFalse();
     }
 }
