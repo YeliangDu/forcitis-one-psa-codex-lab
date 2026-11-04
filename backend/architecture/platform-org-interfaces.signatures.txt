@@ -352,8 +352,6 @@ organization.workforce::api organization.workforce.api.CountersignRequestKind pu
 organization.workforce::api organization.workforce.api.CountersignRequestKind public static final organization.workforce.api.CountersignRequestKind organization.workforce.api.CountersignRequestKind.WITHDRAWAL
 organization.workforce::api organization.workforce.api.CountersignRequestKind public static organization.workforce.api.CountersignRequestKind organization.workforce.api.CountersignRequestKind.valueOf(java.lang.String)
 organization.workforce::api organization.workforce.api.CountersignRequestKind public static organization.workforce.api.CountersignRequestKind[] organization.workforce.api.CountersignRequestKind.values()
-organization.workforce::api organization.workforce.api.EmployeeExistence public abstract boolean organization.workforce.api.EmployeeExistence.exists(kernel.EmployeeId)
-organization.workforce::api organization.workforce.api.EmployeeExistence public abstract interface organization.workforce.api.EmployeeExistence
 organization.workforce::api organization.workforce.api.EmployeeLabel component displayName: java.lang.String
 organization.workforce::api organization.workforce.api.EmployeeLabel component employeeCode: java.lang.String
 organization.workforce::api organization.workforce.api.EmployeeLabel extends java.lang.Record
