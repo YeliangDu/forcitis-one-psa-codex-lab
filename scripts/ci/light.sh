@@ -132,6 +132,10 @@ else run "surefire guard classes (acceptance changed)" surefire_guards; fi
 rule "改动的分档漏了读者，该跑的测试被跳过" "按输出把新读者或新路径登记进 scripts/ci/relevant_change.py 的表"
 run "relevant_change (self-test)" python3 scripts/ci/relevant_change.py --self-test
 
+# 静态检查 shell：.sh 改了才跑（与 CI 同一命令，#1194）；本机没装就跳过并说明，不算失败
+if ! touches "$t_shell"; then skip "shellcheck (tracked *.sh)" "相关路径没改（按改动触发）"
+elif ! command -v shellcheck >/dev/null 2>&1; then skip "shellcheck (tracked *.sh)" "本机没有 shellcheck（CI 仍会跑，固定 0.11.0）：brew install shellcheck"
+else rule "CI 的 shellcheck 步骤会拦下这个 .sh（本机版本可能与 CI 的 0.11.0 略有出入）" "按输出修，或在原处用 # shellcheck disable=SCxxxx 并写明原因（#856）"; run "shellcheck (tracked *.sh)" shellcheck_tracked; fi
 # 按改动触发（原 precheck.sh 的同名步骤，检查表在 light_triggers.sh；命令按空格切分）
 while IFS='|' read -r key name cmd; do
   # shellcheck disable=SC2086
