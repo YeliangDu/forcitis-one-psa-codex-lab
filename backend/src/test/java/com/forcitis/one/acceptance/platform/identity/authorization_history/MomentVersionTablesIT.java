@@ -89,6 +89,7 @@ class MomentVersionTablesIT {
         assertThat(definitions("platform_identity.role_versions", 'x')).hasSize(2);
     }
 
+    // RULE-446
     @Test
     @DisplayName("0034-G2-01 行为：角色版本 effective_from_at 为空被 23502 拒；起止为 infinity 被 ck_role_versions_finite（23514）拒；倒挂被 ck_role_versions_period 拒；零长区间通过")
     void roleVersionPeriodsAreFiniteAndNotInverted() throws SQLException {
@@ -106,6 +107,7 @@ class MomentVersionTablesIT {
         db.accepted(insert, UUID.randomUUID(), role, 1, T1, T1, AuthorizationHistoryRows.uniqueName(), codes, UUID.randomUUID(), T1, T1);
     }
 
+    // RULE-446
     @Test
     @DisplayName("0034-G2-01 行为：同一角色区间重叠的第二个版本被 ex_role_versions_role_id_period（23P01）拒；首尾相接与零长区间通过")
     void roleVersionsOfOneRoleDoNotOverlap() throws SQLException {
@@ -122,6 +124,7 @@ class MomentVersionTablesIT {
                 AuthorizationHistoryRows.uniqueName(), codes, UUID.randomUUID(), T3, T3);
     }
 
+    // RULE-446
     @Test
     @DisplayName("0034-G2-01 行为：两个角色在重叠时段用不区分大小写相同的名称被 ex_role_versions_role_name_period（23P01）拒；时段不重叠时可重名")
     void roleNamesAreUniqueAtEachMoment() throws SQLException {
@@ -137,6 +140,7 @@ class MomentVersionTablesIT {
         db.accepted(insert, UUID.randomUUID(), second, 1, T2, null, name.toUpperCase(java.util.Locale.ROOT), codes, UUID.randomUUID(), T2, T2);
     }
 
+    // RULE-447
     @Test
     @DisplayName("0034-G2-01 行为：授予 effective_from_at 为空被 23502 拒；infinity 被 ck_account_role_grants_finite 拒；倒挂被 ck_account_role_grants_period 拒；同人同角色重叠被 ex_account_role_grants_user_id_role_id_period（23P01）拒；首尾相接、零长、另一角色通过")
     void grantPeriodsAreFiniteNotInvertedAndDoNotOverlap() throws SQLException {

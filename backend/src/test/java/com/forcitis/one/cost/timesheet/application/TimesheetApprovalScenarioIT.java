@@ -345,6 +345,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         assertThat(view(id).round()).isEqualTo(2);
     }
 
+    // RULE-478
     @Test
     @DisplayName("M-2 a round that ended in the approval but is not applied to the timesheet yet cannot be submitted again; the answer says so (409)")
     void resubmittingBeforeTheResultArrivedIsRefused(Scenario scenario) {
@@ -396,6 +397,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         assertThat(view(id).status()).isEqualTo(TimesheetStatus.SUBMITTED);
     }
 
+    // RULE-479
     @Test
     @DisplayName("M-12 someone else's timesheet and a timesheet that does not exist are answered the same: same code, same text")
     void foreignAndMissingTimesheetsAreIndistinguishable() {
@@ -470,6 +472,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         assertThat(jdbc.queryForObject("select count(*) from cost_timesheet.timesheets where id = ?", Integer.class, id.value())).isZero();
     }
 
+    // RULE-482
     @Test
     @DisplayName("an employee without a legal entity on the work date cannot submit: the refusal comes from workforce and nothing is stored")
     void missingLegalEntityIsRefused() {

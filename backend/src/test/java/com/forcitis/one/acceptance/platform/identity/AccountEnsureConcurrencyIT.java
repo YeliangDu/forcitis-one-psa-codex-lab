@@ -35,6 +35,7 @@ class AccountEnsureConcurrencyIT extends AccountsAcceptanceSupport {
         postgres.register(registry);
     }
 
+    // RULE-418
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 1 条：同一员工并发两次首次登录（ensureAccount 并发）只得到一个账号，两次登录答出同一个 userId，且 userId ≠ 员工 ID")
     void twoFirstLoginsAtOnceOpenOneAccount() throws Exception {

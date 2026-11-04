@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -112,7 +111,6 @@ class RoleScopeGrantIT extends DataScopeSupport {
     }
 
     @Test
-    @Disabled("归 #730：持有人的可见范围（范围计算、部门浏览）随 F-1 第 3 块实现（one-design 拆分，记录于 #729）；本条断言自 changingTheCustomOrgUnitsLeavesHistory 后半原样分出")
     @DisplayName("F-1 ADR-0034 第 5 项（改明细即新增角色版本）：改自定义部门后持有人的可见范围随之改变（归 #730）")
     void changingTheCustomOrgUnitsMovesTheHoldersScope() throws Exception {
         String roleId = ordinaryRole(administrator("admin1"), "f1-moving-scope", "CUSTOM_ORG_UNITS", List.of(onlyUnit(id("F1-A"))), ORG_UNIT_READ);
@@ -162,7 +160,6 @@ class RoleScopeGrantIT extends DataScopeSupport {
     }
 
     @Test
-    @Disabled("归 #730：范围变化走授权申请（ADR-0032 第 1 项第 3 条）；调度裁定挪出 #728，断言不动")
     @DisplayName("F-1 F1-01：含双人逐人级权限的角色修改时把自定义部门改成「含下级」也 422（不走授权申请），角色不变；要覆盖新部门须逐个列出「仅本部门」并经第二人确认")
     void aTwoPersonRoleIsNotRevisedToIncludeDescendants() throws Exception {
         MockHttpServletResponse asked = createRole(administrator("admin1"),

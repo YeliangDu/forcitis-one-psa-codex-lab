@@ -1,3 +1,5 @@
+> 冻结（2026-11-04）：人事命令契约对照，不再更新；现行事实见 `events/workforce.yaml`、`organization_workforce` 迁移与 ADR-0068。
+
 # 人事命令契约对照（SPLIT_PLAN A，#737）
 
 - 依据：ADR-0068（含证据附件「事件契约」）、ADR-0069、ADR-0073、ADR-0055 决定 3；表 `organization_workforce.personnel_commands` 已在基线（#632）。

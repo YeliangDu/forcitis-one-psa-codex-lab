@@ -97,6 +97,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(vault.open(sealed)).isEqualTo(secret);
     }
 
+    // RULE-449
     @Test
     @DisplayName("C1a-04 a one-time code works once: replaying the same code is refused even with the right password")
     void codeCannotBeReplayed() throws Exception {
@@ -170,6 +171,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(jdbc.sql("select failed_attempts from platform_identity.emergency_admins").query(Integer.class).single()).isZero();
     }
 
+    // RULE-448
     @Test
     @DisplayName("C1a-04 outside the internal network the endpoint refuses before looking at any credential")
     void internalNetworkOnly() throws Exception {
@@ -181,6 +183,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
                 .as("outsiders cannot lock the account").isZero();
     }
 
+    // RULE-448
     @Test
     @DisplayName("C1a-04 a client cannot claim to be internal with a header: only the container-resolved address counts")
     void forwardedHeaderFromAnOutsiderIsIgnored() throws Exception {
@@ -193,6 +196,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(result.getResponse().getStatus()).isEqualTo(403);
     }
 
+    // RULE-450
     @Test
     @DisplayName("ADR-0027 1.3 a person the snapshot clearly lists as separated cannot use the emergency account")
     void separatedPersonIsRefused() throws Exception {
@@ -218,6 +222,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(cookie(result, "SESSION")).isNull();
     }
 
+    // RULE-450
     @Test
     @DisplayName("ADR-0027 1.2 the bound person must hold super_admin right now")
     void boundPersonMustHoldSuperAdmin() throws Exception {
@@ -231,6 +236,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(recordedIndependently()).anySatisfy(entry -> assertThat(entry.detail()).contains("no longer holds super_admin"));
     }
 
+    // RULE-450
     @Test
     @DisplayName("ADR-0027 1.2 a disabled bound account is refused")
     void boundAccountMustBeEnabled() throws Exception {
@@ -242,6 +248,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(result.getResponse().getContentAsString()).contains("PLATFORM_IDENTITY_ACCOUNT_DISABLED");
     }
 
+    // RULE-451
     @Test
     @DisplayName("ADR-0027 1.5 the login starts in the administrator mode for one hour, audits and alerts; the second request is still valid")
     void administratorModeForOneHour() throws Exception {
@@ -265,6 +272,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(again.getResponse().getStatus()).as("no employment check on later requests").isEqualTo(200);
     }
 
+    // RULE-451
     @Test
     @DisplayName("ADR-0027 1.5 the hour is not extended: afterwards the emergency session is over")
     void administratorModeIsNotExtended() throws Exception {
@@ -280,6 +288,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
         assertThat(count("sessions")).isZero();
     }
 
+    // RULE-452
     @Test
     @DisplayName("ADR-0027 1.4 within 60 s of super_admin being taken away the emergency session stops working, without an event")
     void sessionEndsWhenSuperAdminIsTakenAway() throws Exception {
@@ -294,6 +303,7 @@ class EmergencyLoginIntegrationTest extends IdentityIntegrationTest {
                 .getStatus()).isEqualTo(401);
     }
 
+    // RULE-452
     @Test
     @DisplayName("ADR-0027 1.4 within 60 s of the emergency account being disabled its session stops working")
     void sessionEndsWhenTheEmergencyAccountIsDisabled() throws Exception {
