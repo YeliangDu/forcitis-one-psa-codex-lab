@@ -46,7 +46,8 @@ expect tools/ops/ecs/scripts/c3_set_role_passwords.py t_c3_passwords
 expect tools/ops/ecs/scripts/c3_rotate_admin_password.py t_c3_passwords
 expect tools/docs/new_adr.py t_new_adr
 expect scripts/ci/relevant_change_selftest.py t_mq
-expect scripts/merge/gapscan.py t_mq
+expect scripts/merge/gapscan.py t_mq t_gates
+expect scripts/merge/issue_gate.py t_mq t_gates t_new_card t_post_review
 expect scripts/merge/driftscan.py t_mq
 expect scripts/merge/driftscan_selftest.py t_mq
 expect scripts/ci/light_unit_classes.py t_unit_classes

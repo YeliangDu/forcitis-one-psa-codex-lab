@@ -1,8 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
@@ -154,36 +152,6 @@ class OldSyncRemovedIT extends AcceptanceSupport {
 
         assertThat(paths).as("premise: the endpoints are read").anyMatch(path -> path.startsWith("/api/v1/organization/"));
         assertThat(paths.stream().filter(path -> path.contains("sync-run")).sorted().toList()).as("endpoints under sync-runs").isEmpty();
-    }
-
-    static final String RECONCILE_PATH = "/api/v1/organization/org-reconciliations:run";
-    static final String RECONCILE_CODE = "organization.workforce:org-reconciliation:execute";
-
-    @Test
-    @DisplayName("#934 裁定 4：组织对账保留并改名：接口 /api/v1/organization/org-reconciliations:run 存在；权限目录有在用的 organization.workforce:org-reconciliation:execute；不持有它的调用方（持有其余全部权限码）得 403，只持有它的调用方被受理（不是 403，业务结果不钉）")
-    void theReconciliationIsKeptUnderItsNewName() throws Exception {
-        RequestMappingHandlerMapping mapping = context.getBean("requestMappingHandlerMapping", RequestMappingHandlerMapping.class);
-        List<String> paths = new ArrayList<>();
-        for (RequestMappingInfo info : mapping.getHandlerMethods().keySet()) {
-            paths.addAll(info.getPatternValues());
-        }
-        List<String> live = new ArrayList<>();
-        for (Permission permission : Permission.values()) {
-            if (permission.code().equals(RECONCILE_CODE) && !permission.deprecated()) {
-                live.add(permission.code());
-            }
-        }
-
-        assertThat(paths).as("the reconciliation endpoint").contains(RECONCILE_PATH);
-        assertThat(live).as("the reconciliation permission in the catalogue, live").containsExactly(RECONCILE_CODE);
-
-        String[] everyOtherCode = java.util.Arrays.stream(Permission.values()).map(Permission::code).filter(code -> !code.equals(RECONCILE_CODE))
-                .toArray(String[]::new);
-        int without = mvc.perform(post(RECONCILE_PATH).with(csrf()).with(person(3, everyOtherCode))).andReturn().getResponse().getStatus();
-        int with = mvc.perform(post(RECONCILE_PATH).with(csrf()).with(person(4, RECONCILE_CODE))).andReturn().getResponse().getStatus();
-        assertThat(without).as("a caller holding every other code but not %s", RECONCILE_CODE).isEqualTo(403);
-        assertThat(with).as("a caller holding only %s is let through (any answer but 401/403)", RECONCILE_CODE).isNotIn(401, 403);
-        // Who holds it (org_data_admin, as the sync run codes it replaces) is pinned by the role declaration's own acceptance, SystemRoleDeclarationIT.
     }
 
     @Test

@@ -9,11 +9,6 @@ import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.AssignmentKind;
 import com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository;
-import com.forcitis.one.organization.workforce.api.EmploymentStatus;
-import com.forcitis.one.organization.workforce.domain.Assignment;
-import com.forcitis.one.organization.workforce.domain.Employee;
-import com.forcitis.one.organization.workforce.domain.OrgSnapshotRepository;
-import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -30,9 +25,6 @@ class EmployeeAssignmentsTablesIntegrationTest extends WorkforceIntegrationSuppo
 
     @Autowired
     OrgStructureCommandRepository structure;
-
-    @Autowired
-    OrgSnapshotRepository snapshots;
 
     @Autowired
     DataSource dataSource;

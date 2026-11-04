@@ -86,41 +86,4 @@ public final class Fixtures {
         return source(List.of(unit(1, null), unit(2, 1L), unit(3, 2L)), List.of(),
                 List.of(post(100), post(101)), List.of(staff));
     }
-
-    public static Reconciliation first(SourceOrgSnapshot source) {
-        return SnapshotReconciler.reconcile(OrgSnapshot.empty(), source);
-    }
-
-    public static OrgSnapshot apply(OrgSnapshot before, Reconciliation changes) {
-        List<OrgUnit> units = new ArrayList<>(before.orgUnitsById().values());
-        units.removeIf(u -> changes.orgUnits().stream().anyMatch(c -> c.orgUnitId().equals(u.orgUnitId())));
-        units.addAll(changes.orgUnits());
-        List<Position> positions = new ArrayList<>(before.positionsById().values());
-        positions.removeIf(p -> changes.positions().stream().anyMatch(c -> c.positionId().equals(p.positionId())));
-        positions.addAll(changes.positions());
-        List<StaffEmployee> staff = new ArrayList<>(before.staffById().values());
-        staff.removeIf(s -> changes.staff().stream().anyMatch(c -> c.employeeId().equals(s.employeeId())));
-        staff.addAll(changes.staff());
-        return new OrgSnapshot(units, positions, staff);
-    }
-
-    public static StaffEmployee staff(OrgSnapshot snapshot, long id) {
-        return snapshot.staffById().get(user(id));
-    }
-
-    public static OrgUnit orgUnit(OrgSnapshot snapshot, long id) {
-        return snapshot.orgUnitsById().get(unitId(id));
-    }
-
-    public static boolean employed(StaffEmployee s) {
-        return s.employee().employmentStatus() == EmploymentStatus.EMPLOYED;
-    }
-
-    public static List<IssueKind> issues(Reconciliation changes) {
-        return changes.diffs().stream().filter(SyncDiff::isIssue).map(SyncDiff::issueKind).toList();
-    }
-
-    public static List<SyncDiff> issues(Reconciliation changes, IssueKind kind) {
-        return changes.diffs().stream().filter(d -> d.isIssue() && d.issueKind() == kind).toList();
-    }
 }
