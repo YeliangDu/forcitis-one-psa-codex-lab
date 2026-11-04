@@ -100,6 +100,7 @@ categories:
   - organization.workforce.countersign-read.denied
   - organization.workforce.org-unit.denied
   - organization.workforce.profile-change-request.denied
+  - organization.workforce.personnel-command.denied
 - name: 编号规则
   actions:
   - platform.numbering.NumberingRuleConfirmationGiven

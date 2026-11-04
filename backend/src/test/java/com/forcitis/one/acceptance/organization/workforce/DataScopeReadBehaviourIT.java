@@ -59,6 +59,7 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
 
     static final Path REGISTER = Path.of("architecture/data-scope-read-paths.txt");
     static final String PERSONNEL_COMMAND_CREATE = "organization.workforce:personnel-command:create";
+    static final String PERSONNEL_COMMANDS = "/api/v1/organization/personnel-commands";
     static final String REQUESTS = "/api/v1/organization/employee-profile-change-requests";
     static final String ORG_UNIT_ENTITIES = "/api/v1/organization/org-unit-legal-entities/{orgUnitId}";
     static final String EMPLOYEE_ENTITIES = "/api/v1/organization/employee-legal-entities/{employeeId}";
@@ -82,6 +83,7 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
 
     private final Map<String, String> unitIds = new LinkedHashMap<>();
     private final Map<String, String> unitOfEmployee = new LinkedHashMap<>();
+    private final Map<String, String> personnelCommandOf = new LinkedHashMap<>();
     /** Permission adjustments are scoped by relation, not by unit: "F1-B" stands for the items addressed to scopeB, "F1-A" for every other item. */
     private final Map<String, String> unitOfAdjustment = new LinkedHashMap<>();
 
@@ -122,6 +124,7 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
         grantOrdinaryRoles(administrator("admin1"), "nohome", "f1-read-own");
         grantOrdinaryRoles(administrator("admin1"), "broken", "f1-read-own");
         seedAdjustments();
+        seedCommands();
         try (Connection workforce = schemaConnection("organization_workforce")) {
             OffsetDateTime at = OffsetDateTime.of(2026, 10, 1, 9, 0, 0, 0, ZoneOffset.UTC);
             int minute = 0;
@@ -142,6 +145,28 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
                     statement.setObject(9, requestedAt);
                     statement.executeUpdate();
                 }
+            }
+        }
+    }
+
+    /** One pending personnel command per person, written as rows: the entry paths are not under test here. */
+    private void seedCommands() throws Exception {
+        OffsetDateTime at = OffsetDateTime.of(2026, 10, 1, 8, 0, 0, 0, ZoneOffset.UTC);
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            for (String key : List.of("a1", "b1", "a2", "b2")) {
+                UUID id = UUID.randomUUID();
+                try (PreparedStatement statement = workforce.prepareStatement("""
+                        insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
+                        values (?, ?, 'REGULARIZE', ?, 'PENDING', ?, ?, ?)""")) {
+                    statement.setObject(1, id);
+                    statement.setObject(2, UUID.fromString(employeeIdOf(key)));
+                    statement.setObject(3, java.time.LocalDate.of(2026, 12, 1));
+                    statement.setObject(4, at);
+                    statement.setObject(5, UUID.randomUUID());
+                    statement.setObject(6, at);
+                    statement.executeUpdate();
+                }
+                personnelCommandOf.put(id.toString(), key);
             }
         }
     }
@@ -200,6 +225,8 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
                 new ListPath("GET /api/v1/organization/org-units", ORG_UNITS, List.of("", "?includeRevoked=true", "?includeRevoked=false"), false, "orgUnitId",
                         row -> unitCodeOf(String.valueOf(row.get("orgUnitId")))),
                 new ListPath("GET " + REQUESTS, REQUESTS, List.of("?status=PENDING"), true, "requestId", row -> unitOfEmployee.get(String.valueOf(row.get("employeeId")))),
+                new ListPath("GET " + PERSONNEL_COMMANDS, PERSONNEL_COMMANDS, List.of("", "?status=PENDING"), true, "personnelCommandId",
+                        row -> unitOfEmployee.get(String.valueOf(row.get("employeeId")))),
                 new ListPath("GET " + ADJUSTMENTS, ADJUSTMENTS, List.of(""), true, "permissionAdjustmentId",
                         row -> unitOfAdjustment.get(String.valueOf(row.get("permissionAdjustmentId")))));
     }
@@ -209,7 +236,12 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
                 new DetailPath("GET " + ORG_UNIT, unitIds.get("F1-A"), unitIds.get("F1-B")),
                 new DetailPath("GET " + ORG_UNIT_ENTITIES, unitIds.get("F1-A"), unitIds.get("F1-B")),
                 new DetailPath("GET " + EMPLOYEE_ENTITIES, employeeIdOf("a1"), employeeIdOf("b1")),
+                new DetailPath("GET " + PERSONNEL_COMMANDS + "/{personnelCommandId}", personnelCommandOf("a1"), personnelCommandOf("b1")),
                 new DetailPath("GET " + ADJUSTMENT, adjustmentIn("F1-A"), adjustmentIn("F1-B")));
+    }
+
+    private String personnelCommandOf(String key) {
+        return personnelCommandOf.entrySet().stream().filter(item -> item.getValue().equals(key)).map(Map.Entry::getKey).findFirst().orElseThrow();
     }
 
     private String adjustmentIn(String unit) {

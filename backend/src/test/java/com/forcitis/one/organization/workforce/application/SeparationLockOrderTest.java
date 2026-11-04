@@ -114,7 +114,7 @@ class SeparationLockOrderTest {
     @DisplayName("IMP-1030-PAR-B6 releasing a hold takes the separation lock, then the merged units holding the person, before the employee row")
     void releasingLocksTheDecisionFirst() {
         SeparationReview review = mock(SeparationReview.class);
-        SeparationHoldService service = new SeparationHoldService(commands, review,
+        SeparationHoldService service = new SeparationHoldService(commands, new SeparationHoldReview(commands, review),
                 new HeldSeparationRelease(commands, new PersonnelPlans(ids), mock(LegalEntityResolutionSources.class), mock(AuditLog.class), mock(DomainEvents.class), ids, zone, mergeProgress),
                 mergeProgress, mock(SeparationHoldNotice.class), currentUser, clock);
         heldSeparation();
@@ -156,7 +156,7 @@ class SeparationLockOrderTest {
     void theNoticeLeavesOutOnlyTheHeld() {
         SeparationReview review = mock(SeparationReview.class);
         SeparationHoldNotice notice = mock(SeparationHoldNotice.class);
-        SeparationHoldService service = new SeparationHoldService(commands, review, mock(HeldSeparationRelease.class), mergeProgress, notice, currentUser, clock);
+        SeparationHoldService service = new SeparationHoldService(commands, new SeparationHoldReview(commands, review), mock(HeldSeparationRelease.class), mergeProgress, notice, currentUser, clock);
         EmployeeId held = new EmployeeId(UUID.fromString("019a0000-0000-7000-8000-000000000002"));
         EmployeeId waiting = new EmployeeId(UUID.fromString("019a0000-0000-7000-8000-000000000003"));
         EmployeeId stays = new EmployeeId(UUID.fromString("019a0000-0000-7000-8000-000000000004"));
