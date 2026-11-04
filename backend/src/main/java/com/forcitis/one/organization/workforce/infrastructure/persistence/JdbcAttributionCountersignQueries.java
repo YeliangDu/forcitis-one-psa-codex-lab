@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
+import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.workforce.api.AttributionCountersignId;
@@ -9,6 +10,7 @@ import com.forcitis.one.organization.workforce.domain.AttributionCountersignQuer
 import com.forcitis.one.organization.workforce.domain.CountersignStatus;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -39,8 +41,10 @@ class JdbcAttributionCountersignQueries implements AttributionCountersignQueries
                    pc.countersign_previous_legal_entity_id as previous_legal_entity_id, ple.name as previous_legal_entity_name,
                    pc.countersign_new_legal_entity_id as new_legal_entity_id, nle.name as new_legal_entity_name,
                    c.requested_at, c.requested_by, c.due_on_date, c.escalation_level_number,
-                   previous_unit.id as previous_org_unit_id, previous_unit.name as previous_org_unit_name,
-                   new_unit.id as new_org_unit_id, new_unit.name as new_org_unit_name,
+                   previous_unit.id as previous_org_unit_id,
+                   coalesce(previous_version.name, previous_unit.name) as previous_org_unit_name,
+                   new_unit.id as new_org_unit_id,
+                   coalesce(new_version.name, new_unit.name) as new_org_unit_name,
                    c.request_reason, c.decided_at, c.decided_by, c.decision_reason
               from organization_workforce.attribution_countersigns c
               join organization_workforce.legal_entities le on le.id = c.legal_entity_id
@@ -50,11 +54,15 @@ class JdbcAttributionCountersignQueries implements AttributionCountersignQueries
               left join organization_workforce.legal_entities ple on ple.id = pc.countersign_previous_legal_entity_id
               left join organization_workforce.legal_entities nle on nle.id = pc.countersign_new_legal_entity_id
               left join organization_workforce.org_units new_unit on new_unit.id = pc.target_org_unit_id
+              left join organization_workforce.org_unit_versions new_version on new_version.org_unit_id = new_unit.id and new_version.superseded_at is null
+                   and new_version.effective_from_date <= :today and (new_version.effective_to_date is null or :today < new_version.effective_to_date)
               left join lateral (select u.id, u.name
                                    from organization_workforce.assignment_versions av join organization_workforce.org_units u on u.id = av.org_unit_id
                                   where pc.target_org_unit_id is not null and av.assignment_id = pc.target_assignment_id
                                     and av.effective_from_date < pc.effective_date and (av.effective_to_date is null or pc.effective_date - 1 < av.effective_to_date)
                                   order by av.effective_from_date desc, av.revision_number desc limit 1) previous_unit on true
+              left join organization_workforce.org_unit_versions previous_version on previous_version.org_unit_id = previous_unit.id and previous_version.superseded_at is null
+                   and previous_version.effective_from_date <= :today and (previous_version.effective_to_date is null or :today < previous_version.effective_to_date)
             """;
 
     /** The alias is one of ours, never input; the same filter guards the row a cursor points at, so a cursor cannot probe a row the caller may not see. */
@@ -65,9 +73,13 @@ class JdbcAttributionCountersignQueries implements AttributionCountersignQueries
             """;
 
     private final JdbcClient jdbc;
+    private final Clock clock;
+    private final BusinessZone zone;
 
-    JdbcAttributionCountersignQueries(JdbcClient jdbc) {
+    JdbcAttributionCountersignQueries(JdbcClient jdbc, Clock clock, BusinessZone zone) {
         this.jdbc = jdbc;
+        this.clock = clock;
+        this.zone = zone;
     }
 
     @Override
@@ -101,7 +113,7 @@ class JdbcAttributionCountersignQueries implements AttributionCountersignQueries
                    and c.personnel_command_id is not distinct from s.personnel_command_id and c.org_structure_command_id is not distinct from s.org_structure_command_id
                  order by c.requested_at, c.request_kind, c.request_sequence_number, c.attribution_countersign_id
                 """)
-                .param("id", id.value()).query((rs, n) -> row(rs)).list();
+                .param("id", id.value()).param("today", zone.today(clock)).query((rs, n) -> row(rs)).list();
     }
 
     @Override

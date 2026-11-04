@@ -78,10 +78,14 @@ class JdbcOrgSnapshotQueries implements OrgSnapshotQueries {
     @Override
     public Optional<OrgUnit> findOrgUnit(OrgUnitId orgUnitId) {
         return jdbc.sql("""
-                select u.id, u.code, u.name, u.parent_org_unit_id, u.sort_order, u.status,
+                select u.id, u.code, case when v.org_unit_version_id is not null then v.name else u.name end as name,
+                       u.parent_org_unit_id, u.sort_order, u.status,
                        case when exists (select 1 from organization_workforce.org_unit_versions x where x.org_unit_id = u.id) then v.head_employee_id
                             else u.head_employee_id end as head_employee_id,
-                       u.regional_receivables_manager_id, u.region_category, u.is_delivery_unit, u.short_name
+                       u.regional_receivables_manager_id,
+                       case when v.org_unit_version_id is not null then v.region_kind else u.region_category end as region_category,
+                       case when v.org_unit_version_id is not null then v.is_delivery_unit else u.is_delivery_unit end as is_delivery_unit,
+                       case when v.org_unit_version_id is not null then v.short_name else u.short_name end as short_name
                   from organization_workforce.org_units u
                   left join organization_workforce.org_unit_versions v on v.org_unit_id = u.id and v.superseded_at is null
                        and v.effective_from_date <= :day and (v.effective_to_date is null or :day < v.effective_to_date)
@@ -91,7 +95,7 @@ class JdbcOrgSnapshotQueries implements OrgSnapshotQueries {
 
     @Override
     public List<OrgUnit> findAllOrgUnits() {
-        return jdbc.sql(OrgSnapshotRows.SELECT_ORG_UNITS).query((rs, n) -> OrgSnapshotRows.orgUnit(rs)).list();
+        return jdbc.sql(OrgSnapshotRows.SELECT_ORG_UNITS_ON_DAY).param("day", zone.today(clock)).query((rs, n) -> OrgSnapshotRows.orgUnit(rs)).list();
     }
 
     @Override

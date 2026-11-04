@@ -27,6 +27,17 @@ final class OrgSnapshotRows {
               from organization_workforce.org_units
             """;
 
+    static final String SELECT_ORG_UNITS_ON_DAY = """
+            select u.id, u.code, case when v.org_unit_version_id is not null then v.name else u.name end as name,
+                   u.parent_org_unit_id, u.sort_order, u.status, u.head_employee_id, u.regional_receivables_manager_id,
+                   case when v.org_unit_version_id is not null then v.region_kind else u.region_category end as region_category,
+                   case when v.org_unit_version_id is not null then v.is_delivery_unit else u.is_delivery_unit end as is_delivery_unit,
+                   case when v.org_unit_version_id is not null then v.short_name else u.short_name end as short_name
+              from organization_workforce.org_units u
+              left join organization_workforce.org_unit_versions v on v.org_unit_id = u.id and v.superseded_at is null
+                   and v.effective_from_date <= :day and (v.effective_to_date is null or :day < v.effective_to_date)
+            """;
+
     /** The snapshot rows as stored; for the reconciliation's own comparison only, readers use SELECT_STAFF_ON_DAY. */
     static final String SELECT_STAFF = """
             select e.id, e.employee_code, e.display_name, e.login_name, e.email, e.gender, e.wecom_user_id,
