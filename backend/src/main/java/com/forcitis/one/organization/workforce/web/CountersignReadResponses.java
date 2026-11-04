@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.web;
 
+import com.forcitis.one.organization.workforce.api.AttributionCountersignStatus;
+import com.forcitis.one.organization.workforce.api.AttributionCountersignSummary;
 import com.forcitis.one.organization.workforce.api.CountersignCommandKind;
 import com.forcitis.one.organization.workforce.api.CountersignCommandStatus;
 import com.forcitis.one.organization.workforce.api.CountersignDecisionKind;
@@ -39,6 +41,19 @@ final class CountersignReadResponses {
         static RequestResponse of(CountersignReadViews.Request r) {
             return new RequestResponse(r.attributionCountersignId(), r.requestKind(), r.requestSequenceNumber(), r.legalEntityId(), r.legalEntityName(), r.requestedAt(),
                     r.requestedByDisplayName(), r.dueOnDate(), r.escalationLevel(), r.decisionKind(), r.decidedAt(), r.decidedByDisplayName(), r.decisionReason());
+        }
+    }
+
+    /** One request of the inbox: the person by name only, the employee number stays in the detail read. */
+    record SummaryResponse(UUID attributionCountersignId, @Nullable UUID personnelCommandId, String commandKind, String commandStatus, LocalDate effectiveDate, @Nullable UUID employeeId,
+                           @Nullable String employeeDisplayName, String requestKind, int requestSequenceNumber, AttributionCountersignStatus status, UUID legalEntityId,
+                           String legalEntityName, @Nullable UUID previousLegalEntityId, @Nullable String previousLegalEntityName, @Nullable UUID newLegalEntityId,
+                           @Nullable String newLegalEntityName, Instant requestedAt, @Nullable String requestedByDisplayName, LocalDate dueDate, int escalationLevel) {
+        static SummaryResponse of(AttributionCountersignSummary s) {
+            return new SummaryResponse(s.attributionCountersignId().value(), s.personnelCommandId() == null ? null : s.personnelCommandId().value(), s.commandKind(), s.commandStatus(),
+                    s.effectiveDate(), s.employeeId() == null ? null : s.employeeId().value(), s.employeeDisplayName(), s.requestKind(), s.requestSequenceNumber(), s.status(),
+                    s.legalEntityId().value(), s.legalEntityName(), s.previousLegalEntityId() == null ? null : s.previousLegalEntityId().value(), s.previousLegalEntityName(),
+                    s.newLegalEntityId() == null ? null : s.newLegalEntityId().value(), s.newLegalEntityName(), s.requestedAt(), s.requestedByDisplayName(), s.dueDate(), s.escalationLevel());
         }
     }
 
