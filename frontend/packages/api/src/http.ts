@@ -18,6 +18,8 @@ export interface RequestArgs {
 export interface RequestOptions {
   /** false: a 401 / 403 answer is returned to the caller as an ApiError and does not trigger the redirect handlers (login calls). */
   guards?: boolean;
+  /** true: a 403 that carries a problem code (a business refusal) is returned to the caller instead of redirecting to the no-permission page; a 403 without one and every 401 still go through the guards. */
+  keepBusinessForbidden?: boolean;
   /** One key per user intent: a retry of the same intent passes the key of the first attempt. Without it every call gets a fresh key. */
   idempotencyKey?: string;
   /** The version (ETag) of the data the update is based on: `versionOf(data)` of what was read. A versioned update without it is refused. */
@@ -209,11 +211,12 @@ export function createHttpClient(config: HttpClientConfig = {}) {
       return result as T;
     }
 
+    const problem = problemOf(body);
     if (options.guards !== false) {
       if (response.status === 401) config.handlers?.().onUnauthenticated?.();
-      if (response.status === 403) config.handlers?.().onForbidden?.();
+      if (response.status === 403 && !(options.keepBusinessForbidden === true && problem !== undefined)) config.handlers?.().onForbidden?.();
     }
-    throw new ApiError(response.status, problemOf(body), body);
+    throw new ApiError(response.status, problem, body);
   }
 
   return { request };

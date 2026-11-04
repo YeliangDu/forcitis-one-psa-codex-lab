@@ -6,9 +6,9 @@ export function fetchAuthorizationRequests() {
 
 /** The contract carries no version: a request that is no longer pending answers 409 (PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_PENDING). */
 export async function confirmAuthorizationRequest(requestId: string, idempotencyKey: string): Promise<void> {
-  await operations.postPlatformAuthorizationRequestsByRequestIdConfirm({ path: { requestId } }, { idempotencyKey });
+  await operations.postPlatformAuthorizationRequestsByRequestIdConfirm({ path: { requestId } }, { idempotencyKey, keepBusinessForbidden: true });
 }
 
 export async function rejectAuthorizationRequest(requestId: string, idempotencyKey: string): Promise<void> {
-  await operations.postPlatformAuthorizationRequestsByRequestIdReject({ path: { requestId } }, { idempotencyKey });
+  await operations.postPlatformAuthorizationRequestsByRequestIdReject({ path: { requestId } }, { idempotencyKey, keepBusinessForbidden: true });
 }
