@@ -147,6 +147,8 @@ categories:
   - platform.audit.audit-entry.searched
 - name: 配置变更
   actions:
+  - organization.attendance.standard-hours.published
+  - organization.attendance.standard-hours.voided
   - organization.attendance.WorkCalendarLockedDaysChanged
   - organization.attendance.WorkCalendarYearMaintained
 - name: 工时单

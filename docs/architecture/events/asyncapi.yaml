@@ -76,6 +76,11 @@ channels:
     messages:
       WorkCalendarLockedDaysChanged:
         $ref: '#/components/messages/WorkCalendarLockedDaysChanged'
+  standardHoursVersionPublished:
+    address: organization.attendance.StandardHoursVersionPublished
+    messages:
+      StandardHoursVersionPublished:
+        $ref: '#/components/messages/StandardHoursVersionPublished'
   roleCreated:
     address: platform.identity.RoleCreated
     messages:
@@ -651,6 +656,13 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/workCalendarLockedDaysChanged/messages/WorkCalendarLockedDaysChanged'
+  publishStandardHoursVersionPublished:
+    action: send
+    channel:
+      $ref: '#/channels/standardHoursVersionPublished'
+    summary: organization.attendance 发布
+    messages:
+    - $ref: '#/channels/standardHoursVersionPublished/messages/StandardHoursVersionPublished'
   publishRoleCreated:
     action: send
     channel:
@@ -2633,6 +2645,41 @@ components:
               type: object
               x-type: LockedDayChange
               description: 被修改的、早于操作当天的日期，及其修改前后的类别（NONE 表示按周一至周五上班、周末休息的常规）
+    StandardHoursVersionPublished:
+      name: StandardHoursVersionPublished
+      title: 标准工时的新版本被发布
+      x-event:
+        eventType: organization.attendance.StandardHoursVersionPublished
+        version: 1
+        class: com.forcitis.one.organization.attendance.events.StandardHoursVersionPublished
+        aggregate: StandardHours
+        idempotencyKey: eventId
+        publisher: organization.attendance
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 新版本的生效日期
+        audit: 'not-audited: 发布同事务直写审计 organization.attendance.standard-hours.published'
+        publisherTest: com.forcitis.one.organization.attendance.domain.StandardHoursTest
+        noConsumer: 暂无消费方：只供分析（版本发布的时间线）；发布本身已写审计，事件不替代审计
+      payload:
+        type: object
+        required:
+        - envelope
+        - standardHoursVersionId
+        - effectiveFromDate
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          standardHoursVersionId:
+            type: string
+            format: uuid
+            x-type: StandardHoursVersionId
+            description: 新发布的标准工时版本
+          effectiveFromDate:
+            type: string
+            x-type: LocalDate
+            description: 新版本的生效日期
     RoleCreated:
       name: RoleCreated
       title: 角色新增

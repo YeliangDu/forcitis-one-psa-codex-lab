@@ -45,6 +45,14 @@ organization.attendance::api organization.attendance.api.LockedDayChange public 
 organization.attendance::api organization.attendance.api.LockedDayChange public organization.attendance.api.LockedDayChange(java.time.LocalDate,organization.attendance.api.DayException,organization.attendance.api.DayException)
 organization.attendance::api organization.attendance.api.StandardHours public abstract int organization.attendance.api.StandardHours.minutesOn(kernel.LegalEntityId,java.time.LocalDate)
 organization.attendance::api organization.attendance.api.StandardHours public abstract interface organization.attendance.api.StandardHours
+organization.attendance::api organization.attendance.api.StandardHoursVersionId component value: java.util.UUID
+organization.attendance::api organization.attendance.api.StandardHoursVersionId extends java.lang.Record
+organization.attendance::api organization.attendance.api.StandardHoursVersionId public final boolean organization.attendance.api.StandardHoursVersionId.equals(java.lang.Object)
+organization.attendance::api organization.attendance.api.StandardHoursVersionId public final int organization.attendance.api.StandardHoursVersionId.hashCode()
+organization.attendance::api organization.attendance.api.StandardHoursVersionId public final record organization.attendance.api.StandardHoursVersionId
+organization.attendance::api organization.attendance.api.StandardHoursVersionId public java.lang.String organization.attendance.api.StandardHoursVersionId.toString()
+organization.attendance::api organization.attendance.api.StandardHoursVersionId public java.util.UUID organization.attendance.api.StandardHoursVersionId.value()
+organization.attendance::api organization.attendance.api.StandardHoursVersionId public organization.attendance.api.StandardHoursVersionId(java.util.UUID)
 organization.attendance::api organization.attendance.api.WorkCalendar implements kernel.WorkdayDeadlines
 organization.attendance::api organization.attendance.api.WorkCalendar public abstract boolean organization.attendance.api.WorkCalendar.isWorkday(java.time.LocalDate,kernel.LegalEntityId)
 organization.attendance::api organization.attendance.api.WorkCalendar public abstract interface organization.attendance.api.WorkCalendar

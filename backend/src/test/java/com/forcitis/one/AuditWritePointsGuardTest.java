@@ -25,7 +25,7 @@ class AuditWritePointsGuardTest {
     /** Row 26 (#959, ADR-0043 U-7(b)): the one write point that may put the changed L2 profile columns into before and after text, and the only one that may be class PI. */
     static final String PROFILE_WRITER = "src/main/java/com/forcitis/one/organization/workforce/application/EmployeeProfileService.java";
     static final String PROFILE_ROW = "26";
-    static final int LAST_ROW = 38;
+    static final int LAST_ROW = 40;
     static final Pattern WRITE = Pattern.compile("new\\s+AuditEntry\\s*\\(|\\.withChange\\s*\\(");
 
     record Writer(int writes, String rows, String personalData) {
@@ -182,7 +182,7 @@ class AuditWritePointsGuardTest {
         List<String> problems = new ArrayList<>();
         assertThat(parse(List.of("# c", "", "A.java | 1 | 1,2 | POSSIBLE"), problems)).containsOnlyKeys("A.java");
         assertThat(problems).isEmpty();
-        for (String bad : List.of("A.java | 1 | 1", "A.java | 1 | 39 | NONE", "A.java | 1 | 0 | NONE", "A.java | 1 | 1 | SECRET", "A.java | 0 | 1 | NONE",
+        for (String bad : List.of("A.java | 1 | 1", "A.java | 1 | 41 | NONE", "A.java | 1 | 0 | NONE", "A.java | 1 | 1 | SECRET", "A.java | 0 | 1 | NONE",
                 "A.java | x | 1 | NONE", "A.java | 1 | | NONE")) {
             List<String> one = new ArrayList<>();
             assertThat(parse(List.of(bad), one)).as(bad).isEmpty();
