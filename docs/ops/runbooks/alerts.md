@@ -22,12 +22,12 @@ Let's Encrypt 已不发到期提醒邮件，ACME 账号也没填邮箱（session
 
 | 项 | 内容 |
 |---|---|
-| 脚本 | `scripts/one_cert_check.sh` → ECS `/usr/local/sbin/one_cert_check.sh`（root 0755） |
+| 脚本 | `tools/ops/ecs/scripts/one_cert_check.sh` → ECS `/usr/local/sbin/one_cert_check.sh`（root 0755） |
 | 调度 | `files/one-cert-check.service`、`files/one-cert-check.timer` → `/etc/systemd/system/`；每日 09:10（随机延迟 10 分钟，`Persistent=true`） |
 | 检查 | ① 续期后的证书文件剩余天数；② nginx 实际下发的证书剩余天数（经 127.0.0.1:443，防止续期成功但没 reload）；③ 两者不一致；④ `certbot-renew.service` 上次结果；⑤ `certbot-renew.timer` 是否启用 |
 | 级别 | 剩余 < 20 天 → P2；< 7 天或读不到证书 → P1；③④⑤ → P2。阈值可用环境变量 `ONE_CERT_WARN_DAYS` / `ONE_CERT_CRIT_DAYS` 调 |
 | 输出 | 一行 JSON 写 journal（标签 `one-cert-check`）与 `/data/forcitis-one/logs/ops/cert-check.json`；告警行 `message` 以 `ALERT P1` / `ALERT P2` 开头，可被下面的 SLS 兜底规则捕获（Logtail 采集路径加上 `logs/ops/*.json`） |
-| 推送 | 告警时调用 `/usr/local/sbin/one_alert_send`（`scripts/one_alert_send.py`）：`/etc/forcitis-one/ops-alert.env`（root 0600）有 `ONE_ALERT_WEBHOOK` 时发到「FORCITIS one 运维」群机器人（A-5 现行渠道），否则以 FORCITIS one 应用消息发给 `ONE_ALERT_WECOM_USERID`；直接调企业微信接口，不依赖业务服务，不打印凭据 |
+| 推送 | 告警时调用 `/usr/local/sbin/one_alert_send`（`tools/ops/ecs/scripts/one_alert_send.py`）：`/etc/forcitis-one/ops-alert.env`（root 0600）有 `ONE_ALERT_WEBHOOK` 时发到「FORCITIS one 运维」群机器人（A-5 现行渠道），否则以 FORCITIS one 应用消息发给 `ONE_ALERT_WECOM_USERID`；直接调企业微信接口，不依赖业务服务，不打印凭据 |
 | 退出码 | 0 正常；1 告警；2 检查本身失败。systemd 中单元为 failed 也能从 `systemctl --failed` 看到 |
 
 已安装（2026-10-15，one-coordinator 在授权内同意；云助手 t-hz0701b833ib7r4）：脚本 SHA256 校验通过，首次运行 `Result=success`，定时器下次 09:14。此前的验证（云助手 t-hz0701ank3nqvb4，在 ECS 临时目录运行、用后删除）：正常 89 天 → 退出 0；阈值调到 200 天分别得到 P2 / P1、退出 1；证书文件不存在 → P1、退出 2。
@@ -49,7 +49,7 @@ systemctl start one-cert-check.service; journalctl -u one-cert-check.service -n 
 
 | 项 | 内容 |
 |---|---|
-| 脚本 | `scripts/one_clamav_check.sh` → ECS `/usr/local/sbin/one_clamav_check.sh`（root 0755）；`files/one-clamav-check.service`、`files/one-clamav-check.timer` → `/etc/systemd/system/`；开机 2 分钟后起、之后每 5 分钟 |
+| 脚本 | `tools/ops/ecs/scripts/one_clamav_check.sh` → ECS `/usr/local/sbin/one_clamav_check.sh`（root 0755）；`files/one-clamav-check.service`、`files/one-clamav-check.timer` → `/etc/systemd/system/`；开机 2 分钟后起、之后每 5 分钟 |
 | 检查 | ① clamd 经 socket 的 PING；② clamd 回报的病毒库日期（库龄）；③ `forcitis-one-freshclam` 是否运行 |
 | 级别 | clamd 不应答（检测不可用，上传一律拒收）→ P1；库龄 > 48 小时（`ONE_CLAMAV_MAX_AGE_HOURS`）、读不到库日期、freshclam 未运行 → P2 |
 | 输出 | 一行 JSON 写 journal（标签 `one-clamav-check`）与 `/data/forcitis-one/logs/ops/clamav-check.json`；告警行以 `ALERT P1` / `ALERT P2` 开头，被 SLS 兜底规则捕获 |
