@@ -30,7 +30,7 @@
 
 ## 2. PostgreSQL（`forcitis_one_dev`；生产库 `forcitis_one_prod` 同实例另建，见 D-1）
 
-脚本见 `one_db_roles_schemas.sql`（评审草稿）；**可执行版**为 `runbooks/sql/c3_dev_db.sql`（dev）与 `runbooks/sql/c9_prod_db.sql`（生产，由 dev 版生成），剧本见 `runbooks/C-3-dev-db.md`。可执行版另加了库级 CREATE 授权（迁移含 `CREATE SCHEMA IF NOT EXISTS`）、PG 16 起执行人对属主角色的 SET 授权、按角色的 `work_mem` 与只读角色超时。执行顺序：
+脚本见 `one_db_roles_schemas.sql`（评审草稿）；**可执行版**为 `runbooks/sql/dev-db.sql`（dev）与 `runbooks/sql/prod-db.sql`（生产，由 dev 版生成），剧本见 `runbooks/dev-db.md`。可执行版另加了库级 CREATE 授权（迁移含 `CREATE SCHEMA IF NOT EXISTS`）、PG 16 起执行人对属主角色的 SET 授权、按角色的 `work_mem` 与只读角色超时。执行顺序：
 1. 用 RDS 高权限账号执行 §0 冲突检查。任何一项查到结果就停止，并把结果报给 psa-coordinator。
 2. 执行 §1 至 §3：
    - 建角色：`one_dev_owner`（属主，不可登录）、`one_dev_migrator`（迁移）、`one_dev_app`（运行）、`one_dev_readonly`（排障，可选）；
@@ -99,13 +99,13 @@ Prometheus 里的名字是 Micrometer 名字把点换成下划线、计数器加
 
 | 库 | 对象 | 账号 | 授权 | 脚本 |
 |---|---|---|---|---|
-| A8（a8_db） | 全库只读仅限受控退役用途；组织、人员等读取范围随一次性迁入规格确认，不保留运行时组织视图读取 | 既有专用只读账号 `one_a8_views_ro`；仅按用途方案使用并退出 | 库级 GRANT SELECT；库级 DENY INSERT、UPDATE、DELETE、ALTER、EXECUTE、REFERENCES、CREATE TABLE / VIEW / PROCEDURE / FUNCTION / SCHEMA；不入任何数据库角色 | `handoff/B-5-dba/read-all/a8_apply.sql`（历史组织视图：`docs/data/legacy-views/seeyon-views.sql`，仅供迁入适配器核对，不作常驻部署步骤） |
-| 老系统（ruoyi-vue-pro） | 全库只读仅限受控退役用途；撤销合并待办与老待办视图的运行时读取 | 既有专用只读账号 `psa_one_legacy_ro`；仅按用途方案使用并退出 | 同上；凭据列可读但应用代码不引用（ADR-0037 第 3 项，凭据列拒绝清单守护） | `handoff/B-5-dba/read-all/legacy_apply.sql`；原老待办视图 `dbo.v_psa_one_legacy_todo` 及 `docs/data/legacy-views/legacy-inbox-view.sql` 不再作为部署步骤 |
+| A8（a8_db） | 全库只读仅限受控退役用途；组织、人员等读取范围随一次性迁入规格确认，不保留运行时组织视图读取 | 既有专用只读账号 `one_a8_views_ro`；仅按用途方案使用并退出 | 库级 GRANT SELECT；库级 DENY INSERT、UPDATE、DELETE、ALTER、EXECUTE、REFERENCES、CREATE TABLE / VIEW / PROCEDURE / FUNCTION / SCHEMA；不入任何数据库角色 | `docs/ops/dba-scripts/read-all/a8-apply.sql`（历史组织视图：`docs/data/legacy-views/seeyon-views.sql`，仅供迁入适配器核对，不作常驻部署步骤） |
+| 老系统（ruoyi-vue-pro） | 全库只读仅限受控退役用途；撤销合并待办与老待办视图的运行时读取 | 既有专用只读账号 `psa_one_legacy_ro`；仅按用途方案使用并退出 | 同上；凭据列可读但应用代码不引用（ADR-0037 第 3 项，凭据列拒绝清单守护） | `docs/ops/dba-scripts/read-all/legacy-apply.sql`；原老待办视图 `dbo.v_psa_one_legacy_todo` 及 `docs/data/legacy-views/legacy-inbox-view.sql` 不再作为部署步骤 |
 | 老系统 | 部门简称仅在迁入规格确认有需要时用于一次性迁入匹配，须有取证与差异清单，不定时刷新 | 既有专用只读账号 `one_legacy_names_ro`；用途与退出另行确认，不自动与其他账号合并 | 同上 | 同上（历史视图 `dbo.v_one_legacy_org_short_name`、`docs/data/legacy-views/legacy-org-names-view.sql` 仅供迁入适配器核对） |
 
 受控退役用途进程只对本次实际使用的只读连接做同一项校验（ADR-0037 第 4 项的访问控制保留，按 ADR-0055 决定 7 限定用途；`platform.integration` 连接工厂）：服务器级与库级有效权限**等于**写死的 RDS 平台基线，库级 DENY 11 项存在且库级 GRANT 恰好 CONNECT、SELECT，只在 public 角色，不在任何固定服务器角色，不是 dbo、不拥有任何 schema / 对象 / 角色、无主体类授权，`sys.server_permissions` 中本登录的行恰好一行 GRANT CONNECT SQL（无针对登录等的授权，也无其他 GRANT 或 DENY），`HAS_DBACCESS` 只有本库与系统库（master、tempdb、model、msdb 及 rdscore），系统库只经 guest 进入，例外是 RDS 为每个登录自动建的 msdb 与 rdscore 本人用户（见 4.1「(f) 系统库本人用户」，msdb 本人用户的直接授权与有效权限另有限制），且本登录不拥有 SQL Agent 作业，库级以下的授权（本登录的，及 public 在用户对象上的）只有 DENY、GRANT SELECT，或被本登录自己的同名 DENY 覆盖的 GRANT（被拒绝覆盖的授权，见 4.1「(g) 的覆盖口径」）。任一不满足或无法判定即拒绝启动本次退役用途进程，日志按 (a)–(g) 报出违反项；每次受控读取前重检；通道跨日仍在使用时至少每天重检一次：确认违规即停掉该连接（写 ALERT，重启前不再读取）；暂时判定不了（查询失败、超时、为空）只让本次读取不可用并写 ALERT，连续 3 次判定不了才停掉，一次判定通过即清零（用户 2026-10-15，intent 2026-10-15-120940）。**没有关闭开关**；账号授权变更后先用真实登录核对基线再启动本次退役用途进程。
 
-DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`handoff/B-5-dba/`。
+DBA 可直接执行的脚本（含口令随机生成、校验与回滚）：`docs/ops/dba-scripts/`。
 
 仅在受控退役用途运维卡授权的读取窗口内，将执行端实际地址加入所需库的白名单（既有 ECS 地址为 172.16.89.86）；不用的库不放行，结束后回收。账号口令只进入退役用途专用受保护环境文件或 KMS，按次注入专用进程，不进入常驻服务的 `/etc/forcitis-one/one.env`。
 
@@ -286,10 +286,10 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
 - **写入方式**：每批一个不可变对象，键为 `<前缀>/<类别>/<年>/<类别>-<UTC 时间>-<SHA-256 前 12 位>.ndjson.gz`；写入前算 SHA-256，上传带 `Content-MD5`、禁止覆盖、归档存储类型，SHA-256 同时写进对象元数据；上传后读回元数据，哈希或大小不符则整批失败，引擎和在线行都不动。多节点下由 ShedLock 保证同一时刻只有一个节点归档，对象名也各不相同。
 - **本机**：数据盘 `ARCHIVE_STORE_LOCAL_DIRECTORY/<类别>/latest.ndjson.gz` 只留最近一份（目录属主 `forcitis`，权限 `0750`，systemd 单元的 `ReadWritePaths` 要加上它）。
 - **保留与到期（单一 bucket）**：流程归档与审计归档共用同一个 bucket，用前缀区分类别，WORM 合规保留 **2557 天（约 7 年）**：依据是在线 3 年加归档 7 年，从数据产生起算满 10 年（用户已定）；以后需要时还可以延长，只增不减。天数是配置项 `ARCHIVE_STORE_WORM_LOCK_DAYS`（`forcitis.platform.integration.archive-store.worm-lock-days`，随发行物默认 2557），总保留期 10 年是另一个配置项 `total-keep-years`；每类数据的「在线保留期 + WORM 天数」必须等于总保留期，不一致则启动失败（`ArchiveVault.requireTotalKeepPeriod`，并有守护测试 `ArchiveKeepPeriodTest` 核对随发行物的配置）。建桶时在控制台按 2557 天锁定。
-- **生命周期**：bucket 配置生命周期规则，对象保留期满（创建后满 WORM 天数）后过期删除；应用不删除归档。过账类单据按 30 年保存，存放另行安排，见 `phase1a/DEFERRED.md`（用户已定，主分支提交 7d5b9d3），不在这个 bucket 的 10 年规则里。
+- **生命周期**：bucket 配置生命周期规则，对象保留期满（创建后满 WORM 天数）后过期删除；应用不删除归档。过账类单据按 30 年保存，存放另行安排，见已删除的 `docs/modernization/phase1a/DEFERRED.md`（`git show b09f58b0f^:docs/modernization/phase1a/DEFERRED.md`；用户已定，主分支提交 7d5b9d3），不在这个 bucket 的 10 年规则里。
 - **凭证与 RAM 策略**：推荐给 ECS 绑定 RAM 角色（STS 临时凭证），应用走默认凭证链，不配置 AccessKey；不用角色时才配置 `ARCHIVE_STORE_ACCESS_KEY_ID` / `_SECRET`（见 §5.2 的轮换）。策略（草稿，由用户在 RAM 控制台建）：Allow `oss:PutObject`、`oss:InitiateMultipartUpload`、`oss:AbortMultipartUpload`、`oss:GetObjectMetadata`（`oss:GetObject` 仅排障需要，默认不给）、`oss:GetBucketInfo`、`oss:GetBucketWorm`、`oss:GetBucketLocation`，资源限定在该 bucket 及 `<前缀>/*`；**显式 Deny** `oss:DeleteObject*`（含 `DeleteObject`、`DeleteMultipleObjects`、`DeleteObjectVersion`）于同一资源，显式 Deny 优先于任何 Allow。
 - **探针**：应用启动时和每天一次，检查本机目录可写、bucket 在配置的地域、WORM 已锁定且天数等于配置值、有写入权限（发起并中止一次分片上传，不在 WORM 桶里留对象）。失败不阻止启动，记 `ALERT` 日志并计数 `forcitis.platform.approval.archive.probe.failures`、`forcitis.platform.audit.archive.probe.failures`；归档作业本身失败记 `ALERT` 并计数 `forcitis.platform.scheduling.job.failures{job=…}`（所有带锁作业共用）。生产缺少上述配置项则**启动失败**。
-- **归档内容**：流程实例的 ID、流程定义键、版本与部署 ID、业务键、起止时间、发起人、删除原因，任务（办理人、认领、办结、到期时间）、活动、身份关联（候选人、转交、升级追加的人），以及白名单内的变量（`architecture/archive-variables.txt`：`contentDigest`、`routed_*`，任务级 `systemComplete`、`advisory`、`assignedAt`），不含其他流程变量。任务级的结论与理由由审批的只追加办理记录表负责。
+- **归档内容**：流程实例的 ID、流程定义键、版本与部署 ID、业务键、起止时间、发起人、删除原因，任务（办理人、认领、办结、到期时间）、活动、身份关联（候选人、转交、升级追加的人），以及白名单内的变量（`backend/architecture/archive-variables.txt`：`contentDigest`、`routed_*`，任务级 `systemComplete`、`advisory`、`assignedAt`），不含其他流程变量。任务级的结论与理由由审批的只追加办理记录表负责。
 - 一个实例写入归档后引擎删除失败，则跳过、记 `ALERT`、计数 `forcitis.platform.approval.archive.skipped`，并记入只追加表 `platform_approval.process_archive_skips`，之后不再重复归档；仍在引擎里的每次运行结束时再告警一次，直到人工处理。
 - 审计 3 年归档按 id 前缀成批，进度记在 `platform_audit.audit_archive_batches`。
 
@@ -353,7 +353,7 @@ java -Duser.timezone=UTC -jar forcitis-one.jar --spring.profiles.active=read-onl
   1. 发布含 #934 的版本，确认旧组织同步已不存在（旧同步的作业开关变量已不再有作用，可从 one.env 去掉）。
   2. 运行 `migrate-initial-versions`。
   3. 核对命令输出的计数与审计 `organization.workforce.initial-versions.migrated`；`assignmentsDifferingFromSnapshot` 不为 0 时交人事核对，不要重跑覆盖。命令可重跑且重跑不写行。
-- 剧本见 `runbooks/C-5-first-admins.md`（待按本节对齐）。
+- 剧本见 `runbooks/first-admins.md`（待按本节对齐）。
 
 ## 7. 首次部署步骤（dev）
 

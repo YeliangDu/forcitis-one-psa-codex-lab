@@ -1,4 +1,5 @@
 # SECURITY_FINDINGS — psa
+> The file paths below are in the old PSA source tree (`legacy/psa`), not in this repository; the audit is a dated record and is not updated.
 
 日期：2026-10-14 · 源码：`legacy/psa` → `/Users/yeliang/Projects/FORCITIS/psa` · 方式：security-auditor 子代理（命令规程中的兜底路径，未用 Workflow），对抗式审计；Critical / High 项由主会话逐条读代码复核，SEC-001 另外用生产访问日志和安全组规则核实了可利用性。
 
