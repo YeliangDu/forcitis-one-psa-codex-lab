@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
+import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.organization.workforce.domain.InitialVersionMigrationRepository;
@@ -18,10 +19,12 @@ import org.springframework.stereotype.Repository;
 class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRepository {
     private final JdbcClient jdbc;
     private final IdGenerator ids;
+    private final BusinessZone zone;
 
-    JdbcInitialVersionMigrationRepository(JdbcClient jdbc, IdGenerator ids) {
+    JdbcInitialVersionMigrationRepository(JdbcClient jdbc, IdGenerator ids, BusinessZone zone) {
         this.jdbc = jdbc;
         this.ids = ids;
+        this.zone = zone;
     }
 
     @Override
@@ -34,7 +37,7 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
                    for update of e
                 """).query(UUID.class).list();
         return jdbc.sql("""
-                select e.id, e.employment_status, e.is_fee_earner,
+                select e.id, e.employment_status, e.is_fee_earner, e.separated_at,
                        (select min(v.effective_from_date) from organization_workforce.assignment_versions v
                          where v.employee_id = e.id and v.assignment_kind = 'PRIMARY' and v.superseded_at is null) as first_day,
                        (exists (select 1 from organization_workforce.assignments a where a.employee_id = e.id)
@@ -44,8 +47,10 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
                  where not exists (select 1 from organization_workforce.employee_versions ev where ev.employee_id = e.id)
                  order by e.created_at, e.id
                 """).query((rs, n) -> {
+            OffsetDateTime separatedAt = rs.getObject("separated_at", OffsetDateTime.class);
             return new InitialVersionPlan.SnapshotPerson(rs.getObject("id", UUID.class), "EMPLOYED".equals(rs.getString("employment_status")),
-                    rs.getBoolean("is_fee_earner"), rs.getObject("first_day", LocalDate.class), rs.getBoolean("missing_assignment_version"));
+                    rs.getBoolean("is_fee_earner"), separatedAt == null ? null : zone.dateOf(separatedAt.toInstant()),
+                    rs.getObject("first_day", LocalDate.class), rs.getBoolean("missing_assignment_version"));
         }).list();
     }
 

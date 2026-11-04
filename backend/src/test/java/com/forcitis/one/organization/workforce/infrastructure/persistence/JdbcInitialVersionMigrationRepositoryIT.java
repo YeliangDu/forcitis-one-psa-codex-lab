@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.organization.workforce.domain.InitialVersionPlan;
 import java.sql.Connection;
@@ -13,6 +14,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -30,7 +32,8 @@ class JdbcInitialVersionMigrationRepositoryIT {
 
     private final DriverManagerDataSource source = new DriverManagerDataSource(postgres.url(), postgres.username(), postgres.password());
     private final TransactionTemplate transaction = new TransactionTemplate(new DataSourceTransactionManager(source));
-    private final JdbcInitialVersionMigrationRepository repository = new JdbcInitialVersionMigrationRepository(JdbcClient.create(source), UUID::randomUUID);
+    private final JdbcInitialVersionMigrationRepository repository = new JdbcInitialVersionMigrationRepository(JdbcClient.create(source), UUID::randomUUID,
+            new BusinessZone(ZoneId.of("Asia/Shanghai")));
 
     private void execute(String sql) throws SQLException {
         try (Connection c = DriverManager.getConnection(postgres.url(), postgres.username(), postgres.password()); Statement s = c.createStatement()) {

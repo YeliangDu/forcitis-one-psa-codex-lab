@@ -53,11 +53,12 @@ public final class SnapshotSeeder {
             Employee e = s.employee();
             jdbc.sql("""
                     insert into organization_workforce.employees (id, employee_code, display_name, email, gender, wecom_user_id,
-                           employment_status, is_fee_earner, created_at, updated_at, event_count)
-                    values (:id, :code, :name, :email, :gender, :wecom, :status, :feeEarner, :now, :now, 0)
+                           employment_status, is_fee_earner, separated_at, created_at, updated_at, event_count)
+                    values (:id, :code, :name, :email, :gender, :wecom, :status, :feeEarner,
+                            case when cast(:status as text) = 'SEPARATED' then cast(:now as timestamptz) end, :now, :now, 0)
                     on conflict (id) do update set display_name = excluded.display_name, email = excluded.email,
                            gender = excluded.gender, wecom_user_id = excluded.wecom_user_id, employment_status = excluded.employment_status,
-                           is_fee_earner = excluded.is_fee_earner
+                           is_fee_earner = excluded.is_fee_earner, separated_at = excluded.separated_at
                     """)
                     .param("id", e.employeeId().value()).param("code", e.employeeCode()).param("name", e.displayName())
                     .param("email", e.email()).param("gender", e.gender() == null ? null : e.gender().name())
