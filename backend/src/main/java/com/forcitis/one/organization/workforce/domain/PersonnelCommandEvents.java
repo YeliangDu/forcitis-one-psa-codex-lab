@@ -15,6 +15,7 @@ import com.forcitis.one.organization.workforce.events.EmployeeRegularized;
 import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
 import com.forcitis.one.organization.workforce.events.EmployeeTransferred;
+import com.forcitis.one.organization.workforce.events.EmployeeUnpaidLeaveStarted;
 import com.forcitis.one.organization.workforce.events.SeparationHeld;
 import com.forcitis.one.organization.workforce.events.SeparationHoldReleased;
 import java.util.ArrayList;
@@ -45,7 +46,9 @@ final class PersonnelCommandEvents {
                     c.employeeId(), c.effectiveDate());
             case CORRECTION -> corrected(c, assignmentBefore, assignmentAfter, legalEntity);
             case TRANSFER -> transferred(c, assignmentBefore, legalEntity);
-            case UNPAID_LEAVE_START, UNPAID_LEAVE_END, CHANGE_LEGAL_ENTITY, START_CONCURRENT, END_CONCURRENT -> null;
+            case UNPAID_LEAVE_START -> (envelopes, sequence) -> new EmployeeUnpaidLeaveStarted(envelopes.wrap(draft("EmployeeUnpaidLeaveStarted", c, legalEntity, sequence)), c.id(),
+                    c.employeeId(), c.effectiveDate());
+            case UNPAID_LEAVE_END, CHANGE_LEGAL_ENTITY, START_CONCURRENT, END_CONCURRENT -> null;
         });
     }
 
