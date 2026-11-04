@@ -1,6 +1,10 @@
 package com.forcitis.one.organization.workforce.web;
 
 import com.forcitis.one.kernel.CursorPage;
+import com.forcitis.one.kernel.PageRequest;
+import com.forcitis.one.organization.workforce.api.AttributionCountersignStatus;
+import com.forcitis.one.organization.workforce.api.AttributionCountersigns;
+import com.forcitis.one.organization.workforce.api.AttributionCountersignSummary;
 import com.forcitis.one.organization.workforce.api.AttributionCountersignId;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -12,6 +16,7 @@ import com.forcitis.one.organization.workforce.web.CountersignReadResponses.Basi
 import com.forcitis.one.organization.workforce.web.CountersignReadResponses.MergeLineResponse;
 import com.forcitis.one.organization.workforce.web.CountersignReadResponses.MergePreviewResponse;
 import com.forcitis.one.organization.workforce.web.CountersignReadResponses.RowResponse;
+import com.forcitis.one.organization.workforce.web.CountersignReadResponses.SummaryResponse;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,14 +30,25 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/organization")
 class CountersignReadController {
+    private final AttributionCountersigns countersigns;
     private final GetAttributionCountersign get;
     private final ListAttributionCountersignBases listBases;
     private final PreviewMergeAttribution previewMerge;
 
-    CountersignReadController(GetAttributionCountersign get, ListAttributionCountersignBases listBases, PreviewMergeAttribution previewMerge) {
+    CountersignReadController(AttributionCountersigns countersigns, GetAttributionCountersign get, ListAttributionCountersignBases listBases, PreviewMergeAttribution previewMerge) {
+        this.countersigns = countersigns;
         this.get = get;
         this.listBases = listBases;
         this.previewMerge = previewMerge;
+    }
+
+    /** The requests the caller may decide; a status other than the four is a 400 by the enum binding, and none given means OPEN. */
+    @GetMapping("/attribution-countersigns")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_APPROVE + "')")
+    CursorPage<SummaryResponse> list(@RequestParam(required = false) AttributionCountersignStatus status, @RequestParam(required = false) Integer limit,
+                                     @RequestParam(required = false) String cursor) {
+        CursorPage<AttributionCountersignSummary> page = countersigns.list(status, PageRequest.of(limit, cursor, "attribution-countersigns"));
+        return CursorPage.of(page.items().stream().map(SummaryResponse::of).toList(), page.nextCursor());
     }
 
     @GetMapping("/attribution-countersigns/{attributionCountersignId}")
