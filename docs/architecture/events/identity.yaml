@@ -292,6 +292,14 @@ components:
               type: string
               format: uuid
               x-type: RoleId
+          openingRoute:
+            type: string
+            enum:
+            - HIRE
+            - LOGIN
+            - OPERATIONS
+            x-type: AccountOpeningRoute
+            description: 账号是怎样开立的：入职、登录或运维命令；只在事件上，不存在账号上
       x-event:
         eventType: platform.identity.AccountOpened
         version: 1

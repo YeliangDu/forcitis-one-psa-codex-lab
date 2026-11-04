@@ -75,7 +75,7 @@ describe('应用外壳与登录状态', () => {
       expect(server.calls.some((call) => call.url.includes('approval-tasks'))).toBe(false);
     });
 
-    it.each([['sso', 'sessions:sso-login', '?ticket=T-1'], ['ticket', 'sessions:ticket-login', '#ticket=T-1']])('%s 登录后响应要求确认身份：先显示确认页，业务页不加载', async (kind, endpoint, tail) => {
+    it.each([['ticket', 'sessions:ticket-login', '#ticket=T-1']])('%s 登录后响应要求确认身份：先显示确认页，业务页不加载', async (kind, endpoint, tail) => {
       window.history.replaceState(null, '', `/login/${kind}${tail}`);
       const server = stubServer({
         [`POST ${endpoint}`]: { body: { userId: '019a0000-0000-7000-8000-000000001001', absoluteExpiresAt: '2026-10-15T00:00:00Z', identityConfirmationRequired: true } },

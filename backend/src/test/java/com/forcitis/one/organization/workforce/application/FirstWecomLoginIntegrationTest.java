@@ -17,8 +17,6 @@ import com.forcitis.one.kernel.SystemActors;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.organization.workforce.events.EmployeeRegistered;
-import com.forcitis.one.platform.integration.api.SsoTicketVerifier;
-import com.forcitis.one.platform.integration.api.SsoVerdict;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import jakarta.servlet.http.Cookie;
 import java.util.List;
@@ -27,8 +25,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -37,7 +33,6 @@ import tools.jackson.databind.json.JsonMapper;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 
 /** Login of a person the snapshot does not list yet: no session user and no job is acting, so the registration acts as SYSTEM. */
-@TestPropertySource(properties = "forcitis.platform.identity.sso.enabled=true")
 class FirstWecomLoginIntegrationTest extends WorkforceIntegrationSupport {
     @Autowired
     MockMvc mvc;
@@ -50,9 +45,6 @@ class FirstWecomLoginIntegrationTest extends WorkforceIntegrationSupport {
 
     @Autowired
     AccountEmployees accountEmployees;
-
-    @MockitoBean
-    SsoTicketVerifier portal;
 
     private static MockHttpServletRequestBuilder withXsrf(MockHttpServletRequestBuilder request) {
         return request.cookie(new Cookie("XSRF-TOKEN", "test-xsrf-token")).header("X-XSRF-TOKEN", "test-xsrf-token");
@@ -89,15 +81,5 @@ class FirstWecomLoginIntegrationTest extends WorkforceIntegrationSupport {
 
         registeredAndSignedIn(mvc.perform(withXsrf(post("/api/v1/platform/sessions:wecom-login")).cookie(binding).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"code-new-hire\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}")).andReturn());
-    }
-
-    @Test
-    @DisplayName("P2 second recheck L-5 a single sign-on login of an employee the snapshot does not list yet but the source finds registers them, opens the account and signs in")
-    void firstSingleSignOnOfANewHireSignsIn() throws Exception {
-        aNewHireTheSnapshotDoesNotListYet();
-        when(portal.verify("ticket-new-hire")).thenReturn(new SsoVerdict.LoginName("13900003001"));
-
-        registeredAndSignedIn(mvc.perform(withXsrf(post("/api/v1/platform/sessions:sso-login")).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"ticket\":\"ticket-new-hire\"}")).andReturn());
     }
 }

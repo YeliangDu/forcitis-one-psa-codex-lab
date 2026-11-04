@@ -28,11 +28,6 @@ export function LoginPage() {
       });
   };
 
-  const startSso = () => {
-    rememberReturnPath(returnPath);
-    window.location.assign(config.ssoPortalUrl);
-  };
-
   return (
     <LoginPanel
       title="FORCITIS one"
@@ -46,13 +41,6 @@ export function LoginPage() {
           onSelect: startWecom,
           loading: busy,
           ...(wecomConfigured(config) ? {} : { unavailableText: '尚未配置企业微信登录' }),
-        },
-        {
-          key: 'sso',
-          label: '致远单点登录',
-          description: '通过公司门户进入',
-          onSelect: startSso,
-          ...(config.ssoPortalUrl === '' ? { unavailableText: '尚未配置致远单点登录' } : {}),
         },
       ]}
     />

@@ -1197,13 +1197,6 @@ operations:
     summary: organization.workforce 发布
     messages:
     - $ref: '#/channels/employeeRegistered/messages/EmployeeRegistered'
-  handleEmployeeRegisteredInPlatformIdentity:
-    action: receive
-    channel:
-      $ref: '#/channels/employeeRegistered'
-    summary: platform.identity 消费
-    messages:
-    - $ref: '#/channels/employeeRegistered/messages/EmployeeRegistered'
   handleEmployeeRegisteredInPlatformAudit:
     action: receive
     channel:
@@ -2970,6 +2963,7 @@ components:
         - envelope
         - userId
         - roleIds
+        - openingRoute
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -2984,6 +2978,14 @@ components:
               type: string
               format: uuid
               x-type: RoleId
+          openingRoute:
+            type: string
+            enum:
+            - HIRE
+            - LOGIN
+            - OPERATIONS
+            x-type: AccountOpeningRoute
+            description: 账号是怎样开立的：入职、登录或运维命令；只在事件上，不存在账号上
     EmergencyAdminRegistered:
       name: EmergencyAdminRegistered
       title: 应急账号登记
@@ -4487,13 +4489,13 @@ components:
         idempotencyKey: eventId
         publisher: organization.workforce
         consumers:
-        - platform.identity
         - platform.audit
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.RegisteredEmployeeTest
+        noConsumer: 暂无消费方：审计之外无人订阅；登录不再登记员工，此事件随
       payload:
         type: object
         required:

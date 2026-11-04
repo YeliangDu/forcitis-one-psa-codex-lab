@@ -10,6 +10,7 @@ import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleId;
 import com.forcitis.one.platform.identity.events.AccountDisabled;
 import com.forcitis.one.platform.identity.events.AccountEnabled;
+import com.forcitis.one.platform.identity.api.AccountOpeningRoute;
 import com.forcitis.one.platform.identity.events.AccountOpened;
 import com.forcitis.one.platform.identity.events.AccountRolesReplaced;
 import com.forcitis.one.platform.identity.events.AccountSeparated;
@@ -45,10 +46,10 @@ public final class UserAccount extends AggregateRoot {
         this.stored = stored;
     }
 
-    public static UserAccount open(UserId userId, EmployeeId employeeId, Set<RoleId> initialRoles) {
+    public static UserAccount open(UserId userId, EmployeeId employeeId, Set<RoleId> initialRoles, AccountOpeningRoute route) {
         UserAccount account = new UserAccount(userId, employeeId, AccountStatus.ENABLED, initialRoles, false, 0, 0);
         account.record((envelopes, version) -> new AccountOpened(envelopes.wrap(account.draft("AccountOpened", version)), userId,
-                account.orderedRoles()));
+                account.orderedRoles(), route));
         return account;
     }
 

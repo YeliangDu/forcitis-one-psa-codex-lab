@@ -26,7 +26,6 @@ import com.forcitis.one.platform.identity.domain.EmergencyAdminRepository;
 import com.forcitis.one.platform.identity.domain.PasswordHasher;
 import com.forcitis.one.platform.identity.domain.Totp;
 import com.forcitis.one.platform.identity.domain.TotpSecretVault;
-import com.forcitis.one.platform.integration.api.SsoTicketVerifier;
 import com.forcitis.one.platform.integration.api.TicketSubjects;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import com.forcitis.one.platform.integration.api.WecomGateway;
@@ -72,13 +71,10 @@ import tools.jackson.databind.json.JsonMapper;
 /** WeCom, the portal ticket check, the organisation directory and the audit trail belong to other modules and are doubles. */
 @SpringBootTest(properties = {
         "flowable.async-executor-activate=false",
-        "forcitis.platform.identity.sso.enabled=true",
         "forcitis.platform.identity.login-throttle.limits.login-states=100000",
         "forcitis.platform.identity.login-throttle.limits.wecom-login=100000",
-        "forcitis.platform.identity.login-throttle.limits.sso-login=100000",
         "forcitis.platform.identity.login-throttle.limits.ticket-login=100000",
         "forcitis.platform.identity.login-throttle.limits.emergency-login=100000",
-        "forcitis.platform.identity.sso.legacy-login-url=https://legacy.example.invalid/login",
         "FORCITIS_TICKET_KEY_SHORT=too-short"})
 @AutoConfigureMockMvc
 @RecordApplicationEvents
@@ -164,9 +160,6 @@ public abstract class IdentityIntegrationTest {
     protected AuditLog auditLog;
 
     @MockitoBean
-    protected SsoTicketVerifier ssoVerifier;
-
-    @MockitoBean
     protected TicketSubjects ticketSubjects;
 
 
@@ -201,7 +194,6 @@ public abstract class IdentityIntegrationTest {
         clock.reset();
         domainEvents.clear();
         accessCache.evictAll();
-        Mockito.reset(ssoVerifier);
         when(employeeExistence.exists(ArgumentMatchers.any())).thenAnswer(call -> orgDirectory.findEmployee(call.getArgument(0)).isPresent());
         // The emergency login is the only reader of the verdict; people the test does not describe (knownEmployee) may log in, as before #934.
         when(orgDirectory.employmentOf(ArgumentMatchers.any())).thenReturn(EmploymentVerdict.EMPLOYED);

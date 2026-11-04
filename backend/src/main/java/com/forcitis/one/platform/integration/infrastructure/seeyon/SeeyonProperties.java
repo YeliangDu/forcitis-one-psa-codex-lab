@@ -1,12 +1,11 @@
 package com.forcitis.one.platform.integration.infrastructure.seeyon;
 
-import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
-/** views.enabled=false means no database access; an empty sso.base-url means the ticket check answers "unavailable". */
+/** views.enabled=false means no database access. */
 @ConfigurationProperties("forcitis.platform.integration.seeyon")
-record SeeyonProperties(@DefaultValue Views views, @DefaultValue Sso sso) {
+record SeeyonProperties(@DefaultValue Views views) {
 
     record Views(@DefaultValue("false") boolean enabled, String jdbcUrl, String username, String password,
                  long headRelationshipTypeId,
@@ -16,8 +15,5 @@ record SeeyonProperties(@DefaultValue Views views, @DefaultValue Sso sso) {
             return new SeeyonMapping(headRelationshipTypeId, regionalReceivablesManagerRelationshipTypeId,
                     deliveryUnitYesEnumId, feeEarnerYesEnumId, rootPath);
         }
-    }
-
-    record Sso(@DefaultValue("") String baseUrl, @DefaultValue("5s") Duration timeout) {
     }
 }

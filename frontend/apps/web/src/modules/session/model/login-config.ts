@@ -1,7 +1,6 @@
 export interface LoginConfig {
   wecomCorpId: string;
   wecomAgentId: string;
-  ssoPortalUrl: string;
 }
 
 type Env = Readonly<Record<string, string | undefined>>;
@@ -10,7 +9,6 @@ export function readLoginConfig(env: Env): LoginConfig {
   return {
     wecomCorpId: env['VITE_WECOM_CORP_ID'] ?? '',
     wecomAgentId: env['VITE_WECOM_AGENT_ID'] ?? '',
-    ssoPortalUrl: env['VITE_SSO_PORTAL_URL'] ?? '',
   };
 }
 
