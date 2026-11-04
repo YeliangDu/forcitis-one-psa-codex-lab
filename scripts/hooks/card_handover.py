@@ -129,7 +129,7 @@ def check(payload, root, view=None, budget=BUDGET):
         with open(policy, encoding="utf-8") as f:
             config = json.load(f)["sessions"]["config"]
     except (ImportError, OSError, ValueError, KeyError, TypeError) as e:
-        raise Unreadable(f"读不出会话清单（{root} 的 policy.json 或 scripts/merge/gapscan.py：{e}）")
+        raise Unreadable(f"读不出会话清单（{root} 的 policy.json 或 scripts/merge/gapscan.py、issue_gate.py：{e}）")
     git_dir = git(root, "rev-parse", "--absolute-git-dir")
     try:
         with open(os.path.join(git_dir, "one-session"), encoding="utf-8") as f:
