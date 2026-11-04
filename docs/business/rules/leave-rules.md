@@ -10,7 +10,7 @@ Scope: new context `organization.leave` (bc tag `organization.leave`, B-27): lea
 | RULE-512 | leave | A rejected or withdrawn request releases its hold; a recalled leave gives back its used minutes; nothing is deleted | P0 | No |
 | RULE-513 | leave | A balance account is opened by leave year and the rule version in force, never implicitly; a missing version fails and alerts | P0 | No |
 | RULE-514 | leave | A sealed leave year is never rewritten; corrections and carry-over are new lines in the open year | P0 | No |
-| RULE-515 | leave | Entitlement changes caused by hiring, separation, correction of employment history, unpaid leave or a change of the employer entity are new ledger lines computed from the rule version | P0 | No |
+| RULE-515 | leave | Entitlement changes caused by the start, end, phase change, unpaid leave or correction of an employment relationship (ADR-0086, per relationship) are new ledger lines computed from the rule version | P0 | No |
 | RULE-516 | leave | Comp time is granted per overtime record with its own expiry and used earliest-expiry first; at expiry the minutes are reported to payroll and nothing is paid here | P1 | No |
 | RULE-517 | leave | Overtime is approved through the approval platform; statutory-holiday overtime can only be paid; overtime overlapping an approved leave is refused | P1 | No |
 | RULE-518 | leave | Monthly confirmation is generated only when every day of the month has an import batch; after lock nothing changes and later changes go to the next month marked with the original month | P0 | No |
@@ -77,11 +77,11 @@ Scope: new context `organization.leave` (bc tag `organization.leave`, B-27): lea
 **Tests:** to be written with the slice that implements it.
 **Confidence:** High.
 
-### RULE-515: Entitlement changes caused by hiring, separation, correction of employment history, unpaid leave or a change of the employer entity are new ledger lines computed from the rule version
+### RULE-515: Entitlement changes caused by the start, end, phase change, unpaid leave or correction of an employment relationship (ADR-0086, per relationship) are new ledger lines computed from the rule version
 **Category:** Calculation
 **Priority:** P0
 **Source:** ADR-0079:99; golden sample G2..G6
-**Plain English:** Each workforce fact that changes entitlement produces a ledger line computed from the rule version in force; earlier lines are not edited. The formulas and rounding are business treatments T-1..T-6 and are not fixed by this rule.
+**Plain English:** Each workforce fact of one employment relationship that changes its entitlement produces a ledger line computed from the rule version in force; earlier lines are not edited. The formulas and rounding are business treatments T-1..T-6 and are not fixed by this rule.
 **Specification:**
 - Pending: the expected values come from the golden sample once the user decides.
 **Tests:** to be written with the slice that implements it.
