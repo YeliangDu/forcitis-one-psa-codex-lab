@@ -83,7 +83,7 @@ class StandardHoursMinutesOnIT extends AcceptanceSupport {
     private StandardHours standardHours;
 
     @BeforeEach
-    void useShanghaiTodayAndMaintain2026Calendar() throws Exception {
+    void useShanghaiTodayAndMaintainTheAnchorYearCalendar() throws Exception {
         setToday(TODAY);
         MockHttpServletResponse found = mvc.perform(get(CALENDAR).with(MAINTAINER)).andReturn().getResponse();
         if (found.getStatus() != 200) {
@@ -94,7 +94,7 @@ class StandardHoursMinutesOnIT extends AcceptanceSupport {
             MockHttpServletResponse maintained = mvc.perform(put(CALENDAR).header("If-Match", "\"0\"")
                     .with(MAINTAINER).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                     .content(JSON.writeValueAsString(body))).andReturn().getResponse();
-            assertStatus(maintained, 200, "2026 calendar is maintained once through HTTP");
+            assertStatus(maintained, 200, YEAR + " calendar is maintained once through HTTP");
         }
     }
 
@@ -191,7 +191,7 @@ class StandardHoursMinutesOnIT extends AcceptanceSupport {
         publish(publication(scope, A), 1);
 
         assertThatThrownBy(() -> standardHours.minutesOn(new LegalEntityId(scope), LocalDate.of(YEAR + 1, 1, 4)))
-                .as("an open-ended version must still consult the unmaintained 2027 calendar")
+                .as("an open-ended version must still consult the unmaintained " + (YEAR + 1) + " calendar")
                 .isInstanceOfSatisfying(DomainException.class, failure ->
                         assertThat(failure.errorCode()).as("calendar error propagates without standard-hours translation")
                                 .isEqualTo(AttendanceError.ORGANIZATION_ATTENDANCE_YEAR_NOT_MAINTAINED)
