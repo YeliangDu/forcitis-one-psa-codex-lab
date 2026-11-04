@@ -217,7 +217,7 @@ class CommandReadUseCasesTest {
         assertThatThrownBy(() -> CommandReadViews.Filter.of(null, "UNKNOWN")).isInstanceOf(InvalidRequestException.class);
         assertThatThrownBy(() -> CommandReadViews.Filter.of("", null)).isInstanceOf(InvalidRequestException.class);
         assertThatThrownBy(() -> CommandReadViews.Filter.of(null, "")).isInstanceOf(InvalidRequestException.class);
-        for (String key : List.of("missing-separator", "garbage|" + COMMAND.value(), "10000-01-01T00:00:00Z|" + COMMAND.value(), NOW + "|UNKNOWN")) {
+        for (String key : List.of("missing-separator", "garbage|" + COMMAND.value(), "10000-01-01T00:00:00Z|" + COMMAND.value(), "+300000-01-01T00:00:00Z|" + COMMAND.value(), NOW + "|UNKNOWN")) {
             assertThatThrownBy(() -> CommandReadViews.position(key)).isInstanceOf(InvalidCursorException.class);
         }
         var holds = new ListSeparationHolds(queries, mock(SeparationHoldReview.class), currentUser);
