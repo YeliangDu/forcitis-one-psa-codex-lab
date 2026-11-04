@@ -11,6 +11,8 @@ def make_gh():
             self.failure_log = {}
 
         def failure_names(self, run):
+            if ("rerun", str(run)) in self.calls:   # gh: a run that is running again has no failed log yet
+                return None
             return self.failure_log.get(str(run), [])
     return Gh()
 
@@ -39,6 +41,14 @@ def run(mq, d):
                          "job\tstep\t2026-11-04T01:02:03.4Z [ERROR]   OrgIT.merge:42 again", "job\tstep\t2026-11-04T01:02:03.4Z some long output line with password=hunter2 and row data", "job\tstep\t2026-11-04T01:02:03.4Z In scripts/gates/install.sh line 14:", "job\tstep\t2026-11-04T01:02:03.4Z In scripts/gates/install.sh line 22:", "[ERROR]   AaaTest", "[ERROR]   BbbTest", "[ERROR]   CccTest", "[ERROR]   DddTest"])
     names = mq_github.failure_names(log_text)
     assert names == ["glossary term rules", "OrgIT.merge", "shellcheck scripts/gates/install.sh", "AaaTest"], names
+    import time
+    odd = "FAIL  " + "L" * 200 + "   3 s（退出 1）\nFAIL  bell\x07esc\x1b[31m   2 s（退出 1）\nFAIL  " + " " * 40000 + "x"   # a name over 70 characters is cut, control characters are dropped, a long run of spaces stays fast
+    start = time.monotonic()
+    odd_names = mq_github.failure_names(odd)
+    assert odd_names == ["L" * 70, "bellesc[31m"] and time.monotonic() - start < 1, (odd_names, time.monotonic() - start)
+    nothing = type("G", (), {"failure_names": staticmethod(lambda run: [])})()
+    assert mq.failure_detail(nothing, ["1"], {"1": []}) == " | details not available" and mq.failure_detail(nothing, [], {}) == " | details not available", "no failed step and no name found says so"
+    assert mq_github.failure_names("FAIL  " + "n" * 50 + " 1000 s（退出 1）") == ["n" * 50], "a check that took 1000 s or more keeps its name"
     long = mq.failure_detail(type("G", (), {"failure_names": staticmethod(lambda run: ["n" * 70] * 4 + ["m" * 70])})(), ["1"], {"1": ["s" * 300]})
     assert len(long) <= 400 and "hunter2" not in long, len(long)
     # the real Gh against the fake gh binary: a readable log gives the names, an expired log None (not an empty list)

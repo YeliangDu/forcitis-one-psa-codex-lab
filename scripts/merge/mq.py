@@ -580,9 +580,9 @@ class Processor:
                     self.sleep(30)
                     continue
                 if attempt == 1:
+                    self.log.event("RERUN-FAILED", n, runs[0] if runs else None, since, ", ".join(f"{c['name']}={c['bucket']}" for c in red) + failure_detail(self.gh, runs, steps))   # before the rerun: gh gives no failed log of a run that is running again
                     for r in runs:
                         self.gh.rerun(r)
-                    self.log.event("RERUN-FAILED", n, runs[0] if runs else None, since, ", ".join(f"{c['name']}={c['bucket']}" for c in red) + failure_detail(self.gh, runs, steps))
                     self.sleep(30)
                     attempt += 1
                     continue
