@@ -17,6 +17,7 @@ import gapscan_selftest
 import mq_acceptance_selftest
 import mq_detail_selftest
 import mq_label_selftest
+import mq_waiting_selftest
 import mq_title_selftest
 
 LOG_LINE = re.compile(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d\d:\d\d [A-Z-]+ pr=#(\d+|-) run=(\d+|-) elapsed=\d+s( .*)?$")
@@ -95,6 +96,8 @@ class FakeGh:
         self.calls.append(("label", n, name, add))
         (self.prs[n]["labels"].add if add else self.prs[n]["labels"].discard)(name)
         return True
+    def labelled(self, name):
+        return [n for n, p in self.prs.items() if name in p["labels"]]
 
     def active_runs(self, branch):
         return list(self.runs.get(branch, []))
@@ -172,7 +175,7 @@ def run(mq):
     try:
         with tempfile.TemporaryDirectory() as d:
             fake_gh(d, [])   # nothing in the self-test reaches the real gh: an unknown call exits 97
-            for case in (_units, _flow, _release, _pause, _runner, _queue, _remove_busy, _head_changed, _gh_commands, _git, _docs_tiers, mq_label_selftest.run, mq_detail_selftest.run, mq_title_selftest.run, mq_acceptance_selftest.run, gapscan_selftest.run, driftscan_selftest.run_with_mq):
+            for case in (_units, _flow, _release, _pause, _runner, _queue, _remove_busy, _head_changed, _gh_commands, _git, _docs_tiers, mq_label_selftest.run, mq_waiting_selftest.run, mq_detail_selftest.run, mq_title_selftest.run, mq_acceptance_selftest.run, gapscan_selftest.run, driftscan_selftest.run_with_mq):
                 case(mq, d)
     finally:
         for k, v in old.items():
