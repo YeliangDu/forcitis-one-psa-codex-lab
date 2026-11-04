@@ -64,12 +64,30 @@ def run(mq, d):
         assert gh.prs[60]["labels"] == set() and gh.prs[61]["labels"] == {WAITING}
     finally:
         mq.Gh, mq.mq_acceptance.enforce = real_gh, real_enforce
-    # ci.yml: every job skips for the policy's label without `queued`, in the same way, and the notice job says why
+    # ci.yml: evaluate every job's `if:` for each event x label combination (parsed, not matched as text)
+    import itertools
+    import yaml
     root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
     with open(os.path.join(root, ".github/workflows/ci.yml"), encoding="utf-8") as f:
         ci = f.read()
-    skip = f"(contains(github.event.pull_request.labels.*.name, '{WAITING}') && !contains(github.event.pull_request.labels.*.name, 'queued'))"
-    jobs = re.findall(r"^  ([a-z-]+):\n(?:    [^\n]*\n|\n)*?    if: (.*)$", ci, re.M)
-    assert {j for j, _ in jobs} == {"queue-notice", "api-contract", "backend", "frontend", "gitleaks"}, jobs
-    assert all(skip in cond for j, cond in jobs if j != "queue-notice"), "every job skips while the pull request waits"
-    assert "排队中，合入时由合并队列检查" in ci and "checked by the merge queue at merge time" in ci
+    jobs = yaml.safe_load(ci)["jobs"]
+    assert set(jobs) == {"queue-notice", "api-contract", "backend", "frontend", "gitleaks"}, sorted(jobs)
+
+    def runs(job, event, action, label, labels):
+        expr = str(jobs[job].get("if", "true")).strip()
+        expr = re.sub(r"^\$\{\{(.*)\}\}$", r"\1", expr, flags=re.S)
+        expr = re.sub(r"contains\(github\.event\.pull_request\.labels\.\*\.name, '([^']*)'\)", r"('\1' in L)", expr)
+        expr = expr.replace("always()", "True").replace("github.event_name", "E").replace("github.event.action", "A").replace("github.event.label.name", "N")
+        expr = re.sub(r"!(?!=)", " not ", expr).replace("&&", " and ").replace("||", " or ")
+        return bool(eval(expr, {"E": event, "A": action, "N": label, "L": labels}))
+    for event, action, label in [("pull_request", a, None) for a in ("opened", "synchronize", "reopened")] + [("pull_request", "labeled", l) for l in ("queued", "急", WAITING)] + [("push", None, None), ("schedule", None, None)]:
+        for labels in ([], [WAITING], [WAITING, "queued"], ["queued"], ["急"]):
+            if event != "pull_request" and labels:
+                continue
+            waiting = WAITING in labels and "queued" not in labels
+            other_label = action == "labeled" and label != "queued"
+            ctx = (event, action, label, labels)
+            for job in ("api-contract", "backend", "frontend", "gitleaks"):
+                assert runs(job, *ctx) == (not waiting and not other_label), (job, ctx)
+            assert runs("queue-notice", *ctx) == (waiting and not other_label), ("queue-notice", ctx)
+    assert "排队中，合入时由合并队列检查" in jobs["queue-notice"]["name"] and "checked by the merge queue at merge time" in jobs["queue-notice"]["name"]
