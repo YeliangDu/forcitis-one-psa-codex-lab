@@ -11,7 +11,8 @@ BEGIN
     FOREACH t IN ARRAY ARRAY['organization_workforce.org_unit_versions', 'organization_workforce.position_versions', 'organization_workforce.assignment_versions',
                              'organization_workforce.legal_entity_versions', 'organization_workforce.employee_versions',
                              'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities',
-                             'platform_identity.role_versions', 'platform_identity.account_role_grants'] LOOP
+                             'platform_identity.role_versions', 'platform_identity.account_role_grants',
+                             'organization_attendance.standard_hours_versions'] LOOP
         EXECUTE format('REVOKE DELETE, TRUNCATE ON %s FROM one_prod_app', t);
     END LOOP;
 END $$;
@@ -53,6 +54,7 @@ REVOKE UPDATE, DELETE, TRUNCATE ON organization_administration.employee_activity
 -- 版本表运行角色只留 SELECT、INSERT、UPDATE（UPDATE 用于确认、撤回，关闭上一版本由触发器完成），不持有 DELETE 与 TRUNCATE。
 REVOKE UPDATE, DELETE, TRUNCATE ON organization_attendance.work_calendars, organization_attendance.work_calendar_version_days FROM one_prod_app;
 REVOKE DELETE, TRUNCATE ON organization_attendance.work_calendar_versions FROM one_prod_app;
+REVOKE UPDATE, DELETE, TRUNCATE ON organization_attendance.standard_hours_date_overrides FROM one_prod_app;
 
 -- 审计对象类别登记（ADR-0069 第 14 条）：行只由迁移写，运行角色只读；与 one_db_roles_schemas.sql §4b 同步。
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON platform_audit.audit_subject_kinds FROM one_prod_app;

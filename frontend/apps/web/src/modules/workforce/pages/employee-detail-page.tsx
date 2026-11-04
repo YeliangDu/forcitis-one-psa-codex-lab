@@ -1,8 +1,9 @@
 import { describeFailure } from '@forcitis/core';
-import { DataTable, DescriptionList, LoadingState, Notice, PageTitle, StatusBadge, type DataColumn } from '@forcitis/ui';
-import { useParams } from 'react-router';
+import { DataTable, DescriptionList, LoadingState, Notice, PageTitle, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
+import { useNavigate, useParams } from 'react-router';
 import { useEmployee } from '../hooks/use-workforce';
 import { ASSIGNMENT_KIND_LABELS, EMPLOYMENT_STATUS_LABELS, type EmployeeDetail } from '../model/employee';
+import { employeeCommandsPath, newPersonnelCommandPath } from '../model/personnel-command';
 
 type Assignment = EmployeeDetail['assignments'][number];
 
@@ -15,6 +16,7 @@ const ASSIGNMENT_COLUMNS: DataColumn<Assignment>[] = [
 
 export function EmployeeDetailPage() {
   const { employeeId = '' } = useParams();
+  const navigate = useNavigate();
   const employee = useEmployee(employeeId);
 
   if (employee.isPending) return <LoadingState />;
@@ -31,6 +33,11 @@ export function EmployeeDetailPage() {
           { label: '入职日期', value: detail.hireDate ?? '—' },
         ]}
       />
+      <p>
+        <TextLink href={employeeCommandsPath(employeeId)} onNavigate={() => void navigate(employeeCommandsPath(employeeId))}>人事命令</TextLink>
+        {' '}
+        <TextLink href={newPersonnelCommandPath(employeeId)} onNavigate={() => void navigate(newPersonnelCommandPath(employeeId))}>发起人事命令</TextLink>
+      </p>
       <DataTable columns={ASSIGNMENT_COLUMNS} rows={detail.assignments} rowKey={(assignment) => `${assignment.assignmentKind}:${assignment.orgUnitId}:${assignment.positionId ?? ''}`} emptyText="暂无任职" />
     </>
   );
