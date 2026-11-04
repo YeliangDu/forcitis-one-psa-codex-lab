@@ -41,6 +41,9 @@ import tools.jackson.databind.json.JsonMapper;
 @RecordApplicationEvents
 class StandardHoursPublishedEventIT extends AcceptanceSupport {
 
+    /** Version dates follow the real Asia/Shanghai date because the database triggers use the real clock. */
+    private static final LocalDate TODAY = LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
+
     static final TestDatabase postgres = TestPostgres.database(StandardHoursPublishedEventIT.class, TestPostgres.MIGRATED)
             .withUrlParam("currentSchema", "platform_approval");
 
