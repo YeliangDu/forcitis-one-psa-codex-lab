@@ -2,6 +2,10 @@
 ALLOWED: the gate lets these through. REFUSED: it must refuse these (every refusal says 拒绝)."""
 
 ALLOWED = [
+    "kill -9 12345",
+    "kill -s TERM $PID",
+    "kill -- 4321",
+    "echo kill 0",
     'pkill -f "@W@"',
     'pkill -f "@W@/backend/target/surefire"',
     "pkill -f '@W@/backend/target'",
@@ -42,6 +46,14 @@ ALLOWED = [
 ]
 
 REFUSED = [
+    "kill 0",
+    "kill -9 0",
+    "kill -1",
+    "kill -9 -1",
+    "kill -- -1234",
+    "kill -TERM -- -$PGID",
+    "sudo kill -9 -1",
+    "bash -c 'kill 0'",
     "pkill -f failsafe",
     "pkill -f java",
     "pkill java",

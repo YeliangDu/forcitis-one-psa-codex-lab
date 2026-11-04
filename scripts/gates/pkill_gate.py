@@ -4,6 +4,7 @@
 起因：PR #1288 的 CI 因别的会话跑了 `pkill -f failsafe`，把自托管 runner 上的 failsafe JVM 一并杀了（退出码 143，没有测试失败）。
 拒绝：
   · pkill、killall 的模式不含本会话 worktree 的绝对路径（killall 只认进程名，永远拒；pkill -x 同理）；模式里有 | 或 ( 的拒（`failsafe|/本路径` 会放过别人的进程）；
+  · kill 0、kill -1、kill -- -<pgid>（整个进程组或用户的全部进程）；
   · kill（含 xargs kill）所用的进程号来自没有范围的 pgrep / ps / pidof / jps：同一段脚本（含 $(…)、反引号、管道另一端）里的这类命令没有一个词含本 worktree 路径。
 放行：模式含本 worktree 绝对路径的 pkill -f / pgrep -f（$PWD、${PWD}、$(pwd) 先换成钩子输入的 cwd；命令里有 cd、pushd 时不换）；pkill -P <pid>、pkill -F <文件>；
 kill 一个字面 pid、$变量、$(cat 文件)（自己记录的 pid）；只在文本里出现的字样（提交信息、grep 的参数、echo）。
@@ -32,6 +33,7 @@ HOW = ("；限定到本会话 worktree：`pkill -f \"$PWD/backend/target\"`（�
        "原因：这台共享构建机上的 CI runner 与别的会话在同一个用户下，没有范围的名字会杀到它们（#1311：`pkill -f failsafe` 杀了 #1288 的 CI）")
 NAME = "拒绝：{what}按名字杀进程，没有本 worktree 的路径作范围" + HOW
 PIDS = "拒绝：kill 的进程号来自没有范围的 {src}（同一段命令里没有含本 worktree 路径的词）" + HOW
+GROUP = "拒绝：kill 0、kill -1、kill -- -<进程组号> 会杀掉整个进程组或本用户的所有进程（含这台共享构建机上的 CI runner）" + HOW
 PLACE = "拒绝：{what}，而当前目录不在会话 worktree（.claude/worktrees/ 下）里，没有可作范围的路径（{why}）" + HOW
 
 
@@ -124,6 +126,10 @@ def scan(text, top, why, cwd, depth=0):
                 return problem
         elif name == "kill":
             kills = True
+            texts = [w.text for w in args]
+            tail = texts[texts.index("--") + 1:] if "--" in texts else []
+            if "0" in texts or "-1" in texts or any(t.startswith("-") and len(t) > 1 for t in tail):   # kill 0 (the process group), kill -1 (every process), kill -- -<pgid> (a group)
+                return GROUP
         elif name in SHELLS or name == "eval":
             for w in args:   # a -c string, an eval argument: read as a script of its own
                 if (name == "eval" or " " in w.text or "\n" in w.text) and depth < DEPTH and not w.text.startswith("-"):
