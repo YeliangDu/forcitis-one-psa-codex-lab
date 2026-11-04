@@ -29,7 +29,7 @@ pnpm --filter @forcitis/h5 test        # Vitest + Testing Library
 
 ## 结构与守护
 
-分层同 `apps/web`：`app/` → `modules/<m>/{api,hooks,model,pages,components,index.ts}` → `shared/`。F1–F14 守护同样覆盖这里（见 `frontend/eslint.config.js` 和 `scripts/check-lint-config.mjs`），另有：
+分层同 `apps/web`：`app/` → `modules/<m>/{api,hooks,model,pages,components,index.ts}` → `shared/`。F1–F14 守护同样覆盖这里（见 `frontend/eslint.config.js` 和 `frontend/scripts/check-lint-config.mjs`），另有：
 
 - 业务代码不直接用 Taro 组件和 Taro API：组件用 `shared/ui`，路由和跳转用 `shared/platform`；
 - 不使用 `Taro.request`，网络请求只经 `modules/<m>/api` 调生成的客户端；

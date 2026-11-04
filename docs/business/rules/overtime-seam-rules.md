@@ -1,6 +1,6 @@
 # Seam between timesheets and overtime / comp time — RULE-412..RULE-413
 
-Scope: Phase 2 `cost.timesheet` and the leave and overtime context (`organization.leave`, B-27 in the people design). Basis: user decision FD2-05, 2026-10-16 (`docs/decisions/decision-pages/answers/fd2.json`, submitted on the filing-duty page; 「不关联：非工作日工时只作为工时记录，加班审批与调休交假勤，之后再对接」) and RULE-401, RULE-398. The comp-time (补休) design is the people group's proposal in `docs/architecture/proposals/closeout/people/notes.md` (seam question 8) and is not yet adopted; nothing here extends a user answer.
+Scope: Phase 2 `cost.timesheet` and the leave and overtime context (`organization.leave`, B-27 in the people design). Basis: user decision FD2-05, 2026-10-16 (`docs/decisions/decision-pages/answers/fd2.json`, submitted on the filing-duty page; 「不关联：非工作日工时只作为工时记录，加班审批与调休交假勤，之后再对接」) and RULE-401, RULE-398. The comp-time (补休) design is the people group's proposal in `docs/architecture/proposals/closeout/people/notes.md` (removed 2026-11-04; read it at commit 1f6f97d1b) (seam question 8) and is not yet adopted; nothing here extends a user answer.
 
 | ID | Domain | Title | Priority | Review |
 |---|---|---|---|---|

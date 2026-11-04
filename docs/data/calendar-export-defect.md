@@ -5,7 +5,7 @@
 ## 1. 缺陷确认与范围
 
 - **确认**：STEP 3 的条件在两处，写法一样：`docs/ops/runbooks/sql/legacy-readonly-export.sql:46` 和实际执行用的 `phase1a/infra/runbooks/scripts/c6_relay.py:162`。周一至周五且 `workday = 0` 才标 HOLIDAY，而 `workday` 只有 1、2 两个值，条件永不成立；周末且 `workday = 1` 标 MAKE_UP_WORKDAY 的那一半条件是对的（65 个）。**两处都要改，只改 SQL 文件会让中转脚本继续出错。**
-- **取值含义的证据**（来自读代码得到的规则卡与证据页，不是我对库的新取证）：`BUSINESS_RULES.md:1150`「Calendar workday = 1, rest day = 2」，`:672` 「`psa_calendar.workday` (1 = workday)」，`:1238` 例子「2026-10-01 (national holiday) is in the calendar with workday = 2」；`docs/architecture/proposals/delivery-resources-evidence.md:43` 「工作日 / 休息日 2 个取值」。再加 one-ops 的现象本身：只出 65 个调休日，与 `workday` 只取 1、2 一致。
+- **取值含义的证据**（来自读代码得到的规则卡与证据页，不是我对库的新取证）：`BUSINESS_RULES.md:1150`「Calendar workday = 1, rest day = 2」，`:672` 「`psa_calendar.workday` (1 = workday)」，`:1238` 例子「2026-10-01 (national holiday) is in the calendar with workday = 2」；`docs/architecture/proposals/delivery-resources-evidence.md:43` (removed 2026-11-04; read it at commit 1f6f97d1b) 「工作日 / 休息日 2 个取值」。再加 one-ops 的现象本身：只出 65 个调休日，与 `workday` 只取 1、2 一致。
 - 正确条件：周一至周五且 `workday = 2` → HOLIDAY；周六日且 `workday = 1` → MAKE_UP_WORKDAY。
 
 ## 2. 谁用过这份 CSV，逐项结论

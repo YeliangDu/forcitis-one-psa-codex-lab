@@ -1685,7 +1685,7 @@
 #### GL-109：两套 U8C 账的定位：收付账套是 2020 年起的主账，权责账套 2025 年新建
 **Category:** Policy
 **Priority:** P0
-**Source:** `U8C_GL_PRACTICE.md` §1.2、§6、§9 第 1 条；`docs/architecture/proposals/gl-scope-revisions.md` §D 第 1、2 项
+**Source:** `U8C_GL_PRACTICE.md` §1.2、§6、§9 第 1 条；`docs/architecture/proposals/gl-scope-revisions.md` (removed 2026-11-04; read it at commit 1f6f97d1b) §D 第 1、2 项
 **规则说明:** 收付账套 `u8cloud`（2020 年起，52 个公司档案，2025 年 12 月已结账）项目成本当期费用化、报表 K会01–03；权责账套 `u8cloud_QZ`（2025 年建，5 家公司，2026 年凭证全部未审核）项目成本进 WIP、报表会企01–03，老系统只推这一套。
 **Specification:**
   Given 同一笔业务（例如员工报销）

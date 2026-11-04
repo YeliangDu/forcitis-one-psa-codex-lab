@@ -4,7 +4,7 @@
 
 日期：2026-10-14 · 评审视角：会计口径与准则 · 依据仓库最新 main（ADR-0022 第 2、8 条已改为「一套科目、两种口径」）· 只用结构、公式与计数，不含余额金额、凭证明细与个人信息。
 
-路径约定：`R` = `docs/business/rules/gl-rules.md`，`FR` = `docs/business/rules/gl-finance-review.md`，`P` = `U8C_GL_PRACTICE.md`，`CU` = `docs/legacy/general-ledger/customizations.md`，`IDLE` = `docs/legacy/general-ledger/idle-subjects.md`（窗口 2025-10 至 2026-09，1001-0001 账簿；行 42–517 为权责账套，518 起为收付账套），`SR` = `docs/architecture/proposals/gl-scope-revisions.md`，`CL` = `GL_COMPLIANCE_CHECKLIST.md`。
+路径约定：`R` = `docs/business/rules/gl-rules.md`，`FR` = `docs/business/rules/gl-finance-review.md`，`P` = `U8C_GL_PRACTICE.md`，`CU` = `docs/legacy/general-ledger/customizations.md`，`IDLE` = `docs/legacy/general-ledger/idle-subjects.md`（窗口 2025-10 至 2026-09，1001-0001 账簿；行 42–517 为权责账套，518 起为收付账套），`SR` = `docs/architecture/proposals/gl-scope-revisions.md` (removed 2026-11-04; read it at commit 1f6f97d1b)，`CL` = `GL_COMPLIANCE_CHECKLIST.md`。
 
 ## 已决定，不再提问
 
