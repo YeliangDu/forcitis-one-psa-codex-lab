@@ -560,3 +560,19 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/ConcurrentAssignmentMigrationIT.java
     reason: '#1175 按 ADR-0069 第 9 节（登录不开户）：删 ConcurrentAssignmentRegistrationIT（唯一用例测登录未命中时登记员工，已删行为；主任职根由 ConcurrentAssignmentMigrationIT、ConcurrentAssignmentCommandsIT 与 ConcurrentAssignmentSchemaIT 覆盖）；ConcurrentAssignmentMigrationIT 只改第 23-24 行过时注释，断言不变'
     ref: "commit 42bf578cc40c3ef019f0c90c5e27f6e5dd79eaa5 on claude/one-dev-org-1175-adr0069-workforce (PR #1231), patch-id --verbatim 5e6332b4d8417bd604a11273a3ad71d356077369; rv1175del.md"
+  - id: RULING-LEAD-20261104-25
+    date: 2026-11-04
+    ruled_by: independent sonnet reviewer dispatched by one-lead, given only the file at the merge base 359abf699, both parents and the merge (rv1240merge.md, 通过), recorded by one-lead
+    implementer: one-dev-org
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/DataScopeReadBehaviourIT.java
+    reason: '#1240（#1171）合入 main 的冲突解决：ListPath 与 DetailPath 清单同时保留 #1171 的 EMPLOYEES 行与 #1172 的 PERSONNEL_COMMANDS 行，正好是两边各自已接受改动之和；未删、未放宽、未新增断言或用例'
+    ref: "merge commit 48eb05c06c93e77145e5b9ebbce0791810f31217 (PR #1240), parents 088b57664 and 78dedc0ab; rv1240merge.md"
+  - id: RULING-LEAD-20261104-26
+    date: 2026-11-04
+    ruled_by: independent opus reviewer dispatched by one-test on commit f357c52da alone (通过; only the two @Disabled lines and the unused import go; bodies and assertions unchanged, matching ADR-0044 item 1, f-1 invariant 5 and the #1244 rulings 6630752800), recorded by one-lead
+    implementer: one-test
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/RoleScopeGrantIT.java
+    reason: '#1244（#730 收尾）卡第 3 项：RoleScopeGrantIT 的 changingTheCustomOrgUnitsMovesTheHoldersScope 与 aTwoPersonRoleIsNotRevisedToIncludeDescendants 只删 @Disabled 行与无用 import，用例体与断言逐字不变；后者由 #1244 的 UpdateRole 放宽缺口修复转绿'
+    ref: "commit f357c52da5283318b1609d0a89dacbc8792a216e (#1244 acceptance part, one-test), patch-id --verbatim c26401f4b477bbfa6177a72f5f8f0338d9ddd2ad"
