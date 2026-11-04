@@ -9,7 +9,9 @@ import com.forcitis.one.platform.identity.api.AccountRoleGrantId;
 import com.forcitis.one.platform.identity.api.IdentityError;
 import com.forcitis.one.platform.identity.api.RoleCode;
 import com.forcitis.one.platform.identity.api.RoleId;
+import com.forcitis.one.platform.identity.domain.AccountListRow;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
+import com.forcitis.one.platform.identity.domain.AccountStatus;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.platform.identity.domain.GrantChanges;
 import com.forcitis.one.platform.identity.domain.HandledOutcome;
@@ -236,6 +238,30 @@ class JdbcAccountRepository implements AccountRepository {
                          where ar.user_id = :id and ar.%s
                         """.formatted(Validity.CURRENT))
                 .param("id", userId.value()).query(String.class).list().stream().map(RoleCode::new).collect(Collectors.toSet());
+    }
+
+    @Override
+    public List<AccountListRow> list(@Nullable AccountStatus status, @Nullable RoleCode roleCode, @Nullable ListPosition after, int limit) {
+        return jdbc.sql("""
+                select a.user_id, a.created_at, a.employee_id, a.status,
+                       coalesce((select array_agg(r.code order by r.code) from platform_identity.account_role_grants g
+                                   join platform_identity.roles r on r.role_id = g.role_id where g.user_id = a.user_id and g.%1$s), '{}') as role_codes
+                  from platform_identity.user_accounts a
+                 where (cast(:status as text) is null or a.status = :status)
+                   and (cast(:roleCode as text) is null or exists (select 1 from platform_identity.account_role_grants g
+                                   join platform_identity.roles r on r.role_id = g.role_id where g.user_id = a.user_id and g.%1$s and r.code = :roleCode))
+                   and (cast(:afterAt as timestamptz) is null or (a.created_at, a.user_id) > (cast(:afterAt as timestamptz), cast(:afterId as uuid)))
+                 order by a.created_at, a.user_id
+                 limit :limit
+                """.formatted(Validity.CURRENT))
+                .param("status", status == null ? null : status.name(), java.sql.Types.VARCHAR)
+                .param("roleCode", roleCode == null ? null : roleCode.value(), java.sql.Types.VARCHAR)
+                .param("afterAt", after == null ? null : OffsetDateTime.ofInstant(after.createdAt(), ZoneOffset.UTC), java.sql.Types.TIMESTAMP_WITH_TIMEZONE)
+                .param("afterId", after == null ? null : after.userId().value(), java.sql.Types.OTHER)
+                .param("limit", limit)
+                .query((rs, n) -> new AccountListRow(new UserId(rs.getObject("user_id", UUID.class)), rs.getObject("created_at", OffsetDateTime.class).toInstant(), new EmployeeId(rs.getObject("employee_id", UUID.class)),
+                        AccountStatus.valueOf(rs.getString("status")), List.of((String[]) rs.getArray("role_codes").getArray())))
+                .list();
     }
 
     @Override
