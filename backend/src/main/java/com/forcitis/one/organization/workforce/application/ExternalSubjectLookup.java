@@ -20,12 +20,6 @@ class ExternalSubjectLookup implements ExternalSubjectEmployees {
 
     @Override
     @Transactional(readOnly = true)
-    public List<EmployeeId> withExternalLoginName(String externalLoginName) {
-        return snapshot.findEmployeeIdsByLoginName(externalLoginName);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public List<EmployeeId> withMessagingAccountId(String messagingAccountId) {
         return snapshot.findEmployeeIdsByWecomUser(new WecomUserId(messagingAccountId));
     }

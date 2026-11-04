@@ -40,7 +40,7 @@ final class OrgSnapshotRows {
 
     /** The snapshot rows as stored; for the reconciliation's own comparison only, readers use SELECT_STAFF_ON_DAY. */
     static final String SELECT_STAFF = """
-            select e.id, e.employee_code, e.display_name, e.login_name, e.email, e.gender, e.wecom_user_id,
+            select e.id, e.employee_code, e.display_name, e.email, e.gender, e.wecom_user_id,
                    e.employment_status, e.is_fee_earner,
                    a.org_unit_id, a.position_id, a.reports_to_employee_id
               from organization_workforce.employees e
@@ -54,7 +54,7 @@ final class OrgSnapshotRows {
      */
     static final String SELECT_STAFF_ON_DAY = """
             select s.* from (
-              select e.id, e.employee_code, e.display_name, e.login_name, e.email, e.gender, e.wecom_user_id, e.updated_at,
+              select e.id, e.employee_code, e.display_name, e.email, e.gender, e.wecom_user_id, e.updated_at,
                      case when v.versioned then ev.employment_status else e.employment_status end as employment_status,
                      case when v.versioned then ev.is_fee_earner else e.is_fee_earner end as is_fee_earner,
                      case when v.versioned then av.org_unit_id else a.org_unit_id end as org_unit_id,
@@ -85,7 +85,7 @@ final class OrgSnapshotRows {
         String wecom = rs.getString("wecom_user_id");
         String gender = rs.getString("gender");
         Employee employee = new Employee(id, rs.getString("employee_code"), rs.getString("display_name"),
-                rs.getString("login_name"), rs.getString("email"), gender == null ? null : Gender.valueOf(gender),
+                rs.getString("email"), gender == null ? null : Gender.valueOf(gender),
                 wecom == null ? null : new WecomUserId(wecom), EmploymentStatus.valueOf(rs.getString("employment_status")),
                 rs.getBoolean("is_fee_earner"));
         OrgUnitId orgUnit = new OrgUnitId(rs.getObject("org_unit_id", UUID.class));

@@ -24,12 +24,6 @@ public interface OrgSnapshotQueries {
     /** Prefers the employed person. */
     Optional<StaffEmployee> findStaffByWecomUser(WecomUserId wecomUserId);
 
-    /** Only employed people carry a login name. */
-    Optional<StaffEmployee> findStaffByLoginName(String loginName);
-
-    /** Every employee, employed or not, whose login name it is. */
-    List<EmployeeId> findEmployeeIdsByLoginName(String loginName);
-
     /** Every employee, employed or not, whose WeCom user id it is. */
     List<EmployeeId> findEmployeeIdsByWecomUser(WecomUserId wecomUserId);
 

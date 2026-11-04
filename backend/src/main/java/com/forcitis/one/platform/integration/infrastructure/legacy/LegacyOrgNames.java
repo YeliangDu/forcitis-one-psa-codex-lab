@@ -41,7 +41,7 @@ final class LegacyOrgNames implements OrgShortNames {
         return "SELECT id, short_name FROM " + viewName;
     }
 
-    /** Only the short-name refresh reads here, so the login is checked again before each refresh (ADR-0037 item 4.4). */
+    /** Only short names are read here, so the login is checked again before each read (ADR-0037 item 4.4). */
     @Override
     public Map<OwnObjectId, String> readShortNames() {
         recheckBeforeRead.run();

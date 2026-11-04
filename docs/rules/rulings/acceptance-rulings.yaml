@@ -551,3 +551,12 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/role_versioning/SystemRoleDeclarationIT.java
     reason: '#1171 按用户决定 2026-11-03-214823（名册只给人事角色）给 personnel_specialist 加 organization.workforce:employee:read，声明内容变化按 #907/#934 惯例修订号 1→2：assertPersonnelSpecialistSeeded 钉住修订号 2 并要求权限含该码，DisplayName 与注释同步；其余断言不变'
     ref: "commit 393786003e86f9f628f00970fe284c301d4107ea on claude/one-test-1171-roster-reads (#1171 acceptance part, PR #1229), patch-id --verbatim b9240c2b3b051f7c7369916b0f4229d6670ba4d5"
+  - id: RULING-LEAD-20261104-24
+    date: 2026-11-04
+    ruled_by: independent opus reviewer dispatched by one-dev-org on commit 42bf578cc alone (rv1175del.md; substance confirmed, its one 必改 was the missing ruling itself), recorded by one-lead
+    implementer: one-dev-org
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/ConcurrentAssignmentRegistrationIT.java
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/ConcurrentAssignmentMigrationIT.java
+    reason: '#1175 按 ADR-0069 第 9 节（登录不开户）：删 ConcurrentAssignmentRegistrationIT（唯一用例测登录未命中时登记员工，已删行为；主任职根由 ConcurrentAssignmentMigrationIT、ConcurrentAssignmentCommandsIT 与 ConcurrentAssignmentSchemaIT 覆盖）；ConcurrentAssignmentMigrationIT 只改第 23-24 行过时注释，断言不变'
+    ref: "commit 42bf578cc40c3ef019f0c90c5e27f6e5dd79eaa5 on claude/one-dev-org-1175-adr0069-workforce (PR #1231), patch-id --verbatim 5e6332b4d8417bd604a11273a3ad71d356077369; rv1175del.md"

@@ -13,11 +13,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.kernel.AccountEmployees;
-import com.forcitis.one.kernel.EmployeeId;
-import com.forcitis.one.kernel.SystemActors;
 import com.forcitis.one.kernel.WecomUserId;
-import com.forcitis.one.kernel.event.ActorType;
-import com.forcitis.one.organization.workforce.events.EmployeeRegistered;
 import com.forcitis.one.platform.integration.api.WecomEntry;
 import jakarta.servlet.http.Cookie;
 import java.util.List;
@@ -26,23 +22,19 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import tools.jackson.databind.json.JsonMapper;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 
-/** Login of a person the snapshot does not list yet: no session user and no job is acting, so the registration acts as SYSTEM. */
-class FirstWecomLoginIntegrationTest extends WorkforceIntegrationSupport {
+/** Login of a person the snapshot does not list: nothing is registered (ADR-0069 s9). */
+class UnknownWecomLoginIntegrationTest extends WorkforceIntegrationSupport {
     @Autowired
     MockMvc mvc;
 
     @Autowired
     JsonMapper json;
-
-    @Autowired
-    ApplicationEvents events;
 
     @Autowired
     AccountEmployees accountEmployees;
@@ -59,21 +51,12 @@ class FirstWecomLoginIntegrationTest extends WorkforceIntegrationSupport {
         orgSource.singleLookupResult = List.of(person(3001, 2, 100L, 1L, "13900003001", "wx-new-hire"));
     }
 
-    private void registeredAndSignedIn(MvcResult login) throws Exception {
-        assertThat(login.getResponse().getStatus()).as(login.getResponse().getContentAsString()).isEqualTo(200);
-        assertThat(jdbc.sql("select count(*) from organization_workforce.employees where id = " + sqlEmployee(3001)).query(Integer.class).single()).isEqualTo(1);
-        assertThat(accountEmployees.accountOf(TestAccounts.employee(3001))).as("the account is opened").isPresent();
-        assertThat(events.stream(EmployeeRegistered.class).map(EmployeeRegistered::envelope)).singleElement().satisfies(envelope -> {
-            assertThat(envelope.actorType()).isEqualTo(ActorType.SYSTEM);
-            assertThat(envelope.actorId()).isEqualTo(SystemActors.idOf("organization.workforce.login-registration"));
-        });
-    }
-
     @Test
-    @DisplayName("P2-F1 a WeCom login of an employee the snapshot does not list yet but the source finds registers them, opens the account and signs in")
-    void firstLoginOfANewHireSignsIn() throws Exception {
+    @DisplayName("ADR-0069 s9 a WeCom login of a person the snapshot does not list creates no employee, no account and no event, and is refused")
+    void loginOfAPersonTheSnapshotDoesNotListCreatesNothing() throws Exception {
         aNewHireTheSnapshotDoesNotListYet();
         when(wecomGateway.resolveWecomUserId("code-new-hire", WecomEntry.WORKBENCH)).thenReturn(Optional.of(new WecomUserId("wx-new-hire")));
+        int employees = count("employees");
 
         MvcResult issued = mvc.perform(withXsrf(post("/api/v1/platform/login-states")).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"entry\":\"WORKBENCH\"}")).andReturn();
@@ -81,7 +64,13 @@ class FirstWecomLoginIntegrationTest extends WorkforceIntegrationSupport {
         String state = json.readTree(issued.getResponse().getContentAsString()).path("state").asString();
         Cookie binding = issued.getResponse().getCookie("loginBinding");
 
-        registeredAndSignedIn(mvc.perform(withXsrf(post("/api/v1/platform/sessions:wecom-login")).cookie(binding).contentType(MediaType.APPLICATION_JSON)
-                .content("{\"code\":\"code-new-hire\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}")).andReturn());
+        MvcResult login = mvc.perform(withXsrf(post("/api/v1/platform/sessions:wecom-login")).cookie(binding).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"code-new-hire\",\"state\":\"" + state + "\",\"entry\":\"WORKBENCH\"}")).andReturn();
+
+        assertThat(login.getResponse().getStatus()).as(login.getResponse().getContentAsString()).isGreaterThanOrEqualTo(400);
+        assertThat(count("employees")).isEqualTo(employees);
+        assertThat(jdbc.sql("select count(*) from organization_workforce.employees where id = " + sqlEmployee(3001)).query(Integer.class).single()).isZero();
+        assertThat(accountEmployees.accountOf(TestAccounts.employee(3001))).isEmpty();
+        assertThat(orgSource.singleLookups.get()).as("the source is not asked").isZero();
     }
 }

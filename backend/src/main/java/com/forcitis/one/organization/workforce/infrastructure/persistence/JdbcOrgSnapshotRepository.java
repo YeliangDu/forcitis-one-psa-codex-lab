@@ -16,7 +16,6 @@ import com.forcitis.one.organization.workforce.domain.OrgUnitStatus;
 import com.forcitis.one.organization.workforce.domain.Position;
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.domain.PositionStatus;
-import com.forcitis.one.organization.workforce.domain.RegisteredEmployee;
 import com.forcitis.one.organization.workforce.domain.RegionCategory;
 import com.forcitis.one.organization.workforce.domain.StaffEmployee;
 import java.sql.ResultSet;
@@ -40,13 +39,9 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
     private static final long WRITER_LOCK_KEY = 20261014131000L;
 
     private final JdbcClient jdbc;
-    private final OrgHistory history;
-    private final BusinessZone zone;
 
-    JdbcOrgSnapshotRepository(JdbcClient jdbc, BusinessZone zone, IdGenerator ids) {
+    JdbcOrgSnapshotRepository(JdbcClient jdbc) {
         this.jdbc = jdbc;
-        this.history = new OrgHistory(jdbc, ids);
-        this.zone = zone;
     }
 
     @Override
@@ -69,52 +64,6 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
     }
 
     @Override
-    public void saveRegisteredEmployee(RegisteredEmployee registered, Instant now) {
-        LocalDate day = zone.dateOf(now);
-        insertStaff(registered.staff(), OffsetDateTime.ofInstant(now, ZoneOffset.UTC));
-        history.recordAssignments(List.of(registered.staff().assignment()), day, now);
-        jdbc.sql("""
-                update organization_workforce.employees set event_count = :sequence where id = :id
-                """)
-                .param("sequence", registered.eventSequenceAfterSave()).param("id", registered.staff().employeeId().value()).update();
-    }
-
-    @Override
-    public long findEmployeeEventSequence(EmployeeId employeeId) {
-        return jdbc.sql("""
-                select event_count from organization_workforce.employees where id = :id
-                """).param("id", employeeId.value())
-                .query(Long.class).optional().orElse(0L);
-    }
-
-    private void insertStaff(StaffEmployee s, OffsetDateTime now) {
-        Employee e = s.employee();
-        Assignment a = s.assignment();
-        jdbc.sql("""
-                insert into organization_workforce.employees (id, employee_code, display_name, login_name, email, gender,
-                       wecom_user_id, employment_status, is_fee_earner, separated_at, created_at, updated_at, event_count)
-                values (:id, :code, :name, :login, :email, :gender, :wecom, :status, :feeEarner,
-                        case when cast(:status as text) = 'SEPARATED' then cast(:now as timestamptz) end, :now, :now, 0)
-                on conflict (id) do nothing
-                """)
-                .param("id", e.employeeId().value()).param("code", e.employeeCode()).param("name", e.displayName())
-                .param("login", e.loginName()).param("email", e.email()).param("gender", e.gender() == null ? null : e.gender().name())
-                .param("wecom", e.wecomUserId() == null ? null : e.wecomUserId().value())
-                .param("status", e.employmentStatus().name()).param("feeEarner", e.feeEarner())
-                .param("now", now).update();
-        jdbc.sql("""
-                insert into organization_workforce.assignments (employee_id, org_unit_id, position_id, reports_to_employee_id,
-                       created_at, updated_at)
-                values (:employee, :orgUnit, :position, :reportsTo, :now, :now)
-                on conflict (employee_id) do nothing
-                """)
-                .param("employee", a.employeeId().value()).param("orgUnit", a.orgUnitId().value())
-                .param("position", a.positionId() == null ? null : a.positionId().value())
-                .param("reportsTo", a.reportsToEmployeeId() == null ? null : a.reportsToEmployeeId().value())
-                .param("now", now).update();
-    }
-
-    @Override
     public Set<OrgUnitId> findOrgUnitIds() {
         return jdbc.sql("""
                 select id from organization_workforce.org_units
@@ -128,19 +77,5 @@ class JdbcOrgSnapshotRepository implements OrgSnapshotRepository {
                 select id from organization_workforce.positions
                 """).query(UUID.class).list().stream()
                 .map(PositionId::new).collect(Collectors.toSet());
-    }
-
-    @Override
-    public int updateShortNames(Map<OrgUnitId, String> shortNames, Instant now) {
-        int changed = 0;
-        OffsetDateTime at = OffsetDateTime.ofInstant(now, ZoneOffset.UTC);
-        for (Map.Entry<OrgUnitId, String> entry : shortNames.entrySet()) {
-            changed += jdbc.sql("""
-                    update organization_workforce.org_units set short_name = :name, updated_at = :now, version = version + 1
-                     where id = :id and short_name is distinct from cast(:name as text)
-                    """)
-                    .param("name", entry.getValue()).param("now", at).param("id", entry.getKey().value()).update();
-        }
-        return changed;
     }
 }
