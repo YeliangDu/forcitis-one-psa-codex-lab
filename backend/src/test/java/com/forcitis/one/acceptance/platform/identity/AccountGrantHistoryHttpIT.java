@@ -29,7 +29,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
- * #1173 (acceptance part, PR 2): {@code GET /api/v1/platform/user-accounts/{userId}/role-grants?limit=&cursor=}, the full grant history of one
+ * #1173 (acceptance part, PR 2): {@code GET /api/v1/platform/account-role-grants?userId=&limit=&cursor=}, the full grant history of one
  * account (open and closed rows, newest first). The oracle is the stored account_role_grants rows read by test SQL, after a grant, a
  * replace-roles and a revoke made through the endpoints. The order of rows with an equal start moment is not asserted (the card leaves the
  * tie direction open and the fixed clock makes such ties likely).
@@ -44,6 +44,7 @@ class AccountGrantHistoryHttpIT extends AccountsAcceptanceSupport {
     }
 
     private static final String ACCOUNTS = "/api/v1/platform/user-accounts";
+    private static final String ROLE_GRANTS = "/api/v1/platform/account-role-grants";
     private static final String ROLES = "/api/v1/platform/roles";
     private static final Set<String> ROW_KEYS = Set.of("roleCode", "channel", "effectiveFrom", "effectiveTo", "revocationCause", "grantedBy", "revokedBy");
     private static final AtomicInteger NUMBER = new AtomicInteger();
@@ -97,7 +98,7 @@ class AccountGrantHistoryHttpIT extends AccountsAcceptanceSupport {
     }
 
     private MockHttpServletResponse history(SignedIn caller, UUID account, String query) throws Exception {
-        return mvc.perform(get(ACCOUNTS + "/" + account + "/role-grants" + query).with(session(caller))).andReturn().getResponse();
+        return mvc.perform(get(ROLE_GRANTS + "?userId=" + account + (query.isEmpty() ? "" : "&" + query.substring(1))).with(session(caller))).andReturn().getResponse();
     }
 
     private List<Map<String, Object>> items(MockHttpServletResponse answer) {

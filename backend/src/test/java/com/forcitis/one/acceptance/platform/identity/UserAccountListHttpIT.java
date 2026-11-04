@@ -223,8 +223,8 @@ class UserAccountListHttpIT extends AccountsAcceptanceSupport {
     // ---- order and paging ----
 
     @Test
-    @DisplayName("#1173 完成标准第 1 条（排序与分页）：按用户 id 升序；逐页取（limit=2，沿游标）与一次取完的结果相同、没有重复；第一页在还有数据时带下一页游标，游标用尽后为空")
-    void theListIsOrderedByUserIdAndPaged() throws Exception {
+    @DisplayName("#1173 完成标准第 1 条（排序与分页）：按开户时间升序、开户时间相同的按用户 id 升序（开户时间与 id 先后不一致、也有相同的情形）；逐页取（limit=2，沿游标）与一次取完的结果相同、没有重复；第一页在还有数据时带下一页游标，游标用尽后为空")
+    void theListIsOrderedByCreationThenUserIdAndPaged() throws Exception {
         SignedIn admin = administrator();
         String role = createRole(admin, "synthetic_list_e");
         List<String> mine = new ArrayList<>();
@@ -233,6 +233,18 @@ class UserAccountListHttpIT extends AccountsAcceptanceSupport {
             replaceRoles(admin, person.user(), "employee", role);
             mine.add(person.user().toString());
         }
+        // created_at against id order: the first made is the latest created; the last two share one moment, so only the id tells them apart
+        long[] minutes = {40, 30, 20, 10, 10};
+        try (java.sql.Connection identity = schemaConnection("platform_identity")) {
+            for (int i = 0; i < mine.size(); i++) {
+                try (java.sql.PreparedStatement statement = identity.prepareStatement("update user_accounts set created_at = ? where user_id = ?")) {
+                    statement.setObject(1, java.time.OffsetDateTime.parse("2026-10-01T00:00:00Z").plusMinutes(minutes[i]));
+                    statement.setObject(2, UUID.fromString(mine.get(i)));
+                    statement.executeUpdate();
+                }
+            }
+        }
+        List<String> expected = List.of(mine.get(3), mine.get(4), mine.get(2), mine.get(1), mine.get(0));
 
         List<Map<String, Object>> byTwos = allPages(admin, "?roleCode=" + role, 2);
         List<Map<String, Object>> whole = allPages(admin, "?roleCode=" + role, 100);
@@ -241,7 +253,7 @@ class UserAccountListHttpIT extends AccountsAcceptanceSupport {
         assertThat(byTwos).isEqualTo(whole);
         List<String> ids = whole.stream().map(item -> (String) item.get("userId")).toList();
         assertThat(ids).containsExactlyInAnyOrderElementsOf(mine).doesNotHaveDuplicates();
-        assertThat(ids).isSortedAccordingTo(String::compareTo);
+        assertThat(ids).as("by created_at, then user id").containsExactlyElementsOf(expected);
         assertThat(items(firstPage)).hasSize(2);
         assertThat((String) JsonPath.read(contentOf(firstPage), "$.nextCursor")).isNotBlank();
     }
