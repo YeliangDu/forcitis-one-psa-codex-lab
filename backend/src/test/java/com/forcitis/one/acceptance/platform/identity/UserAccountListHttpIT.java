@@ -233,10 +233,11 @@ class UserAccountListHttpIT extends AccountsAcceptanceSupport {
             replaceRoles(admin, person.user(), "employee", role);
             mine.add(person.user().toString());
         }
-        // created_at against id order: the first made is the latest created; the last two share one moment, so only the id tells them apart
-        long[] minutes = {40, 30, 20, 10, 10};
+        // created_at against id order; the second and the fifth made share one moment and fall on different pages of two, so only the user id tie-break
+        // (not created_at alone, not storage order) gives the expected order, and the rows are updated last-to-first
+        long[] minutes = {40, 20, 30, 10, 20};
         try (java.sql.Connection identity = schemaConnection("platform_identity")) {
-            for (int i = 0; i < mine.size(); i++) {
+            for (int i = mine.size() - 1; i >= 0; i--) {
                 try (java.sql.PreparedStatement statement = identity.prepareStatement("update user_accounts set created_at = ? where user_id = ?")) {
                     statement.setObject(1, java.time.OffsetDateTime.parse("2026-10-01T00:00:00Z").plusMinutes(minutes[i]));
                     statement.setObject(2, UUID.fromString(mine.get(i)));
@@ -244,7 +245,7 @@ class UserAccountListHttpIT extends AccountsAcceptanceSupport {
                 }
             }
         }
-        List<String> expected = List.of(mine.get(3), mine.get(4), mine.get(2), mine.get(1), mine.get(0));
+        List<String> expected = List.of(mine.get(3), mine.get(1), mine.get(4), mine.get(2), mine.get(0));
 
         List<Map<String, Object>> byTwos = allPages(admin, "?roleCode=" + role, 2);
         List<Map<String, Object>> whole = allPages(admin, "?roleCode=" + role, 100);
