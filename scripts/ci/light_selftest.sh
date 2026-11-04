@@ -35,11 +35,13 @@ expect x/scripts/guards/ci_git.py
 expect scripts/guards/ci_git.py t_guards t_guards_config
 expect backend/pom.xml t_guards_config
 expect scripts/ci/evidence_imports.py t_evidence_imports
-expect policy.json t_gates t_session t_mq t_evidence t_post_review
+expect policy.json t_gates t_session t_new_card t_mq t_evidence t_post_review
 expect .claude/settings.json t_gates
 expect .pre-commit-config.yaml t_gates
 expect .github/workflows/nightly-legacy-it.yml t_guards_config
 expect scripts/session/new_intent.py t_session
+expect scripts/session/new_card.py t_session t_new_card
+expect .github/ISSUE_TEMPLATE/card.md t_new_card
 expect tools/ops/ecs/scripts/c3_set_role_passwords.py t_c3_passwords
 expect tools/ops/ecs/scripts/c3_rotate_admin_password.py t_c3_passwords
 expect tools/docs/new_adr.py t_new_adr
