@@ -98,6 +98,8 @@ rule "实现方改了验收测试（底线：实现方不改验收测试）" "�
 against_base "acceptance guard" python3 scripts/guards/acceptance_guard.py
 rule "提交引用了不存在、复用或范围不符的验收裁定" "引用 rules/rulings/acceptance-rulings.yaml 里真实的裁定号"
 against_base "acceptance rulings" python3 scripts/guards/acceptance_rulings.py
+rule "已建 BC 的业务规则没有测试引用且不在未引用清单里，或清单变长、登记过期（#1271）" "按输出的 RT 规则号：给规则补测试（名字或 @Covers 写规则号）；不要往 scripts/guards/rule_tests_known.txt 加行，已被引用的行要删"
+against_base "built-BC rules cited by tests" python3 scripts/guards/rule_tests.py
 rule "文件、目录不合命名规则（全仓）" "照输出给出的改正名改名；新的顶层目录先问 lead"
 run "file and directory names (whole tree)" python3 -I scripts/guards/check_names.py
 

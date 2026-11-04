@@ -8,10 +8,12 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.platform.integration.api.WecomCard;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import org.junit.jupiter.api.BeforeEach;
 
 /**
  * Ground of the #943 tests (ADR-0068 sections 2.2, 2.3 and 3; user decision of 2026-10-30 「加，同离职一样」, and 「已录的未来停薪算已走」): starting
@@ -26,6 +28,18 @@ abstract class UnpaidLeaveStartFloorSupport extends FutureHoldSupport {
     protected static final String ALERT_PURPOSE = "UNPAID_LEAVE_START_NOTICE";
     /** An entered, not yet started leave. */
     protected static final LocalDate LATER = TODAY.plusDays(5);
+
+    @BeforeEach
+    void workCalendar() throws Exception {
+        maintainWorkCalendar(account("org_data_admin").session()); // a started leave of a holder opens a review whose escalation due fails loud on an unmaintained calendar
+    }
+
+    /** The 「敏感角色复核」 entries (kind SENSITIVE_ROLE_REVIEW of the identity schema's permission_adjustments) about the account. */
+    protected List<java.util.Map<String, Object>> reviewsAbout(UUID userId) throws SQLException {
+        try (Connection identity = schemaConnection("platform_identity")) {
+            return query(identity, "select * from permission_adjustments where kind = 'SENSITIVE_ROLE_REVIEW' and user_id = ?", userId);
+        }
+    }
 
     protected UUID startLeave(Staff who, LocalDate effective) throws Exception {
         actIn(hr);

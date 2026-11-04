@@ -59,6 +59,7 @@ ALWAYS_RUN_READERS = (
     "scripts/guards/check_playbooks.py",   # reads the playbooks; runs on every event
     "scripts/guards/policy_keys_read.py",   # reads policy.json and scripts/; runs on every event (#822)
     "scripts/guards/check_rules_enforced.py",   # reads rules, roles, the coding and naming standards and coding-core; runs on every event (#856, #860)
+    "scripts/guards/rule_tests.py",   # reads docs/business/rules, contexts.yaml and every test source via the scanner; runs on every event (#1271)
     "scripts/guards/rule_sizes.py",   # reads CLAUDE.md files and .claude/rules targets under docs/rules/; runs on every event (#810, #827)
     "scripts/guards/check_names.py",   # docs paths there are naming rules and the directory allowlist
     "scripts/guards/cited_paths.py",   # reads every tracked .md/.yaml and the scripts to check the paths they cite; runs on every event (#1263)
