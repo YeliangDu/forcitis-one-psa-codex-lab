@@ -96,6 +96,10 @@ shell_syntax() {  # 改到的 .sh 逐个 bash -n（没有基线时全部已跟�
   done < <(if [ -n "$base" ]; then grep -E "$t_shell" "$changed"; else git ls-files '*.sh'; fi)
 }
 
+shellcheck_tracked() {  # 与 CI（ci.yml「release and deploy scripts self-test」）同一条命令：全部已跟踪的 .sh；本机版本可能与 CI 固定的 0.11.0 不同，这一步是提前的信号，不是门
+  git ls-files -z '*.sh' | xargs -0 shellcheck -x
+}
+
 maven_offline_ready() {  # 本机 ~/.m2 够离线编译后端测试：只有 Maven 报「拿不到依赖」才算没准备好（编译错误照常进检查）；CI 里不查
   local out
   [ -z "${CI:-}" ] || return 0
