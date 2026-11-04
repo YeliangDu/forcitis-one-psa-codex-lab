@@ -20,7 +20,7 @@
 - `docs/legacy/runtime-usage/a8-templates.tsv:1–2`：2026-10-14 模板快照，包含模板标识、实际名称、表单主表、删除标志、近 365 天计数等；**没有模板版本、节点、授权规则**。
 - `docs/legacy/runtime-usage/a8-forms.tsv:1–2`：表单名称、类型、主表及行数；**没有字段标签、字段规则和受控值定义**。主表行数也不能替代流程实例数。
 - `OA_PROCESS_INVENTORY.md:19–22`：上述历史取证使用 `READ UNCOMMITTED`；本次后续取证必须按 ADR-0037 重取，不能沿用其隔离方式。
-- `OA_PROCESS_INVENTORY.md:46`、`docs/business/finance-adr-points.md:38` 的“留在 OA”属于历史规划；`docs/architecture/proposals/closeout/prc-allocations.md:8–13` 后来登记了迁入 B-31 的目标。两者都不能证明生产参数配置。
+- `OA_PROCESS_INVENTORY.md:46`、`docs/business/finance-adr-points.md:38` 的“留在 OA”属于历史规划；`docs/architecture/proposals/closeout/prc-allocations.md:8–13` (removed 2026-11-04; read it at commit 1f6f97d1b) 后来登记了迁入 B-31 的目标。两者都不能证明生产参数配置。
 - `docs/business/processes/general-approval-flow.md:4–5` 主要盘点老系统 Flowable；不能直接当作 A8 用印、IT、资产及活动模板的节点配置。
 
 1. **B31P-01 用印责任制度版本与生效信息——取证待补。**  
@@ -72,7 +72,7 @@
     `docs/legacy/runtime-usage/a8-templates.tsv:144` 只有领用模板线索。未找到“超配”对应的原始条件、允许／拒绝结果、重叠处理及清单维护授权。
 
 17. **B31P-17 活动制度版本与生效信息——取证待补。**  
-    `docs/legacy/runtime-usage/a8-templates.tsv:47`、`:112`、`:127`：实际有「周年贺卡」「感恩节活动」「创新项目发布申请」。`docs/architecture/proposals/closeout/prc-allocations.md:13` 是新系统流程归属，不能替代现行活动制度。
+    `docs/legacy/runtime-usage/a8-templates.tsv:47`、`:112`、`:127`：实际有「周年贺卡」「感恩节活动」「创新项目发布申请」。`docs/architecture/proposals/closeout/prc-allocations.md:13` (removed 2026-11-04; read it at commit 1f6f97d1b) 是新系统流程归属，不能替代现行活动制度。
 
 18. **B31P-18 活动类型、适用员工与清单维护——部分证据。**  
     `docs/legacy/runtime-usage/a8-forms.tsv:116`、`:198–199`：上述活动各有表单，主表分别为 `formmain_1377`、`formmain_1239`、`formmain_0856`。这些模板名称不能直接当作受控活动类型字典；适用员工条件及清单维护角色未见。
@@ -108,7 +108,7 @@
     `docs/business/rules/raw/presales-validation-lifecycle.md:86–94` 给出报价用印登记所需字段；`map/packets/fst_domain_presales.txt:98–99` 有登记集合；`docs/legacy/runtime-usage/a8-forms.tsv:92` 有用印档案。缺空白样表版本、实际办理状态／时间、凭据类型、有效性及关闭后查询规则。**申请完整不能证明已实际用印。**
 
 29. **B31P-29 报价版本、法人、文件与凭据的核验对应——部分证据。**  
-    `docs/architecture/proposals/presales-objects-evidence.md:65` 记录报价与用印子表，`:72–73` 记载当时未见报价版本链及相关缺口。`map/packets/fst_domain_presales.txt:83` 的 `version` 明确是乐观锁版本，不能当作报价业务版本。仍缺报价版本→法人→拟发文件版本→实际用印→凭据映射，以及投标／非投标发出校验点。
+    `docs/architecture/proposals/presales-objects-evidence.md:65` (removed 2026-11-04; read it at commit 1f6f97d1b) 记录报价与用印子表，`:72–73` 记载当时未见报价版本链及相关缺口。`map/packets/fst_domain_presales.txt:83` 的 `version` 明确是乐观锁版本，不能当作报价业务版本。仍缺报价版本→法人→拟发文件版本→实际用印→凭据映射，以及投标／非投标发出校验点。
 
 另有可复用的取证方法线索：
 

@@ -498,7 +498,7 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
             for command, code in (("ls", 0), ("ls -la | wc -l", 0), ("git status", 0), ("gh pr list", 0), ("git -c core.pager='sh w.sh' log -1", 0), ("GIT_EXTERNAL_DIFF=./w.sh git diff", 0), ("PATH=./bin:/usr/bin ls", 0),
                                   ("echo x > /dev/tcp/10.0.0.5/6379", 0), ("sort --compress-program=./w.sh x", 0), (f"psql -h {PROD_P} -c 'delete from t'", 2), ("./deploy.sh", 0), ("echo `deploy`", 0), ("rg --pre deploy x", 0),
                                   ("ssh dev uptime", 0), ("curl -s https://x.example.invalid", 0), ("codex exec --sandbox workspace-write 'a b'", 2), ('co""dex exec x', 2), ("$'\\x63odex' exec x", 2),
-                                  ("co{dex,} exec x", 2), ("co{d..d}ex exec x", 2), ("co\\\ndex exec x", 2), ("cod?x exec x", 2), ("c\\odex exec x", 2), ("ls src/{a,b}", 2), ("git commit -m 'codex'", 2), ("echo CoDeX", 2),   # #1180: a broken gate refuses codex, even the one allowed shape
+                                  ("co{dex,} exec x", 2), ("co{d..d}ex exec x", 2), ("co\\\ndex exec x", 2), ("cod?x exec x", 2), ("c\\odex exec x", 2), ("ls src/{a,b}", 2), ("grep -E '^[-+][^-+]' x", 0), ("ls [z-a]", 0), ("[z-a] ; c[o]dex exec x", 2), ("[^-+]odex exec x", 2), ("[^+-]odex exec x", 2), ("[z-ac]odex exec x", 2), ("git commit -m 'codex'", 2), ("echo CoDeX", 2),   # #1180: a broken gate refuses codex, even the one allowed shape
                                    (f"grep -rn {PROD_H} docs", 2), (f"s''sh {PROD_H} uptime", 2), (f"echo {PROD_D.upper()}", 2),
                                   (f"c\\url https://{PROD_P[:3]}\\{PROD_P[3:]}/", 0),  # split by a backslash: not on the text as written, allowed by design (202019)
                                   *((c, 0) for c in MISBLOCKED), *((c, 2) for c in extra)):
@@ -765,6 +765,12 @@ def codex_gate_test():
                    "node scripts/tool.js codex", "bash scripts/ci/light.sh codex", "sh ./x.sh --note 'codex'", "./scripts/session/tool.sh codex notes", "/usr/bin/python3 -I scripts/x.py 'codex pilot'", "git commit -m 'codex' && ls", "git commit -m 'codex pilot' && git push", "echo CODEX_HOME", "cat <<'EOF'\ncodex exec x\nEOF", "git log --grep=codex"]
         for command in allowed:
             assert ask(command) is None, (command, ask(command))
+        # #1205: a word whose bracket does not compile is literal in the shell, so it is judged, not crashed on; a bracket that expands to the name is still refused
+        for command in ("grep -E '^[-+][^-+]' x", "grep -E ^[-+][^-+] x", "ls [z-a]", "echo [z-a]"):
+            assert ask(command) is None, ("an invalid bracket is not codex", command, ask(command))
+        for command in ("grep -E '^[-+][^-+]' x; c[o]dex exec x", "[z-a] ; cod?x exec x", "co{dex,} exec x", "[^-+]odex exec x", "[^+-]odex exec x", "/opt/bin/[^-+]odex exec x", "[z-ac]odex exec x", "[cz-a]odex exec x", "[!z-a]odex exec x", "[a-cz-a]odex exec x"):   # the shell expands these to codex although Python cannot compile them
+            reason = ask(command)
+            assert reason and "拒绝" in reason, ("a real codex word beside an invalid bracket is still refused", command, reason)
         assert ask(f"{S} 'fix the bug'", cwd=os.path.join(w1, "sub")) is None, "a subdirectory of the own worktree"
         refused = [  # (command, text the refusal must hold): every form the card names
             ("codex", "exec"), ("codex exec 'fix the bug'", "workspace-write"), ("codex exec -s read-only 'fix the bug'", "workspace-write"), ("codex exec -s danger-full-access 'fix the bug'", "workspace-write"),

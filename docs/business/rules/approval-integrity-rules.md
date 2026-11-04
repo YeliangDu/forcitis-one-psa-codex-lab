@@ -1,4 +1,4 @@
-# Approval integrity and legal-entity attribution business rules — RULE-492..RULE-504
+# Approval integrity and legal-entity attribution business rules — RULE-492..RULE-504, RULE-506..RULE-508
 
 Scope: `platform.approval` (assignment, reasons, task and request state, start rounds, routing flags, task cards) and `organization.workforce` (legal-entity attribution of employees and departments). These are rules of FORCITIS one. Basis: the tests listed on each card, read together with the decisions and ADRs cited. Placeholder numbers; the coordinator renumbers. Where the cited basis does not decide a value or behaviour, the card says so in **Needs decision** and its Review column is Yes.
 
@@ -17,6 +17,9 @@ Scope: `platform.approval` (assignment, reasons, task and request state, start r
 | RULE-502 | workforce | Nobody changes their own legal-entity attribution, nor that of their own department or any department above it | P0 | No |
 | RULE-503 | workforce | An attribution request that changes nothing records nothing: the same legal entity again, or a correction with the same end date | P1 | Yes |
 | RULE-504 | workforce | The legal entity of an employee on a date is the employee's own attribution, else the nearest department up the chain; nothing found, or a broken tree, resolves to none | P0 | No |
+| RULE-506 | workforce | A countersign is visible only to those who decide it; anyone else is told it does not exist and the query is audited | P0 | No |
+| RULE-507 | workforce | While a department merge is pending, nothing may put a person back into the department being merged, and chained merges must keep their dates in order | P1 | No |
+| RULE-508 | workforce | A department's legal-entity attribution cannot be back-dated; a wrong one waits for void-and-append correction | P1 | No |
 
 ### RULE-492: An approver chosen on the form who has no user account makes the start fail with an alert; nothing is skipped and no approval is left behind
 **Category:** Validation
@@ -155,5 +158,37 @@ Scope: `platform.approval` (assignment, reasons, task and request state, start r
 - Given root has LE1, Then the result is LE1; given middle also has LE2, Then the result is LE2 (a subtree overrides its ancestor); given the employee has LE1 of their own, Then the result is LE1.
 - Given the parent chain leaf, middle, leaf (a cycle), Then the result is empty and the walk ends; given an employee that is unknown, Then the result is empty.
 **Confidence:** High
+
+### RULE-506: A countersign is visible only to those who decide it; anyone else is told it does not exist and the query is audited
+**Category:** Policy
+**Priority:** P0
+**Source:** user decision 2026-11-04 (intent `2026-11-04-083849-one-lead-会签可见-对-照现在做-建议.md`), confirming the behaviour built in #910 (PR #1154)
+**Plain English:** A countersign request is visible to the finance owner of its legal entity, and also to business administrators once it is escalated to the second level. The employees affected by an organization-command countersign are visible to the organization data administrator and to the finance owners of the legal entities the change touches. Anyone else gets "not found", and the attempt is audited. The person who submitted the command does not see it through this rule.
+**Specification:**
+- Given a countersign for LE1, When the finance owner of LE2 queries it, Then the answer is "not found" and an audit record is written.
+- Given the same countersign escalated to level 2, Then a business administrator sees it.
+**Tests:** with #910.
+**Confidence:** High.
+
+### RULE-507: While a department merge is pending, nothing may put a person back into the department being merged, and chained merges must keep their dates in order
+**Category:** Policy
+**Priority:** P1
+**Source:** user decision 2026-11-04 (intent `2026-11-04-083849-one-lead-合并限制-对-照现在做-建议.md`), confirming the behaviour built in #1098 (PR #1176)
+**Plain English:** While a merge of X into Y is pending, withdrawing a pending personnel command that would return someone to X is refused. A chained merge (X into Y, then Y into Z) is accepted only when the second merge takes effect after the first; otherwise HR does Y into Z first.
+**Specification:**
+- Given a pending merge of X into Y, When HR withdraws a pending command that would move someone back to X, Then the withdrawal is refused.
+- Given X into Y effective on day 10, When Y into Z is requested for day 5, Then it is refused; for day 15, Then it is accepted.
+**Tests:** with #1098.
+**Confidence:** High.
+
+### RULE-508: A department's legal-entity attribution cannot be back-dated; a wrong one waits for void-and-append correction
+**Category:** Policy
+**Priority:** P1
+**Source:** user decision 2026-11-04 (intent `2026-11-04-083850-one-lead-回溯更正-可以-先这样-按计划做.md`), confirming the behaviour built in #910 S1 (PR #1141) and the correction planned in ADR-0073
+**Plain English:** A department's legal entity can only be set from today onwards. A wrong attribution is corrected by voiding it and recording the right one, which comes with the later card planned in ADR-0073; until then it cannot be corrected backwards.
+**Specification:**
+- Given a department, When an attribution with a start date before today is submitted, Then it is refused.
+**Tests:** with #910 S1.
+**Confidence:** High.
 
 **New terms:** none required for the rules above except the following, to be looked up or registered by one-glossary: task card (待办卡片, platform.approval; the existing term Notification may already cover it); content digest (内容摘要, platform.approval, the `approved_hash` value); binding effect (registered as 约束性, platform.approval, counterpart of 建议性 under 效力); process administrator (流程管理员, platform.approval).
