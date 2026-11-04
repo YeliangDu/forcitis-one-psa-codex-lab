@@ -26,8 +26,11 @@ def mark(gh, prs, log=None):
     for n in prs:
         try:
             v = gh.view(n)
-            if v and "queued" not in v["labels"] and label() not in v["labels"] and gh.label(n, label(), True):
-                done.append(n)
+            if v and "queued" not in v["labels"] and label() not in v["labels"]:
+                if gh.label(n, label(), True):
+                    done.append(n)
+                elif log:
+                    log.event("ERROR", n, None, None, "waiting label: add failed")
         except Exception as e:   # best effort
             if log:
                 log.event("ERROR", n, None, None, f"waiting label: {type(e).__name__}: {e}")
@@ -41,6 +44,8 @@ def reconcile(gh, in_queue, log=None):
         for n in sorted(set(gh.labelled(label())) - set(in_queue)):
             if gh.label(n, label(), False):
                 cleaned.append(n)
+            elif log:
+                log.event("ERROR", n, None, None, "waiting label: removal failed")
     except Exception as e:   # best effort
         if log:
             log.event("ERROR", None, None, None, f"waiting label: {type(e).__name__}: {e}")

@@ -948,13 +948,13 @@ def main(argv=None):
             raise SystemExit(f"nothing queued: {e}")
         note_conflicts_at_enqueue(a.prs)
         record_heads(q, a.prs)
-        mq_waiting.mark(Gh(), added)   # no CI run of its own while it waits (ci.yml); `queued` at its turn starts the one that decides
+        mq_waiting.mark(Gh(), added, log)   # no CI run of its own while it waits (ci.yml); `queued` at its turn starts the one that decides
         for n in a.prs:
             if n not in added:
                 print(f"#{n} is already queued" + (f"; now waits for {sorted(q.deps(n))} (a pull request already being processed does not look at it again)" if a.after else " (a pull request being processed stays queued until it is done)"), file=sys.stderr)
     elif a.cmd == "remove":
         busy = q.remove_checked(set(a.prs), a.cancel)
-        mq_waiting.reconcile(Gh(), q.numbers())
+        mq_waiting.reconcile(Gh(), q.numbers(), log)
         for n in set(a.prs) - set(busy):
             q.drop_head(n)
         if busy and not a.cancel:

@@ -27,6 +27,12 @@ def run(mq, d):
     assert mq_waiting.reconcile(gh, [21]) == [20, 22, 23] and gh.prs[21]["labels"] == {WAITING} and gh.prs[23]["labels"] == set()
     gh.labelled = lambda name: (_ for _ in ()).throw(ValueError("gh down"))
     assert mq_waiting.reconcile(gh, []) == [] and gh.prs[21]["labels"] == {WAITING}
+    # a label call that fails (gh answers False, or raises) is logged, never silent
+    class Lines:
+        def __init__(self): self.lines = []
+        def event(self, *a): self.lines.append(a)
+    gh, seen = t.FakeGh(), Lines(); gh.add(70); gh.add(71, labels={WAITING}); gh.label = lambda *a: False
+    assert mq_waiting.mark(gh, [70], seen) == [] and mq_waiting.reconcile(gh, [], seen) == [] and [x[1] for x in seen.lines] == [70, 71], seen.lines
     # every way out of the queue ends without the label; while the pull request is processed (queued on) it stays, so no all-skipped run follows `queued`
     for name, setup in (("merged", lambda gh, n: None), ("head-changed", lambda gh, n: gh.prs[n].update(head="f" * 40, merge="BEHIND", behind=1)),
                         ("conflict", lambda gh, n: gh.prs[n].update(merge="BEHIND", behind=1, update_ok=False))):
