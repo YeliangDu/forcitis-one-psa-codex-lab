@@ -124,6 +124,7 @@ class AccessScopeTest {
         assertThat(scope.permits(row(LE1, DEPT_20, STRANGER))).isFalse();
     }
 
+    // RULE-459
     @Test
     @DisplayName("C1a-09 the legal entity is a dimension of its own: the same unit in another legal entity is outside the scope")
     void legalEntityDimension() {
@@ -133,6 +134,7 @@ class AccessScopeTest {
         assertThat(scope.permits(row(LE2, DEPT_15, STRANGER))).isFalse();
     }
 
+    // RULE-459
     @Test
     @DisplayName("C1a-09 a grant with a project role covers only rows with that project role")
     void projectRoleDimension() {

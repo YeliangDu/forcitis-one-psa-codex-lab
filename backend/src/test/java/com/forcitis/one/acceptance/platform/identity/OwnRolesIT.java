@@ -55,6 +55,7 @@ class OwnRolesIT extends AccountsAcceptanceSupport {
         return JsonPath.read(read.getContentAsString(), "$..roleCodes[*]");
     }
 
+    // RULE-424
     @Test
     @DisplayName("R-1b P2 ADR-0033 第 3 项第 3 条 / I-12：给自己授角色被拒（403 PLATFORM_IDENTITY_OWN_ROLES_FORBIDDEN，两侧都比较用户 ID），角色不变，拒绝记审计且操作人为本人的用户 ID；给他人授角色照常生效")
     void nobodyChangesTheirOwnRoles() throws Exception {
@@ -86,6 +87,7 @@ class OwnRolesIT extends AccountsAcceptanceSupport {
         assertThat(rolesOf(administratorSession, colleague)).contains("synthetic_own_roles");
     }
 
+    // RULE-418
     @Test
     @DisplayName("R-1b P2 G-A1 / ADR-0033 第 6 项第 2 条 / RULING-P3B-4：账号路径只认用户 ID；拿员工的 uuid 当账号路径答 404，不授出任何角色、不写授予审计")
     void theAccountPathTakesTheUserIdNotTheEmployeeId() throws Exception {

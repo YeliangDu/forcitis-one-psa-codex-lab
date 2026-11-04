@@ -1,5 +1,7 @@
 # 自定义函数固定 search_path：盘点、统一规则、追加迁移与守护设计
 
+> 冻结（2026-11-04，#1263）：设计稿，不再更新；固定 search_path 的落地以 `backend/src/main/resources/db/migration/` 中的迁移为准。
+
 - 日期：2026-10-22；作者：one-data；起因：#597 opus 复审 M1（`organization_administration`、`organization_attendance`、`platform_file` 的 plpgsql 函数未固定 `search_path`，同名对象可顶替 `pg_trigger_depth()`、`transaction_timestamp()` 等）；范围：`backend/src/main/resources/db/migration` 下全部自定义函数。
 - 状态：设计稿，opus 首轮安全复审已回（结论：需修改，9 条，均已并入本稿；改后复核由 sonnet 做，无需再走 opus）；复核通过后由 one-coordinator 派实现。
 

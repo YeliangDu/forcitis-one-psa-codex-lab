@@ -6,7 +6,7 @@ import { InboxPage, TaskDetailPage } from '@/modules/approval';
 import { AuthorizationRequestsPage } from '@/modules/identity';
 import { NumberingRulesPage } from '@/modules/numbering';
 import { EmergencyLoginPage, ForbiddenPage, LoginCallbackPage, LoginPage, SessionExpiredPage, useApiGuards } from '@/modules/session';
-import { OrgUnitsPage } from '@/modules/workforce';
+import { EmployeeDetailPage, EmployeeRosterPage, OrgUnitsPage } from '@/modules/workforce';
 import { AppLayout } from './app-layout';
 
 function NotMigratedPage() {
@@ -40,6 +40,8 @@ export function AppRoutes() {
           <Route path="/admin/numbering-rules" element={<NumberingRulesPage />} />
           <Route path="/admin/work-calendars" element={<WorkCalendarPage />} />
           <Route path="/admin/org-units" element={<OrgUnitsPage />} />
+          <Route path="/admin/employees" element={<EmployeeRosterPage />} />
+          <Route path="/admin/employees/:employeeId" element={<EmployeeDetailPage />} />
           <Route path="*" element={<NotMigratedPage />} />
         </Route>
       </Routes>

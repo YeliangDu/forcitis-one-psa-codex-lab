@@ -27,7 +27,7 @@ dig +short @223.5.5.5 one.forcitis.com A # 公共解析也已生效
 ### 选项 A：阿里云 SSL 证书服务（建议）
 1. 证书控制台申请 DV 单域名证书 `one.forcitis.com`，DNS 验证（见上）。
 2. 签发后下载「Nginx」格式（`.pem` 证书链、`.key` 私钥）。私钥只经云助手直接写到服务器，不经本地电脑中转、不发聊天。
-3. 放置：`/etc/nginx/tls/one.forcitis.com.pem`、`/etc/nginx/tls/one.forcitis.com.key`，属主 `root:root`，权限 `600`（`runbooks/C-4-ecs-init.md` E-9）。
+3. 放置：`/etc/nginx/tls/one.forcitis.com.pem`、`/etc/nginx/tls/one.forcitis.com.key`，属主 `root:root`，权限 `600`（`runbooks/ecs-init.md` E-9）。
 4. 到期前 30 天在控制台续签并替换（ARMS / 云监控对证书到期告警，见 C-7）。
 
 ### 选项 B：ACME（Let's Encrypt）自动续期

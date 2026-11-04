@@ -85,6 +85,7 @@ class TimesheetStateMachineTest {
                 .isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(TimesheetError.COST_TIMESHEET_NOT_OWNER));
     }
 
+    // RULE-473
     @Test
     @DisplayName("H-6 D-1a-126 the work date is what the employee entered: it cannot be after today, and a resubmission cannot rewrite it")
     void theWorkDateIsEnteredAndKept() {

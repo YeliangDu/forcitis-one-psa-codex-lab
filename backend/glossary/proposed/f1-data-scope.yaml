@@ -34,3 +34,18 @@ terms:
   note: 登记会话 one-1a-par（#728）
   confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
 # 第 2 块（#729）：待调整权限表用到的两个词。
+- id: permission_adjustment_closed_by_separation
+  zh: 待调整权限因离职已关闭
+  en: PermissionAdjustmentClosedBySeparation
+  snake: permission_adjustment_closed_by_separation
+  kind: domain_event
+  bc: platform.identity
+  scope: domain
+  definition: 当事人离职，其名下仍待处理的待调整权限条目随离职命令关闭，授权不另改动
+  standard_ref:
+  - docs/architecture/events/identity.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 聚合 PermissionAdjustment（#1244 提议，one-design 裁定评论 6631627109，待用语确认）

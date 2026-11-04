@@ -487,3 +487,63 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
+- id: employee_name
+  zh: 姓名
+  en: EmployeeName
+  snake: employee_name
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 员工在名册和详情里显示的名字（来自组织人事的显示名）
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1280)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 员工名册与详情页用语（#1280）
+- id: hire_date
+  zh: 入职日期
+  en: HireDate
+  snake: hire_date
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 员工的入职日期，名册和详情只读展示
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1280)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 员工名册与详情页用语（#1280）
+- id: primary_assignment
+  zh: 主岗
+  en: PrimaryAssignment
+  snake: primary_assignment
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 员工的主任职（任职类型取值 PRIMARY），一个员工同一时点只有一个
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1280)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 员工名册与详情页用语（#1280）
+- id: concurrent_assignment
+  zh: 兼岗
+  en: ConcurrentAssignment
+  snake: concurrent_assignment
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 员工在主岗之外的兼任任职（任职类型取值 CONCURRENT）
+  standard_ref:
+  - 用户 2026-11-04 「照建议」 (#1280)
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 员工名册与详情页用语（#1280）

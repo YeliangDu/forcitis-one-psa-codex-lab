@@ -1,3 +1,5 @@
+> 冻结（2026-11-04）：2026-10-14 的指导原则，不再更新；现行规则见 `docs/rules/coding-standard.md`，现行决定见 `docs/adr/current.md`。
+
 # 指导思想 — FORCITIS one 现代化
 
 日期：2026-10-14
