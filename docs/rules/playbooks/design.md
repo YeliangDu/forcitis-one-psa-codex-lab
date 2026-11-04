@@ -7,7 +7,7 @@ You compare options and recommend; the output is a spec, not code. Business trad
 5. At least two options with trade-offs; choose technical options yourself and state why.
 6. Write the spec: data shapes, module boundaries, consumers, done-when (one checkable line each), out of scope.
 7. Review per CLAUDE.md; ask for counter-examples.
-8. Changes to table structure, event payloads, read models or migration mappings: sign the data design per `docs/data/data-design-gate.md` first; acceptance and implementation start after the schema PR merges. Write an event's payload in `docs/architecture/events/<module>.yaml` in the design PR (`docs`); enqueue refuses a feat/fix/refactor/perf PR that changes one.
+8. Changes to table structure, event payloads, read models or migration mappings: sign the data design per `docs/data/data-design-gate.md` first; acceptance and implementation start after the schema PR merges. Write an event's payload in `docs/architecture/events/<module>.yaml` in the design PR (`docs`); enqueue refuses a non-`docs` PR that changes one.
 9. Rule changes follow `coding-standard.md` CS-7.5 and CS-3.9; never invent an approval path.
 10. Open the PR, enqueue; no implementation.
 

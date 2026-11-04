@@ -43,7 +43,7 @@ def run(mq, d):
     origin, author, runner = (os.path.join(base, n) for n in ("o.git", "author", "runner"))
     g(base, "init", "-q", "--bare", "-b", "main", origin); g(base, "clone", "-q", origin, author)
     os.makedirs(os.path.join(author, "docs/architecture/events"))
-    open(os.path.join(author, FRAG), "w").write(fragment()); [open(os.path.join(author, "docs/architecture/events", f), "w").write(agg(1)) for f in ("asyncapi.yaml", "_x.yaml")]
+    open(os.path.join(author, FRAG), "w").write(fragment()); [open(os.path.join(author, p), "w").write(agg(1)) for p in ("docs/architecture/events/asyncapi.yaml", "docs/architecture/events/_x.yaml")]
     g(author, "add", "-A"); g(author, "commit", "-q", "-m", "base"); g(author, "push", "-q", "origin", "main")
     g(base, "clone", "-q", origin, runner)
     heads = {
@@ -71,10 +71,10 @@ def run(mq, d):
     open(os.path.join(author, FRAG), "w").write(fragment(b_fields="id,later")); g(author, "commit", "-q", "-am", "main moves"); g(author, "push", "-q", "origin", "main")
     with contextlib.redirect_stderr(io.StringIO()):
         assert mq_event_payload.changed(runner, 2, heads[2]) == [], "the merge base, not main's tip, is the base"
-    assert [mq_event_payload.impl_type(t) for t in ("feat(x): a", "fix: b", "refactor(y): c", "perf: d", "docs(z): e", "design: f", "ci(m): g", "plain")] == ["feat", "fix", "refactor", "perf", None, None, None, None]
+    assert [mq_event_payload.title_type(t) for t in ("feat(x): a", "docs(z): e", "ci(m): g", "plain", None)] == ["feat", mq_event_payload.DESIGN_TYPE, "ci", "", ""]
 
-    class Probe:   # through the CLI: an impl PR that changes a payload is refused, the same change as docs is not
-        titles = {1: "feat(x): 变更载荷（#1）", 2: "refactor(x): 改说明（#2）", 5: "fix(x): 改载荷（#5）", 7: "docs(x): 设计签字（#7）"}
+    class Probe:   # through the CLI: a non-docs PR (feat, fix, ci: an allowlist) that changes a payload is refused, the same change as docs is not
+        titles = {1: "feat(x): 变更载荷（#1）", 2: "refactor(x): 改说明（#2）", 5: "fix(x): 改载荷（#5）", 7: "docs(x): 设计签字（#7）", 10: "ci(x): 改载荷（#10）"}
         def view(self, n):
             return {"state": "OPEN", "merge": "CLEAN", "labels": [], "branch": "b", "head": heads.get(n, heads[1]), "title": self.titles[n], "body": f"Closes #{n}\n"}
     pr(author, 7, {FRAG: fragment(a_fields="id,design")})   # same file, fetched by the runner under its own number
@@ -85,10 +85,10 @@ def run(mq, d):
     try:
         try:
             with contextlib.redirect_stderr(io.StringIO()):
-                mq.main(["--queue", queue, "enqueue", "2", "1", "5"])
-            raise AssertionError("enqueue of an implementation pull request that changes a payload must exit")
+                mq.main(["--queue", queue, "enqueue", "2", "1", "5", "10"])
+            raise AssertionError("enqueue of a non-docs pull request that changes a payload must exit")
         except SystemExit as e:
-            assert "nothing queued" in str(e) and "#1 (feat)" in str(e) and "#5 (fix)" in str(e) and "#2" not in str(e).split("\n", 1)[1], str(e)
+            assert "nothing queued" in str(e) and "#1 (feat)" in str(e) and "#5 (fix)" in str(e) and "#10 (ci)" in str(e) and "#2" not in str(e).split("\n", 1)[1], str(e)
         assert not os.path.exists(queue) or mq.Queue(queue).numbers() == [], "refusing one refuses the whole call"
         with contextlib.redirect_stderr(io.StringIO()):
             mq.main(["--queue", queue, "enqueue", "2", "7"])   # a description change by an impl PR, and a design PR that changes a payload

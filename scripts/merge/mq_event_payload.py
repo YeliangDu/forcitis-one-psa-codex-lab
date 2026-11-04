@@ -1,6 +1,6 @@
-"""The event payload check at enqueue (#1327): an implementation pull request (title type feat, fix, refactor or perf) that changes the payload of a message that already
+"""The event payload check at enqueue (#1327): a pull request whose title type is not docs (the design type) that changes the payload of a message that already
 exists in docs/architecture/events/<module>.yaml is refused before it is queued. The payload is signed at design (playbooks/design.md); the implementation ships what was signed
-(EventCatalogueTest compares catalogue and code), so a change of an existing payload goes back to design. A new message, a changed message description, a deleted message, or any other pull request type passes. Messages are matched by name across all fragments, so moving one to another fragment or renaming a fragment does not hide a change.
+(EventCatalogueTest compares catalogue and code), so a change of an existing payload goes back to design. A new message, a changed message description, a deleted message, passes; so does any pull request of the docs type. Every other title type is refused (an allowlist, fail closed). Messages are matched by name across all fragments, so moving one to another fragment or renaming a fragment does not hide a change.
 The base is the merge base with origin/main, so what main changed after the branch left is not counted. Fails open, said on stderr, when the head cannot be fetched or read."""
 import os
 import subprocess
@@ -8,14 +8,13 @@ import sys
 
 from mq_github import sh
 
-IMPL_TYPES = {"feat", "fix", "refactor", "perf"}
+DESIGN_TYPE = "docs"   # the only title type allowed to change a signed payload
 EVENTS = "docs/architecture/events/"
 
 
-def impl_type(title):
-    """The title's type word (`feat(x): …` -> feat), or None."""
-    head = title.split(":", 1)[0].split("(", 1)[0].strip() if isinstance(title, str) and ":" in title else ""
-    return head if head in IMPL_TYPES else None
+def title_type(title):
+    """The title's type word (`feat(x): …` -> feat); '' when there is none."""
+    return title.split(":", 1)[0].split("(", 1)[0].strip() if isinstance(title, str) and ":" in title else ""
 
 
 def messages(root, rev):
@@ -52,14 +51,14 @@ def changed(root, number, head):
 
 
 def enforce(root, gh, numbers):
-    """Exit with nothing queued when an implementation pull request changes the payload of an existing event; a pull request gh cannot read is let through, said out loud."""
+    """Exit with nothing queued when a pull request that is not of the docs type changes the payload of an existing event; a pull request gh cannot read is let through, said out loud."""
     refused = []
     for n in numbers:
         v = gh.view(n)
         if not (v and v["state"] == "OPEN"):
             print(f"mq: event payload check not run for #{n}: gh cannot say its head; queued without the check", file=sys.stderr)
-        elif impl_type(v["title"]) and (names := changed(root, n, v["head"])):
-            refused.append(f"#{n} ({impl_type(v['title'])}): " + ", ".join(names))
+        elif title_type(v["title"]) != DESIGN_TYPE and (names := changed(root, n, v["head"])):
+            refused.append(f"#{n} ({title_type(v['title']) or 'no type'}): " + ", ".join(names))
     if refused:
-        raise SystemExit("nothing queued: an implementation pull request must not change the payload of an existing event; the payload is signed at design. Send the change back to design "
+        raise SystemExit("nothing queued: only a docs (design) pull request may change the payload of an existing event; the payload is signed at design. Send the change back to design "
                          "(a design PR edits docs/architecture/events/<module>.yaml), or retitle it if it is a design PR.\n" + "\n".join(refused))
