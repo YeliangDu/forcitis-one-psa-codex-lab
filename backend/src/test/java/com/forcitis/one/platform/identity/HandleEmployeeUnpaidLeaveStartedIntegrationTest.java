@@ -13,11 +13,13 @@ import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.organization.attendance.api.WorkCalendar;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
+import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.organization.workforce.events.EmployeeUnpaidLeaveStarted;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,6 +46,11 @@ class HandleEmployeeUnpaidLeaveStartedIntegrationTest extends IdentityIntegratio
     @BeforeEach
     void theDeadlineIsFixed() {
         when(calendar.endOfWorkdayAfter(any(), anyInt(), any())).thenReturn(Instant.now().plus(Duration.ofDays(7)));
+    }
+
+    @AfterEach
+    void theReviewsGoBeforeTheAccountsDo() {
+        jdbc.sql("delete from platform_identity.permission_adjustments").update();
     }
 
     private EmployeeUnpaidLeaveStarted started(EmployeeId employee, PersonnelCommandId command) {
@@ -94,6 +101,23 @@ class HandleEmployeeUnpaidLeaveStartedIntegrationTest extends IdentityIntegratio
         deliver(started(TestAccounts.employee(7203), new PersonnelCommandId(UUID.randomUUID())));
 
         assertThat(count(REVIEWS)).isZero();
+    }
+
+    @Test
+    @DisplayName("a holder of an ADR-0009 sensitive permission through an ordinary custom role gets one review; an ordinary custom role gets none")
+    void aSensitivePermissionHolderGetsOneReview() {
+        TestRoles.insertCustom(jdbc, "audit_exporter", "audit exporter", "ENABLED", "ALL", Permission.Codes.PLATFORM_AUDIT_ENTRY_EXPORT);
+        TestRoles.insertCustom(jdbc, "calendar_reader", "calendar reader", "ENABLED", "ALL", Permission.Codes.ORGANIZATION_ATTENDANCE_WORK_CALENDAR_READ);
+        knownEmployee(7204, EmploymentStatus.EMPLOYED);
+        createAccount(7204, "audit_exporter");
+        knownEmployee(7205, EmploymentStatus.EMPLOYED);
+        createAccount(7205, "calendar_reader");
+
+        deliver(started(TestAccounts.employee(7204), new PersonnelCommandId(UUID.randomUUID())));
+        deliver(started(TestAccounts.employee(7205), new PersonnelCommandId(UUID.randomUUID())));
+
+        assertThat(count(REVIEWS + " and user_id = '" + TestAccounts.account(7204).value() + "'")).isEqualTo(1);
+        assertThat(count(REVIEWS)).isEqualTo(1);
     }
 
     @Test
