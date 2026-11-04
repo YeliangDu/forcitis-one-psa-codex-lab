@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -93,5 +94,16 @@ class HandleEmployeeUnpaidLeaveStartedIntegrationTest extends IdentityIntegratio
         deliver(started(TestAccounts.employee(7203), new PersonnelCommandId(UUID.randomUUID())));
 
         assertThat(count(REVIEWS)).isZero();
+    }
+
+    @Test
+    @DisplayName("the table refuses a leave-start review that names a role instead of a person")
+    void aLeaveReviewAboutARoleIsRefused() {
+        assertThatThrownBy(() -> jdbc.sql("""
+                insert into platform_identity.permission_adjustments (permission_adjustment_id, kind, origin_kind, status, role_id, org_unit_id,
+                    trigger_personnel_command_id, escalation_due_at, created_at, updated_at)
+                select uuidv7(), 'SENSITIVE_ROLE_REVIEW', 'UNPAID_LEAVE_START', 'OPEN', role_id, uuidv7(), uuidv7(), now() + interval '1 day', now(), now()
+                  from platform_identity.roles limit 1""").update())
+                .hasMessageContaining("ck_permission_adjustments_subject");
     }
 }
