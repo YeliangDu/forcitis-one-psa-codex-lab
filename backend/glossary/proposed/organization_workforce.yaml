@@ -770,7 +770,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: 用户 2026-11-04 批准（one-lead 转达，#1296）
   note: 人事命令页面用语（#1296）
 - id: last_working_day
   zh: 最后工作日
@@ -785,7 +786,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: 用户 2026-11-04 批准（one-lead 转达，#1296）
   note: 人事命令页面用语（#1296）
 - id: employment_phase
   zh: 任职阶段
@@ -800,7 +802,8 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: 用户 2026-11-04 批准（one-lead 转达，#1296）
   note: 人事命令页面用语（#1296）
 - id: separation_hold_status
   zh: 放行状态
@@ -815,5 +818,6 @@ terms:
   confidence: medium
   aliases: []
   forbidden: []
-  status: proposed
+  status: approved
+  confirmed: 用户 2026-11-04 批准（one-lead 转达，#1296）
   note: 人事命令页面用语（#1296）
