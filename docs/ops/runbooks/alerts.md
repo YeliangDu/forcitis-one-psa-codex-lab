@@ -2,7 +2,7 @@
 
 依据：`docs/architecture/proposals/phase1-a-platform-conventions.md` §4（告警表与「按级别分通道」）、INFRA_RUNBOOK E-13、§9。时点：出口前（出口条件 D-6）。性质：控制台配置属对外变更，执行前须用户确认；接收人见 A-5。
 
-规则文件：`files/alert-rules.yaml`（Prometheus 规则格式，导入 ARMS Prometheus 告警）。
+规则文件：`tools/ops/ecs/files/alert-rules.yaml`（Prometheus 规则格式，导入 ARMS Prometheus 告警）。
 
 ## 规则定义
 
@@ -23,7 +23,7 @@ Let's Encrypt 已不发到期提醒邮件，ACME 账号也没填邮箱（session
 | 项 | 内容 |
 |---|---|
 | 脚本 | `tools/ops/ecs/scripts/one_cert_check.sh` → ECS `/usr/local/sbin/one_cert_check.sh`（root 0755） |
-| 调度 | `files/one-cert-check.service`、`files/one-cert-check.timer` → `/etc/systemd/system/`；每日 09:10（随机延迟 10 分钟，`Persistent=true`） |
+| 调度 | `tools/ops/ecs/files/one-cert-check.service`、`tools/ops/ecs/files/one-cert-check.timer` → `/etc/systemd/system/`；每日 09:10（随机延迟 10 分钟，`Persistent=true`） |
 | 检查 | ① 续期后的证书文件剩余天数；② nginx 实际下发的证书剩余天数（经 127.0.0.1:443，防止续期成功但没 reload）；③ 两者不一致；④ `certbot-renew.service` 上次结果；⑤ `certbot-renew.timer` 是否启用 |
 | 级别 | 剩余 < 20 天 → P2；< 7 天或读不到证书 → P1；③④⑤ → P2。阈值可用环境变量 `ONE_CERT_WARN_DAYS` / `ONE_CERT_CRIT_DAYS` 调 |
 | 输出 | 一行 JSON 写 journal（标签 `one-cert-check`）与 `/data/forcitis-one/logs/ops/cert-check.json`；告警行 `message` 以 `ALERT P1` / `ALERT P2` 开头，可被下面的 SLS 兜底规则捕获（Logtail 采集路径加上 `logs/ops/*.json`） |
@@ -49,7 +49,7 @@ systemctl start one-cert-check.service; journalctl -u one-cert-check.service -n 
 
 | 项 | 内容 |
 |---|---|
-| 脚本 | `tools/ops/ecs/scripts/one_clamav_check.sh` → ECS `/usr/local/sbin/one_clamav_check.sh`（root 0755）；`files/one-clamav-check.service`、`files/one-clamav-check.timer` → `/etc/systemd/system/`；开机 2 分钟后起、之后每 5 分钟 |
+| 脚本 | `tools/ops/ecs/scripts/one_clamav_check.sh` → ECS `/usr/local/sbin/one_clamav_check.sh`（root 0755）；`tools/ops/ecs/files/one-clamav-check.service`、`tools/ops/ecs/files/one-clamav-check.timer` → `/etc/systemd/system/`；开机 2 分钟后起、之后每 5 分钟 |
 | 检查 | ① clamd 经 socket 的 PING；② clamd 回报的病毒库日期（库龄）；③ `forcitis-one-freshclam` 是否运行 |
 | 级别 | clamd 不应答（检测不可用，上传一律拒收）→ P1；库龄 > 48 小时（`ONE_CLAMAV_MAX_AGE_HOURS`）、读不到库日期、freshclam 未运行 → P2 |
 | 输出 | 一行 JSON 写 journal（标签 `one-clamav-check`）与 `/data/forcitis-one/logs/ops/clamav-check.json`；告警行以 `ALERT P1` / `ALERT P2` 开头，被 SLS 兜底规则捕获 |

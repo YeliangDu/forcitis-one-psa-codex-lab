@@ -1,6 +1,6 @@
 # 已建表数据设计审查：修复卡草稿索引（第二版）
 
-- 起草：one-data 起草助手，2026-10-16；第二版并入用户 2026-10-16 的六项决定、统一分级（阻断 0）与 `SCAN_SUPPLEMENT.md` 补入；状态：草稿，待 one-data 终审后交 one-coordinator 派工。
+- 起草：one-data 起草助手，2026-10-16；第二版并入用户 2026-10-16 的六项决定、统一分级（阻断 0）与 `SCAN_SUPPLEMENT.md` 补入；状态：冻结（2026-11-04，#1263），各卡状态见各卡首部。
 - 输入：`docs/data/table-reviews/` 四份分报告、`OPUS_VERIFY.md`、`SCAN_SUPPLEMENT.md`（下称 SS，全量机械扫描与补审，行号取 `origin/main` a27bf877）、`docs/data/baseline-table-review.md`（§3 高、§7 待用户决定）。级别以统一分级为准（`DATA_DESIGN_GATE.md` §4a、`BASELINE_TABLE_REVIEW.md` §1、§3）：**阻断 0**；被 R-1b P5 解决、并入 TS-UNIQ、归 W2 或 ADR-0039 / ADR-0043 实施 PR 的项不起条目，只在各卡「不含」一节列出归属。
 - 通用约定：迁移基线仍在开放期（ADR-0038），直接改基线、不追加迁移，每张卡附预期表结构 diff；所有卡的基线以 R-1b P5 合并后的 main 为准，卡内行号取自审查时的 main，实施前逐条重核；「待核」项由实施者先核实再改。
 - 排期：**修复卡排在 dev 部署之后**，本身不是闸门（用户「同意，不挡 dev」，`BASELINE_TABLE_REVIEW.md` §3 末段）。

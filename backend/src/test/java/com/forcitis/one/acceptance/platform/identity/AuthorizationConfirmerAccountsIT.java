@@ -78,7 +78,7 @@ class AuthorizationConfirmerAccountsIT extends AccountsAcceptanceSupport {
 
     // RULE-419
     @Test
-    @DisplayName("P2-M2 I-12 后半句（真实账号、生产会话，按用户 ID 比较）：给角色加敏感权限待第二人确认；申请人与该角色的持有人都不能确认（403 PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED），第三人可以")
+    @DisplayName("P2-M2 I-12 后半句（真实账号、生产会话，按用户 ID 比较）：给角色加敏感权限待第二人确认；申请人与该角色的持有人都不能确认（403 PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED）；先申请后得角色时第三人确认被接受，但 ADR-0032 守护规则第 3 项：确认时已有持有人则申请作废（VOIDED），角色权限不变")
     void aHolderOfTheChangedRoleCannotConfirm() throws Exception {
         UUID unit = newOrgUnitId();
         orgUnit(unit, null, null);
@@ -91,8 +91,6 @@ class AuthorizationConfirmerAccountsIT extends AccountsAcceptanceSupport {
                         + Permission.Codes.PLATFORM_APPROVAL_TASK_READ + "\"]}")).andReturn().getResponse();
         assertThat(created.getStatus()).as(created.getContentAsString()).isEqualTo(201);
         String roleId = JsonPath.read(created.getContentAsString(), "$.roleId");
-        grantByOperations(holderEmployee, "synthetic_task_reader");
-        SignedIn holder = inAdministratorMode(holderEmployee);
         SignedIn third = inAdministratorMode(thirdEmployee);
         MockHttpServletResponse role = mvc.perform(get(ROLES + "/" + roleId).with(session(requester))).andReturn().getResponse();
         assertThat(role.getStatus()).as(role.getContentAsString()).isEqualTo(200);
@@ -102,10 +100,32 @@ class AuthorizationConfirmerAccountsIT extends AccountsAcceptanceSupport {
                 .content("{\"name\":\"Synthetic task reader\",\"enabled\":true,\"permissionCodes\":[\"" + Permission.Codes.PLATFORM_APPROVAL_TASK_READ + "\",\""
                         + Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE + "\"]}")).andReturn().getResponse());
 
+        // ADR-0032 decision 1 item 3: widening a role that has holders is refused at the request (409), so the request is filed while the role has none
+        grantByOperations(holderEmployee, "synthetic_task_reader");
+        SignedIn holder = inAdministratorMode(holderEmployee);
+
         refusedAsConfirmer(decide(requester, requestId), "the requester");
         refusedAsConfirmer(decide(holder, requestId), "a holder of the role");
+        // ADR-0032 section "需同步修改的守护规则" item 3: a request for a role without holders is voided at confirmation when a holder has appeared
         MockHttpServletResponse byThird = decide(third, requestId);
         assertThat(byThird.getStatus()).as(byThird.getContentAsString()).isEqualTo(204);
+        assertThat(Awaitility.await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(100))
+                .until(() -> requestStatusOf(requestId), status -> !status.equals("PENDING") && !status.equals("CONFIRMED")))
+                .as("the confirmation is accepted as a decision, then the re-check finds a holder").isEqualTo("VOIDED");
+        MockHttpServletResponse after = mvc.perform(get(ROLES + "/" + roleId).with(session(requester))).andReturn().getResponse();
+        assertThat((List<String>) JsonPath.read(after.getContentAsString(), "$.permissionCodes"))
+                .containsExactly(Permission.Codes.PLATFORM_APPROVAL_TASK_READ);
+    }
+
+    private String requestStatusOf(String requestId) throws java.sql.SQLException {
+        try (java.sql.Connection identity = schemaConnection("platform_identity");
+             java.sql.PreparedStatement read = identity.prepareStatement("select request_status from authorization_requests where request_id = ?::uuid")) {
+            read.setString(1, requestId);
+            try (java.sql.ResultSet rs = read.executeQuery()) {
+                assertThat(rs.next()).isTrue();
+                return rs.getString(1);
+            }
+        }
     }
 
     // RULE-419
