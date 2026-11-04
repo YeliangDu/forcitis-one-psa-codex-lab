@@ -84,7 +84,8 @@ def problems(root, files=None, known=None):
             p = os.path.dirname(p)
     found, seen = [], set()
     candidates = sorted({(rel, path) for rel, _, path in cited(root, files) if path not in present})
-    ignored = set(git(root, "check-ignore", "--stdin", stdin="\n".join(p for _, p in candidates)).splitlines()) if candidates else set()
+    # a trailing slash makes git treat the path as a directory even when it is not on disk (a clean checkout has no build output), so `target/` matches
+    ignored = {p.rstrip("/") for p in git(root, "check-ignore", "--stdin", stdin="\n".join(q for _, p in candidates for q in (p, p + "/"))).splitlines()} if candidates else set()
     for rel, path in candidates:
         if path in ignored:
             continue
@@ -123,6 +124,10 @@ def self_test():
         write("docs/a.md", "see `docs/missing.md`.\n")
         assert hit() == ["CP-1"], "a missing path"
         assert "which is not on the tree" in problems(tmp, known={})[0] and "fix:" in problems(tmp, known={})[0], "a failure says how to fix it"
+        write(".gitignore", "build/\nout/\n")
+        write("docs/a.md", "`build/x.txt` `out/y/z.md`\n")
+        assert hit() == [], "a directory git ignores is not read, also when it is not on disk (a clean checkout)"
+        write("docs/a.md", "see `docs/missing.md`.\n")
         write("docs/a.md", "see `docs/dir/gone/` and `docs/real.md`.\n")
         assert hit() == ["CP-1"], "a missing directory"
         for ok in ("`docs/x-*.md` `docs/real-` `docs/<id>.md`", "`../scripts/missing.sh` `https://example.com/docs/missing.md` `runbooks/missing.md` `other/missing.md`",
