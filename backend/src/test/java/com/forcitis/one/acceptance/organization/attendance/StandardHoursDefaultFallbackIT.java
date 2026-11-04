@@ -85,7 +85,7 @@ class StandardHoursDefaultFallbackIT extends AcceptanceSupport {
     private StandardHours standardHours;
 
     @BeforeEach
-    void useShanghaiTodayAndMaintain2026Calendar() throws Exception {
+    void useShanghaiTodayAndMaintainTheAnchorYearCalendar() throws Exception {
         setToday(TODAY);
         MockHttpServletResponse found = mvc.perform(get(CALENDAR).with(MAINTAINER)).andReturn().getResponse();
         if (found.getStatus() != 200) {
@@ -96,7 +96,7 @@ class StandardHoursDefaultFallbackIT extends AcceptanceSupport {
             MockHttpServletResponse maintained = mvc.perform(put(CALENDAR).header("If-Match", "\"0\"")
                     .with(MAINTAINER).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                     .content(JSON.writeValueAsString(body))).andReturn().getResponse();
-            assertStatus(maintained, 200, "2026 calendar is maintained once through HTTP");
+            assertStatus(maintained, 200, YEAR + " calendar is maintained once through HTTP");
         }
     }
 

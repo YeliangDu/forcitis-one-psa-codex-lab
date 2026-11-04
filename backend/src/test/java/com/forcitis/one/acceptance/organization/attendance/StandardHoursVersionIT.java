@@ -301,7 +301,7 @@ class StandardHoursVersionIT extends AcceptanceSupport {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("nonFutureDates")
-    @DisplayName("今天或过去开始的最新生效版不能作废，返回422及NOT_VOIDABLE且数据不变")
+    @DisplayName("今天开始的最新生效版不能作废，返回422及NOT_VOIDABLE且数据不变")
     void todayAndPastVersionsCannotBeVoided(LocalDate effectiveDate) throws Exception {
         UUID scope = newScope();
         String id = publish(publication(scope, effectiveDate), 1);
