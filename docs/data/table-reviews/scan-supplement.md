@@ -1,5 +1,7 @@
 # 已建成表审查补充：全量机械扫描、补审、级别调整
 
+> 冻结（2026-11-04，#1263）：表审查记录，已完成，不再更新。
+
 - 日期：2026-10-16 · 会话：one-data 助手 · 范围：`backend/src/main/resources/db/migration/*/` 全部基线 SQL，**读自 `origin/main`（a27bf877）**，不是本分支（本分支落后：main 已改 workforce、audit、identity 三份基线，门禁清单与 `DATA_CONTEXT.md` 也更新）。因此下文「文件:行」是 main 版行号，与四份分报告里的旧行号可能差几行。
 - 扫描对象：10 个 schema 去掉框架表 `event_publication*`、`sessions*`、`scheduler_locks` 后的 44 张表、486 列；框架表不计。门禁清单用 main 的 `DATA_DESIGN_GATE.md`（已核含 B0、B3a、O10a、O15、O16；O16 在第 108 行）。
 - 方法：脚本按括号配平解析每个 `CREATE TABLE`（列、表级约束、`COMMENT ON COLUMN`、`ALTER TABLE`），再逐项判定；每条「没有某约束」的结论另用 `grep -n CHECK` 对全部基线 SQL 复核（例：`released_at`、`held_reason`、`failure_reason`、`finished_at`、`revoked_at`、`separated_at`、`last_login_address`、`result_reason`、`record_reason`、`on_behalf_of_id`、`sent_at`、`response_number`、`overdue_at`、`escalated_at`、`issue_kind`、`submitted_date` 没有出现在任何 CHECK 行；`decided_by` 只出现在 `ck_source_references_*` 与 `ck_authorization_requests_two_people`）。拿不准的写「待核」。

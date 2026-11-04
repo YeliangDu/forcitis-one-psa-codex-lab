@@ -1,5 +1,7 @@
 # M-29 分母改净服务收入：口径映射（配 m29_queries.sql；草稿，未执行取证）
 
+> 冻结（2026-11-04，#1263）：基线口径草稿，不再更新。
+
 依据：用户 2026-10-22（KPI-Q03、KPI-Q02）；METRIC_BASELINE_DRAFT.md M-08、M-24～M-29；词表 net_service_revenue / pass_through_cost / contribution_margin（FD-41）。老系统证据均为源码与迁移脚本，未对生产核对（Q01 先核对）。
 
 ## 一、新旧口径

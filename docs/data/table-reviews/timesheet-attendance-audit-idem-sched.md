@@ -1,5 +1,7 @@
 # 数据设计审查：工时、考勤、审计、幂等、调度（基线表）
 
+> 冻结（2026-11-04，#1263）：表审查记录，已完成，不再更新。
+
 - 审查：one-data 子代理，2026-10-16；对象：`cost_timesheet`（2 表）、`organization_attendance`（2 表）、`platform_audit`（2 表）、`platform_idempotency`（1 表）、`platform_scheduling`（1 表），共 8 张表。
 - 标尺：门禁清单取 `origin/claude/one-data-gate-v2` 的版本（含 B0、B3a、O15、O16、附录 C；当前工作树的 `DATA_DESIGN_GATE.md` 是旧版）。其余依据见各条。
 - 方法：只读迁移、注册表、分级文件、事件目录、信息图与聚合草稿、规则卡和 Java 源码，用 grep 核对；未起容器、未跑 `pg_dump`，表结构均按基线 SQL 推算。
