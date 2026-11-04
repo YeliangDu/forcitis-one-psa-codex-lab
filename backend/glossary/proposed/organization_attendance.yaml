@@ -128,3 +128,31 @@ terms:
   status: approved
   note: ''
   confirmed: one-design 2026-11-02 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
+- id: daterange
+  zh: 日期区间
+  en: Daterange
+  snake: daterange
+  kind: value_object
+  bc: organization.attendance
+  scope: domain
+  definition: PostgreSQL 的日期区间类型；只用在版本表的防重叠排除约束里（[生效日期, 失效日期)），不进入领域代码
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1310 表结构 PR 新增，待 one-design 确认'
+- id: override
+  zh: 覆盖
+  en: Override
+  snake: override
+  kind: value_object
+  bc: organization.attendance
+  scope: domain
+  definition: 标准工时版本里对某一天的标准分钟数的单独指定（例如半天调休），只对这一天生效
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1310 表结构 PR 新增，待 one-design 确认'
