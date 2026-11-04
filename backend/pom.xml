@@ -115,6 +115,7 @@
           </compilerArgs></configuration></execution>
         </executions>
       </plugin>
+      <!-- Mockito loads as a java agent (argLine below, mockito.agent.jar in properties): a sandboxed JVM refuses its self-attach -->
       <!-- *IT classes (Testcontainers) run in the integration-test phase; surefire only runs *Test (Boot parent) - added by platform.approval -->
       <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-failsafe-plugin</artifactId><configuration><excludes><exclude>${legacy.it.acceptance}</exclude><exclude>**/*MssqlIT.java</exclude><exclude>**/*$*</exclude></excludes><reportsDirectory>${integration.reports}</reportsDirectory><summaryFile>${integration.reports}/failsafe-summary.xml</summaryFile><forkCount>${it.forks}</forkCount><reuseForks>true</reuseForks><argLine>@{argLine} -javaagent:${mockito.agent.jar} ${test.jvm}</argLine><forkedProcessExitTimeoutInSeconds>180</forkedProcessExitTimeoutInSeconds><forkedProcessTimeoutInSeconds>${test.fork.timeout}</forkedProcessTimeoutInSeconds></configuration></plugin>
       <!-- At JVM exit the cached Spring contexts close after Testcontainers stopped the database; each waits for its connection timeout, so a fork with many contexts needs more than the default 30 s to leave. -->

@@ -11,3 +11,4 @@ ScalarIdContractTest | generated schema.ts is missing (needs Docker)
 EmployeeIdContractTest | generated schema.ts is missing (needs Docker)
 ApprovalIdContractTest | generated schema.ts is missing (needs Docker)
 AuditIdContractTest | generated schema.ts is missing (needs Docker)
+LegacyShapeTest | generated frontend/packages/api/openapi.json is missing (untracked, needs Docker); 2 errors
