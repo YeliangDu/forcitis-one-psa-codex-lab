@@ -1,4 +1,4 @@
-# Data scope business rules — RULE-387, RULE-393..RULE-417
+# Data scope business rules — RULE-387, RULE-393..RULE-417, RULE-505
 
 Scope: Phase 1a `platform.identity`, data scope of roles whose access scope is `CUSTOM_ORG_UNITS` (ADR-0026 「1a 交付范围」, ADR-0032 第 4–5 项, ADR-0034 第 5 项). These are rules of FORCITIS one itself; the old system had no custom-department scope that survived an org change. Origin: F-1 AEC practice check item 4 (`phase1a/cards/F-1-aec-check.md`, one-1a-par), handed to one-rules by one-coordinator on 2026-10-15; the gap was that a revoked or merged department silently narrowed the scope.
 
@@ -10,6 +10,7 @@ Scope: Phase 1a `platform.identity`, data scope of roles whose access scope is `
 | RULE-395 | identity | Sensitive roles are suspended during leave or secondment of more than 30 days and restored on return | P1 | No |
 | RULE-396 | identity | From 1b, a quote is visible by department scope or to its owner and team members | P1 | No |
 | RULE-417 | identity | A transfer scope review whose new department has no head goes to the organization data administrator, who only forwards it; no business owner field, no expiry | P1 | No |
+| RULE-505 | identity | An overdue notice that cannot reach everyone goes to whoever can be reached and logs one alert; nothing is held back or rerouted | P1 | No |
 
 ### RULE-387: A revoked or merged department in a custom scope raises an alert and a scope review; the reference is kept, never replaced
 **Category:** Policy
@@ -40,7 +41,7 @@ Scope: Phase 1a `platform.identity`, data scope of roles whose access scope is `
 **Category:** Policy
 **Priority:** P0
 **Source:** user decision F1-04, 2026-10-15, confirming ADR-0032 0032-Q2 and Q3
-**Plain English:** A permission-adjustment item still open after 5 workdays is escalated to the holders of `account-role:update`; nothing is granted or revoked by the deadline, so a wrong org edit from A8 cannot strip a key role. This is also the default of common access-review products (SailPoint, Microsoft Entra keep access when reviewers do not answer).
+**Plain English:** A permission-adjustment item still open after 5 workdays is escalated to every enabled super administrator who is at work, not on leave and not the person concerned (intent `2026-11-03-205951-one-lead-#1151-逾期升级通知-收件人.md`); nothing is granted or revoked by the deadline, so a wrong org edit from A8 cannot strip a key role. This is also the default of common access-review products (SailPoint, Microsoft Entra keep access when reviewers do not answer).
 **Specification:**
 - Given an item open for more than 5 workdays, When the deadline job runs, Then the item is escalated once and every grant stays as it was.
 **Tests:** F-1 acceptance (one-1a-par).
@@ -77,4 +78,15 @@ Scope: Phase 1a `platform.identity`, data scope of roles whose access scope is `
 - Given a head appointed afterwards, Then the entry stays with the administrator.
 - Given the entry is kept, Then no business owner and no expiry are recorded; the reason may name who confirmed.
 **Tests:** with the F-1 card.
+**Confidence:** High.
+
+### RULE-505: An overdue notice that cannot reach everyone goes to whoever can be reached and logs one alert; nothing is held back or rerouted
+**Category:** Policy
+**Priority:** P1
+**Source:** user decision 2026-11-04 (intent `2026-11-04-083848-one-lead-通知兜底-都对-照现在做-建议.md`), confirming the behaviour built in #1151 and #896
+**Plain English:** When some recipients of an overdue permission-adjustment notice (RULE-394) have no WeCom binding, the notice goes to those who have one and one alert records how many were missed, so operations can bind them. When no recipient of an overdue countersign escalation has a binding, the escalation still happens and one alert is logged, with no notice sent. The notice is not redirected to anyone else.
+**Specification:**
+- Given three super administrators of whom one has no WeCom binding, When the overdue notice is sent, Then two receive it and one alert states that one was missed.
+- Given a countersign escalation whose recipients have no WeCom binding, Then the escalation is recorded, one alert is logged and no notice is sent.
+**Tests:** with #1151 and #896.
 **Confidence:** High.
