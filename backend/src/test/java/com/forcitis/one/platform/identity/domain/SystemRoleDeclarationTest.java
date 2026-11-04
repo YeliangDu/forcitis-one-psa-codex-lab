@@ -41,7 +41,7 @@ class SystemRoleDeclarationTest {
                 "019a0000-0000-7000-8000-000000000104", "019a0000-0000-7000-8000-000000000105", "019a0000-0000-7000-8000-000000000106",
                 "019a0000-0000-7000-8000-000000000107", "019a0000-0000-7000-8000-000000000108");
         // org_data_admin's codes changed in #934 (sync-run:read/execute -> org-reconciliation:execute) and in #907 (org-structure-command:create added), so its revision is 3, then 4 with permission-adjustment:read and :update (#730 S3); security_auditor is at 2 since it reads permission adjustments; business_admin's is 2 since #895 gave it legal-entity-attribution:approve; every other role is still at the first declaration
-        assertThat(SystemRoleDeclaration.CURRENT.roles()).allSatisfy(role -> assertThat(role.revisionNumber()).as(role.code().value()).isEqualTo(switch (role.code().value()) { case "org_data_admin" -> 4; case "business_admin", "security_auditor" -> 2; default -> 1; }));
+        assertThat(SystemRoleDeclaration.CURRENT.roles()).allSatisfy(role -> assertThat(role.revisionNumber()).as(role.code().value()).isEqualTo(switch (role.code().value()) { case "org_data_admin" -> 4; case "business_admin", "security_auditor", "personnel_specialist" -> 2; default -> 1; }));
         assertThat(SystemRoleDeclaration.CURRENT.roles()).filteredOn(DeclaredRole::administrative).extracting(role -> role.code().value())
                 .containsExactly("super_admin");
         assertThat(SystemRoleDeclaration.CURRENT.roles()).allSatisfy(role -> assertThat(role.definition().permissionCodes()).allMatch(Permission::isLive));
