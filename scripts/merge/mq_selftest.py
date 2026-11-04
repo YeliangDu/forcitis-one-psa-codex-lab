@@ -18,8 +18,7 @@ import gapscan_selftest
 import mq_acceptance_selftest
 import mq_detail_selftest
 import mq_label_selftest
-import mq_waiting_selftest
-import mq_title_selftest
+import mq_title_selftest, mq_waiting_selftest
 
 LOG_LINE = re.compile(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d\d:\d\d [A-Z-]+ pr=#(\d+|-) run=(\d+|-) elapsed=\d+s( .*)?$")
 HEAVY = "backend verify (Modulith + ArchUnit guardrails + integration tests)", "frontend verify (typecheck + lint guardrails F1-F14 + structure + build)"
@@ -97,8 +96,7 @@ class FakeGh:
         self.calls.append(("label", n, name, add))
         (self.prs[n]["labels"].add if add else self.prs[n]["labels"].discard)(name)
         return True
-    def labelled(self, name):
-        return [n for n, p in self.prs.items() if name in p["labels"]]
+    def labelled(self, name): return [n for n, p in self.prs.items() if name in p["labels"]]
 
     def active_runs(self, branch):
         return list(self.runs.get(branch, []))
