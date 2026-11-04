@@ -76,6 +76,8 @@ class UnpaidLeaveStartFloorConcurrencyIT extends UnpaidLeaveStartFloorSupport {
                 assertFloorRefusal(refused);
                 int onLeave = (onUnpaidLeaveOn(a.employeeId(), TODAY) ? 1 : 0) + (onUnpaidLeaveOn(b.employeeId(), TODAY) ? 1 : 0);
                 assertThat(onLeave).as("round " + round + ": exactly one of the two is on leave").isEqualTo(1);
+                Staff accepted = onUnpaidLeaveOn(a.employeeId(), TODAY) ? a : b;
+                assertThat(reviewsAbout(accepted.userId())).as("round " + round + ": the accepted start opened its sensitive role review").isNotEmpty();
                 // The pair leaves the pool, so that the next round counts only its own two.
                 disableAccount(a);
                 disableAccount(b);
@@ -128,6 +130,7 @@ class UnpaidLeaveStartFloorConcurrencyIT extends UnpaidLeaveStartFloorSupport {
             holder.commit();
             UUID command = pending.get(30, TimeUnit.SECONDS);
             assertThat(commandStatus(command)).isEqualTo(EFFECTIVE);
+            assertThat(reviewsAbout(leaving.userId())).as("the accepted start opened its sensitive role review").isNotEmpty();
         } finally {
             holder.close();
             thread.shutdownNow();
