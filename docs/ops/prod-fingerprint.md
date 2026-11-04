@@ -21,7 +21,7 @@
 
 | 项 | 特征 |
 |---|---|
-| PostgreSQL 库与角色 | 库 `forcitis_one_prod`；角色 `one_prod_owner`、`one_prod_migrator`、`one_prod_app`、`one_prod_readonly`、`one_prod_audit_maintainer`、`one_prod_history_loader`（建库脚本 `runbooks/sql/c9_prod_db.sql`）。**角色名前缀 `one_prod_` 即生产**；dev 为 `one_dev_`、库 `forcitis_one_dev` |
+| PostgreSQL 库与角色 | 库 `forcitis_one_prod`；角色 `one_prod_owner`、`one_prod_migrator`、`one_prod_app`、`one_prod_readonly`、`one_prod_audit_maintainer`、`one_prod_history_loader`（建库脚本 `runbooks/sql/prod-db.sql`）。**角色名前缀 `one_prod_` 即生产**；dev 为 `one_dev_`、库 `forcitis_one_dev` |
 | 部署目标 | GitHub 工作流 `deploy.yml`，输入 `environment=prod`；GitHub environment `prod`；OOS 参数名 `forcitis-one-deploy-request-prod`（及 `-bundle`、`-bundle-sha256`、结果参数同后缀，dev 为 `-dev`），地域 cn-hangzhou；runner 标签 `forcitis-one-deploy` |
 | 应用配置 | `SPRING_PROFILES_ACTIVE=prod`；连接 URL 含 `sslmode=verify-full` |
 | 生产 RDS/ECS | 尚无实例（规划：RDS 8C32G/200G、独立生产 ECS，条件见 OPS_CONTEXT）；购买后实例 ID 与端点由 one-ops 补入本表 |
