@@ -6,6 +6,6 @@
 # Regenerate the signature snapshot after an intended change: mvn -q test -Dtest=PlatformOrgInterfacesTest -Dorg.interfaces.update=true
 platform.approval -> organization.attendance::api  # WorkCalendar: working-day arithmetic for deadlines (REG-1)
 platform.approval -> organization.workforce::api  # OrgDirectory, EmployeeProfile, OrgUnitProfile, OrgUnitId, EmploymentStatus, EmploymentVerdict, LoginLookup: assignee resolution and the employment check
-platform.identity -> organization.workforce::api  # OrgDirectory, EmployeeProfile, OrgUnitProfile, OrgUnitId, EmploymentStatus, EmployeeExistence, EmployeeLegalEntities, LoginLookup: account binding and access scopes (ADR-0068)
+platform.identity -> organization.workforce::api  # OrgDirectory, EmployeeProfile, OrgUnitProfile, OrgUnitId, EmploymentStatus, EmployeeExistence, EmployeeLabels, EmployeeLabel, EmployeeLegalEntities, LoginLookup: account binding, access scopes (ADR-0068) and the account list labels
 platform.identity -> organization.workforce::events  # EmployeeRegistered, EmployeeSeparated: grant lifecycle; the ADR-0068 personnel events join here
 platform.numbering -> organization.workforce::api  # LegalEntityCode, LegalEntityDirectory, LegalEntityNumberUsage: legal-entity part of document numbers

@@ -67,7 +67,7 @@ import gapscan   # noqa: E402
 import issue_gate   # noqa: E402  (one title check for post_review and the merge)
 import mq_acceptance   # noqa: E402  (the acceptance guard at enqueue)
 import post_review   # noqa: E402  (the machine-read header of a review: one parser for the poster and the queue)
-from mq_github import Gh, SignalError, sh, update_over_ssh   # noqa: E402,F401  (the GitHub and git side)
+from mq_github import Gh, SignalError, failure_detail, sh, update_over_ssh   # noqa: E402,F401  (the GitHub and git side)
 from mq_queue import LINE, Log, Queue   # noqa: E402,F401  (the queue file and the log)
 REQUIRED = ("backend verify", "frontend verify", "secret scan")
 URGENT_LABEL = "急"   # put on by the coordinator: the pull request is picked before the others of its lane and the queue never cancels its CI runs
@@ -580,13 +580,13 @@ class Processor:
                     self.sleep(30)
                     continue
                 if attempt == 1:
+                    self.log.event("RERUN-FAILED", n, runs[0] if runs else None, since, ", ".join(f"{c['name']}={c['bucket']}" for c in red) + failure_detail(self.gh, runs, steps))   # before the rerun: gh gives no failed log of a run that is running again
                     for r in runs:
                         self.gh.rerun(r)
-                    self.log.event("RERUN-FAILED", n, runs[0] if runs else None, since, ", ".join(f"{c['name']}={c['bucket']}" for c in red))
                     self.sleep(30)
                     attempt += 1
                     continue
-                return self.hold(n, ",".join(runs), since, "; ".join(f"{c['name']}={c['bucket']}" for c in red))
+                return self.hold(n, ",".join(runs), since, "; ".join(f"{c['name']}={c['bucket']}" for c in red) + failure_detail(self.gh, runs, steps))
             ok, problems = required_state(checks)
             if not ok:
                 self.log.event("REQUIRED-NOT-GREEN", n, None, since, "; ".join(problems) + "; relabel")
