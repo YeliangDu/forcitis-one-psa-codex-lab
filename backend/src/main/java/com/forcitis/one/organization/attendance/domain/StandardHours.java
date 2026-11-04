@@ -65,7 +65,7 @@ public final class StandardHours extends AggregateRoot {
         this.decisionAuditEntryId = decisionAuditEntryId;
     }
 
-    /** The first version of a scope may start in the past; every later one starts after the latest and not before today. */
+    /** No version starts before today; every version after the first also starts after the latest one in effect. */
     public static StandardHours publish(UUID id, @Nullable LegalEntityId legalEntityId, StandardHoursScopeTail tail, LocalDate today,
             LocalDate effectiveFromDate, int workdayMinutes, int adjustedWorkdayMinutes, List<DateOverride> dateOverrides, String basisRef,
             UserId confirmedBy, Instant confirmedAt, AuditEntryId decisionAuditEntryId) {
@@ -88,9 +88,9 @@ public final class StandardHours extends AggregateRoot {
             throw new DomainException(AttendanceError.ORGANIZATION_ATTENDANCE_STANDARD_HOURS_OVERLAP, ErrorKind.CONFLICT,
                     "effectiveFromDate must be later than the latest version of the scope: " + latest);
         }
-        if (latest != null && effectiveFromDate.isBefore(today)) {
+        if (effectiveFromDate.isBefore(today)) {
             throw new DomainException(AttendanceError.ORGANIZATION_ATTENDANCE_STANDARD_HOURS_BACKDATED, ErrorKind.UNPROCESSABLE,
-                    "a version after the first cannot start before today: " + effectiveFromDate);
+                    "a version cannot start before today: " + effectiveFromDate);
         }
         StandardHours version = new StandardHours(id, legalEntityId, tail.lastVersionNumber() + 1, StandardHoursStatus.IN_EFFECT, effectiveFromDate,
                 workdayMinutes, adjustedWorkdayMinutes, basisRef, dateOverrides, confirmedBy, confirmedAt, decisionAuditEntryId);

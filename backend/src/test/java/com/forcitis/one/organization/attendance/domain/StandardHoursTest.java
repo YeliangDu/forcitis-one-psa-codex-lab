@@ -38,17 +38,23 @@ class StandardHoursTest {
     }
 
     @Test
-    @DisplayName("#1310 the first version of a scope may start in the past, takes number one, and records one event with its start as the business date")
-    void firstVersionMayBeBackdatedAndRecordsOneEvent() {
-        StandardHours version = publish(StandardHoursScopeTail.empty(), TODAY.minusDays(100), 480, List.of());
+    @DisplayName("#1310 no version starts before today, not even the first of a scope or the first after every version was voided")
+    void noVersionStartsBeforeToday() {
+        assertRefused(() -> publish(StandardHoursScopeTail.empty(), TODAY.minusDays(1), 480, List.of()), AttendanceError.ORGANIZATION_ATTENDANCE_STANDARD_HOURS_BACKDATED, ErrorKind.UNPROCESSABLE);
+    }
+
+    @Test
+    @DisplayName("#1310 the first version of a scope may start today, takes number one, and records one event with its start as the business date")
+    void firstVersionStartsTodayAndRecordsOneEvent() {
+        StandardHours version = publish(StandardHoursScopeTail.empty(), TODAY, 480, List.of());
 
         assertThat(version.versionNumber()).isEqualTo(1);
         assertThat(version.status()).isEqualTo(StandardHoursStatus.IN_EFFECT);
         List<DomainEvent> events = version.drainEvents(WorkCalendarYearTest.ENVELOPES);
         assertThat(events).singleElement().isInstanceOfSatisfying(StandardHoursVersionPublished.class, e -> {
             assertThat(e.standardHoursVersionId().value()).isEqualTo(TestIds.uuid(1));
-            assertThat(e.effectiveFromDate()).isEqualTo(TODAY.minusDays(100));
-            assertThat(e.envelope().businessDate()).isEqualTo(TODAY.minusDays(100));
+            assertThat(e.effectiveFromDate()).isEqualTo(TODAY);
+            assertThat(e.envelope().businessDate()).isEqualTo(TODAY);
             assertThat(e.envelope().aggregateVersion()).isEqualTo(1);
         });
     }
