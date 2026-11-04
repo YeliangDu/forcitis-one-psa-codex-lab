@@ -1,4 +1,5 @@
 """The GitHub and git side of the merge queue (mq.py): the gh calls, patch-id, the ssh update. mq_selftest.py replaces Gh with a fake and runs the real one against a fake gh binary."""
+import datetime
 import json
 import os
 import re
@@ -74,7 +75,7 @@ class Gh:
 
     def open_prs(self):
         """Every open pull request with what the gap scan (gapscan.py) needs, or None when gh cannot say."""
-        r = sh(["gh", "pr", "list", "--state", "open", "--limit", str(gapscan.OPEN_LIMIT), "--json", "number,title,headRefName,headRefOid,isDraft,mergeable,statusCheckRollup,commits,comments,createdAt"], timeout=120)
+        r = sh(["gh", "pr", "list", "--state", "open", "--limit", str(gapscan.OPEN_LIMIT), "--json", "number,title,body,headRefName,headRefOid,isDraft,mergeable,statusCheckRollup,commits,comments,createdAt"], timeout=120)
         try:
             prs = json.loads(r.stdout)
         except ValueError:
@@ -84,6 +85,25 @@ class Gh:
         for pr in prs:
             pr["comments"] = [dict(c, author=(c.get("author") or {}).get("login")) for c in pr.get("comments", [])]
         return prs
+
+    def merged_prs(self, since):
+        """The pull requests merged since `since` (number, body, mergedAt; at most gapscan.MERGED_LIMIT), or None when gh cannot say."""
+        stamp = since.astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        r = sh(["gh", "pr", "list", "--state", "merged", "--search", f"merged:>={stamp}", "--limit", str(gapscan.MERGED_LIMIT), "--json", "number,body,mergedAt"], timeout=120)
+        try:
+            prs = json.loads(r.stdout)
+        except ValueError:
+            return None
+        return None if r.returncode else prs
+
+    def card(self, n):
+        """The state, label names and title of an issue, or None when gh cannot say."""
+        r = sh(["gh", "issue", "view", str(n), "--json", "state,labels,title"])
+        try:
+            d = json.loads(r.stdout)
+            return {"state": d["state"], "labels": [l["name"] for l in d["labels"]], "title": d["title"]}
+        except (ValueError, KeyError):
+            return None
 
     def behind_by(self, n, head):
         r = sh(["gh", "api", f"repos/{{owner}}/{{repo}}/compare/main...{head}", "--jq", ".behind_by"])
