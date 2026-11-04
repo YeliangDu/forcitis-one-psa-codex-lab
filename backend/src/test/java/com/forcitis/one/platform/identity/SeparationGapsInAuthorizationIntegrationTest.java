@@ -2,11 +2,13 @@ package com.forcitis.one.platform.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.mockito.Mockito.when;
 
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
+import com.forcitis.one.organization.workforce.api.EmploymentVerdict;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
 import com.forcitis.one.platform.audit.api.AuditEntry;
@@ -14,8 +16,12 @@ import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import jakarta.servlet.http.Cookie;
 import java.time.Duration;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,8 +46,15 @@ class SeparationGapsInAuthorizationIntegrationTest extends IdentityIntegrationTe
     @Autowired
     TransactionTemplate tx;
 
+    @Autowired
+    DataSource dataSource;
+
     private UUID publishSeparation(long employee) {
         knownEmployee(employee, EmploymentStatus.SEPARATED);
+        return publishEvent(employee);
+    }
+
+    private UUID publishEvent(long employee) {
         EmployeeId id = TestAccounts.employee(employee);
         var event = new EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", id.value()), new PersonnelCommandId(UUID.randomUUID()), id,
                 LocalDate.of(2026, 10, 15));
@@ -186,5 +199,55 @@ class SeparationGapsInAuthorizationIntegrationTest extends IdentityIntegrationTe
         assertThat(confirmed.getResponse().getStatus()).as(confirmed.getResponse().getContentAsString()).isEqualTo(403);
         assertThat(body(confirmed).path("errorCode").asString()).isEqualTo("PLATFORM_IDENTITY_EMPLOYEE_SEPARATED");
         assertThat(holds(1001, "security_auditor")).isFalse();
+    }
+
+    @Test
+    @DisplayName("#1322 (g) a direct grant races the separation of a person without roles: the directory says employed at the first look, the separation is handled before the grant locks the account row; the grant is refused")
+    void aDirectGrantRacingTheSeparationOfAPersonWithoutRoles() throws Exception {
+        String admin = administratorSession(9);
+        createAccount(1002);
+        knownEmployee(1002, EmploymentStatus.EMPLOYED);
+        AtomicBoolean first = new AtomicBoolean();
+        when(orgDirectory.employmentOf(TestAccounts.employee(1002))).thenAnswer(call -> {
+            if (first.compareAndSet(false, true)) {
+                Thread separation = new Thread(() -> awaitSeparationHandled(publishEvent(1002)));
+                separation.start();
+                separation.join();
+                return EmploymentVerdict.EMPLOYED;
+            }
+            return EmploymentVerdict.SEPARATED;
+        });
+
+        MvcResult granted = replaceRoles(admin, 1002, "employee");
+
+        assertThat(first).as("the race was staged").isTrue();
+        assertThat(granted.getResponse().getStatus()).as(granted.getResponse().getContentAsString()).isEqualTo(403);
+        assertThat(body(granted).path("errorCode").asString()).isEqualTo("PLATFORM_IDENTITY_EMPLOYEE_SEPARATED");
+        assertThat(holds(1002, "employee")).isFalse();
+    }
+
+    @Test
+    @DisplayName("#1322 (h) a decision on the request is in flight (row changed, not committed) while the subject's separation is handled: the listener waits for it and the separation is not rolled back")
+    void theSeparationWaitsForAConcurrentDecision() throws Exception {
+        String first = administratorSession(9);
+        loginWithWecom(1001);
+        String requestId = pendingRequest(first, 1001, "employee", "security_auditor");
+        assertThat(holds(1001, "employee")).isTrue();
+
+        try (Connection decision = dataSource.getConnection()) {
+            decision.setAutoCommit(false);
+            try (PreparedStatement update = decision.prepareStatement(
+                    "update platform_identity.authorization_requests set request_status = 'REJECTED', version = version + 1 where request_id = ?::uuid")) {
+                update.setString(1, requestId);
+                assertThat(update.executeUpdate()).isEqualTo(1);
+            }
+            UUID published = publishSeparation(1001);
+            await().atMost(Duration.ofSeconds(15)).untilAsserted(() ->
+                    assertThat(jdbc.sql("select count(*) from pg_stat_activity where wait_event_type = 'Lock'").query(Long.class).single()).as("the listener waits on the request row").isPositive());
+            decision.commit();
+            awaitSeparationHandled(published);
+        }
+
+        assertThat(holds(1001, "employee")).as("the separation was not rolled back").isFalse();
     }
 }

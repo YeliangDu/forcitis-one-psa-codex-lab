@@ -145,9 +145,6 @@ public class ReplaceAccountRoles {
             }
             wanted.add(role.get());
         }
-        if (givesARole(wanted, accounts.findAssignedRoleCodes(userId)) && !employment.isEmployed(found.get())) {
-            return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED);
-        }
         return new AdminOutcome.Done<>(replace(found.get(), wanted, AccountGrants.Origin.manual(request.requestedBy(), request.requestId()), request).isPresent());
     }
 
@@ -187,6 +184,10 @@ public class ReplaceAccountRoles {
     private Optional<Long> replace(UserAccount loaded, List<Role> wanted, AccountGrants.Origin origin, @Nullable AuthorizationRequest confirmed) {
         floor.lockDecisions();
         UserAccount account = accounts.findForUpdate(loaded.userId()).orElseThrow(() -> IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND.refusal("no account"));
+        // Judged again under the account lock: the separation may have been handled between the first look and the lock (#1322).
+        if (givesARole(wanted, accounts.findAssignedRoleCodes(account.userId())) && !employment.isEmployed(account)) {
+            throw IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED.refusal("the person left before the grant was applied");
+        }
         if (confirmed == null && account.version() != loaded.version()) {
             throw IdentityError.PLATFORM_IDENTITY_CONCURRENT_UPDATE.refusal("account " + account.userId().value() + " was changed by someone else");
         }
