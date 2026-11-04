@@ -73,6 +73,7 @@ class LegalEntityAttributionTest {
         });
     }
 
+    // RULE-503
     @Test
     @DisplayName("asking for the legal entity it already has changes nothing and records nothing")
     void sameEntityIsANoOp() {
@@ -128,6 +129,7 @@ class LegalEntityAttributionTest {
         }
     }
 
+    // RULE-504
     @Test
     @DisplayName("ADR-0026 resolution: the employee's own attribution wins; else the nearest department up the chain; a cycle or nothing resolves to empty")
     void resolution() {
