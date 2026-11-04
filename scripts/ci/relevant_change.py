@@ -66,6 +66,8 @@ ALWAYS_RUN_READERS = (
     "scripts/session/build_decisions.py",
     "scripts/session/new_intent.py",   # run by new_intent_selftest.py
     "scripts/session/new_intent_selftest.py",
+    "scripts/session/new_card.py",   # reads the playbook of the chosen type; run by new_card_selftest.py
+    "scripts/session/new_card_selftest.py",
     # light.sh sources it on every event; the docs paths there are change patterns that pick self-tests
     "scripts/ci/light_triggers.sh",
 )

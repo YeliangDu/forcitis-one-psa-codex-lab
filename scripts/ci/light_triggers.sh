@@ -10,6 +10,7 @@ t_guards_config='^scripts/guards/|^backend/pom\.xml$|^backend/src/test/java/com/
 t_evidence_imports='^scripts/ci/evidence_imports\.py$'
 t_gates='^scripts/(gates|hooks)/|^policy\.json$|^\.claude/|^\.pre-commit-config\.yaml$'
 t_session='^scripts/session/|^policy\.json$|^docs/rules/roles/|^docs/decisions/decision-digest/'
+t_new_card='^scripts/session/new_card|^scripts/merge/issue_gate\.py$|^\.github/ISSUE_TEMPLATE/|^docs/rules/playbooks/|^policy\.json$'
 t_new_adr='^tools/docs/|^docs/adr/'
 t_mq='^scripts/merge/|^scripts/ci/relevant_change|^policy\.json$'
 t_unit_classes='^scripts/ci/light_unit_classes\.py$|^backend/src/test/java/'
@@ -30,7 +31,7 @@ onesql_evidence=docs/data/evidence/dba-handoff
 t_onesql='^tools/ops/dba/OneSql\.java$|^docs/data/evidence/dba-handoff/.*\.sql$'  # light.sh 直接用：要 java，缺了记 SKIP
 t_light='^scripts/ci/light(_selftest|_triggers)?\.sh$'
 t_c3_passwords='^tools/ops/ecs/scripts/c3_(set_role|rotate_admin)_password'
-TRIGGER_KEYS='t_shell t_guards t_guards_config t_evidence_imports t_gates t_session t_new_adr t_mq t_unit_classes t_heavy_gate t_backend_verify t_evidence t_scan t_post_review t_ci_steps t_runner_watch t_docker t_error_catalogue_tool t_light t_c3_passwords'
+TRIGGER_KEYS='t_shell t_guards t_guards_config t_evidence_imports t_gates t_session t_new_card t_new_adr t_mq t_unit_classes t_heavy_gate t_backend_verify t_evidence t_scan t_post_review t_ci_steps t_runner_watch t_docker t_error_catalogue_tool t_light t_c3_passwords'
 
 # 检查表：模式名|名字|命令（命令按空格切分，路径里不能有空格）
 TRIGGERED_CHECKS='t_shell|shell syntax (bash -n)|shell_syntax
@@ -57,6 +58,7 @@ t_gates|stop_language (self-test)|python3 -I scripts/hooks/stop_language.py --se
 t_gates|card_handover (self-test)|python3 -I scripts/hooks/card_handover.py --self-test
 t_session|build_decisions (self-test)|python3 scripts/session/build_decisions.py --self-test
 t_session|new_intent_selftest (self-test)|python3 scripts/session/new_intent_selftest.py --self-test
+t_new_card|new_card_selftest (self-test)|python3 scripts/session/new_card_selftest.py --self-test
 t_new_adr|new_adr (self-test)|python3 tools/docs/new_adr.py --self-test
 t_mq|mq (self-test)|python3 scripts/merge/mq.py --self-test
 t_unit_classes|light_unit_classes (self-test)|python3 scripts/ci/light_unit_classes.py --self-test
