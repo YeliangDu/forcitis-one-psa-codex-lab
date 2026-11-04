@@ -370,6 +370,7 @@ aggregates:
   - AuthorizationRequestView
   - AuthorizationVoiding
   - ConfirmAuthorizationRequest
+  - HandleEmployeeSeparated
   - RejectAuthorizationRequest
   - ReplaceAccountRoles
   events:
@@ -583,6 +584,7 @@ aggregates:
   - ReplaceAccountRoles
   - RevokeRoleByOperations
   - SessionPrincipals
+  - SubjectEmployment
   events:
   - platform.identity.AccountDisabled
   - platform.identity.AccountEnabled

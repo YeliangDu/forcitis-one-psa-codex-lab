@@ -12,7 +12,7 @@ public interface AuthorizationRequestRepository {
     List<AuthorizationRequest> findPending();
 
     /** The requests that still wait and name the person as the subject or as the requester, oldest first. */
-    List<AuthorizationRequest> findPendingInvolving(UserId user);
+    List<AuthorizationRequest> findPendingOf(UserId user);
 
     void insert(AuthorizationRequest opened);
 

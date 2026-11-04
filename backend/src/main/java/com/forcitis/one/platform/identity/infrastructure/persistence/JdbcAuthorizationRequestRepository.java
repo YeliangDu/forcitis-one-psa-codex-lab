@@ -73,7 +73,7 @@ class JdbcAuthorizationRequestRepository implements AuthorizationRequestReposito
     }
 
     @Override
-    public List<AuthorizationRequest> findPendingInvolving(UserId user) {
+    public List<AuthorizationRequest> findPendingOf(UserId user) {
         return withUnits(jdbc.sql("""
                 select
                 """ + COLUMNS + """

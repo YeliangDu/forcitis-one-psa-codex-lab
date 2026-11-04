@@ -73,7 +73,7 @@ class HandleEmployeeSeparated {
     }
 
     private void voidPendingRequests(UserId person) {
-        for (AuthorizationRequest request : requests.findPendingInvolving(person)) {
+        for (AuthorizationRequest request : requests.findPendingOf(person)) {
             voiding.voidRequest(request, person.equals(request.requestedBy()) ? "the requester separated; nothing was applied" : "the subject separated; nothing was applied");
             requests.save(request);
             events.publish(request);
