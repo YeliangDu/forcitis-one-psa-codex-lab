@@ -76,6 +76,7 @@ class AuthorizationConfirmerAccountsIT extends AccountsAcceptanceSupport {
         return JsonPath.read(read.getContentAsString(), "$.roleCodes");
     }
 
+    // RULE-419
     @Test
     @DisplayName("P2-M2 I-12 后半句（真实账号、生产会话，按用户 ID 比较）：给角色加敏感权限待第二人确认；申请人与该角色的持有人都不能确认（403 PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED）；先申请后得角色时第三人确认被接受，但 ADR-0032 守护规则第 3 项：确认时已有持有人则申请作废（VOIDED），角色权限不变")
     void aHolderOfTheChangedRoleCannotConfirm() throws Exception {
@@ -127,6 +128,7 @@ class AuthorizationConfirmerAccountsIT extends AccountsAcceptanceSupport {
         }
     }
 
+    // RULE-419
     @Test
     @DisplayName("P2-M2 授权申请的确认人不是申请人（真实账号、生产会话，按用户 ID 比较）：给人授敏感角色待确认；申请人与受益人都不能确认，第三人确认后生效；申请记录的 requestedBy、subjectUserId 是两人的 uuid")
     void theRequesterAndTheBeneficiaryCannotConfirm() throws Exception {

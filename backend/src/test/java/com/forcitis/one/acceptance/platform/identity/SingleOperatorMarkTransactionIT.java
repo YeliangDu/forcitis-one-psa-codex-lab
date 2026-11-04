@@ -82,6 +82,7 @@ class SingleOperatorMarkTransactionIT extends AccountsAcceptanceSupport {
         return entries("platform.identity.single-operator-mode.applied").size();
     }
 
+    // RULE-426
     @Test
     @DisplayName("SINGLE-OP P2-02 模式开启省略见证人并提交：真实审计里正常条目与标注条目各一条，主体（种类与 ID）相同，标注 detail 恰为 relaxation=WITNESS_OMITTED，正常条目 detail 为 operatorId=<UUID> witnessId=none role=<码>")
     void p202_committedTogether() throws Exception {
@@ -161,6 +162,7 @@ class SingleOperatorMarkTransactionIT extends AccountsAcceptanceSupport {
     @Autowired
     com.forcitis.one.platform.identity.application.DisableEmergencyAdmin disable;
 
+    // RULE-422
     @Test
     @DisplayName("SINGLE-OP P2-02 模式关闭时无见证人的 OperationAttestation 直接调用 GrantRoleByOperations.execute：被拒（IllegalStateException），无账号、无授予、无正常审计、无标注，事务整体回滚")
     void p202_grantWithoutWitnessIsRefusedWithTheModeOff() throws Exception {
@@ -177,6 +179,7 @@ class SingleOperatorMarkTransactionIT extends AccountsAcceptanceSupport {
         assertThat(marks()).isEqualTo(marksBefore);
     }
 
+    // RULE-422
     @Test
     @DisplayName("SINGLE-OP P2-02 模式关闭时无见证人直接调用 RevokeRoleByOperations.execute：被拒，角色仍被持有，无收回审计、无标注")
     void p202_revokeWithoutWitnessIsRefusedWithTheModeOff() throws Exception {
@@ -194,6 +197,7 @@ class SingleOperatorMarkTransactionIT extends AccountsAcceptanceSupport {
         assertThat(marks()).isEqualTo(marksBefore);
     }
 
+    // RULE-422
     @Test
     @DisplayName("SINGLE-OP P2-02 模式关闭时无见证人直接调用 DisableEmergencyAdmin.execute：被拒，应急账号仍启用（随后带见证人的 disable 仍得到「disabled」而非「already disabled」），无停用审计、无标注")
     void p202_disableWithoutWitnessIsRefusedWithTheModeOff() throws Exception {

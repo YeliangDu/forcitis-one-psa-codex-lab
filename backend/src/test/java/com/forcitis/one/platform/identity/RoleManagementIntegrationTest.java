@@ -337,6 +337,7 @@ class RoleManagementIntegrationTest extends IdentityIntegrationTest {
                 .query((rs, n) -> List.of(rs.getLong(1), rs.getLong(2))).single()).as("roles replaced, disabled").isEqualTo(List.of(2L, 2L));
     }
 
+    // RULE-454
     @Test
     @DisplayName("INT-SEC-H2 platformPermissionsStayInTheAdministratorMode: a custom role cannot be created or revised with a platform permission, and one that already holds it gives none in an ordinary session")
     void platformPermissionsStayInTheAdministratorMode() throws Exception {

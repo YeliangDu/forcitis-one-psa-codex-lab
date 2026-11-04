@@ -34,6 +34,7 @@ class SingleOperatorRevokeRoleIT extends SingleOperatorIdentitySupport {
                 .param("employee", TestAccounts.employee(id).value()).query(Long.class).single();
     }
 
+    // RULE-432
     @Test
     @DisplayName("SINGLE-OP P2-17 revoke-role 收回已持有的角色：账号不再持有，该人全部会话被吊销（他人的不动），权限缓存被清，发布账号角色变更事件，写审计 operations.account.role.revoked（detail 同 grant-role 的格式）")
     void p217_revokingAHeldRole() throws Exception {
@@ -64,6 +65,7 @@ class SingleOperatorRevokeRoleIT extends SingleOperatorIdentitySupport {
         assertThat(applied()).as("a witness was given").isEmpty();
     }
 
+    // RULE-433
     @Test
     @DisplayName("SINGLE-OP P2-18 revoke-role 对未持有的角色：退出码 0，输出「无变化」（nothing changed），无审计、无标注、无事件")
     void p218_revokingARoleThatIsNotHeldChangesNothing() {
@@ -84,6 +86,7 @@ class SingleOperatorRevokeRoleIT extends SingleOperatorIdentitySupport {
         assertThat(holds(33, "org_data_admin")).isTrue();
     }
 
+    // RULE-433
     @Test
     @DisplayName("SINGLE-OP P2-18 revoke-role 对不存在的角色码：拒绝（退出码 1，PLATFORM_IDENTITY_ROLE_NOT_FOUND），无变化")
     void p218_unknownRoleCodeIsRefused() {
@@ -99,6 +102,7 @@ class SingleOperatorRevokeRoleIT extends SingleOperatorIdentitySupport {
         assertThat(entries(ROLE_REVOKED)).isEmpty();
     }
 
+    // RULE-433
     @Test
     @DisplayName("SINGLE-OP P2-18 revoke-role 对没有账号的员工（在职或不存在）：拒绝，不开户；缺 --role-code 或 --employee-id 为用法错误（退出码 2），无变化")
     void p218_noAccountIsRefusedAndNoneIsOpened() {
@@ -119,6 +123,7 @@ class SingleOperatorRevokeRoleIT extends SingleOperatorIdentitySupport {
         assertThat(entries(ROLE_REVOKED)).isEmpty();
     }
 
+    // RULE-422
     @Test
     @DisplayName("SINGLE-OP P2-19 revoke-role 在模式关闭时要求见证人：省略被拒（退出码 1，WITNESS_REQUIRED），角色仍被持有，无审计、无标注")
     void p219_witnessIsRequiredWithTheModeOff() {
@@ -134,6 +139,7 @@ class SingleOperatorRevokeRoleIT extends SingleOperatorIdentitySupport {
         assertThat(applied()).isEmpty();
     }
 
+    // RULE-426
     @Test
     @DisplayName("SINGLE-OP P2-19 revoke-role 在模式开启时可省略见证人并写标注：detail 为 operatorId=… witnessId=none role=…，标注 relaxation=WITNESS_OMITTED，主体相同")
     void p219_witnessMayBeLeftOutWithTheModeOn() {
@@ -152,6 +158,7 @@ class SingleOperatorRevokeRoleIT extends SingleOperatorIdentitySupport {
         assertThat(applied()).hasSize(2);
     }
 
+    // RULE-434
     @Test
     @DisplayName("SINGLE-OP P2-19 收回敏感角色同样可由运维命令完成（ADR-0030 第 3 项第 4 行）：security_auditor 与 super_admin 在两种模式下都能收回；应用内不建申请")
     void p219_sensitiveRolesCanBeRevokedByTheCommand() {

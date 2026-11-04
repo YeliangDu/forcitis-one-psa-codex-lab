@@ -122,6 +122,7 @@ class SignedTicketSubjectIT extends AccountsAcceptanceSupport {
                 .andReturn().getResponse();
     }
 
+    // RULE-472
     @Test
     @DisplayName("R-1b P3b ADR-0033 第 3 项第 5 条：签名票据的 subject（组织源人员 ID，含负数）经来源对照解析为员工，登录得到该员工的账号；只查不分配，对照仍只有一行")
     void theSubjectIsResolvedThroughTheSourceReference() throws Exception {
@@ -140,6 +141,7 @@ class SignedTicketSubjectIT extends AccountsAcceptanceSupport {
         assertThat(references(subject)).as("the login looked the reference up, it made none").isEqualTo(1);
     }
 
+    // RULE-472
     @Test
     @DisplayName("R-1b P3b ADR-0033 第 3 项第 5 条：签名票据的 subject 没有来源对照即拒绝登录（401）并记审计，不建会话，也不为它分配对照")
     void aSubjectWithoutReferenceIsRefusedAndAudited() throws Exception {
@@ -153,6 +155,7 @@ class SignedTicketSubjectIT extends AccountsAcceptanceSupport {
         assertThat(references(subject)).as("no reference is allocated for a ticket subject").isZero();
     }
 
+    // RULE-472
     @Test
     @DisplayName("R-1b P3b ADR-0033 第 3 项第 5 条：票据 subject 不再被当作员工 ID——数值恰等于某员工在旧形态下编号、却没有对照的 subject 被拒")
     void theSubjectIsNotTheEmployeeId() throws Exception {

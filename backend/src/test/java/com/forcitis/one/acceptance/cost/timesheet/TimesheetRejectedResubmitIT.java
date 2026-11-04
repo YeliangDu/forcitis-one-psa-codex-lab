@@ -193,6 +193,7 @@ class TimesheetRejectedResubmitIT extends ApprovalIntegrationSupport {
         assertThat(view(id).round()).isEqualTo(1);
     }
 
+    // RULE-477
     @Test
     @DisplayName("TS-UNIQ 撤销审批使 SUBMITTED→DRAFT，发布的事件类型为 cost.timesheet.TimesheetApprovalWithdrawn，旧名不存在")
     void cancellingTheApprovalTurnsASubmittedTimesheetBackIntoADraft(Scenario scenario) {
