@@ -11,6 +11,7 @@ import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequest;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequestRepository;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.Set;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
@@ -38,9 +39,11 @@ class HandleEmployeeSeparated {
     private final Clock clock;
     private final AuthorizationRequestRepository requests;
     private final AuthorizationVoiding voiding;
+    private final SubjectEmployment employment;
 
     HandleEmployeeSeparated(AccountEmployees accountEmployees, AccountRepository accounts, AccountGrants grants, DomainEvents events, SessionRevocation revocation,
-            RevokeBrowserIdentifiers revokeBrowserIdentifiers, AccessCache cache, AuthorizationRequestRepository requests, AuthorizationVoiding voiding, Clock clock) {
+            RevokeBrowserIdentifiers revokeBrowserIdentifiers, AccessCache cache, AuthorizationRequestRepository requests, AuthorizationVoiding voiding, Clock clock, SubjectEmployment employment) {
+        this.employment = employment;
         this.clock = clock;
         this.requests = requests;
         this.voiding = voiding;
@@ -63,9 +66,11 @@ class HandleEmployeeSeparated {
     private void separate(UserId userId, PersonnelCommandId command) {
         accounts.findForUpdate(userId).ifPresent(account -> {
             boolean marked = account.separatedAt().isPresent();
-            account.recordSeparation(clock.instant());
+            // Read under the account lock: an event that arrives after the reinstatement must not mark an employed person (#1326).
+            Instant markAt = employment.isEmployed(account) ? null : clock.instant();
+            account.recordSeparation(markAt);
             grants.replace(account, Set.of(), AccountGrants.Origin.separation(command));
-            if (!marked || account.hasPendingEvents()) { // a redelivery changes nothing and moves no version
+            if ((!marked && markAt != null) || account.hasPendingEvents()) { // a redelivery changes nothing and moves no version
                 accounts.save(account);
                 events.publish(account);
             }

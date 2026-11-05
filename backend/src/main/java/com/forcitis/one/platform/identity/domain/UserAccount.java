@@ -83,7 +83,7 @@ public final class UserAccount extends AggregateRoot {
         return roles;
     }
 
-    /** When this change recorded the person's separation; a hint only (older leavers carry none), the workforce directory stays the authority on employment. */
+    /** The moment the separation was recorded on the account; empty for a person who left before #1326 or came back. A hint only: the workforce directory stays the authority on employment. */
     public Optional<Instant> separatedAt() {
         return Optional.ofNullable(separatedAt);
     }
@@ -138,10 +138,14 @@ public final class UserAccount extends AggregateRoot {
         this.closedGrants = changes.closed().stream().map(GrantClosing::id).toList();
     }
 
-    /** The person is no longer with the company: the account is marked whatever its roles were (the first moment stays on a redelivery), and no role stays. */
-    public void recordSeparation(Instant at) {
+    /**
+     * The person is no longer with the company: no role stays. markAt is the moment to record on the account whatever its roles were (the first moment
+     * stays on a redelivery); null when the directory shows the person employed again, a separation event that reaches the account after the reinstatement
+     * leaves no mark that nobody would clear.
+     */
+    public void recordSeparation(@Nullable Instant markAt) {
         if (separatedAt == null) {
-            separatedAt = Objects.requireNonNull(at, "at");
+            separatedAt = markAt;
         }
         if (roles.isEmpty()) {
             return;

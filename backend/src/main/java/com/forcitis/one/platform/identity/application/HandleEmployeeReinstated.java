@@ -76,13 +76,8 @@ class HandleEmployeeReinstated {
                 accounts.saveHandled(event.personnelCommandId(), user, HandledOutcome.NOT_EMPLOYED, null);
                 return;
             }
-            boolean marked = account.separatedAt().isPresent();
             account.recordReinstated();
             if (!account.roles().isEmpty()) {
-                if (marked) {
-                    accounts.save(account);
-                    events.publish(account);
-                }
                 accounts.saveHandled(event.personnelCommandId(), user, HandledOutcome.ALREADY_GRANTED, null);
                 return;
             }

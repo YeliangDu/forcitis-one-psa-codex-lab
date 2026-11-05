@@ -45,6 +45,15 @@ class SeparatedAccountTest {
     }
 
     @Test
+    @DisplayName("#1326 a separation without a mark (the directory shows the person employed) takes the roles away and records no moment")
+    void aSeparationWithoutAMarkLeavesNoMoment() {
+        UserAccount holder = account(Set.of(EMPLOYEE), null);
+        holder.recordSeparation(null);
+        assertThat(holder.separatedAt()).isEmpty();
+        assertThat(holder.roles()).isEmpty();
+    }
+
+    @Test
     @DisplayName("#1326 a separated account refuses a role it does not hold and still lets roles go")
     void aSeparatedAccountCannotBeGivenARole() {
         UserAccount separated = account(Set.of(), AT);

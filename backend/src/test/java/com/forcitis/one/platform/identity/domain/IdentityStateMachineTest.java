@@ -142,7 +142,7 @@ class IdentityStateMachineTest {
     }
 
     @Test
-    @DisplayName("B1-M3 separating an account takes every role away and records the fact; an account without roles records nothing")
+    @DisplayName("B1-M3 separating an account takes every role away and records the fact; an account without roles announces nothing")
     void separationRecordsTheFact() {
         UserAccount withRoles = UserAccount.restore(TestAccounts.account(1001), TestAccounts.employee(1001), ENABLED.name(), Set.of(new RoleId(TestIds.uuid(3))), null, 5, 5);
         withRoles.recordSeparation(java.time.Instant.EPOCH);

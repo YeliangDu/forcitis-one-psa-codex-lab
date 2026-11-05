@@ -128,4 +128,18 @@ class SeparatedAccountIntegrationTest extends IdentityIntegrationTest {
         assertThat(separatedAt(1002)).isNull();
         assertThat(holds(1002, "employee")).isTrue();
     }
+
+    @Test
+    @DisplayName("#1326 (d) a separation event that is handled after the reinstatement, the directory showing the person employed, leaves no mark and the person can be given roles")
+    void aLateSeparationEventDoesNotLockAnEmployedPerson() throws Exception {
+        createAccount(1003, "employee");
+        knownEmployee(1003, EmploymentStatus.EMPLOYED);
+
+        awaitHandled("HandleEmployeeSeparated", publishSeparation(1003));
+
+        assertThat(separatedAt(1003)).as("the directory says employed: nothing to remember").isNull();
+        assertThat(holds(1003, "employee")).as("the roles are taken away as before").isFalse();
+        MvcResult granted = replaceRoles(administratorSession(9), 1003, "employee");
+        assertThat(granted.getResponse().getStatus()).as(granted.getResponse().getContentAsString()).isEqualTo(204);
+    }
 }
