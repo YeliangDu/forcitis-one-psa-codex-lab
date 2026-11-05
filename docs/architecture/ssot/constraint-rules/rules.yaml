@@ -1363,3 +1363,43 @@ rules:
     group: "财务与经营"
     source: "成本口径 C-4；LEGAL_ENTITY_CONSISTENCY_2026-10-22 第 5 条；PRC-98"
     source_line: 274
+  - id: INV-143
+    statement: "同一扣缴法人在同一薪酬月份只有一份有效月度薪酬结算（已取消的不占位）"
+    category: "A"
+    owner_aggregates: [AGG-73]
+    aggregate_note: "AGG-73"
+    owner_bc: [organization.payroll]
+    group: "组织与人力"
+    source: "月度薪酬结算 P-R1（docs/architecture/proposals/organization-payroll.md §7，#1409）"
+  - id: INV-144
+    statement: "计算月度薪酬须以该法人全部在职人员的月度考勤确认均已锁定为前提；未锁定的列出人员并返回待锁定，不计算"
+    category: "A"
+    owner_aggregates: [AGG-73]
+    aggregate_note: "AGG-73"
+    owner_bc: [organization.payroll]
+    group: "组织与人力"
+    source: "月度薪酬结算 P-R2；请假规格 9a（docs/architecture/proposals/organization-payroll.md §7，#1409）"
+  - id: INV-145
+    statement: "月度薪酬结算批准后金额不再变化；批准后的更正只作为之后月份的调整行"
+    category: "A"
+    owner_aggregates: [AGG-73]
+    aggregate_note: "AGG-73"
+    owner_bc: [organization.payroll]
+    group: "组织与人力"
+    source: "月度薪酬结算 P-R3；CS-3.9（docs/architecture/proposals/organization-payroll.md §7，#1409）"
+  - id: INV-146
+    statement: "每份已批准的月度薪酬结算向过账管道提交且只提交一份借贷平衡的候选，候选不含员工标识"
+    category: "A"
+    owner_aggregates: [AGG-73]
+    aggregate_note: "AGG-73"
+    owner_bc: [organization.payroll]
+    group: "组织与人力"
+    source: "月度薪酬结算 P-R4；ADR-0016；ADR-0087 第 3 项（docs/architecture/proposals/organization-payroll.md §7，#1409）"
+  - id: INV-147
+    statement: "个人薪酬金额不进入事件、过账事实与应付提交明细，对外只有法人合计与标识"
+    category: "A"
+    owner_aggregates: [AGG-73]
+    aggregate_note: "AGG-73"
+    owner_bc: [organization.payroll]
+    group: "组织与人力"
+    source: "月度薪酬结算 P-R5；ADR-0079 第 2 节（docs/architecture/proposals/organization-payroll.md §7，#1409）"
