@@ -1,7 +1,7 @@
 """The event payload check at enqueue (#1327): a pull request whose title type is not docs (the design type) that changes the payload of a message that already
 exists in docs/architecture/events/<module>.yaml is refused before it is queued. The payload is signed at design (playbooks/design.md); the implementation ships what was signed
 (EventCatalogueTest compares catalogue and code), so a change of an existing payload goes back to design. A new message, a changed message description, a deleted message, passes; so does any pull request of the docs type. Every other title type is refused (an allowlist, fail closed). Messages are matched by name across all fragments, so moving one to another fragment or renaming a fragment does not hide a change.
-Exception (#1406): a body line `Payload-Signed: #<n>` names an open docs pull request whose newest review statement on its current head is a 通过 (its text is closed unmerged and lands with the code); each changed message passes only if that pull request's payload for it equals the head's, any other message stays refused.
+Exception (#1406): a body line `Payload-Signed: #<n>` names a docs pull request (open, or closed unmerged) whose newest review statement on its current head is a 通过 (its text is closed unmerged and lands with the code); each changed message passes only if that pull request's payload for it equals the head's, any other message stays refused.
 The base is the merge base with origin/main, so what main changed after the branch left is not counted. Fails open, said on stderr, when the head cannot be fetched or git/PyYAML cannot answer; a head fragment that cannot be read as a catalogue is refused."""
 import os
 import re
@@ -65,10 +65,10 @@ def changed_by_name(root, number, head):
 
 
 def signer_ok(root, gh, signer, code_head, names):
-    """The names whose payload the docs pull request `signer` signs for the code pull request: it is open, of the docs type, a 通过 review is the newest statement on
+    """The names whose payload the docs pull request `signer` signs for the code pull request: it is open or closed unmerged (it is closed once the code pull request is queued, and the code pull request may be queued again), of the docs type, a 通过 review is the newest statement on
     exactly its current head, and its payload of each name equals the code head's payload (a docs head with no such message signs nothing). An empty set when any of that fails or cannot be read."""
     v = gh.view(signer)
-    if not (v and v["state"] == "OPEN" and title_type(v["title"]) == DESIGN_TYPE):
+    if not (v and v["state"] in ("OPEN", "CLOSED") and title_type(v["title"]) == DESIGN_TYPE):
         return set()
     reviews = gh.reviews(signer)
     fields = post_review.load_policy()[0]["header_fields"]

@@ -111,17 +111,18 @@ def run(mq, d):
             22: pr(author, 22, {FRAG: frag(a_fields="id,other")}),                                 # code PR shipping a different Alpha
             23: pr(author, 23, {FRAG: frag(a_fields="id,sig", b_fields="id,extra")}),              # Alpha as signed, Beta not signed anywhere
             24: pr(author, 24, {FRAG: frag(b_fields="id,beta")}),                                  # a second signed text for Beta
+            26: pr(author, 26, {FRAG: "components:\n  messages:\n" + "    Beta:" + frag(a_fields="id,sig").split("    Beta:")[1]}),   # a docs head that holds no Alpha at all
             25: pr(author, 25, {FRAG: frag(a_fields="id,sig", b_fields="id,beta")})}               # Alpha and Beta both as the two signers have them
     def verdict(head, word="通过", kind="首轮", at="2026-11-05T10:00:00Z", commit=None):
         return {"body": f"复审结论：{word}\ncommit：{head}\n复审者：opus-{kind}-x\n\n正文", "commit": commit or head, "at": at}
     states = {20: ("docs(x): 设计签字（#20）", [verdict(sign[20])]), 24: ("docs(x): 设计签字（#24）", [verdict(sign[24])])}
     bodies = {}
-    closed = set()
+    closed, merged = set(), set()
 
     class Signing:
         def view(self, n):
             title = states[n][0] if n in states else {n: f"feat(x): 实现（#{n}）" for n in (21, 22, 23, 25)}.get(n)
-            return {"state": "CLOSED" if n in closed else "OPEN", "merge": "CLEAN", "labels": [], "branch": "b", "head": sign[n], "title": title, "body": bodies.get(n, "Closes #1\n")} if title else None
+            return {"state": "MERGED" if n in merged else "CLOSED" if n in closed else "OPEN", "merge": "CLEAN", "labels": [], "branch": "b", "head": sign[n], "title": title, "body": bodies.get(n, "Closes #1\n")} if title else None
         def reviews(self, n):
             return states[n][1]
     def refused_for(n, body, over=()):
@@ -145,8 +146,12 @@ def run(mq, d):
     assert "#21" in (refused_for(21, "Payload-Signed: #99\n") or ""), "an unknown signer signs nothing"
     assert "#21" in (refused_for(21, "Payload-Signed: #20\n", {20: ("feat(x): 不是设计（#20）", [verdict(sign[20])])}) or ""), "a signer that is not of the docs type signs nothing"
     closed.add(20)
-    assert "#21" in (refused_for(21, "Payload-Signed: #20\n") or ""), "a signer that is closed signs nothing"
+    assert refused_for(21, "Payload-Signed: #20\n") is None, "a signer closed unmerged (after the code PR was queued) still signs: the code PR can be queued again"
     closed.clear()
+    merged.add(20)
+    assert "#21" in (refused_for(21, "Payload-Signed: #20\n") or ""), "a merged signer signs nothing (its text is on main already)"
+    merged.clear()
+    assert "#21" in (refused_for(21, "Payload-Signed: #26\n", {26: ("docs(x): 设计签字（#26）", [verdict(sign[26])])}) or ""), "a docs head with no such message signs nothing"
     assert "#21" in (refused_for(21, "Payload-Signed: #20\n", {20: ("docs(x): 设计签字（#20）", [])}) or ""), "no verdict: refused"
     assert "#21" in (refused_for(21, "Payload-Signed: #20\n", {20: ("docs(x): 设计签字（#20）", [verdict(sign[20], word="必改")])}) or ""), "a 必改 verdict signs nothing"
     assert "#21" in (refused_for(21, "Payload-Signed: #20\n", {20: ("docs(x): 设计签字（#20）", [verdict(sign[20]), verdict(sign[20], word="必改", at="2026-11-05T11:00:00Z")])}) or ""), "the newest statement decides"
