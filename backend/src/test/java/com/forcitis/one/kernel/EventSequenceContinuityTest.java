@@ -214,7 +214,8 @@ class EventSequenceContinuityTest {
         checkMany(() -> com.forcitis.one.organization.recruitment.domain.RecruitmentRequisition.submit(
                         new com.forcitis.one.organization.recruitment.api.RequisitionId(TestIds.uuid(7)), new com.forcitis.one.platform.numbering.api.DocumentNumber("RR-1"),
                         TestOrgIds.position(3), TestOrgIds.orgUnit(5), new LegalEntityId(TestIds.uuid(1)), TestAccounts.employee(1), 2, null, null,
-                        new com.forcitis.one.platform.approval.api.ApprovalInstanceId(TestIds.uuid(9)), NOW),
+                        new com.forcitis.one.platform.approval.api.ApprovalInstanceId(TestIds.uuid(9)),
+                        new com.forcitis.one.kernel.event.AggregateReference("NumberingCounter", TestIds.uuid(11)), NOW, TODAY),
                 List.of(r -> r.approve(NOW, TODAY), r -> r.closeFromApproval(com.forcitis.one.organization.recruitment.api.CloseReasonKind.REJECTED, NOW, TODAY),
                         r -> r.closeApproved(com.forcitis.one.organization.recruitment.api.CloseReasonKind.FILLED, NOW, TODAY)));
     }

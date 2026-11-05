@@ -19,6 +19,7 @@ import com.forcitis.one.organization.recruitment.api.RequisitionId;
 import com.forcitis.one.organization.recruitment.api.RequisitionStatus;
 import com.forcitis.one.organization.recruitment.events.RequisitionApproved;
 import com.forcitis.one.organization.recruitment.events.RequisitionClosed;
+import com.forcitis.one.organization.recruitment.events.RequisitionSubmitted;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.numbering.api.DocumentNumber;
 import java.time.Instant;
@@ -34,6 +35,7 @@ class RecruitmentRequisitionTest {
     static final Instant NOW = Instant.parse("2026-11-06T02:00:00Z");
     static final LocalDate TODAY = LocalDate.of(2026, 11, 6);
     static final TestEventEnvelopes ENVELOPES = new TestEventEnvelopes();
+    static final com.forcitis.one.kernel.event.AggregateReference COUNTER = new com.forcitis.one.kernel.event.AggregateReference("NumberingCounter", TestIds.uuid(11));
 
     static RecruitmentRequisition in(RequisitionStatus status) {
         boolean approved = status == RequisitionStatus.APPROVED;
@@ -46,7 +48,7 @@ class RecruitmentRequisitionTest {
 
     static RecruitmentRequisition submitted(int count, String description) {
         return RecruitmentRequisition.submit(new RequisitionId(TestIds.uuid(7)), new DocumentNumber("RR-ABC-202611-0007"), TestOrgIds.position(3),
-                TestOrgIds.orgUnit(5), new LegalEntityId(TestIds.uuid(1)), REQUESTER, count, null, description, new ApprovalInstanceId(TestIds.uuid(9)), NOW);
+                TestOrgIds.orgUnit(5), new LegalEntityId(TestIds.uuid(1)), REQUESTER, count, null, description, new ApprovalInstanceId(TestIds.uuid(9)), COUNTER, NOW, TODAY);
     }
 
     @Test
@@ -131,10 +133,27 @@ class RecruitmentRequisitionTest {
     }
 
     @Test
-    @DisplayName("#1451 a restored requisition resumes the event numbering from its state: approved one event, closed after approval two, closed without approval one")
+    @DisplayName("#1451 a restored requisition resumes the event numbering from its state: submitted one event, approved two, closed after approval three")
     void restoredSequenceFollowsTheState() {
-        assertThat(in(RequisitionStatus.SUBMITTED).eventSequence()).isZero();
-        assertThat(in(RequisitionStatus.APPROVED).eventSequence()).isEqualTo(1);
-        assertThat(in(RequisitionStatus.CLOSED).eventSequence()).isEqualTo(2);
+        assertThat(in(RequisitionStatus.SUBMITTED).eventSequence()).isEqualTo(1);
+        assertThat(in(RequisitionStatus.APPROVED).eventSequence()).isEqualTo(2);
+        assertThat(in(RequisitionStatus.CLOSED).eventSequence()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("#1451 submitting raises RequisitionSubmitted with ids only and names the approval request and the numbering counter as touched together (DDD-1); withdrawing names the approval request")
+    void submitAndWithdrawNameWhatChangedWithThem() {
+        RecruitmentRequisition created = submitted(2, "one analyst");
+        assertThat(created.drainEvents(ENVELOPES)).singleElement().isInstanceOfSatisfying(RequisitionSubmitted.class, e -> {
+            assertThat(e.requisitionId()).isEqualTo(created.requisitionId());
+            assertThat(e.envelope().eventType()).isEqualTo("organization.recruitment.RequisitionSubmitted");
+            assertThat(e.envelope().aggregateVersion()).isEqualTo(1);
+            assertThat(e.envelope().relatedAggregates()).extracting(r -> r.aggregateType()).containsExactly("ApprovalRequest", "NumberingCounter");
+        });
+
+        RecruitmentRequisition withdrawn = in(RequisitionStatus.SUBMITTED);
+        withdrawn.withdraw(REQUESTER, NOW, TODAY);
+        assertThat(withdrawn.drainEvents(ENVELOPES)).singleElement().isInstanceOfSatisfying(RequisitionClosed.class,
+                e -> assertThat(e.envelope().relatedAggregates()).extracting(r -> r.aggregateType()).containsExactly("ApprovalRequest"));
     }
 }

@@ -5,6 +5,7 @@ import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.event.AggregateReference;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.recruitment.api.RecruitmentError;
@@ -98,7 +99,8 @@ public class SubmitRequisition {
                 List.of(new ApprovalField(RequisitionApprovalProcess.ORG_UNIT_FIELD, List.of(command.orgUnitId().value().toString()))),
                 contentHash(command), new ApprovalSummary(issued.number().value() + " x" + command.requestedCount())));
         RecruitmentRequisition requisition = RecruitmentRequisition.submit(command.requisitionId(), issued.number(), command.positionId(),
-                command.orgUnitId(), legalEntity, requester, command.requestedCount(), command.expectedStartDate(), command.description(), instance, now);
+                command.orgUnitId(), legalEntity, requester, command.requestedCount(), command.expectedStartDate(), command.description(), instance,
+                new AggregateReference("NumberingCounter", issued.counterId().value()), now, today);
         repository.save(requisition);
         events.publish(requisition);
         return RequisitionView.of(requisition);

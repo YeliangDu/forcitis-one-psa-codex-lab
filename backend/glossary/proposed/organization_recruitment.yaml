@@ -71,6 +71,21 @@ terms:
   forbidden: []
   status: proposed
   note: ''
+- id: requisition_submitted
+  zh: 招聘需求已提交
+  en: RequisitionSubmitted
+  snake: requisition_submitted
+  kind: domain_event
+  bc: organization.recruitment
+  scope: domain
+  definition: 招聘需求提交并开始审批；同事务命名审批请求和编号计数器为相关聚合
+  standard_ref:
+  - docs/architecture/events/recruitment.yaml
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
 - id: requisition_approved
   zh: 招聘需求已批准
   en: RequisitionApproved

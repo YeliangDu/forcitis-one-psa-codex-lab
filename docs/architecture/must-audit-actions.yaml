@@ -169,6 +169,7 @@ categories:
   - cost.timesheet.TimesheetSubmitted
 - name: 招聘需求
   actions:
+  - organization.recruitment.RequisitionSubmitted
   - organization.recruitment.RequisitionApproved
   - organization.recruitment.RequisitionClosed
 - name: 文件
