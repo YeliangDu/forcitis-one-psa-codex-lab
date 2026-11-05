@@ -126,3 +126,45 @@ terms:
   forbidden: []
   status: proposed
   note: '现名 employee_versions；更名在结构 PR'
+- id: predecessor_relationship
+  zh: 前任雇佣关系
+  en: PredecessorRelationship
+  snake: predecessor_relationship
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 同一员工换用人单位而连续任职时，新雇佣关系所接续的旧雇佣关系；非换用人单位产生的关系没有前任
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '列 predecessor_relationship_id；设计 employment-relationship.md 4.1'
+- id: employer_source_kind
+  zh: 用人单位来源
+  en: EmployerSourceKind
+  snake: employer_source_kind
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 用人单位的取值来源，DECLARED 为人事申报，MIGRATION_ATTRIBUTION 为迁入时按归属法人回填、待人事确认
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '取值 DECLARED、MIGRATION_ATTRIBUTION；确认时刻列 employer_confirmed_at'
+- id: employer_confirmed_at
+  zh: 用人单位确认时刻
+  en: EmployerConfirmedAt
+  snake: employer_confirmed_at
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 人事确认迁入回填用人单位的时刻；为空表示未确认或非回填行；置值后该行冻结
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
