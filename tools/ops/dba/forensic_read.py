@@ -17,17 +17,20 @@ import gzip
 import json
 import os
 import re
-import secrets
 import subprocess
 import sys
 import time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import forensic_command  # noqa: E402
+
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 CONFIG = Path.home() / ".config" / "forcitis-forensic" / "config.json"
 ONE_SQL = HERE / "OneSql.java"
-MAX_SQL_BYTES = 64 * 1024
+MAX_SQL_BYTES = forensic_command.MAX_SQL  # what one cloud-command request can carry
+REQUEST_MAX = 9000  # characters of one request parameter (forensic_server.BLOB_MAX)
 # Baselines of the forensic account (ADR-0037 decision 5 item 4 (a)-(f)); the sets mirror backend/.../integration/infrastructure/connection/ReadOnlyBaseline.java and the
 # "有效权限平台基线" section of docs/ops/dba-scripts/README.md. Anything else, or no SELECT, stops the run.
 EXPECTED_PERMISSIONS = {"CONNECT", "KILL DATABASE CONNECTION", "SELECT", "SHOWPLAN", "VIEW ANY COLUMN ENCRYPTION KEY DEFINITION",
@@ -153,17 +156,18 @@ def load_config():
         raise Refused(f"config file missing or unreadable; see docs/ops/forensic-entry.md for its path {CONFIG.parent.name}/{CONFIG.name} and fields")
     except ValueError:
         raise Refused("config file is not valid JSON")
-    need = ("aliyun_profile", "region", "app_host", "secret_host", "app_work_dir", "app_jar_process", "secret_file", "secret_work_dir", "account", "targets")
+    need = ("aliyun_profile", "region", "command_id", "app_host", "secret_host", "app_work_dir", "app_jar_process", "app_client_file", "app_key_file", "app_public_key_file", "secret_file", "account", "targets")
     if not isinstance(conf, dict) or any(not conf.get(k) for k in need) or not isinstance(conf["targets"], dict):
         raise Refused("config file lacks a required field; see docs/ops/forensic-entry.md")
     return conf
 
 
 class Cloud:
-    """Cloud assistant through the aliyun CLI profile named in the config; the CLI reads its own credentials. Instance ids sit in the child's argv only."""
+    """The one pre-created Cloud Assistant command through the aliyun CLI profile named in the config (card #1389). Only InvokeCommand with that command id and the two
+    result calls are ever issued: no RunCommand, no command creation. The CLI reads its own credentials. Instance ids sit in the child's argv only."""
 
     def __init__(self, conf):
-        self.profile, self.region = conf["aliyun_profile"], conf["region"]
+        self.profile, self.region, self.command = conf["aliyun_profile"], conf["region"], conf["command_id"]
 
     def _cli(self, *args):
         try:
@@ -177,61 +181,52 @@ class Cloud:
         except ValueError:
             raise Refused("cloud call returned something that is not JSON (output withheld)") from None
 
-    def run(self, instance, script, timeout=600):  # (status, exit code, text the script printed)
-        content = base64.b64encode(script.encode()).decode()
-        invoke = self._cli("ecs", "RunCommand", "--Type", "RunShellScript", "--CommandContent", content, "--ContentEncoding", "Base64",
-                           "--InstanceId.1", instance, "--Timeout", str(timeout), "--KeepCommand", "false").get("InvokeId")
+    def invoke(self, instance, request, timeout=600):  # (status, text the command printed)
+        blob = base64.urlsafe_b64encode(json.dumps(request, separators=(",", ":")).encode()).decode().rstrip("=")
+        if len(blob) > REQUEST_MAX:
+            raise Refused("the query is too long for the cloud command; shorten or split it")
+        invoke = self._cli("ecs", "InvokeCommand", "--CommandId", self.command, "--InstanceId.1", instance, "--Parameters", json.dumps({"req": blob})).get("InvokeId")
         if not invoke:
             raise Refused("cloud call returned no invocation")
         for _ in range(timeout // 2 + 30):
             time.sleep(2)
-            res = self._cli("ecs", "DescribeInvocationResults", "--InvokeId", invoke, "--InstanceId", instance)
+            res = self._cli("ecs", "DescribeInvocationResults", "--InvokeId", invoke, "--InstanceId", instance, "--CommandId", self.command)
             item = (res.get("Invocation") or res).get("InvocationResults", {}).get("InvocationResult", [{}])[0]
             if item.get("InvocationStatus") in ("Success", "Failed", "Stopped", "Timeout", "TimedOut", "Cancelled", "Error", "Aborted"):
-                return item["InvocationStatus"], item.get("ExitCode"), base64.b64decode(item.get("Output") or "").decode("utf-8", "replace")
+                return item["InvocationStatus"], base64.b64decode(item.get("Output") or "").decode("utf-8", "replace")
         raise Refused("cloud invocation did not finish")
 
 
-def server_run(cloud, conf, database, sql, gate=False):
-    """Runs the validated `sql` on the app host with the forensic account; returns OneSql's output text. Raises Refused on any failed step; the app-host work dir is removed in every case."""
-    work, secret_work = conf["app_work_dir"], conf["secret_work_dir"]
-    tag = secrets.token_hex(4)
-    try:
-        pub_status, _, pub = cloud.run(conf["app_host"], f"set -eu; umask 077; rm -rf {work}; install -d -m 700 {work}/stage; openssl genpkey -algorithm RSA -pkeyopt "
-                                       f"rsa_keygen_bits:3072 -out {work}/k.key 2>/dev/null; openssl pkey -in {work}/k.key -pubout")
-        if pub_status != "Success" or "-----BEGIN" not in pub:
-            raise Refused("could not prepare the throw-away key")
-        pub = pub[pub.index("-----BEGIN"):]
-        encrypt = ("import subprocess,sys,base64\nv=dict(l.strip().split('=',1) for l in open(sys.argv[2]) if '=' in l and not l.startswith('#'))\n"
-                   "s=v['EVIDENCE_DB_PASSWORD'].strip(\"'\\\"\")\nc=subprocess.run(['openssl','pkeyutl','-encrypt','-pubin','-inkey',sys.argv[1],'-pkeyopt','rsa_padding_mode:oaep',"
-                   "'-pkeyopt','rsa_oaep_md:sha256','-pkeyopt','rsa_mgf1_md:sha256'],input=s.encode(),capture_output=True,check=True).stdout\nprint('EVIDENCE:'+base64.b64encode(c).decode())\n")
-        st, _, out = cloud.run(conf["secret_host"], f"set -eu; umask 077; install -d -m 700 {secret_work}; {put(f'{secret_work}/pub', pub)}{put(f'{secret_work}/enc.py', encrypt)}"
-                               f"python3 -I {secret_work}/enc.py {secret_work}/pub {conf['secret_file']}; rm -rf {secret_work}")
-        cipher = re.findall(r"^EVIDENCE:([A-Za-z0-9+/=]+)$", out, re.M)
-        if st != "Success" or len(cipher) != 1:
-            raise Refused("forensic credential not available on the secret host")
-        stage = f"{work}/stage"
-        driver = (f"if [ ! -s {work}/jdbc.jar ]; then pid=$(pgrep -f '{conf['app_jar_process']}' | head -1); jar=\"$(readlink -f /proc/$pid/cwd)/{conf['app_jar_process']}\"; "
-                  f"entry=$(unzip -l \"$jar\" | grep -oE 'BOOT-INF/lib/mssql-jdbc-[^ ]+\\.jar' | head -1); unzip -p \"$jar\" \"$entry\" > {work}/jdbc.jar; fi\n")
-        env = f"LOGIN_USER={conf['account']} LOGIN_SECRET_ENC={stage}/enc LOGIN_KEY={work}/k.key" + (" ONE_SQL_PLAN_GATE=1" if gate else "")  # the plan gate for the caller's query; the fixed account-check queries run without it (the CHECK_SQL UNION ALL plan is not one simple SELECT)
-        script = (f"set -u; umask 077\n{put(f'{stage}/OneSql.java', ONE_SQL.read_text(encoding='utf-8'))}{put(f'{stage}/enc', cipher[0])}{put(f'{stage}/q.sql', sql)}{driver}"
-                  f"{env} java -cp {work}/jdbc.jar {stage}/OneSql.java ro {database} {stage}/q.sql < /dev/null 2>&1 | head -c 4000000 > {work}/out.txt; rc=$?\n"
-                  f"if [ \"$(gzip -9 -c {work}/out.txt | base64 -w0 | wc -c)\" -gt 22000 ]; then echo TOOBIG; else gzip -9 -c {work}/out.txt | base64 -w0; echo; fi; exit $rc\n")
-        status, _, out = cloud.run(conf["app_host"], script)
-        if "TOOBIG" in out:
-            raise Refused("result is too large for one cloud-assistant reply; aggregate more or narrow the query")
-        packed = re.findall(r"^[A-Za-z0-9+/=]{20,}$", out, re.M)
-        if not packed:
-            raise Refused(f"no result came back ({status})")
-        return gzip.decompress(base64.b64decode(packed[-1])).decode("utf-8", "replace")
-    finally:
-        _, _, left = cloud.run(conf["app_host"], f"rm -rf {work}; test -e {work} && echo LEFT || echo CLEAN")
-        if "CLEAN" not in left:
-            sys.stderr.write("warning: the app-host work directory could not be confirmed removed\n")
+def command_rev(conf):  # the revision the repository would render for this config; the cloud command must print the same
+    return forensic_command.render(conf, [CHECK_SQL, CHECK_DBS_SQL])[1]
 
 
-def put(path, text):
-    return f"echo '{base64.b64encode(gzip.compress(text.encode(), 9)).decode()}' | base64 -d | gunzip > {path}\n"
+def answer(status, text, rev):  # the command's output for one request: refusal text, a stale command and failures become a fixed message
+    if re.search(r"^REFUSED:", text, re.M):
+        raise Refused("the cloud command refused the request (" + re.search(r"^REFUSED:(.*)$", text, re.M).group(1)[:80] + ")")
+    if f"REV:{rev}" not in text.splitlines():
+        raise Refused("the cloud command is not the repository revision (or did not run); render and update it, see forensic_command.py steps")
+    if status != "Success":
+        raise Refused(f"the cloud command did not succeed ({status})")
+    return text
+
+
+def server_run(cloud, conf, database, sql):
+    """Runs the validated `sql` through the cloud command: the secret host encrypts the credential to the app host's key, the app host runs OneSql with it. Returns OneSql's
+    output text. The command removes its own work directory; the plan gate is decided on the server (on except for the two fixed account-check queries)."""
+    rev = command_rev(conf)
+    status, text = cloud.invoke(conf["secret_host"], {"op": "encrypt"})
+    cipher = re.findall(r"^EVIDENCE:([A-Za-z0-9+/=]+)$", answer(status, text, rev), re.M)
+    if len(cipher) != 1:
+        raise Refused("forensic credential not available on the secret host")
+    status, text = cloud.invoke(conf["app_host"], {"op": "query", "db": database, "cipher": cipher[0], "sql": base64.b64encode(sql.encode()).decode()})
+    text = answer(status, text, rev)
+    if "TOOBIG" in text:
+        raise Refused("result is too large for one cloud-assistant reply; aggregate more or narrow the query")
+    packed = re.findall(r"^[A-Za-z0-9+/=]{20,}$", text, re.M)
+    if not packed:
+        raise Refused(f"no result came back ({status})")
+    return gzip.decompress(base64.b64decode(packed[-1])).decode("utf-8", "replace")
 
 
 def rows_of(output):  # data rows of OneSql's first result: lists of cells
@@ -333,7 +328,7 @@ def main(argv, cloud_factory=Cloud):
             problems = ["reachable databases"]
         if problems:
             raise Refused(f"forensic account check failed ({', '.join(problems)}); nothing was run")
-        text = server_run(cloud, conf, database, sql, gate=True)
+        text = server_run(cloud, conf, database, sql)
         if "SQLERROR" in text or "Exception in thread" in text or not re.search(r"^DONE batches=1$", text, re.M):  # a refusal by the plan gate or a server error is not a result: nothing written, nonzero exit
             raise Refused("the server refused or failed the query (plan gate or error); nothing written")
         if checked_rows(text) is None or any(not l.startswith(("  ", "connected as ", "---- batch ", "DONE batches=")) for l in text.splitlines()):  # second defence: OneSql escapes cells (line breaks, control characters, bars); a shape that still shows must not hide text from the cell-length check
