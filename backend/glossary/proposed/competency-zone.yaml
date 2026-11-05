@@ -1,0 +1,45 @@
+# 人员能力区（设计 docs/architecture/proposals/competency-zone.md，#1309；one-design 2026-11-05）。中文名待用户确认。
+# registered_practice_certificate 与 continuing_education_hours 已是批准术语（bc 现为 organization.workforce）；其 bc 改为 organization.competency 随 ADR-0089 采纳后的术语卡改，不在此重复登记。
+terms:
+- id: skill
+  zh: 技能
+  en: Skill
+  snake: skill
+  kind: aggregate
+  bc: organization.competency
+  scope: domain
+  definition: 技能目录中的一条技能（编码、中文名、类别、启用或停用），员工技能取自此目录
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '设计 competency-zone.md（#1309）；中文名待用户确认；老系统「技能标签」为参照'
+- id: employee_skill
+  zh: 员工技能
+  en: EmployeeSkill
+  snake: employee_skill
+  kind: aggregate
+  bc: organization.competency
+  scope: domain
+  definition: 某员工拥有某项技能及其等级和确认状态；供交付资源计划按技能找人
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '设计 competency-zone.md（#1309）；等级与确认状态待用户裁定（设计 Q1）'
+- id: practice_certificate_kind
+  zh: 注册执业证书种类
+  en: PracticeCertificateKind
+  snake: practice_certificate_kind
+  kind: aggregate
+  bc: organization.competency
+  scope: domain
+  definition: 注册执业证书种类目录中的一条（编码、中文名、发证监管方、类别、是否需继续教育、启用或停用），学时规则按注册期随种类保存
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '设计 competency-zone.md（#1309）；避免用 qualification，该词已指企业资质证书（qualification_certificate）'
