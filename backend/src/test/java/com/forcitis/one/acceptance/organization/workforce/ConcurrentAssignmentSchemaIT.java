@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.REGULAR;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
@@ -72,10 +73,9 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
         UUID id = Uuids.timeOrdered(NOW);
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, """
-                    insert into assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date, revision_number,
+                    insert into assignment_versions (employment_relationship_id, assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date, revision_number,
                       org_unit_id, position_id, reports_to_employee_id, change_channel_kind, created_at, updated_at)
-                    values (?, ?, ?, ?, ?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""",
-                    id, stored(employee), root, kind, from, revision, stored(orgUnit), position, stored(reportsTo), at, at);
+                    values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.relationshipOf(workforce, stored(employee)), id, stored(employee), root, kind, from, revision, stored(orgUnit), position, stored(reportsTo), at, at);
         }
         return id;
     }
@@ -89,11 +89,11 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
             UUID targetRoot, String targetKind, UUID orgCommand) throws SQLException {
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, """
-                    insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id,
+                    insert into personnel_commands (personnel_command_id, employee_id, employment_relationship_id, command_kind, effective_date, status, target_org_unit_id,
                       target_position_id, target_reports_to_employee_id, is_target_fee_earner, target_assignment_id, target_assignment_kind,
                       org_structure_command_id, created_at, created_by, updated_at)
-                    values (?, ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    Uuids.timeOrdered(NOW), stored(employee), kind, day, stored(targetUnit), targetPosition, stored(reportsTo), feeEarner, targetRoot, targetKind,
+                    values (?, ?, ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    Uuids.timeOrdered(NOW), stored(employee), EmploymentRelationshipSeeds.relationshipOf(workforce, stored(employee)), kind, day, stored(targetUnit), targetPosition, stored(reportsTo), feeEarner, targetRoot, targetKind,
                     orgCommand, at, hr.userId(), at);
         }
     }
@@ -229,10 +229,9 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
     private void correctionOf(UUID concurrent, UUID corrected) throws Exception {
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, """
-                    insert into assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date, effective_to_date,
+                    insert into assignment_versions (employment_relationship_id, assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date, effective_to_date,
                       revision_number, org_unit_id, change_channel_kind, corrected_from_version_id, closed_at, created_at, updated_at)
-                    values (?, ?, ?, 'CONCURRENT', ?, ?, 5, ?, 'MIGRATION', ?, ?, ?, ?)""",
-                    Uuids.timeOrdered(NOW), stored(person), concurrent, TODAY.minusDays(40), TODAY.minusDays(39), stored(newUnit()), corrected, at, at, at);
+                    values (?, ?, ?, ?, 'CONCURRENT', ?, ?, 5, ?, 'MIGRATION', ?, ?, ?, ?)""", EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), Uuids.timeOrdered(NOW), stored(person), concurrent, TODAY.minusDays(40), TODAY.minusDays(39), stored(newUnit()), corrected, at, at, at);
         }
     }
 
@@ -255,7 +254,7 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
         command(person, "TRANSFER", second, newUnit(), null, null, null, secondPost, AssignmentRoots.CONCURRENT, null);
 
         refusedBy(() -> command(person, "TRANSFER", first, newUnit(), null, null, null, primary, AssignmentRoots.PRIMARY, null), UNIQUE_VIOLATION,
-                "uk_personnel_commands_open_per_day");
+                "uk_personnel_commands_open_per_relationship_day");
         refusedBy(() -> command(person, "TRANSFER", second, newUnit(), null, null, null, concurrent, AssignmentRoots.CONCURRENT, null), UNIQUE_VIOLATION,
                 "uk_personnel_commands_open_per_assignment_day");
     }

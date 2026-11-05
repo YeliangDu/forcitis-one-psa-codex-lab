@@ -50,7 +50,7 @@ class WorkforceGoldenSampleIT extends GoldenSampleSupport {
     private static final LocalDate N078 = LocalDate.of(2028, 3, 31);
 
     private static final String ASSIGNMENTS = "assignment_versions";
-    private static final String EMPLOYEE_VERSIONS = "employee_versions";
+    private static final String EMPLOYEE_VERSIONS = "employment_relationship_versions";
 
     private final List<String> report = new ArrayList<>();
     private final List<String> failed = new ArrayList<>();

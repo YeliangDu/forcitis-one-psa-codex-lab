@@ -129,7 +129,7 @@ class OpenApiExportTest {
             "OpenFiscalYearRequest.legalEntityId", "OpenedFiscalYearResponse.legalEntityId", "OpenedPeriodResponse.fiscalPeriodId",
             "PublishStandardHoursRequest.legalEntityId", "PublishedStandardHoursResponse.standardHoursVersionId", "VoidedStandardHoursResponse.standardHoursVersionId",
             "StandardHoursVersionResponse.standardHoursVersionId", "StandardHoursVersionResponse.legalEntityId", "StandardHoursVersionResponse.confirmedBy", "parameter standardHoursVersionId",
-            "EnterPersonnelCommandRequest.employeeId", "EnterPersonnelCommandRequest.targetOrgUnitId", "EnterPersonnelCommandRequest.targetPositionId", "EnterPersonnelCommandRequest.targetLegalEntityId", "EnterPersonnelCommandRequest.targetAssignmentId",
+            "EnterPersonnelCommandRequest.employeeId", "EnterPersonnelCommandRequest.targetOrgUnitId", "EnterPersonnelCommandRequest.targetPositionId", "EnterPersonnelCommandRequest.targetLegalEntityId", "EnterPersonnelCommandRequest.targetAssignmentId", "EnterPersonnelCommandRequest.targetEmployerLegalEntityId", "EnterPersonnelCommandRequest.predecessorRelationshipId", "EnterPersonnelCommandRequest.employmentRelationshipId",
             "EnterPersonnelCommandRequest.targetReportsToEmployeeId", "EnterOrgStructureCommandRequest.targetOrgUnitId", "EnterOrgStructureCommandRequest.targetPositionId", "EnterOrgStructureCommandRequest.targetParentOrgUnitId",
             "EnterOrgStructureCommandRequest.targetHeadEmployeeId", "EnterOrgStructureCommandRequest.targetReceivablesManagerEmployeeId", "EnterOrgStructureCommandRequest.mergeIntoOrgUnitId",
             "EnterOrgStructureCommandRequest.targetLegalEntityId", "OrgStructureCommandResponse.orgStructureCommandId",

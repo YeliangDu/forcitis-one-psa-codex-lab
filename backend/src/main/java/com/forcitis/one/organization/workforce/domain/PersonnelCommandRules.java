@@ -2,12 +2,14 @@ package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -28,6 +30,68 @@ public final class PersonnelCommandRules {
         requireLiveConcurrentPost(command, history);
         requireCorrectionOpenEnded(command, history);
         requirePostsEndWithTheSeparation(command, others);
+    }
+
+    /**
+     * A command of the person (the change of legal entity names no relationship) and a command of a relationship do not share a day: one open command a day
+     * for the person, the relationship-level ones counted per relationship by {@link #check} (design section 5). Run over the whole history.
+     */
+    public static void requireOneCommandPerDay(PersonnelCommand command, PersonnelHistory all) {
+        if (producesPrimaryVersion(command) && all.commands().stream().filter(o -> !o.id().equals(command.id()))
+                .anyMatch(o -> o.status().isOpen() && o.effectiveDate().equals(command.effectiveDate()) && producesPrimaryVersion(o))) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_ALLOWED, ErrorKind.CONFLICT,
+                    "the employee already has an open command for " + command.effectiveDate() + " that writes a primary post version (design 12a)");
+        }
+        boolean person = command.employmentRelationshipId() == null;
+        if (!countsPerDay(command)) {
+            return;
+        }
+        boolean clash = all.commands().stream().filter(o -> !o.id().equals(command.id())).filter(o -> o.status().isOpen() && o.effectiveDate().equals(command.effectiveDate()))
+                .filter(PersonnelCommandRules::countsPerDay).anyMatch(o -> person || o.employmentRelationshipId() == null);
+        if (clash) {
+            throw refused("the employee already has an open command for " + command.effectiveDate() + " that is about the person or about another relationship");
+        }
+    }
+
+    /** The commands the per-employee rule always counted: not the start of a concurrent post, nor a command on one (a correction counts: it can wait for a countersign). */
+    private static boolean countsPerDay(PersonnelCommand c) {
+        return c.kind() != PersonnelCommandKind.START_CONCURRENT && c.targetAssignmentKind() != AssignmentKind.CONCURRENT;
+    }
+
+    /** A transfer or correction of the primary post, or a hire or reinstatement that carries a post, writes a version of the primary post. */
+    private static boolean producesPrimaryVersion(PersonnelCommand c) {
+        return switch (c.kind()) {
+            case HIRE, REINSTATE -> c.targetOrgUnitId() != null;
+            case TRANSFER, CORRECTION -> c.targetAssignmentKind() == AssignmentKind.PRIMARY
+                    && (c.targetOrgUnitId() != null || c.targetPositionId() != null || c.targetReportsToEmployeeId() != null);
+            default -> false;
+        };
+    }
+
+    /**
+     * Invariant 6 (design 6.3): the relationship that holds the primary post is not separated while another relationship stays in service, because the
+     * person would be left in service without a primary post. A move of the primary to another relationship is the entry's own transfer or hire (PersonnelCommandService.bindRelationship), which this rule does not refuse.
+     */
+    public static void requirePrimaryNotOnEndingRelationship(PersonnelCommand command, PersonnelHistory all) {
+        if (command.kind() != PersonnelCommandKind.SEPARATE || command.employmentRelationshipId() == null) {
+            return;
+        }
+        EmploymentRelationshipId ending = command.employmentRelationshipId();
+        LocalDate day = command.effectiveDate();
+        boolean holdsPrimary = all.primaryRoot().map(root -> all.currentAssignmentRows(root.id()).stream()
+                .anyMatch(r -> ending.equals(r.relationshipId()) && r.endsAfter(day) && r.covers(day.minusDays(1)))).orElse(false);
+        boolean otherStays = all.currentEmployeeRows().stream().anyMatch(r -> !ending.equals(r.relationshipId()) && r.covers(day)
+                && "EMPLOYED".equals(r.values().get(CommandEffects.EMPLOYMENT)) && !endsByOpenSeparation(r.relationshipId(), day, all));
+        if (holdsPrimary && otherStays) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PRIMARY_ASSIGNMENT_ON_ENDING_RELATIONSHIP, ErrorKind.CONFLICT,
+                    "the relationship holds the person's primary post while another relationship stays in service on " + day + "; the person would be left without a primary post");
+        }
+    }
+
+    /** A relationship with a written separation on or before the day is gone by then, even while the separation is held or waiting for its date. */
+    private static boolean endsByOpenSeparation(@Nullable EmploymentRelationshipId relationship, LocalDate day, PersonnelHistory all) {
+        return relationship != null && all.commands().stream().anyMatch(o -> o.kind() == PersonnelCommandKind.SEPARATE && o.status().isOpen()
+                && relationship.equals(o.employmentRelationshipId()) && !o.effectiveDate().isAfter(day));
     }
 
     /**
@@ -145,7 +209,8 @@ public final class PersonnelCommandRules {
 
     private static void requireStateOnTheDay(PersonnelCommand command, List<VersionRow> employeeRows) {
         LocalDate day = command.effectiveDate();
-        VersionRow row = employeeRows.stream().filter(r -> r.covers(day)).findFirst().orElse(null);
+        // A change of legal entity is the person's: it looks at every relationship, and any in service is enough.
+        VersionRow row = employeeRows.stream().filter(r -> r.covers(day)).min(java.util.Comparator.comparing(r -> !"EMPLOYED".equals(r.values().get(CommandEffects.EMPLOYMENT)))).orElse(null);
         if (command.kind() == PersonnelCommandKind.HIRE) {
             if (!employeeRows.isEmpty()) {
                 throw refused("the employee already has versions; a hire is the first");

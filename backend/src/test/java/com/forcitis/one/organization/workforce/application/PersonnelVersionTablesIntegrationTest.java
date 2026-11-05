@@ -14,12 +14,15 @@ class PersonnelVersionTablesIntegrationTest extends WorkforceIntegrationSupport 
     static final String COMMAND = "'019a0000-0000-7000-8000-0000000000c1'";
     static final String LATER_COMMAND = "'019a0000-0000-7000-8000-0000000000c2'";
 
+    String relationship;
+
     @BeforeEach
     void employeesAndCommands() {
         for (String id : new String[] {EMPLOYEE, OTHER_EMPLOYEE}) {
             jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values ("
                     + id + ", 'E-' || right(" + id + ", 2), 'name', 'EMPLOYED')").update();
         }
+        relationship = "'" + EmploymentRelationshipSeed.relationship(jdbc, java.util.UUID.fromString(EMPLOYEE.replace("'", ""))) + "'";
         command(COMMAND, "SEPARATE", "PENDING");
         command(LATER_COMMAND, "REGULARIZE", "PENDING", 1);
     }
@@ -29,17 +32,17 @@ class PersonnelVersionTablesIntegrationTest extends WorkforceIntegrationSupport 
     }
 
     private void command(String id, String kind, String status, int days) {
-        jdbc.sql("insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status,"
-                + " created_at, created_by, updated_at) values (" + id + ", " + EMPLOYEE + ", '" + kind + "', date '2026-11-01' + " + days + ", '" + status
+        jdbc.sql("insert into organization_workforce.personnel_commands (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status,"
+                + " created_at, created_by, updated_at) values (" + id + ", " + relationship + ", " + EMPLOYEE + ", '" + kind + "', date '2026-11-01' + " + days + ", '" + status
                 + "', now(), " + USER + ", now())").update();
     }
 
     private void version(String id, String from, String to, String status, String startDate, String basis, String channel, String commandId, String superseded) {
         boolean employed = status.equals("EMPLOYED");
-        jdbc.sql("insert into organization_workforce.employee_versions (employee_version_id, employee_id, effective_from_date, effective_to_date,"
+        jdbc.sql("insert into organization_workforce.employment_relationship_versions (employment_relationship_version_id, employment_relationship_id, employee_id, effective_from_date, effective_to_date,"
                 + " employment_status, employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,"
                 + " change_channel_kind, change_command_id, version_audit_entry_id, closed_at, superseded_at, superseding_command_id, created_at, updated_at)"
-                + " values ('" + id + "', " + EMPLOYEE + ", date '" + from + "', " + (to == null ? "null" : "date '" + to + "'") + ", '" + status + "', "
+                + " values ('" + id + "', " + relationship + ", " + EMPLOYEE + ", date '" + from + "', " + (to == null ? "null" : "date '" + to + "'") + ", '" + status + "', "
                 + (employed ? "'REGULAR'" : "null") + ", false, true, " + (startDate == null ? "null" : "date '" + startDate + "'") + ", "
                 + (basis == null ? "null" : "'" + basis + "'") + ", '" + channel + "', " + commandId + ", "
                 + (channel.equals("COMMAND") ? USER : "null") + ", " + (to == null ? "null" : "now()") + ", " + (superseded == null ? "null" : "now()")
@@ -53,13 +56,13 @@ class PersonnelVersionTablesIntegrationTest extends WorkforceIntegrationSupport 
     @DisplayName("W2 PR-B an employed version carries a start date and its basis; a migrated row may have an unknown start; a separated version has neither")
     void employmentStartColumnsFollowTheStatus() {
         version(V1, "2026-01-01", null, "EMPLOYED", "2020-02-29", "DECLARED", "COMMAND", COMMAND, null);
-        assertThat(jdbc.sql("select count(*) from organization_workforce.employee_versions").query(Long.class).single()).isEqualTo(1L);
+        assertThat(jdbc.sql("select count(*) from organization_workforce.employment_relationship_versions").query(Long.class).single()).isEqualTo(1L);
 
-        assertThatThrownBy(() -> version(V2, "2026-02-01", null, "EMPLOYED", null, null, "MIGRATION", "null", null)).hasMessageContaining("ck_employee_versions_employment_start_employed");
-        assertThatThrownBy(() -> version(V2, "2026-02-01", null, "EMPLOYED", null, "DECLARED", "MIGRATION", "null", null)).hasMessageContaining("ck_employee_versions_employment_start_known");
-        assertThatThrownBy(() -> version(V2, "2026-02-01", null, "EMPLOYED", "2026-03-01", "HR_PROVIDED", "MIGRATION", "null", null)).hasMessageContaining("ck_employee_versions_employment_start_not_after");
-        assertThatThrownBy(() -> version(V2, "2026-02-01", null, "SEPARATED", "2020-01-01", "DECLARED", "MIGRATION", "null", null)).hasMessageContaining("ck_employee_versions_employment_start_employed");
-        assertThatThrownBy(() -> version(V2, "2026-02-01", null, "EMPLOYED", "2020-01-01", "GUESSED", "MIGRATION", "null", null)).hasMessageContaining("ck_employee_versions_employment_start_basis_kind");
+        assertThatThrownBy(() -> version(V2, "2026-02-01", null, "EMPLOYED", null, null, "MIGRATION", "null", null)).hasMessageContaining("ck_employment_relationship_versions_employment_start_employed");
+        assertThatThrownBy(() -> version(V2, "2026-02-01", null, "EMPLOYED", null, "DECLARED", "MIGRATION", "null", null)).hasMessageContaining("ck_employment_relationship_versions_employment_start_known");
+        assertThatThrownBy(() -> version(V2, "2026-02-01", null, "EMPLOYED", "2026-03-01", "HR_PROVIDED", "MIGRATION", "null", null)).hasMessageContaining("ck_employment_relationship_versions_employment_start_not_after");
+        assertThatThrownBy(() -> version(V2, "2026-02-01", null, "SEPARATED", "2020-01-01", "DECLARED", "MIGRATION", "null", null)).hasMessageContaining("ck_employment_relationship_versions_employment_start_employed");
+        assertThatThrownBy(() -> version(V2, "2026-02-01", null, "EMPLOYED", "2020-01-01", "GUESSED", "MIGRATION", "null", null)).hasMessageContaining("ck_employment_relationship_versions_employment_start_basis_kind");
     }
 
     @Test
@@ -67,7 +70,7 @@ class PersonnelVersionTablesIntegrationTest extends WorkforceIntegrationSupport 
     void unknownStartIsStorable() {
         version(V1, "2026-01-01", null, "EMPLOYED", null, "UNKNOWN", "MIGRATION", "null", null);
 
-        assertThat(jdbc.sql("select employment_start_basis_kind from organization_workforce.employee_versions").query(String.class).single()).isEqualTo("UNKNOWN");
+        assertThat(jdbc.sql("select employment_start_basis_kind from organization_workforce.employment_relationship_versions").query(String.class).single()).isEqualTo("UNKNOWN");
     }
 
     @Test
@@ -76,10 +79,10 @@ class PersonnelVersionTablesIntegrationTest extends WorkforceIntegrationSupport 
         version(V1, "2026-01-01", null, "EMPLOYED", "2020-01-01", "DECLARED", "COMMAND", COMMAND, null);
 
         assertThatThrownBy(() -> version(V2, "2026-03-01", null, "EMPLOYED", "2020-01-01", "DECLARED", "COMMAND", COMMAND, null))
-                .hasMessageContaining("ex_employee_versions_overlap");
+                .hasMessageContaining("ex_employment_relationship_versions_overlap");
 
-        jdbc.sql("update organization_workforce.employee_versions set superseded_at = now(), superseding_command_id = " + LATER_COMMAND
-                + ", updated_at = now() where employee_version_id = '" + V1 + "'").update();
+        jdbc.sql("update organization_workforce.employment_relationship_versions set superseded_at = now(), superseding_command_id = " + LATER_COMMAND
+                + ", updated_at = now() where employment_relationship_version_id = '" + V1 + "'").update();
         version(V2, "2026-03-01", null, "EMPLOYED", "2020-01-01", "DECLARED", "COMMAND", COMMAND, null);
     }
 
@@ -87,15 +90,15 @@ class PersonnelVersionTablesIntegrationTest extends WorkforceIntegrationSupport 
     @DisplayName("W2 PR-B the closing and superseding columns are set once, nothing else of a version changes")
     void versionRowsAreAppendOnly() {
         version(V1, "2026-01-01", null, "EMPLOYED", "2020-01-01", "DECLARED", "COMMAND", COMMAND, null);
-        String where = " where employee_version_id = '" + V1 + "'";
+        String where = " where employment_relationship_version_id = '" + V1 + "'";
 
-        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.employee_versions set is_fee_earner = false" + where).update())
+        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.employment_relationship_versions set is_fee_earner = false" + where).update())
                 .hasMessageContaining("only the closing and superseding columns");
-        assertThat(jdbc.sql("update organization_workforce.employee_versions set effective_to_date = date '2026-06-01', closed_at = now(), updated_at = now()" + where).update()).isEqualTo(1);
-        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.employee_versions set effective_to_date = date '2026-07-01'" + where).update())
+        assertThat(jdbc.sql("update organization_workforce.employment_relationship_versions set effective_to_date = date '2026-06-01', closed_at = now(), updated_at = now()" + where).update()).isEqualTo(1);
+        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.employment_relationship_versions set effective_to_date = date '2026-07-01'" + where).update())
                 .hasMessageContaining("is set once");
-        assertThat(jdbc.sql("update organization_workforce.employee_versions set superseded_at = now(), superseding_command_id = " + LATER_COMMAND + ", updated_at = now()" + where).update()).isEqualTo(1);
-        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.employee_versions set superseding_command_id = " + COMMAND + where).update())
+        assertThat(jdbc.sql("update organization_workforce.employment_relationship_versions set superseded_at = now(), superseding_command_id = " + LATER_COMMAND + ", updated_at = now()" + where).update()).isEqualTo(1);
+        assertThatThrownBy(() -> jdbc.sql("update organization_workforce.employment_relationship_versions set superseding_command_id = " + COMMAND + where).update())
                 .hasMessageContaining("is set once");
     }
 
@@ -136,7 +139,7 @@ class PersonnelVersionTablesIntegrationTest extends WorkforceIntegrationSupport 
         assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "HIRE", "PENDING")).hasMessageContaining("ck_personnel_commands_hire_columns");
         assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "TRANSFER", "HELD")).hasMessageContaining("ck_personnel_commands_held_kind");
         assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "CORRECTION", "PENDING")).hasMessageContaining("ck_personnel_commands_correction_immediate");
-        assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "SEPARATE", "PENDING")).hasMessageContaining("uk_personnel_commands_open_per_day");
+        assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "SEPARATE", "PENDING")).hasMessageContaining("uk_personnel_commands_open_per_relationship_day");
         assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "UNPAID_LEAVE_START", "WITHDRAWN")).hasMessageContaining("ck_personnel_commands_unpaid_leave");
     }
 

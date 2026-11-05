@@ -142,9 +142,10 @@ class EventSequenceContinuityTest {
         checkMany(() -> com.forcitis.one.organization.workforce.domain.PersonnelCommand.enter(
                         new com.forcitis.one.organization.workforce.api.PersonnelCommandId(TestIds.uuid(1)), new EmployeeId(TestIds.uuid(2)),
                         new com.forcitis.one.organization.workforce.api.EnterPersonnelCommand(new EmployeeId(TestIds.uuid(2)),
-                                com.forcitis.one.organization.workforce.api.PersonnelCommandKind.REGULARIZE, TODAY, null, null, null, null, null, null, null, null, null, null),
+                                com.forcitis.one.organization.workforce.api.PersonnelCommandKind.REGULARIZE, TODAY, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                                new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(TestIds.uuid(4))),
                         new UserId(TestIds.uuid(3)), NOW, TODAY, 7),
-                List.of(c -> c.recordEffect(null, null, null), c -> c.withdraw(new UserId(TestIds.uuid(3)), "synthetic", NOW), c -> c.withdraw(new UserId(TestIds.uuid(3)), " ", NOW)));
+                List.of(c -> c.recordEffect(null, null, null, new com.forcitis.one.organization.workforce.domain.PersonnelHistory(List.of(), List.of(), List.of(), List.of(), List.of(), java.util.Map.of())), c -> c.withdraw(new UserId(TestIds.uuid(3)), "synthetic", NOW), c -> c.withdraw(new UserId(TestIds.uuid(3)), " ", NOW)));
     }
 
     @Test
