@@ -17,6 +17,9 @@ public interface InitialVersionMigrationRepository {
     /** Employees whose current assignment version differs from the assignment snapshot; counted for HR, never overwritten. */
     long countAssignmentConflicts(LocalDate today);
 
+    /** Whether the person already has a relationship or the attribution names an employer on the first day; nobody else is migrated (design 7, the reject list). */
+    boolean hasEmployerOn(EmployeeId employee, LocalDate firstDay);
+
     void insertEmployeeVersion(EmployeeId employee, InitialVersionPlan.Row row, Instant at);
 
     /** Writes the person's assignment snapshot as an open MIGRATION assignment version from the given day. */

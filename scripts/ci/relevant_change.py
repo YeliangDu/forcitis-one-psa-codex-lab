@@ -31,6 +31,8 @@ READ_BY_BUILDS = (
     # R-1b P5 acceptance (EventEnvelopeContractTest, the rename ITs) read the field list and the aggregate register
     "docs/architecture/events/event-analytics-fields.md",
     "docs/architecture/ssot/aggregates/built.yaml",
+    # NamingSurfaceTest.everyContextIsARegisteredBoundedContext reads the context list (#1427)
+    "docs/architecture/ssot/domain/contexts.yaml",
     # ADR37-1 guards: the credential deny list (CredentialColumnGuardTest) and the runbook that must not list a check switch (ReadOnlyCheckSwitchGuardTest)
     "docs/data/evidence/dba-handoff/credential-columns.csv",
     "docs/ops/infra-runbook.md",

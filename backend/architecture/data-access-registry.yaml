@@ -34,6 +34,18 @@ tables:
     writers: [cost.timesheet]
 
 
+  # D17 rule 2: master data, effective basis not needed, "a single state the audit can fully reconstruct" (ADR-0046 decision 8.6; data design record accounting-spine-p1, #1434): one status that only moves forward, every open is an audit record.
+  # The aggregate class is FiscalPeriod: kernel.AccountingPeriod is already the year-and-month value record that callers pass to the gate.
+  accounting_period.fiscal_periods:
+    role: AGGREGATE_ROOT
+    aggregate: FiscalPeriod
+    mutability: CONDITIONAL_UPDATE
+    condition: "OPEN to CLOSING and CLOSING to CLOSED, status, updated_at and version only; a CLOSED row never changes; no delete, no truncate (tg_fiscal_periods_change, tg_fiscal_periods_truncate)"
+    business_key: [legal_entity_id, fiscal_year_number, period_number]
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [accounting.period]
+
   # 卡 A 只建立数据库基线；当前没有 Java SQL 使用方，后续卡随仓储实现登记 writers。
   organization_administration.config_sets:
     role: CONFIG_VERSIONED
@@ -163,13 +175,24 @@ tables:
     lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
     readers: [organization.workforce]  # nothing writes it any more since ADR-0069 s9: the snapshot sync is the last reader path; the table goes with the reconciliation (#1222)
   # W2 PR-B (data design W2_EMPLOYEE_POSITION_VERSIONING_DESIGN section 3.2, signed in reviews/W2-PR-B.md): no writer yet, the personnel commands and the reads land with the next cards.
-  organization_workforce.employee_versions:
+  # IMP-1372 (ADR-0086, data design employment-relationship.md appendix A): one row per employee and employer; append-only except the one-time confirmation of a migrated row.
+  organization_workforce.employment_relationships:
+    role: AGGREGATE_CHILD
+    aggregate: Employee
+    mutability: CONDITIONAL_UPDATE
+    condition: 只有 employer_source_kind 为 MIGRATION_ATTRIBUTION 且 employer_confirmed_at 为空的行可更新一次（只置确认时刻与更新时刻，用人单位不变），之后冻结（触发器 tg_employment_relationships_append_only，ADR-0086 决定 2 的回填确认）
+    business_key: [employee_id, employer_legal_entity_id]
+    retention: {policy: PERMANENT}  # 个人任职史随员工清除：离职满 10 年删除；清除次序：保全、版本、命令、任职根、雇佣关系（关系最后删，其余三表对它有 RESTRICT 外键）；清除函数须加入本表（清除作业另批）
+    lineage: {source: NEW}
+    references: {employee_id: organization_workforce.employees, employer_legal_entity_id: organization_workforce.legal_entities, predecessor_relationship_id: organization_workforce.employment_relationships}
+    writers: [organization.workforce]
+  organization_workforce.employment_relationship_versions:
     role: DIMENSION_VERSIONED
     aggregate: Employee
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}  # 个人任职史版本表：离职满 10 年删除该员工的行（RETENTION_PROPOSAL 第 16 行，W2 第 8 节清理通道另批）
     lineage: {source: NEW}
-    references: {corrected_from_version_id: organization_workforce.employee_versions, change_command_id: organization_workforce.personnel_commands, superseding_command_id: organization_workforce.personnel_commands}
+    references: {employment_relationship_id: organization_workforce.employment_relationships, corrected_from_version_id: organization_workforce.employment_relationship_versions, change_command_id: organization_workforce.personnel_commands, superseding_command_id: organization_workforce.personnel_commands}
     writers: [organization.workforce]
   organization_workforce.personnel_commands:
     role: AGGREGATE_CHILD
@@ -272,7 +295,7 @@ tables:
     condition: 关闭列对与作废列对各只能由空变非空一次，已关闭的行也可被作废，其余列不变，不删除（触发器 tg_assignment_versions_append_only，ADR-0068 15.1，W2 设计第 2 节）
     retention: {policy: PERMANENT}
     lineage: {source: ORG_SOURCE}
-    references: {assignment_id: organization_workforce.employee_assignments, corrected_from_version_id: organization_workforce.assignment_versions, change_command_id: organization_workforce.personnel_commands, superseding_command_id: organization_workforce.personnel_commands}
+    references: {assignment_id: organization_workforce.employee_assignments, employment_relationship_id: organization_workforce.employment_relationships, corrected_from_version_id: organization_workforce.assignment_versions, change_command_id: organization_workforce.personnel_commands, superseding_command_id: organization_workforce.personnel_commands}
     writers: [organization.workforce]
   # legal_entities is the current-value projection of the open row of legal_entity_versions: code, name and status are written in the same transaction as the version
   # (history in the versions table); WorkforceRowConstraintsIntegrationTest checks that the root equals its open version.

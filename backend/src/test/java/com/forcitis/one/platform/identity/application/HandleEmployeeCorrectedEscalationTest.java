@@ -116,7 +116,7 @@ class HandleEmployeeCorrectedEscalationTest {
         EventEnvelope envelope = new EventEnvelope(base.eventId(), base.eventType(), base.schemaVersion(), base.occurredAt(), base.aggregateType(),
                 base.aggregateId(), base.aggregateVersion(), base.correlationId(), null, ActorType.SYSTEM, base.actorId(), legalEntity, null, null, List.of());
         return new EmployeeCorrected(envelope, new PersonnelCommandId(UUID.randomUUID()), employee, LocalDate.of(2026, 11, 2), null,
-                kinds, previousOrgUnit, new OrgUnitId(UUID.randomUUID()), null, null);
+                kinds, previousOrgUnit, new OrgUnitId(UUID.randomUUID()), null, null, new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
     }
 
     private void handle(EmployeeCorrected event) {
@@ -191,7 +191,7 @@ class HandleEmployeeCorrectedEscalationTest {
                 base.aggregateId(), base.aggregateVersion(), base.correlationId(), null, ActorType.SYSTEM, base.actorId(), null, null, null, List.of());
 
         handle(new EmployeeCorrected(envelope, new PersonnelCommandId(UUID.randomUUID()), employee, LocalDate.of(2026, 11, 2), null,
-                List.of(TriggerFieldKind.POSITION), unit, unit, new PositionId(UUID.randomUUID()), new PositionId(UUID.randomUUID())));
+                List.of(TriggerFieldKind.POSITION), unit, unit, new PositionId(UUID.randomUUID()), new PositionId(UUID.randomUUID()), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1"))));
 
         assertThat(inserted().triggerField()).isEqualTo(TriggerFieldKind.POSITION);
     }
@@ -201,7 +201,7 @@ class HandleEmployeeCorrectedEscalationTest {
     void noEmploymentOrNoFieldRaisesNothing() {
         EmployeeCorrected ended = correction(new LegalEntityId(UUID.randomUUID()), List.of(TriggerFieldKind.ORG_UNIT), new OrgUnitId(UUID.randomUUID()));
         handle(new EmployeeCorrected(ended.envelope(), ended.personnelCommandId(), employee, ended.affectedFrom(), null, ended.triggerFieldKinds(),
-                ended.previousOrgUnitId(), null, null, null));
+                ended.previousOrgUnitId(), null, null, null, new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1"))));
         handle(correction(new LegalEntityId(UUID.randomUUID()), List.of(), new OrgUnitId(UUID.randomUUID())));
 
         verify(adjustments, never()).insert(any());

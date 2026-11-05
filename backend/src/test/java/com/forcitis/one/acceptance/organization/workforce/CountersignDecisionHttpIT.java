@@ -173,7 +173,7 @@ class CountersignDecisionHttpIT extends OrgCountersignSupport {
 
     private long versionsWrittenBy(UUID command) throws SQLException {
         long total = 0;
-        for (String table : List.of("employee_versions", "assignment_versions", "employee_legal_entities")) {
+        for (String table : List.of("employment_relationship_versions", "assignment_versions", "employee_legal_entities")) {
             total += (long) rows("select count(*) as n from " + table + " where change_command_id = ?", command).get(0).get("n");
         }
         return total;
@@ -181,7 +181,7 @@ class CountersignDecisionHttpIT extends OrgCountersignSupport {
 
     private long currentVersionsWrittenBy(UUID command) throws SQLException {
         long total = 0;
-        for (String table : List.of("employee_versions", "assignment_versions", "employee_legal_entities")) {
+        for (String table : List.of("employment_relationship_versions", "assignment_versions", "employee_legal_entities")) {
             total += (long) rows("select count(*) as n from " + table + " where change_command_id = ? and superseded_at is null", command).get(0).get("n");
         }
         return total;

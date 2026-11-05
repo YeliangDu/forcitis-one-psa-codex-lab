@@ -40,20 +40,29 @@ class MigrateInitialVersions {
     }
 
     @Transactional
-    public String execute(WorkforceOperationAttestation attestation) {
+    public String execute(WorkforceOperationAttestation attestation, boolean dryRun) {
         Instant now = clock.instant();
         LocalDate today = zone.dateOf(now);
         long skipped = migration.countEmployeesWithVersions();
         int employedPeople = 0;
         int separatedPeople = 0;
         int assignmentsBackfilled = 0;
+        int withoutAttribution = 0;
         for (InitialVersionPlan.SnapshotPerson person : migration.lockEmployeesWithoutVersions()) {
             EmployeeId employee = new EmployeeId(person.id());
-            for (InitialVersionPlan.Row row : InitialVersionPlan.rowsFor(person, today)) {
-                migration.insertEmployeeVersion(employee, row, now);
+            if (!migration.hasEmployerOn(employee, InitialVersionPlan.firstDay(person, today))) {
+                withoutAttribution++;
+                continue;
+            }
+            if (!dryRun) {
+                for (InitialVersionPlan.Row row : InitialVersionPlan.rowsFor(person, today)) {
+                    migration.insertEmployeeVersion(employee, row, now);
+                }
+                if (person.missingAssignmentVersion()) {
+                    migration.insertAssignmentVersionFromSnapshot(employee, InitialVersionPlan.firstDay(person, today), now);
+                }
             }
             if (person.missingAssignmentVersion()) {
-                migration.insertAssignmentVersionFromSnapshot(employee, InitialVersionPlan.firstDay(person, today), now);
                 assignmentsBackfilled++;
             }
             if (person.employed()) {
@@ -64,7 +73,10 @@ class MigrateInitialVersions {
         }
         long differing = migration.countAssignmentConflicts(today);
         String summary = "employedMigrated=" + employedPeople + " separatedMigrated=" + separatedPeople + " assignmentVersionsBackfilled="
-                + assignmentsBackfilled + " skippedWithVersions=" + skipped + " assignmentsDifferingFromSnapshot=" + differing;
+                + assignmentsBackfilled + " skippedWithVersions=" + skipped + " skippedWithoutAttribution=" + withoutAttribution + " assignmentsDifferingFromSnapshot=" + differing;
+        if (dryRun) {
+            return "dry run, nothing written: " + summary;
+        }
         audit.record(new AuditEntry("organization.workforce.initial-versions.migrated", null, null, AuditSubject.without(AuditSubjectKind.OPERATION),
                 "operatorId=" + attestation.operator() + " witnessId=" + attestation.witness() + " " + summary));
         return summary;
