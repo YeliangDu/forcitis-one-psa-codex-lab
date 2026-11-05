@@ -19,12 +19,12 @@ function rowOf(text: string) {
   return within(row);
 }
 
-describe('账号授权记录页', () => {
+describe('用户账号授权记录页', () => {
   it('选一个账号，每条授权显示来源（授予渠道的中文），列头可按名称找到', async () => {
     const server = stubServer({ ...ACCOUNTS, 'GET account-role-grants': { body: { items: GRANTS, nextCursor: null } } });
     renderWithProviders(<AccountGrantsPage />);
 
-    await userEvent.selectOptions(await screen.findByLabelText('账号'), USER);
+    await userEvent.selectOptions(await screen.findByLabelText('用户账号'), USER);
 
     expect(await screen.findByRole('columnheader', { name: '来源' })).toBeInTheDocument();
     expect(rowOf('employee').getByText('建档默认角色')).toBeInTheDocument();
@@ -36,7 +36,7 @@ describe('账号授权记录页', () => {
     stubServer({ ...ACCOUNTS, 'GET account-role-grants': { body: { items: GRANTS, nextCursor: null } } });
     renderWithProviders(<AccountGrantsPage />);
 
-    await userEvent.selectOptions(await screen.findByLabelText('账号'), USER);
+    await userEvent.selectOptions(await screen.findByLabelText('用户账号'), USER);
     await screen.findByRole('columnheader', { name: '来源' });
 
     expect(screen.queryByText(GRANTER)).not.toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('账号授权记录页', () => {
     const server = stubServer(ACCOUNTS);
     renderWithProviders(<AccountGrantsPage />);
 
-    expect(await screen.findByLabelText('账号')).toBeInTheDocument();
+    expect(await screen.findByLabelText('用户账号')).toBeInTheDocument();
     expect(server.calls.some((call) => call.url.includes('account-role-grants'))).toBe(false);
   });
 
@@ -54,7 +54,7 @@ describe('账号授权记录页', () => {
     stubServer({ ...ACCOUNTS, 'GET account-role-grants': { body: { items: [{ roleCode: 'employee', channel: 'FUTURE_CHANNEL', effectiveFrom: '2026-01-05T00:00:00Z' }], nextCursor: null } } });
     renderWithProviders(<AccountGrantsPage />);
 
-    await userEvent.selectOptions(await screen.findByLabelText('账号'), USER);
+    await userEvent.selectOptions(await screen.findByLabelText('用户账号'), USER);
 
     expect(await screen.findByText('FUTURE_CHANNEL')).toBeInTheDocument();
   });

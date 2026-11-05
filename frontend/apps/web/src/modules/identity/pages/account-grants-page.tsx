@@ -19,20 +19,20 @@ export function AccountGrantsPage() {
   const grants = useAccountGrants(userId);
 
   if (accounts.isPending) return <LoadingState />;
-  if (accounts.isError) return <Notice tone="error" title="账号加载失败">{describeFailure(accounts.error)}</Notice>;
+  if (accounts.isError) return <Notice tone="error" title="用户账号加载失败">{describeFailure(accounts.error)}</Notice>;
 
   const options = [NONE, ...accounts.data.map((account) => ({ value: account.userId, label: accountLabel(account) }))];
 
   return (
     <>
-      <PageTitle text="账号授权记录" />
-      <SelectField label="账号" value={userId} options={options} onChange={setUserId} />
+      <PageTitle text="用户账号授权记录" />
+      <SelectField label="用户账号" value={userId} options={options} onChange={setUserId} />
       {userId === '' ? null : grants.isError ? (
         <Notice tone="error" title="授权记录加载失败">{describeFailure(grants.error)}</Notice>
       ) : grants.isPending ? (
         <LoadingState />
       ) : (
-        <DataTable columns={COLUMNS} rows={grants.data} rowKey={(grant) => `${grant.roleCode}|${grant.effectiveFrom}`} emptyText="这个账号没有授权记录" />
+        <DataTable columns={COLUMNS} rows={grants.data} rowKey={(grant) => `${grant.roleCode}|${grant.effectiveFrom}`} emptyText="这个用户账号没有授权记录" />
       )}
     </>
   );

@@ -59,7 +59,7 @@ describe('应用外壳与登录状态', () => {
     stubServer({ 'GET sessions:current': { body: currentUserBody([], NAVIGATION) }, 'GET user-accounts': { body: { items: [], nextCursor: null } } });
     renderWithProviders(<AppRoutes />, { route: '/admin/account-grants' });
 
-    expect(await screen.findByLabelText('账号')).toBeInTheDocument();
+    expect(await screen.findByLabelText('用户账号')).toBeInTheDocument();
   });
 
   it('授权申请页里申请人自己确认被拒（403 带业务码）：留在本页并显示提示，不进权限不足页', async () => {
