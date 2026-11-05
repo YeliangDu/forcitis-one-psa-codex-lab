@@ -26,7 +26,7 @@ import org.jspecify.annotations.Nullable;
 public final class AuthorizationRequest extends AggregateRoot {
 
     public static final StateMachine<AuthorizationRequestStatus> MACHINE = StateMachine.of(AuthorizationRequestStatus.class)
-            .allow(AuthorizationRequestStatus.PENDING, AuthorizationRequestStatus.CONFIRMED, AuthorizationRequestStatus.REJECTED)
+            .allow(AuthorizationRequestStatus.PENDING, AuthorizationRequestStatus.CONFIRMED, AuthorizationRequestStatus.REJECTED, AuthorizationRequestStatus.VOIDED)
             .allow(AuthorizationRequestStatus.CONFIRMED, AuthorizationRequestStatus.VOIDED)
             .build();
 
@@ -113,7 +113,7 @@ public final class AuthorizationRequest extends AggregateRoot {
         record((envelopes, version) -> new AuthorizationConfirmed(envelopes.wrap(draft("AuthorizationConfirmed", version)), requestId, by));
     }
 
-    /** The base moved between the request and its execution: nothing is applied and the request ends here, kept as it was decided. */
+    /** Nothing is applied and the request ends here: its base moved between the request and its execution, or (from PENDING) the subject or the requester separated (#1322). */
     public void markVoided() {
         this.status = MACHINE.require(status, AuthorizationRequestStatus.VOIDED, IdentityError.PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_PENDING);
         record((envelopes, version) -> new AuthorizationVoided(envelopes.wrap(draft("AuthorizationVoided", version)), requestId));

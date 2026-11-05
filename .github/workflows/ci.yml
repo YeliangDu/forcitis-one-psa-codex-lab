@@ -2,7 +2,7 @@ name: ci
 
 on:
   pull_request:
-    # labeled: the merge queue labels the head of the queue `queued`, which starts the heavy steps (scripts/ci/heavy_gate.py); any other label skips every job
+    # 排队中 (waiting in the merge queue, no `queued` yet): every job skips, see queue-notice. labeled: the merge queue labels the head of the queue `queued`, which starts the heavy steps (scripts/ci/heavy_gate.py); any other label skips every job
     types: [opened, synchronize, reopened, labeled]
   push:
     branches: [main]
@@ -23,12 +23,21 @@ concurrency:
 
 # Self-hosted runners (docs/ops/ci-runners.md). Their toolchain is installed on the machine, so the steps check versions instead of installing.
 # Three tiers (scripts/ci/relevant_change.py): docs (nothing the builds read changed: light checks only), guarded (only docs that container-free tests, the glossary copy scripts or the release scripts read: just those run, on every pull request event), code (everything). A push to main and the nightly run are always tier code.
-# Heavy steps (backend tests, SQL Server tests, frontend verify) run only for a pull request labelled `queued` and never on a push to main (scripts/ci/heavy_gate.py), where the nightly schedule runs everything; the light steps run on every event. Every job runs on every pull request and ends green, so the required checks always report; a documentation-only change skips the heavy steps (backend, frontend, release script self-test) via scripts/ci/relevant_change.py. A push to main runs the light steps (release approval depends on it).
+# Heavy steps (backend tests, SQL Server tests, frontend verify) run only for a pull request labelled `queued` and never on a push to main (scripts/ci/heavy_gate.py), where the nightly schedule runs everything; the light steps run on every event. Every job runs on every pull request and ends green, so the required checks always report, except a pull request waiting in the merge queue (label 排队中, no `queued`): it runs no job, only queue-notice, and the queue's run at its turn reports the required checks; a documentation-only change skips the heavy steps (backend, frontend, release script self-test) via scripts/ci/relevant_change.py. A push to main runs the light steps (release approval depends on it).
 # OpenAPI and the frontend generated code are not tracked (frontend/packages/api/README.md): the api-contract job exports and generates them on every event, because the contract tests read them, and the backend and frontend jobs download this run's products; it never publishes a main snapshot.
 jobs:
+  # a pull request waiting in the merge queue (label 排队中, policy.json labels.queue_waiting) and not yet at its turn (no `queued`) starts no work: its run is discarded when the queue's own run at its turn decides the merge (#1300). The jobs below skip, so GitHub lists their checks under the unexpanded name templates, which are not the required checks; this job says why.
+  queue-notice:
+    name: 排队中，合入时由合并队列检查 (checked by the merge queue at merge time)
+    if: ${{ !(github.event.action == 'labeled' && github.event.label.name != 'queued') && contains(github.event.pull_request.labels.*.name, '排队中') && !contains(github.event.pull_request.labels.*.name, 'queued') }}
+    runs-on: [self-hosted, forcitis-one]
+    timeout-minutes: 2
+    steps:
+      - run: echo "This pull request waits in the merge queue. Its checks run when the queue takes it (label queued), with main merged in; that run decides the merge." >> "$GITHUB_STEP_SUMMARY"
+
   api-contract:
     name: export OpenAPI and generate frontend API
-    if: ${{ !(github.event.action == 'labeled' && github.event.label.name != 'queued') }}
+    if: ${{ !((github.event.action == 'labeled' && github.event.label.name != 'queued') || (contains(github.event.pull_request.labels.*.name, '排队中') && !contains(github.event.pull_request.labels.*.name, 'queued'))) }}
     runs-on: [self-hosted, forcitis-one]
     timeout-minutes: 20
     steps:
@@ -58,7 +67,7 @@ jobs:
 
   backend:
     needs: api-contract
-    if: ${{ always() && !(github.event.action == 'labeled' && github.event.label.name != 'queued') }}
+    if: ${{ always() && !((github.event.action == 'labeled' && github.event.label.name != 'queued') || (contains(github.event.pull_request.labels.*.name, '排队中') && !contains(github.event.pull_request.labels.*.name, 'queued'))) }}
     # the check name gains ' (light)' when this pull request run will not run the heavy steps: the required check then stays 'expected' until the queue labels the pull request
     name: backend verify (Modulith + ArchUnit guardrails + integration tests)${{ github.event_name == 'pull_request' && (!contains(github.event.pull_request.labels.*.name, 'queued') || (github.event.action == 'labeled' && github.event.label.name != 'queued')) && ' (light)' || '' }}
     runs-on: [self-hosted, forcitis-one]
@@ -231,7 +240,7 @@ jobs:
 
   frontend:
     needs: api-contract
-    if: ${{ always() && !(github.event.action == 'labeled' && github.event.label.name != 'queued') }}
+    if: ${{ always() && !((github.event.action == 'labeled' && github.event.label.name != 'queued') || (contains(github.event.pull_request.labels.*.name, '排队中') && !contains(github.event.pull_request.labels.*.name, 'queued'))) }}
     name: frontend verify (typecheck + lint guardrails F1-F14 + structure + build)${{ github.event_name == 'pull_request' && (!contains(github.event.pull_request.labels.*.name, 'queued') || (github.event.action == 'labeled' && github.event.label.name != 'queued')) && ' (light)' || '' }}
     runs-on: [self-hosted, forcitis-one]
     defaults:
@@ -291,7 +300,7 @@ jobs:
   gitleaks:
     # a skipped required check counts as passed: on a label event other than `queued` it reports under another name
     name: secret scan (gitleaks)${{ github.event.action == 'labeled' && github.event.label.name != 'queued' && ' (light)' || '' }}
-    if: ${{ !(github.event.action == 'labeled' && github.event.label.name != 'queued') }}
+    if: ${{ !((github.event.action == 'labeled' && github.event.label.name != 'queued') || (contains(github.event.pull_request.labels.*.name, '排队中') && !contains(github.event.pull_request.labels.*.name, 'queued'))) }}
     runs-on: [self-hosted, forcitis-one]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

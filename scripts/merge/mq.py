@@ -18,13 +18,12 @@ counts as up to date: no sync, no new CI run; a lack that includes a middle-tier
 updates and goes through CI again.
 
 Per pull request: cancel the CI runs of the other queued pull requests (not those of one labelled `急`, which is also picked first in its lane) (they are re-run after their own update; until then they only take runners), bring the branch up to date (gh update-branch; a pull request that
-touches .github/workflows is updated by a local merge pushed over ssh, because the gh token lacks the workflow scope), label it `queued` (heavy CI steps run only with the label, scripts/ci/heavy_gate.py), wait for the
+touches .github/workflows is updated by a local merge pushed over ssh, because the gh token lacks the workflow scope), label it `queued` (a pull request waiting in the queue carries the label of policy.json labels.queue_waiting, mq_waiting.py, and ci.yml skips its jobs until `queued`; heavy CI steps run only with the label, scripts/ci/heavy_gate.py), wait for the
 checks while cancelling the others' runs, rerun failed checks once, then merge with a merge commit, pinned to the head that was checked (`--match-head-commit`). Merge only when `gh pr checks` lists the three
 required checks (backend verify, frontend verify, secret scan, none of them with the " (light)" suffix) and every one of them is `pass`; "no failure so far" is never enough (a head still running is not green).
 Conflicts with main: the queue merges main in (over ssh when gh cannot); a text conflict goes back to the author (CONFLICT).
 Release. Before it spends CI on a pull request, and again under the merge lock right before the merge, the queue reads the reviews and comments: the newest statement that speaks for the head must be a 通过 (release_verdict). When nothing speaks for the head and it only merges main into an earlier head (the queue's own update: second parent on main, the tree of a clean merge), the earlier head's verdict carries over.
-A first-round review speaks for the head when it was posted on it or on a commit whose patch-id (git patch-id --verbatim, computed by the queue) equals the head's (a rebase, or the queue's own merge of main, that leaves the change as it was);
-a dispatcher comment `调度批准入队 head <sha>` (the coordinator letting a 必改 fix through) speaks for the head it names or one with the same patch-id, but only on a branch that names a session of policy.json sessions.config other than lead: on lead's own branch, an old or unknown branch name, or no branch it does not count and a first-round review must pass (#856). Docs-lane pull requests need no review unless they touch a guarded path (policy.json review.final_paths). Not released: HOLD.
+A first-round review speaks for the head when it was posted on it or on a commit whose patch-id (git patch-id --verbatim, computed by the queue) equals the head's (a rebase, or the queue's own merge of main, that leaves the change as it was); a dispatcher comment `调度批准入队 head <sha>` (the coordinator letting a 必改 fix through) speaks for the head it names or one with the same patch-id, but only on a branch that names a session of policy.json sessions.config other than lead: on lead's own branch, an old or unknown branch name, or no branch it does not count and a first-round review must pass (#856). Docs-lane pull requests need no review unless they touch a guarded path (policy.json review.final_paths). Not released: HOLD.
 Read-back. After the merge call GitHub must show the pull request MERGED with the pinned head as the second parent of the merge commit; otherwise ALERT READBACK and both lanes pause until `mq.py resume`.
 Outcomes: MERGED, CONFLICT (text conflict with main in a file a person wrote: back to the author), HOLD (red after the rerun, CI timeout, closed, not released, an update that could not be pushed, attempts exhausted: reported to the coordinator).
 
@@ -33,15 +32,12 @@ cancelled (a push run is cancelled by the next push, so the newest run alone say
 acknowledges exactly the runs named, so the same red run does not pause again, a new red run does. When gh cannot answer, the lanes wait without a pause file (WAIT-SIGNAL).
 Docs merges and code pull requests. A docs pull request (tier=docs: nothing a build or test reads) that merges while a code pull request is in its CI does not make that one stale: the code pull request is counted as up to date
 and merges on the CI it already has (no BEHIND-AT-MERGE, no new run), so the docs lane never waits for the code lane. That rests on relevant_change.py, whose self-test fails when a build or test reads a doc it does not list.
-Main checkout (FF-MAIN). After every merge the queue fetches and fast-forwards the main checkout (the repository root, not a worktree) to origin/main, so the hooks and scripts there never run old versions.
-It does so only when that checkout is on main, has no change to a tracked file and no commit origin/main lacks; otherwise it leaves it alone, logs ALERT and pauses both lanes until `mq.py resume` (without run ids) after a person has looked. One `mq.py run` or `once` per queue (flock on mq.runner.lock); the ssh update of two lanes never shares its scratch worktree (flock on <queue>.ssh-lock). A push to main runs the light steps and every container-free
+Main checkout (FF-MAIN). After every merge the queue fetches and fast-forwards the main checkout (the repository root, not a worktree) to origin/main, so the hooks and scripts there never run old versions. It does so only when that checkout is on main, has no change to a tracked file and no commit origin/main lacks; otherwise it leaves it alone, logs ALERT and pauses both lanes until `mq.py resume` (without run ids) after a person has looked. One `mq.py run` or `once` per queue (flock on mq.runner.lock); the ssh update of two lanes never shares its scratch worktree (flock on <queue>.ssh-lock). A push to main runs the light steps and every container-free
 unit test (ci.yml), the nightly the full ci: together they are the alarm for a merge whose tree no full run tested exactly as merged.
 
-Gap scan. Every 30 minutes the runner looks at all open pull requests, whether or not the queue is empty (scripts/merge/gapscan.py): conflict, red CI, approved but not queued (a comment `调度批准入队 head <sha>`), no commit or comment for an hour.
-It cannot message a session: a GAPS line in the log and <queue dir>/gaps.md say who owns what (branch [claude/]<session>-... -> session, names from policy.json sessions.config), the session watching the log forwards it. The same pull request and reason is reported once in 4 hours.
+Gap scan. Every 30 minutes the runner looks at all open pull requests, whether or not the queue is empty (scripts/merge/gapscan.py): conflict, red CI, approved but not queued (a comment `调度批准入队 head <sha>`), no commit or comment for an hour. It cannot message a session: a GAPS line in the log and <queue dir>/gaps.md say who owns what (branch [claude/]<session>-... -> session, names from policy.json sessions.config), the session watching the log forwards it. The same pull request and reason is reported once in 4 hours.
 
-Drift check. At start and every 24 hours the runner runs scripts/merge/driftscan.py (report only): dropped pull requests, worktree markers, a runner older than main, absent card owners, a stale lead handoff.
-One DRIFT line in the log when there are new findings, the full list in <queue dir>/drift.md; the same finding is reported once in 24 hours. Run `driftscan.py` by hand for the list now.
+Drift check. At start and every 24 hours the runner runs scripts/merge/driftscan.py (report only): dropped pull requests, worktree markers, a runner older than main, absent card owners, a stale lead handoff. One DRIFT line in the log when there are new findings, the full list in <queue dir>/drift.md; the same finding is reported once in 24 hours. Run `driftscan.py` by hand for the list now.
 
 Queue file: one pull request number per line, optionally "<n> after=<m>[,<m>...]" (`mq.py enqueue <n> --after <m>`: n is not started until every m is MERGED, whatever lane either is in; WAIT-DEP in the log
 while it waits and again every hour, HOLD when a dependency was closed unmerged;
@@ -66,6 +62,7 @@ import driftscan   # noqa: E402
 import gapscan   # noqa: E402
 import issue_gate   # noqa: E402  (one title check for post_review and the merge)
 import mq_acceptance, mq_title   # noqa: E402  (the acceptance guard and the title check at enqueue)
+import mq_waiting   # noqa: E402  (the label of a pull request waiting for its turn)
 import post_review   # noqa: E402  (the machine-read header of a review: one parser for the poster and the queue)
 from mq_github import Gh, SignalError, failure_detail, sh, update_over_ssh   # noqa: E402,F401  (the GitHub and git side)
 from mq_queue import LINE, Log, Queue   # noqa: E402,F401  (the queue file and the log)
@@ -287,6 +284,7 @@ class Processor:
 
     def pick(self, lane):
         """First queued pull request of this lane that no worker has; one labelled `急` (URGENT_LABEL, put on by the coordinator) comes before the others."""
+        mq_waiting.reconcile(self.gh, self.queue.numbers(), self.log)   # the waiting label follows queue membership: whoever left the queue loses it
         views = {}
         for n in self.queue.numbers():
             with self.guard:
@@ -950,11 +948,13 @@ def main(argv=None):
             raise SystemExit(f"nothing queued: {e}")
         note_conflicts_at_enqueue(a.prs)
         record_heads(q, a.prs)
+        mq_waiting.mark(Gh(), added, log)   # no CI run of its own while it waits (ci.yml); `queued` at its turn starts the one that decides
         for n in a.prs:
             if n not in added:
                 print(f"#{n} is already queued" + (f"; now waits for {sorted(q.deps(n))} (a pull request already being processed does not look at it again)" if a.after else " (a pull request being processed stays queued until it is done)"), file=sys.stderr)
     elif a.cmd == "remove":
         busy = q.remove_checked(set(a.prs), a.cancel)
+        mq_waiting.reconcile(Gh(), q.numbers(), log)
         for n in set(a.prs) - set(busy):
             q.drop_head(n)
         if busy and not a.cancel:
