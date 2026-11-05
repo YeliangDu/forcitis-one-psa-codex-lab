@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """One card, one clear (rules.md ②, #1080, #1453): a session whose pull request merged writes its handoff, ends the turn, and lead clears it. The mechanism, not memory, holds it.
 
---stop       Stop hook. Two triggers, no skip for a second stop in the same turn (the host's continuation limit bounds it):
+--stop       Stop hook. Two triggers, no skip for a second stop in the same turn (a child releases itself by writing its handoff; lead is released by clearing the child):
              child  A pull request owned by this session (branch `claude/<session>-…`, `Closes #n` or `Refs #n` on its first line; the owner is gapscan.author_session, the map the
                     merge queue uses) merged after the last handoff write blocks until a new handoff is written. The baseline is the mtime of `state/<session>/handoff.md`, so only
                     the merges since then are looked up (a handful, within the budget); without a handoff file it is the transcript's first timestamp.
@@ -85,7 +85,7 @@ def gh_view(root, n):
 
 
 def closing_pr(session, prs, owners, gapscan, view, cache, save, deadline):
-    """(pr, card) of the first of `prs` that `session` owns and that closed its card, else None. `cache` {pr: [owner, card or None]} is filled in and
+    """(pr, card) of the first of `prs` that `session` owns and that carries a card line (`Closes` or `Refs`), else None. `cache` {pr: [owner, card or None]} is filled in and
     `save`d after every lookup; past `deadline` (time.monotonic) the lookups stop with Unreadable and the next stop continues from the cache."""
     for n in prs:
         if str(n) not in cache:
@@ -346,7 +346,7 @@ def self_test():
         code, out, err = stop(io.StringIO("not json"), {}, None, BUDGET, state, projects)
         assert code == 0 and "【钩子告警】" in out, "unreadable input fails open"
         setup(session="one-lead", log=[(after, 7)])
-        assert run({7: ("claude/one-lead-x", "Closes #5")}) == passes + ([],), "lead is never blocked"
+        assert run({7: ("claude/one-lead-x", "Closes #5")}) == passes + ([],), "lead with no handed-over child is not blocked"
         setup(marker=False, log=[(after, 7)])
         assert run(mine) == passes + ([],), "a workspace without a session marker passes"
         setup(session="not-a-session", log=[(after, 7)])
