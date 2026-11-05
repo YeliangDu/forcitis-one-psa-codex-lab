@@ -62,11 +62,17 @@ public final class PersonnelCommandRules {
         boolean holdsPrimary = all.primaryRoot().map(root -> all.currentAssignmentRows(root.id()).stream()
                 .anyMatch(r -> ending.equals(r.relationshipId()) && r.endsAfter(day) && r.covers(day.minusDays(1)))).orElse(false);
         boolean otherStays = all.currentEmployeeRows().stream().anyMatch(r -> !ending.equals(r.relationshipId()) && r.covers(day)
-                && "EMPLOYED".equals(r.values().get(CommandEffects.EMPLOYMENT)));
+                && "EMPLOYED".equals(r.values().get(CommandEffects.EMPLOYMENT)) && !endsByOpenSeparation(r.relationshipId(), day, all));
         if (holdsPrimary && otherStays) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PRIMARY_ASSIGNMENT_ON_ENDING_RELATIONSHIP, ErrorKind.CONFLICT,
                     "the relationship holds the person's primary post while another relationship stays in service on " + day + "; the person would be left without a primary post");
         }
+    }
+
+    /** A relationship with a written separation on or before the day is gone by then, even while the separation is held or waiting for its date. */
+    private static boolean endsByOpenSeparation(@Nullable EmploymentRelationshipId relationship, LocalDate day, PersonnelHistory all) {
+        return relationship != null && all.commands().stream().anyMatch(o -> o.kind() == PersonnelCommandKind.SEPARATE && o.status().isOpen()
+                && relationship.equals(o.employmentRelationshipId()) && !o.effectiveDate().isAfter(day));
     }
 
     /**
