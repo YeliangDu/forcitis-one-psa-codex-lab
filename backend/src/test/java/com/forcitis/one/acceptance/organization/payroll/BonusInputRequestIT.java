@@ -72,7 +72,7 @@ class BonusInputRequestIT extends BonusInputSupport {
         refusedWithNoApproval(relationship, OCTOBER.plusDays(1), "100.00", "CNY", "YEAR_END", entity);
         refusedWithNoApproval(relationship, OCTOBER, "0.00", "CNY", "YEAR_END", entity);
         refusedWithNoApproval(relationship, OCTOBER, "-5.00", "CNY", "YEAR_END", entity);
-        refusedWithNoApproval(relationship, OCTOBER, "123456789012345678.00", "CNY", "YEAR_END", entity);
+        refusedWithNoApproval(relationship, OCTOBER, "9".repeat(18) + ".00", "CNY", "YEAR_END", entity);
         refusedWithNoApproval(relationship, OCTOBER, "100.00", "USD", "YEAR_END", entity);
         refusedWithNoApproval(relationship, OCTOBER, "100.00", "CNY", "year_end", entity);
         refusedWithNoApproval(relationship, OCTOBER, "100.00", "CNY", "A", entity);
@@ -80,7 +80,7 @@ class BonusInputRequestIT extends BonusInputSupport {
         refusedWithNoApproval(relationship, OCTOBER, "100.00", "CNY", "1ABC", entity);
 
         int before = bonusApprovals().size();
-        request(specialistAccount, requestOf(relationship, entity, OCTOBER, "12345678901234567.00", "CNY", "AB", UUID.randomUUID()));
+        request(specialistAccount, requestOf(relationship, entity, OCTOBER, "9".repeat(17) + ".00", "CNY", "AB", UUID.randomUUID()));
         request(specialistAccount, requestOf(relationship, entity, OCTOBER.plusMonths(1), "0.01", "CNY", "A" + "B".repeat(39), UUID.randomUUID()));
         assertThat(bonusApprovals()).as("the boundary values are accepted: 17 integer digits, the smallest amount, reason keys of 2 and 40 characters")
                 .hasSize(before + 2);
