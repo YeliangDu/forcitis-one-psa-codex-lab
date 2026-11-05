@@ -24,12 +24,12 @@ components:
         publisher: organization.workforce
         consumers:
         - platform.audit
+        - accounting.ledger
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 无：不是带日期的业务里程碑（运维或配置变更）
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.LegalEntityStateMachineTest
-        noConsumer: 暂无消费方：法人是核算、授权与分析共同的维度，1b 的核算与分析模块将订阅；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
     LegalEntityRenamed:
       name: LegalEntityRenamed
       title: 法人改名

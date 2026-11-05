@@ -9,10 +9,10 @@ import com.forcitis.one.TestPostgres;
 import com.forcitis.one.accounting.ledger.application.BackfillLedgers;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.RegisteredLegalEntities;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
-import com.forcitis.one.organization.workforce.api.LegalEntityDirectory;
 import com.forcitis.one.organization.workforce.events.LegalEntityRegistered;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.time.Duration;
@@ -44,7 +44,7 @@ class LedgerBooksIT {
     WecomGateway wecomGateway;
 
     @MockitoBean
-    LegalEntityDirectory directory;
+    RegisteredLegalEntities registered;
 
     @Autowired
     ApplicationEventPublisher publisher;
@@ -68,7 +68,7 @@ class LedgerBooksIT {
     private LegalEntityRegistered registered(UUID entity) {
         EventEnvelope envelope = new EventEnvelope(ids.next(), "organization.workforce.LegalEntityRegistered", 1, Instant.parse("2026-11-05T02:00:00Z"), "LegalEntity", entity, 1,
                 ids.next(), null, ActorType.USER, TestIds.uuid(9001), new LegalEntityId(entity), null, null, List.of());
-        return new LegalEntityRegistered(envelope, new LegalEntityId(entity), new LegalEntityCode("BK1"));
+        return new LegalEntityRegistered(envelope, new LegalEntityId(entity), new LegalEntityCode("BKA"));
     }
 
     @Test
@@ -96,7 +96,7 @@ class LedgerBooksIT {
         jdbc.sql("""
                 insert into accounting_ledger.ledgers (id, legal_entity_id, basis_kind, created_at, updated_at)
                 values (:a, :entity, 'ACCRUAL', now(), now()), (:c, :entity, 'CASH', now(), now())""").param("a", ids.next()).param("c", ids.next()).param("entity", full).update();
-        when(directory.allIds()).thenReturn(List.of(new LegalEntityId(none), new LegalEntityId(half), new LegalEntityId(full)));
+        when(registered.all()).thenReturn(List.of(new LegalEntityId(none), new LegalEntityId(half), new LegalEntityId(full)));
 
         assertThat(backfill.execute()).isEqualTo(3);
         assertThat(basesOf(none)).containsExactly("ACCRUAL", "CASH");
