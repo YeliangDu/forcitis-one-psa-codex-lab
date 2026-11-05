@@ -681,6 +681,8 @@ organization.workforce::api organization.workforce.api.PositionId public final r
 organization.workforce::api organization.workforce.api.PositionId public java.lang.String organization.workforce.api.PositionId.toString()
 organization.workforce::api organization.workforce.api.PositionId public java.util.UUID organization.workforce.api.PositionId.value()
 organization.workforce::api organization.workforce.api.PositionId public organization.workforce.api.PositionId(java.util.UUID)
+organization.workforce::api organization.workforce.api.PositionLookup public abstract boolean organization.workforce.api.PositionLookup.isActive(organization.workforce.api.PositionId)
+organization.workforce::api organization.workforce.api.PositionLookup public abstract interface organization.workforce.api.PositionLookup
 organization.workforce::api organization.workforce.api.PreviewOrgUnitMerge component effectiveDate: java.time.LocalDate
 organization.workforce::api organization.workforce.api.PreviewOrgUnitMerge component mergeIntoOrgUnitId: organization.workforce.api.OrgUnitId
 organization.workforce::api organization.workforce.api.PreviewOrgUnitMerge component targetOrgUnitId: organization.workforce.api.OrgUnitId
