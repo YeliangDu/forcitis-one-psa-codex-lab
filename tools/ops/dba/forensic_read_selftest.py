@@ -46,6 +46,8 @@ BAD_CHECKS = {
     "deny missing": check_text([r for r in BASE_ROWS if r[:3] != ("dbperm", "D:0", "DELETE")]),
     "extra grant": check_text(BASE_ROWS + [("dbperm", "G:0", "INSERT")]),
     "grant with option": check_text([("dbperm", "W:0", "SELECT") if r[:3] == ("dbperm", "G:0", "SELECT") else r for r in BASE_ROWS]),
+    "object grant": check_text(BASE_ROWS + [("dbperm", "G:1", "SELECT")]),
+    "object deny of another permission": check_text(BASE_ROWS + [("dbperm", "D:1", "UPDATE")]),
     "class 4 grant": check_text(BASE_ROWS + [("dbperm", "G:4", "CONNECT")]),
     "role": check_text(BASE_ROWS + [("role", "db_datareader", "-")]),
     "server role": check_text(BASE_ROWS + [("srvrole", "sysadmin", "-")]),
@@ -160,6 +162,10 @@ def main():
         for why, bad in BAD_CHECKS.items():
             code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [bad, GOOD_DBS, ROW_DATA])
             assert code == 2 and "account check failed" in err and fake.sent == [f.CHECK_SQL] and not Path(path).exists() , why
+        # object-level DENY SELECT (D:1) only narrows the account: it passes the account check; the same rows with a grant instead are the "object grant" case above
+        deny_rows = BASE_ROWS + [("dbperm", "D:1", "SELECT"), ("dbperm", "D:1", "SELECT")]
+        code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [check_text(deny_rows), GOOD_DBS, ROW_DATA])
+        assert code == 0 and Path(path).exists(), (code, err)
         # the login must reach exactly the configured databases (plus the platform guest ones): one more, one fewer, none
         for bad in (GOOD_DBS + "  extra\n", GOOD_DBS.replace("  db1\n", ""), "  # name\n  (0 rows)\n", "  # name\n  db1\n  master\nSQLERROR 1222 x\n", GOOD_DBS.rsplit("  (", 1)[0], GOOD_DBS + "SQLERROR 1222 x\n"):
             code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [GOOD_CHECK, bad, ROW_DATA])
@@ -226,14 +232,14 @@ def main():
         for field in ("command_id", "aliyun_profile", "app_public_key_file", "app_client_file", "app_key_file"):
             code, err, out, fake, log, _ = entry(tmp, "SELECT 1", conf={k: v for k, v in CONF.items() if k != field})
             assert code == 2 and "lacks a required field" in err and not log, (field, err, log)
-        calls = []
+        calls, answered = [], {"id": "sec"}
         def recorder(cmd, *a, **k):
             calls.append(cmd)
             action = cmd[1:3]
             if action == ["ecs", "InvokeCommand"]:
                 return subprocess.CompletedProcess(cmd, 0, stdout=json.dumps({"InvokeId": "t-1"}), stderr="")
             out = base64.b64encode(f"REV:{f.command_rev(CONF_WITH_PUB(tmp))}\nEVIDENCE:QUJD\n".encode()).decode()
-            return subprocess.CompletedProcess(cmd, 0, stdout=json.dumps({"Invocation": {"InvocationResults": {"InvocationResult": [{"InvocationStatus": "Success", "Output": out}]}}}), stderr="")
+            return subprocess.CompletedProcess(cmd, 0, stdout=json.dumps({"Invocation": {"InvocationResults": {"InvocationResult": [{"InstanceId": answered["id"], "InvocationStatus": "Success", "Output": out}]}}}), stderr="")
         subprocess.run, real_sleep = recorder, f.time.sleep
         f.time.sleep = lambda s: None
         try:
@@ -249,6 +255,20 @@ def main():
         assert json.loads(base64.urlsafe_b64decode(parameters["req"] + "==")) == {"op": "encrypt"}
         read = next(c for c in calls if c[2] == "DescribeInvocationResults")
         assert read[read.index("--CommandId") + 1] == "c-test", "results are read for the command only"
+        assert "--InstanceId" not in read, "the result query carries no InstanceId filter"
+        # the returned target is checked: a result of another host is refused, a result without a target too
+        subprocess.run, f.time.sleep = recorder, (lambda s: None)
+        try:
+            for returned in ("app", None):
+                answered["id"] = returned
+                try:
+                    f.Cloud(CONF).invoke("sec", {"op": "encrypt"})
+                    raise AssertionError("a result of another target was accepted")
+                except f.Refused as error:
+                    assert "not for the host" in str(error), str(error)
+        finally:
+            subprocess.run, f.time.sleep = real_run, real_sleep
+            answered["id"] = "sec"
         assert all(c[:3] in (["aliyun", "ecs", "InvokeCommand"], ["aliyun", "ecs", "DescribeInvocationResults"]) for c in calls), calls
         assert not re.search(r"RunCommand|CreateCommand|ModifyCommand|SendFile|Session", (HERE / "forensic_read.py").read_text().replace("no RunCommand, no command creation", "")), "the entry names no other cloud action"
         # a request longer than one parameter can carry is refused before any call
