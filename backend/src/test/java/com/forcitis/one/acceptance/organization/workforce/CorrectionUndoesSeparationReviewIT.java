@@ -267,7 +267,10 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
     // ---- real EmployeeTransferred (personnel command) and the escalation due date (one-design ruling A-6, #730 comment 6600968506) ----
 
     private static final java.time.ZoneId BUSINESS_ZONE = java.time.ZoneId.of("Asia/Shanghai");
-    /** The second weekday after TODAY is the entity's own holiday (a Wednesday when TODAY is a Monday, as it was when the case was written). */
+    /**
+     * The second weekday after TODAY is the entity's own holiday; the entity calendar is saved for that day's own year, so a year change needs no change here.
+     * The due dates (five weekdays on) must fall in a year whose default calendar is maintained, which production requires too (an unmaintained year refuses).
+     */
     private static final LocalDate HOLIDAY_OF_X = weekdaysAfter(TODAY, 2, java.util.Set.of());
 
     /** The day that is the n-th weekday after the start, skipping Saturdays, Sundays and the given holidays (the default calendar has weekends off only). */
