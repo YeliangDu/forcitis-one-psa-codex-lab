@@ -10,20 +10,26 @@ const browser = await chromium.launch({ args: ['--host-resolver-rules=MAP one.fo
 const context = await browser.newContext({ ignoreHTTPSErrors: true });
 const page = await context.newPage();
 const violations = [];
+// reported to node at once: the local login does a full page load, which would throw away anything kept in the page
+await page.exposeFunction('reportCsp', (where, text) => { violations.push(`${where}: ${text}`); });
 await context.addInitScript(() => {
-  document.addEventListener('securitypolicyviolation', (e) => { (window.__csp ??= []).push(`${e.violatedDirective} blocked ${e.blockedURI || 'inline'} at ${e.sourceFile.split('/').pop()}:${e.lineNumber} ${(e.sample || '').slice(0, 60)}`); });
+  document.addEventListener('securitypolicyviolation', (e) => {
+    window.reportCsp(location.pathname, `${e.violatedDirective} blocked ${e.blockedURI || 'inline'} at ${e.sourceFile.split('/').pop()}:${e.lineNumber} ${(e.sample || '').slice(0, 60)}`);
+  });
 });
-const collect = async (label) => { for (const v of await page.evaluate(() => window.__csp ?? [])) violations.push(`${label}: ${v}`); };
 
 const response = await page.goto(`${base}/login`);
-console.log('header:', (await response.headerValue('content-security-policy')) ?? 'MISSING');
+const header = await response.headerValue('content-security-policy');
+console.log('header:', header ?? 'MISSING');
 await page.getByText('本机登录：Synthetic Admin').click();
 await page.waitForURL((url) => !url.pathname.startsWith('/login'));
-await collect('login page');
-await page.goto(`${base}/admin/org-units`);
+const adminResponse = await page.goto(`${base}/admin/org-units`);
 await page.waitForLoadState('networkidle');
 console.log('admin page title text present:', (await page.locator('body').innerText()).length > 0, 'url:', page.url().replace(base, ''));
-await collect('admin page');
+const adminHeader = await adminResponse.headerValue('content-security-policy');
 await browser.close();
+// a browser reports nothing when no policy arrives, so a missing header is a failure of its own
+const missing = header === null || adminHeader === null;
+if (missing) console.log('CSP header MISSING on a page response');
 console.log(violations.length === 0 ? 'CSP violations: 0' : `CSP violations: ${violations.length}\n${[...new Set(violations)].join('\n')}`);
-process.exit(violations.length === 0 ? 0 : 1);
+process.exit(violations.length === 0 && !missing ? 0 : 1);

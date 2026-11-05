@@ -1,7 +1,7 @@
 #!/bin/bash
 # Card #1506: serves the built web client (frontend/apps/web/dist, run `pnpm build` there first) behind the real tools/ops/ecs/files/nginx-one.conf in a local
 # container, proxying /api to the local stack (tools/ops/local/local.sh up), and reports Content-Security-Policy violations. Never production; the certificate is a
-# throwaway self-signed one in a temp dir. Only three things differ from the shipped file: certificate paths, the proxy target and the port.
+# throwaway self-signed one in a temp dir. Only the certificate paths and the proxy target are rewritten; the shipped file is otherwise used as it is.
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/../../.." && pwd)"
@@ -27,9 +27,12 @@ for _ in $(seq 1 20); do curl -ksS -o /dev/null --resolve one.forcitis.com:18443
 # add_header is not inherited by a location that has its own: every kind of response must carry the policy
 ASSET=""
 for f in "$DIST"/assets/*.js; do ASSET="/assets/$(basename "$f")"; break; done
+MISSING=0
 for path in / /admin/org-units "$ASSET" /WW_verify_x.txt /api/v1/platform/sessions:current; do
   headers="$(curl -ksI --resolve one.forcitis.com:18443:127.0.0.1 "https://one.forcitis.com:18443$path")"
-  printf '%-40s %s CSP=%s\n' "$path" "$(head -1 <<<"$headers" | tr -d '\r')" "$(grep -qi '^content-security-policy:' <<<"$headers" && echo yes || echo NO)"
+  if grep -qi '^content-security-policy:' <<<"$headers"; then present=yes; else present=NO; MISSING=1; fi
+  printf '%-40s %s CSP=%s\n' "$path" "$(head -1 <<<"$headers" | tr -d '\r')" "$present"
 done
+[ "$MISSING" = 0 ] || { echo "csp_check.sh: a response came without the Content-Security-Policy header" >&2; exit 1; }
 # Playwright comes from the web app (added by card #1478); CSP_NODE_DIR names another web app directory that has it
 cd "${CSP_NODE_DIR:-$REPO/frontend/apps/web}" && node "$HERE/csp_check.mjs" https://one.forcitis.com:18443
