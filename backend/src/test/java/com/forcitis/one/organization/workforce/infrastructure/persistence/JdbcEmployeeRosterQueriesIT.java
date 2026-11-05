@@ -65,9 +65,9 @@ class JdbcEmployeeRosterQueriesIT {
         JdbcEmployeeRosterQueries queries = new JdbcEmployeeRosterQueries(jdbc, Clock.fixed(TODAY.atTime(4, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC), zone);
 
         Visible onlyA = new Visible(false, Set.of(unitA));
-        assertThat(codes(queries.list(onlyA, null, EmploymentStatus.SEPARATED, null, 10))).containsExactly("RQ-1");
-        assertThat(codes(queries.list(new Visible(false, Set.of(unitB)), null, EmploymentStatus.SEPARATED, null, 10))).isEmpty();
-        assertThat(codes(queries.list(new Visible(true, Set.of()), unitA, EmploymentStatus.SEPARATED, null, 10))).containsExactly("RQ-1");
+        assertThat(codes(queries.list(onlyA, null, EmploymentStatus.SEPARATED, false, null, 10))).containsExactly("RQ-1");
+        assertThat(codes(queries.list(new Visible(false, Set.of(unitB)), null, EmploymentStatus.SEPARATED, false, null, 10))).isEmpty();
+        assertThat(codes(queries.list(new Visible(true, Set.of()), unitA, EmploymentStatus.SEPARATED, false, null, 10))).containsExactly("RQ-1");
         Row row = queries.find(onlyA, gone).orElseThrow();
         assertThat(row.assignments()).extracting(a -> a.orgUnitId()).containsExactly(unitA);
         assertThat(queries.find(onlyA, stays)).isEmpty();
@@ -111,10 +111,10 @@ class JdbcEmployeeRosterQueriesIT {
         JdbcEmployeeRosterQueries queries = new JdbcEmployeeRosterQueries(jdbc, Clock.fixed(TODAY.atTime(4, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC), zone);
 
         assertThat(queries.find(new Visible(true, Set.of()), person).orElseThrow().assignments()).extracting(a -> a.positionName()).containsExactly("post");
-        assertThat(codes(queries.list(new Visible(false, Set.of(withdrawn)), null, null, null, 10))).isEmpty();
+        assertThat(codes(queries.list(new Visible(false, Set.of(withdrawn)), null, null, false, null, 10))).isEmpty();
         assertThat(queries.find(new Visible(false, Set.of(withdrawn)), person)).isEmpty();
-        assertThat(codes(queries.list(new Visible(false, Set.of(current)), null, null, null, 10))).containsExactly("RS-1");
-        assertThat(codes(queries.list(new Visible(true, Set.of()), null, EmploymentStatus.SEPARATED, null, 10))).doesNotContain("RS-1");
+        assertThat(codes(queries.list(new Visible(false, Set.of(current)), null, null, false, null, 10))).containsExactly("RS-1");
+        assertThat(codes(queries.list(new Visible(true, Set.of()), null, EmploymentStatus.SEPARATED, false, null, 10))).doesNotContain("RS-1");
     }
 
     @Test
@@ -129,11 +129,29 @@ class JdbcEmployeeRosterQueriesIT {
         JdbcEmployeeRosterQueries queries = new JdbcEmployeeRosterQueries(jdbc, Clock.fixed(TODAY.atTime(4, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC), zone);
         Visible all = new Visible(true, Set.of());
 
-        assertThat(codes(queries.list(all, unit, null, first, 10))).containsExactly("RX-2", "RX-3");
-        assertThat(queries.list(all, unit, null, last, 10)).as("the last row as cursor is the true end").isEmpty();
-        assertThat(queries.list(new Visible(false, Set.of(unit)), null, null, first, 10)).hasSize(2);
-        assertThatThrownBy(() -> queries.list(new Visible(false, Set.of(unit("RX-B"))), null, null, first, 10)).isInstanceOf(InvalidCursorException.class);
-        assertThatThrownBy(() -> queries.list(all, unit, EmploymentStatus.EMPLOYED, first, 10)).isInstanceOf(InvalidCursorException.class);
+        assertThat(codes(queries.list(all, unit, null, false, first, 10))).containsExactly("RX-2", "RX-3");
+        assertThat(queries.list(all, unit, null, false, last, 10)).as("the last row as cursor is the true end").isEmpty();
+        assertThat(queries.list(new Visible(false, Set.of(unit)), null, null, false, first, 10)).hasSize(2);
+        assertThatThrownBy(() -> queries.list(new Visible(false, Set.of(unit("RX-B"))), null, null, false, first, 10)).isInstanceOf(InvalidCursorException.class);
+        assertThatThrownBy(() -> queries.list(all, unit, EmploymentStatus.EMPLOYED, false, first, 10)).isInstanceOf(InvalidCursorException.class);
+    }
+
+    @Test
+    @DisplayName("#1530 the roster marks a person on unpaid leave and ON_UNPAID_LEAVE keeps only them, while EMPLOYED still lists them too")
+    void unpaidLeaveIsMarkedAndFiltered() {
+        OrgUnitId unit = unit("RL-A");
+        UUID position = ids.next();
+        jdbc.sql("insert into organization_workforce.positions (id, code, name, sort_order, status) values (:id, 'RL-P', 'post', 1, 'ACTIVE')").param("id", position).update();
+        EmployeeId resting = person("RL-1", unit, position, "EMPLOYED", LocalDate.of(2025, 1, 1), true);
+        person("RL-2", unit, position, "EMPLOYED", LocalDate.of(2025, 1, 1));
+        JdbcEmployeeRosterQueries queries = new JdbcEmployeeRosterQueries(jdbc, Clock.fixed(TODAY.atTime(4, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC), zone);
+        Visible all = new Visible(true, Set.of());
+
+        assertThat(codes(queries.list(all, unit, null, true, null, 10))).containsExactly("RL-1");
+        assertThat(codes(queries.list(all, unit, EmploymentStatus.EMPLOYED, false, null, 10))).containsExactly("RL-1", "RL-2");
+        assertThat(queries.list(all, unit, null, false, null, 10)).extracting(Row::employeeCode, Row::onUnpaidLeave).containsExactly(
+                org.assertj.core.groups.Tuple.tuple("RL-1", true), org.assertj.core.groups.Tuple.tuple("RL-2", false));
+        assertThat(queries.find(all, resting).orElseThrow().onUnpaidLeave()).isTrue();
     }
 
     private static List<String> codes(List<Row> rows) {
@@ -149,6 +167,10 @@ class JdbcEmployeeRosterQueriesIT {
 
     /** A separated person has every post closed on the separation day, exactly as the separation command writes it. */
     private EmployeeId person(String code, OrgUnitId unit, UUID position, String status, LocalDate from) {
+        return person(code, unit, position, status, from, false);
+    }
+
+    private EmployeeId person(String code, OrgUnitId unit, UUID position, String status, LocalDate from, boolean onLeave) {
         UUID id = ids.next();
         boolean employed = status.equals("EMPLOYED");
         jdbc.sql("""
@@ -158,9 +180,9 @@ class JdbcEmployeeRosterQueriesIT {
         jdbc.sql("""
                 insert into organization_workforce.employment_relationship_versions (employment_relationship_version_id, employment_relationship_id, employee_id, effective_from_date, revision_number, employment_status,
                     employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind, change_channel_kind, created_at, updated_at)
-                values (:version, :relationship, :id, :from, 0, :status, :phase, false, false, :start, :basis, 'MIGRATION', now(), now())""")
+                values (:version, :relationship, :id, :from, 0, :status, :phase, :leave, false, :start, :basis, 'MIGRATION', now(), now())""")
                 .param("version", ids.next()).param("relationship", relationship).param("id", id).param("from", from).param("status", status).param("phase", employed ? "REGULAR" : null)
-                .param("start", employed ? from : null).param("basis", employed ? "DECLARED" : null).update();
+                .param("leave", onLeave).param("start", employed ? from : null).param("basis", employed ? "DECLARED" : null).update();
         UUID root = ids.next();
         jdbc.sql("insert into organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at) values (:root, :id, 'PRIMARY', now(), now())")
                 .param("root", root).param("id", id).update();
