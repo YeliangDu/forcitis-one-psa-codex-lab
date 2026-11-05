@@ -709,7 +709,7 @@ def _remove_busy(mq, d):
         except SystemExit as error:
             return str(error)
     q.mark_working(300)
-    assert "cannot be taken back" in cli("remove", "300") and cli("remove", "301", "300") and q.numbers() == [300, 301], "refused, and a refused call removes nothing"
+    assert "cannot be taken back" in cli("remove", "300") and cli("remove", "301", "300") and "mq.py enqueue 99" in (cli("before", "99", "300") or "") and q.numbers() == [300, 301], "refused, and a refused call removes nothing; before refuses an unqueued pull request (exit message names enqueue)"
     assert cli("remove", "301") is None and cli("remove", "--cancel", "300") is None and q.numbers() == [] and q.cancel_requested(300)
     q.unmark_working(300)
     assert not q.cancel_requested(300) and q.working() == {}
