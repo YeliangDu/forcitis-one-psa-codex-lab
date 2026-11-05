@@ -2,7 +2,7 @@
 meta:
   status: proposal
   source: docs/architecture/proposals/enterprise-aggregates-draft.md
-  count: 151
+  count: 156
 rules:
   - id: INV-01
     statement: "一个法律主体一份档案：按证件类型部分唯一——有统一社会信用代码的按该代码唯一，境外主体、自然人等按各自证件类型与号码唯一"
