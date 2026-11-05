@@ -55,6 +55,13 @@ describe('应用外壳与登录状态', () => {
     expect(await screen.findByText('暂无待确认的授权申请')).toBeInTheDocument();
   });
 
+  it('账号授权记录页挂在 /admin/account-grants', async () => {
+    stubServer({ 'GET sessions:current': { body: currentUserBody([], NAVIGATION) }, 'GET user-accounts': { body: { items: [], nextCursor: null } } });
+    renderWithProviders(<AppRoutes />, { route: '/admin/account-grants' });
+
+    expect(await screen.findByLabelText('账号')).toBeInTheDocument();
+  });
+
   it('授权申请页里申请人自己确认被拒（403 带业务码）：留在本页并显示提示，不进权限不足页', async () => {
     const FIRST = '019a0000-0000-7000-8000-000000009001';
     stubServer({
