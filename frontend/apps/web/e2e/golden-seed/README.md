@@ -11,6 +11,7 @@ python3 -I frontend/apps/web/e2e/golden-seed/seed.py --no-clock ...             
 ```
 
 Supported nodes (card #1518): 007, 009, 016, 022, 023 (slice S1) and 026, 027, 030, 031 (S2 candidates); a node outside the table is refused with the first missing step named. 024, 025, 028, 029 belong to other owners (leave, identity, competency, payroll), change no workforce state and are listed as "not seeded". After a run the runner reads the person back and prints each check as ok, MISMATCH or "not readable": the pack checkpoints for relationship count and working state (026, 027, 030) have no public read, so they are listed, not verified (gap for the dev side). The checks compare with the current stack, so a run on a stack that is already past the node shows MISMATCH: wipe first.
+Clock rule: every node sets the clock to its pack day, also back from the real date of a fresh stack (the read-back check prints MISMATCH for a command entered on another day). Only after the administrator mode (card #1499) the stack refuses to move the clock back (409): the runner then says so and leaves it. A set ends the sessions of the move: the runner signs in again.
 
 It logs in as "Synthetic Admin" (local login), builds the small world, and refuses any host but localhost. It is re-runnable.
 

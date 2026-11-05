@@ -92,10 +92,13 @@ class Stack:
         if self.no_clock:
             return
         target = day + "T02:00:00Z"
-        # The clock runs on at the real pace after a set. Never move it back: after the administrator mode (card #1499) the stack refuses that (409), and a re-run of a finished node must leave the clock where it is.
-        if self.call("GET", "/api/v1/platform/local-clocks")["instant"] >= target:
+        answer = self.call("POST", "/api/v1/platform/local-clocks:set", {"at": target}, expect=(200, 201, 202, 204, 409))
+        # After the administrator mode (card #1499) the stack refuses to move the clock back (409): then the clock stays where it is, said out loud. A fresh stack runs on the real date and must be set back to the golden day.
+        if isinstance(answer, dict) and answer.get("errorCode") == "PLATFORM_WEB_LOCAL_CLOCK_HELD":
+            print("clock not moved back to %s: held by the administrator mode; it stays where it is" % target)
             return
-        self.call("POST", "/api/v1/platform/local-clocks:set", {"at": target})
+        if isinstance(answer, dict) and answer.get("status") == 409:
+            sys.exit("POST /api/v1/platform/local-clocks:set -> 409 %s" % answer)
         self.login(self.account)  # sessions age with the clock: the move may have ended ours
 
 
@@ -225,6 +228,10 @@ def verify(stack, world, done):
             kind, day = COMMANDS[node]
             status = next((c["status"] for c in commands if c["employeeId"] == who["employeeId"] and c["commandKind"] == kind and c["effectiveDate"] == day and c["status"] != "WITHDRAWN"), None)
             print("check: HCM-LIFE-%s %s %s is %s %s" % (node, kind, day, status, "ok" if status == "EFFECTIVE" else "MISMATCH (expected EFFECTIVE)"))
+            if not stack.no_clock:
+                # a command entered on the wrong clock day (e.g. the real date of a fresh stack) makes every later date of the world wrong
+                created = next((c["createdAt"][:10] for c in commands if c["employeeId"] == who["employeeId"] and c["commandKind"] == kind and c["effectiveDate"] == day and c["status"] != "WITHDRAWN"), None)
+                print("check: HCM-LIFE-%s %s was entered on %s %s" % (node, kind, created, "ok" if created == NODES[node]["day"] else "MISMATCH (expected %s)" % NODES[node]["day"]))
     for node in done:
         if node in NOT_READABLE:
             print("check: HCM-LIFE-%s pack checkpoint not readable through the public API: %s" % (node, NOT_READABLE[node]))
