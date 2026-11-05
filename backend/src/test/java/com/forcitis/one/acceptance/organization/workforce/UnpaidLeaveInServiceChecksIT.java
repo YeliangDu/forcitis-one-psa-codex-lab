@@ -187,8 +187,8 @@ class UnpaidLeaveInServiceChecksIT extends SeparationHoldSupport {
         startLeave(numbering);
         startLeave(plain);
 
-        assertThat(reviewsAbout(auditor.userId())).as("audit read and export (ADR-0009)").isNotEmpty();
-        assertThat(reviewsAbout(numbering.userId())).as("numbering rule confirmation (ADR-0009)").isNotEmpty();
+        assertThat(whenOpened(() -> reviewsAbout(auditor.userId()))).as("audit read and export (ADR-0009)").isNotEmpty();
+        assertThat(whenOpened(() -> reviewsAbout(numbering.userId()))).as("numbering rule confirmation (ADR-0009)").isNotEmpty();
         assertThat(reviewsAbout(plain.userId())).as("nothing sensitive to review").isEmpty();
     }
 
@@ -201,7 +201,7 @@ class UnpaidLeaveInServiceChecksIT extends SeparationHoldSupport {
 
         startLeave(administrator);
 
-        assertThat(reviewsAbout(administrator.userId())).isNotEmpty();
+        assertThat(whenOpened(() -> reviewsAbout(administrator.userId()))).isNotEmpty();
     }
 
     // ---- timesheet submission (user decision 2026-10-30, Q2 = 丙) ----

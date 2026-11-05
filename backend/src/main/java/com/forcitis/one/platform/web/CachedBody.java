@@ -40,6 +40,11 @@ final class CachedBody implements Closeable {
 
     /** prefix is what is hashed before the body, so the same bytes sent elsewhere hash differently. */
     static CachedBody read(InputStream in, String prefix, long limit) throws IOException {
+        return read(in, prefix, limit, null);
+    }
+
+    /** spoolDirectory is where a large body goes; null is the JVM's temporary directory. */
+    static CachedBody read(InputStream in, String prefix, long limit, Path spoolDirectory) throws IOException {
         MessageDigest digest = sha256();
         digest.update(prefix.getBytes(StandardCharsets.UTF_8));
         ByteArrayOutputStream head = new ByteArrayOutputStream();
@@ -60,7 +65,7 @@ final class CachedBody implements Closeable {
                     continue;
                 }
                 if (spillOut == null) {
-                    spill = Files.createTempFile("idempotent-body-", ".part");
+                    spill = spoolDirectory == null ? Files.createTempFile("idempotent-body-", ".part") : Files.createTempFile(spoolDirectory, "idempotent-body-", ".part");
                     spillOut = Files.newOutputStream(spill);
                     head.writeTo(spillOut);
                     head.reset();

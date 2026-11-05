@@ -63,3 +63,55 @@ components:
         audit: audited
         publisherTest: com.forcitis.one.organization.attendance.domain.WorkCalendarYearTest
         noConsumer: 暂无消费方：这是对工作日历例外修改的审计留痕；现在就发布，是因为例外修改的操作人与日期事后无法还原
+    StandardHoursVersionPublished:
+      name: StandardHoursVersionPublished
+      title: 标准工时的新版本被发布
+      payload:
+        type: object
+        properties:
+          standardHoursVersionId:
+            type: string
+            format: uuid
+            x-type: StandardHoursVersionId
+            description: 新发布的标准工时版本
+          scopeKind:
+            type: string
+            enum: [DEFAULT, LEGAL_ENTITY]
+            x-type: StandardHoursScopeKind
+            description: 版本适用的范围：默认时间线或某个法人自有时间线
+          legalEntityId:
+            type: string
+            format: uuid
+            nullable: true
+            x-type: LegalEntityId
+            description: 法人自有版本的法人；默认范围为空
+          effectiveFromDate:
+            type: string
+            x-type: LocalDate
+            description: 新版本的生效日期
+          workdayMinutes:
+            type: integer
+            x-type: StandardHoursMinutes
+            description: 上班日的标准分钟数
+          adjustedWorkdayMinutes:
+            type: integer
+            x-type: StandardHoursMinutes
+            description: 调休日的标准分钟数
+          versionNumber:
+            type: integer
+            x-type: StandardHoursVersionNumber
+            description: 版本在其范围内的序号，从 1 起，作废的也占号
+      x-event:
+        eventType: organization.attendance.StandardHoursVersionPublished
+        version: 1
+        class: com.forcitis.one.organization.attendance.events.StandardHoursVersionPublished
+        aggregate: StandardHours
+        idempotencyKey: eventId
+        publisher: organization.attendance
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 新版本的生效日期
+        audit: 'not-audited: 发布同事务直写审计 organization.attendance.standard-hours.published'
+        publisherTest: com.forcitis.one.organization.attendance.domain.StandardHoursTest
+        noConsumer: 暂无消费方：只供分析（版本发布的时间线）；发布本身已写审计，事件不替代审计

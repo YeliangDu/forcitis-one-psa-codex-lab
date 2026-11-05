@@ -86,7 +86,7 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
     void orgDataHasNoEditEndpoints() {
         List<String> writes = new ArrayList<>();
         handlerMapping.getHandlerMethods().keySet().forEach(info -> info.getPatternValues().stream()
-                .filter(p -> p.contains("/organization/") && !p.contains("/legal-entities") && !p.contains("-legal-entities/") && !p.contains("/work-calendars")).forEach(p -> info.getMethodsCondition().getMethods().stream()
+                .filter(p -> p.contains("/organization/") && !p.contains("/legal-entities") && !p.contains("-legal-entities/") && !p.contains("/work-calendars") && !p.contains("/standard-hours-versions")).forEach(p -> info.getMethodsCondition().getMethods().stream()
                         .filter(m -> !m.name().equals("GET")).forEach(m -> writes.add(m.name() + " " + p))));
 
         assertThat(writes).containsExactlyInAnyOrder(

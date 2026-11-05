@@ -118,6 +118,7 @@ tables:
   organization_attendance.standard_hours_versions:
     role: DIMENSION_VERSIONED
     aggregate: StandardHours
+    writers: [organization.attendance]
     mutability: APPEND_ONLY
     condition: "the closing of the previous version (effective_to_date null to a date, by the publish of the next version), its reopening and the voiding of a future latest version (status IN_EFFECT to VOIDED once) are the only updates, nothing is deleted (triggers tg_standard_hours_versions_insert, tg_standard_hours_versions_change, tg_standard_hours_versions_void_reopens)"
     retention: {policy: PERMANENT}
@@ -125,6 +126,7 @@ tables:
   organization_attendance.standard_hours_date_overrides:
     role: AGGREGATE_CHILD
     aggregate: StandardHours
+    writers: [organization.attendance]
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}
     lineage: {source: NEW}

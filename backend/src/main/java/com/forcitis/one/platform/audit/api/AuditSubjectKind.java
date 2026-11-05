@@ -16,6 +16,7 @@ public enum AuditSubjectKind {
     ORG_STRUCTURE_COMMAND(true),
     TIMESHEET(true),
     WORK_CALENDAR_YEAR(true),
+    STANDARD_HOURS(true),
     NUMBERING_RULE(true),
     SOURCE_REFERENCE(true),
     SOURCE_REFERENCE_REFUSAL(true),

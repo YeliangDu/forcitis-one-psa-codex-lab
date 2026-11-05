@@ -46,7 +46,8 @@ class SystemRoleDeclarationIT {
                     "platform.audit:own-login-record:read", "platform.file:file:create", "platform.file:file:read")),
             new SeededRole("019a0000-0000-7000-8000-000000000103", "process_administrator", "流程管理员", "SELF", false, List.of()),
             new SeededRole("019a0000-0000-7000-8000-000000000104", "org_data_admin", "组织数据管理员", "ALL", false, List.of(
-                    "organization.attendance:locked-day:update", "organization.attendance:work-calendar:read", "organization.attendance:work-calendar:update",
+                    "organization.attendance:locked-day:update", "organization.attendance:standard-hours:publish", "organization.attendance:standard-hours:read",
+                    "organization.attendance:work-calendar:read", "organization.attendance:work-calendar:update",
                     "organization.workforce:legal-entity-attribution-correction:create", "organization.workforce:legal-entity:update",
                     "organization.workforce:org-structure-command:create", "organization.workforce:org-unit:read",
                     "platform.identity:permission-adjustment:read", "platform.identity:permission-adjustment:update", "platform.integration:source-reference:update", "platform.numbering:numbering-rule:read", "platform.numbering:numbering-rule:update")),
@@ -91,7 +92,7 @@ class SystemRoleDeclarationIT {
         return ids;
     }
 
-    /** ADR-0034 decision 1 item 7 and card 7.2: a role the declaration wrote has exactly one version, number 1, open, SEED, revision 1 (org_data_admin 4, business_admin and security_auditor 2), no recorder, no request. */
+    /** ADR-0034 decision 1 item 7 and card 7.2: a role the declaration wrote has exactly one version, number 1, open, SEED, revision 1 (org_data_admin 6, business_admin and security_auditor 2), no recorder, no request. */
     private static void assertOneSeedVersion(String database) throws SQLException {
         for (SeededRole role : SEED) {
             List<List<Object>> versions = versionsOf(database, role.roleId());
@@ -101,9 +102,9 @@ class SystemRoleDeclarationIT {
             assertThat(version.get(2)).as("%s's version is current", role.code()).isEqualTo(true);
             assertThat(version.get(3)).as("change_channel_kind of %s", role.code()).isEqualTo("SEED");
             // org_data_admin's declared content changed (sync run codes -> org-reconciliation:execute): under the declaration convention changed content raises
-            // the revision, so existing dev databases reconcile instead of refusing to start (lead ruling 2026-11-02 on #1014); #907 changed org_data_admin again.
-            int revision = role.code().equals("org_data_admin") ? 5 : role.code().equals("business_admin") || role.code().equals("security_auditor") ? 2 : 1;
-            assertThat(version.get(4)).as("declaration_revision_number of %s (card 7.2: 声明修订号 1; org_data_admin 2 since #934, 3 since #907, 4 since #730 S3, 5 since #1222; business_admin 2 since #895; security_auditor 2 since #730 S3)", role.code()).isEqualTo(revision);
+            // the revision, so existing dev databases reconcile instead of refusing to start (lead ruling 2026-11-02 on #1014); #907 changed org_data_admin again; #1310 added the standard-hours publish and read codes.
+            int revision = role.code().equals("org_data_admin") ? 6 : role.code().equals("business_admin") || role.code().equals("security_auditor") ? 2 : 1;
+            assertThat(version.get(4)).as("declaration_revision_number of %s (card 7.2: 声明修订号 1; org_data_admin 2 since #934, 3 since #907, 4 since #730 S3, 5 since #1222, 6 since #1310; business_admin 2 since #895; security_auditor 2 since #730 S3)", role.code()).isEqualTo(revision);
             assertThat(version.get(5)).as("recorded_by of a SEED version").isNull();
             assertThat(version.get(6)).as("authorization_request_id of a SEED version").isNull();
             assertThat((String) version.get(7)).as("change_reason of %s", role.code()).isNotBlank();
