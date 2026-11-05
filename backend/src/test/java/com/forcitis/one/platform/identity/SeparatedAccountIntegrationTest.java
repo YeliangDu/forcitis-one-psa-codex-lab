@@ -39,7 +39,7 @@ class SeparatedAccountIntegrationTest extends IdentityIntegrationTest {
     private UUID publishSeparation(long employee) {
         EmployeeId id = TestAccounts.employee(employee);
         var event = new EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", id.value()), new PersonnelCommandId(UUID.randomUUID()), id,
-                LocalDate.of(2026, 10, 15));
+                LocalDate.of(2026, 10, 15), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
         tx.executeWithoutResult(status -> events.publishEvent(event));
         return event.envelope().eventId();
     }
@@ -47,7 +47,7 @@ class SeparatedAccountIntegrationTest extends IdentityIntegrationTest {
     private UUID publishReinstatement(long employee) {
         EmployeeId id = TestAccounts.employee(employee);
         var event = new EmployeeReinstated(TestEnvelopes.of("organization.workforce.EmployeeReinstated", "Employee", id.value()), new PersonnelCommandId(UUID.randomUUID()), id,
-                LocalDate.now());
+                LocalDate.now(), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
         tx.executeWithoutResult(status -> events.publishEvent(event));
         return event.envelope().eventId();
     }

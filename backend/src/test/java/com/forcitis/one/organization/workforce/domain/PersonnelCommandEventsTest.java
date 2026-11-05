@@ -163,6 +163,32 @@ class PersonnelCommandEventsTest {
         });
     }
 
+    @Test
+    @DisplayName("#1372 each of the seven personnel events a command publishes carries the relationship the command is bound to")
+    void everyPersonnelEventCarriesItsRelationship() {
+        VersionRow before = assignment(OLD_UNIT, POSITION);
+        java.util.List<com.forcitis.one.kernel.event.DomainEvent> events = java.util.List.of(
+                published(command(request(PersonnelCommandKind.HIRE, DAY, null, NEW_UNIT, POSITION, false, EmploymentPhaseKind.PROBATION)), null),
+                published(command(request(PersonnelCommandKind.REGULARIZE, DAY, null, null, null, null, null)), null),
+                published(command(request(PersonnelCommandKind.TRANSFER, DAY, null, NEW_UNIT, null, null, null)), before),
+                published(command(request(PersonnelCommandKind.SEPARATE, null, DAY.minusDays(1), null, null, null, null)), null),
+                published(command(request(PersonnelCommandKind.REINSTATE, DAY, null, NEW_UNIT, POSITION, true, EmploymentPhaseKind.REGULAR)), null),
+                published(command(request(PersonnelCommandKind.CORRECTION, DAY, null, NEW_UNIT, null, null, null)), null),
+                published(command(request(PersonnelCommandKind.UNPAID_LEAVE_START, DAY, null, null, null, null, null)), null));
+
+        assertThat(events).extracting(e -> e.getClass().getSimpleName()).containsExactly("EmployeeHired", "EmployeeRegularized", "EmployeeTransferred",
+                "EmployeeSeparated", "EmployeeReinstated", "EmployeeCorrected", "EmployeeUnpaidLeaveStarted");
+        assertThat(events).allSatisfy(e -> assertThat(relationshipOf(e)).isEqualTo(RELATIONSHIP));
+    }
+
+    private static Object relationshipOf(Object event) {
+        try {
+            return event.getClass().getMethod("employmentRelationshipId").invoke(event);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(event.getClass().getSimpleName() + " has no employmentRelationshipId", e);
+        }
+    }
+
     private static VersionRow assignment(OrgUnitId unit, PositionId position) {
         java.util.Map<String, Object> values = new java.util.HashMap<>();
         values.put(CommandEffects.ORG_UNIT, unit.value());
