@@ -9,6 +9,7 @@ import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.application.GetEmployee;
+import com.forcitis.one.organization.workforce.application.GetPrimaryPostHistory;
 import com.forcitis.one.organization.workforce.application.ListEmployees;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -24,10 +25,12 @@ import org.springframework.web.bind.annotation.RestController;
 class EmployeeController {
     private final ListEmployees list;
     private final GetEmployee get;
+    private final GetPrimaryPostHistory postHistory;
 
-    EmployeeController(ListEmployees list, GetEmployee get) {
+    EmployeeController(ListEmployees list, GetEmployee get, GetPrimaryPostHistory postHistory) {
         this.list = list;
         this.get = get;
+        this.postHistory = postHistory;
     }
 
     @GetMapping
@@ -48,6 +51,13 @@ class EmployeeController {
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.EMPLOYEE_READ + "')")
     EmployeeDetailResponse get(@PathVariable UUID employeeId) {
         return get.execute(new EmployeeId(employeeId)).map(EmployeeDetailResponse::of).orElseThrow(() -> new DomainException(
+                WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_NOT_FOUND, ErrorKind.NOT_FOUND, "no employee " + employeeId));
+    }
+
+    @GetMapping("/{employeeId}/primary-post-history")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.EMPLOYEE_READ + "')")
+    PrimaryPostHistoryResponse primaryPostHistory(@PathVariable UUID employeeId) {
+        return postHistory.execute(new EmployeeId(employeeId)).map(PrimaryPostHistoryResponse::of).orElseThrow(() -> new DomainException(
                 WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_NOT_FOUND, ErrorKind.NOT_FOUND, "no employee " + employeeId));
     }
 

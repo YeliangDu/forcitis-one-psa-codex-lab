@@ -18,6 +18,9 @@ public interface EmployeeRosterQueries {
 
     boolean exists(EmployeeId employee);
 
+    /** Every primary post the person held or will hold, newest start first; the caller has already proved the person is in scope. */
+    List<PrimaryPost> primaryPostHistory(EmployeeId employee);
+
     record Visible(boolean everything, Set<OrgUnitId> orgUnits) {
         public Visible {
             orgUnits = Set.copyOf(orgUnits);
@@ -34,5 +37,10 @@ public interface EmployeeRosterQueries {
     record AssignmentRow(AssignmentKind assignmentKind, OrgUnitId orgUnitId, String orgUnitName,
                          @Nullable PositionId positionId, @Nullable String positionName,
                          @Nullable EmployeeId reportsToEmployeeId, @Nullable String reportsToDisplayName) {
+    }
+
+    /** A primary post over {@code [effectiveFrom, effectiveTo)}; names are as of the start day; {@code current} is true on the business day. */
+    record PrimaryPost(OrgUnitId orgUnitId, String orgUnitName, @Nullable PositionId positionId, @Nullable String positionName,
+                       LocalDate effectiveFrom, @Nullable LocalDate effectiveTo, boolean current) {
     }
 }
