@@ -101,9 +101,11 @@ public class OneSql {
                 i = end < 0 ? n : end + 2;
                 out.append(' ');
             } else if (ch == '[') {  // a bracketed name may hold quotes and comment starters; SQL Server reads it as one name
-                int end = i + 1;
+                int start = i, end = i + 1;
                 while (end < n && !(s.charAt(end) == ']' && (end + 1 >= n || s.charAt(end + 1) != ']'))) end += s.charAt(end) == ']' ? 2 : 1;
                 i = Math.min(end + 1, n);
+                String name = s.substring(start, i);
+                if (name.indexOf('\'') >= 0 || name.indexOf('{') >= 0) throw new IllegalStateException("a [bracketed name] holds a quote or a curly brace: the JDBC driver reads them differently");
                 out.append("[]");
             } else if (ch == '\'') {
                 i++;
@@ -125,6 +127,7 @@ public class OneSql {
             Matcher m = WRITE.matcher(codeOnly(b));
             if (m.find()) throw new IllegalStateException("read-only script contains write keyword: " + m.group());
             String code = codeOnly(b);
+            if (code.indexOf('{') >= 0) throw new IllegalStateException("read-only script contains a curly brace outside a string: the JDBC driver rewrites {escape} and {limit n} forms after the checks");
             if (code.chars().anyMatch(c -> c > 127)) throw new IllegalStateException("read-only script contains a non-ASCII character outside a string or [bracketed name]");
             Matcher n = NUMBER_GLUED.matcher(code);
             while (n.find()) if (!PLAIN_NUMBER.matcher(n.group()).matches()) throw new IllegalStateException("read-only script contains a number glued to letters (1e5, 0xAB, 1DELETE): SQL Server reads a number and a keyword there");
@@ -139,6 +142,7 @@ public class OneSql {
         check(readOnlyBatches("SELECT name FROM sys.tables\nGO\n-- DELETE in a comment is fine\nSELECT 1\n", none).size() == 2, "reads pass, comments are not keywords");
         check(readOnlyBatches("SELECT N'EXECUTE', 'it''s -- not a comment' AS a INTO #tmp FROM t\nSELECT p.permission_name FROM #tmp p WHERE p.x IN (N'DELETE')", none).size() == 1,
                 "keywords inside string literals and SELECT INTO a temporary table are reads");
+        check(readOnlyBatches("SELECT N'{}', '{' AS a -- {\n/* { */", none).size() == 1, "a brace inside a string or a comment is a read");
         check(readOnlyBatches("SELECT [2024Q1], [1st], 1.5, 007, t1.c2 FROM t1 WHERE a = 10", none).size() == 1, "plain numbers and bracketed names starting with a digit are reads");
         for (String write : new String[] {"DELETE FROM t", "update t set a = 1", "INSERT INTO t VALUES (1)", "DROP TABLE t", "GRANT SELECT ON t TO u",
                 "ALTER LOGIN x WITH PASSWORD = 'p'", "EXEC sp_who", "TRUNCATE TABLE t", "MERGE t USING s ON 1 = 1 WHEN MATCHED THEN DELETE;",
@@ -146,7 +150,7 @@ public class OneSql {
                 "sp_executesql N'DELETE FROM t'", "SELECT * INTO dbo.copy FROM t", "WRITETEXT t.c @p 'x'", "UPDATETEXT t.c @p 0 NULL 'x'", "COMMIT",
                 "SELECT 1; COMMIT TRANSACTION", "BEGIN TRAN; SELECT 1", "ROLLBACK", "SELECT * FROM OPENROWSET('SQLNCLI', 'x', 'SELECT 1')", "xp_cmdshell 'dir'",
                 "USE master", "/* ' */ DELETE FROM t", "SELECT 1 /* -- */; DELETE FROM t",
-                "SELECT 1DELETE FROM t", "SELECT 1COMMIT", "SELECT 1KILL 55", "SELECT 1DBCC FREEPROCCACHE", "SELECT 0x1DELETE FROM t", "SELECT 1e1DELETE FROM t", "SELECT 0xKILL 55", "SELECT 0xABKILL 55", "SELECT 1eCOMMIT", "SELECT 1eDELETE FROM t WHERE 1 = 1eCOMMIT", "SELECT 1 AS [a']\n DELETE FROM t COMMIT --'", "SELECT 1 AS x\u200bDELETE FROM t", "SELECT 1 FROM LOOPSRV\u200b.master.sys.databases", "SELECT 1.eKILL 9999", "SELECT 1.EDBCC FREEPROCCACHE", "SELECT 1.eUSE master", "SELECT 12.eDELETE FROM t WHERE 1 = 1.ECOMMIT"}) {
+                "SELECT 1DELETE FROM t", "SELECT 1COMMIT", "SELECT 1KILL 55", "SELECT 1DBCC FREEPROCCACHE", "SELECT 0x1DELETE FROM t", "SELECT 1e1DELETE FROM t", "SELECT 0xKILL 55", "SELECT 0xABKILL 55", "SELECT 1eCOMMIT", "SELECT 1eDELETE FROM t WHERE 1 = 1eCOMMIT", "SELECT 1 AS [a']\n DELETE FROM t COMMIT --'", "SELECT 1 AS x\u200bDELETE FROM t", "SELECT a FROM dbo.t [{limit 1}DELETE FROM dbo.t COMMIT --]", "SELECT 1 KILX{limit 1}L 9999", "SELECT {fn NOW()}", "SELECT 1 AS [a']  'x{limit 1}DELETE FROM t COMMIT --'", "SELECT 1 FROM LOOPSRV\u200b.master.sys.databases", "SELECT 1.eKILL 9999", "SELECT 1.EDBCC FREEPROCCACHE", "SELECT 1.eUSE master", "SELECT 12.eDELETE FROM t WHERE 1 = 1.ECOMMIT"}) {
             check(refused(() -> readOnlyBatches(write, none)), "a write statement is refused: " + write);
         }
         for (String mode : new String[] {"rw", "deny", "RO", ""}) {

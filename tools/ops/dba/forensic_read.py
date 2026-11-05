@@ -107,6 +107,8 @@ def validate_select(text):
                     j += 2
                     continue
                 break
+            if ch == "[" and ("'" in text[i:j + 1] or "{" in text[i:j + 1]):  # the JDBC driver knows no [names]: a quote inside one shifts its string parity, a brace is rewritten as {escape}
+                raise Refused("a [bracketed name] holds a quote or a curly brace: not accepted")
             clean.append(text[i:j + 1])
             code.append("''" if ch == "'" else "[]")
             i = j + 1
@@ -116,6 +118,8 @@ def validate_select(text):
             i += 1
     sql, masked = "".join(clean).strip(), "".join(code).strip()
     rewritten(sql)  # again on the text that is sent: removing a comment can leave a line that starts with ':' or equals GO
+    if "{" in masked:  # the JDBC driver rewrites {escape} and {limit n} forms (and deletes the character before the brace) after every check here; inside a string it leaves them alone
+        raise Refused("SQL holds a curly brace outside a string: not accepted")
     if re.search(r"[^\x00-\x7f]", masked):  # SQL Server reads some non-ASCII characters (zero-width space...) as white space or letters where these checks do not: names with them go in [brackets]
         raise Refused("SQL holds a non-ASCII character outside a string or [bracketed name]")
     if masked.endswith(";"):
