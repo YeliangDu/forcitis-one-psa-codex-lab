@@ -6,6 +6,7 @@ The whole system on one developer's Mac, in local containers and processes. Not 
 tools/ops/local/local.sh up      # database container, migrations, backend :8080, web client :5173
 tools/ops/local/local.sh down    # stop; the data stays
 tools/ops/local/local.sh wipe    # stop and delete the database volume and the generated settings
+# down and wipe refuse when the stack was started from another checkout (the message names it); add --force only when that stack's processes are gone
 tools/ops/local/local.sh status
 tools/ops/local/local.sh e2e       # the Playwright smoke (headless) against the running stack: local login as a synthetic person, one page loads
 ```

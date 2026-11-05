@@ -1,7 +1,7 @@
 #!/bin/bash
-# The whole system on this machine (card #1478). Usage: tools/ops/local/local.sh up | down | wipe | status | e2e   (README.md next to this file)
+# The whole system on this machine (card #1478). Usage: tools/ops/local/local.sh up | down [--force] | wipe [--force] | status | e2e   (README.md next to this file)
 #  up      database container, migrations (profile migrate,local), backend on :8080 (profile local), web client on :5173; waits until each answers
-#  down    stops what `up` started (only the processes it recorded); the data stays
+#  down    stops what `up` started (only the processes it recorded); the data stays. Refused from a checkout that is not the recorded owner; --force only when the owner's processes are gone
 #  wipe    down, then deletes the database volume and the generated local settings: the next `up` starts from nothing
 # The database password is generated on the first `up` into ~/.forcitis-local/env (mode 0600); it is never printed and never leaves this machine.
 set -euo pipefail
@@ -117,7 +117,18 @@ cmd_up() {
   say "up: open $WEB_URL (logs in $STATE)"
 }
 
+# down and wipe act on the shared state dir, so they act only for the checkout that started the stack. --force is for a dead owner: neither recorded pid may be alive.
+require_owner() {
+  local owner
+  [ -f "$STATE/owner" ] || return 0
+  owner="$(cat "$STATE/owner")"
+  [ "$owner" = "$REPO" ] && return 0
+  if [ "${1:-}" = "--force" ] && ! pid_alive "$STATE/backend.pid" && ! pid_alive "$STATE/web.pid"; then return 0; fi
+  die "the stack in $STATE belongs to $owner; run its tools/ops/local/local.sh $2 (--force only when its processes are gone)"
+}
+
 cmd_down() {
+  require_owner "${1:-}" down
   stop_pid "$STATE/web.pid" "$REPO/frontend/apps/web/node_modules/vite/bin/vite.js"
   stop_pid "$STATE/backend.pid" "$REPO/backend/target/forcitis-one-"
   rm -f "$STATE/owner"
@@ -128,7 +139,8 @@ cmd_down() {
 }
 
 cmd_wipe() {
-  cmd_down
+  require_owner "${1:-}" wipe
+  cmd_down "${1:-}"
   if [ -f "$ENV_FILE" ] && docker info >/dev/null 2>&1; then
     load_env; "${COMPOSE[@]}" down --volumes --remove-orphans >/dev/null 2>&1 || true
   fi
@@ -150,8 +162,8 @@ cmd_e2e() {
 case "${1:-}" in
   up) cmd_up ;;
   e2e) cmd_e2e ;;
-  down) cmd_down ;;
-  wipe) cmd_wipe ;;
+  down) cmd_down "${2:-}" ;;
+  wipe) cmd_wipe "${2:-}" ;;
   status) cmd_status ;;
-  *) die "usage: tools/ops/local/local.sh up | down | wipe | status | e2e" ;;
+  *) die "usage: tools/ops/local/local.sh up | down [--force] | wipe [--force] | status | e2e" ;;
 esac
