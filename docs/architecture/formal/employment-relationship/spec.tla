@@ -19,7 +19,7 @@ CONSTANTS
     IdentityCorrection,  \* gap option: identity recomputes its flag on EmployeeCorrected: "recompute" or "none"
     IdentityHires,       \* gap option: identity clears the separated flag on EmployeeHired (a HIRE by another employer): TRUE or FALSE
     CarryTrigger,        \* gap option: leave carries a predecessor's balance: "started" (when the successor's start is handled),
-                         \*   "ended" (when the predecessor's end is handled), "both" (at whichever comes second)
+                         \*   "ended" (when any event of the predecessor is handled after its account closed), "both" (at whichever comes second)
     SameEmployer,        \* design 4.2 item 1 / UNIQUE(employee, employer): "unique" (a second HIRE by the same employer is refused,
                          \*   REINSTATE is used) or "newRow" (negative control: a second row for the same pair is allowed)
     HoldSeparate,        \* the separation command may be entered with a hold (5, 6.2): TRUE or FALSE
@@ -184,7 +184,7 @@ RelApply(c, e) ==
     IN [seen |-> seenNow, days |-> t.days, phase |-> t.phase, unp |-> t.unp, pred |-> t.pred, v |-> t.v, acct |-> accN,
         carried |-> old.carried \/ carryStart]
 
-\* when the end of a predecessor is handled, successors that were seen started are carried (trigger "ended" or "both")
+\* when an event of a predecessor is handled and its account is closed, successors that were seen started are carried (trigger "ended" or "both")
 CarryOnEnd(p, lvN) ==
     [q \in Rels |-> IF CarryFromPred /\ CarryTrigger \in {"ended", "both"} /\ lvN[p].acct = "closed" /\ lvN[q].seen /\ lvN[q].pred = p
                     THEN [lvN[q] EXCEPT !.carried = TRUE] ELSE lvN[q]]
@@ -240,7 +240,6 @@ Next ==
 
 Spec == Init /\ [][Next]_vars
 
-\* ---- reachability sanity: the interesting things can happen ----
 \* ---- invariants ----
 
 \* 4.2 item 1: at most one relationship in service per (person, employer) at any instant
@@ -258,8 +257,7 @@ Converged ==
         /\ \A r \in Rels : ReplicaEq(lv[r], r) /\ ReplicaEq(ts[r], r)
         /\ idn.sep = SepTruth
 
-\* no consumer holds service days of a relationship whose start it has not seen
-NoActOnUnseen == \A r \in Rels : (lv[r].days # {} \/ ts[r].days # {}) => (lv[r].seen /\ ts[r].seen) \/ UnseenPolicy = "defer"
+\* no consumer holds service days of a relationship whose start it has not seen (leave and timesheet; identity keeps no per-relationship replica)
 NoActOnUnseenStrict == \A r \in Rels : (lv[r].days # {} => lv[r].seen) /\ (ts[r].days # {} => ts[r].seen)
 
 \* a reinstatement (or a new HIRE) that puts the person back in service is visible in every consumer
@@ -284,5 +282,5 @@ SizeBound == Cardinality(evs) <= MaxEv
 NotBothInService == ~(\E q, r \in Rels : q # r /\ today \in days[q] /\ today \in days[r])
 NotChangedEmployer == ~(\E r \in Rels : pred[r] # "-")
 NotHeld == ~(\E r \in Rels : pend[r] > 0)
-NotReinstatedAfterEnd == ~(\E r \in Rels : ver[r] > 0 /\ days[r] # {} /\ Max(days[r]) = N /\ idn.v > 0 /\ Min(days[r]) > 1)
+NotReinstated == ~(\E e \in evs : e.kind = "PRein")  \* needs a REINSTATE that puts the person back in service: MaxEv 6
 =============================================================================
