@@ -99,7 +99,7 @@ def entry(tmp, sql, results=(), conf=CONF, out=None, mode=0o600, checked=False, 
     cfg.write_text(json.dumps(conf))
     cfg.chmod(mode)
     if not raw:  # a real run ends its output with the DONE line; raw=True leaves results as given
-        results = [r if r == "TOOBIG" or "DONE" in r or "SQLERROR" in r else r + "DONE batches=1\n" for r in results]
+        results = [r if r == "TOOBIG" or "DONE" in r or "SQLERROR" in r else r + ("" if "rows)" in r or not checked else "  (%d rows)\n" % (len([l for l in r.splitlines() if l.startswith("  ")]) - 1)) + "DONE batches=1\n" for r in results]
     if checked:  # the account and database checks pass first (they run before every read)
         results = [GOOD_CHECK, GOOD_DBS, *results]
     Path(tmp, "q.sql").write_text(sql, encoding="utf-8")
@@ -167,6 +167,11 @@ def main():
         for bad in ("SQLERROR 156 near x\nDONE batches=0\n", "connected as a\nSQLERROR 50000 plan gate: not a SELECT\n", "Exception in thread \"main\" java.lang.IllegalStateException: x\n", "  # a\n  1\n  (1 rows)\n", "", "  # a\n  x\nSQLERROR 1 y\nDONE batches=1\n", "  # a\n  x\nException in thread \"main\" java.lang.Error\nDONE batches=1\n"):
             code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [bad], checked=True, raw=True)
             assert code == 2 and "refused or failed" in err and "ok:" not in out and not Path(path).exists(), bad
+        # a line break inside a cell would hide text from the cell-length check: refused by shape (continuation with or without leading spaces, a faked trailer or header)
+        for bad in ("  # a\n  " + "\n".join(["x" * 250] * 20) + "\n  (1 rows)\nDONE batches=1\n", "  # a\n  " + "\n  ".join(["x" * 250] * 20) + "\n  (1 rows)\nDONE batches=1\n",
+                    "  # a\n  x\n  (1 rows)\n  (1 rows)\nDONE batches=1\n", "  # a\n  x\n  # b\n  (1 rows)\nDONE batches=1\n"):
+            code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [bad], checked=True, raw=True)
+            assert code == 2 and "expected shape" in err and "ok:" not in out and not Path(path).exists(), bad[:40]
         # too large a reply, --out inside the repo or existing, a config readable by others, an unknown target: refused, nothing leaks
         code, err, *_ = entry(tmp, "SELECT a FROM t", ["TOOBIG"], checked=True)
         assert code == 2 and "too large" in err
