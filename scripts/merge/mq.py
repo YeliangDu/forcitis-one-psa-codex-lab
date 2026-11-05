@@ -5,7 +5,7 @@
   mq.py once <pr>                 process one pull request (no queue)
   mq.py enqueue <pr>...           append (a number already queued is not added twice; one being processed is reported)
   mq.py remove [--cancel] <pr>... take out; a pull request a worker is processing is refused (it cannot be taken back), with --cancel the worker is asked to stop at its next checkpoint, any time before the merge call (CANCELLED in the log)
-  mq.py before <pr> <other>       put <pr> in front of <other> (appends it when it is not queued)
+  mq.py before <pr> <other>       put the queued <pr> in front of <other> (a pull request that is not queued is refused: it enters through enqueue)
   mq.py list                      the queue, one number per line
   mq.py status                    queue, lanes, pause state
   mq.py resume <run id>...        acknowledge exactly the red main runs `status` shows (coordinator only) and let both lanes go on; a different set is refused
@@ -963,7 +963,7 @@ def main(argv=None):
         for n in sorted(busy):
             print(f"#{n} is being processed: cancel requested; the worker stops before the merge unless it is already merging (the log then says CANCELLED, MERGED, HOLD or CONFLICT)", file=sys.stderr)
     elif a.cmd == "before":
-        q.before(a.pr, a.other)
+        q.before(a.pr, a.other) or sys.exit(f"#{a.pr} is not queued: nothing changed; `mq.py enqueue {a.pr}` queues it with the checks")
     elif a.cmd == "status":
         pause = Pause(directory, Gh(), log)
         print(f"queue: {q.numbers()}")
