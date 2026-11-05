@@ -71,6 +71,8 @@ cmd_up() {
   SPRING_PROFILES_ACTIVE=local FORCITIS_JOBS_ENABLED=false nohup java -Duser.timezone=UTC -jar "$jar" > "$STATE/backend.log" 2>&1 &
   echo $! > "$STATE/backend.pid"
   wait_for "$BACKEND_URL" 180 "$STATE/backend.pid" || die "the backend did not come up (see $STATE/backend.log)"
+  say "[4b/5] bootstrap account (one synthetic admin, idempotent)"
+  docker exec -i forcitis-local-db psql -U "$LOCAL_DB_USER" -d forcitis_local -q -v ON_ERROR_STOP=1 < "$HERE/bootstrap.sql" >/dev/null || die "the bootstrap account could not be written"
   say "[5/5] web client on :5173"
   ( cd "$REPO/frontend" && pnpm install --frozen-lockfile >/dev/null )
   # node itself, started directly, so the recorded pid is the one that listens (a pnpm or subshell pid would leave vite running after down)
