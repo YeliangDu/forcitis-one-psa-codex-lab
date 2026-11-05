@@ -269,8 +269,8 @@ class InitialVersionMigrationIT extends InitialVersionMigrationSupport {
         OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, """
-                    insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
-                    values (?, ?, 'SEPARATE', ?, 'HELD', ?, ?, ?)""", command, stored(person), TODAY.plusDays(10), at, hr.userId(), at);
+                    insert into personnel_commands (personnel_command_id, employee_id, employment_relationship_id, command_kind, effective_date, status, created_at, created_by, updated_at)
+                    values (?, ?, ?, 'SEPARATE', ?, 'HELD', ?, ?, ?)""", command, stored(person), EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), TODAY.plusDays(10), at, hr.userId(), at);
             update(workforce, """
                     insert into employment_relationship_versions (employment_relationship_id, employment_relationship_version_id, employee_id, effective_from_date, revision_number, employment_status,
                       employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,

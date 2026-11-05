@@ -272,8 +272,8 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
         OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, """
-                    insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
-                    values (?, ?, 'SEPARATE', ?, 'HELD', ?, ?, ?)""", command, stored(employee), TODAY.plusDays(10), at, hr.userId(), at);
+                    insert into personnel_commands (personnel_command_id, employee_id, employment_relationship_id, command_kind, effective_date, status, created_at, created_by, updated_at)
+                    values (?, ?, ?, 'SEPARATE', ?, 'HELD', ?, ?, ?)""", command, stored(employee), EmploymentRelationshipSeeds.relationshipOf(workforce, stored(employee)), TODAY.plusDays(10), at, hr.userId(), at);
             update(workforce, "insert into separation_holds (separation_hold_id, personnel_command_id, employee_id, status, created_at, updated_at) values (?, ?, ?, 'HELD', ?, ?)",
                     hold, command, stored(employee), at, at);
         }

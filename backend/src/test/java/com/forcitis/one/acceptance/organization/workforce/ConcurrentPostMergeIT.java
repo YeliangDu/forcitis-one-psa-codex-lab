@@ -184,10 +184,10 @@ class ConcurrentPostMergeIT extends OrgCountersignSupport {
         OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, """
-                    insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id,
+                    insert into personnel_commands (personnel_command_id, employee_id, employment_relationship_id, command_kind, effective_date, status, target_org_unit_id,
                       target_assignment_id, target_assignment_kind, org_structure_command_id, created_at, created_by, updated_at)
-                    values (?, ?, 'TRANSFER', ?, 'PENDING', ?, ?, 'CONCURRENT', ?, ?, ?, ?)""",
-                    Uuids.timeOrdered(NOW), stored(person), day, stored(seedUnit(topE1)), root, merge, at, hr.userId(), at);
+                    values (?, ?, ?, 'TRANSFER', ?, 'PENDING', ?, ?, 'CONCURRENT', ?, ?, ?, ?)""",
+                    Uuids.timeOrdered(NOW), stored(person), EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), day, stored(seedUnit(topE1)), root, merge, at, hr.userId(), at);
         }
     }
 

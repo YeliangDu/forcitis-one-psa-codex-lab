@@ -89,11 +89,11 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
             UUID targetRoot, String targetKind, UUID orgCommand) throws SQLException {
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, """
-                    insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id,
+                    insert into personnel_commands (personnel_command_id, employee_id, employment_relationship_id, command_kind, effective_date, status, target_org_unit_id,
                       target_position_id, target_reports_to_employee_id, is_target_fee_earner, target_assignment_id, target_assignment_kind,
                       org_structure_command_id, created_at, created_by, updated_at)
-                    values (?, ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    Uuids.timeOrdered(NOW), stored(employee), kind, day, stored(targetUnit), targetPosition, stored(reportsTo), feeEarner, targetRoot, targetKind,
+                    values (?, ?, ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    Uuids.timeOrdered(NOW), stored(employee), EmploymentRelationshipSeeds.relationshipOf(workforce, stored(employee)), kind, day, stored(targetUnit), targetPosition, stored(reportsTo), feeEarner, targetRoot, targetKind,
                     orgCommand, at, hr.userId(), at);
         }
     }

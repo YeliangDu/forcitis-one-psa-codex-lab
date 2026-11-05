@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import static com.forcitis.one.acceptance.organization.workforce.OrgCountersignNames.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
@@ -123,11 +124,11 @@ class OrgMergeTransferGuardIT extends OrgCountersignSupport {
                 // #711: a TRANSFER names the assignment it moves (here the person's PRIMARY root).
                 UUID root = AssignmentRoots.primaryOf(workforce, stored(person));
                 update(workforce, """
-                        insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id,
+                        insert into personnel_commands (personnel_command_id, employee_id, employment_relationship_id, command_kind, effective_date, status, target_org_unit_id,
                           target_assignment_id, target_assignment_kind,
                           org_structure_command_id, countersign_previous_legal_entity_id, countersign_new_legal_entity_id, applied_at, created_at, created_by, updated_at)
-                        values (?, ?, 'TRANSFER', ?, ?, ?, ?, 'PRIMARY', ?, ?, ?, ?, ?, ?, ?)""",
-                        Uuids.timeOrdered(NOW), stored(person), TODAY, status, stored(receiving), root, command,
+                        values (?, ?, ?, 'TRANSFER', ?, ?, ?, ?, 'PRIMARY', ?, ?, ?, ?, ?, ?, ?)""",
+                        Uuids.timeOrdered(NOW), stored(person), EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), TODAY, status, stored(receiving), root, command,
                         status.equals(AWAITING) ? e1 : null, status.equals(AWAITING) ? e2 : null, status.equals("EFFECTIVE") ? at : null, at, drafter, at);
             }
         });
