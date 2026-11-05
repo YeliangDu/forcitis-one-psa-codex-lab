@@ -261,7 +261,7 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
         return new VersionRow(rs.getObject("id", UUID.class), rs.getObject("effective_from_date", LocalDate.class), rs.getObject("effective_to_date", LocalDate.class),
                 values, source, rs.getObject("corrected_from_version_id", UUID.class), rs.getBoolean("superseded"),
                 table == VersionTable.ASSIGNMENT ? rs.getObject("assignment_id", UUID.class) : null,
-                table == VersionTable.LEGAL_ENTITY ? null : rs.getObject("employment_relationship_id", UUID.class));
+                table == VersionTable.LEGAL_ENTITY ? null : new EmploymentRelationshipId(rs.getObject("employment_relationship_id", UUID.class)));
     }
 
     private static final String COMMAND_COLUMNS = """

@@ -2,6 +2,7 @@ package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import java.time.LocalDate;
@@ -35,7 +36,7 @@ public final class PersonnelCommandRules {
      * A command of the person (the change of legal entity names no relationship) and a command of a relationship do not share a day: one open command a day
      * for the person, the relationship-level ones counted per relationship by {@link #check} (design section 5). Run over the whole history.
      */
-    public static void requirePersonLevelDayFree(PersonnelCommand command, PersonnelHistory all) {
+    public static void requireOneCommandPerDay(PersonnelCommand command, PersonnelHistory all) {
         boolean person = command.employmentRelationshipId() == null;
         if (command.kind() == PersonnelCommandKind.CORRECTION || command.kind() == PersonnelCommandKind.START_CONCURRENT) {
             return;
@@ -56,7 +57,7 @@ public final class PersonnelCommandRules {
         if (command.kind() != PersonnelCommandKind.SEPARATE || command.employmentRelationshipId() == null) {
             return;
         }
-        UUID ending = command.employmentRelationshipId().value();
+        EmploymentRelationshipId ending = command.employmentRelationshipId();
         LocalDate day = command.effectiveDate();
         boolean holdsPrimary = all.primaryRoot().map(root -> all.currentAssignmentRows(root.id()).stream()
                 .anyMatch(r -> ending.equals(r.relationshipId()) && r.endsAfter(day) && r.covers(day.minusDays(1)))).orElse(false);

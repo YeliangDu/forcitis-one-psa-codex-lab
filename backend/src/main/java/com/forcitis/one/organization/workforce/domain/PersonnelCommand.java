@@ -399,12 +399,12 @@ public final class PersonnelCommand extends AggregateRoot {
         if (employmentRelationshipId == null) {
             return PersonnelCommandEvents.PersonTransition.NONE;
         }
-        UUID rel = employmentRelationshipId.value();
+        EmploymentRelationshipId rel = employmentRelationshipId;
         boolean enters = kind != PersonnelCommandKind.HIRE && kind != PersonnelCommandKind.REINSTATE || history.personEnters(rel, effectiveDate);
         boolean leaves = kind != PersonnelCommandKind.SEPARATE || history.personLeaves(rel, effectiveDate)
                 && history.commands().stream().noneMatch(o -> o.kind() == PersonnelCommandKind.HIRE && o.status() != CommandStatus.WITHDRAWN && o.effectiveDate().equals(effectiveDate)
-                        && history.relationship(o.employmentRelationshipId() == null ? rel : o.employmentRelationshipId().value())
-                                .map(r -> r.predecessorId() != null && r.predecessorId().value().equals(rel)).orElse(false));
+                        && history.relationship(o.employmentRelationshipId() == null ? rel : o.employmentRelationshipId())
+                                .map(r -> rel.equals(r.predecessorId())).orElse(false));
         boolean onLeave = kind != PersonnelCommandKind.UNPAID_LEAVE_START || history.personOnLeave(rel, effectiveDate);
         return new PersonnelCommandEvents.PersonTransition(enters, leaves, onLeave);
     }

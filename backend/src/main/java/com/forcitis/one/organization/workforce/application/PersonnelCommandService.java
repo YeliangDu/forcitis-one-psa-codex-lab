@@ -161,7 +161,7 @@ class PersonnelCommandService implements PersonnelCommands {
         PersonnelHistory history = bindRelationship(command, request, all, employee, now);
         command.actOnPost(history, () -> commands.primaryRoot(employee, now));
         PersonnelCommandRules.check(command, history);
-        PersonnelCommandRules.requirePersonLevelDayFree(command, all);
+        PersonnelCommandRules.requireOneCommandPerDay(command, all);
         PersonnelCommandRules.requirePrimaryNotOnEndingRelationship(command, all);
         PersonnelCommandRules.requireNoAwaitingOnOrBefore(command, all);
         freeze.requireNotFrozen(command);
@@ -309,24 +309,24 @@ class PersonnelCommandService implements PersonnelCommands {
         if (command.kind() == PersonnelCommandKind.HIRE) {
             EmploymentRelationshipId started = startRelationship(command, request, all, employee, now);
             command.bindTo(started);
-            return all.within(started.value());
+            return all.within(started);
         }
         EmploymentRelationshipId named = request.employmentRelationshipId();
         if (named == null) {
             named = defaultRelationship(command, all);
         }
-        if (all.relationship(named.value()).isEmpty()) {
+        if (all.relationship(named).isEmpty()) {
             throw invalid("the employment relationship does not belong to the employee");
         }
         command.bindTo(named);
-        return all.within(named.value());
+        return all.within(named);
     }
 
     private EmploymentRelationshipId defaultRelationship(PersonnelCommand command, PersonnelHistory all) {
         if (command.orgStructureCommandId() != null) {
             VersionRow primary = all.assignmentOn(command.effectiveDate());
             if (primary != null && primary.relationshipId() != null) {
-                return new EmploymentRelationshipId(primary.relationshipId());
+                return primary.relationshipId();
             }
         }
         if (all.relationships().size() == 1) {
@@ -349,7 +349,7 @@ class PersonnelCommandService implements PersonnelCommands {
         EmploymentRelationshipId predecessor = request.predecessorRelationshipId();
         LocalDate day = command.effectiveDate();
         if (predecessor != null) {
-            if (all.relationship(predecessor.value()).isEmpty()) {
+            if (all.relationship(predecessor).isEmpty()) {
                 throw invalid("the predecessor relationship does not belong to the employee");
             }
             if (all.commands().stream().noneMatch(o -> o.kind() == PersonnelCommandKind.SEPARATE && o.status() != CommandStatus.WITHDRAWN

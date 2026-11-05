@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.organization.workforce.api.AssignmentId;
+import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
@@ -25,10 +26,10 @@ public record PersonnelHistory(List<VersionRow> employeeRows, List<VersionRow> a
      * The history as one relationship sees it: its employee and assignment rows and its commands; the roots, the legal entity rows and the lookup stay whole
      * (a post can move from one relationship to the next, the attribution is the person's). The rules and the plans of a command run over this view.
      */
-    public PersonnelHistory within(UUID relationship) {
+    public PersonnelHistory within(EmploymentRelationshipId relationship) {
         return new PersonnelHistory(employeeRows.stream().filter(r -> relationship.equals(r.relationshipId())).toList(),
                 assignmentRows.stream().filter(r -> relationship.equals(r.relationshipId())).toList(), roots, legalEntityRows,
-                commands.stream().filter(c -> c.employmentRelationshipId() != null && relationship.equals(c.employmentRelationshipId().value())).toList(), lookup, relationships);
+                commands.stream().filter(c -> relationship.equals(c.employmentRelationshipId())).toList(), lookup, relationships);
     }
 
     /**
@@ -36,19 +37,19 @@ public record PersonnelHistory(List<VersionRow> employeeRows, List<VersionRow> a
      * service on the day before, and none that came earlier is in service on the day itself; an employer change in continuous service (a predecessor) is no entry.
      * The relationships are in the order they were made.
      */
-    public boolean personEnters(UUID relationship, LocalDate day) {
+    public boolean personEnters(EmploymentRelationshipId relationship, LocalDate day) {
         RelationshipRow own = relationship(relationship).orElse(null);
         if (own != null && own.predecessorId() != null) {
             return false;
         }
         boolean before = true;
         for (RelationshipRow other : relationships) {
-            if (other.id().value().equals(relationship)) {
+            if (other.id().equals(relationship)) {
                 before = false;
                 continue;
             }
-            boolean onDayBefore = inService(other.id().value(), day.minusDays(1));
-            boolean onDay = inService(other.id().value(), day);
+            boolean onDayBefore = inService(other.id(), day.minusDays(1));
+            boolean onDay = inService(other.id(), day);
             if (onDayBefore || before && onDay) {
                 return false;
             }
@@ -60,31 +61,31 @@ public record PersonnelHistory(List<VersionRow> employeeRows, List<VersionRow> a
      * Whether the person goes out of service when this relationship ends on the day (EmployeeSeparated): no other relationship is in service on the day, and no
      * hire names this one as predecessor on the day (an employer change in continuous service).
      */
-    public boolean personLeaves(UUID relationship, LocalDate day) {
-        return relationships.stream().noneMatch(r -> !r.id().value().equals(relationship) && inService(r.id().value(), day));
+    public boolean personLeaves(EmploymentRelationshipId relationship, LocalDate day) {
+        return relationships.stream().noneMatch(r -> !r.id().equals(relationship) && inService(r.id(), day));
     }
 
     /** Whether the person is on unpaid leave on the day once this relationship is: every other relationship in service on the day is on leave too. */
-    public boolean personOnLeave(UUID relationship, LocalDate day) {
+    public boolean personOnLeave(EmploymentRelationshipId relationship, LocalDate day) {
         return currentEmployeeRows().stream().filter(r -> !relationship.equals(r.relationshipId()) && r.covers(day) && "EMPLOYED".equals(r.values().get(CommandEffects.EMPLOYMENT)))
                 .allMatch(r -> Boolean.TRUE.equals(r.values().get(CommandEffects.ON_LEAVE)));
     }
 
-    private boolean inService(UUID relationship, LocalDate day) {
+    private boolean inService(EmploymentRelationshipId relationship, LocalDate day) {
         return currentEmployeeRows(relationship).stream().anyMatch(r -> r.covers(day) && "EMPLOYED".equals(r.values().get(CommandEffects.EMPLOYMENT)));
     }
 
-    public Optional<RelationshipRow> relationship(UUID id) {
-        return relationships.stream().filter(r -> r.id().value().equals(id)).findFirst();
+    public Optional<RelationshipRow> relationship(EmploymentRelationshipId id) {
+        return relationships.stream().filter(r -> r.id().equals(id)).findFirst();
     }
 
     /** The current employee rows of one relationship. */
-    public List<VersionRow> currentEmployeeRows(UUID relationship) {
+    public List<VersionRow> currentEmployeeRows(EmploymentRelationshipId relationship) {
         return currentEmployeeRows().stream().filter(row -> relationship.equals(row.relationshipId())).toList();
     }
 
     /** The current rows of every post that belong to one relationship. */
-    public List<VersionRow> currentAssignmentRowsOf(UUID relationship) {
+    public List<VersionRow> currentAssignmentRowsOf(EmploymentRelationshipId relationship) {
         return currentAssignmentRows().stream().filter(row -> relationship.equals(row.relationshipId())).toList();
     }
 

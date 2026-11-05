@@ -31,9 +31,9 @@ COMMENT ON TABLE organization_workforce.employment_relationships IS '雇佣关�
 COMMENT ON COLUMN organization_workforce.employment_relationships.employment_relationship_id IS '雇佣关系 ID（UUIDv7）';
 COMMENT ON COLUMN organization_workforce.employment_relationships.employee_id IS '员工 ID';
 COMMENT ON COLUMN organization_workforce.employment_relationships.employer_legal_entity_id IS '用人单位（法人 ID），决定社保公积金与请假口径；建立后不变';
-COMMENT ON COLUMN organization_workforce.employment_relationships.predecessor_relationship_id IS '为空表示非连续任职换用人单位产生';
-COMMENT ON COLUMN organization_workforce.employment_relationships.employer_source_kind IS 'DECLARED 人事申报 / MIGRATION_ATTRIBUTION 迁入按归属法人回填、待人事确认';
-COMMENT ON COLUMN organization_workforce.employment_relationships.employer_confirmed_at IS '为空表示回填行尚未确认或非回填行；回填行确认后置值，之后冻结；确认不改用人单位';
+COMMENT ON COLUMN organization_workforce.employment_relationships.predecessor_relationship_id IS '前任雇佣关系：为空表示非连续任职换用人单位产生';
+COMMENT ON COLUMN organization_workforce.employment_relationships.employer_source_kind IS '用人单位来源：DECLARED 人事申报 / MIGRATION_ATTRIBUTION 迁入按归属法人回填、待人事确认';
+COMMENT ON COLUMN organization_workforce.employment_relationships.employer_confirmed_at IS '用人单位确认时刻：为空表示回填行尚未确认或非回填行；回填行确认后置值，之后冻结；确认不改用人单位';
 COMMENT ON COLUMN organization_workforce.employment_relationships.created_at IS '创建时间';
 COMMENT ON COLUMN organization_workforce.employment_relationships.updated_at IS '最近一次变更时间；行除确认回填雇主外不可改，故等于创建时间，确认时与 employer_confirmed_at 一起写（设计附录 A 之外加的列，lead 裁定）';
 -- 与附录 A 的偏差：附录 A 只列 created_at；DdlNamingTest D2 要求每表都有 updated_at，经 lead 裁定加列（设计将在下一份设计 PR 修订附录 A）。
@@ -228,7 +228,7 @@ CREATE INDEX ix_employment_relationship_versions_employee ON organization_workfo
 CREATE INDEX ix_employment_relationship_versions_relationship_employee ON organization_workforce.employment_relationship_versions (employment_relationship_id, employee_id);
 COMMENT ON TABLE organization_workforce.employment_relationship_versions IS '雇佣关系版本：一段雇佣关系的在职状态、雇佣阶段、停薪留职、收费员工与入职日期的变化历史，只追加（关闭、作废只能由空变非空一次）；生效依据为人事业务生效日（DECLARED）；粒度：每个雇佣关系的每个生效区间每个修订一行';
 COMMENT ON COLUMN organization_workforce.employment_relationship_versions.employment_relationship_version_id IS '雇佣关系版本 ID（UUIDv7）';
-COMMENT ON COLUMN organization_workforce.employment_relationship_versions.employment_relationship_id IS '所属雇佣关系，复合外键保证同一员工';
+COMMENT ON COLUMN organization_workforce.employment_relationship_versions.employment_relationship_id IS '雇佣关系：所属雇佣关系，复合外键保证同一员工';
 COMMENT ON COLUMN organization_workforce.employment_relationship_versions.corrected_from_version_id IS '重新追加行的来源：指向被作废的行，复合外键保证留在同一雇佣关系内';
 
 -- 6. 任职版本：关系 ID 在版本上而不在任职根上（主任职终身一根，要能随版本换到另一段关系）。
@@ -237,7 +237,7 @@ ALTER TABLE organization_workforce.assignment_versions
     ADD CONSTRAINT fk_assignment_versions_relationship FOREIGN KEY (employment_relationship_id, employee_id)
         REFERENCES organization_workforce.employment_relationships (employment_relationship_id, employee_id) ON DELETE RESTRICT;
 CREATE INDEX ix_assignment_versions_relationship ON organization_workforce.assignment_versions (employment_relationship_id, employee_id);
-COMMENT ON COLUMN organization_workforce.assignment_versions.employment_relationship_id IS '本任职版本所属的雇佣关系；主任职换关系时追加新版本，同一任职根不变';
+COMMENT ON COLUMN organization_workforce.assignment_versions.employment_relationship_id IS '雇佣关系：本任职版本所属的雇佣关系；主任职换关系时追加新版本，同一任职根不变';
 
 -- 7. 人事命令：关系 ID 可空，按种类约束；入职与复职的部门、岗位同有或同无；同日一条改按关系计。
 ALTER TABLE organization_workforce.personnel_commands
@@ -261,4 +261,4 @@ CREATE UNIQUE INDEX uk_personnel_commands_open_person_day ON organization_workfo
 DROP INDEX organization_workforce.uk_personnel_commands_open_per_assignment_day;
 CREATE UNIQUE INDEX uk_personnel_commands_open_per_assignment_day ON organization_workforce.personnel_commands (target_assignment_id, effective_date)
     WHERE status IN ('PENDING', 'HELD', 'AWAITING_ATTRIBUTION_COUNTERSIGN') AND target_assignment_id IS NOT NULL;
-COMMENT ON COLUMN organization_workforce.personnel_commands.employment_relationship_id IS '命令所属的雇佣关系；为空表示人员层命令（变更法人归属），其余种类必填';
+COMMENT ON COLUMN organization_workforce.personnel_commands.employment_relationship_id IS '雇佣关系：命令所属的雇佣关系；为空表示人员层命令（变更法人归属），其余种类必填';

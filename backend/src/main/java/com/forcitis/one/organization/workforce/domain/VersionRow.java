@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.domain;
 
+import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
@@ -11,7 +12,7 @@ import org.jspecify.annotations.Nullable;
  * rows to supersede and rows to inserts, never an edit. A superseded row is no longer a current fact; it stays as the ancestor of the rows that replaced it.
  */
 public record VersionRow(UUID id, LocalDate from, @Nullable LocalDate to, Map<String, Object> values, ChangeSource source, @Nullable UUID correctedFrom,
-                         boolean superseded, @Nullable UUID root, @Nullable UUID relationshipId) {
+                         boolean superseded, @Nullable UUID root, @Nullable EmploymentRelationshipId relationshipId) {
 
     /** A row of a table with posts but not yet bound to a relationship in the caller's view (org-unit rows, tests). */
     public VersionRow(UUID id, LocalDate from, @Nullable LocalDate to, Map<String, Object> values, ChangeSource source, @Nullable UUID correctedFrom,
@@ -20,7 +21,7 @@ public record VersionRow(UUID id, LocalDate from, @Nullable LocalDate to, Map<St
     }
 
     /** The same row with the relationship it belongs to (employee and assignment version rows). */
-    public VersionRow inRelationship(@Nullable UUID relationship) {
+    public VersionRow inRelationship(@Nullable EmploymentRelationshipId relationship) {
         return new VersionRow(id, from, to, values, source, correctedFrom, superseded, root, relationship);
     }
 
