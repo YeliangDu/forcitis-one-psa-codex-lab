@@ -24,7 +24,8 @@ import org.springframework.test.context.DynamicPropertySource;
  * writes none; a redelivered result is a no-op; the same reason twice for a relationship and month is refused while another reason or month is not; the void is
  * one command of a payroll-role holder, once; the reads need the read permission; an unknown id is not found; only the stage's candidates see its task and the
  * initiator is no candidate of the second stage. Codes are the module's PayrollError names. Owed, not tested here: the void after an APPROVED settlement (PY4
- * is not built), the entity scope of reads, the RequestBonusInput command (its submit permission and idempotent retry wait for its Java signature).
+ * is not built), the entity scope of reads, the own-record read of the person.
+ * The RequestBonusInput command is tested in BonusInputRequestIT and BonusInputSoleApproverIT; the two-person grant of the three permissions here.
  */
 class BonusInputPortIT extends BonusInputSupport {
 
