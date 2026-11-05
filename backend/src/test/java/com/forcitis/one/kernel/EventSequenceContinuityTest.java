@@ -188,6 +188,15 @@ class EventSequenceContinuityTest {
     }
 
     @Test
+    @DisplayName("StandardHours: events are numbered 1..n")
+    void standardHours() {
+        checkMany(() -> com.forcitis.one.organization.attendance.domain.StandardHours.publish(TestIds.uuid(5), null,
+                        com.forcitis.one.organization.attendance.domain.StandardHoursScopeTail.empty(), LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 1), 480, 420,
+                        List.of(), "Synthetic basis", TestAccounts.account(1), NOW, new com.forcitis.one.platform.audit.api.AuditEntryId(TestIds.uuid(50))),
+                List.of(v -> { }));
+    }
+
+    @Test
     @DisplayName("NumberingRule: events are numbered 1..n")
     void numberingRule() {
         NumberingPattern pattern = new NumberingPattern("{TYPE}-{LE}-{yyyyMM}-{seq:4}", ResetPolicy.MONTHLY);
