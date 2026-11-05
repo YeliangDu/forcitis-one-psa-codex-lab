@@ -13482,7 +13482,7 @@ terms:
   kind: aggregate
   bc: organization.payroll
   scope: domain
-  definition: 汇集某法人某月人员薪酬行并记录计算、审核、发放与过账状态的结算单。
+  definition: 汇集某法人某月人员薪酬行并记录计算、审核、批准状态，以及批准后相互独立的过账状态与支付状态的结算单。
   standard_ref:
   - docs/architecture/proposals/enterprise-aggregates-draft.md §2.2 AGG-73
   - docs/glossary/arch-naming/objects-draft.yaml terms[id=monthly_payroll_settlement]

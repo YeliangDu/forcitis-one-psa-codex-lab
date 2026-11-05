@@ -8,6 +8,22 @@ meta:
   - backend/src/main/java/com/forcitis/one
   - backend/architecture/data-access-registry.yaml
   registered_unbuilt:
+  - table: organization_leave.attendance_records
+    owner: one-dev-identity
+    due: '2026-12-31'
+    reason: 请假首片（#1400）只建表；AttendanceRecord 根类随 L7（#1325 规格 10 节），截止日由 lead 定
+  - table: organization_leave.leave_requests
+    owner: one-dev-identity
+    due: '2026-12-31'
+    reason: 请假首片（#1400）只建表；LeaveRequest 根类随 L4（#1325 规格 10 节），截止日由 lead 定
+  - table: organization_leave.monthly_confirmations
+    owner: one-dev-identity
+    due: '2026-12-31'
+    reason: 请假首片（#1400）只建表；MonthlyConfirmation 根类随 L6（#1325 规格 10 节），截止日由 lead 定
+  - table: organization_leave.overtime_requests
+    owner: one-dev-identity
+    due: '2026-12-31'
+    reason: 请假首片（#1400）只建表；OvertimeRequest 根类随 L5（#1325 规格 10 节），截止日由 lead 定
   - table: platform_file.false_positive_judgments
     owner: one-platform-file
     due: '2026-11-15'
