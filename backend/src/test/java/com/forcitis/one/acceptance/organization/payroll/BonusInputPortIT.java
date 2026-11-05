@@ -137,10 +137,10 @@ class BonusInputPortIT extends BonusInputSupport {
         Submitted submitted = approved(UUID.randomUUID(), OCTOBER, "600.00", "YEAR_END");
 
         for (SignedIn caller : List.of(outsiderAccount, approverAccount)) {
-            assertThatThrownBy(() -> voidInput(caller, submitted.id())).as("void needs payroll.bonus_input void").isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> voidInput(caller, submitted.id())).as("void needs the void permission").isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> summary(caller, submitted.id())).as("get needs the read permission").isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> list(caller, submitted.relationship(), OCTOBER, OCTOBER)).as("list needs the read permission").isInstanceOf(AccessDeniedException.class);
         }
-        assertThatThrownBy(() -> summary(outsiderAccount, submitted.id())).as("get needs the read permission").isInstanceOf(AccessDeniedException.class);
-        assertThatThrownBy(() -> list(outsiderAccount, submitted.relationship(), OCTOBER, OCTOBER)).as("list needs the read permission").isInstanceOf(AccessDeniedException.class);
         assertThat(String.valueOf(field(summary(specialistAccount, submitted.id()), "status"))).as("the refused voids changed nothing").isEqualTo("ACTIVE");
     }
 
@@ -171,13 +171,14 @@ class BonusInputPortIT extends BonusInputSupport {
     }
 
     @Test
-    @DisplayName("#1436 PY3：没有审批人角色的人不能裁决奖金输入审批，也就写不出行")
+    @DisplayName("#1436 PY3：非候选人看不到奖金输入审批步骤（失败即关闭），也就裁决不了、写不出行")
     void onlyAnApproverDecidesTheApproval() throws Exception {
         Submitted submitted = submit(UUID.randomUUID(), OCTOBER, "700.00", "YEAR_END");
         org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(20)).until(() -> !openTaskIds(submitted.document()).isEmpty());
         UUID task = openTaskIds(submitted.document()).getFirst();
 
-        assertThat(act(task, outsiderAccount, "claim", null).getStatus()).as("a person without the approve permission cannot claim the step").isGreaterThanOrEqualTo(400);
+        assertThat(detail(task, outsiderAccount).getStatus()).as("a person who is no candidate of the step does not even see it (fail closed)").isEqualTo(404);
+        assertThat(detail(task, approverAccount).getStatus()).as("the approver is a candidate and sees it").isEqualTo(200);
         assertThat(rowsOf(submitted.id())).isEmpty();
     }
 }
