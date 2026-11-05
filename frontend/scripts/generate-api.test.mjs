@@ -35,7 +35,7 @@ test('enum-valued properties are open in the types (a newer server may send more
   const run = generate(() => undefined);
   assert.match(run.types, /outcome\?: components\["schemas"\]\["AuditOutcome"\] \| \(string & \{\}\);/);
   assert.match(run.types, /AuditOutcome: "SUCCEEDED" \| "FAILED";/);
-  assert.match(run.types, /ErrorCode: "COST_TIMESHEET_CUTOFF_PASSED"/);
+  assert.match(run.types, /ErrorCode: "ACCOUNTING_PERIOD_LEGAL_ENTITY_UNKNOWN"/);
 });
 
 test('a document without ProblemDetail or the ErrorCode enum is refused', () => {

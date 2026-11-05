@@ -5,6 +5,11 @@ import type { ErrorCode } from '@forcitis/api';
  * null: no wording of its own (no screen shows it in a way the user could act on); the wording of the HTTP status is used.
  */
 export const ERROR_MESSAGES: Readonly<Record<ErrorCode, string | null>> = {
+  ACCOUNTING_PERIOD_LEGAL_ENTITY_UNKNOWN: null,
+  ACCOUNTING_PERIOD_YEAR_ALREADY_OPENED: null,
+  ACCOUNTING_PERIOD_YEAR_BEFORE_LATEST: null,
+  ACCOUNTING_PERIOD_YEAR_OUT_OF_RANGE: null,
+  ACCOUNTING_PERIOD_YEAR_TOO_FAR_AHEAD: null,
   COST_TIMESHEET_CUTOFF_PASSED: null,
   COST_TIMESHEET_EMPLOYEE_UNKNOWN: null,
   COST_TIMESHEET_NOT_FOUND: '工时单不存在',

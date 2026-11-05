@@ -34,6 +34,18 @@ tables:
     writers: [cost.timesheet]
 
 
+  # D17 rule 2: master data, effective basis not needed, "a single state the audit can fully reconstruct" (ADR-0046 decision 8.6; data design record accounting-spine-p1, #1434): one status that only moves forward, every open is an audit record.
+  # The aggregate class is FiscalPeriod: kernel.AccountingPeriod is already the year-and-month value record that callers pass to the gate.
+  accounting_period.fiscal_periods:
+    role: AGGREGATE_ROOT
+    aggregate: FiscalPeriod
+    mutability: CONDITIONAL_UPDATE
+    condition: "OPEN to CLOSING and CLOSING to CLOSED, status, updated_at and version only; a CLOSED row never changes; no delete, no truncate (tg_fiscal_periods_change, tg_fiscal_periods_truncate)"
+    business_key: [legal_entity_id, fiscal_year_number, period_number]
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [accounting.period]
+
   # 卡 A 只建立数据库基线；当前没有 Java SQL 使用方，后续卡随仓储实现登记 writers。
   organization_administration.config_sets:
     role: CONFIG_VERSIONED
