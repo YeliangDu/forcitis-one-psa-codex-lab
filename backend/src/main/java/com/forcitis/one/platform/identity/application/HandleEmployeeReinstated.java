@@ -9,7 +9,6 @@ import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
-import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.organization.workforce.events.EmployeeCorrected;
 import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
 import com.forcitis.one.platform.identity.api.IdentityError;
@@ -27,8 +26,9 @@ import org.springframework.stereotype.Component;
  * A reinstatement took effect (ADR-0034 section 3 item 5, ADR-0055 section 3 item 6; D-1a-17): when the directory shows the person employed and the
  * account holds no open grant, exactly one default-role grant is opened, as when an account is opened.
  * Earlier grants stay closed and are not restored. A person without an account gets none, and a repeated delivery opens nothing, also after an
- * administrator took the role away. A correction that makes a separated person employed again (ADR-0082 decision 2) emits no reinstatement; it only lifts
- * the separation mark, when the directory shows the person employed (#1326), and opens no grant: the permission review of that correction decides.
+ * administrator took the role away. A correction that makes a separated person employed again (ADR-0082 decision 2) emits no reinstatement; every correction
+ * re-checks the mark and lifts it when the directory shows the person employed (#1326, the directory decides, not the shape of the correction), and opens no grant:
+ * the permission review of that correction decides.
  */
 @SystemActorName("platform.identity.account-provisioning")
 @Component
@@ -66,10 +66,6 @@ class HandleEmployeeReinstated {
 
     @ApplicationModuleListener
     void on(EmployeeCorrected event) {
-        boolean undoesSeparation = event.previousOrgUnitId() == null && event.newOrgUnitId() != null && event.triggerFieldKinds().contains(TriggerFieldKind.ORG_UNIT);
-        if (!undoesSeparation) {
-            return;
-        }
         try (WorkContext.Scope scope = WorkContext.enter(WorkContext.correlationId().orElseThrow(), WorkContext.causationId().orElse(null), ACTOR)) {
             accountEmployees.accountOf(event.employeeId()).flatMap(accounts::findForUpdate).ifPresent(account -> {
                 boolean employed = directory.findEmployee(event.employeeId()).map(e -> e.employmentStatus() == EmploymentStatus.EMPLOYED).orElse(false);

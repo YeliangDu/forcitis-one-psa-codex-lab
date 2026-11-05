@@ -62,6 +62,17 @@ class SeparatedAccountIntegrationTest extends IdentityIntegrationTest {
         return event.envelope().eventId();
     }
 
+    /** A correction of the position only: the shape does not say the person was away, the directory does. */
+    private UUID publishPositionCorrection(long employee) {
+        EmployeeId id = TestAccounts.employee(employee);
+        var orgUnit = com.forcitis.one.fixture.doubles.TestOrgIds.orgUnit(10);
+        var event = new EmployeeCorrected(TestEnvelopes.of("organization.workforce.EmployeeCorrected", "Employee", id.value()), new PersonnelCommandId(UUID.randomUUID()), id,
+                LocalDate.of(2026, 10, 15), null, java.util.List.of(TriggerFieldKind.POSITION), orgUnit, orgUnit, com.forcitis.one.fixture.doubles.TestOrgIds.position(1),
+                com.forcitis.one.fixture.doubles.TestOrgIds.position(2));
+        tx.executeWithoutResult(status -> events.publishEvent(event));
+        return event.envelope().eventId();
+    }
+
     private void awaitHandled(String listener, UUID published) {
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(jdbc.sql("""
                 select count(*) from (select listener_id, completion_date, serialized_event from platform_integration.event_publication
@@ -169,5 +180,19 @@ class SeparatedAccountIntegrationTest extends IdentityIntegrationTest {
         assertThat(separatedAt(1004)).isNull();
         MvcResult granted = replaceRoles(administratorSession(9), 1004, "employee");
         assertThat(granted.getResponse().getStatus()).as(granted.getResponse().getContentAsString()).isEqualTo(204);
+    }
+
+    @Test
+    @DisplayName("#1326 (f) any correction re-checks the mark: one of another field reaches a marked person the directory shows employed, and the mark clears")
+    void aCorrectionOfAnotherFieldLiftsTheMarkOfAnEmployedPerson() {
+        createAccount(1005);
+        knownEmployee(1005, EmploymentStatus.SEPARATED);
+        awaitHandled("HandleEmployeeSeparated", publishSeparation(1005));
+        assertThat(separatedAt(1005)).isNotNull();
+        knownEmployee(1005, EmploymentStatus.EMPLOYED);
+
+        awaitHandled("HandleEmployeeReinstated", publishPositionCorrection(1005));
+
+        assertThat(separatedAt(1005)).isNull();
     }
 }
