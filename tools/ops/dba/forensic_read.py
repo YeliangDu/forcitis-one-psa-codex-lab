@@ -190,8 +190,13 @@ class Cloud:
             raise Refused("cloud call returned no invocation")
         for _ in range(timeout // 2 + 30):
             time.sleep(2)
-            res = self._cli("ecs", "DescribeInvocationResults", "--InvokeId", invoke, "--InstanceId", instance, "--CommandId", self.command)
-            item = (res.get("Invocation") or res).get("InvocationResults", {}).get("InvocationResult", [{}])[0]
+            res = self._cli("ecs", "DescribeInvocationResults", "--InvokeId", invoke, "--CommandId", self.command)  # no InstanceId filter (the sub-user's policy does not allow it); the target is checked below
+            found = (res.get("Invocation") or res).get("InvocationResults", {}).get("InvocationResult", [])
+            if not found:
+                continue
+            if len(found) != 1 or found[0].get("InstanceId") != instance:
+                raise Refused("the cloud result is not for the host that was asked")
+            item = found[0]
             if item.get("InvocationStatus") in ("Success", "Failed", "Stopped", "Timeout", "TimedOut", "Cancelled", "Error", "Aborted"):
                 return item["InvocationStatus"], base64.b64decode(item.get("Output") or "").decode("utf-8", "replace")
         raise Refused("cloud invocation did not finish")
@@ -264,7 +269,7 @@ def account_problems(conf, target, rows):  # rows None: the answer was incomplet
     given = by.get("dbperm", [])
     if not DATABASE_DENIES <= {b for a, b in given if a == "D:0"}:
         bad.append("database-level DENY set")
-    if any(a != "G:0" or b not in DATABASE_GRANTS for a, b in given if not (a == "D:0" and b in DATABASE_DENIES)):
+    if any(a != "G:0" or b not in DATABASE_GRANTS for a, b in given if not (a == "D:0" and b in DATABASE_DENIES) and (a, b) != ("D:1", "SELECT")):  # D:1 SELECT: a DENY on one object or column only narrows the account
         bad.append("database-level grants")
     if by.get("role"):
         bad.append("database role membership")
