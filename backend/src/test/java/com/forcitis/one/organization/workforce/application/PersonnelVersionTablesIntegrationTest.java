@@ -139,7 +139,7 @@ class PersonnelVersionTablesIntegrationTest extends WorkforceIntegrationSupport 
         assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "HIRE", "PENDING")).hasMessageContaining("ck_personnel_commands_hire_columns");
         assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "TRANSFER", "HELD")).hasMessageContaining("ck_personnel_commands_held_kind");
         assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "CORRECTION", "PENDING")).hasMessageContaining("ck_personnel_commands_correction_immediate");
-        assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "SEPARATE", "PENDING")).hasMessageContaining("uk_personnel_commands_open_per_day");
+        assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "SEPARATE", "PENDING")).hasMessageContaining("uk_personnel_commands_open_per_relationship_day");
         assertThatThrownBy(() -> command("'019a0000-0000-7000-8000-0000000000c3'", "UNPAID_LEAVE_START", "WITHDRAWN")).hasMessageContaining("ck_personnel_commands_unpaid_leave");
     }
 
