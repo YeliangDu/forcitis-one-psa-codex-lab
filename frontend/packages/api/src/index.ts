@@ -1,3 +1,4 @@
+import './zod-jitless';
 import * as operations from './generated/operations';
 import type { components } from './generated/schema';
 
