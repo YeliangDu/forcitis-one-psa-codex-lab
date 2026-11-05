@@ -241,6 +241,9 @@ public final class PersonnelCommand extends AggregateRoot {
         if (previous.equals(next) || countersignNewLegalEntityId != null) {
             throw invalid("a countersign basis names two different legal entities, once");
         }
+        if (version() != 0 || (status != CommandStatus.PENDING && status != CommandStatus.EFFECTIVE)) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL, ErrorKind.CONFLICT, "only a command being entered waits for the countersign");
+        }
         countersignPreviousLegalEntityId = previous;
         countersignNewLegalEntityId = next;
         status = CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN;
@@ -265,7 +268,7 @@ public final class PersonnelCommand extends AggregateRoot {
      */
     public void completeCountersign(Instant at, LocalDate today) {
         boolean due = !effectiveDate.isAfter(today) || kind == PersonnelCommandKind.CORRECTION;
-        status = CommandStatus.MACHINE.require(status, due ? CommandStatus.EFFECTIVE : CommandStatus.PENDING, WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL);
+        status = leave(CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN, due ? CommandStatus.EFFECTIVE : CommandStatus.PENDING);
         appliedAt = due ? Objects.requireNonNull(at, "at") : null;
     }
 
@@ -275,7 +278,7 @@ public final class PersonnelCommand extends AggregateRoot {
      */
     public void releaseHeld(Instant at, LocalDate today) {
         boolean due = !effectiveDate.isAfter(today);
-        status = CommandStatus.MACHINE.require(status, due ? CommandStatus.EFFECTIVE : CommandStatus.PENDING, WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL);
+        status = leave(CommandStatus.HELD, due ? CommandStatus.EFFECTIVE : CommandStatus.PENDING);
         appliedAt = due ? Objects.requireNonNull(at, "at") : null;
     }
 
@@ -294,8 +297,16 @@ public final class PersonnelCommand extends AggregateRoot {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_ALLOWED, ErrorKind.CONFLICT,
                     "a command takes effect on its effective date, not before");
         }
-        status = CommandStatus.MACHINE.require(status, CommandStatus.EFFECTIVE, WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL);
+        status = leave(CommandStatus.PENDING, CommandStatus.EFFECTIVE);
         appliedAt = Objects.requireNonNull(at, "at");
+    }
+
+    /** A method that is for one status only (its design names it): any other status is refused before the machine is asked. */
+    private CommandStatus leave(CommandStatus source, CommandStatus target) {
+        if (status != source) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL, ErrorKind.CONFLICT, "this is for a " + source + " command, this one is " + status);
+        }
+        return CommandStatus.MACHINE.require(status, target, WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL);
     }
 
     /** Records that the separation was held instead of taking effect (ADR-0068 item 2.2); the employee stays employed and no separation is published. */

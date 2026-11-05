@@ -1,0 +1,13 @@
+-- 请假额度取证 L0 段 A3c（#1279）：自 leave-quota-l0.sql 拆出的单条只读 SELECT，供只读取证入口（#1377）逐文件运行；内容与原段相同，仅去掉 SET 与 GO。 运行库：a8_db（语句内有库名守卫，选错库返回空结果，不是无数据）。
+-- A3c 字段级定义中名字像公式、计算、默认值、关联、触发的键的内容（定义文本，不是数据）
+SELECT f.ID AS form_id, JSON_VALUE(fi.[value], '$.name') AS field_key, JSON_VALUE(fi.[value], '$.display') AS field_label,
+       k.[key] AS definition_key, CAST(k.[value] AS nvarchar(2000)) AS definition_text
+  FROM a8_db.dbo.CAP_FORM_DEFINITION AS f
+ CROSS APPLY OPENJSON(CAST(f.FIELD_INFO AS nvarchar(max)), '$.front_formmain.fieldInfo') AS fi
+ CROSS APPLY OPENJSON(fi.[value]) AS k
+ WHERE DB_NAME() = N'a8_db' AND f.ID IN (796171863600219842, 5859649593037638153, 9052538345220490521, -7749553928318729525, -7022180195473537202, 9063501945476501361, 6280910657268830205, 1302286494557294279, 802812893430891959, 4653374441028142836, 7535998766052625231, 2928784593663115810, -1386513811900251097, -2826989769200875060, -364855800485097884, 8372459854493797226, 8604312368632513736, 4066963956786548045, -3286220380529473854, 724697480203878861) AND ISJSON(CAST(f.FIELD_INFO AS nvarchar(max))) = 1 AND fi.[type] = 5
+   AND (LOWER(k.[key]) LIKE N'%formula%' OR LOWER(k.[key]) LIKE N'%calc%' OR LOWER(k.[key]) LIKE N'%expression%'
+     OR (f.ID NOT IN (-2826989769200875060, -364855800485097884, 8372459854493797226, 8604312368632513736, -3286220380529473854, 724697480203878861)
+         AND (LOWER(k.[key]) LIKE N'%default%' OR LOWER(k.[key]) LIKE N'%relation%' OR LOWER(k.[key]) LIKE N'%trigger%')))
+   AND LEN(CAST(k.[value] AS nvarchar(max))) > 0 AND CAST(k.[value] AS nvarchar(max)) NOT IN (N'', N'null', N'[]', N'{}')
+ ORDER BY f.ID, field_key;
