@@ -8,6 +8,8 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
+import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
+import com.forcitis.one.organization.workforce.events.EmployeeCorrected;
 import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
 import jakarta.servlet.http.Cookie;
@@ -46,6 +48,16 @@ class SeparatedAccountIntegrationTest extends IdentityIntegrationTest {
         EmployeeId id = TestAccounts.employee(employee);
         var event = new EmployeeReinstated(TestEnvelopes.of("organization.workforce.EmployeeReinstated", "Employee", id.value()), new PersonnelCommandId(UUID.randomUUID()), id,
                 LocalDate.now());
+        tx.executeWithoutResult(status -> events.publishEvent(event));
+        return event.envelope().eventId();
+    }
+
+    /** A correction that undoes a wrong separation: no department before, one today; ORG_UNIT only (ADR-0082 decision 2). */
+    private UUID publishCorrectionUndoingSeparation(long employee) {
+        EmployeeId id = TestAccounts.employee(employee);
+        var event = new EmployeeCorrected(TestEnvelopes.of("organization.workforce.EmployeeCorrected", "Employee", id.value()), new PersonnelCommandId(UUID.randomUUID()), id,
+                LocalDate.of(2026, 10, 15), null, java.util.List.of(TriggerFieldKind.ORG_UNIT), null, com.forcitis.one.fixture.doubles.TestOrgIds.orgUnit(10), null,
+                com.forcitis.one.fixture.doubles.TestOrgIds.position(1));
         tx.executeWithoutResult(status -> events.publishEvent(event));
         return event.envelope().eventId();
     }
@@ -140,6 +152,22 @@ class SeparatedAccountIntegrationTest extends IdentityIntegrationTest {
         assertThat(separatedAt(1003)).as("the directory says employed: nothing to remember").isNull();
         assertThat(holds(1003, "employee")).as("the roles are taken away as before").isFalse();
         MvcResult granted = replaceRoles(administratorSession(9), 1003, "employee");
+        assertThat(granted.getResponse().getStatus()).as(granted.getResponse().getContentAsString()).isEqualTo(204);
+    }
+
+    @Test
+    @DisplayName("#1326 (e) a correction that undoes the separation (no reinstatement event follows) lifts the mark once the directory shows the person employed")
+    void aCorrectionUndoingTheSeparationLiftsTheMark() throws Exception {
+        createAccount(1004);
+        knownEmployee(1004, EmploymentStatus.SEPARATED);
+        awaitHandled("HandleEmployeeSeparated", publishSeparation(1004));
+        assertThat(separatedAt(1004)).isNotNull();
+        knownEmployee(1004, EmploymentStatus.EMPLOYED);
+
+        awaitHandled("HandleEmployeeReinstated", publishCorrectionUndoingSeparation(1004));
+
+        assertThat(separatedAt(1004)).isNull();
+        MvcResult granted = replaceRoles(administratorSession(9), 1004, "employee");
         assertThat(granted.getResponse().getStatus()).as(granted.getResponse().getContentAsString()).isEqualTo(204);
     }
 }

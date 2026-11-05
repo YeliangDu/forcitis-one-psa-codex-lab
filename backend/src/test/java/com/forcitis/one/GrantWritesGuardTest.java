@@ -22,7 +22,7 @@ class GrantWritesGuardTest {
 
     private static final String DOOR = "com.forcitis.one.platform.identity.application.AccountGrants";
     private static final String STORE = "com.forcitis.one.platform.identity.infrastructure.persistence.JdbcAccountRepository";
-    private static final Pattern GRANT_TABLE_WRITE = Pattern.compile("(?is)(insert\\s+into|update|delete\\s+from)\\s+platform_identity\\.account_role_grants\\b");
+    private static final Pattern GRANT_TABLE_WRITE = Pattern.compile("(?is)(insert\\s+into|update|delete\\s+from|merge\\s+into|copy)\\s+(?:\\\\?\")?platform_identity(?:\\\\?\")?\\s*\\.\\s*(?:\\\\?\")?account_role_grants(?:\\\\?\")?\\b");
 
     /** Any call of a saveGrants of the repository, through the interface or a concrete class. */
     private static DescribedPredicate<JavaCall<?>> savesGrants() {
