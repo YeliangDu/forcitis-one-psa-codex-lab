@@ -33,6 +33,18 @@ public record PersonnelHistory(List<VersionRow> employeeRows, List<VersionRow> a
     }
 
     /**
+     * The history as the relationship sees it when the primary post moves into it (design 6.3, item 12): the primary root's rows of any relationship are shown as the
+     * relationship's, so the plan closes the old version on the day and writes the next one in the same root. Stored rows keep the relationship they were written with.
+     */
+    public PersonnelHistory movingPrimaryTo(EmploymentRelationshipId relationship) {
+        UUID primary = primaryRoot().map(root -> root.id().value()).orElse(null);
+        List<VersionRow> rows = assignmentRows.stream().filter(r -> relationship.equals(r.relationshipId()) || primary != null && primary.equals(r.root()))
+                .map(r -> primary != null && primary.equals(r.root()) ? r.inRelationship(relationship) : r).toList();
+        return new PersonnelHistory(employeeRows.stream().filter(r -> relationship.equals(r.relationshipId())).toList(), rows, roots, legalEntityRows,
+                commands.stream().filter(c -> relationship.equals(c.employmentRelationshipId())).toList(), lookup, relationships);
+    }
+
+    /**
      * Whether the person goes from not in service to in service with this relationship on the day (EmployeeHired, EmployeeReinstated): no other relationship was in
      * service on the day before, and none that came earlier is in service on the day itself; an employer change in continuous service (a predecessor) is no entry.
      * The relationships are in the order they were made.
@@ -71,7 +83,7 @@ public record PersonnelHistory(List<VersionRow> employeeRows, List<VersionRow> a
                 .allMatch(r -> Boolean.TRUE.equals(r.values().get(CommandEffects.ON_LEAVE)));
     }
 
-    private boolean inService(EmploymentRelationshipId relationship, LocalDate day) {
+    public boolean inService(EmploymentRelationshipId relationship, LocalDate day) {
         return currentEmployeeRows(relationship).stream().anyMatch(r -> r.covers(day) && "EMPLOYED".equals(r.values().get(CommandEffects.EMPLOYMENT)));
     }
 

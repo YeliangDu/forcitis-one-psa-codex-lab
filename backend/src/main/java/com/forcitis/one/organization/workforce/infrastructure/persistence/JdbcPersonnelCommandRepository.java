@@ -42,6 +42,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import com.forcitis.one.kernel.event.ActorType;
 import java.sql.Types;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -65,11 +66,13 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
     private final JdbcClient jdbc;
     private final IdGenerator ids;
     private final BusinessZone zone;
+    private final Clock clock;
 
-    JdbcPersonnelCommandRepository(JdbcClient jdbc, IdGenerator ids, BusinessZone zone) {
+    JdbcPersonnelCommandRepository(JdbcClient jdbc, IdGenerator ids, BusinessZone zone, Clock clock) {
         this.jdbc = jdbc;
         this.ids = ids;
         this.zone = zone;
+        this.clock = clock;
     }
 
     @Override
@@ -84,6 +87,12 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
 
     @Override
     public Set<EmployeeId> excludedEmployees() {
+        LocalDate today = zone.today(clock);
+        return candidatesLeaving().stream().filter(employee -> isLeaving(employee, today)).collect(java.util.stream.Collectors.toSet());
+    }
+
+    /** People with a relationship that is leaving; whether the whole person is leaving is {@link #isLeaving} (design 6.2: every in-service relationship gone). */
+    private Set<EmployeeId> candidatesLeaving() {
         return new HashSet<>(jdbc.sql("""
                 select h.employee_id from organization_workforce.separation_holds h
                 join organization_workforce.personnel_commands c on c.personnel_command_id = h.personnel_command_id
@@ -411,9 +420,6 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
                 insertAssignmentVersion(employee, row, revision, at, command);
             }
         }
-        if (employeeTable) {
-            updateSnapshot(employee, at);
-        }
     }
 
     /** The derived snapshot columns of the root row follow the relationships (ADR-0086 design 6.2): employed while any relationship is in service on the day, else separated on the latest end. */
@@ -504,10 +510,13 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
                 .param("correctedFrom", row.correctedFrom(), Types.OTHER).param("at", at(at)).update();
     }
 
-    /** A hire, a reinstatement or a start of a concurrent post puts rows into its own relationship; any other command edits the rows in force and stays in theirs. */
+    /** A hire, a reinstatement, a start of a concurrent post or a transfer of the primary post (which may move it, design 6.3) puts rows into its own relationship; any other command edits the rows in force and stays in theirs. */
     private boolean keepsRelationship(PersonnelCommandId command) {
-        String kind = jdbc.sql("select command_kind from organization_workforce.personnel_commands where personnel_command_id = :id").param("id", command.value()).query(String.class).single();
-        return !Set.of("HIRE", "REINSTATE", "START_CONCURRENT").contains(kind);
+        Map<String, Object> row = jdbc.sql("select command_kind, target_assignment_kind from organization_workforce.personnel_commands where personnel_command_id = :id")
+                .param("id", command.value()).query().singleRow();
+        String kind = (String) row.get("command_kind");
+        boolean movesPrimary = "TRANSFER".equals(kind) && "PRIMARY".equals(row.get("target_assignment_kind"));
+        return !movesPrimary && !Set.of("HIRE", "REINSTATE", "START_CONCURRENT").contains(kind);
     }
 
     @Override

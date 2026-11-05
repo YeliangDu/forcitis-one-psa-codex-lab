@@ -309,7 +309,7 @@ class PersonnelCommandService implements PersonnelCommands {
         if (command.kind() == PersonnelCommandKind.HIRE) {
             EmploymentRelationshipId started = startRelationship(command, request, all, employee, now);
             command.bindTo(started);
-            return all.within(started);
+            return movesPrimary(command, all, started) ? all.movingPrimaryTo(started) : all.within(started);
         }
         EmploymentRelationshipId named = request.employmentRelationshipId();
         if (named == null) {
@@ -319,7 +319,27 @@ class PersonnelCommandService implements PersonnelCommands {
             throw invalid("the employment relationship does not belong to the employee");
         }
         command.bindTo(named);
+        boolean primaryTransfer = command.kind() == PersonnelCommandKind.TRANSFER && (request.targetAssignmentId() == null
+                || all.primaryRoot().map(root -> root.id().equals(request.targetAssignmentId())).orElse(false));
+        if (primaryTransfer && movesPrimary(command, all, named)) {
+            if (!all.inService(named, command.effectiveDate())) {
+                throw invalid("the primary post moves only to a relationship in service on " + command.effectiveDate());
+            }
+            return all.movingPrimaryTo(named);
+        }
+        if (command.kind() == PersonnelCommandKind.REINSTATE && movesPrimary(command, all, named)) {
+            return all.movingPrimaryTo(named);
+        }
         return all.within(named);
+    }
+
+    /** The command writes the next version of the primary post, and the version in force that day belongs to another relationship (design 6.3): the post moves. */
+    private static boolean movesPrimary(PersonnelCommand command, PersonnelHistory all, EmploymentRelationshipId target) {
+        if (command.kind() != PersonnelCommandKind.TRANSFER && command.targetOrgUnitId() == null) {
+            return false;
+        }
+        VersionRow current = all.assignmentOn(command.effectiveDate());
+        return current != null && current.covers(command.effectiveDate()) && current.relationshipId() != null && !current.relationshipId().equals(target);
     }
 
     private EmploymentRelationshipId defaultRelationship(PersonnelCommand command, PersonnelHistory all) {
@@ -361,9 +381,6 @@ class PersonnelCommandService implements PersonnelCommands {
         if (!all.relationships().isEmpty()) {
             if (command.targetOrgUnitId() == null && !primaryInService) {
                 throw invalid("a hire without a post needs the employee's primary post in service on " + day);
-            }
-            if (command.targetOrgUnitId() != null && primaryInService) {
-                throw invalid("the employee holds a primary post on " + day + "; an additional employer is entered without department and position");
             }
         }
         EmploymentRelationshipId id = new EmploymentRelationshipId(ids.next());

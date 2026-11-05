@@ -37,6 +37,11 @@ public final class PersonnelCommandRules {
      * for the person, the relationship-level ones counted per relationship by {@link #check} (design section 5). Run over the whole history.
      */
     public static void requireOneCommandPerDay(PersonnelCommand command, PersonnelHistory all) {
+        if (producesPrimaryVersion(command) && all.commands().stream().filter(o -> !o.id().equals(command.id()))
+                .anyMatch(o -> o.status().isOpen() && o.effectiveDate().equals(command.effectiveDate()) && producesPrimaryVersion(o))) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_ALLOWED, ErrorKind.CONFLICT,
+                    "the employee already has an open command for " + command.effectiveDate() + " that writes a primary post version (design 12a)");
+        }
         boolean person = command.employmentRelationshipId() == null;
         if (command.kind() == PersonnelCommandKind.CORRECTION || command.kind() == PersonnelCommandKind.START_CONCURRENT) {
             return;
@@ -47,6 +52,16 @@ public final class PersonnelCommandRules {
         if (clash) {
             throw refused("the employee already has an open command for " + command.effectiveDate() + " that is about the person or about another relationship");
         }
+    }
+
+    /** A transfer or correction of the primary post, or a hire or reinstatement that carries a post, writes a version of the primary post. */
+    private static boolean producesPrimaryVersion(PersonnelCommand c) {
+        return switch (c.kind()) {
+            case HIRE, REINSTATE -> c.targetOrgUnitId() != null;
+            case TRANSFER, CORRECTION -> c.targetAssignmentKind() == AssignmentKind.PRIMARY
+                    && (c.targetOrgUnitId() != null || c.targetPositionId() != null || c.targetReportsToEmployeeId() != null);
+            default -> false;
+        };
     }
 
     /**
