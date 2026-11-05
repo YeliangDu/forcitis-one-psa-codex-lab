@@ -268,8 +268,8 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
 
     private static final java.time.ZoneId BUSINESS_ZONE = java.time.ZoneId.of("Asia/Shanghai");
     /**
-     * The second weekday after TODAY is the entity's own holiday; the entity calendar is saved for that day's own year, so a year change needs no change here.
-     * The due dates (five weekdays on) must fall in a year whose default calendar is maintained, which production requires too (an unmaintained year refuses).
+     * The second weekday after TODAY is the entity's own holiday. Production refuses a due date in a year whose calendar is not maintained, so the
+     * calendars of every year from the one before TODAY to the one of the fifth weekday after it are maintained below (default through the attendance endpoint).
      */
     private static final LocalDate HOLIDAY_OF_X = weekdaysAfter(TODAY, 2, java.util.Set.of());
 
@@ -290,13 +290,42 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         return day.atStartOfDay(BUSINESS_ZONE).toInstant();
     }
 
-    /** The legal entity gets its own 2026 calendar with one weekday holiday, which the default calendar (weekends off only) does not have. */
+    /** The years whose calendars the cases read: from the one before TODAY (BACK_ON) to the one of the fifth weekday after it. */
+    private static List<Integer> calendarYears() {
+        List<Integer> years = new java.util.ArrayList<>();
+        for (int year = BACK_ON.getYear(); year <= weekdaysAfter(TODAY, 5, java.util.Set.of()).getYear(); year++) {
+            years.add(year);
+        }
+        return years;
+    }
+
+    /** The default calendar (weekends off only) of every year the cases read, saved through the attendance endpoint; a saved year is left as it is. */
+    @org.junit.jupiter.api.BeforeEach
+    void maintainTheDefaultCalendars() throws Exception {
+        for (int year : calendarYears()) {
+            String path = "/api/v1/organization/work-calendars/" + year;
+            if (mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get(path).with(session(administrator))).andReturn().getResponse().getStatus() == 200) {
+                continue;
+            }
+            org.springframework.mock.web.MockHttpServletResponse saved = mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put(path)
+                    .header("If-Match", "\"0\"").with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+                    .with(session(administrator)).contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                    .content("{\"days\":[],\"lockedDaysConfirmed\":true}")).andReturn().getResponse();
+            assertThat(saved.getStatus()).as("maintaining the default calendar of " + year + ": " + saved.getContentAsString()).isEqualTo(200);
+        }
+    }
+
+    /** The legal entity gets its own calendar with one weekday holiday, which the default calendar (weekends off only) does not have; the other years it reads have no holiday. */
     private void givenOwnCalendarWithAHoliday(UUID entity, LocalDate holiday) throws SQLException {
-        UUID year = Uuids.timeOrdered(NOW);
         try (Connection attendance = schemaConnection("organization_attendance")) {
-            update(attendance, "insert into work_calendar_years (id, legal_entity_id, year_number) values (?, ?, ?)", year, stored(entity), holiday.getYear());
-            update(attendance, "insert into work_calendar_days (id, work_calendar_year_id, calendar_date, day_kind) values (?, ?, ?, 'HOLIDAY')",
-                    Uuids.timeOrdered(NOW), year, holiday);
+            for (int yearNumber : calendarYears()) {
+                UUID year = Uuids.timeOrdered(NOW);
+                update(attendance, "insert into work_calendar_years (id, legal_entity_id, year_number) values (?, ?, ?)", year, stored(entity), yearNumber);
+                if (yearNumber == holiday.getYear()) {
+                    update(attendance, "insert into work_calendar_days (id, work_calendar_year_id, calendar_date, day_kind) values (?, ?, ?, 'HOLIDAY')",
+                            Uuids.timeOrdered(NOW), year, holiday);
+                }
+            }
         }
     }
 
