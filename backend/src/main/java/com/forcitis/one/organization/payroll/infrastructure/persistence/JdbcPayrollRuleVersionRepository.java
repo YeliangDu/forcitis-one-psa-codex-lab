@@ -45,8 +45,8 @@ class JdbcPayrollRuleVersionRepository implements PayrollRuleVersionRepository {
     }
 
     @Override
-    public Optional<PayrollRuleVersion> find(UUID id) {
-        return jdbc.sql("select " + COLUMNS + " from organization_payroll.payroll_rule_versions where id = :id").param("id", id)
+    public Optional<PayrollRuleVersion> findForUpdate(UUID id) {
+        return jdbc.sql("select " + COLUMNS + " from organization_payroll.payroll_rule_versions where id = :id for no key update").param("id", id)
                 .query((rs, n) -> PayrollRuleVersion.restore(record(rs))).optional();
     }
 

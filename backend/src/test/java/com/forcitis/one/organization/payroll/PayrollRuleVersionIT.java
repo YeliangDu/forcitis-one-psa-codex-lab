@@ -45,7 +45,7 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
         postgres.register(registry);
     }
 
-        private int publishedAuditEntries() throws Exception {
+    private int publishedAuditEntries() throws Exception {
         return auditedActions("organization.payroll.rule-version.published").size();
     }
 
@@ -116,6 +116,45 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
             assertThat(e.errorCode()).isEqualTo(code);
             assertThat(e.kind()).isEqualTo(kind);
         });
+    }
+
+    @Test
+    @DisplayName("PRC-180 a row written while the publish is under way cannot slip past its completeness check")
+    void aRowWrittenDuringThePublishIsNotMissed() throws Exception {
+        UUID id = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 1, 1), true);
+        try (java.sql.Connection other = java.sql.DriverManager.getConnection(postgres.url(), postgres.username(), postgres.password())) {
+            other.setAutoCommit(false);
+            try (java.sql.PreparedStatement insert = other.prepareStatement("""
+                    insert into organization_payroll.payroll_rule_rows (id, rule_version_id, row_kind, row_key, rounding_kind, created_at, updated_at)
+                    values (?, ?, 'ROUNDING_MODE', 'X', 'HALF_UP', now(), now())
+                    """)) {
+                insert.setObject(1, UUID.randomUUID());
+                insert.setObject(2, id);
+                insert.executeUpdate();
+            }
+            java.util.concurrent.ExecutorService pool = java.util.concurrent.Executors.newSingleThreadExecutor();
+            try {
+                java.util.concurrent.Future<?> publishing = pool.submit(() -> publishAs(APPROVER, id));
+                waitUntilSomeoneWaitsForALock();
+                other.commit();
+                assertThatThrownBy(() -> publishing.get(20, java.util.concurrent.TimeUnit.SECONDS)).hasRootCauseInstanceOf(DomainException.class)
+                        .rootCause().isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_INCOMPLETE));
+            } finally {
+                pool.shutdownNow();
+            }
+        }
+
+        assertThat(stored(id)).containsEntry("status", "DRAFT");
+    }
+
+    private void waitUntilSomeoneWaitsForALock() throws InterruptedException {
+        for (int tries = 0; tries < 200; tries++) {
+            if (jdbc.sql("select count(*) from pg_stat_activity where wait_event_type = 'Lock' and datname = current_database()").query(Integer.class).single() > 0) {
+                return;
+            }
+            Thread.sleep(50);
+        }
+        throw new AssertionError("the publish never waited for the lock of the version row");
     }
 
     @Test
@@ -208,7 +247,7 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
     @DisplayName("a save of a version changed since it was read is refused as a concurrent change, not lost")
     void staleSaveIsRefused() {
         UUID id = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 1, 1), true);
-        var read = repository.find(id).orElseThrow();
+        var read = repository.findForUpdate(id).orElseThrow();
         read.publish(new com.forcitis.one.kernel.UserId(UUID.fromString(APPROVER)), java.time.Instant.parse("2026-11-05T02:00:00Z"), repository.rowsOf(id));
         jdbc.sql("update organization_payroll.payroll_rule_versions set version = version + 1 where id = :id").param("id", id).update();
 

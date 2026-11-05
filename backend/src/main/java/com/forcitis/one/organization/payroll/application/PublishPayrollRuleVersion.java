@@ -39,7 +39,7 @@ public class PublishPayrollRuleVersion {
 
     @Transactional
     public void execute(PayrollRuleVersionId id) {
-        PayrollRuleVersion version = versions.find(id.value()).orElseThrow(() -> new DomainException(PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_NOT_FOUND,
+        PayrollRuleVersion version = versions.findForUpdate(id.value()).orElseThrow(() -> new DomainException(PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_NOT_FOUND,
                 ErrorKind.NOT_FOUND, "no payroll rule version " + id));
         UserId approver = currentUser.userId();
         version.publish(approver, clock.instant(), versions.rowsOf(id.value()));

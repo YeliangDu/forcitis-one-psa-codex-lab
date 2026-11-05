@@ -10,7 +10,8 @@ import java.util.UUID;
 
 public interface PayrollRuleVersionRepository {
 
-    Optional<PayrollRuleVersion> find(UUID id);
+    /** Reads the version and locks its row until the transaction ends: the rows checked by a publish cannot change under it (the row trigger waits on this lock). */
+    Optional<PayrollRuleVersion> findForUpdate(UUID id);
 
     /** The version of the category and jurisdiction that is EFFECTIVE and has no end yet: the one a newly published version closes. */
     Optional<PayrollRuleVersion> findOpenEffective(PayrollRuleKind ruleKind, JurisdictionKey jurisdictionKey);
