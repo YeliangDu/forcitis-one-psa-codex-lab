@@ -37,7 +37,7 @@ class PermissionAdjustmentReadApiIT extends PermissionAdjustmentApiSupport {
     }
 
     @Test
-    @DisplayName("#730 S3 契约第 10、11、13 条：组织数据管理员与安全审计员都能列出全部类型的条目（人员条目带 userId，角色条目带 roleId 与 orgUnitId），形状为 {items, nextCursor}，条目与详情都不含权限码与范围")
+    @DisplayName("#730 S3 契约第 10、11、13 条：组织数据管理员与安全审计员都能列出全部类型的条目（人员条目带 userId，角色条目带 roleId 与 orgUnitId），形状为 {items, nextCursor}，条目与详情带当事人的显示名 userName，不含权限码、范围与条目之外的人名（用户裁定 B，2026-11-05）")
     void bothReadersSeeEveryKindAndNoPermissionCodeOrScope() throws Exception {
         UUID sensitive = sensitiveItemAbout("mover");
         UUID transfer = scopeReviewAbout("mover", "headB");
@@ -53,19 +53,28 @@ class PermissionAdjustmentReadApiIT extends PermissionAdjustmentApiSupport {
             assertThat(person).containsEntry("kind", "SENSITIVE_ROLE_REVIEW").containsEntry("status", "OPEN").containsEntry("userId", userId("mover"));
             Map<String, Object> role = items.stream().filter(item -> inactive.toString().equals(item.get("permissionAdjustmentId"))).findFirst().orElseThrow();
             assertThat(role).containsEntry("kind", "SCOPE_REVIEW").containsKeys("roleId", "orgUnitId");
-            assertNoPermissionOrScopeOrName(listed.getContentAsString());
+            assertThat(person).as(reader + ": the person's name is shown to a reader who sees the item").containsEntry("userName", "Synthetic mover");
+            assertNoPermissionOrScopeOrOtherPeoplesNames(listed.getContentAsString(), "Synthetic mover");
             MockHttpServletResponse detail = read(session(reader), sensitive);
             assertThat(detail.getStatus()).isEqualTo(200);
-            assertNoPermissionOrScopeOrName(detail.getContentAsString());
+            assertThat((String) JsonPath.read(detail.getContentAsString(), "$.userName")).isEqualTo("Synthetic mover");
+            assertNoPermissionOrScopeOrOtherPeoplesNames(detail.getContentAsString(), "Synthetic mover");
         }
     }
 
-    /** Contract 13: no permission codes, access scope or personal identifiers (display or employee name, employee code, login id, WeCom id) in an item: no such member at any depth, and neither the permission code prefixes nor the display names of the fixture people. */
-    private static void assertNoPermissionOrScopeOrName(String body) {
+    /**
+     * Contract 13 (amended by user decision B of 2026-11-05): an item shows no permission code, no access scope and no personal identifier other than the
+     * display names {@code userName} and {@code businessOwnerName}; those two carry the names of the people the item is about (the person and, once upheld, the
+     * business owner) and of nobody else. Checked as: no such member at any depth, no permission code prefix, and no fixture person's display name outside
+     * {@code allowedNames}.
+     */
+    private static void assertNoPermissionOrScopeOrOtherPeoplesNames(String body, String... allowedNames) {
         Object parsed = JsonPath.parse(body).json();
         assertThat(keysOf(parsed)).as("member names of the answer").noneMatch(key -> key.matches("(?i)(permissions?|permissioncodes?|accessscope|scope|displayname|employeename|personname|employeecode|loginid|wecom.*)"));
         assertThat(body).doesNotContain("organization.workforce:", "platform.identity:");
-        PEOPLE.forEach(key -> assertThat(body).as("display name of " + key).doesNotContain("Synthetic " + key));
+        List<String> allowed = List.of(allowedNames);
+        PEOPLE.stream().filter(key -> !allowed.contains("Synthetic " + key))
+                .forEach(key -> assertThat(body).as("display name of " + key + " is not in this item").doesNotContain("\"Synthetic " + key + "\""));
     }
 
     private static List<String> keysOf(Object node) {
@@ -79,6 +88,29 @@ class PermissionAdjustmentReadApiIT extends PermissionAdjustmentApiSupport {
             list.forEach(element -> keys.addAll(keysOf(element)));
         }
         return keys;
+    }
+
+    @Test
+    @DisplayName("#730 S3 契约第 13 条（用户裁定 B）：维持授权后，能读到条目的人在条目与列表中看到当事人与业务责任人的显示名（userName、businessOwnerName），看不到别的人名；读不到条目的人什么也看不到")
+    void anUpheldItemShowsThePersonAndTheBusinessOwnerAndNobodyElse() throws Exception {
+        UUID item = sensitiveItemAbout("mover");
+        MockHttpServletResponse upheld = uphold(session("oda"), item.toString(), uphold("still needed for the audit", employeeIdOf("owner")));
+        assertThat(upheld.getStatus()).as(upheld.getContentAsString()).isIn(200, 204);
+
+        for (String reader : List.of("oda", "auditor")) {
+            MockHttpServletResponse detail = read(session(reader), item);
+            assertThat(detail.getStatus()).as(reader).isEqualTo(200);
+            assertThat((String) JsonPath.read(detail.getContentAsString(), "$.userName")).isEqualTo("Synthetic mover");
+            assertThat((String) JsonPath.read(detail.getContentAsString(), "$.businessOwnerName")).isEqualTo("Synthetic owner");
+            assertNoPermissionOrScopeOrOtherPeoplesNames(detail.getContentAsString(), "Synthetic mover", "Synthetic owner");
+            Map<String, Object> listed = items(listPage(session(reader), "limit", "200")).stream().filter(each -> item.toString().equals(each.get("permissionAdjustmentId"))).findFirst().orElseThrow();
+            assertThat(listed).containsEntry("userName", "Synthetic mover").containsEntry("businessOwnerName", "Synthetic owner");
+        }
+        for (String caller : List.of("plain", "headA", "mover")) {
+            MockHttpServletResponse hidden = read(session(caller), item);
+            assertThat(hidden.getStatus()).as(caller + " still cannot read the item").isEqualTo(404);
+            assertThat(hidden.getContentAsString()).as("no name leaks through the refusal").doesNotContain("Synthetic");
+        }
     }
 
     @Test
