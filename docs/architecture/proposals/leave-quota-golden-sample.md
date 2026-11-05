@@ -1,7 +1,7 @@
 # Leave quota golden sample (organization.leave, W2)
 
 Status: draft for sign-off, 2026-11-04, one-design, card #1279. Companion of `organization-leave.md` (the BC spec).
-Revision 2 (2026-11-04): every account is per **employment relationship** (user ruling on #1295; ADR-0086 proposed in PR #1315, model in `employment-relationship.md`). Cases and queries that depend on that model are marked **[R]**; `organization-leave.md` section 9b says what changes if the #1315 review changes it. Ten cases now (G1..G10), G6 redefined, G9 and G10 new; the sample stays within 5-8 *people* because G9 and G10 reuse two people (see section 2).
+Revision 2 (2026-11-04): every account is per **employment relationship** (user ruling on #1295; ADR-0086 adopted, PR #1336, model in `employment-relationship.md`). Cases and queries that depend on that model are marked **[R]**; `organization-leave.md` section 9b says what changes if a later ADR changes it. Ten cases now (G1..G10), G6 redefined, G9 and G10 new; the sample stays within 5-8 *people* because G9 and G10 reuse two people (see section 2).
 Basis: intent `docs/decisions/2026-11-02-162741-one-lead-同意-旧系统对照-用来计算预期值.md` (user: 「同意，旧系统对照，用来计算预期值以及对照验证」): 5–8 synthetic people × one leave year, expected values computed by the legacy system, real data never enters the repo or a session, comparison on aggregates only.
 
 ## 0. What the repo already knows about the legacy quota: nothing usable
@@ -36,7 +36,7 @@ If a legacy test or staging instance exists where synthetic people can be create
 
 ## 2. The synthetic cases (ten cases on eight people, leave year 2026 = calendar year)
 
-All people, dates, entities and ids are invented; names `G1`..`G10` (cases, not people: G9 reuses the person of G1, G10 the person of G3, so the sample still has eight people). G9 and G10 are written only after ADR-0086 is adopted. "Treatment T-n" refers to a business treatment the user decides (list in `organization-leave.md` section 9); the expected value of a case that depends on one stays marked pending until the user decides and the legacy value is known.
+All people, dates, entities and ids are invented; names `G1`..`G10` (cases, not people: G9 reuses the person of G1, G10 the person of G3, so the sample still has eight people). G9 and G10 could be written only after ADR-0086 was adopted; it is adopted now. "Treatment T-n" refers to a business treatment the user decides (list in `organization-leave.md` section 9); the expected value of a case that depends on one stays marked pending until the user decides and the legacy value is known.
 
 | case | situation | edge it covers | depends on |
 |---|---|---|---|

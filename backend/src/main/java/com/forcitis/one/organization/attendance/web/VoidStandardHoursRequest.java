@@ -4,6 +4,6 @@ import org.jspecify.annotations.Nullable;
 
 record VoidStandardHoursRequest(@Nullable String reason) {
     String requiredReason() {
-        return PublishStandardHoursRequest.required(reason, "reason").strip();
+        return PublishStandardHoursRequest.requiredText(reason, "reason");
     }
 }
