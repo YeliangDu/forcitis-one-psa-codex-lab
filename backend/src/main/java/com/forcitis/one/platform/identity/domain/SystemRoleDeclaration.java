@@ -28,6 +28,7 @@ public record SystemRoleDeclaration(List<DeclaredRole> roles) {
      * personnel_specialist (人事专员, user decision 2026-10-30) enters and withdraws personnel commands (ADR-0068 item 1.6) and, at revision 2, reads the employee roster (#1171, user decision 2026-11-03, intent 214823) and, at revision 3, reads org units and legal entities so a personnel command form can fill its choices (#1306, User 2026-11-04 「给人事专员加读组织单元和法人（推荐）」; positions need no code);
      * legal_entity_finance_head (法人财务负责人) countersigns a change of the cost legal entity when it is the finance head of the entity, and business_admin
      * may from escalation level 2 (ADR-0073 item 3.6, user answer Q3 of 2026-10-30; the rule is in organization.workforce, the role only holds the permission);
+     * payroll_specialist (薪资专员, #1436, lead 2026-11-05) requests, voids and reads bonus inputs (organization.payroll, PY3) and is the second stage of their approval;
      * org_data_admin enters and withdraws org-structure commands (ADR-0073 item 2.4, ADR-0027 item 2.1).
      */
     public static final SystemRoleDeclaration CURRENT = new SystemRoleDeclaration(List.of(
@@ -53,7 +54,9 @@ public record SystemRoleDeclaration(List<DeclaredRole> roles) {
             declared("019a0000-0000-7000-8000-000000000107", "personnel_specialist", "人事专员", AccessScopeKind.ALL, false, 3,
                     Codes.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_CREATE, Codes.ORGANIZATION_WORKFORCE_EMPLOYEE_READ, Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ),
             declared("019a0000-0000-7000-8000-000000000108", "legal_entity_finance_head", "法人财务负责人", AccessScopeKind.SELF, false,
-                    Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_APPROVE)));
+                    Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_APPROVE),
+            declared("019a0000-0000-7000-8000-000000000109", "payroll_specialist", "薪资专员", AccessScopeKind.ALL, false,
+                    Codes.ORGANIZATION_PAYROLL_BONUS_INPUT_SUBMIT, Codes.ORGANIZATION_PAYROLL_BONUS_INPUT_UPDATE, Codes.ORGANIZATION_PAYROLL_BONUS_INPUT_READ)));
 
     /** The revision every role of the first declaration carries (card 7.2: 声明修订号 1); org_data_admin is at 2 since #934 swapped its sync-run codes for org-reconciliation:execute, at 3 since #907 added org-structure-command:create, at 4 since it holds permission-adjustment:read and :update (#730 S3), at 5 since org-reconciliation:execute is gone (#1222), at 6 since it holds standard-hours:publish and :read (#1310); security_auditor is at 2 since it holds permission-adjustment:read; business_admin is at 2 since it holds legal-entity-attribution:approve; personnel_specialist is at 3 since it holds employee:read (#1171) and org-unit:read (#1306). */
     static final int FIRST_REVISION = 1;

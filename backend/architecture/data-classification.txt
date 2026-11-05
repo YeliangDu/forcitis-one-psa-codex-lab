@@ -81,3 +81,12 @@ organization_leave.attendance_records.employee_id | INTERNAL | PI | 用途：打
 organization_leave.attendance_records.occurred_at | INTERNAL | PI | 用途：打卡时刻，考勤月确认与加班校验
 organization_leave.attendance_records.external_record_key | INTERNAL | NONE | 豁免：来源系统的记录标识，不指向个人
 organization_leave.monthly_confirmations.employee_id | INTERNAL | PI | 用途：月确认的所属员工
+organization_payroll.bonus_inputs.bonus_amount | SENSITIVE | PI | 用途：一个人的奖金数额，任职关系的工资数据
+organization_payroll.bonus_inputs.reason_key | SENSITIVE | PI | 用途：谁因何获得奖金，对应一个任职关系
+organization_payroll.bonus_inputs.bonus_currency | INTERNAL | NONE | 用途：限定奖金数额的币种，单独不指向个人
+organization_payroll.bonus_inputs.source_kind | INTERNAL | NONE | 用途：奖金输入的来源种类，单独不指向个人
+organization_payroll.bonus_inputs.payroll_month_start_date | INTERNAL | NONE | 用途：奖金所属薪酬月份，单独不指向个人
+organization_payroll.bonus_inputs.status | INTERNAL | NONE | 用途：奖金输入有效或已作废，单独不指向个人
+organization_payroll.bonus_inputs.entered_by_employee_id | INTERNAL | NONE | 用途：录入人，结算审批的职责分离判断
+organization_payroll.bonus_inputs.voided_by_user_id | INTERNAL | NONE | 用途：作废人，审计身份
+organization_payroll.bonus_inputs.voided_at | INTERNAL | NONE | 用途：作废时刻，审计
