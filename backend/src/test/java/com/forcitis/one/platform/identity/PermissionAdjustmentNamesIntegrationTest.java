@@ -71,7 +71,7 @@ class PermissionAdjustmentNamesIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("#1297 every origin shows the ids, the role and org unit names and the trigger it has; people appear by id only")
+    @DisplayName("#1297 every origin shows the ids, the resolved names and the trigger it has; a person the directory does not know is a null name")
     void namesAndTriggersPerOrigin() throws Exception {
         String administrator = readerSession();
         knownEmployee(1001, EmploymentStatus.EMPLOYED);
@@ -100,23 +100,23 @@ class PermissionAdjustmentNamesIntegrationTest extends IdentityIntegrationTest {
 
         JsonNode assignmentItem = read(administrator, assignment);
         assertThat(assignmentItem.path("userId").asString()).isEqualTo(TestAccounts.account(1001).value().toString());
-        assertThat(assignmentItem.has("userName")).as("people appear by id only (contract 13)").isFalse();
+        assertThat(assignmentItem.path("userName").asString()).isEqualTo("Synthetic");
         assertThat(assignmentItem.path("triggerField").asString()).isEqualTo("ORG_UNIT");
         assertThat(assignmentItem.path("triggerPersonnelCommandId").asString()).isEqualTo(command.value().toString());
         assertThat(assignmentItem.path("triggerOrgStructureCommandId").isNull()).isTrue();
         assertThat(assignmentItem.path("roleName").isNull()).isTrue();
-        assertThat(assignmentItem.has("businessOwnerName")).isFalse();
+        assertThat(assignmentItem.path("businessOwnerName").isNull()).isTrue();
 
         JsonNode unpaidItem = read(administrator, unpaid);
         assertThat(unpaidItem.path("userId").asString()).isEqualTo(TestAccounts.account(1002).value().toString());
-        assertThat(unpaidItem.has("userName")).isFalse();
+        assertThat(unpaidItem.path("userName").isNull()).as("an unknown person is an explicit null, the id stays").isTrue();
         assertThat(unpaidItem.path("triggerField").isNull()).isTrue();
         assertThat(unpaidItem.path("triggerPersonnelCommandId").isString()).isTrue();
 
         JsonNode upheldItem = read(administrator, upheld);
         assertThat(upheldItem.path("status").asString()).isEqualTo("UPHELD");
         assertThat(upheldItem.path("businessOwnerEmployeeId").asString()).isEqualTo(TestAccounts.employee(1003).value().toString());
-        assertThat(upheldItem.has("businessOwnerName")).as("the business owner appears by id only (contract 13)").isFalse();
+        assertThat(upheldItem.path("businessOwnerName").asString()).isEqualTo("Synthetic");
         assertThat(upheldItem.path("upholdExpiresAt").isString()).isTrue();
 
         JsonNode orgItem = read(administrator, org);
@@ -125,7 +125,7 @@ class PermissionAdjustmentNamesIntegrationTest extends IdentityIntegrationTest {
         assertThat(orgItem.path("orgUnitId").asString()).isEqualTo(inactive.value().toString());
         assertThat(orgItem.path("orgUnitName").asString()).isEqualTo("Dissolved unit");
         assertThat(orgItem.path("userId").isNull()).isTrue();
-        assertThat(orgItem.has("userName")).isFalse();
+        assertThat(orgItem.path("userName").isNull()).isTrue();
         assertThat(orgItem.path("triggerOrgStructureCommandId").asString()).isEqualTo(structure.value().toString());
         assertThat(orgItem.path("triggerPersonnelCommandId").isNull()).isTrue();
 
@@ -133,11 +133,11 @@ class PermissionAdjustmentNamesIntegrationTest extends IdentityIntegrationTest {
         assertThat(expiredItem.path("triggerField").isNull()).as("an expiry successor names no trigger").isTrue();
         assertThat(expiredItem.path("triggerPersonnelCommandId").isNull()).isTrue();
         assertThat(expiredItem.path("triggerOrgStructureCommandId").isNull()).isTrue();
-        assertThat(expiredItem.has("userName")).isFalse();
+        assertThat(expiredItem.path("userName").asString()).isEqualTo("Synthetic");
     }
 
     @Test
-    @DisplayName("#1297 the list carries no people names, like the single read")
+    @DisplayName("#1297 the list carries the same names as the single read")
     void listCarriesNames() throws Exception {
         String administrator = readerSession();
         knownEmployee(1001, EmploymentStatus.EMPLOYED);
@@ -154,8 +154,7 @@ class PermissionAdjustmentNamesIntegrationTest extends IdentityIntegrationTest {
             }
         }
         assertThat(listed).as(body(response).toString()).isNotNull();
-        assertThat(listed.has("userName")).isFalse();
-        assertThat(body(response).toString()).as("no display name of a person anywhere in the page").doesNotContain("Synthetic");
+        assertThat(listed.path("userName").asString()).isEqualTo("Synthetic");
         assertThat(listed.path("originKind").asString()).isEqualTo("UNPAID_LEAVE_START");
     }
 }

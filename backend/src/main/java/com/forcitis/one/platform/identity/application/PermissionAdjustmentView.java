@@ -14,9 +14,9 @@ import org.jspecify.annotations.Nullable;
  * person, department and role).
  */
 public record PermissionAdjustmentView(UUID permissionAdjustmentId, PermissionAdjustmentKind kind, PermissionAdjustmentOrigin originKind,
-                                       PermissionAdjustmentStatus status, @Nullable UUID userId, @Nullable UUID roleId,
+                                       PermissionAdjustmentStatus status, @Nullable UUID userId, @Nullable String userName, @Nullable UUID roleId,
                                        @Nullable String roleName, @Nullable UUID orgUnitId, @Nullable String orgUnitName,
-                                       @Nullable UUID businessOwnerEmployeeId, @Nullable UUID triggerPersonnelCommandId,
+                                       @Nullable UUID businessOwnerEmployeeId, @Nullable String businessOwnerName, @Nullable UUID triggerPersonnelCommandId,
                                        @Nullable UUID triggerOrgStructureCommandId, @Nullable TriggerFieldKind triggerField, @Nullable Instant upholdExpiresAt,
                                        long version) {
 }

@@ -35,14 +35,14 @@ export function statusTone(status: string): 'pending' | 'posted' | 'neutral' {
   return 'neutral';
 }
 
-/** The name when the server found one, else the id it stands for. People never come with a name (contract 13 of #730 S3), only roles and org units do. */
+/** The name when the server found one, else the id it stands for. */
 export function nameOrId(name: string | undefined, id: string | undefined): string {
   return name ?? id ?? '—';
 }
 
-/** What the item is about: the person's id, or the role and the org unit when it names no person. */
+/** What the item is about: the person, or the role and the org unit when it names no person. */
 export function aboutLabel(item: PermissionAdjustment): string {
-  if (item.userId !== undefined) return item.userId;
+  if (item.userId !== undefined) return nameOrId(item.userName, item.userId);
   return [nameOrId(item.roleName, item.roleId), nameOrId(item.orgUnitName, item.orgUnitId)].join(' · ');
 }
 
