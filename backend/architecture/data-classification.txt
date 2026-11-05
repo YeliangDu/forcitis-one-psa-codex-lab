@@ -62,3 +62,14 @@ organization_workforce.employee_profile_change_requests.decision_reason | INTERN
 platform_identity.permission_adjustments.recipient_employee_id | INTERNAL | PI | 用途：调动产生的范围复核发给新部门负责人，按此员工显示待办
 platform_identity.permission_adjustments.business_owner_employee_id | INTERNAL | PI | 用途：敏感角色复核维持时记录确认需要的业务负责人，供复核与审计取证
 platform_identity.permission_adjustments.uphold_reason | INTERNAL | PI | 用途：维持授权的理由，供办理、复核与审计取证；办理人自由填写
+
+# #1400 signed L1a classification; reason/proof and biometric/location columns are absent.
+organization_leave.leave_requests.employee_id | INTERNAL | PI | 用途：请假人，数据范围判断与本人查询
+organization_leave.leave_requests.start_at | INTERNAL | PI | 用途：请假起始时刻，排班与工时扣减
+organization_leave.leave_requests.end_at | INTERNAL | PI | 用途：请假结束时刻，排班与工时扣减
+organization_leave.overtime_requests.employee_id | INTERNAL | PI | 用途：加班人，数据范围判断与本人查询
+organization_leave.overtime_requests.work_date | INTERNAL | PI | 用途：加班日期，工时与调休
+organization_leave.attendance_records.employee_id | INTERNAL | PI | 用途：打卡人，考勤月确认
+organization_leave.attendance_records.occurred_at | INTERNAL | PI | 用途：打卡时刻，考勤月确认与加班校验
+organization_leave.attendance_records.external_record_key | INTERNAL | NONE | 豁免：来源系统的记录标识，不指向个人
+organization_leave.monthly_confirmations.employee_id | INTERNAL | PI | 用途：月确认的所属员工
