@@ -231,7 +231,7 @@ public final class OrgStructureCommand extends AggregateRoot {
 
     /** The command changes people's cost legal entity: nothing is written until every finance head has approved. Only a command being entered may start here. */
     public void requireCountersign() {
-        if (status != OrgCommandStatus.PENDING && status != OrgCommandStatus.EFFECTIVE) {
+        if (version() != 0 || (status != OrgCommandStatus.PENDING && status != OrgCommandStatus.EFFECTIVE)) {
             throw notAllowed("only a command being entered waits for the countersign");
         }
         this.status = OrgCommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN;
@@ -241,7 +241,7 @@ public final class OrgStructureCommand extends AggregateRoot {
     /** Every required finance head approved: the command goes on as it would have when entered, effective at once when its day is not after today (a merge is effective only when its people are moved). */
     public void completeCountersign(Instant now, LocalDate today) {
         boolean due = kind != OrgStructureCommandKind.MERGE && !effectiveDate.isAfter(today);
-        moveTo(due ? OrgCommandStatus.EFFECTIVE : OrgCommandStatus.PENDING);
+        moveFrom(OrgCommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN, due ? OrgCommandStatus.EFFECTIVE : OrgCommandStatus.PENDING);
         if (due) {
             this.appliedAt = now;
         }
@@ -252,7 +252,7 @@ public final class OrgStructureCommand extends AggregateRoot {
         if (kind == OrgStructureCommandKind.MERGE) {
             throw notAllowed("a merge is effective only when its people are moved");
         }
-        moveTo(OrgCommandStatus.EFFECTIVE);
+        moveFrom(OrgCommandStatus.PENDING, OrgCommandStatus.EFFECTIVE);
         this.appliedAt = now;
     }
 
@@ -294,7 +294,7 @@ public final class OrgStructureCommand extends AggregateRoot {
         if (!Objects.equals(affectedEmployeeCount, transferredEmployeeCount)) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ORG_STRUCTURE_MERGE_INCOMPLETE, ErrorKind.CONFLICT, "somebody is not moved yet");
         }
-        moveTo(OrgCommandStatus.EFFECTIVE);
+        moveFrom(OrgCommandStatus.IN_PROGRESS, OrgCommandStatus.EFFECTIVE);
         this.appliedAt = now;
     }
 
@@ -302,6 +302,14 @@ public final class OrgStructureCommand extends AggregateRoot {
         if (kind != expected) {
             throw notAllowed("only a " + expected + " does this");
         }
+    }
+
+    /** A method that is for one status only (its design names it): any other status is refused before the machine is asked. */
+    private void moveFrom(OrgCommandStatus source, OrgCommandStatus next) {
+        if (status != source) {
+            throw notAllowed("this is for a " + source + " command, this one is " + status);
+        }
+        moveTo(next);
     }
 
     private void moveTo(OrgCommandStatus next) {
