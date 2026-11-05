@@ -5,6 +5,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.BusinessDay;
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
@@ -39,8 +40,8 @@ import tools.jackson.databind.json.JsonMapper;
  */
 class StandardHoursVersionIT extends AcceptanceSupport {
 
-    /** Version dates follow the real Asia/Shanghai date because the database triggers use the real clock. */
-    private static final LocalDate TODAY = LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
+    /** The business today, read once per JVM: the database triggers use the real Asia/Shanghai date, so version dates are relative to it. */
+    private static final LocalDate TODAY = BusinessDay.today();
 
     static final TestDatabase postgres = TestPostgres.database(StandardHoursVersionIT.class, TestPostgres.MIGRATED)
             .withUrlParam("currentSchema", "platform_approval");
@@ -226,8 +227,8 @@ class StandardHoursVersionIT extends AcceptanceSupport {
         assertThat(versions(voided)).as("backdated publication into an all-voided scope stores nothing").isEqualTo(before);
 
         String todayId = publish(publication(voided, TODAY), 2);
-        assertThat(versions(voided)).as("today is an accepted boundary even after the voided version")
-                .extracting(item -> item.get("standardHoursVersionId")).first().isEqualTo(todayId);
+        assertThat(versions(voided)).as("today is an accepted boundary even after the voided version: the scope holds exactly the new version and the voided one, newest first")
+                .extracting(item -> item.get("standardHoursVersionId")).containsExactly(todayId, futureId);
     }
 
     @Test
