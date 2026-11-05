@@ -10,6 +10,7 @@
 organization_workforce.employees.email | INTERNAL | PI | 用途：工作邮箱，通知与联系；访问级别 L2 依 D-6（ADR-0043 第 3 项）
 organization_workforce.employees.gender | INTERNAL | PI | 用途：员工性别，人事档案；访问级别 L2 依 D-6
 platform_identity.user_accounts.last_login_address | SENSITIVE | PI | 用途：显示本人最近登录来源，便于发现被盗会话；最近登录 IP
+platform_identity.user_accounts.separated_at | INTERNAL | PI | 用途：记录账号的人员离职时刻，授予角色时拒绝已离职账号；与账号上其他任职日期同级
 platform_identity.emergency_admins.password_hash | RESTRICTED | NONE | 口令哈希
 platform_identity.emergency_admins.totp_secret_encrypted | RESTRICTED | NONE | TOTP 密钥（加密存放）
 platform_identity.emergency_admins.last_totp_step | SENSITIVE | NONE | TOTP 防重放计步，可辅助推断验证码；安全材料

@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Test;
 class IdentityStateMachineTest {
 
     static UserAccount account(AccountStatus status) {
-        return UserAccount.restore(TestAccounts.account(1001), TestAccounts.employee(1001), status.name(), Set.of(), 5, 5);
+        return UserAccount.restore(TestAccounts.account(1001), TestAccounts.employee(1001), status.name(), Set.of(), null, 5, 5);
     }
 
     static Role role(RoleStatus status) {
@@ -144,14 +144,14 @@ class IdentityStateMachineTest {
     @Test
     @DisplayName("B1-M3 separating an account takes every role away and records the fact; an account without roles records nothing")
     void separationRecordsTheFact() {
-        UserAccount withRoles = UserAccount.restore(TestAccounts.account(1001), TestAccounts.employee(1001), ENABLED.name(), Set.of(new RoleId(TestIds.uuid(3))), 5, 5);
-        withRoles.recordSeparation();
+        UserAccount withRoles = UserAccount.restore(TestAccounts.account(1001), TestAccounts.employee(1001), ENABLED.name(), Set.of(new RoleId(TestIds.uuid(3))), null, 5, 5);
+        withRoles.recordSeparation(java.time.Instant.EPOCH);
         assertThat(withRoles.roles()).isEmpty();
         assertThat(withRoles.drainEvents(TestEnvelopes.INSTANCE)).extracting(e -> e.getClass().getSimpleName())
                 .containsExactly("AccountRolesReplaced", "AccountSeparated");
 
         UserAccount bare = account(ENABLED);
-        bare.recordSeparation();
+        bare.recordSeparation(java.time.Instant.EPOCH);
         assertThat(bare.hasPendingEvents()).isFalse();
     }
 }

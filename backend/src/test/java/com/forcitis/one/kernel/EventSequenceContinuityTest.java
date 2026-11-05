@@ -83,7 +83,7 @@ class EventSequenceContinuityTest {
     @Test
     @DisplayName("UserAccount: events are numbered 1..n and a save without events leaves the sequence alone")
     void userAccount() {
-        checkMany(() -> UserAccount.restore(TestAccounts.account(1), TestAccounts.employee(1), "ENABLED", Set.of(), 0, 0), List.of(
+        checkMany(() -> UserAccount.restore(TestAccounts.account(1), TestAccounts.employee(1), "ENABLED", Set.of(), null, 0, 0), List.of(
                 UserAccount::enable, UserAccount::disable, a -> a.declareEnabled(true), a -> a.declareEnabled(false),
                 a -> a.replaceRoles(Set.of(new RoleId(TestIds.uuid(2)), new RoleId(TestIds.uuid(3))))));
         checkMany(() -> UserAccount.open(TestAccounts.account(2), TestAccounts.employee(2), Set.of(new RoleId(TestIds.uuid(1))), com.forcitis.one.platform.identity.api.AccountOpeningRoute.HIRE), List.of(UserAccount::disable, UserAccount::enable));

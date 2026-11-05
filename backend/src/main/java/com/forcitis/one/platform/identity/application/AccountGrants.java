@@ -110,8 +110,8 @@ class AccountGrants {
             }
         }
         GrantChanges changes = new GrantChanges(opened, closed);
+        account.replaceRoles(wanted); // refuses a separated account before any row is written (#1326)
         accounts.saveGrants(user, changes);
-        account.replaceRoles(wanted);
         account.grantsWritten(changes);
         return changes;
     }
