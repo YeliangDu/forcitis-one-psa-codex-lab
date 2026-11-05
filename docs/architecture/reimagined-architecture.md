@@ -263,7 +263,7 @@ sequenceDiagram
 - **一个事务只改一个聚合**：`ApprovalRequest` 聚合含本轮的任务（任务是内部实体，共用请求的版本与事件序号）；提交只改 `Timesheet`，审批由事件异步发起，结果由事件回写。唯一登记的例外是首次提交同事务取号（`architecture/multi-aggregate-exceptions.txt`），其事件的 relatedAggregates 列出 NumberingRule。订阅者放在 cost.timesheet 一侧，是因为模块依赖图里 platform.approval 不能反向依赖业务模块。D-1a-107：1a 不对外开放工时单的提交、撤回、取消，也无只读接口，入口随 Phase 2。
 - 两边只经事件协作：approval 拥有流程状态，业务模块拥有单据状态。事件由聚合记录（`EventDraft`，聚合上的事件计数就是信封的 `aggregateVersion`），应用层在同一事务里用 `EventEnvelopes` 包装后交 Modulith 发布；事件目录条目见 `docs/architecture/events/approval.yaml`、`timesheet.yaml`。
 - **会签**（RULE-248/273，G-2 已做）：TIMESHEET 三路都是 Flowable 多实例并行节点，集合表达式 `approverResolution` 给出去重后的审批人，每人一个任务；全部通过才过节点，任一正式驳回结束本轮（子流程内驳回即退回），加签人的驳回只作建议。
-- **节点属性**（D-1a-100，1a 不用 DMN）：走哪几路（`routingFlag`）、取不到人能否跳过（`skipWhenEmpty`）、重复审批人能否自动通过（`autoApproveRepeat`）、节点时限与升级间隔（`deadlineWorkdays` 与 `escalationWorkdays`，成对出现）都是 BPMN 节点规则元素的属性，随流程文件的部署版本生效。发起时给出的路由标记若没有任何节点声明，发起被拒绝（M-10）。「取谁」由类型化指派规则决定。
+- **节点属性**（D-1a-100，1a 不用 DMN）：走哪几路（`routingFlag`）、取不到人能否跳过（`skipWhenEmpty`）、重复审批人能否自动通过（`autoApproveRepeat`）、取不到本规则点名的人时是否不转交上级或管理员而挂起告警（`noFallback`）、节点时限与升级间隔（`deadlineWorkdays` 与 `escalationWorkdays`，成对出现）都是 BPMN 节点规则元素的属性，随流程文件的部署版本生效。发起时给出的路由标记若没有任何节点声明，发起被拒绝（M-10）。「取谁」由类型化指派规则决定。
 - **重复审批人**（RULE-302）：同一审批人在同一实例的同一节点再次出现，且内容摘要未变，由系统自动通过并记审计；内容变了必须重审。**撤回 / 撤销 / 截止点**（RULE-268/269/309）：「能否撤回」的显示与执行用同一个判断（`ApprovalRequest.checkWithdraw`），截止点是 BPMN 上标了 `cutoff` 的节点，只要有已完成的任务即越过。**转交**（RULE-285）只有当前处理人能做，新处理人要在职、非发起人、不在同节点已有任务。
 - **审批时限**（D-1a-110..117，RULE-377..384）：每个任务从创建时起算，T = 创建所在工作日（非工作日顺延），截止 = T 之后第 n 个工作日 23:59（`WorkCalendar`，按法人），截止后下一个工作日 09:00 提醒，提醒日之后第 m 个工作日 09:00 升级：已认领的升给认领人的直属上级（认领人保留为候选），未认领的升给流程管理员，取不到上级也交流程管理员并告警；不自动通过；ShedLock 定时作业 `platform.approval.deadline.enforce`，一任务一事务。
 

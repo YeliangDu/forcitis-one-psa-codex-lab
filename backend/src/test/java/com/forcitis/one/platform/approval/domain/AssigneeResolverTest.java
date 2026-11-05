@@ -262,6 +262,24 @@ class AssigneeResolverTest {
     }
 
     @Test
+    @DisplayName("#1436 a noFallback node never escalates to the supervisor or the administrators: nobody left is UNRESOLVED")
+    void noFallbackLeavesTheNodeUnresolved() {
+        AssignmentRule rule = new AssignmentRule.FormFieldUsers("projectManagerId");
+        // the initiator alone: the supervisor (2) would get it without the option, nobody gets it with it
+        Resolution alone = resolver.resolve(rule, false, false, true, TestAccounts.employee(1), fields("projectManagerId", person(1)));
+        assertThat(alone.kind()).isEqualTo(ResolutionKind.UNRESOLVED);
+        assertThat(alone.candidates()).isEmpty();
+        // the named person is separated: the administrators would get it without the option
+        Resolution separated = resolver.resolve(rule, false, false, true, TestAccounts.employee(1), fields("projectManagerId", person(120)));
+        assertThat(separated.kind()).isEqualTo(ResolutionKind.UNRESOLVED);
+        assertThat(separated.candidates()).isEmpty();
+        // somebody else qualifies: unchanged, the initiator is removed
+        Resolution others = resolver.resolve(rule, false, false, true, TestAccounts.employee(1), fields("projectManagerId", person(1), person(3)));
+        assertThat(others.kind()).isEqualTo(ResolutionKind.RESOLVED);
+        assertThat(others.candidates()).isEqualTo(ids(3));
+    }
+
+    @Test
     @DisplayName("RULE-307 an employee-activity node may be approved by its initiator")
     void selfApprovalAllowedOnEmployeeActivities() {
         Resolution r = resolver.resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), true, TestAccounts.employee(1), fields("projectManagerId", person(1)));

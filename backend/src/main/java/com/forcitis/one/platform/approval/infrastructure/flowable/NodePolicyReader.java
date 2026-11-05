@@ -43,7 +43,8 @@ final class NodePolicyReader {
                     flag(element, "cutoff"),
                     Optional.ofNullable(attribute(element, "routingFlag")).filter(name -> !name.isBlank()),
                     flag(element, "autoApproveRepeat"),
-                    deadline(element));
+                    deadline(element),
+                    flag(element, "noFallback"));
         } catch (IllegalStateException | IllegalArgumentException e) {
             throw ApprovalError.PLATFORM_APPROVAL_NODE_CONFIG_INVALID.refusal("Node " + node.getId() + ": " + e.getMessage());
         }
