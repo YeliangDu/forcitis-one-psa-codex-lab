@@ -6,7 +6,9 @@ Card: #1400 (impl, one-dev-identity); design card #1325. Basis: `docs/architectu
 
 Schema `organization_leave`, seven tables: `leave_requests`, `leave_request_days`, `leave_request_holds`, `overtime_requests`, `attendance_records`, `monthly_confirmations`, `monthly_confirmation_lines`. Not signed here and not to be built by #1400: `leave_types`, `leave_rule_versions`, `leave_entitlement_rules`, `leave_accounts`, `leave_ledger_lines`, `leave_grant_basis` (slice L1b, after the legacy values of T-1, T-3, T-5, T-7, T-8, T-10).
 
-Two columns point at L1b tables of the same schema: `leave_requests.leave_type_id`, `monthly_confirmation_lines.leave_type_id` (to `leave_types`) and `leave_request_holds.ledger_line_id` (to `leave_ledger_lines`). They are plain `uuid NOT NULL` columns in L1a, without a foreign key, because the target tables do not exist. The L1b migration adds each foreign key (`fk_leave_requests_leave_type_id`, `fk_monthly_confirmation_lines_leave_type_id`, `fk_leave_request_holds_ledger_line_id`, `ON DELETE RESTRICT`) in the same change that creates the target table; the three tables are empty until a later slice writes them, so the key can be added without `NOT VALID`. This is a registered deferral, not a gap: the registry carries a `references` entry for each (K6).
+**Carved out of this signature:** `leave_requests.reason_text` and `leave_requests.proof_file_id`. They hold free text and a file reference that can carry health information (sick leave). Marking them SPI needs a legal confirmation (U-14) and an impact-assessment file under `docs/privacy/`, which does not exist; the gate allows no conditional pass (`data-design-gate.md` 1.3) and a decision of that kind is not mine. They are signed later, in their own record, after the user decides; until then #1400 builds `leave_requests` without them and the leave form carries no reason or proof field.
+
+Two columns point at L1b tables of the same schema: `leave_requests.leave_type_id`, `monthly_confirmation_lines.leave_type_id` (to `leave_types`) and `leave_request_holds.ledger_line_id` (to `leave_ledger_lines`). They are plain `uuid NOT NULL` columns in L1a, without a foreign key, because the target tables do not exist. The L1b migration adds each foreign key (and, for the two `leave_type_id` columns, an index starting with that column, rule G-DDL2) (`fk_leave_requests_leave_type_id`, `fk_monthly_confirmation_lines_leave_type_id`, `fk_leave_request_holds_ledger_line_id`, `ON DELETE RESTRICT`) in the same change that creates the target table; the three tables are empty until a later slice writes them, so the key can be added without `NOT VALID`. This is a registered deferral, not a gap: the registry carries a `references` entry for each (K6).
 
 Relationship ids (`employment_relationship_id`) and person ids (`employee_id`), `legal_entity_id`, `approval_instance_id`, `proof_file_id` belong to other contexts: stored as `uuid`, no foreign key (cross-BC rule B4, ADR-0086).
 
@@ -38,13 +40,11 @@ Every enum is `text` with a named `ck_<table>_<column>` CHECK; every free-text c
 | `leave_type_id` | uuid NOT NULL | foreign key added in L1b |
 | `start_at`, `end_at` | timestamptz NOT NULL | `ck_leave_requests_period` `end_at > start_at` |
 | `status` | text NOT NULL | `DRAFT`, `SUBMITTED`, `IN_APPROVAL`, `APPROVED`, `REJECTED`, `WITHDRAWN`, `RECALLED`, `CANCELLED` (4.3) |
-| `reason_text` | text null | 为空表示 no reason given; length 1 to 500 |
-| `proof_file_id` | uuid null | 为空表示 no proof attached; the id of a `platform.file` object, no foreign key |
 | `approval_instance_id` | uuid null | 为空表示 no approval process started (draft, auto-approved, or rejected before routing) |
 | `legal_entity_id` | uuid NOT NULL | cost (attribution) entity of the person on the start day (RULE-398 scope), not the employer |
 | `created_at`, `updated_at`, `version` | | audit |
 
-Constraints: `ck_leave_requests_in_approval_has_instance` `status <> 'IN_APPROVAL' OR approval_instance_id IS NOT NULL`; `uk_leave_requests_approval_instance_id` unique where `approval_instance_id IS NOT NULL` (one request per approval process, so a replayed `ApprovalCompleted` finds one row).
+Constraints: `ex_leave_requests_live_period_overlap` `EXCLUDE USING gist (employment_relationship_id WITH =, tstzrange(start_at, end_at) WITH &&) WHERE (status IN ('SUBMITTED','IN_APPROVAL','APPROVED'))` (needs the `btree_gist` extension, which the workforce, administration and attendance baselines already create); `ck_leave_requests_in_approval_has_instance` `status <> 'IN_APPROVAL' OR approval_instance_id IS NOT NULL`; `uk_leave_requests_approval_instance_id` unique where `approval_instance_id IS NOT NULL` (one request per approval process, so a replayed `ApprovalCompleted` finds one row).
 
 ### leave_request_days
 
@@ -102,19 +102,20 @@ Constraints: `uk_monthly_confirmations_employee_month` (`employee_id`, `month_st
 | `leave_type_id` | uuid null | 为空表示 not a leave line; foreign key added in L1b |
 | `is_paid_leave` | boolean null | 为空表示 not a leave line; copied at generate time |
 | `compensation_kind` | text null | 为空表示 not an overtime line; `PAY`, `COMP_TIME` |
+| `day_kind` | text null | 为空表示 not an overtime line; `WORKDAY`, `REST_DAY`, `STATUTORY_HOLIDAY`; payroll reads overtime by day kind (section 9a) and cannot read `overtime_requests` (RULE-412) |
 | `minutes_count` | integer null | 为空表示 an attendance-days line; `>= 0` |
 | `day_hundredths_count` | integer null | 为空表示 a minutes line; `>= 0` |
 | `original_month_start_date` | date null | 为空表示 not a correction row; first day of the month the correction belongs to |
 | `created_at`, `updated_at` | | audit |
 
-Constraints: `ck_monthly_confirmation_lines_leave_columns` `(line_kind = 'LEAVE') = (leave_type_id IS NOT NULL) AND (leave_type_id IS NULL) = (is_paid_leave IS NULL)`; `ck_monthly_confirmation_lines_overtime_columns` `(line_kind = 'OVERTIME') = (compensation_kind IS NOT NULL)`; `ck_monthly_confirmation_lines_quantity_columns` `(line_kind = 'ATTENDANCE_DAYS') = (day_hundredths_count IS NOT NULL) AND (line_kind = 'ATTENDANCE_DAYS') = (minutes_count IS NULL)`; `ck_monthly_confirmation_lines_original_month_start_date` day-of-month 1; `uk_monthly_confirmation_lines_identity` unique `NULLS NOT DISTINCT` (`monthly_confirmation_id`, `employment_relationship_id`, `line_kind`, `leave_type_id`, `compensation_kind`, `original_month_start_date`): one line per fact, so a regenerate that replaces the set cannot double-count. That a correction row's original month is earlier than the confirmation's month crosses two rows and is checked by the generate command, not by a constraint (no cross-row CHECK).
+Constraints: `ck_monthly_confirmation_lines_leave_columns` `(line_kind = 'LEAVE') = (leave_type_id IS NOT NULL) AND (leave_type_id IS NULL) = (is_paid_leave IS NULL)`; `ck_monthly_confirmation_lines_overtime_columns` `(line_kind = 'OVERTIME') = (compensation_kind IS NOT NULL) AND (line_kind = 'OVERTIME') = (day_kind IS NOT NULL)`; `ck_monthly_confirmation_lines_day_kind` enum CHECK; `ck_monthly_confirmation_lines_quantity_columns` `(line_kind = 'ATTENDANCE_DAYS') = (day_hundredths_count IS NOT NULL) AND (line_kind = 'ATTENDANCE_DAYS') = (minutes_count IS NULL)`; `ck_monthly_confirmation_lines_original_month_start_date` day-of-month 1; `uk_monthly_confirmation_lines_identity` unique `NULLS NOT DISTINCT` (`monthly_confirmation_id`, `employment_relationship_id`, `line_kind`, `leave_type_id`, `compensation_kind`, `day_kind`, `original_month_start_date`): one line per fact, so a regenerate that replaces the set cannot double-count. That a correction row's original month is earlier than the confirmation's month crosses two rows and is checked by the generate command, not by a constraint (no cross-row CHECK).
 
 ## Differences from the section 8 sketch
 
 1. `external_record_id` becomes `external_record_key` (`_id` is `uuid` only; an external system's text identifier is `_key`, naming standard 2.4).
 2. `month` becomes `month_start_date` and `original_month` becomes `original_month_start_date` (`date`, day 1; `month` is not a class word).
-3. `minutes`, `day_fraction_hundredths` become `minutes_count`, `day_hundredths_count` (`_count` is the integer class word). `compensation_mode` becomes `compensation_kind`, `state` becomes `status` (the repo's enum word, as in `standard_hours_versions`), `reason` becomes `reason_text`, `proof_ref` becomes `proof_file_id`.
-4. `monthly_confirmation_lines` gets `compensation_kind`, `minutes_count` and `day_hundredths_count` instead of one `minutes` column, because attendance days and minutes are different units and one column must not hold both.
+3. `minutes`, `day_fraction_hundredths` become `minutes_count`, `day_hundredths_count` (`_count` is the integer class word). `compensation_mode` becomes `compensation_kind`, `state` becomes `status` (the repo's enum word, as in `standard_hours_versions`), `reason` and `proof_ref` are carved out (see Scope).
+4. `monthly_confirmation_lines` gets `compensation_kind`, `day_kind`, `minutes_count` and `day_hundredths_count` instead of one `minutes` column, because attendance days and minutes are different units and one column must not hold both.
 5. The `attendance_records.state` column of 4.5 (`RECORDED`, the only value) is dropped.
 
 None of these changes a command or an event.
@@ -137,7 +138,8 @@ None of these changes a command or an event.
 | Request days lie inside `[start_at, end_at]` and sum to the request | | cross-row; checked by `SubmitLeave` |
 | Leave or overtime only on days the relationship is in service; overlap with approved leave (RULE-517) | | spans another context's data; checked by the commands |
 | Correction row's original month is earlier than the confirmation month | | cross-row; checked by the generate command |
-| Two leave requests of one relationship do not overlap | | not stated in the design; open question for lead, not decided here (not constrained, not blocking L1a) |
+| Two live leave requests of one relationship do not overlap | `ex_leave_requests_live_period_overlap` | the design does not state this rule in words; it is the table's business key (gate O3) and I added it as a design proposal, **lead may veto before merge** (then the key is dropped and O3 for this table is recorded as not passed) |
+| Several overtime requests on one relationship and day | | allowed on purpose: one day may hold separate overtime periods (no rule in 4.4 or RULE-517 forbids it); the sum against the daily limit is checked by `SubmitOvertime`. Source of the exemption: section 4.4 |
 
 ## Use case to aggregate to table (O1)
 
@@ -153,7 +155,7 @@ None of these changes a command or an event.
 
 | Table | Business key | Class and temporality | Versioning |
 |---|---|---|---|
-| `leave_requests` | (`id`); `approval_instance_id` | transaction; current state plus `state_transitions` | optimistic `version` |
+| `leave_requests` | business key: one relationship has at most one live request at any instant (`ex_leave_requests_live_period_overlap`); `approval_instance_id` | transaction; current state plus `state_transitions` | optimistic `version` |
 | `leave_request_days`, `leave_request_holds` | (request, day), (request, line) | transaction detail | none (children) |
 | `overtime_requests` | `approval_instance_id` | transaction | optimistic `version` |
 | `attendance_records` | (`source_system`, `external_record_key`) | event fact, append-only | none |
@@ -168,7 +170,7 @@ None of these changes a command or an event.
 | Scoped HR/manager list | `legal_entity_id`, `status` | `start_at`, `id` | hundreds | cursor | `ix_leave_requests_legal_entity_id_start_at` (`legal_entity_id`, `start_at`, `id`) |
 | Cancel on relationship `Ended`/`Corrected` | `employment_relationship_id`, `status IN (IN_APPROVAL, APPROVED)` | none | few | none | `ix_leave_requests_relationship_id_status` (`employment_relationship_id`, `status`) |
 | Approval result | `approval_instance_id` | none | 1 | none | `uk_leave_requests_approval_instance_id` |
-| `LeaveHours.forDay` | `work_date` joined to requests of one employee | none | few | none | `ix_leave_request_days_work_date_leave_request_id` (`work_date`, `leave_request_id`) and `ix_leave_request_days_leave_request_id` is the unique key's prefix |
+| `LeaveHours.forDay` | `work_date` joined to requests of one employee | none | few | none | `ix_leave_request_days_work_date_leave_request_id` (`work_date`, `leave_request_id`); the request-id lookup uses the unique key's prefix |
 | Holds of a request | `leave_request_id` | none | few | none | `uk_leave_request_holds_request_line` prefix |
 | My overtime | `employee_id` | `work_date` desc, `id` | tens | cursor | `ix_overtime_requests_employee_id_work_date` |
 | Overtime by relationship and day (comp-time target, overlap check) | `employment_relationship_id`, `work_date` | none | few | none | `ix_overtime_requests_relationship_id_work_date` |
@@ -181,14 +183,14 @@ Foreign-key columns `leave_request_id` (days, holds) and `monthly_confirmation_i
 
 ## Cross-cutting, legal entity and period (O13, O14)
 
-Each request carries the cost `legal_entity_id` on the start day or work day (RULE-398 scope); the employer is read from the relationship. Periods are calendar months (`month_start_date`) and calendar years of the leave year (Q-2). Retention (Q-3 answered): attendance records at least 2 years (ADR-0079:123); requests, overtime and confirmations kept with the employee record period; no purge job in L1a.
+Each request carries the cost `legal_entity_id` on the start day or work day (RULE-398 scope); the employer is read from the relationship. `attendance_records` and `monthly_confirmations` carry no legal entity: a punch belongs to the person, and the confirmation is per person and month; payroll's per-entity split (section 9a) comes from the request lines' relationship, resolved by payroll through the relationship api. Periods are calendar months (`month_start_date`) and calendar years of the leave year (Q-2). Retention (Q-3 answered): attendance records at least 2 years (ADR-0079:123); requests, overtime and confirmations kept with the employee record period; no purge job in L1a.
 
 ## ADR clauses (O15)
 
 | ADR clause | Provision | Where |
 |---|---|---|
 | ADR-0086 decision 5 (per-relationship counting), B4 | `employment_relationship_id` on requests, overtime and confirmation lines, stored without a foreign key | `leave_requests`, `overtime_requests`, `monthly_confirmation_lines` |
-| ADR-0080 decision 2 | no biometric or location column; sick leave stores proof reference and period only | `attendance_records`, `leave_requests` (`reason_text` is free text and must not carry a diagnosis: the length cap and the classification below are the mitigation; the form text is the slice that writes it) |
+| ADR-0080 decision 2 | no biometric or location column; sick leave stores proof reference and period only | `attendance_records`; the free-text and proof columns of `leave_requests` are carved out until the user decides |
 | ADR-0079:123 | attendance written records kept at least 2 years | retention in the registry |
 | ADR-0043 | classification of every personal column | below |
 
@@ -199,7 +201,7 @@ organization_leave.leave_requests:
   role: AGGREGATE_ROOT
   aggregate: LeaveRequest
   mutability: MUTABLE
-  retention: {policy: PERMANENT}      # kept with the employee record period (Q-3)
+  retention: {policy: PERMANENT}      # Q-3: kept with the employee record period; an expiry job is a later decision
   lineage: {source: NEW, migrated_from: [old leave records], via: ONE_OFF_IMPORT}
   writers: [organization.leave]
 organization_leave.leave_request_days:
@@ -213,7 +215,6 @@ organization_leave.leave_request_holds:
   role: AGGREGATE_CHILD
   aggregate: LeaveRequest
   mutability: APPEND_ONLY
-  references: {ledger_line_id: organization_leave.leave_ledger_lines}   # table lands in L1b; the entry is optional until then
   retention: {policy: PERMANENT}
   lineage: {source: NEW}
   writers: [organization.leave]
@@ -228,7 +229,7 @@ organization_leave.attendance_records:
   role: AGGREGATE_ROOT
   aggregate: AttendanceRecord
   mutability: APPEND_ONLY
-  retention: {policy: MIN_YEARS, years: 2}      # ADR-0079:123; use the registry's existing retention vocabulary if it differs
+  retention: {policy: BUSINESS_RECORD}      # ADR-0079:123 sets a 2-year minimum, not a purge; no purge job in L1a (a time-bound policy needs a ShedLock job)
   lineage: {source: NEW}
   writers: [organization.leave]
 organization_leave.monthly_confirmations:
@@ -247,7 +248,7 @@ organization_leave.monthly_confirmation_lines:
   writers: [organization.leave]
 ```
 
-The exact retention vocabulary and the optional-entry syntax are the registry's (`backend/architecture/data-access-registry.yaml` header); the L1a card adapts the draft to them and the registry test is the check.
+No `references` entry is written for the three deferred keys in L1a (the target tables do not exist and the registry test would fail); L1b adds the entry with each foreign key. Retention of the personal-data tables is `PERMANENT` on the strength of Q-3 (kept with the employee record period); ADR-0043 R-2 asks PI tables for an expiry, which Q-3 answers as none for now, and the user can change it. The card adapts the drafts to the registry header; the registry test is the check.
 
 ## Classification drafts (C4)
 
@@ -255,8 +256,6 @@ The exact retention vocabulary and the optional-entry syntax are the registry's 
 organization_leave.leave_requests.employee_id | INTERNAL | PI | 用途：请假人，数据范围判断与本人查询
 organization_leave.leave_requests.start_at | INTERNAL | PI | 用途：请假起始时刻，排班与工时扣减
 organization_leave.leave_requests.end_at | INTERNAL | PI | 用途：请假结束时刻，排班与工时扣减
-organization_leave.leave_requests.reason_text | SENSITIVE | SPI | 用途：人填的请假事由，可能含健康信息；仅申请人与审批人可见；影响评估报告 docs/privacy/ 路径由实现卡补（SPI 要求该文件存在）
-organization_leave.leave_requests.proof_file_id | SENSITIVE | SPI | 用途：病假等证明材料的文件引用，材料本身在文件服务；影响评估报告同上
 organization_leave.overtime_requests.employee_id | INTERNAL | PI | 用途：加班人，数据范围判断与本人查询
 organization_leave.overtime_requests.work_date | INTERNAL | PI | 用途：加班日期，工时与调休
 organization_leave.attendance_records.employee_id | INTERNAL | PI | 用途：打卡人，考勤月确认
@@ -265,11 +264,34 @@ organization_leave.attendance_records.external_record_key | INTERNAL | NONE | �
 organization_leave.monthly_confirmations.employee_id | INTERNAL | PI | 用途：月确认的所属员工
 ```
 
-Whether `reason_text` and `proof_file_id` are SPI is a legal call; the rule is "when unsure, SPI", so the draft takes SPI and the card must add the impact assessment file or lower the mark on the user's decision (it is not decided here). `DdlNamingTest` flags column names that look like health or sick-leave data, which is why the free-text column is classified `SENSITIVE`.
+Every column above is personal information (PI) at the INTERNAL level, never SPI: attendance times and leave periods do not name a health condition. A leave type such as sick leave is a reference to `leave_types` (L1b) and is classified there. The columns that could carry health text are carved out (Scope).
 
 ## Comments (C1)
 
-Each table and column gets a Chinese comment in the migration (table: what a row is and which aggregate; column: meaning, unit, and 「为空表示」 for every nullable one), as `standard_hours_versions` does. The L1a card writes them; the review of the schema PR checks them.
+Chinese comments, written into the migration by #1400 exactly as drafted here. Table comments carry the grain (`粒度：每 … 一行`, checked by `DataArchitectureTest` D3); every nullable column carries 「为空表示」.
+
+| Table | Comment draft |
+|---|---|
+| `leave_requests` | 请假申请。粒度：每个雇佣关系每次请假申请一行。 |
+| `leave_request_days` | 请假申请按日拆分的时长。粒度：每个请假申请的每个工作日一行。 |
+| `leave_request_holds` | 请假申请占用的额度流水。粒度：每个请假申请占用的每条额度流水一行。 |
+| `overtime_requests` | 加班申请。粒度：每个雇佣关系每次加班申请一行。 |
+| `attendance_records` | 外部打卡记录，只追加。粒度：每个来源系统的每条打卡记录一行。 |
+| `monthly_confirmations` | 月度考勤确认。粒度：每个员工每个自然月一行。 |
+| `monthly_confirmation_lines` | 月度考勤确认的明细。粒度：每个确认单每个关系每个出勤、请假或加班事实一行。 |
+
+| Nullable column | 「为空表示」 draft |
+|---|---|
+| `leave_requests.approval_instance_id`, `overtime_requests.approval_instance_id` | 为空表示尚未发起审批（草稿、自动通过或在进入审批前被拒） |
+| `monthly_confirmations.confirmed_by_kind`, `.confirmed_at` | 为空表示尚未确认 |
+| `monthly_confirmations.locked_at` | 为空表示尚未锁定 |
+| `monthly_confirmation_lines.leave_type_id`, `.is_paid_leave` | 为空表示不是请假行 |
+| `monthly_confirmation_lines.compensation_kind`, `.day_kind` | 为空表示不是加班行 |
+| `monthly_confirmation_lines.minutes_count` | 为空表示这是按天计的出勤行 |
+| `monthly_confirmation_lines.day_hundredths_count` | 为空表示这是按分钟计的行 |
+| `monthly_confirmation_lines.original_month_start_date` | 为空表示不是跨月更正行 |
+
+Non-null columns: meaning and unit, one line each, written by #1400 (the glossary words for the table, column and enum names go to `docs/glossary/terms.yaml` in the same card: not checked here, `GlossaryTest` is the card's check).
 
 ## Analytical facts (A1 to A8)
 
@@ -289,6 +311,6 @@ New schema `organization_leave`; new tables, columns, constraints, indexes and t
 
 ## Verdict
 
-All items of the gate that apply are met, with the three named deferrals (foreign keys to the L1b tables, the `source_system` value list, the SPI impact assessment file). No conditional pass: none of the seven tables depends on a pending value (T-1, T-3, T-5, T-7, T-8, T-10), and Q-3 is answered.
+All applicable items of the gate are met for the seven tables as signed here, except the carved-out columns `leave_requests.reason_text` and `leave_requests.proof_file_id`, which are **not passed (pending the user's decision)** and are not part of this signature. Three named deferrals, none a condition: foreign keys to the L1b tables (added there), the `source_system` value list (import slice), the glossary entries (the #1400 card). The one design proposal that lead may veto is `ex_leave_requests_live_period_overlap`. None of the seven tables depends on a pending value (T-1, T-3, T-5, T-7, T-8, T-10), and Q-3 is answered.
 
-数据设计：通过（one-design，2026-11-05，依据 bb2e2ce1d；范围：`leave_requests`、`leave_request_days`、`leave_request_holds`、`overtime_requests`、`attendance_records`、`monthly_confirmations`、`monthly_confirmation_lines` 七张表，列名按本记录「与第 8 节草案的差异」）。
+数据设计：通过（one-design，2026-11-05，依据 bb2e2ce1d；范围：`leave_requests`（不含 `reason_text`、`proof_file_id`）、`leave_request_days`、`leave_request_holds`、`overtime_requests`、`attendance_records`、`monthly_confirmations`、`monthly_confirmation_lines`，列名按本记录「与第 8 节草案的差异」）。
