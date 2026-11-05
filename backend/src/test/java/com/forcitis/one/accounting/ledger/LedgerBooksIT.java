@@ -9,7 +9,7 @@ import com.forcitis.one.TestPostgres;
 import com.forcitis.one.accounting.ledger.application.BackfillLedgers;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.kernel.RegisteredLegalEntities;
+import com.forcitis.one.organization.workforce.api.LegalEntityDirectory;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.organization.workforce.api.LegalEntityCode;
@@ -44,7 +44,7 @@ class LedgerBooksIT {
     WecomGateway wecomGateway;
 
     @MockitoBean
-    RegisteredLegalEntities registered;
+    LegalEntityDirectory directory;
 
     @Autowired
     ApplicationEventPublisher publisher;
@@ -96,7 +96,7 @@ class LedgerBooksIT {
         jdbc.sql("""
                 insert into accounting_ledger.ledgers (id, legal_entity_id, basis_kind, created_at, updated_at)
                 values (:a, :entity, 'ACCRUAL', now(), now()), (:c, :entity, 'CASH', now(), now())""").param("a", ids.next()).param("c", ids.next()).param("entity", full).update();
-        when(registered.all()).thenReturn(List.of(new LegalEntityId(none), new LegalEntityId(half), new LegalEntityId(full)));
+        when(directory.allIds()).thenReturn(List.of(new LegalEntityId(none), new LegalEntityId(half), new LegalEntityId(full)));
 
         assertThat(backfill.execute()).isEqualTo(3);
         assertThat(basesOf(none)).containsExactly("ACCRUAL", "CASH");

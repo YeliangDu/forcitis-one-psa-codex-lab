@@ -57,9 +57,6 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
     LegalEntityDirectory directory;
 
     @Autowired
-    com.forcitis.one.kernel.RegisteredLegalEntities registered;
-
-    @Autowired
     ApplicationEvents events;
 
     @BeforeEach
@@ -81,12 +78,12 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
-    @org.junit.jupiter.api.DisplayName("#1440 the registered-entities port lists every legal entity, deactivated ones included")
-    void registeredLegalEntitiesListsEveryLegalEntity() throws Exception {
-        assertThat(registered.all()).isEmpty();
+    @org.junit.jupiter.api.DisplayName("#1440 allIds lists every legal entity, deactivated ones included")
+    void allIdsListsEveryLegalEntity() throws Exception {
+        assertThat(directory.allIds()).isEmpty();
         UUID one = create("ONE", "First");
         UUID two = create("TWO", "Second");
-        assertThat(registered.all()).containsExactlyInAnyOrder(new LegalEntityId(one), new LegalEntityId(two));
+        assertThat(directory.allIds()).containsExactlyInAnyOrder(new LegalEntityId(one), new LegalEntityId(two));
     }
 
     @Test

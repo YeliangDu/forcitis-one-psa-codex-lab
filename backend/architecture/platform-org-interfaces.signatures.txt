@@ -540,6 +540,7 @@ organization.workforce::api organization.workforce.api.LegalEntityCode public fi
 organization.workforce::api organization.workforce.api.LegalEntityCode public java.lang.String organization.workforce.api.LegalEntityCode.value()
 organization.workforce::api organization.workforce.api.LegalEntityCode public organization.workforce.api.LegalEntityCode(java.lang.String)
 organization.workforce::api organization.workforce.api.LegalEntityDirectory public abstract interface organization.workforce.api.LegalEntityDirectory
+organization.workforce::api organization.workforce.api.LegalEntityDirectory public abstract java.util.List<kernel.LegalEntityId> organization.workforce.api.LegalEntityDirectory.allIds()
 organization.workforce::api organization.workforce.api.LegalEntityDirectory public abstract java.util.Optional<organization.workforce.api.LegalEntityCode> organization.workforce.api.LegalEntityDirectory.findCode(kernel.LegalEntityId)
 organization.workforce::api organization.workforce.api.LegalEntityDirectory public abstract java.util.Optional<organization.workforce.api.LegalEntityCode> organization.workforce.api.LegalEntityDirectory.lockActiveCode(kernel.LegalEntityId)
 organization.workforce::api organization.workforce.api.LegalEntityNumberUsage public abstract boolean organization.workforce.api.LegalEntityNumberUsage.hasIssuedNumbers(kernel.LegalEntityId)
