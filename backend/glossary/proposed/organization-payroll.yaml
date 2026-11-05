@@ -480,3 +480,18 @@ terms:
   forbidden: []
   status: proposed
   note: '#1436 PY3；中文名待术语确认'
+- id: error__organization_payroll_bonus_input_no_approver
+  zh: 奖金输入无审批人
+  en: OrganizationPayrollBonusInputNoApprover
+  snake: organization_payroll_bonus_input_no_approver
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 薪资专员角色除发起人外没有其他持有人，第二级审批无人可办（422）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1436 用户裁决 (b)；中文名待术语确认'

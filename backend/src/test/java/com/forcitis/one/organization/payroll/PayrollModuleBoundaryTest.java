@@ -31,7 +31,7 @@ class PayrollModuleBoundaryTest {
                 type.getDirectDependenciesFromSelf().stream()
                         .map(d -> d.getTargetClass().getName())
                         .filter(name -> name.startsWith(ROOT) && !within(name, OWN) && !within(name, ROOT + "kernel") && !within(name, ROOT + "platform.audit.api")
-                                && !within(name, ROOT + "platform.approval.api") && !within(name, ROOT + "platform.approval.events") && !within(name, ROOT + "organization.workforce.api"))
+                                && !within(name, ROOT + "platform.approval.api") && !within(name, ROOT + "platform.approval.events") && !within(name, ROOT + "platform.identity.api") && !within(name, ROOT + "organization.workforce.api"))
                         .forEach(violations::add);
             }
         }
@@ -43,7 +43,7 @@ class PayrollModuleBoundaryTest {
     void edgeAndSchemaOwnership() throws IOException {
         String edge = Files.readAllLines(Path.of("architecture/module-dependencies.txt")).stream()
                 .filter(line -> line.startsWith("organization.payroll ->")).findFirst().orElseThrow();
-        assertThat(edge.split("->")[1].trim()).isEqualTo("platform.audit, platform.approval, organization.workforce");
+        assertThat(edge.split("->")[1].trim()).isEqualTo("platform.audit, platform.approval, platform.identity, organization.workforce");
         Path own = Path.of("src/main/java/com/forcitis/one/organization/payroll");
         try (var paths = Files.walk(Path.of("src/main/java"))) {
             for (Path path : paths.filter(p -> p.toString().endsWith(".java") && !p.startsWith(own)).toList()) {

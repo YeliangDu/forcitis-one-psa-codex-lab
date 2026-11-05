@@ -9,6 +9,9 @@ public interface BonusInputApprovalProcess {
     ProcessKey KEY = ProcessKey.of("organization_payroll_bonus_input");
     DocumentTypeCode DOCUMENT_TYPE = new DocumentTypeCode("BONUS_INPUT");
 
+    /** The role whose holders decide the second stage; the process file names the same role (the platform reads it from there). */
+    String APPROVER_ROLE = "payroll_specialist";
+
     /** The form fields the process declares; the approval keeps them as submitted and payroll reads them back when the approval completes. */
     String EMPLOYMENT_RELATIONSHIP_ID = "employmentRelationshipId";
     String PAYROLL_MONTH_START_DATE = "payrollMonthStartDate";
