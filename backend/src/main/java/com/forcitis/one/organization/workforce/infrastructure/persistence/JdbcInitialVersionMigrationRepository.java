@@ -122,6 +122,10 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
         if (employer == null) {
             throw new IllegalStateException("initial version migration: a person has no legal entity attribution on the first day; attribute them first, no employer is guessed");
         }
+        return insertRelationship(employee, employer, at);
+    }
+
+    private UUID insertRelationship(EmployeeId employee, UUID employer, Instant at) {
         UUID id = ids.next();
         OffsetDateTime stamp = OffsetDateTime.ofInstant(at, ZoneOffset.UTC);
         jdbc.sql("""
