@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.events;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventEnvelope;
+import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PositionId;
@@ -19,10 +20,17 @@ import org.jspecify.annotations.Nullable;
  */
 public record EmployeeTransferred(EventEnvelope envelope, PersonnelCommandId personnelCommandId, EmployeeId employeeId, LocalDate effectiveDate,
                                   List<TriggerFieldKind> triggerFieldKinds, OrgUnitId previousOrgUnitId, OrgUnitId newOrgUnitId,
-                                  @Nullable PositionId previousPositionId, @Nullable PositionId newPositionId)
+                                  @Nullable PositionId previousPositionId, @Nullable PositionId newPositionId,
+                                  @Nullable EmploymentRelationshipId employmentRelationshipId)
         implements DomainEvent {
 
     public EmployeeTransferred {
         triggerFieldKinds = List.copyOf(triggerFieldKinds);
+    }
+
+    public EmployeeTransferred(EventEnvelope envelope, PersonnelCommandId personnelCommandId, EmployeeId employeeId, LocalDate effectiveDate,
+                               List<TriggerFieldKind> triggerFieldKinds, OrgUnitId previousOrgUnitId, OrgUnitId newOrgUnitId, @Nullable PositionId previousPositionId,
+                               @Nullable PositionId newPositionId) {
+        this(envelope, personnelCommandId, employeeId, effectiveDate, triggerFieldKinds, previousOrgUnitId, newOrgUnitId, previousPositionId, newPositionId, null);
     }
 }

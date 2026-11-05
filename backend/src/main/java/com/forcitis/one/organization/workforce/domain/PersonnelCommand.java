@@ -20,6 +20,7 @@ import com.forcitis.one.organization.workforce.api.WorkforceError;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 
@@ -383,13 +384,29 @@ public final class PersonnelCommand extends AggregateRoot {
      * @param assignmentAfter a correction's: the assignment today after it, if any; others pass null
      * @param legalEntity the employee's legal entity on the effective date, null when none can be resolved
      */
-    public void recordEffect(@Nullable VersionRow assignmentBefore, @Nullable VersionRow assignmentAfter, @Nullable LegalEntityId legalEntity) {
-        PersonnelCommandEvents.of(this, assignmentBefore, assignmentAfter, legalEntity).ifPresent(this::record);
+    public void recordEffect(@Nullable VersionRow assignmentBefore, @Nullable VersionRow assignmentAfter, @Nullable LegalEntityId legalEntity, PersonnelHistory history) {
+        PersonnelCommandEvents.PersonTransition person = personTransition(history);
+        PersonnelCommandEvents.of(this, assignmentBefore, assignmentAfter, legalEntity, person).forEach(this::record);
         if (countersignNewLegalEntityId != null) {
             record(PersonnelCommandEvents.legalEntityChanged(this, Objects.requireNonNull(countersignPreviousLegalEntityId), countersignNewLegalEntityId));
         } else if (approvedNewLegalEntityId != null) {
             record(PersonnelCommandEvents.legalEntityChanged(this, Objects.requireNonNull(approvedPreviousLegalEntityId), approvedNewLegalEntityId));
         }
+    }
+
+    /** What the command did to the person as a whole, read from the employee's history at the moment it takes effect. */
+    private PersonnelCommandEvents.PersonTransition personTransition(PersonnelHistory history) {
+        if (employmentRelationshipId == null) {
+            return PersonnelCommandEvents.PersonTransition.NONE;
+        }
+        UUID rel = employmentRelationshipId.value();
+        boolean enters = kind != PersonnelCommandKind.HIRE && kind != PersonnelCommandKind.REINSTATE || history.personEnters(rel, effectiveDate);
+        boolean leaves = kind != PersonnelCommandKind.SEPARATE || history.personLeaves(rel, effectiveDate)
+                && history.commands().stream().noneMatch(o -> o.kind() == PersonnelCommandKind.HIRE && o.status() != CommandStatus.WITHDRAWN && o.effectiveDate().equals(effectiveDate)
+                        && history.relationship(o.employmentRelationshipId() == null ? rel : o.employmentRelationshipId().value())
+                                .map(r -> r.predecessorId() != null && r.predecessorId().value().equals(rel)).orElse(false));
+        boolean onLeave = kind != PersonnelCommandKind.UNPAID_LEAVE_START || history.personOnLeave(rel, effectiveDate);
+        return new PersonnelCommandEvents.PersonTransition(enters, leaves, onLeave);
     }
 
     public PersonnelCommandId id() {

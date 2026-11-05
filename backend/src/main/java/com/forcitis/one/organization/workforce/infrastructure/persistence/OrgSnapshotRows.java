@@ -62,10 +62,12 @@ final class OrgSnapshotRows {
                      case when v.versioned then av.reports_to_employee_id else a.reports_to_employee_id end as reports_to_employee_id
                 from organization_workforce.employees e
                 cross join lateral (select exists (select 1 from organization_workforce.employment_relationship_versions x where x.employee_id = e.id) as versioned) v
-                left join organization_workforce.employment_relationship_versions ev on v.versioned and ev.employee_id = e.id and ev.superseded_at is null
-                     and ev.effective_from_date <= :day and (ev.effective_to_date is null or :day < ev.effective_to_date)
                 left join organization_workforce.assignment_versions av on v.versioned and av.employee_id = e.id and av.assignment_kind = 'PRIMARY' and av.superseded_at is null
                      and av.effective_from_date <= :day and (av.effective_to_date is null or :day < av.effective_to_date)
+                left join lateral (select x.employment_status, x.is_fee_earner from organization_workforce.employment_relationship_versions x
+                                    where v.versioned and x.employee_id = e.id and x.superseded_at is null
+                                      and x.effective_from_date <= :day and (x.effective_to_date is null or :day < x.effective_to_date)
+                                    order by (x.employment_status = 'EMPLOYED') desc, (x.employment_relationship_id = av.employment_relationship_id) desc limit 1) ev on true
                 left join organization_workforce.assignments a on not v.versioned and a.employee_id = e.id
             ) s
             where s.org_unit_id is not null and s.employment_status is not null

@@ -31,6 +31,49 @@ public record PersonnelHistory(List<VersionRow> employeeRows, List<VersionRow> a
                 commands.stream().filter(c -> c.employmentRelationshipId() != null && relationship.equals(c.employmentRelationshipId().value())).toList(), lookup, relationships);
     }
 
+    /**
+     * Whether the person goes from not in service to in service with this relationship on the day (EmployeeHired, EmployeeReinstated): no other relationship was in
+     * service on the day before, and none that came earlier is in service on the day itself; an employer change in continuous service (a predecessor) is no entry.
+     * The relationships are in the order they were made.
+     */
+    public boolean personEnters(UUID relationship, LocalDate day) {
+        RelationshipRow own = relationship(relationship).orElse(null);
+        if (own != null && own.predecessorId() != null) {
+            return false;
+        }
+        boolean before = true;
+        for (RelationshipRow other : relationships) {
+            if (other.id().value().equals(relationship)) {
+                before = false;
+                continue;
+            }
+            boolean onDayBefore = inService(other.id().value(), day.minusDays(1));
+            boolean onDay = inService(other.id().value(), day);
+            if (onDayBefore || before && onDay) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Whether the person goes out of service when this relationship ends on the day (EmployeeSeparated): no other relationship is in service on the day, and no
+     * hire names this one as predecessor on the day (an employer change in continuous service).
+     */
+    public boolean personLeaves(UUID relationship, LocalDate day) {
+        return relationships.stream().noneMatch(r -> !r.id().value().equals(relationship) && inService(r.id().value(), day));
+    }
+
+    /** Whether the person is on unpaid leave on the day once this relationship is: every other relationship in service on the day is on leave too. */
+    public boolean personOnLeave(UUID relationship, LocalDate day) {
+        return currentEmployeeRows().stream().filter(r -> !relationship.equals(r.relationshipId()) && r.covers(day) && "EMPLOYED".equals(r.values().get(CommandEffects.EMPLOYMENT)))
+                .allMatch(r -> Boolean.TRUE.equals(r.values().get(CommandEffects.ON_LEAVE)));
+    }
+
+    private boolean inService(UUID relationship, LocalDate day) {
+        return currentEmployeeRows(relationship).stream().anyMatch(r -> r.covers(day) && "EMPLOYED".equals(r.values().get(CommandEffects.EMPLOYMENT)));
+    }
+
     public Optional<RelationshipRow> relationship(UUID id) {
         return relationships.stream().filter(r -> r.id().value().equals(id)).findFirst();
     }
