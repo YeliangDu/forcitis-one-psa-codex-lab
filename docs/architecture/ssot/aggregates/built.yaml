@@ -121,6 +121,11 @@ aggregates:
   - organization.workforce.EmployeeSeparated
   - organization.workforce.EmployeeTransferred
   - organization.workforce.EmployeeUnpaidLeaveStarted
+  - organization.workforce.EmploymentRelationshipCorrected
+  - organization.workforce.EmploymentRelationshipEnded
+  - organization.workforce.EmploymentRelationshipPhaseChanged
+  - organization.workforce.EmploymentRelationshipStarted
+  - organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected
@@ -169,6 +174,11 @@ aggregates:
   - organization.workforce.EmployeeSeparated
   - organization.workforce.EmployeeTransferred
   - organization.workforce.EmployeeUnpaidLeaveStarted
+  - organization.workforce.EmploymentRelationshipCorrected
+  - organization.workforce.EmploymentRelationshipEnded
+  - organization.workforce.EmploymentRelationshipPhaseChanged
+  - organization.workforce.EmploymentRelationshipStarted
+  - organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected
@@ -217,6 +227,11 @@ aggregates:
   - organization.workforce.EmployeeSeparated
   - organization.workforce.EmployeeTransferred
   - organization.workforce.EmployeeUnpaidLeaveStarted
+  - organization.workforce.EmploymentRelationshipCorrected
+  - organization.workforce.EmploymentRelationshipEnded
+  - organization.workforce.EmploymentRelationshipPhaseChanged
+  - organization.workforce.EmploymentRelationshipStarted
+  - organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected
@@ -270,6 +285,11 @@ aggregates:
   - organization.workforce.EmployeeSeparated
   - organization.workforce.EmployeeTransferred
   - organization.workforce.EmployeeUnpaidLeaveStarted
+  - organization.workforce.EmploymentRelationshipCorrected
+  - organization.workforce.EmploymentRelationshipEnded
+  - organization.workforce.EmploymentRelationshipPhaseChanged
+  - organization.workforce.EmploymentRelationshipStarted
+  - organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected
@@ -322,6 +342,11 @@ aggregates:
   - organization.workforce.EmployeeSeparated
   - organization.workforce.EmployeeTransferred
   - organization.workforce.EmployeeUnpaidLeaveStarted
+  - organization.workforce.EmploymentRelationshipCorrected
+  - organization.workforce.EmploymentRelationshipEnded
+  - organization.workforce.EmploymentRelationshipPhaseChanged
+  - organization.workforce.EmploymentRelationshipStarted
+  - organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected

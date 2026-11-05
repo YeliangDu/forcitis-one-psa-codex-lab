@@ -31,6 +31,7 @@ abstract class EmployeeHireSupport extends PersonnelCommandSupport {
     protected UUID hire(String displayName, String gender, String email, String wecomUserId) throws Exception {
         Map<String, Object> fields = new HashMap<>();
         fields.put(COMMAND_KIND, HIRE);
+        fields.put(TARGET_EMPLOYER_LEGAL_ENTITY_ID, legalEntity);
         fields.put(EFFECTIVE_DATE, TODAY);
         fields.put(TARGET_ORG_UNIT_ID, unit);
         fields.put(TARGET_POSITION_ID, newPosition());

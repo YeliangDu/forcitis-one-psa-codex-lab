@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.platform.identity.data_scope;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
@@ -48,14 +49,16 @@ class PermissionAdjustmentEscalationNoticeIT extends PermissionAdjustmentEscalat
                 separated.setObject(2, stored(UUID.fromString(employeeIdOf("plain"))));
                 separated.executeUpdate();
             }
+            UUID relationship = EmploymentRelationshipSeeds.relationshipOf(workforce, stored(UUID.fromString(employeeIdOf("headB"))));
             try (PreparedStatement leave = workforce.prepareStatement("""
-                    insert into employee_versions (employee_version_id, employee_id, effective_from_date, employment_status, employment_phase_kind,
+                    insert into employment_relationship_versions (employment_relationship_id, employment_relationship_version_id, employee_id, effective_from_date, employment_status, employment_phase_kind,
                         is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind, change_channel_kind, created_at, updated_at)
-                    values (?, ?, date '2000-01-01', 'EMPLOYED', 'REGULAR', true, false, date '2000-01-01', 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""")) {
-                leave.setObject(1, UUID.randomUUID());
-                leave.setObject(2, stored(UUID.fromString(employeeIdOf("headB"))));
-                leave.setObject(3, OffsetDateTime.parse(CREATED));
+                    values (?, ?, ?, date '2000-01-01', 'EMPLOYED', 'REGULAR', true, false, date '2000-01-01', 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""")) {
+                leave.setObject(1, relationship);
+                leave.setObject(2, UUID.randomUUID());
+                leave.setObject(3, stored(UUID.fromString(employeeIdOf("headB"))));
                 leave.setObject(4, OffsetDateTime.parse(CREATED));
+                leave.setObject(5, OffsetDateTime.parse(CREATED));
                 leave.executeUpdate();
             }
             // With any employee version the directory reads the unit from assignment_versions: without a PRIMARY row headB would vanish
@@ -64,15 +67,16 @@ class PermissionAdjustmentEscalationNoticeIT extends PermissionAdjustmentEscalat
                     insert into employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at)
                     values (uuidv7(), ?, 'PRIMARY', now(), now()) on conflict (employee_id) where assignment_kind = 'PRIMARY' do nothing""");
                     PreparedStatement version = workforce.prepareStatement("""
-                    insert into assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                    insert into assignment_versions (employment_relationship_id, assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
                         org_unit_id, position_id, change_channel_kind, created_at, updated_at)
-                    select ?, a.employee_id, ea.assignment_id, ea.assignment_kind, date '2000-01-01', a.org_unit_id, a.position_id, 'MIGRATION', now(), now()
+                    select ?, ?, a.employee_id, ea.assignment_id, ea.assignment_kind, date '2000-01-01', a.org_unit_id, a.position_id, 'MIGRATION', now(), now()
                       from assignments a join employee_assignments ea on ea.employee_id = a.employee_id and ea.assignment_kind = 'PRIMARY'
                      where a.employee_id = ?""")) {
                 employeeAssignment.setObject(1, stored(UUID.fromString(employeeIdOf("headB"))));
                 employeeAssignment.executeUpdate();
-                version.setObject(1, UUID.randomUUID());
-                version.setObject(2, stored(UUID.fromString(employeeIdOf("headB"))));
+                version.setObject(1, relationship);
+                version.setObject(2, UUID.randomUUID());
+                version.setObject(3, stored(UUID.fromString(employeeIdOf("headB"))));
                 assertThat(version.executeUpdate()).as("headB keeps a PRIMARY assignment version beside the leave version").isEqualTo(1);
             }
         }

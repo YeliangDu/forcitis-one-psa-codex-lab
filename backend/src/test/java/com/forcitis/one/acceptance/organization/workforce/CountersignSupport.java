@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import static com.forcitis.one.acceptance.organization.workforce.CountersignNames.*;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -113,19 +114,17 @@ abstract class CountersignSupport extends SeparationHoldSupport {
         OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, """
-                    insert into employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+                    insert into employment_relationship_versions (employment_relationship_id, employment_relationship_version_id, employee_id, effective_from_date, revision_number, employment_status,
                       employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
                       change_channel_kind, created_at, updated_at)
-                    values (?, ?, ?, 0, 'EMPLOYED', ?, false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""",
-                    Uuids.timeOrdered(NOW), stored(id), SINCE, REGULAR, SINCE, at, at);
+                    values (?, ?, ?, ?, 0, 'EMPLOYED', ?, false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.relationshipOf(workforce, stored(id)), Uuids.timeOrdered(NOW), stored(id), SINCE, REGULAR, SINCE, at, at);
             if (!query(workforce, "select 1 as present from information_schema.columns where table_schema = 'organization_workforce' and table_name = ? and column_name = ?",
                     ASSIGNMENT_VERSIONS, "change_channel_kind").isEmpty()) {
                 // #711: the version hangs on the employee's PRIMARY root (AssignmentRoots).
                 UUID root = AssignmentRoots.primaryOf(workforce, stored(id));
                 update(workforce, AssignmentRoots.withRoot("""
-                        insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
-                          change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root),
-                        AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), stored(id), SINCE, stored(inUnit), position, at, at));
+                        insert into assignment_versions (employment_relationship_id, assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
+                          change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root), AssignmentRoots.arguments(root, EmploymentRelationshipSeeds.relationshipOf(workforce, stored(id)), Uuids.timeOrdered(NOW), stored(id), SINCE, stored(inUnit), position, at, at));
             }
         }
         return id;

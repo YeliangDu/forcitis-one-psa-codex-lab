@@ -192,7 +192,7 @@ class LoginOpensAccountIT extends IdentityIntegrationTest {
         knownEmployee(8004, EmploymentStatus.EMPLOYED);
         EmployeeId employee = TestAccounts.employee(8004);
         EmployeeHired hired = new EmployeeHired(TestEnvelopes.of("organization.workforce.EmployeeHired", "Employee", employee.value()),
-                new PersonnelCommandId(UUID.randomUUID()), employee, LocalDate.of(2026, 11, 2));
+                new PersonnelCommandId(UUID.randomUUID()), employee, LocalDate.of(2026, 11, 2), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
 
         List<ILoggingEvent> alerts = alertsWhile(() -> {
             tx.executeWithoutResult(status -> events.publishEvent(hired));
