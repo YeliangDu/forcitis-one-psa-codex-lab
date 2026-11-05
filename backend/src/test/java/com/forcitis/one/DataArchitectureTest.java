@@ -302,8 +302,8 @@ class DataArchitectureTest {
         if ("CONDITIONAL_UPDATE".equals(mutability) && (e.text("condition") == null || e.text("condition").isBlank())) {
             v.add(new Violation("D1", t.name, "condition", "a CONDITIONAL_UPDATE table names the condition that makes the update safe"));
         }
-        if ("APPEND_ONLY".equals(mutability) && ("LOG_APPEND_ONLY".equals(role) || "DIMENSION_VERSIONED".equals(role)) && !refusesRewrite(t)) {
-            v.add(new Violation("D1", t.name, "trigger", "an append-only log or version table has triggers that refuse DELETE and rewriting UPDATE per row and refuse TRUNCATE (checked by running it)"));
+        if ("APPEND_ONLY".equals(mutability) && !refusesRewrite(t)) {
+            v.add(new Violation("D1", t.name, "trigger", "an APPEND_ONLY table (role " + role + ") has triggers that refuse DELETE and rewriting UPDATE per row and refuse TRUNCATE (checked by running it)"));
         }
     }
 

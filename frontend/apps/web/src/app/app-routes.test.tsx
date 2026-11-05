@@ -59,7 +59,7 @@ describe('应用外壳与登录状态', () => {
     const FIRST = '019a0000-0000-7000-8000-000000009001';
     stubServer({
       'GET sessions:current': { body: currentUserBody([], NAVIGATION) },
-      'GET authorization-requests': { body: { items: [{ requestId: FIRST, kind: 'UPDATE_ROLE', roleName: '合成角色甲', roleCodes: ['synthetic_a'], permissionCodes: [], requestedBy: '019a0000-0000-7000-8000-000000001001', requestedAt: '2026-11-03T01:00:00Z' }] } },
+      'GET authorization-requests': { body: { items: [{ requestId: FIRST, kind: 'UPDATE_ROLE', roleName: '合成角色甲', roleCodes: ['synthetic_a'], roleLabels: [{ code: 'synthetic_a', name: '合成角色甲' }], permissionCodes: [], requestedBy: '019a0000-0000-7000-8000-000000001001', requestedAt: '2026-11-03T01:00:00Z' }] } },
       [`POST authorization-requests/${FIRST}:confirm`]: { status: 403, body: problemBody(403, 'PLATFORM_IDENTITY_AUTHORIZATION_CONFIRMER_NOT_ALLOWED') },
     });
     renderWithProviders(<AppRoutes />, { route: '/admin/authorization-requests' });

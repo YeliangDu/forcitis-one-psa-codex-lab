@@ -2,7 +2,7 @@ import { describeFailure, formatDateTime } from '@forcitis/core';
 import { Button, DataTable, Dialog, LoadingState, Notice, PageTitle, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
 import { useAuthorizationRequests, useDecideAuthorizationRequest } from '../hooks/use-authorization-requests';
-import type { AuthorizationRequest, Deciding } from '../model/authorization-request';
+import { kindLabel, personLabel, rolesLabel, type AuthorizationRequest, type Deciding } from '../model/authorization-request';
 
 export function AuthorizationRequestsPage() {
   const requests = useAuthorizationRequests();
@@ -22,10 +22,11 @@ export function AuthorizationRequestsPage() {
   };
 
   const columns: DataColumn<AuthorizationRequest>[] = [
-    { key: 'role', title: '角色', render: (request) => request.roleName ?? (request.roleCodes.join('、') || '—') },
+    { key: 'kind', title: '类型', render: kindLabel },
+    { key: 'role', title: '角色', render: rolesLabel },
     { key: 'permissions', title: '权限', render: (request) => (request.permissionCodes.length === 0 ? '—' : request.permissionCodes.map((code) => <code key={code}>{code} </code>)) },
-    { key: 'subject', title: '被授权用户', render: (request) => request.subjectUserId ?? '—' },
-    { key: 'by', title: '申请人', render: (request) => request.requestedBy },
+    { key: 'subject', title: '被授权用户', render: (request) => personLabel(request.subjectUserName, request.subjectUserId) },
+    { key: 'by', title: '申请人', render: (request) => personLabel(request.requestedByName, request.requestedBy) },
     { key: 'at', title: '申请时间', render: (request) => formatDateTime(request.requestedAt) },
     {
       key: 'actions',
@@ -57,10 +58,11 @@ export function AuthorizationRequestsPage() {
         {decide.isError ? <Notice tone="error" title={confirming ? '确认失败' : '驳回失败'}>{describeFailure(decide.error)}</Notice> : null}
         {request === undefined ? null : (
           <ul>
-            <li>角色：{request.roleName ?? (request.roleCodes.join('、') || '—')}</li>
+            <li>类型：{kindLabel(request)}</li>
+            <li>角色：{rolesLabel(request)}</li>
             <li>权限：{request.permissionCodes.length === 0 ? '—' : request.permissionCodes.join('、')}</li>
-            <li>被授权用户：{request.subjectUserId ?? '—'}</li>
-            <li>申请人：{request.requestedBy}</li>
+            <li>被授权用户：{personLabel(request.subjectUserName, request.subjectUserId)}</li>
+            <li>申请人：{personLabel(request.requestedByName, request.requestedBy)}</li>
             <li>申请时间：{formatDateTime(request.requestedAt)}</li>
           </ul>
         )}
