@@ -9,7 +9,7 @@
 
 1. The mainline has 78 nodes [V: count]. 14 nodes name two or more owners in the owner field (`a / b`) [V: count; the card said 7]. Consecutive nodes change owner 59 times in 77 steps [V: count], so most steps cross a seam.
 2. The owner field uses 15 distinct single names [V: count]; main has code for five of them (workforce, attendance, payroll rule versions, identity, approval) and `leave` is only a package marker: workforce, attendance, leave (planned, code is only `package-info`), payroll (rule versions only), identity, approval [V: `backend/src/main/java/com/forcitis/one/`]. The rest are planned or named outside HR: recruitment (ADR-0085, spec R0 to R3), competency (proposal #1488), performance (ADR-0084), resource (delivery-resource plan), payment (`payables.payment`, planned), costing (`cost.timesheet` exists; labour-cost collection does not), expense, asset (`organization.administration` for IT return), privacy (workforce accepts requests, ADR-0079).
-3. The 24 monthly cases are two employment relationships by 12 months, payment on the 10th of the next month [V: `monthly_cycles.json`]. They give the monthly rhythm, not the amounts (the pack marks its inputs synthetic).
+3. The 24 monthly cases are two employment relationships by 12 months, payment on the 10th of the next month in 22 of 24 cases (2026-12 on the 15th, B-2028-02 on the 8th) [V: `monthly_cycles.json`]. They give the monthly rhythm, not the amounts (the pack marks its inputs synthetic).
 
 ## 2. Seam table
 
@@ -28,7 +28,7 @@ Reading: "from" writes the fact, "to" reads it or reacts. "Exists" means a class
 | S9 | resource, leave, payroll | cost (labour cost) | project hours, paid cost per period | LIFE-031 → 032 | `cost/timesheet/api` [V] exists for hours; labour-cost collection **MISSING** |
 | S10 | competency | workforce, payroll | verified certificate / skill; allowance handled apart from the certificate | LIFE-014 → 015; 028 → 029 | **MISSING** (proposal #1488, ADR-0089 proposed) |
 | S11 | competency | resource | qualification valid / suspended / restored for assignment checks | LIFE-059 → 061 | **MISSING** |
-| S12 | workforce | performance | goal setting at confirmation of employment | LIFE-016 → 017 | **MISSING** (ADR-0084 proposed) |
+| S12 | workforce | performance | goal setting at confirmation of employment | LIFE-016 → 017 | **MISSING** (ADR-0084 adopted, no code) |
 | S13 | performance | payroll | confirmed evaluation or project-bonus basis (also after separation) | LIFE-043 → 044; 074 → 075 | **MISSING**; bonus input port is PY3 (manual, approval-driven, spec only) |
 | S14 | workforce | identity | temporary acting duty and delegation | LIFE-024 → 025 | approval has reassign and escalation events [V: `TaskReassigned`, `ApprovalTaskEscalated`]; a dated acting-duty fact in workforce: **MISSING** [U] |
 | S15 | workforce | administration, resource, approval | separation hold: pending asset return, project hand-over, open approvals | LIFE-034 → 035 | `workforce/api/SeparationHolds`, `ReleaseSeparationHold` [V]; asset return in administration: **MISSING** [U] |
@@ -50,7 +50,7 @@ A periodic process is one that no single mainline node performs: it runs because
 
 | # | Process | Contexts | Pack evidence | Exists today | Proposed as its own slice after |
 |---|---|---|---|---|---|
-| C1 | Month-end payroll run: collect locked confirmations, calculate, review, approve, hand to payment and posting | payroll, leave, attendance, workforce, payment, accounting | 24 cases, 2 relationships × 12 months, payment on the 10th of the next month (`monthly_cycles.json`); nodes LIFE-014, 039, 054, 072 | **MISSING** (payroll rule versions only) | PY4 (calculate and approve); the trigger and the period-state handling as a separate slice after PY4 |
+| C1 | Month-end payroll run: collect locked confirmations, calculate, review, approve, hand to payment and posting | payroll, leave, attendance, workforce, payment, accounting | 24 cases, 2 relationships × 12 months, payment on the 10th of the next month in 22 of 24 (`monthly_cycles.json`); nodes LIFE-014, 039, 054, 072 | **MISSING** (payroll rule versions only) | PY4 (calculate and approve); the trigger and the period-state handling as a separate slice after PY4 |
 | C2 | Attendance month close: employee confirms the month, manager confirms, then it locks; later corrections go as adjustments | leave, workforce | LIFE-013, 074 (correction after the seal) | **MISSING** (leave) | the leave slice that carries the month confirmation (leave spec 9a), before PY4 |
 | C3 | Yearly leave rollover: new-year grants, carry-over with the old source kept, expiry of the old source | leave | LIFE-064 to 067 (leave spanning New Year, old source retained) | **MISSING** (leave) | after the first leave grant and spend slice |
 | C4 | Daily effective-date sweep: dated changes (promotion, pay change, standard-hours version, return from leave) become effective | workforce, payroll, attendance | LIFE-022 → 023, 057 → 058, 027 | workforce has due jobs (`PersonnelCommandDueJob`, `OrgStructureCommandDueJob`) [V]; `LocalDueJobs` runs them once locally [V]; payroll and attendance sweeps **MISSING** | with each slice that introduces a dated version (PY1 pay change, attendance standard hours already versioned) |
