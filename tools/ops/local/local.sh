@@ -13,6 +13,8 @@ ENV_FILE="$STATE/env"
 COMPOSE=(docker compose -f "$HERE/compose.yaml" --env-file "$ENV_FILE")
 BACKEND_URL="http://localhost:8080/actuator/health"
 WEB_URL="http://localhost:5173/"
+# seconds `up` waits for the backend (a loaded machine needs minutes); override with LOCAL_BACKEND_WAIT
+BACKEND_WAIT="${LOCAL_BACKEND_WAIT:-600}"
 
 say() { printf '%s\n' "$*"; }
 die() { printf 'local.sh: %s\n' "$*" >&2; exit 1; }
@@ -79,6 +81,7 @@ wait_for() { # url, seconds, pid file of the process that must stay alive meanwh
 }
 
 cmd_up() {
+  case "$BACKEND_WAIT" in ''|*[!0-9]*) die "LOCAL_BACKEND_WAIT must be a number of seconds" ;; esac
   need docker; need java; need pnpm; need curl; need openssl
   docker info >/dev/null 2>&1 || die "docker is not running"
   load_env
@@ -98,8 +101,8 @@ cmd_up() {
   say "[4/5] backend (profile local) on :8080"
   SPRING_PROFILES_ACTIVE=local FORCITIS_JOBS_ENABLED=false nohup java -Duser.timezone=UTC -jar "$jar" > "$STATE/backend.log" 2>&1 &
   echo $! > "$STATE/backend.pid"
-  wait_for "$BACKEND_URL" 180 "$STATE/backend.pid" || die "the backend did not come up (see $STATE/backend.log)"
-  say "[4b/5] bootstrap account (one synthetic admin, idempotent)"
+  wait_for "$BACKEND_URL" "$BACKEND_WAIT" "$STATE/backend.pid" || die "the backend did not answer within ${BACKEND_WAIT}s or stopped; it may still be starting if its process is alive (status; then see $STATE/backend.log); raise LOCAL_BACKEND_WAIT on a loaded machine"
+  say "[4b/5] bootstrap accounts (two synthetic accounts, idempotent)"
   docker exec -i forcitis-local-db psql -U "$LOCAL_DB_USER" -d forcitis_local -q -v ON_ERROR_STOP=1 < "$HERE/bootstrap.sql" >/dev/null || die "the bootstrap account could not be written"
   say "[5/5] web client on :5173"
   ( cd "$REPO/frontend" && pnpm install --frozen-lockfile >/dev/null )

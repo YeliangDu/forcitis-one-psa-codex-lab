@@ -79,6 +79,46 @@ class NewProcessWithoutPlatformChangeIT extends ApprovalIntegrationSupport {
     }
 
     @Test
+    @DisplayName("#1436 data-only form fields a process declares are accepted at start and read back as submitted, running or not; undeclared ones are still refused")
+    void dataOnlyFormFieldsAreAcceptedAndReadBack() {
+        String bpmn = repository.createDeployment().addClasspathResource("datafields/cost_demo_review.bpmn20.xml").deploy().getId();
+        String key = newKey("datafields");
+        long initiator = newId();
+        ApprovalInstanceId instance = null;
+        try {
+            assertThat(engine.formFieldsOf(DEMO)).containsExactlyInAnyOrder(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), "bonusAmount", "reasonKey");
+            ApprovalStartRequest plain = demoStart(key, initiator, DEMO, Set.of());
+            List<ApprovalField> fields = List.of(plain.formFields().getFirst(), new ApprovalField("bonusAmount", List.of("1200.50")),
+                    new ApprovalField("reasonKey", List.of("YEAR_END")));
+            ApprovalStartRequest withData = new ApprovalStartRequest(plain.processKey(), plain.document(), plain.legalEntityId(), plain.initiator(),
+                    plain.round(), plain.trigger(), plain.routingFlags(), fields, plain.contentHash(), plain.summary());
+
+            instance = tx.execute(status -> approvals.start(withData));
+
+            assertThat(approvals.isFinished(instance)).isFalse();
+            assertThat(approvals.formFields(instance)).containsOnlyKeys(TimesheetApprovalField.PROJECT_MANAGER.fieldName(), "bonusAmount", "reasonKey")
+                    .containsEntry("bonusAmount", List.of("1200.50")).containsEntry("reasonKey", List.of("YEAR_END"));
+            ApprovalStartRequest undeclared = new ApprovalStartRequest(plain.processKey(), document(newKey("undeclared")), plain.legalEntityId(),
+                    plain.initiator(), plain.round(), UUID.randomUUID(), plain.routingFlags(),
+                    List.of(plain.formFields().getFirst(), new ApprovalField("notDeclared", List.of("x"))), plain.contentHash(), plain.summary());
+            assertThatThrownBy(() -> tx.execute(status -> approvals.start(undeclared))).isInstanceOfSatisfying(DomainException.class,
+                    e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_FORM_FIELD_UNKNOWN));
+        } finally {
+            if (instance != null) {
+                endDemoApproval(key, initiator);
+                assertThat(approvals.formFields(instance)).containsEntry("bonusAmount", List.of("1200.50"));
+            }
+            repository.deleteDeployment(bpmn, true);
+        }
+    }
+
+    @Test
+    @DisplayName("#1436 the form fields of an instance nobody started read as empty")
+    void unknownInstanceHasNoFormFields() {
+        assertThat(approvals.formFields(new ApprovalInstanceId(UUID.randomUUID()))).isEmpty();
+    }
+
+    @Test
     @DisplayName("a process whose definition says it routes by flags still refuses a start with none, as the platform no longer knows which process that is")
     void flagRuleIsReadFromTheDefinition() {
         assertThatThrownBy(() -> tx.execute(status -> approvals.start(demoStart(newKey("noflag"), TimesheetApprovalProcess.KEY, Set.of()))))
