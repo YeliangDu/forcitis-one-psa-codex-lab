@@ -26,7 +26,11 @@ load_env() {
         echo "LOCAL_DB_PASSWORD=$(openssl rand -hex 24)"; } > "$ENV_FILE" )
   fi
   [ "$(stat -f '%Lp' "$ENV_FILE" 2>/dev/null || stat -c '%a' "$ENV_FILE")" = "600" ] || die "$ENV_FILE must have mode 600"
-  set -a; . "$ENV_FILE"; set +a
+  # the generated, machine-local settings file
+  set -a
+  # shellcheck source=/dev/null
+  . "$ENV_FILE"
+  set +a
 }
 
 need() { command -v "$1" >/dev/null 2>&1 || die "missing prerequisite: $1"; }
@@ -63,7 +67,10 @@ cmd_up() {
   "${COMPOSE[@]}" up -d --wait db >/dev/null
   say "[2/5] build the backend"
   ( cd "$REPO/backend" && ./mvnw -q -DskipTests -Dmaven.test.skip=true package ) || die "backend build failed"
-  local jar; jar="$(ls "$REPO"/backend/target/forcitis-one-*.jar | grep -v -- '-plain' | head -1)"
+  local jar="" candidate
+  for candidate in "$REPO"/backend/target/forcitis-one-*.jar; do
+    case "$candidate" in *-plain.jar) ;; *) jar="$candidate"; break ;; esac
+  done
   [ -n "$jar" ] || die "no backend jar under backend/target"
   say "[3/5] migrations (profile migrate,local)"
   SPRING_PROFILES_ACTIVE=migrate,local java -Duser.timezone=UTC -jar "$jar" > "$STATE/migrate.log" 2>&1 || die "migration failed (see $STATE/migrate.log)"
@@ -103,13 +110,13 @@ cmd_wipe() {
 }
 
 cmd_status() {
-  pid_alive "$STATE/backend.pid" && say "backend: running (pid $(cat "$STATE/backend.pid"))" || say "backend: stopped"
-  pid_alive "$STATE/web.pid" && say "web: running (pid $(cat "$STATE/web.pid"))" || say "web: stopped"
+  if pid_alive "$STATE/backend.pid"; then say "backend: running (pid $(cat "$STATE/backend.pid"))"; else say "backend: stopped"; fi
+  if pid_alive "$STATE/web.pid"; then say "web: running (pid $(cat "$STATE/web.pid"))"; else say "web: stopped"; fi
   say "database: $(docker inspect -f '{{.State.Status}}' forcitis-local-db 2>/dev/null || echo none)"
 }
 
 cmd_e2e() {
-  pid_alive "$STATE/backend.pid" && pid_alive "$STATE/web.pid" || die "the stack is not running: tools/ops/local/local.sh up first"
+  if ! pid_alive "$STATE/backend.pid" || ! pid_alive "$STATE/web.pid"; then die "the stack is not running: tools/ops/local/local.sh up first"; fi
   ( cd "$REPO/frontend/apps/web" && pnpm exec playwright install chromium-headless-shell >/dev/null && LOCAL_WEB_URL="$WEB_URL" pnpm exec playwright test )
 }
 
