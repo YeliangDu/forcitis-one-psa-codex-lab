@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { PERSON, loginAs, openEmployee, setClock } from './golden-s1-support';
 
 // HCM-LIFE-027 unpaid leave ends (pack 2026-08-17): the same relationship, no new one; the person works again. Role: personnel specialist. Client: web.
-// Start state: seed.py --stop-before 027 (leave started on 08-10), clock 2026-08-10. The pack counters (relation_count 1, working_relations 1) have no public read: internal, not checked.
+// Start state: seed.py --stop-before 027 (leave started on 08-10), which leaves the clock on 2026-08-17; the spec sets the same day again, harmless. The pack counters (relation_count 1, working_relations 1) have no public read: internal, not checked.
 test('HCM-LIFE-027 on 2026-08-17 the personnel specialist ends the unpaid leave and the command is effective', async ({ page }) => {
   await loginAs(page, 'Synthetic Admin');
   await setClock(page, '2026-08-17T02:00:00Z');
