@@ -26,7 +26,7 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 -- ===== STEP 2 schema 冲突检查（新库内，应为 0 行）=====
 SELECT nspname FROM pg_namespace
  WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering', 'platform_file',
-                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'organization_administration', 'platform_idempotency', 'cost_timesheet', 'one_migration');
+                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'organization_recruitment', 'organization_administration', 'platform_idempotency', 'cost_timesheet', 'one_migration');
 
 -- ===== STEP 3 角色 =====
 CREATE ROLE one_prod_owner NOLOGIN;
@@ -76,6 +76,7 @@ CREATE SCHEMA platform_scheduling     AUTHORIZATION one_prod_owner;
 CREATE SCHEMA organization_workforce  AUTHORIZATION one_prod_owner;
 CREATE SCHEMA organization_attendance AUTHORIZATION one_prod_owner;
 CREATE SCHEMA organization_leave      AUTHORIZATION one_prod_owner;
+CREATE SCHEMA organization_recruitment AUTHORIZATION one_prod_owner;
 CREATE SCHEMA organization_administration AUTHORIZATION one_prod_owner;
 CREATE SCHEMA cost_timesheet          AUTHORIZATION one_prod_owner;
 CREATE SCHEMA platform_idempotency    AUTHORIZATION one_prod_owner;
@@ -85,7 +86,7 @@ DO $$
 DECLARE s text;
 BEGIN
   FOREACH s IN ARRAY ARRAY['platform_identity', 'platform_approval', 'platform_integration', 'platform_numbering', 'platform_file',
-                           'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'organization_administration', 'platform_idempotency', 'cost_timesheet']
+                           'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'organization_recruitment', 'organization_administration', 'platform_idempotency', 'cost_timesheet']
   LOOP
     EXECUTE format('GRANT USAGE ON SCHEMA %I TO one_prod_app, one_prod_readonly', s);
     EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA %I GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO one_prod_app', s);
@@ -100,7 +101,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA platform_audit GRANT 
 ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA platform_audit GRANT SELECT ON TABLES TO one_prod_readonly;
 
 REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering, platform_file,
-                        platform_scheduling, organization_workforce, organization_attendance, organization_leave, organization_administration, platform_idempotency, cost_timesheet, one_migration
+                        platform_scheduling, organization_workforce, organization_attendance, organization_leave, organization_recruitment, organization_administration, platform_idempotency, cost_timesheet, one_migration
   FROM one_prod_app, one_prod_readonly, one_prod_audit_maintainer;
 
 -- 下一步：prod-db-verify.sql；每次迁移之后执行 prod-db-after-migrations.sql（版本表只追加）；之后在 RDS 控制台为 one_prod_migrator、one_prod_app、one_prod_readonly、one_prod_audit_maintainer 设口令（≥24 位随机）。
