@@ -6,7 +6,7 @@ Card: #1449 (sign-off; implementation card #1450, one-dev-org). Basis: `docs/arc
 
 Schema `organization_recruitment`, one table: `recruitment_requisitions`. Not signed here and not to be built by #1450: applicants, applications, interviews, offers (the next spec; applicant retention is a separate user item, ADR-0085 decision 5).
 
-**Carved out of this signature (not passed, not built):** any salary range or budget column. Spec B-3 asks whether a requisition carries one; the answer was to follow legacy practice once one-platform's read of the A8 form's field names is in, and that read is **not in yet** (verified: no comment on #1449, no record under `docs/`). Gate 1.3 allows no conditional pass, so the table is signed **without** such a column and without waiting. If the read shows a salary field the user wants kept, that column is `SENSITIVE` (spec section 8; Q-12) and the table gets a new sign-off; nothing in this signature pre-approves it. B-5 (approver when the org unit has no head) changes no column: the approver is resolved at command time and the table stores only `approval_instance_id`, so it is not a gate item here; it stays open for R2.
+**B-3 answered (a): no salary range or budget column.** one-platform's read of the legacy form definition (#1432 comment 6662541232, definition only, no values; verified by them) shows the legacy requisition (211 instances) and its archive form have no salary-range, budget or cost field, so by the user's legacy-practice rule the table has none. A column of that kind would be `SENSITIVE` and need a new sign-off. B-5 (approver when the org unit has no head): the legacy workflow definition configures no rule for it (what A8 does at run time is unverified); lead has asked the user; it changes no column (the approver is resolved at command time, the table stores only `approval_instance_id`), so it is not a gate item here and stays with R2. Nothing is carved out of this signature.
 
 ## Table to object source (B1, B2)
 
@@ -131,6 +131,6 @@ New schema `organization_recruitment`; the table, its constraints, two indexes, 
 数据设计审查
 - 审查：one-design，2026-11-05，依据 origin/main `ab1e6dc2a`
 - 判定：B1、B2、B3、B3a、B4（外键 RESTRICT 不适用；跨 BC 无外键）、B5、B6、B7（枚举最小集）、O1 至 O16、C1 至 C5、A6、T1 至 T4 通过；A1 至 A5、A7、A8、E2、E3 不适用（无分析事实、读模型、迁入）；E1 事件载荷由 R2 随发布方登记。
-- 豁免与待用户决定：保留期 `PERMANENT` 经 R-2 与用户决定登记（决定片段 163008）；工资区间或预算列未纳入本次签字（B-3，老系统读取未到，如出现则新签字）；B-5 不影响表，留给 R2。
-- 结论：通过（仅 `recruitment_requisitions`，不含任何工资区间或预算列）
+- 豁免与待用户决定：保留期 `PERMANENT` 经 R-2 与用户决定登记（决定片段 163008）；B-3 已答：老系统表单无工资区间或预算字段，故无此列（#1432 评论 6662541232）；B-5 不影响表，留给 R2。
+- 结论：通过（仅 `recruitment_requisitions`）
 - 数据设计：通过（one-design，2026-11-05，依据 ab1e6dc2a）
