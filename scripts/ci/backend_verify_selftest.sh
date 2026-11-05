@@ -15,7 +15,7 @@ cat >"$tmp/backend/mvnw" <<'EOF'
 #!/usr/bin/env bash
 echo "$*" >>"$STUB_LOG"
 echo $$ >>"${STUB_PIDS:-/dev/null}"
-[ -n "${STUB_HANG:-}" ] && case "$*" in *export-openapi*) ;; *surefire:test*|*failsafe:*) echo "$*" >>"$STUB_LOG"; exec sleep 60 ;; esac
+[ -n "${STUB_HANG:-}" ] && case "$*" in *export-openapi*) ;; *surefire:test*|*failsafe:*) echo "$*" >>"$STUB_LOG"; (exec -a "java fork $PWD/target/surefire/booter" sleep 60) & echo $! >>"$STUB_PIDS"; exec sleep 60 ;; esac
 case "$*" in *export-openapi*) ;; *surefire:test*) if [ -n "${STUB_ID:-}" ]; then echo "enter $STUB_ID" >>"$STUB_LOG"; sleep 2; echo "leave $STUB_ID" >>"$STUB_LOG"; fi ;; esac
 case "$*" in *export-openapi*) printf '%s' "$EXPORTED" >../frontend/packages/api/openapi.json ;; esac
 exit 0
@@ -103,7 +103,8 @@ rm -rf "$tmp/lock"
 watchdog_ "local run: watchdog defaults to 2400 s" 2400 A=1
 watchdog_ "CI: watchdog stays 1500 s" 1500 GITHUB_ACTIONS=true
 
-# Stopped from outside (#1385): TERM to a local run stops its test runs as well, and the lock names the holder's checkout.
+# Stopped from outside (#1385): TERM to a local run stops its test runs and their forks (the stub starts a detached fake fork whose command line
+# matches the script's fork pattern), and the lock names the holder's checkout.
 rm -rf "$tmp/lock"; : >"$tmp/pids"; : >"$tmp/k.log"; printf '{"same":1}' >"$tmp/frontend/packages/api/openapi.json"
 STUB_HANG=1 STUB_PIDS="$tmp/pids" STUB_LOG="$tmp/k.log" EXPORTED='{"same":1}' BACKEND_WATCHDOG_SECONDS=60 bash "$tmp/scripts/ci/backend_verify.sh" >"$tmp/out.log" 2>&1 &
 victim=$! n=0
