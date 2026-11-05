@@ -29,6 +29,7 @@ import org.springframework.stereotype.Repository;
 class JdbcStandardHoursRepository implements StandardHoursRepository {
     private static final String EXCLUSION_VIOLATION = "23P01";
     private static final String UNIQUE_VIOLATION = "23505";
+    private static final String CHECK_VIOLATION = "23514";
 
     private final JdbcClient jdbc;
     private final Clock clock;
@@ -62,7 +63,7 @@ class JdbcStandardHoursRepository implements StandardHoursRepository {
                 }).optional();
     }
 
-    /** Two publishes of one scope that read the same tail meet here: the database lets the first commit win and refuses the other with an exclusion or unique violation. */
+    /** Two publishes of one scope that read the same tail meet here: the database lets the first commit win and refuses the other, with an exclusion or unique violation while both are in flight, or with the ordering trigger once the winner has committed. */
     @Override
     public void insert(StandardHours version) {
         try {
@@ -78,11 +79,17 @@ class JdbcStandardHoursRepository implements StandardHoursRepository {
 
     private static boolean lostRaceToAnotherPublish(DataIntegrityViolationException failure) {
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
-            if (cause instanceof SQLException sql && (EXCLUSION_VIOLATION.equals(sql.getSQLState()) || UNIQUE_VIOLATION.equals(sql.getSQLState()))) {
+            if (cause instanceof SQLException sql && (EXCLUSION_VIOLATION.equals(sql.getSQLState()) || UNIQUE_VIOLATION.equals(sql.getSQLState())
+                    || CHECK_VIOLATION.equals(sql.getSQLState()) && isOrderingRefusal(sql.getMessage()))) {
                 return true;
             }
         }
         return false;
+    }
+
+    /** Only the two refusals of guard_standard_hours_version_insert that a stale tail causes; any other check violation is a defect and stays a 500. */
+    private static boolean isOrderingRefusal(@Nullable String message) {
+        return message != null && (message.contains("version_number must be") || message.contains("must be later than the latest version"));
     }
 
     private void insertRows(StandardHours version) {
