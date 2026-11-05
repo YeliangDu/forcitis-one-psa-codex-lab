@@ -41,6 +41,7 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -83,6 +84,10 @@ class BonusInputsService implements BonusInputs {
     @PreAuthorize("hasAuthority('" + SUBMIT + "')")
     @Transactional
     public ApprovalInstanceId request(RequestBonusInput command) {
+        // Payroll data has no narrower scope than all: a holder whose grant is scoped to part of the organisation may not start an input for anyone.
+        if (!coversEverything(SUBMIT)) {
+            throw new AccessDeniedException("bonus input submission needs the all-organisation scope");
+        }
         BonusDetermination.check(command.payrollMonthStartDate(), command.bonus(), command.reasonKey());
         // The PY3 record: the relationship is in service and the paying entity is its employer in that month (another context's data, checked here).
         EmploymentRelationshipView employment = relationships.employerOn(command.employmentRelationshipId(), command.payrollMonthStartDate()).orElse(null);
@@ -115,6 +120,9 @@ class BonusInputsService implements BonusInputs {
     @PreAuthorize("hasAuthority('" + UPDATE + "')")
     @Transactional
     public void voidInput(VoidBonusInput command) {
+        if (!coversEverything(UPDATE)) {
+            throw notFound(command.id());
+        }
         BonusDetermination input = inputs.findForUpdate(command.id()).orElseThrow(() -> notFound(command.id()));
         // PY4 adds the refusal while an APPROVED settlement of the entity and month exists, taking FOR UPDATE on that settlement first; no settlement exists yet.
         UserId by = currentUser.userId();
@@ -128,7 +136,7 @@ class BonusInputsService implements BonusInputs {
     @PreAuthorize("hasAuthority('" + READ + "')")
     @Transactional(readOnly = true)
     public BonusInputSummary get(BonusInputId id) {
-        if (!readsEverything()) {
+        if (!coversEverything(READ)) {
             throw notFound(id);
         }
         return summary(inputs.find(id).orElseThrow(() -> notFound(id)));
@@ -138,14 +146,14 @@ class BonusInputsService implements BonusInputs {
     @PreAuthorize("hasAuthority('" + READ + "')")
     @Transactional(readOnly = true)
     public List<BonusInputSummary> listForRelationship(EmploymentRelationshipId relationship, LocalDate fromMonth, LocalDate toMonth) {
-        if (!readsEverything()) {
+        if (!coversEverything(READ)) {
             return List.of();
         }
         return inputs.listForRelationship(relationship, fromMonth, toMonth).stream().map(BonusInputsService::summary).toList();
     }
 
-    private boolean readsEverything() {
-        return orgUnits.visibleOrgUnits(READ).everything();
+    private boolean coversEverything(String permission) {
+        return orgUnits.visibleOrgUnits(permission).everything();
     }
 
     private static BonusInputSummary summary(BonusDetermination input) {

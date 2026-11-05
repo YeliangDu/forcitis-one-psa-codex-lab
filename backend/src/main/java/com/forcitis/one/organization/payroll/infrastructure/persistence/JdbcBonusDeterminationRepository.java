@@ -74,7 +74,7 @@ class JdbcBonusDeterminationRepository implements BonusDeterminationRepository {
                 .query((rs, n) -> read(rs)).optional();
     }
 
-    /** The trigger allows exactly this update of an ACTIVE row; the row was read FOR UPDATE, so no version column is needed. */
+    /** The trigger allows exactly this update of an ACTIVE row; the row was read FOR NO KEY UPDATE, so no version column is needed. */
     @Override
     public void saveVoided(BonusDetermination input) {
         OffsetDateTime at = at(Objects.requireNonNull(input.voidedAt()));
