@@ -401,6 +401,9 @@ class ApplicationIntegrationTest {
         if (type == com.forcitis.one.organization.workforce.api.LegalEntityCode.class) {
             return new com.forcitis.one.organization.workforce.api.LegalEntityCode("FST");
         }
+        if (type == com.forcitis.one.organization.payroll.api.JurisdictionKey.class) {
+            return new com.forcitis.one.organization.payroll.api.JurisdictionKey("CN");
+        }
         if (type == java.time.Year.class) {
             return java.time.Year.of(2026);
         }
