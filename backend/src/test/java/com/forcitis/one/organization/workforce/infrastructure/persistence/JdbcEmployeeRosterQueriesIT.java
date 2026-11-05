@@ -154,6 +154,80 @@ class JdbcEmployeeRosterQueriesIT {
         assertThat(queries.find(all, resting).orElseThrow().onUnpaidLeave()).isTrue();
     }
 
+    @Test
+    @DisplayName("#1530 unpaid leave follows the day: on from its start date, back at work on its end date, not before it starts, and a withdrawn version never counts")
+    void unpaidLeaveFollowsTheDayAndIgnoresWithdrawnVersions() {
+        OrgUnitId unit = unit("RD-A");
+        UUID position = ids.next();
+        jdbc.sql("insert into organization_workforce.positions (id, code, name, sort_order, status) values (:id, 'RD-P', 'post', 1, 'ACTIVE')").param("id", position).update();
+        EmployeeId starts = person("RD-1", unit, position, "EMPLOYED", LocalDate.of(2025, 1, 1));
+        EmployeeId ends = person("RD-2", unit, position, "EMPLOYED", LocalDate.of(2025, 1, 1));
+        EmployeeId later = person("RD-3", unit, position, "EMPLOYED", LocalDate.of(2025, 1, 1));
+        EmployeeId withdrawn = person("RD-4", unit, position, "EMPLOYED", LocalDate.of(2025, 1, 1));
+        leaveAfterWorking(starts, TODAY, null, false);
+        leaveAfterWorking(ends, TODAY.minusDays(10), TODAY, false);
+        leaveAfterWorking(later, TODAY.plusDays(1), null, false);
+        leaveAfterWorking(withdrawn, TODAY, null, true);
+        EmployeeId replaced = person("RD-5", unit, position, "EMPLOYED", LocalDate.of(2025, 1, 1));
+        supersedeWorkingVersion(replaced);
+        leaveAfterWorking(replaced, TODAY, null, false, false);
+        JdbcEmployeeRosterQueries queries = new JdbcEmployeeRosterQueries(jdbc, Clock.fixed(TODAY.atTime(4, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC), zone);
+
+        assertThat(codes(queries.list(new Visible(true, Set.of()), unit, null, true, null, 10))).as("on from the start date; back at work on the end date").containsExactly("RD-1", "RD-5");
+        assertThat(queries.find(new Visible(true, Set.of()), ends).orElseThrow().onUnpaidLeave()).isFalse();
+        assertThat(queries.find(new Visible(true, Set.of()), later).orElseThrow().onUnpaidLeave()).as("a leave that has not started yet").isFalse();
+        assertThat(queries.find(new Visible(true, Set.of()), withdrawn).orElseThrow().onUnpaidLeave()).as("a leave version of a withdrawn command").isFalse();
+        assertThat(queries.find(new Visible(true, Set.of()), starts).orElseThrow().onUnpaidLeave()).isTrue();
+        assertThat(queries.find(new Visible(true, Set.of()), replaced).orElseThrow().onUnpaidLeave()).as("a working version a command superseded does not hide the leave").isTrue();
+    }
+
+    private void supersedeWorkingVersion(EmployeeId person) {
+        UUID command = ids.next();
+        jdbc.sql("""
+                insert into organization_workforce.personnel_commands (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at, applied_at)
+                values (:id, (select employment_relationship_id from organization_workforce.employment_relationships where employee_id = :employee), :employee, 'CORRECTION', :day, 'EFFECTIVE', now(), :actor, now(), now())""")
+                .param("id", command).param("employee", person.value()).param("day", TODAY).param("actor", ids.next()).update();
+        jdbc.sql("update organization_workforce.employment_relationship_versions set superseded_at = now(), superseding_command_id = :command where employee_id = :id and superseded_at is null")
+                .param("command", command).param("id", person.value()).update();
+    }
+
+    /** The person worked until {@code leaveFrom}; a leave version then runs from there to {@code leaveTo} (open when null, else work resumes on that day); {@code withdrawn} marks it superseded by a command. */
+    private void leaveAfterWorking(EmployeeId person, LocalDate leaveFrom, LocalDate leaveTo, boolean withdrawn) {
+        leaveAfterWorking(person, leaveFrom, leaveTo, withdrawn, true);
+    }
+
+    private void leaveAfterWorking(EmployeeId person, LocalDate leaveFrom, LocalDate leaveTo, boolean withdrawn, boolean closeWorking) {
+        UUID relationship = jdbc.sql("select employment_relationship_id from organization_workforce.employment_relationships where employee_id = :id").param("id", person.value())
+                .query(UUID.class).single();
+        UUID command = null;
+        if (withdrawn) {
+            command = ids.next();
+            jdbc.sql("""
+                    insert into organization_workforce.personnel_commands (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at, applied_at)
+                    values (:id, :relationship, :employee, 'CORRECTION', :day, 'EFFECTIVE', now(), :actor, now(), now())""")
+                    .param("id", command).param("relationship", relationship).param("employee", person.value()).param("day", leaveFrom).param("actor", ids.next()).update();
+        }
+        if (!withdrawn && closeWorking) {
+            jdbc.sql("update organization_workforce.employment_relationship_versions set effective_to_date = :day, closed_at = now() where employee_id = :id and effective_to_date is null")
+                    .param("day", leaveFrom).param("id", person.value()).update();
+        }
+        jdbc.sql("""
+                insert into organization_workforce.employment_relationship_versions (employment_relationship_version_id, employment_relationship_id, employee_id, effective_from_date, effective_to_date,
+                    closed_at, revision_number, employment_status, employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind, change_channel_kind,
+                    superseded_at, superseding_command_id, created_at, updated_at)
+                values (:version, :relationship, :id, :from, :to, case when cast(:to as date) is null then null else now() end, 1, 'EMPLOYED', 'REGULAR', true, false, :start, 'DECLARED', 'MIGRATION',
+                    case when cast(:command as uuid) is null then null else now() end, :command, now(), now())""")
+                .param("version", ids.next()).param("relationship", relationship).param("id", person.value()).param("from", leaveFrom).param("to", leaveTo)
+                .param("start", LocalDate.of(2025, 1, 1)).param("command", command).update();
+        if (leaveTo != null) {
+            jdbc.sql("""
+                    insert into organization_workforce.employment_relationship_versions (employment_relationship_version_id, employment_relationship_id, employee_id, effective_from_date,
+                        revision_number, employment_status, employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind, change_channel_kind, created_at, updated_at)
+                    values (:version, :relationship, :id, :from, 2, 'EMPLOYED', 'REGULAR', false, false, :start, 'DECLARED', 'MIGRATION', now(), now())""")
+                    .param("version", ids.next()).param("relationship", relationship).param("id", person.value()).param("from", leaveTo).param("start", LocalDate.of(2025, 1, 1)).update();
+        }
+    }
+
     private static List<String> codes(List<Row> rows) {
         return rows.stream().map(Row::employeeCode).toList();
     }
