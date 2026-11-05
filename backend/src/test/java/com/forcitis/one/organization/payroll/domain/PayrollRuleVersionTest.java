@@ -36,6 +36,7 @@ class PayrollRuleVersionTest {
                 draft.businessDate(), null, draft.relatedAggregates());
     };
     static final LocalDate FROM = LocalDate.of(2026, 1, 1);
+    static final LocalDate TODAY = LocalDate.of(2025, 12, 15);
     static final Instant AT = Instant.parse("2026-11-05T02:00:00Z");
     static final UserId DRAFTER = new UserId(TestIds.uuid(11));
     static final UserId APPROVER = new UserId(TestIds.uuid(12));
@@ -67,7 +68,7 @@ class PayrollRuleVersionTest {
     void everyOperationInEveryStatus() {
         new TransitionTable<PayrollRuleVersionStatus, PayrollRuleVersion>(PayrollRuleVersionStatus.class,
                 status -> version(PayrollRuleKind.ROUNDING, status), PayrollRuleVersion::status)
-                .operation("publish", v -> v.publish(APPROVER, AT, List.of(ROUNDING_ROW)), PayrollRuleVersionStatus.DRAFT, PayrollRuleVersionStatus.EFFECTIVE)
+                .operation("publish", v -> v.publish(APPROVER, AT, TODAY, List.of(ROUNDING_ROW)), PayrollRuleVersionStatus.DRAFT, PayrollRuleVersionStatus.EFFECTIVE)
                 .operation("supersede", v -> v.supersede(FROM.plusDays(1)), PayrollRuleVersionStatus.EFFECTIVE, PayrollRuleVersionStatus.SUPERSEDED)
                 .verify();
     }
@@ -77,7 +78,7 @@ class PayrollRuleVersionTest {
     void publishRecordsOneEvent() {
         PayrollRuleVersion v = version(PayrollRuleKind.ROUNDING, PayrollRuleVersionStatus.DRAFT);
 
-        v.publish(APPROVER, AT, List.of(ROUNDING_ROW));
+        v.publish(APPROVER, AT, TODAY, List.of(ROUNDING_ROW));
 
         assertThat(v.approvedBy()).isEqualTo(APPROVER);
         assertThat(v.publishedAt()).isEqualTo(AT);
@@ -92,11 +93,29 @@ class PayrollRuleVersionTest {
     }
 
     @Test
+    @DisplayName("CS-7.5 a version takes effect on the first day of a month and never in the past; a refused publish changes nothing")
+    void takesEffectOnAPeriodStartThatIsNotPast() {
+        PayrollRuleVersion v = version(PayrollRuleKind.ROUNDING, PayrollRuleVersionStatus.DRAFT);
+
+        assertRefused(() -> v.publish(APPROVER, AT, FROM.plusDays(1), List.of(ROUNDING_ROW)), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_BACKDATED, ErrorKind.UNPROCESSABLE);
+        assertThat(v.status()).isEqualTo(PayrollRuleVersionStatus.DRAFT);
+        assertThat(v.hasPendingEvents()).isFalse();
+
+        PayrollRuleVersion midMonth = PayrollRuleVersion.restore(new PayrollRuleVersionRecord(TestIds.uuid(2), PayrollRuleKind.ROUNDING, new JurisdictionKey("CN"),
+                FROM.plusDays(14), null, PayrollRuleVersionStatus.DRAFT, DRAFTER, null, null, 0));
+        assertRefused(() -> midMonth.publish(APPROVER, AT, TODAY, List.of(ROUNDING_ROW)), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_NOT_PERIOD_START, ErrorKind.UNPROCESSABLE);
+        assertThat(midMonth.status()).isEqualTo(PayrollRuleVersionStatus.DRAFT);
+
+        v.publish(APPROVER, AT, FROM, List.of(ROUNDING_ROW));
+        assertThat(v.status()).isEqualTo(PayrollRuleVersionStatus.EFFECTIVE);
+    }
+
+    @Test
     @DisplayName("INV-131-style four eyes: the one who drafted a version cannot approve it, and a refused publish changes nothing and records nothing")
     void drafterIsNotTheApprover() {
         PayrollRuleVersion v = version(PayrollRuleKind.ROUNDING, PayrollRuleVersionStatus.DRAFT);
 
-        assertRefused(() -> v.publish(DRAFTER, AT, List.of(ROUNDING_ROW)), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_SAME_PERSON, ErrorKind.UNPROCESSABLE);
+        assertRefused(() -> v.publish(DRAFTER, AT, TODAY, List.of(ROUNDING_ROW)), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_SAME_PERSON, ErrorKind.UNPROCESSABLE);
 
         assertThat(v.status()).isEqualTo(PayrollRuleVersionStatus.DRAFT);
         assertThat(v.approvedBy()).isNull();
@@ -123,16 +142,16 @@ class PayrollRuleVersionTest {
         PayrollRuleVersion tax = version(PayrollRuleKind.INCOME_TAX, PayrollRuleVersionStatus.DRAFT);
         PayrollRuleRowBound open = band("0", null);
 
-        assertRefused(() -> tax.publish(APPROVER, AT, List.of(open, deduction(), ROUNDING_ROW)), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_INCOMPLETE, ErrorKind.UNPROCESSABLE);
-        assertRefused(() -> tax.publish(APPROVER, AT, List.of(open)), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_INCOMPLETE, ErrorKind.UNPROCESSABLE);
-        assertRefused(() -> tax.publish(APPROVER, AT, List.of(deduction())), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_INCOMPLETE, ErrorKind.UNPROCESSABLE);
-        assertRefused(() -> tax.publish(APPROVER, AT, List.of(open, deduction(), deduction())), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_INCOMPLETE,
+        assertRefused(() -> tax.publish(APPROVER, AT, TODAY, List.of(open, deduction(), ROUNDING_ROW)), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_INCOMPLETE, ErrorKind.UNPROCESSABLE);
+        assertRefused(() -> tax.publish(APPROVER, AT, TODAY, List.of(open)), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_INCOMPLETE, ErrorKind.UNPROCESSABLE);
+        assertRefused(() -> tax.publish(APPROVER, AT, TODAY, List.of(deduction())), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_INCOMPLETE, ErrorKind.UNPROCESSABLE);
+        assertRefused(() -> tax.publish(APPROVER, AT, TODAY, List.of(open, deduction(), deduction())), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_INCOMPLETE,
                 ErrorKind.UNPROCESSABLE);
-        assertRefused(() -> version(PayrollRuleKind.ROUNDING, PayrollRuleVersionStatus.DRAFT).publish(APPROVER, AT, List.of()),
+        assertRefused(() -> version(PayrollRuleKind.ROUNDING, PayrollRuleVersionStatus.DRAFT).publish(APPROVER, AT, TODAY, List.of()),
                 PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_INCOMPLETE, ErrorKind.UNPROCESSABLE);
         assertThat(tax.status()).isEqualTo(PayrollRuleVersionStatus.DRAFT);
 
-        tax.publish(APPROVER, AT, List.of(open, deduction()));
+        tax.publish(APPROVER, AT, TODAY, List.of(open, deduction()));
 
         assertThat(tax.status()).isEqualTo(PayrollRuleVersionStatus.EFFECTIVE);
     }
@@ -146,12 +165,12 @@ class PayrollRuleVersionTest {
             PayrollRuleRowBound rateRow = new PayrollRuleRowBound(rate, null, null);
             PayrollRuleRowBound limitRow = new PayrollRuleRowBound(limit, new BigDecimal("1"), new BigDecimal("2"));
 
-            assertRefused(() -> version(kind, PayrollRuleVersionStatus.DRAFT).publish(APPROVER, AT, List.of(rateRow)),
+            assertRefused(() -> version(kind, PayrollRuleVersionStatus.DRAFT).publish(APPROVER, AT, TODAY, List.of(rateRow)),
                     PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_INCOMPLETE, ErrorKind.UNPROCESSABLE);
-            assertRefused(() -> version(kind, PayrollRuleVersionStatus.DRAFT).publish(APPROVER, AT, List.of(limitRow)),
+            assertRefused(() -> version(kind, PayrollRuleVersionStatus.DRAFT).publish(APPROVER, AT, TODAY, List.of(limitRow)),
                     PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_INCOMPLETE, ErrorKind.UNPROCESSABLE);
             PayrollRuleVersion ok = version(kind, PayrollRuleVersionStatus.DRAFT);
-            ok.publish(APPROVER, AT, List.of(rateRow, rateRow, limitRow));
+            ok.publish(APPROVER, AT, TODAY, List.of(rateRow, rateRow, limitRow));
             assertThat(ok.status()).isEqualTo(PayrollRuleVersionStatus.EFFECTIVE);
         }
     }
@@ -169,12 +188,12 @@ class PayrollRuleVersionTest {
         for (List<PayrollRuleRowBound> bands : broken) {
             List<PayrollRuleRowBound> rows = new java.util.ArrayList<>(bands);
             rows.add(deduction());
-            assertRefused(() -> version(PayrollRuleKind.INCOME_TAX, PayrollRuleVersionStatus.DRAFT).publish(APPROVER, AT, rows),
+            assertRefused(() -> version(PayrollRuleKind.INCOME_TAX, PayrollRuleVersionStatus.DRAFT).publish(APPROVER, AT, TODAY, rows),
                     PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_INCOMPLETE, ErrorKind.UNPROCESSABLE);
         }
 
         PayrollRuleVersion chain = version(PayrollRuleKind.INCOME_TAX, PayrollRuleVersionStatus.DRAFT);
-        chain.publish(APPROVER, AT, List.of(band("100.00", "200"), band("0.00", "100"), band("200", null), deduction()));
+        chain.publish(APPROVER, AT, TODAY, List.of(band("100.00", "200"), band("0.00", "100"), band("200", null), deduction()));
 
         assertThat(chain.status()).isEqualTo(PayrollRuleVersionStatus.EFFECTIVE);
     }

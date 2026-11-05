@@ -63,6 +63,9 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
     @Autowired
     ApplicationEvents events;
 
+    /** The first day of the month after the business today: a start the publish accepts (CS-7.5); every date of the cases is counted from it. */
+    private static final LocalDate BASE = NOW.atZone(java.time.ZoneId.of("Asia/Shanghai")).toLocalDate().withDayOfMonth(1).plusMonths(1);
+
     /** Published rows are frozen by the database and nothing deletes them, so each test works in a jurisdiction of its own. */
     private String jurisdiction;
     private JurisdictionKey home;
@@ -119,9 +122,24 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
     }
 
     @Test
+    @DisplayName("CS-7.5 the publish refuses a start in the past and a start that is not the first of a month, and leaves the draft as it was")
+    void startMustBeAPeriodStartThatIsNotPast() throws Exception {
+        UUID midMonth = draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE.plusDays(14), true);
+        UUID past = draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE.minusMonths(2), true);
+        int auditedBefore = publishedAuditEntries();
+
+        assertRefused(() -> publishAs(APPROVER, midMonth), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_NOT_PERIOD_START, ErrorKind.UNPROCESSABLE);
+        assertRefused(() -> publishAs(APPROVER, past), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_BACKDATED, ErrorKind.UNPROCESSABLE);
+
+        assertThat(stored(midMonth)).containsEntry("status", "DRAFT");
+        assertThat(stored(past)).containsEntry("status", "DRAFT");
+        assertThat(publishedAuditEntries()).isEqualTo(auditedBefore);
+    }
+
+    @Test
     @DisplayName("PRC-180 a row written while the publish is under way cannot slip past its completeness check")
     void aRowWrittenDuringThePublishIsNotMissed() throws Exception {
-        UUID id = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 1, 1), true);
+        UUID id = draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE, true);
         try (java.sql.Connection other = java.sql.DriverManager.getConnection(postgres.url(), postgres.username(), postgres.password())) {
             other.setAutoCommit(false);
             try (java.sql.PreparedStatement insert = other.prepareStatement("""
@@ -160,7 +178,7 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
     @Test
     @DisplayName("PRC-180 publishing a draft makes it EFFECTIVE with the approver and time, writes one audit entry, and raises the event once")
     void publishMakesTheDraftEffective() throws Exception {
-        UUID id = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 1, 1), true);
+        UUID id = draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE, true);
 
         int auditedBefore = publishedAuditEntries();
         publishAs(APPROVER, id);
@@ -170,29 +188,29 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
         assertThat(publishedAuditEntries()).isEqualTo(auditedBefore + 1);
         assertThat(events.stream(PayrollRuleVersionBecameEffective.class).filter(e -> e.payrollRuleVersionId().value().equals(id))).singleElement().satisfies(e -> {
             assertThat(e.payrollRuleVersionId().value()).isEqualTo(id);
-            assertThat(e.effectiveFromDate()).isEqualTo(LocalDate.of(2026, 1, 1));
+            assertThat(e.effectiveFromDate()).isEqualTo(BASE);
         });
     }
 
     @Test
     @DisplayName("PRC-180 publishing a successor closes the predecessor at the successor's start day, in the same call")
     void successorClosesThePredecessor() {
-        UUID first = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 1, 1), true);
+        UUID first = draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE, true);
         publishAs(APPROVER, first);
-        UUID second = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2027, 1, 1), true);
+        UUID second = draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE.plusMonths(12), true);
 
         publishAs(APPROVER, second);
 
-        assertThat(stored(first)).containsEntry("status", "SUPERSEDED").containsEntry("effective_to_date", java.sql.Date.valueOf("2027-01-01"));
+        assertThat(stored(first)).containsEntry("status", "SUPERSEDED").containsEntry("effective_to_date", java.sql.Date.valueOf(BASE.plusMonths(12)));
         assertThat(stored(second)).containsEntry("status", "EFFECTIVE").containsEntry("effective_to_date", null);
     }
 
     @Test
     @DisplayName("INV-139 a successor that starts on or before the version in force is refused, and neither version changes")
     void overlappingSuccessorIsRefused() {
-        publishAs(APPROVER, draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 6, 1), true));
-        UUID earlier = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 6, 1), true);
-        UUID before = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 1, 1), true);
+        publishAs(APPROVER, draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE.plusMonths(5), true));
+        UUID earlier = draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE.plusMonths(5), true);
+        UUID before = draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE, true);
 
         assertRefused(() -> publishAs(APPROVER, earlier), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_OVERLAP, ErrorKind.CONFLICT);
         assertRefused(() -> publishAs(APPROVER, before), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_OVERLAP, ErrorKind.CONFLICT);
@@ -206,8 +224,8 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
     @Test
     @DisplayName("a version of another category or jurisdiction is not a predecessor and is left alone")
     void otherCategoryAndJurisdictionAreIndependent() {
-        UUID tax = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 1, 1), true);
-        UUID shanghai = draft(PayrollRuleKind.ROUNDING, jurisdiction + "_X", LocalDate.of(2026, 1, 1), true);
+        UUID tax = draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE, true);
+        UUID shanghai = draft(PayrollRuleKind.ROUNDING, jurisdiction + "_X", BASE, true);
         publishAs(APPROVER, tax);
 
         publishAs(APPROVER, shanghai);
@@ -219,7 +237,7 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
     @Test
     @DisplayName("four eyes: the drafter cannot publish; nothing is written, no audit entry, no event")
     void drafterCannotPublish() throws Exception {
-        UUID id = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 1, 1), true);
+        UUID id = draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE, true);
 
         int auditedBefore = publishedAuditEntries();
         assertRefused(() -> publishAs(DRAFTER, id), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_SAME_PERSON, ErrorKind.UNPROCESSABLE);
@@ -232,8 +250,8 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
     @Test
     @DisplayName("a draft without the rows its category needs is refused; a published version, or an unknown id, cannot be published")
     void incompleteStateAndUnknownRefusals() {
-        UUID empty = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 1, 1), false);
-        UUID done = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 3, 1), true);
+        UUID empty = draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE, false);
+        UUID done = draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE.plusMonths(2), true);
         publishAs(APPROVER, done);
 
         assertRefused(() -> publishAs(APPROVER, empty), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_INCOMPLETE, ErrorKind.UNPROCESSABLE);
@@ -246,9 +264,10 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
     @Test
     @DisplayName("a save of a version changed since it was read is refused as a concurrent change, not lost")
     void staleSaveIsRefused() {
-        UUID id = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 1, 1), true);
+        UUID id = draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE, true);
         var read = repository.findForUpdate(id).orElseThrow();
-        read.publish(new com.forcitis.one.kernel.UserId(UUID.fromString(APPROVER)), java.time.Instant.parse("2026-11-05T02:00:00Z"), repository.rowsOf(id));
+        read.publish(new com.forcitis.one.kernel.UserId(UUID.fromString(APPROVER)), java.time.Instant.parse("2026-11-05T02:00:00Z"), BASE.minusDays(16),
+                repository.rowsOf(id));
         jdbc.sql("update organization_payroll.payroll_rule_versions set version = version + 1 where id = :id").param("id", id).update();
 
         assertRefused(() -> repository.save(read), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_CONCURRENT_CHANGE, ErrorKind.CONFLICT);
@@ -259,18 +278,18 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
     @Test
     @DisplayName("read port: the version in force on a day is the one whose interval holds it, the start day included and the closing day not")
     void readPortFindsTheVersionInForce() {
-        UUID first = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 1, 1), true);
+        UUID first = draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE, true);
         publishAs(APPROVER, first);
-        UUID second = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2027, 1, 1), true);
+        UUID second = draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE.plusMonths(12), true);
         publishAs(APPROVER, second);
 
-        assertThat(inForce("2026-01-01")).extracting(v -> v.id().value()).isEqualTo(first);
-        assertThat(inForce("2026-12-31")).extracting(v -> v.id().value()).isEqualTo(first);
-        assertThat(inForce("2027-01-01")).extracting(v -> v.id().value()).isEqualTo(second);
-        assertThat(inForce("2030-01-01")).extracting(v -> v.id().value()).isEqualTo(second);
-        assertThat(inForce("2030-01-01")).satisfies(v -> {
+        assertThat(inForce(BASE)).extracting(v -> v.id().value()).isEqualTo(first);
+        assertThat(inForce(BASE.plusMonths(12).minusDays(1))).extracting(v -> v.id().value()).isEqualTo(first);
+        assertThat(inForce(BASE.plusMonths(12))).extracting(v -> v.id().value()).isEqualTo(second);
+        assertThat(inForce(BASE.plusYears(4))).extracting(v -> v.id().value()).isEqualTo(second);
+        assertThat(inForce(BASE.plusYears(4))).satisfies(v -> {
             assertThat(v.ruleKind()).isEqualTo(PayrollRuleKind.ROUNDING);
-            assertThat(v.effectiveFromDate()).isEqualTo(LocalDate.of(2027, 1, 1));
+            assertThat(v.effectiveFromDate()).isEqualTo(BASE.plusMonths(12));
             assertThat(v.effectiveToDate()).isNull();
         });
     }
@@ -278,19 +297,19 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
     @Test
     @DisplayName("read port: no version in force on the day fails with the named error, for a day before the first, another jurisdiction or category, and a draft")
     void readPortFailsWhenNoneIsInForce() {
-        publishAs(APPROVER, draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 1, 1), true));
-        draft(PayrollRuleKind.HOUSING_FUND, jurisdiction, LocalDate.of(2026, 1, 1), false);
+        publishAs(APPROVER, draft(PayrollRuleKind.ROUNDING, jurisdiction, BASE, true));
+        draft(PayrollRuleKind.HOUSING_FUND, jurisdiction, BASE, false);
 
-        assertRefused(() -> inForce("2025-12-31"), PayrollError.ORGANIZATION_PAYROLL_NO_EFFECTIVE_RULE_VERSION, ErrorKind.NOT_FOUND);
-        assertRefused(() -> versions.effectiveOn(PayrollRuleKind.ROUNDING, new JurisdictionKey(jurisdiction + "_X"), LocalDate.of(2026, 6, 1)),
+        assertRefused(() -> inForce(BASE.minusDays(1)), PayrollError.ORGANIZATION_PAYROLL_NO_EFFECTIVE_RULE_VERSION, ErrorKind.NOT_FOUND);
+        assertRefused(() -> versions.effectiveOn(PayrollRuleKind.ROUNDING, new JurisdictionKey(jurisdiction + "_X"), BASE.plusMonths(5)),
                 PayrollError.ORGANIZATION_PAYROLL_NO_EFFECTIVE_RULE_VERSION, ErrorKind.NOT_FOUND);
-        assertRefused(() -> versions.effectiveOn(PayrollRuleKind.INCOME_TAX, home, LocalDate.of(2026, 6, 1)),
+        assertRefused(() -> versions.effectiveOn(PayrollRuleKind.INCOME_TAX, home, BASE.plusMonths(5)),
                 PayrollError.ORGANIZATION_PAYROLL_NO_EFFECTIVE_RULE_VERSION, ErrorKind.NOT_FOUND);
-        assertRefused(() -> versions.effectiveOn(PayrollRuleKind.HOUSING_FUND, home, LocalDate.of(2026, 6, 1)),
+        assertRefused(() -> versions.effectiveOn(PayrollRuleKind.HOUSING_FUND, home, BASE.plusMonths(5)),
                 PayrollError.ORGANIZATION_PAYROLL_NO_EFFECTIVE_RULE_VERSION, ErrorKind.NOT_FOUND);
     }
 
-    private EffectivePayrollRuleVersion inForce(String day) {
-        return versions.effectiveOn(PayrollRuleKind.ROUNDING, home, LocalDate.parse(day));
+    private EffectivePayrollRuleVersion inForce(LocalDate day) {
+        return versions.effectiveOn(PayrollRuleKind.ROUNDING, home, day);
     }
 }

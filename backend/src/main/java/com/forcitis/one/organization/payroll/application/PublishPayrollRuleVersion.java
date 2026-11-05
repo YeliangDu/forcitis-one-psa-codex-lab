@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.payroll.application;
 
+import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
@@ -28,13 +29,15 @@ public class PublishPayrollRuleVersion {
     private final DomainEvents events;
     private final CurrentUser currentUser;
     private final Clock clock;
+    private final BusinessZone zone;
 
-    PublishPayrollRuleVersion(PayrollRuleVersionRepository versions, AuditLog audit, DomainEvents events, CurrentUser currentUser, Clock clock) {
+    PublishPayrollRuleVersion(PayrollRuleVersionRepository versions, AuditLog audit, DomainEvents events, CurrentUser currentUser, Clock clock, BusinessZone zone) {
         this.versions = versions;
         this.audit = audit;
         this.events = events;
         this.currentUser = currentUser;
         this.clock = clock;
+        this.zone = zone;
     }
 
     @Transactional
@@ -42,7 +45,7 @@ public class PublishPayrollRuleVersion {
         PayrollRuleVersion version = versions.findForUpdate(id.value()).orElseThrow(() -> new DomainException(PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_NOT_FOUND,
                 ErrorKind.NOT_FOUND, "no payroll rule version " + id));
         UserId approver = currentUser.userId();
-        version.publish(approver, clock.instant(), versions.rowsOf(id.value()));
+        version.publish(approver, clock.instant(), zone.today(clock), versions.rowsOf(id.value()));
         versions.findOpenEffective(version.ruleKind(), version.jurisdictionKey()).ifPresent(predecessor -> {
             predecessor.supersede(version.effectiveFromDate());
             versions.save(predecessor);

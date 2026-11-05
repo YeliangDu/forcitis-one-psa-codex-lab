@@ -57,16 +57,24 @@ public final class PayrollRuleVersion extends AggregateRoot {
     }
 
     /**
-     * DRAFT to EFFECTIVE. The approver is not the drafter; the rows are all of this category, hold every kind the category needs, and an income tax
+     * DRAFT to EFFECTIVE. The approver is not the drafter; it takes effect on the first day of a month that is not past (CS-7.5); the rows are all of this category, hold every kind the category needs, and an income tax
      * table is a chain of bands from zero with an open top band.
      */
-    public void publish(UserId approver, Instant at, List<PayrollRuleRowBound> rows) {
+    public void publish(UserId approver, Instant at, LocalDate today, List<PayrollRuleRowBound> rows) {
         if (status != PayrollRuleVersionStatus.DRAFT) {
             throw conflict("only a draft can be published, this version is " + status);
         }
         if (approver.equals(draftedBy)) {
             throw new DomainException(PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_SAME_PERSON, ErrorKind.UNPROCESSABLE,
                     "the approver of a rule version is not the one who drafted it");
+        }
+        if (effectiveFromDate.isBefore(today)) {
+            throw new DomainException(PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_BACKDATED, ErrorKind.UNPROCESSABLE,
+                    "a rule version takes effect today or later, never retroactively");
+        }
+        if (effectiveFromDate.getDayOfMonth() != 1) {
+            throw new DomainException(PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_NOT_PERIOD_START, ErrorKind.UNPROCESSABLE,
+                    "a rule version takes effect on the first day of a month, the payroll period");
         }
         requireCompleteRows(rows);
         this.status = PayrollRuleVersionStatus.EFFECTIVE;

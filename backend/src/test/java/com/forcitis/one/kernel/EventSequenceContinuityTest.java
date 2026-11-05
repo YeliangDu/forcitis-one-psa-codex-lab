@@ -202,7 +202,7 @@ class EventSequenceContinuityTest {
         checkMany(() -> com.forcitis.one.organization.payroll.domain.PayrollRuleVersion.restore(new com.forcitis.one.organization.payroll.domain.PayrollRuleVersionRecord(
                         TestIds.uuid(6), com.forcitis.one.organization.payroll.api.PayrollRuleKind.ROUNDING, new com.forcitis.one.organization.payroll.api.JurisdictionKey("CN"),
                         LocalDate.of(2026, 1, 1), null, com.forcitis.one.organization.payroll.domain.PayrollRuleVersionStatus.DRAFT, TestAccounts.account(1), null, null, 0)),
-                List.of(v -> v.publish(TestAccounts.account(2), NOW, List.of(new com.forcitis.one.organization.payroll.domain.PayrollRuleRowBound(
+                List.of(v -> v.publish(TestAccounts.account(2), NOW, TODAY, List.of(new com.forcitis.one.organization.payroll.domain.PayrollRuleRowBound(
                         com.forcitis.one.organization.payroll.domain.PayrollRuleRowKind.ROUNDING_MODE, null, null))),
                         v -> v.supersede(LocalDate.of(2026, 6, 1))));
     }

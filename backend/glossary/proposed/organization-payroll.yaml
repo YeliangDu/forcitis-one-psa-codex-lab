@@ -360,3 +360,33 @@ terms:
   forbidden: []
   status: proposed
   note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_rule_version_backdated
+  zh: 薪酬规则版本不得倒签
+  en: OrganizationPayrollRuleVersionBackdated
+  snake: organization_payroll_rule_version_backdated
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 生效日早于今天（422），规则版本不追溯已结算的月份，历史走导入路径
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_rule_version_not_period_start
+  zh: 薪酬规则版本须从月初生效
+  en: OrganizationPayrollRuleVersionNotPeriodStart
+  snake: organization_payroll_rule_version_not_period_start
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 生效日不是某月 1 日（422），规则版本与薪酬期间对齐
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
