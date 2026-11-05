@@ -165,14 +165,13 @@ class WorkforceRowConstraintsIT extends AccountsAcceptanceSupport {
         try (Connection workforce = schemaConnection("organization_workforce")) {
             // #711: on the person's PRIMARY root once employee_assignments exists (AssignmentRoots).
             root = AssignmentRoots.primaryOf(workforce, person);
-            // #1371: and on the person's employment relationship once employment_relationships exists.
-            relationship = EmploymentRelationshipSeeds.of(workforce, person);
+            relationship = EmploymentRelationshipSeeds.relationshipOf(workforce, person);
         }
-        execute(EmploymentRelationshipSeeds.assignmentVersion(AssignmentRoots.withRoot("""
-                insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
+        execute(AssignmentRoots.withRoot("""
+                insert into assignment_versions (employment_relationship_id, assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
                     reports_to_employee_id)
-                values (?, ?, ?, ?, ?::uuid, ?::uuid)""", root), relationship),
-                EmploymentRelationshipSeeds.arguments(relationship, AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), person, TODAY.minusDays(30), unit, position, reportsTo)));
+                values (?, ?, ?, ?, ?, ?::uuid, ?::uuid)""", root),
+                AssignmentRoots.arguments(root, relationship, Uuids.timeOrdered(NOW), person, TODAY.minusDays(30), unit, position, reportsTo));
     }
 
     @Test

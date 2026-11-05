@@ -69,7 +69,7 @@ final class PersonnelCommandNames {
 
     // Tables and columns of the workforce schema asserted on (baseline, and the signed-off shapes of #870 and #880).
     static final String COMMANDS = "personnel_commands";
-    static final String EMPLOYEE_VERSIONS = "employee_versions";
+    static final String EMPLOYEE_VERSIONS = "employment_relationship_versions";
     static final String ASSIGNMENT_VERSIONS = "assignment_versions";
     static final String SEPARATION_HOLDS = "separation_holds";
     static final String STATE_TRANSITIONS = "state_transitions";

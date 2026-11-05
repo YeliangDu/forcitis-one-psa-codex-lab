@@ -183,9 +183,9 @@ class OrgMergeLaterArrivalIT extends OrgStructureCommandSupport {
             update(workforce, "update assignment_versions set effective_to_date = ?, closed_at = ?, updated_at = ? where employee_id = ? and effective_to_date is null and superseded_at is null",
                     from, at, at, stored(person));
             UUID root = AssignmentRoots.primaryOf(workforce, stored(person));
-            update(workforce, EmploymentRelationshipSeeds.assignmentVersion(AssignmentRoots.withRoot("""
-                    insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
-                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root), EmploymentRelationshipSeeds.of(workforce, stored(person))), EmploymentRelationshipSeeds.arguments(EmploymentRelationshipSeeds.of(workforce, stored(person)), AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), stored(person), from, stored(merged), position, at, at)));
+            update(workforce, AssignmentRoots.withRoot("""
+                    insert into assignment_versions (employment_relationship_id, assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
+                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root), AssignmentRoots.arguments(root, EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), Uuids.timeOrdered(NOW), stored(person), from, stored(merged), position, at, at));
         }
     }
 

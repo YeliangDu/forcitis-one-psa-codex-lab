@@ -73,11 +73,11 @@ class PersonnelCommandReadHttpIT extends CommandReadHttpSupport {
         commands.put("heldAdmin", held);
     }
 
-    /** The relationship of the person once the schema has it (setup only); nothing before. */
+    /** The relationship of the person (setup only). */
     private String relationshipField(String key) throws Exception {
         try (Connection db = schemaConnection("organization_workforce")) {
-            UUID relationship = EmploymentRelationshipSeeds.of(db, stored(UUID.fromString(employeeIdOf(key))));
-            return relationship == null ? "" : ",\"employmentRelationshipId\":\"" + relationship + "\"";
+            UUID relationship = EmploymentRelationshipSeeds.relationshipOf(db, stored(UUID.fromString(employeeIdOf(key))));
+            return ",\"employmentRelationshipId\":\"" + relationship + "\"";
         }
     }
 
@@ -278,14 +278,15 @@ abstract class CommandReadHttpSupport extends DataScopeSupport {
                     unitName(unit.getKey()), unit.getKey().equals("READ-CHILD") ? UUID.fromString(unitsByCode.get("READ-A")) : null);
             for (String key : List.of("a", "child", "b", "heldAdmin")) {
                 UUID employee = UUID.fromString(employeeIdOf(key));
-                run(db, EmploymentRelationshipSeeds.employeeVersion("""
-                        insert into employee_versions (employee_version_id, employee_id, effective_from_date, employment_status, employment_phase_kind,
+                UUID relationship = EmploymentRelationshipSeeds.relationshipOf(db, stored(employee));
+                run(db, """
+                        insert into employment_relationship_versions (employment_relationship_id, employment_relationship_version_id, employee_id, effective_from_date, employment_status, employment_phase_kind,
                           is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind, change_channel_kind, created_at, updated_at)
-                        values (?, ?, ?, 'EMPLOYED', 'PROBATION', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', now(), now())""", EmploymentRelationshipSeeds.of(db, stored(employee))), EmploymentRelationshipSeeds.arguments(EmploymentRelationshipSeeds.of(db, stored(employee)), Uuids.timeOrdered(NOW), stored(employee), LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 1)));
-                run(db, EmploymentRelationshipSeeds.assignmentVersionSelect("""
-                        insert into assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                        values (?, ?, ?, ?, 'EMPLOYED', 'PROBATION', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', now(), now())""", relationship, Uuids.timeOrdered(NOW), stored(employee), LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 1));
+                run(db, """
+                        insert into assignment_versions (employment_relationship_id, assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
                           org_unit_id, position_id, change_channel_kind)
-                        select ?, a.employee_id, ?, 'PRIMARY', ?, a.org_unit_id, a.position_id, 'MIGRATION' from assignments a where a.employee_id = ?""", EmploymentRelationshipSeeds.of(db, stored(employee))), EmploymentRelationshipSeeds.arguments(EmploymentRelationshipSeeds.of(db, stored(employee)), Uuids.timeOrdered(NOW), AssignmentRoots.primaryOf(db, stored(employee)), LocalDate.of(2026, 1, 1), stored(employee)));
+                        select ?, ?, a.employee_id, ?, 'PRIMARY', ?, a.org_unit_id, a.position_id, 'MIGRATION' from assignments a where a.employee_id = ?""", relationship, Uuids.timeOrdered(NOW), AssignmentRoots.primaryOf(db, stored(employee)), LocalDate.of(2026, 1, 1), stored(employee));
             }
         }
     }

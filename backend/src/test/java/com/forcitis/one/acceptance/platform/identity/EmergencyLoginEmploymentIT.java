@@ -134,10 +134,8 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
                 statement.execute("delete from sync_run_held_separations");
             }
             statement.execute("delete from assignment_versions");
-            statement.execute(EmploymentRelationshipSeeds.translate(workforce, "delete from employee_versions"));
-            if (EmploymentRelationshipSeeds.exist(workforce)) {
-                statement.execute("delete from employment_relationships");
-            }
+            statement.execute("delete from employment_relationship_versions");
+            statement.execute("delete from employment_relationships");
             statement.execute("delete from assignments");
             statement.execute("delete from employees");
             statement.execute("delete from org_units");
@@ -151,29 +149,27 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
     private void employeeVersion(UUID person, String status, java.time.LocalDate from, java.time.LocalDate to) throws SQLException {
         boolean employed = "EMPLOYED".equals(status);
         java.time.OffsetDateTime at = java.time.OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC);
-        try (Connection workforce = schemaConnection("organization_workforce"); java.sql.PreparedStatement insert = workforce.prepareStatement(EmploymentRelationshipSeeds.employeeVersion("""
-                insert into employee_versions (employee_version_id, employee_id, effective_from_date, effective_to_date, closed_at, revision_number,
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            UUID relationship = EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person));
+            try (java.sql.PreparedStatement insert = workforce.prepareStatement("""
+                insert into employment_relationship_versions (employment_relationship_id, employment_relationship_version_id, employee_id, effective_from_date, effective_to_date, closed_at, revision_number,
                   employment_status, employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
                   change_channel_kind, created_at, updated_at)
-                values (?, ?, ?, ?, ?, 0, ?, ?, false, false, ?, ?, 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.of(workforce, stored(person))))) {
-            // #1371: the relationship id is the first parameter once employment_relationships exists.
-            UUID relationship = EmploymentRelationshipSeeds.of(workforce, stored(person));
-            int k = 0;
-            if (relationship != null) {
-                insert.setObject(++k, relationship);
-            }
-            insert.setObject(k + 1, com.forcitis.one.kernel.Uuids.timeOrdered(NOW));
-            insert.setObject(k + 2, stored(person));
-            insert.setObject(k + 3, from);
-            insert.setObject(k + 4, to);
-            insert.setObject(k + 5, to == null ? null : at);
-            insert.setString(k + 6, status);
-            insert.setString(k + 7, employed ? "REGULAR" : null);
-            insert.setObject(k + 8, employed ? from : null);
-            insert.setString(k + 9, employed ? "LEGACY_HR_RECORD" : null);
-            insert.setObject(k + 10, at);
-            insert.setObject(k + 11, at);
+                values (?, ?, ?, ?, ?, ?, 0, ?, ?, false, false, ?, ?, 'MIGRATION', ?, ?)""")) {
+            insert.setObject(1, relationship);
+            insert.setObject(2, com.forcitis.one.kernel.Uuids.timeOrdered(NOW));
+            insert.setObject(3, stored(person));
+            insert.setObject(4, from);
+            insert.setObject(5, to);
+            insert.setObject(6, to == null ? null : at);
+            insert.setString(7, status);
+            insert.setString(8, employed ? "REGULAR" : null);
+            insert.setObject(9, employed ? from : null);
+            insert.setString(10, employed ? "LEGACY_HR_RECORD" : null);
+            insert.setObject(11, at);
+            insert.setObject(12, at);
             insert.executeUpdate();
+            }
         }
     }
 

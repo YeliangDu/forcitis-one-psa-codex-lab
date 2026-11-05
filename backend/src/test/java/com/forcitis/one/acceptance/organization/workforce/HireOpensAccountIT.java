@@ -358,19 +358,19 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         LocalDate yesterday = TODAY.minusDays(1);
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, "update employees set employment_status = 'SEPARATED', separated_at = ? where id = ?", at.minusDays(1), stored(person));
-            update(workforce, EmploymentRelationshipSeeds.employeeVersion("""
-                    insert into employee_versions (employee_version_id, employee_id, effective_from_date, effective_to_date, closed_at, revision_number,
+            update(workforce, """
+                    insert into employment_relationship_versions (employment_relationship_id, employment_relationship_version_id, employee_id, effective_from_date, effective_to_date, closed_at, revision_number,
                       employment_status, employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
                       change_channel_kind, created_at, updated_at)
-                    values (?, ?, ?, ?, ?, 0, 'EMPLOYED', 'REGULAR', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.of(workforce, stored(person))), EmploymentRelationshipSeeds.arguments(EmploymentRelationshipSeeds.of(workforce, stored(person)), com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), SINCE, yesterday, at, SINCE, at, at));
-            update(workforce, EmploymentRelationshipSeeds.employeeVersion("""
-                    insert into employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+                    values (?, ?, ?, ?, ?, ?, 0, 'EMPLOYED', 'REGULAR', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), SINCE, yesterday, at, SINCE, at, at);
+            update(workforce, """
+                    insert into employment_relationship_versions (employment_relationship_id, employment_relationship_version_id, employee_id, effective_from_date, revision_number, employment_status,
                       is_on_unpaid_leave, is_fee_earner, change_channel_kind, created_at, updated_at)
-                    values (?, ?, ?, 0, 'SEPARATED', false, false, 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.of(workforce, stored(person))), EmploymentRelationshipSeeds.arguments(EmploymentRelationshipSeeds.of(workforce, stored(person)), com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), yesterday, at, at));
+                    values (?, ?, ?, ?, 0, 'SEPARATED', false, false, 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), yesterday, at, at);
             UUID root = AssignmentRoots.primaryOf(workforce, stored(person));
-            update(workforce, EmploymentRelationshipSeeds.assignmentVersion(AssignmentRoots.withRoot("""
-                    insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
-                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root), EmploymentRelationshipSeeds.of(workforce, stored(person))), EmploymentRelationshipSeeds.arguments(EmploymentRelationshipSeeds.of(workforce, stored(person)), AssignmentRoots.arguments(root, com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), SINCE, stored(unit), newPosition(), at, at)));
+            update(workforce, AssignmentRoots.withRoot("""
+                    insert into assignment_versions (employment_relationship_id, assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
+                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root), AssignmentRoots.arguments(root, EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), SINCE, stored(unit), newPosition(), at, at));
         }
     }
 

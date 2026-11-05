@@ -78,9 +78,9 @@ class ConcurrentPostMergeIT extends OrgCountersignSupport {
         OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
         try (Connection workforce = schemaConnection("organization_workforce")) {
             UUID root = AssignmentRoots.create(workforce, stored(employee), AssignmentRoots.CONCURRENT);
-            update(workforce, EmploymentRelationshipSeeds.assignmentVersion("""
-                    insert into assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date, revision_number,
-                      org_unit_id, position_id, change_channel_kind, created_at, updated_at) values (?, ?, ?, 'CONCURRENT', ?, 1, ?, ?, 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.of(workforce, stored(employee))), EmploymentRelationshipSeeds.arguments(EmploymentRelationshipSeeds.of(workforce, stored(employee)), Uuids.timeOrdered(NOW), stored(employee), root, SINCE, stored(orgUnit), position, at, at));
+            update(workforce, """
+                    insert into assignment_versions (employment_relationship_id, assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date, revision_number,
+                      org_unit_id, position_id, change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, 'CONCURRENT', ?, 1, ?, ?, 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.relationshipOf(workforce, stored(employee)), Uuids.timeOrdered(NOW), stored(employee), root, SINCE, stored(orgUnit), position, at, at);
             return root;
         }
     }
@@ -328,12 +328,12 @@ class ConcurrentPostMergeIT extends OrgCountersignSupport {
         OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
         LocalDate yesterday = TODAY.minusDays(1);
         try (Connection workforce = schemaConnection("organization_workforce")) {
-            update(workforce, "update employee_versions set effective_to_date = ?, closed_at = ?, updated_at = ? where employee_id = ? and effective_to_date is null and superseded_at is null",
+            update(workforce, "update employment_relationship_versions set effective_to_date = ?, closed_at = ?, updated_at = ? where employee_id = ? and effective_to_date is null and superseded_at is null",
                     yesterday, at, at, stored(person));
-            update(workforce, EmploymentRelationshipSeeds.employeeVersion("""
-                    insert into employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+            update(workforce, """
+                    insert into employment_relationship_versions (employment_relationship_id, employment_relationship_version_id, employee_id, effective_from_date, revision_number, employment_status,
                       is_on_unpaid_leave, is_fee_earner, change_channel_kind, created_at, updated_at)
-                    values (?, ?, ?, 0, 'SEPARATED', false, false, 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.of(workforce, stored(person))), EmploymentRelationshipSeeds.arguments(EmploymentRelationshipSeeds.of(workforce, stored(person)), Uuids.timeOrdered(NOW), stored(person), TODAY, at, at));
+                    values (?, ?, ?, ?, 0, 'SEPARATED', false, false, 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), Uuids.timeOrdered(NOW), stored(person), TODAY, at, at);
             update(workforce, "update employees set employment_status = 'SEPARATED', separated_at = ? where id = ?", at, stored(person));
         }
     }

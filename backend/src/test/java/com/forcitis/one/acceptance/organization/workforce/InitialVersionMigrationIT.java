@@ -172,7 +172,7 @@ class InitialVersionMigrationIT extends InitialVersionMigrationSupport {
 
         List<Map<String, Object>> perEmployee = rows("""
                 select e.id, e.employment_status as snapshot_status, e.is_fee_earner as snapshot_fee_earner,
-                       (select count(*) from employee_versions v where v.employee_id = e.id and v.superseded_at is null
+                       (select count(*) from employment_relationship_versions v where v.employee_id = e.id and v.superseded_at is null
                            and v.effective_from_date <= ? and (v.effective_to_date is null or v.effective_to_date > ?)) as current_versions
                   from employees e""", TODAY, TODAY);
         assertThat(perEmployee).isNotEmpty().allSatisfy(row -> assertThat(row.get("current_versions")).as(String.valueOf(row.get("id"))).isEqualTo(1L));
@@ -271,11 +271,11 @@ class InitialVersionMigrationIT extends InitialVersionMigrationSupport {
             update(workforce, """
                     insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
                     values (?, ?, 'SEPARATE', ?, 'HELD', ?, ?, ?)""", command, stored(person), TODAY.plusDays(10), at, hr.userId(), at);
-            update(workforce, EmploymentRelationshipSeeds.employeeVersion("""
-                    insert into employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+            update(workforce, """
+                    insert into employment_relationship_versions (employment_relationship_id, employment_relationship_version_id, employee_id, effective_from_date, revision_number, employment_status,
                       employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
                       change_channel_kind, change_command_id, version_audit_entry_id, created_at, updated_at)
-                    values (?, ?, ?, 0, 'EMPLOYED', 'PROBATION', false, false, ?, 'DECLARED', 'COMMAND', ?, ?, ?, ?)""", EmploymentRelationshipSeeds.of(workforce, stored(person))), EmploymentRelationshipSeeds.arguments(EmploymentRelationshipSeeds.of(workforce, stored(person)), Uuids.timeOrdered(NOW), stored(person), TODAY.minusDays(5), TODAY.minusDays(5), command, UUID.randomUUID(), at, at));
+                    values (?, ?, ?, ?, 0, 'EMPLOYED', 'PROBATION', false, false, ?, 'DECLARED', 'COMMAND', ?, ?, ?, ?)""", EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), Uuids.timeOrdered(NOW), stored(person), TODAY.minusDays(5), TODAY.minusDays(5), command, UUID.randomUUID(), at, at);
         }
         List<Map<String, Object>> before = allVersions(EMPLOYEE_VERSIONS, person);
         Result result = migrate();

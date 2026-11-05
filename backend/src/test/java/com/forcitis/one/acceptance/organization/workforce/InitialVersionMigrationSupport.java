@@ -118,9 +118,9 @@ abstract class InitialVersionMigrationSupport extends PersonnelCommandSupport {
         try (Connection workforce = schemaConnection("organization_workforce")) {
             // #711: on the person's PRIMARY root once employee_assignments exists (AssignmentRoots), as the sync writer does (DD rev 2 section 4.3).
             UUID root = AssignmentRoots.primaryOf(workforce, stored(person));
-            update(workforce, EmploymentRelationshipSeeds.assignmentVersion(AssignmentRoots.withRoot("""
-                    insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, effective_to_date, org_unit_id,
-                      change_channel_kind, closed_at, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?, ?)""", root), EmploymentRelationshipSeeds.of(workforce, stored(person))), EmploymentRelationshipSeeds.arguments(EmploymentRelationshipSeeds.of(workforce, stored(person)), AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), stored(person), from, to, stored(unit), to == null ? null : at, at, at)));
+            update(workforce, AssignmentRoots.withRoot("""
+                    insert into assignment_versions (employment_relationship_id, assignment_version_id, employee_id, effective_from_date, effective_to_date, org_unit_id,
+                      change_channel_kind, closed_at, created_at, updated_at) values (?, ?, ?, ?, ?, ?, 'MIGRATION', ?, ?, ?)""", root), AssignmentRoots.arguments(root, EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), Uuids.timeOrdered(NOW), stored(person), from, to, stored(unit), to == null ? null : at, at, at));
         }
     }
 
@@ -129,7 +129,7 @@ abstract class InitialVersionMigrationSupport extends PersonnelCommandSupport {
     /** Every row of both version tables, all people, in a fixed order: a rerun must leave this list exactly as it was. */
     protected List<Map<String, Object>> everyVersionRow() throws Exception {
         List<Map<String, Object>> all = new ArrayList<>();
-        all.addAll(rows("select * from " + EMPLOYEE_VERSIONS + " order by employee_version_id"));
+        all.addAll(rows("select * from " + EMPLOYEE_VERSIONS + " order by employment_relationship_version_id"));
         all.addAll(rows("select * from " + ASSIGNMENT_VERSIONS + " order by assignment_version_id"));
         return all;
     }
