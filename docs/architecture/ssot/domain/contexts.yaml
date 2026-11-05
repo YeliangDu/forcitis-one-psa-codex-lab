@@ -245,6 +245,18 @@ contexts:
   admission_evidence: docs/architecture/proposals/admission-platform-file-2026-10-21.md（ADR-0066 决定 6 九条；one-coordinator 核对）
   review: 英文名 FileService，定名 2026-10-21 用户同意（bcs.yaml #496）；层名「基础层」暂定，待 one-glossary 终定 tier 取值
   evidence: ADR-0060 决定 1；ADR-0066 决定 2 第 3 条；backend 模块包与 module-dependencies.txt
+- id: platform.linkaccess
+  zh: 外部一次性链接访问
+  subdomain: platform
+  kind: platform
+  status: planned
+  schema: platform_linkaccess
+  blueprint_bc: null
+  legacy_bc: null
+  basis: user-decision
+  tier: 公共服务层
+  review: 英文名 OneTimeLinkAccess，定名 2026-10-21 用户同意（docs/decisions 2026-10-21-104307 原话，bcs.yaml）；尚无 ADR 与模块包，tier、owner、准入待 one-architecture 按 ADR-0066 补；登记前代码不落地
+  evidence: bcs.yaml 同名行；docs/decisions/2026-10-21-104307-one-coordinator-同意-收件箱-2026-10-2.md
 - id: platform.signing
   zh: 签章服务
   subdomain: platform

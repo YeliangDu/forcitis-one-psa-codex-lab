@@ -36,10 +36,13 @@ class JdbcEmployeeRosterQueries implements EmployeeRosterQueries {
                        ev.employment_start_date as hire_date,
                        case when ev.employment_status = 'SEPARATED' then ev.effective_from_date - 1 else :day end as posts_day
                   from organization_workforce.employees e
-                  cross join lateral (select exists (select 1 from organization_workforce.employee_versions x where x.employee_id = e.id) as versioned) v
-                  left join organization_workforce.employee_versions ev on v.versioned and ev.employee_id = e.id and ev.superseded_at is null
-                       and ev.effective_from_date <= :day and (ev.effective_to_date is null or :day < ev.effective_to_date)
-                 where not v.versioned or ev.employee_version_id is not null
+                  cross join lateral (select exists (select 1 from organization_workforce.employment_relationship_versions x where x.employee_id = e.id) as versioned) v
+                  left join lateral (select x.employment_relationship_version_id, x.employment_status, x.employment_start_date, x.effective_from_date
+                                       from organization_workforce.employment_relationship_versions x
+                                      where v.versioned and x.employee_id = e.id and x.superseded_at is null
+                                        and x.effective_from_date <= :day and (x.effective_to_date is null or :day < x.effective_to_date)
+                                      order by (x.employment_status = 'EMPLOYED') desc, x.employment_start_date asc nulls last limit 1) ev on true
+                 where not v.versioned or ev.employment_relationship_version_id is not null
             ), assignment_rows as (
                 select av.employee_id, av.assignment_kind, av.org_unit_id, av.position_id, av.reports_to_employee_id
                   from organization_workforce.assignment_versions av
@@ -50,7 +53,7 @@ class JdbcEmployeeRosterQueries implements EmployeeRosterQueries {
                 union all
                 select a.employee_id, 'PRIMARY', a.org_unit_id, a.position_id, a.reports_to_employee_id
                   from organization_workforce.assignments a
-                 where not exists (select 1 from organization_workforce.employee_versions x where x.employee_id = a.employee_id)
+                 where not exists (select 1 from organization_workforce.employment_relationship_versions x where x.employee_id = a.employee_id)
                    and not exists (select 1 from organization_workforce.assignment_versions x where x.employee_id = a.employee_id)
             )
             """;

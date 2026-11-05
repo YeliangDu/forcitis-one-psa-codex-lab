@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
 /**
  * The one-shot operations commands of workforce: {@code release-separation-hold} (ADR-0068 item 2.4), the release of a held separation when no
  * available super administrator would remain, needs --separation-hold-id, --reason, --operator and a different --witness; {@code migrate-initial-versions}
- * (#960), the one-time migration of the snapshot into the version tables, needs only --operator and --witness.
+ * (#960), the one-time migration of the snapshot into the version tables, needs only --operator and --witness, and takes --dry-run to count without writing.
  * The witness is always required. Exit code, as identity's OperationsCommands: 0 done, 1 refused, 2 wrong usage. Runs with the profile workforce-operations.
  */
 @Component
@@ -34,8 +34,9 @@ public class WorkforceOperationsCommands {
     static final String REASON = "reason";
     static final String OPERATOR = "operator";
     static final String WITNESS = "witness";
+    static final String DRY_RUN = "dry-run";
     private static final Set<String> OWN_OPTIONS = Set.of(OPERATION, HOLD_ID, REASON, OPERATOR, WITNESS);
-    private static final Set<String> MIGRATE_OPTIONS = Set.of(OPERATION, OPERATOR, WITNESS);
+    private static final Set<String> MIGRATE_OPTIONS = Set.of(OPERATION, OPERATOR, WITNESS, DRY_RUN);
 
     private final ReleaseSeparationHoldByOperations releaseHold;
     private final MigrateInitialVersions migrateVersions;
@@ -71,7 +72,7 @@ public class WorkforceOperationsCommands {
                     return "separation hold released";
                 };
             } else {
-                action = attested -> "initial versions migrated: " + migrateVersions.execute(attested);
+                action = attested -> "initial versions migrated: " + migrateVersions.execute(attested, arguments.containsOption(DRY_RUN));
             }
             WorkforceOperationAttestation attestation = WorkforceOperationAttestation.of(single(arguments, OPERATOR), single(arguments, WITNESS));
             YearMonth month = YearMonth.from(clock.instant().atOffset(ZoneOffset.UTC));

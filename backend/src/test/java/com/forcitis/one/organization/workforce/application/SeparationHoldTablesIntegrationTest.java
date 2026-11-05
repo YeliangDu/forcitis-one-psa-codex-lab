@@ -33,8 +33,9 @@ class SeparationHoldTablesIntegrationTest extends WorkforceIntegrationSupport {
             jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values ("
                     + id + ", 'E-' || right(" + id + ", 2), 'name', 'EMPLOYED')").update();
         }
-        jdbc.sql("insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status,"
-                + " created_at, created_by, updated_at) values (" + COMMAND + ", " + EMPLOYEE + ", 'SEPARATE', date '2026-11-01', 'HELD', now(), " + USER + ", now())").update();
+        EmploymentRelationshipSeed.seed(jdbc, EMPLOYEE, OTHER_EMPLOYEE);
+        jdbc.sql("insert into organization_workforce.personnel_commands (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status,"
+                + " created_at, created_by, updated_at) values (" + COMMAND + ", " + EmploymentRelationshipSeed.ref(EMPLOYEE) + ", " + EMPLOYEE + ", 'SEPARATE', date '2026-11-01', 'HELD', now(), " + USER + ", now())").update();
     }
 
     private void hold(String id, String commandId, String employeeId, String status, String releasedBy, String reason, String channel) {
