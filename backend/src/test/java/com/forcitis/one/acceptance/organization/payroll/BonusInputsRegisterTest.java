@@ -54,7 +54,7 @@ class BonusInputsRegisterTest {
     @Test
     @DisplayName("#1436 完成标准 2：币种、来源、月份、状态登记为 INTERNAL / NONE；录入人、作废人、作废时间同为 INTERNAL / NONE")
     void theQualifyingAndAuditColumnsAreInternal() throws IOException {
-        for (String column : List.of("bonus_currency", "source_kind", "payroll_month_start_date", "status", "entered_by_user_id", "voided_by_user_id", "voided_at")) {
+        for (String column : List.of("bonus_currency", "source_kind", "payroll_month_start_date", "status", "entered_by_employee_id", "voided_by_user_id", "voided_at")) {
             assertThat(classification(column)).as("PY3 record C1 to C5: " + column + " is registered").isNotNull().containsExactly("INTERNAL", "NONE");
         }
     }

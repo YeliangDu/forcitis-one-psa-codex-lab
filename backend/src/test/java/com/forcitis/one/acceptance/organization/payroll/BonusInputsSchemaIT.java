@@ -134,7 +134,7 @@ class BonusInputsSchemaIT {
         row.put("source_kind", "MANUAL_APPROVED");
         row.put("reason_key", reason);
         row.put("approval_instance_id", UUID.randomUUID());
-        row.put("entered_by_user_id", ENTERER);
+        row.put("entered_by_employee_id", ENTERER);
         row.put("status", "ACTIVE");
         row.put("created_at", AT);
         row.put("updated_at", AT);
@@ -170,7 +170,7 @@ class BonusInputsSchemaIT {
         expected.put("source_kind", "text NO");
         expected.put("reason_key", "text NO");
         expected.put("approval_instance_id", "uuid NO");
-        expected.put("entered_by_user_id", "uuid NO");
+        expected.put("entered_by_employee_id", "uuid NO");
         expected.put("status", "text NO");
         expected.put("voided_by_user_id", "uuid YES");
         expected.put("voided_at", "timestamp with time zone YES");
@@ -356,7 +356,7 @@ class BonusInputsSchemaIT {
         edits.put("employment_relationship_id", UUID.randomUUID());
         edits.put("paying_legal_entity_id", UUID.randomUUID());
         edits.put("approval_instance_id", UUID.randomUUID());
-        edits.put("entered_by_user_id", VOIDER);
+        edits.put("entered_by_employee_id", VOIDER);
         edits.put("created_at", AT.minusDays(1));
         edits.put("updated_at", AT.plusDays(1));
 

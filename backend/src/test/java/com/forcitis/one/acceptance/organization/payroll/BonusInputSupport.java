@@ -32,44 +32,58 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 
 /**
- * #1436 acceptance part (PY3 bonus input port), the black-box contract ruled by lead on #1446: a bonus input enters through a real approval of the
- * process {@code payroll_bonus_input_approval} (document type BONUS_INPUT, document id = the new bonus input id, one step, form fields below), and the
- * payroll consumer of {@code ApprovalCompleted} writes the row; the void and the reads are the {@code BonusInputs} api of
- * {@code com.forcitis.one.organization.payroll.api}. The payroll types are looked up by name and called by reflection, so the class compiles before
- * the slice exists. Roles: payroll_specialist holds request, void and read; payroll_approver holds approve only.
+ * #1436 acceptance part (PY3 bonus input port). Sources: the signed PY3 record, section "Approval seam, process and permissions" (docs/data/reviews/
+ * organization-payroll-py3.md), and the user's routing decision of 2026-11-05 (docs/decisions/2026-11-05-195500-one-lead-均采纳推荐.md, item 1): a bonus input
+ * enters through a real approval of the process {@code organization_payroll_bonus_input} with the five signed form fields, in ONE stage: the initiator's line
+ * manager ({@code INITIATOR_SUPERVISOR} level 1), then a holder of the payroll role who is not the initiator. The payroll consumer of
+ * {@code ApprovalCompleted} writes the row (its own id; {@code approval_instance_id} is the link, the document id is payroll's request id and is no table
+ * key); the void and the reads are the {@code BonusInputs} api of {@code com.forcitis.one.organization.payroll.api}. Types are looked up by name and called by
+ * reflection, so the class compiles before the slice exists. ONE role holds submit, update (the void) and read; the record does not name its code:
+ * {@code payroll_specialist} is used here as a placeholder the implementer confirms with lead (a rename is one constant). Not tested here, owed until the
+ * Java signature of the {@code RequestBonusInput} command is ruled: its submit permission and the retry-reuses-the-instance line; the start below is the
+ * record's own call of {@code ApprovalProcesses.start} (process key, document, legal entity of the request, initiator, five fields).
  */
 abstract class BonusInputSupport extends P5Support {
 
     static final String API = "com.forcitis.one.organization.payroll.api.";
     static final String RELATIONSHIP_ID = "com.forcitis.one.organization.workforce.api.EmploymentRelationshipId";
-    static final ProcessKey PROCESS = ProcessKey.of("payroll_bonus_input_approval");
+    static final String PAYROLL_ROLE = "payroll_specialist";
+    static final ProcessKey PROCESS = ProcessKey.of("organization_payroll_bonus_input");
     static final DocumentTypeCode DOCUMENT_TYPE = new DocumentTypeCode("BONUS_INPUT");
     static final LocalDate OCTOBER = LocalDate.of(2026, 10, 1);
 
     @Autowired
     ApplicationContext context;
 
+    /** The initiator: holds the payroll role, has a line manager. */
     UUID specialist;
-    UUID approver;
+    /** The initiator's line manager: no payroll role, decides the first stage. */
+    UUID lineManager;
+    /** A second holder of the payroll role: decides the second stage. */
+    UUID secondSpecialist;
     UUID outsider;
     SignedIn specialistAccount;
-    SignedIn approverAccount;
+    SignedIn lineManagerAccount;
+    SignedIn secondSpecialistAccount;
     SignedIn outsiderAccount;
 
-    /** One bonus input sent to approval: its id is the document id. */
-    record Submitted(UUID id, UUID relationship, ApprovalInstanceId instance, DocumentReference document) {
+    /** One bonus input sent to approval: {@code requestId} is the document id (payroll's own, not a table key), {@code instance} links the row. */
+    record Submitted(UUID requestId, UUID relationship, ApprovalInstanceId instance, DocumentReference document) {
     }
 
     @BeforeEach
     void thePayrollPeople() throws Exception {
+        lineManager = newEmployeeId();
+        employee(lineManager, unit, null);
+        lineManagerAccount = signIn(lineManager);
         specialist = newEmployeeId();
-        employee(specialist, unit, null);
-        grantByOperations(specialist, "payroll_specialist");
+        employee(specialist, unit, lineManager);
+        grantByOperations(specialist, PAYROLL_ROLE);
         specialistAccount = signIn(specialist);
-        approver = newEmployeeId();
-        employee(approver, unit, null);
-        grantByOperations(approver, "payroll_approver");
-        approverAccount = signIn(approver);
+        secondSpecialist = newEmployeeId();
+        employee(secondSpecialist, unit, null);
+        grantByOperations(secondSpecialist, PAYROLL_ROLE);
+        secondSpecialistAccount = signIn(secondSpecialist);
         outsider = newEmployeeId();
         employee(outsider, unit, null);
         outsiderAccount = signIn(outsider);
@@ -78,32 +92,56 @@ abstract class BonusInputSupport extends P5Support {
     // ---- the approval path ----
 
     Submitted submit(UUID relationship, LocalDate month, String amount, String reason) {
-        UUID id = UUID.randomUUID();
-        DocumentReference document = new DocumentReference(DOCUMENT_TYPE, documentIdOf(id));
+        UUID requestId = UUID.randomUUID();
+        DocumentReference document = new DocumentReference(DOCUMENT_TYPE, documentIdOf(requestId));
         List<ApprovalField> fields = List.of(new ApprovalField("employmentRelationshipId", List.of(text(relationship))),
-                new ApprovalField("payrollMonthStartDate", List.of(month.toString())), new ApprovalField("payingLegalEntityId", List.of(text(legalEntity.value()))),
-                new ApprovalField("bonusAmount", List.of(amount)), new ApprovalField("bonusCurrency", List.of("CNY")), new ApprovalField("reasonKey", List.of(reason)));
+                new ApprovalField("payrollMonthStartDate", List.of(month.toString())), new ApprovalField("bonusAmount", List.of(amount)),
+                new ApprovalField("bonusCurrency", List.of("CNY")), new ApprovalField("reasonKey", List.of(reason)));
         actInSession(specialistAccount);
         ApprovalInstanceId instance;
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "acceptance.bonus-input-request")) {
             instance = approvals.start(new ApprovalStartRequest(PROCESS, document, legalEntity, employeeIdOf(specialist), new RoundNumber(1), UUID.randomUUID(),
-                    Set.of(), fields, new ContentHash("synthetic-bonus-" + id), new ApprovalSummary("Synthetic bonus input " + id)));
+                    Set.of(), fields, new ContentHash("synthetic-bonus-" + requestId), new ApprovalSummary("Synthetic bonus input " + requestId)));
         }
-        return new Submitted(id, relationship, instance, document);
+        return new Submitted(requestId, relationship, instance, document);
     }
 
+    /** The open task of the document once there is one that is not in {@code seen}. */
+    UUID nextTask(Submitted submitted, List<UUID> seen) {
+        Awaitility.await().atMost(Duration.ofSeconds(20)).pollInterval(Duration.ofMillis(100))
+                .until(() -> openTaskIds(submitted.document()).stream().anyMatch(task -> !seen.contains(task)));
+        try {
+            return openTaskIds(submitted.document()).stream().filter(task -> !seen.contains(task)).findFirst().orElseThrow();
+        } catch (SQLException unexpected) {
+            throw new AssertionError(unexpected);
+        }
+    }
+
+    void claimAndDecide(UUID task, SignedIn who, String outcome) throws Exception {
+        actOk(task, who, "claim", null);
+        actOk(task, who, "decide", "{\"outcome\":\"" + outcome + "\",\"reason\":\"synthetic\"}");
+    }
+
+    /** The first stage: the line manager decides. Returns the task so a caller can look for the next one. */
+    UUID decideFirstStage(Submitted submitted, String outcome) throws Exception {
+        UUID task = nextTask(submitted, List.of());
+        claimAndDecide(task, lineManagerAccount, outcome);
+        return task;
+    }
+
+    /** Both stages: the line manager, then a payroll-role holder who is not the initiator. */
     void decide(Submitted submitted, String outcome) throws Exception {
-        Awaitility.await().atMost(Duration.ofSeconds(20)).pollInterval(Duration.ofMillis(100)).until(() -> !openTaskIds(submitted.document()).isEmpty());
-        UUID task = openTaskIds(submitted.document()).getFirst();
-        actOk(task, approverAccount, "claim", null);
-        actOk(task, approverAccount, "decide", "{\"outcome\":\"" + outcome + "\",\"reason\":\"synthetic\"}");
+        UUID first = decideFirstStage(submitted, outcome);
+        if (outcome.equals("APPROVE")) {
+            claimAndDecide(nextTask(submitted, List.of(first)), secondSpecialistAccount, outcome);
+        }
     }
 
-    /** Submitted, approved and the payroll consumer done with the result. */
+    /** Submitted, approved by both stages and the payroll consumer done with the result. */
     Submitted approved(UUID relationship, LocalDate month, String amount, String reason) throws Exception {
         Submitted submitted = submit(relationship, month, amount, reason);
         decide(submitted, "APPROVE");
-        awaitConsumed(submitted.id());
+        awaitConsumed(submitted.requestId());
         return submitted;
     }
 
@@ -133,8 +171,16 @@ abstract class BonusInputSupport extends P5Support {
 
     // ---- the rows ----
 
-    List<Map<String, Object>> rowsOf(UUID id) throws SQLException {
-        return query("organization_payroll", "select * from bonus_inputs where id = ?", id);
+    /** The rows of one approval: found by {@code approval_instance_id}, the only link (the document id is no table key). */
+    List<Map<String, Object>> rowsOf(Submitted submitted) throws SQLException {
+        return query("organization_payroll", "select * from bonus_inputs where approval_instance_id = ?", submitted.instance().value());
+    }
+
+    /** The id of the one row of the approval (the row has its own id, not the document id). */
+    UUID rowId(Submitted submitted) throws SQLException {
+        List<Map<String, Object>> rows = rowsOf(submitted);
+        assertThat(rows).as("the row of the approval %s", submitted.instance().value()).hasSize(1);
+        return (UUID) rows.getFirst().get("id");
     }
 
     long activeRowsOf(UUID relationship, LocalDate month, String reason) throws SQLException {
