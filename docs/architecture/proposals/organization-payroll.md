@@ -108,7 +108,9 @@ Schema `organization_payroll`. Sketches (class words and constraint names per na
 | `withholding_filings` (+ payments) | paying_legal_entity_id, tax_period, filing_status | per entity and period | **waits** for the ports |
 | `special_deduction_declarations` (+ items, beneficiary table) | employee_id, tax_year, … | beneficiary data separate | **waits** for U-11 |
 
-Classification and retention are user items under the gate (section 9 P-9 with a recommendation). Registry roles, lineage ("new"; legacy payroll imported by the migration slice) are drafted per schema card. No analytical fact in this spec (the totals events feed the later reporting batch).
+Classification and retention are decided (section 9 P-9, user 2026-11-05: per-person pay data `CONFIDENTIAL`, ten years after the person's last separation, purge route). Registry roles, lineage ("new"; legacy payroll imported by the migration slice) are drafted per schema card. No analytical fact in this spec (the totals events feed the later reporting batch).
+
+**Q-11, answered by the user 2026-11-05 (「Q-11 a」, lead fragment Q-11-a):** the standard-hours entity for the hourly rate (PY4) is the person's cost (attribution) entity on that day, i.e. `StandardHours.minutesOn` is called with the cost entity, the same entity as leave L4's split and the timesheet minimum.
 
 ## 9. Business questions (answered from evidence, or options plus recommendation)
 
@@ -124,7 +126,7 @@ Nothing below is decided by me. Items marked **pending #1373** are answered by t
 | P-6 | Special deductions before U-11 is settled | AGG-120 waits | Options: (a) hold the whole payroll go-live until AGG-120 is built (recommended: omitting deductions overstates tax); (b) interim manual entry by HR with the same table. User/legal. |
 | P-7 | Unused annual leave and comp time paid at separation (T-10) | Principle decided: follow legacy result; value **pending #1373 / forensic** | Waits; payroll takes the settlement line from the leave read API. |
 | P-8 | Who books the tax and insurance payment | Not decided | Out of this spec; user later. |
-| P-9 | Retention and classification of payroll tables | The gate lists them as user items | Recommendation: pay data `CONFIDENTIAL`, retained as accounting/labour records (wage payment records at least 2 years by statute — **unverified**; longer for accounting vouchers); user confirms. |
+| P-9 | Retention and classification of payroll tables | The gate lists them as user items | Recommendation: pay data `CONFIDENTIAL`, retained as accounting/labour records (wage payment records at least 2 years by statute — **unverified**; longer for accounting vouchers); user confirms. **Answered by the user 2026-11-05 (「P-9 a」, lead fragment `2026-11-05-154025-one-lead-P-9-a`): per-person pay data `CONFIDENTIAL` (register level `SENSITIVE`, L3: the data-classification register has no `CONFIDENTIAL` level and files pay at L3), retained ten years after the person's last separation, removed by a payroll-owned purge function (the pattern of W2's `purge_employee_history`).** Applies to every per-person payroll table; each is signed in its own record (PY0 rule tables hold no personal data and are `PERMANENT`; `bonus_inputs`: `docs/data/reviews/organization-payroll-py3.md`). |
 | P-10 | Manual steps in the legacy calculation | #1373 Q2 produces questions for HR/finance | Becomes explicit commands or input ports once known; this spec only provides the bonus/dividend manual ports. |
 | P-11 | Rounding rule and component set | **pending #1373** | Rule-version values; no code change. |
 
