@@ -100,6 +100,11 @@ public class OneSql {
                 int end = s.indexOf("*/", i + 2);
                 i = end < 0 ? n : end + 2;
                 out.append(' ');
+            } else if (ch == '[') {  // a bracketed name may hold quotes and comment starters; SQL Server reads it as one name
+                int end = i + 1;
+                while (end < n && !(s.charAt(end) == ']' && (end + 1 >= n || s.charAt(end + 1) != ']'))) end += s.charAt(end) == ']' ? 2 : 1;
+                i = Math.min(end + 1, n);
+                out.append("[]");
             } else if (ch == '\'') {
                 i++;
                 while (i < n && !(s.charAt(i) == '\'' && (i + 1 >= n || s.charAt(i + 1) != '\''))) i += s.charAt(i) == '\'' ? 2 : 1;
@@ -119,7 +124,9 @@ public class OneSql {
         for (String b : batches) {
             Matcher m = WRITE.matcher(codeOnly(b));
             if (m.find()) throw new IllegalStateException("read-only script contains write keyword: " + m.group());
-            Matcher n = NUMBER_GLUED.matcher(codeOnly(b).replaceAll("\\[[^\\]]*\\]", "[]"));  // bracketed names are masked
+            String code = codeOnly(b);
+            if (code.chars().anyMatch(c -> c > 127)) throw new IllegalStateException("read-only script contains a non-ASCII character outside a string or [bracketed name]");
+            Matcher n = NUMBER_GLUED.matcher(code);
             while (n.find()) if (!PLAIN_NUMBER.matcher(n.group()).matches()) throw new IllegalStateException("read-only script contains a number glued to letters (1e5, 0xAB, 1DELETE): SQL Server reads a number and a keyword there");
         }
         return batches;
@@ -139,7 +146,7 @@ public class OneSql {
                 "sp_executesql N'DELETE FROM t'", "SELECT * INTO dbo.copy FROM t", "WRITETEXT t.c @p 'x'", "UPDATETEXT t.c @p 0 NULL 'x'", "COMMIT",
                 "SELECT 1; COMMIT TRANSACTION", "BEGIN TRAN; SELECT 1", "ROLLBACK", "SELECT * FROM OPENROWSET('SQLNCLI', 'x', 'SELECT 1')", "xp_cmdshell 'dir'",
                 "USE master", "/* ' */ DELETE FROM t", "SELECT 1 /* -- */; DELETE FROM t",
-                "SELECT 1DELETE FROM t", "SELECT 1COMMIT", "SELECT 1KILL 55", "SELECT 1DBCC FREEPROCCACHE", "SELECT 0x1DELETE FROM t", "SELECT 1e1DELETE FROM t", "SELECT 0xKILL 55", "SELECT 0xABKILL 55", "SELECT 1eCOMMIT", "SELECT 1eDELETE FROM t WHERE 1 = 1eCOMMIT", "SELECT 1.eKILL 9999", "SELECT 1.EDBCC FREEPROCCACHE", "SELECT 1.eUSE master", "SELECT 12.eDELETE FROM t WHERE 1 = 1.ECOMMIT"}) {
+                "SELECT 1DELETE FROM t", "SELECT 1COMMIT", "SELECT 1KILL 55", "SELECT 1DBCC FREEPROCCACHE", "SELECT 0x1DELETE FROM t", "SELECT 1e1DELETE FROM t", "SELECT 0xKILL 55", "SELECT 0xABKILL 55", "SELECT 1eCOMMIT", "SELECT 1eDELETE FROM t WHERE 1 = 1eCOMMIT", "SELECT 1 AS [a']\n DELETE FROM t COMMIT --'", "SELECT 1 AS x\u200bDELETE FROM t", "SELECT 1 FROM LOOPSRV\u200b.master.sys.databases", "SELECT 1.eKILL 9999", "SELECT 1.EDBCC FREEPROCCACHE", "SELECT 1.eUSE master", "SELECT 12.eDELETE FROM t WHERE 1 = 1.ECOMMIT"}) {
             check(refused(() -> readOnlyBatches(write, none)), "a write statement is refused: " + write);
         }
         for (String mode : new String[] {"rw", "deny", "RO", ""}) {

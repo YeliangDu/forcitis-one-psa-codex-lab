@@ -62,20 +62,24 @@ CHECK_SQL = " UNION ALL ".join([
 ])
 FORBIDDEN = re.compile(r"(?<![A-Za-z_@#$])(INTO|INSERT|UPDATE|DELETE|MERGE|CREATE|ALTER|DROP|TRUNCATE|GRANT|DENY|REVOKE|EXEC|EXECUTE|DECLARE|SET|USE|BEGIN|COMMIT|ROLLBACK|SAVE|"
                        r"IF|WHILE|GOTO|RETURN|TRY|CATCH|PRINT|RAISERROR|THROW|WAITFOR|BACKUP|RESTORE|SHUTDOWN|KILL|DBCC|RECONFIGURE|BULK|WRITETEXT|UPDATETEXT|"
-                       r"OPENROWSET|OPENDATASOURCE|OPENQUERY|OPENXML|GO|DISABLE|ENABLE|RECEIVE|SEND|MOVE|GET|CHECKPOINT|OPEN|CLOSE|DEALLOCATE|REVERT|SETUSER|ADD|READTEXT|UPDLOCK|XLOCK|HOLDLOCK|TABLOCKX|PAGLOCK|NEXT\s+VALUE|(sp|xp)_\w*)\b", re.I)
+                       r"OPENROWSET|OPENDATASOURCE|OPENQUERY|OPENXML|GO|DISABLE|ENABLE|RECEIVE|SEND|MOVE|GET|CHECKPOINT|CONVERSATION|OPEN|CLOSE|DEALLOCATE|REVERT|SETUSER|ADD|READTEXT|UPDLOCK|XLOCK|HOLDLOCK|TABLOCKX|PAGLOCK|NEXT\s+VALUE|(sp|xp)_\w*)\b", re.I)
 
 
 class Refused(Exception):
     """The SQL, the arguments or the environment is refused; the message holds no identifiers."""
 
 
+def rewritten(text):
+    """OneSql.parse rewrites a file before it runs (drops lines starting with ':', splits batches on a GO line, substitutes $(var)): refuse every such text, so what is sent is what was checked."""
+    if "$(" in text or any(line.strip().startswith(":") or line.strip().upper() == "GO" for line in re.split(r"\r\n|[\n\r\x0b\x0c\x85\u2028\u2029]", text)):
+        raise Refused("SQL holds a line starting with ':' or a GO line, or '$(': not accepted")
+
+
 def validate_select(text):
     """The text to send: `text` with comments removed, when it is one single SELECT statement; else Refused. Strings and quoted names are skipped when scanning keywords."""
     if len(text.encode("utf-8")) > MAX_SQL_BYTES or re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", text):
         raise Refused("SQL file too large or holds control characters")
-    # OneSql.parse rewrites the file before it runs (drops lines starting with ':', splits batches on a GO line, substitutes $(var)): refuse every such text, so what is sent is what was checked
-    if "$(" in text or any(line.strip().startswith(":") or line.strip().upper() == "GO" for line in re.split(r"\r\n|[\n\r\x0b\x0c\x85\u2028\u2029]", text)):
-        raise Refused("SQL holds a line starting with ':' or a GO line, or '$(': not accepted")
+    rewritten(text)
     clean, code, i, n = [], [], 0, len(text)
     while i < n:
         two, ch = text[i:i + 2], text[i]
@@ -111,6 +115,9 @@ def validate_select(text):
             code.append(ch)
             i += 1
     sql, masked = "".join(clean).strip(), "".join(code).strip()
+    rewritten(sql)  # again on the text that is sent: removing a comment can leave a line that starts with ':' or equals GO
+    if re.search(r"[^\x00-\x7f]", masked):  # SQL Server reads some non-ASCII characters (zero-width space...) as white space or letters where these checks do not: names with them go in [brackets]
+        raise Refused("SQL holds a non-ASCII character outside a string or [bracketed name]")
     if masked.endswith(";"):
         sql, masked = sql[:-1].rstrip(), masked[:-1].rstrip()
     if not masked or ";" in masked or not re.match(r"SELECT\b", masked, re.I):
