@@ -1,0 +1,1 @@
+# DATA_DESIGN_CHECKLIST I3: @Transactional use cases that reach an external-call port, directly or through an application helper (full class names). Shrink only: ArchitectureRulesTest#noExternalCallInATransaction.

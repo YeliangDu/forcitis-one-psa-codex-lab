@@ -126,6 +126,8 @@ class OpenApiExportTest {
             "TaskDetailResponse.taskId", "TaskDetailResponse.instanceId", "TaskDetailResponse.documentId", "TaskOverviewResponse.taskId", "TaskOverviewResponse.documentId",
             "InboxItemResponse.documentId", "parameter taskId", "StoredFileResponse.fileId", "FileStatusResponse.fileId", "parameter fileId",
             "parameter orgUnitId", "parameter employeeId", "parameter positionId",
+            "PublishStandardHoursRequest.legalEntityId", "PublishedStandardHoursResponse.standardHoursVersionId", "VoidedStandardHoursResponse.standardHoursVersionId",
+            "StandardHoursVersionResponse.standardHoursVersionId", "StandardHoursVersionResponse.legalEntityId", "StandardHoursVersionResponse.confirmedBy", "parameter standardHoursVersionId",
             "EnterPersonnelCommandRequest.employeeId", "EnterPersonnelCommandRequest.targetOrgUnitId", "EnterPersonnelCommandRequest.targetPositionId", "EnterPersonnelCommandRequest.targetLegalEntityId", "EnterPersonnelCommandRequest.targetAssignmentId",
             "EnterPersonnelCommandRequest.targetReportsToEmployeeId", "EnterOrgStructureCommandRequest.targetOrgUnitId", "EnterOrgStructureCommandRequest.targetPositionId", "EnterOrgStructureCommandRequest.targetParentOrgUnitId",
             "EnterOrgStructureCommandRequest.targetHeadEmployeeId", "EnterOrgStructureCommandRequest.targetReceivablesManagerEmployeeId", "EnterOrgStructureCommandRequest.mergeIntoOrgUnitId",

@@ -63,4 +63,36 @@ class ReadModelGuardTest {
         assertThat(problems).hasSize(1);
         assertThat(problems.getFirst()).contains("ListThings").contains("ThingRepository");
     }
+
+    // DATA_DESIGN_CHECKLIST section 14 row 9, all modules: a List* / Search* use case never goes through a write repository. Gaps that were there when this arrived are listed and may only shrink.
+    static final java.nio.file.Path GAPS = java.nio.file.Path.of("architecture/read-model-gaps.txt");
+    static final Pattern LISTING = Pattern.compile("(List|Search).*");
+
+    static List<String> listingsOnRepositories(JavaClasses classes) {
+        java.util.Set<String> found = new java.util.TreeSet<>();
+        for (JavaClass type : classes) {
+            if (type.getPackageName().matches(".*\\.application(\\..*)?") && LISTING.matcher(type.getSimpleName()).matches() && !type.isInterface()) {
+                for (Dependency dependency : type.getDirectDependenciesFromSelf()) {
+                    JavaClass target = dependency.getTargetClass();
+                    if (target.getSimpleName().endsWith("Repository") && target.getPackageName().endsWith(".domain")) {
+                        found.add(type.getName());
+                    }
+                }
+            }
+        }
+        return new ArrayList<>(found);
+    }
+
+    @Test
+    @DisplayName("DDD-9 a List* / Search* use case in any module does not depend on a write repository; the gaps may only shrink")
+    void listingsStayOffWriteRepositories() throws java.io.IOException {
+        List<String> gaps = java.nio.file.Files.readAllLines(GAPS).stream().filter(l -> !l.isBlank() && !l.startsWith("#")).toList();
+        List<String> found = listingsOnRepositories(ArchitectureRulesTest.CLASSES);
+        assertThat(found.stream().filter(c -> !gaps.contains(c)).toList()).as(GuardMessage.of("DDD-9", "a List* / Search* use case depends on a write repository",
+                "read through a *Queries port; do not add it to backend/architecture/read-model-gaps.txt")).isEmpty();
+        assertThat(gaps.stream().filter(c -> !found.contains(c)).toList()).as(GuardMessage.of("DDD-9", "backend/architecture/read-model-gaps.txt lists a class that no longer depends on a write repository, or no longer exists",
+                "delete the line (the list may only shrink)")).isEmpty();
+        JavaClasses fixture = new ClassFileImporter().withImportOption(ImportOption.Predefined.ONLY_INCLUDE_TESTS).importPackages("com.forcitis.one.fixture.readmodel");
+        assertThat(listingsOnRepositories(fixture)).as("injected: ListThings on ThingRepository is caught, GetThing is not a listing").containsExactly("com.forcitis.one.fixture.readmodel.application.ListThings");
+    }
 }

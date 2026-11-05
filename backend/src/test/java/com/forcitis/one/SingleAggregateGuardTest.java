@@ -111,4 +111,40 @@ class SingleAggregateGuardTest {
         assertThat(transactionSaving(guard -> guard.observe(eventNaming()), timesheet, counter)).hasSize(1);
         assertThat(transactionSaving(guard -> guard.observe(eventNaming("NumberingRule")), timesheet, counter)).isEmpty();
     }
+
+    // DDD-1 / G-T1, whole surface and static: a @Transactional use case, with the application helpers it calls, writes through at most one aggregate repository.
+    // The aspect above sees only save / insert in two modules' ITs. A repository method counts as a write unless its name starts like a read.
+    static final java.util.regex.Pattern READ = java.util.regex.Pattern.compile("(find|get|load|list|exists|count|search|read|is|has|query|select|fetch|lookup|resolve|peek|contains|stream|all|by|view|check|verify|validate|current|latest|open|pending)[A-Z0-9_].*|(find|get|load|list|count|exists|all|stream|current|latest)");
+    static final Path GAPS = Path.of("architecture/single-aggregate-gaps.txt");
+
+    /** use case class -> the aggregate repositories one of its transactions writes, for those that write two or more. */
+    static java.util.Map<String, java.util.Set<String>> multiRepositoryWriters(com.tngtech.archunit.core.domain.JavaClasses classes) {
+        java.util.Map<String, java.util.Set<String>> found = new java.util.TreeMap<>();
+        for (com.tngtech.archunit.core.domain.JavaClass type : classes) {
+            for (com.tngtech.archunit.core.domain.JavaMethod entry : TransactionalUseCases.entries(type)) {
+                java.util.Set<String> written = new java.util.TreeSet<>();
+                TransactionalUseCases.reachableAccesses(entry).stream().filter(a -> a.owner().getSimpleName().endsWith("Repository") && a.owner().getPackageName().endsWith(".domain")
+                        && !READ.matcher(a.name()).matches()).forEach(a -> written.add(a.owner().getSimpleName()));
+                if (written.size() > 1) {
+                    found.merge(type.getName(), written, (x, y) -> { x.addAll(y); return x; });
+                }
+            }
+        }
+        return found;
+    }
+
+    @Test
+    @DisplayName("DDD-1 a @Transactional use case writes through at most one aggregate repository, unless registered; the gaps may only shrink")
+    void useCasesWriteOneAggregate() throws IOException {
+        java.util.Map<String, java.util.Set<String>> found = multiRepositoryWriters(ArchitectureRulesTest.CLASSES);
+        List<String> registered = Files.readAllLines(EXCEPTIONS).stream().filter(l -> !l.isBlank() && !l.startsWith("#")).map(l -> l.split("\\|")[0].trim()).toList();
+        List<String> gaps = Files.readAllLines(GAPS).stream().filter(l -> !l.isBlank() && !l.startsWith("#")).toList();
+        assertThat(found.keySet().stream().filter(c -> !registered.contains(c) && !gaps.contains(c)).map(c -> c + " writes " + found.get(c)).toList()).as(GuardMessage.of("DDD-1",
+                "a @Transactional use case writes through two or more repositories (aggregates)", "split it into one transaction per aggregate joined by a domain event, or register it in multi-aggregate-exceptions.txt with a reason; never add it to single-aggregate-gaps.txt")).isEmpty();
+        assertThat(gaps.stream().filter(c -> !found.containsKey(c)).toList()).as(GuardMessage.of("DDD-1",
+                "backend/architecture/single-aggregate-gaps.txt lists a use case that no longer writes two repositories, or no longer exists", "delete the line (the list may only shrink)")).isEmpty();
+        com.tngtech.archunit.core.domain.JavaClasses fixture = new com.tngtech.archunit.core.importer.ClassFileImporter().withImportOption(com.tngtech.archunit.core.importer.ImportOption.Predefined.ONLY_INCLUDE_TESTS)
+                .importPackages("com.forcitis.one.fixture.twoaggregates");
+        assertThat(multiRepositoryWriters(fixture).keySet()).as("injected: the use case writing two repositories is caught, also through a helper and a method reference; the one writing one is not").containsExactly("com.forcitis.one.fixture.twoaggregates.application.WritesTwo", "com.forcitis.one.fixture.twoaggregates.application.WritesViaHelper");
+    }
 }

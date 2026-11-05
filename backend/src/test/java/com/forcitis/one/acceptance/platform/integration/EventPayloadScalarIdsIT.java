@@ -97,6 +97,17 @@ class EventPayloadScalarIdsIT {
         return SecurityMockMvcRequestPostProcessors.user(principal).authorities(authorities);
     }
 
+    /** A grant is refused to a person the org directory does not list as employed (#1322), so the account's employee is an EMPLOYED snapshot row with an assignment. */
+    private void employedInTheDirectory(UUID employee) throws SQLException {
+        UUID unit = UUID.randomUUID();
+        String serial = employee.toString().substring(24);
+        try (Connection workforce = schemaConnection("organization_workforce"); Statement statement = workforce.createStatement()) {
+            statement.executeUpdate("insert into org_units (id, name, status) values ('" + unit + "', 'scalar-ids unit', 'ACTIVE')");
+            statement.executeUpdate("insert into employees (id, employee_code, display_name, employment_status) values ('" + employee + "', 'SI" + serial + "', 'Scalar ids person', 'EMPLOYED')");
+            statement.executeUpdate("insert into assignments (employee_id, org_unit_id) values ('" + employee + "', '" + unit + "')");
+        }
+    }
+
     private Connection schemaConnection(String schema) throws SQLException {
         HikariDataSource pool = dataSource.unwrap(HikariDataSource.class);
         Connection connection = DriverManager.getConnection(pool.getJdbcUrl(), pool.getUsername(), pool.getPassword());
@@ -209,6 +220,7 @@ class EventPayloadScalarIdsIT {
     void accountEventsCarryScalarUserAndRoleIds() throws Exception {
         UUID user = UUID.randomUUID();
         UUID employee = UUID.randomUUID();
+        employedInTheDirectory(employee);
         try (Connection identity = schemaConnection("platform_identity"); PreparedStatement account = identity.prepareStatement(
                 "insert into user_accounts (user_id, employee_id) values (?, ?) on conflict do nothing")) {
             account.setObject(1, user);

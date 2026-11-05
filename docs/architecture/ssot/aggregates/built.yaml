@@ -1,7 +1,7 @@
 # 由 panorama/scan_aggregates.py 生成，勿手改
 meta:
-  count: 18
-  code_only: 7
+  count: 19
+  code_only: 8
   registry_only: 0
   both: 11
   sources:
@@ -36,6 +36,23 @@ aggregates:
   - cost.timesheet.TimesheetRejected
   - cost.timesheet.TimesheetReturned
   - cost.timesheet.TimesheetSubmitted
+- id: organization.attendance/StandardHours
+  bc: organization.attendance
+  root_class: backend/src/main/java/com/forcitis/one/organization/attendance/domain/StandardHours.java
+  source:
+  - code
+  tables:
+  - organization_attendance.standard_hours_date_overrides
+  - organization_attendance.standard_hours_versions
+  commands:
+  - PublishStandardHoursVersion
+  - VoidStandardHoursVersion
+  events:
+  - organization.attendance.StandardHoursVersionPublished
+  events_in_module:
+  - organization.attendance.StandardHoursVersionPublished
+  - organization.attendance.WorkCalendarLockedDaysChanged
+  - organization.attendance.WorkCalendarYearMaintained
 - id: organization.attendance/WorkCalendarYear
   bc: organization.attendance
   root_class: backend/src/main/java/com/forcitis/one/organization/attendance/domain/WorkCalendarYear.java
@@ -49,6 +66,10 @@ aggregates:
   - CalendarMaintenance
   - WorkCalendarYearView
   events:
+  - organization.attendance.WorkCalendarLockedDaysChanged
+  - organization.attendance.WorkCalendarYearMaintained
+  events_in_module:
+  - organization.attendance.StandardHoursVersionPublished
   - organization.attendance.WorkCalendarLockedDaysChanged
   - organization.attendance.WorkCalendarYearMaintained
 - id: organization.workforce/EmployeeLegalEntityChange
@@ -370,6 +391,7 @@ aggregates:
   - AuthorizationRequestView
   - AuthorizationVoiding
   - ConfirmAuthorizationRequest
+  - HandleEmployeeSeparated
   - ListAuthorizationRequests
   - RejectAuthorizationRequest
   - ReplaceAccountRoles
@@ -585,6 +607,7 @@ aggregates:
   - ReplaceAccountRoles
   - RevokeRoleByOperations
   - SessionPrincipals
+  - SubjectEmployment
   events:
   - platform.identity.AccountDisabled
   - platform.identity.AccountEnabled
