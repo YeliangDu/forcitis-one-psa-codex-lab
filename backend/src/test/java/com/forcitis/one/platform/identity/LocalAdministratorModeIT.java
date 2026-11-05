@@ -32,6 +32,34 @@ class LocalAdministratorModeIT extends IdentityIntegrationTest {
     @Autowired
     MeterRegistry meters;
 
+    @Autowired
+    com.forcitis.one.kernel.SettableClock settable;
+
+    @org.junit.jupiter.api.AfterEach
+    void realTime() {
+        settable.reset();
+        clock.reset();
+    }
+
+    /** Under the profile local one clock serves both; here the sessions read the test clock, so it follows the endpoint whenever the endpoint moved. */
+    private int moveClock(java.time.Instant at) throws Exception {
+        java.time.Duration by = java.time.Duration.between(clock.instant(), at);
+        int status = mvc.perform(post("/api/v1/platform/local-clocks:set").with(xsrf()).contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .content("{\"at\":\"" + at + "\"}")).andReturn().getResponse().getStatus();
+        if (status == 200) {
+            clock.advance(by);
+        }
+        return status;
+    }
+
+    private int resetClock() throws Exception {
+        int status = mvc.perform(post("/api/v1/platform/local-clocks:reset").with(xsrf())).andReturn().getResponse().getStatus();
+        if (status == 200) {
+            clock.reset();
+        }
+        return status;
+    }
+
     @BeforeEach
     void people() {
         knownEmployee(1001, EmploymentStatus.EMPLOYED);
@@ -106,5 +134,30 @@ class LocalAdministratorModeIT extends IdentityIntegrationTest {
     @DisplayName("#1499 no session, no mode")
     void needsASession() throws Exception {
         assertThat(mvc.perform(post(ENTER).with(xsrf())).andReturn().getResponse().getStatus()).isIn(401, 403);
+    }
+
+    @Test
+    @DisplayName("#1499 the clock cannot be moved back to lengthen a running administrator mode")
+    void clockBackWhileOpen() throws Exception {
+        Cookie elevated = new Cookie("SESSION", cookie(enter(login(accountOf(1002))), "SESSION"));
+        java.time.Instant now = java.time.Instant.now();
+
+        assertThat(moveClock(now.minus(java.time.Duration.ofDays(1)))).isEqualTo(409);
+        assertThat(moveClock(now.plus(java.time.Duration.ofMinutes(30)))).as("forward is allowed: it can only shorten the mode").isEqualTo(200);
+        assertThat(mvc.perform(get(ROLES).cookie(elevated)).andReturn().getResponse().getStatus()).isEqualTo(200);
+        assertThat(moveClock(now.plus(java.time.Duration.ofMinutes(5)))).as("back inside the hour, still before its end").isEqualTo(409);
+    }
+
+    @Test
+    @DisplayName("#1499 the clock cannot be moved back after the mode ended, so an ended mode does not become valid again")
+    void clockBackAfterEnd() throws Exception {
+        Cookie elevated = new Cookie("SESSION", cookie(enter(login(accountOf(1002))), "SESSION"));
+        java.time.Instant now = java.time.Instant.now();
+
+        assertThat(moveClock(now.plus(java.time.Duration.ofMinutes(61)))).isEqualTo(200);
+        assertThat(mvc.perform(get(ROLES).cookie(elevated)).andReturn().getResponse().getStatus()).as("the hour is over").isEqualTo(403);
+        assertThat(moveClock(now.plus(java.time.Duration.ofMinutes(1)))).isEqualTo(409);
+        assertThat(resetClock()).as("the real time is also earlier than the end").isEqualTo(409);
+        assertThat(mvc.perform(get(ROLES).cookie(elevated)).andReturn().getResponse().getStatus()).as("no revival").isEqualTo(403);
     }
 }

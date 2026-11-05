@@ -3,13 +3,16 @@ package com.forcitis.one.platform.web;
 import com.forcitis.one.kernel.LocalDueJobs;
 import com.forcitis.one.kernel.PublicEndpoint;
 import com.forcitis.one.kernel.SettableClock;
+import java.time.Instant;
 import java.util.List;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 /** Card #1478: set, read and reset the clock of a developer's own machine. Exists only in the profile local; elsewhere the paths are not mapped. */
 @RestController
@@ -25,6 +28,13 @@ class LocalClockController {
         this.dueJobs = dueJobs;
     }
 
+    /** Card #1499: moving the clock back must not revive or lengthen an administrator mode started on this machine. */
+    private void refuseWhenItRevivesAMode(Instant moment) {
+        if (!clock.accepts(moment)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "the clock cannot move back before the end of an administrator mode started on this machine; restart the stack");
+        }
+    }
+
     @GetMapping("/local-clocks")
     @PublicEndpoint(reason = "Profile local only (card #1478): reads the settable clock of this machine")
     LocalClockResponse read() {
@@ -34,6 +44,7 @@ class LocalClockController {
     @PostMapping("/local-clocks:set")
     @PublicEndpoint(reason = "Profile local only (card #1478): sets the clock of this machine to a moment, so a golden date can be replayed as today, and runs the daily jobs once for it")
     LocalClockResponse set(@RequestBody LocalClockRequest request) {
+        refuseWhenItRevivesAMode(request.at());
         clock.set(request.at());
         dueJobs.forEach(LocalDueJobs::runOnce);
         return read();
@@ -42,6 +53,7 @@ class LocalClockController {
     @PostMapping("/local-clocks:reset")
     @PublicEndpoint(reason = "Profile local only (card #1478): puts the clock of this machine back to the real time")
     LocalClockResponse reset() {
+        refuseWhenItRevivesAMode(clock.resetMoment());
         clock.reset();
         return read();
     }

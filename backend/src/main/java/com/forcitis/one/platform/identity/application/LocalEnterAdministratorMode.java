@@ -3,6 +3,7 @@ package com.forcitis.one.platform.identity.application;
 import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.SettableClock;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
@@ -41,9 +42,11 @@ public class LocalEnterAdministratorMode {
     private final ClientOrigin origin;
     private final MeterRegistry meters;
     private final TransactionTemplate transaction;
+    private final SettableClock clock;
 
     LocalEnterAdministratorMode(CurrentUser currentUser, SessionContext session, SessionRegistry sessions, AccountRepository accounts, AuditLog audit,
-            ClientOrigin origin, MeterRegistry meters, PlatformTransactionManager transactions) {
+            ClientOrigin origin, MeterRegistry meters, PlatformTransactionManager transactions, SettableClock clock) {
+        this.clock = clock;
         this.transaction = new TransactionTemplate(transactions);
         this.currentUser = currentUser;
         this.session = session;
@@ -66,6 +69,7 @@ public class LocalEnterAdministratorMode {
             throw refused(userId, "super_admin is not held");
         }
         Instant until = sessions.beginAdministratorMode();
+        clock.holdUntil(until);   // the hour is read from this clock: moving it back must not revive or lengthen the mode
         transaction.executeWithoutResult(status -> audit.record(new AuditEntry("platform.identity.administrator-mode.entered", userId, null,
                 AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()), "until " + until + " (local test login, no WeCom proof)")
                 .withTrace(origin.address(), AuditOutcome.SUCCEEDED, session.loginMethod().auditKind())));
