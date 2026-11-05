@@ -198,7 +198,7 @@ User, verbatim, 2026-11-05: 「均采纳，监管部门有明确法规且和企�
 
 ## 9a. Payroll seam (what payroll reads from this context)
 
-Full payroll design stays the W4 card (B-15, AGG-73, 93, 119). This section fixes only what payroll reads from `organization.leave`, because it decides the shape of AGG-97 and of the ledger. Sources: `planned.yaml` AGG-73, closeout `commands.yaml` (计算月度薪酬, PRC-178), RULE-516; the legacy payroll forms (`formmain_0800/0858/0864/1318`, unpaid-leave form `0863`) are read in L0 as definitions only. A line marked **open** needs the legacy definition or the user.
+Full payroll design stays the W4 card (B-15, AGG-73, 93, 119). This section fixes only what payroll reads from `organization.leave`, because it decides the shape of AGG-97 and of the ledger. Sources: `planned.yaml` AGG-73, closeout `commands.yaml` (计算月度薪酬; the calculation process is PRC-124, PRC-178 is only the comp-time-to-pay conversion), RULE-516; the legacy payroll forms (`formmain_0800/0858/0864/1318`, unpaid-leave form `0863`) are read in L0 as definitions only. A line marked **open** needs the legacy definition or the user.
 
 | Fact payroll reads | Grain | Source in this context | Frozen when | Status |
 |---|---|---|---|---|
