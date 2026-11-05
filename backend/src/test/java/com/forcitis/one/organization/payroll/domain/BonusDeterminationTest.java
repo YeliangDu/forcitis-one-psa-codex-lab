@@ -26,7 +26,7 @@ class BonusDeterminationTest {
         refused(LocalDate.of(2026, 10, 2), "1500.50", "CNY", "YEAR_END");
         refused(MONTH, "0.00", "CNY", "YEAR_END");
         refused(MONTH, "-1.00", "CNY", "YEAR_END");
-        refused(MONTH, "123456789012345678.00", "CNY", "YEAR_END");
+        refused(MONTH, "9".repeat(18) + ".00", "CNY", "YEAR_END");
         refused(MONTH, "1.00", "USD", "YEAR_END");
         refused(MONTH, "1.00", "CNY", "year_end");
         refused(MONTH, "1.00", "CNY", "Y");
