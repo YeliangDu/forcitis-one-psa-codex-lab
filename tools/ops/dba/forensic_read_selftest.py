@@ -263,12 +263,21 @@ def main():
         finally:
             subprocess.run = real_run
         # a refusal from the command, a command of another revision, a command that did not run: fixed messages, nothing written
-        for text, why in (("REV:abc\nREFUSED:database not allowed\n", "refused"), ("REV:stale\nEVIDENCE:QUJD\n", "not the repository revision"), ("", "not the repository revision")):
+        for text, why in (("REV:abc\nREFUSED:database not allowed\n", "refused the request (database not allowed)"), ("REV:stale\nEVIDENCE:QUJD\n", "not the repository revision"), ("", "not the repository revision")):
             class One(Fake):
                 def invoke(self, instance, request, timeout=600):
                     return "Success", text
             code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", checked=True, factory=lambda conf: One([], [], None))
             assert code == 2 and why in err and not Path(path).exists(), (text, err)
+        # the answer check itself, with the real computed revision: a good answer passes, a failed invocation of the right command is refused, a stale one is refused
+        rev = f.command_rev(CONF_WITH_PUB(tmp))
+        assert f.answer("Success", f"REV:{rev}\nEVIDENCE:QUJD\n", rev).startswith("REV:")
+        for status, text, why in (("Failed", f"REV:{rev}\n", "did not succeed (Failed)"), ("Success", f"REV:{rev}x\n", "not the repository revision"), ("Success", f"REV:{rev}\nREFUSED:x\n", "refused the request (x)")):
+            try:
+                f.answer(status, text, rev)
+                raise AssertionError("answer accepted: " + why)
+            except f.Refused as error:
+                assert why in str(error), str(error)
     # the entry's source holds no production fingerprint (the gate would refuse the command otherwise, and identifiers belong in the local config)
     table = json.loads(Path(f.REPO, "scripts", "gates", "prod_targets.json").read_text())["targets"]
     folded = re.sub(r"[^0-9a-z]", "", "".join((HERE / n).read_text().lower() for n in ("forensic_read.py", "forensic_read_selftest.py", "forensic_command.py", "forensic_command_selftest.py", "forensic_server.py")))
