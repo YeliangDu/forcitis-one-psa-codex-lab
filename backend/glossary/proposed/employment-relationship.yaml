@@ -4,7 +4,7 @@ terms:
   zh: 雇佣关系
   en: EmploymentRelationship
   snake: employment_relationship
-  kind: aggregate
+  kind: entity
   bc: organization.workforce
   scope: domain
   definition: 员工聚合内的实体，一个自然人与一个用人单位之间的在职关系；同一人可同时有多段（不同用人单位），同一人与同一用人单位只有一段，复职沿用；用人单位建立后不变
@@ -116,7 +116,7 @@ terms:
   zh: 雇佣关系版本
   en: EmploymentRelationshipVersions
   snake: employment_relationship_versions
-  kind: read_model
+  kind: entity
   bc: organization.workforce
   scope: domain
   definition: 员工版本表在结构 PR 中更名后的名称，按雇佣关系保存在职状态、阶段、停薪留职与入职日期的生效区间
