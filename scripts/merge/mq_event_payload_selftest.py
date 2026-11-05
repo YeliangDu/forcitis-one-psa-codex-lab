@@ -103,3 +103,56 @@ def run(mq, d):
         assert mq.Queue(queue).numbers() == [2, 7]
     finally:
         mq.Gh, mq.repo_root = real_gh, real_root
+    # #1406: a code PR may ship a payload signed in an open docs PR whose newest review on its current head is 通过, equal message by message
+    def frag(**k):   # main has moved on: its Beta is `later`
+        return fragment(**{"b_fields": "id,later", **k})
+    sign = {20: pr(author, 20, {FRAG: frag(a_fields="id,sig")}),                                   # the signed text: Alpha gains `sig`
+            21: pr(author, 21, {FRAG: frag(a_fields="id,sig")}),                                   # code PR shipping exactly it
+            22: pr(author, 22, {FRAG: frag(a_fields="id,other")}),                                 # code PR shipping a different Alpha
+            23: pr(author, 23, {FRAG: frag(a_fields="id,sig", b_fields="id,extra")}),              # Alpha as signed, Beta not signed anywhere
+            24: pr(author, 24, {FRAG: frag(b_fields="id,beta")}),                                  # a second signed text for Beta
+            25: pr(author, 25, {FRAG: frag(a_fields="id,sig", b_fields="id,beta")})}               # Alpha and Beta both as the two signers have them
+    def verdict(head, word="通过", kind="首轮", at="2026-11-05T10:00:00Z", commit=None):
+        return {"body": f"复审结论：{word}\ncommit：{head}\n复审者：opus-{kind}-x\n\n正文", "commit": commit or head, "at": at}
+    states = {20: ("docs(x): 设计签字（#20）", [verdict(sign[20])]), 24: ("docs(x): 设计签字（#24）", [verdict(sign[24])])}
+    bodies = {}
+    closed = set()
+
+    class Signing:
+        def view(self, n):
+            title = states[n][0] if n in states else {n: f"feat(x): 实现（#{n}）" for n in (21, 22, 23, 25)}.get(n)
+            return {"state": "CLOSED" if n in closed else "OPEN", "merge": "CLEAN", "labels": [], "branch": "b", "head": sign[n], "title": title, "body": bodies.get(n, "Closes #1\n")} if title else None
+        def reviews(self, n):
+            return states[n][1]
+    def refused_for(n, body, over=()):
+        over = dict(over)
+        bodies[n] = body
+        saved = {k: states.get(k) for k in over}
+        states.update(over)
+        try:
+            with contextlib.redirect_stderr(io.StringIO()):
+                mq_event_payload.enforce(runner, Signing(), [n])
+            return None
+        except SystemExit as e:
+            return str(e)
+        finally:
+            for k, v in saved.items():
+                states.pop(k, None) if v is None else states.__setitem__(k, v)
+    assert refused_for(21, "Closes #1\nPayload-Signed: #20\n") is None, "a signed payload ships with the code"
+    assert "#21" in (refused_for(21, "Closes #1\n") or ""), "no Payload-Signed line: refused"
+    assert "#21" in (refused_for(21, "Payload-Signed: #20 and more text\n") or ""), "the line must be exactly the form"
+    assert "#22" in (refused_for(22, "Payload-Signed: #20\n") or ""), "a payload that differs from the signed one is refused"
+    assert "#21" in (refused_for(21, "Payload-Signed: #99\n") or ""), "an unknown signer signs nothing"
+    assert "#21" in (refused_for(21, "Payload-Signed: #20\n", {20: ("feat(x): 不是设计（#20）", [verdict(sign[20])])}) or ""), "a signer that is not of the docs type signs nothing"
+    closed.add(20)
+    assert "#21" in (refused_for(21, "Payload-Signed: #20\n") or ""), "a signer that is closed signs nothing"
+    closed.clear()
+    assert "#21" in (refused_for(21, "Payload-Signed: #20\n", {20: ("docs(x): 设计签字（#20）", [])}) or ""), "no verdict: refused"
+    assert "#21" in (refused_for(21, "Payload-Signed: #20\n", {20: ("docs(x): 设计签字（#20）", [verdict(sign[20], word="必改")])}) or ""), "a 必改 verdict signs nothing"
+    assert "#21" in (refused_for(21, "Payload-Signed: #20\n", {20: ("docs(x): 设计签字（#20）", [verdict(sign[20]), verdict(sign[20], word="必改", at="2026-11-05T11:00:00Z")])}) or ""), "the newest statement decides"
+    assert "#21" in (refused_for(21, "Payload-Signed: #20\n", {20: ("docs(x): 设计签字（#20）", [verdict(heads[1], commit=heads[1])])}) or ""), "a verdict on another commit than the signer's head signs nothing"
+    assert "#21" in (refused_for(21, "Payload-Signed: #20\n", {20: ("docs(x): 设计签字（#20）", [verdict(sign[20], commit=heads[1])])}) or ""), "a review posted on another commit than its header names signs nothing"
+    partial = refused_for(23, "Payload-Signed: #20\n") or ""
+    assert "Beta" in partial and "Alpha" not in partial, "only the signed message passes, the other is still refused: " + partial
+    assert refused_for(23, "Payload-Signed: #20\nPayload-Signed: #24\n") is not None, "Beta differs from the second signer's Beta too"
+    assert refused_for(25, "Payload-Signed: #20\nPayload-Signed: #24\n") is None, "two signers cover the two messages"
