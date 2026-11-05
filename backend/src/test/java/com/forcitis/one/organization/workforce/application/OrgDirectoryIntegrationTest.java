@@ -63,10 +63,10 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     private void notYetInPost(long person) {
         java.time.LocalDate start = java.time.LocalDate.ofInstant(clock.instant(), java.time.ZoneOffset.UTC).plusDays(30);
         jdbc.sql("""
-                insert into organization_workforce.employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+                insert into organization_workforce.employment_relationship_versions (employment_relationship_version_id, employment_relationship_id, employee_id, effective_from_date, revision_number, employment_status,
                   employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind, change_channel_kind, created_at, updated_at)
-                values (gen_random_uuid(), ?, ?, 0, 'EMPLOYED', 'REGULAR', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', now(), now())
-                """).param(TestAccounts.employee(person).value()).param(start).param(start).update();
+                values (gen_random_uuid(), ?, ?, ?, 0, 'EMPLOYED', 'REGULAR', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', now(), now())
+                """).param(EmploymentRelationshipSeed.relationship(jdbc, TestAccounts.employee(person).value())).param(TestAccounts.employee(person).value()).param(start).param(start).update();
     }
 
     @Test

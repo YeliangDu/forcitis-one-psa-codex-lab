@@ -97,8 +97,8 @@ class PersonnelCommandEndpointsIntegrationTest extends WorkforceIntegrationSuppo
         UUID command = Uuids.timeOrdered(clock);
         UUID hold = Uuids.timeOrdered(clock);
         jdbc.sql("""
-                insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
-                values (:command, :employee, 'SEPARATE', :day, 'HELD', now(), :by, now())""").param("command", command).param("employee", person.employee())
+                insert into organization_workforce.personnel_commands (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
+                values (:command, :relationship, :employee, 'SEPARATE', :day, 'HELD', now(), :by, now())""").param("command", command).param("relationship", com.forcitis.one.organization.workforce.application.EmploymentRelationshipSeed.relationship(jdbc, person.employee())).param("employee", person.employee())
                 .param("day", zone.today(clock)).param("by", Uuids.timeOrdered(clock)).update();
         jdbc.sql("""
                 insert into organization_workforce.separation_holds (separation_hold_id, personnel_command_id, employee_id, status, created_at, updated_at)

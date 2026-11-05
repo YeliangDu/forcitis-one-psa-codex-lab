@@ -7,6 +7,7 @@ import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
+import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.Gender;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
@@ -24,7 +25,8 @@ record EnterPersonnelCommandRequest(@Nullable UUID employeeId, @Nullable Personn
                                     @Nullable UUID targetReportsToEmployeeId, @Nullable Boolean isTargetFeeEarner,
                                     @Nullable EmploymentPhaseKind targetEmploymentPhaseKind, @Nullable UUID targetLegalEntityId,
                                     @Nullable String displayName, @Nullable Gender gender, @Nullable String email, @Nullable String wecomUserId,
-                                    @Nullable UUID targetAssignmentId) {
+                                    @Nullable UUID targetAssignmentId, @Nullable UUID targetEmployerLegalEntityId, @Nullable UUID predecessorRelationshipId,
+                                    @Nullable UUID employmentRelationshipId) {
 
     EnterPersonnelCommand toCommand() {
         if (commandKind == null) {
@@ -37,6 +39,9 @@ record EnterPersonnelCommandRequest(@Nullable UUID employeeId, @Nullable Personn
                 targetOrgUnitId == null ? null : new OrgUnitId(targetOrgUnitId), targetPositionId == null ? null : new PositionId(targetPositionId),
                 targetReportsToEmployeeId == null ? null : new EmployeeId(targetReportsToEmployeeId), isTargetFeeEarner, targetEmploymentPhaseKind,
                 targetLegalEntityId == null ? null : new LegalEntityId(targetLegalEntityId), displayName, gender, email, wecomUserId == null ? null : new WecomUserId(wecomUserId),
-                targetAssignmentId == null ? null : new AssignmentId(targetAssignmentId));
+                targetAssignmentId == null ? null : new AssignmentId(targetAssignmentId),
+                targetEmployerLegalEntityId == null ? null : new LegalEntityId(targetEmployerLegalEntityId),
+                predecessorRelationshipId == null ? null : new EmploymentRelationshipId(predecessorRelationshipId),
+                employmentRelationshipId == null ? null : new EmploymentRelationshipId(employmentRelationshipId));
     }
 }

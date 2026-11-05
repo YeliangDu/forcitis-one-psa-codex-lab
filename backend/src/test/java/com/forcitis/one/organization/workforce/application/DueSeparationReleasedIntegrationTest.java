@@ -38,8 +38,8 @@ class DueSeparationReleasedIntegrationTest extends WorkforceIntegrationSupport {
     private UUID futureSeparation(PersonnelSeedSupport.Person person, String hold) {
         UUID command = Uuids.timeOrdered(clock);
         jdbc.sql("""
-                insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
-                values (:command, :employee, 'SEPARATE', :day, 'PENDING', now(), :by, now())""").param("command", command).param("employee", person.employee())
+                insert into organization_workforce.personnel_commands (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
+                values (:command, :relationship, :employee, 'SEPARATE', :day, 'PENDING', now(), :by, now())""").param("command", command).param("relationship", EmploymentRelationshipSeed.relationship(jdbc, person.employee())).param("employee", person.employee())
                 .param("day", zone.today(clock).plusDays(2)).param("by", Uuids.timeOrdered(clock)).update();
         if (hold != null) {
             jdbc.sql("""
