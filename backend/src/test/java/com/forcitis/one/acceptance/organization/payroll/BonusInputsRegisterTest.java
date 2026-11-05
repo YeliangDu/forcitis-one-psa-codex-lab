@@ -73,8 +73,8 @@ class BonusInputsRegisterTest {
         String registry = read("architecture/data-access-registry.yaml");
         int at = registry.indexOf("\n  organization_payroll.bonus_inputs:");
         assertThat(at).as("PY3 record: the registry has a line for organization_payroll.bonus_inputs").isGreaterThanOrEqualTo(0);
-        int next = registry.indexOf("\n\n", at + 1);
-        String entry = registry.substring(at, next < 0 ? registry.length() : next);
+        Matcher next = Pattern.compile("\\n  \\S").matcher(registry);  // the next top-level entry (two-space indent), so a neighbour's lines never count
+        String entry = registry.substring(at, next.find(at + 3) ? next.start() : registry.length());
 
         assertThat(entry).as("PY3 record: role").contains("role: AGGREGATE_ROOT");
         assertThat(entry).as("PY3 record: aggregate").contains("aggregate: BonusDetermination");
@@ -82,20 +82,19 @@ class BonusInputsRegisterTest {
         assertThat(entry).as("PY3 record: only payroll writes").contains("writers: [organization.payroll]");
         assertThat(entry).as("PY3 record: the void is the one update").contains("mutability: CONDITIONAL_UPDATE");
         assertThat(entry).as("PY3 record: a new table").contains("source: NEW");
+        assertThat(entry).as("PY3 record: the condition names the one void and its trigger").contains("condition:").contains("tg_bonus_inputs_change");
     }
 
     @Test
     @DisplayName("#1436 完成标准 2、P-R5：薪酬事件目录里没有任何事件携带奖金金额或原因")
     void noPayrollEventCarriesTheBonusFigureOrReason() throws IOException {
         Path file = Path.of("../docs/architecture/events/payroll.yaml");
-        if (!Files.exists(file)) {
-            return; // no payroll event catalogue yet: nothing carries a figure
-        }
+        org.junit.jupiter.api.Assumptions.assumeTrue(Files.exists(file), "no payroll event catalogue yet: nothing carries a figure");
         String catalogue = Files.readString(file);
         Matcher fields = Pattern.compile("^ {10}(\\w+):\\s*$", Pattern.MULTILINE).matcher(catalogue);
         while (fields.find()) {
             String field = fields.group(1).toLowerCase();
-            assertThat(field).as("P-R5 and PY3 record E1: no event payload field names a bonus amount or reason").doesNotContain("bonusamount", "reasonkey", "bonus_amount", "reason_key");
+            assertThat(field).as("P-R5 and PY3 record E1: no event payload field names a bonus amount or reason").isNotIn("bonusamount", "reasonkey", "bonus_amount", "reason_key");
         }
     }
 }

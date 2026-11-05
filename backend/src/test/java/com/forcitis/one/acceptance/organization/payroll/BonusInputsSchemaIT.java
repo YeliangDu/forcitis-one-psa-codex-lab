@@ -248,13 +248,27 @@ class BonusInputsSchemaIT {
     }
 
     @Test
-    @DisplayName("#1436 完成标准 1：状态只有 ACTIVE 与 VOIDED，ck_bonus_inputs_status")
+    @DisplayName("#1436 完成标准 1：记录列出的七个 CHECK 都以签字的名字存在（含 ck_bonus_inputs_status）")
+    void theSevenSignedChecksExistUnderTheirNames() throws SQLException {
+        for (String name : List.of("ck_bonus_inputs_status", "ck_bonus_inputs_reason_key", "ck_bonus_inputs_void_columns", "ck_bonus_inputs_payroll_month_start_date",
+                "ck_bonus_inputs_bonus_amount", "ck_bonus_inputs_bonus_currency", "ck_bonus_inputs_source_kind")) {
+            assertThat(count("select count(*) from pg_constraint where conrelid = 'organization_payroll.bonus_inputs'::regclass and contype = 'c' and conname = ?", name))
+                    .as("PY3 record Constraints: the CHECK " + name + " exists").isEqualTo(1L);
+        }
+    }
+
+    @Test
+    @DisplayName("#1436 完成标准 1：状态只有 ACTIVE 与 VOIDED：插入 PENDING 被拒绝，有效行改成 PENDING 也被拒绝")
     void theStatusIsActiveOrVoided() throws SQLException {
         Map<String, Object> bad = input(UUID.randomUUID(), MONTH, "YEAR_END");
         bad.put("status", "PENDING");
         // a before-insert trigger (insert only as ACTIVE) may answer before the CHECK does, so the refusal and the empty table are asserted, not the rule's name
         refused(() -> insert(bad));
         assertThat(count("select count(*) from " + TABLE + " where id = ?", bad.get("id"))).as("PY3 record: no row with a status outside ACTIVE and VOIDED").isZero();
+
+        UUID id = active(UUID.randomUUID(), MONTH, "YEAR_END");
+        refused(() -> exec("update " + TABLE + " set status = 'PENDING' where id = ?", id));
+        assertThat(statusOf(id)).as("PY3 record: the only status change is ACTIVE to VOIDED").isEqualTo("ACTIVE");
     }
 
     @Test
@@ -332,7 +346,7 @@ class BonusInputsSchemaIT {
     }
 
     @Test
-    @DisplayName("#1436 完成标准 1：已入库的行不可被改写（金额、原因、月份、关系、审批、录入人、币种、来源、法人）")
+    @DisplayName("#1436 完成标准 1：已入库的行不可被改写（金额、原因、月份、关系、审批、录入人、法人、创建时间）；只改更新时间而不作废也被拒绝")
     void aRowIsNeverEdited() throws SQLException {
         UUID id = active(UUID.randomUUID(), MONTH, "YEAR_END");
         Map<String, Object> edits = new LinkedHashMap<>();
@@ -343,6 +357,8 @@ class BonusInputsSchemaIT {
         edits.put("paying_legal_entity_id", UUID.randomUUID());
         edits.put("approval_instance_id", UUID.randomUUID());
         edits.put("entered_by_user_id", VOIDER);
+        edits.put("created_at", AT.minusDays(1));
+        edits.put("updated_at", AT.plusDays(1));
 
         for (var edit : edits.entrySet()) {
             refused(() -> exec("update " + TABLE + " set " + edit.getKey() + " = ? where id = ?", edit.getValue(), id));
