@@ -2345,3 +2345,20 @@ objects:
   parent: []
   group: CAPINFO 答复新增（2026-10-17）
   source_line: 198
+- id: OBJ-127
+  name: 雇佣关系
+  definition: 一个自然人与一个用人单位（我方法人）之间的在职关系，员工聚合内的实体；同一人可同时有多段（不同用人单位），同一人与同一用人单位只有一段，复职沿用；用人单位建立后不变（继任除外）
+  level: 次级（人员 OBJ-56，聚合内实体）
+  type: 用人单位来源：申报 / 迁入按归属回填待确认
+  key_states: 版本（在职状态、试用或正式、停薪留职，生效区间只追加）；关系本身无状态
+  relations: N → 1 人员（OBJ-56）；→ 1 用人单位（法人主体 OBJ-54）；→ 0..1 前任关系（换用人单位）；← N 任职版本（OBJ-57）；← 请假额度、社保参保（按关系，未建）
+  rules: 拒：一人一用人单位一段；同一关系版本不重叠；用人单位不改（继任记录除外）；在职者有且仅有一个主任职
+  facts: 雇佣关系开始 / 结束 / 转正 / 停薪留职变化 / 更正 → 请假、薪资订阅
+  source: 用户 2026-11-04 议题 #1295 与 #1308 评论 6640981419（采纳 ADR-0086）；设计 docs/architecture/proposals/employment-relationship.md
+  term: 有 employment_relationship（提议，backend/glossary/proposed）
+  scope: 本系统；W0、W2、W4
+  parent_text: OBJ-56
+  parent:
+  - OBJ-56
+  group: 组织与人力
+  source_line: 199
