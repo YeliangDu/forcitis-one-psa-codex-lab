@@ -142,9 +142,10 @@ class EventSequenceContinuityTest {
         checkMany(() -> com.forcitis.one.organization.workforce.domain.PersonnelCommand.enter(
                         new com.forcitis.one.organization.workforce.api.PersonnelCommandId(TestIds.uuid(1)), new EmployeeId(TestIds.uuid(2)),
                         new com.forcitis.one.organization.workforce.api.EnterPersonnelCommand(new EmployeeId(TestIds.uuid(2)),
-                                com.forcitis.one.organization.workforce.api.PersonnelCommandKind.REGULARIZE, TODAY, null, null, null, null, null, null, null, null, null, null),
+                                com.forcitis.one.organization.workforce.api.PersonnelCommandKind.REGULARIZE, TODAY, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+                                new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(TestIds.uuid(4))),
                         new UserId(TestIds.uuid(3)), NOW, TODAY, 7),
-                List.of(c -> c.recordEffect(null, null, null), c -> c.withdraw(new UserId(TestIds.uuid(3)), "synthetic", NOW), c -> c.withdraw(new UserId(TestIds.uuid(3)), " ", NOW)));
+                List.of(c -> c.recordEffect(null, null, null, new com.forcitis.one.organization.workforce.domain.PersonnelHistory(List.of(), List.of(), List.of(), List.of(), List.of(), java.util.Map.of())), c -> c.withdraw(new UserId(TestIds.uuid(3)), "synthetic", NOW), c -> c.withdraw(new UserId(TestIds.uuid(3)), " ", NOW)));
     }
 
     @Test
@@ -194,6 +195,14 @@ class EventSequenceContinuityTest {
                         com.forcitis.one.organization.attendance.domain.StandardHoursScopeTail.empty(), LocalDate.of(2026, 6, 1), LocalDate.of(2026, 6, 1), 480, 420,
                         List.of(), "Synthetic basis", TestAccounts.account(1), NOW, new com.forcitis.one.platform.audit.api.AuditEntryId(TestIds.uuid(50))),
                 List.of(v -> { }));
+    }
+
+    @Test
+    @DisplayName("FiscalPeriod: events are numbered 1..n (the spine records none, the counters stay at zero)")
+    void fiscalPeriod() {
+        checkMany(() -> com.forcitis.one.accounting.period.domain.FiscalYear.open(() -> new com.forcitis.one.accounting.period.api.FiscalPeriodId(TestIds.uuid(6)),
+                        new LegalEntityId(TestIds.uuid(1)), 2026, java.util.Optional.empty(), NOW).get(0),
+                List.of(p -> { }));
     }
 
     @Test

@@ -200,15 +200,16 @@ class SeparationClosesGrantsIT extends GrantStoreSupport {
         UUID command = newCommandId();
         try (java.sql.Connection workforce = schemaConnection("organization_workforce")) {
             try (java.sql.PreparedStatement insert = workforce.prepareStatement("""
-                    insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
-                    values (?, ?, 'SEPARATE', ?, ?, ?, ?, ?)""")) {
+                    insert into personnel_commands (personnel_command_id, employee_id, employment_relationship_id, command_kind, effective_date, status, created_at, created_by, updated_at)
+                    values (?, ?, ?, 'SEPARATE', ?, ?, ?, ?, ?)""")) {
                 insert.setObject(1, command);
                 insert.setObject(2, stored(person.employeeId()));
-                insert.setObject(3, effectiveDate);
-                insert.setString(4, commandStatus);
-                insert.setObject(5, at);
-                insert.setObject(6, person.userId());
-                insert.setObject(7, at);
+                insert.setObject(3, com.forcitis.one.acceptance.EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person.employeeId())));
+                insert.setObject(4, effectiveDate);
+                insert.setString(5, commandStatus);
+                insert.setObject(6, at);
+                insert.setObject(7, person.userId());
+                insert.setObject(8, at);
                 insert.executeUpdate();
             }
             boolean released = "RELEASED".equals(holdStatus);

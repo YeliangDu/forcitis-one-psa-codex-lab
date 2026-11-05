@@ -54,7 +54,7 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
     private static EmployeeSeparated separated(long id, LocalDate effectiveDate) {
         EmployeeId employee = TestAccounts.employee(id);
         return new EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", employee.value()),
-                new PersonnelCommandId(UUID.randomUUID()), employee, effectiveDate);
+                new PersonnelCommandId(UUID.randomUUID()), employee, effectiveDate, new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
     }
 
     private void deliver(EmployeeSeparated event) {
@@ -326,7 +326,7 @@ class EmployeeSeparatedClosesAccessIntegrationTest extends IdentityIntegrationTe
         assertThat(recorded()).filteredOn(e -> e.action().equals(ROLE_REVOKED)).isEmpty();
         assertThat(domainEvents.of(EmergencyAdminDisabled.class)).isEmpty();
 
-        deliver(new EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", employee.value()), command, employee, due));
+        deliver(new EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", employee.value()), command, employee, due, new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1"))));
 
         await().atMost(DELIVERY).untilAsserted(() -> assertThat(roles(1010)).isZero());
         await().atMost(DELIVERY).untilAsserted(() -> assertThat(emergencyEnabled(1010)).isFalse());

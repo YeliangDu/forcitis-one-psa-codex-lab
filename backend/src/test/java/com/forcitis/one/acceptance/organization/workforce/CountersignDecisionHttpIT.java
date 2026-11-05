@@ -173,7 +173,7 @@ class CountersignDecisionHttpIT extends OrgCountersignSupport {
 
     private long versionsWrittenBy(UUID command) throws SQLException {
         long total = 0;
-        for (String table : List.of("employee_versions", "assignment_versions", "employee_legal_entities")) {
+        for (String table : List.of("employment_relationship_versions", "assignment_versions", "employee_legal_entities")) {
             total += (long) rows("select count(*) as n from " + table + " where change_command_id = ?", command).get(0).get("n");
         }
         return total;
@@ -181,7 +181,7 @@ class CountersignDecisionHttpIT extends OrgCountersignSupport {
 
     private long currentVersionsWrittenBy(UUID command) throws SQLException {
         long total = 0;
-        for (String table : List.of("employee_versions", "assignment_versions", "employee_legal_entities")) {
+        for (String table : List.of("employment_relationship_versions", "assignment_versions", "employee_legal_entities")) {
             total += (long) rows("select count(*) as n from " + table + " where change_command_id = ? and superseded_at is null", command).get(0).get("n");
         }
         return total;
@@ -361,7 +361,9 @@ class CountersignDecisionHttpIT extends OrgCountersignSupport {
     @DisplayName("#1170 完成标准第 3 条（先到期的在前，与 id 先后无关）：先录入的请求因工作日历当时有假日而到期更晚，之后日历改掉再录入的请求到期更早；列表里后者在前")
     void theDueDateComesBeforeTheId() throws Exception {
         Staff maintainer = person("org_data_admin");
-        maintainCalendar(maintainer, "{\"calendarDate\":\"" + TODAY.plusDays(1) + "\",\"dayKind\":\"HOLIDAY\"},{\"calendarDate\":\"" + TODAY.plusDays(2) + "\",\"dayKind\":\"HOLIDAY\"}");
+        LocalDate firstWorkday = nextWeekday(TODAY);  // holidays on weekend days would change nothing, so the test places them on the next two weekdays whatever today is
+        LocalDate secondWorkday = nextWeekday(firstWorkday);
+        maintainCalendar(maintainer, "{\"calendarDate\":\"" + firstWorkday + "\",\"dayKind\":\"HOLIDAY\"},{\"calendarDate\":\"" + secondWorkday + "\",\"dayKind\":\"HOLIDAY\"}");
         UUID slow = request(personnel().command(), false, KIND_CHANGE, e1);
         maintainCalendar(maintainer, "");
         UUID quick = request(personnel().command(), false, KIND_CHANGE, e1);
@@ -369,6 +371,14 @@ class CountersignDecisionHttpIT extends OrgCountersignSupport {
         assertThat(dueOf(slow)).isAfter(dueOf(quick));
         assertThat(slow.toString().compareTo(quick.toString())).as("the later entry was made second").isNegative();
         assertThat(listed(headE1, "").stream().map(UUID::fromString)).containsSubsequence(quick, slow);
+    }
+
+    private static LocalDate nextWeekday(LocalDate from) {
+        LocalDate day = from.plusDays(1);
+        while (day.getDayOfWeek() == java.time.DayOfWeek.SATURDAY || day.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
+            day = day.plusDays(1);
+        }
+        return day;
     }
 
     /** Re-maintains 2026 through the attendance endpoint; the first call creates it (If-Match 0), later ones take the stored ETag. */

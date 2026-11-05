@@ -13,6 +13,7 @@ import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.AssignmentId;
+import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
@@ -34,6 +35,7 @@ import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRules;
 import com.forcitis.one.organization.workforce.domain.PersonnelHistory;
+import com.forcitis.one.organization.workforce.domain.RelationshipRow;
 import com.forcitis.one.organization.workforce.domain.SeparationHold;
 import com.forcitis.one.organization.workforce.domain.SeparationHoldCheck;
 import com.forcitis.one.organization.workforce.domain.VersionPlan;
@@ -133,7 +135,7 @@ class PersonnelCommandService implements PersonnelCommands {
         LocalDate today = zone.dateOf(now);
         EmployeeId employee;
         List<OrgStructureCommandId> holding = List.of();
-        if (request.commandKind() == PersonnelCommandKind.HIRE) {
+        if (request.commandKind() == PersonnelCommandKind.HIRE && request.employeeId() == null) {
             employee = newEmployees.create(request, today, now);
         } else {
             employee = existingEmployee(request);
@@ -156,12 +158,15 @@ class PersonnelCommandService implements PersonnelCommands {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ORG_UNIT_MERGE_OPEN, ErrorKind.CONFLICT,
                     "the department has a merge in progress, or one dated on or before " + command.effectiveDate() + "; nobody can be placed there from then on");
         }
-        PersonnelHistory history = commands.load(employee);
+        PersonnelHistory all = commands.load(employee);
+        PersonnelHistory history = bindRelationship(command, request, all, employee, now);
         command.actOnPost(history, () -> commands.primaryRoot(employee, now));
         PersonnelCommandRules.check(command, history);
-        PersonnelCommandRules.requireNoAwaitingOnOrBefore(command, history);
+        PersonnelCommandRules.requireOneCommandPerDay(command, all);
+        PersonnelCommandRules.requirePrimaryNotOnEndingRelationship(command, all);
+        PersonnelCommandRules.requireNoAwaitingOnOrBefore(command, all);
         freeze.requireNotFrozen(command);
-        bases.of(command, history).ifPresent(basis -> {
+        bases.of(command, all).ifPresent(basis -> {
             if (merge != null) {
                 // The merge's transfer is exempt when the person's entity change is the one the merge's heads approved (ADR-0073 guard 1); any other change waits for its own
                 // countersign. The recorder is the system actor, whose account names no employee, so the own-entry check has nobody to test.
@@ -207,7 +212,7 @@ class PersonnelCommandService implements PersonnelCommands {
         } else if (awaiting) {
             requests.open(command, CountersignRequestKind.CHANGE, null, List.of(), by, now, today, correlation());
         } else if (command.status() == CommandStatus.EFFECTIVE && !(command.kind() == PersonnelCommandKind.CORRECTION && command.effectiveDate().isAfter(today))) {
-            effects.publish(command, history, today);
+            effects.publish(command, all, today);
         }
         if (leaveVerdict != null) {
             leaveFloor.announce(command, leaveVerdict, by);
@@ -293,7 +298,106 @@ class PersonnelCommandService implements PersonnelCommands {
         return LegalEntityResolution.resolve(legalEntities, employee, day).orElse(null);
     }
 
-    /** Every kind but a hire is about a named employee and carries no profile (the profile of an existing employee is changed by its own use case). */
+    /**
+     * Binds the command to its employment relationship (ADR-0086, design section 5) and returns the history as that relationship sees it. A hire makes the relationship
+     * here (the employer is read from the request once and lives on the relationship); every other kind but a change of legal entity names one of the employee's,
+     * or, when the employee has exactly one, means it. A merge's transfer follows the relationship of the primary post it moves.
+     */
+    private PersonnelHistory bindRelationship(PersonnelCommand command, EnterPersonnelCommand request, PersonnelHistory all, EmployeeId employee, Instant now) {
+        if (command.kind() == PersonnelCommandKind.CHANGE_LEGAL_ENTITY) {
+            return all;
+        }
+        if (command.kind() == PersonnelCommandKind.HIRE) {
+            EmploymentRelationshipId started = startRelationship(command, request, all, employee, now);
+            command.bindTo(started);
+            return movesPrimary(command, all, started) ? all.withPrimaryIn(started) : all.within(started);
+        }
+        EmploymentRelationshipId named = request.employmentRelationshipId();
+        if (named == null) {
+            named = defaultRelationship(command, all);
+        }
+        if (all.relationship(named).isEmpty()) {
+            throw invalid("the employment relationship does not belong to the employee");
+        }
+        command.bindTo(named);
+        boolean primaryTransfer = command.kind() == PersonnelCommandKind.TRANSFER && (request.targetAssignmentId() == null
+                || all.primaryRoot().map(root -> root.id().equals(request.targetAssignmentId())).orElse(false));
+        if (primaryTransfer && movesPrimary(command, all, named)) {
+            return all.withPrimaryIn(named);
+        }
+        if (command.kind() == PersonnelCommandKind.REINSTATE && movesPrimary(command, all, named)) {
+            return all.withPrimaryIn(named);
+        }
+        return all.within(named);
+    }
+
+    /** The command writes the next version of the primary post, and the version in force that day belongs to another relationship (design 6.3): the post moves. */
+    private static boolean movesPrimary(PersonnelCommand command, PersonnelHistory all, EmploymentRelationshipId target) {
+        if (command.kind() != PersonnelCommandKind.TRANSFER && command.targetOrgUnitId() == null) {
+            return false;
+        }
+        VersionRow current = all.assignmentOn(command.effectiveDate());
+        return current != null && current.covers(command.effectiveDate()) && current.relationshipId() != null && !current.relationshipId().equals(target);
+    }
+
+    private EmploymentRelationshipId defaultRelationship(PersonnelCommand command, PersonnelHistory all) {
+        if (command.orgStructureCommandId() != null) {
+            VersionRow primary = all.assignmentOn(command.effectiveDate());
+            if (primary != null && primary.relationshipId() != null) {
+                return primary.relationshipId();
+            }
+        }
+        if (all.relationships().size() == 1) {
+            return all.relationships().getFirst().id();
+        }
+        throw invalid("a " + command.kind() + " names the employment relationship it is about");
+    }
+
+    private EmploymentRelationshipId startRelationship(PersonnelCommand command, EnterPersonnelCommand request, PersonnelHistory all, EmployeeId employee, Instant now) {
+        LegalEntityId employer = request.targetEmployerLegalEntityId();
+        if (employer == null) {
+            throw invalid("a hire names the employer");
+        }
+        if (!commands.legalEntityIsActive(employer)) {
+            throw invalid("the employer does not exist or is not active");
+        }
+        EmploymentRelationshipId predecessor = request.predecessorRelationshipId();
+        RelationshipRow earlier = all.relationships().stream().filter(r -> r.employerLegalEntityId().equals(employer)).findFirst().orElse(null);
+        if (earlier != null && !all.currentEmployeeRows(earlier.id()).isEmpty()) {
+            throw invalid("the employee already has a relationship with this employer; a return is a REINSTATE on it");
+        }
+        if (earlier != null && !Objects.equals(earlier.predecessorId(), predecessor)) {
+            throw invalid("the employee's earlier hire by this employer was withdrawn with another predecessor (relationship " + earlier.id() + "); a re-entry names the same one");
+        }
+        LocalDate day = command.effectiveDate();
+        if (predecessor != null) {
+            if (all.relationship(predecessor).isEmpty()) {
+                throw invalid("the predecessor relationship does not belong to the employee");
+            }
+            if (all.commands().stream().noneMatch(o -> o.kind() == PersonnelCommandKind.SEPARATE && o.status() != CommandStatus.WITHDRAWN
+                    && o.employmentRelationshipId() != null && o.employmentRelationshipId().equals(predecessor) && o.effectiveDate().equals(day))) {
+                throw invalid("the predecessor relationship is not separated on " + day + "; enter that separation first");
+            }
+        }
+        boolean primaryInService = all.assignmentOn(day) != null && all.assignmentOn(day).covers(day);
+        if (!all.relationships().isEmpty()) {
+            if (command.targetOrgUnitId() == null && !primaryInService) {
+                throw invalid("a hire without a post needs the employee's primary post in service on " + day);
+            }
+        }
+        if (earlier != null) {
+            return earlier.id();  // design 4.2-9: a relationship left without a live version by a withdrawn hire is re-used, never deleted
+        }
+        EmploymentRelationshipId id = new EmploymentRelationshipId(ids.next());
+        commands.insertRelationship(id, employee, employer, predecessor, now);
+        return id;
+    }
+
+    private static DomainException invalid(String message) {
+        return new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID, ErrorKind.UNPROCESSABLE, message);
+    }
+
+    /** Every kind but the hire of a new person is about a named employee and carries no profile (the profile of an existing employee is changed by its own use case). */
     private static EmployeeId existingEmployee(EnterPersonnelCommand request) {
         if (request.employeeId() == null) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID, ErrorKind.UNPROCESSABLE, "the employee is required");

@@ -105,7 +105,7 @@ abstract class FutureHoldSupport extends SeparationHoldOperationSupport {
     /** The ids of the current rows of a version table of the employee: equal before and after means nothing was rewritten. */
     protected List<Object> currentVersionIds(String table, UUID employee) throws Exception {
         List<Object> ids = new ArrayList<>();
-        String column = table.equals(EMPLOYEE_VERSIONS) ? "employee_version_id" : "assignment_version_id";
+        String column = table.equals(EMPLOYEE_VERSIONS) ? "employment_relationship_version_id" : "assignment_version_id";
         for (Map<String, Object> row : currentVersions(table, employee)) {
             ids.add(row.get(column));
         }

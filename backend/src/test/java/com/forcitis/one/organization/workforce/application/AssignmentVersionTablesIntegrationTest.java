@@ -23,10 +23,13 @@ class AssignmentVersionTablesIntegrationTest extends WorkforceIntegrationSupport
     static final String ROOT = "'019a0000-0000-7000-8000-0000000000e1'";
     static final String TABLE = "organization_workforce.assignment_versions";
 
+    String relationship;
+
     @BeforeEach
     void anEmployeeAUnitAndTwoCommands() {
         jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values (" + EMPLOYEE
                 + ", 'E-01', 'name', 'EMPLOYED')").update();
+        relationship = "'" + EmploymentRelationshipSeed.relationship(jdbc, java.util.UUID.fromString(EMPLOYEE.replace("'", ""))) + "'";
         jdbc.sql("insert into organization_workforce.org_units (id, name, status) values (" + UNIT + ", 'unit', 'ACTIVE')").update();
         jdbc.sql("insert into organization_workforce.positions (id, name, status) values (" + POSITION + ", 'position', 'ACTIVE')").update();
         jdbc.sql("insert into organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at)"
@@ -36,15 +39,15 @@ class AssignmentVersionTablesIntegrationTest extends WorkforceIntegrationSupport
     }
 
     private void command(String id, int days) {
-        jdbc.sql("insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status,"
-                + " created_at, created_by, updated_at) values (" + id + ", " + EMPLOYEE + ", 'REGULARIZE', date '2026-11-01' + " + days
+        jdbc.sql("insert into organization_workforce.personnel_commands (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status,"
+                + " created_at, created_by, updated_at) values (" + id + ", " + relationship + ", " + EMPLOYEE + ", 'REGULARIZE', date '2026-11-01' + " + days
                 + ", 'PENDING', now(), " + USER + ", now())").update();
     }
 
     /** Inserts a version of the employee; the extra arguments are column / value pairs (SQL literals) added to the base columns. */
     private void version(String id, String from, String to, String... more) {
-        List<String> columns = new ArrayList<>(List.of("assignment_version_id", "employee_id", "assignment_id", "assignment_kind", "effective_from_date", "org_unit_id"));
-        List<String> values = new ArrayList<>(List.of(id, EMPLOYEE, ROOT, "'PRIMARY'", "date '" + from + "'", UNIT));
+        List<String> columns = new ArrayList<>(List.of("assignment_version_id", "employment_relationship_id", "employee_id", "assignment_id", "assignment_kind", "effective_from_date", "org_unit_id"));
+        List<String> values = new ArrayList<>(List.of(id, relationship, EMPLOYEE, ROOT, "'PRIMARY'", "date '" + from + "'", UNIT));
         if (to != null) {
             columns.addAll(List.of("effective_to_date", "closed_at"));
             values.addAll(List.of("date '" + to + "'", "now()"));
@@ -114,8 +117,8 @@ class AssignmentVersionTablesIntegrationTest extends WorkforceIntegrationSupport
     @Test
     @DisplayName("IMP-1030-PAR-B2 closing columns come together, and so do the superseding columns")
     void pairedColumns() {
-        assertThatThrownBy(() -> jdbc.sql("insert into " + TABLE + " (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date, org_unit_id, effective_to_date)"
-                + " values (" + V1 + ", " + EMPLOYEE + ", " + ROOT + ", 'PRIMARY', date '2026-01-01', " + UNIT + ", date '2026-02-01')").update()).hasMessageContaining("ck_assignment_versions_closed");
+        assertThatThrownBy(() -> jdbc.sql("insert into " + TABLE + " (assignment_version_id, employment_relationship_id, employee_id, assignment_id, assignment_kind, effective_from_date, org_unit_id, effective_to_date)"
+                + " values (" + V1 + ", " + relationship + ", " + EMPLOYEE + ", " + ROOT + ", 'PRIMARY', date '2026-01-01', " + UNIT + ", date '2026-02-01')").update()).hasMessageContaining("ck_assignment_versions_closed");
         assertThatThrownBy(() -> version(V1, "2026-01-01", null, "closed_at", "now()")).hasMessageContaining("ck_assignment_versions_closed");
         assertThatThrownBy(() -> version(V1, "2026-01-01", null, "superseded_at", "now()")).hasMessageContaining("ck_assignment_versions_superseded");
         assertThatThrownBy(() -> version(V1, "2026-01-01", null, "superseding_command_id", COMMAND)).hasMessageContaining("ck_assignment_versions_superseded");

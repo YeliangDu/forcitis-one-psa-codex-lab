@@ -28,9 +28,10 @@ class EmployeeAttributionSupersededRowsIntegrationTest extends WorkforceIntegrat
     void supersededRowsAreLeftAlone() {
         jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values (:id, 'E-01', 'name', 'EMPLOYED')").param("id", EMPLOYEE).update();
         jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (:id, 'ZQA', 'entity', 'ACTIVE') on conflict (id) do nothing").param("id", LEGAL_ENTITY).update();
+        EmploymentRelationshipSeed.relationship(jdbc, EMPLOYEE, LEGAL_ENTITY);
         jdbc.sql("insert into organization_workforce.legal_entity_attributions (attribution_id, employee_id, version, event_count) values (gen_random_uuid(), :id, 1, 1)").param("id", EMPLOYEE).update();
-        jdbc.sql("insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)"
-                + " values (:command, :id, 'REGULARIZE', date '2026-11-01', 'PENDING', now(), gen_random_uuid(), now())").param("command", COMMAND).param("id", EMPLOYEE).update();
+        jdbc.sql("insert into organization_workforce.personnel_commands (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)"
+                + " values (:command, (select employment_relationship_id from organization_workforce.employment_relationships where employee_id = :id), :id, 'REGULARIZE', date '2026-11-01', 'PENDING', now(), gen_random_uuid(), now())").param("command", COMMAND).param("id", EMPLOYEE).update();
         jdbc.sql("insert into organization_workforce.employee_legal_entities (employee_legal_entity_id, employee_id, effective_from_date, legal_entity_id, superseded_at, superseding_command_id)"
                 + " values (:row, :id, date '2026-01-01', :entity, now(), :command)").param("row", SUPERSEDED_ROW).param("id", EMPLOYEE).param("entity", LEGAL_ENTITY).param("command", COMMAND).update();
         jdbc.sql("insert into organization_workforce.employee_legal_entities (employee_legal_entity_id, employee_id, effective_from_date, legal_entity_id)"
