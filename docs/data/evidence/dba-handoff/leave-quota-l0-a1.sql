@@ -1,4 +1,4 @@
--- 请假额度取证 L0 段 A1（#1279）：自 leave-quota-l0.sql 拆出的单条只读 SELECT，供只读取证入口（#1377）逐文件运行；内容与原段相同，仅去掉 SET 与 GO。
+-- 请假额度取证 L0 段 A1（#1279）：自 leave-quota-l0.sql 拆出的单条只读 SELECT，供只读取证入口（#1377）逐文件运行；内容与原段相同，仅去掉 SET 与 GO。 运行库：a8_db（语句内有库名守卫，选错库返回空结果，不是无数据）。
 -- A1 目标表单的定义是否是 JSON、各有多少字段（先确认读得到）
 SELECT f.ID AS form_id, f.NAME AS form_name, ISJSON(CAST(f.FIELD_INFO AS nvarchar(max))) AS is_json,
        (SELECT COUNT_BIG(*) FROM OPENJSON(CAST(f.FIELD_INFO AS nvarchar(max)), '$.front_formmain.fieldInfo')) AS field_count

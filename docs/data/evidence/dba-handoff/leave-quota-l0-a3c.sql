@@ -1,4 +1,4 @@
--- 请假额度取证 L0 段 A3c（#1279）：自 leave-quota-l0.sql 拆出的单条只读 SELECT，供只读取证入口（#1377）逐文件运行；内容与原段相同，仅去掉 SET 与 GO。
+-- 请假额度取证 L0 段 A3c（#1279）：自 leave-quota-l0.sql 拆出的单条只读 SELECT，供只读取证入口（#1377）逐文件运行；内容与原段相同，仅去掉 SET 与 GO。 运行库：a8_db（语句内有库名守卫，选错库返回空结果，不是无数据）。
 -- A3c 字段级定义中名字像公式、计算、默认值、关联、触发的键的内容（定义文本，不是数据）
 SELECT f.ID AS form_id, JSON_VALUE(fi.[value], '$.name') AS field_key, JSON_VALUE(fi.[value], '$.display') AS field_label,
        k.[key] AS definition_key, CAST(k.[value] AS nvarchar(2000)) AS definition_text

@@ -1,4 +1,4 @@
--- 请假额度取证 L0 段 A2（#1279）：自 leave-quota-l0.sql 拆出的单条只读 SELECT，供只读取证入口（#1377）逐文件运行；内容与原段相同，仅去掉 SET 与 GO。
+-- 请假额度取证 L0 段 A2（#1279）：自 leave-quota-l0.sql 拆出的单条只读 SELECT，供只读取证入口（#1377）逐文件运行；内容与原段相同，仅去掉 SET 与 GO。 运行库：a8_db（语句内有库名守卫，选错库返回空结果，不是无数据）。
 -- A2 字段表：显示名 → fieldNNNN、类型、枚举引用（定义，不是数据）
 SELECT f.ID AS form_id, f.NAME AS form_name, j.[display] AS field_label, j.[name] AS field_key, j.fieldType AS field_type,
        j.[type] AS field_kind, j.fieldLength AS field_length, j.enumInfo AS enum_ref

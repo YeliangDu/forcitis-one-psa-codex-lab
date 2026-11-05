@@ -1,4 +1,4 @@
--- 请假额度取证 L0 段 A4（#1279）：自 leave-quota-l0.sql 拆出的单条只读 SELECT，供只读取证入口（#1377）逐文件运行；内容与原段相同，仅去掉 SET 与 GO。
+-- 请假额度取证 L0 段 A4（#1279）：自 leave-quota-l0.sql 拆出的单条只读 SELECT，供只读取证入口（#1377）逐文件运行；内容与原段相同，仅去掉 SET 与 GO。 运行库：a8_db（语句内有库名守卫，选错库返回空结果，不是无数据）。
 -- A4 枚举项（假别、状态等标签；配置，不是数据）：目标表单字段引用的枚举；同时验证 enumInfo 与 CTP_ENUM.ID 的对应
 SELECT DISTINCT e.ID AS enum_id, e.DESCRIPTION AS enum_description, i.SORTNUMBER AS item_order, i.SHOWVALUE AS item_label,
        i.ENUMVALUE AS item_value, i.STATE AS item_state

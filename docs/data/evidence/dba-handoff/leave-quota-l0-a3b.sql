@@ -1,4 +1,4 @@
--- 请假额度取证 L0 段 A3b（#1279）：自 leave-quota-l0.sql 拆出的单条只读 SELECT，供只读取证入口（#1377）逐文件运行；内容与原段相同，仅去掉 SET 与 GO。
+-- 请假额度取证 L0 段 A3b（#1279）：自 leave-quota-l0.sql 拆出的单条只读 SELECT，供只读取证入口（#1377）逐文件运行；内容与原段相同，仅去掉 SET 与 GO。 运行库：a8_db（语句内有库名守卫，选错库返回空结果，不是无数据）。
 -- A3b 表单定义顶层键（公式、触发、计算可能挂在表单级而不是字段级）
 SELECT f.ID AS form_id, k.[key] AS top_key, k.[type] AS json_type_code, LEN(CAST(k.[value] AS nvarchar(max))) AS value_length
   FROM a8_db.dbo.CAP_FORM_DEFINITION AS f

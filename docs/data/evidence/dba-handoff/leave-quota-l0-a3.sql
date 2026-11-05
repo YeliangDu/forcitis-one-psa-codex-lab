@@ -1,4 +1,4 @@
--- 请假额度取证 L0 段 A3（#1279）：自 leave-quota-l0.sql 拆出的单条只读 SELECT，供只读取证入口（#1377）逐文件运行；内容与原段相同，仅去掉 SET 与 GO。
+-- 请假额度取证 L0 段 A3（#1279）：自 leave-quota-l0.sql 拆出的单条只读 SELECT，供只读取证入口（#1377）逐文件运行；内容与原段相同，仅去掉 SET 与 GO。 运行库：a8_db（语句内有库名守卫，选错库返回空结果，不是无数据）。
 -- A3 字段定义里出现过哪些键（只出键名、值类型、出现次数；用来找公式、默认值、数据关联放在哪个键里）
 SELECT f.ID AS form_id, k.[key] AS definition_key, k.[type] AS json_type_code, COUNT_BIG(*) AS occurrences
   FROM a8_db.dbo.CAP_FORM_DEFINITION AS f
