@@ -53,7 +53,9 @@ class LocalClockController {
     @PostMapping("/local-clocks:reset")
     @PublicEndpoint(reason = "Profile local only (card #1478): puts the clock of this machine back to the real time")
     LocalClockResponse reset() {
-        refuseWhenItRevivesAMode(clock.resetMoment());
+        if (clock.isSet()) {   // a reset of a clock that is not moved changes nothing
+            refuseWhenItRevivesAMode(clock.resetMoment());
+        }
         clock.reset();
         return read();
     }

@@ -142,6 +142,7 @@ class LocalAdministratorModeIT extends IdentityIntegrationTest {
         Cookie elevated = new Cookie("SESSION", cookie(enter(login(accountOf(1002))), "SESSION"));
         java.time.Instant now = java.time.Instant.now();
 
+        assertThat(resetClock()).as("a reset of a clock that was never moved changes nothing and is not refused").isEqualTo(200);
         assertThat(moveClock(now.minus(java.time.Duration.ofDays(1)))).isEqualTo(409);
         assertThat(moveClock(now.plus(java.time.Duration.ofMinutes(30)))).as("forward is allowed: it can only shorten the mode").isEqualTo(200);
         assertThat(mvc.perform(get(ROLES).cookie(elevated)).andReturn().getResponse().getStatus()).isEqualTo(200);
