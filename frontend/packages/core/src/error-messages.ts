@@ -233,6 +233,7 @@ export const ERROR_MESSAGES: Readonly<Record<ErrorCode, string | null>> = {
   PLATFORM_WEB_CURSOR_INVALID: '列表已过期，请刷新后重试',
   PLATFORM_WEB_IDEMPOTENCY_IN_PROGRESS: '这个操作正在处理，请稍后刷新',
   PLATFORM_WEB_IDEMPOTENCY_KEY_REUSED: null,
+  PLATFORM_WEB_LOCAL_CLOCK_HELD: null,
   PLATFORM_WEB_REQUEST_INVALID: '填写的内容不正确',
   PLATFORM_WEB_REQUEST_TOO_LARGE: null,
   PLATFORM_WEB_SOURCE_BROKEN: '外部系统暂时无法使用，请稍后重试',

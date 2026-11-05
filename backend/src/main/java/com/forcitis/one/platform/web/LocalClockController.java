@@ -1,18 +1,18 @@
 package com.forcitis.one.platform.web;
 
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LocalDueJobs;
 import com.forcitis.one.kernel.PublicEndpoint;
 import com.forcitis.one.kernel.SettableClock;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.context.annotation.Profile;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 /** Card #1478: set, read and reset the clock of a developer's own machine. Exists only in the profile local; elsewhere the paths are not mapped. */
 @RestController
@@ -31,7 +31,7 @@ class LocalClockController {
     /** Card #1499: moving the clock back must not revive or lengthen an administrator mode started on this machine. */
     private void refuseWhenItRevivesAMode(Instant moment) {
         if (!clock.accepts(moment)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "the clock cannot move back before the end of an administrator mode started on this machine; restart the stack");
+            throw new DomainException(WebError.PLATFORM_WEB_LOCAL_CLOCK_HELD, ErrorKind.CONFLICT, "the clock cannot move back before the end of an administrator mode started on this machine; restart the stack");
         }
     }
 
