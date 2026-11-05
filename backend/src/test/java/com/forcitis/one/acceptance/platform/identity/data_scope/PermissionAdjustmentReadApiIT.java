@@ -54,27 +54,43 @@ class PermissionAdjustmentReadApiIT extends PermissionAdjustmentApiSupport {
             Map<String, Object> role = items.stream().filter(item -> inactive.toString().equals(item.get("permissionAdjustmentId"))).findFirst().orElseThrow();
             assertThat(role).containsEntry("kind", "SCOPE_REVIEW").containsKeys("roleId", "orgUnitId");
             assertThat(person).as(reader + ": the person's name is shown to a reader who sees the item").containsEntry("userName", "Synthetic mover");
-            assertNoPermissionOrScopeOrOtherPeoplesNames(listed.getContentAsString(), "Synthetic mover");
+            assertNoPermissionOrScopeOrOtherPeoplesNames(listed.getContentAsString());
             MockHttpServletResponse detail = read(session(reader), sensitive);
             assertThat(detail.getStatus()).isEqualTo(200);
             assertThat((String) JsonPath.read(detail.getContentAsString(), "$.userName")).isEqualTo("Synthetic mover");
-            assertNoPermissionOrScopeOrOtherPeoplesNames(detail.getContentAsString(), "Synthetic mover");
+            assertNoPermissionOrScopeOrOtherPeoplesNames(detail.getContentAsString());
         }
     }
 
     /**
      * Contract 13 (amended by user decision B of 2026-11-05): an item shows no permission code, no access scope and no personal identifier other than the
-     * display names {@code userName} and {@code businessOwnerName}; those two carry the names of the people the item is about (the person and, once upheld, the
-     * business owner) and of nobody else. Checked as: no such member at any depth, no permission code prefix, and no fixture person's display name outside
-     * {@code allowedNames}.
+     * display names {@code userName} and {@code businessOwnerName}, which carry the name of the person the item is about and of its business owner. Checked
+     * structurally so it holds for a whole page of items: no forbidden member at any depth, no permission code prefix, and no text value anywhere but in those two
+     * members mentions any fixture person's display name; each of the two holds exactly one person's name and nothing else.
      */
-    private static void assertNoPermissionOrScopeOrOtherPeoplesNames(String body, String... allowedNames) {
+    private static void assertNoPermissionOrScopeOrOtherPeoplesNames(String body) {
         Object parsed = JsonPath.parse(body).json();
         assertThat(keysOf(parsed)).as("member names of the answer").noneMatch(key -> key.matches("(?i)(permissions?|permissioncodes?|accessscope|scope|displayname|employeename|personname|employeecode|loginid|wecom.*)"));
         assertThat(body).doesNotContain("organization.workforce:", "platform.identity:");
-        List<String> allowed = List.of(allowedNames);
-        PEOPLE.stream().filter(key -> !allowed.contains("Synthetic " + key))
-                .forEach(key -> assertThat(body).as("display name of " + key + " is not in this item").doesNotContain("\"Synthetic " + key + "\""));
+        List<String> names = PEOPLE.stream().map(key -> "Synthetic " + key).toList();
+        assertNamesOnlyInTheTwoMembers(parsed, names);
+    }
+
+    private static void assertNamesOnlyInTheTwoMembers(Object node, List<String> names) {
+        if (node instanceof Map<?, ?> map) {
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                String key = String.valueOf(entry.getKey());
+                if ((key.equals("userName") || key.equals("businessOwnerName")) && entry.getValue() != null) {
+                    assertThat(names).as(key + " holds exactly one person's display name").contains(String.valueOf(entry.getValue()));
+                } else {
+                    assertNamesOnlyInTheTwoMembers(entry.getValue(), names);
+                }
+            }
+        } else if (node instanceof List<?> list) {
+            list.forEach(element -> assertNamesOnlyInTheTwoMembers(element, names));
+        } else if (node != null) {
+            assertThat(String.valueOf(node)).as("a value outside userName and businessOwnerName").doesNotContain("Synthetic");
+        }
     }
 
     private static List<String> keysOf(Object node) {
@@ -102,7 +118,7 @@ class PermissionAdjustmentReadApiIT extends PermissionAdjustmentApiSupport {
             assertThat(detail.getStatus()).as(reader).isEqualTo(200);
             assertThat((String) JsonPath.read(detail.getContentAsString(), "$.userName")).isEqualTo("Synthetic mover");
             assertThat((String) JsonPath.read(detail.getContentAsString(), "$.businessOwnerName")).isEqualTo("Synthetic owner");
-            assertNoPermissionOrScopeOrOtherPeoplesNames(detail.getContentAsString(), "Synthetic mover", "Synthetic owner");
+            assertNoPermissionOrScopeOrOtherPeoplesNames(detail.getContentAsString());
             Map<String, Object> listed = items(listPage(session(reader), "limit", "200")).stream().filter(each -> item.toString().equals(each.get("permissionAdjustmentId"))).findFirst().orElseThrow();
             assertThat(listed).containsEntry("userName", "Synthetic mover").containsEntry("businessOwnerName", "Synthetic owner");
         }
