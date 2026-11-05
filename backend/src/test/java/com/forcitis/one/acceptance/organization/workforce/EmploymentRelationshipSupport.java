@@ -34,7 +34,7 @@ abstract class EmploymentRelationshipSupport extends FutureHoldSupport {
         return createLegalEntity(administrator, newLegalEntityCode("ER"), "Synthetic other employer");
     }
 
-    /** HIRE of a new person at the world's legal entity, effective today, with a primary post (design 5, HIRE). */
+    /** HIRE of a new person by the given employer, effective today, with a primary post (design 5, HIRE). */
     protected UUID hireNewPerson(UUID employer) throws Exception {
         actIn(hr);
         Map<String, Object> fields = hireFields(employer);
@@ -57,6 +57,17 @@ abstract class EmploymentRelationshipSupport extends FutureHoldSupport {
         if (predecessor != null) {
             fields.put(PREDECESSOR_RELATIONSHIP_ID, predecessor);
         }
+        return commands().enter(fields);
+    }
+
+    /** HIRE by another employer that also carries the person's primary post (design 5 and 6.3: a successor employer, the primary moves). */
+    protected UUID hireSuccessorWithPost(UUID person, UUID employer, LocalDate effective, UUID predecessor, UUID orgUnit, UUID position) {
+        Map<String, Object> fields = hireFields(employer);
+        fields.put(EMPLOYEE_ID, person);
+        fields.put(EFFECTIVE_DATE, effective);
+        fields.put(PREDECESSOR_RELATIONSHIP_ID, predecessor);
+        fields.put(TARGET_ORG_UNIT_ID, orgUnit);
+        fields.put(TARGET_POSITION_ID, position);
         return commands().enter(fields);
     }
 

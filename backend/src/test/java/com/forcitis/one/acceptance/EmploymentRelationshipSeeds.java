@@ -53,13 +53,20 @@ public final class EmploymentRelationshipSeeds {
         return id;
     }
 
-    /** The person's relationship when it already has exactly one, else created with the fixture employer. */
+    /**
+     * The person's relationship when it already has exactly one, else created with the fixture employer. A person with more than one
+     * relationship is a set-up mistake of the test (name the employer with the other overload), so it fails here.
+     */
     public static UUID relationshipOf(Connection workforce, Object employeeId) throws SQLException {
-        try (PreparedStatement found = workforce.prepareStatement("select employment_relationship_id from employment_relationships where employee_id = ? limit 1")) {
+        try (PreparedStatement found = workforce.prepareStatement("select employment_relationship_id from employment_relationships where employee_id = ?")) {
             found.setObject(1, employeeId);
             try (ResultSet rows = found.executeQuery()) {
                 if (rows.next()) {
-                    return rows.getObject(1, UUID.class);
+                    UUID only = rows.getObject(1, UUID.class);
+                    if (rows.next()) {
+                        throw new AssertionError("the person has more than one relationship; name the employer: " + employeeId);
+                    }
+                    return only;
                 }
             }
         }

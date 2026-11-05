@@ -14,7 +14,7 @@ import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * #1371 acceptance part, done-when 9 of the employment-relationship design (ADR-0086) (section 6.2): the person-level availability
- * read composes over the relationships in service: onUnpaidLeave only if all are, leaving only if all have an effective separation ahead,
+ * read composes over the relationships in service: onUnpaidLeave only if all are, leaving only if every in-service relationship is leaving (a held SEPARATE or a pending UNPAID_LEAVE_START; a plain SEPARATE without a hold is not),
  * separationHeld if any has a held separation. The existing read {@code OrgDirectory.availabilityOn} is used; the second relationship
  * is made by the HIRE input of the lead ruling on #1371.
  */
@@ -54,16 +54,39 @@ class EmploymentRelationshipCompositionIT extends EmploymentRelationshipSupport 
     }
 
     @Test
-    @DisplayName("#1371 完成标准 9（设计 6.2）：即将离职——只有一段有生效的离职在前时人不算，两段都有时才算")
-    void leavingNeedsAllRelationships() {
-        LocalDate lastWorkingDay = TODAY.plusDays(20);
-        endRelationship(person, relationB, lastWorkingDay);
+    @DisplayName("#1371 完成标准 9（设计 6.2）：即将离职——只有一段有被暂停的离职时人不算，两段都有时才算")
+    void leavingNeedsAllRelationships() throws Exception {
+        Staff leaver = administrator();
+        administrator();
+        auditor();
+        UUID employerB = otherEmployer();
+        hireAdditionalEmployer(leaver.employeeId(), employerB, TODAY, null);
+        UUID own = relationshipOf(leaver.employeeId(), legalEntity);
+        UUID extra = relationshipOf(leaver.employeeId(), employerB);
+        assertThat(own).as("the administrator has a relationship with the world's entity").isNotNull();
+        assertThat(extra).as("and a second one").isNotNull().isNotEqualTo(own);
+        actIn(hr);
 
-        assertThat(availability(person, TODAY).leaving()).as("design 6.2: one of two has a separation ahead, the person is not leaving").isFalse();
+        // design 6.3: the relationship holding the primary post ends last, so the extra one is separated first.
+        UUID first = endRelationship(leaver.employeeId(), extra, TODAY.plusDays(9));
+        assertThat(commandStatus(first)).as("the separation of an administrator relationship is held").isEqualTo(PersonnelCommandNames.HELD);
+        assertThat(availability(leaver.employeeId(), TODAY).leaving())
+                .as("design 6.2: one of two relationships carries a held separation, the other is working, so the person is not leaving").isFalse();
 
-        endRelationship(person, relationA, lastWorkingDay);
+        UUID second = endRelationship(leaver.employeeId(), own, TODAY.plusDays(12));
+        assertThat(commandStatus(second)).as("the second separation is held as well").isEqualTo(PersonnelCommandNames.HELD);
+        assertThat(availability(leaver.employeeId(), TODAY).leaving()).as("design 6.2: every in-service relationship carries a held separation").isTrue();
+    }
 
-        assertThat(availability(person, TODAY).leaving()).as("design 6.2: every in-service relationship has a separation ahead").isTrue();
+    @Test
+    @DisplayName("#1371 完成标准 9（设计 6.2）：没有暂停的普通离职不算即将离职，两段都有也不算")
+    void aPlainSeparationWithoutAHoldIsNotLeaving() throws Exception {
+        UUID first = endRelationship(person, relationB, TODAY.plusDays(9));
+        UUID second = endRelationship(person, relationA, TODAY.plusDays(12));
+
+        assertThat(commandStatus(first)).as("a non-administrator's separation is not held").isEqualTo(PersonnelCommandNames.PENDING);
+        assertThat(commandStatus(second)).as("neither is the second").isEqualTo(PersonnelCommandNames.PENDING);
+        assertThat(availability(person, TODAY).leaving()).as("design 6.2 and done-when 9: a plain SEPARATE without a hold is not leaving, on every relationship either").isFalse();
     }
 
     @Test
@@ -83,6 +106,6 @@ class EmploymentRelationshipCompositionIT extends EmploymentRelationshipSupport 
 
         assertThat(commandStatus(command)).as("the separation of an administrator relationship is held").isEqualTo(PersonnelCommandNames.HELD);
         assertThat(availability(leaver.employeeId(), TODAY).separationHeld()).as("design 6.2: one of two relationships has a held separation, so the person has").isTrue();
-        assertThat(own).as("the held one is not the other relationship").isNotEqualTo(extra);
+        assertThat(own).as("the administrator has a relationship with the world's entity, not the held one").isNotNull().isNotEqualTo(extra);
     }
 }

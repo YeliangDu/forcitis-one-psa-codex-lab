@@ -91,23 +91,42 @@ class EmploymentRelationshipLifecycleIT extends EmploymentRelationshipSupport {
     }
 
     @Test
-    @DisplayName("#1371 完成标准 6：同日 SEPARATE 旧关系 + 带前任的 HIRE 新用人单位：人仍在职，两个人员层事件都不发，同日规则按关系放行")
+    @DisplayName("#1371 完成标准 6、12：只有一段关系的人同日 SEPARATE 旧关系 + 带前任的 HIRE 新用人单位：人仍在职，两个人员层事件都不发，主任职在同一根上换到新关系")
     void anEmployerChangeInContinuousServiceKeepsThePersonInService() throws Exception {
-        UUID third = otherEmployer();
+        UUID solo = personOf(hireNewPerson(legalEntity));
+        UUID old = relationshipOf(solo, legalEntity);
+        UUID successorEmployer = otherEmployer();
+        UUID newUnit = newUnit();
+        UUID newPosition = newPosition();
+        UUID primary = (UUID) fromStored(rows("select assignment_id from employee_assignments where employee_id = ? and assignment_kind = 'PRIMARY'", stored(solo)).get(0).get("assignment_id"));
+        assertThat(rows("select 1 from assignment_versions where assignment_id = ? and employment_relationship_id = ? and effective_to_date is null", primary, old))
+                .as("design 6.3: the only relationship holds the PRIMARY post").hasSize(1);
         LocalDate day = FIRST_END;
 
-        UUID end = endRelationship(person, relationB, day.minusDays(1));
-        UUID hire = hireAdditionalEmployer(person, third, day, relationB);
+        UUID end = endRelationship(solo, old, day.minusDays(1));
+        UUID hire = hireSuccessorWithPost(solo, successorEmployer, day, old, newUnit, newPosition);
         dueOn(day);
 
+        UUID successor = relationshipOf(solo, successorEmployer);
+        assertThat(successor).as("design 5: HIRE created the relationship with the new employer").isNotNull().isNotEqualTo(old);
         assertThat(rows("select 1 from personnel_commands where personnel_command_id in (?, ?) and status = 'EFFECTIVE'", end, hire))
                 .as("design 5: both commands share one date and both took effect").hasSize(2);
-        assertThat(statusOf(person)).as("design 6.1: the person stays in service").isEqualTo(EMPLOYED);
-        assertThat(availability(person, day).leaving()).as("design 4.2-3: someone is still in service on the day").isFalse();
+        assertThat(statusOf(solo)).as("design 6.1: the person stays in service").isEqualTo(EMPLOYED);
+        assertThat(availability(solo, day).leaving()).as("design 4.2-3: someone is in service on the day").isFalse();
         assertThat(eventsOf(EVENT_SEPARATED, end)).as("design 6.1: no EmployeeSeparated on an employer change").isZero();
         assertThat(eventsOf("EmployeeHired", hire)).as("design 6.1: no EmployeeHired on an employer change").isZero();
-        assertThat(rows("select 1 from employment_relationships where employee_id = ? and predecessor_relationship_id = ?", stored(person), relationB))
+        assertThat(rows("select 1 from employment_relationships where employment_relationship_id = ? and predecessor_relationship_id = ?", successor, old))
                 .as("design 4.1: the new relationship names the one it succeeds").hasSize(1);
+        assertThat(rows("select 1 from employee_assignments where employee_id = ? and assignment_kind = 'PRIMARY'", stored(solo))).as("design 4.1: still one PRIMARY root").hasSize(1);
+        List<Map<String, Object>> oldVersion = rows("select * from assignment_versions where assignment_id = ? and employment_relationship_id = ? and superseded_at is null", primary, old);
+        List<Map<String, Object>> newVersion = rows("select * from assignment_versions where assignment_id = ? and employment_relationship_id = ? and superseded_at is null", primary, successor);
+        assertThat(oldVersion).as("design 4.1 and 6.3: the old version of the PRIMARY root stays, carrying the old relationship").hasSize(1);
+        assertThat(oldVersion.get(0).get("effective_to_date")).as("design 6.3 and done-when 12: and it is closed on the day, with no gap").isEqualTo(day);
+        assertThat(newVersion).as("done-when 12: a new version of the same PRIMARY root carries the new relationship").hasSize(1);
+        assertThat(newVersion.get(0).get("effective_to_date")).as("and is open").isNull();
+        assertThat(newVersion.get(0).get("effective_from_date")).as("from the day").isEqualTo(day);
+        assertThat(fromStored(newVersion.get(0).get("org_unit_id"))).as("with the unit and position of the HIRE").isEqualTo(newUnit);
+        assertThat(fromStored(newVersion.get(0).get("position_id"))).isEqualTo(newPosition);
     }
 
     @Test

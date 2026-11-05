@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.acceptance.AssignmentRoots;
 import com.forcitis.one.kernel.Uuids;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -88,21 +89,41 @@ class EmploymentRelationshipSchemaIT extends PersonnelCommandSupport {
         }
     }
 
-    private void command(UUID employee, UUID relationship, String kind) throws SQLException {
+    /**
+     * A personnel command row that is fully valid for its kind (every other CHECK of the table is satisfied, as the baseline and later
+     * migrations define them: HIRE target columns, TRANSFER with a target assignment and a target, CHANGE_LEGAL_ENTITY with its target
+     * entity), so that only the relationship id decides whether the database accepts it. {@code dayOffset} keeps rows of one test apart.
+     */
+    private void command(UUID employee, UUID relationship, String kind, int dayOffset) throws Exception {
+        boolean hire = "HIRE".equals(kind);
+        boolean transfer = "TRANSFER".equals(kind);
+        UUID position = hire ? newPosition() : null;
         try (Connection workforce = schemaConnection("organization_workforce")) {
+            UUID root = transfer ? AssignmentRoots.primaryOf(workforce, stored(employee)) : null;
             update(workforce, """
                     insert into personnel_commands (personnel_command_id, employee_id, employment_relationship_id, command_kind, effective_date, status,
-                      created_at, created_by, updated_at)
-                    values (?, ?, ?, ?, ?, 'PENDING', ?, ?, ?)""",
-                    Uuids.timeOrdered(NOW), stored(employee), relationship, kind, TODAY.plusDays(3), at, hr.userId(), at);
+                      target_org_unit_id, target_position_id, is_target_fee_earner, target_employment_phase_kind, target_assignment_id, target_assignment_kind,
+                      target_legal_entity_id, created_at, created_by, updated_at)
+                    values (?, ?, ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    Uuids.timeOrdered(NOW), stored(employee), relationship, kind, TODAY.plusDays(3L + dayOffset),
+                    hire || transfer ? stored(unit) : null, position, hire ? false : null, hire ? "PROBATION" : null,
+                    root, transfer ? "PRIMARY" : null, "CHANGE_LEGAL_ENTITY".equals(kind) ? stored(employerA) : null, at, hr.userId(), at);
         }
     }
 
     private static void refusedBy(Statement statement, String sqlState, String why) {
+        refusedBy(statement, sqlState, null, why);
+    }
+
+    /** The statement is refused with the SQLState and, when named, by exactly that constraint (its quoted name is in the message). */
+    private static void refusedBy(Statement statement, String sqlState, String constraint, String why) {
         SQLException refused = catchThrowableOfType(SQLException.class, statement::run);
         assertThat((Throwable) refused).as("refused: " + why).isNotNull();
         if (sqlState != null) {
             assertThat(refused.getSQLState()).as(why + ": " + refused.getMessage()).isEqualTo(sqlState);
+        }
+        if (constraint != null) {
+            assertThat(refused.getMessage()).as(why + ": refused by the constraint " + constraint).contains("\"" + constraint + "\"");
         }
     }
 
@@ -132,27 +153,58 @@ class EmploymentRelationshipSchemaIT extends PersonnelCommandSupport {
                 .as("design 4.2-1: the two relationships are open together").hasSize(2);
     }
 
+    private static final String PER_KIND_CHECK = "ck_personnel_commands_employment_relationship";
+
     @Test
-    @DisplayName("#1371 完成标准 2（设计 4.1）：命令的关系编号按命令种类约束：入职缺关系编号被拒，变更法人（人员层）可以为空")
-    void theRelationshipIdOfACommandFollowsItsKind() throws Exception {
-        relationship(person, employerA, null);
+    @DisplayName("#1371 完成标准 2（设计 4.1）：入职命令缺关系编号被按种类约束拒绝，带合法关系编号的同一行被接受")
+    void aHireNeedsItsRelationship() throws Exception {
+        UUID relationship = relationship(person, employerA, null);
 
-        refusedBy(() -> command(person, null, "HIRE"), CHECK_VIOLATION, "design 4.1 per-kind CHECK: HIRE needs a relationship id");
-        refusedBy(() -> command(person, null, "TRANSFER"), CHECK_VIOLATION, "design 4.1 per-kind CHECK: TRANSFER needs a relationship id");
-        command(person, null, "CHANGE_LEGAL_ENTITY");
+        refusedBy(() -> command(person, null, "HIRE", 0), CHECK_VIOLATION, PER_KIND_CHECK, "design 4.1 per-kind CHECK: HIRE needs a relationship id");
+        command(person, relationship, "HIRE", 0);
 
-        assertThat(rows("select 1 from personnel_commands where employee_id = ? and command_kind = 'CHANGE_LEGAL_ENTITY' and employment_relationship_id is null",
-                stored(person))).as("design 4.1: a person-level command carries no relationship id").hasSize(1);
+        assertThat(rows("select 1 from personnel_commands where employee_id = ? and command_kind = 'HIRE' and employment_relationship_id = ?", stored(person), relationship))
+                .as("control: the same valid row with a relationship is accepted").hasSize(1);
     }
 
     @Test
-    @DisplayName("#1371 完成标准 2（设计 4.1）：命令的关系必须属于该员工（复合外键）")
+    @DisplayName("#1371 完成标准 2（设计 4.1）：调岗命令缺关系编号被按种类约束拒绝，带合法关系编号的同一行被接受")
+    void aTransferNeedsItsRelationship() throws Exception {
+        UUID relationship = relationship(person, employerA, null);
+
+        refusedBy(() -> command(person, null, "TRANSFER", 0), CHECK_VIOLATION, PER_KIND_CHECK, "design 4.1 per-kind CHECK: TRANSFER needs a relationship id");
+        command(person, relationship, "TRANSFER", 0);
+
+        assertThat(rows("select 1 from personnel_commands where employee_id = ? and command_kind = 'TRANSFER' and employment_relationship_id = ?", stored(person), relationship))
+                .as("control: the same valid row with a relationship is accepted").hasSize(1);
+    }
+
+    @Test
+    @DisplayName("#1371 完成标准 2（设计 4.1）：变更法人（人员层）命令必须没有关系编号，带了被拒绝，不带的同一行被接受")
+    void aLegalEntityChangeIsPersonLevel() throws Exception {
+        UUID relationship = relationship(person, employerA, null);
+
+        refusedBy(() -> command(person, relationship, "CHANGE_LEGAL_ENTITY", 0), CHECK_VIOLATION, PER_KIND_CHECK, "design 4.1 per-kind CHECK: CHANGE_LEGAL_ENTITY carries no relationship id");
+        command(person, null, "CHANGE_LEGAL_ENTITY", 0);
+
+        assertThat(rows("select 1 from personnel_commands where employee_id = ? and command_kind = 'CHANGE_LEGAL_ENTITY' and employment_relationship_id is null",
+                stored(person))).as("control: the same valid row without a relationship is accepted").hasSize(1);
+    }
+
+    @Test
+    @DisplayName("#1371 完成标准 2（设计 4.1）：命令的关系必须属于该员工（复合外键），换成本人的关系则接受")
     void aCommandCannotNameAnotherPersonsRelationship() throws Exception {
+        UUID own = relationship(person, employerA, null);
         UUID other = newEmployeeId();
         employee(other, unit, null);
         UUID othersRelationship = relationship(other, employerA, null);
 
-        refusedBy(() -> command(person, othersRelationship, "TRANSFER"), FOREIGN_KEY_VIOLATION, "design 4.1 composite FK (relationship, employee)");
+        refusedBy(() -> command(person, othersRelationship, "TRANSFER", 0), FOREIGN_KEY_VIOLATION, "fk_personnel_commands_relationship",
+                "design 4.1 composite FK (relationship, employee)");
+        command(person, own, "TRANSFER", 0);
+
+        assertThat(rows("select 1 from personnel_commands where employee_id = ? and employment_relationship_id = ?", stored(person), own))
+                .as("control: the same valid row with the person's own relationship is accepted").hasSize(1);
     }
 
     @Test
