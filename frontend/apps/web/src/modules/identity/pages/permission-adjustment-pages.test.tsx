@@ -16,7 +16,7 @@ const COMMAND = '019a0000-0000-7000-8000-000000006001';
 const VERSION = { ETag: '"3"' };
 
 const ASSIGNMENT = {
-  permissionAdjustmentId: ID, kind: 'SENSITIVE_ROLE_REVIEW', originKind: 'ASSIGNMENT_CHANGE', status: 'OPEN', userId: USER, userName: '合成当事人',
+  permissionAdjustmentId: ID, kind: 'SENSITIVE_ROLE_REVIEW', originKind: 'ASSIGNMENT_CHANGE', status: 'OPEN', userId: USER,
   triggerPersonnelCommandId: COMMAND, triggerField: 'ORG_UNIT',
 };
 const UNPAID = { ...ASSIGNMENT, permissionAdjustmentId: SECOND, originKind: 'UNPAID_LEAVE_START', triggerField: undefined };
@@ -31,13 +31,12 @@ function renderDetail() {
 }
 
 describe('待调整权限列表', () => {
-  it('列出条目：对象显示姓名，没有姓名时显示编号；默认只看待处理', async () => {
-    const bare = { ...ASSIGNMENT, permissionAdjustmentId: SECOND, userName: undefined };
+  it('列出条目：人员只显示编号，不显示姓名；默认只看待处理', async () => {
+    const bare = { ...ASSIGNMENT, permissionAdjustmentId: SECOND };
     const server = stubServer({ 'GET permission-adjustments': { body: { items: [ASSIGNMENT, bare] } } });
     renderWithProviders(<PermissionAdjustmentListPage />);
 
-    expect(await screen.findByText('合成当事人')).toBeInTheDocument();
-    expect(screen.getByText(USER)).toBeInTheDocument();
+    expect((await screen.findAllByText(USER)).length).toBe(2);
     const table = within(screen.getByRole('table'));
     expect(table.getAllByText('敏感角色复核')).toHaveLength(2);
     expect(table.getAllByText('调岗')).toHaveLength(2);
@@ -111,10 +110,10 @@ describe('待调整权限详情', () => {
   });
 
   it('已办理的条目不再给出操作', async () => {
-    stubServer({ [`GET permission-adjustments/${ID}`]: { body: { ...ASSIGNMENT, status: 'UPHELD', businessOwnerEmployeeId: OWNER, businessOwnerName: '合成负责人', upholdExpiresAt: '2027-01-01T00:00:00Z' }, headers: VERSION } });
+    stubServer({ [`GET permission-adjustments/${ID}`]: { body: { ...ASSIGNMENT, status: 'UPHELD', businessOwnerEmployeeId: OWNER, upholdExpiresAt: '2027-01-01T00:00:00Z' }, headers: VERSION } });
     renderDetail();
 
-    expect(await screen.findByText('合成负责人')).toBeInTheDocument();
+    expect(await screen.findByText(OWNER)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '维持授权' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '标记已调整' })).not.toBeInTheDocument();
   });

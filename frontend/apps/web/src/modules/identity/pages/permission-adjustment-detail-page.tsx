@@ -66,11 +66,11 @@ export function PermissionAdjustmentDetailPage() {
         items={[
           { label: '类型', value: KIND_LABELS[detail.kind] ?? detail.kind },
           { label: '来源', value: ORIGIN_LABELS[detail.originKind] ?? detail.originKind },
-          ...(detail.userId === undefined ? [] : [{ label: '人员', value: nameOrId(detail.userName, detail.userId) }]),
+          ...(detail.userId === undefined ? [] : [{ label: '人员', value: detail.userId }]),
           ...(detail.roleId === undefined ? [] : [{ label: '角色', value: nameOrId(detail.roleName, detail.roleId) }]),
           ...(detail.orgUnitId === undefined ? [] : [{ label: '组织单元', value: nameOrId(detail.orgUnitName, detail.orgUnitId) }]),
           ...triggerItems(detail),
-          ...(detail.businessOwnerEmployeeId === undefined ? [] : [{ label: '业务负责人', value: nameOrId(detail.businessOwnerName, detail.businessOwnerEmployeeId) }]),
+          ...(detail.businessOwnerEmployeeId === undefined ? [] : [{ label: '业务负责人', value: detail.businessOwnerEmployeeId }]),
           ...(detail.upholdExpiresAt === undefined ? [] : [{ label: '维持到期时间', value: formatDateTime(detail.upholdExpiresAt) }]),
         ]}
       />
