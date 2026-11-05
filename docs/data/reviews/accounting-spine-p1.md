@@ -35,9 +35,9 @@ No date columns: start and end follow from year and number (ADR-0046 decision 8.
 
 Constraints:
 
-- `uk_fiscal_periods_legal_entity_id_fiscal_year_number_period_number` on `(legal_entity_id, fiscal_year_number, period_number)`. It leads with `legal_entity_id`, so it is also the index every entity-scoped read needs and `PeriodGate` looks a period up by it.
+- `uk_fiscal_periods_entity_year_number` on `(legal_entity_id, fiscal_year_number, period_number)` (the full column-based name would be 66 bytes, over the 63-byte limit of naming standard N3-L1, so it is shortened, not truncated; it matches the spec sketch). It leads with `legal_entity_id`, so it is also the index every entity-scoped read needs and `PeriodGate` looks a period up by it.
 - Trigger `tg_fiscal_periods_change` (and `tg_fiscal_periods_truncate`, which refuses TRUNCATE): the full list of legal writes, everything else is refused. (1) Insert: any `status` (P1 writes `OPEN`; tests seed the other two with a repository fixture, spec C-6). (2) Update: only the edges `OPEN` to `CLOSING` and `CLOSING` to `CLOSED`, and only `status`, `updated_at`, `version` change. (3) A `CLOSED` row accepts no update (INV-99, ADR-0045: closed periods never reopen). (4) **No delete at all**: facts refer to a period by (entity, year, number) without a foreign key (other BC), so removing an `OPEN` row would leave facts pointing at nothing; a mistaken year is corrected by an ops migration, not by the application. The sketch said only "CLOSED accepts no delete"; refusing every delete is my narrowing, and any later need is a lossless widening of the trigger.
-- The edge `CLOSING` to `OPEN` is **not** in the list. ADR-0045 decision 1 (second bullet) permits a `CLOSING` period whose pre-checks fail to stay or go back to open (not a reopen), and `planned.yaml` lists the command 退回开放 on AGG-81. The spine has no close command (spec C-6), so nothing needs the edge now; the closing batch adds it to the trigger by migration with its own sign-off. This is a narrowing of the sketch, not a conditional pass (gate 1.3).
+- The edge `CLOSING` to `OPEN` is **not** in the list. ADR-0045 decision 1 (fourth bullet) permits a `CLOSING` period whose pre-checks fail to stay or go back to open (not a reopen), and `planned.yaml` lists the command 退回开放 on AGG-81. The spine has no close command (spec C-6), so nothing needs the edge now; the closing batch adds it to the trigger by migration with its own sign-off. This is a narrowing of the sketch, not a conditional pass (gate 1.3).
 - Index: none beyond the unique key. The gate lookup is by the whole key; "lowest-numbered `OPEN` period of an entity" (the current open period) reads at most 13 rows per year through the same index.
 
 ## Differences from the section 8 sketch
@@ -52,7 +52,7 @@ None of these changes a command or an event. `OpenFiscalYear` raises no event (s
 
 | Invariant | Carrier | Reason when no constraint |
 |---|---|---|
-| One row per entity, year and number | `uk_fiscal_periods_legal_entity_id_fiscal_year_number_period_number` | |
+| One row per entity, year and number | `uk_fiscal_periods_entity_year_number` | |
 | Status is one of three | `ck_fiscal_periods_status` | |
 | Number is 1 to 13 | `ck_fiscal_periods_period_number` | |
 | A closed period never changes and no period row is deleted (INV-99) | `tg_fiscal_periods_change`, `tg_fiscal_periods_truncate` | |

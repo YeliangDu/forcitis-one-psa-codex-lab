@@ -1,6 +1,6 @@
 # Data design review: accounting spine slice F1 (posting facts, three tables)
 
-Card: #1434 (design, widened by lead to the F1 facts tables; Refs #1402). Slice F1 of `docs/architecture/proposals/accounting-spine.md` section 10 (dev card not opened yet). Basis: that spec sections 3 C-1 to C-4, 4.2, 5, 8, 9 (Q-8 answered) at origin/main `a22fdd7f4`; ADR-0016 (posting pipeline), ADR-0022 decision 3 (dimensions), ADR-0045 and ADR-0046 decision 8.3 (original period), ADR-0079 (money); decision Q-12 (a) (the user's word CONFIDENTIAL is register level `SENSITIVE`); gate `docs/data/data-design-gate.md` Appendix A. Signed by one-design. Prerequisite: P1 merged (spec section 10); this record does not depend on P1's table, because the period columns here are plain integers with no foreign key.
+Card: #1434 (design, widened by lead to the F1 facts tables; Refs #1402). Slice F1 of `docs/architecture/proposals/accounting-spine.md` section 10 (dev card not opened yet). Basis: that spec sections 3 C-1 to C-4, 4.2, 5, 8, 9 (Q-8 answered) at origin/main `a22fdd7f4`; ADR-0016 (posting pipeline), ADR-0022 decision 3 (dimensions), ADR-0045 and ADR-0046 decision 8.3 (original period), payroll spec C-4 (money in CNY); lead's ruling Q-12 (a), intent fragment Q-12-a, relayed by lead (not in the repo as a decision page: **unverified** there) (the user's word CONFIDENTIAL is register level `SENSITIVE`); gate `docs/data/data-design-gate.md` Appendix A. Signed by one-design. Prerequisite: P1 merged (spec section 10); this record does not depend on P1's table, because the period columns here are plain integers with no foreign key.
 
 ## Scope
 
@@ -45,7 +45,7 @@ Names follow `naming-standard.md` 2.4/2.4a. Keys: UUIDv7 `id`, primary key `pk_<
 Constraints:
 
 - `uk_posting_facts_post_number` (INV-95 order; consumers sort by it within one entity).
-- `uk_posting_facts_legal_entity_id_source_context_code_idempotency_key` (INV-94): a replay returns the original fact and writes nothing; the key is scoped by entity and producer so two producers cannot collide.
+- `uk_posting_facts_replay_key` on `(legal_entity_id, source_context_code, idempotency_key)` (INV-94; the full column-based name would be 68 bytes, over the 63-byte limit of naming standard N3-L1, so the name is shortened, not truncated): a replay returns the original fact and writes nothing; the key is scoped by entity and producer so two producers cannot collide.
 - `uk_posting_facts_reverses_fact_id`: one reversal per fact; it also indexes the foreign key (G-DDL2).
 - Trigger `tg_posting_facts_append_only` (and `tg_posting_facts_truncate`): insert only; every update and delete is refused (INV-95: a correction is a reversing fact plus a new fact).
 - Indexes: `ix_posting_facts_legal_entity_id_post_number` (per-entity order; the closing batch and reconcile read in this order), `ix_posting_facts_legal_entity_id_posted_period` on `(legal_entity_id, posted_fiscal_year_number, posted_period_number, post_number)` (a period's facts), `ix_posting_facts_source` on `(source_context_code, source_id)` (find the fact of a producer object).
@@ -59,7 +59,7 @@ Constraints:
 | `line_number` | integer NOT NULL | position inside the fact; `>= 1`. Renamed from the sketch's `line_no` (`_no` is not a class word) |
 | `side_kind` | text NOT NULL | `ck_posting_fact_lines_side_kind`: `DEBIT`, `CREDIT`. Renamed from the sketch's `side` (an enum needs a class word) |
 | `component_key` | text NOT NULL | a registered component of the fact's type (rule below); format CHECK `~ '^[A-Z][A-Z0-9_]{1,59}$'` |
-| `line_amount`, `line_currency` | numeric(19,2) NOT NULL, text NOT NULL | `ck_posting_fact_lines_line_amount_positive` `line_amount > 0` (direction is the side, not the sign); `ck_posting_fact_lines_line_currency` `= 'CNY'` (C-4, ADR-0079; a second currency is a CHECK widening later). Naming standard 2.4 pairs `_amount` with a same-named `_currency`; the sketch's `amount`/`currency` are renamed to carry the class words |
+| `line_amount`, `line_currency` | numeric(19,2) NOT NULL, text NOT NULL | `ck_posting_fact_lines_line_amount_positive` `line_amount > 0` (direction is the side, not the sign); `ck_posting_fact_lines_line_currency` `= 'CNY'` (C-4, payroll spec C-4 (`organization-payroll.md`, CNY `numeric(19,2)`); CNY-only for facts is my narrowing for payroll facts, the accounting spec section 3 does not decide it; a second currency is a CHECK widening later). Naming standard 2.4 pairs `_amount` with a same-named `_currency`; the sketch's `amount`/`currency` are renamed to carry the class words |
 | `department_id` | uuid null | 为空表示 the line has no department dimension; no FK (B4); whether the department belongs to the fact's entity is the producer's check (spec 4.2) |
 | `created_at`, `updated_at` | timestamptz NOT NULL | audit |
 
@@ -68,7 +68,8 @@ Constraints:
 - `uk_posting_fact_lines_fact_id_line_number` on `(fact_id, line_number)`; leads with `fact_id`, so it also indexes the foreign key (G-DDL2).
 - Trigger `tg_posting_fact_lines_append_only` (and `tg_posting_fact_lines_truncate`): insert only, no update, no delete.
 - **Balance (INV-93).** A deferred constraint trigger `tg_posting_fact_lines_balance` (`CONSTRAINT TRIGGER … DEFERRABLE INITIALLY DEFERRED`, after insert) checks, for each fact touched in the transaction, at commit: at least one debit and one credit line; Σ debit = Σ credit; one `line_currency` for all lines of the fact (spec 4.2: one currency per candidate). No single-row CHECK can state it.
-- **A fact's lines are written in the fact's own transaction.** A line insert whose fact was committed by an earlier transaction is refused (otherwise a balanced extra pair could be appended to an existing fact and the append-only rule would be hollow). The rule is signed; the mechanism (for example comparing the parent row's `xmin` with the current transaction) is the dev card's, and its integration test inserts a line in a second transaction and expects the refusal.
+- The same check also runs from a deferred constraint trigger `tg_posting_facts_balance` on `posting_facts` (after insert, initially deferred, one shared function), so a fact header inserted with no lines is refused at commit. Test for the dev card: insert a fact without lines, commit, expect refusal.
+- **A fact's lines are written in the fact's own transaction.** A line insert whose fact was committed by an earlier transaction is refused (otherwise a balanced extra pair could be appended to an existing fact and the append-only rule would be hollow). The rule is signed; the mechanism (for example comparing the parent row's `xmin` with the current transaction; that breaks under savepoints, where the row carries the subtransaction's id, and `xmin` is 32 bit, so the dev card tests a fact and its lines inserted across a savepoint) is the dev card's, and its integration test inserts a line in a second transaction and expects the refusal.
 - **Component registered (S-R3).** `tg_posting_fact_lines_component` (before insert): the line's `component_key` exists in `posting_components` for the parent fact's `fact_type` and the row is active. Cross-table, so a trigger, not a CHECK; the pipeline also checks it first so the caller gets the named outcome `UNKNOWN_COMPONENT` instead of a database error. A component deactivated later does not touch old lines.
 - Index: the unique key above.
 
@@ -97,8 +98,8 @@ None of these changes a command or an event. The event `BusinessFactAttributed` 
 
 | Invariant | Carrier | Reason when no constraint |
 |---|---|---|
-| A fact balances: Σ debit = Σ credit, one currency (INV-93) | `tg_posting_fact_lines_balance` (deferred) | |
-| One fact per entity, producer and idempotency key (INV-94) | `uk_posting_facts_legal_entity_id_source_context_code_idempotency_key` | |
+| A fact balances: Σ debit = Σ credit, one currency, at least one line each side (INV-93), including a fact with no lines | `tg_posting_fact_lines_balance` and `tg_posting_facts_balance` (both deferred, one function) | |
+| One fact per entity, producer and idempotency key (INV-94) | `uk_posting_facts_replay_key` | |
 | Facts and lines are append only (INV-95) | the two append-only triggers, two truncate triggers | |
 | One reversal per fact; not its own reversal | `uk_posting_facts_reverses_fact_id`, `ck_posting_facts_reverses_not_self` | |
 | `PostSeq` increases | `uk_posting_facts_post_number` and the sequence | gaps are allowed by design (a rolled-back transaction burns a value) |
@@ -135,10 +136,10 @@ Volume in the HR batch: one fact per entity and payroll month, about five entiti
 
 ## Cross-cutting, ADR clauses, value objects (O13 to O16)
 
-- Legal entity column: on `posting_facts` (O13); lines inherit through the fact; components are configuration without one. Money: `numeric(19,2)` CNY with the paired currency column (ADR-0079); time zone: dates and `timestamptz` audit only. `jsonb`: none. Free text: none (the digest-only rule for payloads belongs to F2).
+- Legal entity column: on `posting_facts` (O13); lines inherit through the fact; components are configuration without one. Money: `numeric(19,2)` CNY with the paired currency column (payroll spec C-4); time zone: dates and `timestamptz` audit only. `jsonb`: none. Free text: none (the digest-only rule for payloads belongs to F2).
 - Data scope, fail-closed: reads of facts are filtered by the caller's entity scope; lines are read through the fact and inherit its scope (spec 5); components by permission only.
 - Analytical facts (A1 to A8): none in the spine. The events carry ids only, so no pay amount leaves the schema through an event.
-- ADR clauses: ADR-0016 decisions 1 to 3 (single pipeline, original period, account-free facts), ADR-0045, ADR-0046 decision 8.3, ADR-0079, ADR-0087 decision 3.
+- ADR clauses: ADR-0016 decisions 1 to 3 (single pipeline, original period, account-free facts), ADR-0045, ADR-0046 decision 8.3, ADR-0087 decision 3. ADR-0016 decision 2 says append-only is trigger plus privilege revocation: the triggers are signed here; the revocation is the role set-up (the dev card names where, **unverified**).
 
 ## Registry drafts and classification (C1 to C5)
 
@@ -168,7 +169,7 @@ Table comments: `posting_facts` 「过账事实：粒度：每个法人 × 业�
 
 ## Baseline, target, transition, rollback (T1 to T4)
 
-Baseline: no `operations_facts` schema; no legacy table of these names (`LegacyShapeTest`). Target: the three tables, the sequence, the triggers and indexes above. Transition: none (no data; the legacy system's vouchers are not imported). Rollback: drop the schema while empty (nothing references it until the payroll slice PAY). Expected diff for the schema PR: `operations_facts.posting_facts`, `posting_fact_lines`, `posting_components`, sequence `posting_fact_post_seq`, their CHECKs, unique keys, foreign keys, indexes, the append-only and truncate triggers with functions, the deferred balance trigger, the component trigger and the same-transaction rule, comments, registry entries, the two classification lines. No `btree_gist`.
+Baseline: no `operations_facts` schema; no legacy table of these names (`LegacyShapeTest`). Target: the three tables, the sequence, the triggers and indexes above. Transition: none (no data; the legacy system's vouchers are not imported). Rollback: drop the schema while empty (nothing references it until the payroll slice PAY). Expected diff for the schema PR: `operations_facts.posting_facts`, `posting_fact_lines`, `posting_components`, sequence `posting_fact_post_seq`, their CHECKs, unique keys, foreign keys, indexes, the append-only and truncate triggers with functions, the two deferred balance triggers, the component trigger and the same-transaction rule, comments, registry entries, the two classification lines. No `btree_gist`.
 
 ## Events and read models (E1 to E3)
 
