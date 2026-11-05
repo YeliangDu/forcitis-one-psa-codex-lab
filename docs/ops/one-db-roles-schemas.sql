@@ -74,6 +74,7 @@ CREATE SCHEMA organization_workforce AUTHORIZATION one_dev_owner;  -- 组织快�
 CREATE SCHEMA organization_attendance AUTHORIZATION one_dev_owner;  -- 工作日历（考勤与休假 BC，1a 只含工作日历）
 CREATE SCHEMA organization_leave      AUTHORIZATION one_dev_owner;
 CREATE SCHEMA organization_payroll    AUTHORIZATION one_dev_owner;
+CREATE SCHEMA organization_recruitment AUTHORIZATION one_dev_owner;
 CREATE SCHEMA accounting_period     AUTHORIZATION one_dev_owner;
 CREATE SCHEMA organization_administration AUTHORIZATION one_dev_owner;
 CREATE SCHEMA cost_timesheet         AUTHORIZATION one_dev_owner;  -- 工时单与幂等记录（cost.timesheet 是 1a 正式模块）
@@ -104,7 +105,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT S
 
 -- 运行角色不得建对象
 REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering, platform_file,
-                        platform_scheduling, organization_workforce, organization_attendance, organization_leave, accounting_period, organization_payroll, organization_administration, platform_idempotency, cost_timesheet, one_migration FROM one_dev_app, one_dev_readonly;
+                        platform_scheduling, organization_workforce, organization_attendance, organization_leave, accounting_period, organization_payroll, organization_recruitment, organization_administration, platform_idempotency, cost_timesheet, one_migration FROM one_dev_app, one_dev_readonly;
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- §4 Flowable 引擎表（ACT_*）
@@ -184,5 +185,5 @@ GRANT EXECUTE ON FUNCTION platform_audit.drop_archived_audit_entry_partition(dat
 -- §5 撤销（回滚本文件；仅在尚无数据时使用）
 -- ---------------------------------------------------------------------------------------------------------------------
 -- DROP SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering, platform_file,
---             platform_scheduling, organization_workforce, organization_attendance, organization_leave, accounting_period, organization_payroll, organization_administration, platform_idempotency, cost_timesheet, one_migration CASCADE;
+--             platform_scheduling, organization_workforce, organization_attendance, organization_leave, accounting_period, organization_payroll, organization_recruitment, organization_administration, platform_idempotency, cost_timesheet, one_migration CASCADE;
 -- DROP ROLE one_dev_audit_maintainer; DROP ROLE one_dev_app; DROP ROLE one_dev_readonly; DROP ROLE one_dev_migrator; DROP ROLE one_dev_history_loader; DROP ROLE one_dev_owner;
