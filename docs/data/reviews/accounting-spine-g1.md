@@ -59,7 +59,7 @@ Business statement (O3): a legal entity has at most one book per accounting basi
 
 | Table | Business key | D17 class | Versioning (D17 rule 2) |
 |---|---|---|---|
-| `ledgers` | (`legal_entity_id`, `basis_kind`) | master data (a business entity referenced by id from chart and mapping versions and, later, vouchers) | **not needed**, reason "a single state the audit can fully reconstruct" (one of the four reasons of D17 rule 2): the row is identity only, has no attribute that can change, and is created once and never updated or deleted, so there is no value to version. Source for the exemption entry: ADR-0022 decision 2 (two books per entity); D17 asks a new exemption to cite a user intent or an ADR, and no ADR states this exemption in words, so this record names the source and the registry line can be changed without changing any table shape if the gate owner reads it differently |
+| `ledgers` | (`legal_entity_id`, `basis_kind`) | master data (a business entity referenced by id from chart and mapping versions and, later, vouchers) | **versioned through its children, not by an exemption**: D17 rule 5 says a root that owns data which takes effect over time holds no versionable column and reads take the version valid on the business date. `ledgers` is that root: identity only (entity, basis), no attribute that can change; everything that changes over time is a version row of a child table (`chart_versions` in G2, `mapping_versions` in G3, with effective periods and approval). Precedent: `organization_attendance.work_calendar_years` (root without versionable columns, versions elsewhere). No new exemption entry is registered, so D17 rule 2's "new exemption cites an intent or an ADR" does not arise |
 
 ## Query paths (O10)
 
@@ -111,7 +111,7 @@ No event published, no read model, no migration mapping. G1 subscribes to `Legal
 数据设计审查
 - 审查：one-design，2026-11-05，依据 origin/main `a22fdd7f4`
 - 判定：B1、B2、B3、B4（跨 BC 无外键）、B5、B6、B7、O1、O2（UUIDv7 主键）、O3、O4、O5、O6、O7（创建后不可改）、O9、O10、O10a、O11、O12、O13、O14、O15、O16、C1 至 C5、T1 至 T4、E1 通过，证据见上文各节；A1 至 A8 不适用（无分析事实）；B8（术语表）按请假 L1a 先例记为实现卡前置
-- 豁免与待用户决定：D17 豁免登记「单一状态且审计能完整还原」，来源 ADR-0022 第 2 条（无 ADR 逐字写明，见上文 O6，改判不影响表结构）；保留期 `PERMANENT` 与分级按 spec Q-8（用户 2026-11-05 已答：采纳建议）
+- 豁免与待用户决定：D17：账簿表是只含身份列的根，随时间变化的内容在 G2/G3 的版本子表（D17 细则 5，先例 `work_calendar_years`），不登记新豁免；保留期 `PERMANENT` 与分级按 spec Q-8（用户 2026-11-05 已答：采纳建议）
 - 范围：仅 `ledgers`；`chart_versions`、`chart_accounts`、`mapping_versions`、`account_mappings` 属 G2/G3，不在本记录
 - 结论：通过（仅 `ledgers`）
 - 数据设计：通过（one-design，2026-11-05，依据 a22fdd7f4）
