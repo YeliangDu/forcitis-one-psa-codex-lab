@@ -110,7 +110,7 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
     /**
      * The person's one relationship; a snapshot person has none yet, so it is made here with the employer the attribution names on the
      * first day: the person's own legal entity, else the nearest one up the primary org unit's parents (the rule of LegalEntityResolution).
-     * Nobody is guessed: a person without attribution fails the whole migration, which names only the count of the rule, never the person.
+     * Nobody is guessed: the caller skips a person without attribution (see hasEmployerOn) and counts them.
      */
     private UUID relationshipOf(EmployeeId employee, LocalDate firstDay, Instant at) {
         List<UUID> found = jdbc.sql("select employment_relationship_id from organization_workforce.employment_relationships where employee_id = :employee")
@@ -133,6 +133,12 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
                 values (:id, :employee, :employer, 'MIGRATION_ATTRIBUTION', :at, :at)
                 """).param("id", id).param("employee", employee.value()).param("employer", employer).param("at", stamp).update();
         return id;
+    }
+
+    @Override
+    public boolean hasEmployerOn(EmployeeId employee, LocalDate firstDay) {
+        return !jdbc.sql("select 1 from organization_workforce.employment_relationships where employee_id = :employee").param("employee", employee.value()).query(Integer.class).list().isEmpty()
+                || employerOn(employee.value(), firstDay) != null;
     }
 
     private @Nullable UUID employerOn(UUID employee, LocalDate day) {

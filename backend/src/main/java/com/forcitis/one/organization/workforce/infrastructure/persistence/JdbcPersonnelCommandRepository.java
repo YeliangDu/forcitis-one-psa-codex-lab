@@ -412,12 +412,12 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
             }
         }
         if (employeeTable) {
-            refreshSnapshot(employee, at);
+            updateSnapshot(employee, at);
         }
     }
 
     /** The derived snapshot columns of the root row follow the relationships (ADR-0086 design 6.2): employed while any relationship is in service on the day, else separated on the latest end. */
-    private void refreshSnapshot(EmployeeId employee, Instant at) {
+    private void updateSnapshot(EmployeeId employee, Instant at) {
         LocalDate day = zone.dateOf(at);
         boolean inService = jdbc.sql("""
                 select exists (select 1 from organization_workforce.employment_relationship_versions
@@ -525,7 +525,7 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE, ErrorKind.CONFLICT, "the command was changed by someone else");
         }
         if (c.appliedAt() != null) {
-            refreshSnapshot(c.employeeId(), at);
+            updateSnapshot(c.employeeId(), at);
         }
     }
 
