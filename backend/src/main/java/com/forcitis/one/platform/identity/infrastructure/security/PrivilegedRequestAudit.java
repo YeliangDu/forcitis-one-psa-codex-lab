@@ -43,7 +43,7 @@ class PrivilegedRequestAudit implements WebMvcConfigurer, HandlerInterceptor {
                 && (writes(request) || readsAuthorisationData(request))) {
             audit.recordIndependently(new AuditEntry("platform.identity.privileged.request", identity.account().orElse(null), null,
                     AuditSubject.without(AuditSubjectKind.REQUEST), RequestLabel.of(request))
-                    .withTrace(origin.address(), AuditOutcome.SUCCEEDED, identity.loginMethod().name()));
+                    .withTrace(origin.address(), AuditOutcome.SUCCEEDED, identity.loginMethod().auditKind()));
         }
         return true;
     }

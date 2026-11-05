@@ -84,12 +84,12 @@ def gh_view(root, n):
         return None
 
 
-def closing_pr(session, prs, owners, gapscan, view, cache, save, deadline):
+def closing_pr(session, prs, owners, gapscan, view, cache, save, deadline, clock=time.monotonic):
     """(pr, card) of the first of `prs` that `session` owns and that carries a card line (`Closes` or `Refs`), else None. `cache` {pr: [owner, card or None]} is filled in and
-    `save`d after every lookup; past `deadline` (time.monotonic) the lookups stop with Unreadable and the next stop continues from the cache."""
+    `save`d after every lookup; past `deadline` (`clock`, time.monotonic) the lookups stop with Unreadable and the next stop continues from the cache."""
     for n in prs:
         if str(n) not in cache:
-            if time.monotonic() > deadline:
+            if clock() > deadline:
                 raise Unreadable(f"PR 太多，{BUDGET} 秒内没查完，已查的存了缓存，下一回合继续")
             info = view(n)
             if not isinstance(info, dict) or "headRefName" not in info:
@@ -161,7 +161,7 @@ def session_transcripts(root, session, projects):
     return found
 
 
-def check(payload, root, view=None, budget=BUDGET, state=None, projects=None, now=None):
+def check(payload, root, view=None, budget=BUDGET, state=None, projects=None, now=None, clock=time.monotonic):
     """The reason to block, or None. Raises Unreadable."""
     sys.path.insert(0, os.path.join(root, "scripts", "merge"))
     try:
@@ -185,11 +185,11 @@ def check(payload, root, view=None, budget=BUDGET, state=None, projects=None, no
     cache_path = os.path.join(git_dir, CACHE)
     cache = load_cache(cache_path)
     view = view or (lambda n: gh_view(root, n))
-    deadline = time.monotonic() + budget
+    deadline = clock() + budget
 
     def owned_merge(who, since):   # (pr, card) of a pull request of `who` merged after `since`, else None; no network call when nothing merged since
         merged = merged_since(log_path, since)
-        return closing_pr(who, merged, owners, gapscan, view, cache, lambda c: save_cache(cache_path, c), deadline) if merged else None
+        return closing_pr(who, merged, owners, gapscan, view, cache, lambda c: save_cache(cache_path, c), deadline, clock) if merged else None
 
     if config[session].get("role") != "lead":
         path = payload.get("transcript_path")
@@ -216,7 +216,7 @@ def check(payload, root, view=None, budget=BUDGET, state=None, projects=None, no
     return None
 
 
-def stop(stdin, env=None, view=None, budget=BUDGET, state=None, projects=None, now=None):
+def stop(stdin, env=None, view=None, budget=BUDGET, state=None, projects=None, now=None, clock=time.monotonic):
     """(exit code, stdout, stderr)."""
     env = os.environ if env is None else env
     try:
@@ -224,7 +224,7 @@ def stop(stdin, env=None, view=None, budget=BUDGET, state=None, projects=None, n
         root = env.get("CLAUDE_PROJECT_DIR") or payload.get("cwd")
         if not isinstance(root, str):
             raise Unreadable("没有项目目录")
-        reason = check(payload, root, view, budget, state, projects, now)
+        reason = check(payload, root, view, budget, state, projects, now, clock)
     except Exception as e:  # fail open: a broken check must not hold up a session
         why = str(e) if isinstance(e, Unreadable) else f"{type(e).__name__}: {e}"
         return 0, json.dumps({"systemMessage": f"【钩子告警】card_handover 读不了输入，本次放行：{why}"}, ensure_ascii=False), ""
@@ -327,12 +327,14 @@ def self_test():
         assert not os.path.exists(cache_file)
         slow = []
 
-        def tick(n):   # the budget runs out after the first lookup
+        elapsed = [0.0]   # a fake clock the lookup itself advances: the budget runs out after the first lookup however fast or loaded the machine is
+
+        def tick(n):
             slow.append(n)
-            time.sleep(0.05)
+            elapsed[0] += 1.0
             return {"headRefName": three[n][0], "body": three[n][1]}
         payload = json.dumps({"transcript_path": transcript(now - datetime.timedelta(hours=1)), "cwd": root})
-        code, out, err = stop(io.StringIO(payload), {"CLAUDE_PROJECT_DIR": root}, tick, 0.01)
+        code, out, err = stop(io.StringIO(payload), {"CLAUDE_PROJECT_DIR": root}, tick, 0.5, state, projects, clock=lambda: elapsed[0])
         assert code == 0 and "【钩子告警】" in out and slow == [7] and sorted(json.load(open(cache_file))) == ["7"], (code, out, slow)
         code, out, err, calls = run(three, keep_cache=True)
         assert calls == [8, 9] and code == 2, ("the next stop continues from the cache", calls)

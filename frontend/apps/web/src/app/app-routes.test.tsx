@@ -55,6 +55,55 @@ describe('应用外壳与登录状态', () => {
     expect(await screen.findByText('暂无待确认的授权申请')).toBeInTheDocument();
   });
 
+  it('待调整权限列表挂在 /admin/permission-adjustments，详情挂在其下', async () => {
+    const ID = '019a0000-0000-7000-8000-000000009a01';
+    stubServer({
+      'GET sessions:current': { body: currentUserBody([], NAVIGATION) },
+      'GET permission-adjustments': { body: { items: [] } },
+      [`GET permission-adjustments/${ID}`]: { body: { permissionAdjustmentId: ID, kind: 'SCOPE_REVIEW', originKind: 'ORG_UNIT_INACTIVE', status: 'OPEN', roleName: '合成角色甲', orgUnitName: '合成失效部门' }, headers: { ETag: '"1"' } },
+    });
+    renderWithProviders(<AppRoutes />, { route: '/admin/permission-adjustments' });
+    expect(await screen.findByText('暂无待调整权限')).toBeInTheDocument();
+
+    renderWithProviders(<AppRoutes />, { route: `/admin/permission-adjustments/${ID}` });
+    expect(await screen.findByText('组织单元失效')).toBeInTheDocument();
+  });
+
+  it('待调整权限的办理被拒（403 带业务码）：留在详情页并显示提示，不进权限不足页', async () => {
+    const ID = '019a0000-0000-7000-8000-000000009a01';
+    stubServer({
+      'GET sessions:current': { body: currentUserBody([], NAVIGATION) },
+      [`GET permission-adjustments/${ID}`]: { body: { permissionAdjustmentId: ID, kind: 'SCOPE_REVIEW', originKind: 'ASSIGNMENT_CHANGE', status: 'OPEN', userId: '019a0000-0000-7000-8000-000000001001' }, headers: { ETag: '"1"' } },
+      [`POST permission-adjustments/${ID}:uphold`]: { status: 403, body: problemBody(403, 'PLATFORM_IDENTITY_PERMISSION_ADJUSTMENT_HANDLER_NOT_ALLOWED') },
+    });
+    renderWithProviders(<AppRoutes />, { route: `/admin/permission-adjustments/${ID}` });
+
+    await userEvent.click(await screen.findByRole('button', { name: '维持授权' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: '维持授权' }));
+
+    expect(await within(dialog).findByText('无权办理待调整权限条目')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent(`/admin/permission-adjustments/${ID}`);
+  });
+
+  it('待调整权限标记已调整被拒（403 带业务码）：留在详情页并显示提示，不进权限不足页', async () => {
+    const ID = '019a0000-0000-7000-8000-000000009a02';
+    stubServer({
+      'GET sessions:current': { body: currentUserBody([], NAVIGATION) },
+      [`GET permission-adjustments/${ID}`]: { body: { permissionAdjustmentId: ID, kind: 'SCOPE_REVIEW', originKind: 'ASSIGNMENT_CHANGE', status: 'OPEN', userId: '019a0000-0000-7000-8000-000000001001' }, headers: { ETag: '"1"' } },
+      [`POST permission-adjustments/${ID}:mark-adjusted`]: { status: 403, body: problemBody(403, 'PLATFORM_IDENTITY_PERMISSION_ADJUSTMENT_HANDLER_NOT_ALLOWED') },
+    });
+    renderWithProviders(<AppRoutes />, { route: `/admin/permission-adjustments/${ID}` });
+
+    await userEvent.click(await screen.findByRole('button', { name: '标记已调整' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText('授权申请编号'), '019a0000-0000-7000-8000-000000005001');
+    await userEvent.click(within(dialog).getByRole('button', { name: '标记已调整' }));
+
+    expect(await within(dialog).findByText('无权办理待调整权限条目')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent(`/admin/permission-adjustments/${ID}`);
+  });
+
   it('授权申请页里申请人自己确认被拒（403 带业务码）：留在本页并显示提示，不进权限不足页', async () => {
     const FIRST = '019a0000-0000-7000-8000-000000009001';
     stubServer({
