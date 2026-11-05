@@ -165,14 +165,9 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
         assertThat(stored(id)).containsEntry("status", "DRAFT");
     }
 
-    private void waitUntilSomeoneWaitsForALock() throws InterruptedException {
-        for (int tries = 0; tries < 200; tries++) {
-            if (jdbc.sql("select count(*) from pg_stat_activity where wait_event_type = 'Lock' and datname = current_database()").query(Integer.class).single() > 0) {
-                return;
-            }
-            Thread.sleep(50);
-        }
-        throw new AssertionError("the publish never waited for the lock of the version row");
+    private void waitUntilSomeoneWaitsForALock() {
+        org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(10)).until(() ->
+                jdbc.sql("select count(*) from pg_stat_activity where wait_event_type = 'Lock' and datname = current_database()").query(Integer.class).single() > 0);
     }
 
     @Test
