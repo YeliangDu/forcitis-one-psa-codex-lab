@@ -149,6 +149,13 @@ class Gh:
     def label(self, n, name, add):
         return sh(["gh", "pr", "edit", str(n), "--add-label" if add else "--remove-label", name]).returncode == 0
 
+    def labelled(self, name):
+        """The pull requests (any state: a merged one is cleaned too) that still carry the label; raises ValueError when gh does not answer (the caller leaves the labels as they are)."""
+        r = sh(["gh", "pr", "list", "--state", "all", "--label", name, "--limit", "200", "--json", "number"])
+        if r.returncode != 0:
+            raise ValueError(r.stderr.strip()[:200] or "gh pr list failed")
+        return [x["number"] for x in json.loads(r.stdout)]
+
     def active_runs(self, branch):
         r = sh(["gh", "run", "list", "--branch", branch, "--workflow", "ci", "--json", "databaseId,status"])
         try:
