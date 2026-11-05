@@ -25,8 +25,12 @@ class OrgStructureCommandStateMachineTest {
     static final UserId BY = new UserId(TestIds.uuid(5));
 
     private static TransitionTable<OrgCommandStatus, OrgStructureCommand> table(OrgStructureCommandKind kind, LocalDate day) {
+        return table(kind, day, 3);
+    }
+
+    private static TransitionTable<OrgCommandStatus, OrgStructureCommand> table(OrgStructureCommandKind kind, LocalDate day, long version) {
         return new TransitionTable<>(OrgCommandStatus.class, status -> OrgStructureCommand.restore(new OrgStructureCommandId(TestIds.uuid(1)), OrgStructureTargetKind.ORG_UNIT,
-                kind, new OrgUnitId(TestIds.uuid(2)), null, day, null, null, null, null, null, null, null, null, null, null, status, 0, 0, BY, NOW.minusSeconds(60), null, 3),
+                kind, new OrgUnitId(TestIds.uuid(2)), null, day, null, null, null, null, null, null, null, null, null, null, status, 0, 0, BY, NOW.minusSeconds(60), null, version),
                 OrgStructureCommand::status);
     }
 
@@ -35,17 +39,25 @@ class OrgStructureCommandStateMachineTest {
     void exhaustiveTransitionsBeforeTheDay() {
         table(OrgStructureCommandKind.SET_ATTRIBUTES, TODAY.plusDays(5))
                 .operation("withdraw", c -> c.withdraw(BY, "no longer needed", NOW), PENDING, WITHDRAWN, AWAITING_ATTRIBUTION_COUNTERSIGN, WITHDRAWN)
-                .operation("requireCountersign", OrgStructureCommand::requireCountersign, PENDING, AWAITING_ATTRIBUTION_COUNTERSIGN, EFFECTIVE, AWAITING_ATTRIBUTION_COUNTERSIGN)
+                .operation("requireCountersign", OrgStructureCommand::requireCountersign)
                 .operation("completeCountersign", c -> c.completeCountersign(NOW, TODAY), AWAITING_ATTRIBUTION_COUNTERSIGN, PENDING)
                 .operation("dueEffect", c -> c.dueEffect(NOW), PENDING, EFFECTIVE)
                 .verify();
     }
 
     @Test
-    @DisplayName("a command that is not a merge, its day come: completeCountersign makes any non-final one EFFECTIVE")
+    @DisplayName("requireCountersign is for a command being entered (never stored, version 0, ADR-0073 3.6): it starts it AWAITING from PENDING or EFFECTIVE, and a stored command refuses it from every status")
+    void requireCountersignOnlyAtEntry() {
+        table(OrgStructureCommandKind.SET_ATTRIBUTES, TODAY.plusDays(5), 0)
+                .operation("requireCountersign", OrgStructureCommand::requireCountersign, PENDING, AWAITING_ATTRIBUTION_COUNTERSIGN, EFFECTIVE, AWAITING_ATTRIBUTION_COUNTERSIGN)
+                .verify();
+    }
+
+    @Test
+    @DisplayName("a command that is not a merge, its day come: completeCountersign makes an AWAITING one EFFECTIVE")
     void exhaustiveTransitionsOnTheDay() {
         table(OrgStructureCommandKind.SET_ATTRIBUTES, TODAY)
-                .operation("completeCountersign", c -> c.completeCountersign(NOW, TODAY), PENDING, EFFECTIVE, IN_PROGRESS, EFFECTIVE, AWAITING_ATTRIBUTION_COUNTERSIGN, EFFECTIVE)
+                .operation("completeCountersign", c -> c.completeCountersign(NOW, TODAY), AWAITING_ATTRIBUTION_COUNTERSIGN, EFFECTIVE)
                 .verify();
     }
 

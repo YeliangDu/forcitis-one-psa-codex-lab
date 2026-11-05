@@ -241,6 +241,9 @@ public final class PersonnelCommand extends AggregateRoot {
         if (previous.equals(next) || countersignNewLegalEntityId != null) {
             throw invalid("a countersign basis names two different legal entities, once");
         }
+        if (version() != 0 || (status != CommandStatus.PENDING && status != CommandStatus.EFFECTIVE)) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL, ErrorKind.CONFLICT, "only a command being entered waits for the countersign");
+        }
         countersignPreviousLegalEntityId = previous;
         countersignNewLegalEntityId = next;
         status = CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN;
