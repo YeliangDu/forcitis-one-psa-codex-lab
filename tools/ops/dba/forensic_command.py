@@ -42,7 +42,7 @@ def render(conf, gate_free_sqls, one_sql_text=None, pub_text=None):
              "gate_free": sorted(hashlib.sha256(s.encode()).hexdigest() for s in gate_free_sqls), "max_sql": MAX_SQL, "timeout": COMMAND_TIMEOUT - 120}
     source = SERVER.read_text(encoding="utf-8")
     source = source.replace("@@CONF@@", base64.b64encode(json.dumps(baked, sort_keys=True).encode()).decode())
-    rev = hashlib.sha256(source.replace("@@REV@@", "").encode()).hexdigest()[:16]
+    rev = hashlib.sha256((HEADER + source.replace("@@REV@@", "")).encode()).hexdigest()[:16]  # the template text is part of the revision: it carries the request-after-exit property
     source = source.replace("@@REV@@", rev)
     body = base64.b64encode(lzma.compress(source.encode(), preset=9 | lzma.PRESET_EXTREME)).decode()
     content = HEADER.format(rev=rev, body=body)
@@ -55,7 +55,16 @@ def render(conf, gate_free_sqls, one_sql_text=None, pub_text=None):
 
 ALLOWED_ACTIONS = {"ecs:InvokeCommand", "ecs:DescribeInvocations", "ecs:DescribeInvocationResults"}
 REQUIRED_DENIES = {"ecs:RunCommand", "ecs:SendFile", "ecs:CreateCommand", "ecs:ModifyCommand", "ecs:DeleteCommand", "ecs:StartTerminalSession"}
-RESOURCE_SHAPE = re.compile(r"acs:ecs:\*:\*:(command|instance)/(<[A-Z_]+>|[ci]-[0-9A-Za-z]+)")
+RESOURCE_SHAPE = re.compile(r"acs:ecs:(?:\*|[0-9A-Za-z-]+):(?:\*|[0-9]+):(command|instance)/(<[A-Z_]+>|[ci]-[0-9A-Za-z]+)")
+
+
+def load_policy(text):  # a repeated key in one object would let the last one win silently: refuse it
+    def pairs(items):
+        keys = [k for k, _ in items]
+        if len(keys) != len(set(keys)):
+            raise ValueError("duplicate key in the policy")
+        return dict(items)
+    return json.loads(text, object_pairs_hook=pairs)
 
 
 def policy_problems(policy):
@@ -72,6 +81,8 @@ def policy_problems(policy):
         actions = st.get("Action") if isinstance(st.get("Action"), list) else [st.get("Action")]
         resources = st.get("Resource") if isinstance(st.get("Resource"), list) else [st.get("Resource")]
         if st.get("Effect") == "Deny":
+            if resources != ["*"] or "Condition" in st:
+                bad.append("a deny statement must apply to Resource * without a condition, or it is not a deny")
             denied |= set(actions)
         elif st.get("Effect") == "Allow":
             extra = set(actions) - ALLOWED_ACTIONS
@@ -82,6 +93,8 @@ def policy_problems(policy):
                 if not m:
                     bad.append("allowed resource that is not one command or one instance: " + str(r))
                 else:
+                    if not m.group(2).startswith(("<", m.group(1)[0] + "-")):
+                        bad.append("resource id prefix does not match its kind: " + r)
                     (commands if m.group(1) == "command" else instances).append(r)
             if "Condition" in st:
                 bad.append("a condition on an allow statement is not reviewed here")
@@ -89,8 +102,8 @@ def policy_problems(policy):
             bad.append("an effect other than Allow and Deny")
     if len(commands) != 1:
         bad.append("exactly one command resource is required")
-    if not instances:
-        bad.append("at least one instance resource is required")
+    if len(instances) != 2 or len(set(instances)) != 2:
+        bad.append("exactly two distinct instance resources are required (the app host and the secret host)")
     if REQUIRED_DENIES - denied:
         bad.append("explicit deny missing for: " + ", ".join(sorted(REQUIRED_DENIES - denied)))
     return bad
@@ -128,7 +141,7 @@ def main(argv):
         sys.stdout.write(f"rev {rev}, {len(content)} characters written\n")
         return 0
     if len(argv) == 2 and argv[0] == "policy":
-        problems = policy_problems(json.loads(Path(argv[1]).read_text(encoding="utf-8")))
+        problems = policy_problems(load_policy(Path(argv[1]).read_text(encoding="utf-8")))
         sys.stdout.write("\n".join(problems) + "\n" if problems else "policy ok\n")
         return 1 if problems else 0
     sys.stderr.write(__doc__)

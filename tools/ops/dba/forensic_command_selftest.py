@@ -113,10 +113,33 @@ def main():
             packed = [l for l in out.getvalue().splitlines() if len(l) > 20][-1]
             assert "DONE batches=1" in gzip.decompress(base64.b64decode(packed)).decode()
             entry = log.read_text().strip().splitlines()[-4:]
-            assert entry[0].endswith(" ro db2 " + str(work / "stage" / "q.sql")), entry[0]
+            assert re.search(r" ro db2 %s/run-[^/]+/stage/q\.sql$" % re.escape(str(work)), entry[0]), entry[0]
             assert entry[1] == f"GATE={'1' if gated else 'unset'} USER=acct KEY={key}" and entry[2] == "ENC=QUJD", entry
             assert entry[3] == "SQL=" + sql.rstrip(), entry[3]
-            assert not work.exists(), "the work directory is removed after a run"
+            assert not [x for x in work.iterdir() if x.name.startswith("run-")], "the per-run directory is removed after a run"
+        # two overlapping invocations: the inner one runs while the outer one's java is running; each keeps its own query file and neither removes the other's directory
+        real_run = namespace["subprocess"].run
+        seen = {}
+        def nested(argv, **kw):
+            if argv[0] != "java":
+                return real_run(argv, **kw)
+            qfile = argv[-1]
+            if "OUTER" in Path(qfile).read_text():
+                namespace["op_query"]({"op": "query", "db": "db2", "cipher": "QUJD", "sql": base64.b64encode(b"SELECT 'INNER'").decode()})
+                seen["outer_kept"] = Path(qfile).read_text()
+            return real_run(argv, **kw)
+        namespace["subprocess"].run = nested
+        with contextlib.redirect_stdout(io.StringIO()):
+            namespace["op_query"]({"op": "query", "db": "db2", "cipher": "QUJD", "sql": base64.b64encode(b"SELECT 'OUTER'").decode()})
+        namespace["subprocess"].run = real_run
+        assert seen.get("outer_kept") == "SELECT 'OUTER'", seen
+        # the revision covers the command template: a changed template text is a changed revision
+        _, rev_a = c.render(conf, [f.CHECK_SQL, f.CHECK_DBS_SQL], pub_text=pub.read_text())
+        saved = c.HEADER
+        c.HEADER = saved + "# changed\n"
+        _, rev_b = c.render(conf, [f.CHECK_SQL, f.CHECK_DBS_SQL], pub_text=pub.read_text())
+        c.HEADER = saved
+        assert rev_a != rev_b, "the revision ignores the template"
         # the work dir guard: a baked work directory that is the root or one level deep is refused
         namespace["CONF"] = {**namespace["CONF"], "work": "/tmp"}
         try:
@@ -147,8 +170,18 @@ def main():
         "extra allow": lambda p: p["Statement"].append({"Effect": "Allow", "Action": ["ecs:SendFile"], "Resource": ["acs:ecs:*:*:instance/<X>"]}),
         "condition": lambda p: p["Statement"][0].update(Condition={"IpAddress": {}}),
         "empty": lambda p: p.update(Statement=[]),
+        "three instances": lambda p: p["Statement"][0]["Resource"].append("acs:ecs:*:*:instance/i-third"),
+        "one instance twice": lambda p: p["Statement"][0].update(Resource=["acs:ecs:*:*:command/<COMMAND_ID>", "acs:ecs:*:*:instance/<A>", "acs:ecs:*:*:instance/<A>"]),
+        "deny narrowed to one resource": lambda p: p["Statement"][1].update(Resource=["acs:ecs:*:*:instance/<A>"]),
+        "deny with condition": lambda p: p["Statement"][1].update(Condition={"IpAddress": {}}),
+        "instance with command prefix": lambda p: p["Statement"][0]["Resource"].append("acs:ecs:*:*:instance/c-abc"),
     }.items():
         assert widened(edit), f"policy check missed: {name}"
+    try:
+        c.load_policy('{"Statement": [], "Statement": []}')
+        raise AssertionError("a repeated key was accepted")
+    except ValueError:
+        pass
     print("forensic_command self-test: ok")
 
 

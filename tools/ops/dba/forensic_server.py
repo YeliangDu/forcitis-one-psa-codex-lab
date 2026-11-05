@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import zipfile
 
 CONF = json.loads(base64.b64decode("@@CONF@@"))  # baked by the renderer: paths, account, allowed databases, public key, hashes
@@ -119,11 +120,16 @@ def op_query(req):
         refuse("client source not installed on this host")
     if hashlib.sha256(source).hexdigest() != CONF["onesql_sha"]:
         refuse("client source on this host does not match the repository revision")
-    work = CONF["work"]
-    if not os.path.isabs(work) or work.rstrip("/").count("/") < 2:
+    parent = CONF["work"]
+    if not os.path.isabs(parent) or parent.rstrip("/").count("/") < 2:
         refuse("work directory")
-    shutil.rmtree(work, ignore_errors=True)
     os.umask(0o077)
+    os.makedirs(parent, mode=0o700, exist_ok=True)
+    for old in os.listdir(parent):  # leftovers of runs that were killed
+        path = os.path.join(parent, old)
+        if old.startswith("run-") and time.time() - os.path.getmtime(path) > 3600:
+            shutil.rmtree(path, ignore_errors=True)
+    work = tempfile.mkdtemp(prefix="run-", dir=parent)  # one private directory per invocation: two invocations never share the query file or the gate decision
     os.makedirs(os.path.join(work, "stage"), mode=0o700)
     try:
         stage = os.path.join(work, "stage")
