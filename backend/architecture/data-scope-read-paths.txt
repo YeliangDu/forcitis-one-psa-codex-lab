@@ -35,6 +35,7 @@ GET /api/v1/organization/separation-holds | NOT_SCOPE_BOUND | case ii, second fo
 GET /api/v1/organization/separation-holds/{separationHoldId} | NOT_SCOPE_BOUND | case ii, second form: company-wide queue for separation-hold:approve holders, independent of role scope; GLOBAL by ADR-0068 section 2.3 and ADR-0080 section 7.1; held by the security auditor and by the administrator-mode session (ADR-0028 item 5), read-only
 GET /api/v1/organization/work-calendars | NOT_SCOPE_BOUND | the years a company work calendar is maintained for: no unit or person
 GET /api/v1/organization/work-calendars/{calendarYear} | NOT_SCOPE_BOUND | one year of the company work calendar (days, holidays): no unit or person
+GET /api/v1/organization/standard-hours-versions | NOT_SCOPE_BOUND | the standard-hours versions of the default scope or of one legal entity: organization-wide configuration, no unit or person
 GET /api/v1/platform/approval-task-overviews | NOT_SCOPE_BOUND | case ii, first form: open tasks of everyone, read only by holders of the process administrator system role (checked in ListAllTasks by role code; ADR-0032 section 1, ADR-0034 item 7, D-1a-61); an operations view, unit scope would make it useless
 GET /api/v1/platform/approval-task-records | SELF | tasks the caller has handled
 GET /api/v1/platform/approval-tasks | SELF | the caller's inbox
