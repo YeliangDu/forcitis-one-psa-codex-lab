@@ -90,3 +90,31 @@ terms:
   status: approved
   confirmed: 用户 2026-11-04 「照建议」 (#1286)
   note: 授权申请确认页的申请类型标签（#1286），对应接口 kind 的取值
+- id: primary_assignment_history
+  zh: 主岗历史
+  en: PrimaryAssignmentHistory
+  snake: primary_assignment_history
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 一个员工担任过和将要担任的主岗，按生效日从新到旧排列，当前的一条标记出来；只读
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 员工详情页的主岗历史一段（#1495）；卡片里叫「主职历史」，词表里主任职已登记为主岗，沿用
+- id: assignment_effective_to_date
+  zh: 失效日
+  en: AssignmentEffectiveToDate
+  snake: assignment_effective_to_date
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 一个版本不再生效的第一天，不含当天；空表示至今仍生效。与下一个版本的生效日相同
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 主岗历史表的列名（#1495），对应接口字段 effectiveTo

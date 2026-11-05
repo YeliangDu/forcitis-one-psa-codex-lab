@@ -108,7 +108,7 @@ class OpenApiExportTest {
             "AuthorizationRequestResponse.requestId", "AuthorizationRequestResponse.roleId", "AwaitingConfirmationResponse.requestId", "HandledTaskResponse.recordId", "HistoryEntry.recordId",
             "LegacyNumberResponse.documentId", "LegacyNumberResponse.legalEntityId", "LegacyNumberResponse.migrationBatchId", "LegalEntityResponse.legalEntityId", "Period.legalEntityId",
             "EmployeeRosterResponse.employeeId", "EmployeeDetailResponse.employeeId", "RosterAssignmentResponse.orgUnitId", "RosterAssignmentResponse.positionId",
-            "DetailAssignmentResponse.orgUnitId", "PrimaryPostResponse.orgUnitId", "PrimaryPostResponse.positionId", "DetailAssignmentResponse.positionId", "DetailAssignmentResponse.reportsToEmployeeId", "PositionResponse.positionId",
+            "DetailAssignmentResponse.orgUnitId", "PrimaryAssignmentResponse.orgUnitId", "PrimaryAssignmentResponse.positionId", "DetailAssignmentResponse.positionId", "DetailAssignmentResponse.reportsToEmployeeId", "PositionResponse.positionId",
             "RoleResponse.roleId", "ProblemDetail.correlationId", "ChangeFinanceHeadRequest.financeHeadEmployeeId", "LegalEntityResponse.financeHeadEmployeeId",
             "PermissionAdjustmentResponse.permissionAdjustmentId", "PermissionAdjustmentResponse.userId", "PermissionAdjustmentResponse.roleId",
             "PermissionAdjustmentResponse.orgUnitId", "PermissionAdjustmentResponse.businessOwnerEmployeeId", "UpholdPermissionAdjustmentRequest.businessOwnerEmployeeId",

@@ -102,35 +102,36 @@ describe('员工详情', () => {
     ],
   };
 
-  it('主职历史是一张按标题命名的表，按服务端给的顺序（新到旧）列出，当前一条标记「当前」，未结束的显示「至今」', async () => {
-    stubServer({ [`GET employees/${ID}`]: { body: DETAIL }, [`GET employees/${ID}/primary-post-history`]: { body: HISTORY } });
+  it('主岗历史是一张按标题命名的表，按服务端给的顺序（新到旧）列出，当前一条标记「当前」，未结束的显示「至今」', async () => {
+    const server = stubServer({ [`GET employees/${ID}`]: { body: DETAIL }, [`GET primary-assignments`]: { body: HISTORY } });
     render();
 
-    const table = await screen.findByRole('table', { name: '主职历史' });
-    expect(screen.getByRole('heading', { name: '主职历史' })).toBeInTheDocument();
+    const table = await screen.findByRole('table', { name: '主岗历史' });
+    expect(screen.getByRole('heading', { name: '主岗历史' })).toBeInTheDocument();
     const rows = within(table).getAllByRole('row').slice(1);
     expect(rows.map((row) => within(row).getAllByRole('cell').map((cell) => cell.textContent))).toEqual([
       ['交付一部', '项目经理', '2025-09-01', '至今', '当前'],
       ['咨询二部', '—', '2024-06-01', '2025-09-01', '—'],
     ]);
+    expect(server.calls.some((call) => call.url.includes('/primary-assignments') && call.url.includes(`employeeId=${ID}`))).toBe(true);
   });
 
-  it('主职历史为空时显示空状态，不画空表', async () => {
-    stubServer({ [`GET employees/${ID}`]: { body: DETAIL }, [`GET employees/${ID}/primary-post-history`]: { body: { items: [] } } });
+  it('主岗历史为空时显示空状态，不画空表', async () => {
+    stubServer({ [`GET employees/${ID}`]: { body: DETAIL }, [`GET primary-assignments`]: { body: { items: [] } } });
     render();
 
-    expect(await screen.findByText('暂无主职历史')).toBeInTheDocument();
-    expect(screen.queryByRole('table', { name: '主职历史' })).not.toBeInTheDocument();
+    expect(await screen.findByText('暂无主岗历史')).toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: '主岗历史' })).not.toBeInTheDocument();
   });
 
-  it('主职历史读取失败只在这一段提示，员工信息照常显示', async () => {
+  it('主岗历史读取失败只在这一段提示，员工信息照常显示', async () => {
     stubServer({
       [`GET employees/${ID}`]: { body: DETAIL },
-      [`GET employees/${ID}/primary-post-history`]: { status: 403, body: problemBody(403, 'PLATFORM_WEB_ACCESS_DENIED') },
+      [`GET primary-assignments`]: { status: 403, body: problemBody(403, 'PLATFORM_WEB_ACCESS_DENIED') },
     });
     render();
 
-    expect(await screen.findByText('主职历史加载失败')).toBeInTheDocument();
+    expect(await screen.findByText('主岗历史加载失败')).toBeInTheDocument();
     expect(screen.getByText('E0001')).toBeInTheDocument();
   });
 

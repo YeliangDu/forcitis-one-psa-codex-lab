@@ -28,14 +28,14 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
- * #1495: {@code GET /api/v1/organization/employees/{employeeId}/primary-post-history} lists the person's primary posts, newest start first, with the
+ * #1495: {@code GET /api/v1/organization/primary-assignments?employeeId=} lists the person's primary posts, newest start first, with the
  * one open on the business day marked {@code current}. It is readable exactly when the employee detail is: the permission organization.workforce:employee:read,
  * the caller's data scope worked out from the person's CURRENT posts (an old post in a unit does not put the person in that unit's scope), out of scope
  * is 404 with the denied audit. Concurrent posts, voided versions and empty same-day ranges are not part of the history.
  */
-class PrimaryPostHistoryHttpIT extends DataScopeSupport {
+class PrimaryAssignmentHistoryHttpIT extends DataScopeSupport {
 
-    static final TestDatabase postgres = TestPostgres.database(PrimaryPostHistoryHttpIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
+    static final TestDatabase postgres = TestPostgres.database(PrimaryAssignmentHistoryHttpIT.class, TestPostgres.MIGRATED).withUrlParam("currentSchema", "platform_approval");
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
@@ -156,7 +156,7 @@ class PrimaryPostHistoryHttpIT extends DataScopeSupport {
     }
 
     private MockHttpServletResponse history(String key, String employeeKey) throws Exception {
-        return mvc.perform(get("/api/v1/organization/employees/" + employeeIdOf(employeeKey) + "/primary-post-history").with(as(session(key)))).andReturn().getResponse();
+        return mvc.perform(get("/api/v1/organization/primary-assignments?employeeId=" + employeeIdOf(employeeKey)).with(as(session(key)))).andReturn().getResponse();
     }
 
     @Test
@@ -210,7 +210,7 @@ class PrimaryPostHistoryHttpIT extends DataScopeSupport {
     private final String unknownId = UUID.randomUUID().toString();
 
     private MockHttpServletResponse unknown(String key) throws Exception {
-        return mvc.perform(get("/api/v1/organization/employees/" + unknownId + "/primary-post-history").with(as(session(key)))).andReturn().getResponse();
+        return mvc.perform(get("/api/v1/organization/primary-assignments?employeeId=" + unknownId).with(as(session(key)))).andReturn().getResponse();
     }
 
 }

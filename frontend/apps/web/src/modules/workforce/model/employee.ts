@@ -28,4 +28,4 @@ export function employeePath(employeeId: string): string {
   return `/admin/employees/${encodeURIComponent(employeeId)}`;
 }
 
-export type PrimaryPost = Schema<'PrimaryPostHistoryResponse'>['items'][number];
+export type PrimaryAssignment = Schema<'PrimaryAssignmentHistoryResponse'>['items'][number];

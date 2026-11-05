@@ -3,7 +3,7 @@ import { DataTable, DescriptionList, LoadingState, Notice, PageTitle, StatusBadg
 import { useNavigate, useParams } from 'react-router';
 import { useEmployee } from '../hooks/use-workforce';
 import { ASSIGNMENT_KIND_LABELS, EMPLOYMENT_STATUS_LABELS, type EmployeeDetail } from '../model/employee';
-import { PrimaryPostHistorySection } from './primary-post-history-section';
+import { PrimaryAssignmentHistorySection } from './primary-assignment-history-section';
 import { employeeCommandsPath, newPersonnelCommandPath } from '../model/personnel-command';
 
 type Assignment = EmployeeDetail['assignments'][number];
@@ -40,7 +40,7 @@ export function EmployeeDetailPage() {
         <TextLink href={newPersonnelCommandPath(employeeId)} onNavigate={() => void navigate(newPersonnelCommandPath(employeeId))}>发起人事命令</TextLink>
       </p>
       <DataTable columns={ASSIGNMENT_COLUMNS} rows={detail.assignments} rowKey={(assignment) => `${assignment.assignmentKind}:${assignment.orgUnitId}:${assignment.positionId ?? ''}`} emptyText="暂无任职" />
-      <PrimaryPostHistorySection employeeId={employeeId} />
+      <PrimaryAssignmentHistorySection employeeId={employeeId} />
     </>
   );
 }

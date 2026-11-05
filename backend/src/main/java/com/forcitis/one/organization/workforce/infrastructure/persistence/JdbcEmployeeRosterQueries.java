@@ -113,7 +113,7 @@ class JdbcEmployeeRosterQueries implements EmployeeRosterQueries {
     }
 
     @Override
-    public List<PrimaryPost> primaryPostHistory(EmployeeId employee) {
+    public List<PrimaryAssignmentVersion> primaryAssignmentHistory(EmployeeId employee) {
         return jdbc.sql("""
                 select av.org_unit_id, coalesce(uv.name, u.name) as org_unit_name, av.position_id, coalesce(pv.name, p.name) as position_name,
                        av.effective_from_date, av.effective_to_date,
@@ -130,7 +130,7 @@ class JdbcEmployeeRosterQueries implements EmployeeRosterQueries {
                  order by av.effective_from_date desc, av.revision_number desc
                 """).param("id", employee.value()).param("day", zone.today(clock)).query((rs, n) -> {
                     UUID position = rs.getObject("position_id", UUID.class);
-                    return new PrimaryPost(new OrgUnitId(rs.getObject("org_unit_id", UUID.class)), rs.getString("org_unit_name"),
+                    return new PrimaryAssignmentVersion(new OrgUnitId(rs.getObject("org_unit_id", UUID.class)), rs.getString("org_unit_name"),
                             position == null ? null : new PositionId(position), rs.getString("position_name"),
                             rs.getObject("effective_from_date", LocalDate.class), rs.getObject("effective_to_date", LocalDate.class), rs.getBoolean("current"));
                 }).list();
