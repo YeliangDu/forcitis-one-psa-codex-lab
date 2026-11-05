@@ -428,6 +428,9 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
                 select max(effective_from_date) from organization_workforce.employment_relationship_versions
                  where employee_id = :employee and superseded_at is null and employment_status = 'SEPARATED' and effective_from_date <= :day
                 """).param("employee", employee.value()).param("day", day).query(LocalDate.class).optional().orElse(null);
+        if (!inService && lastEnd == null) {
+            return;  // not yet started: a hire dated in the future keeps the root row as the hire wrote it
+        }
         jdbc.sql("update organization_workforce.employees set employment_status = :status, separated_at = :separatedAt where id = :employee")
                 .param("status", inService ? "EMPLOYED" : "SEPARATED")
                 .param("separatedAt", lastEnd == null ? null : lastEnd.atStartOfDay(zone.zone()).toOffsetDateTime(), Types.TIMESTAMP_WITH_TIMEZONE)
@@ -520,6 +523,9 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
                 .param("now", at(at)).param("version", loadedVersion + 1).param("id", c.id().value()).param("loaded", loadedVersion).update();
         if (updated != 1) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_CONCURRENT_UPDATE, ErrorKind.CONFLICT, "the command was changed by someone else");
+        }
+        if (c.appliedAt() != null) {
+            refreshSnapshot(c.employeeId(), at);
         }
     }
 
