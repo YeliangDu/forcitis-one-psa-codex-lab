@@ -1,3 +1,4 @@
 org.springframework.context.ApplicationListener=com.forcitis.one.platform.integration.infrastructure.transport.MigrateOnlyListener,\
   com.forcitis.one.platform.integration.infrastructure.connection.ReadOnlyVerificationCommand,\
-  com.forcitis.one.platform.identity.infrastructure.startup.SingleOperatorModeListener
+  com.forcitis.one.platform.identity.infrastructure.startup.SingleOperatorModeListener,\
+  com.forcitis.one.platform.identity.infrastructure.startup.LocalProfileListener

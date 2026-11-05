@@ -429,6 +429,34 @@ organization.workforce::api organization.workforce.api.EmploymentPhaseKind publi
 organization.workforce::api organization.workforce.api.EmploymentPhaseKind public static final organization.workforce.api.EmploymentPhaseKind organization.workforce.api.EmploymentPhaseKind.REGULAR
 organization.workforce::api organization.workforce.api.EmploymentPhaseKind public static organization.workforce.api.EmploymentPhaseKind organization.workforce.api.EmploymentPhaseKind.valueOf(java.lang.String)
 organization.workforce::api organization.workforce.api.EmploymentPhaseKind public static organization.workforce.api.EmploymentPhaseKind[] organization.workforce.api.EmploymentPhaseKind.values()
+organization.workforce::api organization.workforce.api.EmploymentRelationshipId component value: java.util.UUID
+organization.workforce::api organization.workforce.api.EmploymentRelationshipId extends java.lang.Record
+organization.workforce::api organization.workforce.api.EmploymentRelationshipId public final boolean organization.workforce.api.EmploymentRelationshipId.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.EmploymentRelationshipId public final int organization.workforce.api.EmploymentRelationshipId.hashCode()
+organization.workforce::api organization.workforce.api.EmploymentRelationshipId public final record organization.workforce.api.EmploymentRelationshipId
+organization.workforce::api organization.workforce.api.EmploymentRelationshipId public java.lang.String organization.workforce.api.EmploymentRelationshipId.toString()
+organization.workforce::api organization.workforce.api.EmploymentRelationshipId public java.util.UUID organization.workforce.api.EmploymentRelationshipId.value()
+organization.workforce::api organization.workforce.api.EmploymentRelationshipId public organization.workforce.api.EmploymentRelationshipId(java.util.UUID)
+organization.workforce::api organization.workforce.api.EmploymentRelationshipView component employerConfirmed: boolean
+organization.workforce::api organization.workforce.api.EmploymentRelationshipView component employerLegalEntityId: kernel.LegalEntityId
+organization.workforce::api organization.workforce.api.EmploymentRelationshipView component id: organization.workforce.api.EmploymentRelationshipId
+organization.workforce::api organization.workforce.api.EmploymentRelationshipView component onUnpaidLeave: boolean
+organization.workforce::api organization.workforce.api.EmploymentRelationshipView component phaseKind: organization.workforce.api.EmploymentPhaseKind
+organization.workforce::api organization.workforce.api.EmploymentRelationshipView extends java.lang.Record
+organization.workforce::api organization.workforce.api.EmploymentRelationshipView public boolean organization.workforce.api.EmploymentRelationshipView.employerConfirmed()
+organization.workforce::api organization.workforce.api.EmploymentRelationshipView public boolean organization.workforce.api.EmploymentRelationshipView.onUnpaidLeave()
+organization.workforce::api organization.workforce.api.EmploymentRelationshipView public final boolean organization.workforce.api.EmploymentRelationshipView.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.EmploymentRelationshipView public final int organization.workforce.api.EmploymentRelationshipView.hashCode()
+organization.workforce::api organization.workforce.api.EmploymentRelationshipView public final java.lang.String organization.workforce.api.EmploymentRelationshipView.toString()
+organization.workforce::api organization.workforce.api.EmploymentRelationshipView public final record organization.workforce.api.EmploymentRelationshipView
+organization.workforce::api organization.workforce.api.EmploymentRelationshipView public kernel.LegalEntityId organization.workforce.api.EmploymentRelationshipView.employerLegalEntityId()
+organization.workforce::api organization.workforce.api.EmploymentRelationshipView public organization.workforce.api.EmploymentPhaseKind organization.workforce.api.EmploymentRelationshipView.phaseKind()
+organization.workforce::api organization.workforce.api.EmploymentRelationshipView public organization.workforce.api.EmploymentRelationshipId organization.workforce.api.EmploymentRelationshipView.id()
+organization.workforce::api organization.workforce.api.EmploymentRelationshipView public organization.workforce.api.EmploymentRelationshipView(organization.workforce.api.EmploymentRelationshipId,kernel.LegalEntityId,boolean,organization.workforce.api.EmploymentPhaseKind,boolean)
+organization.workforce::api organization.workforce.api.EmploymentRelationships public abstract interface organization.workforce.api.EmploymentRelationships
+organization.workforce::api organization.workforce.api.EmploymentRelationships public abstract java.util.List<organization.workforce.api.EmploymentRelationshipView> organization.workforce.api.EmploymentRelationships.on(kernel.EmployeeId,java.time.LocalDate)
+organization.workforce::api organization.workforce.api.EmploymentRelationships public abstract java.util.Optional<organization.workforce.api.EmploymentRelationshipView> organization.workforce.api.EmploymentRelationships.employerOn(organization.workforce.api.EmploymentRelationshipId,java.time.LocalDate)
+organization.workforce::api organization.workforce.api.EmploymentRelationships public abstract java.util.Optional<organization.workforce.api.EmploymentRelationshipView> organization.workforce.api.EmploymentRelationships.get(organization.workforce.api.EmploymentRelationshipId)
 organization.workforce::api organization.workforce.api.EmploymentStatus extends java.lang.Enum<organization.workforce.api.EmploymentStatus>
 organization.workforce::api organization.workforce.api.EmploymentStatus public final enum organization.workforce.api.EmploymentStatus
 organization.workforce::api organization.workforce.api.EmploymentStatus public static final organization.workforce.api.EmploymentStatus organization.workforce.api.EmploymentStatus.EMPLOYED
@@ -483,10 +511,13 @@ organization.workforce::api organization.workforce.api.EnterPersonnelCommand com
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component effectiveDate: java.time.LocalDate
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component email: java.lang.String
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component employeeId: kernel.EmployeeId
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand component employmentRelationshipId: organization.workforce.api.EmploymentRelationshipId
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component gender: organization.workforce.api.Gender
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component isTargetFeeEarner: java.lang.Boolean
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component lastWorkingDay: java.time.LocalDate
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand component predecessorRelationshipId: organization.workforce.api.EmploymentRelationshipId
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetAssignmentId: organization.workforce.api.AssignmentId
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetEmployerLegalEntityId: kernel.LegalEntityId
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetEmploymentPhaseKind: organization.workforce.api.EmploymentPhaseKind
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetLegalEntityId: kernel.LegalEntityId
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand component targetOrgUnitId: organization.workforce.api.OrgUnitId
@@ -505,12 +536,16 @@ organization.workforce::api organization.workforce.api.EnterPersonnelCommand pub
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public java.time.LocalDate organization.workforce.api.EnterPersonnelCommand.lastWorkingDay()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public kernel.EmployeeId organization.workforce.api.EnterPersonnelCommand.employeeId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public kernel.EmployeeId organization.workforce.api.EnterPersonnelCommand.targetReportsToEmployeeId()
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand public kernel.LegalEntityId organization.workforce.api.EnterPersonnelCommand.targetEmployerLegalEntityId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public kernel.LegalEntityId organization.workforce.api.EnterPersonnelCommand.targetLegalEntityId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public kernel.WecomUserId organization.workforce.api.EnterPersonnelCommand.wecomUserId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.AssignmentId organization.workforce.api.EnterPersonnelCommand.targetAssignmentId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.EmploymentPhaseKind organization.workforce.api.EnterPersonnelCommand.targetEmploymentPhaseKind()
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.EmploymentRelationshipId organization.workforce.api.EnterPersonnelCommand.employmentRelationshipId()
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.EmploymentRelationshipId organization.workforce.api.EnterPersonnelCommand.predecessorRelationshipId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.EnterPersonnelCommand(kernel.EmployeeId,organization.workforce.api.PersonnelCommandKind,java.time.LocalDate,java.time.LocalDate,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,kernel.EmployeeId,java.lang.Boolean,organization.workforce.api.EmploymentPhaseKind,java.lang.String,organization.workforce.api.Gender,java.lang.String,kernel.WecomUserId)
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.EnterPersonnelCommand(kernel.EmployeeId,organization.workforce.api.PersonnelCommandKind,java.time.LocalDate,java.time.LocalDate,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,kernel.EmployeeId,java.lang.Boolean,organization.workforce.api.EmploymentPhaseKind,kernel.LegalEntityId,java.lang.String,organization.workforce.api.Gender,java.lang.String,kernel.WecomUserId,organization.workforce.api.AssignmentId)
+organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.EnterPersonnelCommand(kernel.EmployeeId,organization.workforce.api.PersonnelCommandKind,java.time.LocalDate,java.time.LocalDate,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,kernel.EmployeeId,java.lang.Boolean,organization.workforce.api.EmploymentPhaseKind,kernel.LegalEntityId,java.lang.String,organization.workforce.api.Gender,java.lang.String,kernel.WecomUserId,organization.workforce.api.AssignmentId,kernel.LegalEntityId,organization.workforce.api.EmploymentRelationshipId,organization.workforce.api.EmploymentRelationshipId)
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.Gender organization.workforce.api.EnterPersonnelCommand.gender()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.OrgUnitId organization.workforce.api.EnterPersonnelCommand.targetOrgUnitId()
 organization.workforce::api organization.workforce.api.EnterPersonnelCommand public organization.workforce.api.PersonnelCommandKind organization.workforce.api.EnterPersonnelCommand.commandKind()
@@ -681,6 +716,8 @@ organization.workforce::api organization.workforce.api.PositionId public final r
 organization.workforce::api organization.workforce.api.PositionId public java.lang.String organization.workforce.api.PositionId.toString()
 organization.workforce::api organization.workforce.api.PositionId public java.util.UUID organization.workforce.api.PositionId.value()
 organization.workforce::api organization.workforce.api.PositionId public organization.workforce.api.PositionId(java.util.UUID)
+organization.workforce::api organization.workforce.api.PositionLookup public abstract boolean organization.workforce.api.PositionLookup.isActive(organization.workforce.api.PositionId)
+organization.workforce::api organization.workforce.api.PositionLookup public abstract interface organization.workforce.api.PositionLookup
 organization.workforce::api organization.workforce.api.PreviewOrgUnitMerge component effectiveDate: java.time.LocalDate
 organization.workforce::api organization.workforce.api.PreviewOrgUnitMerge component mergeIntoOrgUnitId: organization.workforce.api.OrgUnitId
 organization.workforce::api organization.workforce.api.PreviewOrgUnitMerge component targetOrgUnitId: organization.workforce.api.OrgUnitId
@@ -858,6 +895,7 @@ organization.workforce::api organization.workforce.api.WorkforceError public sta
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_REASON_INVALID
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_TRANSITION_ILLEGAL
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_POSITION_NOT_FOUND
+organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PRIMARY_ASSIGNMENT_ON_ENDING_RELATIONSHIP
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PROFILE_CHANGE_CONFIRMER_NOT_ALLOWED
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PROFILE_CHANGE_PENDING
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_PROFILE_CHANGE_REQUEST_NOT_FOUND
@@ -872,6 +910,7 @@ organization.workforce::api organization.workforce.api.WorkforceError public sta
 organization.workforce::events organization.workforce.events.EmployeeCorrected component affectedFrom: java.time.LocalDate
 organization.workforce::events organization.workforce.events.EmployeeCorrected component affectedTo: java.time.LocalDate
 organization.workforce::events organization.workforce.events.EmployeeCorrected component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeCorrected component employmentRelationshipId: organization.workforce.api.EmploymentRelationshipId
 organization.workforce::events organization.workforce.events.EmployeeCorrected component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.EmployeeCorrected component newOrgUnitId: organization.workforce.api.OrgUnitId
 organization.workforce::events organization.workforce.events.EmployeeCorrected component newPositionId: organization.workforce.api.PositionId
@@ -890,14 +929,16 @@ organization.workforce::events organization.workforce.events.EmployeeCorrected p
 organization.workforce::events organization.workforce.events.EmployeeCorrected public java.util.List<organization.workforce.api.TriggerFieldKind> organization.workforce.events.EmployeeCorrected.triggerFieldKinds()
 organization.workforce::events organization.workforce.events.EmployeeCorrected public kernel.EmployeeId organization.workforce.events.EmployeeCorrected.employeeId()
 organization.workforce::events organization.workforce.events.EmployeeCorrected public kernel.event.EventEnvelope organization.workforce.events.EmployeeCorrected.envelope()
+organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.api.EmploymentRelationshipId organization.workforce.events.EmployeeCorrected.employmentRelationshipId()
 organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.api.OrgUnitId organization.workforce.events.EmployeeCorrected.newOrgUnitId()
 organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.api.OrgUnitId organization.workforce.events.EmployeeCorrected.previousOrgUnitId()
 organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeCorrected.personnelCommandId()
 organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.api.PositionId organization.workforce.events.EmployeeCorrected.newPositionId()
 organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.api.PositionId organization.workforce.events.EmployeeCorrected.previousPositionId()
-organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.events.EmployeeCorrected(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,java.time.LocalDate,java.util.List<organization.workforce.api.TriggerFieldKind>,organization.workforce.api.OrgUnitId,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,organization.workforce.api.PositionId)
+organization.workforce::events organization.workforce.events.EmployeeCorrected public organization.workforce.events.EmployeeCorrected(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,java.time.LocalDate,java.util.List<organization.workforce.api.TriggerFieldKind>,organization.workforce.api.OrgUnitId,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,organization.workforce.api.PositionId,organization.workforce.api.EmploymentRelationshipId)
 organization.workforce::events organization.workforce.events.EmployeeHired component effectiveDate: java.time.LocalDate
 organization.workforce::events organization.workforce.events.EmployeeHired component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeHired component employmentRelationshipId: organization.workforce.api.EmploymentRelationshipId
 organization.workforce::events organization.workforce.events.EmployeeHired component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.EmployeeHired component personnelCommandId: organization.workforce.api.PersonnelCommandId
 organization.workforce::events organization.workforce.events.EmployeeHired extends java.lang.Record
@@ -909,8 +950,9 @@ organization.workforce::events organization.workforce.events.EmployeeHired publi
 organization.workforce::events organization.workforce.events.EmployeeHired public java.time.LocalDate organization.workforce.events.EmployeeHired.effectiveDate()
 organization.workforce::events organization.workforce.events.EmployeeHired public kernel.EmployeeId organization.workforce.events.EmployeeHired.employeeId()
 organization.workforce::events organization.workforce.events.EmployeeHired public kernel.event.EventEnvelope organization.workforce.events.EmployeeHired.envelope()
+organization.workforce::events organization.workforce.events.EmployeeHired public organization.workforce.api.EmploymentRelationshipId organization.workforce.events.EmployeeHired.employmentRelationshipId()
 organization.workforce::events organization.workforce.events.EmployeeHired public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeHired.personnelCommandId()
-organization.workforce::events organization.workforce.events.EmployeeHired public organization.workforce.events.EmployeeHired(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.EmployeeHired public organization.workforce.events.EmployeeHired(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,organization.workforce.api.EmploymentRelationshipId)
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged component effectiveDate: java.time.LocalDate
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged component employeeId: kernel.EmployeeId
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged component envelope: kernel.event.EventEnvelope
@@ -934,6 +976,7 @@ organization.workforce::events organization.workforce.events.EmployeeLegalEntity
 organization.workforce::events organization.workforce.events.EmployeeLegalEntityChanged public organization.workforce.events.EmployeeLegalEntityChanged(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,organization.workforce.api.OrgStructureCommandId,kernel.EmployeeId,java.time.LocalDate,kernel.LegalEntityId,kernel.LegalEntityId)
 organization.workforce::events organization.workforce.events.EmployeeRegularized component effectiveDate: java.time.LocalDate
 organization.workforce::events organization.workforce.events.EmployeeRegularized component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeRegularized component employmentRelationshipId: organization.workforce.api.EmploymentRelationshipId
 organization.workforce::events organization.workforce.events.EmployeeRegularized component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.EmployeeRegularized component personnelCommandId: organization.workforce.api.PersonnelCommandId
 organization.workforce::events organization.workforce.events.EmployeeRegularized extends java.lang.Record
@@ -945,10 +988,12 @@ organization.workforce::events organization.workforce.events.EmployeeRegularized
 organization.workforce::events organization.workforce.events.EmployeeRegularized public java.time.LocalDate organization.workforce.events.EmployeeRegularized.effectiveDate()
 organization.workforce::events organization.workforce.events.EmployeeRegularized public kernel.EmployeeId organization.workforce.events.EmployeeRegularized.employeeId()
 organization.workforce::events organization.workforce.events.EmployeeRegularized public kernel.event.EventEnvelope organization.workforce.events.EmployeeRegularized.envelope()
+organization.workforce::events organization.workforce.events.EmployeeRegularized public organization.workforce.api.EmploymentRelationshipId organization.workforce.events.EmployeeRegularized.employmentRelationshipId()
 organization.workforce::events organization.workforce.events.EmployeeRegularized public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeRegularized.personnelCommandId()
-organization.workforce::events organization.workforce.events.EmployeeRegularized public organization.workforce.events.EmployeeRegularized(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.EmployeeRegularized public organization.workforce.events.EmployeeRegularized(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,organization.workforce.api.EmploymentRelationshipId)
 organization.workforce::events organization.workforce.events.EmployeeReinstated component effectiveDate: java.time.LocalDate
 organization.workforce::events organization.workforce.events.EmployeeReinstated component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeReinstated component employmentRelationshipId: organization.workforce.api.EmploymentRelationshipId
 organization.workforce::events organization.workforce.events.EmployeeReinstated component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.EmployeeReinstated component personnelCommandId: organization.workforce.api.PersonnelCommandId
 organization.workforce::events organization.workforce.events.EmployeeReinstated extends java.lang.Record
@@ -960,10 +1005,12 @@ organization.workforce::events organization.workforce.events.EmployeeReinstated 
 organization.workforce::events organization.workforce.events.EmployeeReinstated public java.time.LocalDate organization.workforce.events.EmployeeReinstated.effectiveDate()
 organization.workforce::events organization.workforce.events.EmployeeReinstated public kernel.EmployeeId organization.workforce.events.EmployeeReinstated.employeeId()
 organization.workforce::events organization.workforce.events.EmployeeReinstated public kernel.event.EventEnvelope organization.workforce.events.EmployeeReinstated.envelope()
+organization.workforce::events organization.workforce.events.EmployeeReinstated public organization.workforce.api.EmploymentRelationshipId organization.workforce.events.EmployeeReinstated.employmentRelationshipId()
 organization.workforce::events organization.workforce.events.EmployeeReinstated public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeReinstated.personnelCommandId()
-organization.workforce::events organization.workforce.events.EmployeeReinstated public organization.workforce.events.EmployeeReinstated(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.EmployeeReinstated public organization.workforce.events.EmployeeReinstated(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,organization.workforce.api.EmploymentRelationshipId)
 organization.workforce::events organization.workforce.events.EmployeeSeparated component effectiveDate: java.time.LocalDate
 organization.workforce::events organization.workforce.events.EmployeeSeparated component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeSeparated component employmentRelationshipId: organization.workforce.api.EmploymentRelationshipId
 organization.workforce::events organization.workforce.events.EmployeeSeparated component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.EmployeeSeparated component personnelCommandId: organization.workforce.api.PersonnelCommandId
 organization.workforce::events organization.workforce.events.EmployeeSeparated extends java.lang.Record
@@ -975,10 +1022,12 @@ organization.workforce::events organization.workforce.events.EmployeeSeparated p
 organization.workforce::events organization.workforce.events.EmployeeSeparated public java.time.LocalDate organization.workforce.events.EmployeeSeparated.effectiveDate()
 organization.workforce::events organization.workforce.events.EmployeeSeparated public kernel.EmployeeId organization.workforce.events.EmployeeSeparated.employeeId()
 organization.workforce::events organization.workforce.events.EmployeeSeparated public kernel.event.EventEnvelope organization.workforce.events.EmployeeSeparated.envelope()
+organization.workforce::events organization.workforce.events.EmployeeSeparated public organization.workforce.api.EmploymentRelationshipId organization.workforce.events.EmployeeSeparated.employmentRelationshipId()
 organization.workforce::events organization.workforce.events.EmployeeSeparated public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeSeparated.personnelCommandId()
-organization.workforce::events organization.workforce.events.EmployeeSeparated public organization.workforce.events.EmployeeSeparated(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.EmployeeSeparated public organization.workforce.events.EmployeeSeparated(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,organization.workforce.api.EmploymentRelationshipId)
 organization.workforce::events organization.workforce.events.EmployeeTransferred component effectiveDate: java.time.LocalDate
 organization.workforce::events organization.workforce.events.EmployeeTransferred component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeTransferred component employmentRelationshipId: organization.workforce.api.EmploymentRelationshipId
 organization.workforce::events organization.workforce.events.EmployeeTransferred component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.EmployeeTransferred component newOrgUnitId: organization.workforce.api.OrgUnitId
 organization.workforce::events organization.workforce.events.EmployeeTransferred component newPositionId: organization.workforce.api.PositionId
@@ -996,14 +1045,16 @@ organization.workforce::events organization.workforce.events.EmployeeTransferred
 organization.workforce::events organization.workforce.events.EmployeeTransferred public java.util.List<organization.workforce.api.TriggerFieldKind> organization.workforce.events.EmployeeTransferred.triggerFieldKinds()
 organization.workforce::events organization.workforce.events.EmployeeTransferred public kernel.EmployeeId organization.workforce.events.EmployeeTransferred.employeeId()
 organization.workforce::events organization.workforce.events.EmployeeTransferred public kernel.event.EventEnvelope organization.workforce.events.EmployeeTransferred.envelope()
+organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.EmploymentRelationshipId organization.workforce.events.EmployeeTransferred.employmentRelationshipId()
 organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.OrgUnitId organization.workforce.events.EmployeeTransferred.newOrgUnitId()
 organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.OrgUnitId organization.workforce.events.EmployeeTransferred.previousOrgUnitId()
 organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeTransferred.personnelCommandId()
 organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.PositionId organization.workforce.events.EmployeeTransferred.newPositionId()
 organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.api.PositionId organization.workforce.events.EmployeeTransferred.previousPositionId()
-organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.events.EmployeeTransferred(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,java.util.List<organization.workforce.api.TriggerFieldKind>,organization.workforce.api.OrgUnitId,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,organization.workforce.api.PositionId)
+organization.workforce::events organization.workforce.events.EmployeeTransferred public organization.workforce.events.EmployeeTransferred(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,java.util.List<organization.workforce.api.TriggerFieldKind>,organization.workforce.api.OrgUnitId,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,organization.workforce.api.PositionId,organization.workforce.api.EmploymentRelationshipId)
 organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted component effectiveDate: java.time.LocalDate
 organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted component employmentRelationshipId: organization.workforce.api.EmploymentRelationshipId
 organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted component personnelCommandId: organization.workforce.api.PersonnelCommandId
 organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted extends java.lang.Record
@@ -1015,8 +1066,98 @@ organization.workforce::events organization.workforce.events.EmployeeUnpaidLeave
 organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted public java.time.LocalDate organization.workforce.events.EmployeeUnpaidLeaveStarted.effectiveDate()
 organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted public kernel.EmployeeId organization.workforce.events.EmployeeUnpaidLeaveStarted.employeeId()
 organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted public kernel.event.EventEnvelope organization.workforce.events.EmployeeUnpaidLeaveStarted.envelope()
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted public organization.workforce.api.EmploymentRelationshipId organization.workforce.events.EmployeeUnpaidLeaveStarted.employmentRelationshipId()
 organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeUnpaidLeaveStarted.personnelCommandId()
-organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted public organization.workforce.events.EmployeeUnpaidLeaveStarted(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.EmployeeUnpaidLeaveStarted public organization.workforce.events.EmployeeUnpaidLeaveStarted(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,java.time.LocalDate,organization.workforce.api.EmploymentRelationshipId)
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected component effectiveDate: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected component employmentRelationshipId: organization.workforce.api.EmploymentRelationshipId
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected extends java.lang.Record
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected public final boolean organization.workforce.events.EmploymentRelationshipCorrected.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected public final int organization.workforce.events.EmploymentRelationshipCorrected.hashCode()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected public final java.lang.String organization.workforce.events.EmploymentRelationshipCorrected.toString()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected public final record organization.workforce.events.EmploymentRelationshipCorrected
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected public java.time.LocalDate organization.workforce.events.EmploymentRelationshipCorrected.effectiveDate()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected public kernel.EmployeeId organization.workforce.events.EmploymentRelationshipCorrected.employeeId()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected public kernel.event.EventEnvelope organization.workforce.events.EmploymentRelationshipCorrected.envelope()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected public organization.workforce.api.EmploymentRelationshipId organization.workforce.events.EmploymentRelationshipCorrected.employmentRelationshipId()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmploymentRelationshipCorrected.personnelCommandId()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipCorrected public organization.workforce.events.EmploymentRelationshipCorrected(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,organization.workforce.api.EmploymentRelationshipId,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded component effectiveDate: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded component employmentRelationshipId: organization.workforce.api.EmploymentRelationshipId
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded extends java.lang.Record
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded public final boolean organization.workforce.events.EmploymentRelationshipEnded.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded public final int organization.workforce.events.EmploymentRelationshipEnded.hashCode()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded public final java.lang.String organization.workforce.events.EmploymentRelationshipEnded.toString()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded public final record organization.workforce.events.EmploymentRelationshipEnded
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded public java.time.LocalDate organization.workforce.events.EmploymentRelationshipEnded.effectiveDate()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded public kernel.EmployeeId organization.workforce.events.EmploymentRelationshipEnded.employeeId()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded public kernel.event.EventEnvelope organization.workforce.events.EmploymentRelationshipEnded.envelope()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded public organization.workforce.api.EmploymentRelationshipId organization.workforce.events.EmploymentRelationshipEnded.employmentRelationshipId()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmploymentRelationshipEnded.personnelCommandId()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipEnded public organization.workforce.events.EmploymentRelationshipEnded(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,organization.workforce.api.EmploymentRelationshipId,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged component effectiveDate: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged component employmentRelationshipId: organization.workforce.api.EmploymentRelationshipId
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged component phaseKind: organization.workforce.api.EmploymentPhaseKind
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged extends java.lang.Record
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged public final boolean organization.workforce.events.EmploymentRelationshipPhaseChanged.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged public final int organization.workforce.events.EmploymentRelationshipPhaseChanged.hashCode()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged public final java.lang.String organization.workforce.events.EmploymentRelationshipPhaseChanged.toString()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged public final record organization.workforce.events.EmploymentRelationshipPhaseChanged
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged public java.time.LocalDate organization.workforce.events.EmploymentRelationshipPhaseChanged.effectiveDate()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged public kernel.EmployeeId organization.workforce.events.EmploymentRelationshipPhaseChanged.employeeId()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged public kernel.event.EventEnvelope organization.workforce.events.EmploymentRelationshipPhaseChanged.envelope()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged public organization.workforce.api.EmploymentPhaseKind organization.workforce.events.EmploymentRelationshipPhaseChanged.phaseKind()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged public organization.workforce.api.EmploymentRelationshipId organization.workforce.events.EmploymentRelationshipPhaseChanged.employmentRelationshipId()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmploymentRelationshipPhaseChanged.personnelCommandId()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipPhaseChanged public organization.workforce.events.EmploymentRelationshipPhaseChanged(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,organization.workforce.api.EmploymentRelationshipId,java.time.LocalDate,organization.workforce.api.EmploymentPhaseKind)
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted component effectiveDate: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted component employmentRelationshipId: organization.workforce.api.EmploymentRelationshipId
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted extends java.lang.Record
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted public final boolean organization.workforce.events.EmploymentRelationshipStarted.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted public final int organization.workforce.events.EmploymentRelationshipStarted.hashCode()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted public final java.lang.String organization.workforce.events.EmploymentRelationshipStarted.toString()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted public final record organization.workforce.events.EmploymentRelationshipStarted
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted public java.time.LocalDate organization.workforce.events.EmploymentRelationshipStarted.effectiveDate()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted public kernel.EmployeeId organization.workforce.events.EmploymentRelationshipStarted.employeeId()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted public kernel.event.EventEnvelope organization.workforce.events.EmploymentRelationshipStarted.envelope()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted public organization.workforce.api.EmploymentRelationshipId organization.workforce.events.EmploymentRelationshipStarted.employmentRelationshipId()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmploymentRelationshipStarted.personnelCommandId()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipStarted public organization.workforce.events.EmploymentRelationshipStarted(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,organization.workforce.api.EmploymentRelationshipId,java.time.LocalDate)
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged component commandKind: organization.workforce.api.PersonnelCommandKind
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged component effectiveDate: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged component employmentRelationshipId: organization.workforce.api.EmploymentRelationshipId
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged extends java.lang.Record
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged public final boolean organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged public final int organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged.hashCode()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged public final java.lang.String organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged.toString()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged public final record organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged public java.time.LocalDate organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged.effectiveDate()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged public kernel.EmployeeId organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged.employeeId()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged public kernel.event.EventEnvelope organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged.envelope()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged public organization.workforce.api.EmploymentRelationshipId organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged.employmentRelationshipId()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged.personnelCommandId()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged public organization.workforce.api.PersonnelCommandKind organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged.commandKind()
+organization.workforce::events organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged public organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,organization.workforce.api.EmploymentRelationshipId,java.time.LocalDate,organization.workforce.api.PersonnelCommandKind)
 organization.workforce::events organization.workforce.events.LegalEntityActivated component envelope: kernel.event.EventEnvelope
 organization.workforce::events organization.workforce.events.LegalEntityActivated component legalEntityId: kernel.LegalEntityId
 organization.workforce::events organization.workforce.events.LegalEntityActivated extends java.lang.Record

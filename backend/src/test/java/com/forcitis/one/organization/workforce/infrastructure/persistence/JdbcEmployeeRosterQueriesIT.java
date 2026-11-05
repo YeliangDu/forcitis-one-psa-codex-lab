@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.organization.workforce.application.EmploymentRelationshipSeed;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.InvalidCursorException;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
@@ -82,19 +83,19 @@ class JdbcEmployeeRosterQueriesIT {
         EmployeeId person = person("RS-1", current, position, "EMPLOYED", LocalDate.of(2025, 1, 1));
         UUID command = ids.next();
         jdbc.sql("""
-                insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at, applied_at)
-                values (:id, :employee, 'CORRECTION', date '2025-06-01', 'EFFECTIVE', now(), :actor, now(), now())""")
+                insert into organization_workforce.personnel_commands (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at, applied_at)
+                values (:id, (select employment_relationship_id from organization_workforce.employment_relationships where employee_id = :employee), :employee, 'CORRECTION', date '2025-06-01', 'EFFECTIVE', now(), :actor, now(), now())""")
                 .param("id", command).param("employee", person.value()).param("actor", ids.next()).update();
         jdbc.sql("""
-                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                insert into organization_workforce.assignment_versions (assignment_version_id, employment_relationship_id, employee_id, assignment_id, assignment_kind, effective_from_date,
                     revision_number, org_unit_id, position_id, change_channel_kind, superseded_at, superseding_command_id, created_at, updated_at)
-                select :version, employee_id, assignment_id, 'PRIMARY', date '2025-06-01', 1, :unit, :position, 'MIGRATION', now(), :command, now(), now()
+                select :version, employment_relationship_id, employee_id, assignment_id, 'PRIMARY', date '2025-06-01', 1, :unit, :position, 'MIGRATION', now(), :command, now(), now()
                   from organization_workforce.assignment_versions where employee_id = :id""")
                 .param("command", command).param("version", ids.next()).param("id", person.value()).param("unit", withdrawn.value()).param("position", position).update();
         jdbc.sql("""
-                insert into organization_workforce.employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+                insert into organization_workforce.employment_relationship_versions (employment_relationship_version_id, employment_relationship_id, employee_id, effective_from_date, revision_number, employment_status,
                     is_on_unpaid_leave, is_fee_earner, change_channel_kind, superseded_at, superseding_command_id, created_at, updated_at)
-                values (:version, :id, date '2025-06-01', 1, 'SEPARATED', false, false, 'MIGRATION', now(), :command, now(), now())""")
+                values (:version, (select employment_relationship_id from organization_workforce.employment_relationships where employee_id = :id), :id, date '2025-06-01', 1, 'SEPARATED', false, false, 'MIGRATION', now(), :command, now(), now())""")
                 .param("command", command).param("version", ids.next()).param("id", person.value()).update();
         UUID positionCommand = ids.next();
         jdbc.sql("""
@@ -153,20 +154,21 @@ class JdbcEmployeeRosterQueriesIT {
         jdbc.sql("""
                 insert into organization_workforce.employees (id, employee_code, display_name, employment_status, is_fee_earner)
                 values (:id, :code, :code, :status, false)""").param("id", id).param("code", code).param("status", status).update();
+        UUID relationship = EmploymentRelationshipSeed.relationship(jdbc, id);
         jdbc.sql("""
-                insert into organization_workforce.employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+                insert into organization_workforce.employment_relationship_versions (employment_relationship_version_id, employment_relationship_id, employee_id, effective_from_date, revision_number, employment_status,
                     employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind, change_channel_kind, created_at, updated_at)
-                values (:version, :id, :from, 0, :status, :phase, false, false, :start, :basis, 'MIGRATION', now(), now())""")
-                .param("version", ids.next()).param("id", id).param("from", from).param("status", status).param("phase", employed ? "REGULAR" : null)
+                values (:version, :relationship, :id, :from, 0, :status, :phase, false, false, :start, :basis, 'MIGRATION', now(), now())""")
+                .param("version", ids.next()).param("relationship", relationship).param("id", id).param("from", from).param("status", status).param("phase", employed ? "REGULAR" : null)
                 .param("start", employed ? from : null).param("basis", employed ? "DECLARED" : null).update();
         UUID root = ids.next();
         jdbc.sql("insert into organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at) values (:root, :id, 'PRIMARY', now(), now())")
                 .param("root", root).param("id", id).update();
         jdbc.sql("""
-                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                insert into organization_workforce.assignment_versions (assignment_version_id, employment_relationship_id, employee_id, assignment_id, assignment_kind, effective_from_date,
                     effective_to_date, closed_at, revision_number, org_unit_id, position_id, change_channel_kind, created_at, updated_at)
-                values (:version, :id, :root, 'PRIMARY', :since, :until, case when cast(:until as date) is null then null else now() end, 0, :unit, :position, 'MIGRATION', now(), now())""")
-                .param("version", ids.next()).param("id", id).param("root", root).param("since", LocalDate.of(2025, 1, 1))
+                values (:version, :relationship, :id, :root, 'PRIMARY', :since, :until, case when cast(:until as date) is null then null else now() end, 0, :unit, :position, 'MIGRATION', now(), now())""")
+                .param("version", ids.next()).param("relationship", relationship).param("id", id).param("root", root).param("since", LocalDate.of(2025, 1, 1))
                 .param("until", employed ? null : from).param("unit", unit.value()).param("position", position).update();
         return new EmployeeId(id);
     }

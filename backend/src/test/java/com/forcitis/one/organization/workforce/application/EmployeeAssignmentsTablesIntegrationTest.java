@@ -63,10 +63,10 @@ class EmployeeAssignmentsTablesIntegrationTest extends WorkforceIntegrationSuppo
         jdbc.sql("insert into " + ROOTS + " (assignment_id, employee_id, assignment_kind, created_at, updated_at) values (:root, :e, 'CONCURRENT', now(), now())")
                 .param("root", root).param("e", visitor.employee()).update();
         jdbc.sql("""
-                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                insert into organization_workforce.assignment_versions (assignment_version_id, employment_relationship_id, employee_id, assignment_id, assignment_kind, effective_from_date,
                   org_unit_id, revision_number, change_channel_kind, created_at, updated_at)
-                values (:id, :e, :root, 'CONCURRENT', :since, :unit, 1, 'MIGRATION', now(), now())""")
-                .param("id", Uuids.timeOrdered(clock)).param("e", visitor.employee()).param("root", root).param("since", PersonnelSeedSupport.SINCE)
+                values (:id, :relationship, :e, :root, 'CONCURRENT', :since, :unit, 1, 'MIGRATION', now(), now())""")
+                .param("id", Uuids.timeOrdered(clock)).param("relationship", EmploymentRelationshipSeed.relationship(jdbc, visitor.employee())).param("e", visitor.employee()).param("root", root).param("since", PersonnelSeedSupport.SINCE)
                 .param("unit", resident.orgUnit()).update();
         return visitor;
     }

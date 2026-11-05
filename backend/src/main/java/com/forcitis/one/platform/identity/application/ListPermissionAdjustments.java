@@ -19,8 +19,10 @@ public class ListPermissionAdjustments {
 
     private final PermissionAdjustmentRepository adjustments;
     private final PermissionAdjustmentAccess access;
+    private final PermissionAdjustmentViews views;
 
-    ListPermissionAdjustments(PermissionAdjustmentRepository adjustments, PermissionAdjustmentAccess access) {
+    ListPermissionAdjustments(PermissionAdjustmentRepository adjustments, PermissionAdjustmentAccess access, PermissionAdjustmentViews views) {
+        this.views = views;
         this.adjustments = adjustments;
         this.access = access;
     }
@@ -32,6 +34,6 @@ public class ListPermissionAdjustments {
         List<PermissionAdjustment> found = adjustments.findFor(access.reader(), status, kind, after, page.limit() + 1);
         List<PermissionAdjustment> items = found.size() > page.limit() ? found.subList(0, page.limit()) : found;
         String next = found.size() > page.limit() ? PageRequest.encode(LIST, items.getLast().id().toString()) : null;
-        return CursorPage.of(items.stream().map(PermissionAdjustmentView::of).toList(), next);
+        return CursorPage.of(views.of(items), next);
     }
 }

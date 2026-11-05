@@ -39,7 +39,7 @@ class EffectPublisher {
         // A separation's envelope names the entity of the last day the employee was employed: on the effective day itself the assignment has just ended.
         LocalDate entityDay = command.kind() == PersonnelCommandKind.SEPARATE ? command.effectiveDate().minusDays(1) : command.effectiveDate();
         LegalEntityId legalEntity = LegalEntityResolution.resolve(legalEntities, command.employeeId(), entityDay).orElse(null);
-        command.recordEffect(assignmentBefore, assignmentAfter, legalEntity);
+        command.recordEffect(assignmentBefore, assignmentAfter, legalEntity, commands.load(command.employeeId()));
         if (command.hasPendingEvents()) {
             events.publish(command);
             commands.saveEventSequence(command.employeeId(), command.eventSequenceAfterSave());

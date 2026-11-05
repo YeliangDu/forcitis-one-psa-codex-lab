@@ -241,6 +241,11 @@ channels:
     messages:
       NumberingRuleConfirmationGiven:
         $ref: '#/components/messages/NumberingRuleConfirmationGiven'
+  payrollRuleVersionBecameEffective:
+    address: organization.payroll.PayrollRuleVersionBecameEffective
+    messages:
+      PayrollRuleVersionBecameEffective:
+        $ref: '#/components/messages/PayrollRuleVersionBecameEffective'
   timesheetSubmitted:
     address: cost.timesheet.TimesheetSubmitted
     messages:
@@ -346,6 +351,31 @@ channels:
     messages:
       EmployeeCorrected:
         $ref: '#/components/messages/EmployeeCorrected'
+  employmentRelationshipStarted:
+    address: organization.workforce.EmploymentRelationshipStarted
+    messages:
+      EmploymentRelationshipStarted:
+        $ref: '#/components/messages/EmploymentRelationshipStarted'
+  employmentRelationshipEnded:
+    address: organization.workforce.EmploymentRelationshipEnded
+    messages:
+      EmploymentRelationshipEnded:
+        $ref: '#/components/messages/EmploymentRelationshipEnded'
+  employmentRelationshipCorrected:
+    address: organization.workforce.EmploymentRelationshipCorrected
+    messages:
+      EmploymentRelationshipCorrected:
+        $ref: '#/components/messages/EmploymentRelationshipCorrected'
+  employmentRelationshipPhaseChanged:
+    address: organization.workforce.EmploymentRelationshipPhaseChanged
+    messages:
+      EmploymentRelationshipPhaseChanged:
+        $ref: '#/components/messages/EmploymentRelationshipPhaseChanged'
+  employmentRelationshipUnpaidLeaveChanged:
+    address: organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
+    messages:
+      EmploymentRelationshipUnpaidLeaveChanged:
+        $ref: '#/components/messages/EmploymentRelationshipUnpaidLeaveChanged'
   separationHeld:
     address: organization.workforce.SeparationHeld
     messages:
@@ -1088,6 +1118,13 @@ operations:
     summary: platform.audit 消费
     messages:
     - $ref: '#/channels/numberingRuleConfirmationGiven/messages/NumberingRuleConfirmationGiven'
+  publishPayrollRuleVersionBecameEffective:
+    action: send
+    channel:
+      $ref: '#/channels/payrollRuleVersionBecameEffective'
+    summary: organization.payroll 发布
+    messages:
+    - $ref: '#/channels/payrollRuleVersionBecameEffective/messages/PayrollRuleVersionBecameEffective'
   publishTimesheetSubmitted:
     action: send
     channel:
@@ -1424,6 +1461,76 @@ operations:
     summary: platform.identity 消费
     messages:
     - $ref: '#/channels/employeeCorrected/messages/EmployeeCorrected'
+  publishEmploymentRelationshipStarted:
+    action: send
+    channel:
+      $ref: '#/channels/employmentRelationshipStarted'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/employmentRelationshipStarted/messages/EmploymentRelationshipStarted'
+  handleEmploymentRelationshipStartedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/employmentRelationshipStarted'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/employmentRelationshipStarted/messages/EmploymentRelationshipStarted'
+  publishEmploymentRelationshipEnded:
+    action: send
+    channel:
+      $ref: '#/channels/employmentRelationshipEnded'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/employmentRelationshipEnded/messages/EmploymentRelationshipEnded'
+  handleEmploymentRelationshipEndedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/employmentRelationshipEnded'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/employmentRelationshipEnded/messages/EmploymentRelationshipEnded'
+  publishEmploymentRelationshipCorrected:
+    action: send
+    channel:
+      $ref: '#/channels/employmentRelationshipCorrected'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/employmentRelationshipCorrected/messages/EmploymentRelationshipCorrected'
+  handleEmploymentRelationshipCorrectedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/employmentRelationshipCorrected'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/employmentRelationshipCorrected/messages/EmploymentRelationshipCorrected'
+  publishEmploymentRelationshipPhaseChanged:
+    action: send
+    channel:
+      $ref: '#/channels/employmentRelationshipPhaseChanged'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/employmentRelationshipPhaseChanged/messages/EmploymentRelationshipPhaseChanged'
+  handleEmploymentRelationshipPhaseChangedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/employmentRelationshipPhaseChanged'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/employmentRelationshipPhaseChanged/messages/EmploymentRelationshipPhaseChanged'
+  publishEmploymentRelationshipUnpaidLeaveChanged:
+    action: send
+    channel:
+      $ref: '#/channels/employmentRelationshipUnpaidLeaveChanged'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/employmentRelationshipUnpaidLeaveChanged/messages/EmploymentRelationshipUnpaidLeaveChanged'
+  handleEmploymentRelationshipUnpaidLeaveChangedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/employmentRelationshipUnpaidLeaveChanged'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/employmentRelationshipUnpaidLeaveChanged/messages/EmploymentRelationshipUnpaidLeaveChanged'
   publishSeparationHeld:
     action: send
     channel:
@@ -4145,6 +4252,57 @@ components:
             - BUSINESS
             - FINANCE
             x-type: ConfirmationKind
+    PayrollRuleVersionBecameEffective:
+      name: PayrollRuleVersionBecameEffective
+      title: 薪酬规则的新版本生效
+      x-event:
+        eventType: organization.payroll.PayrollRuleVersionBecameEffective
+        version: 1
+        class: com.forcitis.one.organization.payroll.events.PayrollRuleVersionBecameEffective
+        aggregate: PayrollRuleVersion
+        idempotencyKey: eventId
+        publisher: organization.payroll
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 新版本的生效日期
+        audit: 'not-audited: 发布同事务直写审计 organization.payroll.rule-version.published'
+        publisherTest: com.forcitis.one.organization.payroll.domain.PayrollRuleVersionTest
+        noConsumer: 暂无消费方：只供分析（规则版本的生效时间线）；按薪酬期间取规则走 PayrollRuleVersions 读取口，不订阅事件；发布本身已写审计，事件不替代审计
+      payload:
+        type: object
+        required:
+        - envelope
+        - payrollRuleVersionId
+        - ruleKind
+        - jurisdictionKey
+        - effectiveFromDate
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          payrollRuleVersionId:
+            type: string
+            format: uuid
+            x-type: PayrollRuleVersionId
+            description: 变为生效的薪酬规则版本
+          ruleKind:
+            type: string
+            enum:
+            - INCOME_TAX
+            - SOCIAL_INSURANCE
+            - HOUSING_FUND
+            - ROUNDING
+            x-type: PayrollRuleKind
+            description: 规则类别：个人所得税、社会保险、住房公积金、取整
+          jurisdictionKey:
+            type: string
+            x-type: JurisdictionKey
+            description: 规则适用的地区代码，大写字母开头，如 CN 或 CN_SH
+          effectiveFromDate:
+            type: string
+            format: date
+            x-type: LocalDate
+            description: 新版本的生效日期，也是信封的业务日期
     TimesheetSubmitted:
       name: TimesheetSubmitted
       title: 工时单提交审批（进入新一轮）
@@ -4860,6 +5018,7 @@ components:
         - personnelCommandId
         - employeeId
         - effectiveDate
+        - employmentRelationshipId
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -4877,6 +5036,11 @@ components:
             type: string
             x-type: LocalDate
             description: 人事业务生效日（DECLARED）：入职日，即在职的第一天
+          employmentRelationshipId:
+            type: string
+            format: uuid
+            x-type: EmploymentRelationshipId
+            description: 事件所属的雇佣关系 ID（ADR-0086）
     EmployeeRegularized:
       name: EmployeeRegularized
       title: 员工转正已生效
@@ -4903,6 +5067,7 @@ components:
         - personnelCommandId
         - employeeId
         - effectiveDate
+        - employmentRelationshipId
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -4920,6 +5085,11 @@ components:
             type: string
             x-type: LocalDate
             description: 人事业务生效日（DECLARED）：转正日，即正式阶段的第一天
+          employmentRelationshipId:
+            type: string
+            format: uuid
+            x-type: EmploymentRelationshipId
+            description: 事件所属的雇佣关系 ID（ADR-0086）
     EmployeeTransferred:
       name: EmployeeTransferred
       title: 员工调岗已生效
@@ -4952,6 +5122,7 @@ components:
         - newOrgUnitId
         - previousPositionId
         - newPositionId
+        - employmentRelationshipId
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -5000,6 +5171,11 @@ components:
             x-type: PositionId
             nullable: true
             description: 生效日起的岗位；只改部门时与前一天相同，任职未设岗位时为空
+          employmentRelationshipId:
+            type: string
+            format: uuid
+            x-type: EmploymentRelationshipId
+            description: 事件所属的雇佣关系 ID（ADR-0086）
     EmployeeSeparated:
       name: EmployeeSeparated
       title: 员工离职已生效
@@ -5026,6 +5202,7 @@ components:
         - personnelCommandId
         - employeeId
         - effectiveDate
+        - employmentRelationshipId
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -5043,6 +5220,11 @@ components:
             type: string
             x-type: LocalDate
             description: 人事业务生效日（DECLARED）：人事所填最后工作日的次日，即离职的第一天（ADR-0068 第 1 条第 5 项）
+          employmentRelationshipId:
+            type: string
+            format: uuid
+            x-type: EmploymentRelationshipId
+            description: 事件所属的雇佣关系 ID（ADR-0086）
     EmployeeLegalEntityChanged:
       name: EmployeeLegalEntityChanged
       title: 员工法人归属已变更
@@ -5132,6 +5314,7 @@ components:
         - personnelCommandId
         - employeeId
         - effectiveDate
+        - employmentRelationshipId
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -5149,6 +5332,11 @@ components:
             type: string
             x-type: LocalDate
             description: 人事业务生效日（DECLARED）：复职日，晚于对应离职的生效日
+          employmentRelationshipId:
+            type: string
+            format: uuid
+            x-type: EmploymentRelationshipId
+            description: 事件所属的雇佣关系 ID（ADR-0086）
     EmployeeUnpaidLeaveStarted:
       name: EmployeeUnpaidLeaveStarted
       title: 员工停薪留职已开始
@@ -5175,6 +5363,7 @@ components:
         - personnelCommandId
         - employeeId
         - effectiveDate
+        - employmentRelationshipId
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -5192,6 +5381,11 @@ components:
             type: string
             x-type: LocalDate
             description: 人事业务生效日（DECLARED）：停薪留职的第一天
+          employmentRelationshipId:
+            type: string
+            format: uuid
+            x-type: EmploymentRelationshipId
+            description: 事件所属的雇佣关系 ID（ADR-0086）
     EmployeeCorrected:
       name: EmployeeCorrected
       title: 员工人事已更正
@@ -5225,6 +5419,7 @@ components:
         - newOrgUnitId
         - previousPositionId
         - newPositionId
+        - employmentRelationshipId
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -5280,6 +5475,266 @@ components:
             x-type: PositionId
             nullable: true
             description: 更正后截至今天的岗位；没改岗位时与更正前相同，没有任职或未设岗位时为空
+          employmentRelationshipId:
+            type: string
+            format: uuid
+            x-type: EmploymentRelationshipId
+            description: 事件所属的雇佣关系 ID（ADR-0086）
+    EmploymentRelationshipStarted:
+      name: EmploymentRelationshipStarted
+      title: 雇佣关系已开始
+      description: 雇佣关系开始服务时发布（入职或复职命令生效）；与 EmployeeHired/EmployeeReinstated 并发，只在人员状态转换之外另报关系维度（ADR-0086 设计 6.1）。负载只含 ID 与日期。信封 legalEntityId 为员工在生效日的法人。
+      x-event:
+        eventType: organization.workforce.EmploymentRelationshipStarted
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.EmploymentRelationshipStarted
+        aggregate: Employee
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        noConsumer: 暂无消费方：请假、薪酬等模块将订阅关系层事件（ADR-0086 设计 6.1）；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 人事业务生效日（effectiveDate）：关系开始服务的第一天
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - personnelCommandId
+        - employeeId
+        - employmentRelationshipId
+        - effectiveDate
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          personnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            description: 触发本事件的人事命令 ID（UUIDv7）
+          employeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 员工 ID，与信封的 aggregateId 相同
+          employmentRelationshipId:
+            type: string
+            format: uuid
+            x-type: EmploymentRelationshipId
+            description: 雇佣关系 ID（ADR-0086）
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 关系开始服务的第一天
+    EmploymentRelationshipEnded:
+      name: EmploymentRelationshipEnded
+      title: 雇佣关系已结束
+      description: 离职命令使一段雇佣关系结束时发布（ADR-0086 设计 6.1）。负载只含 ID 与日期。信封 legalEntityId 为员工在生效日的法人。
+      x-event:
+        eventType: organization.workforce.EmploymentRelationshipEnded
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.EmploymentRelationshipEnded
+        aggregate: Employee
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        noConsumer: 暂无消费方：请假、薪酬等模块将订阅关系层事件（ADR-0086 设计 6.1）；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 人事业务生效日（effectiveDate）：关系结束后的第一天
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - personnelCommandId
+        - employeeId
+        - employmentRelationshipId
+        - effectiveDate
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          personnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            description: 触发本事件的人事命令 ID（UUIDv7）
+          employeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 员工 ID，与信封的 aggregateId 相同
+          employmentRelationshipId:
+            type: string
+            format: uuid
+            x-type: EmploymentRelationshipId
+            description: 雇佣关系 ID（ADR-0086）
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 关系结束后的第一天（最后工作日的次日）
+    EmploymentRelationshipCorrected:
+      name: EmploymentRelationshipCorrected
+      title: 雇佣关系已更正
+      description: 更正命令改变一段关系的员工级属性时发布（ADR-0086 设计 6.1）。负载只含 ID 与日期。信封 legalEntityId 为员工在生效日的法人。
+      x-event:
+        eventType: organization.workforce.EmploymentRelationshipCorrected
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.EmploymentRelationshipCorrected
+        aggregate: Employee
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        noConsumer: 暂无消费方：请假、薪酬等模块将订阅关系层事件（ADR-0086 设计 6.1）；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 人事业务生效日（effectiveDate）：更正生效日
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - personnelCommandId
+        - employeeId
+        - employmentRelationshipId
+        - effectiveDate
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          personnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            description: 触发本事件的人事命令 ID（UUIDv7）
+          employeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 员工 ID，与信封的 aggregateId 相同
+          employmentRelationshipId:
+            type: string
+            format: uuid
+            x-type: EmploymentRelationshipId
+            description: 雇佣关系 ID（ADR-0086）
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 更正自此日起生效
+    EmploymentRelationshipPhaseChanged:
+      name: EmploymentRelationshipPhaseChanged
+      title: 雇佣关系阶段已变更
+      description: 转正命令使一段关系进入新的雇佣阶段时发布（ADR-0086 设计 6.1）。负载只含 ID、日期与阶段。信封 legalEntityId 为员工在生效日的法人。
+      x-event:
+        eventType: organization.workforce.EmploymentRelationshipPhaseChanged
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.EmploymentRelationshipPhaseChanged
+        aggregate: Employee
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        noConsumer: 暂无消费方：请假、薪酬等模块将订阅关系层事件（ADR-0086 设计 6.1）；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 人事业务生效日（effectiveDate）：新阶段的第一天
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - personnelCommandId
+        - employeeId
+        - employmentRelationshipId
+        - effectiveDate
+        - phaseKind
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          personnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            description: 触发本事件的人事命令 ID（UUIDv7）
+          employeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 员工 ID，与信封的 aggregateId 相同
+          employmentRelationshipId:
+            type: string
+            format: uuid
+            x-type: EmploymentRelationshipId
+            description: 雇佣关系 ID（ADR-0086）
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 新阶段的第一天
+          phaseKind:
+            type: string
+            x-type: EmploymentPhaseKind
+            description: 新阶段（试用、正式等）
+    EmploymentRelationshipUnpaidLeaveChanged:
+      name: EmploymentRelationshipUnpaidLeaveChanged
+      title: 雇佣关系停薪留职状态已变更
+      description: 一段关系开始或结束停薪留职时发布（ADR-0086 设计 6.1）。负载只含 ID、日期与状态。信封 legalEntityId 为员工在生效日的法人。
+      x-event:
+        eventType: organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged
+        aggregate: Employee
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        noConsumer: 暂无消费方：请假、薪酬等模块将订阅关系层事件（ADR-0086 设计 6.1）；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 人事业务生效日（effectiveDate）：新状态的第一天
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
+      payload:
+        type: object
+        required:
+        - envelope
+        - personnelCommandId
+        - employeeId
+        - employmentRelationshipId
+        - effectiveDate
+        - commandKind
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          personnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            description: 触发本事件的人事命令 ID（UUIDv7）
+          employeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 员工 ID，与信封的 aggregateId 相同
+          employmentRelationshipId:
+            type: string
+            format: uuid
+            x-type: EmploymentRelationshipId
+            description: 雇佣关系 ID（ADR-0086）
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 新状态的第一天
+          commandKind:
+            type: string
+            x-type: PersonnelCommandKind
+            description: UNPAID_LEAVE_START 为开始停薪留职，UNPAID_LEAVE_END 为结束
     SeparationHeld:
       name: SeparationHeld
       title: 离职已转待放行

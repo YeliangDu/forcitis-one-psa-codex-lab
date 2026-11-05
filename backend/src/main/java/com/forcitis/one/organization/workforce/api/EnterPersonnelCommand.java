@@ -15,6 +15,8 @@ import org.jspecify.annotations.Nullable;
  * targetLegalEntityId; the cost legal entity before and after is the server's to compute (ADR-0073 item 3.4), so the caller never passes it.
  * targetAssignmentId names the post a transfer, a correction or an end of a concurrent post acts on; left out, a transfer or a correction acts on the
  * primary post, and a start of a concurrent post never names one (#711).
+ * Relationship binding (ADR-0086, design section 5): a hire names targetEmployerLegalEntityId (and optionally the predecessor it succeeds) and creates its relationship at entry;
+ * every other kind but a change of legal entity names employmentRelationshipId, and a change of legal entity names none.
  */
 public record EnterPersonnelCommand(@Nullable EmployeeId employeeId, PersonnelCommandKind commandKind, @Nullable LocalDate effectiveDate,
                                     @Nullable LocalDate lastWorkingDay, @Nullable OrgUnitId targetOrgUnitId, @Nullable PositionId targetPositionId,
@@ -22,7 +24,19 @@ public record EnterPersonnelCommand(@Nullable EmployeeId employeeId, PersonnelCo
                                     @Nullable EmploymentPhaseKind targetEmploymentPhaseKind,
                                     @Nullable LegalEntityId targetLegalEntityId,
                                     @Nullable String displayName, @Nullable Gender gender, @Nullable String email, @Nullable WecomUserId wecomUserId,
-                                    @Nullable AssignmentId targetAssignmentId) {
+                                    @Nullable AssignmentId targetAssignmentId, @Nullable LegalEntityId targetEmployerLegalEntityId,
+                                    @Nullable EmploymentRelationshipId predecessorRelationshipId, @Nullable EmploymentRelationshipId employmentRelationshipId) {
+
+    /** A command that names no employer and no relationship (a hire of a new person names its employer, so it uses the full form). */
+    public EnterPersonnelCommand(@Nullable EmployeeId employeeId, PersonnelCommandKind commandKind, @Nullable LocalDate effectiveDate,
+                                 @Nullable LocalDate lastWorkingDay, @Nullable OrgUnitId targetOrgUnitId, @Nullable PositionId targetPositionId,
+                                 @Nullable EmployeeId targetReportsToEmployeeId, @Nullable Boolean isTargetFeeEarner,
+                                 @Nullable EmploymentPhaseKind targetEmploymentPhaseKind, @Nullable LegalEntityId targetLegalEntityId,
+                                 @Nullable String displayName, @Nullable Gender gender, @Nullable String email, @Nullable WecomUserId wecomUserId,
+                                 @Nullable AssignmentId targetAssignmentId) {
+        this(employeeId, commandKind, effectiveDate, lastWorkingDay, targetOrgUnitId, targetPositionId, targetReportsToEmployeeId, isTargetFeeEarner,
+                targetEmploymentPhaseKind, targetLegalEntityId, displayName, gender, email, wecomUserId, targetAssignmentId, null, null, null);
+    }
 
     /** A command that names no legal entity and no post: a transfer or a correction acts on the primary post. */
     public EnterPersonnelCommand(@Nullable EmployeeId employeeId, PersonnelCommandKind commandKind, @Nullable LocalDate effectiveDate,
@@ -31,6 +45,6 @@ public record EnterPersonnelCommand(@Nullable EmployeeId employeeId, PersonnelCo
                                  @Nullable EmploymentPhaseKind targetEmploymentPhaseKind,
                                  @Nullable String displayName, @Nullable Gender gender, @Nullable String email, @Nullable WecomUserId wecomUserId) {
         this(employeeId, commandKind, effectiveDate, lastWorkingDay, targetOrgUnitId, targetPositionId, targetReportsToEmployeeId, isTargetFeeEarner,
-                targetEmploymentPhaseKind, null, displayName, gender, email, wecomUserId, null);
+                targetEmploymentPhaseKind, null, displayName, gender, email, wecomUserId, null, null, null, null);
     }
 }

@@ -31,11 +31,12 @@ export function PersonnelCommandFormPage() {
   const employees = useEmployeeChoices();
   const units = useOrgUnits(false, fields.orgUnit !== undefined);
   const positions = usePositionChoices(fields.position !== undefined);
-  const legalEntities = useLegalEntityChoices(fields.legalEntity !== undefined);
+  const needsLegalEntities = fields.legalEntity !== undefined || fields.employer !== undefined;
+  const legalEntities = useLegalEntityChoices(needsLegalEntities);
   const enter = useEnterPersonnelCommand();
 
   const set = (key: keyof CommandDraft) => (value: string) => setDraft((current) => ({ ...current, [key]: value }));
-  const choices = [employees, ...(fields.orgUnit === undefined ? [] : [units]), ...(fields.position === undefined ? [] : [positions]), ...(fields.legalEntity === undefined ? [] : [legalEntities])];
+  const choices = [employees, ...(fields.orgUnit === undefined ? [] : [units]), ...(fields.position === undefined ? [] : [positions]), ...(needsLegalEntities ? [legalEntities] : [])];
   const failed = choices.find((query) => query.isError);
   if (failed?.isError) return <Notice tone="error" title="加载失败">{describeFailure(failed.error)}</Notice>;
   if (choices.some((query) => query.isPending)) return <LoadingState />;
@@ -69,6 +70,7 @@ export function PersonnelCommandFormPage() {
       {fields.feeEarner === undefined ? null : <SelectField label="是否计费人员" value={draft.feeEarner} options={[NONE, ...FEE_EARNER_OPTIONS]} onChange={set('feeEarner')} />}
       {fields.phase === undefined ? null : <SelectField label="任职阶段" value={draft.phase} options={[NONE, ...PHASE_OPTIONS]} onChange={set('phase')} />}
       {fields.legalEntity === undefined ? null : <SelectField label="成本法人" value={draft.legalEntityId} options={legalEntityOptions} onChange={set('legalEntityId')} />}
+      {fields.employer === undefined ? null : <SelectField label="用人单位" value={draft.employerLegalEntityId} options={legalEntityOptions} onChange={set('employerLegalEntityId')} />}
       {enter.isError ? <Notice tone="error" title="提交失败">{describeFailure(enter.error)}</Notice> : null}
       <Button htmlType="submit" loading={enter.isPending} onClick={submit}>提交</Button>
     </>

@@ -91,7 +91,7 @@ final class SessionGuardFilter extends OncePerRequestFilter {
         session.setAttribute(EXPIRY_AUDITED, until);
         audit.recordIndependently(new AuditEntry("platform.identity.administrator-mode.exited", account, null,
                 AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, account.value()), "expired at " + until).withTrace(request.getRemoteAddr(), AuditOutcome.SUCCEEDED,
-                identity.loginMethod().name()));
+                identity.loginMethod().auditKind()));
         log.error("ALERT platform.identity administrator mode of user {} expired at {}", account.value(), until);
     }
 
