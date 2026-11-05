@@ -1,0 +1,44 @@
+# Words of the local profile (card #1478): the stack on one developer's own machine. Technical words, not business terms; proposed, awaiting confirmation by design (ADR-0018).
+terms:
+- id: local
+  zh: 本机
+  en: Local
+  snake: local
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 开发者自己机器上的运行方式（运行配置 local）：库、后端、前端都在这台机器上，不连任何共用环境；只有它才有本机测试登录和可调时钟
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 卡 #1478；技术用语，不是业务术语
+- id: settable
+  zh: 可调
+  en: Settable
+  snake: settable
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 时钟可以被设置到某个时刻再按真实节奏走，用来在本机回放黄金日期；只在本机运行方式下存在
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 卡 #1478；技术用语，不是业务术语
+- id: secure
+  zh: 安全传输
+  en: Secure
+  snake: secure
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 会话 cookie 带安全属性，只经加密连接发送；本机运行方式关闭它，因为本机用的是明文本地连接
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 卡 #1478；配置键 forcitis.platform.identity.session.secure-cookie 在正式配置里早已存在，本机配置覆盖它

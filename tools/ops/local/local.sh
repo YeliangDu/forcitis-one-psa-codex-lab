@@ -1,0 +1,169 @@
+#!/bin/bash
+# The whole system on this machine (card #1478). Usage: tools/ops/local/local.sh up | down [--force] | wipe [--force] | status | e2e   (README.md next to this file)
+#  up      database container, migrations (profile migrate,local), backend on :8080 (profile local), web client on :5173; waits until each answers
+#  down    stops what `up` started (only the processes it recorded); the data stays. Refused from a checkout that is not the recorded owner; --force only when the owner's processes are gone
+#  wipe    down, then deletes the database volume and the generated local settings: the next `up` starts from nothing
+# The database password is generated on the first `up` into ~/.forcitis-local/env (mode 0600); it is never printed and never leaves this machine.
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(cd "$HERE/../../.." && pwd)"
+STATE="${FORCITIS_LOCAL_STATE:-$HOME/.forcitis-local}"
+ENV_FILE="$STATE/env"
+COMPOSE=(docker compose -f "$HERE/compose.yaml" --env-file "$ENV_FILE")
+BACKEND_URL="http://localhost:8080/actuator/health"
+WEB_URL="http://localhost:5173/"
+
+say() { printf '%s\n' "$*"; }
+die() { printf 'local.sh: %s\n' "$*" >&2; exit 1; }
+
+load_env() {
+  mkdir -p "$STATE"; chmod 700 "$STATE"
+  if [ ! -f "$ENV_FILE" ]; then
+    ( umask 077
+      { echo "LOCAL_DB_USER=forcitis_local"
+        echo "LOCAL_DB_PORT=55432"
+        echo "LOCAL_DB_PASSWORD=$(openssl rand -hex 24)"; } > "$ENV_FILE" )
+  fi
+  [ "$(stat -f '%Lp' "$ENV_FILE" 2>/dev/null || stat -c '%a' "$ENV_FILE")" = "600" ] || die "$ENV_FILE must have mode 600"
+  # the generated, machine-local settings file
+  set -a
+  # shellcheck source=/dev/null
+  . "$ENV_FILE"
+  set +a
+}
+
+need() { command -v "$1" >/dev/null 2>&1 || die "missing prerequisite: $1"; }
+
+pid_alive() { [ -f "$1" ] && kill -0 "$(cat "$1")" 2>/dev/null; }
+
+stop_pid() { # args: pid file, text the process command must contain (the absolute path of this checkout's jar or vite, so a process of another checkout is never touched). Only the pid this script recorded, and only while that pid still runs that command (a reused pid is left alone)
+  local file="$1" marker="$2" pid command
+  [ -f "$file" ] || return 0
+  pid="$(cat "$file")"
+  # no pipe into grep -q here: under pipefail a grep that quits early makes ps die of SIGPIPE and the whole test fail at random, which left a vite running after down
+  command="$(ps -p "$pid" -o command= 2>/dev/null || true)"
+  if kill -0 "$pid" 2>/dev/null; then
+    case "$command" in
+      *"$marker"*)
+        kill "$pid" 2>/dev/null || true
+        for _ in $(seq 1 20); do kill -0 "$pid" 2>/dev/null || break; sleep 0.5; done
+        if kill -0 "$pid" 2>/dev/null; then kill -9 "$pid" 2>/dev/null || true; fi ;;
+      *) say "local.sh: pid $pid (recorded in $file) runs something else now; left alone" >&2 ;;
+    esac
+  fi
+  rm -f "$file"
+}
+
+listening() { lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1; }
+
+# One stack per machine: the state dir, the ports and the database container are shared by every checkout. Refuse, naming the checkout that owns the running one.
+refuse_if_running() {
+  local owner="another process (not started by local.sh)"
+  [ -f "$STATE/owner" ] && owner="$(cat "$STATE/owner")"
+  if pid_alive "$STATE/backend.pid" || pid_alive "$STATE/web.pid"; then
+    die "a stack is already running from $owner; run its tools/ops/local/local.sh down (or status) first"
+  fi
+  if listening 8080 || listening 5173; then
+    die "port 8080 or 5173 is already taken (stack recorded from: $owner); stop it first"
+  fi
+}
+
+wait_for() { # url, seconds, pid file of the process that must stay alive meanwhile
+  for _ in $(seq 1 "$2"); do
+    curl -fsS -o /dev/null "$1" 2>/dev/null && return 0
+    pid_alive "$3" || return 1
+    sleep 1
+  done
+  return 1
+}
+
+cmd_up() {
+  need docker; need java; need pnpm; need curl; need openssl
+  docker info >/dev/null 2>&1 || die "docker is not running"
+  load_env
+  refuse_if_running
+  echo "$REPO" > "$STATE/owner"
+  say "[1/5] database"
+  "${COMPOSE[@]}" up -d --wait db >/dev/null
+  say "[2/5] build the backend"
+  ( cd "$REPO/backend" && ./mvnw -q -DskipTests -Dmaven.test.skip=true package ) || die "backend build failed"
+  local jar="" candidate
+  for candidate in "$REPO"/backend/target/forcitis-one-*.jar; do
+    case "$candidate" in *-plain.jar) ;; *) jar="$candidate"; break ;; esac
+  done
+  [ -n "$jar" ] || die "no backend jar under backend/target"
+  say "[3/5] migrations (profile migrate,local)"
+  SPRING_PROFILES_ACTIVE=migrate,local java -Duser.timezone=UTC -jar "$jar" > "$STATE/migrate.log" 2>&1 || die "migration failed (see $STATE/migrate.log)"
+  say "[4/5] backend (profile local) on :8080"
+  SPRING_PROFILES_ACTIVE=local FORCITIS_JOBS_ENABLED=false nohup java -Duser.timezone=UTC -jar "$jar" > "$STATE/backend.log" 2>&1 &
+  echo $! > "$STATE/backend.pid"
+  wait_for "$BACKEND_URL" 180 "$STATE/backend.pid" || die "the backend did not come up (see $STATE/backend.log)"
+  say "[4b/5] bootstrap account (one synthetic admin, idempotent)"
+  docker exec -i forcitis-local-db psql -U "$LOCAL_DB_USER" -d forcitis_local -q -v ON_ERROR_STOP=1 < "$HERE/bootstrap.sql" >/dev/null || die "the bootstrap account could not be written"
+  say "[5/5] web client on :5173"
+  ( cd "$REPO/frontend" && pnpm install --frozen-lockfile >/dev/null )
+  # a clean checkout has no generated API client (openapi.json and src/generated are build products): without it the web client fails on its first import
+  if ! bash "$REPO/scripts/codegen/generate_api.sh" --check >/dev/null 2>&1; then
+    say "      generating the API client (first start of a clean checkout; needs a few minutes)"
+    bash "$REPO/scripts/codegen/generate_api.sh" >"$STATE/codegen.log" 2>&1 || die "API client generation failed (see $STATE/codegen.log)"
+  fi
+  # node itself, started directly, so the recorded pid is the one that listens (a pnpm or subshell pid would leave vite running after down)
+  cd "$REPO/frontend/apps/web"
+  nohup node "$REPO/frontend/apps/web/node_modules/vite/bin/vite.js" --host 127.0.0.1 --port 5173 --strictPort > "$STATE/web.log" 2>&1 &
+  echo $! > "$STATE/web.pid"
+  cd "$REPO"
+  wait_for "$WEB_URL" 60 "$STATE/web.pid" || die "the web client did not come up (see $STATE/web.log)"
+  say "up: open $WEB_URL (logs in $STATE)"
+}
+
+# down and wipe act on the shared state dir, so they act only for the checkout that started the stack. --force is for a dead owner: neither recorded pid may be alive.
+require_owner() {
+  local owner
+  [ -f "$STATE/owner" ] || return 0
+  owner="$(cat "$STATE/owner")"
+  [ "$owner" = "$REPO" ] && return 0
+  if [ "${1:-}" = "--force" ] && ! pid_alive "$STATE/backend.pid" && ! pid_alive "$STATE/web.pid"; then return 0; fi
+  die "the stack in $STATE belongs to $owner; run its tools/ops/local/local.sh $2 (--force only when its processes are gone)"
+}
+
+cmd_down() {
+  require_owner "${1:-}" down
+  stop_pid "$STATE/web.pid" "$REPO/frontend/apps/web/node_modules/vite/bin/vite.js"
+  stop_pid "$STATE/backend.pid" "$REPO/backend/target/forcitis-one-"
+  rm -f "$STATE/owner"
+  if [ -f "$ENV_FILE" ] && command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+    load_env; "${COMPOSE[@]}" stop db >/dev/null 2>&1 || true
+  fi
+  say "down: stopped (the data stays; wipe deletes it)"
+}
+
+cmd_wipe() {
+  require_owner "${1:-}" wipe
+  cmd_down "${1:-}"
+  if [ -f "$ENV_FILE" ] && docker info >/dev/null 2>&1; then
+    load_env; "${COMPOSE[@]}" down --volumes --remove-orphans >/dev/null 2>&1 || true
+  fi
+  rm -rf "$STATE"
+  say "wipe: database volume and local settings deleted"
+}
+
+cmd_status() {
+  if pid_alive "$STATE/backend.pid"; then say "backend: running (pid $(cat "$STATE/backend.pid"))"; else say "backend: stopped"; fi
+  if pid_alive "$STATE/web.pid"; then say "web: running (pid $(cat "$STATE/web.pid"))"; else say "web: stopped"; fi
+  say "database: $(docker inspect -f '{{.State.Status}}' forcitis-local-db 2>/dev/null || echo none)"
+}
+
+cmd_e2e() {
+  if ! pid_alive "$STATE/backend.pid" || ! pid_alive "$STATE/web.pid"; then die "the stack is not running: tools/ops/local/local.sh up first"; fi
+  ( cd "$REPO/frontend/apps/web" && pnpm exec playwright install chromium-headless-shell >/dev/null && LOCAL_WEB_URL="$WEB_URL" pnpm exec playwright test )
+}
+
+case "${1:-}" in
+  up) cmd_up ;;
+  e2e) cmd_e2e ;;
+  down) cmd_down "${2:-}" ;;
+  wipe) cmd_wipe "${2:-}" ;;
+  status) cmd_status ;;
+  *) die "usage: tools/ops/local/local.sh up | down [--force] | wipe [--force] | status | e2e" ;;
+esac

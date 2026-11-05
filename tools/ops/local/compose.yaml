@@ -1,0 +1,24 @@
+# Local stack (card #1478): the database of the whole system on a developer's own machine. Started by tools/ops/local/local.sh; nothing here reaches another machine.
+name: forcitis-local
+services:
+  db:
+    image: postgres:18
+    container_name: forcitis-local-db
+    environment:
+      POSTGRES_USER: ${LOCAL_DB_USER}
+      POSTGRES_PASSWORD: ${LOCAL_DB_PASSWORD}
+      POSTGRES_DB: forcitis_local
+      # Same sort order as the test and dev databases (DDL-11).
+      POSTGRES_INITDB_ARGS: --locale-provider=builtin --locale=C.UTF-8 --builtin-locale=C.UTF-8
+    ports:
+      - "127.0.0.1:${LOCAL_DB_PORT}:5432"
+    volumes:
+      - data:/var/lib/postgresql
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${LOCAL_DB_USER} -d forcitis_local"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+volumes:
+  data:
