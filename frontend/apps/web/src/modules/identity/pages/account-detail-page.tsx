@@ -23,6 +23,7 @@ export function AccountDetailPage() {
   const detail = account.data;
   const allRoles = roles.data ?? [];
   const choices = allRoles.filter((role) => role.enabled && !selected.includes(role.code)).map((role) => ({ value: role.code, label: role.name }));
+  const rolesReady = roles.data !== undefined;
   const open = () => {
     setSelected(detail.roleCodes);
     setOutcome(undefined);
@@ -60,11 +61,12 @@ export function AccountDetailPage() {
         </Notice>
       ) : null}
       <DescriptionList items={[{ label: '状态', value: ACCOUNT_STATUS_LABELS[detail.status] ?? detail.status }, { label: '当前角色', value: detail.roleCodes.length === 0 ? '—' : detail.roleCodes.map((code) => roleName(allRoles, code)).join('、') }]} />
+      {roles.isError ? <Notice tone="error" title="角色加载失败">{describeFailure(roles.error)}</Notice> : null}
       {grants.isPending ? <LoadingState /> : null}
       {grants.isError ? <Notice tone="error" title="角色授予记录加载失败">{describeFailure(grants.error)}</Notice> : null}
-      {grants.data === undefined ? null : <DataTable columns={grantColumns} rows={grants.data} rowKey={(grant) => `${grant.roleCode}:${grant.effectiveFrom}`} emptyText="暂无角色授予记录" />}
+      {grants.data === undefined ? null : <DataTable columns={grantColumns} rows={grants.data} rowKey={(grant) => `${grant.roleCode}:${grant.channel}:${grant.effectiveFrom}`} emptyText="暂无角色授予记录" />}
       <TextLink href={ACCOUNT_LIST_PATH} onNavigate={() => void navigate(ACCOUNT_LIST_PATH)}>返回账号列表</TextLink>
-      <Dialog open={changing} title="调整角色" confirmText="提交" confirmLoading={replace.isPending} onConfirm={confirm} onClose={close}>
+      <Dialog open={changing} title="调整角色" confirmText="提交" confirmLoading={replace.isPending} confirmDisabled={!rolesReady} onConfirm={confirm} onClose={close}>
         <ul>
           {selected.length === 0 ? <li>未选择角色</li> : selected.map((code) => (
             <li key={code}>

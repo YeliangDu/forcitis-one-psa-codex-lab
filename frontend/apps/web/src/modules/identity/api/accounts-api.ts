@@ -1,11 +1,10 @@
 import { DEFAULT_PAGE_LIMIT, checkedPage, collectPages, operations } from '@forcitis/api';
 import type { ReplaceOutcome } from '../model/account';
 
-type Query = NonNullable<NonNullable<Parameters<typeof operations.getPlatformUserAccounts>[0]>['query']>;
 
 export function fetchAccountPage(status: string, cursor: string | undefined) {
   return operations.getPlatformUserAccounts({
-    query: { limit: DEFAULT_PAGE_LIMIT, ...(status === '' ? {} : { status: status as NonNullable<Query['status']> }), ...(cursor === undefined ? {} : { cursor }) },
+    query: { limit: DEFAULT_PAGE_LIMIT, ...(status === '' ? {} : { status }), ...(cursor === undefined ? {} : { cursor }) },
   }).then((page) => checkedPage(page, cursor));
 }
 
@@ -32,6 +31,6 @@ export async function replaceRoles(userId: string, roleCodes: readonly string[],
     { ifMatch: version, idempotencyKey, keepBusinessForbidden: true },
   );
   if (typeof answer === 'object' && answer !== null && 'requestId' in answer && typeof answer.requestId === 'string') return { kind: 'awaiting', requestId: answer.requestId };
-  if (answer === undefined || answer === null || answer === '') return { kind: 'done' };
+  if (answer === undefined || answer === null) return { kind: 'done' };
   throw new Error('The answer of replace-roles is neither empty nor an awaiting-confirmation body.');
 }

@@ -8,6 +8,9 @@ export type Role = Schema<'RoleResponse'>;
 /** The permission the change-roles action needs; the server checks it again, this only keeps the button away from people who would be refused. */
 export const ACCOUNT_ROLE_UPDATE = 'platform.identity:account-role:update';
 
+/** The account page reads accounts, grants and roles, all behind this permission; the adjustment page links there only for people who hold it. */
+export const ROLE_READ = 'platform.identity:role:read';
+
 export const ACCOUNT_LIST_PATH = '/admin/accounts';
 
 export function accountPath(userId: string): string {
