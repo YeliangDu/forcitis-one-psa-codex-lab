@@ -216,6 +216,45 @@ class ContractSeparationTablesIntegrationTest extends WorkforceIntegrationSuppor
         jdbc.sql("update " + REQUESTS + " set status = 'APPROVED', personnel_command_id = null, updated_at = now(), version = version + 1 where separation_request_id = :id").param("id", id).update();
     }
 
+    @Test
+    @DisplayName("#1438 done-when 4/5: an APPROVED or SEPARATING request still blocks a new one; completing needs the SEPARATE command EFFECTIVE")
+    void openStatesBlockAndCompletionNeedsAnEffectiveCommand() {
+        String index = "uk_separation_requests_open_per_relationship";
+        UUID id = request("REQUESTED", "RESIGN_WITH_NOTICE", Map.of("last_working_date", LocalDate.of(2026, 3, 31)));
+        jdbc.sql("update " + REQUESTS + " set status = 'APPROVED', approved_on_date = '2026-01-02', decided_by = :hr, updated_at = now(), version = version + 1 where separation_request_id = :id")
+                .param("hr", HR_B).param("id", id).update();
+        assertThatThrownBy(this::request).hasMessageContaining(index);
+        UUID command = command(LocalDate.of(2026, 4, 1));
+        jdbc.sql("update " + REQUESTS + " set status = 'SEPARATING', personnel_command_id = :cmd, updated_at = now(), version = version + 1 where separation_request_id = :id")
+                .param("cmd", command).param("id", id).update();
+        assertThatThrownBy(this::request).hasMessageContaining(index);
+        String complete = "update " + REQUESTS + " set status = 'COMPLETED', updated_at = now(), version = version + 1 where separation_request_id = :id";
+        assertThatThrownBy(() -> jdbc.sql(complete).param("id", id).update()).hasMessageContaining("completes only when");
+        jdbc.sql("update organization_workforce.personnel_commands set status = 'EFFECTIVE', applied_at = now(), updated_at = now() where personnel_command_id = :id").param("id", command).update();
+        assertThat(jdbc.sql(complete).param("id", id).update()).isEqualTo(1);
+        request();
+    }
+
+    @Test
+    @DisplayName("#1438 done-when 7: every change must advance version by exactly one, on both tables")
+    void versionAdvancesByOne() {
+        UUID draft = contract("DRAFT", D2026, null);
+        UUID requested = request();
+        for (String bump : new String[] {"version", "version + 2"}) {
+            assertThatThrownBy(() -> jdbc.sql("update " + CONTRACTS + " set probation_months_count = 1, updated_at = now(), version = " + bump + " where employment_contract_id = :id").param("id", draft).update())
+                    .hasMessageContaining("version must advance");
+            assertThatThrownBy(() -> jdbc.sql("update " + REQUESTS + " set requested_on_date = '2026-01-03', updated_at = now(), version = " + bump + " where separation_request_id = :id").param("id", requested).update())
+                    .hasMessageContaining("version must advance");
+        }
+    }
+
+    @Test
+    @DisplayName("#1438 done-when 7: a contract is inserted as DRAFT only")
+    void contractsAreInsertedAsDraft() {
+        assertThatThrownBy(() -> insert(CONTRACTS, Map.of("employment_contract_id", UUID.randomUUID(), "employment_relationship_id", relationship, "employee_id", employee,
+                "contract_kind", "OPEN_ENDED", "contract_start_date", D2026, "status", "APPROVED"))).hasMessageContaining("inserted as DRAFT");
+    }
+
     private UUID command(LocalDate effective) {
         return command(effective, "SEPARATE", "PENDING");
     }
@@ -250,10 +289,12 @@ class ContractSeparationTablesIntegrationTest extends WorkforceIntegrationSuppor
             statement.execute("do $$ begin if not exists (select 1 from pg_roles where rolname = 'contract_runtime') then create role contract_runtime; end if; end $$");
             statement.execute("grant usage on schema organization_workforce to contract_runtime");
             statement.execute("grant select, delete on " + CONTRACTS + ", " + REQUESTS + ", " + BASES + " to contract_runtime");
-            statement.execute("grant update on " + BASES + " to contract_runtime");
+            statement.execute("grant insert, update on " + BASES + " to contract_runtime");
             statement.execute("set role contract_runtime");
             try {
                 assertThatThrownBy(() -> statement.execute("update " + BASES + " set display_name = 'x' where separation_basis_key = 'MUTUAL_AGREEMENT'")).hasMessageContaining("separation bases");
+                assertThatThrownBy(() -> statement.execute("insert into " + BASES + " (separation_basis_id, separation_basis_key, display_name, default_initiator_kind, is_employer_initiated, is_system_only, is_active, created_at, updated_at)"
+                        + " values (gen_random_uuid(), 'EXTRA_BASIS', 'x', 'EMPLOYEE', false, false, true, now(), now())")).hasMessageContaining("insert on");
                 for (String table : new String[] {CONTRACTS, REQUESTS, BASES}) {
                     assertThatThrownBy(() -> statement.execute("delete from " + table)).hasMessageContaining("delete");
                 }

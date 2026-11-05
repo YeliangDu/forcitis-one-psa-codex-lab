@@ -61,8 +61,8 @@ BEGIN
     END IF;
     RETURN CASE TG_OP WHEN 'DELETE' THEN OLD ELSE NEW END;
 END $$;
-COMMENT ON FUNCTION organization_workforce.guard_separation_basis_change() IS '离职依据清单的触发器：UPDATE、DELETE 只放行表属主（迁移），TRUNCATE 拒绝';
-CREATE TRIGGER tg_separation_bases_guard BEFORE UPDATE OR DELETE ON organization_workforce.separation_bases
+COMMENT ON FUNCTION organization_workforce.guard_separation_basis_change() IS '离职依据清单的触发器：INSERT、UPDATE、DELETE 只放行表属主（迁移），TRUNCATE 拒绝';
+CREATE TRIGGER tg_separation_bases_guard BEFORE INSERT OR UPDATE OR DELETE ON organization_workforce.separation_bases
     FOR EACH ROW EXECUTE FUNCTION organization_workforce.guard_separation_basis_change();
 CREATE TRIGGER tg_separation_bases_truncate BEFORE TRUNCATE ON organization_workforce.separation_bases
     FOR EACH STATEMENT EXECUTE FUNCTION organization_workforce.guard_separation_basis_change();
