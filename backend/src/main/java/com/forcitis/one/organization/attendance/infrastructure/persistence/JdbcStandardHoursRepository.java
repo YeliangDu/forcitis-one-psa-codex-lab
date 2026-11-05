@@ -7,6 +7,10 @@ import com.forcitis.one.organization.attendance.domain.StandardHours;
 import com.forcitis.one.organization.attendance.domain.StandardHoursRepository;
 import com.forcitis.one.organization.attendance.domain.StandardHoursScopeTail;
 import com.forcitis.one.organization.attendance.domain.StandardHoursVersionRecord;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.organization.attendance.api.AttendanceError;
+import java.sql.SQLException;
 import java.sql.Types;
 import java.time.Clock;
 import java.time.LocalDate;
@@ -17,11 +21,15 @@ import java.util.Optional;
 import java.util.UUID;
 import com.forcitis.one.platform.audit.api.AuditEntryId;
 import org.jspecify.annotations.Nullable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 @Repository
 class JdbcStandardHoursRepository implements StandardHoursRepository {
+    private static final String EXCLUSION_VIOLATION = "23P01";
+    private static final String UNIQUE_VIOLATION = "23505";
+
     private final JdbcClient jdbc;
     private final Clock clock;
     private final IdGenerator ids;
@@ -54,8 +62,30 @@ class JdbcStandardHoursRepository implements StandardHoursRepository {
                 }).optional();
     }
 
+    /** Two publishes of one scope that read the same tail meet here: the database lets the first commit win and refuses the other with an exclusion or unique violation. */
     @Override
     public void insert(StandardHours version) {
+        try {
+            insertRows(version);
+        } catch (DataIntegrityViolationException lost) {
+            if (!lostRaceToAnotherPublish(lost)) {
+                throw lost;
+            }
+            throw new DomainException(AttendanceError.ORGANIZATION_ATTENDANCE_STANDARD_HOURS_OVERLAP, ErrorKind.CONFLICT,
+                    "another publication of the scope was stored first: retry with the current latest version");
+        }
+    }
+
+    private static boolean lostRaceToAnotherPublish(DataIntegrityViolationException failure) {
+        for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
+            if (cause instanceof SQLException sql && (EXCLUSION_VIOLATION.equals(sql.getSQLState()) || UNIQUE_VIOLATION.equals(sql.getSQLState()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void insertRows(StandardHours version) {
         OffsetDateTime now = OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
         UUID legalEntity = version.legalEntityId() == null ? null : version.legalEntityId().value();
         jdbc.sql("""
