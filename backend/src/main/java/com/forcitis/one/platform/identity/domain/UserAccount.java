@@ -14,10 +14,13 @@ import com.forcitis.one.platform.identity.api.AccountOpeningRoute;
 import com.forcitis.one.platform.identity.events.AccountOpened;
 import com.forcitis.one.platform.identity.events.AccountRolesReplaced;
 import com.forcitis.one.platform.identity.events.AccountSeparated;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import org.jspecify.annotations.Nullable;
 
 /** A login account and the roles granted to it. Employment is owned by the organisation; this status is the administrator's switch. */
 public final class UserAccount extends AggregateRoot {
@@ -32,29 +35,32 @@ public final class UserAccount extends AggregateRoot {
     private final boolean stored;
     private AccountStatus status;
     private Set<RoleId> roles;
+    private @Nullable Instant separatedAt;
     private List<AccountRoleGrantId> openedGrants = List.of();
     private List<AccountRoleGrantId> closedGrants = List.of();
 
-    private UserAccount(UserId userId, EmployeeId employeeId, AccountStatus status, Set<RoleId> roles, boolean stored, long version,
-            long eventSequence) {
+    private UserAccount(UserId userId, EmployeeId employeeId, AccountStatus status, Set<RoleId> roles, @Nullable Instant separatedAt, boolean stored,
+            long version, long eventSequence) {
         super(version, eventSequence);
         this.userId = Objects.requireNonNull(userId, "userId");
         this.employeeId = Objects.requireNonNull(employeeId, "employeeId");
         this.status = Objects.requireNonNull(status, "status");
         this.loadedStatus = status;
         this.roles = Set.copyOf(roles);
+        this.separatedAt = separatedAt;
         this.stored = stored;
     }
 
     public static UserAccount open(UserId userId, EmployeeId employeeId, Set<RoleId> initialRoles, AccountOpeningRoute route) {
-        UserAccount account = new UserAccount(userId, employeeId, AccountStatus.ENABLED, initialRoles, false, 0, 0);
+        UserAccount account = new UserAccount(userId, employeeId, AccountStatus.ENABLED, initialRoles, null, false, 0, 0);
         account.record((envelopes, version) -> new AccountOpened(envelopes.wrap(account.draft("AccountOpened", version)), userId,
                 account.orderedRoles(), route));
         return account;
     }
 
-    public static UserAccount restore(UserId userId, EmployeeId employeeId, String status, Set<RoleId> roles, long version, long eventSequence) {
-        return new UserAccount(userId, employeeId, AccountStatus.valueOf(status), roles, true, version, eventSequence);
+    public static UserAccount restore(UserId userId, EmployeeId employeeId, String status, Set<RoleId> roles, @Nullable Instant separatedAt, long version,
+            long eventSequence) {
+        return new UserAccount(userId, employeeId, AccountStatus.valueOf(status), roles, separatedAt, true, version, eventSequence);
     }
 
     public UserId userId() {
@@ -75,6 +81,11 @@ public final class UserAccount extends AggregateRoot {
 
     public Set<RoleId> roles() {
         return roles;
+    }
+
+    /** The moment the separation was recorded on the account; empty for a person who left before #1326 or came back. A hint only: the workforce directory stays the authority on employment. */
+    public Optional<Instant> separatedAt() {
+        return Optional.ofNullable(separatedAt);
     }
 
     public boolean isStored() {
@@ -107,9 +118,13 @@ public final class UserAccount extends AggregateRoot {
         }
     }
 
+    /** Roles may always go; a separated account is given none (#1326): the one place every grant passes through the aggregate. */
     public void replaceRoles(Set<RoleId> roleIds) {
         if (roles.equals(Set.copyOf(roleIds))) {
             return;
+        }
+        if (separatedAt != null && !roles.containsAll(roleIds)) {
+            throw IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED.refusal("the person of account " + userId.value() + " has separated");
         }
         this.roles = Set.copyOf(roleIds);
         List<RoleId> ordered = orderedRoles();
@@ -123,13 +138,25 @@ public final class UserAccount extends AggregateRoot {
         this.closedGrants = changes.closed().stream().map(GrantClosing::id).toList();
     }
 
-    /** The person is no longer with the company: no role stays, whatever the roles were. An account without roles has nothing to record. */
-    public void recordSeparation() {
+    /**
+     * The person is no longer with the company: no role stays. markAt is the moment to record on the account whatever its roles were (the first moment
+     * stays on a redelivery); null when the directory shows the person employed again, a separation event that reaches the account after the reinstatement
+     * leaves no mark that nobody would clear.
+     */
+    public void recordSeparation(@Nullable Instant markAt) {
+        if (separatedAt == null) {
+            separatedAt = markAt;
+        }
         if (roles.isEmpty()) {
             return;
         }
         replaceRoles(Set.of());
         record((envelopes, version) -> new AccountSeparated(envelopes.wrap(draft("AccountSeparated", version)), userId));
+    }
+
+    /** The person is back: roles may be given again. */
+    public void recordReinstated() {
+        separatedAt = null;
     }
 
     private List<RoleId> orderedRoles() {

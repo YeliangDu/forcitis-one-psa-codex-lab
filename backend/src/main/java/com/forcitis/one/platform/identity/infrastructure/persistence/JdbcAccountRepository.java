@@ -63,25 +63,30 @@ class JdbcAccountRepository implements AccountRepository {
         return load(userId, true);
     }
 
+    private static @Nullable Instant instantOf(@Nullable OffsetDateTime at) {
+        return at == null ? null : at.toInstant();
+    }
+
     private Optional<UserAccount> load(UserId userId, boolean lock) {
         JdbcClient.StatementSpec select = lock
                 ? jdbc.sql("""
-                        select user_id, employee_id, status, version, event_count from platform_identity.user_accounts where user_id = :id for update
+                        select user_id, employee_id, status, separated_at, version, event_count from platform_identity.user_accounts where user_id = :id for update
                         """)
                 : jdbc.sql("""
-                        select user_id, employee_id, status, version, event_count from platform_identity.user_accounts where user_id = :id
+                        select user_id, employee_id, status, separated_at, version, event_count from platform_identity.user_accounts where user_id = :id
                         """);
         Optional<UserAccount> found = select
                 .param("id", userId.value())
                 .query((rs, n) -> UserAccount.restore(new UserId(rs.getObject("user_id", UUID.class)), new EmployeeId(rs.getObject("employee_id", UUID.class)),
-                        rs.getString("status"), Set.of(), rs.getLong("version"), rs.getLong("event_count")))
+                        rs.getString("status"), Set.of(), instantOf(rs.getObject("separated_at", OffsetDateTime.class)), rs.getLong("version"),
+                        rs.getLong("event_count")))
                 .optional();
         if (found.isEmpty()) {
             return found;
         }
         UserAccount account = found.get();
         Set<RoleId> roles = openGrants(userId).stream().map(HeldGrant::roleId).collect(Collectors.toSet());
-        return Optional.of(UserAccount.restore(account.userId(), account.employeeId(), account.status().name(), roles, account.version(),
+        return Optional.of(UserAccount.restore(account.userId(), account.employeeId(), account.status().name(), roles, account.separatedAt().orElse(null), account.version(),
                 account.eventSequence()));
     }
 
@@ -145,10 +150,11 @@ class JdbcAccountRepository implements AccountRepository {
     public void save(UserAccount account) {
         int updated = jdbc.sql("""
                         update platform_identity.user_accounts
-                           set status = :status, updated_at = :updatedAt, version = :next, event_count = :eventSequence
+                           set status = :status, separated_at = :separatedAt, updated_at = :updatedAt, version = :next, event_count = :eventSequence
                          where user_id = :id and version = :version and status = :loadedStatus
                         """)
-                .param("status", account.status().name()).param("next", account.versionAfterSave())
+                .param("status", account.status().name()).param("separatedAt", account.separatedAt().map(at -> OffsetDateTime.ofInstant(at, ZoneOffset.UTC)).orElse(null))
+                .param("next", account.versionAfterSave())
                 .param("eventSequence", account.eventSequenceAfterSave()).param("id", account.userId().value())
                 .param("version", account.version()).param("loadedStatus", account.loadedStatus().name()).param("updatedAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                 .update();

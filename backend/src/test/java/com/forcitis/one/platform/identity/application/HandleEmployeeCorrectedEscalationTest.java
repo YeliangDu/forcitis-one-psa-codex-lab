@@ -94,7 +94,7 @@ class HandleEmployeeCorrectedEscalationTest {
         Role sensitive = mock(Role.class);
         when(sensitive.administrative()).thenReturn(true);
         RoleId roleId = new RoleId(UUID.randomUUID());
-        when(accounts.findForUpdate(user)).thenReturn(Optional.of(UserAccount.restore(user, employee, "ENABLED", Set.of(), 1, 1)));
+        when(accounts.findForUpdate(user)).thenReturn(Optional.of(UserAccount.restore(user, employee, "ENABLED", Set.of(), null, 1, 1)));
         when(accounts.openGrants(user)).thenReturn(List.of(new HeldGrant(new AccountRoleGrantId(UUID.randomUUID()), roleId, new RoleCode("business_admin"))));
         when(roles.findById(roleId)).thenReturn(Optional.of(sensitive));
         when(adjustments.existsForTrigger(any(), any(), any(), any())).thenReturn(false);
