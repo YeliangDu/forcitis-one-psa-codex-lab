@@ -4,6 +4,28 @@
 set -uo pipefail
 cd "$(dirname "$0")/../../backend" || exit 1
 
+# A local run (no GITHUB_ACTIONS) is the only one on this machine at a time and starts fewer forks than CI (#1341): several local full runs
+# next to the merge queue's CI runners pushed CI past its time budget. A later run waits for the holder (BACKEND_VERIFY_LOCK_WAIT seconds, then
+# refuses); a lock whose holder is gone is taken over. -D options given by the caller come last and win. CI is unchanged.
+if [ -z "${GITHUB_ACTIONS:-}" ]; then
+  lock=${BACKEND_VERIFY_LOCK:-/tmp/forcitis-backend-verify.lock}
+  waited=0
+  until mkdir "$lock" 2>/dev/null; do
+    holder=$(cat "$lock/pid" 2>/dev/null || true)
+    if { [ -n "$holder" ] && ! kill -0 "$holder" 2>/dev/null; } || { [ -z "$holder" ] && [ -n "$(find "$lock" -maxdepth 0 -mmin +1 2>/dev/null)" ]; }; then
+      rm -rf "$lock"; continue
+    fi
+    if [ "$waited" -ge "${BACKEND_VERIFY_LOCK_WAIT:-10800}" ]; then
+      echo "backend_verify: another local run (pid ${holder:-?}) still holds $lock after ${waited} s; not starting" >&2; exit 1
+    fi
+    [ $((waited % 60)) -eq 0 ] && echo "backend_verify: another local run (pid ${holder:-?}) holds $lock; waiting (${waited} s)" >&2
+    sleep "${BACKEND_VERIFY_LOCK_POLL:-5}"; waited=$((waited + ${BACKEND_VERIFY_LOCK_POLL:-5}))
+  done
+  echo $$ >"$lock/pid"
+  trap 'rm -rf "$lock"' EXIT
+  set -- -Dtest.forks=1 -Dit.forks=2 "$@"
+fi
+
 # Both plugins read JSON and generated TS. CI downloads this run's api-contract artifact; local/nightly runs bootstrap first.
 bash ../scripts/codegen/generate_api.sh --check || exit 1
 
