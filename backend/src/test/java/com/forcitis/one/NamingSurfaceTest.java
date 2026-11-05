@@ -318,6 +318,38 @@ class NamingSurfaceTest {
         return problems;
     }
 
+    @Test
+    void everyContextIsARegisteredBoundedContext() throws IOException {
+        Set<String> missing = idsMissingFrom(contextIds(), glossaryEntryIds());
+
+        assertThat(missing).as("ids of docs/architecture/ssot/domain/contexts.yaml that glossary/bcs.yaml lacks "
+                + "(add the entry to bcs.yaml, or remove the context if it is retired and no adopted ADR names it)").isEmpty();
+        assertThat(idsMissingFrom(Set.of("a", "b"), Set.of("a"))).containsExactly("b");
+    }
+
+    static Set<String> idsMissingFrom(Set<String> required, Set<String> registered) {
+        Set<String> missing = new java.util.TreeSet<>(required);
+        missing.removeAll(registered);
+        return missing;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Set<String> contextIds() throws IOException {
+        try (java.io.InputStream in = Files.newInputStream(Path.of("../docs/architecture/ssot/domain/contexts.yaml"))) {
+            Map<String, Object> root = new org.yaml.snakeyaml.Yaml().load(in);
+            return ((List<Map<String, Object>>) root.get("contexts")).stream().map(e -> String.valueOf(e.get("id"))).collect(Collectors.toSet());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Set<String> glossaryEntryIds() throws IOException {
+        try (java.io.InputStream in = Files.newInputStream(Path.of("../docs/glossary/bcs.yaml"))) {
+            Object root = new org.yaml.snakeyaml.Yaml().load(in);
+            List<Map<String, Object>> entries = root instanceof Map<?, ?> m ? (List<Map<String, Object>>) m.get("bcs") : (List<Map<String, Object>>) root;
+            return entries.stream().map(e -> String.valueOf(e.get("id"))).collect(Collectors.toSet());
+        }
+    }
+
     @SuppressWarnings("unchecked")
     private static Set<String> registeredBcs() throws IOException {
         try (java.io.InputStream in = Files.newInputStream(Path.of("../docs/glossary/bcs.yaml"))) {
