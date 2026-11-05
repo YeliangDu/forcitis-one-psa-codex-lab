@@ -12,13 +12,14 @@ import com.forcitis.one.platform.identity.domain.AuthorizationRequestRepository;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
 import com.forcitis.one.platform.identity.domain.AdministratorFloor;
 import com.forcitis.one.platform.identity.domain.AuthorizationRequestKind;
+import com.forcitis.one.platform.identity.domain.AuthorizationRequestStatus;
 import com.forcitis.one.platform.identity.domain.UserAccount;
 import java.time.Clock;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Another holder of account-role:update agrees. A role replacement is applied in this same transaction, so a refusal by the administrator floor refuses the confirmation and writes nothing; the other kinds are applied by the listener afterwards. */
+/** Another holder of account-role:update agrees; a requester or confirmer who has separated (the directory says so even before the separation listener ran) confirms nothing (#1322).  A role replacement is applied in this same transaction, so a refusal by the administrator floor refuses the confirmation and writes nothing; the other kinds are applied by the listener afterwards. */
 @Service
 public class ConfirmAuthorizationRequest {
 
@@ -30,9 +31,11 @@ public class ConfirmAuthorizationRequest {
     private final ReplaceAccountRoles replaceRoles;
     private final AdministratorFloor floor;
     private final AuthorizationVoiding voiding;
+    private final SubjectEmployment employment;
 
     ConfirmAuthorizationRequest(CurrentUser currentUser, AuthorizationRequestRepository requests, DomainEvents events, Clock clock,
-            AccountRepository accounts, ReplaceAccountRoles replaceRoles, AdministratorFloor floor, AuthorizationVoiding voiding) {
+            AccountRepository accounts, ReplaceAccountRoles replaceRoles, AdministratorFloor floor, AuthorizationVoiding voiding, SubjectEmployment employment) {
+        this.employment = employment;
         this.replaceRoles = replaceRoles;
         this.voiding = voiding;
         this.floor = floor;
@@ -48,6 +51,9 @@ public class ConfirmAuthorizationRequest {
         AuthorizationRequest request = requests.find(id).orElseThrow(() -> new DomainException(IdentityError.PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_FOUND,
                 ErrorKind.NOT_FOUND, "no such authorization request"));
         UserId by = currentUser.userId();
+        if (request.status() == AuthorizationRequestStatus.PENDING && (!employment.isEmployed(by) || !employment.isEmployed(request.requestedBy()))) {
+            throw IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED.refusal("the requester or the confirmer is no longer employed");
+        }
         boolean replacesRoles = request.kind() == AuthorizationRequestKind.REPLACE_ROLES;
         if (replacesRoles) {
             floor.lockDecisions();

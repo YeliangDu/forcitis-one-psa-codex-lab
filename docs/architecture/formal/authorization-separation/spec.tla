@@ -24,21 +24,27 @@ Init ==
 \* Employed holders of the administrator role (directory view: a person whose separation is in effect does not count, revoked or not)
 Avail == {q \in P : adm[q] /\ sep[q] = "in"}
 
-\* AuthorizationGate.openReplaceRoles: nobody checks that the subject is employed; nobody grants to themselves
+\* ReplaceAccountRoles.execute (#1322): a role is not given to a person the directory shows as separated; nobody grants to themselves
 Request(r, s) ==
     /\ rq.st = "none"
     /\ adm[r]
     /\ r # s
     /\ ~adm[s]
+    /\ sep[s] = "in"
     /\ rq' = [NoReq EXCEPT !.st = "pending", !.r = r, !.s = s]
     /\ UNCHANGED <<sep, adm, any>>
 
-\* ConfirmAuthorizationRequest.execute: confirm and apply in one transaction; a moved base voids the request
+\* ConfirmAuthorizationRequest.execute: confirm and apply in one transaction; a moved base voids the request.
+\* #1322: the requester, the confirmer and the subject must be employed in the directory view (a separation in effect counts even before identity revoked);
+\* otherwise the confirmation is refused and nothing is written.
 Confirm(c) ==
     /\ rq.st = "pending"
     /\ adm[c]
     /\ c # rq.r
     /\ c # rq.s
+    /\ sep[c] = "in"
+    /\ sep[rq.r] = "in"
+    /\ sep[rq.s] = "in"
     /\ IF rq.base = "moved"
        THEN /\ rq' = [rq EXCEPT !.st = "voided", !.d = c]
             /\ UNCHANGED <<sep, adm, any>>
@@ -62,10 +68,11 @@ Separate(p) ==
     /\ sep' = [sep EXCEPT ![p] = "pend"]
     /\ UNCHANGED <<adm, any, rq>>
 
+\* HandleEmployeeSeparated (#1322): every request that still waits and names the person as subject or requester ends voided, whether or not the person held a role
 Closed(p) ==
     /\ adm' = [adm EXCEPT ![p] = FALSE]
     /\ any' = [any EXCEPT ![p] = FALSE]
-    /\ rq' = IF rq.st = "pending" /\ rq.s = p /\ any[p] THEN [rq EXCEPT !.base = "moved"] ELSE rq
+    /\ rq' = IF rq.st = "pending" /\ (rq.s = p \/ rq.r = p) THEN [rq EXCEPT !.st = "voided"] ELSE rq
 
 \* HandleEmployeeSeparated.on: roles are revoked only when the separation event arrives (the account version moves with it)
 Handle(p) ==
