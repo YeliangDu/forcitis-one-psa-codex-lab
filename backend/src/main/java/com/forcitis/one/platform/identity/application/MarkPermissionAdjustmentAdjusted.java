@@ -23,13 +23,15 @@ public class MarkPermissionAdjustmentAdjusted {
 
     private final PermissionAdjustmentRepository adjustments;
     private final PermissionAdjustmentAccess access;
+    private final PermissionAdjustmentViews views;
     private final CurrentUser currentUser;
     private final AuthorizationRequestRepository requests;
     private final AuditEntryLookup auditEntries;
     private final DomainEvents events;
 
     MarkPermissionAdjustmentAdjusted(PermissionAdjustmentRepository adjustments, PermissionAdjustmentAccess access, CurrentUser currentUser,
-            AuthorizationRequestRepository requests, AuditEntryLookup auditEntries, DomainEvents events) {
+            AuthorizationRequestRepository requests, AuditEntryLookup auditEntries, DomainEvents events, PermissionAdjustmentViews views) {
+        this.views = views;
         this.adjustments = adjustments;
         this.access = access;
         this.currentUser = currentUser;
@@ -52,6 +54,6 @@ public class MarkPermissionAdjustmentAdjusted {
         item.markAdjusted(currentUser.userId(), reference);
         adjustments.update(item);
         events.publish(item);
-        return PermissionAdjustmentView.of(item);
+        return views.of(item);
     }
 }

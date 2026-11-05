@@ -557,7 +557,7 @@ aggregates:
   - PermissionAdjustmentAccess
   - PermissionAdjustmentEscalationNotice
   - PermissionAdjustmentTransitions
-  - PermissionAdjustmentView
+  - PermissionAdjustmentViews
   - UpholdPermissionAdjustment
   events:
   - platform.identity.PermissionAdjustmentAdjusted
@@ -612,6 +612,7 @@ aggregates:
   - ListAuthorizationRequests
   - OrgUnitScopes
   - PermissionAdjustmentEscalationNotice
+  - PermissionAdjustmentViews
   - ReplaceAccountRoles
   - RevokeRoleByOperations
   - RoleScopeRefusal

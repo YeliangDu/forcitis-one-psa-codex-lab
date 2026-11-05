@@ -17,10 +17,12 @@ public class GetPermissionAdjustment {
 
     private final PermissionAdjustmentRepository adjustments;
     private final PermissionAdjustmentAccess access;
+    private final PermissionAdjustmentViews views;
     private final CurrentUser currentUser;
     private final AuditLog audit;
 
-    GetPermissionAdjustment(PermissionAdjustmentRepository adjustments, PermissionAdjustmentAccess access, CurrentUser currentUser, AuditLog audit) {
+    GetPermissionAdjustment(PermissionAdjustmentRepository adjustments, PermissionAdjustmentAccess access, CurrentUser currentUser, AuditLog audit, PermissionAdjustmentViews views) {
+        this.views = views;
         this.adjustments = adjustments;
         this.access = access;
         this.currentUser = currentUser;
@@ -32,6 +34,6 @@ public class GetPermissionAdjustment {
         PermissionAdjustment item = access.readable(adjustments.findById(id).orElseThrow(() -> PermissionAdjustmentAccess.notFound(id.toString())), access.reader());
         audit.recordIndependently(new AuditEntry("platform.identity.permission-adjustment.viewed", currentUser.userId(), null,
                 AuditSubject.of(AuditSubjectKind.PERMISSION_ADJUSTMENT, id.value()), "read by id"));
-        return PermissionAdjustmentView.of(item);
+        return views.of(item);
     }
 }
