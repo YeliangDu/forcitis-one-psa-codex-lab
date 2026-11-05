@@ -111,7 +111,7 @@ class OpenApiExportTest {
             "DetailAssignmentResponse.orgUnitId", "DetailAssignmentResponse.positionId", "DetailAssignmentResponse.reportsToEmployeeId", "PositionResponse.positionId",
             "RoleResponse.roleId", "ProblemDetail.correlationId", "ChangeFinanceHeadRequest.financeHeadEmployeeId", "LegalEntityResponse.financeHeadEmployeeId",
             "PermissionAdjustmentResponse.permissionAdjustmentId", "PermissionAdjustmentResponse.userId", "PermissionAdjustmentResponse.roleId",
-            "PermissionAdjustmentResponse.orgUnitId", "PermissionAdjustmentResponse.businessOwnerEmployeeId", "UpholdPermissionAdjustmentRequest.businessOwnerEmployeeId",
+            "PermissionAdjustmentResponse.orgUnitId", "PermissionAdjustmentResponse.triggerPersonnelCommandId", "PermissionAdjustmentResponse.triggerOrgStructureCommandId", "PermissionAdjustmentResponse.businessOwnerEmployeeId", "UpholdPermissionAdjustmentRequest.businessOwnerEmployeeId",
             "MarkPermissionAdjustmentAdjustedRequest.authorizationRequestId", "MarkPermissionAdjustmentAdjustedRequest.auditEntryId",
             "RegisterSourceReferenceRequest.ownId", "SourceReferenceResponse.ownId", "SourceReferenceResponse.sourceReferenceId",
             "AuditEntryResponse.actorId", "AuditEntryResponse.onBehalfOfId", "AuditEntryResponse.subjectId", "AuthorizationRequestResponse.subjectUserId", "CurrentUserResponse.userId",
