@@ -38,9 +38,10 @@ import org.springframework.context.ApplicationContext;
  * manager ({@code INITIATOR_SUPERVISOR} level 1), then a holder of the payroll role who is not the initiator. The payroll consumer of
  * {@code ApprovalCompleted} writes the row (its own id; {@code approval_instance_id} is the link, the document id is payroll's request id and is no table
  * key); the void and the reads are the {@code BonusInputs} api of {@code com.forcitis.one.organization.payroll.api}. Types are looked up by name and called by
- * reflection, so the class compiles before the slice exists. ONE role holds submit, update (the void) and read; the record does not name its code:
- * {@code payroll_specialist} is used here as a placeholder the implementer confirms with lead (a rename is one constant). Not tested here, owed until the
- * Java signature of the {@code RequestBonusInput} command is ruled: its submit permission and the retry-reuses-the-instance line; the start below is the
+ * reflection, so the class compiles before the slice exists. ONE role holds submit, update (the void) and read; its code is
+ * {@code payroll_specialist} (display 薪资专员), declared by the #1436 implementation, and the command is {@code RequestBonusInput} in
+ * {@code com.forcitis.one.organization.payroll.api} (lead ruling on #1446, 2026-11-05, PR comment). Not tested here, owed until the Java signature of that
+ * command is ruled: its submit permission and the retry-reuses-the-instance line; the start below is the
  * record's own call of {@code ApprovalProcesses.start} (process key, document, legal entity of the request, initiator, five fields).
  */
 abstract class BonusInputSupport extends P5Support {

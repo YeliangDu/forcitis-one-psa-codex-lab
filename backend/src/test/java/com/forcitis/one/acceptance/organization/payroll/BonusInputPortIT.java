@@ -2,6 +2,8 @@ package com.forcitis.one.acceptance.organization.payroll;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
@@ -202,7 +204,10 @@ class BonusInputPortIT extends BonusInputSupport {
         UUID second = nextTask(submitted, List.of(first));
 
         assertThat(detail(second, specialistAccount).getStatus()).as("the initiator holds the payroll role but is no candidate").isEqualTo(404);
-        assertThat(act(second, specialistAccount, "claim", null).getStatus()).as("the initiator cannot claim the second stage").isGreaterThanOrEqualTo(400);
+        // the version is read as a real candidate: the initiator cannot even read it, so act() would fail on that read instead of on the claim
+        String version = versionOf(second, secondSpecialistAccount);
+        int claimed = mvc.perform(post(TASKS + second + ":claim").header("If-Match", version).with(csrf()).with(session(specialistAccount))).andReturn().getResponse().getStatus();
+        assertThat(claimed).as("the initiator cannot claim the second stage").isIn(403, 404);
         assertThat(rowsOf(submitted)).as("nothing was approved").isEmpty();
         assertThat(openTaskIds(submitted.document())).as("the stage is still open for a real candidate").contains(second);
     }
