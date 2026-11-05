@@ -73,3 +73,12 @@ organization_leave.attendance_records.employee_id | INTERNAL | PI | 用途：打
 organization_leave.attendance_records.occurred_at | INTERNAL | PI | 用途：打卡时刻，考勤月确认与加班校验
 organization_leave.attendance_records.external_record_key | INTERNAL | NONE | 豁免：来源系统的记录标识，不指向个人
 organization_leave.monthly_confirmations.employee_id | INTERNAL | PI | 用途：月确认的所属员工
+organization_leave.leave_accounts.employee_id | INTERNAL | PI | 用途：额度账户所属员工，数据范围判断与本人查询
+organization_leave.leave_ledger_lines.effective_date | INTERNAL | PI | 用途：额度流水发生日，额度核对与审计（用掉、占用的日子即个人的请假日期）
+organization_leave.leave_ledger_lines.adjusted_by | INTERNAL | PI | 用途：人事手工调整的操作人，审计
+organization_leave.leave_ledger_lines.reason_text | INTERNAL | PI | 用途：人事手工调整的原因，审计；原因文字不得写病情或个人隐私
+organization_leave.leave_grant_basis.relationship_start_date | INTERNAL | PI | 用途：额度折算与档位的依据，个人的入职日期
+organization_leave.leave_grant_basis.relationship_end_date | INTERNAL | PI | 用途：额度折算与档位的依据，个人的离职日期
+organization_leave.leave_grant_basis.prior_service_months_count | INTERNAL | PI | 用途：额度折算与档位的依据，个人的累计工龄
+organization_leave.leave_grant_basis.unpaid_leave_days_count | INTERNAL | PI | 用途：额度折算的依据，个人的停薪留职天数
+organization_leave.leave_types.display_name | INTERNAL | NONE | 豁免：假期类型的名称，不指向个人

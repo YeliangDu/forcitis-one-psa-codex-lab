@@ -124,7 +124,7 @@ BEGIN
                              'organization_workforce.legal_entity_versions', 'organization_workforce.employee_versions',
                              'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities',
                              'platform_identity.role_versions', 'platform_identity.account_role_grants',
-                             'organization_attendance.standard_hours_versions'] LOOP
+                             'organization_attendance.standard_hours_versions', 'organization_leave.leave_rule_versions'] LOOP
         EXECUTE format('REVOKE DELETE, TRUNCATE ON %s FROM one_dev_app', t);
     END LOOP;
 END $$;
