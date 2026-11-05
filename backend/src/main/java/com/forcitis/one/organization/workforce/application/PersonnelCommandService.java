@@ -309,7 +309,7 @@ class PersonnelCommandService implements PersonnelCommands {
         if (command.kind() == PersonnelCommandKind.HIRE) {
             EmploymentRelationshipId started = startRelationship(command, request, all, employee, now);
             command.bindTo(started);
-            return movesPrimary(command, all, started) ? all.movingPrimaryTo(started) : all.within(started);
+            return movesPrimary(command, all, started) ? all.withPrimaryIn(started) : all.within(started);
         }
         EmploymentRelationshipId named = request.employmentRelationshipId();
         if (named == null) {
@@ -325,10 +325,10 @@ class PersonnelCommandService implements PersonnelCommands {
             if (!all.inService(named, command.effectiveDate())) {
                 throw invalid("the primary post moves only to a relationship in service on " + command.effectiveDate());
             }
-            return all.movingPrimaryTo(named);
+            return all.withPrimaryIn(named);
         }
         if (command.kind() == PersonnelCommandKind.REINSTATE && movesPrimary(command, all, named)) {
-            return all.movingPrimaryTo(named);
+            return all.withPrimaryIn(named);
         }
         return all.within(named);
     }

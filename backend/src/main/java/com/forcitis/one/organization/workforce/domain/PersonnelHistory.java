@@ -36,7 +36,7 @@ public record PersonnelHistory(List<VersionRow> employeeRows, List<VersionRow> a
      * The history as the relationship sees it when the primary post moves into it (design 6.3, item 12): the primary root's rows of any relationship are shown as the
      * relationship's, so the plan closes the old version on the day and writes the next one in the same root. Stored rows keep the relationship they were written with.
      */
-    public PersonnelHistory movingPrimaryTo(EmploymentRelationshipId relationship) {
+    public PersonnelHistory withPrimaryIn(EmploymentRelationshipId relationship) {
         UUID primary = primaryRoot().map(root -> root.id().value()).orElse(null);
         List<VersionRow> rows = assignmentRows.stream().filter(r -> relationship.equals(r.relationshipId()) || primary != null && primary.equals(r.root()))
                 .map(r -> primary != null && primary.equals(r.root()) ? r.inRelationship(relationship) : r).toList();
