@@ -5,7 +5,7 @@
   <!-- Bonus input approval (#1436, PY3). Routing is the user's decision of 2026-11-05 (docs/decisions/2026-11-05-195500-one-lead-均采纳推荐.md, item 1): one stage, the
        initiator's line manager (INITIATOR_SUPERVISOR level 1), then a holder of the payroll role. The platform never offers the initiator as a candidate of the
        second stage while another holder exists. No routing flags, no deadlines (none decided). The five fields are data only: no node reads them for an approver, payroll
-       reads them back through ApprovalProcesses.formFields when the approval completes. Each node is a countersign: one task per distinct approver, all must approve. -->
+       reads them back through ApprovalProcesses.formFields when the approval completes. supervisorReview is a countersign (one task per distinct approver, all must approve); payrollReview has no loop, so it is ONE pool task with every non-initiator holder as a candidate and the first claim decides. -->
   <process id="organization_payroll_bonus_input" name="奖金输入审批" isExecutable="true">
     <extensionElements>
       <forcitis:documentType code="BONUS_INPUT"/>

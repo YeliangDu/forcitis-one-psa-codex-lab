@@ -5,6 +5,7 @@ import com.forcitis.one.kernel.DocumentId;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
+import com.forcitis.one.kernel.OrgUnitAccess;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.payroll.api.BonusInputApprovalProcess;
 import com.forcitis.one.organization.payroll.api.BonusInputId;
@@ -16,6 +17,7 @@ import com.forcitis.one.organization.payroll.api.VoidBonusInput;
 import com.forcitis.one.organization.payroll.domain.BonusDetermination;
 import com.forcitis.one.organization.payroll.domain.BonusDeterminationRepository;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
+import com.forcitis.one.organization.workforce.api.EmploymentRelationshipView;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationships;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -43,7 +45,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * The bonus input port. Starting the approval writes no payroll row (a row is always an approved input); the void is the one update. The approval is started
- * directly in the command's transaction, not through a broadcast event, so the amount reaches no subscriber.
+ * directly in the command's transaction; its summary carries the payroll month only, because the summary travels in the broadcast task events, the WeCom card and a
+ * column registered as holding no personal information, and the amount and the reason are SENSITIVE (PY3 record, P-R5).
+ * Reads are fail-closed: until payroll has an entity scope, only a caller whose read covers everything sees a row.
  */
 @Component
 class BonusInputsService implements BonusInputs {
@@ -58,9 +62,11 @@ class BonusInputsService implements BonusInputs {
     private final AuditLog audit;
     private final CurrentUser currentUser;
     private final Clock clock;
+    private final OrgUnitAccess orgUnits;
 
     BonusInputsService(BonusDeterminationRepository inputs, ApprovalProcesses approvals, EmploymentRelationships relationships, AuditLog audit, CurrentUser currentUser,
-            Clock clock) {
+            Clock clock, OrgUnitAccess orgUnits) {
+        this.orgUnits = orgUnits;
         this.inputs = inputs;
         this.approvals = approvals;
         this.relationships = relationships;
@@ -74,8 +80,12 @@ class BonusInputsService implements BonusInputs {
     @Transactional
     public ApprovalInstanceId request(RequestBonusInput command) {
         BonusDetermination.check(command.payrollMonthStartDate(), command.bonus(), command.reasonKey());
-        if (relationships.get(command.employmentRelationshipId()).isEmpty()) {
-            throw new DomainException(PayrollError.ORGANIZATION_PAYROLL_BONUS_INPUT_INVALID, ErrorKind.UNPROCESSABLE, "no such employment relationship");
+        // The PY3 record: the relationship is in service and the paying entity is its employer in that month (another context's data, checked here).
+        EmploymentRelationshipView employment = relationships.employerOn(command.employmentRelationshipId(), command.payrollMonthStartDate()).orElse(null);
+        if (employment == null || employment.phaseKind() == null || !employment.employerConfirmed()
+                || !employment.employerLegalEntityId().equals(command.payingLegalEntityId())) {
+            throw new DomainException(PayrollError.ORGANIZATION_PAYROLL_BONUS_INPUT_INVALID, ErrorKind.UNPROCESSABLE,
+                    "the employment relationship is not in service with a confirmed employer that is the paying legal entity in that month");
         }
         UUID requestId = UUID.nameUUIDFromBytes((REQUEST_NAMESPACE + command.idempotencyKey()).getBytes(StandardCharsets.UTF_8));
         List<ApprovalField> fields = List.of(field(BonusInputApprovalProcess.EMPLOYMENT_RELATIONSHIP_ID, command.employmentRelationshipId().toString()),
@@ -85,8 +95,7 @@ class BonusInputsService implements BonusInputs {
         return approvals.start(new ApprovalStartRequest(BonusInputApprovalProcess.KEY,
                 new DocumentReference(BonusInputApprovalProcess.DOCUMENT_TYPE, new DocumentId(requestId)), command.payingLegalEntityId(), currentUser.employeeId(),
                 new RoundNumber(1), command.idempotencyKey(), Set.of(), fields, contentHash(fields),
-                new ApprovalSummary("奖金输入 " + command.payrollMonthStartDate() + " " + command.reasonKey() + " " + command.bonus().amount().toPlainString() + " "
-                        + command.bonus().currency().getCurrencyCode())));
+                new ApprovalSummary("奖金输入 " + command.payrollMonthStartDate())));
     }
 
     @Override
@@ -106,6 +115,9 @@ class BonusInputsService implements BonusInputs {
     @PreAuthorize("hasAuthority('" + READ + "')")
     @Transactional(readOnly = true)
     public BonusInputSummary get(BonusInputId id) {
+        if (!readsEverything()) {
+            throw notFound(id);
+        }
         return summary(inputs.find(id).orElseThrow(() -> notFound(id)));
     }
 
@@ -113,7 +125,14 @@ class BonusInputsService implements BonusInputs {
     @PreAuthorize("hasAuthority('" + READ + "')")
     @Transactional(readOnly = true)
     public List<BonusInputSummary> listForRelationship(EmploymentRelationshipId relationship, LocalDate fromMonth, LocalDate toMonth) {
+        if (!readsEverything()) {
+            return List.of();
+        }
         return inputs.listForRelationship(relationship, fromMonth, toMonth).stream().map(BonusInputsService::summary).toList();
+    }
+
+    private boolean readsEverything() {
+        return orgUnits.visibleOrgUnits(READ).everything();
     }
 
     private static BonusInputSummary summary(BonusDetermination input) {

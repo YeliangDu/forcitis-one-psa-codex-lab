@@ -70,9 +70,11 @@ class JdbcBonusDeterminationRepository implements BonusDeterminationRepository {
     @Override
     public void saveVoided(BonusDetermination input) {
         OffsetDateTime at = at(Objects.requireNonNull(input.voidedAt()));
-        jdbc.sql("""
+        if (jdbc.sql("""
                 update organization_payroll.bonus_inputs set status = 'VOIDED', voided_by_user_id = :by, voided_at = :at, updated_at = :at where id = :id
-                """).param("by", Objects.requireNonNull(input.voidedByUserId()).value()).param("at", at).param("id", input.id().value()).update();
+                """).param("by", Objects.requireNonNull(input.voidedByUserId()).value()).param("at", at).param("id", input.id().value()).update() != 1) {
+            throw new IllegalStateException("the bonus input " + input.id() + " was not updated");
+        }
     }
 
     @Override
