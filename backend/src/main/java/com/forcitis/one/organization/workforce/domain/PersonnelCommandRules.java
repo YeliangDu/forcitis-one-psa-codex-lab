@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -28,6 +29,43 @@ public final class PersonnelCommandRules {
         requireLiveConcurrentPost(command, history);
         requireCorrectionOpenEnded(command, history);
         requirePostsEndWithTheSeparation(command, others);
+    }
+
+    /**
+     * A command of the person (the change of legal entity names no relationship) and a command of a relationship do not share a day: one open command a day
+     * for the person, the relationship-level ones counted per relationship by {@link #check} (design section 5). Run over the whole history.
+     */
+    public static void requirePersonLevelDayFree(PersonnelCommand command, PersonnelHistory all) {
+        boolean person = command.employmentRelationshipId() == null;
+        if (command.kind() == PersonnelCommandKind.CORRECTION || command.kind() == PersonnelCommandKind.START_CONCURRENT) {
+            return;
+        }
+        boolean clash = all.commands().stream().filter(o -> !o.id().equals(command.id())).filter(o -> o.status().isOpen() && o.effectiveDate().equals(command.effectiveDate()))
+                .filter(o -> o.kind() != PersonnelCommandKind.START_CONCURRENT && o.kind() != PersonnelCommandKind.CORRECTION)
+                .anyMatch(o -> person || o.employmentRelationshipId() == null);
+        if (clash) {
+            throw refused("the employee already has an open command for " + command.effectiveDate() + " that is about the person or about another relationship");
+        }
+    }
+
+    /**
+     * Invariant 6 (design 6.3): the relationship that holds the primary post is not separated while another relationship stays in service, because the
+     * person would be left in service without a primary post. Moving the primary first is a transfer, not built with this card.
+     */
+    public static void requirePrimaryNotOnEndingRelationship(PersonnelCommand command, PersonnelHistory all) {
+        if (command.kind() != PersonnelCommandKind.SEPARATE || command.employmentRelationshipId() == null) {
+            return;
+        }
+        UUID ending = command.employmentRelationshipId().value();
+        LocalDate day = command.effectiveDate();
+        boolean holdsPrimary = all.primaryRoot().map(root -> all.currentAssignmentRows(root.id()).stream()
+                .anyMatch(r -> ending.equals(r.relationshipId()) && r.endsAfter(day) && r.covers(day.minusDays(1)))).orElse(false);
+        boolean otherStays = all.currentEmployeeRows().stream().anyMatch(r -> !ending.equals(r.relationshipId()) && r.covers(day)
+                && "EMPLOYED".equals(r.values().get(CommandEffects.EMPLOYMENT)));
+        if (holdsPrimary && otherStays) {
+            throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PRIMARY_ASSIGNMENT_ON_ENDING_RELATIONSHIP, ErrorKind.CONFLICT,
+                    "the relationship holds the person's primary post while another relationship stays in service on " + day + "; the person would be left without a primary post");
+        }
     }
 
     /**
@@ -145,7 +183,8 @@ public final class PersonnelCommandRules {
 
     private static void requireStateOnTheDay(PersonnelCommand command, List<VersionRow> employeeRows) {
         LocalDate day = command.effectiveDate();
-        VersionRow row = employeeRows.stream().filter(r -> r.covers(day)).findFirst().orElse(null);
+        // A change of legal entity is the person's: it looks at every relationship, and any in service is enough.
+        VersionRow row = employeeRows.stream().filter(r -> r.covers(day)).min(java.util.Comparator.comparing(r -> !"EMPLOYED".equals(r.values().get(CommandEffects.EMPLOYMENT)))).orElse(null);
         if (command.kind() == PersonnelCommandKind.HIRE) {
             if (!employeeRows.isEmpty()) {
                 throw refused("the employee already has versions; a hire is the first");

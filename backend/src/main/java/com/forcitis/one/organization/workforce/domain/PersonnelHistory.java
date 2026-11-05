@@ -13,7 +13,37 @@ import org.jspecify.annotations.Nullable;
  * ones too, they are the ancestors of re-appended rows; the legal entity rows are the employee's own attribution), the roots of the person's posts and every command that is not withdrawn.
  */
 public record PersonnelHistory(List<VersionRow> employeeRows, List<VersionRow> assignmentRows, List<AssignmentRoot> roots, List<VersionRow> legalEntityRows, List<PersonnelCommand> commands,
-                               Map<UUID, PersonnelCommand> lookup) {
+                               Map<UUID, PersonnelCommand> lookup, List<RelationshipRow> relationships) {
+
+    /** A history of an employee with no employment relationship rows in view (tests of the rules that do not depend on them). */
+    public PersonnelHistory(List<VersionRow> employeeRows, List<VersionRow> assignmentRows, List<AssignmentRoot> roots, List<VersionRow> legalEntityRows, List<PersonnelCommand> commands,
+                            Map<UUID, PersonnelCommand> lookup) {
+        this(employeeRows, assignmentRows, roots, legalEntityRows, commands, lookup, List.of());
+    }
+
+    /**
+     * The history as one relationship sees it: its employee and assignment rows and its commands; the roots, the legal entity rows and the lookup stay whole
+     * (a post can move from one relationship to the next, the attribution is the person's). The rules and the plans of a command run over this view.
+     */
+    public PersonnelHistory within(UUID relationship) {
+        return new PersonnelHistory(employeeRows.stream().filter(r -> relationship.equals(r.relationshipId())).toList(),
+                assignmentRows.stream().filter(r -> relationship.equals(r.relationshipId())).toList(), roots, legalEntityRows,
+                commands.stream().filter(c -> c.employmentRelationshipId() != null && relationship.equals(c.employmentRelationshipId().value())).toList(), lookup, relationships);
+    }
+
+    public Optional<RelationshipRow> relationship(UUID id) {
+        return relationships.stream().filter(r -> r.id().value().equals(id)).findFirst();
+    }
+
+    /** The current employee rows of one relationship. */
+    public List<VersionRow> currentEmployeeRows(UUID relationship) {
+        return currentEmployeeRows().stream().filter(row -> relationship.equals(row.relationshipId())).toList();
+    }
+
+    /** The current rows of every post that belong to one relationship. */
+    public List<VersionRow> currentAssignmentRowsOf(UUID relationship) {
+        return currentAssignmentRows().stream().filter(row -> relationship.equals(row.relationshipId())).toList();
+    }
 
     public List<VersionRow> currentEmployeeRows() {
         return current(employeeRows);

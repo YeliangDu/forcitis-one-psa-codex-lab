@@ -13,6 +13,7 @@ import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.AssignmentId;
+import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
@@ -133,7 +134,7 @@ class PersonnelCommandService implements PersonnelCommands {
         LocalDate today = zone.dateOf(now);
         EmployeeId employee;
         List<OrgStructureCommandId> holding = List.of();
-        if (request.commandKind() == PersonnelCommandKind.HIRE) {
+        if (request.commandKind() == PersonnelCommandKind.HIRE && request.employeeId() == null) {
             employee = newEmployees.create(request, today, now);
         } else {
             employee = existingEmployee(request);
@@ -156,12 +157,15 @@ class PersonnelCommandService implements PersonnelCommands {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ORG_UNIT_MERGE_OPEN, ErrorKind.CONFLICT,
                     "the department has a merge in progress, or one dated on or before " + command.effectiveDate() + "; nobody can be placed there from then on");
         }
-        PersonnelHistory history = commands.load(employee);
+        PersonnelHistory all = commands.load(employee);
+        PersonnelHistory history = bindRelationship(command, request, all, employee, now);
         command.actOnPost(history, () -> commands.primaryRoot(employee, now));
         PersonnelCommandRules.check(command, history);
-        PersonnelCommandRules.requireNoAwaitingOnOrBefore(command, history);
+        PersonnelCommandRules.requirePersonLevelDayFree(command, all);
+        PersonnelCommandRules.requirePrimaryNotOnEndingRelationship(command, all);
+        PersonnelCommandRules.requireNoAwaitingOnOrBefore(command, all);
         freeze.requireNotFrozen(command);
-        bases.of(command, history).ifPresent(basis -> {
+        bases.of(command, all).ifPresent(basis -> {
             if (merge != null) {
                 // The merge's transfer is exempt when the person's entity change is the one the merge's heads approved (ADR-0073 guard 1); any other change waits for its own
                 // countersign. The recorder is the system actor, whose account names no employee, so the own-entry check has nobody to test.
@@ -207,7 +211,7 @@ class PersonnelCommandService implements PersonnelCommands {
         } else if (awaiting) {
             requests.open(command, CountersignRequestKind.CHANGE, null, List.of(), by, now, today, correlation());
         } else if (command.status() == CommandStatus.EFFECTIVE && !(command.kind() == PersonnelCommandKind.CORRECTION && command.effectiveDate().isAfter(today))) {
-            effects.publish(command, history, today);
+            effects.publish(command, all, today);
         }
         if (leaveVerdict != null) {
             leaveFloor.announce(command, leaveVerdict, by);
@@ -291,6 +295,84 @@ class PersonnelCommandService implements PersonnelCommands {
     /** The envelope carries the employee's legal entity on the effective date (contract question Q6); none resolvable means the envelope has none. */
     private @Nullable LegalEntityId legalEntityOn(EmployeeId employee, LocalDate day) {
         return LegalEntityResolution.resolve(legalEntities, employee, day).orElse(null);
+    }
+
+    /**
+     * Binds the command to its employment relationship (ADR-0086, design section 5) and returns the history as that relationship sees it. A hire makes the relationship
+     * here (the employer is read from the request once and lives on the relationship); every other kind but a change of legal entity names one of the employee's,
+     * or, when the employee has exactly one, means it. A merge's transfer follows the relationship of the primary post it moves.
+     */
+    private PersonnelHistory bindRelationship(PersonnelCommand command, EnterPersonnelCommand request, PersonnelHistory all, EmployeeId employee, Instant now) {
+        if (command.kind() == PersonnelCommandKind.CHANGE_LEGAL_ENTITY) {
+            return all;
+        }
+        if (command.kind() == PersonnelCommandKind.HIRE) {
+            EmploymentRelationshipId started = startRelationship(command, request, all, employee, now);
+            command.bindTo(started);
+            return all.within(started.value());
+        }
+        EmploymentRelationshipId named = request.employmentRelationshipId();
+        if (named == null) {
+            named = defaultRelationship(command, all);
+        }
+        if (all.relationship(named.value()).isEmpty()) {
+            throw invalid("the employment relationship does not belong to the employee");
+        }
+        command.bindTo(named);
+        return all.within(named.value());
+    }
+
+    private EmploymentRelationshipId defaultRelationship(PersonnelCommand command, PersonnelHistory all) {
+        if (command.orgStructureCommandId() != null) {
+            VersionRow primary = all.assignmentOn(command.effectiveDate());
+            if (primary != null && primary.relationshipId() != null) {
+                return new EmploymentRelationshipId(primary.relationshipId());
+            }
+        }
+        if (all.relationships().size() == 1) {
+            return all.relationships().getFirst().id();
+        }
+        throw invalid("a " + command.kind() + " names the employment relationship it is about");
+    }
+
+    private EmploymentRelationshipId startRelationship(PersonnelCommand command, EnterPersonnelCommand request, PersonnelHistory all, EmployeeId employee, Instant now) {
+        LegalEntityId employer = request.targetEmployerLegalEntityId();
+        if (employer == null) {
+            throw invalid("a hire names the employer");
+        }
+        if (!commands.legalEntityIsActive(employer)) {
+            throw invalid("the employer does not exist or is not active");
+        }
+        if (all.relationships().stream().anyMatch(r -> r.employerLegalEntityId().equals(employer))) {
+            throw invalid("the employee already has a relationship with this employer; a return is a REINSTATE on it");
+        }
+        EmploymentRelationshipId predecessor = request.predecessorRelationshipId();
+        LocalDate day = command.effectiveDate();
+        if (predecessor != null) {
+            if (all.relationship(predecessor.value()).isEmpty()) {
+                throw invalid("the predecessor relationship does not belong to the employee");
+            }
+            if (all.commands().stream().noneMatch(o -> o.kind() == PersonnelCommandKind.SEPARATE && o.status() != CommandStatus.WITHDRAWN
+                    && o.employmentRelationshipId() != null && o.employmentRelationshipId().equals(predecessor) && o.effectiveDate().equals(day))) {
+                throw invalid("the predecessor relationship is separated on " + day + " by an earlier command; enter that separation first");
+            }
+        }
+        boolean primaryInService = all.assignmentOn(day) != null && all.assignmentOn(day).covers(day);
+        if (!all.relationships().isEmpty()) {
+            if (command.targetOrgUnitId() == null && !primaryInService) {
+                throw invalid("a hire without a post needs the employee's primary post in service on " + day);
+            }
+            if (command.targetOrgUnitId() != null && primaryInService) {
+                throw invalid("the employee holds a primary post on " + day + "; an additional employer is entered without department and position");
+            }
+        }
+        EmploymentRelationshipId id = new EmploymentRelationshipId(ids.next());
+        commands.insertRelationship(id, employee, employer, predecessor, now);
+        return id;
+    }
+
+    private static DomainException invalid(String message) {
+        return new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID, ErrorKind.UNPROCESSABLE, message);
     }
 
     /** Every kind but a hire is about a named employee and carries no profile (the profile of an existing employee is changed by its own use case). */

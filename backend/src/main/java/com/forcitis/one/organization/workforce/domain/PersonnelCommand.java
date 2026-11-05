@@ -8,6 +8,7 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
+import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -55,6 +56,7 @@ public final class PersonnelCommand extends AggregateRoot {
     private @Nullable UserId withdrawnBy;
     private @Nullable String withdrawalReason;
     private @Nullable OrgStructureCommandId orgStructureCommandId;
+    private @Nullable EmploymentRelationshipId employmentRelationshipId;
 
     private PersonnelCommand(PersonnelCommandId id, EmployeeId employeeId, PersonnelCommandKind kind, LocalDate effectiveDate, CommandStatus status,
                              @Nullable OrgUnitId targetOrgUnitId, @Nullable PositionId targetPositionId, @Nullable EmployeeId targetReportsToEmployeeId,
@@ -112,6 +114,9 @@ public final class PersonnelCommand extends AggregateRoot {
                 request.targetLegalEntityId(), null, null, request.targetAssignmentId(), null, createdBy, now,
                 status == CommandStatus.EFFECTIVE ? now : null, 0, employeeEventSequence);
         command.requireShapeOfKind();
+        if (request.employmentRelationshipId() != null) {
+            command.bindTo(request.employmentRelationshipId());
+        }
         return command;
     }
 
@@ -126,6 +131,24 @@ public final class PersonnelCommand extends AggregateRoot {
         return new PersonnelCommand(id, employeeId, kind, effectiveDate, status, targetOrgUnitId, targetPositionId, targetReportsToEmployeeId, isTargetFeeEarner,
                 targetEmploymentPhaseKind, targetLegalEntityId, countersignPreviousLegalEntityId, countersignNewLegalEntityId, targetAssignmentId, targetAssignmentKind,
                 createdBy, createdAt, appliedAt, version, employeeEventSequence);
+    }
+
+    /**
+     * The relationship the command is about (ADR-0086, design section 5): a hire's is made at entry and bound here, every other kind but a change of legal entity names it,
+     * and a change of legal entity has none. Bound once, before the command is stored.
+     */
+    public void bindTo(EmploymentRelationshipId relationship) {
+        if (kind == PersonnelCommandKind.CHANGE_LEGAL_ENTITY) {
+            throw invalid("a CHANGE_LEGAL_ENTITY is about the person and names no employment relationship");
+        }
+        if (employmentRelationshipId != null && !employmentRelationshipId.equals(relationship)) {
+            throw invalid("the command is already bound to another employment relationship");
+        }
+        employmentRelationshipId = Objects.requireNonNull(relationship, "relationship");
+    }
+
+    public @Nullable EmploymentRelationshipId employmentRelationshipId() {
+        return employmentRelationshipId;
     }
 
     /** The merge that generated this transfer (ck_personnel_commands_org_structure_command: only a transfer); call before the command is stored. */
@@ -145,8 +168,11 @@ public final class PersonnelCommand extends AggregateRoot {
         int targets = count(targetOrgUnitId, targetPositionId, targetReportsToEmployeeId, isTargetFeeEarner);
         switch (kind) {
             case HIRE, REINSTATE -> {
-                if (targetOrgUnitId == null || targetPositionId == null || isTargetFeeEarner == null || targetEmploymentPhaseKind == null) {
-                    throw invalid("a " + kind + " names the department, the position, the fee-earner flag and the phase");
+                if (isTargetFeeEarner == null || targetEmploymentPhaseKind == null || targetReportsToEmployeeId != null && targetOrgUnitId == null) {
+                    throw invalid("a " + kind + " names the fee-earner flag and the phase");
+                }
+                if ((targetOrgUnitId == null) != (targetPositionId == null)) {
+                    throw invalid("a " + kind + " names the department and the position together, or neither (an additional employer without a post)");
                 }
             }
             case TRANSFER -> {
