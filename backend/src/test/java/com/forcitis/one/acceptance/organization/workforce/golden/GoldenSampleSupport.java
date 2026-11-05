@@ -44,7 +44,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
- * Ground of the workforce golden-sample scenario (#1410): a small world (two org units, two legal entities, the personnel specialist as the
+ * Ground of the workforce golden-sample scenario (#1410): a small world (two org units, one legal entity, the personnel specialist as the
  * caller), the business clock moved to the pack's days, the real application entry (PersonnelCommands, the due job) and reads of the
  * workforce schema. The scenario IT holds every assertion; this class only enters and reads.
  */
@@ -61,7 +61,6 @@ abstract class GoldenSampleSupport extends AccountsAcceptanceSupport {
 
     protected UUID nanjingUnit;
     protected UUID shanghaiUnit;
-    protected UUID employerA;
     private SecurityContext acting;
 
     @BeforeEach
@@ -74,7 +73,7 @@ abstract class GoldenSampleSupport extends AccountsAcceptanceSupport {
         employee(admin, nanjingUnit, null);
         grantByOperations(admin, "org_data_admin");
         SignedIn administrator = signIn(admin);
-        employerA = createLegalEntity(administrator, newLegalEntityCode("GA"), "Synthetic employer A");
+        createLegalEntity(administrator, newLegalEntityCode("GA"), "Synthetic employer A");
         UUID businessAdminEmployee = newEmployeeId();
         employee(businessAdminEmployee, nanjingUnit, null);
         grantByOperations(businessAdminEmployee, "business_admin");
