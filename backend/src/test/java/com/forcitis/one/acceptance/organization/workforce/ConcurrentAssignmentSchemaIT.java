@@ -254,7 +254,7 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
         command(person, "TRANSFER", second, newUnit(), null, null, null, secondPost, AssignmentRoots.CONCURRENT, null);
 
         refusedBy(() -> command(person, "TRANSFER", first, newUnit(), null, null, null, primary, AssignmentRoots.PRIMARY, null), UNIQUE_VIOLATION,
-                "uk_personnel_commands_open_per_day");
+                "uk_personnel_commands_open_per_relationship_day");
         refusedBy(() -> command(person, "TRANSFER", second, newUnit(), null, null, null, concurrent, AssignmentRoots.CONCURRENT, null), UNIQUE_VIOLATION,
                 "uk_personnel_commands_open_per_assignment_day");
     }
