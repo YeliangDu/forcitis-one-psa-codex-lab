@@ -209,6 +209,17 @@ class EventSequenceContinuityTest {
     }
 
     @Test
+    @DisplayName("RecruitmentRequisition: events are numbered 1..n")
+    void recruitmentRequisition() {
+        checkMany(() -> com.forcitis.one.organization.recruitment.domain.RecruitmentRequisition.submit(
+                        new com.forcitis.one.organization.recruitment.api.RequisitionId(TestIds.uuid(7)), new com.forcitis.one.platform.numbering.api.DocumentNumber("RR-1"),
+                        TestOrgIds.position(3), TestOrgIds.orgUnit(5), new LegalEntityId(TestIds.uuid(1)), TestAccounts.employee(1), 2, null, null,
+                        new com.forcitis.one.platform.approval.api.ApprovalInstanceId(TestIds.uuid(9)), NOW),
+                List.of(r -> r.approve(NOW, TODAY), r -> r.closeFromApproval(com.forcitis.one.organization.recruitment.api.CloseReasonKind.REJECTED, NOW, TODAY),
+                        r -> r.closeApproved(com.forcitis.one.organization.recruitment.api.CloseReasonKind.FILLED, NOW, TODAY)));
+    }
+
+    @Test
     @DisplayName("FiscalPeriod: events are numbered 1..n (the spine records none, the counters stay at zero)")
     void fiscalPeriod() {
         checkMany(() -> com.forcitis.one.accounting.period.domain.FiscalYear.open(() -> new com.forcitis.one.accounting.period.api.FiscalPeriodId(TestIds.uuid(6)),

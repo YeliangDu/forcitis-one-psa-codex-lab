@@ -833,4 +833,4 @@ tables:
     business_key: [requisition_number]
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
-    writers: []  # R1 has no Java SQL; register the writer with the command slice (R2)
+    writers: [organization.recruitment]
