@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { problemBody, stubServer } from '@forcitis/core/testing';
@@ -93,6 +93,45 @@ describe('员工详情', () => {
     expect(screen.getByText('交付一部')).toBeInTheDocument();
     expect(screen.getByText('项目经理')).toBeInTheDocument();
     expect(screen.getByText('王五')).toBeInTheDocument();
+  });
+
+  const HISTORY = {
+    items: [
+      { orgUnitId: UNIT, orgUnitName: '交付一部', positionId: null, positionName: '项目经理', effectiveFrom: '2025-09-01', effectiveTo: null, current: true },
+      { orgUnitId: '019a0000-0000-7000-8000-000000000b02', orgUnitName: '咨询二部', positionId: null, positionName: null, effectiveFrom: '2024-06-01', effectiveTo: '2025-09-01', current: false },
+    ],
+  };
+
+  it('主职历史是一张按标题命名的表，按服务端给的顺序（新到旧）列出，当前一条标记「当前」，未结束的显示「至今」', async () => {
+    stubServer({ [`GET employees/${ID}`]: { body: DETAIL }, [`GET employees/${ID}/primary-post-history`]: { body: HISTORY } });
+    render();
+
+    const table = await screen.findByRole('table', { name: '主职历史' });
+    expect(screen.getByRole('heading', { name: '主职历史' })).toBeInTheDocument();
+    const rows = within(table).getAllByRole('row').slice(1);
+    expect(rows.map((row) => within(row).getAllByRole('cell').map((cell) => cell.textContent))).toEqual([
+      ['交付一部', '项目经理', '2025-09-01', '至今', '当前'],
+      ['咨询二部', '—', '2024-06-01', '2025-09-01', '—'],
+    ]);
+  });
+
+  it('主职历史为空时显示空状态，不画空表', async () => {
+    stubServer({ [`GET employees/${ID}`]: { body: DETAIL }, [`GET employees/${ID}/primary-post-history`]: { body: { items: [] } } });
+    render();
+
+    expect(await screen.findByText('暂无主职历史')).toBeInTheDocument();
+    expect(screen.queryByRole('table', { name: '主职历史' })).not.toBeInTheDocument();
+  });
+
+  it('主职历史读取失败只在这一段提示，员工信息照常显示', async () => {
+    stubServer({
+      [`GET employees/${ID}`]: { body: DETAIL },
+      [`GET employees/${ID}/primary-post-history`]: { status: 403, body: problemBody(403, 'PLATFORM_WEB_ACCESS_DENIED') },
+    });
+    render();
+
+    expect(await screen.findByText('主职历史加载失败')).toBeInTheDocument();
+    expect(screen.getByText('E0001')).toBeInTheDocument();
   });
 
   it('服务端拒绝（403）时显示可操作的提示', async () => {

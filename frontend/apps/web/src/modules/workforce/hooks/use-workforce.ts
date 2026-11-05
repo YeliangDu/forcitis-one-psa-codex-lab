@@ -10,6 +10,7 @@ import {
   fetchPersonnelCommand,
   fetchPersonnelCommandPage,
   fetchPositionChoices,
+  fetchPrimaryPostHistory,
   nextCursorOf,
   withdrawPersonnelCommand,
 } from '../api/workforce-api';
@@ -31,6 +32,10 @@ export function useEmployees(employmentStatus: EmploymentFilter, orgUnitId: stri
 
 export function useEmployee(employeeId: string) {
   return useQuery({ queryKey: ['workforce', 'employee', employeeId], queryFn: () => fetchEmployee(employeeId), enabled: employeeId !== '' });
+}
+
+export function usePrimaryPostHistory(employeeId: string) {
+  return useQuery({ queryKey: ['workforce', 'employee', employeeId, 'primary-post-history'], queryFn: () => fetchPrimaryPostHistory(employeeId), enabled: employeeId !== '' });
 }
 
 export function usePersonnelCommands(filter: PersonnelCommandFilter) {

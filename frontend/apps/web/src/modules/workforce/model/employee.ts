@@ -27,3 +27,5 @@ export function employmentFilterOf(value: string): EmploymentFilter {
 export function employeePath(employeeId: string): string {
   return `/admin/employees/${encodeURIComponent(employeeId)}`;
 }
+
+export type PrimaryPost = Schema<'PrimaryPostHistoryResponse'>['items'][number];
