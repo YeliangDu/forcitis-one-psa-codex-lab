@@ -51,7 +51,7 @@ BAD_CHECKS = {
     "wrong trailer": GOOD_CHECK.replace(f"({len(BASE_ROWS)} rows)", "(1 rows)"),
 }
 GOOD_DBS = "  # name\n  db1\n  master\n  tempdb\n  (3 rows)\n"
-ROW_DATA = "  # a | b\n  PERSON-X | 12345\n  (1 rows)\n"
+ROW_DATA = "  # a | b\n  PERSON-X | 12345\n  (1 rows)\nDONE batches=1\n"
 WRITES = ["DELETE FROM t", "update t set a = 1", "INSERT INTO t VALUES (1)", "DROP TABLE t", "EXEC sp_who", "SELECT * INTO x FROM t", "SELECT 1; SELECT 2", "SELECT 1; DELETE FROM t",
           "SELECT 1\nGO\nDELETE FROM t", "SELECT 1 /* x */ ; DROP TABLE t", "WITH c AS (SELECT 1 a) DELETE FROM c", "SELECT 'a'' --'; DELETE FROM t", "SELECT * FROM OPENROWSET('x','y','z')",
           "SELECT 1 FROM a.b.c.d", "SELECT 1 FROM t FOR UPDATE; COMMIT", "SELECT 1 /* /* */ */", "SELECT 'open", "DECLARE @a int SELECT 1", "", "-- only a comment", "SELECT 1\x00",
@@ -92,12 +92,14 @@ class Fake:
         raise AssertionError("unexpected script")
 
 
-def entry(tmp, sql, results=(), conf=CONF, out=None, mode=0o600, checked=False, flags=(), existing=False, factory=None):
+def entry(tmp, sql, results=(), conf=CONF, out=None, mode=0o600, checked=False, flags=(), existing=False, factory=None, raw=False):
     """Runs main() against a fake cloud; returns (code, stderr, stdout, fake, log, out path)."""
     cfg = Path(tmp, "cfg", "config.json")
     cfg.parent.mkdir(exist_ok=True)
     cfg.write_text(json.dumps(conf))
     cfg.chmod(mode)
+    if not raw:  # a real run ends its output with the DONE line; raw=True leaves results as given
+        results = [r if r == "TOOBIG" or "DONE" in r or "SQLERROR" in r else r + "DONE batches=1\n" for r in results]
     if checked:  # the account and database checks pass first (they run before every read)
         results = [GOOD_CHECK, GOOD_DBS, *results]
     Path(tmp, "q.sql").write_text(sql, encoding="utf-8")
@@ -161,6 +163,10 @@ def main():
             assert code == 2 and "withheld" in err and why in err and not Path(path).exists() and "1101051949" not in err + out, (why, err)
         code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", ["  # a\n  " + "x" * 2000 + "\n"], checked=True, flags=["--definitions"])
         assert code == 0 and Path(path).exists(), "definition text up to 2000 characters passes with --definitions"
+        # the server refused or failed the user's query (plan gate refusal, SQL error, Java exception) or the run did not finish: nonzero exit, nothing written, no "ok"
+        for bad in ("SQLERROR 156 near x\nDONE batches=0\n", "connected as a\nSQLERROR 50000 plan gate: not a SELECT\n", "Exception in thread \"main\" java.lang.IllegalStateException: x\n", "  # a\n  1\n  (1 rows)\n", ""):
+            code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [bad], checked=True, raw=True)
+            assert code == 2 and "refused or failed" in err and "ok:" not in out and not Path(path).exists(), bad
         # too large a reply, --out inside the repo or existing, a config readable by others, an unknown target: refused, nothing leaks
         code, err, *_ = entry(tmp, "SELECT a FROM t", ["TOOBIG"], checked=True)
         assert code == 2 and "too large" in err

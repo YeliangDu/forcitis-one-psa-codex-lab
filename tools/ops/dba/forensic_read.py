@@ -213,7 +213,7 @@ def server_run(cloud, conf, database, sql, gate=False):
         stage = f"{work}/stage"
         driver = (f"if [ ! -s {work}/jdbc.jar ]; then pid=$(pgrep -f '{conf['app_jar_process']}' | head -1); jar=\"$(readlink -f /proc/$pid/cwd)/{conf['app_jar_process']}\"; "
                   f"entry=$(unzip -l \"$jar\" | grep -oE 'BOOT-INF/lib/mssql-jdbc-[^ ]+\\.jar' | head -1); unzip -p \"$jar\" \"$entry\" > {work}/jdbc.jar; fi\n")
-        env = f"LOGIN_USER={conf['account']} LOGIN_SECRET_ENC={stage}/enc LOGIN_KEY={work}/k.key" + (" ONE_SQL_PLAN_GATE=1" if gate else "")  # the plan gate for the caller's query; the two fixed account-check queries are catalog reads whose plans are not one simple SELECT
+        env = f"LOGIN_USER={conf['account']} LOGIN_SECRET_ENC={stage}/enc LOGIN_KEY={work}/k.key" + (" ONE_SQL_PLAN_GATE=1" if gate else "")  # the plan gate for the caller's query; the fixed account-check queries run without it (the CHECK_SQL UNION ALL plan is not one simple SELECT)
         script = (f"set -u; umask 077\n{put(f'{stage}/OneSql.java', ONE_SQL.read_text(encoding='utf-8'))}{put(f'{stage}/enc', cipher[0])}{put(f'{stage}/q.sql', sql)}{driver}"
                   f"{env} java -cp {work}/jdbc.jar {stage}/OneSql.java ro {database} {stage}/q.sql < /dev/null 2>&1 | head -c 4000000 > {work}/out.txt; rc=$?\n"
                   f"if [ \"$(gzip -9 -c {work}/out.txt | base64 -w0 | wc -c)\" -gt 22000 ]; then echo TOOBIG; else gzip -9 -c {work}/out.txt | base64 -w0; echo; fi; exit $rc\n")
@@ -334,6 +334,8 @@ def main(argv, cloud_factory=Cloud):
         if problems:
             raise Refused(f"forensic account check failed ({', '.join(problems)}); nothing was run")
         text = server_run(cloud, conf, database, sql, gate=True)
+        if "SQLERROR" in text or "Exception in thread" in text or not re.search(r"^DONE batches=1$", text, re.M):  # a refusal by the plan gate or a server error is not a result: nothing written, nonzero exit
+            raise Refused("the server refused or failed the query (plan gate or error); nothing written")
         problems = output_problems(text, DEFINITION_CELL_LIMIT if args.definitions else CELL_LIMIT)
         if problems:
             raise Refused(f"result withheld, nothing written: it holds {problems}; aggregate the query, or pass --definitions for definition text only")

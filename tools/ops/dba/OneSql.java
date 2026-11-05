@@ -66,13 +66,18 @@ public class OneSql {
         try (Connection c = DriverManager.getConnection(url, user, secret)) {
             secret = null;
             System.out.println("connected as " + user + " db=" + db + " mode=ro");
-            System.out.println("DONE batches=" + runRolledBack(c, batches, pub, planGateOn(System.getenv("ONE_SQL_PLAN_GATE"))));
+            System.out.println("DONE batches=" + runFromEnv(c, batches, pub, System::getenv));
         }
     }
 
     /** Runs the batches with auto-commit off and rolls back whatever happened, also when a batch fails. Returns the number of batches run. */
     static int runRolledBack(Connection c, List<String> batches, PublicKey pub) throws Exception {
         return runRolledBack(c, batches, pub, false);
+    }
+
+    /** What main runs: the plan gate follows ONE_SQL_PLAN_GATE in the given environment (tested with a fake environment and connection). */
+    static int runFromEnv(Connection c, List<String> batches, PublicKey pub, java.util.function.UnaryOperator<String> getenv) throws Exception {
+        return runRolledBack(c, batches, pub, planGateOn(getenv.apply("ONE_SQL_PLAN_GATE")));
     }
 
     static boolean planGateOn(String env) {
@@ -99,7 +104,7 @@ public class OneSql {
 
     /**
      * The structural gate (lead ruling on PR #1381): on the same connection and driver, SET SHOWPLAN_XML ON as its own batch, the exact final batch (the server compiles and returns
-     * its plan without running anything), then the plan must hold one statement of type SELECT; any parse error or other statement refuses. SET SHOWPLAN_XML OFF follows in every case;
+     * its plan without running anything), then the plan must hold one statement of type SELECT or SELECT WITHOUT QUERY (a constant select); any parse error or other statement refuses. SET SHOWPLAN_XML OFF follows in every case;
      * the caller then runs the same string unchanged. The keyword checks stay as an early refusal. A plan does not show NEXT VALUE FOR or linked-server names; forensic_read.py refuses those in its own text checks (OneSql alone does not).
      */
     static void planGate(Connection c, String batch) throws Exception {
@@ -251,6 +256,10 @@ public class OneSql {
         check(refusedAny(() -> runRolledBack(fakeConnection(gated, deletePlan), List.of("DELETE FROM t"), null, true)) && gated.equals(List.of("setAutoCommit:false", "execute:SET SHOWPLAN_XML ON",
                 "execute:DELETE FROM t", "execute:SET SHOWPLAN_XML OFF", "rollback")), "a DELETE plan is refused, OFF follows, the batch never runs: " + gated);
         check(planGateOn("1") && !planGateOn(null) && !planGateOn("0"), "the plan gate is switched on by ONE_SQL_PLAN_GATE=1 only");
+        gated.clear();
+        check(runFromEnv(fakeConnection(gated, plan), List.of("SELECT 1"), null, k -> k.equals("ONE_SQL_PLAN_GATE") ? "1" : null) == 1 && gated.contains("execute:SET SHOWPLAN_XML ON"), "main's environment read turns the gate on: " + gated);
+        gated.clear();
+        check(runFromEnv(fakeConnection(gated, plan), List.of("SELECT 1"), null, k -> null) == 1 && !gated.contains("execute:SET SHOWPLAN_XML ON"), "no variable, no gate: " + gated);
         Path scratch = Files.createTempDirectory("onesql-scan");
         Files.createDirectories(scratch.resolve("sub/deeper"));
         Files.writeString(scratch.resolve("sub/deeper/w.sql"), "SELECT 1\nGO\nINSERT INTO t VALUES (1)", StandardCharsets.UTF_8);
