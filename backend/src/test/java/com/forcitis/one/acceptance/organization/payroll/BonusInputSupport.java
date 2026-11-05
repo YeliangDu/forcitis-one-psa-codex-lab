@@ -1,6 +1,7 @@
 package com.forcitis.one.acceptance.organization.payroll;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import com.forcitis.one.acceptance.P5Support;
 import com.forcitis.one.kernel.DocumentReference;
@@ -17,9 +18,12 @@ import com.forcitis.one.platform.approval.api.ContentHash;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RoundNumber;
 import com.forcitis.one.platform.approval.events.ApprovalCompleted;
+import com.forcitis.one.platform.identity.api.SessionRoles;
+import com.jayway.jsonpath.JsonPath;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.List;
@@ -30,6 +34,12 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 /**
  * #1436 acceptance part (PY3 bonus input port). Sources: the signed PY3 record, section "Approval seam, process and permissions" (docs/data/reviews/
@@ -215,9 +225,36 @@ abstract class BonusInputSupport extends P5Support {
         }
     }
 
+    /**
+     * The stored context of a login carries no authorities (the session filter fills them in per HTTP request), and the api is called in process: so the
+     * production authentication of the login is kept and given the permissions the production path resolved from the roles (as PersonnelCommandSupport does).
+     */
+    void actWithAuthorities(SignedIn who) {
+        try {
+            MockHttpServletResponse current = mvc.perform(get("/api/v1/platform/sessions:current").with(session(who))).andReturn().getResponse();
+            assertThat(current.getStatus()).as("the session's own profile: " + current.getContentAsString()).isEqualTo(200);
+            List<GrantedAuthority> authorities = new ArrayList<>();
+            for (String code : JsonPath.<List<String>>read(current.getContentAsString(), "$.permissionCodes")) {
+                authorities.add(new SimpleGrantedAuthority(code));
+            }
+            if ("ORDINARY".equals(JsonPath.<String>read(current.getContentAsString(), "$.mode"))) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + SessionRoles.ORDINARY));
+            }
+            actInSession(who);
+            Authentication login = SecurityContextHolder.getContext().getAuthentication();
+            Method refresh = login.getClass().getDeclaredMethod("withAuthorities", java.util.Collection.class, boolean.class);
+            refresh.setAccessible(true);
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication((Authentication) refresh.invoke(login, authorities, true));
+            SecurityContextHolder.setContext(context);
+        } catch (Exception unexpected) {
+            throw new AssertionError("cannot act as the signed-in user with the permissions of the roles", unexpected);
+        }
+    }
+
     /** The api bean's method of that name, called as the signed-in user; a refusal is thrown as it is. */
     Object call(SignedIn caller, String method, Object... arguments) {
-        actInSession(caller);
+        actWithAuthorities(caller);
         Object api = context.getBean(type(API + "BonusInputs"));
         Method found = java.util.Arrays.stream(api.getClass().getMethods()).filter(m -> m.getName().equals(method) && m.getParameterCount() == arguments.length)
                 .findFirst().orElseThrow(() -> new AssertionError("BonusInputs has no method " + method + "/" + arguments.length));
