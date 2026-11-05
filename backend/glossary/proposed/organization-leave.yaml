@@ -1,0 +1,197 @@
+# #1400 signed L1a database vocabulary.
+terms:
+- id: leave_request_day
+  zh: 请假申请按日拆分的时长
+  en: LeaveRequestDay
+  snake: leave_request_day
+  kind: entity
+  bc: organization.leave
+  scope: domain
+  definition: 按工作日拆分的请假分钟数和百分之一天数
+  standard_ref:
+  - docs/data/reviews/organization-leave-l1a.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1400 L1a；中文名待术语确认'
+- id: leave_request_hold
+  zh: 请假申请占用的额度流水
+  en: LeaveRequestHold
+  snake: leave_request_hold
+  kind: entity
+  bc: organization.leave
+  scope: domain
+  definition: 请假申请与每条占用额度流水的一对一关联，只追加
+  standard_ref:
+  - docs/data/reviews/organization-leave-l1a.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1400 L1a；中文名待术语确认'
+- id: monthly_confirmation_line
+  zh: 月度考勤确认的明细
+  en: MonthlyConfirmationLine
+  snake: monthly_confirmation_line
+  kind: entity
+  bc: organization.leave
+  scope: domain
+  definition: 按雇佣关系及事实维度记录月确认的出勤天数、请假分钟或加班分钟
+  standard_ref:
+  - docs/data/reviews/organization-leave-l1a.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1400 L1a；中文名待术语确认'
+- id: day_hundredths_count
+  zh: 百分之一天数
+  en: DayHundredthsCount
+  snake: day_hundredths_count
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 整数，以一天的百分之一为单位，区别于分钟数
+  standard_ref:
+  - docs/data/reviews/organization-leave-l1a.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1400 L1a；中文名待术语确认'
+- id: external_record_key
+  zh: 外部记录标识
+  en: ExternalRecordKey
+  snake: external_record_key
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 来源系统内标识一条打卡记录的文本键，不是人员编号
+  standard_ref:
+  - docs/data/reviews/organization-leave-l1a.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1400 L1a；中文名待术语确认'
+- id: confirmed_by_kind
+  zh: 确认方式
+  en: ConfirmedByKind
+  snake: confirmed_by_kind
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 月确认由员工主动确认或按规则默认确认
+  standard_ref:
+  - docs/data/reviews/organization-leave-l1a.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1400 L1a；中文名待术语确认'
+- id: compensation_kind
+  zh: 加班补偿类型
+  en: CompensationKind
+  snake: compensation_kind
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 加班补偿为支付工资或记入调休额度
+  standard_ref:
+  - docs/data/reviews/organization-leave-l1a.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1400 L1a；中文名待术语确认'
+- id: original_month_start_date
+  zh: 原属月份首日
+  en: OriginalMonthStartDate
+  snake: original_month_start_date
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 跨月更正事实所属月份的第一天
+  standard_ref:
+  - docs/data/reviews/organization-leave-l1a.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1400 L1a；中文名待术语确认'
+- id: month_start_date
+  zh: 月份首日
+  en: MonthStartDate
+  snake: month_start_date
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 月度考勤确认的自然月第一天
+  standard_ref:
+  - docs/data/reviews/organization-leave-l1a.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1400 L1a；中文名待术语确认'
+- id: is_paid_leave
+  zh: 带薪请假标志
+  en: IsPaidLeave
+  snake: is_paid_leave
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 月确认生成时复制的请假类型是否带薪
+  standard_ref:
+  - docs/data/reviews/organization-leave-l1a.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1400 L1a；中文名待术语确认'
+- id: leave_punch_kind
+  zh: 打卡记录类型
+  en: LeavePunchKind
+  snake: leave_punch_kind
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: PUNCH 为打卡，OUTFIELD 为外勤，MAKE_UP 为独立补卡记录
+  standard_ref:
+  - docs/data/reviews/organization-leave-l1a.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1400 L1a；中文名待术语确认'
+- id: overtime_compensation_status
+  zh: 加班补偿状态
+  en: OvertimeCompensationStatus
+  snake: overtime_compensation_status
+  kind: state
+  bc: organization.leave
+  scope: domain
+  definition: COMPENSATED_PAY 表示已付加班工资，CREDITED_AS_COMP_TIME 表示已入调休额度
+  standard_ref:
+  - docs/data/reviews/organization-leave-l1a.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1400 L1a；中文名待术语确认'
+- id: overtime_day_kind
+  zh: 加班日类型
+  en: OvertimeDayKind
+  snake: overtime_day_kind
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: WORKDAY 为工作日，REST_DAY 为休息日，STATUTORY_HOLIDAY 为法定节假日
+  standard_ref:
+  - docs/data/reviews/organization-leave-l1a.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1400 L1a；中文名待术语确认'

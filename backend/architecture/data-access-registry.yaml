@@ -728,3 +728,56 @@ tables:
     mutability: FRAMEWORK
     retention: {policy: FRAMEWORK}
     lineage: {source: FRAMEWORK}
+
+  # #1400 L1a; deferred L1b references are added with their target tables.
+  organization_leave.leave_requests:
+    role: AGGREGATE_ROOT
+    aggregate: LeaveRequest
+    mutability: MUTABLE
+    retention: {policy: PERMANENT}      # Q-3: kept with the employee record period; an expiry job is a later decision
+    lineage: {source: NEW, migrated_from: [old leave records], via: ONE_OFF_IMPORT}
+    writers: []  # L1a has no Java SQL; register the writer with the command slice
+  organization_leave.leave_request_days:
+    role: AGGREGATE_CHILD
+    aggregate: LeaveRequest
+    mutability: REPLACE_SET
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: []  # L1a has no Java SQL; register the writer with the command slice
+  organization_leave.leave_request_holds:
+    role: AGGREGATE_CHILD
+    aggregate: LeaveRequest
+    mutability: APPEND_ONLY
+    fk_exceptions:
+      ledger_line_id: Signed L1a defers the key to leave_ledger_lines until L1b creates it; this is not a monthly_confirmation_lines reference (docs/data/reviews/organization-leave-l1a.md).
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: []  # L1a has no Java SQL; register the writer with the command slice
+  organization_leave.overtime_requests:
+    role: AGGREGATE_ROOT
+    aggregate: OvertimeRequest
+    mutability: MUTABLE
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW, migrated_from: [old overtime records], via: ONE_OFF_IMPORT}
+    writers: []  # L1a has no Java SQL; register the writer with the command slice
+  organization_leave.attendance_records:
+    role: AGGREGATE_ROOT
+    aggregate: AttendanceRecord
+    mutability: APPEND_ONLY
+    retention: {policy: BUSINESS_RECORD}      # ADR-0079:123 sets a 2-year minimum, not a purge; no purge job in L1a (a time-bound policy needs a ShedLock job)
+    lineage: {source: NEW}
+    writers: []  # L1a has no Java SQL; register the writer with the command slice
+  organization_leave.monthly_confirmations:
+    role: AGGREGATE_ROOT
+    aggregate: MonthlyConfirmation
+    mutability: MUTABLE
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: []  # L1a has no Java SQL; register the writer with the command slice
+  organization_leave.monthly_confirmation_lines:
+    role: AGGREGATE_CHILD
+    aggregate: MonthlyConfirmation
+    mutability: REPLACE_SET
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: []  # L1a has no Java SQL; register the writer with the command slice
