@@ -189,8 +189,8 @@ COMMENT ON COLUMN organization_payroll.payroll_rule_rows.rule_version_id IS '规
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.row_kind IS '规则行类别：INCOME_TAX_BAND 个税税率档、INCOME_TAX_MONTHLY_BASIC_DEDUCTION 个税月基本减除、SOCIAL_INSURANCE_RATE 社保比例、SOCIAL_INSURANCE_BASE_LIMIT 社保基数上下限、HOUSING_FUND_RATE 公积金比例、HOUSING_FUND_BASE_LIMIT 公积金基数上下限、ROUNDING_MODE 舍入方式';
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.row_key IS '规则行键：险种键，税率档用两位补零序号，同类别只有一行时用 -';
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.party_kind IS '缴费方：EMPLOYER 单位、EMPLOYEE 个人；为空表示该行无一方之分';
-COMMENT ON COLUMN organization_payroll.payroll_rule_rows.lower_bound_amount IS '下限金额；为空表示该类别无下限';
-COMMENT ON COLUMN organization_payroll.payroll_rule_rows.lower_bound_currency IS '下限币种，只有 CNY；与金额同空同非空';
+COMMENT ON COLUMN organization_payroll.payroll_rule_rows.lower_bound_amount IS '区间下限金额；为空表示该类别无下限';
+COMMENT ON COLUMN organization_payroll.payroll_rule_rows.lower_bound_currency IS '区间下限币种，只有 CNY；与金额同空同非空';
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.upper_bound_amount IS '上限金额；为空表示无上限（最高档或该类别无上限）';
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.upper_bound_currency IS '上限币种，只有 CNY；与金额同空同非空';
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.applied_rate IS '适用比例，0 至 1；为空表示该类别无比例';

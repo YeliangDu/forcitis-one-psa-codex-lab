@@ -226,7 +226,7 @@ terms:
   status: proposed
   note: '#1429 PY0；中文名待术语确认'
 - id: lower_bound
-  zh: 下限
+  zh: 区间下限
   en: LowerBound
   snake: lower_bound
   kind: value_object
@@ -248,6 +248,111 @@ terms:
   bc: organization.payroll
   scope: domain
   definition: 区间或基数范围的上界，不含；为空表示没有上界
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_rule_version_not_found
+  zh: 薪酬规则版本不存在
+  en: OrganizationPayrollRuleVersionNotFound
+  snake: organization_payroll_rule_version_not_found
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 要发布的薪酬规则版本不存在（404）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_rule_version_state_conflict
+  zh: 薪酬规则版本状态不允许
+  en: OrganizationPayrollRuleVersionStateConflict
+  snake: organization_payroll_rule_version_state_conflict
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 薪酬规则版本的当前状态不允许这次发布或关闭（409）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_rule_version_overlap
+  zh: 薪酬规则版本期间重叠
+  en: OrganizationPayrollRuleVersionOverlap
+  snake: organization_payroll_rule_version_overlap
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 同一类别同一辖区的规则版本生效期间重叠（409）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_rule_version_same_person
+  zh: 薪酬规则版本起草人不得发布
+  en: OrganizationPayrollRuleVersionSamePerson
+  snake: organization_payroll_rule_version_same_person
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 起草人与发布人是同一人（422），须另一人发布
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_rule_version_incomplete
+  zh: 薪酬规则版本行不完整
+  en: OrganizationPayrollRuleVersionIncomplete
+  snake: organization_payroll_rule_version_incomplete
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 版本的规则行不属于该类别、缺少必需的行或档位不连续（422）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_rule_version_concurrent_change
+  zh: 薪酬规则版本被并发修改
+  en: OrganizationPayrollRuleVersionConcurrentChange
+  snake: organization_payroll_rule_version_concurrent_change
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 保存时版本号已变，读到的版本已被别人改过（409）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_no_effective_rule_version
+  zh: 薪酬规则版本在该日无生效
+  en: OrganizationPayrollNoEffectiveRuleVersion
+  snake: organization_payroll_no_effective_rule_version
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 该类别、辖区、日期没有生效的规则版本（422），不假定任何值
   standard_ref:
   - docs/data/reviews/organization-payroll-py0.md
   confidence: low

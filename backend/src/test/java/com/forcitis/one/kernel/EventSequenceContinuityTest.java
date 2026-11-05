@@ -197,6 +197,17 @@ class EventSequenceContinuityTest {
     }
 
     @Test
+    @DisplayName("PayrollRuleVersion: events are numbered 1..n")
+    void payrollRuleVersion() {
+        checkMany(() -> com.forcitis.one.organization.payroll.domain.PayrollRuleVersion.restore(new com.forcitis.one.organization.payroll.domain.PayrollRuleVersionRecord(
+                        TestIds.uuid(6), com.forcitis.one.organization.payroll.api.PayrollRuleKind.ROUNDING, new com.forcitis.one.organization.payroll.api.JurisdictionKey("CN"),
+                        LocalDate.of(2026, 1, 1), null, com.forcitis.one.organization.payroll.domain.PayrollRuleVersionStatus.DRAFT, TestAccounts.account(1), null, null, 0)),
+                List.of(v -> v.publish(TestAccounts.account(2), NOW, List.of(new com.forcitis.one.organization.payroll.domain.PayrollRuleRowBound(
+                        com.forcitis.one.organization.payroll.domain.PayrollRuleRowKind.ROUNDING_MODE, null, null))),
+                        v -> v.supersede(LocalDate.of(2026, 6, 1))));
+    }
+
+    @Test
     @DisplayName("NumberingRule: events are numbered 1..n")
     void numberingRule() {
         NumberingPattern pattern = new NumberingPattern("{TYPE}-{LE}-{yyyyMM}-{seq:4}", ResetPolicy.MONTHLY);

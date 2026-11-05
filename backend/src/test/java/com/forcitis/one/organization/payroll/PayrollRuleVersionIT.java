@@ -45,7 +45,11 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
         postgres.register(registry);
     }
 
-        private static final String DRAFTER = principalName(31);
+        private int publishedAuditEntries() throws Exception {
+        return auditedActions("organization.payroll.rule-version.published").size();
+    }
+
+    private static final String DRAFTER = principalName(31);
     private static final String APPROVER = principalName(32);
 
     @Autowired
@@ -116,15 +120,15 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
 
     @Test
     @DisplayName("PRC-180 publishing a draft makes it EFFECTIVE with the approver and time, writes one audit entry, and raises the event once")
-    void publishMakesTheDraftEffective() {
+    void publishMakesTheDraftEffective() throws Exception {
         UUID id = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 1, 1), true);
 
+        int auditedBefore = publishedAuditEntries();
         publishAs(APPROVER, id);
 
         assertThat(stored(id)).containsEntry("status", "EFFECTIVE").containsEntry("approved_by_user_id", UUID.fromString(APPROVER)).containsEntry("version", 1L);
         assertThat(stored(id).get("published_at")).isNotNull();
-        assertThat(jdbc.sql("select count(*) from platform_audit.audit_entries where action = 'organization.payroll.rule-version.published' and detail like :id")
-                .param("id", "payrollRuleVersionId=" + id + " %").query(Integer.class).single()).isEqualTo(1);
+        assertThat(publishedAuditEntries()).isEqualTo(auditedBefore + 1);
         assertThat(events.stream(PayrollRuleVersionBecameEffective.class).filter(e -> e.payrollRuleVersionId().value().equals(id))).singleElement().satisfies(e -> {
             assertThat(e.payrollRuleVersionId().value()).isEqualTo(id);
             assertThat(e.effectiveFromDate()).isEqualTo(LocalDate.of(2026, 1, 1));
@@ -175,14 +179,14 @@ class PayrollRuleVersionIT extends AcceptanceSupport {
 
     @Test
     @DisplayName("four eyes: the drafter cannot publish; nothing is written, no audit entry, no event")
-    void drafterCannotPublish() {
+    void drafterCannotPublish() throws Exception {
         UUID id = draft(PayrollRuleKind.ROUNDING, jurisdiction, LocalDate.of(2026, 1, 1), true);
 
+        int auditedBefore = publishedAuditEntries();
         assertRefused(() -> publishAs(DRAFTER, id), PayrollError.ORGANIZATION_PAYROLL_RULE_VERSION_SAME_PERSON, ErrorKind.UNPROCESSABLE);
 
         assertThat(stored(id)).containsEntry("status", "DRAFT").containsEntry("approved_by_user_id", null);
-        assertThat(jdbc.sql("select count(*) from platform_audit.audit_entries where action = 'organization.payroll.rule-version.published' and detail like :id")
-                .param("id", "payrollRuleVersionId=" + id + " %").query(Integer.class).single()).isEqualTo(0);
+        assertThat(publishedAuditEntries()).isEqualTo(auditedBefore);
         assertThat(events.stream(PayrollRuleVersionBecameEffective.class).filter(e -> e.payrollRuleVersionId().value().equals(id))).isEmpty();
     }
 

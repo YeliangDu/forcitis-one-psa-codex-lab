@@ -1,9 +1,9 @@
 # 由 panorama/scan_aggregates.py 生成，勿手改
 meta:
-  count: 19
+  count: 20
   code_only: 8
   registry_only: 0
-  both: 11
+  both: 12
   sources:
   - backend/src/main/java/com/forcitis/one
   - backend/architecture/data-access-registry.yaml
@@ -88,6 +88,19 @@ aggregates:
   - organization.attendance.StandardHoursVersionPublished
   - organization.attendance.WorkCalendarLockedDaysChanged
   - organization.attendance.WorkCalendarYearMaintained
+- id: organization.payroll/PayrollRuleVersion
+  bc: organization.payroll
+  root_class: backend/src/main/java/com/forcitis/one/organization/payroll/domain/PayrollRuleVersion.java
+  source:
+  - code
+  - registry
+  tables:
+  - organization_payroll.payroll_rule_rows
+  - organization_payroll.payroll_rule_versions
+  commands:
+  - PublishPayrollRuleVersion
+  events:
+  - organization.payroll.PayrollRuleVersionBecameEffective
 - id: organization.workforce/EmployeeLegalEntityChange
   bc: organization.workforce
   root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/EmployeeLegalEntityChange.java
