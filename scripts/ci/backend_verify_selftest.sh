@@ -105,26 +105,31 @@ watchdog_ "CI: watchdog stays 1500 s" 1500 GITHUB_ACTIONS=true
 
 # Stopped from outside (#1385): TERM or INT to a local run stops its test runs, their forks (the stub starts a detached fake fork whose command line
 # matches the script's fork pattern) and its watchdog (the stub sleep records the watchdog's sleep), and the lock names the holder's checkout.
-# set -m starts the run in its own process group; without it a non-interactive shell starts background jobs ignoring INT and the trap never fires.
+# A background job starts with INT ignored, and light.sh runs this self-test as one (light_triggers.sh); bash cannot trap a signal ignored at entry. So the
+# run is started through python with INT reset to the default, and it must exit within 10 s of the signal: one that only ends when the stub's sleep 60
+# runs out has not been stopped.
 stop_() {
   local sig=$1
   rm -rf "$tmp/lock"; : >"$tmp/pids"; : >"$tmp/k.log"; printf '{"same":1}' >"$tmp/frontend/packages/api/openapi.json"
-  set -m
   STUB_HANG=1 STUB_PIDS="$tmp/pids" STUB_LOG="$tmp/k.log" EXPORTED='{"same":1}' BACKEND_WATCHDOG_SECONDS=60 PATH="$tmp/bin:$PATH" SLEEP_LOG=/dev/null SLEEP_PIDS="$tmp/pids" \
+    python3 -c 'import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); os.execvp(sys.argv[1], sys.argv[1:])' \
     bash "$tmp/scripts/ci/backend_verify.sh" >"$tmp/out.log" 2>&1 &
   victim=$!
-  set +m
   local n=0
   while [ "$(grep -cE 'surefire:test|failsafe:integration-test' "$tmp/k.log" 2>/dev/null)" -lt 2 ] && [ "$n" -lt 20 ]; do sleep 1; n=$((n + 1)); done
   if [ "$sig" = TERM ]; then
     where=$(cat "$tmp/lock/where" 2>/dev/null || true)
     if [ "$where" = "$tmp/backend" ]; then check_ "the lock names the holder's checkout" 0; else echo "  where: $where"; check_ "the lock names the holder's checkout" 1; fi
   fi
-  kill -"$sig" "$victim"; wait "$victim" 2>/dev/null || true; sleep 1
+  kill -"$sig" "$victim"
+  local waited=0
+  while kill -0 "$victim" 2>/dev/null && [ "$waited" -lt 10 ]; do sleep 1; waited=$((waited + 1)); done
+  local stopped=1; kill -0 "$victim" 2>/dev/null && stopped=0
+  kill "$victim" 2>/dev/null || true; wait "$victim" 2>/dev/null || true; sleep 1
   local alive=0 p
   while read -r p; do kill -0 "$p" 2>/dev/null && alive=$((alive + 1)); done <"$tmp/pids"
   local name="a local run stopped by $sig stops its test runs, forks and watchdog and releases the lock"
-  if [ "$alive" -eq 0 ] && [ ! -e "$tmp/lock" ]; then check_ "$name" 0; else echo "  alive: $alive"; check_ "$name" 1; fi
+  if [ "$stopped" -eq 1 ] && [ "$alive" -eq 0 ] && [ ! -e "$tmp/lock" ]; then check_ "$name" 0; else echo "  stopped within 10 s: $stopped, alive: $alive"; check_ "$name" 1; fi
   while read -r p; do kill "$p" 2>/dev/null || true; done <"$tmp/pids"
 }
 stop_ TERM
