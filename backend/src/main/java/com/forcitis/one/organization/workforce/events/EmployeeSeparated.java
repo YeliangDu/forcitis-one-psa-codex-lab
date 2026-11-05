@@ -13,10 +13,5 @@ import org.jspecify.annotations.Nullable;
  * and the envelope's businessDate. A held separation publishes this only after its release.
  */
 public record EmployeeSeparated(EventEnvelope envelope, PersonnelCommandId personnelCommandId, EmployeeId employeeId, LocalDate effectiveDate,
-        @Nullable EmploymentRelationshipId employmentRelationshipId) implements DomainEvent {
-
-    /** For callers that build the event without a relationship (the relationship id is then absent). */
-    public EmployeeSeparated(EventEnvelope envelope, PersonnelCommandId personnelCommandId, EmployeeId employeeId, LocalDate effectiveDate) {
-        this(envelope, personnelCommandId, employeeId, effectiveDate, null);
-    }
+        EmploymentRelationshipId employmentRelationshipId) implements DomainEvent {
 }

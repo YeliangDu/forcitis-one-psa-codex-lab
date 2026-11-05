@@ -10,10 +10,5 @@ import org.jspecify.annotations.Nullable;
 
 /** A reinstatement after an effective separation took effect (ADR-0068 items 1.5, 1.10); effectiveDate is the first day employed again and the envelope's businessDate. */
 public record EmployeeReinstated(EventEnvelope envelope, PersonnelCommandId personnelCommandId, EmployeeId employeeId, LocalDate effectiveDate,
-        @Nullable EmploymentRelationshipId employmentRelationshipId) implements DomainEvent {
-
-    /** For callers that build the event without a relationship (the relationship id is then absent). */
-    public EmployeeReinstated(EventEnvelope envelope, PersonnelCommandId personnelCommandId, EmployeeId employeeId, LocalDate effectiveDate) {
-        this(envelope, personnelCommandId, employeeId, effectiveDate, null);
-    }
+        EmploymentRelationshipId employmentRelationshipId) implements DomainEvent {
 }

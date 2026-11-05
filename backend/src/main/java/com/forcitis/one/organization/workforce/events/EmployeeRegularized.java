@@ -10,10 +10,5 @@ import org.jspecify.annotations.Nullable;
 
 /** The employee moved from probation to regular employment (ADR-0068 item 1.3); effectiveDate is the first regular day and the envelope's businessDate. */
 public record EmployeeRegularized(EventEnvelope envelope, PersonnelCommandId personnelCommandId, EmployeeId employeeId, LocalDate effectiveDate,
-        @Nullable EmploymentRelationshipId employmentRelationshipId) implements DomainEvent {
-
-    /** For callers that build the event without a relationship (the relationship id is then absent). */
-    public EmployeeRegularized(EventEnvelope envelope, PersonnelCommandId personnelCommandId, EmployeeId employeeId, LocalDate effectiveDate) {
-        this(envelope, personnelCommandId, employeeId, effectiveDate, null);
-    }
+        EmploymentRelationshipId employmentRelationshipId) implements DomainEvent {
 }

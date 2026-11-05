@@ -10,10 +10,5 @@ import org.jspecify.annotations.Nullable;
 
 /** An unpaid-leave start took effect (ADR-0068 items 1.9 and 3); effectiveDate is the first day on leave and the envelope's businessDate. */
 public record EmployeeUnpaidLeaveStarted(EventEnvelope envelope, PersonnelCommandId personnelCommandId, EmployeeId employeeId, LocalDate effectiveDate,
-        @Nullable EmploymentRelationshipId employmentRelationshipId) implements DomainEvent {
-
-    /** For callers that build the event without a relationship (the relationship id is then absent). */
-    public EmployeeUnpaidLeaveStarted(EventEnvelope envelope, PersonnelCommandId personnelCommandId, EmployeeId employeeId, LocalDate effectiveDate) {
-        this(envelope, personnelCommandId, employeeId, effectiveDate, null);
-    }
+        EmploymentRelationshipId employmentRelationshipId) implements DomainEvent {
 }

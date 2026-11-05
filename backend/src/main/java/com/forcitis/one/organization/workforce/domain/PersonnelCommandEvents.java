@@ -52,27 +52,27 @@ final class PersonnelCommandEvents {
         switch (c.kind()) {
             case HIRE -> {
                 if (person.enters()) {
-                    out.add((envelopes, sequence) -> new EmployeeHired(envelopes.wrap(draft("EmployeeHired", c, legalEntity, sequence)), c.id(), c.employeeId(), c.effectiveDate(), rel));
+                    out.add((envelopes, sequence) -> new EmployeeHired(envelopes.wrap(draft("EmployeeHired", c, legalEntity, sequence)), c.id(), c.employeeId(), c.effectiveDate(), Objects.requireNonNull(rel)));
                 }
                 out.add(started(c, legalEntity));
             }
             case REINSTATE -> {
                 if (person.enters()) {
                     out.add((envelopes, sequence) -> new EmployeeReinstated(envelopes.wrap(draft("EmployeeReinstated", c, legalEntity, sequence)), c.id(), c.employeeId(),
-                            c.effectiveDate(), rel));
+                            c.effectiveDate(), Objects.requireNonNull(rel)));
                 }
                 out.add(started(c, legalEntity));
             }
             case REGULARIZE -> {
                 out.add((envelopes, sequence) -> new EmployeeRegularized(envelopes.wrap(draft("EmployeeRegularized", c, legalEntity, sequence)), c.id(), c.employeeId(),
-                        c.effectiveDate(), rel));
+                        c.effectiveDate(), Objects.requireNonNull(rel)));
                 out.add((envelopes, sequence) -> new EmploymentRelationshipPhaseChanged(envelopes.wrap(draft("EmploymentRelationshipPhaseChanged", c, legalEntity, sequence)), c.id(),
                         c.employeeId(), Objects.requireNonNull(rel), c.effectiveDate(), EmploymentPhaseKind.REGULAR));
             }
             case SEPARATE -> {
                 if (person.leaves()) {
                     out.add((envelopes, sequence) -> new EmployeeSeparated(envelopes.wrap(draft("EmployeeSeparated", c, legalEntity, sequence)), c.id(), c.employeeId(),
-                            c.effectiveDate(), rel));
+                            c.effectiveDate(), Objects.requireNonNull(rel)));
                 }
                 out.add((envelopes, sequence) -> new EmploymentRelationshipEnded(envelopes.wrap(draft("EmploymentRelationshipEnded", c, legalEntity, sequence)), c.id(),
                         c.employeeId(), Objects.requireNonNull(rel), c.effectiveDate()));
@@ -88,7 +88,7 @@ final class PersonnelCommandEvents {
             case UNPAID_LEAVE_START -> {
                 // design 6.1: every UNPAID_LEAVE_START that takes effect, even when the person keeps working in another relationship (the sensitive-role review is conservative)
                 out.add((envelopes, sequence) -> new EmployeeUnpaidLeaveStarted(envelopes.wrap(draft("EmployeeUnpaidLeaveStarted", c, legalEntity, sequence)), c.id(),
-                        c.employeeId(), c.effectiveDate(), rel));
+                        c.employeeId(), c.effectiveDate(), Objects.requireNonNull(rel)));
                 out.add(leaveChanged(c, legalEntity));
             }
             case UNPAID_LEAVE_END -> out.add(leaveChanged(c, legalEntity));
@@ -139,7 +139,7 @@ final class PersonnelCommandEvents {
         OrgUnitId from = Objects.requireNonNull(previousUnit != null ? previousUnit : newUnit, "department");
         OrgUnitId to = Objects.requireNonNull(newUnit, "department");
         return (envelopes, sequence) -> new EmployeeTransferred(envelopes.wrap(draft("EmployeeTransferred", c, legalEntity, sequence)), c.id(), c.employeeId(),
-                c.effectiveDate(), triggers, from, to, previousPosition, newPosition, c.employmentRelationshipId());
+                c.effectiveDate(), triggers, from, to, previousPosition, newPosition, Objects.requireNonNull(c.employmentRelationshipId()));
     }
 
     private static PendingEvent corrected(PersonnelCommand c, @Nullable VersionRow before, @Nullable VersionRow after, @Nullable LegalEntityId legalEntity) {
@@ -156,7 +156,7 @@ final class PersonnelCommandEvents {
             triggers.add(TriggerFieldKind.POSITION);
         }
         return (envelopes, sequence) -> new EmployeeCorrected(envelopes.wrap(draft("EmployeeCorrected", c, legalEntity, sequence)), c.id(), c.employeeId(),
-                c.effectiveDate(), null, triggers, previousUnit, newUnit, previousPosition, newPosition, c.employmentRelationshipId());
+                c.effectiveDate(), null, triggers, previousUnit, newUnit, previousPosition, newPosition, Objects.requireNonNull(c.employmentRelationshipId()));
     }
 
     private static @Nullable OrgUnitId unitOf(@Nullable VersionRow row) {

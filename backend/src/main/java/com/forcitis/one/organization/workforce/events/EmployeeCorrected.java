@@ -25,7 +25,7 @@ import org.jspecify.annotations.Nullable;
 public record EmployeeCorrected(EventEnvelope envelope, PersonnelCommandId personnelCommandId, EmployeeId employeeId, LocalDate affectedFrom,
                                 @Nullable LocalDate affectedTo, List<TriggerFieldKind> triggerFieldKinds, @Nullable OrgUnitId previousOrgUnitId,
                                 @Nullable OrgUnitId newOrgUnitId, @Nullable PositionId previousPositionId, @Nullable PositionId newPositionId,
-                                @Nullable EmploymentRelationshipId employmentRelationshipId)
+                                EmploymentRelationshipId employmentRelationshipId)
         implements DomainEvent {
 
     public EmployeeCorrected {
