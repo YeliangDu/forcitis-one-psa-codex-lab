@@ -27,7 +27,7 @@ CREATE TABLE organization_workforce.employment_relationships (
 CREATE INDEX ix_employment_relationships_employer_legal_entity_id ON organization_workforce.employment_relationships (employer_legal_entity_id);
 CREATE INDEX ix_employment_relationships_predecessor ON organization_workforce.employment_relationships (predecessor_relationship_id, employee_id)
     WHERE predecessor_relationship_id IS NOT NULL;
-COMMENT ON TABLE organization_workforce.employment_relationships IS '雇佣关系：一个自然人与一个用人单位之间的在职关系，员工聚合内的实体；终身不删；除迁入回填行的一次确认外只追加；粒度：每个员工与每个用人单位一行';
+COMMENT ON TABLE organization_workforce.employment_relationships IS '雇佣关系清单：一个自然人与一个用人单位之间的在职关系，员工聚合内的实体；终身不删；除迁入回填行的一次确认外只追加；粒度：每个员工与每个用人单位一行';
 COMMENT ON COLUMN organization_workforce.employment_relationships.employment_relationship_id IS '雇佣关系 ID（UUIDv7）';
 COMMENT ON COLUMN organization_workforce.employment_relationships.employee_id IS '员工 ID';
 COMMENT ON COLUMN organization_workforce.employment_relationships.employer_legal_entity_id IS '用人单位（法人 ID），决定社保公积金与请假口径；建立后不变';

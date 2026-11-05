@@ -57,7 +57,7 @@ terms:
   status: proposed
   note: ''
 - id: employment_relationships
-  zh: 雇佣关系
+  zh: 雇佣关系清单
   en: EmploymentRelationships
   snake: employment_relationships
   kind: read_model

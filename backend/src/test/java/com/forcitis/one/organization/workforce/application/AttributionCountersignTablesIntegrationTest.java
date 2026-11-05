@@ -1,12 +1,12 @@
 package com.forcitis.one.organization.workforce.application;
 
-import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -151,7 +151,7 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
     }
 
     @Test
-    @DisplayName("IMP-1030-FC-B a CORRECTION is immediate, or awaiting (or withdrawn) with a countersign basis; one open command per employee and day counts the awaiting one")
+    @DisplayName("IMP-1030-FC-B a CORRECTION is immediate, or awaiting (or withdrawn) with a countersign basis; one open command per relationship and day, and per person for the person\u0027s own commands, counts the awaiting one")
     void correctionAndOpenPerDay() {
         command(COMMAND, EMPLOYEE, "CORRECTION", "EFFECTIVE", ", applied_at", ", now()");
         refused("ck_personnel_commands_correction_immediate", commandSql(OTHER_COMMAND, OTHER_EMPLOYEE, "CORRECTION", "PENDING", "", ""));
@@ -166,9 +166,14 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
         day = "date '2026-12-02'";
         String awaitingId = "'019a0000-0000-7000-8000-00000000a1c3'";
         awaiting(awaitingId, EMPLOYEE);
-        refused("uk_personnel_commands_open_per_relationship_day", commandSql("gen_random_uuid()", EMPLOYEE, "TRANSFER", "PENDING", ", target_org_unit_id", ", " + UNIT));
         refused("uk_personnel_commands_open_person_day", commandSql("gen_random_uuid()", EMPLOYEE, "CHANGE_LEGAL_ENTITY", "AWAITING_ATTRIBUTION_COUNTERSIGN", ", target_legal_entity_id" + BASIS_COLUMNS, ", " + ENTITY_B + BASIS));
-        jdbc.sql("update " + PC + " set status = 'WITHDRAWN', withdrawn_at = now(), withdrawn_by = " + DRAFTER + ", withdrawal_reason = 'no', updated_at = now() where personnel_command_id = " + awaitingId).update();
+        // ADR-0086: the person's own command (the change of legal entity) and a relationship's command do not collide in the table; the service refuses the pair (requireOneCommandPerDay)
+        String correctionId = "'019a0000-0000-7000-8000-00000000a1c4'";
+        command(correctionId, EMPLOYEE, "CORRECTION", "AWAITING_ATTRIBUTION_COUNTERSIGN", ", target_legal_entity_id" + BASIS_COLUMNS, ", " + ENTITY_B + BASIS);
+        refused("uk_personnel_commands_open_per_relationship_day", commandSql("gen_random_uuid()", EMPLOYEE, "TRANSFER", "PENDING", ", target_org_unit_id", ", " + UNIT));
+        for (String id : List.of(awaitingId, correctionId)) {
+            jdbc.sql("update " + PC + " set status = 'WITHDRAWN', withdrawn_at = now(), withdrawn_by = " + DRAFTER + ", withdrawal_reason = 'no', updated_at = now() where personnel_command_id = " + id).update();
+        }
         command("gen_random_uuid()", EMPLOYEE, "TRANSFER", "PENDING", ", target_org_unit_id", ", " + UNIT);
     }
 
