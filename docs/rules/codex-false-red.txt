@@ -1,0 +1,14 @@
+# Test classes that are red only inside the Codex sandbox (codex exec --sandbox workspace-write); read by docs/rules/codex-preamble.md.
+# One line per class: <simple class name> | <reason>. Any other red class is your change. Measured 2026-11-04 on main with the full guard set (1553 run, 0 failures, 24 errors, 0 Mockito errors).
+ReadOnlyVerificationCommandTest | socket: SocketException Operation not permitted
+ClamdScannerTest | socket: SocketException Operation not permitted
+SingleOperatorModeLaunchRetryTest | socket: SocketException Operation not permitted
+HttpWecomClientTest | socket: WireMock cannot bind a port
+UserIdContractTest | generated frontend/packages/api/src/generated/schema.ts is missing (needs Docker)
+K3b4ContractTest | generated schema.ts is missing (needs Docker)
+OldTodoRemovalGuardTest | generated schema.ts is missing (needs Docker)
+ScalarIdContractTest | generated schema.ts is missing (needs Docker)
+EmployeeIdContractTest | generated schema.ts is missing (needs Docker)
+ApprovalIdContractTest | generated schema.ts is missing (needs Docker)
+AuditIdContractTest | generated schema.ts is missing (needs Docker)
+LegacyShapeTest | generated frontend/packages/api/openapi.json is missing (untracked, needs Docker); 2 errors
