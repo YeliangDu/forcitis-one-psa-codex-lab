@@ -112,24 +112,22 @@ class SingleAggregateGuardTest {
         assertThat(transactionSaving(guard -> guard.observe(eventNaming("NumberingRule")), timesheet, counter)).isEmpty();
     }
 
-    // DDD-1 / G-T1, whole surface and static: a @Transactional use case calls write methods of at most one aggregate repository. The aspect above sees only save / insert in two modules' ITs.
-    static final java.util.regex.Pattern WRITE = java.util.regex.Pattern.compile("(save|insert|update|delete|remove|upsert|replace|append|record|create|add|put|release|close|apply|mark|set).*");
+    // DDD-1 / G-T1, whole surface and static: a @Transactional use case, with the application helpers it calls, writes through at most one aggregate repository.
+    // The aspect above sees only save / insert in two modules' ITs. A repository method counts as a write unless its name starts like a read.
+    static final java.util.regex.Pattern READ = java.util.regex.Pattern.compile("(find|get|load|list|exists|count|search|read|is|has|query|select|fetch|lookup|resolve|peek|contains|stream|all|by|view|check|verify|validate|current|latest|open|pending)[A-Z0-9_].*|(find|get|load|list|count|exists|all|stream|current|latest)");
     static final Path GAPS = Path.of("architecture/single-aggregate-gaps.txt");
 
-    /** use case class -> the aggregate repositories it writes, for those that write two or more. */
+    /** use case class -> the aggregate repositories one of its transactions writes, for those that write two or more. */
     static java.util.Map<String, java.util.Set<String>> multiRepositoryWriters(com.tngtech.archunit.core.domain.JavaClasses classes) {
         java.util.Map<String, java.util.Set<String>> found = new java.util.TreeMap<>();
         for (com.tngtech.archunit.core.domain.JavaClass type : classes) {
-            boolean transactional = type.isAnnotatedWith("org.springframework.transaction.annotation.Transactional")
-                    || type.getMethods().stream().anyMatch(m -> m.isAnnotatedWith("org.springframework.transaction.annotation.Transactional"));
-            if (!transactional || !type.getPackageName().matches(".*\\.application(\\..*)?")) {
-                continue;
-            }
-            java.util.Set<String> written = new java.util.TreeSet<>();
-            type.getMethodCallsFromSelf().stream().filter(call -> call.getTargetOwner().getSimpleName().endsWith("Repository") && call.getTargetOwner().getPackageName().endsWith(".domain")
-                    && WRITE.matcher(call.getTarget().getName()).matches()).forEach(call -> written.add(call.getTargetOwner().getSimpleName()));
-            if (written.size() > 1) {
-                found.put(type.getName(), written);
+            for (com.tngtech.archunit.core.domain.JavaMethod entry : TransactionalUseCases.entries(type)) {
+                java.util.Set<String> written = new java.util.TreeSet<>();
+                TransactionalUseCases.reachableAccesses(entry).stream().filter(a -> a.owner().getSimpleName().endsWith("Repository") && a.owner().getPackageName().endsWith(".domain")
+                        && !READ.matcher(a.name()).matches()).forEach(a -> written.add(a.owner().getSimpleName()));
+                if (written.size() > 1) {
+                    found.merge(type.getName(), written, (x, y) -> { x.addAll(y); return x; });
+                }
             }
         }
         return found;
@@ -147,6 +145,6 @@ class SingleAggregateGuardTest {
                 "backend/architecture/single-aggregate-gaps.txt lists a use case that no longer writes two repositories, or no longer exists", "delete the line (the list may only shrink)")).isEmpty();
         com.tngtech.archunit.core.domain.JavaClasses fixture = new com.tngtech.archunit.core.importer.ClassFileImporter().withImportOption(com.tngtech.archunit.core.importer.ImportOption.Predefined.ONLY_INCLUDE_TESTS)
                 .importPackages("com.forcitis.one.fixture.twoaggregates");
-        assertThat(multiRepositoryWriters(fixture).keySet()).as("injected: the use case writing two repositories is caught, the one writing one is not").containsExactly("com.forcitis.one.fixture.twoaggregates.application.WritesTwo");
+        assertThat(multiRepositoryWriters(fixture).keySet()).as("injected: the use case writing two repositories is caught, also through a helper and a method reference; the one writing one is not").containsExactly("com.forcitis.one.fixture.twoaggregates.application.WritesTwo", "com.forcitis.one.fixture.twoaggregates.application.WritesViaHelper");
     }
 }

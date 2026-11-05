@@ -1,4 +1,17 @@
-# DDD-1 / G-T1: @Transactional use cases that write through two or more aggregate repositories (full class names). Shrink only: SingleAggregateGuardTest#useCasesWriteOneAggregate.
+# DDD-1 / G-T1: @Transactional use cases that write through two or more aggregate repositories, directly or through an application helper (full class names). Shrink only: SingleAggregateGuardTest#useCasesWriteOneAggregate.
+com.forcitis.one.organization.workforce.application.ApplyDueCommand
 com.forcitis.one.organization.workforce.application.ApplyDueOrgCommand
+com.forcitis.one.organization.workforce.application.AttributionCountersignService
 com.forcitis.one.organization.workforce.application.EmployeeProfileService
+com.forcitis.one.organization.workforce.application.OrgMergeSteps
+com.forcitis.one.organization.workforce.application.OrgStructureCommandService
+com.forcitis.one.organization.workforce.application.PersonnelCommandService
 com.forcitis.one.organization.workforce.application.ProfileChangeRequestService
+com.forcitis.one.organization.workforce.application.ReleaseSeparationHoldByOperations
+com.forcitis.one.organization.workforce.application.SeparationHoldService
+com.forcitis.one.platform.identity.application.ConfirmAuthorizationRequest
+com.forcitis.one.platform.identity.application.CreateRole
+com.forcitis.one.platform.identity.application.LoginAsEmergencyAdmin
+com.forcitis.one.platform.identity.application.RegisterEmergencyAdmin
+com.forcitis.one.platform.identity.application.ReplaceAccountRoles
+com.forcitis.one.platform.identity.application.UpdateRole

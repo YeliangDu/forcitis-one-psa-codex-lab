@@ -492,33 +492,35 @@ class ArchitectureRulesTest {
         assertThat(eventsBuiltOutsideTheDomain(fixture)).as("injected: only the use case that builds the event is caught, not the aggregate").hasSize(1).first().asString().contains("ThingUseCase");
     }
 
-    // DATA_DESIGN_CHECKLIST section 14.3 I3: no external system is called inside a database transaction (dependency level: a @Transactional use case does not hold an external-call port).
-    static final List<String> EXTERNAL_CALL_PORTS = List.of("WecomGateway", "WecomClient", "OrgSource", "StaffLookup", "ArchiveVault", "BusinessFileStore", "ObjectStore", "MalwareScanner",
-            "ExternalConnections");
-    static final String TRANSACTIONAL = "org.springframework.transaction.annotation.Transactional";
+    // DATA_DESIGN_CHECKLIST section 14.3 I3: no external system is called inside a database transaction: a @Transactional use case, with the application helpers it calls, reaches no external-call port.
+    // WecomGateway is not one: it writes the outbox and is meant to run inside the transaction. Existing gaps are listed and may only shrink.
+    static final List<String> EXTERNAL_CALL_PORTS = List.of("WecomClient", "OrgSource", "StaffLookup", "ArchiveVault", "BusinessFileStore", "ObjectStore", "MalwareScanner", "ExternalConnections");
+    static final java.nio.file.Path EXTERNAL_GAPS = java.nio.file.Path.of("architecture/external-call-in-transaction-gaps.txt");
 
     static List<String> externalCallsInTransactions(JavaClasses classes, java.util.function.Predicate<JavaClass> port) {
-        List<String> problems = new ArrayList<>();
+        java.util.Set<String> problems = new java.util.TreeSet<>();
         for (JavaClass type : classes) {
-            boolean transactional = type.isAnnotatedWith(TRANSACTIONAL) || type.getMethods().stream().anyMatch(m -> m.isAnnotatedWith(TRANSACTIONAL));
-            if (transactional && type.getPackageName().matches(".*\\.application(\\..*)?")) {
-                type.getDirectDependenciesFromSelf().stream().map(d -> d.getTargetClass()).filter(port).map(JavaClass::getSimpleName).distinct()
-                        .forEach(name -> problems.add(type.getSimpleName() + " is transactional and depends on the external-call port " + name));
+            for (JavaMethod entry : TransactionalUseCases.entries(type)) {
+                TransactionalUseCases.reachableAccesses(entry).stream().filter(a -> port.test(a.owner())).forEach(a -> problems.add(type.getName()));
             }
         }
-        return problems;
+        return new ArrayList<>(problems);
     }
 
     @Test
-    void noExternalCallInATransaction() {
+    void noExternalCallInATransaction() throws java.io.IOException {
         assertThat(EXTERNAL_CALL_PORTS).as(GuardMessage.of("I3", "EXTERNAL_CALL_PORTS names a type that no longer exists", "update the list in ArchitectureRulesTest to the current external-call ports"))
                 .allMatch(name -> CLASSES.stream().anyMatch(c -> c.getSimpleName().equals(name)));
-        assertThat(externalCallsInTransactions(CLASSES, c -> EXTERNAL_CALL_PORTS.contains(c.getSimpleName()) && c.getPackageName().startsWith(ROOT + ".platform.integration"))).as(GuardMessage.of("I3",
-                "a @Transactional use case depends on an external-call port, so an external call may run inside a database transaction",
-                "split it: do the external call outside the transaction, or send through the outbox (OutboundDelivery)")).isEmpty();
+        List<String> gaps = java.nio.file.Files.readAllLines(EXTERNAL_GAPS).stream().filter(l -> !l.isBlank() && !l.startsWith("#")).toList();
+        List<String> found = externalCallsInTransactions(CLASSES, c -> EXTERNAL_CALL_PORTS.contains(c.getSimpleName()) && c.getPackageName().startsWith(ROOT + ".platform.integration"));
+        assertThat(found.stream().filter(c -> !gaps.contains(c)).toList()).as(GuardMessage.of("I3",
+                "a @Transactional use case, directly or through an application helper, reaches an external-call port, so an external call may run inside a database transaction",
+                "do the external call outside the transaction, or send through the outbox (OutboundDelivery); do not add it to external-call-in-transaction-gaps.txt")).isEmpty();
+        assertThat(gaps.stream().filter(c -> !found.contains(c)).toList()).as(GuardMessage.of("I3",
+                "backend/architecture/external-call-in-transaction-gaps.txt lists a use case that no longer reaches an external-call port, or no longer exists", "delete the line (the list may only shrink)")).isEmpty();
         JavaClasses fixture = new ClassFileImporter().withImportOption(ImportOption.Predefined.ONLY_INCLUDE_TESTS).importPackages("com.forcitis.one.fixture.externaltx");
-        assertThat(externalCallsInTransactions(fixture, c -> c.getSimpleName().equals("RemoteGateway"))).as("injected: the transactional caller is caught, the one without a transaction is not")
-                .hasSize(1).first().asString().contains("CallsOutsideInTransaction");
+        assertThat(externalCallsInTransactions(fixture, c -> c.getSimpleName().equals("RemoteGateway"))).as("injected: the transactional caller and the one that goes through a helper are caught, the one without a transaction is not")
+                .containsExactly("com.forcitis.one.fixture.externaltx.application.CallsOutsideInTransaction", "com.forcitis.one.fixture.externaltx.application.CallsViaHelper");
     }
 
     @SuppressWarnings("unused")
