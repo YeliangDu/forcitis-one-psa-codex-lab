@@ -103,15 +103,22 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
                 .param("employee", employee.value()).query(Boolean.class).single();
     }
 
+    /** Leaving needs every relationship in service on the day to carry a held or released-and-waiting separation or an unpaid-leave start not yet started (ADR-0086 design 6.2). */
     @Override
-    public boolean isLeaving(EmployeeId employee) {
+    public boolean isLeaving(EmployeeId employee, LocalDate day) {
         return jdbc.sql("""
-                select exists (select 1 from organization_workforce.separation_holds h
-                                join organization_workforce.personnel_commands c on c.personnel_command_id = h.personnel_command_id
-                               where h.employee_id = :employee and (h.status = 'HELD' or (h.status = 'RELEASED' and c.status = 'PENDING')))
-                    or exists (select 1 from organization_workforce.personnel_commands
-                                where employee_id = :employee and command_kind = 'UNPAID_LEAVE_START' and status = 'PENDING')
-                """).param("employee", employee.value()).query(Boolean.class).single();
+                with in_service as (
+                    select distinct v.employment_relationship_id from organization_workforce.employment_relationship_versions v
+                     where v.employee_id = :employee and v.superseded_at is null and v.employment_status = 'EMPLOYED'
+                       and v.effective_from_date <= :day and (v.effective_to_date is null or :day < v.effective_to_date))
+                select exists (select 1 from in_service)
+                   and not exists (select 1 from in_service s
+                                    where not exists (select 1 from organization_workforce.personnel_commands c
+                                                       left join organization_workforce.separation_holds h on h.personnel_command_id = c.personnel_command_id
+                                                      where c.employment_relationship_id = s.employment_relationship_id
+                                                        and ((h.status = 'HELD' or (h.status = 'RELEASED' and c.status = 'PENDING'))
+                                                             or (c.command_kind = 'UNPAID_LEAVE_START' and c.status = 'PENDING'))))
+                """).param("employee", employee.value()).param("day", day).query(Boolean.class).single();
     }
 
     @Override
