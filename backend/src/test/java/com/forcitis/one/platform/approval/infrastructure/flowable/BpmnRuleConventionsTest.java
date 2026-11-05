@@ -246,6 +246,14 @@ class BpmnRuleConventionsTest {
     }
 
     @Test
+    @DisplayName("#1436 noFallback with a deadline does not load: the overdue escalation would be the fallback the node refuses")
+    void noFallbackExcludesADeadline() {
+        assertThatThrownBy(() -> NodePolicyReader.read(review(parse("<extensionElements><forcitis:assignmentRule type=\"ROLE\" role=\"r\" "
+                + "noFallback=\"true\" deadlineWorkdays=\"3\" escalationWorkdays=\"1\"/></extensionElements>")))).isInstanceOf(DomainException.class)
+                .hasMessageContaining("noFallback");
+    }
+
+    @Test
     @DisplayName("RULE-300 a node without skipWhenEmpty does not skip")
     void skippingIsOptIn() {
         assertThat(NodePolicyReader.read(review(parse(

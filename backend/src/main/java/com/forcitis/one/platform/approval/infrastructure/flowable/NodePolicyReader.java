@@ -36,7 +36,7 @@ final class NodePolicyReader {
         }
         ExtensionElement element = rules.getFirst();
         try {
-            return new NodePolicy(AssignmentRuleCodec.parse(attribute(element, "type"), name -> attribute(element, name)),
+            NodePolicy policy = new NodePolicy(AssignmentRuleCodec.parse(attribute(element, "type"), name -> attribute(element, name)),
                     "allowed".equals(attribute(element, "selfApproval")),
                     flag(element, "skipWhenEmpty"),
                     Optional.ofNullable(attribute(element, "beforeHook")).filter(key -> !key.isBlank()),
@@ -45,6 +45,10 @@ final class NodePolicyReader {
                     flag(element, "autoApproveRepeat"),
                     deadline(element),
                     flag(element, "noFallback"));
+            if (policy.noFallback() && policy.deadline().isPresent()) {
+                throw new IllegalStateException("noFallback and a deadline cannot be combined: an overdue task would be escalated to a supervisor or the administrators");
+            }
+            return policy;
         } catch (IllegalStateException | IllegalArgumentException e) {
             throw ApprovalError.PLATFORM_APPROVAL_NODE_CONFIG_INVALID.refusal("Node " + node.getId() + ": " + e.getMessage());
         }
