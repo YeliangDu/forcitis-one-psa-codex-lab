@@ -31,10 +31,4 @@ public record EmployeeCorrected(EventEnvelope envelope, PersonnelCommandId perso
     public EmployeeCorrected {
         triggerFieldKinds = List.copyOf(triggerFieldKinds);
     }
-
-    public EmployeeCorrected(EventEnvelope envelope, PersonnelCommandId personnelCommandId, EmployeeId employeeId, LocalDate affectedFrom, @Nullable LocalDate affectedTo,
-                             List<TriggerFieldKind> triggerFieldKinds, @Nullable OrgUnitId previousOrgUnitId, @Nullable OrgUnitId newOrgUnitId,
-                             @Nullable PositionId previousPositionId, @Nullable PositionId newPositionId) {
-        this(envelope, personnelCommandId, employeeId, affectedFrom, affectedTo, triggerFieldKinds, previousOrgUnitId, newOrgUnitId, previousPositionId, newPositionId, null);
-    }
 }

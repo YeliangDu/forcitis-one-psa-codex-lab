@@ -27,10 +27,4 @@ public record EmployeeTransferred(EventEnvelope envelope, PersonnelCommandId per
     public EmployeeTransferred {
         triggerFieldKinds = List.copyOf(triggerFieldKinds);
     }
-
-    public EmployeeTransferred(EventEnvelope envelope, PersonnelCommandId personnelCommandId, EmployeeId employeeId, LocalDate effectiveDate,
-                               List<TriggerFieldKind> triggerFieldKinds, OrgUnitId previousOrgUnitId, OrgUnitId newOrgUnitId, @Nullable PositionId previousPositionId,
-                               @Nullable PositionId newPositionId) {
-        this(envelope, personnelCommandId, employeeId, effectiveDate, triggerFieldKinds, previousOrgUnitId, newOrgUnitId, previousPositionId, newPositionId, null);
-    }
 }

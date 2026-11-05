@@ -57,7 +57,7 @@ class SeparatedAccountIntegrationTest extends IdentityIntegrationTest {
         EmployeeId id = TestAccounts.employee(employee);
         var event = new EmployeeCorrected(TestEnvelopes.of("organization.workforce.EmployeeCorrected", "Employee", id.value()), new PersonnelCommandId(UUID.randomUUID()), id,
                 LocalDate.of(2026, 10, 15), null, java.util.List.of(TriggerFieldKind.ORG_UNIT), null, com.forcitis.one.fixture.doubles.TestOrgIds.orgUnit(10), null,
-                com.forcitis.one.fixture.doubles.TestOrgIds.position(1));
+                com.forcitis.one.fixture.doubles.TestOrgIds.position(1), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
         tx.executeWithoutResult(status -> events.publishEvent(event));
         return event.envelope().eventId();
     }
@@ -68,7 +68,7 @@ class SeparatedAccountIntegrationTest extends IdentityIntegrationTest {
         var orgUnit = com.forcitis.one.fixture.doubles.TestOrgIds.orgUnit(10);
         var event = new EmployeeCorrected(TestEnvelopes.of("organization.workforce.EmployeeCorrected", "Employee", id.value()), new PersonnelCommandId(UUID.randomUUID()), id,
                 LocalDate.of(2026, 10, 15), null, java.util.List.of(TriggerFieldKind.POSITION), orgUnit, orgUnit, com.forcitis.one.fixture.doubles.TestOrgIds.position(1),
-                com.forcitis.one.fixture.doubles.TestOrgIds.position(2));
+                com.forcitis.one.fixture.doubles.TestOrgIds.position(2), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
         tx.executeWithoutResult(status -> events.publishEvent(event));
         return event.envelope().eventId();
     }

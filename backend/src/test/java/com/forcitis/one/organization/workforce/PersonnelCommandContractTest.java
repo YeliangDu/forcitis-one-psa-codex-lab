@@ -210,12 +210,12 @@ class PersonnelCommandContractTest {
                 new EmployeeHired(seal("EmployeeHired", DAY), COMMAND, EMPLOYEE, DAY, new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1"))),
                 new EmployeeRegularized(seal("EmployeeRegularized", DAY), COMMAND, EMPLOYEE, DAY, new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1"))),
                 new EmployeeTransferred(seal("EmployeeTransferred", DAY), COMMAND, EMPLOYEE, DAY, List.of(TriggerFieldKind.ORG_UNIT),
-                        new OrgUnitId(TestIds.uuid(1)), new OrgUnitId(TestIds.uuid(2)), new PositionId(TestIds.uuid(3)), null),
+                        new OrgUnitId(TestIds.uuid(1)), new OrgUnitId(TestIds.uuid(2)), new PositionId(TestIds.uuid(3)), null, new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1"))),
                 new EmployeeSeparated(seal("EmployeeSeparated", DAY), COMMAND, EMPLOYEE, DAY, new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1"))),
                 new EmployeeReinstated(seal("EmployeeReinstated", DAY), COMMAND, EMPLOYEE, DAY, new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1"))),
                 new EmployeeUnpaidLeaveStarted(seal("EmployeeUnpaidLeaveStarted", DAY), COMMAND, EMPLOYEE, DAY, new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1"))),
                 new EmployeeCorrected(seal("EmployeeCorrected", DAY), COMMAND, EMPLOYEE, DAY.minusMonths(1), null, List.of(TriggerFieldKind.ORG_UNIT),
-                        new OrgUnitId(TestIds.uuid(1)), new OrgUnitId(TestIds.uuid(2)), null, null),
+                        new OrgUnitId(TestIds.uuid(1)), new OrgUnitId(TestIds.uuid(2)), null, null, new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1"))),
                 new EmploymentRelationshipStarted(seal("EmploymentRelationshipStarted", DAY), COMMAND, EMPLOYEE, RELATIONSHIP, DAY),
                 new EmploymentRelationshipEnded(seal("EmploymentRelationshipEnded", DAY), COMMAND, EMPLOYEE, RELATIONSHIP, DAY),
                 new EmploymentRelationshipCorrected(seal("EmploymentRelationshipCorrected", DAY), COMMAND, EMPLOYEE, RELATIONSHIP, DAY),
@@ -292,7 +292,7 @@ class PersonnelCommandContractTest {
         assertThat(TriggerFieldKind.values()).containsExactly(TriggerFieldKind.ORG_UNIT, TriggerFieldKind.POSITION);
         List<TriggerFieldKind> fields = new ArrayList<>(List.of(TriggerFieldKind.POSITION));
         EmployeeTransferred transferred = new EmployeeTransferred(seal("EmployeeTransferred", DAY), COMMAND, EMPLOYEE, DAY, fields,
-                new OrgUnitId(TestIds.uuid(1)), new OrgUnitId(TestIds.uuid(1)), new PositionId(TestIds.uuid(3)), new PositionId(TestIds.uuid(4)));
+                new OrgUnitId(TestIds.uuid(1)), new OrgUnitId(TestIds.uuid(1)), new PositionId(TestIds.uuid(3)), new PositionId(TestIds.uuid(4)), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
         fields.add(TriggerFieldKind.ORG_UNIT);
         assertThat(transferred.triggerFieldKinds()).containsExactly(TriggerFieldKind.POSITION);
         assertThatThrownBy(() -> transferred.triggerFieldKinds().add(TriggerFieldKind.ORG_UNIT)).isInstanceOf(UnsupportedOperationException.class);
