@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.platform.identity.data_scope;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipEventIds;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.kernel.EmployeeId;
@@ -77,7 +78,8 @@ abstract class PermissionAdjustmentConsumerSupport extends PermissionAdjustmentA
     protected EmployeeSeparated separation(String person) {
         UUID employee = UUID.fromString(employeeIdOf(person));
         return new EmployeeSeparated(envelope("organization.workforce.EmployeeSeparated", "Employee", employee),
-                new PersonnelCommandId(Uuids.timeOrdered(clock.instant())), new EmployeeId(employee), TODAY);
+                new PersonnelCommandId(Uuids.timeOrdered(clock.instant())), new EmployeeId(employee), TODAY,
+                EmploymentRelationshipEventIds.of(employee));
     }
 
     protected OrgUnitDissolved dissolution(UUID unit) {

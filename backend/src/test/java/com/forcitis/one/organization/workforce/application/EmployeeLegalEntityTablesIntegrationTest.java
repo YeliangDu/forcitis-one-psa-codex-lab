@@ -26,13 +26,14 @@ class EmployeeLegalEntityTablesIntegrationTest extends WorkforceIntegrationSuppo
         jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values (" + EMPLOYEE + ", 'E-01', 'name', 'EMPLOYED')").update();
         jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (" + LEGAL_ENTITY + ", 'ZQE', 'entity', 'ACTIVE') on conflict (id) do nothing").update();
         jdbc.sql("insert into organization_workforce.legal_entity_attributions (attribution_id, employee_id) values (gen_random_uuid(), " + EMPLOYEE + ")").update();
+        EmploymentRelationshipSeed.seed(jdbc, EMPLOYEE);
         command(COMMAND, 0);
         command(LATER_COMMAND, 1);
     }
 
     private void command(String id, int days) {
-        jdbc.sql("insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)"
-                + " values (" + id + ", " + EMPLOYEE + ", 'REGULARIZE', date '2026-11-01' + " + days + ", 'PENDING', now(), " + USER + ", now())").update();
+        jdbc.sql("insert into organization_workforce.personnel_commands (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)"
+                + " values (" + id + ", " + EmploymentRelationshipSeed.ref(EMPLOYEE) + ", " + EMPLOYEE + ", 'REGULARIZE', date '2026-11-01' + " + days + ", 'PENDING', now(), " + USER + ", now())").update();
     }
 
     /** Inserts a period of the employee; the extra arguments are column / value pairs (SQL literals) added to the base columns. */

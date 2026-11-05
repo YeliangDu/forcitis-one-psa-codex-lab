@@ -1,5 +1,7 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipEventIds;
+import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import com.forcitis.one.acceptance.AssignmentRoots;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -132,6 +134,7 @@ class HireOpensAccountIT extends EmployeeHireSupport {
     private UUID hireOn(LocalDate effective, String wecomUserId) {
         Map<String, Object> fields = new HashMap<>();
         fields.put(COMMAND_KIND, HIRE);
+        fields.put(TARGET_EMPLOYER_LEGAL_ENTITY_ID, legalEntity);
         fields.put(EFFECTIVE_DATE, effective);
         fields.put(TARGET_ORG_UNIT_ID, unit);
         fields.put(TARGET_POSITION_ID, positionFor());
@@ -169,7 +172,8 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         SecurityContextHolder.clearContext();
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.personnel.command.due")) {
             return new EmployeeHired(envelopes.wrap(new EventDraft("organization.workforce.EmployeeHired", 1, "Employee", employee, 1,
-                    new LegalEntityId(legalEntity), effective, List.of())), new PersonnelCommandId(command), employeeIdOf(employee), effective);
+                    new LegalEntityId(legalEntity), effective, List.of())), new PersonnelCommandId(command), employeeIdOf(employee), effective,
+                    EmploymentRelationshipEventIds.of(employee));
         }
     }
 
@@ -358,21 +362,18 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, "update employees set employment_status = 'SEPARATED', separated_at = ? where id = ?", at.minusDays(1), stored(person));
             update(workforce, """
-                    insert into employee_versions (employee_version_id, employee_id, effective_from_date, effective_to_date, closed_at, revision_number,
+                    insert into employment_relationship_versions (employment_relationship_id, employment_relationship_version_id, employee_id, effective_from_date, effective_to_date, closed_at, revision_number,
                       employment_status, employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
                       change_channel_kind, created_at, updated_at)
-                    values (?, ?, ?, ?, ?, 0, 'EMPLOYED', 'REGULAR', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""",
-                    com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), SINCE, yesterday, at, SINCE, at, at);
+                    values (?, ?, ?, ?, ?, ?, 0, 'EMPLOYED', 'REGULAR', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), SINCE, yesterday, at, SINCE, at, at);
             update(workforce, """
-                    insert into employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+                    insert into employment_relationship_versions (employment_relationship_id, employment_relationship_version_id, employee_id, effective_from_date, revision_number, employment_status,
                       is_on_unpaid_leave, is_fee_earner, change_channel_kind, created_at, updated_at)
-                    values (?, ?, ?, 0, 'SEPARATED', false, false, 'MIGRATION', ?, ?)""",
-                    com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), yesterday, at, at);
+                    values (?, ?, ?, ?, 0, 'SEPARATED', false, false, 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), yesterday, at, at);
             UUID root = AssignmentRoots.primaryOf(workforce, stored(person));
             update(workforce, AssignmentRoots.withRoot("""
-                    insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
-                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root),
-                    AssignmentRoots.arguments(root, com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), SINCE, stored(unit), newPosition(), at, at));
+                    insert into assignment_versions (employment_relationship_id, assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
+                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root), AssignmentRoots.arguments(root, EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), com.forcitis.one.kernel.Uuids.timeOrdered(NOW), stored(person), SINCE, stored(unit), newPosition(), at, at));
         }
     }
 
@@ -437,7 +438,8 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         // a redelivery is the same event (same envelope, same eventId) as a new object, the way the registry deserialises it again
         EmployeeHired again = employeeHired(command, employee, TODAY);
         UUID first = publishEmployeeHired(again);
-        UUID second = publishEmployeeHired(new EmployeeHired(again.envelope(), again.personnelCommandId(), again.employeeId(), again.effectiveDate()));
+        UUID second = publishEmployeeHired(new EmployeeHired(again.envelope(), again.personnelCommandId(), again.employeeId(), again.effectiveDate(),
+                again.employmentRelationshipId()));
         assertThat(second).as("premise: the redelivery carries the same eventId").isEqualTo(first);
         UUID another = publishEmployeeHired(employeeHired(command, employee, TODAY));
         for (UUID event : List.of(first, second, another)) {

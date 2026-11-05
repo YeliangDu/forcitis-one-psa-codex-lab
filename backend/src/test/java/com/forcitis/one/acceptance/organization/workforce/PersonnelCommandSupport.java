@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import com.forcitis.one.acceptance.AssignmentRoots;
+import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
@@ -139,13 +140,14 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
         UUID id = newEmployeeId();
         employee(id, orgUnit, null);
         try (Connection workforce = schemaConnection("organization_workforce")) {
+            UUID relationship = EmploymentRelationshipSeeds.relationshipOf(workforce, stored(id), stored(legalEntity));
             update(workforce, """
-                    insert into employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+                    insert into employment_relationship_versions (employment_relationship_id, employment_relationship_version_id, employee_id, effective_from_date, revision_number, employment_status,
                       employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
                       change_channel_kind, created_at, updated_at)
-                    values (?, ?, ?, 0, 'EMPLOYED', ?, false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""",
-                    Uuids.timeOrdered(NOW), stored(id), SINCE, phase, SINCE, OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC),
-                    OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC));
+                    values (?, ?, ?, ?, 0, 'EMPLOYED', ?, false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""",
+                    relationship, Uuids.timeOrdered(NOW), stored(id), SINCE, phase, SINCE,
+                    OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC), OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC));
             // #880 adds the command columns to assignment_versions; until it lands the seed is left out so that the tests fail on the missing
             // personnel command api, which is the point of the red run, and not on the seed. With #880 the row is always written.
             if (!query(workforce, "select 1 as present from information_schema.columns where table_schema = 'organization_workforce' and table_name = ? and column_name = ?",
@@ -153,9 +155,9 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
                 // #711: the version hangs on the employee's PRIMARY root once employee_assignments exists (AssignmentRoots).
                 UUID root = AssignmentRoots.primaryOf(workforce, stored(id));
                 update(workforce, AssignmentRoots.withRoot("""
-                    insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
-                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root),
-                    AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), stored(id), SINCE, stored(orgUnit), position,
+                    insert into assignment_versions (employment_relationship_id, assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
+                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root),
+                    AssignmentRoots.arguments(root, relationship, Uuids.timeOrdered(NOW), stored(id), SINCE, stored(orgUnit), position,
                     OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC), OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC)));
             }
         }
@@ -270,8 +272,8 @@ abstract class PersonnelCommandSupport extends AccountsAcceptanceSupport {
         OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, """
-                    insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
-                    values (?, ?, 'SEPARATE', ?, 'HELD', ?, ?, ?)""", command, stored(employee), TODAY.plusDays(10), at, hr.userId(), at);
+                    insert into personnel_commands (personnel_command_id, employee_id, employment_relationship_id, command_kind, effective_date, status, created_at, created_by, updated_at)
+                    values (?, ?, ?, 'SEPARATE', ?, 'HELD', ?, ?, ?)""", command, stored(employee), EmploymentRelationshipSeeds.relationshipOf(workforce, stored(employee)), TODAY.plusDays(10), at, hr.userId(), at);
             update(workforce, "insert into separation_holds (separation_hold_id, personnel_command_id, employee_id, status, created_at, updated_at) values (?, ?, ?, 'HELD', ?, ?)",
                     hold, command, stored(employee), at, at);
         }
