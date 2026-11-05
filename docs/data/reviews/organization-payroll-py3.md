@@ -1,6 +1,6 @@
 # Data design review: organization.payroll slice PY3 (bonus input manual port, one table)
 
-Card: PY3 of `docs/architecture/proposals/organization-payroll.md` section 10 (design card #1403). Basis: that spec sections 4.5, 5, 7, 8, 9 (P-9 answered) and done-when 11, ADR-0087 decision 5.3, ADR-0043 R-2, gate `docs/data/data-design-gate.md` appendix A, at origin/main `793c4dd02`. Signed by one-design (same form as `organization-payroll-py0.md`). The schema `organization_payroll` is created by PY0's migration; PY3 adds its table to it.
+Card: PY3 of `docs/architecture/proposals/organization-payroll.md` section 10 (design card #1403). Basis: that spec sections 4.5, 5, 7, 8, 9 (P-9 answered) and done-when 11, ADR-0087 decision 5.3, ADR-0043 R-2, gate `docs/data/data-design-gate.md` appendix A, at origin/main `793c4dd02`. Signed by one-design (same form as `organization-payroll-py0.md`, which lands first: PR #1425 is ahead in the merge queue; this record's schema statement depends on it). The schema `organization_payroll` is created by PY0's migration; PY3 adds its table to it.
 
 ## Scope
 
@@ -39,8 +39,9 @@ Keys: UUIDv7 `id`, primary key `pk_bonus_inputs`. Audit columns `created_at`, `u
 
 Constraints:
 
+- `ck_bonus_inputs_status` `status IN ('ACTIVE','VOIDED')`; `ck_bonus_inputs_reason_key` the format check above.
 - `ck_bonus_inputs_void_columns` `(status = 'VOIDED') = (voided_at IS NOT NULL) AND (voided_at IS NULL) = (voided_by_user_id IS NULL)`.
-- `uk_bonus_inputs_relationship_month_reason` partial unique `(employment_relationship_id, payroll_month_start_date, reason_key) WHERE status = 'ACTIVE'` (a voided input frees the key for a corrected one). **Difference from the sketch:** the sketch says one row per relationship and month; this key allows several reasons in the same month (for example a year-end and a project bonus) and refuses the same reason twice. The settlement sums the active rows of a month.
+- `uk_bonus_inputs_relationship_month_reason` partial unique `(employment_relationship_id, payroll_month_start_date, reason_key) WHERE status = 'ACTIVE'` (a voided input frees the key for a corrected one). **Difference from spec 4.5** (which says a row per relationship and payroll month; the section 8 sketch says one approved input per id): this key is my technical choice without a user decision (gate O3 wants a source: it is stated here as a design choice, and the user changes it with one constraint) and allows several reasons in the same month (for example a year-end and a project bonus) and refuses the same reason twice. The settlement sums the active rows of a month.
 - Trigger `tg_bonus_inputs_change` (and `tg_bonus_inputs_truncate`): insert only as `ACTIVE`; the only update is `ACTIVE` to `VOIDED` setting `status`, `voided_by_user_id`, `voided_at`, `updated_at` and nothing else; no delete (the purge function of P-9 is the only delete path, as the owner role, like W2's `purge_employee_history`). No other write.
 - Index `ix_bonus_inputs_entity_month` `(paying_legal_entity_id, payroll_month_start_date)`; the unique key above leads with `employment_relationship_id`.
 
@@ -49,7 +50,7 @@ Constraints:
 1. `amount` becomes `bonus_amount` plus `bonus_currency` (naming standard 2.4: every `_amount` pairs with a `_currency`); `reason_key`, `source_kind`, `approval_instance_id` as sketched.
 2. Added `entered_by_user_id` (the SoD rule of done-when 11 needs the enterer), `status` with the void pair, and the key above.
 
-None of these changes a command or an event.
+These two additions are **PY3 scope the spec does not list** (spec 4.5 names only `DetermineBonus` → `BonusDetermined` and a row without status; to be added to spec 4.5 and the PY3 card): (a) `RecordApprovedBonusInput`, run when the approval of an input completes (`platform.approval` result; `entered_by_user_id` is the approval's requester read through the approval api, payroll does not read approval tables; the amount and reason come from the approval's form payload, which therefore holds a per-person pay figure outside this table: its retention and classification follow the approval module's rules and are an owed check for the PY3 card, not decided here); (b) `VoidBonusInput`, run by a payroll-role holder, no approval of its own because it only withdraws an unconsumed input. State machine: `ACTIVE` (initial, set by (a)) → `VOIDED` (set by (b)); Java enum equals `ck_bonus_inputs_status`. Events: (a) is the entry of `BonusDetermined`'s input; the void raises no event of its own (recorded in `state_transitions` and the audit log; nothing downstream subscribes; if the settlement needs to know it re-reads active rows, below). No other command or event changes. B3a: states, enum, commands and events agree on this list.
 
 ## Invariants to constraints (B5, O4)
 
@@ -62,6 +63,7 @@ None of these changes a command or an event.
 | A row is never edited, only voided | `tg_bonus_inputs_change` | |
 | Settlement approver is not the input's enterer (done-when 11) | | cross-aggregate; checked by `ApproveMonthlyPayroll` against `entered_by_user_id` |
 | An input is voided only while no `APPROVED` settlement of its entity and month exists (P-R3: approved amounts never change) | | cross-aggregate; checked by the void command |
+| A void and a settlement approval do not race | | the void command takes `FOR UPDATE` on the settlement row of that entity and month first and is refused when it is `APPROVED`; a void after `CALCULATED` but before `APPROVED` is allowed and `ApproveMonthlyPayroll` re-reads the active rows and refuses ("recalculate") when their sum differs from the settlement's bonus lines |
 | The relationship is in service and `paying_legal_entity_id` is its paying entity in that month | | another context's data; checked by the entry command |
 | Input rows carry no event payload with the amount (P-R5) | | event schema contract test, not a table rule |
 
@@ -86,16 +88,16 @@ Thousands of rows a year; no partition, no hot-state partial index (almost all r
 
 ## Registry drafts and classification (C1 to C5)
 
-Registry: role `AGGREGATE_ROOT`, aggregate `BonusDetermination`, business key `[employment_relationship_id, payroll_month_start_date, reason_key]`, mutability `CONDITIONAL_UPDATE` with condition "`ACTIVE` to `VOIDED` once, setting the void pair (`tg_bonus_inputs_change`); no delete except the purge function", **retention: ten years after the person's last separation, removed by the purge route** (user 2026-11-05 「P-9 a」, lead fragment `2026-11-05-154025-one-lead-P-9-a`), lineage `NEW`, writers `organization.payroll`. Until the purge function covers payroll tables the registry line uses the same marker as the other per-person tables (`{policy: PERMANENT}` with the comment that the purge extension is owed, `data-access-registry.yaml` line 78 pattern); **owed**: extend the employee-history purge to `bonus_inputs` by `employment_relationship_id` (a later purge card; the PY3 implementation card must not claim the retention is enforced before then).
+Registry: role `AGGREGATE_ROOT`, aggregate `BonusDetermination`, business key `[employment_relationship_id, payroll_month_start_date, reason_key]`, mutability `CONDITIONAL_UPDATE` with condition "`ACTIVE` to `VOIDED` once, setting the void pair (`tg_bonus_inputs_change`); no delete except the purge function", **retention: ten years after the person's last separation, removed by the purge route** (user 2026-11-05 「P-9 a」, lead fragment `2026-11-05-154025-one-lead-P-9-a` (as relayed by lead; not verifiable in the repository until lead's batch merges)), lineage `NEW`, writers `organization.payroll`. Until the purge function covers payroll tables the registry line uses the same marker as the other per-person tables (`{policy: PERMANENT}` with the comment that the purge extension is owed, `data-access-registry.yaml` line 78 pattern); **owed**: the payroll context owns its own purge function (owner role, same trigger bypass as W2's `purge_employee_history`, which stays workforce's and never deletes in another schema), called through a port with the person's relationship ids once the person's last separation is ten years past ("last separation" is person-level and this table keys by relationship, so the purge card needs the person → relationships resolution); a later purge card, and the PY3 implementation card must not claim the retention is enforced before then. ADR-0043 R-2's test-readable reason field is not built yet; the registry line carries the user's decision source in its comment.
 
-Classification (`data-classification.txt`, access level `CONFIDENTIAL` per the user's answer):
+Classification (`data-classification.txt`). **Mapping:** the user's word `CONFIDENTIAL` (P-9 answer; the payroll and accounting specs use it) is not a register level: the register knows `PUBLIC|INTERNAL|SENSITIVE|RESTRICTED` (`ClassificationRegister`, test line 30 rejects `CONFIDENTIAL`), and its header puts 「工资与日薪」 at L3 `SENSITIVE`. So per-person pay columns are registered `SENSITIVE`; lead confirms this mapping with the user (it is the evident reading, not a new decision). Consequence of L3: these columns are not exposed raw in web or api output (masked, or an entry in `sensitive-response-exceptions.txt` for the payroll views) and never go into event payloads (C4; P-R5 already says so). Columns that do not carry the pay figure stay at the default level.
 
 | Column | Level | PI | Reason |
 |---|---|---|---|
-| `bonus_amount` | `CONFIDENTIAL` | `PI` | 用途：one person's bonus, the pay figure of a relationship |
-| `reason_key` | `CONFIDENTIAL` | `PI` | 用途：why a person received a bonus, tied to one relationship |
-| `bonus_currency`, `source_kind`, `payroll_month_start_date`, `status` | `CONFIDENTIAL` | `NONE` | 用途：qualify the pay figure; not identifying alone |
-| `entered_by_user_id`, `voided_by_user_id`, `voided_at` | `CONFIDENTIAL` | `NONE` | 用途：separation-of-duties and audit identities of staff acting in their role |
+| `bonus_amount` | `SENSITIVE` | `PI` | 用途：one person's bonus, the pay figure of a relationship |
+| `reason_key` | `SENSITIVE` | `PI` | 用途：why a person received a bonus, tied to one relationship |
+| `bonus_currency`, `source_kind`, `payroll_month_start_date`, `status` | `INTERNAL` | `NONE` | 用途：qualify the pay figure; not identifying alone |
+| `entered_by_user_id`, `voided_by_user_id`, `voided_at` | `INTERNAL` | `NONE` | 用途：separation-of-duties and audit identities of staff acting in their role |
 
 Surrogate and reference ids (`id`, `employment_relationship_id`, `paying_legal_entity_id`, `approval_instance_id`) are unregistered (default `INTERNAL`); reads are still restricted to payroll roles and the person themselves by the scope in spec section 5, not by the column level. Bonus amounts are `PI`, not `SPI`: legal's answer on pay as SPI (ADR-0043 U-5, U-11) is not on record here; if legal says SPI, `bonus_amount` changes to `SPI` in one line.
 
@@ -115,7 +117,7 @@ New table, no legacy table of this name, no data at creation (inputs come from t
 
 数据设计审查
 - 审查：one-design，2026-11-05，依据 origin/main `793c4dd02`
-- 判定：B1、B2、B3a、B4、B5、O3、O4、O6、O10、O11（千行级，无需分区）、O13、O14、O15、C1 至 C5、T1 至 T4、E1 通过；A1 至 A8 不适用（无分析事实）
+- 判定：B0（阶段入口，不适用）、B1、B2、B3（状态：ACTIVE/VOIDED，上文）、B3a（状态、枚举、命令、事件一致，见上文）、B4（跨 BC 无外键）、B5、B6（无跨表引用）、B7（枚举最小集，可无损加宽）、B8（术语：`bonus_input`、`reason_key` 等词不在 `terms.yaml`，与 L1a 先例相同，作为实现卡前置，须先在 `backend/glossary/proposed/` 提出）、O1、O2（UUIDv7 主键）、O3、O4、O5、O6、O7（作废只改列对，不改写）、O8（金额与币种成对）、O9、O10、O10a、O11（千行级，无需分区）、O12、O13、O14、O15、O16、C1 至 C5（分级按上文映射）、T1 至 T4、E1 通过；A1 至 A8 不适用（无分析事实，A6 已判）
 - 豁免与待用户决定：保留期与分级已由用户答复（P-9 a）；`PI` 还是 `SPI` 待法务（ADR-0043 U-5、U-11），现按 `PI`，改标记为一行改动；清除路径扩到薪酬表是后续清除卡的欠项
 - 结论：通过（仅 `bonus_inputs`）
 - 数据设计：通过（one-design，2026-11-05，依据 793c4dd02）
