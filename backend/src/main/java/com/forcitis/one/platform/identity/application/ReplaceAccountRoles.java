@@ -55,10 +55,12 @@ public class ReplaceAccountRoles {
     private final AuthorizationVoiding voiding;
     private final AdministratorFloor floor;
     private final AdministratorFloorNotice notice;
+    private final SubjectEmployment employment;
 
     ReplaceAccountRoles(AccountRepository accounts, RoleRepository roles, PrivilegeCeiling ceiling, SessionRevocation revocation,
             AccessCache cache, DomainEvents events, CurrentUser currentUser, AuthorizationGate gate, AuditLog audit, AccountGrants grants,
-            AdministratorFloor floor, AdministratorFloorNotice notice, AuthorizationVoiding voiding) {
+            AdministratorFloor floor, AdministratorFloorNotice notice, AuthorizationVoiding voiding, SubjectEmployment employment) {
+        this.employment = employment;
         this.voiding = voiding;
         this.grants = grants;
         this.floor = floor;
@@ -97,6 +99,9 @@ public class ReplaceAccountRoles {
             wanted.add(role.get());
         }
         Set<RoleCode> alreadyHeld = accounts.findAssignedRoleCodes(account.userId());
+        if (givesARole(wanted, alreadyHeld) && !employment.isEmployed(account)) {
+            return new AdminOutcome.Refused<>(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED);
+        }
         if (touchesSensitiveRole(wanted, alreadyHeld)) {
             Set<String> requested = new HashSet<>();
             boolean administrativeRole = false;
@@ -151,6 +156,11 @@ public class ReplaceAccountRoles {
         return new AuthorizationBase(account.version(), List.copyOf(versions));
     }
 
+    /** Taking roles away from a person who left stays possible; giving one does not (#1322). */
+    private static boolean givesARole(List<Role> wanted, Set<RoleCode> alreadyHeld) {
+        return wanted.stream().anyMatch(role -> !alreadyHeld.contains(role.code()));
+    }
+
     private boolean touchesSensitiveRole(List<Role> wanted, Set<RoleCode> alreadyHeld) {
         Set<RoleCode> wantedCodes = new HashSet<>();
         for (Role role : wanted) {
@@ -174,6 +184,10 @@ public class ReplaceAccountRoles {
     private Optional<Long> replace(UserAccount loaded, List<Role> wanted, AccountGrants.Origin origin, @Nullable AuthorizationRequest confirmed) {
         floor.lockDecisions();
         UserAccount account = accounts.findForUpdate(loaded.userId()).orElseThrow(() -> IdentityError.PLATFORM_IDENTITY_ACCOUNT_NOT_FOUND.refusal("no account"));
+        // Judged again under the account lock: the separation may have been handled between the first look and the lock (#1322).
+        if (givesARole(wanted, accounts.findAssignedRoleCodes(account.userId())) && !employment.isEmployed(account)) {
+            throw IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED.refusal("the person left before the grant was applied");
+        }
         if (confirmed == null && account.version() != loaded.version()) {
             throw IdentityError.PLATFORM_IDENTITY_CONCURRENT_UPDATE.refusal("account " + account.userId().value() + " was changed by someone else");
         }
