@@ -12,6 +12,7 @@ import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
 import com.forcitis.one.organization.attendance.domain.StandardHoursRepository;
+import com.forcitis.one.organization.attendance.domain.StandardHoursScopeTail;
 import com.jayway.jsonpath.JsonPath;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -113,6 +114,23 @@ class StandardHoursPublishGapsIT extends AcceptanceSupport {
         }
         reset(repository);
         assertThat(storedVersionCount(entity)).as("only the winner is stored").isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("#1335 a publish whose tail is stale because the winner committed before its insert: the ordering trigger refuses it and the answer is 409, not 500")
+    void losingToAnAlreadyCommittedPublishIsAConflict() throws Exception {
+        LocalDate today = shanghaiToday();
+        UUID entity = createLegalEntity(newEntityCode(), "Synthetic gap entity");
+        assertThat(publish(body(entity, today.plusDays(5), "Synthetic basis one", null)).getStatus()).isEqualTo(200);
+        doAnswer(call -> StandardHoursScopeTail.empty()).when(repository).tail(any());
+        for (int day : new int[] {3, 5, 8}) {
+            MockHttpServletResponse loser = publish(body(entity, today.plusDays(day), "Synthetic basis stale", null));
+
+            assertThat(loser.getStatus()).as("stale tail, date +" + day + ": " + loser.getContentAsString()).isEqualTo(409);
+            assertThat((String) JsonPath.read(loser.getContentAsString(), "$.errorCode")).isEqualTo("ORGANIZATION_ATTENDANCE_STANDARD_HOURS_OVERLAP");
+        }
+        reset(repository);
+        assertThat(storedVersionCount(entity)).as("only the first publish is stored").isEqualTo(1);
     }
 
     @Test
