@@ -632,7 +632,7 @@ def _queue(mq, d):
     assert 555 not in q.numbers() and not [f for f in os.listdir(os.path.dirname(qpath)) if f.startswith(".queue-")]
     q.remove(*range(1, 11)); q.enqueue(1, 2, 3, 4)
     assert q.enqueue(5, 6) == [5, 6] and q.enqueue(5) == [] and q.numbers().count(5) == 1
-    q.before(4, 1); q.before(99, 7777)
+    q.before(4, 1); assert q.before(99, 7777) is False and 99 not in q.numbers(), "before only reorders: an unqueued pull request goes through enqueue and its checks"
     open(qpath, "a").write("# note\n")
     q.remove(99); q.enqueue(98)
     assert q.numbers() == [4, 1, 2, 3, 5, 6, 98] and "# note" in open(qpath).read()
@@ -709,7 +709,7 @@ def _remove_busy(mq, d):
         except SystemExit as error:
             return str(error)
     q.mark_working(300)
-    assert "cannot be taken back" in cli("remove", "300") and cli("remove", "301", "300") and q.numbers() == [300, 301], "refused, and a refused call removes nothing"
+    assert "cannot be taken back" in cli("remove", "300") and cli("remove", "301", "300") and "mq.py enqueue 99" in (cli("before", "99", "300") or "") and q.numbers() == [300, 301], "refused, and a refused call removes nothing; before refuses an unqueued pull request (exit message names enqueue)"
     assert cli("remove", "301") is None and cli("remove", "--cancel", "300") is None and q.numbers() == [] and q.cancel_requested(300)
     q.unmark_working(300)
     assert not q.cancel_requested(300) and q.working() == {}

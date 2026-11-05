@@ -52,26 +52,28 @@ Evidence marks: **[V]** verified by me in the repo or against the cited source o
 ### 4.1 Tables
 
 ```
-employment_relationships                 -- entity in the Employee aggregate; rows never updated
+employment_relationships                 -- entity in the Employee aggregate; append-only except the one confirmation step (7)
   employment_relationship_id  uuid PK
   employee_id                 uuid NOT NULL FK employees
   employer_legal_entity_id    uuid NOT NULL FK legal_entities
   predecessor_relationship_id uuid NULL                       -- same employee, different employer
   employer_source_kind        text NOT NULL CHECK ('DECLARED','MIGRATION_ATTRIBUTION')
+  employer_confirmed_at       timestamptz NULL                -- only for MIGRATION_ATTRIBUTION rows, set once by HR (7)
   created_at                  timestamptz NOT NULL
   UNIQUE (employee_id, employer_legal_entity_id)
   UNIQUE (employment_relationship_id, employee_id)            -- composite FK target
   FK (predecessor_relationship_id, employee_id) -> (employment_relationship_id, employee_id)
   CHECK predecessor_relationship_id <> employment_relationship_id
+  CHECK employer_source_kind = 'MIGRATION_ATTRIBUTION' OR employer_confirmed_at IS NULL
 ```
 
-`employee_versions` (renamed in the schema PR; name proposed in the glossary file as `employment_relationship_versions`): add `employment_relationship_id NOT NULL`, composite FK `(employment_relationship_id, employee_id)`; exclusion `EXCLUDE (employment_relationship_id WITH =, daterange(...) WITH &&) WHERE superseded_at IS NULL` replaces the per-employee one.
+`employee_versions` (renamed in the schema PR to `employment_relationship_versions`; glossary name in the proposed file): add `employment_relationship_id NOT NULL`, composite FK `(employment_relationship_id, employee_id)` to the relationship. Per-relationship objects replace the per-employee ones: exclusion `EXCLUDE (employment_relationship_id WITH =, daterange(...) WITH &&) WHERE superseded_at IS NULL`; business key `UNIQUE (employment_relationship_id, effective_from_date, revision_number)` (revision numbers are counted **per relationship**, so two relationships may both have revision 0 on one day); `corrected_from_version_id` becomes a composite FK `(corrected_from_version_id, employment_relationship_id)` so a correction stays inside its relationship (as #711 did for assignments). `is_fee_earner` stays a column of this table; the person-level value is composed (6.2).
 
-`personnel_commands`: add `employment_relationship_id` **nullable with a per-kind CHECK**: NOT NULL for HIRE, REGULARIZE, TRANSFER, SEPARATE, REINSTATE, UNPAID_LEAVE_START/END, CORRECTION (names the relationship corrected), START_CONCURRENT, END_CONCURRENT; NULL for CHANGE_LEGAL_ENTITY (person-level attribution). HIRE also carries `target_employer_legal_entity_id` NOT NULL (HIRE only). Composite FK `(employment_relationship_id, employee_id)`.
+`personnel_commands`: add `employment_relationship_id` **nullable with a per-kind CHECK** (`ck_personnel_commands_employment_relationship`): NOT NULL for HIRE, REGULARIZE, TRANSFER, SEPARATE, REINSTATE, UNPAID_LEAVE_START/END, CORRECTION (names the relationship corrected), START_CONCURRENT, END_CONCURRENT; NULL for CHANGE_LEGAL_ENTITY (person-level attribution). Composite FK `(employment_relationship_id, employee_id)`. **No `target_employer_legal_entity_id` column**: HIRE names the employer in the request, the relationship row is created at entry and the employer is read from it (one place, no duplicate to keep consistent). For TRANSFER the id is the relationship the resulting assignment version belongs to (so a TRANSFER that moves the PRIMARY assignment to another relationship names the new one). `ck_personnel_commands_hire_columns` and `ck_personnel_commands_reinstate_columns` change: `target_org_unit_id` and `target_position_id` must be **both set or both NULL** (`... IS NULL) = (... IS NULL)`), `is_target_fee_earner` and `target_employment_phase_kind` stay NOT NULL. Both set = the entry also creates or continues the person's PRIMARY assignment; both NULL = an additional-employer HIRE/REINSTATE without an assignment (B-A), allowed only when the person already has a PRIMARY assignment in service on that day (application check under the root lock; invariant 6).
 
-`assignment_versions` / `employee_assignments`: add `employment_relationship_id NOT NULL` on the assignment root (an assignment belongs to one relationship). The one-PRIMARY rule stays **per person** (`uk_employee_assignments_primary` unchanged; ADR-0079 invariant 2): one person has one primary assignment root across all relationships. A relationship may have only CONCURRENT assignments or none.
+`assignment_versions` (not the assignment root): add `employment_relationship_id NOT NULL`, composite FK `(employment_relationship_id, employee_id)`. This follows the ADR-0086 consequence ("each version table gains the id"). Reason it is not on the root: the root is append-only and the PRIMARY root exists once per person for life (`uk_employee_assignments_primary`, ADR-0079 invariant 2), so a relationship id on the root could never follow the primary assignment to another relationship. On the version it can: moving the PRIMARY assignment (employer change in continuous service, or the primary relationship ends while another continues) closes the old PRIMARY version and appends a new version of the **same root** carrying the other relationship. The per-assignment exclusion (`ex_assignment_versions_overlap`, per `assignment_id`) is unchanged, so "one PRIMARY in service" still holds. A CONCURRENT root stays in one relationship for life (application check; ending it and starting a new one is the way to change). A command's relationship equals the relationship of the assignment version it produces, except for a PRIMARY TRANSFER that moves the primary (invariant 8); a date-dependent attribute of a version row, so an application check under the root lock.
 
-Unchanged: `employee_legal_entities`, `employees` (snapshot columns stay derived from the person-level verdict).
+Assignment-version revision numbers stay per employee (`uk_assignment_versions_revision` is unchanged; a primary moved to another relationship appends one row). Unchanged: `employee_assignments` (the root), `employee_legal_entities`, and the `employees` snapshot table (its derived columns `employment_status`, `is_fee_earner`, `separated_at` are composed by the rules in 6.2).
 
 ### 4.2 Invariants
 
@@ -81,6 +83,9 @@ Unchanged: `employee_legal_entities`, `employees` (snapshot columns stay derived
 4. Of the three legal-entity meanings (ADR-0079 invariant 4): meaning 1, IIT withholding and payroll run, by the **paying** entity (default: the relationship's employer; recorded by payroll if different); meaning 2, social insurance and housing fund, by the **relationship's employer** (this replaces "劳动合同的用人单位"); meaning 3, data scope and cost, by the attribution entity (unchanged). Changing one does not change the others.
 5. No relationship, no employer: HIRE always names the employer; there is no default employer.
 6. A person in service on D has exactly one PRIMARY assignment in service on D (as today); a command that would leave an in-service person without one is refused (6.3).
+7. SEPARATE takes effect on one relationship: the same transaction closes the open assignment versions **of that relationship only** (ADR-0068 part 3 item 3, narrowed); the person's other relationships and their assignments are untouched.
+8. A command's relationship equals the relationship of the assignment version **it produces**. Only a TRANSFER of the PRIMARY assignment may name a relationship different from the one of the version it acts on (moving the primary, 6.3), and then the target relationship must be in service on the effective day. A CONCURRENT root stays in one relationship.
+9. A void relationship (all its versions void, 5) is re-used by a later HIRE only if that HIRE has the same predecessor (both none, or the same); otherwise the HIRE is refused with a message naming the void relationship, because predecessor and source are immutable. Accepted limit: rare, and a refusal is safer than a wrong predecessor.
 
 ### 4.3 Employer succession (ADR-0079 invariant 14)
 
@@ -92,7 +97,7 @@ Every command names its relationship explicitly. Nothing infers a relationship f
 
 | Command | Binding |
 |---|---|
-| HIRE | Names `target_employer_legal_entity_id`. New person: employee and relationship are created **at command entry** (versions are written at entry, including future dates, ADR-0068 item 8, so the relationship row must exist then). Existing person, an employer with no relationship yet: second relationship ("additional employer", not a rehire). Existing person, same employer: this is REINSTATE. HIRE with `predecessor_relationship_id`: employer change in continuous service (below) |
+| HIRE | Names the employer entity in the request (stored once, on the relationship row, not on the command). New person: employee and relationship are created **at command entry** (versions are written at entry, including future dates, ADR-0068 item 8, so the relationship row must exist then). Existing person, an employer with no relationship yet: second relationship ("additional employer", not a rehire). Existing person, same employer: this is REINSTATE. HIRE with `predecessor_relationship_id`: employer change in continuous service (below) |
 | REGULARIZE, UNPAID_LEAVE_START/END | One relationship |
 | TRANSFER | Org-unit/position change on one assignment of one relationship. It **never changes the employer**. If the target unit's attribution entity differs from the person's, ADR-0073 applies unchanged (attribution change, countersign, `AWAITING_ATTRIBUTION_COUNTERSIGN`). If the target unit's attribution entity differs from the *relationship's employer*, allowed or refused is B-H (recommendation: allowed, since attribution and employer are independent meanings) |
 | SEPARATE | One relationship; HELD (separation hold for administrators) applies only to SEPARATE. Refused if the relationship carries the person's PRIMARY assignment and another relationship stays in service, unless the same entry moves the primary to the other relationship (6.3) |
@@ -101,15 +106,15 @@ Every command names its relationship explicitly. Nothing infers a relationship f
 | START_CONCURRENT, END_CONCURRENT | Name the relationship that employs the person in that role; the unit's attribution entity need not equal the employer (B-H) |
 | CHANGE_LEGAL_ENTITY | Person level (attribution), relationship id NULL |
 | Employer change in continuous service | One entry of two commands on the same effective date: SEPARATE on the old relationship, HIRE (with `predecessor_relationship_id`) on the new employer. The person stays in service; neither `EmployeeSeparated` nor `EmployeeHired` fires (6.1) |
-| Withdraw a pending HIRE | The command is withdrawn as today (ADR-0068 item 6); its versions are voided by the existing void-and-append mechanism. A relationship row left with no live version is "void": invisible to reads, and re-used by a later HIRE for the same pair (UNIQUE). Rows are never deleted |
+| Withdraw a pending HIRE | The command is withdrawn as today (ADR-0068 item 6); its versions are voided by the existing void-and-append mechanism. A relationship row left with no live version is "void": invisible to reads, and re-used by a later HIRE for the same pair (UNIQUE) under invariant 9. Rows are never deleted |
 
-**Same-day and after-separation rules** (ADR-0068 item 5) become **per relationship** for relationship-bound kinds: at most one open command per (relationship, effective date); after an unreversed SEPARATE on a relationship only REINSTATE may be entered later on *that relationship*. Person-level kinds (CHANGE_LEGAL_ENTITY) keep the per-employee rule with a NULL relationship id. This is what lets SEPARATE (old) and HIRE (new) share a date. Concurrency is unchanged: all commands lock the employee root row.
+**Same-day and after-separation rules** (ADR-0068 item 5) become **per relationship** for relationship-bound kinds: at most one open command per (relationship, effective date); after an unreversed SEPARATE on a relationship only REINSTATE may be entered later on *that relationship*. Person-level kinds (CHANGE_LEGAL_ENTITY) keep the per-employee rule with a NULL relationship id. A person-level command and a relationship-level command on the same day stay **refused** as today (application check under the root lock, because no single index spans both); the check excludes concurrent-post kinds the way today's per-employee index does (START_CONCURRENT, commands on a CONCURRENT assignment, and CHANGE_LEGAL_ENTITY is the person-level side), so it is no stricter than today. START_CONCURRENT stays outside the per-relationship rule and commands that act on an existing assignment (primary or concurrent) get a per-assignment rule (`uk_personnel_commands_open_per_assignment_day`, predicate widened from concurrent-only to every `target_assignment_id IS NOT NULL`), which also keeps "one open command per primary assignment per day" now that the per-employee index is gone, so today's allowance of a concurrent-post command beside a primary-assignment command on one day is kept. This is what lets SEPARATE (old) and HIRE (new) share a date. Concurrency is unchanged: all commands lock the employee root row.
 
 ## 6. Events and reads
 
 ### 6.1 Events: firing rules
 
-Event envelope stays the employee (aggregate) with `businessDate`; every event gains `employmentRelationshipId` additively. Person-level events:
+Event envelope stays the employee (aggregate) with `businessDate`; every person-level event except `EmployeeLegalEntityChanged` (attribution, person level) gains `employmentRelationshipId`, NOT NULL, additively (the relationship that triggered it; for `EmployeeSeparated` the last relationship to end). Person-level events:
 
 | Event | Fires when |
 |---|---|
@@ -119,24 +124,30 @@ Event envelope stays the employee (aggregate) with `businessDate`; every event g
 | EmployeeRegularized | each relationship's regularization (payload names the relationship) |
 | EmployeeTransferred | each TRANSFER (payload names the relationship and assignment) |
 | EmployeeCorrected | each CORRECTION (payload names the relationship) |
-| EmployeeUnpaidLeaveStarted | each UNPAID_LEAVE_START takes effect (built by PR #1287; payload names the relationship once ADR-0086 is built); identity's sensitive-role review reads it |
+| EmployeeUnpaidLeaveStarted | each UNPAID_LEAVE_START takes effect, per relationship (built by PR #1287; payload names the relationship once ADR-0086 is built); identity's sensitive-role review reads it. **Deliberately conservative**: the review runs even if the person keeps working in another relationship, which differs from the all-relationships rule for `onUnpaidLeave` in 6.2 (that rule is about availability for time and approval, this event is about account risk) |
 | EmployeeLegalEntityChanged | unchanged (attribution) |
 
 Relationship-level events (new; glossary names in the proposed file): **EmploymentRelationshipStarted** (HIRE or REINSTATE takes effect, or a second relationship begins), **EmploymentRelationshipEnded** (SEPARATE takes effect), **EmploymentRelationshipPhaseChanged** (regularization; later also type changes), **EmploymentRelationshipUnpaidLeaveChanged** (start and end), **EmploymentRelationshipCorrected**. Leave (RULE-515 triggers: start, regularization, unpaid-leave change, end, correction) and payroll subscribe to these, not to the person-level ones; identity keeps its existing subscriptions unchanged (the person-level events, including EmployeeUnpaidLeaveStarted).
 
 ### 6.2 Person-level reads over several relationships
 
-New api `EmploymentRelationships` (workforce): `on(employee, date)` returns the relationships in service that day (id, employer, phase kind, unpaid-leave flag); `get(id)`; `employerOn(id, date)`. No scalar `employerOf(employee, date)`.
+New api `EmploymentRelationships` (workforce): `on(employee, date)` returns the relationships in service that day (id, employer, `employerConfirmed`, phase kind, unpaid-leave flag); `get(id)` (also `employerConfirmed`); `employerOn(id, date)` (employer and `employerConfirmed`). No scalar `employerOf(employee, date)`.
 
 Composition for existing person-level reads (these are the recommended rules; the ones that change a business behaviour are B-I):
 
 | Read | Rule over relationships in service on D |
 |---|---|
 | `EmploymentVerdict` / in service | any relationship in service |
-| `availabilityOn.onUnpaidLeave` | true only if **all** in-service relationships are on unpaid leave |
+| `availabilityOn.onUnpaidLeave` | true only if **all** in-service relationships are on unpaid leave (unchanged) |
 | `availabilityOn.separationHeld` | true if **any** in-service relationship has a held SEPARATE (conservative: the administrator floor and approver choices care about the person) |
-| `availabilityOn.leaving` | true only if **all** in-service relationships have an effective SEPARATE ahead |
-| `feeEarner` | read from the person's PRIMARY assignment's position, so unchanged |
+| `availabilityOn.leaving` | true only if **every** in-service relationship is *gone* and **at least one** is leaving. A relationship is *gone* when it is leaving or on unpaid leave (today's single-relationship rule "unpaid leave, pending release and leaving all count as gone", `Availability`, user 2026-10-30). Without this, a person with one relationship held for separation and another on unpaid leave would be neither "all leaving" nor "all on unpaid leave" and would count as a usable administrator. A relationship is *leaving* by today's predicate, evaluated per relationship (`JdbcPersonnelCommandRepository.isLeaving`): a SEPARATE that carries a separation hold (HELD, or RELEASED while the command is still PENDING), or a PENDING UNPAID_LEAVE_START. A plain entered SEPARATE without a hold is not leaving today and stays so |
+| `feeEarner` | the `is_fee_earner` value of the version of the relationship that holds the PRIMARY assignment on D (the flag lives on the relationship version, written by HIRE, REINSTATE, TRANSFER; there is no "position decides" rule) |
+| `employees` snapshot columns | `employment_status` = EMPLOYED iff some relationship is in service on the snapshot day; `is_fee_earner` as in the row above; `separated_at` = NULL while any relationship is in service, else the latest end date over the person's relationships |
+| `isHeld`, `heldEmployees` (separation holds, pending-release reviews) | unchanged in meaning: HELD still applies to every SEPARATE command (a hold on a non-last relationship counts, B-I c); person-level answer = **any** in-service relationship held, per `separationHeld` above; the queries read `separation_holds` and `personnel_commands` and now also return the relationship id |
+| `isLeaving`, `excludedEmployees` (the leaving set; same predicate as `isLeaving`, callers name it `leaving`: administrator floor, unpaid-leave floor, assignee resolution) | person-level answer = **all** in-service relationships are leaving (ADR-0086 decision 4), exactly the `availabilityOn.leaving` rule above (every in-service relationship gone, at least one leaving); a person leaving on one relationship only, with another still working, is not in the set |
+| Command list visibility (data scope, ADR-0026 decision 1 item 9) | **unchanged**: HIRE and REINSTATE are visible by `target_org_unit_id`; every other kind by the person's assignment intervals (primary and concurrent) on the day before the effective date, as `JdbcCommandReadRepository` does today. An additional-employer HIRE or REINSTATE without a target org unit stays visible to the all-scope user only, as today; widening it to the primary assignment's unit would be a new data-scope rule and is not part of this card |
+| `employedIn`, `postsIn`, `hasEmployedFrom` (`JdbcOrgStructureCommandRepository`) | join assignment versions to relationship versions by `employment_relationship_id` (same employee guaranteed by the composite FK) |
+| Anniversary query (employment start month and day) | one row per relationship in service, from that relationship's version; reminders are per relationship |
 | `EmployeeProfile.orgUnitId` | the PRIMARY assignment's unit; non-null stays true because of invariant 6 |
 | Timesheet submission, approver resolution | unchanged person-level; whether a person on unpaid leave in one entity but working in another may submit time, and whose approver applies, are B-I |
 
@@ -148,7 +159,13 @@ Invariant 6 is checked at command entry under the employee root lock. SEPARATE o
 
 ## 7. Migration of today's rows
 
-One relationship per employee; `employer_legal_entity_id` = the attribution entity at the **first version date** (option 1) or the **current attribution** (option 2). Recommendation: current attribution at the migration date, because ADR-0073 attributes by day and the legacy single entity per person (A8, ADR-0073:67) means the early attribution may be a later correction; either way the value is `MIGRATION_ATTRIBUTION`, awaiting HR confirmation (B-B). Persons already employed by two entities today have only one relationship after migration; the second is entered afterwards as a back-dated HIRE (back-dating is allowed, ADR-0068 item 8) once HR lists them. Employees with no attribution timeline cannot be backfilled: reject list for HR, no guessing. Existing versions, commands and assignments gain the id by join on employee. Counts are aggregates only [U: not run].
+One relationship per employee. `employer_legal_entity_id` = the person's effective attribution entity at the **first version date** (the rule in the adopted ADR-0086 migration plan; the earlier draft's "current attribution" is withdrawn so that design and ADR agree). "Effective attribution" is what `LegalEntityResolution.resolve` computes today (`domain/LegalEntityResolution`): the employee's own periods first, otherwise the org unit's periods inherited up the org tree (`parentUnit` in `JdbcLegalEntityResolutionSources`); `EffectiveAttributionPeriods` only builds the periods of one subject, with corrections applied. A test compares the SQL backfill with `LegalEntityResolution.resolve` on a sample. `employer_source_kind = MIGRATION_ATTRIBUTION`, `employer_confirmed_at` NULL, awaiting HR confirmation (B-B). Persons already employed by two entities today have one relationship after migration; the second is entered afterwards as a back-dated HIRE (ADR-0068 item 8) once HR lists them. Employees with no attribution at the first version date are not backfilled: they appear on a reject list for HR, no guessing. **Who gets a relationship in the structural migration**: every employee who has a row in any of `employee_versions`, `assignment_versions` or a relationship-bound `personnel_commands` (a person with assignment versions but no employee version exists today, see `JdbcInitialVersionMigrationRepository`); the first version date is the earliest effective date among those rows. **`MigrateInitialVersions`** (an operations command that runs in production) keeps today's scope: employees with no employee version (`JdbcInitialVersionMigrationRepository`), including those that already have assignment versions. For an employee the structural migration already gave a relationship (assignment versions or commands exist) it uses that relationship; for an employee with no row anywhere it creates one the same way as the structural migration: attribution at the snapshot day, `MIGRATION_ATTRIBUTION`, unconfirmed; no attribution means refused and listed, as above. It never writes a version without a relationship.
+
+Two separate things:
+1. **Dev databases (baseline open).** One appended migration in `organization_workforce` (the open baseline allows editing the baseline, but the append-only tables need the drop-trigger, backfill, recreate-trigger sequence of `V20261103130000…employee_assignments.sql` section 2, and an appended step keeps that sequence testable). It adds the new table and columns nullable, backfills by join on employee (commands of every kind except CHANGE_LEGAL_ENTITY, which keeps a NULL relationship id), sets NOT NULL only if no NULL remains (on the version tables only), and **fails loudly with an aggregate count** otherwise. Dev databases are rebuilt per `docs/ops/runbooks/dev-db-rebuild.md`; no dev data needs preserving, but the backfill still runs, on whatever rows a freshly migrated database holds at that moment (integration-test seed rows, and any dev database not yet rebuilt); the migration has no effect on `legacy_numbers`.
+2. **Production history (ADR-0036).** Source-to-target mapping and the M6 reject register for rows without attribution are part of the migration mapping design, written when production data is brought in; this card does not decide them.
+
+Confirmation by HR is the only change a relationship row ever sees: it sets `employer_confirmed_at` once and changes nothing else, the employer included (4.1, trigger rule in appendix A). A wrong backfilled employer is **not** corrected in place (ADR-0086 decision 2: only legal succession re-points). In dev databases the baseline is rebuilt; for production history the employer per employee comes from the confirmed list before load (ADR-0036 mapping, written when production data is brought in), but that list is HR's check, not a precondition: every backfilled relationship (structural migration or `MigrateInitialVersions`) is `MIGRATION_ATTRIBUTION` and unconfirmed, as the ADR-0086 migration plan says. There is **no in-place or in-database correction of a wrong backfilled employer in this design**: voiding versions needs a personnel command and rewrites the superseded columns, and a corrected relationship could not be pointed at by the voided rows' corrections, so the path is not offered. Instead the design prevents the mistake from being loaded unseen and from being used unconfirmed. (1) **Dry run first**: `MigrateInitialVersions` has a dry-run mode that writes nothing. Its command output and audit record carry **aggregate counts only** (per employer entity, and the reject count); the per-person plan (employer entity, first version date) is personal data and goes only to HR through a controlled channel, never into command output, logs or this repo. HR checks the plan before the live run, so confirmation after load is normally a formality. (2) **Flag, not filter**: `EmploymentRelationships.on / get / employerOn` return `employerConfirmed` (true for `DECLARED` rows and for rows with `employer_confirmed_at` set); the port does not hide rows, and employee-level reads (in-service, availability, roster) are unaffected, so the migrated population stays visible. Employer-keyed consumers (leave accrual, payroll, social insurance; all unbuilt) must not act on `employerConfirmed = false`: that rule belongs to their cards and to ADR-0086's rollout order (confirm before leave and payroll read). Relationship events do not carry the flag and confirmation emits no event, so such consumers re-read `get` when they act and do not cache the employer. (3) ADR-0036 is the mechanism for production history: rehearsal on dev, then stage, trial-commit, check and sign-off before the load is committed; after it takes effect only whole-batch reversal and re-run exist. The relationships written by the structural migration and by `MigrateInitialVersions` are not a batch of that kind, so for them this card offers no correction after the live run; a wrong attribution found then is **open item OI-1 of this card (section 11, last item)**, to be settled in the ADR-0036 mapping design of the first production load, and until then that relationship stays unconfirmed and employer-keyed consumers do not act on it. A wrong value found after confirmation is a business change of employer and is entered as a new relationship with a predecessor. Counts are aggregates only [U: not run].
 
 ## 8. Legal check
 
@@ -176,23 +193,30 @@ The user answered all of B-A to B-I and the withholding point with 「按建议�
 
 ## 10. ADR-0086 (proposed) and what it supersedes
 
-One decision: employment relationship as an entity of the Employee aggregate with an immutable employer. Partial supersessions, listed in the ADR header (exact scope phrases there): ADR-0079 decision 3 item 1 (in-service sentence), decision 4 table row 1 (subscribers of person events) and the labour-contract row (employer change), decision 5 invariant 1, invariant 4 (social-insurance clause only; withholding stays with the paying entity), invariant 14 (succession rule), ADR-0068 item 5 (same-day and after-separation per relationship) and the item-1 sentence on commands and versions (now per relationship inside the aggregate), ADR-0084 decision 2 (whole item rewritten: employer is an attribute of the relationship). ADR-0073 is **not** superseded: TRANSFER never changes the employer, so decision 3 item 4 (cross-entity transfer countersign) keeps its meaning, which the retrieval record in the ADR confirms by search.
+One decision: employment relationship as an entity of the Employee aggregate with an immutable employer. Partial supersessions, listed in the ADR header (exact scope phrases there): ADR-0079 decision 3 item 1 (in-service sentence), decision 4 table row 1 (subscribers of person events) and the labour-contract row (employer change), decision 5 invariant 1, invariant 4 (social-insurance clause only; withholding stays with the paying entity; invariant 14 is not superseded: the succession rule 4.3 applies it), ADR-0068 item 5 (same-day and after-separation per relationship) and the item-1 sentence on commands and versions (now per relationship inside the aggregate), ADR-0084 decision 2 (whole item rewritten: employer is an attribute of the relationship). ADR-0073 is **not** superseded: TRANSFER never changes the employer, so decision 3 item 4 (cross-entity transfer countersign) keeps its meaning, which the retrieval record in the ADR confirms by search.
 
 ## 11. Done-when (one checkable line each)
 
 1. Glossary entries for the new names merged as `proposed` (`backend/glossary/proposed/employment-relationship.yaml`).
 2. Schema PR matches appendix A table by table; the UNIQUE rejects a second relationship for the same pair; the per-relationship exclusion rejects overlapping versions of one relationship but accepts overlapping versions of two relationships of one person; the per-kind CHECK rejects a NULL relationship id for HIRE and accepts it for CHANGE_LEGAL_ENTITY.
-3. Migration test: every existing employee has exactly one relationship, no version, command or assignment lacks one, employees without attribution appear in the reject list (aggregate count).
+3. Migration test: every existing employee with a row in the version, assignment-version or command tables has exactly one relationship, no version, no assignment version and no relationship-bound command (every kind except CHANGE_LEGAL_ENTITY) lacks one, `MigrateInitialVersions` writes the first employee versions of people who have assignment versions but no employee version on their existing relationship, creates an unconfirmed `MIGRATION_ATTRIBUTION` relationship for people with no row anywhere, and refuses those without attribution; the read port returns `employerConfirmed` false for a backfilled row, true after confirmation and for `DECLARED` rows, and employee-level reads are unaffected by it; `MigrateInitialVersions` dry run writes nothing, employees without attribution appear in the reject list (aggregate count).
 4. Person with two relationships, one ended: in service; both ended: SEPARATED; `EmployeeSeparated` fires once, on the last end only.
 5. Second-employer HIRE for an in-service person creates a second relationship without touching the first and without firing `EmployeeHired`.
 6. SEPARATE (old) + HIRE with predecessor on one date: person stays in service, neither `EmployeeSeparated` nor `EmployeeHired`, the same-day rule accepts both because it is per relationship.
 7. `EmploymentRelationships.on` returns both relationships in a dual-employment test; no scalar `employerOf(employee, date)` exists (grep).
 8. SEPARATE of the relationship holding the PRIMARY assignment while another stays in service is refused.
-9. The composition rules of 6.2 each have a test (unpaid leave all/any, separation hold, leaving).
-10. The leave read for L3 is exactly `on`, `get`, `employerOn`; RULE-515 triggers are covered by the five relationship events.
+9. The composition rules of 6.2 each have a test (unpaid leave all/any, separation hold, leaving), including: a person leaving on one relationship only is not in `excludedEmployees` and not `leaving`; a plain SEPARATE without a hold is not leaving; two relationships, one with a HELD SEPARATE and one on unpaid leave (and the same with a PENDING UNPAID_LEAVE_START) count as leaving and are not a usable administrator.
+10. The leave read for L3 is exactly `on`, `get`, `employerOn`, and leave acts on the employer only when `employerConfirmed` is true (checked in leave's own card). Confirmation emits no event and events do not carry the flag, so the rollout order fixes the gap: before leave or payroll goes live, every migrated relationship is confirmed or on the reject list (a release-gate check in aggregate counts); The migration step itself emits no events (a SQL backfill; `MigrateInitialVersions` publishes none, gate E3), so a migrated relationship has no creation event: at go-live leave and payroll each do one full read of the existing relationships (`on` / `get`) as the initial trigger. Every later change on a migrated relationship (SEPARATE, REGULARIZE, unpaid leave, correction) emits its relationship event as in 6.1, like any other relationship, and the five events cover creation only for relationships created after migration.
 11. Existing guards green; identity, approval, timesheet code unchanged in the schema PR.
+12a. At most one open command per employee and effective day produces a primary assignment version (TRANSFER or CORRECTION on the primary root, or a HIRE or REINSTATE with both target columns set): HIRE(B) + TRANSFER on the primary, and HIRE(B) + REINSTATE(C), are each refused by the application check under the root lock; SEPARATE(A) + HIRE(B) with predecessor (item 6) is accepted.
+12. Moving the PRIMARY assignment to another relationship appends a new version of the same root carrying the other relationship id; the old version closes; invariant 6 holds on every day (test with SEPARATE old + HIRE-with-predecessor on one date).
+13. A command whose relationship differs from the relationship of the assignment version it produces is refused, except a PRIMARY TRANSFER that moves the primary to a relationship in service that day; SEPARATE closes only the separated relationship's assignment versions.
+14. Revision numbers are per relationship: two relationships of one person each hold revision 0 on the same day.
+15. Confirmation: a MIGRATION_ATTRIBUTION row accepts exactly one update, `employer_confirmed_at` from NULL to a value with every other column unchanged; a second update, an update of the employer, or any update to a DECLARED row, is refused by the trigger.
 
 Out of scope: the labour contract zone, employment-type values (that card adds the type to the relationship versions), payroll's enrolment and withholding tables, the succession table (B-G), any code.
+
+OI-1 (open, not blocking this card's data design): correction of a wrong backfilled employer after the live run of the structural migration or `MigrateInitialVersions`. Needs an operations path under append-only rules (whole-person reversal and reload, or a successor relationship after confirmation, which would leave an employment period that did not exist and touches social-insurance口径). Owner: the ADR-0036 mapping design of the first production load; to be raised with the user there.
 
 ## 12. Evidence register
 
@@ -200,38 +224,115 @@ Out of scope: the labour contract zone, employment-type values (that card adds t
 
 ## Appendix A. 数据设计
 
-- 涉数据：是（新表 `employment_relationships`；改 `employee_versions`、`personnel_commands`、`employee_assignments`）。
-- 表 → 出处（B1、B2）：| `employment_relationships` | 信息图员工对象下的子实体；**请求 one-architecture 在信息图补一个雇佣关系实体或把它挂到员工对象（B1 的前置，未获答复前本卡不过门禁）** | 聚合 Employee（`built.yaml` 的 workforce 员工聚合；同 schema `organization_workforce`） | role 暂拟 `REFERENCE_HISTORY`，由 one-data 定 |
-- 状态、关系、基数（B3、B3a、B4）：本表无状态列（来源列 `employer_source_kind` 为二值 CHECK，来由见设计稿 4.1）；员工 1—N 关系（`employee_id` NOT NULL 外键）；关系 1—N 版本（复合外键）；关系 0..1 前任（复合外键，列注释「为空表示：非换用人单位产生」）；用人单位 N—1 `legal_entities`（同 schema 外键）。
+本附录是数据设计门禁（`docs/data/data-design-gate.md` 附录 A）的材料；4.1 节是形状，本附录是逐表、逐列、逐约束、逐索引的预期 diff 与各项判据。基线按卡版本 bfc8e6f6a 之后的修订（评审记录写入 docs/data/reviews 下以卡号命名的文件）。
+
+- 涉数据：是。新表 `employment_relationships`；改表三张：`employee_versions`（改名为 `employment_relationship_versions`）、`personnel_commands`、`assignment_versions`。`employee_assignments`（任职根）与 `employees` 不改结构。
+- 阶段（T2）：表属 `organization.workforce`，落在 W0（`docs/architecture/ssot/transitions/transitions.yaml` 的 W0，delivers 含 organization.workforce）；请假、薪资的读口径随各自的 W2、W4 建造（ADR-0086 头部阶段）。
+- 表 → 出处（B1、B2）：| `employment_relationships` | 信息图 OBJ-127 雇佣关系（`docs/architecture/ssot/objects/enterprise-info-map.md`，次级于 OBJ-56 人员，聚合内实体） | 聚合 Employee（注册表 `aggregate: Employee`，与兄弟表一致；同 schema `organization_workforce`） | role `AGGREGATE_CHILD` |
+- 状态、关系、基数（B3、B3a、B4）：
+  - 本表无状态列（`employer_source_kind` 二值 CHECK，来由见 4.1）；状态仍在版本表，取值集不变；命令种类 CHECK 不变。
+  - 员工 1—N 关系（`employee_id` NOT NULL 外键）；关系 1—N 版本（复合外键 `(employment_relationship_id, employee_id)`）；关系 1—N 任职版本（同形复合外键，关系 ID 在 `assignment_versions` 上，不在任职根上，理由见 4.1）；关系 1—N 命令（同形复合外键，命令的关系 ID 可空，见下）；关系 0..1 前任（复合外键 `(predecessor_relationship_id, employee_id)`，列注释「为空表示：非换用人单位产生」）；用人单位 N—1 `legal_entities`（同 schema 外键）。
+  - 版本更正限于同一关系：`corrected_from_version_id` 改复合外键 `(corrected_from_version_id, employment_relationship_id)`（参照 #711 对任职版本的做法）。
 - 不变量 → 约束（B5、O4）：
 
 | 不变量 | 承担者 | 无法落约束时的理由 |
 |---|---|---|
-| 4.2-1 一人一用人单位一段 | `UNIQUE (employee_id, employer_legal_entity_id)` | — |
-| 4.2-1 同一关系版本不重叠 | `EXCLUDE (employment_relationship_id =, daterange &&) WHERE superseded_at IS NULL` | — |
-| 前任属同一员工且不是自己 | 复合外键 + `CHECK <>` | — |
-| 命令的关系属本员工 | 复合外键 `(employment_relationship_id, employee_id)` | — |
-| 按种类关系 ID 是否可空 | `CHECK` 按种类 | — |
-| 4.2-2 用人单位不变 | 触发器拒绝改写（同 ADR-0068 第 7 项只追加） | 无法用静态约束 |
-| 4.2-3 在职判断 | 应用（读合成） | 跨行时间合成，非约束可表 |
-| 4.2-6 在职者有且仅有一个主任职 | `uk_employee_assignments_primary`（一根）+ 命令入口在锁住员工根后校验在职日有效 | 日期覆盖无法落约束 |
-| 同日一条、离职之后（按关系） | 部分唯一索引改为 `(employment_relationship_id, effective_date…)`（关系绑定种类）+ 应用校验 | 离职之后规则跨行，沿 ADR-0068 第 5 项，由应用校验 |
+| 4.2-1 一人一用人单位一段 | `uk_employment_relationships_employee_employer UNIQUE (employee_id, employer_legal_entity_id)` | — |
+| 4.2-1 同一关系版本不重叠 | `ex_employment_relationship_versions_overlap EXCLUDE (employment_relationship_id =, daterange &&) WHERE superseded_at IS NULL` | — |
+| 修订号按关系计 | `uk_employment_relationship_versions_revision UNIQUE (employment_relationship_id, effective_from_date, revision_number)` | — |
+| 更正留在本关系 | 复合外键 `(corrected_from_version_id, employment_relationship_id)` → 版本表 `UNIQUE (employment_relationship_version_id, employment_relationship_id)` | — |
+| 前任属同一员工且不是自己 | 复合外键 `(predecessor_relationship_id, employee_id)` + `ck_employment_relationships_predecessor_not_self` | — |
+| 关系属本员工（版本、任职版本、命令） | 三处复合外键 `(employment_relationship_id, employee_id)` → `employment_relationships UNIQUE (employment_relationship_id, employee_id)` | — |
+| 按种类关系 ID 是否可空 | `ck_personnel_commands_employment_relationship`（见 4.1） | — |
+| 4.2-2 用人单位不变 | 触发器 `tg_employment_relationships_append_only`：UPDATE 只放行一种——`employer_source_kind = 'MIGRATION_ATTRIBUTION'` 且旧值 `employer_confirmed_at IS NULL` 的行，把 `employer_confirmed_at` 由空变非空一次，其余列（含用人单位）必须逐列不变；之后与其余行一样冻结。用人单位从不原地改写（ADR-0086 决定 2）；DELETE 只放行表属主（ADR-0068 第 7 项）；TRUNCATE 拒绝 | 无法用静态约束 |
+| 确认列只对回填行有值 | `ck_employment_relationships_confirmed_only_migration` | — |
+| 4.2-3 在职判断 | 应用（读合成，6.2） | 跨行时间合成，非约束可表 |
+| 4.2-6 在职者有且仅有一个主任职 | `uk_employee_assignments_primary`（每人一根）+ `ex_assignment_versions_overlap`（按任职根不重叠，不改）+ 命令入口在锁住员工根后校验在职日有效 | 日期覆盖无法落约束 |
+| 4.2-7 离职只关本关系的任职版本 | 应用（同事务，沿 ADR-0068 第 3 项第 3 条，改为按关系） | 跨表同事务动作，非约束可表 |
+| 4.2-8 命令的关系 = 命令所产生任职版本的关系（只有移动主任职的 TRANSFER 可不同于所作用版本的关系，且目标关系当日在职）；兼职根终身在一个关系 | 应用，命令入口在员工根锁内校验 | 关系 ID 是版本行的、随日期变化的属性，外键只能指向根 |
+| 4.2-9 空关系复用条件 | 应用（命令入口校验前任相同） | 条件含命令里的前任，非静态约束可表 |
+| 同日一条（按关系） | `uk_personnel_commands_open_per_relationship_day (employment_relationship_id, effective_date) WHERE status IN ('PENDING','HELD','AWAITING_ATTRIBUTION_COUNTERSIGN') AND employment_relationship_id IS NOT NULL AND command_kind <> 'START_CONCURRENT' AND target_assignment_kind IS DISTINCT FROM 'CONCURRENT'`（谓词沿旧索引，只换键） | — |
+| 同日一条（人员层） | `uk_personnel_commands_open_person_day (employee_id, effective_date) WHERE status IN (...) AND employment_relationship_id IS NULL` | — |
+| 人员层与关系层命令同日仍拒绝（与现行为一致） | 应用（员工根锁内校验） | 两条索引键不同，无法由单个索引表达 |
+| 同一任职（主任职与兼职）同日只有一条未生效命令 | `uk_personnel_commands_open_per_assignment_day (target_assignment_id, effective_date) WHERE status IN (...) AND target_assignment_id IS NOT NULL`（谓词由「仅兼职」放宽到全部任职；原按人索引拆开后，移动主任职的两条同日 TRANSFER 写不同关系 ID 会漏过按关系索引，实测复现于第二轮审查）。继续主任职的 HIRE/REINSTATE 的 `target_assignment_id` 必空（`ck_personnel_commands_target_assignment`），按关系索引也覆盖不到它与「移动主任职的 TRANSFER」同日的情形（两条在不同关系上，实测复现于第三轮审查） | — |
+| 同一员工同一生效日，最多一条会产生主任职版本的未生效命令 | 应用（员工根锁内校验） | 产生主任职版本的命令 = 作用于主任职根的 TRANSFER / CORRECTION，加上两个目标列都有值的 HIRE / REINSTATE（继续主任职）；SEPARATE 只关闭版本、不产生版本，不算；换用人单位的 SEPARATE(A) + 继续主任职的 HIRE(B) 因而放行。键不同（关系不同、任职列为空），无法由单个索引表达；第 11 节加拒绝与放行用例 |
+| 合并一员一条 | `uk_personnel_commands_merge_assignment` 不改；合并生成的逐人 TRANSFER 带关系 ID，取自所作用任职版本 | — |
+| 带前任的 HIRE 须与前任关系的 SEPARATE 同日（连续任职） | 应用，员工根锁内校验（前任属同一员工由复合外键保证；前任的用人单位必然不同，由 `UNIQUE (employee_id, employer_legal_entity_id)` 与前任不是自己的 CHECK 隐含） | 跨命令、跨行的日期关系，非约束可表 |
+| 离职之后只能复职（按关系） | 应用（沿 ADR-0068 第 5 项，改为按关系） | 规则跨行，沿旧做法 |
+| HIRE/REINSTATE 带不带任职 | `ck_personnel_commands_hire_columns`、`ck_personnel_commands_reinstate_columns` 新写法（见 4.1）；不带任职只允许人员已有在职主任职（应用校验） | 「人员已有在职主任职」跨行日期覆盖 |
 
-- 用例 → 聚合 → 表（O1）：全部人事命令写 Employee 聚合：员工根（锁）、`employment_relationships`（仅 HIRE 入口）、版本表、命令表、任职表；一个事务，无多聚合例外。
-- 业务键、类别、时态（O3、O6）：| `employment_relationships` | `(employee_id, employer_legal_entity_id)` | 主数据 | 不需要版本：只追加、用人单位不变（继任另表，设计稿 4.3，暂不建） |
-- 查询路径（O10）：| 路径 | 过滤列 | 排序列 | 预期行数 | 分页 | 索引 |
-  - `on(employee, date)`：`employee_id` + 版本表 `(employment_relationship_id, 生效区间)` | 无 | 每人 ≤ 数条 | 无需分页（≤ 数条） | `ix_employment_relationships_employee (employee_id)`；版本表既有索引加 `employment_relationship_id` 前缀
-  - `get(id)`：主键
-  - 外键列索引：`predecessor` 复合外键列 `ix_employment_relationships_predecessor`；命令表与任职表新列各一个以它开头的索引。
-- 并发（O5）：沿用员工根行锁与员工 `version`（ADR-0068 第 1 项）；`employment_relationships` 不可变，无需 `version`，注册表 mutability 记 `APPEND_ONLY`。
-- 横切口径（O14）、法人与期间（O13）：日期按业务时区生效日；本表不带会计期间，用人单位法人 ID 即法人维度（不归「法人 × 期间」闸门，因不过账）。
-- ADR 条款对照（O15）：ADR-0033 第 1、2 项（UUIDv7 主键，已含）；ADR-0068 第 5、7 项（只追加，已含；同日一条改按关系）；ADR-0043 两维登记（本表无个人信息）；ADR-0079 不变量 2（主任职按人，已含）。
-- 值对象（O16）、自由文本：无自由文本、无 `jsonb`；继任表的「法律依据引用」届时按 C4 清单。
-- 注册表条目草稿（C2、C3、C5）：role 待 one-data；mutability `APPEND_ONLY`；retention 随员工历史（离职满十年清除，沿 ADR-0068 第 7 项的清除函数，须把本表加入清除函数）；lineage 来自 HIRE 命令；writers workforce 人事命令用例；readers workforce、经 `EmploymentRelationships` api 读的 leave 与 payroll。
-- 分级表（C4）：| `employer_legal_entity_id` | 内部 | 非个人信息 | 用途：定社保与请假口径 |；`employee_id` 沿 `employees` 既有级别；`employer_source_kind` 内部。
-- 表注释与列注释草稿（C1）：表「一个自然人与一个用人单位之间的雇佣关系，终身不删」；`predecessor_relationship_id` 「为空表示非连续任职换用人单位产生」；`employer_source_kind` 「MIGRATION_ATTRIBUTION 表示由迁入按归属法人回填、待人事确认」。
-- 分析事实（A1–A8）：无分析事实（本卡不增指标）。
-- 基线 / 目标 / 过渡 / 回滚（T1–T4）：基线 = 每员工一段（第 7 节）；回滚见 ADR-0086：落地后不可回滚。
-- 专项（E1–E3）：事件载荷各加 `employmentRelationshipId`（向后兼容）；读模型 `EmploymentRelationships`；迁入映射第 7 节。
-- 预期表结构 diff：见 one-data 签发后的架构 PR；形状即 4.1，预期新增 1 表、3 表各加 1 列、1 个排他约束改键、1 个部分唯一索引改键、若干 CHECK。
-- 签发：待 one-data（审查记录写入 docs/data/reviews 下以卡号命名的文件）。
+- 用例 → 聚合 → 表（O1）：全部人事命令写 Employee 聚合：员工根（锁）、`employment_relationships`（HIRE 入口建；运维命令 `MigrateInitialVersions` 保持现行范围（没有员工版本的人）：结构迁移已建关系的沿用，三处都无行的按归属建 `MIGRATION_ATTRIBUTION` 关系，再写版本；HR 确认回填关系是唯一的更新）、版本表、命令表、任职表；一个事务，无多聚合例外。
+- 业务键、类别、时态（O3、O6）：
+
+| 表 | 业务键 | 类别 | 时态 |
+|---|---|---|---|
+| `employment_relationships` | `(employee_id, employer_legal_entity_id)` | 维度型：根表只存不变的身份列（D17 细则 5），生效区间在版本表；除确认回填外不改写 | 无区间（身份不随日期变）；继任另表，4.3，暂不建 |
+| `employment_relationship_versions`（原 `employee_versions`） | `(employment_relationship_id, effective_from_date, revision_number)` | `DIMENSION_VERSIONED`（不变），生效依据 `DECLARED` | 区间 + 修订；粒度：每个雇佣关系的每个生效区间每个修订一行；列覆盖不变（既有列全部保留，新增关系 ID） |
+| `assignment_versions` | 不变（`(assignment_id, ...)`） | 不变 | 不变；新增关系 ID 列 |
+| `personnel_commands` | `personnel_command_id` | 不变 | 不变 |
+
+- 查询路径与预算（O10、O10a）：预算类别按 guiding-principles §7a R-P1（详情 200 ms、列表 300 ms、命令 500 ms）。多段关系下语义变化的既有路径一并列出，写法按关系连接，或先按关系读再按人合成（6.2）。
+
+| 路径 | 过滤列 | 排序列 | 预期行数 | 分页 | 索引 | 预算 |
+|---|---|---|---|---|---|---|
+| `EmploymentRelationships.on(employee, date)`（返回 `employerConfirmed`，由关系表的 `employer_source_kind`、`employer_confirmed_at` 推出，不过滤） | `employee_id`、日期 ∈ 区间、`superseded_at IS NULL` | 无 | 每人 ≤ 数条 | 无需 | `ix_employment_relationship_versions_employee (employee_id, effective_from_date) WHERE superseded_at IS NULL` | 详情 |
+| `get(id)`、`employerOn(id, date)`（继任表未建，等于 `get`；同样返回 `employerConfirmed`） | 主键 | — | 1 | — | 主键 | 详情 |
+| `employmentOn`、`isOnLeave`（`JdbcEmployeeVersionQueries`）：由 `.optional()` 改为读多行后按 6.2 合成；`availabilityOn` 的在职与停薪留职部分来自这里，待放行与将离职部分来自下一行 | 同 `on` | 无 | ≤ 数条 | 无需 | 同上 | 详情 |
+| 在职名册与 `SELECT_STAFF_ON_DAY`（`OrgSnapshotRows`、`JdbcEmployeeRosterQueries`）：现按 `employee_id` 左连接版本，两段在职会连出两行 | 日期、`employment_status = 'EMPLOYED'` | `employee_id`（键集） | 全员数量级，千级 | 键集分页，页大小受限 | 新索引 `ix_employment_relationship_versions_employee`（排他约束的 gist 改为按关系后，按员工与日期的访问靠它），连接后按 `employee_id` 去重（`EXISTS`，不用 `DISTINCT` 外连）；人员层字段 `employment_status`、`is_fee_earner`、`hire_date` 取日上含主任职的那段关系，无主任职则取起始日最早的在职关系；没有在职关系（全部已离职）时取结束日最晚的那段关系，`posts_day` 为它的结束日减一，与 `separated_at` 取最晚结束日一致；`posts_day` 其余情形同理 | 列表 |
+| `OPEN_HOLDERS`（`JdbcOrgStructureCommandRepository`）：任职版本与员工版本现按 `employee_id` 连接 | 组织单元、日期 | — | 每单元 ≤ 百级 | 无需 | 任职版本既有索引 + 连接条件改为 `employment_relationship_id`（两表同值，复合外键保证同员工） | 列表 |
+| 满周年查询（`ix_employee_versions_employment_start_month_day`） | 月日、`employment_status = 'EMPLOYED'` | — | 当月周年者 | 批处理按键集 | 同名索引随改名重建（`ix_employment_relationship_versions_employment_start_month_day`），结果按关系计（6.2） | 批处理（无请求预算） |
+| 迁入拒收清单 | 无归属员工 | — | 聚合计数 | — | 一次性运维查询，不建索引 | 无请求预算 |
+| 待放行离职集合 `isHeld`、`heldEmployees`（任一段即是）与将离职集合 `isLeaving`、`excludedEmployees`（同一谓词：带 hold 的 SEPARATE 或 PENDING 的 UNPAID_LEAVE_START；人员层按 6.2「已走」规则合成：每段在职关系都已走（将离职或停薪留职）且至少一段是将离职；`excludedEmployees()` 另有四个调用方直接使用：AdministratorHoldCheck、ReleaseSeparationHoldByOperations、SeparationHoldReview、UnpaidLeaveStartFloor，都必须得到同一合成结果）（`JdbcPersonnelCommandRepository`；合成需要「某日哪些关系在职、哪些关系正停薪留职」，所以除 `separation_holds` 与命令表外还读关系版本表，并带「按哪一天」日期参数，取各调用方现用的日期；`availabilityOn` 经 `OrgDirectoryService` 调用它们） | `employee_id`、状态、生效日 | 无 | 每人 ≤ 数条；集合查询千级 | 集合查询键集分页 | 命令表既有状态、日期索引 + `ix_personnel_commands_relationship`；按关系求值再按 6.2 合成 | 详情（单人）/ 列表（集合） |
+| 命令列表（`JdbcCommandReadRepository`，数据范围，规则不变：HIRE/REINSTATE 按目标部门，其余按生效日前一天的任职区间） | 数据范围单位、状态 | 生效日、命令 ID（键集） | 页大小受限 | 键集 | 既有索引；任职区间连接不变 | 列表 |
+| `employedIn`、`postsIn`、`hasEmployedFrom`（`JdbcOrgStructureCommandRepository`，按 `employee_id` 连版本） | 部门/岗位、日期 | — | 每单元 ≤ 百级 | 无需 | 连接条件改为 `employment_relationship_id` | 列表 |
+| 外键列索引 | — | — | — | — | `ix_employment_relationships_employer_legal_entity_id (employer_legal_entity_id)`；前任复合外键 `ix_employment_relationships_predecessor (predecessor_relationship_id, employee_id) WHERE predecessor_relationship_id IS NOT NULL`；版本表 `ix_employment_relationship_versions_relationship_employee (employment_relationship_id, employee_id)` 覆盖复合外键；任职版本 `ix_assignment_versions_relationship (employment_relationship_id, employee_id)`；命令表 `ix_personnel_commands_relationship (employment_relationship_id, employee_id) WHERE employment_relationship_id IS NOT NULL` | — |
+
+  不建冗余索引：`employment_relationships` 的 `employee_id` 查询由 `UNIQUE (employee_id, employer_legal_entity_id)` 的前缀承担，不另建 `ix_employment_relationships_employee`。
+
+- 并发（O5）：沿用员工根行锁与员工 `version`（ADR-0068 第 1 项，`select … for update`）；`employment_relationships` 除确认回填外不可变，确认更新发生在员工根锁内；注册表 mutability 记 `CONDITIONAL_UPDATE`（见下）。
+- 横切口径（O14）、法人与期间（O13）：日期按业务时区的生效日；关系不是过账单据，不归「法人 × 期间」闸门，用人单位法人 ID 就是法人维度。
+- 迁移形态（O12、T3、T4）：见第 7 节。开放期内：追加一个迁移，加表加列先可空、回填、有空则整体失败并报聚合数、无空才设 NOT NULL；三张只追加表（版本、命令、任职版本）的回填要先拆各自的追加触发器、补写、再重建（`V20261103130000…employee_assignments.sql` 第 2 节同一做法）；版本表改名同迁移内完成，同步重命名下列对象。回滚：随库重建（`docs/ops/runbooks/dev-db-rebuild.md`）。生产历史迁入（ADR-0036）的映射与 M6 拒收登记另写。
+- ADR 条款对照（O15）：
+  - ADR-0086 决定 1（实体在员工聚合内）：本表同 schema、锁员工根。决定 2（用人单位不变）：触发器；回填确认只置确认时刻，不改用人单位，所以没有偏离决定 2。决定 3（按关系排他、种类 CHECK、主任职按人）：同日索引、种类 CHECK、主任职一根加任职版本上的关系 ID。决定 4（人员层合成）：6.2 的读路径行。决定 4 的「将离职要求所有在职关系都是」按「每段关系是否已走（将离职或停薪留职）」解释，理由是现行「统一都算已走」（用户 2026-10-30），否则一段待放行加一段停薪留职会被算成可用管理员（6.2 `leaving` 行）；决定 5、6（按关系各算与扣缴、读与事件）：6.1 与下文事件目录；ADR-0086「迁移方案」一节：第 7 节，按归属建 `MIGRATION_ATTRIBUTION` 且未确认，无归属进拒收清单，与之一致；接口返回 `employerConfirmed` 标记、不过滤，按用人单位取值的消费方在未确认时不得据此行事；装载前先试运行给人事核对，错误归属在装载处修正（第 7 节）。ADR-0086 影响面的「任职版本表增列」：本设计放在 `assignment_versions` 上，与之一致。
+  - ADR-0033 第 1、2 项（UUIDv7 主键）；ADR-0068 第 5 项（同日一条、离职之后改为按关系）、第 3 项第 3 条（离职关任职改为按关系）、第 7 项（只追加；DELETE 只放行表属主；新表触发器照此写）；ADR-0043 两维登记（本表含个人信息，见分级）；ADR-0079 不变量 2（主任职按人，已含）。
+- 值对象（O16）、自由文本：无自由文本、无 `jsonb`；api 里关系 ID 用强类型 `EmploymentRelationshipId`；继任表的「法律依据引用」届时按 C4 清单。
+- 注册表条目草稿（C2、C3、C5）：
+  - `organization_workforce.employment_relationships`：`role: AGGREGATE_CHILD`；`aggregate: Employee`；`mutability: CONDITIONAL_UPDATE`，`condition: 只有 employer_source_kind 为 MIGRATION_ATTRIBUTION 且 employer_confirmed_at 为空的行可更新一次（只置确认时刻，用人单位不变），之后冻结（触发器 tg_employment_relationships_append_only，ADR-0086 决定 2 的回填确认）`；`business_key: [employee_id, employer_legal_entity_id]`；`retention: {policy: PERMANENT}` 加注释「个人任职史随员工清除：离职满 10 年删除，沿 `retention-proposal.md:18`；清除次序：保全 → 版本 → 命令 → 任职根 → 雇佣关系（关系最后删，其余三表对它有 RESTRICT 外键），须把本表加入清除函数」；`lineage: {source: NEW}`（回填行参照 `employee_assignments` 的注释写法）；`references: {predecessor_relationship_id: organization_workforce.employment_relationships, employer_legal_entity_id: organization_workforce.legal_entities}`；`writers: [organization.workforce]`；readers 不登记 leave、payroll（它们经 `EmploymentRelationships` api 读，不直接读表）。
+  - `organization_workforce.employment_relationship_versions`：沿原 `employee_versions` 条目改名，`references` 加 `employment_relationship_id`，`corrected_from_version_id` 指向改名后的表。`data-classification.txt` 三行（`employment_status`、`is_fee_earner`、`employment_start_date`）与 `unversioned-table-writes.txt` 两行（`JdbcPersonnelCommandRepository`、`JdbcInitialVersionMigrationRepository`）的键名跟着改名；`unversioned-table-writes.txt` 新增 `employment_relationships` 的写入方行（HIRE 入口、`MigrateInitialVersions`、迁移回填、确认四处）。
+  - 改名同迁移内重命名的对象：主键 `pk_`、外键 `fk_` 四条、`uk_employee_versions_revision`、`ex_employee_versions_overlap`、全部 `ck_employee_versions_*`、索引 `ix_employee_versions_*`、触发器 `tg_employee_versions_append_only(_truncate)`、函数 `refuse_employee_version_rewrite`，一律换 `employment_relationship_versions` 前缀。
+- 分级表（C4）：| 列 | 访问级别 | 个人信息 | 理由 |
+  - `employment_relationships.employee_id`｜INTERNAL｜PI｜用途：关联自然人与其用人单位；个人信息 PI（沿员工任职史）
+  - `employment_relationships.employer_legal_entity_id`｜INTERNAL｜PI｜用途：某自然人受雇于哪个法人，属就业信息，社保与请假口径据此定；个人信息 PI（与 `employee_versions.employment_status` 同判）
+  - `employment_relationships.predecessor_relationship_id`｜INTERNAL｜PI｜用途：换用人单位的前后关系，属就业历史；个人信息 PI
+  - `employment_relationships.employer_source_kind`、`employer_confirmed_at`｜INTERNAL｜PI｜用途：就业信息来源与确认记录；个人信息 PI
+  - `personnel_commands.employment_relationship_id`｜INTERNAL｜PI｜用途：命令所涉的雇佣关系；个人信息 PI
+  - `assignment_versions.employment_relationship_id`、`employment_relationship_versions.employment_relationship_id`｜INTERNAL｜PI｜用途：任职与状态历史所属的雇佣关系；个人信息 PI
+- 表注释与列注释草稿（C1）：
+  - 表 `employment_relationships`：「雇佣关系：一个自然人与一个用人单位之间的在职关系，员工聚合内的实体；终身不删；除迁入回填行的一次确认外只追加；粒度：每个员工与每个用人单位一行」。
+  - 列：`employment_relationship_id`「雇佣关系 ID（UUIDv7）」；`employee_id`「员工 ID」；`employer_legal_entity_id`「用人单位（法人 ID），决定社保公积金与请假口径；建立后不变」；`predecessor_relationship_id`「为空表示非连续任职换用人单位产生」；`employer_source_kind`「DECLARED 人事申报 / MIGRATION_ATTRIBUTION 迁入按归属法人回填、待人事确认」；`employer_confirmed_at`「为空表示回填行尚未确认或非回填行；回填行确认后置值，之后冻结；确认不改用人单位」；`created_at`「创建时间」。
+  - 改名后版本表表注释：在原注释上改为「粒度：每个雇佣关系的每个生效区间每个修订一行」；`employment_relationship_id`「所属雇佣关系，复合外键保证同一员工」。
+  - 命令表 `employment_relationship_id`「命令所属的雇佣关系；为空表示人员层命令（变更法人归属），其余种类必填」；任职版本 `employment_relationship_id`「本任职版本所属的雇佣关系；主任职换关系时追加新版本，同一任职根不变」。
+  - 新 CHECK 名：`ck_employment_relationships_predecessor_not_self`、`ck_employment_relationships_employer_source_kind`、`ck_employment_relationships_confirmed_only_migration`、`ck_personnel_commands_employment_relationship`。
+- 分析事实（A1–A8）：无分析事实（本卡不增指标）；A6 不适用。
+- 基线 / 目标 / 过渡 / 回滚（T1–T4）：基线 = 每员工一段（第 7 节）；过渡 = 追加迁移加回填，有拒收则整体失败；回滚 = 开放期随库重建，生产前不涉及；ADR-0086「落地后不可回滚」指推翻决定，不指表结构。
+- 专项（E1–E3）：
+  - 事件：`EmployeeHired / Regularized / Transferred / Separated / Reinstated / Corrected / UnpaidLeaveStarted` 各加 `employmentRelationshipId`（uuid，非空，向后兼容，ADR-0035 第 3 条）；`EmployeeLegalEntityChanged` **不加**（人员层归属）。
+  - 新增五个事件的目录条目草稿（格式按 `docs/architecture/events/workforce.yaml` 现有条目；发布方 `organization.workforce`；信封 aggregate Employee，`aggregateId` 员工 ID，信封 `legalEntityId` 取员工在生效日的归属法人，与现有事件一致；用人单位在负载 `employerLegalEntityId`）：
+
+| 事件 | 触发 | 负载（均 uuid / LocalDate，不含个人信息） | businessDate | 消费方 | publisherTest |
+|---|---|---|---|---|---|
+| EmploymentRelationshipStarted | HIRE 或 REINSTATE 生效，或第二段关系开始 | personnelCommandId、employeeId、employmentRelationshipId、employerLegalEntityId、predecessorRelationshipId（可空）、effectiveDate | effectiveDate | `platform.audit`；`noConsumer`（leave、payroll 尚未建，按关系订阅，现在发布是因为补不回） | `…workforce.domain.EmploymentRelationshipEventsTest` |
+| EmploymentRelationshipEnded | SEPARATE 生效 | personnelCommandId、employeeId、employmentRelationshipId、effectiveDate | effectiveDate | 同上 | 同上 |
+| EmploymentRelationshipPhaseChanged | REGULARIZE 生效（以后含用工类型变化） | personnelCommandId、employeeId、employmentRelationshipId、phaseKind（PROBATION/REGULAR）、effectiveDate | effectiveDate | 同上 | 同上 |
+| EmploymentRelationshipUnpaidLeaveChanged | UNPAID_LEAVE_START / END 生效 | personnelCommandId、employeeId、employmentRelationshipId、onUnpaidLeave（boolean）、effectiveDate | effectiveDate | 同上 | 同上 |
+| EmploymentRelationshipCorrected | CORRECTION 生效 | personnelCommandId、employeeId、employmentRelationshipId、correctedFromEffectiveDate、effectiveDate | 更正后的生效日 | 同上 | 同上 |
+
+  - 读模型：`EmploymentRelationships` 是对自有表的只读 api，不是投影表，不涉及重算与对账（E2）；迁入映射见第 7 节（E3）。
+- 预期表结构 diff（逐表）：
+  1. 新表 `organization_workforce.employment_relationships`：列、主键、`UNIQUE (employee_id, employer_legal_entity_id)`、`UNIQUE (employment_relationship_id, employee_id)`、外键（员工、法人、前任复合）、4 条 CHECK、索引 `ix_employment_relationships_employer_legal_entity_id`、`ix_employment_relationships_predecessor`、触发器与函数 `tg_employment_relationships_append_only(_truncate)` / `refuse_employment_relationship_rewrite`、表与列注释。
+  2. `employee_versions` → `employment_relationship_versions`：**主键列 `employee_version_id` 改名 `employment_relationship_version_id`**（连同引用它的自引用外键 `corrected_from_version_id`、列注释与代码别名）；加 `employment_relationship_id`；复合外键；`uk_…_revision` 改键；`ex_…_overlap` 改键；`corrected_from_version_id` 外键改复合并加 `UNIQUE (employment_relationship_version_id, employment_relationship_id)`；索引 `ix_employment_relationship_versions_employee`、`…_relationship_employee`；对象改名（见上）；注释。
+  3. `personnel_commands`：加 `employment_relationship_id`（可空）；复合外键；`ck_personnel_commands_employment_relationship`；`ck_personnel_commands_hire_columns`、`ck_personnel_commands_reinstate_columns` 改写；旧 `uk_personnel_commands_open_per_day` 删，换 `uk_personnel_commands_open_per_relationship_day` 与 `uk_personnel_commands_open_person_day`；`uk_personnel_commands_open_per_assignment_day` 谓词放宽到全部任职；`ix_personnel_commands_relationship`；注释。**不加** `target_employer_legal_entity_id`。
+  4. `assignment_versions`：加 `employment_relationship_id`；复合外键；`ix_assignment_versions_relationship`；注释。
+  5. 计数：新增 1 表；改 3 表（版本表改名并加 1 列、命令表加 1 列、任职版本加 1 列）；排他约束 1 个改键；唯一键 1 个改键（`uk_…_revision`）；部分唯一索引 1 个拆为 2 个、1 个放宽谓词；新增 UNIQUE 3 条（关系表 2 条、版本表 1 条）；CHECK 新增 4 条、改写 2 条；外键新增 6 条（其中复合 4 条：前任、版本、命令、任职版本；简单 2 条：员工、法人）、改写 1 条（`corrected_from_version_id` 改复合）。
+  6. 注册表、`data-classification.txt`、`unversioned-table-writes.txt` 的键名与新条目如上。
+- 签发：数据设计签发由 one-design 承担（`docs/rules/roles/design.md`）；本附录作者即 one-design，故由独立审查员按门禁评审，记录写入 docs/data/reviews 下以卡号命名的文件，签发行格式见门禁附录 B。

@@ -19,7 +19,7 @@
 tables:
   cost_timesheet.consumed_events:
     role: IDEMPOTENCY
-    mutability: APPEND_ONLY
+    mutability: INSERT_DELETE
     retention: {policy: 90d, job: cost.timesheet.consumed.events.purge}
     lineage: {source: NEW}
     writers: [cost.timesheet]

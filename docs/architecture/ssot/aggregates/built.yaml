@@ -392,6 +392,7 @@ aggregates:
   - AuthorizationVoiding
   - ConfirmAuthorizationRequest
   - HandleEmployeeSeparated
+  - ListAuthorizationRequests
   - RejectAuthorizationRequest
   - ReplaceAccountRoles
   events:
@@ -543,6 +544,7 @@ aggregates:
   - DeleteRole
   - ForceUserLogout
   - GrantRoleByOperations
+  - ListAuthorizationRequests
   - OrgUnitScopes
   - PermissionAdjustmentEscalationNotice
   - ReplaceAccountRoles
