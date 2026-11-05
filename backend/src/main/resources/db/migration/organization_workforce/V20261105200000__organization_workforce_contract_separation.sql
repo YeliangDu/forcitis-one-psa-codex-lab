@@ -1,9 +1,11 @@
--- #1438（WC1，劳动合同与离职申请三表，数据设计签字记录 docs/data/reviews/workforce-contract-separation-wc0.md）。
+-- #1438（WC1，劳动合同与离职申请三表，按数据设计签字记录 workforce-contract-separation-wc0）。
 -- 只建结构与 separation_bases 种子；没有合同行也没有申请行（旧系统导入是 WC5）。迁移基线开放期内，工作队的新表以新迁移加入（V20261105120000 先例）。
+-- 与签字记录的差异：依据清单的主键是 UUID 列 separation_basis_id，依据键改为命名唯一约束（主键守护 PrimaryKeyTypeGuardTest / ADR-0033 不容文本主键，豁免名单只留五张框架表）；引用方的外键仍指向依据键，同 platform_audit.audit_subject_kinds。
 -- 回滚：三表为空时删三表与 personnel_commands 上新加的唯一约束；有数据之后另起迁移。
 
 -- 1. 离职依据清单：配置表，行只经迁移进出。
 CREATE TABLE organization_workforce.separation_bases (
+    separation_basis_id    uuid        NOT NULL,
     separation_basis_key   text        NOT NULL,
     display_name           text        NOT NULL,
     default_initiator_kind text        NOT NULL,
@@ -12,13 +14,15 @@ CREATE TABLE organization_workforce.separation_bases (
     is_active              boolean     NOT NULL,
     created_at             timestamptz NOT NULL,
     updated_at             timestamptz NOT NULL,
-    CONSTRAINT pk_separation_bases PRIMARY KEY (separation_basis_key),
+    CONSTRAINT pk_separation_bases PRIMARY KEY (separation_basis_id),
+    CONSTRAINT uk_separation_bases_separation_basis_key UNIQUE (separation_basis_key),
     CONSTRAINT ck_separation_bases_key_format CHECK (separation_basis_key ~ '^[A-Z][A-Z0-9_]{1,39}$'),
     CONSTRAINT ck_separation_bases_display_name CHECK (char_length(display_name) BETWEEN 1 AND 60 AND btrim(display_name) <> ''),
     CONSTRAINT ck_separation_bases_default_initiator_kind CHECK (default_initiator_kind IN ('EMPLOYEE', 'EMPLOYER', 'BOTH')),
     CONSTRAINT ck_separation_bases_system_only_not_employer CHECK (NOT (is_system_only AND is_employer_initiated))
 );
-COMMENT ON TABLE organization_workforce.separation_bases IS '离职依据清单：离职申请与合同终止所选的法定依据键；配置表，行只经迁移进出，退役的键留着供旧行引用；不含个人信息；规则：任何键不得表达医疗原因或暴露健康的法条子项（第 40 条只有一个键）';
+COMMENT ON TABLE organization_workforce.separation_bases IS '离职依据清单：离职申请与合同终止所选的法定依据键；配置表，行只经迁移进出，退役的键留着供旧行引用；不含个人信息；粒度：每个依据一行；规则：任何键不得表达医疗原因或暴露健康的法条子项（第 40 条只有一个键）';
+COMMENT ON COLUMN organization_workforce.separation_bases.separation_basis_id IS '依据 ID（UUIDv7，迁移里由数据库生成）；业务键是依据键，引用方用依据键';
 COMMENT ON COLUMN organization_workforce.separation_bases.separation_basis_key IS '依据键（大写字母、数字、下划线）';
 COMMENT ON COLUMN organization_workforce.separation_bases.display_name IS '中文显示名，1 至 60 字';
 COMMENT ON COLUMN organization_workforce.separation_bases.default_initiator_kind IS '表单预选的发起方：EMPLOYEE 员工 / EMPLOYER 用人单位 / BOTH 双方';
@@ -29,20 +33,20 @@ COMMENT ON COLUMN organization_workforce.separation_bases.created_at IS '创建�
 COMMENT ON COLUMN organization_workforce.separation_bases.updated_at IS '最近变更时间；行只经迁移变更';
 
 -- 值按用户 2026-11-05 的 Q-1 (a)：法条依据；待法务与旧表核对，只差异找用户。第 40 条合并为一个键；任何键不暴露健康原因。
-INSERT INTO organization_workforce.separation_bases (separation_basis_key, display_name, default_initiator_kind, is_employer_initiated, is_system_only, is_active, created_at, updated_at) VALUES
-    ('RESIGN_WITH_NOTICE',        '提前通知辞职（第 37 条）',            'EMPLOYEE', false, false, true, now(), now()),
-    ('RESIGN_IN_PROBATION',       '试用期辞职（第 37 条）',              'EMPLOYEE', false, false, true, now(), now()),
-    ('EMPLOYER_FAULT_RESIGNATION', '因单位过错劳动者解除（第 38 条）',    'EMPLOYEE', false, false, true, now(), now()),
-    ('MUTUAL_AGREEMENT',          '协商一致解除（第 36 条）',            'BOTH',     false, false, true, now(), now()),
-    ('FAULT_DISMISSAL',           '过错性解除（第 39 条）',              'EMPLOYER', true,  false, true, now(), now()),
-    ('NO_FAULT_DISMISSAL',        '无过失性解除（第 40 条）',            'EMPLOYER', true,  false, true, now(), now()),
-    ('ECONOMIC_LAYOFF',           '经济性裁员（第 41 条）',              'EMPLOYER', true,  false, true, now(), now()),
-    ('CONTRACT_EXPIRY',           '合同期满终止（第 44 条）',            'BOTH',     false, false, true, now(), now()),
-    ('DEATH_OR_DISSOLUTION',      '劳动者死亡或单位解散（第 44 条）',     'BOTH',     false, false, true, now(), now()),
-    ('RETIREMENT',                '退休',                                'EMPLOYEE', false, false, true, now(), now()),
-    ('OTHER_STATUTORY',           '其他法定情形',                        'BOTH',     false, false, true, now(), now()),
-    ('EMPLOYER_CHANGE',           '换用人单位（系统）',                  'BOTH',     false, true,  true, now(), now()),
-    ('MIGRATION',                 '迁入（系统）',                        'BOTH',     false, true,  true, now(), now());
+INSERT INTO organization_workforce.separation_bases (separation_basis_id, separation_basis_key, display_name, default_initiator_kind, is_employer_initiated, is_system_only, is_active, created_at, updated_at) VALUES
+    (uuidv7(), 'RESIGN_WITH_NOTICE',        '提前通知辞职（第 37 条）',            'EMPLOYEE', false, false, true, now(), now()),
+    (uuidv7(), 'RESIGN_IN_PROBATION',       '试用期辞职（第 37 条）',              'EMPLOYEE', false, false, true, now(), now()),
+    (uuidv7(), 'EMPLOYER_FAULT_RESIGNATION', '因单位过错劳动者解除（第 38 条）',    'EMPLOYEE', false, false, true, now(), now()),
+    (uuidv7(), 'MUTUAL_AGREEMENT',          '协商一致解除（第 36 条）',            'BOTH',     false, false, true, now(), now()),
+    (uuidv7(), 'FAULT_DISMISSAL',           '过错性解除（第 39 条）',              'EMPLOYER', true,  false, true, now(), now()),
+    (uuidv7(), 'NO_FAULT_DISMISSAL',        '无过失性解除（第 40 条）',            'EMPLOYER', true,  false, true, now(), now()),
+    (uuidv7(), 'ECONOMIC_LAYOFF',           '经济性裁员（第 41 条）',              'EMPLOYER', true,  false, true, now(), now()),
+    (uuidv7(), 'CONTRACT_EXPIRY',           '合同期满终止（第 44 条）',            'BOTH',     false, false, true, now(), now()),
+    (uuidv7(), 'DEATH_OR_DISSOLUTION',      '劳动者死亡或单位解散（第 44 条）',     'BOTH',     false, false, true, now(), now()),
+    (uuidv7(), 'RETIREMENT',                '退休',                                'EMPLOYEE', false, false, true, now(), now()),
+    (uuidv7(), 'OTHER_STATUTORY',           '其他法定情形',                        'BOTH',     false, false, true, now(), now()),
+    (uuidv7(), 'EMPLOYER_CHANGE',           '换用人单位（系统）',                  'BOTH',     false, true,  true, now(), now()),
+    (uuidv7(), 'MIGRATION',                 '迁入（系统）',                        'BOTH',     false, true,  true, now(), now());
 
 CREATE FUNCTION organization_workforce.guard_separation_basis_change() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
 DECLARE

@@ -16,7 +16,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-/** #1438 (WC1, data design signed in docs/data/reviews/workforce-contract-separation-wc0.md): the schema-level done-when items 1 to 7 of the three tables. */
+/** #1438 (WC1, data design signed in the WC0 record workforce-contract-separation-wc0): the schema-level done-when items 1 to 7 of the three tables. */
 class ContractSeparationTablesIntegrationTest extends WorkforceIntegrationSupport {
     private static final String CONTRACTS = "organization_workforce.employment_contracts";
     private static final String REQUESTS = "organization_workforce.separation_requests";
