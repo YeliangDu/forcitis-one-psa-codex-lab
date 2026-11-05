@@ -24,7 +24,7 @@ Relationship ids (`employment_relationship_id`) and person ids (`employee_id`), 
 | `monthly_confirmations` | AGG-97 (4.6) | MonthlyConfirmation | `AGGREGATE_ROOT`, `MUTABLE` until `LOCKED` |
 | `monthly_confirmation_lines` | AGG-97 lines (4.6) | MonthlyConfirmation | `AGGREGATE_CHILD`, `REPLACE_SET` while `GENERATED` |
 
-Audit columns: `created_at`, `updated_at` on every mutable or replaceable table; `version bigint NOT NULL DEFAULT 0` on the three roots that carry optimistic locking (`leave_requests`, `overtime_requests`, `monthly_confirmations`); append-only tables (`leave_request_holds`, `attendance_records`) carry `created_at` only. All keys are UUIDv7 `id`, primary key `pk_<table>`.
+Audit columns: `created_at`, `updated_at` on every mutable or replaceable table; `version bigint NOT NULL DEFAULT 0` on the three roots that carry optimistic locking (`leave_requests`, `overtime_requests`, `monthly_confirmations`); append-only tables (`leave_request_holds`, `attendance_records`) carry `created_at` and `updated_at` too, because `DdlNamingTest` requires both on every table; on these two `updated_at` is set equal to `created_at` on insert and never changed (their update-blocking trigger already forbids any update). Amended 2026-11-05 on a question from the L1a card (#1412); the first version of this record wrongly gave `created_at` only. All keys are UUIDv7 `id`, primary key `pk_<table>`.
 
 ## Columns and constraints
 
