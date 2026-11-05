@@ -228,9 +228,13 @@ class Queue:
             self._write([l for l in self._read() if not ((m := LINE.match(l)) and int(m.group(1)) in prs)])
 
     def before(self, pr, other):
+        """Move a queued pull request in front of another; False (nothing written) when pr is not queued: only enqueue admits, and it runs the checks."""
         with self.locked():
-            own = next((l.strip() for l in self._read() if (m := LINE.match(l)) and int(m.group(1)) == pr), str(pr))
-            lines = [l for l in self._read() if not ((m := LINE.match(l)) and int(m.group(1)) == pr)]
-            at = next((i for i, l in enumerate(lines) if (m := LINE.match(l)) and int(m.group(1)) == other), len(lines))
-            lines.insert(at, own)
+            lines = self._read()
+            own = next((l.strip() for l in lines if (m := LINE.match(l)) and int(m.group(1)) == pr), None)
+            if own is None:
+                return False
+            lines = [l for l in lines if not ((m := LINE.match(l)) and int(m.group(1)) == pr)]
+            lines.insert(next((i for i, l in enumerate(lines) if (m := LINE.match(l)) and int(m.group(1)) == other), len(lines)), own)
             self._write(lines)
+            return True

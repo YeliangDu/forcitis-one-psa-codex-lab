@@ -18,7 +18,7 @@ record PublishStandardHoursRequest(@Nullable UUID legalEntityId, @Nullable Local
 
     record OverrideRequest(@Nullable LocalDate workDate, @io.swagger.v3.oas.annotations.media.Schema(type = "integer") @Nullable BigDecimal minutes, @Nullable String reason) {
         DateOverrideEntry toOverride() {
-            return new DateOverrideEntry(required(workDate, "workDate"), wholeMinutes(minutes, "minutes"), required(reason, "reason").strip());
+            return new DateOverrideEntry(required(workDate, "workDate"), wholeMinutes(minutes, "minutes"), requiredText(reason, "reason"));
         }
     }
 
@@ -26,7 +26,7 @@ record PublishStandardHoursRequest(@Nullable UUID legalEntityId, @Nullable Local
         List<DateOverrideEntry> overrides = dateOverrides == null ? List.of() : dateOverrides.stream().map(o -> required(o, "dateOverrides item").toOverride()).toList();
         return new PublishStandardHoursCommand(legalEntityId == null ? null : new LegalEntityId(legalEntityId),
                 required(effectiveFromDate, "effectiveFromDate"), wholeMinutes(workdayMinutes, "workdayMinutes"),
-                wholeMinutes(adjustedWorkdayMinutes, "adjustedWorkdayMinutes"), overrides, required(basisRef, "basisRef").strip());
+                wholeMinutes(adjustedWorkdayMinutes, "adjustedWorkdayMinutes"), overrides, requiredText(basisRef, "basisRef"));
     }
 
     static <T> T required(@Nullable T value, String field) {
@@ -34,6 +34,15 @@ record PublishStandardHoursRequest(@Nullable UUID legalEntityId, @Nullable Local
             throw new DomainException(AttendanceError.ORGANIZATION_ATTENDANCE_STANDARD_HOURS_INVALID, ErrorKind.INVALID, field + " is required");
         }
         return value;
+    }
+
+    /** PostgreSQL cannot store NUL in text: left alone it would surface as a 500 from the insert. */
+    static String requiredText(@Nullable String value, String field) {
+        String text = required(value, field);
+        if (text.indexOf('\u0000') >= 0) {
+            throw new DomainException(AttendanceError.ORGANIZATION_ATTENDANCE_STANDARD_HOURS_INVALID, ErrorKind.INVALID, field + " must not contain a NUL character");
+        }
+        return text.strip();
     }
 
     static int wholeMinutes(@Nullable BigDecimal value, String field) {

@@ -36,9 +36,11 @@ public class GrantRoleByOperations {
     private final DomainEvents events;
     private final SingleOperatorMarks marks;
     private final AccountGrants grants;
+    private final SubjectEmployment employment;
 
     GrantRoleByOperations(AccountRepository accounts, RoleRepository roles, AccountProvisioning provisioning,
-            SessionRegistry sessions, AccessCache cache, DomainEvents events, SingleOperatorMarks marks, AccountGrants grants) {
+            SessionRegistry sessions, AccessCache cache, DomainEvents events, SingleOperatorMarks marks, AccountGrants grants, SubjectEmployment employment) {
+        this.employment = employment;
         this.accounts = accounts;
         this.roles = roles;
         this.provisioning = provisioning;
@@ -58,6 +60,10 @@ public class GrantRoleByOperations {
         UserAccount account = accounts.findForUpdate(person).orElseThrow(() -> new IllegalStateException("account " + person.value() + " vanished"));
         if (account.roles().contains(role.roleId())) {
             return false;
+        }
+        // Judged under the account lock, as ReplaceAccountRoles does: a person who left gets no role, also from operations (#1333).
+        if (!employment.isEmployed(account)) {
+            throw IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED.refusal("the person left; no role is granted");
         }
         Set<RoleId> wanted = new HashSet<>(account.roles());
         wanted.add(role.roleId());

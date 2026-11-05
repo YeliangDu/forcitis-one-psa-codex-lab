@@ -1,6 +1,7 @@
 """Generate docs/adr/current.md: which ADRs are in force per BC, which are superseded, and which clauses were partly superseded by whom.
 
 Usage: python3 -I build_adr_current.py [--self-test]
+Fails (exit 1) when an adopted ADR's header BC names an id that docs/architecture/ssot/domain/contexts.yaml does not have (全局 and 待定 excepted).
 Reads the ADR headers (状态, 类别, BC, 取代, 被部分取代) and docs/adr/catalog.yaml (bc, category, partially_superseded; it stops at ADR-0051,
 later ADRs are read from their headers only). The page is generated, never hand-edited.
 """
@@ -14,6 +15,8 @@ import yaml
 REPO = Path(__file__).resolve().parents[2]
 ADR = REPO / "docs/adr"
 OUT = ADR / "current.md"
+CONTEXTS = REPO / "docs/architecture/ssot/domain/contexts.yaml"
+NOT_AN_ID = ("全局", "待定")
 REF = re.compile(r"ADR-(\d{4})")
 STATE_WORDS = ("已采纳", "提议", "搁置", "已废弃", "已拒绝", "已撤回")
 
@@ -107,6 +110,17 @@ def render(adrs):
     return "\n".join(lines)
 
 
+def unknown_bcs(adrs, context_ids):
+    """{bc: [adr numbers]} for adopted ADRs whose header BC is not a contexts.yaml id."""
+    out = collections.defaultdict(list)
+    for n, a in adrs.items():
+        if a["state"] == "已采纳":
+            for bc in a["bc"]:
+                if bc not in NOT_AN_ID and bc not in context_ids:
+                    out[bc].append(n)
+    return out
+
+
 def self_test():
     import tempfile
     with tempfile.TemporaryDirectory() as d:
@@ -122,6 +136,14 @@ def self_test():
     assert "ADR-0001 ← ADR-0002 决定 1、决定 2" in page, page
     assert "ADR-0003 T0003 → ADR-0002" in page and "- ADR-0003 T0003" not in page.split("## 整份被取代")[0]
     assert "决定 9" not in page, "a proposal does not supersede anything yet"
+    with tempfile.TemporaryDirectory() as d2:
+        d2 = Path(d2)
+        (d2 / "catalog.yaml").write_text("adrs: []\n", encoding="utf-8")
+        for n, state, bc in (("0001", "已采纳", "platform.x"), ("0002", "已采纳", "全局"), ("0003", "提议", "platform.nope")):
+            (d2 / f"ADR-{n}.md").write_text(f"# ADR-{n}：T{n}\n\n- **状态**：{state}\n- **类别**：方法\n- **BC**：\n  - {bc}\n\n## 背景\n", encoding="utf-8")
+        adrs2 = load(d2)
+        assert not unknown_bcs(adrs2, {"platform.x"}), "known id, 全局 and a proposal pass"
+        assert dict(unknown_bcs(adrs2, set())) == {"platform.x": ["0001"]}, "break test: removing the context id goes red"
     print("self-test ok")
 
 
@@ -129,5 +151,11 @@ if __name__ == "__main__":
     if "--self-test" in sys.argv:
         self_test()
     else:
-        OUT.write_text(render(load()), encoding="utf-8")
+        adrs = load()
+        missing = unknown_bcs(adrs, {c["id"] for c in yaml.safe_load(CONTEXTS.read_text(encoding="utf-8"))["contexts"]})
+        if missing:
+            for bc, ns in sorted(missing.items()):
+                print(f"{bc}: named by adopted " + ", ".join(f"ADR-{n}" for n in ns) + f" but missing from {CONTEXTS.relative_to(REPO)}")
+            sys.exit(1)
+        OUT.write_text(render(adrs), encoding="utf-8")
         print(f"wrote {OUT.relative_to(REPO)}")

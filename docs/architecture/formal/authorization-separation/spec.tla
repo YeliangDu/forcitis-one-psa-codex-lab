@@ -5,7 +5,7 @@ EXTENDS Naturals, FiniteSets
 P == {"p1", "p2", "p3"}
 
 VARIABLES
-    sep,   \* separation progress per person: in = employed / pend = separation in effect, identity has not revoked yet / done = revoked
+    sep,   \* separation progress per person: in = employed / pend = separation in effect, identity has not revoked yet / done = revoked and the account marked separated (#1326: every account is marked, one without roles too; the aggregate then refuses any grant, and the directory view above covers the window before the mark)
     adm,   \* whether the person holds the administrator role (may request, confirm, reject)
     any,   \* whether the person holds any role (whether revocation moves the account version)
     rq     \* the single authorization request
@@ -24,7 +24,7 @@ Init ==
 \* Employed holders of the administrator role (directory view: a person whose separation is in effect does not count, revoked or not)
 Avail == {q \in P : adm[q] /\ sep[q] = "in"}
 
-\* ReplaceAccountRoles.execute (#1322): a role is not given to a person the directory shows as separated; nobody grants to themselves
+\* ReplaceAccountRoles.execute (#1322) and GrantRoleByOperations.execute (#1333): a role is not given to a person the directory shows as separated; nobody grants to themselves
 Request(r, s) ==
     /\ rq.st = "none"
     /\ adm[r]
