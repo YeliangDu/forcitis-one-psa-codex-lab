@@ -361,10 +361,10 @@ contexts:
   kind: business
   status: planned
   schema: contract_agreement
-  blueprint_bc: B-05
+  blueprint_bc: BC-02
   legacy_bc: null
   basis: adr
-  evidence: ADR-0051 决定 3（B-05，合并 contract.baseline、contract.changeorder、contract.riskdelivery）；SSOT 重写尚未进行，旧三行暂留
+  evidence: ADR-0051 决定 3（模块表 B-05，合并 contract.baseline、contract.changeorder、contract.riskdelivery）；蓝图编号 BC-02 依 ADR-0051 第 88 行，与 ADR-0017 对照表三个旧 BC 均对 BC-02 一致；SSOT 重写尚未进行，旧三行暂留
   note: ADR-0076 引用而先行登记（one-architecture 2026-10-21）
 - id: contract.baseline
   zh: 合约基线 BC
