@@ -13,18 +13,22 @@ if [ -z "${GITHUB_ACTIONS:-}" ]; then
   until mkdir "$lock" 2>/dev/null; do
     [ -d "$lock" ] || { echo "backend_verify: cannot create the lock $lock (is its directory writable?); not starting" >&2; exit 1; }
     holder=$(cat "$lock/pid" 2>/dev/null || true)
+    where=$(cat "$lock/where" 2>/dev/null || echo "?")
     if { [ -n "$holder" ] && ! kill -0 "$holder" 2>/dev/null; } || { [ -z "$holder" ] && [ -n "$(find "$lock" -maxdepth 0 -mmin +1 2>/dev/null)" ]; }; then
       rm -rf "$lock"; continue
     fi
     if [ "$waited" -ge "${BACKEND_VERIFY_LOCK_WAIT:-10800}" ]; then
-      echo "backend_verify: another local run (pid ${holder:-?}) still holds $lock after ${waited} s; not starting" >&2; exit 1
+      echo "backend_verify: another local run (pid ${holder:-?}, $where) still holds $lock after ${waited} s; not starting" >&2; exit 1
     fi
-    [ $((waited % 60)) -eq 0 ] && echo "backend_verify: another local run (pid ${holder:-?}) holds $lock; waiting (${waited} s)" >&2
+    [ $((waited % 60)) -eq 0 ] && echo "backend_verify: another local run (pid ${holder:-?}, $where) holds $lock; waiting (${waited} s)" >&2
     sleep "${BACKEND_VERIFY_LOCK_POLL:-5}"; waited=$((waited + ${BACKEND_VERIFY_LOCK_POLL:-5}))
   done
   echo $$ >"$lock/pid"
+  pwd >"$lock/where"   # the holder's checkout, so a waiter can tell whose run it waits for
   trap 'rm -rf "$lock"' EXIT
   set -- -Dtest.forks=1 -Dit.forks=2 "$@"
+  # Fewer forks make a green local run take up to about 25 min on a busy machine; CI's 1500 s would fail it (#1385).
+  export BACKEND_WATCHDOG_SECONDS=${BACKEND_WATCHDOG_SECONDS:-2400}
 fi
 
 # Both plugins read JSON and generated TS. CI downloads this run's api-contract artifact; local/nightly runs bootstrap first.
@@ -85,6 +89,8 @@ forks="$PWD/target/surefire/"
   pkill -f "java .*$forks" 2>/dev/null; sleep 20; pkill -9 -f "java .*$forks" 2>/dev/null || true
 ) &
 watchdog_pid=$!
+# A run stopped from outside (TERM, INT) stops its test runs too; otherwise they outlive the released lock and share the machine with the next holder (#1385).
+trap 'kill "$unit_pid" "$integration_pid" "$watchdog_pid" 2>/dev/null; pkill -f "java .*$forks" 2>/dev/null; exit 143' INT TERM
 
 wait "$unit_pid"; unit_status=$?
 wait "$integration_pid"; integration_status=$?

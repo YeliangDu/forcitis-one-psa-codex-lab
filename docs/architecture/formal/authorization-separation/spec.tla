@@ -24,7 +24,7 @@ Init ==
 \* Employed holders of the administrator role (directory view: a person whose separation is in effect does not count, revoked or not)
 Avail == {q \in P : adm[q] /\ sep[q] = "in"}
 
-\* ReplaceAccountRoles.execute (#1322): a role is not given to a person the directory shows as separated; nobody grants to themselves
+\* ReplaceAccountRoles.execute (#1322) and GrantRoleByOperations.execute (#1333): a role is not given to a person the directory shows as separated; nobody grants to themselves
 Request(r, s) ==
     /\ rq.st = "none"
     /\ adm[r]
