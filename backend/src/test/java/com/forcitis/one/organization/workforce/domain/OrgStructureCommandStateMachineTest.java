@@ -37,7 +37,7 @@ class OrgStructureCommandStateMachineTest {
                 .operation("withdraw", c -> c.withdraw(BY, "no longer needed", NOW), PENDING, WITHDRAWN, AWAITING_ATTRIBUTION_COUNTERSIGN, WITHDRAWN)
                 .operation("requireCountersign", OrgStructureCommand::requireCountersign, PENDING, AWAITING_ATTRIBUTION_COUNTERSIGN, EFFECTIVE, AWAITING_ATTRIBUTION_COUNTERSIGN)
                 .operation("completeCountersign", c -> c.completeCountersign(NOW, TODAY), AWAITING_ATTRIBUTION_COUNTERSIGN, PENDING)
-                .operation("dueEffect", c -> c.dueEffect(NOW), PENDING, EFFECTIVE, IN_PROGRESS, EFFECTIVE, AWAITING_ATTRIBUTION_COUNTERSIGN, EFFECTIVE)
+                .operation("dueEffect", c -> c.dueEffect(NOW), PENDING, EFFECTIVE)
                 .verify();
     }
 
@@ -50,12 +50,12 @@ class OrgStructureCommandStateMachineTest {
     }
 
     @Test
-    @DisplayName("a merge: withdraw only before it starts, startMerge from PENDING, completeMerge once everyone is moved, never dueEffect, and a countersign never makes it EFFECTIVE")
+    @DisplayName("a merge: withdraw only before it starts, startMerge from PENDING, completeMerge once everyone is moved (from IN_PROGRESS only, ADR-0068 4), never dueEffect, and a countersign never makes it EFFECTIVE")
     void exhaustiveTransitionsOfAMerge() {
         table(OrgStructureCommandKind.MERGE, TODAY.minusDays(1))
                 .operation("withdraw", c -> c.withdraw(BY, "no longer needed", NOW), PENDING, WITHDRAWN, AWAITING_ATTRIBUTION_COUNTERSIGN, WITHDRAWN)
                 .operation("startMerge", c -> c.startMerge(2), PENDING, IN_PROGRESS)
-                .operation("completeMerge", c -> c.completeMerge(NOW), PENDING, EFFECTIVE, IN_PROGRESS, EFFECTIVE, AWAITING_ATTRIBUTION_COUNTERSIGN, EFFECTIVE)
+                .operation("completeMerge", c -> c.completeMerge(NOW), IN_PROGRESS, EFFECTIVE)
                 .operation("dueEffect", c -> c.dueEffect(NOW))
                 .operation("completeCountersign", c -> c.completeCountersign(NOW, TODAY), AWAITING_ATTRIBUTION_COUNTERSIGN, PENDING)
                 .verify();

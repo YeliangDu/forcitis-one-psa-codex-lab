@@ -252,7 +252,7 @@ public final class OrgStructureCommand extends AggregateRoot {
         if (kind == OrgStructureCommandKind.MERGE) {
             throw notAllowed("a merge is effective only when its people are moved");
         }
-        moveTo(OrgCommandStatus.EFFECTIVE);
+        moveFrom(OrgCommandStatus.PENDING, OrgCommandStatus.EFFECTIVE);
         this.appliedAt = now;
     }
 
@@ -294,7 +294,7 @@ public final class OrgStructureCommand extends AggregateRoot {
         if (!Objects.equals(affectedEmployeeCount, transferredEmployeeCount)) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ORG_STRUCTURE_MERGE_INCOMPLETE, ErrorKind.CONFLICT, "somebody is not moved yet");
         }
-        moveTo(OrgCommandStatus.EFFECTIVE);
+        moveFrom(OrgCommandStatus.IN_PROGRESS, OrgCommandStatus.EFFECTIVE);
         this.appliedAt = now;
     }
 
@@ -302,6 +302,14 @@ public final class OrgStructureCommand extends AggregateRoot {
         if (kind != expected) {
             throw notAllowed("only a " + expected + " does this");
         }
+    }
+
+    /** A method that is for one status only (its design names it): any other status is refused before the machine is asked. */
+    private void moveFrom(OrgCommandStatus source, OrgCommandStatus next) {
+        if (status != source) {
+            throw notAllowed("this is for a " + source + " command, this one is " + status);
+        }
+        moveTo(next);
     }
 
     private void moveTo(OrgCommandStatus next) {

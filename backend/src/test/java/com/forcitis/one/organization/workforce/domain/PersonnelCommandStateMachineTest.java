@@ -18,7 +18,7 @@ import java.util.function.Function;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** The table is what the domain methods do today: each asks the machine for its one target and does not check the source status itself. */
+/** Each method leaves from the one status its design names: completeCountersign from AWAITING (ADR-0073 3.6), releaseHeld from HELD (ADR-0068 2.3), dueEffect from PENDING (ADR-0068 4 and 8). */
 class PersonnelCommandStateMachineTest {
     static final Instant NOW = Instant.parse("2026-10-14T02:00:00Z");
     static final LocalDate TODAY = LocalDate.parse("2026-10-14");
@@ -35,11 +35,11 @@ class PersonnelCommandStateMachineTest {
     }
 
     @Test
-    @DisplayName("a command whose day has not come: completeCountersign and releaseHeld make it PENDING, holdOnDueDay holds a pending one, withdraw takes any open one back, dueEffect refuses all")
+    @DisplayName("a command whose day has not come: completeCountersign (from AWAITING) and releaseHeld (from HELD) make it PENDING, holdOnDueDay holds a pending one, withdraw takes any open one back, dueEffect refuses all")
     void exhaustiveTransitionsBeforeTheDay() {
         table(TODAY.plusDays(5))
-                .operation("completeCountersign", c -> c.completeCountersign(NOW, TODAY), HELD, PENDING, AWAITING_ATTRIBUTION_COUNTERSIGN, PENDING)
-                .operation("releaseHeld", c -> c.releaseHeld(NOW, TODAY), HELD, PENDING, AWAITING_ATTRIBUTION_COUNTERSIGN, PENDING)
+                .operation("completeCountersign", c -> c.completeCountersign(NOW, TODAY), AWAITING_ATTRIBUTION_COUNTERSIGN, PENDING)
+                .operation("releaseHeld", c -> c.releaseHeld(NOW, TODAY), HELD, PENDING)
                 .operation("holdOnDueDay", PersonnelCommand::holdOnDueDay, PENDING, HELD)
                 .operation("dueEffect", c -> c.dueEffect(NOW, TODAY))
                 .operation("withdraw", c -> c.withdraw(BY, "no longer needed", NOW), PENDING, WITHDRAWN, HELD, WITHDRAWN, AWAITING_ATTRIBUTION_COUNTERSIGN, WITHDRAWN)
@@ -47,12 +47,12 @@ class PersonnelCommandStateMachineTest {
     }
 
     @Test
-    @DisplayName("a command whose day has come: completeCountersign, releaseHeld and dueEffect make any open one EFFECTIVE")
+    @DisplayName("a command whose day has come: completeCountersign makes an AWAITING one, releaseHeld a HELD one and dueEffect a PENDING one EFFECTIVE")
     void exhaustiveTransitionsOnTheDay() {
         table(TODAY)
-                .operation("completeCountersign", c -> c.completeCountersign(NOW, TODAY), PENDING, EFFECTIVE, HELD, EFFECTIVE, AWAITING_ATTRIBUTION_COUNTERSIGN, EFFECTIVE)
-                .operation("releaseHeld", c -> c.releaseHeld(NOW, TODAY), PENDING, EFFECTIVE, HELD, EFFECTIVE, AWAITING_ATTRIBUTION_COUNTERSIGN, EFFECTIVE)
-                .operation("dueEffect", c -> c.dueEffect(NOW, TODAY), PENDING, EFFECTIVE, HELD, EFFECTIVE, AWAITING_ATTRIBUTION_COUNTERSIGN, EFFECTIVE)
+                .operation("completeCountersign", c -> c.completeCountersign(NOW, TODAY), AWAITING_ATTRIBUTION_COUNTERSIGN, EFFECTIVE)
+                .operation("releaseHeld", c -> c.releaseHeld(NOW, TODAY), HELD, EFFECTIVE)
+                .operation("dueEffect", c -> c.dueEffect(NOW, TODAY), PENDING, EFFECTIVE)
                 .verify();
     }
 }
