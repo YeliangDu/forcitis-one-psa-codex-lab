@@ -2,7 +2,6 @@ package com.forcitis.one.organization.workforce.api;
 
 import com.forcitis.one.kernel.EmployeeId;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
 public interface OrgDirectory {
@@ -31,7 +30,6 @@ public interface OrgDirectory {
     /** Regional receivables manager (old system 区域 AR). */
     Optional<EmployeeId> findRegionalReceivablesManager(OrgUnitId orgUnitId);
 
+    /** The unit with its parent; a caller that needs the ancestors walks {@code parentOrgUnitId} (nearest first) and guards against a cycle. */
     Optional<OrgUnitProfile> findOrgUnit(OrgUnitId orgUnitId);
-
-    List<OrgUnitId> findAncestors(OrgUnitId orgUnitId);
 }
