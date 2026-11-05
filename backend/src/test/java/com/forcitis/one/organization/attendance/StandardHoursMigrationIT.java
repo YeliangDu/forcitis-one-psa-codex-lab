@@ -200,6 +200,9 @@ class StandardHoursMigrationIT {
             UUID allVoided = UUID.randomUUID();
             voidVersion(db, version(db, allVoided, 1, today.plusDays(5)), "synthetic-cancellation");
             refused(db, CHECK_VIOLATION, "earlier than today", () -> version(db, allVoided, 2, today.minusDays(1)));
+            UUID startingToday = version(db, allVoided, 2, today);
+            assertThat(text(db, "select status || ' ' || effective_from_date::text from organization_attendance.standard_hours_versions where id = ?", startingToday))
+                    .as("a scope whose versions are all voided accepts a version effective on the database's Shanghai date").isEqualTo("IN_EFFECT " + today);
             db.rollback();
         }
     }
