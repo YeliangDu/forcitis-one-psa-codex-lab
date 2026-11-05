@@ -192,7 +192,7 @@ class Cloud:
         raise Refused("cloud invocation did not finish")
 
 
-def server_run(cloud, conf, database, sql):
+def server_run(cloud, conf, database, sql, gate=False):
     """Runs the validated `sql` on the app host with the forensic account; returns OneSql's output text. Raises Refused on any failed step; the app-host work dir is removed in every case."""
     work, secret_work = conf["app_work_dir"], conf["secret_work_dir"]
     tag = secrets.token_hex(4)
@@ -213,7 +213,7 @@ def server_run(cloud, conf, database, sql):
         stage = f"{work}/stage"
         driver = (f"if [ ! -s {work}/jdbc.jar ]; then pid=$(pgrep -f '{conf['app_jar_process']}' | head -1); jar=\"$(readlink -f /proc/$pid/cwd)/{conf['app_jar_process']}\"; "
                   f"entry=$(unzip -l \"$jar\" | grep -oE 'BOOT-INF/lib/mssql-jdbc-[^ ]+\\.jar' | head -1); unzip -p \"$jar\" \"$entry\" > {work}/jdbc.jar; fi\n")
-        env = f"LOGIN_USER={conf['account']} LOGIN_SECRET_ENC={stage}/enc LOGIN_KEY={work}/k.key ONE_SQL_PLAN_GATE=1"
+        env = f"LOGIN_USER={conf['account']} LOGIN_SECRET_ENC={stage}/enc LOGIN_KEY={work}/k.key" + (" ONE_SQL_PLAN_GATE=1" if gate else "")  # the plan gate for the caller's query; the two fixed account-check queries are catalog reads whose plans are not one simple SELECT
         script = (f"set -u; umask 077\n{put(f'{stage}/OneSql.java', ONE_SQL.read_text(encoding='utf-8'))}{put(f'{stage}/enc', cipher[0])}{put(f'{stage}/q.sql', sql)}{driver}"
                   f"{env} java -cp {work}/jdbc.jar {stage}/OneSql.java ro {database} {stage}/q.sql < /dev/null 2>&1 | head -c 4000000 > {work}/out.txt; rc=$?\n"
                   f"if [ \"$(gzip -9 -c {work}/out.txt | base64 -w0 | wc -c)\" -gt 22000 ]; then echo TOOBIG; else gzip -9 -c {work}/out.txt | base64 -w0; echo; fi; exit $rc\n")
@@ -333,7 +333,7 @@ def main(argv, cloud_factory=Cloud):
             problems = ["reachable databases"]
         if problems:
             raise Refused(f"forensic account check failed ({', '.join(problems)}); nothing was run")
-        text = server_run(cloud, conf, database, sql)
+        text = server_run(cloud, conf, database, sql, gate=True)
         problems = output_problems(text, DEFINITION_CELL_LIMIT if args.definitions else CELL_LIMIT)
         if problems:
             raise Refused(f"result withheld, nothing written: it holds {problems}; aggregate the query, or pass --definitions for definition text only")

@@ -79,7 +79,9 @@ class Fake:
             return "Success", 0, "EVIDENCE:QUJD\n"
         if "OneSql.java ro" in script:
             subprocess.run(["bash", "-n"], input=script.encode(), check=True)
-            assert "ONE_SQL_PLAN_GATE=1 " in script.replace("\n", " "), "the Java side runs the plan gate"
+            q_sent = gzip.decompress(base64.b64decode(re.search(r"echo '([A-Za-z0-9+/=]+)' \| base64 -d \| gunzip > \S+/q\.sql", script).group(1))).decode()
+            gated = "ONE_SQL_PLAN_GATE=1 " in script.replace("\n", " ")
+            assert gated == (q_sent not in (f.CHECK_SQL, f.CHECK_DBS_SQL)), "the plan gate is on for the caller's query only, not for the two fixed check queries"
             q = re.search(r"echo '([A-Za-z0-9+/=]+)' \| base64 -d \| gunzip > \S+/q\.sql", script)
             self.sent.append(gzip.decompress(base64.b64decode(q.group(1))).decode())
             res = self.results.pop(0)

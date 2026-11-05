@@ -66,13 +66,17 @@ public class OneSql {
         try (Connection c = DriverManager.getConnection(url, user, secret)) {
             secret = null;
             System.out.println("connected as " + user + " db=" + db + " mode=ro");
-            System.out.println("DONE batches=" + runRolledBack(c, batches, pub, "1".equals(System.getenv("ONE_SQL_PLAN_GATE"))));
+            System.out.println("DONE batches=" + runRolledBack(c, batches, pub, planGateOn(System.getenv("ONE_SQL_PLAN_GATE"))));
         }
     }
 
     /** Runs the batches with auto-commit off and rolls back whatever happened, also when a batch fails. Returns the number of batches run. */
     static int runRolledBack(Connection c, List<String> batches, PublicKey pub) throws Exception {
         return runRolledBack(c, batches, pub, false);
+    }
+
+    static boolean planGateOn(String env) {
+        return "1".equals(env);
     }
 
     /** With planGate every batch first goes through planGate(): the server itself says what the batch is before anything runs. */
@@ -96,7 +100,7 @@ public class OneSql {
     /**
      * The structural gate (lead ruling on PR #1381): on the same connection and driver, SET SHOWPLAN_XML ON as its own batch, the exact final batch (the server compiles and returns
      * its plan without running anything), then the plan must hold one statement of type SELECT; any parse error or other statement refuses. SET SHOWPLAN_XML OFF follows in every case;
-     * the caller then runs the same string unchanged. The keyword checks above stay as an early refusal and for what a plan does not show (NEXT VALUE FOR, linked-server names).
+     * the caller then runs the same string unchanged. The keyword checks stay as an early refusal. A plan does not show NEXT VALUE FOR or linked-server names; forensic_read.py refuses those in its own text checks (OneSql alone does not).
      */
     static void planGate(Connection c, String batch) throws Exception {
         try (Statement st = c.createStatement()) {
@@ -149,7 +153,7 @@ public class OneSql {
             typed++;
             type = types.group(1);
         }
-        return typed == 1 && type.equals("SELECT") ? null : "the statement type is not SELECT (" + typed + " typed)";
+        return typed == 1 && (type.equals("SELECT") || type.equals("SELECT WITHOUT QUERY")) ? null : "the statement type is not SELECT (" + typed + " typed)";
     }
 
     /** The batch with comments blanked and string literals emptied, scanned in one pass so that '--' inside a string is no comment and a quote inside a comment no string. */
@@ -215,6 +219,7 @@ public class OneSql {
                 plan.replace("StatementText=\"SELECT 1\"", "StatementText=\"&lt;StmtSimple StatementType=&quot;SELECT&quot;\"").replace("StatementType=\"SELECT\"><", "StatementType=\"KILL\"><")}) {
             check(planProblem(bad, 1) != null, "a plan that is not exactly one SELECT is refused by the plan gate: " + bad.substring(0, Math.min(90, bad.length())));
         }
+        check(planProblem(plan.replace("StatementType=\"SELECT\"", "StatementType=\"SELECT WITHOUT QUERY\""), 1) == null, "a constant SELECT (no table) is a SELECT");
         check(planProblem(plan, 0) != null && planProblem(plan + plan, 2) != null, "no plan and two plans are refused by the plan gate");
         check(readOnlyBatches("SELECT [2024Q1], [1st], 1.5, 007, t1.c2 FROM t1 WHERE a = 10", none).size() == 1, "plain numbers and bracketed names starting with a digit are reads");
         for (String write : new String[] {"DELETE FROM t", "update t set a = 1", "INSERT INTO t VALUES (1)", "DROP TABLE t", "GRANT SELECT ON t TO u",
@@ -237,6 +242,15 @@ public class OneSql {
         calls.clear();
         check(refusedAny(() -> runRolledBack(fake, List.of("SELECT 1", "FAIL", "SELECT 3"), null)) && calls.equals(List.of("setAutoCommit:false", "execute:SELECT 1", "execute:FAIL", "rollback")),
                 "a failing batch still ends in a rollback, and stops the rest: " + calls);
+        // the plan gate, in order: ON, the batch (compiled only), OFF, then the same string runs; a plan that is not one SELECT refuses after OFF and the batch never runs
+        List<String> gated = new ArrayList<>();
+        check(runRolledBack(fakeConnection(gated, plan), List.of("SELECT 1"), null, true) == 1 && gated.equals(List.of("setAutoCommit:false", "execute:SET SHOWPLAN_XML ON", "execute:SELECT 1",
+                "execute:SET SHOWPLAN_XML OFF", "execute:SELECT 1", "ran:SELECT 1", "rollback")), "plan gate order for a SELECT plan: " + gated);
+        gated.clear();
+        String deletePlan = plan.replace("StatementType=\"SELECT\"", "StatementType=\"DELETE\"");
+        check(refusedAny(() -> runRolledBack(fakeConnection(gated, deletePlan), List.of("DELETE FROM t"), null, true)) && gated.equals(List.of("setAutoCommit:false", "execute:SET SHOWPLAN_XML ON",
+                "execute:DELETE FROM t", "execute:SET SHOWPLAN_XML OFF", "rollback")), "a DELETE plan is refused, OFF follows, the batch never runs: " + gated);
+        check(planGateOn("1") && !planGateOn(null) && !planGateOn("0"), "the plan gate is switched on by ONE_SQL_PLAN_GATE=1 only");
         Path scratch = Files.createTempDirectory("onesql-scan");
         Files.createDirectories(scratch.resolve("sub/deeper"));
         Files.writeString(scratch.resolve("sub/deeper/w.sql"), "SELECT 1\nGO\nINSERT INTO t VALUES (1)", StandardCharsets.UTF_8);
@@ -264,12 +278,32 @@ public class OneSql {
 
     /** A Connection whose Statement records what runs; a batch "FAIL" throws as the server would. */
     static Connection fakeConnection(List<String> calls) {
+        return fakeConnection(calls, null);
+    }
+
+    /** With a plan text the fake behaves like SET SHOWPLAN_XML: while it is ON a batch is not run (no "ran:" entry) and returns the plan as a one-row result. */
+    static Connection fakeConnection(List<String> calls, String plan) {
+        boolean[] showplan = {false};
+        boolean[] pending = {false};
+        java.lang.reflect.InvocationHandler rows = (proxy, method, args) -> {
+            switch (method.getName()) {
+                case "next": return pending[0] && !(pending[0] = false);
+                case "getString": return plan;
+                default: return null;
+            }
+        };
         java.lang.reflect.InvocationHandler statement = (proxy, method, args) -> {
             switch (method.getName()) {
                 case "execute":
                     calls.add("execute:" + args[0]);
                     if ("FAIL".equals(args[0])) throw new SQLException("failed", "42000", 1);
+                    if ("SET SHOWPLAN_XML ON".equals(args[0])) { showplan[0] = true; return false; }
+                    if ("SET SHOWPLAN_XML OFF".equals(args[0])) { showplan[0] = false; return false; }
+                    if (plan != null && showplan[0]) { pending[0] = true; return true; }
+                    if (plan != null) calls.add("ran:" + args[0]);
                     return false;
+                case "getResultSet":
+                    return java.lang.reflect.Proxy.newProxyInstance(ResultSet.class.getClassLoader(), new Class<?>[] {ResultSet.class}, rows);
                 case "getUpdateCount": return -1;
                 case "getMoreResults": return false;
                 default: return null;
