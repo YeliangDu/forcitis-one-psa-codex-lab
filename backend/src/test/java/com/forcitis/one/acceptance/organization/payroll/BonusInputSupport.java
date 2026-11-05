@@ -1,7 +1,9 @@
 package com.forcitis.one.acceptance.organization.payroll;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.acceptance.P5Support;
 import com.forcitis.one.kernel.DocumentReference;
@@ -31,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.awaitility.Awaitility;
+import org.springframework.http.MediaType;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -197,6 +200,97 @@ abstract class BonusInputSupport extends P5Support {
     long activeRowsOf(UUID relationship, LocalDate month, String reason) throws SQLException {
         return (long) query("organization_payroll", "select count(*) as n from bonus_inputs where employment_relationship_id = ? and payroll_month_start_date = ? "
                 + "and reason_key = ? and status = 'ACTIVE'", relationship, month, reason).getFirst().get("n");
+    }
+
+    // ---- real relationships and the request command ----
+
+    /**
+     * The relationship of a new employee with {@code employer} (the fixture employer, which is not the paying entity, when null), seeded for the setup of a
+     * test. {@code inServiceFrom} adds an EMPLOYED version from that date (null: no version, so no phase on any month). {@code unconfirmedEmployer} makes
+     * the employer a migration attribution nobody has confirmed (the only source kind that may stay unconfirmed).
+     */
+    UUID relationshipOf(UUID employer, LocalDate inServiceFrom, boolean unconfirmedEmployer) throws Exception {
+        UUID person = newEmployeeId();
+        employee(person, unit, null);
+        java.time.OffsetDateTime at = java.time.OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC);
+        try (java.sql.Connection workforce = schemaConnection("organization_workforce")) {
+            UUID relationship = com.forcitis.one.acceptance.EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person), employer);
+            if (unconfirmedEmployer) {
+                try (java.sql.PreparedStatement attribute = workforce.prepareStatement(
+                        "update employment_relationships set employer_source_kind = 'MIGRATION_ATTRIBUTION', employer_confirmed_at = null where employment_relationship_id = ?")) {
+                    attribute.setObject(1, relationship);
+                    attribute.executeUpdate();
+                }
+            }
+            if (inServiceFrom != null) {
+                try (java.sql.PreparedStatement insert = workforce.prepareStatement("""
+                        insert into employment_relationship_versions (employment_relationship_id, employment_relationship_version_id, employee_id, effective_from_date,
+                          revision_number, employment_status, employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
+                          change_channel_kind, created_at, updated_at)
+                        values (?, ?, ?, ?, 0, 'EMPLOYED', 'REGULAR', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""")) {
+                    insert.setObject(1, relationship);
+                    insert.setObject(2, com.forcitis.one.kernel.Uuids.timeOrdered(NOW));
+                    insert.setObject(3, stored(person));
+                    insert.setObject(4, inServiceFrom);
+                    insert.setObject(5, inServiceFrom);
+                    insert.setObject(6, at);
+                    insert.setObject(7, at);
+                    insert.executeUpdate();
+                }
+            }
+            return relationship;
+        }
+    }
+
+    /** A relationship in service from before October, with the paying entity of the world as confirmed employer: the one that must be accepted. */
+    UUID employedRelationship() throws Exception {
+        return relationshipOf(legalEntity.value(), OCTOBER.minusMonths(6), false);
+    }
+
+    /** {@code new RequestBonusInput(relationship, payingEntity, month, Money.of(amount, currency), reason, key)}, built by name. */
+    static Object requestOf(UUID relationship, UUID payingEntity, LocalDate month, String amount, String currency, String reason, UUID key) {
+        try {
+            return type(API + "RequestBonusInput").getDeclaredConstructors()[0].newInstance(relationshipId(relationship), new com.forcitis.one.kernel.LegalEntityId(payingEntity), month,
+                    com.forcitis.one.kernel.Money.of(amount, currency), reason, key);
+        } catch (ReflectiveOperationException unexpected) {
+            throw new AssertionError("cannot build RequestBonusInput", unexpected);
+        }
+    }
+
+    /** {@code BonusInputs.request(command)} as the signed-in user. */
+    ApprovalInstanceId request(SignedIn caller, Object command) {
+        return (ApprovalInstanceId) call(caller, "request", command);
+    }
+
+    /** The approval requests of the bonus process (all documents). */
+    List<Map<String, Object>> bonusApprovals() throws SQLException {
+        return query("platform_approval", "select * from approval_requests where process_key = ? order by created_at", PROCESS.value());
+    }
+
+    /**
+     * A person whose only source of the read permission is a role with the given data scope (ALL is the payroll role's own; a narrower one such as
+     * OWN_ORG_UNIT must read nothing, fail-closed). The role is made and granted through the administrator's HTTP paths, the way an operator would.
+     */
+    SignedIn holderOfReadWithScope(String accessScope) throws Exception {
+        UUID adminEmployee = newEmployeeId();
+        employee(adminEmployee, unit, null);
+        grantByOperations(adminEmployee, "super_admin");
+        SignedIn admin = administratorMode(signIn(adminEmployee));
+        String code = "synthetic_bonus_read_" + accessScope.toLowerCase() + "_" + Long.toString(System.nanoTime() % 100000, 36);
+        MockHttpServletResponse role = mvc.perform(post("/api/v1/platform/roles").with(csrf()).with(session(admin)).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"" + code + "\",\"name\":\"Synthetic " + code + "\",\"enabled\":true,\"accessScope\":\"" + accessScope
+                        + "\",\"permissionCodes\":[\"organization.payroll:bonus-input:read\"]}")).andReturn().getResponse();
+        assertThat(role.getStatus()).as("creating the narrow read role: " + role.getContentAsString()).isEqualTo(201);
+        UUID holder = newEmployeeId();
+        employee(holder, unit, null);
+        SignedIn account = signIn(holder);
+        String accountPath = "/api/v1/platform/user-accounts/" + account.userId();
+        MockHttpServletResponse read = mvc.perform(get(accountPath).with(session(admin))).andReturn().getResponse();
+        assertThat(read.getStatus()).as(read.getContentAsString()).isEqualTo(200);
+        MockHttpServletResponse replaced = mvc.perform(post(accountPath + ":replace-roles").header("If-Match", read.getHeader("ETag")).with(csrf()).with(session(admin))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"employee\",\"" + code + "\"]}")).andReturn().getResponse();
+        assertThat(replaced.getStatus()).as("granting the narrow read role: " + replaced.getContentAsString()).isEqualTo(204);
+        return account;
     }
 
     // ---- the api, by name ----
