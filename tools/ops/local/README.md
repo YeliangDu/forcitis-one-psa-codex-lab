@@ -13,6 +13,8 @@ tools/ops/local/local.sh e2e       # the Playwright smoke (headless) against the
 
 Prerequisites: Docker running, Java (the version `backend/pom.xml` asks for), Node with pnpm, `curl`, `openssl`. Ports 8080, 5173 and 55432 free.
 
+`up` waits up to 600 s for the backend (`LOCAL_BACKEND_WAIT=<seconds>` changes it; a loaded machine can need minutes). If it gives up, the backend may still be starting: `local.sh status`, then `~/.forcitis-local/backend.log`.
+
 - `up` builds the backend, runs the Flyway migrations as the release pipeline does (profile `migrate,local`), then starts the backend (profile `local`) and the vite dev server (its `/api` proxy points at :8080).
 - The database password is generated on the first `up` into `~/.forcitis-local/env` (mode 0600). It is never printed and never committed. Logs and process ids are in `~/.forcitis-local/`.
 - Open `http://localhost:5173/`. The login page then also lists the accounts of this database under "本机登录"; picking one starts an ordinary session for it, with exactly the grants and data scope that account holds. `up` writes exactly one synthetic account, "Synthetic Admin" (roles employee, org_data_admin, business_admin, personnel_specialist; ordinary mode only; `bootstrap.sql`, idempotent, synthetic names only, never a migration). Everything else is seeded through the API as that account (card #1479).
