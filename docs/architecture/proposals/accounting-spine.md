@@ -114,7 +114,7 @@ Glossary: `accounting_period`, `posting_candidate`, `ledger` (账簿; table `led
 
 ## 8. Data design (a design draft, not a sign-off; the gate in `docs/data/data-design-gate.md` applies per schema card)
 
-This section is the design the schema cards start from; it signs nothing. Each schema card brings the Appendix A material and a sign-off record (`docs/data/reviews/`). The gate names one-data as signer (`数据设计：通过（one-data，…）`, row DG-1); the leave L1a record was signed by one-design on lead's acceptance (PR #1404). Signed by one-design on lead's order (#1434): `fiscal_periods` in `docs/data/reviews/accounting-spine-p1.md`, `ledgers` in `docs/data/reviews/accounting-spine-g1.md`; every other table below is not signed yet. Tables below marked **waits** cannot be signed before the named evidence arrives (no conditional pass).
+This section is the design the schema cards start from; it signs nothing. Each schema card brings the Appendix A material and a sign-off record (`docs/data/reviews/`). The gate names one-data as signer (`数据设计：通过（one-data，…）`, row DG-1); the leave L1a record was signed by one-design on lead's acceptance (PR #1404). Signed by one-design on lead's order (#1434): `fiscal_periods` in `docs/data/reviews/accounting-spine-p1.md`, `ledgers` in `docs/data/reviews/accounting-spine-g1.md`, `posting_facts`, `posting_fact_lines` and the structure of `posting_components` in `docs/data/reviews/accounting-spine-f1.md`; every other table below is not signed yet. Where a record and the sketch rows below differ (names with class words, `integer` types, registry mutability), **the record governs**. Tables below marked **waits** cannot be signed before the named evidence arrives (no conditional pass).
 
 **Schema `accounting_period`**
 
@@ -176,14 +176,14 @@ Rule from the user (2026-11-05): where a regulation is explicit and company prac
 | Slice | Content | Prerequisites | Waits on |
 |---|---|---|---|
 | P1 | Schema `accounting_period` + `OpenFiscalYear` + `PeriodGate` + permissions + module edges | LegalEntity (built); this spec merged; period table data-design sign-off (**signed**, `docs/data/reviews/accounting-spine-p1.md`) | nothing |
-| F1 | Schema `operations_facts` (facts, lines, components) + pipeline + `PayrollPostingCandidate` variant + events `BusinessFactAttributed`/`Restated` + idempotency/balance/period-gate tests | P1 merged; facts data-design sign-off | nothing (component rows come with payroll) |
+| F1 | Schema `operations_facts` (facts, lines, components) + pipeline + `PayrollPostingCandidate` variant + events `BusinessFactAttributed`/`Restated` + idempotency/balance/period-gate tests | P1 merged; facts data-design sign-off (**signed**, `docs/data/reviews/accounting-spine-f1.md`) | nothing (component rows come with payroll) |
 | F2 | Rejections, resubmit, disposition | F1 | nothing; may wait for the closing batch |
 | G1 | Schema `accounting_ledger` books + creation on `LegalEntityRegistered` + backfill | LegalEntity events (built); books data-design sign-off (**signed**, `docs/data/reviews/accounting-spine-g1.md`) | nothing |
 | G2 | Chart versions + draft/publish + frozen-row triggers | G1 | structure: nothing; **account rows: #1373** |
 | G3 | Mapping versions + draft/publish | G2 | structure: nothing; **mapping rows: #1373** |
 | PAY | Payroll posts a month through F1 (payroll card, not this spec) | F1, P1; payroll aggregate AGG-73; component rows from #1373 | #1373 |
 
-Order: P1 → F1 → (F2); G1 → G2 → G3 independent of P1/F1. Design cards still owed: data-design sign-off record for each slice (one-design; P1 and G1 signed in #1434, F1, F2, G2, G3 not yet), the SSOT card that numbers S-R1..S-R4 (lead).
+Order: P1 → F1 → (F2); G1 → G2 → G3 independent of P1/F1. Design cards still owed: data-design sign-off record for each slice (one-design; P1, G1 and F1 signed in #1434; F2, G2, G3 not yet), the SSOT card that numbers S-R1..S-R4 (lead).
 
 ## 11. Done-when (for the test engineer)
 

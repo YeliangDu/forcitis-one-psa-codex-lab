@@ -37,7 +37,7 @@ Constraints:
 
 - `uk_fiscal_periods_legal_entity_id_fiscal_year_number_period_number` on `(legal_entity_id, fiscal_year_number, period_number)`. It leads with `legal_entity_id`, so it is also the index every entity-scoped read needs and `PeriodGate` looks a period up by it.
 - Trigger `tg_fiscal_periods_change` (and `tg_fiscal_periods_truncate`, which refuses TRUNCATE): the full list of legal writes, everything else is refused. (1) Insert: any `status` (P1 writes `OPEN`; tests seed the other two with a repository fixture, spec C-6). (2) Update: only the edges `OPEN` to `CLOSING` and `CLOSING` to `CLOSED`, and only `status`, `updated_at`, `version` change. (3) A `CLOSED` row accepts no update (INV-99, ADR-0045: closed periods never reopen). (4) **No delete at all**: facts refer to a period by (entity, year, number) without a foreign key (other BC), so removing an `OPEN` row would leave facts pointing at nothing; a mistaken year is corrected by an ops migration, not by the application. The sketch said only "CLOSED accepts no delete"; refusing every delete is my narrowing, and any later need is a lossless widening of the trigger.
-- The edge `CLOSING` to `OPEN` (a close that is abandoned) is **not** in the list: ADR-0045 and the spec leave it to the closing batch (section 4.1, "gaps … are for the closing batch to define"). The closing batch adds it with its own sign-off if it wants it. Carving it out is the gate's way (1.3: no conditional pass).
+- The edge `CLOSING` to `OPEN` is **not** in the list. ADR-0045 decision 1 (second bullet) permits a `CLOSING` period whose pre-checks fail to stay or go back to open (not a reopen), and `planned.yaml` lists the command 退回开放 on AGG-81. The spine has no close command (spec C-6), so nothing needs the edge now; the closing batch adds it to the trigger by migration with its own sign-off. This is a narrowing of the sketch, not a conditional pass (gate 1.3).
 - Index: none beyond the unique key. The gate lookup is by the whole key; "lowest-numbered `OPEN` period of an entity" (the current open period) reads at most 13 rows per year through the same index.
 
 ## Differences from the section 8 sketch
@@ -56,7 +56,8 @@ None of these changes a command or an event. `OpenFiscalYear` raises no event (s
 | Status is one of three | `ck_fiscal_periods_status` | |
 | Number is 1 to 13 | `ck_fiscal_periods_period_number` | |
 | A closed period never changes and no period row is deleted (INV-99) | `tg_fiscal_periods_change`, `tg_fiscal_periods_truncate` | |
-| Only the two forward edges are legal | trigger (legal update set above) | |
+| Only `OPEN`→`CLOSING` and `CLOSING`→`CLOSED` are legal | trigger (legal update set above) | |
+| ADR-0045 also allows `CLOSING`→`OPEN` (a close that fails its pre-checks) | | the database refuses it for now: no close command exists in the spine; the closing batch widens the trigger with its own sign-off |
 | `OpenFiscalYear` creates exactly twelve periods for one entity and year (S-R1) | | cross-row; one transaction in the command, covered by the done-when tests; a partial year cannot be left by a failure because the transaction rolls back |
 | A second call for the same year fails | the unique key | |
 | A year more than one ahead of the latest opened is refused | | depends on other rows; the command |
@@ -65,16 +66,18 @@ None of these changes a command or an event. `OpenFiscalYear` raises no event (s
 
 ## Business key, class, time (O3, O6)
 
-| Table | Business key | Class | Versioning |
+Business statement (O3): one period exists per legal entity, fiscal year and period number (ADR-0046 decision 8.1, spec 4.1).
+
+| Table | Business key | D17 class | Versioning (D17 rule 2) |
 |---|---|---|---|
-| `fiscal_periods` | (`legal_entity_id`, `fiscal_year_number`, `period_number`) | state-carrying aggregate row, declared | none; the row's own `status` moves forward only |
+| `fiscal_periods` | (`legal_entity_id`, `fiscal_year_number`, `period_number`) | master data (ADR-0046 decision 8.6) | **not needed**, reason "a single state the audit can fully reconstruct" (one of the four reasons of D17 rule 2; source ADR-0046 decision 8.6): the row holds one status that only moves forward, and every open and close is an audit record (ADR-0046 decision 8.5) |
 
 ## Query paths (O10)
 
 | Path | Filter | Sort | Expected rows | Page | Index |
 |---|---|---|---|---|---|
 | Gate: period of a date | entity, year, number (one row), shared lock | none | 1 | none | the unique key |
-| Current open period of an entity | entity, `status = 'OPEN'` | `fiscal_year_number`, `period_number` | at most 24 rows read, take the first | none | the unique key (leading column) |
+| Current open period of an entity | entity, `status = 'OPEN'` | `fiscal_year_number`, `period_number` | 12 rows per opened year read, take the first | none | the unique key (leading column) |
 | Period list for finance | entity, optional year | year, number | 12 per year | none (a year is at most 13 rows) | the unique key |
 
 Tens of rows per entity per decade, about five entities: no partition, no `fillfactor`.
@@ -82,13 +85,27 @@ Tens of rows per entity per decade, about five entities: no partition, no `fillf
 ## Cross-cutting, ADR clauses, value objects (O13 to O16)
 
 - Legal entity column: present, because every period belongs to one entity (O13). Time zone: none (no timestamp beyond audit). No money. `jsonb`: none. Free text: none. No analytical fact (A1 to A8: none; `OpenFiscalYear` raises no event).
-- ADR clauses: ADR-0045 (closed periods final), ADR-0046 decision 8.2 (no date columns), ADR-0087 5.2 (period 13 not enabled in the spine). Data scope, fail-closed: reads are filtered by the caller's entity scope (spec 5).
+- Data scope, fail-closed: reads are filtered by the caller's entity scope (spec 5).
+- ADR clauses (O15), every clause of ADR-0046 decision 8 and ADR-0045 decision 1:
+
+| Clause | Carrier in this design | Status |
+|---|---|---|
+| ADR-0046 8.1: table in schema `accounting_period`, UUIDv7, (entity, year, number), `uk`, number 1 to 13, status text + CHECK with the new system's own enum names, `version` | the columns and constraints above | included |
+| ADR-0046 8.1: the ADR-0036 historical-period status and its CHECK (historical status only for numbers up to 12) | | **not applicable now** (B7): the historical-period migration is not built and the spine imports no history; adding the value is a lossless widening of `ck_fiscal_periods_status` plus one CHECK, in the migration that imports history |
+| ADR-0046 8.2: no derived columns (adjustment flag, start and end date) | no date columns | included |
+| ADR-0046 8.3: posted and original period as two integer columns each | not a column of this table; it is the period columns of `posting_facts` (F1 record) | not applicable here |
+| ADR-0046 8.4: enablement register as its own configuration version table | not this table; period 13 enablement belongs to AGG-96 and is not in the spine (ADR-0087 5.2) | not applicable here |
+| ADR-0046 8.5: initiator and confirmer of open and close go to audit records, not columns | no such columns; `OpenFiscalYear` writes its audit record through the platform audit | included |
+| ADR-0046 8.6: registered as master data with the D17 exemption "a single state the audit can fully reconstruct"; comments with meaning, grain, number 13 has no date; lineage NEW (migrated history rows 迁入) | registry and comments below; lineage `NEW` now, history rows get `ORG_SOURCE`/import lineage when the history migration exists | included; the 迁入 part waits for the history migration |
+| ADR-0046 8.7: history imports only periods 1 to 12 | | not applicable now (no import) |
+| ADR-0045 decision 1: statuses; closed is final; `CLOSING` may stay or go back to open | status CHECK and trigger | included; the `CLOSING`→`OPEN` edge is left out of the trigger on purpose (see the constraints) |
+| ADR-0087 5.2: period 13 not enabled in the spine | the CHECK allows 13, no row is created | included |
 
 ## Registry drafts and classification (C1 to C5)
 
 | Table | Registry |
 |---|---|
-| `fiscal_periods` | role `AGGREGATE_ROOT`, aggregate `AccountingPeriod`, business key `[legal_entity_id, fiscal_year_number, period_number]`, mutability `CONDITIONAL_UPDATE` with condition "`OPEN` to `CLOSING` and `CLOSING` to `CLOSED`, status columns only; a `CLOSED` row never changes; no delete (`tg_fiscal_periods_change`)", retention `PERMANENT`, lineage `NEW`, writers `accounting.period` |
+| `fiscal_periods` | D17 class master data, exemption reason "a single state the audit can fully reconstruct" (ADR-0046 decision 8.6); role `AGGREGATE_ROOT`, aggregate `AccountingPeriod`, business key `[legal_entity_id, fiscal_year_number, period_number]`, mutability `CONDITIONAL_UPDATE` with condition "`OPEN` to `CLOSING` and `CLOSING` to `CLOSED`, status columns only; a `CLOSED` row never changes; no delete (`tg_fiscal_periods_change`)", retention `PERMANENT`, lineage `NEW`, writers `accounting.period` |
 
 **Retention.** `PERMANENT`: the spec's Q-8, answered by the user 2026-11-05 (adopt the recommendation: accounting records, statutory minimum 30 years under `会计档案管理办法`, ADR-0022 decision 9). The table holds no personal information, so C3's ban on permanent retention for `PI` tables does not apply.
 
