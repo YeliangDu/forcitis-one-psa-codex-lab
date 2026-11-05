@@ -71,7 +71,7 @@ class LocalAdministratorModeIT extends IdentityIntegrationTest {
         assertThat(logged.list).filteredOn(line -> line.getFormattedMessage().startsWith("ALERT platform.identity administrator mode entered")).hasSize(1)
                 .allSatisfy(line -> assertThat(line.getLevel()).isEqualTo(Level.ERROR));
         assertThat(java.time.Instant.parse(body(entered).path("administratorModeExpiresAt").asString())).as("the response names the end of the mode, the same one-hour limit as the WeCom step")
-                .isAfter(java.time.Instant.now().minus(java.time.Duration.ofMinutes(1)));
+                .isBetween(java.time.Instant.now().plus(java.time.Duration.ofMinutes(59)), java.time.Instant.now().plus(java.time.Duration.ofMinutes(61)));
         Cookie elevated = new Cookie("SESSION", cookie(entered, "SESSION"));   // the session id is rotated when the mode starts
         assertThat(mvc.perform(get(ROLES).cookie(elevated)).andReturn().getResponse().getStatus()).isEqualTo(200);
         assertThat(enter(elevated).getResponse().getStatus()).as("the mode is never extended").isEqualTo(403);
