@@ -126,6 +126,7 @@ class OpenApiExportTest {
             "TaskDetailResponse.taskId", "TaskDetailResponse.instanceId", "TaskDetailResponse.documentId", "TaskOverviewResponse.taskId", "TaskOverviewResponse.documentId",
             "InboxItemResponse.documentId", "parameter taskId", "StoredFileResponse.fileId", "FileStatusResponse.fileId", "parameter fileId",
             "parameter orgUnitId", "parameter employeeId", "parameter positionId",
+            "OpenFiscalYearRequest.legalEntityId", "OpenedFiscalYearResponse.legalEntityId", "OpenedPeriodResponse.fiscalPeriodId",
             "PublishStandardHoursRequest.legalEntityId", "PublishedStandardHoursResponse.standardHoursVersionId", "VoidedStandardHoursResponse.standardHoursVersionId",
             "StandardHoursVersionResponse.standardHoursVersionId", "StandardHoursVersionResponse.legalEntityId", "StandardHoursVersionResponse.confirmedBy", "parameter standardHoursVersionId",
             "EnterPersonnelCommandRequest.employeeId", "EnterPersonnelCommandRequest.targetOrgUnitId", "EnterPersonnelCommandRequest.targetPositionId", "EnterPersonnelCommandRequest.targetLegalEntityId", "EnterPersonnelCommandRequest.targetAssignmentId", "EnterPersonnelCommandRequest.targetEmployerLegalEntityId", "EnterPersonnelCommandRequest.predecessorRelationshipId", "EnterPersonnelCommandRequest.employmentRelationshipId",

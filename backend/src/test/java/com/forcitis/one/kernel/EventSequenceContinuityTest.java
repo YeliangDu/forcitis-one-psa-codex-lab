@@ -209,6 +209,14 @@ class EventSequenceContinuityTest {
     }
 
     @Test
+    @DisplayName("FiscalPeriod: events are numbered 1..n (the spine records none, the counters stay at zero)")
+    void fiscalPeriod() {
+        checkMany(() -> com.forcitis.one.accounting.period.domain.FiscalYear.open(() -> new com.forcitis.one.accounting.period.api.FiscalPeriodId(TestIds.uuid(6)),
+                        new LegalEntityId(TestIds.uuid(1)), 2026, java.util.Optional.empty(), NOW).get(0),
+                List.of(p -> { }));
+    }
+
+    @Test
     @DisplayName("NumberingRule: events are numbered 1..n")
     void numberingRule() {
         NumberingPattern pattern = new NumberingPattern("{TYPE}-{LE}-{yyyyMM}-{seq:4}", ResetPolicy.MONTHLY);
