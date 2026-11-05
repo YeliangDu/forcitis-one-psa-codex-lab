@@ -12,17 +12,28 @@ def git(cwd, *args):
     return subprocess.run(["git", "-C", cwd, *args], env=GIT, check=True, capture_output=True, text=True).stdout.strip()
 
 
+def moves_after_merge(gh, n):
+    """Main moves on right after the failed merge call (the merge itself did it): the baseline then updates the branch over ssh and retries; the new path must not."""
+    call = gh.merge
+
+    def merge(n_, head):
+        res = call(n_, head)
+        gh.prs[n].update(merge="BEHIND", behind=1)
+        return res
+    gh.merge = merge
+
+
 def run(mq, d):
     # the merge call answers 502, the head is on main and GitHub shows MERGED: one MERGED line with the main commit, no retry, no branch update, no second merge call
-    gh = t.FakeGh(); gh.add(40, merge_results=((False, "502 Bad Gateway"),)); gh.prs[40].update(landed=ONMAIN, readback=("MERGED", ["m" * 40, gh.prs[40]["head"]]))
+    gh = t.FakeGh(); gh.add(40, update_ok=False, merge_results=((False, "502 Bad Gateway"),)); moves_after_merge(gh, 40); gh.prs[40].update(landed=ONMAIN, readback=("MERGED", ["m" * 40, gh.prs[40]["head"]]))
     result, ev, log, _ = t.once(mq, d, "e1", gh, 40)
-    assert result == "MERGED" and ev.count("MERGED") == 1 and "RETRY-MERGE" not in ev and "MERGED-UNRECORDED" not in ev, (result, log.lines)
+    assert result == "MERGED" and ev.count("MERGED") == 1 and "RETRY-MERGE" not in ev and "MERGED-UNRECORDED" not in ev and not [e for e in ev if e.startswith(("SSH-UPDATE", "UPDATE"))], (result, log.lines)
     assert "already on main in cccccccccc" in [x for x in log.lines if " MERGED " in x][0], log.lines
     assert not [c for c in gh.calls if c[0] == "update-branch"] and len([c for c in gh.calls if c[0] == "merge"]) == 1, gh.calls
     # on main but GitHub shows it open: said once for lead, never closed, relabelled or retried
-    gh = t.FakeGh(); gh.add(41, merge_results=((False, "502 Bad Gateway"),)); gh.prs[41].update(landed=ONMAIN, readback=("OPEN", []))
+    gh = t.FakeGh(); gh.add(41, update_ok=False, merge_results=((False, "502 Bad Gateway"),)); moves_after_merge(gh, 41); gh.prs[41].update(landed=ONMAIN, readback=("OPEN", []))
     result, ev, log, _ = t.once(mq, d, "e2", gh, 41)
-    assert result == "MERGED" and ev.count("MERGED-UNRECORDED") == 1 and "RETRY-MERGE" not in ev and "lead decides" in [x for x in log.lines if "MERGED-UNRECORDED" in x][0], log.lines
+    assert result == "MERGED" and ev.count("MERGED-UNRECORDED") == 1 and "RETRY-MERGE" not in ev and not [e for e in ev if e.startswith(("SSH-UPDATE", "UPDATE"))] and "lead decides" in [x for x in log.lines if "MERGED-UNRECORDED" in x][0], log.lines
     assert not [c for c in gh.calls if c[0] == "update-branch" or (c[0] == "label" and not c[3])] and gh.prs[41]["state"] == "OPEN", gh.calls
     # head not on main: the old path, a retry
     gh = t.FakeGh(); gh.add(42, merge_results=((False, "required status check expected"), (True, "")))
