@@ -90,6 +90,62 @@ terms:
   status: approved
   confirmed: 用户 2026-11-04 「照建议」 (#1286)
   note: 授权申请确认页的申请类型标签（#1286），对应接口 kind 的取值
+- id: permission_adjustment_origin_column
+  zh: 来源
+  en: PermissionAdjustmentOriginColumn
+  snake: permission_adjustment_origin_column
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 待调整权限条目因何而开：调岗、维持到期、组织单元失效、停薪留职开始；对应接口字段 originKind
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 待调整权限页的列名与详情项名（#1297），待用语确认
+- id: mark_permission_adjusted_action
+  zh: 标记已调整
+  en: MarkPermissionAdjusted
+  snake: mark_permission_adjusted
+  kind: command
+  bc: platform.identity
+  scope: domain
+  definition: 办理人指明授权已按条目调整完毕（依据一个授权申请或一条审计日志），条目由待处理转为已调整；对应接口 :mark-adjusted
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 待调整权限详情页的操作名（#1297），待用语确认
+- id: permission_adjustment_status__expired
+  zh: 已到期
+  en: PermissionAdjustmentStatusExpired
+  snake: permission_adjustment_status_expired
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 维持授权的期限已到，条目失效并另开后继条目（EXPIRED）
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 待调整权限状态标签（#1297），对应接口 status 的取值，待用语确认；正式词表只有其余四个状态
+- id: permission_adjustment_origin__uphold_expiry
+  zh: 维持到期
+  en: PermissionAdjustmentOriginUpholdExpiry
+  snake: permission_adjustment_origin_uphold_expiry
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 因上一条目的维持期限已到而开出的后继条目（UPHOLD_EXPIRY）
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 待调整权限来源标签（#1297），待用语确认
 - id: primary_assignment_history
   zh: 主岗历史
   en: PrimaryAssignmentHistory

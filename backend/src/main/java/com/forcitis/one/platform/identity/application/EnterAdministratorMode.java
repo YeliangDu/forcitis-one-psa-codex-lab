@@ -77,7 +77,7 @@ public class EnterAdministratorMode {
         }
         Instant until = sessions.beginAdministratorMode();
         transaction.executeWithoutResult(status -> audit.record(new AuditEntry("platform.identity.administrator-mode.entered", userId, null,
-                AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()), "until " + until).withTrace(origin.address(), AuditOutcome.SUCCEEDED, session.loginMethod().name())));
+                AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()), "until " + until).withTrace(origin.address(), AuditOutcome.SUCCEEDED, session.loginMethod().auditKind())));
         meters.counter("forcitis.platform.identity.administrator.mode.entries").increment();
         log.error("ALERT platform.identity administrator mode entered by user {}, until {}", userId.value(), until);
         return until;
@@ -85,7 +85,7 @@ public class EnterAdministratorMode {
 
     private DomainException refused(UserId userId, String reason) {
         audit.recordIndependently(new AuditEntry("platform.identity.administrator-mode.refused", userId, null,
-                AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()), reason).withTrace(origin.address(), AuditOutcome.FAILED, session.loginMethod().name()));
+                AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()), reason).withTrace(origin.address(), AuditOutcome.FAILED, session.loginMethod().auditKind()));
         return new DomainException(IdentityError.PLATFORM_IDENTITY_ADMINISTRATOR_MODE_DENIED, ErrorKind.FORBIDDEN,
                 "the administrator mode cannot be entered");
     }
