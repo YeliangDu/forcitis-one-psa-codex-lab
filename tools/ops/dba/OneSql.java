@@ -39,6 +39,9 @@ public class OneSql {
             + "|COMMIT|ROLLBACK|SAVE|BEGIN\\s+(TRAN|TRANSACTION|DISTRIBUTED)|WRITETEXT|UPDATETEXT|BULK|OPENROWSET|OPENDATASOURCE|OPENQUERY|RECONFIGURE|USE"
             + "|(sp|xp)_\\w+|INTO\\s+(?!#))\\b", Pattern.CASE_INSENSITIVE);
 
+    /** A token that starts with a digit (not inside an identifier) and goes on with a letter, @, # or $: SQL Server lexes number and keyword apart where the keyword regex sees one word. */
+    static final Pattern NUMBER_GLUED = Pattern.compile("(?<![\\w@#$])\\d+[A-Za-z_@#$]");
+
     public static void main(String[] a) throws Exception {
         if (a.length >= 1 && a[0].equals("--self-test")) {
             selfTest(a.length > 1 ? Path.of(a[1]) : null);
@@ -115,6 +118,7 @@ public class OneSql {
         for (String b : batches) {
             Matcher m = WRITE.matcher(codeOnly(b));
             if (m.find()) throw new IllegalStateException("read-only script contains write keyword: " + m.group());
+            if (NUMBER_GLUED.matcher(codeOnly(b)).find()) throw new IllegalStateException("read-only script contains a number glued to letters (1e5, 0xAB, 1DELETE): SQL Server reads a number and a keyword there");
         }
         return batches;
     }
@@ -132,7 +136,7 @@ public class OneSql {
                 "sp_executesql N'DELETE FROM t'", "SELECT * INTO dbo.copy FROM t", "WRITETEXT t.c @p 'x'", "UPDATETEXT t.c @p 0 NULL 'x'", "COMMIT",
                 "SELECT 1; COMMIT TRANSACTION", "BEGIN TRAN; SELECT 1", "ROLLBACK", "SELECT * FROM OPENROWSET('SQLNCLI', 'x', 'SELECT 1')", "xp_cmdshell 'dir'",
                 "USE master", "/* ' */ DELETE FROM t", "SELECT 1 /* -- */; DELETE FROM t",
-                "SELECT 1DELETE FROM t", "SELECT 1COMMIT", "SELECT 1KILL 55", "SELECT 1DBCC FREEPROCCACHE", "SELECT 0x1DELETE FROM t", "SELECT 1e1DELETE FROM t"}) {
+                "SELECT 1DELETE FROM t", "SELECT 1COMMIT", "SELECT 1KILL 55", "SELECT 1DBCC FREEPROCCACHE", "SELECT 0x1DELETE FROM t", "SELECT 1e1DELETE FROM t", "SELECT 0xKILL 55", "SELECT 0xABKILL 55", "SELECT 1eCOMMIT", "SELECT 1eDELETE FROM t WHERE 1 = 1eCOMMIT"}) {
             check(refused(() -> readOnlyBatches(write, none)), "a write statement is refused: " + write);
         }
         for (String mode : new String[] {"rw", "deny", "RO", ""}) {

@@ -115,6 +115,8 @@ def validate_select(text):
         sql, masked = sql[:-1].rstrip(), masked[:-1].rstrip()
     if not masked or ";" in masked or not re.match(r"SELECT\b", masked, re.I):
         raise Refused("not exactly one SELECT statement")
+    if any(not token.isdigit() for token in re.findall(r"(?<![\w@#$])\d[\w@#$]*", masked)):  # 1e5, 0xAB, 1DELETE: SQL Server lexes a number and a keyword apart where a regex sees one word
+        raise Refused("SQL holds a number that is not plain digits")
     depth, previous = 0, ""
     for token in re.findall(r"[()]|[A-Za-z_#@][\w#@$]*", masked):  # a further SELECT at the top level is allowed only as a set operation (UNION [ALL], EXCEPT, INTERSECT)
         depth += (token == "(") - (token == ")")
