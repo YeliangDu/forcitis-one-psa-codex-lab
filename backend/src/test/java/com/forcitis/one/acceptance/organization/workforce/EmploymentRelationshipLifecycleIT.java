@@ -55,21 +55,22 @@ class EmploymentRelationshipLifecycleIT extends EmploymentRelationshipSupport {
     @Test
     @DisplayName("#1371 完成标准 4：两段关系结束一段，人仍在职；两段都结束，人离职，EmployeeSeparated 只在最后一段结束时发一次")
     void thePersonLeavesWhenTheLastRelationshipEnds() throws Exception {
-        UUID endA = endRelationship(person, relationA, FIRST_END.minusDays(1));
-        UUID endB = endRelationship(person, relationB, LAST_END.minusDays(1));
+        // design 6.3: the relationship holding the PRIMARY assignment (A) may not end first while B stays, so B ends first and A last.
+        UUID endB = endRelationship(person, relationB, FIRST_END.minusDays(1));
+        UUID endA = endRelationship(person, relationA, LAST_END.minusDays(1));
 
         dueOn(FIRST_END);
 
         assertThat(statusOf(person)).as("design 4.2-3: one relationship ended, the other is in service, so the person is").isEqualTo(EMPLOYED);
-        assertThat(eventsOf(EVENT_ENDED, endA)).as("design 6.1: the relationship event fires for the first end").isEqualTo(1);
-        assertThat(eventsOf(EVENT_SEPARATED, endA)).as("design 6.1: no EmployeeSeparated while a relationship stays in service").isZero();
+        assertThat(eventsOf(EVENT_ENDED, endB)).as("design 6.1: the relationship event fires for the first end").isEqualTo(1);
+        assertThat(eventsOf(EVENT_SEPARATED, endB)).as("design 6.1: no EmployeeSeparated while a relationship stays in service").isZero();
 
         dueOn(LAST_END);
 
         assertThat(statusOf(person)).as("design 4.2-3: both ended, the person is separated").isEqualTo(SEPARATED);
-        assertThat(eventsOf(EVENT_ENDED, endB)).as("design 6.1: the relationship event fires for the last end").isEqualTo(1);
-        assertThat(eventsOf(EVENT_SEPARATED, endB)).as("design 6.1: EmployeeSeparated fires once, on the last end").isEqualTo(1);
-        assertThat(eventsOf(EVENT_SEPARATED, endA)).as("design 6.1: and not on the first end").isZero();
+        assertThat(eventsOf(EVENT_ENDED, endA)).as("design 6.1: the relationship event fires for the last end").isEqualTo(1);
+        assertThat(eventsOf(EVENT_SEPARATED, endA)).as("design 6.1: EmployeeSeparated fires once, on the last end").isEqualTo(1);
+        assertThat(eventsOf(EVENT_SEPARATED, endB)).as("design 6.1: and not on the first end").isZero();
     }
 
     @Test
