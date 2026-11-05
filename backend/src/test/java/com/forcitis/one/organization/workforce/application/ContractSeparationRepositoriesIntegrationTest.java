@@ -39,7 +39,7 @@ class ContractSeparationRepositoriesIntegrationTest extends WorkforceIntegration
     void aContractRoundTrips() {
         UUID employee = PersonnelSeedSupport.employed(jdbc, clock, "RC-1").employee();
         var relationship = new EmploymentRelationshipId(EmploymentRelationshipSeed.relationship(jdbc, employee));
-        var first = new EmploymentContract(new EmploymentContractId(UUID.randomUUID()), relationship, new EmployeeId(employee), ContractKind.FIXED_TERM, LocalDate.of(2026, 1, 1),
+        var first = new EmploymentContract(new EmploymentContractId(UUID.randomUUID()), relationship, new EmployeeId(employee), ContractKind.FIXED_PERIOD, LocalDate.of(2026, 1, 1),
                 LocalDate.of(2026, 12, 31), null, 3, null, null, ContractStatus.DRAFT, null, null, null, null, 0);
         var renewal = new EmploymentContract(new EmploymentContractId(UUID.randomUUID()), relationship, new EmployeeId(employee), ContractKind.OPEN_ENDED, LocalDate.of(2027, 1, 1),
                 null, null, 0, first.id(), null, ContractStatus.DRAFT, null, null, null, null, 0);

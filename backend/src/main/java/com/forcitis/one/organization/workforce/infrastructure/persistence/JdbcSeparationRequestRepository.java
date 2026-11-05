@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
+import com.forcitis.one.organization.workforce.domain.AgreementFileId;
 import com.forcitis.one.organization.workforce.domain.SeparationInitiator;
 import com.forcitis.one.organization.workforce.domain.SeparationRequest;
 import com.forcitis.one.organization.workforce.domain.SeparationRequestId;
@@ -12,8 +13,10 @@ import com.forcitis.one.organization.workforce.domain.SeparationRequestSource;
 import com.forcitis.one.organization.workforce.domain.SeparationRequestStatus;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,7 +35,10 @@ class JdbcSeparationRequestRepository implements SeparationRequestRepository {
 
     private final JdbcClient jdbc;
 
-    JdbcSeparationRequestRepository(JdbcClient jdbc) {
+    private final Clock clock;
+
+    JdbcSeparationRequestRepository(JdbcClient jdbc, Clock clock) {
+        this.clock = clock;
         this.jdbc = jdbc;
     }
 
@@ -49,7 +55,7 @@ class JdbcSeparationRequestRepository implements SeparationRequestRepository {
 
     @Override
     public void insert(SeparationRequest r) {
-        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime now = OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
         jdbc.sql("""
                 insert into organization_workforce.separation_requests (separation_request_id, employment_relationship_id, employee_id, initiator_kind, separation_basis_key,
                     request_source_kind, requested_by, decided_by, requested_on_date, approved_on_date, last_working_date, handover_completed_on_date, agreement_file_id,
@@ -59,7 +65,7 @@ class JdbcSeparationRequestRepository implements SeparationRequestRepository {
                 .param("id", r.id().value()).param("relationship", r.relationshipId().value()).param("employee", r.employeeId().value()).param("initiator", r.initiator().name())
                 .param("basis", r.basisKey()).param("source", r.source().name()).param("requestedBy", r.requestedBy().value())
                 .param("decidedBy", r.decidedBy() == null ? null : r.decidedBy().value()).param("requestedOn", r.requestedOn()).param("approvedOn", r.approvedOn())
-                .param("lastWorking", r.lastWorkingDate()).param("handover", r.handoverCompletedOn()).param("agreement", r.agreementFileId())
+                .param("lastWorking", r.lastWorkingDate()).param("handover", r.handoverCompletedOn()).param("agreement", r.agreementFileId() == null ? null : r.agreementFileId().value())
                 .param("protectedChecked", r.protectedCircumstancesCheckedOn()).param("unionNotified", r.unionNotifiedOn()).param("unionOpinion", r.unionOpinionNote())
                 .param("unionResult", r.unionNoticeResultNote()).param("note", r.note()).param("command", r.personnelCommandId() == null ? null : r.personnelCommandId().value())
                 .param("status", r.status().name()).param("now", now).update();
@@ -71,9 +77,13 @@ class JdbcSeparationRequestRepository implements SeparationRequestRepository {
                 SeparationInitiator.valueOf(rs.getString("initiator_kind")), rs.getString("separation_basis_key"), SeparationRequestSource.valueOf(rs.getString("request_source_kind")),
                 new UserId(rs.getObject("requested_by", UUID.class)), user(rs.getObject("decided_by", UUID.class)), rs.getObject("requested_on_date", LocalDate.class),
                 rs.getObject("approved_on_date", LocalDate.class), rs.getObject("last_working_date", LocalDate.class), rs.getObject("handover_completed_on_date", LocalDate.class),
-                rs.getObject("agreement_file_id", UUID.class), rs.getObject("protected_circumstances_checked_on_date", LocalDate.class),
+                file(rs.getObject("agreement_file_id", UUID.class)), rs.getObject("protected_circumstances_checked_on_date", LocalDate.class),
                 rs.getObject("union_notified_on_date", LocalDate.class), rs.getString("union_opinion_note"), rs.getString("union_notice_result_note"), rs.getString("note"),
                 command(rs.getObject("personnel_command_id", UUID.class)), SeparationRequestStatus.valueOf(rs.getString("status")), rs.getLong("version"));
+    }
+
+    private static @Nullable AgreementFileId file(@Nullable UUID id) {
+        return id == null ? null : new AgreementFileId(id);
     }
 
     private static @Nullable UserId user(@Nullable UUID id) {

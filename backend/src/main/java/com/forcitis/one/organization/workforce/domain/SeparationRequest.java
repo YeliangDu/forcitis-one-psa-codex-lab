@@ -15,7 +15,7 @@ import org.jspecify.annotations.Nullable;
  */
 public record SeparationRequest(SeparationRequestId id, EmploymentRelationshipId relationshipId, EmployeeId employeeId, SeparationInitiator initiator, String basisKey,
                                 SeparationRequestSource source, UserId requestedBy, @Nullable UserId decidedBy, LocalDate requestedOn, @Nullable LocalDate approvedOn,
-                                @Nullable LocalDate lastWorkingDate, @Nullable LocalDate handoverCompletedOn, @Nullable UUID agreementFileId,
+                                @Nullable LocalDate lastWorkingDate, @Nullable LocalDate handoverCompletedOn, @Nullable AgreementFileId agreementFileId,
                                 @Nullable LocalDate protectedCircumstancesCheckedOn, @Nullable LocalDate unionNotifiedOn, @Nullable String unionOpinionNote,
                                 @Nullable String unionNoticeResultNote, @Nullable String note, @Nullable PersonnelCommandId personnelCommandId,
                                 SeparationRequestStatus status, long version) {

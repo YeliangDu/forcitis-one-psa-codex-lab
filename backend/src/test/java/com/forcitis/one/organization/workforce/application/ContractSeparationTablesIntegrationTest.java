@@ -44,8 +44,8 @@ class ContractSeparationTablesIntegrationTest extends WorkforceIntegrationSuppor
         c.put("employment_relationship_id", relationship);
         c.put("employee_id", employee);
         c.put("contract_kind", kind);
-        c.put("term_start_date", start);
-        c.put("term_end_date", end);
+        c.put("contract_start_date", start);
+        c.put("contract_end_date", end);
         c.put("status", "DRAFT");
         Map<String, Object> approver = new LinkedHashMap<>(extra);
         approver.keySet().retainAll(java.util.Set.of("approved_by"));
@@ -76,7 +76,7 @@ class ContractSeparationTablesIntegrationTest extends WorkforceIntegrationSuppor
     }
 
     private UUID contract(String status, LocalDate start, LocalDate end) {
-        return contract(status, end == null ? "OPEN_ENDED" : "FIXED_TERM", start, end, Map.of());
+        return contract(status, end == null ? "OPEN_ENDED" : "FIXED_PERIOD", start, end, Map.of());
     }
 
     private void insert(String table, Map<String, Object> values) {
@@ -136,9 +136,9 @@ class ContractSeparationTablesIntegrationTest extends WorkforceIntegrationSuppor
     @Test
     @DisplayName("#1438 done-when 2: term, probation and renewal rules each fail a named CHECK")
     void contractRowRulesAreNamedChecks() {
-        assertThatThrownBy(() -> contract("DRAFT", "FIXED_TERM", D2026, null, Map.of())).hasMessageContaining("ck_employment_contracts_term_end");
-        assertThatThrownBy(() -> contract("DRAFT", "OPEN_ENDED", D2026, LocalDate.of(2027, 1, 1), Map.of())).hasMessageContaining("ck_employment_contracts_term_end");
-        assertThatThrownBy(() -> contract("DRAFT", "FIXED_TERM", D2026, LocalDate.of(2025, 12, 31), Map.of())).hasMessageContaining("ck_employment_contracts_term_end");
+        assertThatThrownBy(() -> contract("DRAFT", "FIXED_PERIOD", D2026, null, Map.of())).hasMessageContaining("ck_employment_contracts_contract_end");
+        assertThatThrownBy(() -> contract("DRAFT", "OPEN_ENDED", D2026, LocalDate.of(2027, 1, 1), Map.of())).hasMessageContaining("ck_employment_contracts_contract_end");
+        assertThatThrownBy(() -> contract("DRAFT", "FIXED_PERIOD", D2026, LocalDate.of(2025, 12, 31), Map.of())).hasMessageContaining("ck_employment_contracts_contract_end");
         assertThatThrownBy(() -> contract("DRAFT", "OPEN_ENDED", D2026, null, Map.of("probation_months_count", 7))).hasMessageContaining("ck_employment_contracts_probation_months");
         UUID first = contract("DRAFT", "OPEN_ENDED", D2026, null, Map.of("probation_months_count", 6));
         assertThatThrownBy(() -> contract("DRAFT", "OPEN_ENDED", LocalDate.of(2027, 1, 1), null, Map.of("renews_contract_id", first, "probation_months_count", 1)))
@@ -216,7 +216,7 @@ class ContractSeparationTablesIntegrationTest extends WorkforceIntegrationSuppor
     @DisplayName("#1438 done-when 7: updates outside the legal edges are refused, delete is for the table owner only, truncate is refused on all three")
     void illegalWritesAreRefused() throws SQLException {
         UUID signed = contract("SIGNED", D2026, null);
-        assertThatThrownBy(() -> jdbc.sql("update " + CONTRACTS + " set term_start_date = '2025-12-31', updated_at = now(), version = version + 1 where employment_contract_id = :id").param("id", signed).update())
+        assertThatThrownBy(() -> jdbc.sql("update " + CONTRACTS + " set contract_start_date = '2025-12-31', updated_at = now(), version = version + 1 where employment_contract_id = :id").param("id", signed).update())
                 .hasMessageContaining("employment contracts");
         UUID approved = request("APPROVED", "EMPLOYER_CHANGE", Map.of("request_source_kind", "SYSTEM", "initiator_kind", "BOTH", "decided_by", HR_B, "approved_on_date", D2026, "last_working_date", D2026.plusDays(30)));
         assertThatThrownBy(() -> jdbc.sql("update " + REQUESTS + " set last_working_date = '2026-03-01', updated_at = now(), version = version + 1 where separation_request_id = :id").param("id", approved).update())

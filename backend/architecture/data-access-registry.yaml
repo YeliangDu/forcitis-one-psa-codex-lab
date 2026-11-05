@@ -200,7 +200,7 @@ tables:
     aggregate: Employee
     mutability: CONDITIONAL_UPDATE
     condition: 只按触发器 tg_employment_contracts_change 列出的合法状态边写入（草拟、审批、批准、签订、终止、作废），其余更新一律拒绝；删除只放行表属主（清除函数）
-    business_key: [employment_relationship_id, term_start_date]
+    business_key: [employment_relationship_id, contract_start_date]
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [organization.workforce]

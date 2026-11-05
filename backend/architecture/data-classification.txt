@@ -83,14 +83,14 @@ organization_leave.attendance_records.external_record_key | INTERNAL | NONE | �
 organization_leave.monthly_confirmations.employee_id | INTERNAL | PI | 用途：月确认的所属员工
 # #1438 WC1：劳动合同与离职申请（数据设计签字记录 workforce-contract-separation-wc0.md）；用户说的 CONFIDENTIAL 按 Q-12 (a) 对应 SENSITIVE；标记 PI 不是 SPI，前提是任何依据键都不暴露健康原因
 organization_workforce.employment_contracts.contract_kind | SENSITIVE | PI | 用途：劳动合同的内容（种类、期限、试用期、扫描件），用户称 CONFIDENTIAL，按 Q-12 (a) 对应 SENSITIVE；个人信息 PI
-organization_workforce.employment_contracts.term_start_date | SENSITIVE | PI | 用途：劳动合同的内容（种类、期限、试用期、扫描件），用户称 CONFIDENTIAL，按 Q-12 (a) 对应 SENSITIVE；个人信息 PI
-organization_workforce.employment_contracts.term_end_date | SENSITIVE | PI | 用途：劳动合同的内容（种类、期限、试用期、扫描件），用户称 CONFIDENTIAL，按 Q-12 (a) 对应 SENSITIVE；个人信息 PI
+organization_workforce.employment_contracts.contract_start_date | SENSITIVE | PI | 用途：劳动合同的内容（种类、期限、试用期、扫描件），用户称 CONFIDENTIAL，按 Q-12 (a) 对应 SENSITIVE；个人信息 PI
+organization_workforce.employment_contracts.contract_end_date | SENSITIVE | PI | 用途：劳动合同的内容（种类、期限、试用期、扫描件），用户称 CONFIDENTIAL，按 Q-12 (a) 对应 SENSITIVE；个人信息 PI
 organization_workforce.employment_contracts.probation_months_count | SENSITIVE | PI | 用途：劳动合同的内容（种类、期限、试用期、扫描件），用户称 CONFIDENTIAL，按 Q-12 (a) 对应 SENSITIVE；个人信息 PI
 organization_workforce.employment_contracts.contract_file_id | SENSITIVE | PI | 用途：劳动合同的内容（种类、期限、试用期、扫描件），用户称 CONFIDENTIAL，按 Q-12 (a) 对应 SENSITIVE；个人信息 PI
 organization_workforce.employment_contracts.termination_basis_key | SENSITIVE | PI | 用途：合同终止依据，可反映纪律处理史，用户 Q-6 定 SENSITIVE；个人信息 PI
 organization_workforce.employment_contracts.signed_on_date | INTERNAL | PI | 用途：合同的签订与终止事实、流程状态和经办人，供提醒清单、审批与审计；个人信息 PI（沿员工任职史）
 organization_workforce.employment_contracts.terminated_on_date | INTERNAL | PI | 用途：合同的签订与终止事实、流程状态和经办人，供提醒清单、审批与审计；个人信息 PI（沿员工任职史）
-organization_workforce.employment_contracts.status | INTERNAL | PI | 用途：合同的签订与终止事实、流程状态和经办人，供提醒清单、审批与审计；个人信息 PI（沿员工任职史）
+organization_workforce.employment_contracts.status | INTERNAL | NONE | 豁免：状态枚举值（草拟、审批中、已签订等），不含个人内容；与同表其他列组合才可识别到人，本列单独不是个人信息
 organization_workforce.employment_contracts.renews_contract_id | INTERNAL | PI | 用途：合同的签订与终止事实、流程状态和经办人，供提醒清单、审批与审计；个人信息 PI（沿员工任职史）
 organization_workforce.employment_contracts.employee_id | INTERNAL | PI | 用途：合同的签订与终止事实、流程状态和经办人，供提醒清单、审批与审计；个人信息 PI（沿员工任职史）
 organization_workforce.employment_contracts.submitted_by | INTERNAL | PI | 用途：合同的签订与终止事实、流程状态和经办人，供提醒清单、审批与审计；个人信息 PI（沿员工任职史）
@@ -109,7 +109,7 @@ organization_workforce.separation_requests.last_working_date | INTERNAL | PI | �
 organization_workforce.separation_requests.handover_completed_on_date | INTERNAL | PI | 用途：离职申请的日期、发起方、来源、状态和经办人，供审批、薪酬读取与审计；个人信息 PI
 organization_workforce.separation_requests.initiator_kind | INTERNAL | PI | 用途：离职申请的日期、发起方、来源、状态和经办人，供审批、薪酬读取与审计；个人信息 PI
 organization_workforce.separation_requests.request_source_kind | INTERNAL | PI | 用途：离职申请的日期、发起方、来源、状态和经办人，供审批、薪酬读取与审计；个人信息 PI
-organization_workforce.separation_requests.status | INTERNAL | PI | 用途：离职申请的日期、发起方、来源、状态和经办人，供审批、薪酬读取与审计；个人信息 PI
+organization_workforce.separation_requests.status | INTERNAL | NONE | 豁免：状态枚举值（草拟、审批中、已签订等），不含个人内容；与同表其他列组合才可识别到人，本列单独不是个人信息
 organization_workforce.separation_requests.employee_id | INTERNAL | PI | 用途：离职申请的日期、发起方、来源、状态和经办人，供审批、薪酬读取与审计；个人信息 PI
 organization_workforce.separation_requests.requested_by | INTERNAL | PI | 用途：离职申请的日期、发起方、来源、状态和经办人，供审批、薪酬读取与审计；个人信息 PI
 organization_workforce.separation_requests.decided_by | INTERNAL | PI | 用途：离职申请的日期、发起方、来源、状态和经办人，供审批、薪酬读取与审计；个人信息 PI

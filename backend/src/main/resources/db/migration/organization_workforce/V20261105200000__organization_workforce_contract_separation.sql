@@ -27,7 +27,7 @@ COMMENT ON COLUMN organization_workforce.separation_bases.separation_basis_key I
 COMMENT ON COLUMN organization_workforce.separation_bases.display_name IS '中文显示名，1 至 60 字';
 COMMENT ON COLUMN organization_workforce.separation_bases.default_initiator_kind IS '表单预选的发起方：EMPLOYEE 员工 / EMPLOYER 用人单位 / BOTH 双方';
 COMMENT ON COLUMN organization_workforce.separation_bases.is_employer_initiated IS '是否用人单位单方解除：为真时批准前必须有四项解除核查（禁止解除情形核查日、通知工会日、工会意见、书面通知结果）';
-COMMENT ON COLUMN organization_workforce.separation_bases.is_system_only IS '是否仅系统使用：为真的键（换用人单位、迁入）人事不能选，只能由系统申请使用';
+COMMENT ON COLUMN organization_workforce.separation_bases.is_system_only IS '仅系统生成：为真的键（换用人单位、迁入）人事不能选，只能由系统申请使用';
 COMMENT ON COLUMN organization_workforce.separation_bases.is_active IS '是否可选：退役的键置假，旧行继续引用';
 COMMENT ON COLUMN organization_workforce.separation_bases.created_at IS '创建时间';
 COMMENT ON COLUMN organization_workforce.separation_bases.updated_at IS '最近变更时间；行只经迁移变更';
@@ -73,8 +73,8 @@ CREATE TABLE organization_workforce.employment_contracts (
     employment_relationship_id  uuid        NOT NULL,
     employee_id                 uuid        NOT NULL,
     contract_kind               text        NOT NULL,
-    term_start_date             date        NOT NULL,
-    term_end_date               date,
+    contract_start_date             date        NOT NULL,
+    contract_end_date               date,
     signed_on_date              date,
     probation_months_count      integer     NOT NULL DEFAULT 0,
     renews_contract_id          uuid,
@@ -95,17 +95,17 @@ CREATE TABLE organization_workforce.employment_contracts (
         REFERENCES organization_workforce.employment_contracts (employment_contract_id, employment_relationship_id) ON DELETE RESTRICT,
     CONSTRAINT fk_employment_contracts_termination_basis_key FOREIGN KEY (termination_basis_key)
         REFERENCES organization_workforce.separation_bases (separation_basis_key) ON DELETE RESTRICT,
-    CONSTRAINT ck_employment_contracts_contract_kind CHECK (contract_kind IN ('FIXED_TERM', 'OPEN_ENDED', 'TASK_BASED')),
+    CONSTRAINT ck_employment_contracts_contract_kind CHECK (contract_kind IN ('FIXED_PERIOD', 'OPEN_ENDED', 'TASK_BASED')),
     CONSTRAINT ck_employment_contracts_status CHECK (status IN ('DRAFT', 'IN_APPROVAL', 'APPROVED', 'SIGNED', 'TERMINATED', 'VOID')),
-    CONSTRAINT ck_employment_contracts_dates_finite CHECK (isfinite(term_start_date) AND isfinite(term_end_date) AND isfinite(signed_on_date) AND isfinite(terminated_on_date)),
-    CONSTRAINT ck_employment_contracts_term_end CHECK ((contract_kind = 'FIXED_TERM') = (term_end_date IS NOT NULL) AND (term_end_date IS NULL OR term_end_date >= term_start_date)),
+    CONSTRAINT ck_employment_contracts_dates_finite CHECK (isfinite(contract_start_date) AND isfinite(contract_end_date) AND isfinite(signed_on_date) AND isfinite(terminated_on_date)),
+    CONSTRAINT ck_employment_contracts_contract_end CHECK ((contract_kind = 'FIXED_PERIOD') = (contract_end_date IS NOT NULL) AND (contract_end_date IS NULL OR contract_end_date >= contract_start_date)),
     CONSTRAINT ck_employment_contracts_probation_months CHECK (probation_months_count BETWEEN 0 AND 6),
     CONSTRAINT ck_employment_contracts_renewal_no_probation CHECK (renews_contract_id IS NULL OR probation_months_count = 0),
     CONSTRAINT ck_employment_contracts_renews_not_self CHECK (renews_contract_id <> employment_contract_id),
     CONSTRAINT ck_employment_contracts_approver_not_submitter CHECK (approved_by IS NULL OR approved_by <> submitted_by),
     CONSTRAINT ck_employment_contracts_termination_pair CHECK ((terminated_on_date IS NULL) = (termination_basis_key IS NULL)),
     CONSTRAINT ck_employment_contracts_termination_range CHECK (terminated_on_date IS NULL
-        OR (terminated_on_date >= term_start_date AND (term_end_date IS NULL OR terminated_on_date <= term_end_date))),
+        OR (terminated_on_date >= contract_start_date AND (contract_end_date IS NULL OR terminated_on_date <= contract_end_date))),
     CONSTRAINT ck_employment_contracts_state_columns CHECK (
         (status <> 'DRAFT' OR (submitted_by IS NULL AND approved_by IS NULL AND signed_on_date IS NULL))
         AND (status <> 'IN_APPROVAL' OR (submitted_by IS NOT NULL AND approved_by IS NULL AND signed_on_date IS NULL))
@@ -113,9 +113,9 @@ CREATE TABLE organization_workforce.employment_contracts (
         AND (status NOT IN ('SIGNED', 'TERMINATED') OR (submitted_by IS NOT NULL AND approved_by IS NOT NULL AND signed_on_date IS NOT NULL))
         AND ((status = 'TERMINATED') = (terminated_on_date IS NOT NULL))),
     CONSTRAINT ex_employment_contracts_in_force_period_overlap EXCLUDE USING gist (
-        employment_relationship_id WITH =, daterange(term_start_date, coalesce(terminated_on_date, term_end_date), '[]') WITH &&) WHERE (status IN ('SIGNED', 'TERMINATED'))
+        employment_relationship_id WITH =, daterange(contract_start_date, LEAST(terminated_on_date, contract_end_date), '[]') WITH &&) WHERE (status IN ('SIGNED', 'TERMINATED'))
 );
-CREATE UNIQUE INDEX uk_employment_contracts_relationship_term_start ON organization_workforce.employment_contracts (employment_relationship_id, term_start_date)
+CREATE UNIQUE INDEX uk_employment_contracts_relationship_contract_start ON organization_workforce.employment_contracts (employment_relationship_id, contract_start_date)
     WHERE status <> 'VOID';
 CREATE UNIQUE INDEX uk_employment_contracts_one_successor ON organization_workforce.employment_contracts (renews_contract_id)
     WHERE renews_contract_id IS NOT NULL AND status <> 'VOID';
@@ -127,11 +127,11 @@ CREATE INDEX ix_employment_contracts_termination_basis_key ON organization_workf
     WHERE termination_basis_key IS NOT NULL;
 COMMENT ON TABLE organization_workforce.employment_contracts IS '劳动合同：员工聚合内每个雇佣关系下的合同实体，按草拟、审批、签订、终止、作废推进；随员工保留，离职满 10 年由清除函数删除；粒度：每份合同一行；不存用人单位（取雇佣关系的用人单位）、不存实际入职日（取雇佣关系版本的入职日）';
 COMMENT ON COLUMN organization_workforce.employment_contracts.employment_contract_id IS '劳动合同 ID（UUIDv7）';
-COMMENT ON COLUMN organization_workforce.employment_contracts.employment_relationship_id IS '所属雇佣关系 ID';
+COMMENT ON COLUMN organization_workforce.employment_contracts.employment_relationship_id IS '雇佣关系：所属雇佣关系 ID';
 COMMENT ON COLUMN organization_workforce.employment_contracts.employee_id IS '员工 ID，与雇佣关系的员工一致';
-COMMENT ON COLUMN organization_workforce.employment_contracts.contract_kind IS '合同类型：FIXED_TERM 固定期限 / OPEN_ENDED 无固定期限 / TASK_BASED 以完成一定工作任务为期限';
-COMMENT ON COLUMN organization_workforce.employment_contracts.term_start_date IS '约定的合同期起始日（不是实际入职日）';
-COMMENT ON COLUMN organization_workforce.employment_contracts.term_end_date IS '合同期截止日（含当日）：为空表示无固定期限或以任务为期限，没有固定截止日；固定期限合同必填';
+COMMENT ON COLUMN organization_workforce.employment_contracts.contract_kind IS '合同类型：FIXED_PERIOD 固定期限 / OPEN_ENDED 无固定期限 / TASK_BASED 以完成一定工作任务为期限';
+COMMENT ON COLUMN organization_workforce.employment_contracts.contract_start_date IS '约定的合同期起始日（不是实际入职日）';
+COMMENT ON COLUMN organization_workforce.employment_contracts.contract_end_date IS '合同期截止日（含当日）：为空表示无固定期限或以任务为期限，没有固定截止日；固定期限合同必填';
 COMMENT ON COLUMN organization_workforce.employment_contracts.signed_on_date IS '签订日：为空表示尚未签订；可早于或晚于合同期起始日；已签订、已终止必填';
 COMMENT ON COLUMN organization_workforce.employment_contracts.probation_months_count IS '试用期月数：0 表示无试用期条款；上限 6（法定绝对上限，分档与「仅首份合同」由命令检查）';
 COMMENT ON COLUMN organization_workforce.employment_contracts.renews_contract_id IS '被续订的上一份合同：为空表示首份合同；同一雇佣关系内，一份合同只能被续订一次';
@@ -210,7 +210,7 @@ CREATE INDEX ix_separation_requests_employee_id ON organization_workforce.separa
 CREATE INDEX ix_separation_requests_separation_basis_key ON organization_workforce.separation_requests (separation_basis_key);
 COMMENT ON TABLE organization_workforce.separation_requests IS '离职申请：员工聚合内每个雇佣关系的实体，按申请、批准、办理离职、完成推进，或撤回、驳回；含终止依据与解除核查，属敏感个人信息之外的个人信息；随员工保留，离职满 10 年由清除函数删除；粒度：每份申请一行，每个雇佣关系同时只有一份未结束的申请';
 COMMENT ON COLUMN organization_workforce.separation_requests.separation_request_id IS '离职申请 ID（UUIDv7）';
-COMMENT ON COLUMN organization_workforce.separation_requests.employment_relationship_id IS '所属雇佣关系 ID';
+COMMENT ON COLUMN organization_workforce.separation_requests.employment_relationship_id IS '雇佣关系：所属雇佣关系 ID';
 COMMENT ON COLUMN organization_workforce.separation_requests.employee_id IS '员工 ID，与雇佣关系的员工一致';
 COMMENT ON COLUMN organization_workforce.separation_requests.initiator_kind IS '发起方：EMPLOYEE 员工 / EMPLOYER 用人单位 / BOTH 双方';
 COMMENT ON COLUMN organization_workforce.separation_requests.separation_basis_key IS '离职依据键，引用离职依据清单';
@@ -227,7 +227,7 @@ COMMENT ON COLUMN organization_workforce.separation_requests.union_notified_on_d
 COMMENT ON COLUMN organization_workforce.separation_requests.union_opinion_note IS '工会意见记录：为空表示未记录（期限内未提意见时写明「未提出」）；1 至 500 字，不得含健康或怀孕内容';
 COMMENT ON COLUMN organization_workforce.separation_requests.union_notice_result_note IS '书面通知结果记录：为空表示未记录；1 至 500 字，不得含健康或怀孕内容';
 COMMENT ON COLUMN organization_workforce.separation_requests.note IS '备注：为空表示未记录；1 至 500 字，不得含健康或怀孕内容';
-COMMENT ON COLUMN organization_workforce.separation_requests.personnel_command_id IS '关联的离职人事命令：为空表示尚未录入离职命令；必须是同一雇佣关系的 SEPARATE 命令，生效日为最后工作日次日';
+COMMENT ON COLUMN organization_workforce.separation_requests.personnel_command_id IS '人事命令：关联的离职人事命令，为空表示尚未录入离职命令；必须是同一雇佣关系的 SEPARATE 命令，生效日为最后工作日次日';
 COMMENT ON COLUMN organization_workforce.separation_requests.status IS '状态：REQUESTED 已申请 / APPROVED 已批准 / SEPARATING 办理离职中 / COMPLETED 已完成 / WITHDRAWN 已撤回 / REJECTED 已驳回';
 COMMENT ON COLUMN organization_workforce.separation_requests.created_at IS '创建时间';
 COMMENT ON COLUMN organization_workforce.separation_requests.updated_at IS '最近一次变更时间';
@@ -259,7 +259,7 @@ BEGIN
         RAISE EXCEPTION 'employment contracts: version must advance by one with every change' USING ERRCODE = 'restrict_violation';
     END IF;
     changeable := CASE
-        WHEN OLD.status = 'DRAFT' AND NEW.status = 'DRAFT' THEN ARRAY['contract_kind', 'term_start_date', 'term_end_date', 'probation_months_count', 'renews_contract_id', 'contract_file_id']
+        WHEN OLD.status = 'DRAFT' AND NEW.status = 'DRAFT' THEN ARRAY['contract_kind', 'contract_start_date', 'contract_end_date', 'probation_months_count', 'renews_contract_id', 'contract_file_id']
         WHEN OLD.status = 'DRAFT' AND NEW.status = 'IN_APPROVAL' THEN ARRAY['submitted_by']
         WHEN OLD.status = 'IN_APPROVAL' AND NEW.status = 'APPROVED' THEN ARRAY['approved_by']
         WHEN OLD.status = 'IN_APPROVAL' AND NEW.status = 'DRAFT' THEN ARRAY['submitted_by', 'approved_by']
