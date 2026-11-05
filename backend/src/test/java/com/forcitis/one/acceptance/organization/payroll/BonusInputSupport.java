@@ -85,6 +85,11 @@ abstract class BonusInputSupport extends P5Support {
     record Submitted(UUID requestId, UUID relationship, ApprovalInstanceId instance, DocumentReference document) {
     }
 
+    /** False in a test class that needs the initiator to be the only holder of the payroll role; the second one is then granted by the test. */
+    boolean secondHolderFromTheStart() {
+        return true;
+    }
+
     @BeforeEach
     void thePayrollPeople() throws Exception {
         lineManager = newEmployeeId();
@@ -96,7 +101,9 @@ abstract class BonusInputSupport extends P5Support {
         specialistAccount = signIn(specialist);
         secondSpecialist = newEmployeeId();
         employee(secondSpecialist, unit, null);
-        grantByOperations(secondSpecialist, PAYROLL_ROLE);
+        if (secondHolderFromTheStart()) {
+            grantByOperations(secondSpecialist, PAYROLL_ROLE);
+        }
         secondSpecialistAccount = signIn(secondSpecialist);
         outsider = newEmployeeId();
         employee(outsider, unit, null);
@@ -276,29 +283,72 @@ abstract class BonusInputSupport extends P5Support {
         return query("platform_approval", "select * from approval_requests where process_key = ? order by created_at", PROCESS.value());
     }
 
-    /**
-     * A person whose only source of the read permission is a role with the given data scope (ALL is the payroll role's own; a narrower one such as
-     * OWN_ORG_UNIT must read nothing, fail-closed). The role is made and granted through the administrator's HTTP paths, the way an operator would.
-     */
-    SignedIn holderOfReadWithScope(String accessScope) throws Exception {
+    private static final String ROLES = "/api/v1/platform/roles";
+
+    /** An administrator in the administrator mode (the roles and grants of two-person permissions are made and confirmed by two of them). */
+    SignedIn newAdministrator() throws Exception {
         UUID adminEmployee = newEmployeeId();
         employee(adminEmployee, unit, null);
         grantByOperations(adminEmployee, "super_admin");
-        SignedIn admin = administratorMode(signIn(adminEmployee));
-        String code = "synthetic_bonus_read_" + accessScope.toLowerCase() + "_" + Long.toString(System.nanoTime() % 100000, 36);
-        MockHttpServletResponse role = mvc.perform(post("/api/v1/platform/roles").with(csrf()).with(session(admin)).contentType(MediaType.APPLICATION_JSON)
+        return administratorMode(signIn(adminEmployee));
+    }
+
+    /**
+     * A two-person role (the bonus-input permissions are sensitive): the creation is only an authorization request (202) that a second administrator
+     * confirms; the role exists once confirmed. Returns the code.
+     */
+    String twoPersonRole(SignedIn requester, SignedIn confirmer, String accessScope, String... permissionCodes) throws Exception {
+        String code = "synthetic_bonus_" + accessScope.toLowerCase() + "_" + Long.toString(System.nanoTime() % 1000000, 36);
+        MockHttpServletResponse asked = mvc.perform(post(ROLES).with(csrf()).with(session(requester)).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"" + code + "\",\"name\":\"Synthetic " + code + "\",\"enabled\":true,\"accessScope\":\"" + accessScope
-                        + "\",\"permissionCodes\":[\"organization.payroll:bonus-input:read\"]}")).andReturn().getResponse();
-        assertThat(role.getStatus()).as("creating the narrow read role: " + role.getContentAsString()).isEqualTo(201);
+                        + "\",\"permissionCodes\":[" + String.join(",", java.util.Arrays.stream(permissionCodes).map(c -> "\"" + c + "\"").toList()) + "]}"))
+                .andReturn().getResponse();
+        assertThat(asked.getStatus()).as("a role with a two-person permission is only requested: " + asked.getContentAsString()).isEqualTo(202);
+        assertThat(mvc.perform(get(ROLES).with(session(requester))).andReturn().getResponse().getContentAsString()).as("not yet a role").doesNotContain(code);
+        confirm(confirmer, JsonPath.read(asked.getContentAsString(), "$.requestId"));
+        Awaitility.await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(100)).until(
+                () -> mvc.perform(get(ROLES).with(session(requester))).andReturn().getResponse().getContentAsString().contains(code));
+        return code;
+    }
+
+    /** The request to give the person the role: 202 and the authorization request id (the grant waits for a second administrator). */
+    String askToGrant(SignedIn requester, SignedIn person, String roleCode) throws Exception {
+        String accountPath = "/api/v1/platform/user-accounts/" + person.userId();
+        MockHttpServletResponse read = mvc.perform(get(accountPath).with(session(requester))).andReturn().getResponse();
+        assertThat(read.getStatus()).as(read.getContentAsString()).isEqualTo(200);
+        MockHttpServletResponse asked = mvc.perform(post(accountPath + ":replace-roles").header("If-Match", read.getHeader("ETag")).with(csrf()).with(session(requester))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"employee\",\"" + roleCode + "\"]}")).andReturn().getResponse();
+        assertThat(asked.getStatus()).as("a grant of a two-person role is only requested: " + asked.getContentAsString()).isEqualTo(202);
+        return JsonPath.read(asked.getContentAsString(), "$.requestId");
+    }
+
+    void confirm(SignedIn confirmer, String requestId) throws Exception {
+        MockHttpServletResponse confirmed = mvc.perform(post("/api/v1/platform/authorization-requests/" + requestId + ":confirm").with(csrf()).with(session(confirmer)))
+                .andReturn().getResponse();
+        assertThat(confirmed.getStatus()).as("the second administrator confirms: " + confirmed.getContentAsString()).isEqualTo(204);
+    }
+
+    /** The permission codes the person's own session carries now. */
+    List<String> permissionsOf(SignedIn person) throws Exception {
+        MockHttpServletResponse current = mvc.perform(get("/api/v1/platform/sessions:current").with(session(person))).andReturn().getResponse();
+        assertThat(current.getStatus()).as(current.getContentAsString()).isEqualTo(200);
+        return JsonPath.read(current.getContentAsString(), "$.permissionCodes");
+    }
+
+    /**
+     * A person whose only source of the read permission is a role with the given data scope. The permission is a two-person one, so its roles may only
+     * have the scopes ALL, CUSTOM_ORG_UNITS or SELF (a relative scope such as OWN_ORG_UNIT is refused at creation); a narrower one than ALL must read
+     * nothing, fail-closed. Role and grant are made by one administrator and confirmed by another, the way an operator would.
+     */
+    SignedIn holderOfReadWithScope(String accessScope) throws Exception {
+        SignedIn requester = newAdministrator();
+        SignedIn confirmer = newAdministrator();
+        String code = twoPersonRole(requester, confirmer, accessScope, "organization.payroll:bonus-input:read");
         UUID holder = newEmployeeId();
         employee(holder, unit, null);
         SignedIn account = signIn(holder);
-        String accountPath = "/api/v1/platform/user-accounts/" + account.userId();
-        MockHttpServletResponse read = mvc.perform(get(accountPath).with(session(admin))).andReturn().getResponse();
-        assertThat(read.getStatus()).as(read.getContentAsString()).isEqualTo(200);
-        MockHttpServletResponse replaced = mvc.perform(post(accountPath + ":replace-roles").header("If-Match", read.getHeader("ETag")).with(csrf()).with(session(admin))
-                .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"employee\",\"" + code + "\"]}")).andReturn().getResponse();
-        assertThat(replaced.getStatus()).as("granting the narrow read role: " + replaced.getContentAsString()).isEqualTo(204);
+        confirm(confirmer, askToGrant(requester, account, code));
+        Awaitility.await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(100)).until(() -> permissionsOf(signIn(holder)).contains("organization.payroll:bonus-input:read"));
         return signIn(holder); // a role change ends the person's sessions; the new one starts with the role
     }
 

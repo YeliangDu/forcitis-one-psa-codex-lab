@@ -222,15 +222,36 @@ class BonusInputPortIT extends BonusInputSupport {
     }
 
     @Test
-    @DisplayName("#1436 PY3 request (g)：读取权限只来自数据范围窄于「全部」的角色（仅本部门）的人，按 id 读得未找到、列表为空（fail-closed）；薪资专员读得到")
+    @DisplayName("#1436 PY3 request (g)：读取权限只来自数据范围窄于「全部」的角色（仅本人）的人，按 id 读得未找到、列表为空（fail-closed）；薪资专员读得到")
     void aReadRoleWithANarrowerScopeThanAllReadsNothing() throws Exception {
         UUID relationship = UUID.randomUUID();
         Submitted submitted = approved(relationship, OCTOBER, "100.00", "YEAR_END");
         UUID id = rowId(submitted);
-        SignedIn narrow = holderOfReadWithScope("OWN_ORG_UNIT");
+        SignedIn narrow = holderOfReadWithScope("SELF");
 
         assertRefusedWith(() -> summary(narrow, id), NOT_FOUND);
         assertThat(list(narrow, relationship, OCTOBER, OCTOBER)).as("a narrower scope sees no row").isEmpty();
         assertThat(list(specialistAccount, relationship, OCTOBER, OCTOBER)).as("control: the payroll role sees it").hasSize(1);
+    }
+
+    @Test
+    @DisplayName("#1436 PY3 用户裁决（权限为双人级）：三个奖金输入权限的角色创建与授予都只是授权申请（202），第二位管理员确认前不生效，确认后持有人的会话才带该权限")
+    void eachOfTheThreeBonusPermissionsNeedsASecondPersonToGrant() throws Exception {
+        SignedIn requester = newAdministrator();
+        SignedIn confirmer = newAdministrator();
+        for (String action : List.of("submit", "update", "read")) {
+            String permission = "organization.payroll:bonus-input:" + action;
+            String role = twoPersonRole(requester, confirmer, "ALL", permission);
+            UUID holder = newEmployeeId();
+            employee(holder, unit, null);
+            SignedIn person = signIn(holder);
+
+            String request = askToGrant(requester, person, role);
+
+            assertThat(permissionsOf(signIn(holder))).as(action + ": not granted before the second person confirms").doesNotContain(permission);
+            confirm(confirmer, request);
+            org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(15)).pollInterval(java.time.Duration.ofMillis(100))
+                    .until(() -> permissionsOf(signIn(holder)).contains(permission));
+        }
     }
 }
