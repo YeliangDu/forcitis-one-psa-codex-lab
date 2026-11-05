@@ -1,5 +1,5 @@
 -- Card #1478: the synthetic bootstrap accounts of the local stack (applied by local.sh up after the backend has written the system roles).
--- Synthetic names only; idempotent; never part of a migration. Everything else is seeded through the API as this account (card #1479).
+-- Synthetic names only; idempotent; never part of a migration. Everything else is seeded through the API as Synthetic Admin (card #1479).
 -- Roles (system roles declared in the backend): 102 employee, 104 org_data_admin, 105 business_admin, 107 personnel_specialist. Synthetic Admin holds ordinary-mode business roles only: no super_admin, so no way into administrator mode. Synthetic Platform Admin (card #1499, below) holds super_admin and employee.
 
 INSERT INTO organization_workforce.org_units (id, code, name, parent_org_unit_id, sort_order, status, head_employee_id, regional_receivables_manager_id, region_category, is_delivery_unit, short_name, revoked_at, created_at, updated_at, version) VALUES ('019a0000-0000-7000-8000-00000000c001', 'SYN-U1', 'Synthetic unit', NULL, NULL, 'ACTIVE', NULL, NULL, NULL, false, NULL, NULL, now(), now(), 0) ON CONFLICT DO NOTHING;

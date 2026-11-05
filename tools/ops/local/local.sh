@@ -15,7 +15,6 @@ BACKEND_URL="http://localhost:8080/actuator/health"
 WEB_URL="http://localhost:5173/"
 # seconds `up` waits for the backend (a loaded machine needs minutes); override with LOCAL_BACKEND_WAIT
 BACKEND_WAIT="${LOCAL_BACKEND_WAIT:-600}"
-case "$BACKEND_WAIT" in ''|*[!0-9]*) printf 'local.sh: LOCAL_BACKEND_WAIT must be a number of seconds\n' >&2; exit 1 ;; esac
 
 say() { printf '%s\n' "$*"; }
 die() { printf 'local.sh: %s\n' "$*" >&2; exit 1; }
@@ -82,6 +81,7 @@ wait_for() { # url, seconds, pid file of the process that must stay alive meanwh
 }
 
 cmd_up() {
+  case "$BACKEND_WAIT" in ''|*[!0-9]*) die "LOCAL_BACKEND_WAIT must be a number of seconds" ;; esac
   need docker; need java; need pnpm; need curl; need openssl
   docker info >/dev/null 2>&1 || die "docker is not running"
   load_env

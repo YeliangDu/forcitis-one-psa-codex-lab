@@ -5,8 +5,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.http.Cookie;
 import java.util.UUID;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,6 +28,9 @@ class LocalAdministratorModeIT extends IdentityIntegrationTest {
 
     static final String ENTER = "/api/v1/platform/sessions:enter-local-administrator-mode";
     static final String ROLES = "/api/v1/platform/roles";
+
+    @Autowired
+    MeterRegistry meters;
 
     @BeforeEach
     void people() {
@@ -45,8 +55,23 @@ class LocalAdministratorModeIT extends IdentityIntegrationTest {
         Cookie session = login(accountOf(1002));
         assertThat(mvc.perform(get(ROLES).cookie(session)).andReturn().getResponse().getStatus()).isEqualTo(403);
 
-        MvcResult entered = enter(session);
+        double entriesBefore = meters.counter("forcitis.platform.identity.administrator.mode.entries").count();
+        Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
+        ListAppender<ILoggingEvent> logged = new ListAppender<>();
+        logged.start();
+        root.addAppender(logged);
+        MvcResult entered;
+        try {
+            entered = enter(session);
+        } finally {
+            root.detachAppender(logged);
+        }
         assertThat(entered.getResponse().getStatus()).isEqualTo(200);
+        assertThat(meters.counter("forcitis.platform.identity.administrator.mode.entries").count()).isEqualTo(entriesBefore + 1.0);
+        assertThat(logged.list).filteredOn(line -> line.getFormattedMessage().startsWith("ALERT platform.identity administrator mode entered")).hasSize(1)
+                .allSatisfy(line -> assertThat(line.getLevel()).isEqualTo(Level.ERROR));
+        assertThat(java.time.Instant.parse(body(entered).path("administratorModeExpiresAt").asString())).as("the response names the end of the mode, the same one-hour limit as the WeCom step")
+                .isAfter(java.time.Instant.now().minus(java.time.Duration.ofMinutes(1)));
         Cookie elevated = new Cookie("SESSION", cookie(entered, "SESSION"));   // the session id is rotated when the mode starts
         assertThat(mvc.perform(get(ROLES).cookie(elevated)).andReturn().getResponse().getStatus()).isEqualTo(200);
         assertThat(enter(elevated).getResponse().getStatus()).as("the mode is never extended").isEqualTo(403);
