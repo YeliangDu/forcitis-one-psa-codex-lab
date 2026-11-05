@@ -40,7 +40,7 @@ In scope: those five. Out of scope (ADR-0087 decision 3): vouchers, closing comm
 
 ## 4. Aggregates
 
-### 4.1 AccountingPeriod (AGG-81, `accounting.period`)
+### 4.1 FiscalPeriod (AGG-81, `accounting.period`; 账务期间. The name `AccountingPeriod` / 会计期间 is already the kernel type `kernel.AccountingPeriod` (a calendar month), so the aggregate is `FiscalPeriod`; renamed 2026-11-05, accepted by lead on #1454)
 
 One row per legal entity, fiscal year and period number. Spine scope: numbers 1 to 12.
 
@@ -81,7 +81,7 @@ New permission codes follow `{subdomain}.{BC}:{resource}:{action}` (naming stand
 
 | Code | Holder | Notes |
 |---|---|---|
-| `accounting.period:fiscal-year:open` | finance | `OpenFiscalYear` |
+| `accounting.period:fiscal-year:create` | finance | `OpenFiscalYear` |
 | `accounting.period:period:read` | finance, payroll service | gate and list |
 | `accounting.ledger:chart-version:draft`, `:publish` | finance (draft), finance lead (publish) | two people (INV-131) |
 | `accounting.ledger:mapping-version:draft`, `:publish` | same | same |
