@@ -9,6 +9,7 @@ BEGIN
     END IF;
 END $$;
 
+-- INV-139（ex_ 约束）：同类别同适用地区已生效与已被取代的区间不重叠；草稿可重叠，发布时才检查。
 CREATE TABLE organization_payroll.payroll_rule_versions (
     id uuid NOT NULL,
     rule_kind text NOT NULL,
@@ -32,12 +33,12 @@ CREATE TABLE organization_payroll.payroll_rule_versions (
     CONSTRAINT ck_payroll_rule_versions_drafter_not_approver CHECK (approved_by_user_id IS NULL OR approved_by_user_id <> drafted_by_user_id),
     CONSTRAINT ck_payroll_rule_versions_supersede_has_end CHECK (status <> 'SUPERSEDED' OR effective_to_date IS NOT NULL),
     CONSTRAINT ck_payroll_rule_versions_source_note CHECK (char_length(source_note) BETWEEN 1 AND 500 AND source_note = btrim(source_note)),
-    -- INV-139：同类别同适用地区已生效与已被取代的区间不重叠；草稿可重叠，发布时才检查。
     CONSTRAINT ex_payroll_rule_versions_effective_interval_overlap EXCLUDE USING gist (rule_kind WITH =, jurisdiction_key WITH =, daterange(effective_from_date, effective_to_date) WITH &&) WHERE (status IN ('EFFECTIVE', 'SUPERSEDED'))
 );
 
 CREATE INDEX ix_payroll_rule_versions_lookup ON organization_payroll.payroll_rule_versions (rule_kind, jurisdiction_key, effective_from_date);
 
+-- ck_payroll_rule_rows_kind_columns：每种行类别恰好设哪些值列、哪些必须为空。
 CREATE TABLE organization_payroll.payroll_rule_rows (
     id uuid NOT NULL,
     rule_version_id uuid NOT NULL,
@@ -58,6 +59,7 @@ CREATE TABLE organization_payroll.payroll_rule_rows (
     updated_at timestamptz NOT NULL,
     CONSTRAINT pk_payroll_rule_rows PRIMARY KEY (id),
     CONSTRAINT fk_payroll_rule_rows_rule_version_id FOREIGN KEY (rule_version_id) REFERENCES organization_payroll.payroll_rule_versions (id) ON DELETE RESTRICT,
+    CONSTRAINT uk_payroll_rule_rows_version_kind_key_party UNIQUE NULLS NOT DISTINCT (rule_version_id, row_kind, row_key, party_kind),
     CONSTRAINT ck_payroll_rule_rows_row_kind CHECK (row_kind IN ('INCOME_TAX_BAND', 'INCOME_TAX_MONTHLY_BASIC_DEDUCTION', 'SOCIAL_INSURANCE_RATE', 'SOCIAL_INSURANCE_BASE_LIMIT', 'HOUSING_FUND_RATE', 'HOUSING_FUND_BASE_LIMIT', 'ROUNDING_MODE')),
     CONSTRAINT ck_payroll_rule_rows_row_key CHECK (row_key ~ '^[A-Za-z0-9_-]{1,40}$' AND (row_kind <> 'INCOME_TAX_BAND' OR row_key ~ '^[0-9]{2}$')),
     CONSTRAINT ck_payroll_rule_rows_party_kind CHECK (party_kind IS NULL OR party_kind IN ('EMPLOYER', 'EMPLOYEE')),
@@ -72,7 +74,6 @@ CREATE TABLE organization_payroll.payroll_rule_rows (
     CONSTRAINT ck_payroll_rule_rows_applied_rate CHECK (applied_rate IS NULL OR applied_rate BETWEEN 0 AND 1),
     CONSTRAINT ck_payroll_rule_rows_rounding_kind CHECK (rounding_kind IS NULL OR rounding_kind IN ('HALF_UP', 'HALF_EVEN', 'DOWN')),
     CONSTRAINT ck_payroll_rule_rows_bounds_order CHECK (lower_bound_amount IS NULL OR upper_bound_amount IS NULL OR upper_bound_amount > lower_bound_amount),
-    -- 每种行类别恰好设哪些值列、哪些必须为空。
     CONSTRAINT ck_payroll_rule_rows_kind_columns CHECK (CASE row_kind
         WHEN 'INCOME_TAX_BAND' THEN party_kind IS NULL AND lower_bound_amount IS NOT NULL AND applied_rate IS NOT NULL AND quick_deduction_amount IS NOT NULL
             AND flat_amount IS NULL AND rounding_kind IS NULL
@@ -90,9 +91,6 @@ CREATE TABLE organization_payroll.payroll_rule_rows (
             AND applied_rate IS NULL AND quick_deduction_amount IS NULL AND flat_amount IS NULL
         ELSE false END)
 );
-
--- PostgreSQL 的唯一约束不能含表达式，用唯一索引；以 rule_version_id 开头，同时是外键的索引。
-CREATE UNIQUE INDEX uk_payroll_rule_rows_version_kind_key_party ON organization_payroll.payroll_rule_rows (rule_version_id, row_kind, row_key, COALESCE(party_kind, '-'));
 
 -- 已发布版本不可改写（D15）：全部合法写入如下，其余一概拒绝。
 CREATE FUNCTION organization_payroll.guard_rule_version_change() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
@@ -173,14 +171,14 @@ CREATE TRIGGER tg_payroll_rule_rows_truncate BEFORE TRUNCATE ON organization_pay
 COMMENT ON TABLE organization_payroll.payroll_rule_versions IS '薪酬规则版本。粒度：每个薪酬规则类别 × 适用地区 × 生效区间一行，已生效的行不可改，只能被后继版本关闭区间。';
 COMMENT ON COLUMN organization_payroll.payroll_rule_versions.id IS '主键（UUIDv7）';
 COMMENT ON COLUMN organization_payroll.payroll_rule_versions.rule_kind IS '规则类别：INCOME_TAX 个人所得税、SOCIAL_INSURANCE 社会保险、HOUSING_FUND 住房公积金、ROUNDING 舍入';
-COMMENT ON COLUMN organization_payroll.payroll_rule_versions.jurisdiction_key IS '适用地区键：全国个税规则用 CN，社保与公积金规则用地区键；取值是数据，不在约束里列举';
-COMMENT ON COLUMN organization_payroll.payroll_rule_versions.effective_from_date IS '生效起始日（含）';
+COMMENT ON COLUMN organization_payroll.payroll_rule_versions.jurisdiction_key IS '适用地区代码：全国个税规则用 CN，社保与公积金规则用地区键；取值是数据，不在约束里列举';
+COMMENT ON COLUMN organization_payroll.payroll_rule_versions.effective_from_date IS '生效日（含），区间自此日起';
 COMMENT ON COLUMN organization_payroll.payroll_rule_versions.effective_to_date IS '生效截止日（不含），后继版本的起始日；为空表示尚无后继版本，区间开放';
 COMMENT ON COLUMN organization_payroll.payroll_rule_versions.status IS '版本状态：DRAFT 草稿、EFFECTIVE 已生效、SUPERSEDED 已被后继版本取代';
 COMMENT ON COLUMN organization_payroll.payroll_rule_versions.drafted_by_user_id IS '起草人用户 ID，跨上下文不建外键';
 COMMENT ON COLUMN organization_payroll.payroll_rule_versions.approved_by_user_id IS '批准人用户 ID，不得与起草人相同；为空表示尚未发布';
 COMMENT ON COLUMN organization_payroll.payroll_rule_versions.published_at IS '发布时刻；为空表示尚未发布';
-COMMENT ON COLUMN organization_payroll.payroll_rule_versions.source_note IS '数值来源：法规条款、地方通知或遗留系统证据的引用，只写引用，不写个人信息';
+COMMENT ON COLUMN organization_payroll.payroll_rule_versions.source_note IS '依据说明：法规条款、地方通知或遗留系统证据的引用，只写引用，不写个人信息';
 COMMENT ON COLUMN organization_payroll.payroll_rule_versions.created_at IS '创建时刻';
 COMMENT ON COLUMN organization_payroll.payroll_rule_versions.updated_at IS '更新时刻';
 COMMENT ON COLUMN organization_payroll.payroll_rule_versions.version IS '乐观锁版本';
@@ -188,9 +186,9 @@ COMMENT ON COLUMN organization_payroll.payroll_rule_versions.version IS '乐观�
 COMMENT ON TABLE organization_payroll.payroll_rule_rows IS '薪酬规则行。粒度：每个规则版本 × 行类别 × 键 × 一方一行，版本生效后冻结。';
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.id IS '主键（UUIDv7）';
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.rule_version_id IS '规则版本 ID，所属版本';
-COMMENT ON COLUMN organization_payroll.payroll_rule_rows.row_kind IS '行类别：INCOME_TAX_BAND 个税税率档、INCOME_TAX_MONTHLY_BASIC_DEDUCTION 个税月基本减除、SOCIAL_INSURANCE_RATE 社保比例、SOCIAL_INSURANCE_BASE_LIMIT 社保基数上下限、HOUSING_FUND_RATE 公积金比例、HOUSING_FUND_BASE_LIMIT 公积金基数上下限、ROUNDING_MODE 舍入方式';
-COMMENT ON COLUMN organization_payroll.payroll_rule_rows.row_key IS '行键：险种键，税率档用两位补零序号，同类别只有一行时用 -';
-COMMENT ON COLUMN organization_payroll.payroll_rule_rows.party_kind IS '缴费一方：EMPLOYER 单位、EMPLOYEE 个人；为空表示该行无一方之分';
+COMMENT ON COLUMN organization_payroll.payroll_rule_rows.row_kind IS '规则行类别：INCOME_TAX_BAND 个税税率档、INCOME_TAX_MONTHLY_BASIC_DEDUCTION 个税月基本减除、SOCIAL_INSURANCE_RATE 社保比例、SOCIAL_INSURANCE_BASE_LIMIT 社保基数上下限、HOUSING_FUND_RATE 公积金比例、HOUSING_FUND_BASE_LIMIT 公积金基数上下限、ROUNDING_MODE 舍入方式';
+COMMENT ON COLUMN organization_payroll.payroll_rule_rows.row_key IS '规则行键：险种键，税率档用两位补零序号，同类别只有一行时用 -';
+COMMENT ON COLUMN organization_payroll.payroll_rule_rows.party_kind IS '缴费方：EMPLOYER 单位、EMPLOYEE 个人；为空表示该行无一方之分';
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.lower_bound_amount IS '下限金额；为空表示该类别无下限';
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.lower_bound_currency IS '下限币种，只有 CNY；与金额同空同非空';
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.upper_bound_amount IS '上限金额；为空表示无上限（最高档或该类别无上限）';
@@ -200,6 +198,6 @@ COMMENT ON COLUMN organization_payroll.payroll_rule_rows.quick_deduction_amount 
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.quick_deduction_currency IS '速算扣除数币种，只有 CNY；与金额同空同非空';
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.flat_amount IS '定额金额，月基本减除用；为空表示该类别无定额';
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.flat_currency IS '定额币种，只有 CNY；与金额同空同非空';
-COMMENT ON COLUMN organization_payroll.payroll_rule_rows.rounding_kind IS '舍入方式：HALF_UP 四舍五入、HALF_EVEN 银行家舍入、DOWN 截断；为空表示不是舍入行';
+COMMENT ON COLUMN organization_payroll.payroll_rule_rows.rounding_kind IS '取整方式：HALF_UP 四舍五入、HALF_EVEN 银行家舍入、DOWN 截断；为空表示不是舍入行';
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.created_at IS '创建时刻';
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.updated_at IS '更新时刻';
