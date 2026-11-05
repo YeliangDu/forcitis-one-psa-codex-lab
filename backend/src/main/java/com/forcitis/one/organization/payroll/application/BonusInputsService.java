@@ -18,8 +18,6 @@ import com.forcitis.one.organization.payroll.domain.BonusDetermination;
 import com.forcitis.one.organization.payroll.domain.BonusDeterminationRepository;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationshipView;
-import com.forcitis.one.platform.identity.api.RoleCode;
-import com.forcitis.one.platform.identity.api.RoleDirectory;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationships;
 import com.forcitis.one.platform.approval.api.ApprovalField;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
@@ -66,11 +64,11 @@ class BonusInputsService implements BonusInputs {
     private final CurrentUser currentUser;
     private final Clock clock;
     private final OrgUnitAccess orgUnits;
-    private final RoleDirectory roles;
+    private final PayrollApprovers approvers;
 
     BonusInputsService(BonusDeterminationRepository inputs, ApprovalProcesses approvals, EmploymentRelationships relationships, AuditLog audit, CurrentUser currentUser,
-            Clock clock, OrgUnitAccess orgUnits, RoleDirectory roles) {
-        this.roles = roles;
+            Clock clock, OrgUnitAccess orgUnits, PayrollApprovers approvers) {
+        this.approvers = approvers;
         this.orgUnits = orgUnits;
         this.inputs = inputs;
         this.approvals = approvals;
@@ -101,8 +99,7 @@ class BonusInputsService implements BonusInputs {
                     "an active bonus input of this relationship, month and reason exists; void it first");
         }
         // The user's ruling (#1436 (b)): with no payroll holder other than the initiator the second stage has nobody, and the platform's fallback is not wanted.
-        UserId initiator = currentUser.userId();
-        if (roles.findRoleHolders(new RoleCode(BonusInputApprovalProcess.APPROVER_ROLE)).stream().allMatch(initiator::equals)) {
+        if (!approvers.existOtherThan(currentUser.userId())) {
             throw new DomainException(PayrollError.ORGANIZATION_PAYROLL_BONUS_INPUT_NO_APPROVER, ErrorKind.UNPROCESSABLE, "no payroll role holder other than the initiator");
         }
         UUID requestId = UUID.nameUUIDFromBytes((REQUEST_NAMESPACE + command.idempotencyKey()).getBytes(StandardCharsets.UTF_8));

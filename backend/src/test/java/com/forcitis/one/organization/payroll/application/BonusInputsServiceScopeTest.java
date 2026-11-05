@@ -20,7 +20,6 @@ import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationships;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
 import com.forcitis.one.platform.audit.api.AuditLog;
-import com.forcitis.one.platform.identity.api.RoleDirectory;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.Set;
@@ -37,7 +36,7 @@ class BonusInputsServiceScopeTest {
     private final EmploymentRelationships relationships = mock(EmploymentRelationships.class);
     private final OrgUnitAccess orgUnits = mock(OrgUnitAccess.class);
     private final BonusInputsService service = new BonusInputsService(inputs, approvals, relationships, mock(AuditLog.class), null, Clock.systemUTC(), orgUnits,
-            mock(RoleDirectory.class));
+            mock(PayrollApprovers.class));
 
     private void scopeIsNarrow() {
         when(orgUnits.visibleOrgUnits(any())).thenReturn(new OrgUnitAccess.Visible(false, Set.of(UUID.randomUUID()), Set.of()));
