@@ -52,7 +52,7 @@ final class MigrateOnlyListener implements ApplicationListener<ApplicationEnviro
 
     static MigrateResult migrate(ConfigurableEnvironment environment) {
         if (!environment.acceptsProfiles(Profiles.of("dev | prod | local"))) {
-            throw new IllegalStateException("the profile migrate needs the environment profile too (migrate,dev, migrate,prod or migrate,local): it decides the database transport requirement");
+            throw new IllegalStateException("the profile migrate needs the environment profile too (migrate,dev or migrate,prod; on a developer's own machine migrate,local): it decides the database transport requirement");
         }
         FlywayProperties properties = Binder.get(environment).bindOrCreate("spring.flyway", FlywayProperties.class);
         String url = first(properties.getUrl(), environment.getProperty("spring.datasource.url"), "spring.flyway.url or spring.datasource.url");
