@@ -11,6 +11,7 @@ if [ -z "${GITHUB_ACTIONS:-}" ]; then
   lock=${BACKEND_VERIFY_LOCK:-/tmp/forcitis-backend-verify.lock}
   waited=0
   until mkdir "$lock" 2>/dev/null; do
+    [ -d "$lock" ] || { echo "backend_verify: cannot create the lock $lock (is its directory writable?); not starting" >&2; exit 1; }
     holder=$(cat "$lock/pid" 2>/dev/null || true)
     if { [ -n "$holder" ] && ! kill -0 "$holder" 2>/dev/null; } || { [ -z "$holder" ] && [ -n "$(find "$lock" -maxdepth 0 -mmin +1 2>/dev/null)" ]; }; then
       rm -rf "$lock"; continue

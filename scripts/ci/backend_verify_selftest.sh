@@ -75,6 +75,9 @@ rc=0; run_ "$tmp/l5.log" BACKEND_VERIFY_LOCK_WAIT=2 || rc=$?; if [ "$rc" -eq 1 ]
 rc=0; run_ "$tmp/l6.log" GITHUB_ACTIONS=true || rc=$?; if [ "$rc" -eq 0 ] && [ -s "$tmp/l6.log" ]; then check_ "CI ignores a held lock" 0; else check_ "CI ignores a held lock" 1; fi
 echo 99999999 >"$tmp/lock/pid"   # holder gone
 rc=0; run_ "$tmp/l7.log" BACKEND_VERIFY_LOCK_WAIT=2 || rc=$?; if [ "$rc" -eq 0 ] && [ ! -e "$tmp/lock" ]; then check_ "a lock whose holder is gone is taken over" 0; else check_ "a lock whose holder is gone is taken over" 1; fi
+mkdir "$tmp/ro" && chmod 500 "$tmp/ro"   # a lock that cannot be created (read-only directory) refuses at once instead of waiting
+rc=0; run_ "$tmp/l8.log" BACKEND_VERIFY_LOCK="$tmp/ro/lock" || rc=$?; if [ "$rc" -eq 1 ] && ! [ -s "$tmp/l8.log" ] && grep -q 'cannot create the lock' "$tmp/out.log"; then check_ "an uncreatable lock refuses at once" 0; else check_ "an uncreatable lock refuses at once" 1; fi
+chmod 700 "$tmp/ro"
 rm -rf "$tmp/lock"
 : >"$tmp/s1.log"; : >"$tmp/s2.log"; printf '{"same":1}' >"$tmp/frontend/packages/api/openapi.json"
 (STUB_ID=A STUB_LOG="$tmp/s.log" EXPORTED='{"same":1}' BACKEND_WATCHDOG_SECONDS=60 bash "$tmp/scripts/ci/backend_verify.sh" >"$tmp/o1.log" 2>&1 &
