@@ -17,7 +17,7 @@ Payroll up to posting, per ADR-0087 decision 3: a monthly payroll per **paying l
 | Payroll aggregates (planned): AGG-73 monthly settlement, 74 enrolment, 75 incentive plan version, 76 bonus determination, 93 pay profile, 95 withholding and filing, 119 rule version, 120 special-deduction declaration | `planned.yaml` |
 | Settlement lifecycle (planned): draft → calculated → in review → approved → paid → posted; "posted" is set by `BusinessFactAttributed`; approval submits one candidate | `planned.yaml:1136`; ADR-0079 section 3 item 5 |
 | After approval errors are corrected only by adjustment items in later months (CS-3.9) | ADR-0079 section 3 item 5 |
-| Payroll → payables: one payables submission per legal entity per month, detail stays in payroll; "paid" follows the payment result; a returned or failed payment puts the person on a re-pay list and does not rewrite the approved payroll; finance does not read payroll | ADR-0079 section 2; ADR-0051 decision 7 item 2.7 |
+| Payroll → payables: one payables submission per legal entity per month, detail stays in payroll; "paid" follows the payment result; a returned or failed payment puts the person on a re-pay list and does not rewrite the approved payroll; finance does not read payroll | ADR-0079 section 2 (direction payroll → payables: ADR-0051 decision 7 item 2.7) |
 | IIT withholding and payroll run by the **paying entity** (default: the relationship's employer); social insurance and housing fund by the **relationship's employer** | ADR-0086 decision 5; `employment-relationship.md` section 6.1 item 4 |
 | Payroll reads, from leave: locked monthly confirmation lines (minutes by leave type with `is_paid` copied, overtime by compensation mode and day kind), the comp-time expiry event, unused leave on separation | `organization-leave.md` section 9a |
 | The legacy payroll runs in A8 (own calculation forms `formmain_0800/0858/0864/0834/0841/1318`), not in U8C `hrwa`; a considerable part is manual | user fact relayed in #1373 (evidence about the legacy system, not a requirement) |
@@ -27,7 +27,7 @@ Payroll up to posting, per ADR-0087 decision 3: a monthly payroll per **paying l
 
 | # | Choice | Decision |
 |---|---|---|
-| C-1 | Settlement states | The planned chain "approved → paid → posted" is not linear once payables is an outbound port: posting happens at approval, payment follows a payables result that cannot exist yet. `status`: `DRAFT`, `CALCULATED`, `IN_REVIEW`, `APPROVED`, `CANCELLED`. Two orthogonal columns after approval: `posting_status` (`NOT_SUBMITTED`, `SUBMITTED`, `POSTED`) set by the posting receipt, and `payment_status` (`NOT_REQUESTED`, `REQUESTED`, `PAID`, `PARTLY_FAILED`) set by the payables port result. Deviation from the planned chain, deliberate; the wording "已发放/已过账" stays as display words. |
+| C-1 | Settlement states | The planned chain "approved → paid → posted" is not linear once payables is an outbound port: posting happens at approval, payment follows a payables result that cannot exist yet. `status`: `DRAFT`, `CALCULATED`, `IN_REVIEW`, `APPROVED`, `CANCELLED`. Two orthogonal columns after approval: `posting_status` (`NOT_SUBMITTED`, `POSTED`, `RETRY_PENDING`, `REJECTED`) set from the synchronous outcome of the facts API (spine `Post`: `POSTED`/`DUPLICATE` → `POSTED`; `RETRY_PERIOD_CLOSING` → `RETRY_PENDING`; `REJECTED(reason)` → `REJECTED` with a reason key), and `payment_status` (`NOT_REQUESTED`, `REQUESTED`, `PAID`, `PARTLY_FAILED`) set by the payables port result. Deviation from the planned chain, deliberate; the wording "已发放/已过账" stays as display words. |
 | C-2 | Posting grain | One posting fact per settlement (paying entity × month), lines per component and department, **no employee id** (spine C-2). Idempotency key `payroll:{legalEntityId}:{payrollMonth}:{settlementId}`. One submission per approved settlement; a later correction is an adjustment item in the next month's settlement, never a second post for the same month (CS-3.9). |
 | C-3 | Business date of the fact | Last day of the payroll month (spine Q-3 recommendation; the user's answer there decides). |
 | C-4 | Money | `numeric(19,2)` in CNY; rounding is a rule-version value (open, section 9). |
@@ -38,11 +38,11 @@ Payroll up to posting, per ADR-0087 decision 3: a monthly payroll per **paying l
 
 ## 4. Aggregates
 
-All keyed by `employment_relationship_id` [R] where per relationship, and by `paying_legal_entity_id` where per paying entity. English names are the registered glossary terms (`docs/glossary/terms.yaml`), so no new proposed file is needed.
+All keyed by `employment_relationship_id` [R] where per relationship, and by `paying_legal_entity_id` where per paying entity. Names registered in the glossary are used as registered (`PayrollSettlementLine`, `PayrollDisbursement`, `RegisterPayrollDisbursementResult`, `InitiatePayrollRedisbursement`, `PayrollDisbursementResultRegistered`, `PayrollRedisbursementInitiated`, `CalculateMonthlyPayroll`). Every other command, event and aggregate name below is **proposed** and is registered through the glossary process (one-glossary) before its slice; so are `EmploymentRelationshipStarted/Ended`, `MonthlyConfirmationLocked` and `LeaveCompTimeExpired`, which exist only in proposals today. No `backend/glossary/proposed` file is added by this spec.
 
 ### 4.1 Payroll rule version (AGG-119, `payroll_rule_version`)
 
-Configuration aggregate, one per version, effective interval not overlapping (INV-139; a lookup that finds none fails and alerts). Content (**structure only; values open**): IIT rate table and the monthly basic deduction, social-insurance and housing-fund ratios per insurance kind and jurisdiction, contribution base lower and upper limits, rounding rule. Command `PublishPayrollRuleVersion` (→ `PayrollRuleVersionEffective`, analytical; PRC-180); drafter ≠ approver (INV-131 family; finance-HR approver is the permission catalogue's call). Statutory sources to cite when values are filled (**unverified**, from memory): the IIT law and its implementing regulation (cumulative withholding), the social-insurance law and local base rules, the housing-fund regulation (5% to 12%). Values taken from statute are marked as such; where legacy practice differs from an explicit rule, section 9 P-1.
+Configuration aggregate, one per version, effective interval not overlapping (INV-139; a lookup that finds none fails with a named error). Content (**structure only; values open**): IIT rate table and the monthly basic deduction, social-insurance and housing-fund ratios per insurance kind and jurisdiction, contribution base lower and upper limits, rounding rule. Command `PublishPayrollRuleVersion` (→ `PayrollRuleVersionEffective`, analytical; PRC-180); drafter ≠ approver (a new rule for AGG-119, not covered by INV-131's list; finance-HR approver is the permission catalogue's call). Statutory sources to cite when values are filled (**unverified**, from memory): the IIT law and its implementing regulation (cumulative withholding), the social-insurance law and local base rules, the housing-fund regulation (5% to 12%). Values taken from statute are marked as such; where legacy practice differs from an explicit rule, section 9 P-1.
 
 ### 4.2 Employee compensation profile (AGG-93, `employee_compensation_profile`)
 
@@ -64,13 +64,13 @@ Until performance (AGG-106) exists the input is a **manual, approved port** (ADR
 
 One per paying legal entity and payroll month. Contains `payroll_settlement_line`s (per employment relationship), the rule version used, and the posting and payment markers.
 
-- States: `DRAFT` → `CALCULATED` → `IN_REVIEW` → `APPROVED`; `CANCELLED` from `DRAFT`/`CALCULATED` only (C-1). `APPROVED` is final for amounts.
+- States: `DRAFT` → `CALCULATED` → `IN_REVIEW` → `APPROVED`; `IN_REVIEW` → `CALCULATED` when the approval is rejected or withdrawn (recalculation allowed); `CANCELLED` from `DRAFT`/`CALCULATED` only (C-1) and a cancelled settlement frees the (entity, month) key (partial unique index excluding `CANCELLED`). `APPROVED` is final for amounts. Posting follows approval: `RETRY_PENDING` is retried by a scheduled job until the period opens (never a rejection, INV-92); `REJECTED` is shown to payroll and finance and re-submitted by `ResubmitPayrollPosting` (new idempotency attempt only after the cause is fixed; the amounts never change).
 - Commands (→ events; preconditions):
-  - `CalculateMonthlyPayroll` (PRC-178; → internal): **only when every in-service person of the paying entity has a `LOCKED` monthly confirmation** (leave 9a), otherwise the result is "pending lock" with the list of persons not locked; reads the effective rule version for the month (none → fail, INV-139), the compensation profile in force each day, the enrolments and bases, the bonus inputs, the special deductions, unpaid-leave and overtime lines, comp-time conversions and, for leavers, the unused-leave settlement (T-10, section 9 P-7). Idempotent: recalculation of a `DRAFT`/`CALCULATED` settlement replaces its lines.
+  - `CalculateMonthlyPayroll` (PRC-124; → internal; the comp-time-to-pay conversion input is PRC-178; note: `organization-leave.md` 9a cites PRC-178 for the calculation, which is wrong, for lead's SSOT card): **only when every in-service person of the paying entity has a `LOCKED` monthly confirmation** (leave 9a), otherwise the result is "pending lock" with the list of persons not locked; reads the effective rule version for the month (none → fail, INV-139), the compensation profile in force each day, the enrolments and bases, the bonus inputs, the special deductions, unpaid-leave and overtime lines, comp-time conversions and, for leavers, the unused-leave settlement (T-10, section 9 P-7). Idempotent: recalculation of a `DRAFT`/`CALCULATED` settlement replaces its lines.
   - `SubmitPayrollForReview` (→ internal): starts the approval (`platform.approval`).
-  - `ApproveMonthlyPayroll` (→ `PayrollApproved`; INV-70: only statutory deductions, paid in legal tender): called by the approval result; **submits the posting candidate once** and the payables submission once, in the same transaction through the outbox (at least once, consumers idempotent).
+  - `ApproveMonthlyPayroll` (→ `PayrollApproved`; INV-70: only statutory deductions, paid in legal tender): called by the approval result; **calls the facts API in process** once with the candidate (spine: posting is not an endpoint, G36; `sourceId` = `settlementId`) and records the returned outcome in `posting_status`; the payables submission is a separate outbound port call written through the outbox (at least once, consumer idempotent). The payables submission does not wait for posting.
   - `MarkPayrollPosted` (→ internal): set from `BusinessFactAttributed` by `sourceId`; the facts event carries ids only.
-  - `RegisterDisbursementResult` / `InitiateRedisbursement` (→ `PayrollDisbursementResultRegistered`, `PayrollRedisbursementInitiated`; glossary terms exist): per person result from the payables port; a failure puts the person on the re-pay list and never rewrites the approved settlement.
+  - `RegisterPayrollDisbursementResult` / `InitiatePayrollRedisbursement` (→ `PayrollDisbursementResultRegistered`, `PayrollRedisbursementInitiated`; glossary terms exist): per person result from the payables port; a failure puts the person on the re-pay list and never rewrites the approved settlement.
 - Events: `PayrollApproved` (payload: settlementId, paying legal entity, payroll month, totals only; consumers: filing, audit), `PayrollPaid` (analytical). Ids and totals only.
 - Corrections after approval: adjustment items in the next month's settlement lines (C-8).
 
@@ -80,7 +80,7 @@ Per paying legal entity and tax period: merge dividends into the withholding (ma
 
 ## 5. Permissions and data scope
 
-Proposed permission codes follow the catalogue shape; the exact entries are fixed per slice. Separation of duties: calculate, review, approve and publish-rule are different holders; an approver may not be the one who calculated or who entered a bonus input (**mine**, SoD; confirm with finance). Employees read only their own payslip. HR operators see pay only with a payroll role; finance does not read payroll (ADR-0051 decision 7 item 2.7). Scope: every table carries the **paying** `legal_entity_id` or inherits it from its parent; reads are filtered by the caller's entity scope, fail-closed. Classification: pay amounts `CONFIDENTIAL`; special-deduction beneficiary data sensitive (U-11); `employee_id` personal.
+Proposed permission codes follow the catalogue shape; the exact entries are fixed per slice. Separation of duties: calculate, review, approve and publish-rule are different holders; an approver may not be the one who calculated or who entered a bonus input (**mine**, SoD; confirm with finance). Employees read only their own payslip. HR operators see pay only with a payroll role; finance does not read payroll (ADR-0079 section 2). Scope: every table carries the **paying** `legal_entity_id` or inherits it from its parent; reads are filtered by the caller's entity scope, fail-closed. Classification: pay amounts `CONFIDENTIAL`; special-deduction beneficiary data sensitive (U-11); `employee_id` personal.
 
 ## 6. Module edges
 
@@ -99,9 +99,9 @@ Schema `organization_payroll`. Sketches (class words and constraint names per na
 | `payroll_rule_versions` | id, effective_from_date, effective_to_date null (为空表示 open-ended), version_status, drafted_by, approved_by, jurisdiction_key | `ex_…_effective_interval_overlap` gist per jurisdiction (INV-139); drafter ≠ approver; published rows frozen | structure now; **rows wait** (statute / #1373) |
 | `payroll_rule_rows` | rule_version_id, row_kind, key, value, … | frozen when published | structure now |
 | `compensation_profile_versions` + `…_lines` | employment_relationship_id, effective_from_date, paying_legal_entity_id, paying_entity_reason_key null (为空表示 default employer) ; lines: component_key, amount | append-only; no overlap per relationship | **waits** for component structure (#1373) |
-| `insurance_enrolments` + `contribution_bases` | employment_relationship_id, insurance_kind, enrolment_status, base_amount, effective_from_date | per relationship; unique open enrolment per (relationship, kind) | structure now; B-C open |
-| `bonus_inputs` | employment_relationship_id, payroll_month_start_date, amount, source_kind, approval_instance_id, reason_key | one approved input per id; approval number mandatory | yes |
-| `payroll_settlements` | id, paying_legal_entity_id, payroll_month_start_date, status, posting_status, payment_status, rule_version_id, totals, version | `uk_…_entity_month`; status ⇔ markers CHECKs; approved rows frozen (trigger) | yes |
+| `insurance_enrolments` + `contribution_bases` | employment_relationship_id, legal_entity_id (the relationship's employer), insurance_kind, enrolment_status, base_amount, effective_from_date | per relationship; unique open enrolment per (relationship, kind) | structure now; B-C open |
+| `bonus_inputs` | employment_relationship_id, paying_legal_entity_id, payroll_month_start_date, amount, source_kind, approval_instance_id, reason_key | one approved input per id; approval number mandatory | yes |
+| `payroll_settlements` | id, paying_legal_entity_id, payroll_month_start_date, status, posting_status, posting_reject_reason_key null (为空表示 not rejected), payment_status, rule_version_id, totals, version | partial unique `uk_…_entity_month` where status <> 'CANCELLED'; status ⇔ markers CHECKs; approved rows frozen (trigger) | yes |
 | `payroll_settlement_lines` | settlement_id, employment_relationship_id, employee_id, amounts by component, adjustment_of_month_start_date null (为空表示 not an adjustment) | `uk_…_settlement_relationship_adjustment`; frozen when approved | structure now; component columns wait (#1373) |
 | `payroll_disbursements` | settlement_line_id, disbursement_status, failure_reason_key null, redisbursement_of_id null | status via payables port result | yes |
 | `posting_submissions`, `payables_submissions` | settlement_id, idempotency_key, submission_status, receipt ids | one per settlement; ids only | yes |
@@ -136,7 +136,7 @@ Nothing below is decided by me. Items marked **pending #1373** are answered by t
 | PY1 | Compensation profile versions + paying entity + terminate on `Ended` | PY0; workforce relationships (ADR-0086 slice R) | **component structure: #1373** |
 | PY2 | Enrolments and bases per relationship | PY0; workforce relationship events | P-5 (user/legal) for the second-employer rule |
 | PY3 | Bonus input manual port | platform.approval (built) | nothing |
-| PY4 | Calculate + review + approve a settlement (no posting) | PY0 to PY3; leave: locked monthly confirmation lines and the unpaid/overtime lines (leave spec section 10); attendance standard hours (AGG-108); Q-1.. lock rule P-R2 | formulas **#1373**, P-1/P-2/P-6 |
+| PY4 | Calculate + review + approve a settlement (no posting) | PY0 to PY3; leave: locked monthly confirmation lines and the unpaid/overtime lines (leave spec section 10); attendance standard hours (AGG-108); leave 9a lock rule, P-R2 | formulas **#1373**, P-1/P-2/P-6 |
 | PY5 | Posting submission + `MarkPayrollPosted` | PY4; spine P1 and F1 (PR #1407 → cards); component rows for payroll facts seeded from #1373 | #1373 (components) |
 | PY6 | Payables outbound port with stub adapter + disbursement results + re-pay list | PY4; ADR-0087 decision 4 | nothing (stub) |
 | PY7 | IIT withholding and filing ports + `withholding_filings` | PY4; platform.integration (built) | C-7 choice (#1373); channels for real adapters |
@@ -144,21 +144,24 @@ Nothing below is decided by me. Items marked **pending #1373** are answered by t
 | PY9 | Payslips (own view) and HR/payroll views | PY4 | nothing |
 | PY10 | Legacy import (profiles, enrolments, history) | PY1, PY2 and the migration design | forensic reads |
 
-Order: PY0 → (PY1, PY2, PY3 in parallel) → PY4 → (PY5, PY6, PY7) → PY9; PY8 and PY10 as their evidence arrives. Design cards still owed: data-design sign-off per slice (design); SSOT card to number P-R1..P-R5 (lead); permission catalogue entries per slice.
+SSOT lines owed (lead): update AGG-73 state text and the two glossary state terms for C-1; correct the PRC id in leave 9a; number P-R1..P-R5. Order: PY0 → (PY1, PY2, PY3 in parallel) → PY4 → (PY5, PY6, PY7) → PY9; PY8 and PY10 as their evidence arrives. Design cards still owed: data-design sign-off per slice (design); SSOT card to number P-R1..P-R5 (lead); permission catalogue entries per slice.
 
 ## 11. Done-when (for the test engineer)
 
 1. A settlement is unique per paying entity and month; a second create for the pair fails.
 2. `CalculateMonthlyPayroll` returns "pending lock" with the unlocked persons while any in-service person of the entity lacks a `LOCKED` confirmation, and computes once all are locked.
-3. With no effective rule version for the month the calculation fails and raises the alert (INV-139); two overlapping effective versions cannot be published.
+3. With no effective rule version for the month the calculation fails and fails with a named error (INV-139); two overlapping effective versions cannot be published.
 4. A person with two relationships paid by two entities appears in each entity's settlement with only that relationship's lines; social insurance follows the relationship's employer and withholding follows the paying entity.
-5. Approval submits exactly one balanced posting candidate and one payables submission; replaying the approval result submits nothing new (idempotency key); the candidate contains no employee id.
+5. Approval calls the facts API exactly once with one balanced candidate (`sourceId` = settlement id) and creates one payables submission; replaying the approval result submits nothing new (idempotency key; `DUPLICATE` maps to `POSTED`); the candidate contains no employee id.
+6a. A `RETRY_PERIOD_CLOSING` outcome sets `RETRY_PENDING` and writes no rejection; the job retries and reaches `POSTED` once the period opens. A `REJECTED(reason)` outcome sets `REJECTED` with the reason key, is visible to payroll and finance, and `ResubmitPayrollPosting` after the cause is fixed reaches `POSTED`.
 6. `BusinessFactAttributed` with the settlement's `sourceId` sets `posting_status = POSTED`; a replayed event changes nothing; an event for an unknown source is ignored and logged.
 7. An approved settlement's amounts cannot be updated or deleted at database level; a correction appears as an adjustment line in the next month's settlement, tagged with the original month.
 8. A failed payment result puts the person on the re-pay list and leaves the approved settlement unchanged; a re-disbursement links to the failed one.
 9. An employee reads only their own payslip; HR without a payroll role and finance cannot read any settlement line (403); a caller outside the entity scope gets 404-equivalent for another entity's settlement.
 10. Events and the payables submission contain ids and entity totals only; no per-person amount appears (architecture/contract test over the event schemas).
 11. The approver of a settlement cannot be the person who calculated it, and cannot approve a bonus input they entered (SoD).
+12a. A rejected or withdrawn approval returns the settlement to `CALCULATED`; a cancelled settlement allows a new settlement for the same entity and month.
+12b. A correction that reduces pay posts as the opposite `side` with a positive amount.
 12. Deductions outside the statutory list are refused (INV-70).
 13. Module edges: payroll does not read leave tables or write fact tables; no BC but payroll reads payroll tables (architecture tests).
 
