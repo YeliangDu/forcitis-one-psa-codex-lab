@@ -214,13 +214,22 @@ abstract class BonusInputSupport extends P5Support {
         employee(person, unit, null);
         java.time.OffsetDateTime at = java.time.OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC);
         try (java.sql.Connection workforce = schemaConnection("organization_workforce")) {
-            UUID relationship = com.forcitis.one.acceptance.EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person), employer);
+            UUID relationship;
             if (unconfirmedEmployer) {
-                try (java.sql.PreparedStatement attribute = workforce.prepareStatement(
-                        "update employment_relationships set employer_source_kind = 'MIGRATION_ATTRIBUTION', employer_confirmed_at = null where employment_relationship_id = ?")) {
-                    attribute.setObject(1, relationship);
-                    attribute.executeUpdate();
+                // inserted as such: the table is append-only, so a declared row cannot be turned into an unconfirmed attribution afterwards
+                relationship = com.forcitis.one.kernel.Uuids.timeOrdered(NOW);
+                try (java.sql.PreparedStatement insert = workforce.prepareStatement("""
+                        insert into employment_relationships (employment_relationship_id, employee_id, employer_legal_entity_id, employer_source_kind, created_at, updated_at)
+                        values (?, ?, ?, 'MIGRATION_ATTRIBUTION', ?, ?)""")) {
+                    insert.setObject(1, relationship);
+                    insert.setObject(2, stored(person));
+                    insert.setObject(3, employer);
+                    insert.setObject(4, at);
+                    insert.setObject(5, at);
+                    insert.executeUpdate();
                 }
+            } else {
+                relationship = com.forcitis.one.acceptance.EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person), employer);
             }
             if (inServiceFrom != null) {
                 try (java.sql.PreparedStatement insert = workforce.prepareStatement("""
@@ -290,7 +299,7 @@ abstract class BonusInputSupport extends P5Support {
         MockHttpServletResponse replaced = mvc.perform(post(accountPath + ":replace-roles").header("If-Match", read.getHeader("ETag")).with(csrf()).with(session(admin))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"employee\",\"" + code + "\"]}")).andReturn().getResponse();
         assertThat(replaced.getStatus()).as("granting the narrow read role: " + replaced.getContentAsString()).isEqualTo(204);
-        return account;
+        return signIn(holder); // a role change ends the person's sessions; the new one starts with the role
     }
 
     // ---- the api, by name ----
