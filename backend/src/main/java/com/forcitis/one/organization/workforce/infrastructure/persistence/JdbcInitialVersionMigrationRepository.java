@@ -10,8 +10,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -75,12 +78,13 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
     public void insertEmployeeVersion(EmployeeId employee, InitialVersionPlan.Row row, Instant at) {
         OffsetDateTime stamp = OffsetDateTime.ofInstant(at, ZoneOffset.UTC);
         jdbc.sql("""
-                insert into organization_workforce.employment_relationship_versions (employment_relationship_version_id, employee_id, effective_from_date, effective_to_date, revision_number,
+                insert into organization_workforce.employment_relationship_versions (employment_relationship_version_id, employment_relationship_id, employee_id, effective_from_date, effective_to_date, revision_number,
                        employment_status, employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
                        change_channel_kind, closed_at, created_at, updated_at)
-                values (:id, :employee, :from, :to, 0, :status, :phase, false, :feeEarner, null, :startBasis, 'MIGRATION', :closedAt, :at, :at)
+                values (:id, :relationship, :employee, :from, :to, 0, :status, :phase, false, :feeEarner, null, :startBasis, 'MIGRATION', :closedAt, :at, :at)
                 """)
-                .param("id", ids.next()).param("employee", employee.value()).param("from", row.from()).param("to", row.to(), Types.DATE)
+                .param("id", ids.next()).param("relationship", relationshipOf(employee, row.from(), at)).param("employee", employee.value())
+                .param("from", row.from()).param("to", row.to(), Types.DATE)
                 .param("status", row.employed() ? "EMPLOYED" : "SEPARATED").param("phase", row.employed() ? "REGULAR" : null, Types.VARCHAR)
                 .param("feeEarner", row.feeEarner()).param("startBasis", row.employed() ? "UNKNOWN" : null, Types.VARCHAR)
                 .param("closedAt", row.to() == null ? null : stamp, Types.TIMESTAMP_WITH_TIMEZONE).param("at", stamp).update();
@@ -91,14 +95,76 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
         OffsetDateTime stamp = OffsetDateTime.ofInstant(at, ZoneOffset.UTC);
         UUID root = PrimaryAssignmentRoot.of(jdbc, ids, employee.value(), at);
         jdbc.sql("""
-                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                insert into organization_workforce.assignment_versions (assignment_version_id, employment_relationship_id, employee_id, assignment_id, assignment_kind, effective_from_date,
                        effective_to_date, org_unit_id, position_id, reports_to_employee_id, revision_number, change_channel_kind, created_at, updated_at)
-                select :id, a.employee_id, :root, 'PRIMARY', :from, null, a.org_unit_id, a.position_id, a.reports_to_employee_id,
+                select :id, :relationship, a.employee_id, :root, 'PRIMARY', :from, null, a.org_unit_id, a.position_id, a.reports_to_employee_id,
                        coalesce((select max(v.revision_number) + 1 from organization_workforce.assignment_versions v
                                   where v.employee_id = a.employee_id and v.effective_from_date = :from), 0),
                        'MIGRATION', :at, :at
                   from organization_workforce.assignments a where a.employee_id = :employee
                 """)
-                .param("id", ids.next()).param("root", root).param("employee", employee.value()).param("from", from).param("at", stamp).update();
+                .param("id", ids.next()).param("relationship", relationshipOf(employee, from, at)).param("root", root).param("employee", employee.value())
+                .param("from", from).param("at", stamp).update();
+    }
+
+    /**
+     * The person's one relationship; a snapshot person has none yet, so it is made here with the employer the attribution names on the
+     * first day: the person's own legal entity, else the nearest one up the primary org unit's parents (the rule of LegalEntityResolution).
+     * Nobody is guessed: a person without attribution fails the whole migration, which names only the count of the rule, never the person.
+     */
+    private UUID relationshipOf(EmployeeId employee, LocalDate firstDay, Instant at) {
+        List<UUID> found = jdbc.sql("select employment_relationship_id from organization_workforce.employment_relationships where employee_id = :employee")
+                .param("employee", employee.value()).query(UUID.class).list();
+        if (!found.isEmpty()) {
+            return found.getFirst();
+        }
+        UUID employer = employerOn(employee.value(), firstDay);
+        if (employer == null) {
+            throw new IllegalStateException("initial version migration: a person has no legal entity attribution on the first day; attribute them first, no employer is guessed");
+        }
+        UUID id = ids.next();
+        OffsetDateTime stamp = OffsetDateTime.ofInstant(at, ZoneOffset.UTC);
+        jdbc.sql("""
+                insert into organization_workforce.employment_relationships (employment_relationship_id, employee_id, employer_legal_entity_id, employer_source_kind, created_at, updated_at)
+                values (:id, :employee, :employer, 'MIGRATION_ATTRIBUTION', :at, :at)
+                """).param("id", id).param("employee", employee.value()).param("employer", employer).param("at", stamp).update();
+        return id;
+    }
+
+    private @Nullable UUID employerOn(UUID employee, LocalDate day) {
+        UUID own = jdbc.sql("""
+                select p.legal_entity_id from organization_workforce.employee_legal_entities p
+                  left join lateral (select new_effective_to_date from organization_workforce.legal_entity_attribution_corrections
+                                      where employee_id = p.employee_id and period_effective_from_date = p.effective_from_date
+                                      order by correction_number desc limit 1) c on true
+                 where p.employee_id = :employee and p.superseded_at is null and p.effective_from_date <= :day
+                   and (coalesce(c.new_effective_to_date, p.effective_to_date) is null or :day < coalesce(c.new_effective_to_date, p.effective_to_date))
+                """).param("employee", employee).param("day", day).query(UUID.class).optional().orElse(null);
+        if (own != null) {
+            return own;
+        }
+        UUID unit = jdbc.sql("""
+                select org_unit_id from organization_workforce.assignments where employee_id = :employee
+                """).param("employee", employee).query(UUID.class).optional().orElse(null);
+        Set<UUID> seen = new HashSet<>();
+        while (unit != null && seen.add(unit)) {
+            UUID employer = jdbc.sql("""
+                    select p.legal_entity_id from organization_workforce.org_unit_legal_entities p
+                      left join lateral (select new_effective_to_date from organization_workforce.legal_entity_attribution_corrections
+                                          where org_unit_id = p.org_unit_id and period_effective_from_date = p.effective_from_date
+                                          order by correction_number desc limit 1) c on true
+                     where p.org_unit_id = :unit and p.superseded_at is null and p.effective_from_date <= :day
+                       and (coalesce(c.new_effective_to_date, p.effective_to_date) is null or :day < coalesce(c.new_effective_to_date, p.effective_to_date))
+                    """).param("unit", unit).param("day", day).query(UUID.class).optional().orElse(null);
+            if (employer != null) {
+                return employer;
+            }
+            unit = jdbc.sql("""
+                    select parent_org_unit_id from organization_workforce.org_unit_versions
+                     where org_unit_id = :unit and superseded_at is null and effective_from_date <= :day
+                       and (effective_to_date is null or :day < effective_to_date)
+                    """).param("unit", unit).param("day", day).query(UUID.class).optional().orElse(null);
+        }
+        return null;
     }
 }

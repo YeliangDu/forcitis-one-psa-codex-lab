@@ -166,12 +166,10 @@ class AttributionCountersignTablesIntegrationTest extends WorkforceIntegrationSu
         day = "date '2026-12-02'";
         String awaitingId = "'019a0000-0000-7000-8000-00000000a1c3'";
         awaiting(awaitingId, EMPLOYEE);
-        refused("uk_personnel_commands_open_person_day", commandSql("gen_random_uuid()", EMPLOYEE, "CHANGE_LEGAL_ENTITY", "AWAITING_ATTRIBUTION_COUNTERSIGN", ", target_legal_entity_id" + BASIS_COLUMNS, ", " + ENTITY_B + BASIS));
-        // ADR-0086: the person's own command (the change of legal entity) and a relationship's command do not collide in the table; the service refuses the pair (requireOneCommandPerDay)
-        String correctionId = "'019a0000-0000-7000-8000-00000000a1c4'";
-        command(correctionId, EMPLOYEE, "CORRECTION", "AWAITING_ATTRIBUTION_COUNTERSIGN", ", target_legal_entity_id" + BASIS_COLUMNS, ", " + ENTITY_B + BASIS);
-        refused("uk_personnel_commands_open_per_relationship_day", commandSql("gen_random_uuid()", EMPLOYEE, "TRANSFER", "PENDING", ", target_org_unit_id", ", " + UNIT));
-        for (String id : List.of(awaitingId, correctionId)) {
+        refused("uk_personnel_commands_open_per_day", commandSql("gen_random_uuid()", EMPLOYEE, "CHANGE_LEGAL_ENTITY", "AWAITING_ATTRIBUTION_COUNTERSIGN", ", target_legal_entity_id" + BASIS_COLUMNS, ", " + ENTITY_B + BASIS));
+        // one open command per person per day, whatever the kind or relationship (lead ruling, #1372)
+        refused("uk_personnel_commands_open_per_day", commandSql("gen_random_uuid()", EMPLOYEE, "TRANSFER", "PENDING", ", target_org_unit_id", ", " + UNIT));
+        for (String id : List.of(awaitingId)) {
             jdbc.sql("update " + PC + " set status = 'WITHDRAWN', withdrawn_at = now(), withdrawn_by = " + DRAFTER + ", withdrawal_reason = 'no', updated_at = now() where personnel_command_id = " + id).update();
         }
         command("gen_random_uuid()", EMPLOYEE, "TRANSFER", "PENDING", ", target_org_unit_id", ", " + UNIT);

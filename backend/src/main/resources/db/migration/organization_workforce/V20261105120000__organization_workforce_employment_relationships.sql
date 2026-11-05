@@ -252,12 +252,7 @@ ALTER TABLE organization_workforce.personnel_commands DROP CONSTRAINT ck_personn
 ALTER TABLE organization_workforce.personnel_commands ADD CONSTRAINT ck_personnel_commands_reinstate_columns CHECK (command_kind <> 'REINSTATE' OR (
     (target_org_unit_id IS NULL) = (target_position_id IS NULL) AND is_target_fee_earner IS NOT NULL AND target_employment_phase_kind IS NOT NULL));
 
-DROP INDEX organization_workforce.uk_personnel_commands_open_per_day;
-CREATE UNIQUE INDEX uk_personnel_commands_open_per_relationship_day ON organization_workforce.personnel_commands (employment_relationship_id, effective_date)
-    WHERE status IN ('PENDING', 'HELD', 'AWAITING_ATTRIBUTION_COUNTERSIGN') AND employment_relationship_id IS NOT NULL
-        AND command_kind <> 'START_CONCURRENT' AND target_assignment_kind IS DISTINCT FROM 'CONCURRENT';
-CREATE UNIQUE INDEX uk_personnel_commands_open_person_day ON organization_workforce.personnel_commands (employee_id, effective_date)
-    WHERE status IN ('PENDING', 'HELD', 'AWAITING_ATTRIBUTION_COUNTERSIGN') AND employment_relationship_id IS NULL;
+-- uk_personnel_commands_open_per_day stays as it is: one open command per person per day (lead ruling, #1372).
 DROP INDEX organization_workforce.uk_personnel_commands_open_per_assignment_day;
 CREATE UNIQUE INDEX uk_personnel_commands_open_per_assignment_day ON organization_workforce.personnel_commands (target_assignment_id, effective_date)
     WHERE status IN ('PENDING', 'HELD', 'AWAITING_ATTRIBUTION_COUNTERSIGN') AND target_assignment_id IS NOT NULL;
