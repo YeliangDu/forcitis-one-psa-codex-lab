@@ -75,46 +75,44 @@ Where the spec as written leaves a hole, the gap is a constant with the spec's o
 
 All counts are distinct states; time is wall clock with 4 workers.
 
-| Run | Reading | Invariant | Result | Distinct states | Time |
-|---|---|---|---|---|---|
-| g1_end | literal | ApprovalResultApplicable | violated | 652 | 1s |
-| g1_end_fix | fixed | ApprovalResultApplicable | held | 267147 | 5s |
-| g1b_corr | literal | NoHoldOutsideService | violated | 693 | 1s |
-| g1b_corr_fix | fixed | NoHoldOutsideService | held | 23890 | 1s |
-| g1c_appr | literal | TerminalGivesBack | held | 213023 | 4s |
-| g2_wd | literal | TerminalGivesBack | held | 5780 | 1s |
-| g2_wd_fix | fixed | TerminalGivesBack | held | 5780 | 1s |
-| g3_recall | literal | NotRecallBlocked | violated | 854 | 1s |
-| g4_carry | literal | NoStrandedCarry | violated | 51 | 1s |
-| g4_carry_fix | fixed | NoStrandedCarry | held | 122651 | 3s |
-| g5_neg | literal | NotBelowZero | violated | 122 | 1s |
-| g5_neg_hr | fixed | NotBelowZero | held | 344237 | 12s |
-| g5_neg_ev | fixed | NotBelowZero | held | 206246 | 7s |
-| u_line | literal | LineKeyOnce | violated | 119 | 1s |
-| u_sealed | literal | NoWriteToSealed | violated | 1515 | 1s |
-| comp_dead | fixed | DeadLotReturnExpires | held | 12856931 | 313s |
-| comp_neg | fixed | NotBelowZero | held | 12856931 | 515s |
-| two_own | fixed | OwnRelationshipOnly | held | 24343356 | 877s |
-| two_ovl | fixed | NoCrossOverlap | held | 853574 | 42s |
-| succ | fixed | CarryBalanced | held | 29640059 | 806s |
-| sealhold | fixed | NoHoldAtSeal | held | 4695716 | 153s |
-| ledger_ok | fixed | LedgerSumsConsistent | held | 4695716 | 431s |
-| entl | fixed | EntitlementFollowsEvents | held | 2081148 | 39s |
-| g2b_wd | literal | TerminalGivesBack | TerminalGivesBack | Error: Invariant TerminalGivesBack is violated. | distinct=871 |
-| g2b_wd_fix | fixed | TerminalGivesBack | TerminalGivesBack | Model checking completed. No error has been found. | distinct=87994 |
-| entl | fixed, Ent =  Ent = 1 | EntitlementFollowsEvents | held | 2081148 | 72s |
-| entl | fixed, Ent =  Ent = 3 | EntitlementFollowsEvents | held | 2081148 | 57s |
-| entl | fixed, EndCut =  EndCut = 0 | EntitlementFollowsEvents | held | 2954705 | 66s |
-| entl | fixed, EndCut =  EndCut = 2 | EntitlementFollowsEvents | held | 2081148 | 50s |
-| entl | fixed, UnpaidCut =  UnpaidCut = 0 | EntitlementFollowsEvents | held | 1796250 | 45s |
-| entl | fixed, UnpaidCut =  UnpaidCut = 2 | EntitlementFollowsEvents | held | 2081148 | 55s |
-| ovl_off | fixed, OverlapRefuse =  OverlapRefuse = FALSE | NoCrossOverlap | held | 864248 | 57s |
-| carry_cap0 | fixed, base knobs | NoStrandedCarry | held | 161752 | 5s |
-| carry_cap2 | fixed, base knobs | NoStrandedCarry | held | 122651 | 6s |
-| succ0 | fixed, SuccCarry =  SuccCarry = FALSE | CarryBalanced | held | 3453715 | 92s |
-| succ1 | fixed, SuccCarry =  SuccCarry = TRUE | CarryBalanced | held | 3472334 | 109s |
+| Run | Reading and changed constants | Invariant | Bound | Result | Distinct states | Time |
+|---|---|---|---|---|---|---|
+| g1_end | literal | ApprovalResultApplicable | relationships r1; requests q1; types DAY; spans s12, s23; end day 2; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 0; AllowNeg FALSE; MaxLines 6 | violated | 652 | 1s |
+| g1_end_fix | fixed | ApprovalResultApplicable | relationships r1; requests q1; types DAY; spans s12, s23; end day 2; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 0; AllowNeg FALSE; MaxLines 6 | held | 267147 | 5s |
+| g1b_corr | literal | NoHoldOutsideService | relationships r2; requests q1; types DAY; spans s23; end day 0; unpaid-year 0; correction 1; HR adjust FALSE; CarryCap 0; AllowNeg FALSE; MaxLines 6 | violated | 693 | 1s |
+| g1b_corr_fix | fixed | NoHoldOutsideService | relationships r2; requests q1; types DAY; spans s23; end day 0; unpaid-year 0; correction 1; HR adjust FALSE; CarryCap 0; AllowNeg FALSE; MaxLines 6 | held | 23890 | 1s |
+| g1c_appr | literal | TerminalGivesBack | relationships r1; requests q1; types DAY; spans s12, s23; end day 3; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 0; AllowNeg FALSE; MaxLines 6 | held | 213023 | 4s |
+| g2b_wd | literal | TerminalGivesBack | relationships r1; requests q1; types DAY; spans s22; end day 0; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 0; AllowNeg FALSE; MaxLines 6 | violated | 871 | 1s |
+| g2b_wd_fix | fixed | TerminalGivesBack | relationships r1; requests q1; types DAY; spans s22; end day 0; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 0; AllowNeg FALSE; MaxLines 6 | held | 87994 | 2s |
+| g3_recall | literal; SealMode refuse | NotRecallBlocked | relationships r1; requests q1; types DAY; spans s12; end day 0; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 1; AllowNeg FALSE; MaxLines 8 | violated | 854 | 1s |
+| g4_carry | literal | NoStrandedCarry | relationships r1; requests q1; types DAY; spans s12; end day 0; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 1; AllowNeg FALSE; MaxLines 8 | violated | 51 | 1s |
+| g4_carry_fix | fixed | NoStrandedCarry | relationships r1; requests q1; types DAY; spans s12; end day 0; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 1; AllowNeg FALSE; MaxLines 8 | held | 122651 | 3s |
+| g5_neg | literal | NotBelowZero | relationships r1; requests q1; types DAY; spans s12; end day 3; unpaid-year 0; correction 0; HR adjust TRUE; CarryCap 0; AllowNeg FALSE; MaxLines 6 | violated | 122 | 1s |
+| g5_neg_hr | fixed | NotBelowZero | relationships r1; requests q1; types DAY; spans s12; end day 0; unpaid-year 0; correction 0; HR adjust TRUE; CarryCap 0; AllowNeg FALSE; MaxLines 6 | held | 344237 | 12s |
+| g5_neg_ev | fixed | NotBelowZero | relationships r1; requests q1; types DAY; spans s12; end day 3; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 0; AllowNeg FALSE; MaxLines 6 | held | 206246 | 7s |
+| u_line | literal; Unique FALSE | LineKeyOnce | relationships r1; requests q1; types DAY; spans s12, s23; end day 0; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 1; AllowNeg TRUE; MaxLines 8 | violated | 119 | 1s |
+| u_sealed | literal; Unique FALSE | NoWriteToSealed | relationships r1; requests q1; types DAY; spans s12, s23; end day 0; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 1; AllowNeg TRUE; MaxLines 8 | violated | 1515 | 1s |
+| comp_dead | fixed; ExpL1 2 | DeadLotReturnExpires | relationships r1; requests q1, q2; types COMP; spans s12, s23; end day 0; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 0; AllowNeg FALSE; MaxLines 8 | held | 12856931 | 313s |
+| comp_neg | fixed | NotBelowZero | relationships r1; requests q1, q2; types COMP; spans s12, s23; end day 0; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 0; AllowNeg FALSE; MaxLines 8 | held | 12856931 | 515s |
+| two_own | fixed | OwnRelationshipOnly | relationships r1, r2; requests q1, q2; types DAY, COMP; spans s23; end day 0; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 0; AllowNeg FALSE; MaxLines 8 | held | 24343356 | 877s |
+| two_ovl | fixed; OverlapRefuse TRUE | NoCrossOverlap | relationships r1, r2; requests q1, q2; types DAY; spans s23; end day 0; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 0; AllowNeg FALSE; MaxLines 8 | held | 853574 | 42s |
+| succ | fixed; SuccCarry TRUE | CarryBalanced | relationships r1, r2; requests q1; types DAY; spans s12; end day 2; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 1; AllowNeg TRUE; MaxLines 8 | held | 29640059 | 806s |
+| sealhold | fixed | NoHoldAtSeal | relationships r1; requests q1, q2; types DAY; spans s12, s23; end day 0; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 1; AllowNeg TRUE; MaxLines 8 | held | 4695716 | 153s |
+| ledger_ok | fixed | LedgerSumsConsistent | relationships r1; requests q1, q2; types DAY; spans s12, s23; end day 0; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 1; AllowNeg TRUE; MaxLines 8 | held | 4695716 | 431s |
+| entl | fixed; defaults | EntitlementFollowsEvents | relationships r1; requests q1; types DAY; spans s12; end day 3; unpaid-year 1; correction 1; HR adjust FALSE; CarryCap 0; AllowNeg TRUE; MaxLines 6 | held | 2081148 | 39s |
+| entl | fixed; Ent 1 | EntitlementFollowsEvents | relationships r1; requests q1; types DAY; spans s12; end day 3; unpaid-year 1; correction 1; HR adjust FALSE; CarryCap 0; AllowNeg TRUE; MaxLines 6 | held | 2081148 | 72s |
+| entl | fixed; Ent 3 | EntitlementFollowsEvents | relationships r1; requests q1; types DAY; spans s12; end day 3; unpaid-year 1; correction 1; HR adjust FALSE; CarryCap 0; AllowNeg TRUE; MaxLines 6 | held | 2081148 | 57s |
+| entl | fixed; EndCut 0 | EntitlementFollowsEvents | relationships r1; requests q1; types DAY; spans s12; end day 3; unpaid-year 1; correction 1; HR adjust FALSE; CarryCap 0; AllowNeg TRUE; MaxLines 6 | held | 2954705 | 66s |
+| entl | fixed; EndCut 2 | EntitlementFollowsEvents | relationships r1; requests q1; types DAY; spans s12; end day 3; unpaid-year 1; correction 1; HR adjust FALSE; CarryCap 0; AllowNeg TRUE; MaxLines 6 | held | 2081148 | 50s |
+| entl | fixed; UnpaidCut 0 | EntitlementFollowsEvents | relationships r1; requests q1; types DAY; spans s12; end day 3; unpaid-year 1; correction 1; HR adjust FALSE; CarryCap 0; AllowNeg TRUE; MaxLines 6 | held | 1796250 | 45s |
+| entl | fixed; UnpaidCut 2 | EntitlementFollowsEvents | relationships r1; requests q1; types DAY; spans s12; end day 3; unpaid-year 1; correction 1; HR adjust FALSE; CarryCap 0; AllowNeg TRUE; MaxLines 6 | held | 2081148 | 55s |
+| ovl_off | fixed; OverlapRefuse FALSE | NoCrossOverlap | relationships r1, r2; requests q1, q2; types DAY; spans s23; end day 0; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 0; AllowNeg FALSE; MaxLines 8 | held | 864248 | 57s |
+| carry_cap0 | fixed; CarryCap 0 | NoStrandedCarry | relationships r1; requests q1; types DAY; spans s12; end day 0; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 0; AllowNeg FALSE; MaxLines 8 | held | 161752 | 5s |
+| carry_cap2 | fixed; CarryCap 2 | NoStrandedCarry | relationships r1; requests q1; types DAY; spans s12; end day 0; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 2; AllowNeg FALSE; MaxLines 8 | held | 122651 | 6s |
+| succ0 | fixed; SuccCarry FALSE | CarryBalanced | relationships r1, r2; requests q1; types DAY; spans s12; end day 2; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 1; AllowNeg TRUE; MaxLines 6 | held | 3453715 | 92s |
+| succ1 | fixed; SuccCarry TRUE | CarryBalanced | relationships r1, r2; requests q1; types DAY; spans s12; end day 2; unpaid-year 0; correction 0; HR adjust FALSE; CarryCap 1; AllowNeg TRUE; MaxLines 6 | held | 3472334 | 109s |
 
-Reading the table. `literal` rows are the spec as written; a *violated* result there is a finding (section Findings), with the TLC trace summarised in the PR. `fixed` rows switch the gap options to the proposed reading and are expected to hold; they do. The T-constants (`AllowNeg`, `Ent`, `CarryCap`, `ExpL1`/`ExpL2`, `EndCut`, `UnpaidCut`, `OverlapRefuse`, `SuccCarry`) are never chosen by the model: each is a CONSTANT and the table above runs the alternatives. The largest runs (`two_own`, `succ`, `comp_neg`) took 13 to 15 minutes; none exceeded 30.
+Reading the table. `literal` rows are the spec as written; a *violated* result there is a finding (section Findings), with the TLC trace summarised in the PR. `fixed` rows switch the gap options to the proposed reading and are expected to hold; they do. The T-constants (`AllowNeg`, `Ent`, `CarryCap`, `ExpL1`/`ExpL2`, `EndCut`, `UnpaidCut`, `OverlapRefuse`, `SuccCarry`) are never chosen by the model: each is a CONSTANT and the table above runs the alternatives. The largest runs (`two_own`, `succ`, `comp_neg`) took 5 to 15 minutes; none exceeded 30.
 
 A first sweep of the T-constants on a larger scenario (one relationship, two spans, seven lines) did not finish within a 240 s cap for twelve of its fifteen options. Those runs are **not counted** as results; the sweep above replaced them with smaller scenarios per constant and one invariant each, all of which completed.
 
@@ -134,3 +132,5 @@ The action sequences are TLC's shortest traces (`Tick` advances time; `Deliver` 
 | G-5 | `NotBelowZero` violated (T-4) | `Separate`, `Deliver`, `Submit`, `AdjustHR`: an HR `AdjustLeaveBalance` after a hold takes the account below zero; 4.2 has no guard | `AdjustGuard`: holds. The event-driven recompute path (separation cut) alone never goes below zero at this bound (`g5_neg_ev` holds) |
 
 `LineKeyOnce` and `NoWriteToSealed` with `Unique = FALSE` are negative controls: they are violated, which shows the invariants can fail.
+
+Two earlier rows are not in the table: `g2_wd` and its fixed twin used a span that makes withdraw impossible (withdraw needs `today` before the start), so they held vacuously; `g2b_wd` (span `s22`) replaces them. `g1c_appr` (approval after withdraw) holds in the literal reading.
