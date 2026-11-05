@@ -33,7 +33,7 @@ class JdbcEmploymentRelationshipQueries implements EmploymentRelationshipQueries
         return jdbc.sql(VIEW + """
                  where r.employee_id = :employee and v.employment_status = 'EMPLOYED'
                    and v.effective_from_date <= :day and (v.effective_to_date is null or :day < v.effective_to_date)
-                 order by r.employment_relationship_id
+                 order by r.created_at, r.employment_relationship_id
                 """).param("employee", employee.value()).param("day", day).query((rs, i) -> view(rs)).list();
     }
 

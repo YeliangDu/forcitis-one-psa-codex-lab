@@ -5427,7 +5427,7 @@ components:
     EmploymentRelationshipStarted:
       name: EmploymentRelationshipStarted
       title: 雇佣关系已开始
-      description: 雇佣关系开始服务时发布（入职或复职命令生效）；与 EmployeeHired/EmployeeReinstated 并发，只在人员状态转换之外另报关系维度（ADR-0086 设计 6.1）。负载只含 ID 与日期。
+      description: 雇佣关系开始服务时发布（入职或复职命令生效）；与 EmployeeHired/EmployeeReinstated 并发，只在人员状态转换之外另报关系维度（ADR-0086 设计 6.1）。负载只含 ID 与日期。信封 legalEntityId 为员工在生效日的法人。
       x-event:
         eventType: organization.workforce.EmploymentRelationshipStarted
         version: 1
@@ -5437,9 +5437,10 @@ components:
         publisher: organization.workforce
         consumers:
         - platform.audit
+        noConsumer: 暂无消费方：请假、薪酬等模块将订阅关系层事件（ADR-0086 设计 6.1）；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
-        businessDate: 关系开始服务的第一天（effectiveDate）
+        businessDate: 人事业务生效日（effectiveDate）：关系开始服务的第一天
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
       payload:
@@ -5448,8 +5449,8 @@ components:
         - envelope
         - personnelCommandId
         - employeeId
-        - effectiveDate
         - employmentRelationshipId
+        - effectiveDate
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -5463,19 +5464,19 @@ components:
             format: uuid
             x-type: EmployeeId
             description: 员工 ID，与信封的 aggregateId 相同
-          effectiveDate:
-            type: string
-            x-type: LocalDate
-            description: 关系开始服务的第一天
           employmentRelationshipId:
             type: string
             format: uuid
             x-type: EmploymentRelationshipId
             description: 雇佣关系 ID（ADR-0086）
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 关系开始服务的第一天
     EmploymentRelationshipEnded:
       name: EmploymentRelationshipEnded
       title: 雇佣关系已结束
-      description: 离职命令使一段雇佣关系结束时发布（ADR-0086 设计 6.1）。负载只含 ID 与日期。
+      description: 离职命令使一段雇佣关系结束时发布（ADR-0086 设计 6.1）。负载只含 ID 与日期。信封 legalEntityId 为员工在生效日的法人。
       x-event:
         eventType: organization.workforce.EmploymentRelationshipEnded
         version: 1
@@ -5485,9 +5486,10 @@ components:
         publisher: organization.workforce
         consumers:
         - platform.audit
+        noConsumer: 暂无消费方：请假、薪酬等模块将订阅关系层事件（ADR-0086 设计 6.1）；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
-        businessDate: 关系结束后的第一天（effectiveDate）
+        businessDate: 人事业务生效日（effectiveDate）：关系结束后的第一天
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
       payload:
@@ -5496,8 +5498,8 @@ components:
         - envelope
         - personnelCommandId
         - employeeId
-        - effectiveDate
         - employmentRelationshipId
+        - effectiveDate
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -5511,19 +5513,19 @@ components:
             format: uuid
             x-type: EmployeeId
             description: 员工 ID，与信封的 aggregateId 相同
-          effectiveDate:
-            type: string
-            x-type: LocalDate
-            description: 关系结束后的第一天（最后工作日的次日）
           employmentRelationshipId:
             type: string
             format: uuid
             x-type: EmploymentRelationshipId
             description: 雇佣关系 ID（ADR-0086）
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 关系结束后的第一天（最后工作日的次日）
     EmploymentRelationshipCorrected:
       name: EmploymentRelationshipCorrected
       title: 雇佣关系已更正
-      description: 更正命令改变一段关系的员工级属性时发布（ADR-0086 设计 6.1）。负载只含 ID 与日期。
+      description: 更正命令改变一段关系的员工级属性时发布（ADR-0086 设计 6.1）。负载只含 ID 与日期。信封 legalEntityId 为员工在生效日的法人。
       x-event:
         eventType: organization.workforce.EmploymentRelationshipCorrected
         version: 1
@@ -5533,9 +5535,10 @@ components:
         publisher: organization.workforce
         consumers:
         - platform.audit
+        noConsumer: 暂无消费方：请假、薪酬等模块将订阅关系层事件（ADR-0086 设计 6.1）；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
-        businessDate: 更正生效日（effectiveDate）
+        businessDate: 人事业务生效日（effectiveDate）：更正生效日
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
       payload:
@@ -5544,8 +5547,8 @@ components:
         - envelope
         - personnelCommandId
         - employeeId
-        - effectiveDate
         - employmentRelationshipId
+        - effectiveDate
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -5559,19 +5562,19 @@ components:
             format: uuid
             x-type: EmployeeId
             description: 员工 ID，与信封的 aggregateId 相同
-          effectiveDate:
-            type: string
-            x-type: LocalDate
-            description: 更正自此日起生效
           employmentRelationshipId:
             type: string
             format: uuid
             x-type: EmploymentRelationshipId
             description: 雇佣关系 ID（ADR-0086）
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 更正自此日起生效
     EmploymentRelationshipPhaseChanged:
       name: EmploymentRelationshipPhaseChanged
       title: 雇佣关系阶段已变更
-      description: 转正命令使一段关系进入新的雇佣阶段时发布（ADR-0086 设计 6.1）。负载只含 ID、日期与阶段。
+      description: 转正命令使一段关系进入新的雇佣阶段时发布（ADR-0086 设计 6.1）。负载只含 ID、日期与阶段。信封 legalEntityId 为员工在生效日的法人。
       x-event:
         eventType: organization.workforce.EmploymentRelationshipPhaseChanged
         version: 1
@@ -5581,9 +5584,10 @@ components:
         publisher: organization.workforce
         consumers:
         - platform.audit
+        noConsumer: 暂无消费方：请假、薪酬等模块将订阅关系层事件（ADR-0086 设计 6.1）；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
-        businessDate: 新阶段的第一天（effectiveDate）
+        businessDate: 人事业务生效日（effectiveDate）：新阶段的第一天
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
       payload:
@@ -5592,8 +5596,8 @@ components:
         - envelope
         - personnelCommandId
         - employeeId
-        - effectiveDate
         - employmentRelationshipId
+        - effectiveDate
         - phaseKind
         properties:
           envelope:
@@ -5608,15 +5612,15 @@ components:
             format: uuid
             x-type: EmployeeId
             description: 员工 ID，与信封的 aggregateId 相同
-          effectiveDate:
-            type: string
-            x-type: LocalDate
-            description: 新阶段的第一天
           employmentRelationshipId:
             type: string
             format: uuid
             x-type: EmploymentRelationshipId
             description: 雇佣关系 ID（ADR-0086）
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 新阶段的第一天
           phaseKind:
             type: string
             x-type: EmploymentPhaseKind
@@ -5624,7 +5628,7 @@ components:
     EmploymentRelationshipUnpaidLeaveChanged:
       name: EmploymentRelationshipUnpaidLeaveChanged
       title: 雇佣关系停薪留职状态已变更
-      description: 一段关系开始或结束停薪留职时发布（ADR-0086 设计 6.1）。负载只含 ID、日期与状态。
+      description: 一段关系开始或结束停薪留职时发布（ADR-0086 设计 6.1）。负载只含 ID、日期与状态。信封 legalEntityId 为员工在生效日的法人。
       x-event:
         eventType: organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
         version: 1
@@ -5634,9 +5638,10 @@ components:
         publisher: organization.workforce
         consumers:
         - platform.audit
+        noConsumer: 暂无消费方：请假、薪酬等模块将订阅关系层事件（ADR-0086 设计 6.1）；现在就发布，是因为事件一旦漏发就无法按发生时刻补回
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
-        businessDate: 新状态的第一天（effectiveDate）
+        businessDate: 人事业务生效日（effectiveDate）：新状态的第一天
         audit: audited
         publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
       payload:
@@ -5645,9 +5650,9 @@ components:
         - envelope
         - personnelCommandId
         - employeeId
-        - effectiveDate
         - employmentRelationshipId
-        - onUnpaidLeave
+        - effectiveDate
+        - commandKind
         properties:
           envelope:
             $ref: '#/components/schemas/EventEnvelope'
@@ -5661,18 +5666,19 @@ components:
             format: uuid
             x-type: EmployeeId
             description: 员工 ID，与信封的 aggregateId 相同
-          effectiveDate:
-            type: string
-            x-type: LocalDate
-            description: 新状态的第一天
           employmentRelationshipId:
             type: string
             format: uuid
             x-type: EmploymentRelationshipId
             description: 雇佣关系 ID（ADR-0086）
-          onUnpaidLeave:
-            type: boolean
-            description: 真为开始停薪留职，假为结束
+          effectiveDate:
+            type: string
+            x-type: LocalDate
+            description: 新状态的第一天
+          commandKind:
+            type: string
+            x-type: PersonnelCommandKind
+            description: UNPAID_LEAVE_START 为开始停薪留职，UNPAID_LEAVE_END 为结束
     SeparationHeld:
       name: SeparationHeld
       title: 离职已转待放行

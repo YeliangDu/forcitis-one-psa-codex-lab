@@ -8,6 +8,7 @@ import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
+import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
@@ -23,6 +24,11 @@ import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
 import com.forcitis.one.organization.workforce.events.EmployeeUnpaidLeaveStarted;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
 import com.forcitis.one.organization.workforce.events.EmployeeTransferred;
+import com.forcitis.one.organization.workforce.events.EmploymentRelationshipCorrected;
+import com.forcitis.one.organization.workforce.events.EmploymentRelationshipEnded;
+import com.forcitis.one.organization.workforce.events.EmploymentRelationshipPhaseChanged;
+import com.forcitis.one.organization.workforce.events.EmploymentRelationshipStarted;
+import com.forcitis.one.organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged;
 import com.forcitis.one.organization.workforce.events.SeparationHeld;
 import com.forcitis.one.organization.workforce.events.SeparationHoldReleased;
 import java.time.Instant;
@@ -39,6 +45,7 @@ import org.junit.jupiter.api.Test;
  * numbered after the employee's own event sequence; unpaid leave records none.
  */
 class PersonnelCommandEventsTest {
+    private static final EmploymentRelationshipId RELATIONSHIP = new EmploymentRelationshipId(UUID.fromString("019a0000-0000-7000-8000-0000000000e1"));
     private static final PersonnelHistory EMPTY_HISTORY = new PersonnelHistory(List.of(), List.of(), List.of(), List.of(), List.of(), Map.of());
 
     static final Instant NOW = Instant.parse("2026-11-02T02:00:00Z");
@@ -50,8 +57,17 @@ class PersonnelCommandEventsTest {
     static final long SEQUENCE = 4;
 
     private static PersonnelCommand command(EnterPersonnelCommand request) {
-        return PersonnelCommand.enter(new PersonnelCommandId(UUID.fromString("019a0000-0000-7000-8000-0000000000c1")), EMPLOYEE, request,
+        PersonnelCommand command = PersonnelCommand.enter(new PersonnelCommandId(UUID.fromString("019a0000-0000-7000-8000-0000000000c1")), EMPLOYEE, request,
                 new UserId(UUID.fromString("019a0000-0000-7000-8000-0000000000aa")), NOW, DAY, SEQUENCE);
+        if (command.kind() != PersonnelCommandKind.CHANGE_LEGAL_ENTITY) {
+            command.bindTo(RELATIONSHIP);
+        }
+        return command;
+    }
+
+    private static List<DomainEvent> relationshipEvents(PersonnelCommand command) {
+        command.recordEffect(null, null, null, EMPTY_HISTORY);
+        return command.drainEvents(TestEnvelopes.INSTANCE).stream().filter(e -> e.getClass().getSimpleName().startsWith("EmploymentRelationship")).toList();
     }
 
     private static EnterPersonnelCommand request(PersonnelCommandKind kind, LocalDate effective, LocalDate lastWorkingDay, OrgUnitId unit, PositionId position,
@@ -65,7 +81,7 @@ class PersonnelCommandEventsTest {
 
     private static DomainEvent published(PersonnelCommand command, VersionRow before, VersionRow after) {
         command.recordEffect(before, after, null, EMPTY_HISTORY);
-        List<DomainEvent> events = command.drainEvents(TestEnvelopes.INSTANCE);
+        List<DomainEvent> events = command.drainEvents(TestEnvelopes.INSTANCE).stream().filter(e -> !e.getClass().getSimpleName().startsWith("EmploymentRelationship")).toList();
         assertThat(events).hasSize(1);
         assertThat(events.getFirst().envelope().aggregateType()).as("the envelope is about the employee").isEqualTo("Employee");
         assertThat(events.getFirst().envelope().aggregateId()).isEqualTo(EMPLOYEE.value());
@@ -94,7 +110,7 @@ class PersonnelCommandEventsTest {
     }
 
     @Test
-    @DisplayName("IMP-1030-PAR-B3 a transfer names what changed and the department and position of the day before; the end of an unpaid leave publishes nothing")
+    @DisplayName("IMP-1030-PAR-B3 a transfer names what changed and the department and position of the day before; the end of an unpaid leave publishes no person-level event")
     void aTransferCarriesItsTriggersAndTheEndOfLeaveNothing() {
         VersionRow before = new VersionRow(UUID.fromString("019a0000-0000-7000-8000-0000000000d1"), LocalDate.of(2026, 1, 1), null,
                 Map.of(CommandEffects.ORG_UNIT, OLD_UNIT.value(), CommandEffects.POSITION, POSITION.value()), ChangeSource.MIGRATION, null, false);
@@ -108,8 +124,31 @@ class PersonnelCommandEventsTest {
             assertThat(e.newPositionId()).as("the position did not change").isEqualTo(POSITION);
         });
         PersonnelCommand leaveEnd = command(request(PersonnelCommandKind.UNPAID_LEAVE_END, DAY, null, null, null, null, null));
-        leaveEnd.recordEffect(null, null, null, EMPTY_HISTORY);
-        assertThat(leaveEnd.hasPendingEvents()).isFalse();
+        assertThat(relationshipEvents(leaveEnd)).singleElement().isInstanceOfSatisfying(EmploymentRelationshipUnpaidLeaveChanged.class,
+                e -> assertThat(e.commandKind()).isEqualTo(PersonnelCommandKind.UNPAID_LEAVE_END));
+    }
+
+    @Test
+    @DisplayName("#1372 each kind that changes a relationship publishes its relationship event with the relationship id and the day")
+    void eachRelationshipChangePublishesItsEvent() {
+        assertThat(relationshipEvents(command(request(PersonnelCommandKind.HIRE, DAY, null, NEW_UNIT, POSITION, false, EmploymentPhaseKind.PROBATION))))
+                .singleElement().isInstanceOfSatisfying(EmploymentRelationshipStarted.class, e -> {
+                    assertThat(e.employmentRelationshipId()).isEqualTo(RELATIONSHIP);
+                    assertThat(e.effectiveDate()).isEqualTo(DAY);
+                });
+        assertThat(relationshipEvents(command(request(PersonnelCommandKind.REINSTATE, DAY, null, NEW_UNIT, POSITION, true, EmploymentPhaseKind.REGULAR))))
+                .singleElement().isInstanceOf(EmploymentRelationshipStarted.class);
+        assertThat(relationshipEvents(command(request(PersonnelCommandKind.REGULARIZE, DAY, null, null, null, null, null))))
+                .singleElement().isInstanceOfSatisfying(EmploymentRelationshipPhaseChanged.class, e -> assertThat(e.phaseKind()).isEqualTo(EmploymentPhaseKind.REGULAR));
+        assertThat(relationshipEvents(command(request(PersonnelCommandKind.SEPARATE, null, DAY.minusDays(1), null, null, null, null))))
+                .singleElement().isInstanceOfSatisfying(EmploymentRelationshipEnded.class, e -> assertThat(e.effectiveDate()).isEqualTo(DAY));
+        assertThat(relationshipEvents(command(request(PersonnelCommandKind.UNPAID_LEAVE_START, DAY, null, null, null, null, null))))
+                .singleElement().isInstanceOfSatisfying(EmploymentRelationshipUnpaidLeaveChanged.class,
+                        e -> assertThat(e.commandKind()).isEqualTo(PersonnelCommandKind.UNPAID_LEAVE_START));
+        assertThat(relationshipEvents(command(request(PersonnelCommandKind.CORRECTION, DAY, null, NEW_UNIT, null, null, null))))
+                .as("a correction of the assignment alone changes nothing at the relationship").isEmpty();
+        assertThat(relationshipEvents(command(new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.CORRECTION, DAY, null, null, null, null, true, null, null, null, null, null))))
+                .singleElement().isInstanceOf(EmploymentRelationshipCorrected.class);
     }
 
     @Test
@@ -202,13 +241,14 @@ class PersonnelCommandEventsTest {
         separation.recordEffect(null, null, null, EMPTY_HISTORY);
         separation.recordReleased(hold, releaser, null);
         List<DomainEvent> events = separation.drainEvents(TestEnvelopes.INSTANCE);
-        assertThat(events).hasSize(2);
+        assertThat(events).hasSize(3);
         assertThat(events.get(0)).isInstanceOf(EmployeeSeparated.class);
-        assertThat(events.get(1)).isInstanceOfSatisfying(SeparationHoldReleased.class, e -> {
+        assertThat(events.get(1)).isInstanceOf(EmploymentRelationshipEnded.class);
+        assertThat(events.get(2)).isInstanceOfSatisfying(SeparationHoldReleased.class, e -> {
             assertThat(e.releasedBy()).isEqualTo(releaser);
             assertThat(e.effectiveDate()).as("the original effective date").isEqualTo(DAY);
         });
-        assertThat(events.get(1).envelope().aggregateVersion()).as("numbered after the separation event").isEqualTo(events.get(0).envelope().aggregateVersion() + 1);
+        assertThat(events.get(2).envelope().aggregateVersion()).as("numbered after the separation events").isEqualTo(events.get(1).envelope().aggregateVersion() + 1);
     }
 
     @Test

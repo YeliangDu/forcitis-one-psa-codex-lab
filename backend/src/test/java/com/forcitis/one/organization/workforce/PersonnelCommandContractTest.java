@@ -12,8 +12,11 @@ import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.EventEnvelope;
 import com.forcitis.one.kernel.event.TestEnvelopes;
+import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
+import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
+import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
@@ -24,6 +27,11 @@ import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
 import com.forcitis.one.organization.workforce.events.EmployeeUnpaidLeaveStarted;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
 import com.forcitis.one.organization.workforce.events.EmployeeTransferred;
+import com.forcitis.one.organization.workforce.events.EmploymentRelationshipCorrected;
+import com.forcitis.one.organization.workforce.events.EmploymentRelationshipEnded;
+import com.forcitis.one.organization.workforce.events.EmploymentRelationshipPhaseChanged;
+import com.forcitis.one.organization.workforce.events.EmploymentRelationshipStarted;
+import com.forcitis.one.organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged;
 import com.forcitis.one.organization.workforce.events.SeparationHeld;
 import com.forcitis.one.organization.workforce.events.SeparationHoldReleased;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -44,6 +52,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.jspecify.annotations.Nullable;
@@ -69,6 +79,12 @@ class PersonnelCommandContractTest {
     /** ADR-0068 evidence attachment, 事件契约: the seven named events plus EmployeeCorrected, and, named by #918 (item 3), EmployeeUnpaidLeaveStarted; the end of a leave has no event. */
     static final Set<String> ADR_0068_EVENTS = Set.of("EmployeeHired", "EmployeeRegularized", "EmployeeTransferred", "EmployeeSeparated",
             "EmployeeReinstated", "SeparationHeld", "SeparationHoldReleased", "EmployeeCorrected", "EmployeeUnpaidLeaveStarted");
+    /** ADR-0086 design 6.1 adds the relationship-level events; they follow the same payload and catalogue rules as the events above. */
+    static final Set<String> ADR_0086_EVENTS = Set.of("EmploymentRelationshipStarted", "EmploymentRelationshipEnded", "EmploymentRelationshipPhaseChanged",
+            "EmploymentRelationshipUnpaidLeaveChanged", "EmploymentRelationshipCorrected");
+    static final Set<String> ALL_EVENTS = Stream.concat(ADR_0068_EVENTS.stream(), ADR_0086_EVENTS.stream()).collect(Collectors.toCollection(TreeSet::new));
+    static final String REL_FIELD = "employmentRelationshipId:EmploymentRelationshipId";
+    static final EmploymentRelationshipId RELATIONSHIP = new EmploymentRelationshipId(TestIds.uuid(742));
     /** ADR-0073 item 3.7 adds a ninth event that names the command; its contract is the publisher test of #895, not the eight of ADR-0068. */
     static final Set<String> ADR_0073_EVENTS = Set.of("EmployeeLegalEntityChanged");
     static final List<String> PERSONAL_DATA_WORDS = List.of("name", "email", "mail", "gender", "phone", "mobile", "birth", "address", "card",
@@ -200,6 +216,12 @@ class PersonnelCommandContractTest {
                 new EmployeeUnpaidLeaveStarted(seal("EmployeeUnpaidLeaveStarted", DAY), COMMAND, EMPLOYEE, DAY),
                 new EmployeeCorrected(seal("EmployeeCorrected", DAY), COMMAND, EMPLOYEE, DAY.minusMonths(1), null, List.of(TriggerFieldKind.ORG_UNIT),
                         new OrgUnitId(TestIds.uuid(1)), new OrgUnitId(TestIds.uuid(2)), null, null),
+                new EmploymentRelationshipStarted(seal("EmploymentRelationshipStarted", DAY), COMMAND, EMPLOYEE, RELATIONSHIP, DAY),
+                new EmploymentRelationshipEnded(seal("EmploymentRelationshipEnded", DAY), COMMAND, EMPLOYEE, RELATIONSHIP, DAY),
+                new EmploymentRelationshipCorrected(seal("EmploymentRelationshipCorrected", DAY), COMMAND, EMPLOYEE, RELATIONSHIP, DAY),
+                new EmploymentRelationshipPhaseChanged(seal("EmploymentRelationshipPhaseChanged", DAY), COMMAND, EMPLOYEE, RELATIONSHIP, DAY, EmploymentPhaseKind.REGULAR),
+                new EmploymentRelationshipUnpaidLeaveChanged(seal("EmploymentRelationshipUnpaidLeaveChanged", DAY), COMMAND, EMPLOYEE, RELATIONSHIP, DAY,
+                        PersonnelCommandKind.UNPAID_LEAVE_START),
                 new SeparationHeld(seal("SeparationHeld", DAY), COMMAND, EMPLOYEE, DAY, HOLD),
                 new SeparationHoldReleased(seal("SeparationHoldReleased", DAY), COMMAND, EMPLOYEE, DAY, HOLD, RELEASER));
     }
@@ -207,7 +229,7 @@ class PersonnelCommandContractTest {
     @Test
     @DisplayName("ADR-0068 第 1 条第 9 项：带人事命令 ID 的事件恰为附件「事件契约」列出的八个加第 3 条的停薪留职开始（#918），不多不少")
     void theEventsAreExactlyThoseAdr0068Names() {
-        assertThat(names(personnelEvents())).isEqualTo(new TreeSet<>(ADR_0068_EVENTS));
+        assertThat(names(personnelEvents())).isEqualTo(ALL_EVENTS);
     }
 
     @Test
@@ -247,8 +269,8 @@ class PersonnelCommandContractTest {
             assertThat(event.envelope().legalEntityId()).as("lead 2026-10-28 Q6: the employee's legal entity on the effective date")
                     .isEqualTo(LEGAL_ENTITY);
         }
-        assertThat(names(sealedSamples().stream().<Class<?>>map(Object::getClass).toList())).isEqualTo(new TreeSet<>(ADR_0068_EVENTS));
-        for (String name : ADR_0068_EVENTS) {
+        assertThat(names(sealedSamples().stream().<Class<?>>map(Object::getClass).toList())).isEqualTo(ALL_EVENTS);
+        for (String name : ALL_EVENTS) {
             assertThatThrownBy(() -> seal(name, null)).as(name).isInstanceOf(AssertionError.class).hasMessageContaining(name);
         }
     }
@@ -285,13 +307,13 @@ class PersonnelCommandContractTest {
     @DisplayName("lead 2026-10-28 Q4、Q5：调岗另带前后部门与前后岗位，暂停带待放行离职记录 ID，放行另带放行人账号 ID（运维命令放行时为空）")
     void theExtraPayloadIsWhatTheLeadDecided() {
         assertThat(extraPayload(EmployeeTransferred.class)).containsExactly("triggerFieldKinds:List", "previousOrgUnitId:OrgUnitId",
-                "newOrgUnitId:OrgUnitId", "previousPositionId:PositionId", "newPositionId:PositionId");
+                "newOrgUnitId:OrgUnitId", "previousPositionId:PositionId", "newPositionId:PositionId", REL_FIELD);
         assertThat(extraPayload(SeparationHeld.class)).containsExactly("separationHoldId:SeparationHoldId");
         assertThat(extraPayload(SeparationHoldReleased.class)).containsExactly("separationHoldId:SeparationHoldId", "releasedBy:UserId");
         assertThat(extraPayload(EmployeeCorrected.class)).containsExactly("affectedFrom:LocalDate", "affectedTo:LocalDate", "triggerFieldKinds:List",
-                "previousOrgUnitId:OrgUnitId", "newOrgUnitId:OrgUnitId", "previousPositionId:PositionId", "newPositionId:PositionId");
+                "previousOrgUnitId:OrgUnitId", "newOrgUnitId:OrgUnitId", "previousPositionId:PositionId", "newPositionId:PositionId", REL_FIELD);
         for (Class<?> event : List.of(EmployeeHired.class, EmployeeRegularized.class, EmployeeSeparated.class, EmployeeReinstated.class, EmployeeUnpaidLeaveStarted.class)) {
-            assertThat(extraPayload(event)).as(event.getSimpleName()).isEmpty();
+            assertThat(extraPayload(event)).as(event.getSimpleName() + " carries the relationship it belongs to and nothing else").containsExactly(REL_FIELD);
         }
         assertThat(SeparationHoldId.class.getPackageName()).isEqualTo(PersonnelCommandId.class.getPackageName());
         assertThat(PositionId.class.getPackageName()).isEqualTo(PersonnelCommandId.class.getPackageName());

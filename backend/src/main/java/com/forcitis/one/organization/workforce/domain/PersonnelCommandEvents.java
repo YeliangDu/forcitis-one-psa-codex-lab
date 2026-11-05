@@ -90,9 +90,9 @@ final class PersonnelCommandEvents {
                     out.add((envelopes, sequence) -> new EmployeeUnpaidLeaveStarted(envelopes.wrap(draft("EmployeeUnpaidLeaveStarted", c, legalEntity, sequence)), c.id(),
                             c.employeeId(), c.effectiveDate(), rel));
                 }
-                out.add(leaveChanged(c, legalEntity, true));
+                out.add(leaveChanged(c, legalEntity));
             }
-            case UNPAID_LEAVE_END -> out.add(leaveChanged(c, legalEntity, false));
+            case UNPAID_LEAVE_END -> out.add(leaveChanged(c, legalEntity));
             case CHANGE_LEGAL_ENTITY, START_CONCURRENT, END_CONCURRENT -> {
             }
         }
@@ -104,9 +104,9 @@ final class PersonnelCommandEvents {
                 Objects.requireNonNull(c.employmentRelationshipId()), c.effectiveDate());
     }
 
-    private static PendingEvent leaveChanged(PersonnelCommand c, @Nullable LegalEntityId legalEntity, boolean onLeave) {
+    private static PendingEvent leaveChanged(PersonnelCommand c, @Nullable LegalEntityId legalEntity) {
         return (envelopes, sequence) -> new EmploymentRelationshipUnpaidLeaveChanged(envelopes.wrap(draft("EmploymentRelationshipUnpaidLeaveChanged", c, legalEntity, sequence)),
-                c.id(), c.employeeId(), Objects.requireNonNull(c.employmentRelationshipId()), c.effectiveDate(), onLeave);
+                c.id(), c.employeeId(), Objects.requireNonNull(c.employmentRelationshipId()), c.effectiveDate(), c.kind());
     }
 
     /** The cost legal entity changed when the command took effect (ADR-0073 item 3.7), whatever the kind; the envelope names the new entity. */

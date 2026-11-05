@@ -345,14 +345,10 @@ class DdlNamingTest {
         Map<String, String> found = violations(model(readMigrations()));
         List<String> problems = new ArrayList<>();
         found.forEach((v, why) -> {
-            if (!baseline.containsKey(v)) {
-                problems.add(v + " — " + why);
-            }
+            if (!baseline.containsKey(v)) problems.add(v + " — " + why);
         });
         for (String b : baseline.keySet()) {
-            if (!found.containsKey(b)) {
-                problems.add(b + " — fixed or gone: remove it from " + BASELINE);
-            }
+            if (!found.containsKey(b)) problems.add(b + " — fixed or gone: remove it from " + BASELINE);
         }
         if (!problems.isEmpty()) {
             throw new AssertionError(GuardMessage.of("D2 (NAMING_STANDARD.md §2.4)", "a column, constraint or index of the resulting schema breaks the class word or name rules, or a baseline line is stale", "rename or retype it in a new migration as each line says; delete a stale line from " + BASELINE + ", and add a line there only for a gap with a reason") + "\n  " + String.join("\n  ", problems));
@@ -559,6 +555,8 @@ class DdlNamingTest {
                 } else if ((m = Pattern.compile("(?i)RENAME COLUMN ([a-z0-9_]+) TO ([a-z0-9_]+)").matcher(a)).matches()) {
                     Column c = model.columns.remove(m.group(1));
                     if (c != null) model.columns.put(m.group(2), new Column(m.group(2), c.type(), c.checked()));
+                    String from = m.group(1), to = m.group(2);
+                    model.primaryKey.replaceAll(key -> key.equals(from) ? to : key);
                 } else if ((m = Pattern.compile("(?i)RENAME CONSTRAINT ([a-z0-9_]+) TO ([a-z0-9_]+)").matcher(a)).matches()) {
                     Constraint c = model.constraints.remove(m.group(1));
                     if (c != null) model.constraints.put(m.group(2), new Constraint(c.kind(), m.group(2), c.inlineCheck()));
