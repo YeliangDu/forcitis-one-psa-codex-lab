@@ -30,7 +30,7 @@ terms:
   status: proposed
   note: '设计 competency-zone.md（#1309）；等级与确认状态待用户裁定（设计 Q1）'
 - id: practice_certificate_kind
-  zh: 注册执业证书种类
+  zh: 执业证书种类
   en: PracticeCertificateKind
   snake: practice_certificate_kind
   kind: aggregate

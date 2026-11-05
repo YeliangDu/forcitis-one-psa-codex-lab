@@ -1,6 +1,6 @@
 -- #1309 step 1 (design card for skills and practice certificates; follows dat1020-discover.sql, which did not look for skills and whose result was never committed).
--- Run as one_evidence_ro (ADR-0037, ADR-0088) in the a8_db context. Aggregates only: counts, distinct counts, year buckets. No value of any column is printed.
--- Every cell that counts 1 or 2 rows is shown as '< 3'. Do not run dat1020-discover2.sql line 6 (top certificate names): free text may carry a person's name or a certificate number.
+-- Run as one_evidence_ro (ADR-0037, ADR-0088) in the a8_db context. Metadata and whole-table row counts only; no value of any column is printed. Manual DBA run (several batches and a SET batch: not for forensic_read.py).
+-- The small-cell rule ('< 3' for a cell of 1 or 2 rows) starts in step 2, where counts per person and per bucket appear. Do not run dat1020-discover2.sql line 6 (top certificate names): free text may carry a person's name or a certificate number.
 -- Step 2 (the person-holder, expiry, registered-unit and attachment counts) is written after this step returns the real column names of HR_STAFF_CERTIFICATE; the design spec marks what waits for it.
 SET LOCK_TIMEOUT 1000;
 GO
