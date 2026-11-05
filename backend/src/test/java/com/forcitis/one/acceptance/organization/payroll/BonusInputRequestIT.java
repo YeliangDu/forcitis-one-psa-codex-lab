@@ -124,4 +124,23 @@ class BonusInputRequestIT extends BonusInputSupport {
         String summary = (String) bonusApprovals().getLast().get("summary_text");
         assertThat(summary).isEqualTo("奖金输入 2026-10-01").doesNotContain("1500").doesNotContain("YEAR_END");
     }
+
+    @Test
+    @DisplayName("#1436 PY3 request (h)：任职关系×月份×原因已有有效行时再申请得 ORGANIZATION_PAYROLL_BONUS_INPUT_DUPLICATE_REASON 且不发起审批；换原因或换月不受影响；该行作废后同样的申请被接受")
+    void aSecondRequestForAnActiveReasonIsRefusedUntilTheRowIsVoided() throws Exception {
+        UUID relationship = employedRelationship();
+        Submitted first = approved(relationship, OCTOBER, "100.00", "YEAR_END");
+        int before = bonusApprovals().size();
+
+        assertRefusedWith(() -> request(specialistAccount, requestOf(relationship, legalEntity.value(), OCTOBER, "200.00", "CNY", "YEAR_END", UUID.randomUUID())),
+                "ORGANIZATION_PAYROLL_BONUS_INPUT_DUPLICATE_REASON");
+        assertThat(bonusApprovals()).as("a refused duplicate starts no approval").hasSize(before);
+        request(specialistAccount, requestOf(relationship, legalEntity.value(), OCTOBER, "200.00", "CNY", "PROJECT", UUID.randomUUID()));
+        request(specialistAccount, requestOf(relationship, legalEntity.value(), OCTOBER.plusMonths(1), "200.00", "CNY", "YEAR_END", UUID.randomUUID()));
+        assertThat(bonusApprovals()).as("another reason or another month is another input").hasSize(before + 2);
+
+        voidInput(specialistAccount, rowId(first));
+        request(specialistAccount, requestOf(relationship, legalEntity.value(), OCTOBER, "200.00", "CNY", "YEAR_END", UUID.randomUUID()));
+        assertThat(bonusApprovals()).as("after the void the same request is accepted").hasSize(before + 3);
+    }
 }
