@@ -5,9 +5,12 @@ Seed runner and per-node Playwright specs for nodes HCM-LIFE-007, 009, 016, 022,
 ## Seed runner
 
 ```bash
-python3 -I frontend/apps/web/e2e/golden-seed/seed_s1.py --stop-before 007|009|016|022|023   # everything before the node through the public HTTP API
-python3 -I frontend/apps/web/e2e/golden-seed/seed_s1.py --no-clock ...                       # leave the clock alone (start the stack with LOCAL_CLOCK_START)
+python3 -I frontend/apps/web/e2e/golden-seed/seed.py --list                              # the supported nodes (the NODES table in the runner): pack day, what they need, what they do
+python3 -I frontend/apps/web/e2e/golden-seed/seed.py --stop-before <node>                # everything the node builds on, through the public HTTP API; then a read-back check against the pack
+python3 -I frontend/apps/web/e2e/golden-seed/seed.py --no-clock ...                       # leave the clock alone (start the stack with LOCAL_CLOCK_START)
 ```
+
+Supported nodes (card #1518): 007, 009, 016, 022, 023 (slice S1) and 026, 027, 030, 031 (S2 candidates); a node outside the table is refused with the first missing step named. 024, 025, 028, 029 belong to other owners (leave, identity, competency, payroll), change no workforce state and are listed as "not seeded". After a run the runner reads the person back and prints each check as ok, MISMATCH or "not readable": the pack checkpoints for relationship count and working state (026, 027, 030) have no public read, so they are listed, not verified (gap for the dev side). The checks compare with the current stack, so a run on a stack that is already past the node shows MISMATCH: wipe first.
 
 It logs in as "Synthetic Admin" (local login), builds the small world, and refuses any host but localhost. It is re-runnable.
 
