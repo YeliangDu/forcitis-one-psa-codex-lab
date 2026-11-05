@@ -229,6 +229,28 @@ class OperationsCommandsIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
+    @DisplayName("1333 granting a role to a person who has left is refused: no grant row, no account version move (TLA rule 5, no grant to a leaver)")
+    void grantRoleToALeaverIsRefused() {
+        knownEmployee(36, EmploymentStatus.EMPLOYED);
+        assertThat(run(with("grant-role", "--employee-id=" + TestAccounts.employee(36).value(), "--role-code=employee")).exitCode()).isZero();
+        String versionBefore = accountVersion(36);
+        long grantsBefore = grantRows(36);
+        knownEmployee(36, EmploymentStatus.SEPARATED);
+
+        Result refused = run(with("grant-role", "--employee-id=" + TestAccounts.employee(36).value(), "--role-code=business_admin"));
+
+        assertThat(refused.exitCode()).isNotZero();
+        assertThat(refused.err()).contains("PLATFORM_IDENTITY_EMPLOYEE_SEPARATED");
+        assertThat(grantRows(36)).isEqualTo(grantsBefore);
+        assertThat(accountVersion(36)).isEqualTo(versionBefore);
+    }
+
+    private long grantRows(long employee) {
+        return jdbc.sql("select count(*) from platform_identity.account_role_grants where user_id = (select user_id from platform_identity.user_accounts where employee_id = :e)")
+                .param("e", TestAccounts.employee(employee).value()).query(Long.class).single();
+    }
+
+    @Test
     @DisplayName("the first super_admin holder can be granted, then bound to an emergency account: the recovery path after a lock-out")
     void recoveryAfterALockOut() {
         knownEmployee(35, EmploymentStatus.EMPLOYED);

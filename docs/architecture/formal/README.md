@@ -22,7 +22,7 @@ Two-person authorization (`platform.identity`) against separation (`organization
 | `Confirm` | `ConfirmAuthorizationRequest.execute` (confirmer, requester and subject employed), voiding by `AuthorizationVoiding` |
 | `Reject` | `RejectAuthorizationRequest.execute` |
 | `Separate` | separation command in effect, administrator floor as a guard |
-| `Handle`, `Redeliver` | `HandleEmployeeSeparated.on` (revokes only if the account holds roles; voids every waiting request of the person as subject or requester, #1322) |
+| `Handle`, `Redeliver` | `HandleEmployeeSeparated.on` (marks every account `separated_at` (#1326), revokes roles if it holds any; voids every waiting request of the person as subject or requester, #1322) |
 | `Revise` | a role definition change moves the role version |
 
 Result on main (2026-11-05, TLC 2.19, 694 states generated, 203 distinct): all six invariants hold, no error. Before the fix (#1322, 2026-11-04, 321 distinct states) rules 3, 4, 5 were violated.

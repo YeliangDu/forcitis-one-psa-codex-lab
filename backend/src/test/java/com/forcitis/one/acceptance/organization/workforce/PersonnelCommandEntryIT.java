@@ -132,8 +132,18 @@ class PersonnelCommandEntryIT extends PersonnelCommandSupport {
         assertThat(inForceOn(current, LocalDate.of(2026, 9, 1)).get("change_command_id")).isEqualTo(backdated);
     }
 
+    /** Relative to the business today, so the cases keep their meaning as the date moves; the year end is the coming one, whose next day is always after TODAY. */
+    static java.util.stream.Stream<org.junit.jupiter.params.provider.Arguments> lastWorkingDays() {
+        LocalDate yearEnd = LocalDate.of(TODAY.getYear(), 12, 31);
+        return java.util.stream.Stream.of(
+                org.junit.jupiter.params.provider.Arguments.of(TODAY.minusDays(1), TODAY, "EFFECTIVE"),
+                org.junit.jupiter.params.provider.Arguments.of(TODAY, TODAY.plusDays(1), "PENDING"),
+                org.junit.jupiter.params.provider.Arguments.of(TODAY.minusDays(13), TODAY.minusDays(12), "EFFECTIVE"),
+                org.junit.jupiter.params.provider.Arguments.of(yearEnd, yearEnd.plusDays(1), "PENDING"));
+    }
+
     @ParameterizedTest(name = "last working day {0} gives effective date {1} and status {2}")
-    @CsvSource({"2026-11-01, 2026-11-02, EFFECTIVE", "2026-11-02, 2026-11-03, PENDING", "2026-10-20, 2026-10-21, EFFECTIVE", "2026-12-31, 2027-01-01, PENDING"})
+    @org.junit.jupiter.params.provider.MethodSource("lastWorkingDays")
     @DisplayName("#871 ADR-0068 第 1 条第 5 项（行 52）：人事填最后工作日，离职版本的生效日为其次日（含月末、年末）；次日不晚于今天时当即生效，否则待生效")
     void theSeparationTakesEffectTheDayAfterTheLastWorkingDay(LocalDate lastWorkingDay, LocalDate effective, String status) throws Exception {
         UUID employee = employed(REGULAR);

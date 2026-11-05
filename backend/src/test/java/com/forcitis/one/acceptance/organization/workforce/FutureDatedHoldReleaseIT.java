@@ -34,9 +34,9 @@ class FutureDatedHoldReleaseIT extends FutureHoldSupport {
         postgres.register(registry);
     }
 
-    /** One day after TODAY (business zone) starts at this instant: 2026-11-03 00:00 Asia/Shanghai, still 2026-11-02 in UTC. */
-    private static final Instant MIDNIGHT_OF_TOMORROW = Instant.parse("2026-11-02T16:00:00Z");
-    private static final Instant ONE_MINUTE_BEFORE_IT = Instant.parse("2026-11-02T15:59:00Z");
+    /** The day after TODAY starts at this instant: 00:00 Asia/Shanghai, which is still TODAY in UTC (16:00 of the day before). */
+    private static final Instant MIDNIGHT_OF_TOMORROW = TODAY.plusDays(1).atStartOfDay(BUSINESS_ZONE).toInstant();
+    private static final Instant ONE_MINUTE_BEFORE_IT = MIDNIGHT_OF_TOMORROW.minusSeconds(60);
 
     private void assertOneSeparatedEventOn(UUID command, LocalDate day) throws Exception {
         assertThat(eventsOf(EVENT_SEPARATED, command)).as("exactly one EmployeeSeparated").isEqualTo(1);
@@ -233,7 +233,7 @@ class FutureDatedHoldReleaseIT extends FutureHoldSupport {
     // ---- B: today / past unchanged; the business-zone edge of "today" ----
 
     @Test
-    @DisplayName("#931 边界（B）、业务时区：生效日 11-03，放行时刻为业务时区 11-03 00:00（UTC 仍是 11-02）：生效日即业务今天，HELD 到 EFFECTIVE 在放行事务内，放行时一条 EmployeeSeparated，版本在原生效日")
+    @DisplayName("#931 边界（B）、业务时区：生效日为业务今天的次日，放行时刻为该日业务时区 00:00（UTC 仍是前一天）：生效日即业务今天，HELD 到 EFFECTIVE 在放行事务内，放行时一条 EmployeeSeparated，版本在原生效日")
     void releaseOnTheEffectiveDayInTheBusinessZoneExecutesAtOnce() throws Exception {
         Scenario scenario = heldOnWithRemaining(1, TODAY.plusDays(1));
         clock.set(MIDNIGHT_OF_TOMORROW);
