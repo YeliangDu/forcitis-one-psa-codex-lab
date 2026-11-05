@@ -1,0 +1,9 @@
+# DATA_DESIGN_CHECKLIST section 14 row 9: List*/Search* use cases that still depend on a write repository (full class names). Shrink only: ReadModelGuardTest#listingsStayOffWriteRepositories.
+com.forcitis.one.platform.file.application.ListDocumentFiles
+com.forcitis.one.platform.identity.application.ListAccountRoleGrants
+com.forcitis.one.platform.identity.application.ListAuthorizationRequests
+com.forcitis.one.platform.identity.application.ListPermissionAdjustments
+com.forcitis.one.platform.identity.application.ListRoleHolders
+com.forcitis.one.platform.identity.application.ListRoles
+com.forcitis.one.platform.identity.application.ListUserAccounts
+com.forcitis.one.platform.numbering.application.ListNumberingRules
