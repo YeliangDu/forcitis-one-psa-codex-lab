@@ -53,6 +53,7 @@ class Stack:
             sys.exit("refused: this runner only talks to localhost, not " + str(host))
         self.base = base.rstrip("/")
         self.no_clock = False
+        self.account = ""
         self.jar = http.cookiejar.CookieJar()
         self.http = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.jar))
 
@@ -78,6 +79,7 @@ class Stack:
         return json.loads(text) if text.strip().startswith(("{", "[")) else None
 
     def login(self, name):
+        self.account = name
         self.call("GET", "/api/v1/platform/local-accounts")  # the first GET hands out the XSRF cookie
         accounts = self.call("GET", "/api/v1/platform/local-accounts")
         match = [a for a in accounts if a["name"] == name]
@@ -89,7 +91,12 @@ class Stack:
     def set_clock(self, day):
         if self.no_clock:
             return
-        self.call("POST", "/api/v1/platform/local-clocks:set", {"at": day + "T02:00:00Z"})
+        target = day + "T02:00:00Z"
+        # The clock runs on at the real pace after a set. Never move it back: after the administrator mode (card #1499) the stack refuses that (409), and a re-run of a finished node must leave the clock where it is.
+        if self.call("GET", "/api/v1/platform/local-clocks")["instant"] >= target:
+            return
+        self.call("POST", "/api/v1/platform/local-clocks:set", {"at": target})
+        self.login(self.account)  # sessions age with the clock: the move may have ended ours
 
 
 def items(page):
