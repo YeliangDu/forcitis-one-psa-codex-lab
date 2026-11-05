@@ -52,7 +52,7 @@ Constraints: `ex_leave_requests_live_period_overlap` `EXCLUDE USING gist (employ
 
 ### leave_request_holds
 
-`id`; `leave_request_id uuid NOT NULL` (`fk_leave_request_holds_leave_request_id`, RESTRICT); `ledger_line_id uuid NOT NULL` (foreign key added in L1b); `created_at`. `uk_leave_request_holds_request_line` (`leave_request_id`, `ledger_line_id`); `uk_leave_request_holds_ledger_line_id` (`ledger_line_id`): one HOLD line belongs to one request. A request spanning two years or several lots keeps one row per line. Append-only trigger rejects update and delete.
+`id`; `leave_request_id uuid NOT NULL` (`fk_leave_request_holds_leave_request_id`, RESTRICT); `ledger_line_id uuid NOT NULL` (foreign key added in L1b); `created_at`, `updated_at` (equal, line 27). `uk_leave_request_holds_request_line` (`leave_request_id`, `ledger_line_id`); `uk_leave_request_holds_ledger_line_id` (`ledger_line_id`): one HOLD line belongs to one request. A request spanning two years or several lots keeps one row per line. Append-only trigger rejects update and delete.
 
 ### overtime_requests
 
@@ -74,7 +74,7 @@ Constraints: `ck_overtime_requests_holiday_pay_only` `day_kind <> 'STATUTORY_HOL
 
 ### attendance_records
 
-`id`; `employee_id uuid NOT NULL`; `record_kind text NOT NULL` (`PUNCH`, `OUTFIELD`, `MAKE_UP`; a make-up punch is a separate record, RULE-519); `occurred_at timestamptz NOT NULL`; `source_system text NOT NULL` (format CHECK `~ '^[A-Z][A-Z0-9_]{1,31}$'`; the value list is added by the import slice once the source system is decided, R2); `external_record_key text NOT NULL` (length 1 to 100); `created_at`. `uk_attendance_records_source_external_record_key` (`source_system`, `external_record_key`) makes the import idempotent. Append-only trigger rejects update and delete (RULE-519). The single state `RECORDED` of 4.5 is not a column. **No biometric or location column** (ADR-0080 decision 2); a later slice adds one only with a new data design.
+`id`; `employee_id uuid NOT NULL`; `record_kind text NOT NULL` (`PUNCH`, `OUTFIELD`, `MAKE_UP`; a make-up punch is a separate record, RULE-519); `occurred_at timestamptz NOT NULL`; `source_system text NOT NULL` (format CHECK `~ '^[A-Z][A-Z0-9_]{1,31}$'`; the value list is added by the import slice once the source system is decided, R2); `external_record_key text NOT NULL` (length 1 to 100); `created_at`, `updated_at` (equal, line 27). `uk_attendance_records_source_external_record_key` (`source_system`, `external_record_key`) makes the import idempotent. Append-only trigger rejects update and delete (RULE-519). The single state `RECORDED` of 4.5 is not a column. **No biometric or location column** (ADR-0080 decision 2); a later slice adds one only with a new data design.
 
 ### monthly_confirmations
 
