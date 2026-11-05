@@ -423,7 +423,7 @@ terms:
 - id: error__organization_payroll_bonus_input_not_found
   zh: 奖金输入不存在
   en: OrganizationPayrollBonusInputNotFound
-  snake: error__organization_payroll_bonus_input_not_found
+  snake: organization_payroll_bonus_input_not_found
   kind: error_code
   bc: organization.payroll
   scope: domain
@@ -438,7 +438,7 @@ terms:
 - id: error__organization_payroll_bonus_input_already_voided
   zh: 奖金输入已作废
   en: OrganizationPayrollBonusInputAlreadyVoided
-  snake: error__organization_payroll_bonus_input_already_voided
+  snake: organization_payroll_bonus_input_already_voided
   kind: error_code
   bc: organization.payroll
   scope: domain
@@ -453,7 +453,7 @@ terms:
 - id: error__organization_payroll_bonus_input_duplicate_reason
   zh: 奖金输入原因重复
   en: OrganizationPayrollBonusInputDuplicateReason
-  snake: error__organization_payroll_bonus_input_duplicate_reason
+  snake: organization_payroll_bonus_input_duplicate_reason
   kind: error_code
   bc: organization.payroll
   scope: domain
@@ -468,7 +468,7 @@ terms:
 - id: error__organization_payroll_bonus_input_invalid
   zh: 奖金输入无效
   en: OrganizationPayrollBonusInputInvalid
-  snake: error__organization_payroll_bonus_input_invalid
+  snake: organization_payroll_bonus_input_invalid
   kind: error_code
   bc: organization.payroll
   scope: domain

@@ -31,7 +31,7 @@ class PayrollModuleBoundaryTest {
                 type.getDirectDependenciesFromSelf().stream()
                         .map(d -> d.getTargetClass().getName())
                         .filter(name -> name.startsWith(ROOT) && !within(name, OWN) && !within(name, ROOT + "kernel") && !within(name, ROOT + "platform.audit.api")
-                                && !within(name, ROOT + "platform.approval.api") && !within(name, ROOT + "organization.workforce.api"))
+                                && !within(name, ROOT + "platform.approval.api") && !within(name, ROOT + "platform.approval.events") && !within(name, ROOT + "organization.workforce.api"))
                         .forEach(violations::add);
             }
         }

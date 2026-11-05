@@ -56,7 +56,7 @@ public record SystemRoleDeclaration(List<DeclaredRole> roles) {
             declared("019a0000-0000-7000-8000-000000000108", "legal_entity_finance_head", "法人财务负责人", AccessScopeKind.SELF, false,
                     Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_APPROVE),
             declared("019a0000-0000-7000-8000-000000000109", "payroll_specialist", "薪资专员", AccessScopeKind.ALL, false,
-                    Codes.ORGANIZATION_PAYROLL_BONUSINPUT_SUBMIT, Codes.ORGANIZATION_PAYROLL_BONUSINPUT_UPDATE, Codes.ORGANIZATION_PAYROLL_BONUSINPUT_READ)));
+                    Codes.ORGANIZATION_PAYROLL_BONUS_SUBMIT, Codes.ORGANIZATION_PAYROLL_BONUS_UPDATE, Codes.ORGANIZATION_PAYROLL_BONUS_READ)));
 
     /** The revision every role of the first declaration carries (card 7.2: 声明修订号 1); org_data_admin is at 2 since #934 swapped its sync-run codes for org-reconciliation:execute, at 3 since #907 added org-structure-command:create, at 4 since it holds permission-adjustment:read and :update (#730 S3), at 5 since org-reconciliation:execute is gone (#1222), at 6 since it holds standard-hours:publish and :read (#1310); security_auditor is at 2 since it holds permission-adjustment:read; business_admin is at 2 since it holds legal-entity-attribution:approve; personnel_specialist is at 3 since it holds employee:read (#1171) and org-unit:read (#1306). */
     static final int FIRST_REVISION = 1;
