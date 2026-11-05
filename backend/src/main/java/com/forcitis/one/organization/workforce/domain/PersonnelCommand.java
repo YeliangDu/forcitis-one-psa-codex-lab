@@ -8,6 +8,7 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
+import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
@@ -19,6 +20,7 @@ import com.forcitis.one.organization.workforce.api.WorkforceError;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
 
@@ -55,6 +57,7 @@ public final class PersonnelCommand extends AggregateRoot {
     private @Nullable UserId withdrawnBy;
     private @Nullable String withdrawalReason;
     private @Nullable OrgStructureCommandId orgStructureCommandId;
+    private @Nullable EmploymentRelationshipId employmentRelationshipId;
 
     private PersonnelCommand(PersonnelCommandId id, EmployeeId employeeId, PersonnelCommandKind kind, LocalDate effectiveDate, CommandStatus status,
                              @Nullable OrgUnitId targetOrgUnitId, @Nullable PositionId targetPositionId, @Nullable EmployeeId targetReportsToEmployeeId,
@@ -112,6 +115,9 @@ public final class PersonnelCommand extends AggregateRoot {
                 request.targetLegalEntityId(), null, null, request.targetAssignmentId(), null, createdBy, now,
                 status == CommandStatus.EFFECTIVE ? now : null, 0, employeeEventSequence);
         command.requireShapeOfKind();
+        if (request.employmentRelationshipId() != null) {
+            command.bindTo(request.employmentRelationshipId());
+        }
         return command;
     }
 
@@ -126,6 +132,24 @@ public final class PersonnelCommand extends AggregateRoot {
         return new PersonnelCommand(id, employeeId, kind, effectiveDate, status, targetOrgUnitId, targetPositionId, targetReportsToEmployeeId, isTargetFeeEarner,
                 targetEmploymentPhaseKind, targetLegalEntityId, countersignPreviousLegalEntityId, countersignNewLegalEntityId, targetAssignmentId, targetAssignmentKind,
                 createdBy, createdAt, appliedAt, version, employeeEventSequence);
+    }
+
+    /**
+     * The relationship the command is about (ADR-0086, design section 5): a hire's is made at entry and bound here, every other kind but a change of legal entity names it,
+     * and a change of legal entity has none. Bound once, before the command is stored.
+     */
+    public void bindTo(EmploymentRelationshipId relationship) {
+        if (kind == PersonnelCommandKind.CHANGE_LEGAL_ENTITY) {
+            throw invalid("a CHANGE_LEGAL_ENTITY is about the person and names no employment relationship");
+        }
+        if (employmentRelationshipId != null && !employmentRelationshipId.equals(relationship)) {
+            throw invalid("the command is already bound to another employment relationship");
+        }
+        employmentRelationshipId = Objects.requireNonNull(relationship, "relationship");
+    }
+
+    public @Nullable EmploymentRelationshipId employmentRelationshipId() {
+        return employmentRelationshipId;
     }
 
     /** The merge that generated this transfer (ck_personnel_commands_org_structure_command: only a transfer); call before the command is stored. */
@@ -145,8 +169,11 @@ public final class PersonnelCommand extends AggregateRoot {
         int targets = count(targetOrgUnitId, targetPositionId, targetReportsToEmployeeId, isTargetFeeEarner);
         switch (kind) {
             case HIRE, REINSTATE -> {
-                if (targetOrgUnitId == null || targetPositionId == null || isTargetFeeEarner == null || targetEmploymentPhaseKind == null) {
-                    throw invalid("a " + kind + " names the department, the position, the fee-earner flag and the phase");
+                if (isTargetFeeEarner == null || targetEmploymentPhaseKind == null || targetReportsToEmployeeId != null && targetOrgUnitId == null) {
+                    throw invalid("a " + kind + " names the fee-earner flag and the phase");
+                }
+                if ((targetOrgUnitId == null) != (targetPositionId == null)) {
+                    throw invalid("a " + kind + " names the department and the position together, or neither (an additional employer without a post)");
                 }
             }
             case TRANSFER -> {
@@ -357,13 +384,28 @@ public final class PersonnelCommand extends AggregateRoot {
      * @param assignmentAfter a correction's: the assignment today after it, if any; others pass null
      * @param legalEntity the employee's legal entity on the effective date, null when none can be resolved
      */
-    public void recordEffect(@Nullable VersionRow assignmentBefore, @Nullable VersionRow assignmentAfter, @Nullable LegalEntityId legalEntity) {
-        PersonnelCommandEvents.of(this, assignmentBefore, assignmentAfter, legalEntity).ifPresent(this::record);
+    public void recordEffect(@Nullable VersionRow assignmentBefore, @Nullable VersionRow assignmentAfter, @Nullable LegalEntityId legalEntity, PersonnelHistory history) {
+        PersonnelCommandEvents.PersonTransition person = personTransition(history);
+        PersonnelCommandEvents.of(this, assignmentBefore, assignmentAfter, legalEntity, person).forEach(this::record);
         if (countersignNewLegalEntityId != null) {
             record(PersonnelCommandEvents.legalEntityChanged(this, Objects.requireNonNull(countersignPreviousLegalEntityId), countersignNewLegalEntityId));
         } else if (approvedNewLegalEntityId != null) {
             record(PersonnelCommandEvents.legalEntityChanged(this, Objects.requireNonNull(approvedPreviousLegalEntityId), approvedNewLegalEntityId));
         }
+    }
+
+    /** What the command did to the person as a whole, read from the employee's history at the moment it takes effect. */
+    private PersonnelCommandEvents.PersonTransition personTransition(PersonnelHistory history) {
+        if (employmentRelationshipId == null) {
+            return PersonnelCommandEvents.PersonTransition.NONE;
+        }
+        EmploymentRelationshipId rel = employmentRelationshipId;
+        boolean enters = kind != PersonnelCommandKind.HIRE && kind != PersonnelCommandKind.REINSTATE || history.personEnters(rel, effectiveDate);
+        boolean leaves = kind != PersonnelCommandKind.SEPARATE || history.personLeaves(rel, effectiveDate)
+                && history.commands().stream().noneMatch(o -> o.kind() == PersonnelCommandKind.HIRE && o.status() != CommandStatus.WITHDRAWN && o.effectiveDate().equals(effectiveDate)
+                        && history.relationship(o.employmentRelationshipId() == null ? rel : o.employmentRelationshipId())
+                                .map(r -> rel.equals(r.predecessorId())).orElse(false));
+        return new PersonnelCommandEvents.PersonTransition(enters, leaves);
     }
 
     public PersonnelCommandId id() {

@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.events;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.EventEnvelope;
+import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PositionId;
@@ -23,7 +24,8 @@ import org.jspecify.annotations.Nullable;
  */
 public record EmployeeCorrected(EventEnvelope envelope, PersonnelCommandId personnelCommandId, EmployeeId employeeId, LocalDate affectedFrom,
                                 @Nullable LocalDate affectedTo, List<TriggerFieldKind> triggerFieldKinds, @Nullable OrgUnitId previousOrgUnitId,
-                                @Nullable OrgUnitId newOrgUnitId, @Nullable PositionId previousPositionId, @Nullable PositionId newPositionId)
+                                @Nullable OrgUnitId newOrgUnitId, @Nullable PositionId previousPositionId, @Nullable PositionId newPositionId,
+                                EmploymentRelationshipId employmentRelationshipId)
         implements DomainEvent {
 
     public EmployeeCorrected {

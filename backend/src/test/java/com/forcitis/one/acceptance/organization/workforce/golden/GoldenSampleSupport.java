@@ -61,6 +61,7 @@ abstract class GoldenSampleSupport extends AccountsAcceptanceSupport {
 
     protected UUID nanjingUnit;
     protected UUID shanghaiUnit;
+    private UUID employer;
     private SecurityContext acting;
 
     @BeforeEach
@@ -73,7 +74,7 @@ abstract class GoldenSampleSupport extends AccountsAcceptanceSupport {
         employee(admin, nanjingUnit, null);
         grantByOperations(admin, "org_data_admin");
         SignedIn administrator = signIn(admin);
-        createLegalEntity(administrator, newLegalEntityCode("GA"), "Synthetic employer A");
+        employer = createLegalEntity(administrator, newLegalEntityCode("GA"), "Synthetic employer A");
         UUID businessAdminEmployee = newEmployeeId();
         employee(businessAdminEmployee, nanjingUnit, null);
         grantByOperations(businessAdminEmployee, "business_admin");
@@ -117,8 +118,8 @@ abstract class GoldenSampleSupport extends AccountsAcceptanceSupport {
 
     protected PersonnelCommandId hire(LocalDate effective, UUID unit, UUID position, EmploymentPhaseKind phase) {
         return enter(new EnterPersonnelCommand(null, PersonnelCommandKind.HIRE, effective, null, new com.forcitis.one.organization.workforce.api.OrgUnitId(unit),
-                new com.forcitis.one.organization.workforce.api.PositionId(position), null, true, phase, "Synthetic Golden Person F-P01",
-                null, "f-p01@golden.example", null));
+                new com.forcitis.one.organization.workforce.api.PositionId(position), null, true, phase, null, "Synthetic Golden Person F-P01",
+                null, "f-p01@golden.example", null, null, new com.forcitis.one.kernel.LegalEntityId(employer), null, null));
     }
 
     protected PersonnelCommandId enter(UUID employee, PersonnelCommandKind kind, LocalDate effective) {

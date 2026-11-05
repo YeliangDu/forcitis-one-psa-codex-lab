@@ -34,6 +34,11 @@ class AssignmentVersionCommonSetMigrationIT {
             s.execute("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values"
                     + " ('019a0000-0000-7000-8000-000000000001', 'E-01', 'name', 'EMPLOYED')");
             s.execute("insert into organization_workforce.org_units (id, name, status) values ('019a0000-0000-7000-8000-0000000000b1', 'unit', 'ACTIVE')");
+            // The employment relationship migration backfills one relationship per person from the legal entity attribution of their first version day (no employer is guessed).
+            s.execute("insert into organization_workforce.legal_entities (id, code, name, status) values ('019a0000-0000-7000-8000-0000000000e1', 'ABC', 'entity', 'ACTIVE')");
+            s.execute("insert into organization_workforce.legal_entity_attributions (attribution_id, employee_id) values ('019a0000-0000-7000-8000-0000000000a1', '019a0000-0000-7000-8000-000000000001')");
+            s.execute("insert into organization_workforce.employee_legal_entities (employee_legal_entity_id, employee_id, effective_from_date, legal_entity_id) values"
+                    + " ('019a0000-0000-7000-8000-0000000000a2', '019a0000-0000-7000-8000-000000000001', date '2025-01-01', '019a0000-0000-7000-8000-0000000000e1')");
             s.execute("insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, effective_to_date, org_unit_id,"
                     + " revision_number, updated_at) values ('019a0000-0000-7000-8000-0000000000d1', '019a0000-0000-7000-8000-000000000001', date '2026-01-01',"
                     + " date '2026-02-01', '019a0000-0000-7000-8000-0000000000b1', 0, timestamptz '2026-02-01 08:00+08'),"

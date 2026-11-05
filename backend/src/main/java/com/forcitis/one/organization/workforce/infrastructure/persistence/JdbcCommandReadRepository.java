@@ -45,7 +45,7 @@ class JdbcCommandReadRepository implements CommandReadQueries {
                    and av.effective_from_date <= :day and (av.effective_to_date is null or :day < av.effective_to_date)
                 union all
                 select a.employee_id, a.org_unit_id from organization_workforce.assignments a
-                 where not exists (select 1 from organization_workforce.employee_versions ev where ev.employee_id = a.employee_id)
+                 where not exists (select 1 from organization_workforce.employment_relationship_versions ev where ev.employee_id = a.employee_id)
                    and not exists (select 1 from organization_workforce.assignment_versions av where av.employee_id = a.employee_id and av.assignment_kind = 'PRIMARY')
             )
             """;
@@ -58,7 +58,7 @@ class JdbcCommandReadRepository implements CommandReadQueries {
                  where av.superseded_at is null
                 union all
                 select a.employee_id, a.org_unit_id, date '0001-01-01', null from organization_workforce.assignments a
-                 where not exists (select 1 from organization_workforce.employee_versions ev where ev.employee_id = a.employee_id)
+                 where not exists (select 1 from organization_workforce.employment_relationship_versions ev where ev.employee_id = a.employee_id)
                    and not exists (select 1 from organization_workforce.assignment_versions av where av.employee_id = a.employee_id and av.assignment_kind = 'PRIMARY')
             )
             """;
