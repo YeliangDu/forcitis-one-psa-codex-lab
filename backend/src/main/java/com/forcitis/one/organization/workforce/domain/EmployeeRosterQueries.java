@@ -18,7 +18,7 @@ public interface EmployeeRosterQueries {
 
     boolean exists(EmployeeId employee);
 
-    /** Every primary assignment version of the person, newest start first; the caller has already proved the person is in scope. */
+    /** Every primary assignment version of the person that is in force (voided and empty ranges left out), newest start first; the caller has already proved the person is in scope. */
     List<PrimaryAssignmentVersion> primaryAssignmentHistory(EmployeeId employee);
 
     record Visible(boolean everything, Set<OrgUnitId> orgUnits) {

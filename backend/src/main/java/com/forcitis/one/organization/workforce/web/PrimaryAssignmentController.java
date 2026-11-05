@@ -21,7 +21,7 @@ class PrimaryAssignmentController {
         this.history = history;
     }
 
-    /** Every primary assignment version of one employee, newest first; readable by whoever may read that employee. */
+    /** The primary assignment versions of one employee that are in force as facts (voided versions and empty same-day ranges left out), newest first; readable by whoever may read that employee. */
     @GetMapping
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.EMPLOYEE_READ + "')")
     PrimaryAssignmentHistoryResponse list(@RequestParam UUID employeeId) {
