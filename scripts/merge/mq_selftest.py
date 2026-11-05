@@ -17,7 +17,7 @@ import driftscan_selftest
 import gapscan_selftest
 import mq_acceptance_selftest
 import mq_detail_selftest, mq_event_payload_selftest
-import mq_label_selftest
+import mq_label_selftest, mq_merge_end_selftest
 import mq_title_selftest, mq_waiting_selftest
 
 LOG_LINE = re.compile(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d[+-]\d\d:\d\d [A-Z-]+ pr=#(\d+|-) run=(\d+|-) elapsed=\d+s( .*)?$")
@@ -155,8 +155,8 @@ class FakeGh:
     def comments(self, n):
         return self.prs[n]["comments"]
 
-    def main_merge_parent(self, repo, n, commit):
-        return self.prs[n]["merges"].get(commit)
+    def main_merge_parent(self, repo, n, commit): return self.prs[n]["merges"].get(commit)
+    def landed_on_main(self, repo, n, head): return self.prs[n].get("landed")   # the main commit that holds the head, when set (#1392)
 
     def patch_id(self, repo, n, commit):
         self.calls.append(("patch-id", n, commit))
@@ -174,7 +174,7 @@ def run(mq):
     try:
         with tempfile.TemporaryDirectory() as d:
             fake_gh(d, [])   # nothing in the self-test reaches the real gh: an unknown call exits 97
-            for case in (_units, _flow, _release, _pause, _runner, _queue, _remove_busy, _head_changed, _gh_commands, _git, _docs_tiers, mq_label_selftest.run, mq_waiting_selftest.run, mq_detail_selftest.run, mq_title_selftest.run, mq_event_payload_selftest.run, mq_acceptance_selftest.run, gapscan_selftest.run, driftscan_selftest.run_with_mq):
+            for case in (_units, _flow, _release, _pause, _runner, _queue, _remove_busy, _head_changed, _gh_commands, _git, _docs_tiers, mq_label_selftest.run, mq_waiting_selftest.run, mq_detail_selftest.run, mq_title_selftest.run, mq_event_payload_selftest.run, mq_merge_end_selftest.run, mq_acceptance_selftest.run, gapscan_selftest.run, driftscan_selftest.run_with_mq):
                 case(mq, d)
     finally:
         for k, v in old.items():
