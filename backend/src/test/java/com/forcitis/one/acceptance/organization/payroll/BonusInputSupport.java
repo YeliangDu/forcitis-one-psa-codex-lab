@@ -53,9 +53,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * key); the void and the reads are the {@code BonusInputs} api of {@code com.forcitis.one.organization.payroll.api}. Types are looked up by name and called by
  * reflection, so the class compiles before the slice exists. ONE role holds submit, update (the void) and read; its code is
  * {@code payroll_specialist} (display 薪资专员), declared by the #1436 implementation, and the command is {@code RequestBonusInput} in
- * {@code com.forcitis.one.organization.payroll.api} (lead ruling on #1446, 2026-11-05, PR comment). Not tested here, owed until the Java signature of that
- * command is ruled: its submit permission and the retry-reuses-the-instance line; the start below is the
- * record's own call of {@code ApprovalProcesses.start} (process key, document, legal entity of the request, initiator, five fields).
+ * {@code com.forcitis.one.organization.payroll.api} (lead ruling on #1446, 2026-11-05, PR comment). The command is tested in BonusInputRequestIT,
+ * BonusInputSoleApproverIT and BonusInputPortIT; the start in {@link #submit} below is the record's own call of {@code ApprovalProcesses.start} (process key,
+ * document, legal entity of the request, initiator, five fields), used to drive the approval stages without the command.
  */
 abstract class BonusInputSupport extends P5Support {
 
