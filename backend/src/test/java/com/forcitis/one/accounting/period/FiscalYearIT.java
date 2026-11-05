@@ -114,7 +114,7 @@ class FiscalYearIT extends AcceptanceSupport {
     }
 
     @Test
-    @DisplayName("#1439 a year more than one after the latest opened year is refused; the next year, an earlier year and the first year are accepted")
+    @DisplayName("#1439 a year more than one after the latest opened year is refused; the next year and the first year are accepted; a year before the latest is refused (the spine opens no gaps and no history)")
     void yearsAheadAreChecked() throws Exception {
         UUID entity = entity("FYE");
         assertThat(open(FINANCE, entity, 2026).getStatus()).as("the first year is accepted").isEqualTo(201);
@@ -125,7 +125,11 @@ class FiscalYearIT extends AcceptanceSupport {
         assertThat(open(FINANCE, entity, 2028).getStatus()).as("two ahead").isEqualTo(422);
         assertThat(open(FINANCE, entity, 2027).getStatus()).as("one ahead").isEqualTo(201);
         assertThat(open(FINANCE, entity, 2028).getStatus()).as("one ahead of the new latest").isEqualTo(201);
-        assertThat(open(FINANCE, entity, 2024).getStatus()).as("an earlier year").isEqualTo(201);
+        MockHttpServletResponse earlier = open(FINANCE, entity, 2024);
+        assertThat(earlier.getStatus()).as(earlier.getContentAsString()).isEqualTo(422);
+        assertThat(errorCode(earlier)).isEqualTo("ACCOUNTING_PERIOD_YEAR_BEFORE_LATEST");
+        assertThat(periodCount(entity, 2024)).isZero();
+        assertThat(open(FINANCE, entity, 2027).getStatus()).as("an already opened year in range stays a conflict").isEqualTo(409);
     }
 
     @Test

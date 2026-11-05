@@ -7,6 +7,7 @@ import type { ErrorCode } from '@forcitis/api';
 export const ERROR_MESSAGES: Readonly<Record<ErrorCode, string | null>> = {
   ACCOUNTING_PERIOD_LEGAL_ENTITY_UNKNOWN: null,
   ACCOUNTING_PERIOD_YEAR_ALREADY_OPENED: null,
+  ACCOUNTING_PERIOD_YEAR_BEFORE_LATEST: null,
   ACCOUNTING_PERIOD_YEAR_OUT_OF_RANGE: null,
   ACCOUNTING_PERIOD_YEAR_TOO_FAR_AHEAD: null,
   COST_TIMESHEET_CUTOFF_PASSED: null,
