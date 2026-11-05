@@ -164,7 +164,7 @@ def main():
         code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", ["  # a\n  " + "x" * 2000 + "\n"], checked=True, flags=["--definitions"])
         assert code == 0 and Path(path).exists(), "definition text up to 2000 characters passes with --definitions"
         # the server refused or failed the user's query (plan gate refusal, SQL error, Java exception) or the run did not finish: nonzero exit, nothing written, no "ok"
-        for bad in ("SQLERROR 156 near x\nDONE batches=0\n", "connected as a\nSQLERROR 50000 plan gate: not a SELECT\n", "Exception in thread \"main\" java.lang.IllegalStateException: x\n", "  # a\n  1\n  (1 rows)\n", ""):
+        for bad in ("SQLERROR 156 near x\nDONE batches=0\n", "connected as a\nSQLERROR 50000 plan gate: not a SELECT\n", "Exception in thread \"main\" java.lang.IllegalStateException: x\n", "  # a\n  1\n  (1 rows)\n", "", "  # a\n  x\nSQLERROR 1 y\nDONE batches=1\n", "  # a\n  x\nException in thread \"main\" java.lang.Error\nDONE batches=1\n"):
             code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [bad], checked=True, raw=True)
             assert code == 2 and "refused or failed" in err and "ok:" not in out and not Path(path).exists(), bad
         # too large a reply, --out inside the repo or existing, a config readable by others, an unknown target: refused, nothing leaks

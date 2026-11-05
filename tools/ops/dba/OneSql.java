@@ -141,7 +141,7 @@ public class OneSql {
         }
     }
 
-    /** Null when the plan text is exactly one plan with exactly one statement element, a StmtSimple of StatementType SELECT; else the reason. XML escapes < and " inside attribute values, so text in a StatementText cannot fake an element or an attribute. */
+    /** Null when the plan text is exactly one plan with exactly one statement element, a StmtSimple of StatementType SELECT or SELECT WITHOUT QUERY; else the reason. XML escapes < and " inside attribute values, so text in a StatementText cannot fake an element or an attribute. */
     static String planProblem(String xml, int plans) {
         if (plans != 1) return "expected exactly one plan, got " + plans;
         Matcher stmts = Pattern.compile("<Stmt[A-Za-z]*[\\s/>]").matcher(xml);
