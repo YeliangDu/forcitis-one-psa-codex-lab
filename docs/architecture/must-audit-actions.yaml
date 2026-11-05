@@ -148,6 +148,7 @@ categories:
   - platform.audit.audit-entry.searched
 - name: 配置变更
   actions:
+  - accounting.period.fiscal-year.opened
   - organization.attendance.standard-hours.published
   - organization.attendance.standard-hours.voided
   - organization.attendance.WorkCalendarLockedDaysChanged
