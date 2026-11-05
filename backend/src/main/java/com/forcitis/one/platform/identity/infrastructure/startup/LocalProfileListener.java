@@ -48,7 +48,12 @@ final class LocalProfileListener implements ApplicationListener<ApplicationEnvir
                 problems.add("the profile " + shared + " is active too");
             }
         }
-        for (String key : List.of("spring.datasource.url", "spring.flyway.url")) {
+        // spring.datasource.hikari.jdbc-url replaces spring.datasource.url in the pool that is actually built, and a data source class names its server in properties of its own: both are refused unless they are a local url
+        String dataSourceClass = environment.getProperty("spring.datasource.hikari.data-source-class-name");
+        if (dataSourceClass != null && !dataSourceClass.isBlank()) {
+            problems.add("spring.datasource.hikari.data-source-class-name is set: the url checked here would not be the one used");
+        }
+        for (String key : List.of("spring.datasource.url", "spring.datasource.hikari.jdbc-url", "spring.flyway.url")) {
             String url = environment.getProperty(key);
             if (url == null || url.isBlank()) {
                 if (key.equals("spring.datasource.url")) {

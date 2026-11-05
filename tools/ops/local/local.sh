@@ -37,16 +37,36 @@ need() { command -v "$1" >/dev/null 2>&1 || die "missing prerequisite: $1"; }
 
 pid_alive() { [ -f "$1" ] && kill -0 "$(cat "$1")" 2>/dev/null; }
 
-stop_pid() { # args: pid file, text the process command must contain (the jar or vite path). Only the pid this script recorded, and only while that pid still runs that command (a reused pid is left alone)
-  local file="$1" marker="$2" pid
+stop_pid() { # args: pid file, text the process command must contain (the absolute path of this checkout's jar or vite, so a process of another checkout is never touched). Only the pid this script recorded, and only while that pid still runs that command (a reused pid is left alone)
+  local file="$1" marker="$2" pid command
   [ -f "$file" ] || return 0
   pid="$(cat "$file")"
-  if kill -0 "$pid" 2>/dev/null && ps -p "$pid" -o command= 2>/dev/null | grep -qF -- "$marker"; then
-    kill "$pid" 2>/dev/null || true
-    for _ in $(seq 1 20); do kill -0 "$pid" 2>/dev/null || break; sleep 0.5; done
-    if kill -0 "$pid" 2>/dev/null; then kill -9 "$pid" 2>/dev/null || true; fi
+  # no pipe into grep -q here: under pipefail a grep that quits early makes ps die of SIGPIPE and the whole test fail at random, which left a vite running after down
+  command="$(ps -p "$pid" -o command= 2>/dev/null || true)"
+  if kill -0 "$pid" 2>/dev/null; then
+    case "$command" in
+      *"$marker"*)
+        kill "$pid" 2>/dev/null || true
+        for _ in $(seq 1 20); do kill -0 "$pid" 2>/dev/null || break; sleep 0.5; done
+        if kill -0 "$pid" 2>/dev/null; then kill -9 "$pid" 2>/dev/null || true; fi ;;
+      *) say "local.sh: pid $pid (recorded in $file) runs something else now; left alone" >&2 ;;
+    esac
   fi
   rm -f "$file"
+}
+
+listening() { lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1; }
+
+# One stack per machine: the state dir, the ports and the database container are shared by every checkout. Refuse, naming the checkout that owns the running one.
+refuse_if_running() {
+  local owner="another process (not started by local.sh)"
+  [ -f "$STATE/owner" ] && owner="$(cat "$STATE/owner")"
+  if pid_alive "$STATE/backend.pid" || pid_alive "$STATE/web.pid"; then
+    die "a stack is already running from $owner; run its tools/ops/local/local.sh down (or status) first"
+  fi
+  if listening 8080 || listening 5173; then
+    die "port 8080 or 5173 is already taken (stack recorded from: $owner); stop it first"
+  fi
 }
 
 wait_for() { # url, seconds, pid file of the process that must stay alive meanwhile
@@ -62,7 +82,8 @@ cmd_up() {
   need docker; need java; need pnpm; need curl; need openssl
   docker info >/dev/null 2>&1 || die "docker is not running"
   load_env
-  if pid_alive "$STATE/backend.pid" || pid_alive "$STATE/web.pid"; then die "already running (tools/ops/local/local.sh status)"; fi
+  refuse_if_running
+  echo "$REPO" > "$STATE/owner"
   say "[1/5] database"
   "${COMPOSE[@]}" up -d --wait db >/dev/null
   say "[2/5] build the backend"
@@ -89,7 +110,7 @@ cmd_up() {
   fi
   # node itself, started directly, so the recorded pid is the one that listens (a pnpm or subshell pid would leave vite running after down)
   cd "$REPO/frontend/apps/web"
-  nohup node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 --strictPort > "$STATE/web.log" 2>&1 &
+  nohup node "$REPO/frontend/apps/web/node_modules/vite/bin/vite.js" --host 127.0.0.1 --port 5173 --strictPort > "$STATE/web.log" 2>&1 &
   echo $! > "$STATE/web.pid"
   cd "$REPO"
   wait_for "$WEB_URL" 60 "$STATE/web.pid" || die "the web client did not come up (see $STATE/web.log)"
@@ -97,8 +118,9 @@ cmd_up() {
 }
 
 cmd_down() {
-  stop_pid "$STATE/web.pid" "node_modules/vite/bin/vite.js"
-  stop_pid "$STATE/backend.pid" "forcitis"
+  stop_pid "$STATE/web.pid" "$REPO/frontend/apps/web/node_modules/vite/bin/vite.js"
+  stop_pid "$STATE/backend.pid" "$REPO/backend/target/forcitis-one-"
+  rm -f "$STATE/owner"
   if [ -f "$ENV_FILE" ] && command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     load_env; "${COMPOSE[@]}" stop db >/dev/null 2>&1 || true
   fi

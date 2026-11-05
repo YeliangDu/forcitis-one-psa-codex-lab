@@ -134,6 +134,16 @@ class LocalProfileListenerTest {
     }
 
     @Test
+    @DisplayName("#1478 a pool url or a data source class that replaces spring.datasource.url is checked like it: the url actually used")
+    void poolSettingsAreChecked() throws Exception {
+        MockEnvironment pool = local("jdbc:postgresql://localhost/forcitis_local").withProperty("spring.datasource.hikari.jdbc-url", "jdbc:postgresql://db.example.com/forcitis");
+        assertThat(refusal(pool)).contains("spring.datasource.hikari.jdbc-url");
+        MockEnvironment clazz = local("jdbc:postgresql://localhost/forcitis_local").withProperty("spring.datasource.hikari.data-source-class-name", "org.postgresql.ds.PGSimpleDataSource");
+        assertThat(refusal(clazz)).contains("data-source-class-name");
+        assertThat(refusal(local("jdbc:postgresql://localhost/forcitis_local").withProperty("spring.datasource.hikari.jdbc-url", "jdbc:postgresql://127.0.0.1/forcitis_local"))).isNull();
+    }
+
+    @Test
     @DisplayName("#1478 the profile local that is only the default profile is checked like an active one")
     void defaultProfileIsChecked() throws Exception {
         MockEnvironment environment = new MockEnvironment().withProperty("spring.datasource.url", "jdbc:postgresql://db.example.com/forcitis");
