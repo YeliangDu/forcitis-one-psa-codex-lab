@@ -229,6 +229,22 @@ class Gh:
             sh(["git", "-C", repo, "fetch", "-q", "--no-write-fetch-head", "origin", commit])
         return True
 
+    def landed_on_main(self, repo, n, head):
+        """The commit on main's first-parent chain that brought `head` in (the earliest one), when `head` is already on origin/main; None when it is not or git cannot say. For a merge call that answered with an error."""
+        if not self.fetch(repo, n, head):
+            return None
+        chain = sh(["git", "-C", repo, "log", "--first-parent", "--ancestry-path", "--format=%H", f"{head}..origin/main"])   # --ancestry-path: only commits that descend from head, so a head that is not on main gives none
+        found = chain.stdout.split()
+        return found[-1] if chain.returncode == 0 and found else None
+
+    def landed_on_main(self, repo, n, head):
+        """The commit on main's first-parent chain that brought `head` in (the earliest one), when `head` is already on origin/main; None when it is not or git cannot say. For a merge call that answered with an error."""
+        if not self.fetch(repo, n, head):
+            return None
+        chain = sh(["git", "-C", repo, "log", "--first-parent", "--ancestry-path", "--format=%H", f"{head}..origin/main"])   # --ancestry-path: only commits that descend from head, so a head that is not on main gives none
+        found = chain.stdout.split()
+        return found[-1] if chain.returncode == 0 and found else None
+
     def patch_id(self, repo, n, commit):
         """`git patch-id --verbatim` of the change `commit` makes against main (`git diff origin/main...<commit>`), or None when git cannot say.
         --verbatim, not --stable: a change that differs only in whitespace (indentation in Python) is another change."""

@@ -61,7 +61,7 @@ sys.path.insert(0, HERE)
 import driftscan   # noqa: E402
 import gapscan   # noqa: E402
 import issue_gate   # noqa: E402  (one title check for post_review and the merge)
-import mq_acceptance, mq_event_payload, mq_title   # noqa: E402  (the acceptance guard, the event payload check and the title check at enqueue)
+import mq_acceptance, mq_event_payload, mq_merge_end, mq_title   # noqa: E402  (the acceptance guard, the event payload check and the title check at enqueue)
 import mq_waiting   # noqa: E402  (the label of a pull request waiting for its turn)
 import post_review   # noqa: E402  (the machine-read header of a review: one parser for the poster and the queue)
 from mq_github import Gh, SignalError, failure_detail, sh, update_over_ssh   # noqa: E402,F401  (the GitHub and git side)
@@ -708,17 +708,7 @@ class Processor:
         return ok is True, why
 
     def read_back(self, n, head, since):
-        """After the merge call: GitHub must show the pull request MERGED, with the pinned head as the second parent of the merge commit. Anything else is an ALERT and both lanes pause (`mq.py resume`); the main checkout is not fast-forwarded then."""
-        for attempt in range(3):   # the state may lag a moment behind the merge call
-            if attempt:
-                self.sleep(5)
-            seen = self.gh.readback(n)
-            if seen and seen[0] == "MERGED" and len(seen[1]) == 2 and seen[1][1] == head:
-                return True
-        why = "gh could not read the pull request back" if seen is None else f"state {seen[0]}, merge commit parents {[p[:10] for p in seen[1]] or 'none'}, expected MERGED with second parent {head[:10]}"
-        self.log.event("ALERT", n, None, since, f"READBACK: {why}; both lanes pause for `mq.py resume`")
-        self.pause.hold(f"READBACK #{n}: {why}")
-        return False
+        return mq_merge_end.read_back(self, n, head, since)
 
     def merge_when_fresh(self, n, since, checks):
         """Under the merge lock: no red main run pauses the queue, the head is the one that was checked, it contains the current main, the checks are all green on it; then the merge, pinned to that head.
@@ -760,6 +750,8 @@ class Processor:
         if ok:
             if self.read_back(n, head, since):
                 self.ff_main(n, since)
+            return "MERGED"
+        if mq_merge_end.after_error(self, n, head, since, run_id(checks[0].get("link")), message):   # an error answer, but GitHub merged (#1392)
             return "MERGED"
         v = self.gh.view(n) or {}
         names = [f"{c['name']}={c['bucket']}" for c in red_checks(self.gh.checks(n) or [])]
