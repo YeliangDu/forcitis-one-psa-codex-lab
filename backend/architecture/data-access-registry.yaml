@@ -193,6 +193,38 @@ tables:
     retention: {policy: PERMANENT}  # 个人任职史随员工清除：离职满 10 年由 purge_employee_history 删除（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
     writers: [organization.workforce]
+  # #1438 WC1（数据设计签字记录 docs/data/reviews/workforce-contract-separation-wc0.md）：三张表只有结构与读取，状态推进的写入随 WC2（合同命令）与 WC3（离职申请命令）加入，故暂无 writers。
+  organization_workforce.employment_contracts:
+    # PERMANENT 是登记的理由（ADR-0043 R-2）：劳动合同与离职申请属员工人事档案，随员工在离职满 10 年后由清除函数删除；用户决定 Q-6 (b)，2026-11-05，决定片段 2026-11-05-151224（docs/decisions/2026-11-05-151224-one-lead-Q3-a-Q6-b-Q7-b.md）。清除次序：本表与 separation_requests 先于雇佣关系行删除（RESTRICT 外键），清除函数须加入本表（清除作业另批，当前代码里还没有该函数）。
+    role: AGGREGATE_CHILD
+    aggregate: Employee
+    mutability: CONDITIONAL_UPDATE
+    condition: 只按触发器 tg_employment_contracts_change 列出的合法状态边写入（草拟、审批、批准、签订、终止、作废），其余更新一律拒绝；删除只放行表属主（清除函数）
+    business_key: [employment_relationship_id, term_start_date]
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    references: {employment_relationship_id: organization_workforce.employment_relationships, renews_contract_id: organization_workforce.employment_contracts, termination_basis_key: organization_workforce.separation_bases}
+    fk_exceptions:
+      contract_file_id: the id of a file of platform.file, stored without a key across modules
+  organization_workforce.separation_requests:
+    # PERMANENT 是登记的理由（ADR-0043 R-2）：劳动合同与离职申请属员工人事档案，随员工在离职满 10 年后由清除函数删除；用户决定 Q-6 (b)，2026-11-05，决定片段 2026-11-05-151224（docs/decisions/2026-11-05-151224-one-lead-Q3-a-Q6-b-Q7-b.md）。清除次序：先于 personnel_commands（复合外键）与雇佣关系行删除；清除函数须加入本表（清除作业另批，当前代码里还没有该函数）。
+    role: AGGREGATE_CHILD
+    aggregate: Employee
+    mutability: CONDITIONAL_UPDATE
+    condition: 只按触发器 tg_separation_requests_change 列出的合法状态边写入（申请、批准、驳回、撤回、办理离职、完成），其余更新一律拒绝；删除只放行表属主（清除函数）
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    references: {employment_relationship_id: organization_workforce.employment_relationships, personnel_command_id: organization_workforce.personnel_commands, separation_basis_key: organization_workforce.separation_bases}
+    fk_exceptions:
+      agreement_file_id: the id of a file of platform.file, stored without a key across modules
+  organization_workforce.separation_bases:
+    # 离职依据清单：行只经迁移进出（触发器 tg_separation_bases_guard），不含个人信息，保留。
+    role: CONFIG
+    mutability: MIGRATION_ONLY
+    business_key: [separation_basis_key]
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    readers: [organization.workforce]
   organization_workforce.attribution_countersigns:
     role: AGGREGATE_CHILD
     aggregate: Employee

@@ -46,14 +46,33 @@ class ContractSeparationTablesIntegrationTest extends WorkforceIntegrationSuppor
         c.put("contract_kind", kind);
         c.put("term_start_date", start);
         c.put("term_end_date", end);
-        c.put("status", status);
-        boolean submitted = !status.equals("DRAFT") && !status.equals("VOID");
-        c.put("submitted_by", submitted ? HR_A : null);
-        c.put("approved_by", submitted && !status.equals("IN_APPROVAL") ? HR_B : null);
-        c.put("signed_on_date", status.equals("SIGNED") || status.equals("TERMINATED") ? start : null);
+        c.put("status", "DRAFT");
+        Map<String, Object> approver = new LinkedHashMap<>(extra);
+        approver.keySet().retainAll(java.util.Set.of("approved_by"));
         c.putAll(extra);
+        c.remove("approved_by");
         insert(CONTRACTS, c);
+        advance(id, status, (UUID) approver.getOrDefault("approved_by", HR_B), start);
         return id;
+    }
+
+    /** Walks a fresh DRAFT through the legal edges to the wanted status. */
+    private void advance(UUID id, String status, UUID approver, LocalDate signedOn) {
+        String[] path = {"IN_APPROVAL", "APPROVED", "SIGNED"};
+        for (String step : path) {
+            if (status.equals("DRAFT")) {
+                return;
+            }
+            String set = switch (step) {
+                case "IN_APPROVAL" -> "submitted_by = '" + HR_A + "'";
+                case "APPROVED" -> "approved_by = '" + approver + "'";
+                default -> "signed_on_date = '" + signedOn + "'";
+            };
+            jdbc.sql("update " + CONTRACTS + " set status = '" + step + "', " + set + ", updated_at = now(), version = version + 1 where employment_contract_id = :id").param("id", id).update();
+            if (status.equals(step)) {
+                return;
+            }
+        }
     }
 
     private UUID contract(String status, LocalDate start, LocalDate end) {
@@ -99,8 +118,8 @@ class ContractSeparationTablesIntegrationTest extends WorkforceIntegrationSuppor
     void signedContractsDoNotOverlap() {
         contract("SIGNED", D2026, LocalDate.of(2026, 12, 31));
         assertThatThrownBy(() -> contract("SIGNED", LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31))).hasMessageContaining("ex_employment_contracts_in_force_period_overlap");
-        assertThatThrownBy(() -> contract("SIGNED", LocalDate.of(2026, 6, 1), null)).hasMessageContaining("ex_employment_contracts_in_force_period_overlap");
-        contract("DRAFT", LocalDate.of(2026, 6, 1), LocalDate.of(2027, 5, 31));
+        assertThatThrownBy(() -> contract("SIGNED", LocalDate.of(2026, 6, 2), null)).hasMessageContaining("ex_employment_contracts_in_force_period_overlap");
+        contract("DRAFT", LocalDate.of(2026, 6, 3), LocalDate.of(2027, 5, 31));
         contract("SIGNED", LocalDate.of(2027, 1, 1), null);
     }
 
@@ -111,7 +130,7 @@ class ContractSeparationTablesIntegrationTest extends WorkforceIntegrationSuppor
         assertThatThrownBy(() -> contract("SIGNED", LocalDate.of(2026, 7, 1), null)).hasMessageContaining("ex_employment_contracts_in_force_period_overlap");
         jdbc.sql("update " + CONTRACTS + " set status = 'TERMINATED', terminated_on_date = '2026-06-30', termination_basis_key = 'RESIGN_WITH_NOTICE', updated_at = now(), version = version + 1 where employment_contract_id = :id")
                 .param("id", first).update();
-        contract("SIGNED", LocalDate.of(2026, 7, 1), null);
+        contract("SIGNED", LocalDate.of(2026, 7, 2), null);
     }
 
     @Test
@@ -199,10 +218,9 @@ class ContractSeparationTablesIntegrationTest extends WorkforceIntegrationSuppor
         UUID signed = contract("SIGNED", D2026, null);
         assertThatThrownBy(() -> jdbc.sql("update " + CONTRACTS + " set term_start_date = '2025-12-31', updated_at = now(), version = version + 1 where employment_contract_id = :id").param("id", signed).update())
                 .hasMessageContaining("employment contracts");
-        UUID approved = request("APPROVED", "RESIGN_WITH_NOTICE", Map.of("decided_by", HR_B, "approved_on_date", D2026, "last_working_date", D2026.plusDays(30)));
+        UUID approved = request("APPROVED", "EMPLOYER_CHANGE", Map.of("request_source_kind", "SYSTEM", "initiator_kind", "BOTH", "decided_by", HR_B, "approved_on_date", D2026, "last_working_date", D2026.plusDays(30)));
         assertThatThrownBy(() -> jdbc.sql("update " + REQUESTS + " set last_working_date = '2026-03-01', updated_at = now(), version = version + 1 where separation_request_id = :id").param("id", approved).update())
                 .hasMessageContaining("separation requests");
-        assertThatThrownBy(() -> jdbc.sql("update " + BASES + " set display_name = 'x' where separation_basis_key = 'MUTUAL_AGREEMENT'").update()).hasMessageContaining("separation bases");
         for (String table : new String[] {CONTRACTS, REQUESTS, BASES}) {
             assertThatThrownBy(() -> jdbc.sql("truncate table " + table + " cascade").update()).hasMessageContaining("truncate");
         }
@@ -210,8 +228,10 @@ class ContractSeparationTablesIntegrationTest extends WorkforceIntegrationSuppor
             statement.execute("do $$ begin if not exists (select 1 from pg_roles where rolname = 'contract_runtime') then create role contract_runtime; end if; end $$");
             statement.execute("grant usage on schema organization_workforce to contract_runtime");
             statement.execute("grant select, delete on " + CONTRACTS + ", " + REQUESTS + ", " + BASES + " to contract_runtime");
+            statement.execute("grant update on " + BASES + " to contract_runtime");
             statement.execute("set role contract_runtime");
             try {
+                assertThatThrownBy(() -> statement.execute("update " + BASES + " set display_name = 'x' where separation_basis_key = 'MUTUAL_AGREEMENT'")).hasMessageContaining("separation bases");
                 for (String table : new String[] {CONTRACTS, REQUESTS, BASES}) {
                     assertThatThrownBy(() -> statement.execute("delete from " + table)).hasMessageContaining("delete");
                 }
