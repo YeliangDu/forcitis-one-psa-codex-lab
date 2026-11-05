@@ -14,6 +14,7 @@ printf '#!/usr/bin/env bash\nexit 0\n' >"$tmp/scripts/codegen/generate_api.sh"
 cat >"$tmp/backend/mvnw" <<'EOF'
 #!/usr/bin/env bash
 echo "$*" >>"$STUB_LOG"
+case "$*" in *export-openapi*) ;; *surefire:test*) if [ -n "${STUB_ID:-}" ]; then echo "enter $STUB_ID" >>"$STUB_LOG"; sleep 2; echo "leave $STUB_ID" >>"$STUB_LOG"; fi ;; esac
 case "$*" in *export-openapi*) printf '%s' "$EXPORTED" >../frontend/packages/api/openapi.json ;; esac
 exit 0
 EOF
@@ -21,6 +22,8 @@ chmod +x "$tmp/scripts/ci/backend_verify.sh" "$tmp/scripts/codegen/generate_api.
 git -C "$tmp" init -q
 git -C "$tmp" -c user.name=t -c user.email=t@example.invalid -c core.hooksPath= -c commit.gpgsign=false commit -q --allow-empty -m x
 head=$(git -C "$tmp" rev-parse HEAD)
+export BACKEND_VERIFY_LOCK="$tmp/lock" BACKEND_VERIFY_LOCK_POLL=1 BACKEND_VERIFY_LOCK_WAIT=20
+unset GITHUB_ACTIONS
 
 failures=0
 case_() {  # case_ <name> <OPENAPI_EXPORTED_FOR or "-" for unset> <exported contract> <expected rc> <export expected: yes|no> <tests expected: yes|no>
@@ -48,6 +51,41 @@ case_ "empty: export and compare"                     ""                        
 case_ "another commit: export and compare"            0000000000000000000000000000000000000000    '{"same":1}'   0 yes yes
 case_ "unset, contract differs: stop before any test" -                                           '{"other":1}'  1 yes no
 case_ "another commit, contract differs: stop"        0000000000000000000000000000000000000000    '{"other":1}'  1 yes no
+
+# Local runs (#1341): one at a time machine-wide, fewer forks than CI; CI (GITHUB_ACTIONS set) takes no lock and keeps its options.
+run_() {  # run_ <log> [env assignments...] -- runs the script with the stub
+  local log=$1; shift; : >"$log"; printf '{"same":1}' >"$tmp/frontend/packages/api/openapi.json"
+  env "$@" STUB_LOG="$log" EXPORTED='{"same":1}' BACKEND_WATCHDOG_SECONDS=30 bash "$tmp/scripts/ci/backend_verify.sh" >"$tmp/out.log" 2>&1 &
+  local pid=$! n=0   # a run still going after 25 s is a hang (a lock that never refuses): stop it and fail
+  while kill -0 "$pid" 2>/dev/null && [ "$n" -lt 25 ]; do sleep 1; n=$((n + 1)); done
+  if kill -0 "$pid" 2>/dev/null; then kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null; return 124; fi
+  wait "$pid"
+}
+check_() {  # check_ <name> <condition result 0|1>
+  [ "$2" -eq 0 ] || { echo "FAIL $1"; sed 's/^/  | /' "$tmp/out.log" | tail -5; failures=$((failures + 1)); }
+}
+rm -rf "$tmp/lock"
+run_ "$tmp/l1.log" A=1; if grep -q -- '-Dtest.forks=1 -Dit.forks=2' "$tmp/l1.log"; then check_ "local run defaults to fewer forks" 0; else check_ "local run defaults to fewer forks" 1; fi
+if [ ! -e "$tmp/lock" ]; then check_ "local run releases the lock" 0; else check_ "local run releases the lock" 1; fi
+printf '{"same":1}' >"$tmp/frontend/packages/api/openapi.json"; : >"$tmp/l3.log"
+if STUB_LOG="$tmp/l3.log" EXPORTED='{"same":1}' BACKEND_WATCHDOG_SECONDS=30 bash "$tmp/scripts/ci/backend_verify.sh" -Dtest.forks=3 >"$tmp/out.log" 2>&1; grep -q -- '-Dtest.forks=1 -Dit.forks=2 -Dtest.forks=3' "$tmp/l3.log"; then check_ "caller's -D options come last and win" 0; else check_ "caller's -D options come last and win" 1; fi
+run_ "$tmp/l4.log" GITHUB_ACTIONS=true; if ! grep -q -- 'forks=' "$tmp/l4.log"; then check_ "CI: options unchanged" 0; else check_ "CI: options unchanged" 1; fi
+mkdir "$tmp/lock"; echo $$ >"$tmp/lock/pid"   # held by a live process (this one)
+rc=0; run_ "$tmp/l5.log" BACKEND_VERIFY_LOCK_WAIT=2 || rc=$?; if [ "$rc" -eq 1 ] && ! [ -s "$tmp/l5.log" ]; then check_ "second local run waits, then refuses without running anything" 0; else check_ "second local run waits, then refuses without running anything" 1; fi
+rc=0; run_ "$tmp/l6.log" GITHUB_ACTIONS=true || rc=$?; if [ "$rc" -eq 0 ] && [ -s "$tmp/l6.log" ]; then check_ "CI ignores a held lock" 0; else check_ "CI ignores a held lock" 1; fi
+echo 99999999 >"$tmp/lock/pid"   # holder gone
+rc=0; run_ "$tmp/l7.log" BACKEND_VERIFY_LOCK_WAIT=2 || rc=$?; if [ "$rc" -eq 0 ] && [ ! -e "$tmp/lock" ]; then check_ "a lock whose holder is gone is taken over" 0; else check_ "a lock whose holder is gone is taken over" 1; fi
+mkdir "$tmp/ro" && chmod 500 "$tmp/ro"   # a lock that cannot be created (read-only directory) refuses at once instead of waiting
+rc=0; run_ "$tmp/l8.log" BACKEND_VERIFY_LOCK="$tmp/ro/lock" || rc=$?; if [ "$rc" -eq 1 ] && ! [ -s "$tmp/l8.log" ] && grep -q 'cannot create the lock' "$tmp/out.log"; then check_ "an uncreatable lock refuses at once" 0; else check_ "an uncreatable lock refuses at once" 1; fi
+chmod 700 "$tmp/ro"
+rm -rf "$tmp/lock"
+: >"$tmp/s1.log"; : >"$tmp/s2.log"; printf '{"same":1}' >"$tmp/frontend/packages/api/openapi.json"
+(STUB_ID=A STUB_LOG="$tmp/s.log" EXPORTED='{"same":1}' BACKEND_WATCHDOG_SECONDS=60 bash "$tmp/scripts/ci/backend_verify.sh" >"$tmp/o1.log" 2>&1 &
+ STUB_ID=B STUB_LOG="$tmp/s.log" EXPORTED='{"same":1}' BACKEND_WATCHDOG_SECONDS=60 bash "$tmp/scripts/ci/backend_verify.sh" >"$tmp/o2.log" 2>&1 &
+ wait)
+seq=$(grep -E '^(enter|leave) ' "$tmp/s.log" | tr '\n' ' ')
+case "$seq" in "enter A leave A enter B leave B "|"enter B leave B enter A leave A ") r=0 ;; *) r=1; echo "  sequence: $seq" ;; esac
+check_ "two local runs started together run one after the other" $r
 
 # shellcheck disable=SC2015  # echo cannot fail, so the || branch runs only when there are failures
 [ "$failures" -eq 0 ] && echo "backend_verify_selftest: ok" || { echo "backend_verify_selftest: $failures failed"; exit 1; }
