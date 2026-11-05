@@ -26,7 +26,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 class JdbcBonusDeterminationRepository implements BonusDeterminationRepository {
     private static final String COLUMNS = """
-            id, employment_relationship_id, paying_legal_entity_id, payroll_month_start_date, bonus_amount, reason_key, approval_instance_id,
+            id, employment_relationship_id, paying_legal_entity_id, payroll_month_start_date, bonus_amount, bonus_currency, reason_key, approval_instance_id,
             entered_by_employee_id, created_at, status, voided_by_user_id, voided_at
             """;
 
