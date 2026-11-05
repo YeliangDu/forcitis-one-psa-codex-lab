@@ -868,6 +868,15 @@ class LeaveMigrationIT {
                 var replay = copy(event, "leave_account_id", nextYear.get("id"));
                 refused(db, "23505", "uk_leave_ledger_lines_event_key", () -> insert(db, "leave_ledger_lines", replay));
                 replay.put("original_leave_year_number", 2027); insert(db, "leave_ledger_lines", replay);
+                // every column of both keys matters: a replay that differs only in quantity is still a replay
+                refused(db, "23505", "uk_leave_ledger_lines_source_key", () -> insert(db, "leave_ledger_lines", copy(source, "line_qty", 5)));
+                refused(db, "23505", "uk_leave_ledger_lines_event_key", () -> insert(db, "leave_ledger_lines", copy(event, "leave_account_id", nextYear.get("id"), "source_kind", "HR_ADJUSTMENT", "line_qty", 5)));
+                // the same event and original year of another line kind, another relationship or another type is a different entitlement line
+                insert(db, "leave_ledger_lines", copy(event, "leave_account_id", nextYear.get("id"), "line_kind", "ROLLOVER_IN"));
+                var otherRelationship = copy(account, "employment_relationship_id", UUID.randomUUID(), "leave_year_number", 2027); insert(db, "leave_accounts", otherRelationship);
+                insert(db, "leave_ledger_lines", copy(event, "leave_account_id", otherRelationship.get("id"), "employment_relationship_id", otherRelationship.get("employment_relationship_id")));
+                var otherType = validRow(db, "leave_accounts"); otherType.put("employment_relationship_id", account.get("employment_relationship_id")); insert(db, "leave_accounts", otherType);
+                insert(db, "leave_ledger_lines", copy(event, "leave_account_id", otherType.get("id"), "leave_type_id", otherType.get("leave_type_id")));
                 for (int mode = 0; mode < 4; mode++) {
                     var adjust = line(account, "ADJUST", rolling ? grant.get("id") : null); adjust.remove("original_leave_year_number");
                     if (mode == 0 || mode == 3) { adjust.put("adjusted_by", UUID.randomUUID()); adjust.put("reason_text", "Synthetic manual correction"); }
