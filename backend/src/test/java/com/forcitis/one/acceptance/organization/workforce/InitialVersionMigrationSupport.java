@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 import static com.forcitis.one.acceptance.organization.workforce.SeparationHoldOperationNames.*;
 
@@ -117,10 +118,9 @@ abstract class InitialVersionMigrationSupport extends PersonnelCommandSupport {
         try (Connection workforce = schemaConnection("organization_workforce")) {
             // #711: on the person's PRIMARY root once employee_assignments exists (AssignmentRoots), as the sync writer does (DD rev 2 section 4.3).
             UUID root = AssignmentRoots.primaryOf(workforce, stored(person));
-            update(workforce, AssignmentRoots.withRoot("""
+            update(workforce, EmploymentRelationshipSeeds.assignmentVersion(AssignmentRoots.withRoot("""
                     insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, effective_to_date, org_unit_id,
-                      change_channel_kind, closed_at, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?, ?)""", root),
-                    AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), stored(person), from, to, stored(unit), to == null ? null : at, at, at));
+                      change_channel_kind, closed_at, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?, ?)""", root), EmploymentRelationshipSeeds.of(workforce, stored(person))), EmploymentRelationshipSeeds.arguments(EmploymentRelationshipSeeds.of(workforce, stored(person)), AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), stored(person), from, to, stored(unit), to == null ? null : at, at, at)));
         }
     }
 

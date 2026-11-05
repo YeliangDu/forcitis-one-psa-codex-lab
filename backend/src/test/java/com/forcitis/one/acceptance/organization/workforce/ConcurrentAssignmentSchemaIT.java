@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.REGULAR;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
@@ -71,11 +72,10 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
     private UUID version(UUID employee, UUID root, String kind, LocalDate from, UUID orgUnit, UUID position, UUID reportsTo, int revision) throws SQLException {
         UUID id = Uuids.timeOrdered(NOW);
         try (Connection workforce = schemaConnection("organization_workforce")) {
-            update(workforce, """
+            update(workforce, EmploymentRelationshipSeeds.assignmentVersion("""
                     insert into assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date, revision_number,
                       org_unit_id, position_id, reports_to_employee_id, change_channel_kind, created_at, updated_at)
-                    values (?, ?, ?, ?, ?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""",
-                    id, stored(employee), root, kind, from, revision, stored(orgUnit), position, stored(reportsTo), at, at);
+                    values (?, ?, ?, ?, ?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.of(workforce, stored(employee))), EmploymentRelationshipSeeds.arguments(EmploymentRelationshipSeeds.of(workforce, stored(employee)), id, stored(employee), root, kind, from, revision, stored(orgUnit), position, stored(reportsTo), at, at));
         }
         return id;
     }
@@ -228,11 +228,10 @@ class ConcurrentAssignmentSchemaIT extends PersonnelCommandSupport {
     /** A closed row of the concurrent root, before every other version, that names the corrected version (only the composite FK is under test). */
     private void correctionOf(UUID concurrent, UUID corrected) throws Exception {
         try (Connection workforce = schemaConnection("organization_workforce")) {
-            update(workforce, """
+            update(workforce, EmploymentRelationshipSeeds.assignmentVersion("""
                     insert into assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date, effective_to_date,
                       revision_number, org_unit_id, change_channel_kind, corrected_from_version_id, closed_at, created_at, updated_at)
-                    values (?, ?, ?, 'CONCURRENT', ?, ?, 5, ?, 'MIGRATION', ?, ?, ?, ?)""",
-                    Uuids.timeOrdered(NOW), stored(person), concurrent, TODAY.minusDays(40), TODAY.minusDays(39), stored(newUnit()), corrected, at, at, at);
+                    values (?, ?, ?, 'CONCURRENT', ?, ?, 5, ?, 'MIGRATION', ?, ?, ?, ?)""", EmploymentRelationshipSeeds.of(workforce, stored(person))), EmploymentRelationshipSeeds.arguments(EmploymentRelationshipSeeds.of(workforce, stored(person)), Uuids.timeOrdered(NOW), stored(person), concurrent, TODAY.minusDays(40), TODAY.minusDays(39), stored(newUnit()), corrected, at, at, at));
         }
     }
 

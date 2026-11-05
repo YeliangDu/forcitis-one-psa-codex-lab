@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -144,12 +145,10 @@ class EmployeeRosterHttpIT extends DataScopeSupport {
     private void versions(Connection workforce, String key, String unitCode, String reportsToKey, LocalDate started) throws Exception {
         UUID employee = UUID.fromString(employeeIdOf(key));
         boolean employed = started != null;
-        execute(workforce, """
+        execute(workforce, EmploymentRelationshipSeeds.employeeVersion("""
                 insert into employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status, employment_phase_kind,
                     is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind, change_channel_kind, created_at, updated_at)
-                values (?, ?, ?, 0, ?, ?, false, false, ?, ?, 'MIGRATION', now(), now())""",
-                Uuids.timeOrdered(NOW), stored(employee), employed ? started : SINCE, employed ? "EMPLOYED" : "SEPARATED", employed ? "REGULAR" : null, started,
-                employed ? "DECLARED" : null);
+                values (?, ?, ?, 0, ?, ?, false, false, ?, ?, 'MIGRATION', now(), now())""", EmploymentRelationshipSeeds.of(workforce, stored(employee))), EmploymentRelationshipSeeds.arguments(EmploymentRelationshipSeeds.of(workforce, stored(employee)), Uuids.timeOrdered(NOW), stored(employee), employed ? started : SINCE, employed ? "EMPLOYED" : "SEPARATED", employed ? "REGULAR" : null, started, employed ? "DECLARED" : null));
         UUID root = AssignmentRoots.primaryOf(workforce, stored(employee));
         assignmentVersion(workforce, employee, root, AssignmentRoots.PRIMARY, unitCode, key.equals("c") || key.equals("multi") ? "RS-P2" : "RS-P1", reportsToKey == null ? null : UUID.fromString(employeeIdOf(reportsToKey)));
     }
@@ -163,11 +162,10 @@ class EmployeeRosterHttpIT extends DataScopeSupport {
                 position = rows.getObject(1, UUID.class);
             }
         }
-        execute(workforce, """
+        execute(workforce, EmploymentRelationshipSeeds.assignmentVersion("""
                 insert into assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date, revision_number,
                     org_unit_id, position_id, reports_to_employee_id, change_channel_kind, created_at, updated_at)
-                values (?, ?, ?, ?, ?, ?, ?, ?, ?, 'MIGRATION', now(), now())""",
-                Uuids.timeOrdered(NOW), stored(employee), root, kind, SINCE, kind.equals(AssignmentRoots.PRIMARY) ? 0 : 1, UUID.fromString(unitIds.get(unitCode)), position, reportsTo == null ? null : stored(reportsTo));
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?, 'MIGRATION', now(), now())""", EmploymentRelationshipSeeds.of(workforce, stored(employee))), EmploymentRelationshipSeeds.arguments(EmploymentRelationshipSeeds.of(workforce, stored(employee)), Uuids.timeOrdered(NOW), stored(employee), root, kind, SINCE, kind.equals(AssignmentRoots.PRIMARY) ? 0 : 1, UUID.fromString(unitIds.get(unitCode)), position, reportsTo == null ? null : stored(reportsTo)));
     }
 
     private static void execute(Connection connection, String sql, Object... args) throws Exception {

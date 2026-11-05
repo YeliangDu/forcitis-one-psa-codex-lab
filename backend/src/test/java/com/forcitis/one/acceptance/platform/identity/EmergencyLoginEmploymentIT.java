@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.platform.identity;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -133,7 +134,10 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
                 statement.execute("delete from sync_run_held_separations");
             }
             statement.execute("delete from assignment_versions");
-            statement.execute("delete from employee_versions");
+            statement.execute(EmploymentRelationshipSeeds.translate(workforce, "delete from employee_versions"));
+            if (EmploymentRelationshipSeeds.exist(workforce)) {
+                statement.execute("delete from employment_relationships");
+            }
             statement.execute("delete from assignments");
             statement.execute("delete from employees");
             statement.execute("delete from org_units");
@@ -147,22 +151,28 @@ class EmergencyLoginEmploymentIT extends AccountsAcceptanceSupport {
     private void employeeVersion(UUID person, String status, java.time.LocalDate from, java.time.LocalDate to) throws SQLException {
         boolean employed = "EMPLOYED".equals(status);
         java.time.OffsetDateTime at = java.time.OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC);
-        try (Connection workforce = schemaConnection("organization_workforce"); java.sql.PreparedStatement insert = workforce.prepareStatement("""
+        try (Connection workforce = schemaConnection("organization_workforce"); java.sql.PreparedStatement insert = workforce.prepareStatement(EmploymentRelationshipSeeds.employeeVersion("""
                 insert into employee_versions (employee_version_id, employee_id, effective_from_date, effective_to_date, closed_at, revision_number,
                   employment_status, employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
                   change_channel_kind, created_at, updated_at)
-                values (?, ?, ?, ?, ?, 0, ?, ?, false, false, ?, ?, 'MIGRATION', ?, ?)""")) {
-            insert.setObject(1, com.forcitis.one.kernel.Uuids.timeOrdered(NOW));
-            insert.setObject(2, stored(person));
-            insert.setObject(3, from);
-            insert.setObject(4, to);
-            insert.setObject(5, to == null ? null : at);
-            insert.setString(6, status);
-            insert.setString(7, employed ? "REGULAR" : null);
-            insert.setObject(8, employed ? from : null);
-            insert.setString(9, employed ? "LEGACY_HR_RECORD" : null);
-            insert.setObject(10, at);
-            insert.setObject(11, at);
+                values (?, ?, ?, ?, ?, 0, ?, ?, false, false, ?, ?, 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.of(workforce, stored(person))))) {
+            // #1371: the relationship id is the first parameter once employment_relationships exists.
+            UUID relationship = EmploymentRelationshipSeeds.of(workforce, stored(person));
+            int k = 0;
+            if (relationship != null) {
+                insert.setObject(++k, relationship);
+            }
+            insert.setObject(k + 1, com.forcitis.one.kernel.Uuids.timeOrdered(NOW));
+            insert.setObject(k + 2, stored(person));
+            insert.setObject(k + 3, from);
+            insert.setObject(k + 4, to);
+            insert.setObject(k + 5, to == null ? null : at);
+            insert.setString(k + 6, status);
+            insert.setString(k + 7, employed ? "REGULAR" : null);
+            insert.setObject(k + 8, employed ? from : null);
+            insert.setString(k + 9, employed ? "LEGACY_HR_RECORD" : null);
+            insert.setObject(k + 10, at);
+            insert.setObject(k + 11, at);
             insert.executeUpdate();
         }
     }
