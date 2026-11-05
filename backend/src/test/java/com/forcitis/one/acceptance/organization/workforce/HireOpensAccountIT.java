@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipEventIds;
 import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import com.forcitis.one.acceptance.AssignmentRoots;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
@@ -171,7 +172,8 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         SecurityContextHolder.clearContext();
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "organization.workforce.personnel.command.due")) {
             return new EmployeeHired(envelopes.wrap(new EventDraft("organization.workforce.EmployeeHired", 1, "Employee", employee, 1,
-                    new LegalEntityId(legalEntity), effective, List.of())), new PersonnelCommandId(command), employeeIdOf(employee), effective);
+                    new LegalEntityId(legalEntity), effective, List.of())), new PersonnelCommandId(command), employeeIdOf(employee), effective,
+                    EmploymentRelationshipEventIds.of(employee));
         }
     }
 
@@ -436,7 +438,8 @@ class HireOpensAccountIT extends EmployeeHireSupport {
         // a redelivery is the same event (same envelope, same eventId) as a new object, the way the registry deserialises it again
         EmployeeHired again = employeeHired(command, employee, TODAY);
         UUID first = publishEmployeeHired(again);
-        UUID second = publishEmployeeHired(new EmployeeHired(again.envelope(), again.personnelCommandId(), again.employeeId(), again.effectiveDate()));
+        UUID second = publishEmployeeHired(new EmployeeHired(again.envelope(), again.personnelCommandId(), again.employeeId(), again.effectiveDate(),
+                again.employmentRelationshipId()));
         assertThat(second).as("premise: the redelivery carries the same eventId").isEqualTo(first);
         UUID another = publishEmployeeHired(employeeHired(command, employee, TODAY));
         for (UUID event : List.of(first, second, another)) {
