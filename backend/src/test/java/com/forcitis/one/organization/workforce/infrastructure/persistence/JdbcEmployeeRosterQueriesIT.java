@@ -30,7 +30,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false"})
 class JdbcEmployeeRosterQueriesIT {
-    private static final LocalDate TODAY = LocalDate.of(2026, 11, 2);
+    private static final LocalDate TODAY = com.forcitis.one.BusinessDay.today();
     private static final LocalDate SEPARATED_ON = LocalDate.of(2026, 10, 1);
 
     @ServiceConnection

@@ -26,7 +26,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(properties = {"flowable.async-executor-activate=false"})
 class JdbcPositionQueriesIT {
-    private static final LocalDate TODAY = LocalDate.of(2026, 11, 2);
+    private static final LocalDate TODAY = com.forcitis.one.BusinessDay.today();
 
     @ServiceConnection
     static final PostgreSQLContainer postgres = TestPostgres.container().withInitScript("init-schemas.sql").withUrlParam("currentSchema", "platform_approval");

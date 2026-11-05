@@ -6,6 +6,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
+import com.forcitis.one.BusinessDay;
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.Uuids;
@@ -13,7 +14,9 @@ import com.forcitis.one.platform.integration.api.WecomCard;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -42,8 +45,8 @@ import org.springframework.test.context.DynamicPropertySource;
  * one step), a repeated run sends nothing. Working days come from the row's legal entity calendar; a year that is not maintained counts
  * Monday to Friday and the run still completes. Decided and LAPSED rows are never touched, and the job never decides anything.
  *
- * <p>Fixed dates (TODAY is Monday 2026-11-02): the 2026 calendar has a holiday on Tuesday 2026-11-10; 2027 is not maintained. Rows are
- * requested on 11-02 but carry the stored due date 11-06, not the 11-05 the entry rule would give: on purpose, the job reads the stored
+ * <p>Dates are laid out from MONDAY (see its javadoc) in YEAR: the calendar of YEAR has a holiday on the Tuesday of the following week and the next year is not maintained. Rows are
+ * requested on the real business day but carry the stored due date of its Friday, not the Thursday the entry rule would give: on purpose, the job reads the stored
  * due_on_date and never recomputes it (ruling item 6; due_on_date at entry is #895's).
  */
 class CountersignDeadlineJobIT extends PersonnelCommandSupport {
@@ -64,8 +67,40 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
     /** one-design naming ruling on #893 (comment 6589791372, item 1) and the #896 ruling item 2. */
     static final String LEVEL = "escalation_level_number";
 
-    private static final LocalDate DUE = LocalDate.of(2026, 11, 6);
-    private static final LocalDate HOLIDAY = LocalDate.of(2026, 11, 10);
+    /**
+     * The Monday on or after the real business day, moved to the first Monday of next year when it falls after 16 December, so that the
+     * three weeks laid out from it (the holiday on Tuesday of the following week, the reminders up to MONDAY+14) all stay inside YEAR.
+     */
+    private static final LocalDate MONDAY = anchor();
+    private static final int YEAR = MONDAY.getYear();
+    private static final LocalDate DUE = MONDAY.plusDays(4);
+    private static final LocalDate HOLIDAY = MONDAY.plusDays(8);
+
+    private static LocalDate anchor() {
+        LocalDate monday = BusinessDay.nextOrSame(DayOfWeek.MONDAY);
+        if (monday.getMonthValue() == 12 && monday.getDayOfMonth() > 16) {
+            return LocalDate.of(monday.getYear() + 1, 1, 1).with(TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
+        }
+        return monday;
+    }
+
+    /** The last Monday-to-Friday day of YEAR. */
+    private static LocalDate lastWeekdayOfYear() {
+        LocalDate day = LocalDate.of(YEAR, 12, 31);
+        while (day.getDayOfWeek() == DayOfWeek.SATURDAY || day.getDayOfWeek() == DayOfWeek.SUNDAY) {
+            day = day.minusDays(1);
+        }
+        return day;
+    }
+
+    /** The Monday-to-Friday day before the given weekday. */
+    private static LocalDate weekdayBefore(LocalDate weekday) {
+        LocalDate day = weekday.minusDays(1);
+        while (day.getDayOfWeek() == DayOfWeek.SATURDAY || day.getDayOfWeek() == DayOfWeek.SUNDAY) {
+            day = day.minusDays(1);
+        }
+        return day;
+    }
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -79,7 +114,7 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
     void aCalendarTwoEntitiesAndAHead() throws Exception {
         at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
         orgAdmin = staff("org_data_admin");
-        maintain2026WithAHoliday(orgAdmin);
+        maintainTheYearWithAHoliday(orgAdmin);
         e2 = createLegalEntity(orgAdmin.session(), newLegalEntityCode("DJ"), "Synthetic deadline entity two");
         headE1 = employed(REGULAR);
         bindFinanceHead(headE1, legalEntity, TODAY);
@@ -94,16 +129,16 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
 
     // ---- world ----
 
-    /** The default calendar of 2026 with one holiday, through the attendance endpoint; 2027 stays unmaintained. */
-    private void maintain2026WithAHoliday(Staff maintainer) throws Exception {
-        String year = "/api/v1/organization/work-calendars/2026";
+    /** The default calendar of YEAR with one holiday, through the attendance endpoint; the year after stays unmaintained. */
+    private void maintainTheYearWithAHoliday(Staff maintainer) throws Exception {
+        String year = "/api/v1/organization/work-calendars/" + YEAR;
         if (mvc.perform(get(year).with(session(maintainer.session()))).andReturn().getResponse().getStatus() == 200) {
             return;
         }
         MockHttpServletResponse maintained = mvc.perform(put(year).header("If-Match", "\"0\"").with(csrf()).with(session(maintainer.session()))
                 .contentType(MediaType.APPLICATION_JSON).content("{\"days\":[{\"calendarDate\":\"" + HOLIDAY + "\",\"dayKind\":\"HOLIDAY\"}],\"lockedDaysConfirmed\":true}"))
                 .andReturn().getResponse();
-        assertThat(maintained.getStatus()).as("maintaining 2026: " + maintained.getContentAsString()).isEqualTo(200);
+        assertThat(maintained.getStatus()).as("maintaining " + YEAR + ": " + maintained.getContentAsString()).isEqualTo(200);
     }
 
     /** legal_entity_versions is close-and-append (#893 DD amendment 2): the open version closes on the day and a copy naming the head is appended. */
@@ -242,32 +277,32 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
     }
 
     @Test
-    @DisplayName("#896 one-design 裁定第 2 项（工作日按法人日历，节假日不算）：到期日 11-06（周五）后的工作日是 11-09、11-11（11-10 为节假日）、11-12、11-13：11-11 仍是第 1 级；11-12 升第 2 级；11-13 不变；11-14 升第 3 级；第 1、3 级各发一条提醒且用途不同（第 2 级的提醒见其收件人用例）；之后（12-31）没有第 4 级、不再提醒")
+    @DisplayName("#896 one-design 裁定第 2 项（工作日按法人日历，节假日不算）：到期日（周五）后的工作日是下周一、下周三（下周二为节假日）、下周四、下周五：下周三仍是第 1 级；下周四升第 2 级；下周五不变；再次日（周六）升第 3 级；第 1、3 级各发一条提醒且用途不同（第 2 级的提醒见其收件人用例）；之后（约两个月后）没有第 4 级、不再提醒")
     void levelsTwoAndThreeCountWorkingDaysOfTheCalendar() throws Exception {
         UUID row = openChangeRow(DUE);
 
         String levelOne = purposeOf(noticeOnRun(row, DUE.plusDays(1)));
-        runOn(LocalDate.of(2026, 11, 11));
-        assertThat(levelOf(row)).as("the holiday 11-10 does not count, so 11-11 is only the 2nd working day").isEqualTo(1);
+        runOn(MONDAY.plusDays(9));
+        assertThat(levelOf(row)).as("the holiday (Tuesday of the following week) does not count, so the Wednesday is only the 2nd working day").isEqualTo(1);
 
-        runOn(LocalDate.of(2026, 11, 12));
+        runOn(MONDAY.plusDays(10));
         assertThat(levelOf(row)).isEqualTo(2);
-        runOn(LocalDate.of(2026, 11, 13));
+        runOn(MONDAY.plusDays(11));
         assertThat(levelOf(row)).isEqualTo(2);
-        String levelThree = purposeOf(noticeOnRun(row, LocalDate.of(2026, 11, 14)));
+        String levelThree = purposeOf(noticeOnRun(row, MONDAY.plusDays(12)));
         assertThat(levelOf(row)).isEqualTo(3);
         assertThat(levelThree).as("each level its own purpose_kind").isNotEqualTo(levelOne);
         Mockito.clearInvocations(wecomGateway);
-        runOn(LocalDate.of(2026, 12, 31));
+        runOn(MONDAY.plusDays(59));
         assertThat(levelOf(row)).as("no level 4").isEqualTo(3);
         assertThat(noticesOf(row)).as("nothing after level 3").isEmpty();
     }
 
     @Test
-    @DisplayName("#896 one-design 裁定第 2 项（补跑一步到位）：一行停在第 0 级、作业多日未跑，到 11-16 跑一次直接升到第 3 级，只发一条第 3 级的提醒（用途与逐级跑到第 3 级时相同）")
+    @DisplayName("#896 one-design 裁定第 2 项（补跑一步到位）：一行停在第 0 级、作业多日未跑，到到期日后的第二个周一跑一次直接升到第 3 级，只发一条第 3 级的提醒（用途与逐级跑到第 3 级时相同）")
     void aMissedStretchIsCaughtUpInOneStep() throws Exception {
         UUID stepped = openChangeRow(DUE);
-        for (LocalDate day : List.of(DUE.plusDays(1), LocalDate.of(2026, 11, 12), LocalDate.of(2026, 11, 14))) {
+        for (LocalDate day : List.of(DUE.plusDays(1), MONDAY.plusDays(10), MONDAY.plusDays(12))) {
             runOn(day);
         }
         assertThat(levelOf(stepped)).isEqualTo(3);
@@ -277,7 +312,7 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
         UUID late = openChangeRow(DUE);
         Mockito.clearInvocations(wecomGateway);
 
-        runOn(LocalDate.of(2026, 11, 16));
+        runOn(MONDAY.plusDays(14));
 
         assertThat(levelOf(late)).isEqualTo(3);
         assertThat(noticesOf(late)).singleElement().satisfies(card -> assertThat(purposeOf(card)).isEqualTo(levelThreePurpose));
@@ -297,7 +332,7 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
         UUID open = openChangeRow(DUE);
         UUID openCommand = (UUID) row(open).get("personnel_command_id");
 
-        runOn(LocalDate.of(2026, 11, 16));
+        runOn(MONDAY.plusDays(14));
 
         assertThat(levelOf(withdrawal)).isEqualTo(3);
         assertThat(noticesOf(withdrawal)).hasSize(1);
@@ -330,18 +365,23 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
     }
 
     @Test
-    @DisplayName("#896 ADR-0073 第 3 条第 6 款「次年日历未确认按周一至周五计、不让作业失败」、one-design 裁定第 5 项：到期日 2026-12-30，2027 年未维护：12-31 后的工作日按周一至周五算（2027-01-01 周五算工作日），所以 2027-01-02 跑一次即升到第 2 级；作业正常结束、不跳过该行，并有 ALERT 告警行")
+    @DisplayName("#896 ADR-0073 第 3 条第 6 款「次年日历未确认按周一至周五计、不让作业失败」、one-design 裁定第 5 项：到期日是当年倒数第二个工作日，次年未维护：次年的工作日按周一至周五算（次年第一个工作日算工作日），所以次年第一个工作日的次日跑一次即升到第 2 级；作业正常结束、不跳过该行，并有 ALERT 告警行")
     void anUnmaintainedYearCountsMondayToFridayAndTheRunCompletes() throws Exception {
         grantByOperations(employed(REGULAR), "business_admin");
-        UUID row = openChangeRow(LocalDate.of(2026, 12, 30));
+        LocalDate lastWorkingDay = lastWeekdayOfYear();
+        LocalDate firstWorkingDayOfNextYear = LocalDate.of(YEAR + 1, 1, 1);
+        while (firstWorkingDayOfNextYear.getDayOfWeek() == DayOfWeek.SATURDAY || firstWorkingDayOfNextYear.getDayOfWeek() == DayOfWeek.SUNDAY) {
+            firstWorkingDayOfNextYear = firstWorkingDayOfNextYear.plusDays(1);
+        }
+        UUID row = openChangeRow(weekdayBefore(lastWorkingDay));
         int mark = logMark();
 
-        runOn(LocalDate.of(2027, 1, 1));
+        runOn(firstWorkingDayOfNextYear);
         assertThat(alertsSince(mark)).as("the unmaintained year raises the ADR-0072 item 6 alert (ADR-0073 line 74 「并告警」)").isNotEmpty();
         assertThat(levelOf(row)).isEqualTo(1);
 
-        runOn(LocalDate.of(2027, 1, 2));
-        assertThat(levelOf(row)).as("12-31 and 2027-01-01 (Mon–Fri fallback) are the two working days after the due date").isEqualTo(2);
+        runOn(firstWorkingDayOfNextYear.plusDays(1));
+        assertThat(levelOf(row)).as("the last working day of the year and the first of the next (Mon–Fri fallback) are the two working days after the due date").isEqualTo(2);
         assertThat(noticesOf(row)).hasSize(2);
     }
 
@@ -365,7 +405,7 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
         runOn(DUE.plusDays(1));
 
         Mockito.clearInvocations(wecomGateway);
-        runOn(LocalDate.of(2026, 11, 12));
+        runOn(MONDAY.plusDays(10));
 
         assertThat(levelOf(row)).isEqualTo(2);
         List<WecomCard> levelTwo = noticesOf(row);
@@ -374,7 +414,7 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
         assertThat(reached).as("every business_admin holder is notified (one-design amendment, #896 comment 6590086619)")
                 .contains(wecomUserIdOf(first), wecomUserIdOf(second)).doesNotContain(wecomUserIdOf(headE1), wecomUserIdOf(hr.employeeId()));
         Mockito.clearInvocations(wecomGateway);
-        runOn(LocalDate.of(2026, 11, 13));
+        runOn(MONDAY.plusDays(11));
         assertThat(noticesOf(row)).as("a later run at the same level notifies nobody again").isEmpty();
     }
 
@@ -383,9 +423,9 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
     void levelThreeGoesToTheFinanceHeadAgain() throws Exception {
         UUID row = openChangeRow(DUE);
         runOn(DUE.plusDays(1));
-        runOn(LocalDate.of(2026, 11, 12));
+        runOn(MONDAY.plusDays(10));
 
-        WecomCard levelThree = noticeOnRun(row, LocalDate.of(2026, 11, 14));
+        WecomCard levelThree = noticeOnRun(row, MONDAY.plusDays(12));
 
         assertThat(levelOf(row)).isEqualTo(3);
         assertThat(recipientsOf(levelThree)).containsExactly(wecomUserIdOf(headE1));
