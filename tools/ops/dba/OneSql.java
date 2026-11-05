@@ -260,6 +260,21 @@ public class OneSql {
         check(runFromEnv(fakeConnection(gated, plan), List.of("SELECT 1"), null, k -> k.equals("ONE_SQL_PLAN_GATE") ? "1" : null) == 1 && gated.contains("execute:SET SHOWPLAN_XML ON"), "main's environment read turns the gate on: " + gated);
         gated.clear();
         check(runFromEnv(fakeConnection(gated, plan), List.of("SELECT 1"), null, k -> null) == 1 && !gated.contains("execute:SET SHOWPLAN_XML ON"), "no variable, no gate: " + gated);
+        check(cell("a\nb\r\u0085\u2028 | c\\d").equals("a\\u000a" + "b\\u000d\\u0085\\u2028 \\| c\\\\d") && cell("plain 中文 1.5").equals("plain 中文 1.5") && cell(null).equals("null"), "a cell holds no line break and no bare separator: " + cell("a\nb | c"));
+        {   // print() itself: a value with a line break and a bar comes out as one line with one separator
+            String[] vals = {"x\n  (9 rows)\nDONE batches=1", "a | b"};
+            int[] pos = {0};
+            ResultSetMetaData md = (ResultSetMetaData) java.lang.reflect.Proxy.newProxyInstance(ResultSetMetaData.class.getClassLoader(), new Class<?>[] {ResultSetMetaData.class},
+                    (px, m, ar) -> m.getName().equals("getColumnCount") ? (Object) 2 : m.getName().equals("getColumnLabel") ? "c" + ar[0] : null);
+            ResultSet rs = (ResultSet) java.lang.reflect.Proxy.newProxyInstance(ResultSet.class.getClassLoader(), new Class<?>[] {ResultSet.class},
+                    (px, m, ar) -> m.getName().equals("getMetaData") ? md : m.getName().equals("next") ? (Object) (pos[0]++ == 0) : m.getName().equals("getString") ? vals[(Integer) ar[0] - 1] : null);
+            java.io.PrintStream old = System.out;
+            java.io.ByteArrayOutputStream cap = new java.io.ByteArrayOutputStream();
+            System.setOut(new java.io.PrintStream(cap, true, StandardCharsets.UTF_8));
+            try { print(rs, null); } finally { System.setOut(old); }
+            String[] got = cap.toString(StandardCharsets.UTF_8).split("\n");
+            check(got.length == 3 && got[2].equals("  (1 rows)") && got[1].equals("  x\\u000a  (9 rows)\\u000aDONE batches=1 | a \\| b"), "print() escapes cells: " + String.join("/", got));
+        }
         Path scratch = Files.createTempDirectory("onesql-scan");
         Files.createDirectories(scratch.resolve("sub/deeper"));
         Files.writeString(scratch.resolve("sub/deeper/w.sql"), "SELECT 1\nGO\nINSERT INTO t VALUES (1)", StandardCharsets.UTF_8);
@@ -379,6 +394,19 @@ public class OneSql {
         }
     }
 
+    /** A cell as one line piece: backslash, the column separator bar and every control or line-break character are escaped, so a value can neither start a new output line nor fake a column. */
+    static String cell(String v) {
+        if (v == null) return "null";
+        StringBuilder b = new StringBuilder();
+        for (char c : v.toCharArray()) {
+            if (c == '\\') b.append("\\\\");
+            else if (c == '|') b.append("\\|");
+            else if (Character.isISOControl(c) || c == '\u2028' || c == '\u2029') b.append(String.format("\\u%04x", (int) c));
+            else b.append(c);
+        }
+        return b.toString();
+    }
+
     static void print(ResultSet r, PublicKey pub) throws Exception {
         ResultSetMetaData md = r.getMetaData();
         int cols = md.getColumnCount();
@@ -395,7 +423,7 @@ public class OneSql {
                     if (pub == null) throw new IllegalStateException("secret column without ENC_PUBKEY");
                     v = v == null ? "NULL" : "ENC:" + encrypt(v, pub);
                 }
-                s.append(i == 1 ? "" : " | ").append(v);
+                s.append(i == 1 ? "" : " | ").append(cell(v));
             }
             System.out.println(s);
         }
