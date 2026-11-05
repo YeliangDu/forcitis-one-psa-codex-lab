@@ -37,7 +37,7 @@ class ReplaceAccountRolesConfirmedTest {
     final AccountGrants grants = mock(AccountGrants.class);
     final ReplaceAccountRoles replace = new ReplaceAccountRoles(accounts, roles, mock(PrivilegeCeiling.class), mock(SessionRevocation.class), mock(AccessCache.class),
             mock(DomainEvents.class), mock(CurrentUser.class), mock(AuthorizationGate.class), mock(AuditLog.class), grants, mock(AdministratorFloor.class),
-            mock(AdministratorFloorNotice.class), mock(AuthorizationVoiding.class));
+            mock(AdministratorFloorNotice.class), mock(AuthorizationVoiding.class), mock(SubjectEmployment.class));
 
     @Test
     void aDeletedRequestedRoleEndsTheConfirmationAsMoved() {

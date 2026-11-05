@@ -8,6 +8,8 @@ import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
 import com.forcitis.one.platform.identity.domain.AccountRepository;
+import com.forcitis.one.platform.identity.domain.AuthorizationRequest;
+import com.forcitis.one.platform.identity.domain.AuthorizationRequestRepository;
 import java.util.Set;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
@@ -16,7 +18,8 @@ import org.springframework.stereotype.Component;
  * The local personnel command took effect (ADR-0068 item 2.5 C; ADR-0055 decision 3 item 2): in one transaction every open grant of the person is closed
  * (cause SEPARATION, the command of the event, an audit entry per grant written back), every session and browser identifier ends and the cache is
  * evicted; the emergency account follows in its own transaction. Workforce judged the last-administrator floor before publishing, so nothing is refused
- * here; a person without an account is a no-op, and a repeated delivery finds nothing left to close.
+ * here; a person without an account is a no-op, and a repeated delivery finds nothing left to close. Every authorization request that still waits and names
+ * the person as the subject or as the requester ends VOIDED with an audit entry (#1322; user 2026-11-04 「作废」), also when the person holds no roles.
  */
 @SystemActorName("platform.identity.separation")
 @Component
@@ -31,9 +34,13 @@ class HandleEmployeeSeparated {
     private final SessionRevocation revocation;
     private final RevokeBrowserIdentifiers revokeBrowserIdentifiers;
     private final AccessCache cache;
+    private final AuthorizationRequestRepository requests;
+    private final AuthorizationVoiding voiding;
 
     HandleEmployeeSeparated(AccountEmployees accountEmployees, AccountRepository accounts, AccountGrants grants, DomainEvents events, SessionRevocation revocation,
-            RevokeBrowserIdentifiers revokeBrowserIdentifiers, AccessCache cache) {
+            RevokeBrowserIdentifiers revokeBrowserIdentifiers, AccessCache cache, AuthorizationRequestRepository requests, AuthorizationVoiding voiding) {
+        this.requests = requests;
+        this.voiding = voiding;
         this.accountEmployees = accountEmployees;
         this.accounts = accounts;
         this.grants = grants;
@@ -58,9 +65,18 @@ class HandleEmployeeSeparated {
                 accounts.save(account);
                 events.publish(account);
             }
+            voidPendingRequests(userId);
         });
         revocation.revokeAll(userId, "separated by personnel command");
         revokeBrowserIdentifiers.execute(userId);
         cache.evict(userId);
+    }
+
+    private void voidPendingRequests(UserId person) {
+        for (AuthorizationRequest request : requests.findPendingOf(person)) {
+            voiding.voidRequest(request, person.equals(request.requestedBy()) ? "the requester separated; nothing was applied" : "the subject separated; nothing was applied");
+            requests.save(request);
+            events.publish(request);
+        }
     }
 }

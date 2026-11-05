@@ -23,4 +23,8 @@ public record WorkCalendarYearRecord(WorkCalendarKey key, List<CalendarDay> days
         Map<LocalDate, DayKind> exceptions = days.stream().collect(Collectors.toMap(CalendarDay::calendarDate, CalendarDay::dayKind));
         return WorkdayRules.isWorkday(date, exceptions);
     }
+
+    public boolean isMakeUpWorkday(LocalDate date) {
+        return days.stream().anyMatch(day -> day.calendarDate().equals(date) && day.dayKind() == DayKind.MAKE_UP_WORKDAY);
+    }
 }

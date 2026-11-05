@@ -66,6 +66,10 @@ class WorkCalendarService implements WorkCalendar {
     }
 
     private boolean isWorkday(LocalDate date, @Nullable LegalEntityId legalEntityId, Map<Integer, WorkCalendarYearRecord> loaded) {
+        return yearOf(date, legalEntityId, loaded).isWorkday(date);
+    }
+
+    private WorkCalendarYearRecord yearOf(LocalDate date, @Nullable LegalEntityId legalEntityId, Map<Integer, WorkCalendarYearRecord> loaded) {
         Objects.requireNonNull(date, "date");
         WorkCalendarYearRecord year = loaded.get(date.getYear());
         if (year == null) {
@@ -74,7 +78,7 @@ class WorkCalendarService implements WorkCalendar {
                     .orElseThrow(() -> notMaintained(date.getYear()));
             loaded.put(date.getYear(), year);
         }
-        return year.isWorkday(date);
+        return year;
     }
 
     private DomainException notMaintained(int calendarYear) {

@@ -57,10 +57,28 @@ class AuthorizationRequestTest {
     }
 
     @Test
-    void onlyAConfirmedRequestCanBeVoided() {
+    void aWaitingRequestEndsVoidedWhenItsSubjectOrRequesterSeparates() {
         AuthorizationRequest request = request();
 
+        request.markVoided();
+
+        assertThat(request.status()).isEqualTo(AuthorizationRequestStatus.VOIDED);
+        assertThat(request.decidedBy()).as("nobody decided it").isNull();
+        assertThat(refusal(() -> request.confirm(OTHER, AT))).isEqualTo(IdentityError.PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_PENDING);
         assertThat(refusal(request::markVoided)).isEqualTo(IdentityError.PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_PENDING);
+    }
+
+    @Test
+    void aRefusedRequestCannotBeVoided() {
+        AuthorizationRequest request = request();
+        request.reject(OTHER, AT);
+
+        assertThat(refusal(request::markVoided)).isEqualTo(IdentityError.PLATFORM_IDENTITY_AUTHORIZATION_REQUEST_NOT_PENDING);
+    }
+
+    @Test
+    void aConfirmedRequestCanBeVoidedOnce() {
+        AuthorizationRequest request = request();
         request.confirm(OTHER, AT);
         request.markVoided();
 
