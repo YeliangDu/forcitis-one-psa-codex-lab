@@ -16,7 +16,7 @@ The manual, approved port of ADR-0087 decision 5.3 / spec 4.5: until performance
 |---|---|---|---|
 | `bonus_inputs` | AGG-76 bonus determination input (spec 4.5) | BonusDetermination | `AGGREGATE_ROOT`, `CONDITIONAL_UPDATE` (void only) |
 
-Keys: UUIDv7 `id`, primary key `pk_bonus_inputs`. Audit columns `created_at`, `updated_at`; no `version` (one legal update, the void, guarded by a trigger). Cross-BC ids (`employment_relationship_id`, `paying_legal_entity_id`, `entered_by_user_id`, `voided_by_user_id`, `approval_instance_id`): `uuid`, no foreign key (B4).
+Keys: UUIDv7 `id`, primary key `pk_bonus_inputs`. Audit columns `created_at`, `updated_at`; no `version` (one legal update, the void, guarded by a trigger). Cross-BC ids (`employment_relationship_id`, `paying_legal_entity_id`, `entered_by_employee_id`, `voided_by_user_id`, `approval_instance_id`): `uuid`, no foreign key (B4).
 
 ## Columns and constraints
 
@@ -31,7 +31,7 @@ Keys: UUIDv7 `id`, primary key `pk_bonus_inputs`. Audit columns `created_at`, `u
 | `source_kind` | text NOT NULL | `ck_bonus_inputs_source_kind` `IN ('MANUAL_APPROVED')`; widening to a performance source is a lossless CHECK change |
 | `reason_key` | text NOT NULL | key from the selection list (data, not a CHECK); format `~ '^[A-Z][A-Z0-9_]{1,39}$'` |
 | `approval_instance_id` | uuid NOT NULL | the approval of this input (the "approval number" is mandatory); `uk_bonus_inputs_approval_instance_id` unique, so a replayed `ApprovalCompleted` finds one row |
-| `entered_by_user_id` | uuid NOT NULL | who entered the input (separation of duties: the settlement approver cannot be this user, done-when 11) |
+| `entered_by_employee_id` | uuid NOT NULL | the employee who entered the input, as the approval carries it (`ApprovalCompleted.initiator` is an `EmployeeId`); separation of duties: the settlement approver (`CurrentUser.employeeId()`) cannot be this employee, done-when 11 |
 | `status` | text NOT NULL | `ACTIVE`, `VOIDED` |
 | `voided_by_user_id` | uuid null | 为空表示 not voided |
 | `voided_at` | timestamptz null | 为空表示 not voided |
@@ -48,9 +48,9 @@ Constraints:
 ## Differences from the section 8 sketch
 
 1. `amount` becomes `bonus_amount` plus `bonus_currency` (naming standard 2.4: every `_amount` pairs with a `_currency`); `reason_key`, `source_kind`, `approval_instance_id` as sketched.
-2. Added `entered_by_user_id` (the SoD rule of done-when 11 needs the enterer), `status` with the void pair, and the key above.
+2. Added `entered_by_employee_id` (the SoD rule of done-when 11 needs the enterer), `status` with the void pair, and the key above.
 
-These two additions are **PY3 scope the spec does not list** (spec 4.5 names only `DetermineBonus` → `BonusDetermined` and a row without status; to be added to spec 4.5 and the PY3 card): (a) `RecordApprovedBonusInput`, run when the approval of an input completes (`platform.approval` result; `entered_by_user_id` is the approval's requester read through the approval api, payroll does not read approval tables; the amount and reason come from the approval's form payload, which therefore holds a per-person pay figure outside this table: its retention and classification follow the approval module's rules and are an owed check for the PY3 card, not decided here); (b) `VoidBonusInput`, run by a payroll-role holder, no approval of its own because it only withdraws an unconsumed input. State machine: `ACTIVE` (initial, set by (a)) → `VOIDED` (set by (b)); Java enum equals `ck_bonus_inputs_status`. Events: (a) is the entry of `BonusDetermined`'s input; the void raises no event of its own (recorded in `state_transitions` and the audit log; nothing downstream subscribes; if the settlement needs to know it re-reads active rows, below). No other command or event changes. B3a: states, enum, commands and events agree on this list.
+These two additions are **PY3 scope the spec does not list** (spec 4.5 names only `DetermineBonus` → `BonusDetermined` and a row without status; to be added to spec 4.5 and the PY3 card): (a) `RecordApprovedBonusInput`, run when the approval of an input completes (`platform.approval` result; `entered_by_employee_id` is the `initiator` of `ApprovalCompleted`; payroll does not read approval tables; the amount and reason come from the form fields of the started request, read through the approval api by the "Approval seam" section below, which therefore holds a per-person pay figure outside this table: its retention and classification follow the approval module's rules and are an owed check for the PY3 card, not decided here); (b) `VoidBonusInput`, run by a payroll-role holder, no approval of its own because it only withdraws an unconsumed input. State machine: `ACTIVE` (initial, set by (a)) → `VOIDED` (set by (b)); Java enum equals `ck_bonus_inputs_status`. Events: (a) is the entry of `BonusDetermined`'s input; the void raises no event of its own (recorded in `state_transitions` and the audit log; nothing downstream subscribes; if the settlement needs to know it re-reads active rows, below). No other command or event changes. B3a: states, enum, commands and events agree on this list.
 
 ## Invariants to constraints (B5, O4)
 
@@ -61,7 +61,7 @@ These two additions are **PY3 scope the spec does not list** (spec 4.5 names onl
 | Month column holds the first day | `ck_bonus_inputs_payroll_month_start_date` | |
 | Amount positive, CNY | `ck_bonus_inputs_bonus_amount`, `ck_bonus_inputs_bonus_currency` | |
 | A row is never edited, only voided | `tg_bonus_inputs_change` | |
-| Settlement approver is not the input's enterer (done-when 11) | | cross-aggregate; checked by `ApproveMonthlyPayroll` against `entered_by_user_id` |
+| Settlement approver is not the input's enterer (done-when 11) | | cross-aggregate; checked by `ApproveMonthlyPayroll` against `entered_by_employee_id` (the approver's `CurrentUser.employeeId()`) |
 | An input is voided only while no `APPROVED` settlement of its entity and month exists (P-R3: approved amounts never change) | | cross-aggregate; checked by the void command |
 | A void and a settlement approval do not race | | the void command takes `FOR UPDATE` on the settlement row of that entity and month first and is refused when it is `APPROVED`; a void after `CALCULATED` but before `APPROVED` is allowed and `ApproveMonthlyPayroll` re-reads the active rows and refuses ("recalculate") when their sum differs from the settlement's bonus lines |
 | The relationship is in service and `paying_legal_entity_id` is its paying entity in that month | | another context's data; checked by the entry command |
@@ -97,7 +97,7 @@ Classification (`data-classification.txt`). **Mapping:** the user's word `CONFID
 | `bonus_amount` | `SENSITIVE` | `PI` | 用途：one person's bonus, the pay figure of a relationship |
 | `reason_key` | `SENSITIVE` | `PI` | 用途：why a person received a bonus, tied to one relationship |
 | `bonus_currency`, `source_kind`, `payroll_month_start_date`, `status` | `INTERNAL` | `NONE` | 用途：qualify the pay figure; not identifying alone |
-| `entered_by_user_id`, `voided_by_user_id`, `voided_at` | `INTERNAL` | `NONE` | 用途：separation-of-duties and audit identities of staff acting in their role |
+| `entered_by_employee_id`, `voided_by_user_id`, `voided_at` | `INTERNAL` | `NONE` | 用途：separation-of-duties and audit identities of staff acting in their role |
 
 Surrogate and reference ids (`id`, `employment_relationship_id`, `paying_legal_entity_id`, `approval_instance_id`) are unregistered (default `INTERNAL`); reads are still restricted to payroll roles and the person themselves by the scope in spec section 5, not by the column level. Bonus amounts are `PI`, not `SPI`: legal's answer on pay as SPI (ADR-0043 U-5, U-11) is not on record here; if legal says SPI, `bonus_amount` changes to `SPI` in one line.
 
@@ -108,6 +108,34 @@ Table: 「粒度：每个任职关系 × 薪酬月份 × 奖金原因一行（�
 ## Baseline, target, transition, rollback (T1 to T4)
 
 New table, no legacy table of this name, no data at creation (inputs come from the approval flow; legacy history comes with the PY10 import slice, its own mapping). Rollback: drop the table (nothing references it until PY4). Expected diff for the schema PR: `organization_payroll.bonus_inputs`, its constraints, the two triggers and functions, the index, and the classification lines.
+
+## Approval seam, process and permissions (amendment, Refs #1436)
+
+Found while building PY3 (one-dev-identity): the record named a form payload the approval api could not return, no process, and no permissions. Lead ruling (technical): option A below (the `formFields` api read; its reviewer-found consequences are in this section; a new `platform.approval` api method should be reviewed with that module's owner). Facts checked on `origin/main` `cf959da57`.
+
+**Starting.** A new command `RequestBonusInput` (not a table change: it writes no payroll row, so the record stays "a row is always approved") derives its request id (a UUID) from the command's idempotency key, so a client retry reuses it and does not start a second approval, and calls `ApprovalProcesses.start` with: process key `organization_payroll_bonus_input` (format `{subdomain}_{bc}_{name}`, G47; the owning context declares the constant in its api, as `TimesheetApprovalProcess` does); `document` = `DocumentReference(BONUS_INPUT, <that request id>)`, so the document id is payroll's own request id and is **not** a table key (nothing in payroll stores it; the approval's `instanceId` is what `bonus_inputs.approval_instance_id` keeps); `legalEntityId` = the paying entity; `initiator` = the caller's employee; `formFields` below; `round` = 1 (one round per request id; after a return or reject the person starts a new request); `trigger` = the command's idempotency key (there is no event to cite); `contentHash` over the field values; `summary` for the cards. A retry with the same request id is the same round and returns the same instance (the approval api is idempotent per process type, document and round). Payroll never takes an initiator from a client (I-5).
+
+**Direct start** (a deliberate departure from the usual `DocumentSubmittedForApproval` event + `StartApprovalOnSubmission`, so the amount never travels in a broadcast event): `start` joins the command's transaction and a refusal (for example the unknown-field refusal above, or a foreign initiator) is returned to the caller synchronously as the command's error.
+
+**Form fields**: `employmentRelationshipId`, `payrollMonthStartDate`, `bonusAmount`, `bonusCurrency`, `reasonKey`, each a single-value `ApprovalField`. **Approval-module change owed (found in review):** `StartApproval` rejects a form field the process does not use (`PLATFORM_APPROVAL_FORM_FIELD_UNKNOWN`), and `FlowableApprovalEngine.formFieldsOf` returns only fields read by an assignment rule (`FORM_FIELD_USERS`, `DEPARTMENT_HEAD`). The recommended route reads none, so these five fields would all be refused. The `platform.approval` card must let a BPMN declare data-only fields (for example a `forcitis:formField name=` extension element that `formFieldsOf` also returns); this widens lead's ruling by one approval-module change and is flagged to lead for confirmation. The alternative, payroll keeping its own pending request, is a table change and is not taken. `RecordApprovedBonusInput` validates the fields with the same rules as the table's CHECKs and rejects a malformed completion without writing (the approval stays as it is; the failure is reported to payroll operators).
+
+**Reading the fields.** `ApprovalProcesses` gets one read: `Map<String, List<String>> formFields(ApprovalInstanceId instance)`, returning the fields as submitted at start, empty for an unknown instance; it does not lock and needs no actor (the caller is a trusted module listener, like `progress`). G4 counts only api methods that have a caller outside the module (`ArchitectureRulesTest.apiSurfaceStaysNarrow`): on `origin/main` `platform.approval` counts **4** (`progress`, `checkWithdraw`, `withdraw`, `cancel`, called by `cost.timesheet`; `start` is called only inside the module, `isFinished` and the two `ApprovalHook` methods have no outside caller). With payroll calling `start` and `formFields` it counts **6**, limit 12. `ApprovalCompleted` stays unchanged (it carries document, process key, instance id, round, outcome and initiator; adding the amount to a broadcast event would spread a pay figure to every subscriber). The listener runs only for `processKey = organization_payroll_bonus_input` and outcome `APPROVED`, idempotent by `approval_instance_id`; every other outcome writes nothing (nothing was written at start).
+
+**Document type.** `BONUS_INPUT` is a new document type code: the numbering seed rows and the `documentType` enum of `docs/architecture/events/approval.yaml` (today `QUOTE`, `TIMESHEET`, `JOURNAL_VOUCHER`) both gain it; `ApprovalCompleted`'s payload is otherwise untouched. Owed to the implementation card with the BPMN file `processes/organization_payroll_bonus_input.bpmn20.xml`.
+
+**Routing: not decided here.** Who approves a bonus (nodes, order, deadlines) is a business choice and is not in the spec; the BPMN shape is a countersign chain of `assignmentRule` nodes as in `cost_timesheet_approval`. Recommendation to lead for the user: one stage, the initiator's supervisor (`INITIATOR_SUPERVISOR` level 1) then a payroll-role holder who is not the initiator; no routing flags (nothing branches on data the module computes). Done-when 11 stays: the settlement approver may not be `entered_by_employee_id`. Until the user answers, the implementation card may ship the process with that chain marked as provisional in the BPMN comment only if lead accepts it; otherwise the card waits.
+
+**Permissions** (G43: `{subdomain}.{BC}:{resource}:{action}`, action from `standard_actions`; resource singular, kebab; follow the catalogue):
+
+| Code | Holder | Used by |
+|---|---|---|
+| `organization.payroll:bonus-input:submit` | payroll role | `RequestBonusInput` (starts the approval) |
+| `organization.payroll:bonus-input:update` | payroll role | `VoidBonusInput` |
+| `organization.payroll:bonus-input:read` | payroll role | the PY4 settlement read and the list; the person reads only their own through the scope of spec section 5 |
+
+`RecordApprovedBonusInput` has no user permission: it runs as the system listener of `ApprovalCompleted`. Void is a business command, not a delete (A-1), and no action in `standard_actions` is named "void"; it maps to `update` because its only effect is the one legal update of the row (`ACTIVE` to `VOIDED`), as `organization.attendance:locked-day:update` does for its own state change; adding a `void` action would be a glossary change for one use and is not proposed. `delete` is not used: the row is never deleted (purge route only).
+
+**Changed by this amendment:** one column, `entered_by_user_id` becomes `entered_by_employee_id` (the id type the approval carries; the approver side uses `CurrentUser.employeeId()`), with the invariant row and classification line following. **Not changed:** the other columns, constraints, triggers, registry lines, retention (P-9 a), events. The approval's own copy of the amount (the form fields) follows the approval module's retention (fact: the fields live only as engine process variables; `ProcessArchiveJob` keeps them online 3 years and then archives only whitelisted variables, so the approval-side copy of the amount is deleted after 3 years and never archived); whether the approval store must follow the ten-year purge of P-9 a is a **question for lead/legal outside this record**, owed before the PY3 card claims the retention is enforced.
 
 ## Events and read models (E1 to E3)
 
@@ -121,3 +149,4 @@ New table, no legacy table of this name, no data at creation (inputs come from t
 - 豁免与待用户决定：保留期与分级已由用户答复（P-9 a）；`PI` 还是 `SPI` 待法务（ADR-0043 U-5、U-11），现按 `PI`，改标记为一行改动；清除路径扩到薪酬表是后续清除卡的欠项
 - 结论：通过（仅 `bonus_inputs`）
 - 数据设计：通过（one-design，2026-11-05，依据 793c4dd02）
+- 修订（one-design，2026-11-05，依据 cf959da57，Refs #1436）：增补「Approval seam, process and permissions」一节；仅一列改名 `entered_by_user_id` → `entered_by_employee_id`（审批携带的是 EmployeeId），其余表、约束、触发器、登记、保留期、事件均未变，上面的判定不变
