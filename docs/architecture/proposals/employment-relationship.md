@@ -217,7 +217,7 @@ Out of scope: the labour contract zone, employment-type values (that card adds t
 
 ## Appendix A. 数据设计
 
-本附录是数据设计门禁（`docs/data/data-design-gate.md` 附录 A）的材料；4.1 节是形状，本附录是逐表、逐列、逐约束、逐索引的预期 diff 与各项判据。基线按卡版本 bfc8e6f6a 之后的修订（评审 `docs/data/reviews/1308.md`）。
+本附录是数据设计门禁（`docs/data/data-design-gate.md` 附录 A）的材料；4.1 节是形状，本附录是逐表、逐列、逐约束、逐索引的预期 diff 与各项判据。基线按卡版本 bfc8e6f6a 之后的修订（评审记录写入 docs/data/reviews 下以卡号命名的文件）。
 
 - 涉数据：是。新表 `employment_relationships`；改表三张：`employee_versions`（改名为 `employment_relationship_versions`）、`personnel_commands`、`assignment_versions`。`employee_assignments`（任职根）与 `employees` 不改结构。
 - 阶段（T2）：表属 `organization.workforce`，落在 W0（`docs/architecture/ssot/transitions/transitions.yaml` 的 W0，delivers 含 organization.workforce）；请假、薪资的读口径随各自的 W2、W4 建造（ADR-0086 头部阶段）。
@@ -323,4 +323,4 @@ Out of scope: the labour contract zone, employment-type values (that card adds t
   4. `assignment_versions`：加 `employment_relationship_id`；复合外键；`ix_assignment_versions_relationship`；注释。
   5. 计数：新增 1 表；改 3 表（版本表加 1 列并改名、命令表加 1 列、任职版本加 1 列）；排他约束 1 个改键；唯一键 1 个改键；部分唯一索引 1 个拆为 2 个；CHECK 新增 4 条、改写 2 条；外键新增（复合）6 条、改写 1 条。
   6. 注册表、`data-classification.txt`、`unversioned-table-writes.txt` 的键名与新条目如上。
-- 签发：数据设计签发由 one-design 承担（`docs/rules/roles/design.md`）；本附录作者即 one-design，故由独立审查员按门禁评审，记录写入 `docs/data/reviews/1308.md`，签发行格式见门禁附录 B。
+- 签发：数据设计签发由 one-design 承担（`docs/rules/roles/design.md`）；本附录作者即 one-design，故由独立审查员按门禁评审，记录写入 docs/data/reviews 下以卡号命名的文件，签发行格式见门禁附录 B。
