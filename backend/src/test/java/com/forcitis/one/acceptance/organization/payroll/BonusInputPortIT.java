@@ -220,4 +220,17 @@ class BonusInputPortIT extends BonusInputSupport {
         }
         return mvc.perform(request).andReturn().getResponse().getStatus();
     }
+
+    @Test
+    @DisplayName("#1436 PY3 request (g)：读取权限只来自数据范围窄于「全部」的角色（仅本部门）的人，按 id 读得未找到、列表为空（fail-closed）；薪资专员读得到")
+    void aReadRoleWithANarrowerScopeThanAllReadsNothing() throws Exception {
+        UUID relationship = UUID.randomUUID();
+        Submitted submitted = approved(relationship, OCTOBER, "100.00", "YEAR_END");
+        UUID id = rowId(submitted);
+        SignedIn narrow = holderOfReadWithScope("OWN_ORG_UNIT");
+
+        assertRefusedWith(() -> summary(narrow, id), NOT_FOUND);
+        assertThat(list(narrow, relationship, OCTOBER, OCTOBER)).as("a narrower scope sees no row").isEmpty();
+        assertThat(list(specialistAccount, relationship, OCTOBER, OCTOBER)).as("control: the payroll role sees it").hasSize(1);
+    }
 }
