@@ -8,7 +8,9 @@ public enum LoginMethod {
     WECOM_QR_CODE_LOGIN,
     SSO,
     SIGNED_TICKET,
-    EMERGENCY;
+    EMERGENCY,
+    /** Only the login of the profile local (LoginAsLocalTestUser); the audit table's login_method_kind does not list it, so its audit entry carries the method in the detail only. */
+    LOCAL_TEST;
 
     /** A ticket arrives from another site, so whose identity it is has to be confirmed by the person in front of the screen (C-M7). */
     public boolean requiresIdentityConfirmation() {

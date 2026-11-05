@@ -78,8 +78,10 @@ class LoginAdmission {
     private LoginResult complete(UserId userId, LoginMethod method, boolean identityConfirmed, @Nullable String browserIdentifier) {
         Instant now = clock.instant();
         accounts.recordLogin(userId, now, origin.address());
-        audit.record(new AuditEntry("platform.identity.login.succeeded", userId, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
-                describe(method, null)).withTrace(origin.address(), AuditOutcome.SUCCEEDED, method.name()));
+        AuditEntry succeeded = new AuditEntry("platform.identity.login.succeeded", userId, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
+                describe(method, null));
+        audit.record(method == LoginMethod.LOCAL_TEST ? succeeded.withTrace(origin.address(), AuditOutcome.SUCCEEDED, null)
+                : succeeded.withTrace(origin.address(), AuditOutcome.SUCCEEDED, method.name()));
         StartedSession started = sessions.start(userId, method, identityConfirmed);
         meters.counter("forcitis.platform.identity.login", "method", method.name(), "outcome", "success").increment();
         if (started.administratorModeExpiresAt() != null) {
