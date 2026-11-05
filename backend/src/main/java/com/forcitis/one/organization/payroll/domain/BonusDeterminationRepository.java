@@ -7,21 +7,21 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-public interface BonusInputRepository {
+public interface BonusDeterminationRepository {
 
     /** Writes a new ACTIVE row; false when the database already holds a row of this approval or an ACTIVE one of the same relationship, month and reason. */
-    boolean insertApproved(BonusInput input);
+    boolean insertApproved(BonusDetermination input);
 
     boolean existsForApproval(ApprovalInstanceId approval);
 
-    Optional<BonusInput> find(BonusInputId id);
+    Optional<BonusDetermination> find(BonusInputId id);
 
     /** Reads the row and locks it until the transaction ends. */
-    Optional<BonusInput> findForUpdate(BonusInputId id);
+    Optional<BonusDetermination> findForUpdate(BonusInputId id);
 
     /** Writes the void of a row that was read. */
-    void saveVoided(BonusInput input);
+    void saveVoided(BonusDetermination input);
 
     /** Months fromMonth to toMonth, both included; newest month first, then by id. */
-    List<BonusInput> listForRelationship(EmploymentRelationshipId relationship, LocalDate fromMonth, LocalDate toMonth);
+    List<BonusDetermination> listForRelationship(EmploymentRelationshipId relationship, LocalDate fromMonth, LocalDate toMonth);
 }

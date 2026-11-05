@@ -6,8 +6,8 @@ import com.forcitis.one.kernel.Money;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.payroll.api.BonusInputId;
 import com.forcitis.one.organization.payroll.api.BonusInputStatus;
-import com.forcitis.one.organization.payroll.domain.BonusInput;
-import com.forcitis.one.organization.payroll.domain.BonusInputRepository;
+import com.forcitis.one.organization.payroll.domain.BonusDetermination;
+import com.forcitis.one.organization.payroll.domain.BonusDeterminationRepository;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import java.sql.ResultSet;
@@ -24,20 +24,20 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 @Repository
-class JdbcBonusInputRepository implements BonusInputRepository {
+class JdbcBonusDeterminationRepository implements BonusDeterminationRepository {
     private static final String COLUMNS = """
             id, employment_relationship_id, paying_legal_entity_id, payroll_month_start_date, bonus_amount, reason_key, approval_instance_id,
             entered_by_employee_id, created_at, status, voided_by_user_id, voided_at
             """;
 
     private final JdbcClient jdbc;
-    JdbcBonusInputRepository(JdbcClient jdbc) {
+    JdbcBonusDeterminationRepository(JdbcClient jdbc) {
         this.jdbc = jdbc;
     }
 
     /** No conflict target: either unique key (the approval, or the ACTIVE business key) leaves the row unwritten, and the caller tells a replay from a duplicate. */
     @Override
-    public boolean insertApproved(BonusInput input) {
+    public boolean insertApproved(BonusDetermination input) {
         return jdbc.sql("""
                 insert into organization_payroll.bonus_inputs (id, employment_relationship_id, paying_legal_entity_id, payroll_month_start_date, bonus_amount,
                        bonus_currency, source_kind, reason_key, approval_instance_id, entered_by_employee_id, status, created_at, updated_at)
@@ -56,19 +56,19 @@ class JdbcBonusInputRepository implements BonusInputRepository {
     }
 
     @Override
-    public Optional<BonusInput> find(BonusInputId id) {
+    public Optional<BonusDetermination> find(BonusInputId id) {
         return jdbc.sql("select " + COLUMNS + " from organization_payroll.bonus_inputs where id = :id").param("id", id.value()).query((rs, n) -> read(rs)).optional();
     }
 
     @Override
-    public Optional<BonusInput> findForUpdate(BonusInputId id) {
+    public Optional<BonusDetermination> findForUpdate(BonusInputId id) {
         return jdbc.sql("select " + COLUMNS + " from organization_payroll.bonus_inputs where id = :id for no key update").param("id", id.value())
                 .query((rs, n) -> read(rs)).optional();
     }
 
     /** The trigger allows exactly this update of an ACTIVE row; the row was read FOR UPDATE, so no version column is needed. */
     @Override
-    public void saveVoided(BonusInput input) {
+    public void saveVoided(BonusDetermination input) {
         OffsetDateTime at = at(Objects.requireNonNull(input.voidedAt()));
         jdbc.sql("""
                 update organization_payroll.bonus_inputs set status = 'VOIDED', voided_by_user_id = :by, voided_at = :at, updated_at = :at where id = :id
@@ -76,7 +76,7 @@ class JdbcBonusInputRepository implements BonusInputRepository {
     }
 
     @Override
-    public List<BonusInput> listForRelationship(EmploymentRelationshipId relationship, LocalDate fromMonth, LocalDate toMonth) {
+    public List<BonusDetermination> listForRelationship(EmploymentRelationshipId relationship, LocalDate fromMonth, LocalDate toMonth) {
         return jdbc.sql("select " + COLUMNS + """
                   from organization_payroll.bonus_inputs
                  where employment_relationship_id = :relationship and payroll_month_start_date between :fromMonth and :toMonth
@@ -88,10 +88,10 @@ class JdbcBonusInputRepository implements BonusInputRepository {
         return instant.atOffset(ZoneOffset.UTC);
     }
 
-    private static BonusInput read(ResultSet rs) throws SQLException {
+    private static BonusDetermination read(ResultSet rs) throws SQLException {
         OffsetDateTime voidedAt = rs.getObject("voided_at", OffsetDateTime.class);
         UUID voidedBy = rs.getObject("voided_by_user_id", UUID.class);
-        return BonusInput.restore(new BonusInputId(rs.getObject("id", UUID.class)),
+        return BonusDetermination.restore(new BonusInputId(rs.getObject("id", UUID.class)),
                 new EmploymentRelationshipId(rs.getObject("employment_relationship_id", UUID.class)),
                 new LegalEntityId(rs.getObject("paying_legal_entity_id", UUID.class)), rs.getObject("payroll_month_start_date", LocalDate.class),
                 new Money(rs.getBigDecimal("bonus_amount"), Currency.getInstance(rs.getString("bonus_currency"))), rs.getString("reason_key"), new ApprovalInstanceId(rs.getObject("approval_instance_id", UUID.class)),

@@ -13,8 +13,8 @@ import com.forcitis.one.organization.payroll.api.BonusInputs;
 import com.forcitis.one.organization.payroll.api.PayrollError;
 import com.forcitis.one.organization.payroll.api.RequestBonusInput;
 import com.forcitis.one.organization.payroll.api.VoidBonusInput;
-import com.forcitis.one.organization.payroll.domain.BonusInput;
-import com.forcitis.one.organization.payroll.domain.BonusInputRepository;
+import com.forcitis.one.organization.payroll.domain.BonusDetermination;
+import com.forcitis.one.organization.payroll.domain.BonusDeterminationRepository;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationships;
 import com.forcitis.one.platform.approval.api.ApprovalField;
@@ -52,14 +52,14 @@ class BonusInputsService implements BonusInputs {
     static final String READ = "organization.payroll:bonus-input:read";
     private static final String REQUEST_NAMESPACE = "organization.payroll.bonus-input-request:";
 
-    private final BonusInputRepository inputs;
+    private final BonusDeterminationRepository inputs;
     private final ApprovalProcesses approvals;
     private final EmploymentRelationships relationships;
     private final AuditLog audit;
     private final CurrentUser currentUser;
     private final Clock clock;
 
-    BonusInputsService(BonusInputRepository inputs, ApprovalProcesses approvals, EmploymentRelationships relationships, AuditLog audit, CurrentUser currentUser,
+    BonusInputsService(BonusDeterminationRepository inputs, ApprovalProcesses approvals, EmploymentRelationships relationships, AuditLog audit, CurrentUser currentUser,
             Clock clock) {
         this.inputs = inputs;
         this.approvals = approvals;
@@ -73,7 +73,7 @@ class BonusInputsService implements BonusInputs {
     @PreAuthorize("hasAuthority('" + SUBMIT + "')")
     @Transactional
     public ApprovalInstanceId request(RequestBonusInput command) {
-        BonusInput.check(command.payrollMonthStartDate(), command.bonus(), command.reasonKey());
+        BonusDetermination.check(command.payrollMonthStartDate(), command.bonus(), command.reasonKey());
         if (relationships.get(command.employmentRelationshipId()).isEmpty()) {
             throw new DomainException(PayrollError.ORGANIZATION_PAYROLL_BONUS_INPUT_INVALID, ErrorKind.UNPROCESSABLE, "no such employment relationship");
         }
@@ -93,7 +93,7 @@ class BonusInputsService implements BonusInputs {
     @PreAuthorize("hasAuthority('" + UPDATE + "')")
     @Transactional
     public void voidInput(VoidBonusInput command) {
-        BonusInput input = inputs.findForUpdate(command.id()).orElseThrow(() -> notFound(command.id()));
+        BonusDetermination input = inputs.findForUpdate(command.id()).orElseThrow(() -> notFound(command.id()));
         // PY4 adds the refusal while an APPROVED settlement of the entity and month exists, taking FOR UPDATE on that settlement first; no settlement exists yet.
         UserId by = currentUser.userId();
         input.voidBy(by, clock.instant());
@@ -116,7 +116,7 @@ class BonusInputsService implements BonusInputs {
         return inputs.listForRelationship(relationship, fromMonth, toMonth).stream().map(BonusInputsService::summary).toList();
     }
 
-    private static BonusInputSummary summary(BonusInput input) {
+    private static BonusInputSummary summary(BonusDetermination input) {
         return new BonusInputSummary(input.id(), input.employmentRelationshipId(), input.payingLegalEntityId(), input.payrollMonthStartDate(), input.bonus(),
                 input.reasonKey(), input.status(), input.enteredByEmployeeId(), input.voidedByUserId());
     }

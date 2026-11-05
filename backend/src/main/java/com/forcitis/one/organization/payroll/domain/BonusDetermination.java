@@ -25,7 +25,7 @@ import org.jspecify.annotations.Nullable;
  * One approved bonus input (BonusDetermination, PY3 record). It is created only from a completed approval, so it is ACTIVE from the start; the one change is the
  * void. The rules of {@link #check} are the table's CHECKs: a malformed approval is refused here, before the database would refuse it.
  */
-public final class BonusInput {
+public final class BonusDetermination {
     private static final Pattern REASON_KEY = Pattern.compile("[A-Z][A-Z0-9_]{1,39}");
     private static final String CURRENCY = "CNY";
 
@@ -42,7 +42,7 @@ public final class BonusInput {
     private @Nullable UserId voidedByUserId;
     private @Nullable Instant voidedAt;
 
-    private BonusInput(BonusInputId id, EmploymentRelationshipId employmentRelationshipId, LegalEntityId payingLegalEntityId, LocalDate payrollMonthStartDate,
+    private BonusDetermination(BonusInputId id, EmploymentRelationshipId employmentRelationshipId, LegalEntityId payingLegalEntityId, LocalDate payrollMonthStartDate,
             Money bonus, String reasonKey, ApprovalInstanceId approvalInstanceId, EmployeeId enteredByEmployeeId, Instant createdAt,
             BonusInputStatus status, @Nullable UserId voidedByUserId, @Nullable Instant voidedAt) {
         this.id = id;
@@ -76,7 +76,7 @@ public final class BonusInput {
     }
 
     /** Reads the five form fields of the approval; each must be present once. */
-    public static BonusInput approved(BonusInputId id, LegalEntityId payingLegalEntityId, EmployeeId enteredBy, ApprovalInstanceId approval,
+    public static BonusDetermination approved(BonusInputId id, LegalEntityId payingLegalEntityId, EmployeeId enteredBy, ApprovalInstanceId approval,
             Map<String, List<String>> fields, Instant now) {
         try {
             EmploymentRelationshipId relationship = new EmploymentRelationshipId(UUID.fromString(single(fields, BonusInputApprovalProcess.EMPLOYMENT_RELATIONSHIP_ID)));
@@ -84,16 +84,16 @@ public final class BonusInput {
             Money bonus = Money.of(single(fields, BonusInputApprovalProcess.BONUS_AMOUNT), single(fields, BonusInputApprovalProcess.BONUS_CURRENCY));
             String reason = single(fields, BonusInputApprovalProcess.REASON_KEY);
             check(month, bonus, reason);
-            return new BonusInput(id, relationship, payingLegalEntityId, month, bonus, reason, approval, enteredBy, now, BonusInputStatus.ACTIVE, null, null);
+            return new BonusDetermination(id, relationship, payingLegalEntityId, month, bonus, reason, approval, enteredBy, now, BonusInputStatus.ACTIVE, null, null);
         } catch (IllegalArgumentException | DateTimeParseException malformed) {
             throw invalid("the approval's form fields are not a valid bonus input");
         }
     }
 
-    public static BonusInput restore(BonusInputId id, EmploymentRelationshipId relationship, LegalEntityId payingLegalEntityId, LocalDate month,
+    public static BonusDetermination restore(BonusInputId id, EmploymentRelationshipId relationship, LegalEntityId payingLegalEntityId, LocalDate month,
             Money bonus, String reasonKey, ApprovalInstanceId approval, EmployeeId enteredBy, Instant createdAt, BonusInputStatus status,
             @Nullable UserId voidedBy, @Nullable Instant voidedAt) {
-        return new BonusInput(id, relationship, payingLegalEntityId, month, bonus, reasonKey, approval, enteredBy, createdAt, status, voidedBy, voidedAt);
+        return new BonusDetermination(id, relationship, payingLegalEntityId, month, bonus, reasonKey, approval, enteredBy, createdAt, status, voidedBy, voidedAt);
     }
 
     /** ACTIVE to VOIDED, once. */

@@ -460,6 +460,13 @@ operations:
     summary: platform.approval 消费
     messages:
     - $ref: '#/channels/approvalCompleted/messages/ApprovalCompleted'
+  handleApprovalCompletedInOrganizationPayroll:
+    action: receive
+    channel:
+      $ref: '#/channels/approvalCompleted'
+    summary: organization.payroll 消费
+    messages:
+    - $ref: '#/channels/approvalCompleted/messages/ApprovalCompleted'
   publishDocumentSubmittedForApproval:
     action: send
     channel:
@@ -1736,6 +1743,7 @@ components:
         - platform.audit
         - cost.timesheet
         - platform.approval
+        - organization.payroll
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 审批结束当日（Asia/Shanghai）
