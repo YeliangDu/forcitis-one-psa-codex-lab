@@ -70,6 +70,20 @@ terms:
   forbidden: []
   status: proposed
   note: '#1439'
+- id: error__accounting_period_year_before_latest
+  zh: 会计年度早于已开年度
+  en: AccountingPeriodYearBeforeLatest
+  snake: accounting_period_year_before_latest
+  kind: error_code
+  bc: accounting.period
+  scope: domain
+  definition: 要开的年度早于该法人已开的最晚年度（422），已开账的期间之前不再补开，历史年度走历史期间迁移
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1439'
 - id: error__accounting_period_year_too_far_ahead
   zh: 会计年度跨得太远
   en: AccountingPeriodYearTooFarAhead
