@@ -9,11 +9,10 @@ The forensic credential never leaves the servers: it is encrypted on the secret 
 Java process there. Nothing the server prints is shown here: the result is written to --out (outside any git work tree) and only counts are printed.
 
 What is sent: the SQL file after validate_select (one SELECT, comments removed, no write/EXEC/INTO/second statement); the Java side (tools/ops/dba/OneSql.java ro)
-checks again and rolls back. Each run first appends one register fragment (docs/ops/legacy-read/) without row data. The first run per target (and every 30 days)
+checks again and rolls back. Each run first appends one register fragment (docs/ops/legacy-read/) without row data. Before every read it
 runs the ADR-0037 item 4 checks (a)-(f) on the forensic account and stops when it is not the expected read-only one.
 """
 import base64
-import datetime
 import gzip
 import json
 import os
@@ -29,7 +28,6 @@ REPO = HERE.parents[2]
 CONFIG = Path.home() / ".config" / "forcitis-forensic" / "config.json"
 ONE_SQL = HERE / "OneSql.java"
 MAX_SQL_BYTES = 64 * 1024
-RECHECK_DAYS = 30
 # Baselines of the forensic account (ADR-0037 decision 5 item 4 (a)-(f)); the sets mirror backend/.../integration/infrastructure/connection/ReadOnlyBaseline.java and the
 # "有效权限平台基线" section of docs/ops/dba-scripts/README.md. Anything else, or no SELECT, stops the run.
 EXPECTED_PERMISSIONS = {"CONNECT", "KILL DATABASE CONNECTION", "SELECT", "SHOWPLAN", "VIEW ANY COLUMN ENCRYPTION KEY DEFINITION",
@@ -42,7 +40,7 @@ FIXED_SERVER_ROLES = ("sysadmin", "serveradmin", "securityadmin", "processadmin"
 CHECK_DBS_SQL = "SELECT name FROM sys.databases WHERE HAS_DBACCESS(name) = 1"
 SYSTEM_DATABASES = {"master", "msdb", "rdscore", "tempdb"}  # guest access the platform gives every login (ReadOnlyBaseline: system databases and rdscore)
 CELL_LIMIT, DEFINITION_CELL_LIMIT = 300, 2000  # longest cell a result may hold; --definitions raises it for form/field definition text
-PERSONAL = {"id number": r"(?<!\d)[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx](?!\d)", "mobile number": r"(?<!\d)1[3-9]\d{9}(?!\d)", "email address": r"[\w.+-]+@[\w-]+\.[\w.-]+"}
+PERSONAL = {"id number": r"(?<!\d)[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx](?!\d)", "mobile number": r"(?<!\d)(?:\+?86[- ]?)?1[3-9]\d[- ]?\d{4}[- ]?\d{4}(?!\d)", "15-digit id number": r"(?<!\d)[1-9]\d{5}\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}(?!\d)", "email address": r"[\w.+-]+@[\w-]+\.[\w.-]+"}
 
 
 def _t(expr):
@@ -62,7 +60,7 @@ CHECK_SQL = " UNION ALL ".join([
     "SELECT N'owned', N'roles', CAST(COUNT(*) AS nvarchar(20)) FROM sys.database_principals WHERE owning_principal_id = USER_ID()",
     "SELECT N'owned', N'database', CAST(COUNT(*) AS nvarchar(20)) FROM sys.databases WHERE database_id = DB_ID() AND owner_sid = SUSER_SID()",
 ])
-FORBIDDEN = re.compile(r"\b(INTO|INSERT|UPDATE|DELETE|MERGE|CREATE|ALTER|DROP|TRUNCATE|GRANT|DENY|REVOKE|EXEC|EXECUTE|DECLARE|SET|USE|BEGIN|COMMIT|ROLLBACK|SAVE|"
+FORBIDDEN = re.compile(r"(?<![A-Za-z_@#$])(INTO|INSERT|UPDATE|DELETE|MERGE|CREATE|ALTER|DROP|TRUNCATE|GRANT|DENY|REVOKE|EXEC|EXECUTE|DECLARE|SET|USE|BEGIN|COMMIT|ROLLBACK|SAVE|"
                        r"IF|WHILE|GOTO|RETURN|TRY|CATCH|PRINT|RAISERROR|THROW|WAITFOR|BACKUP|RESTORE|SHUTDOWN|KILL|DBCC|RECONFIGURE|BULK|WRITETEXT|UPDATETEXT|"
                        r"OPENROWSET|OPENDATASOURCE|OPENQUERY|OPENXML|GO|DISABLE|ENABLE|RECEIVE|SEND|MOVE|GET|CHECKPOINT|OPEN|CLOSE|DEALLOCATE|REVERT|SETUSER|ADD|READTEXT|UPDLOCK|XLOCK|HOLDLOCK|TABLOCKX|PAGLOCK|NEXT\s+VALUE|(sp|xp)_\w*)\b", re.I)
 
@@ -229,9 +227,19 @@ def rows_of(output):  # data rows of OneSql's first result: lists of cells
     return [] if head is None else [[c.strip() for c in l[2:].split(" | ")] for l in lines[head + 1:] if l.startswith("  ") and not l.startswith("  (")]
 
 
-def account_problems(conf, target, rows):
+def checked_rows(output):  # the rows of a check answer, or None when it is not one complete result: an error, several results, a missing or wrong row-count trailer
+    lines = output.splitlines()
+    rows = rows_of(output)
+    counts = [re.fullmatch(r"  \((\d+) rows\)", l) for l in lines]
+    counts = [int(m.group(1)) for m in counts if m]
+    if any(l.startswith("SQLERROR") for l in lines) or sum(1 for l in lines if l.startswith("  #")) != 1 or counts != [len(rows)]:
+        return None
+    return rows
+
+
+def account_problems(conf, target, rows):  # rows None: the answer was incomplete
     """ADR-0037 decision 5 item 4 (a)-(e) from CHECK_SQL's rows (kind, a, b): the categories that failed, [] when the account is the expected read-only one. Never names an object."""
-    if not rows or any(len(r) != 3 for r in rows):
+    if not rows or any(len(r) != 3 for r in rows):  # also None
         return ["undeterminable answer"]
     by = {}
     for kind, a, b in rows:
@@ -259,9 +267,11 @@ def account_problems(conf, target, rows):
     return bad
 
 
-def databases_ok(conf, rows):  # the login reaches exactly the configured target databases (plus the platform guest ones)
+def databases_ok(conf, rows):  # rows None: incomplete answer. The login reaches exactly the configured target databases (plus the platform guest ones)
+    if not rows:
+        return False
     names = {r[0] for r in rows}
-    return bool(rows) and all(len(r) == 1 for r in rows) and names - SYSTEM_DATABASES == {t["database"] for t in conf["targets"].values()}
+    return all(len(r) == 1 for r in rows) and names - SYSTEM_DATABASES == {t["database"] for t in conf["targets"].values()}
 
 
 def output_problems(text, limit):  # kinds and counts only, never the matched text: personal-data shapes anywhere, cells longer than the limit
@@ -271,21 +281,10 @@ def output_problems(text, limit):  # kinds and counts only, never the matched te
     return ", ".join(f"{n} x {kind}" for kind, n in found.items() if n)
 
 
-def marker_for(target):
-    return CONFIG.parent / f"verified-{target}"
-
-
-def verified_recently(target):
-    try:
-        return (time.time() - marker_for(target).stat().st_mtime) < RECHECK_DAYS * 86400
-    except OSError:
-        return False
-
-
 def register(args, conf, sql):  # one fragment per run, before anything is sent (ADR-0037 decision 7); no row data
     sys.path.insert(0, str(REPO / "tools" / "evidence"))
     import new_legacy_read
-    new_legacy_read.main([f"--session={args.session}", f"forensic account ({conf['account']})", f"{args.target}: {tables_of(sql)}", args.purpose,
+    new_legacy_read.main([f"--session={args.session}", "ADR-0037 forensic read-only account", f"{args.target}: {tables_of(sql)}", args.purpose,
                           f"file {os.path.basename(args.out)} outside the repository; the session keeps counts and conclusions only",
                           f"app-host temporary directory removed at the end of the run; local file: {args.delete_at}", "ADR-0037 decision 7; card #1377 entry"])
 
@@ -316,13 +315,11 @@ def main(argv, cloud_factory=Cloud):
         database = conf["targets"][args.target]["database"]
         register(args, conf, sql)
         cloud = cloud_factory(conf)
-        if not verified_recently(args.target):
-            problems = account_problems(conf, args.target, rows_of(server_run(cloud, conf, database, CHECK_SQL)))
-            if not problems and not databases_ok(conf, rows_of(server_run(cloud, conf, database, CHECK_DBS_SQL))):
-                problems = ["reachable databases"]
-            if problems:
-                raise Refused(f"forensic account check failed ({', '.join(problems)}); nothing was run")
-            marker_for(args.target).write_text(datetime.date.today().isoformat(), encoding="utf-8")
+        problems = account_problems(conf, args.target, checked_rows(server_run(cloud, conf, database, CHECK_SQL)))  # before every read (ADR-0037 decision 5 item 4)
+        if not problems and not databases_ok(conf, checked_rows(server_run(cloud, conf, database, CHECK_DBS_SQL))):
+            problems = ["reachable databases"]
+        if problems:
+            raise Refused(f"forensic account check failed ({', '.join(problems)}); nothing was run")
         text = server_run(cloud, conf, database, sql)
         problems = output_problems(text, DEFINITION_CELL_LIMIT if args.definitions else CELL_LIMIT)
         if problems:

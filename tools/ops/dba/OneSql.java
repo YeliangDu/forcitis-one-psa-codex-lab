@@ -35,7 +35,7 @@ import javax.crypto.spec.PSource;
 public class OneSql {
     static final String HOST = "rm-bp1690ep53t9778dp.sqlserver.rds.aliyuncs.com";
     // matched on the code only (comments and string literals removed by codeOnly): anything that writes, runs other code, ends the transaction or reaches outside the server
-    static final Pattern WRITE = Pattern.compile("\\b(CREATE|ALTER|DROP|GRANT|DENY|REVOKE|INSERT|UPDATE|DELETE|MERGE|EXEC|EXECUTE|TRUNCATE|BACKUP|RESTORE|SHUTDOWN|KILL|DBCC"
+    static final Pattern WRITE = Pattern.compile("(?<![A-Za-z_@#$])(CREATE|ALTER|DROP|GRANT|DENY|REVOKE|INSERT|UPDATE|DELETE|MERGE|EXEC|EXECUTE|TRUNCATE|BACKUP|RESTORE|SHUTDOWN|KILL|DBCC"
             + "|COMMIT|ROLLBACK|SAVE|BEGIN\\s+(TRAN|TRANSACTION|DISTRIBUTED)|WRITETEXT|UPDATETEXT|BULK|OPENROWSET|OPENDATASOURCE|OPENQUERY|RECONFIGURE|USE"
             + "|(sp|xp)_\\w+|INTO\\s+(?!#))\\b", Pattern.CASE_INSENSITIVE);
 
@@ -131,7 +131,8 @@ public class OneSql {
                 "SELECT 1\nGO\nCREATE TABLE t (a int)", "SELECT '--'; DELETE FROM t", "SELECT 'a'' -- ''b'; DELETE FROM t", "EXECUTE('DEL' + 'ETE FROM t')",
                 "sp_executesql N'DELETE FROM t'", "SELECT * INTO dbo.copy FROM t", "WRITETEXT t.c @p 'x'", "UPDATETEXT t.c @p 0 NULL 'x'", "COMMIT",
                 "SELECT 1; COMMIT TRANSACTION", "BEGIN TRAN; SELECT 1", "ROLLBACK", "SELECT * FROM OPENROWSET('SQLNCLI', 'x', 'SELECT 1')", "xp_cmdshell 'dir'",
-                "USE master", "/* ' */ DELETE FROM t", "SELECT 1 /* -- */; DELETE FROM t"}) {
+                "USE master", "/* ' */ DELETE FROM t", "SELECT 1 /* -- */; DELETE FROM t",
+                "SELECT 1DELETE FROM t", "SELECT 1COMMIT", "SELECT 1KILL 55", "SELECT 1DBCC FREEPROCCACHE", "SELECT 0x1DELETE FROM t", "SELECT 1e1DELETE FROM t"}) {
             check(refused(() -> readOnlyBatches(write, none)), "a write statement is refused: " + write);
         }
         for (String mode : new String[] {"rw", "deny", "RO", ""}) {

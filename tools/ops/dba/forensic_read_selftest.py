@@ -45,6 +45,10 @@ BAD_CHECKS = {
     "ownership unknown": check_text([r for r in BASE_ROWS if r[0] != "owned"]),
     "empty": "  # k | a | b\n  (0 rows)\n",
     "error": "SQLERROR 1 x\n",
+    "error after rows": GOOD_CHECK.replace("  (", "SQLERROR 1205 x\n  (0 rows) #", 1).rsplit("  (0 rows) #", 1)[0] + "SQLERROR 1205 x\n",
+    "error after trailer": GOOD_CHECK + "SQLERROR 1205 x\n",
+    "no trailer": GOOD_CHECK.rsplit("  (", 1)[0],
+    "wrong trailer": GOOD_CHECK.replace(f"({len(BASE_ROWS)} rows)", "(1 rows)"),
 }
 GOOD_DBS = "  # name\n  db1\n  master\n  tempdb\n  (3 rows)\n"
 ROW_DATA = "  # a | b\n  PERSON-X | 12345\n  (1 rows)\n"
@@ -53,7 +57,9 @@ WRITES = ["DELETE FROM t", "update t set a = 1", "INSERT INTO t VALUES (1)", "DR
           "SELECT 1 FROM a.b.c.d", "SELECT 1 FROM t FOR UPDATE; COMMIT", "SELECT 1 /* /* */ */", "SELECT 'open", "DECLARE @a int SELECT 1", "", "-- only a comment", "SELECT 1\x00",
           "SELECT x FROM t WHERE y = (SELECT 1); EXECUTE('SELECT 1')",
           'SELECT 1 AS "a\n:"\'\n\'" DELETE FROM t COMMIT --\'"\n', "SELECT 1\n:r x\n", "SELECT 1\n  go  \nDELETE FROM t", "SELECT 'x\nGO\n' AS a", "SELECT $(v)", 'SELECT 1 AS "a"',
-          "SELECT 1 SELECT 2", "SELECT 1 DISABLE TRIGGER tr ON dbo.t", "SELECT 1 RECEIVE TOP(1) * FROM dbo.q", "SELECT 1 CHECKPOINT", "SELECT 1 FROM srv . db . dbo . t", "SELECT 1 EXEC dbo.p", "SELECT 1 EXECUTE dbo.p",
+          "SELECT 1 SELECT 2", "SELECT 1 DISABLE TRIGGER tr ON dbo.t", "SELECT 1 RECEIVE TOP(1) * FROM dbo.q", "SELECT 1 CHECKPOINT", "SELECT 1 FROM srv . db . dbo . t", "SELECT 1 EXEC dbo.p", "SELECT 1DELETE FROM t", "SELECT 1COMMIT", "SELECT 1KILL 55", "SELECT 1DBCC FREEPROCCACHE", "SELECT 0x1DELETE FROM t", "SELECT 1e1DELETE FROM t",
+          "SELECT 1DELETE FROM t WHERE 1 = 1COMMIT", "SELECT 1 COMMIT", "SELECT 1 KILL 55", "SELECT 1 WAITFOR DELAY '00:00:01'", "SELECT 1; FETCH NEXT FROM c",
+          "SELECT 1\r:r x", "SELECT 1\x85:r x", "SELECT 1\u2028:r x", "SELECT 1\u2029:r x", "SELECT 1 EXECUTE dbo.p",
           "WITH c AS (SELECT 1 a) SELECT * FROM c", "(SELECT 1)", "VALUES (1)", "TRUNCATE TABLE t",
           "SELECT 1 FROM t WITH (UPDLOCK)", "SELECT NEXT VALUE FOR s"]
 READS = ["SELECT 1", "select a, b from dbo.t where c = 'x; DELETE' -- DROP\n", "SELECT N'EXEC', [into], [set] FROM [dbo].[t] /* GO */ WHERE a IN ('it''s');", f.CHECK_SQL, "SELECT 1 UNION ALL SELECT 2", "SELECT a FROM t WHERE a IN (SELECT 1) UNION SELECT 2", "SELECT CASE WHEN a = 1 THEN 2 ELSE 3 END FROM t",
@@ -82,16 +88,14 @@ class Fake:
         raise AssertionError("unexpected script")
 
 
-def entry(tmp, sql, results=(), conf=CONF, out=None, mode=0o600, marker=False, flags=(), existing=False, factory=None):
+def entry(tmp, sql, results=(), conf=CONF, out=None, mode=0o600, checked=False, flags=(), existing=False, factory=None):
     """Runs main() against a fake cloud; returns (code, stderr, stdout, fake, log, out path)."""
     cfg = Path(tmp, "cfg", "config.json")
     cfg.parent.mkdir(exist_ok=True)
     cfg.write_text(json.dumps(conf))
     cfg.chmod(mode)
-    marker_file = Path(tmp, "cfg", "verified-t1")
-    marker_file.unlink(missing_ok=True)
-    if marker:
-        marker_file.write_text("x")
+    if checked:  # the account and database checks pass first (they run before every read)
+        results = [GOOD_CHECK, GOOD_DBS, *results]
     Path(tmp, "q.sql").write_text(sql, encoding="utf-8")
     out = out or str(Path(tmp, "out", "r.txt"))
     Path(out).parent.mkdir(exist_ok=True)
@@ -132,32 +136,40 @@ def main():
         assert code == 0 and log[0] == "register"
         assert fake.sent == [f.CHECK_SQL, f.CHECK_DBS_SQL, "SELECT a FROM t"], fake.sent
         assert "PERSON-X" not in out + err and Path(path).read_text() == ROW_DATA and oct(os.stat(path).st_mode & 0o777) == "0o600", "result goes to the file only"
-        assert log.count("cleanup") == 3 and Path(tmp, "cfg", "verified-t1").exists(), "work dir removed after each server run; marker written"
-        # verified recently: no second check
-        code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [ROW_DATA], marker=True)
-        assert code == 0 and fake.sent == ["SELECT a FROM t"], fake.sent
+        assert log.count("cleanup") == 3, "work dir removed after each server run"
+        # every run checks the account first: a second run, and a config edited after a good run (another account) is refused
+        code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [ROW_DATA], checked=True)
+        assert code == 0 and fake.sent == [f.CHECK_SQL, f.CHECK_DBS_SQL, "SELECT a FROM t"], fake.sent
+        code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [ROW_DATA], checked=True, conf={**CONF, "account": "admin"})
+        assert code == 2 and fake.sent == [f.CHECK_SQL] and not Path(path).exists(), "another account is not accepted on the strength of an earlier run"
         # the account check stops the run: an extra permission, a wrong login, a wrong database, an error text
         for why, bad in BAD_CHECKS.items():
             code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [bad, GOOD_DBS, ROW_DATA])
-            assert code == 2 and "account check failed" in err and fake.sent == [f.CHECK_SQL] and not Path(path).exists() and not Path(tmp, "cfg", "verified-t1").exists() and log[-1] == "cleanup", why
+            assert code == 2 and "account check failed" in err and fake.sent == [f.CHECK_SQL] and not Path(path).exists() and log[-1] == "cleanup", why
         # the login must reach exactly the configured databases (plus the platform guest ones): one more, one fewer, none
-        for bad in (GOOD_DBS + "  extra\n", GOOD_DBS.replace("  db1\n", ""), "  # name\n  (0 rows)\n"):
+        for bad in (GOOD_DBS + "  extra\n", GOOD_DBS.replace("  db1\n", ""), "  # name\n  (0 rows)\n", "  # name\n  db1\n  master\nSQLERROR 1222 x\n", GOOD_DBS.rsplit("  (", 1)[0], GOOD_DBS + "SQLERROR 1222 x\n"):
             code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [GOOD_CHECK, bad, ROW_DATA])
-            assert code == 2 and fake.sent == [f.CHECK_SQL, f.CHECK_DBS_SQL] and not Path(path).exists() and not Path(tmp, "cfg", "verified-t1").exists(), bad
+            assert code == 2 and fake.sent == [f.CHECK_SQL, f.CHECK_DBS_SQL] and not Path(path).exists(), bad
         # a result with personal-data shapes or long cells is withheld: nothing written, only kinds and counts named (--definitions allows long definition text, not personal shapes)
-        for rows, flags, why in (("  # a\n  11010519491231002X\n", [], "id number"), ("  # a\n  13812345678\n", [], "mobile"), ("  # a\n  x@y.com\n", [], "email"), ("  # a\n  " + "x" * 301 + "\n", [], "300"),
+        for rows, flags, why in (("  # a\n  11010519491231002X\n", [], "id number"), ("  # a\n  13812345678\n", [], "mobile"), ("  # a\n  x@y.com\n", [], "email"), ("  # a\n  138 1234 5678\n", [], "mobile"), ("  # a\n  +8613812345678\n", [], "mobile"), ("  # a\n  110105491231002\n", [], "id number"), ("  # a\n  " + "x" * 301 + "\n", [], "300"),
                                  ("  # a\n  " + "x" * 2001 + "\n", ["--definitions"], "2000"), ("  # a\n  11010519491231002X\n", ["--definitions"], "id number")):
-            code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [rows], marker=True, flags=flags)
+            code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [rows], checked=True, flags=flags)
             assert code == 2 and "withheld" in err and why in err and not Path(path).exists() and "1101051949" not in err + out, (why, err)
-        code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", ["  # a\n  " + "x" * 2000 + "\n"], marker=True, flags=["--definitions"])
+        code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", ["  # a\n  " + "x" * 2000 + "\n"], checked=True, flags=["--definitions"])
         assert code == 0 and Path(path).exists(), "definition text up to 2000 characters passes with --definitions"
         # too large a reply, --out inside the repo or existing, a config readable by others, an unknown target: refused, nothing leaks
-        code, err, *_ = entry(tmp, "SELECT a FROM t", ["TOOBIG"], marker=True)
+        code, err, *_ = entry(tmp, "SELECT a FROM t", ["TOOBIG"], checked=True)
         assert code == 2 and "too large" in err
         code, err, out, fake, log, _ = entry(tmp, "SELECT 1", out=str(f.REPO / "docs" / "r.txt"))
         assert code == 2 and log == [] and "outside" in err
         code, err, out, fake, log, path = entry(tmp, "SELECT 1", existing=True)
         assert code == 2 and log == [] and "already exists" in err and Path(path).read_text() == "old", (code, err)
+        other = Path(tmp, "other")
+        Path(other, ".git").mkdir(parents=True)
+        code, err, out, fake, log, _ = entry(tmp, "SELECT 1", out=str(other / "r.txt"))
+        assert code == 2 and log == [] and "outside" in err, "another repository's work tree is refused too"
+        code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", ["connected as acct db=db1 mode=ro\n" + ROW_DATA], checked=True)
+        assert code == 0 and Path(path).read_text() == ROW_DATA, "the connected-as line stays out of the file"
         code, err, out, fake, log, _ = entry(tmp, "SELECT 1", mode=0o644)
         assert code == 2 and log == [] and "group or others" in err
         code, err, out, fake, log, _ = entry(tmp, "SELECT 1", conf={**CONF, "targets": {"other": {"database": "d"}}})
@@ -177,13 +189,13 @@ def main():
         for kind in ("timeout", "missing", "fail", "rubbish"):
             subprocess.run = boom(kind)
             try:
-                code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", conf=secrets_conf, marker=True, factory=f.Cloud)
+                code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", conf=secrets_conf, checked=True, factory=f.Cloud)
             finally:
                 subprocess.run = real_run
             assert code == 2 and "refused" in err and not Path(path).exists() and not re.search("SECRET|aliyun|RunCommand", err + out), (kind, err)
         def broken(conf):
             raise RuntimeError("SECRETHOST")
-        code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", conf=secrets_conf, marker=True, factory=broken)
+        code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", conf=secrets_conf, checked=True, factory=broken)
         assert code == 2 and "RuntimeError" in err and "SECRET" not in err + out, err
     # the entry's source holds no production fingerprint (the gate would refuse the command otherwise, and identifiers belong in the local config)
     table = json.loads(Path(f.REPO, "scripts", "gates", "prod_targets.json").read_text())["targets"]
