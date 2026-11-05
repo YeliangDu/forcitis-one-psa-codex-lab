@@ -2,6 +2,7 @@
 
 - Card: #1417. Author: one-design, 2026-11-05. Base: origin/main.
 - Status: proposal. Basis: ADR-0079 (section 3 item 3; section 5 invariants 5, 9, 10, 11, 13; capabilities C6, C18), ADR-0086 and `employment-relationship.md` (relationship ids, per-relationship SEPARATE; #1372/#1401), ADR-0068 (article 1: personnel commands, item 5 last working day rule), ADR-0051 decision 7 item 4 (single-level approval in workforce) (single-level approval inside workforce), ADR-0046 section 8 (no derived date columns).
+- Data design: signed for WC0 in `docs/data/reviews/workforce-contract-separation-wc0.md` (2026-11-05). Where that record differs from section 8 (no `uk_employment_contracts_probation_once`; the union and prohibited-circumstance check is four columns, not "three" in 4.2, Q-9 and 8a; added actor and source columns; a SEPARATE ending before a signed contract's start voids that contract instead of terminating it, so no `LabourContractTerminated` fires in that case), the record governs.
 - Evidence marks: **verified** = read on origin/main today. **unverified** = from memory of statute or waiting on a forensic read. Golden pack `HCM_Golden_Design_Pack_R002` (nodes 005, 034, 068) is evidence only, `NOT_REVIEWED`, not a requirement. Legacy values are not available yet (the forensic entry has not run); every place that needs them says so.
 - Rule from the user (2026-11-05): where an explicit regulation differs from company practice the user decides; otherwise follow the explicit regulation; where none is explicit follow the current legacy practice.
 
@@ -150,7 +151,7 @@ Per the user's rule, an item goes to the user only if the statute is silent in a
 
 | Slice | Content | Waits on |
 |---|---|---|
-| WC0 | Data-design sign-off for `employment_contracts`, `separation_requests`, `separation_bases` (design) | this spec merged; #1401 relationship ids |
+| WC0 | Data-design sign-off for `employment_contracts`, `separation_requests`, `separation_bases` (design). **Signed 2026-11-05**, `docs/data/reviews/workforce-contract-separation-wc0.md` | this spec merged; #1401 relationship ids (both done) |
 | WC1 | Skeleton: migration, domain classes, repositories, registry, classification, purge extension | WC0 |
 | WC2 | Contract commands, reads and reminder lists | WC1 |
 | WC3 | Separation request commands and the mandatory SEPARATE link (every existing SEPARATE caller and test gains a request step) | WC1 |
