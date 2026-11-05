@@ -91,4 +91,16 @@ class EmploymentRelationshipTablesIntegrationTest extends WorkforceIntegrationSu
         }
         assertThat(jdbc.sql("select count(*) from " + TABLE + " where employee_id = :e").param("e", employee).query(Integer.class).single()).isEqualTo(2);
     }
+
+    @Test
+    @DisplayName("#1372 appendix A: the three open-command-per-day indexes of personnel_commands are unique and partial on the open statuses (application rules refuse first; these are the last line)")
+    void theOpenCommandIndexesAreUniqueAndPartial() {
+        for (String index : new String[] {"uk_personnel_commands_open_per_relationship_day", "uk_personnel_commands_open_person_day", "uk_personnel_commands_open_per_assignment_day"}) {
+            assertThat(jdbc.sql("""
+                    select i.indisunique and pg_get_expr(i.indpred, i.indrelid) like '%PENDING%AWAITING_ATTRIBUTION_COUNTERSIGN%' from pg_index i
+                      join pg_class c on c.oid = i.indexrelid join pg_namespace n on n.oid = c.relnamespace
+                     where n.nspname = 'organization_workforce' and c.relname = :index""").param("index", index).query(Boolean.class).single())
+                    .as(index).isTrue();
+        }
+    }
 }
