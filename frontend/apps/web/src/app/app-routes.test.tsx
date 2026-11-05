@@ -55,6 +55,20 @@ describe('应用外壳与登录状态', () => {
     expect(await screen.findByText('暂无待确认的授权申请')).toBeInTheDocument();
   });
 
+  it('待调整权限列表挂在 /admin/permission-adjustments，详情挂在其下', async () => {
+    const ID = '019a0000-0000-7000-8000-000000009a01';
+    stubServer({
+      'GET sessions:current': { body: currentUserBody([], NAVIGATION) },
+      'GET permission-adjustments': { body: { items: [] } },
+      [`GET permission-adjustments/${ID}`]: { body: { permissionAdjustmentId: ID, kind: 'SCOPE_REVIEW', originKind: 'ORG_UNIT_INACTIVE', status: 'OPEN', roleName: '合成角色甲', orgUnitName: '合成失效部门' }, headers: { ETag: '"1"' } },
+    });
+    renderWithProviders(<AppRoutes />, { route: '/admin/permission-adjustments' });
+    expect(await screen.findByText('暂无待调整权限')).toBeInTheDocument();
+
+    renderWithProviders(<AppRoutes />, { route: `/admin/permission-adjustments/${ID}` });
+    expect(await screen.findByText('组织单元失效')).toBeInTheDocument();
+  });
+
   it('授权申请页里申请人自己确认被拒（403 带业务码）：留在本页并显示提示，不进权限不足页', async () => {
     const FIRST = '019a0000-0000-7000-8000-000000009001';
     stubServer({
