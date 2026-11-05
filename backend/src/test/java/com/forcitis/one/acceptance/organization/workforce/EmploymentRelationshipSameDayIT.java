@@ -49,7 +49,8 @@ class EmploymentRelationshipSameDayIT extends EmploymentRelationshipBindingSuppo
         assertThat(commandStatus(hire)).as("design 4.1: the HIRE carrying both target columns is accepted and waits for its day").isEqualTo(PersonnelCommandNames.PENDING);
 
         UUID toUnit = newUnit();
-        refusedAsConflict(person, () -> transfer(person, DAY, toUnit), "design 12a: HIRE(B) with a post and a TRANSFER of the primary on one day both produce a primary version");
+        UUID relationshipA = relationshipOf(person, legalEntity);
+        refusedAsConflict(person, () -> transferIn(person, relationshipA, DAY, null, toUnit), "design 12a: HIRE(B) with a post and a TRANSFER of the primary on one day both produce a primary version");
 
         assertThat(commandStatus(hire)).as("design 12a: the first command stays as it was").isEqualTo(PersonnelCommandNames.PENDING);
     }
@@ -57,7 +58,7 @@ class EmploymentRelationshipSameDayIT extends EmploymentRelationshipBindingSuppo
     @Test
     @DisplayName("#1371 完成标准 12a：同一员工同一生效日，先录主任职上的 TRANSFER 再录带主任职的 HIRE(B) 同样被拒（冲突）")
     void aHireWithAPostAfterATransferOfThePrimaryIsRefused() throws Exception {
-        UUID move = transfer(person, DAY, newUnit());
+        UUID move = transferIn(person, relationshipOf(person, legalEntity), DAY, null, newUnit());
         assertThat(commandStatus(move)).as("the TRANSFER of the primary is accepted and waits for its day").isEqualTo(PersonnelCommandNames.PENDING);
         UUID postUnit = newUnit();
         UUID post = newPosition();
@@ -86,5 +87,24 @@ class EmploymentRelationshipSameDayIT extends EmploymentRelationshipBindingSuppo
                 "design 12a: HIRE(B) and REINSTATE(C) with both target columns set both produce a primary version on one day");
 
         assertThat(commandStatus(hire)).as("design 12a: the first command stays as it was").isEqualTo(PersonnelCommandNames.PENDING);
+    }
+
+    @Test
+    @DisplayName("#1371 完成标准 12a 对照：同一条带主任职的 REINSTATE(C) 单独录（同日没有 HIRE(B)）被接受；再录带主任职的 HIRE(B) 才被拒（冲突）")
+    void aReinstatementWithAPostAloneIsAcceptedAndOnlyTheHireOnTheSameDayIsRefused() throws Exception {
+        UUID subject = employed(PersonnelCommandNames.REGULAR);
+        actIn(hr);
+        hireAdditionalEmployer(subject, employerC, TODAY.minusDays(20), null);
+        UUID ended = relationshipOf(subject, employerC);
+        endRelationship(subject, ended, TODAY.minusDays(10));
+        UUID reinstate = reinstateIn(subject, ended, DAY, newUnit(), newPosition());
+        assertThat(commandStatus(reinstate)).as("control: the REINSTATE with a post, alone on its day, is accepted").isEqualTo(PersonnelCommandNames.PENDING);
+        UUID unit = newUnit();
+        UUID position = newPosition();
+
+        refusedAsConflict(subject, () -> hireWithPost(subject, employerB, DAY, unit, position),
+                "design 12a: the HIRE(B) with a post is refused only because the REINSTATE(C) already produces the primary version that day");
+
+        assertThat(commandStatus(reinstate)).as("design 12a: the first command stays as it was").isEqualTo(PersonnelCommandNames.PENDING);
     }
 }

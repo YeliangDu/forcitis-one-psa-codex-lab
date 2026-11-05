@@ -83,22 +83,28 @@ abstract class InitialVersionMigrationSupport extends PersonnelCommandSupport {
      * people: administrator, callers, the test's own) the world's legal entity from long before any seeded day. No test here depends on the
      * absence of an attribution.
      */
-    private void attributeEveryone() throws Exception {
+    private void attributeEveryone(UUID except) throws Exception {
+        UUID skipped = except == null ? new UUID(0, 0) : except;
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, """
                     insert into legal_entity_attributions (attribution_id, employee_id)
                     select uuidv7(), e.id from employees e
-                     where not exists (select 1 from legal_entity_attributions a where a.employee_id = e.id)""");
+                     where e.id <> ? and not exists (select 1 from legal_entity_attributions a where a.employee_id = e.id)""", stored(skipped));
             update(workforce, """
                     insert into employee_legal_entities (employee_legal_entity_id, employee_id, effective_from_date, legal_entity_id)
                     select uuidv7(), e.id, ?, ? from employees e
-                     where not exists (select 1 from employee_legal_entities p where p.employee_id = e.id)""", LocalDate.of(2000, 1, 1), stored(legalEntity));
+                     where e.id <> ? and not exists (select 1 from employee_legal_entities p where p.employee_id = e.id)""", LocalDate.of(2000, 1, 1), stored(legalEntity), stored(skipped));
         }
     }
 
     protected Result migrate(UUID operator, UUID witness) {
+        return migrateExcept(operator, witness, null);
+    }
+
+    /** As {@link #migrate(UUID, UUID)}, but the given person is left without any attribution (null: nobody is left out). */
+    protected Result migrateExcept(UUID operator, UUID witness, UUID unattributed) {
         try {
-            attributeEveryone();
+            attributeEveryone(unattributed);
         } catch (Exception failure) {
             throw new AssertionError("seeding the legal entity attribution failed", failure);
         }

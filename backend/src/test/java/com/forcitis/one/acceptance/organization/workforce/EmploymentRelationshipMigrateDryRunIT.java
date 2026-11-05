@@ -10,8 +10,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,10 +19,10 @@ import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * #1371 acceptance part, done-when 3 (rest) of the employment-relationship design (ADR-0086) (sections 6.2 and 7): the dry run of
- * MigrateInitialVersions writes nothing and reports the people without attribution as an aggregate count; the read api returns
+ * MigrateInitialVersions writes nothing; the read api returns
  * {@code employerConfirmed} false for a backfilled row, true after the one confirmation and for DECLARED rows, and employee-level reads do not
- * depend on it. The design does not name the dry-run option or the wording of the reject count: the option is proposed as {@code --dry-run} and
- * the count is found by the word "reject" followed by the number (both listed in the card report as names to rule).
+ * depend on it. The design does not name the dry-run option: it is proposed as {@code --dry-run} (listed in the card report as a name to rule). The
+ * reject list has no read path and its count is not tested (lead ruling).
  */
 class EmploymentRelationshipMigrateDryRunIT extends InitialVersionMigrationSupport {
 
@@ -37,19 +35,9 @@ class EmploymentRelationshipMigrateDryRunIT extends InitialVersionMigrationSuppo
 
     /** Proposed name of the dry-run option (design 7, "dry-run mode"). */
     private static final String DRY_RUN_OPTION = "--dry-run";
-    private static final Pattern REJECT_COUNT = Pattern.compile("(?i)reject\\w*\\W{0,12}(\\d+)");
 
     @Autowired
     private ApplicationContext beans;
-
-    private long employeesWithoutAnyRowOrAttribution() throws Exception {
-        return (long) rows("""
-                select count(*) as n from employees e
-                 where not exists (select 1 from employment_relationships r where r.employee_id = e.id)
-                   and not exists (select 1 from employment_relationship_versions v where v.employee_id = e.id)
-                   and not exists (select 1 from assignment_versions a where a.employee_id = e.id)
-                   and not exists (select 1 from employee_legal_entities l where l.employee_id = e.id)""").get(0).get("n");
-    }
 
     private List<Long> tableCounts() throws Exception {
         return List.of(
@@ -60,8 +48,8 @@ class EmploymentRelationshipMigrateDryRunIT extends InitialVersionMigrationSuppo
     }
 
     @Test
-    @DisplayName("#1371 完成标准 3 余项（设计 7）：试运行什么都不写（关系、版本、任职版本、命令、事件），只给汇总数；没有归属的人只以数量出现在拒绝清单里，输出里没有任何人的编号")
-    void theDryRunWritesNothingAndReportsRejectsAsACount() throws Exception {
+    @DisplayName("#1371 完成标准 3 余项（设计 7）：试运行什么都不写（关系、版本、任职版本、命令、事件），输出里没有任何人的编号")
+    void theDryRunWritesNothing() throws Exception {
         UUID attributed = snapshotPerson(false, null);
         attributeEmployee(administrator, attributed, legalEntity);
         UUID withAssignments = snapshotPerson(false, null);
@@ -69,7 +57,6 @@ class EmploymentRelationshipMigrateDryRunIT extends InitialVersionMigrationSuppo
         UUID rejected = snapshotPerson(false, null);
         UUID operator = employed(REGULAR);
         UUID witness = employed(REGULAR);
-        long expectedRejects = employeesWithoutAnyRowOrAttribution();
         List<Long> before = tableCounts();
         List<Map<String, Object>> versionsBefore = everyVersionRow();
         long events = publishedEvents();
@@ -80,11 +67,7 @@ class EmploymentRelationshipMigrateDryRunIT extends InitialVersionMigrationSuppo
         assertThat(tableCounts()).as("design 7: the dry run writes no relationship, version, assignment version or command").isEqualTo(before);
         assertThat(everyVersionRow()).as("design 7: and no version row changed").isEqualTo(versionsBefore);
         assertThat(publishedEvents()).as("design 7 and done-when 10: the migration publishes no event, the dry run least of all").isEqualTo(events);
-        Matcher count = REJECT_COUNT.matcher(result.out());
-        assertThat(count.find()).as("design 7: the dry run reports the reject count in its output: " + result.text()).isTrue();
-        assertThat(Long.parseLong(count.group(1))).as("design 7: employees without attribution appear in the reject list as an aggregate count").isEqualTo(expectedRejects);
         assertThat(result.text()).as("design 7: no person's id in the command output").doesNotContain(attributed.toString(), withAssignments.toString(), rejected.toString());
-        assertThat(expectedRejects).as("set-up control: the unattributed person is one of the rejects").isPositive();
     }
 
     @Test
