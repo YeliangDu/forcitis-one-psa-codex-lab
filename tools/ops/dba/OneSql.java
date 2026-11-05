@@ -39,8 +39,9 @@ public class OneSql {
             + "|COMMIT|ROLLBACK|SAVE|BEGIN\\s+(TRAN|TRANSACTION|DISTRIBUTED)|WRITETEXT|UPDATETEXT|BULK|OPENROWSET|OPENDATASOURCE|OPENQUERY|RECONFIGURE|USE"
             + "|(sp|xp)_\\w+|INTO\\s+(?!#))\\b", Pattern.CASE_INSENSITIVE);
 
-    /** A token that starts with a digit (not inside an identifier) and goes on with a letter, @, # or $: SQL Server lexes number and keyword apart where the keyword regex sees one word. */
-    static final Pattern NUMBER_GLUED = Pattern.compile("(?<![\\w@#$])\\d+[A-Za-z_@#$]");
+    /** A token that starts with a digit (not inside an identifier) and is not a plain integer or decimal (1e5, 0xAB, 1.eKILL, 1DELETE): SQL Server lexes number and keyword apart where the keyword regex sees one word. */
+    static final Pattern NUMBER_GLUED = Pattern.compile("(?<![\\w@#$])\\d[\\w@#$.]*");
+    static final Pattern PLAIN_NUMBER = Pattern.compile("\\d+(\\.\\d+)?");
 
     public static void main(String[] a) throws Exception {
         if (a.length >= 1 && a[0].equals("--self-test")) {
@@ -118,7 +119,8 @@ public class OneSql {
         for (String b : batches) {
             Matcher m = WRITE.matcher(codeOnly(b));
             if (m.find()) throw new IllegalStateException("read-only script contains write keyword: " + m.group());
-            if (NUMBER_GLUED.matcher(codeOnly(b)).find()) throw new IllegalStateException("read-only script contains a number glued to letters (1e5, 0xAB, 1DELETE): SQL Server reads a number and a keyword there");
+            Matcher n = NUMBER_GLUED.matcher(codeOnly(b).replaceAll("\\[[^\\]]*\\]", "[]"));  // bracketed names are masked
+            while (n.find()) if (!PLAIN_NUMBER.matcher(n.group()).matches()) throw new IllegalStateException("read-only script contains a number glued to letters (1e5, 0xAB, 1DELETE): SQL Server reads a number and a keyword there");
         }
         return batches;
     }
@@ -130,13 +132,14 @@ public class OneSql {
         check(readOnlyBatches("SELECT name FROM sys.tables\nGO\n-- DELETE in a comment is fine\nSELECT 1\n", none).size() == 2, "reads pass, comments are not keywords");
         check(readOnlyBatches("SELECT N'EXECUTE', 'it''s -- not a comment' AS a INTO #tmp FROM t\nSELECT p.permission_name FROM #tmp p WHERE p.x IN (N'DELETE')", none).size() == 1,
                 "keywords inside string literals and SELECT INTO a temporary table are reads");
+        check(readOnlyBatches("SELECT [2024Q1], [1st], 1.5, 007, t1.c2 FROM t1 WHERE a = 10", none).size() == 1, "plain numbers and bracketed names starting with a digit are reads");
         for (String write : new String[] {"DELETE FROM t", "update t set a = 1", "INSERT INTO t VALUES (1)", "DROP TABLE t", "GRANT SELECT ON t TO u",
                 "ALTER LOGIN x WITH PASSWORD = 'p'", "EXEC sp_who", "TRUNCATE TABLE t", "MERGE t USING s ON 1 = 1 WHEN MATCHED THEN DELETE;",
                 "SELECT 1\nGO\nCREATE TABLE t (a int)", "SELECT '--'; DELETE FROM t", "SELECT 'a'' -- ''b'; DELETE FROM t", "EXECUTE('DEL' + 'ETE FROM t')",
                 "sp_executesql N'DELETE FROM t'", "SELECT * INTO dbo.copy FROM t", "WRITETEXT t.c @p 'x'", "UPDATETEXT t.c @p 0 NULL 'x'", "COMMIT",
                 "SELECT 1; COMMIT TRANSACTION", "BEGIN TRAN; SELECT 1", "ROLLBACK", "SELECT * FROM OPENROWSET('SQLNCLI', 'x', 'SELECT 1')", "xp_cmdshell 'dir'",
                 "USE master", "/* ' */ DELETE FROM t", "SELECT 1 /* -- */; DELETE FROM t",
-                "SELECT 1DELETE FROM t", "SELECT 1COMMIT", "SELECT 1KILL 55", "SELECT 1DBCC FREEPROCCACHE", "SELECT 0x1DELETE FROM t", "SELECT 1e1DELETE FROM t", "SELECT 0xKILL 55", "SELECT 0xABKILL 55", "SELECT 1eCOMMIT", "SELECT 1eDELETE FROM t WHERE 1 = 1eCOMMIT"}) {
+                "SELECT 1DELETE FROM t", "SELECT 1COMMIT", "SELECT 1KILL 55", "SELECT 1DBCC FREEPROCCACHE", "SELECT 0x1DELETE FROM t", "SELECT 1e1DELETE FROM t", "SELECT 0xKILL 55", "SELECT 0xABKILL 55", "SELECT 1eCOMMIT", "SELECT 1eDELETE FROM t WHERE 1 = 1eCOMMIT", "SELECT 1.eKILL 9999", "SELECT 1.EDBCC FREEPROCCACHE", "SELECT 1.eUSE master", "SELECT 12.eDELETE FROM t WHERE 1 = 1.ECOMMIT"}) {
             check(refused(() -> readOnlyBatches(write, none)), "a write statement is refused: " + write);
         }
         for (String mode : new String[] {"rw", "deny", "RO", ""}) {
