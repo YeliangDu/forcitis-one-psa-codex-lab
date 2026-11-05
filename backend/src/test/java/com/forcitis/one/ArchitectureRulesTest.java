@@ -494,7 +494,7 @@ class ArchitectureRulesTest {
 
     // DATA_DESIGN_CHECKLIST section 14.3 I3: no external system is called inside a database transaction: a @Transactional use case, with the application helpers it calls, reaches no external-call port.
     // WecomGateway is not one: it writes the outbox and is meant to run inside the transaction. Existing gaps are listed and may only shrink.
-    static final List<String> EXTERNAL_CALL_PORTS = List.of("WecomClient", "OrgSource", "StaffLookup", "ArchiveVault", "BusinessFileStore", "ObjectStore", "MalwareScanner", "ExternalConnections");
+    static final List<String> EXTERNAL_CALL_PORTS = List.of("WecomClient", "OrgSource", "OrgShortNames", "ArchiveVault", "BusinessFileStore", "ObjectStore", "MalwareScanner", "ExternalConnections");
     static final java.nio.file.Path EXTERNAL_GAPS = java.nio.file.Path.of("architecture/external-call-in-transaction-gaps.txt");
 
     static List<String> externalCallsInTransactions(JavaClasses classes, java.util.function.Predicate<JavaClass> port) {
