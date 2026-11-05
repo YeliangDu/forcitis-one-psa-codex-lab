@@ -13,6 +13,7 @@ import com.forcitis.one.platform.identity.api.RoleCode;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -72,6 +73,19 @@ class AssigneeResolverTest {
         Resolution r = resolve(new AssignmentRule.Role(new RoleCode("reviewer")), 1, ProcessVariables.empty());
         assertThat(r.candidates()).isEqualTo(ids(2, 3));
         assertThat(r.kind()).isEqualTo(ResolutionKind.RESOLVED);
+    }
+
+    @Test
+    @DisplayName("RULE-253/257 a parent chain that loops back on itself ends at the loop: no endless climb, the head found before the loop still counts")
+    void departmentHeadStopsAtAParentLoop() {
+        org.unit(20, 21L, null).unit(21, 20L, null).unit(22, 21L, 122L).person(122, 22, null);
+        java.time.Duration limit = java.time.Duration.ofSeconds(5);
+        assertTimeoutPreemptively(limit, () -> {
+            assertThat(resolve(new AssignmentRule.DepartmentHead("loopUnitId"), 1, variable("loopUnitId", unit(20))).candidates())
+                    .doesNotContain(TestAccounts.account(TestAccounts.employee(110)));
+            assertThat(resolve(new AssignmentRule.DepartmentHead("loopUnitId"), 1, variable("loopUnitId", unit(22))).candidates())
+                    .isEqualTo(ids(122));
+        });
     }
 
     @Test

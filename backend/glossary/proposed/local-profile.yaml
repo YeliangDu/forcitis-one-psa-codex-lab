@@ -42,3 +42,17 @@ terms:
   forbidden: []
   status: proposed
   note: 卡 #1478；配置键 forcitis.platform.identity.session.secure-cookie 在正式配置里早已存在，本机配置覆盖它
+- id: error__platform_web_local_clock_held
+  zh: 本机时钟被管理员模式占住
+  en: PlatformWebLocalClockHeld
+  snake: platform_web_local_clock_held
+  kind: error_code
+  bc: platform.web
+  scope: domain
+  definition: 本机时钟不能回拨到某次管理员模式的结束之前，否则一小时的上限会被延长或已结束的模式复活（409）；只在本机运行方式下出现
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 卡 #1499；技术用语，不是业务术语
