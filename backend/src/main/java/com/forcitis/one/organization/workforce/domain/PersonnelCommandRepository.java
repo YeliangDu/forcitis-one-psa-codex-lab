@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.AssignmentId;
+import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PositionId;
@@ -84,6 +85,12 @@ public interface PersonnelCommandRepository {
     long eventSequence(EmployeeId employee);
 
     PersonnelHistory load(EmployeeId employee);
+
+    /** Writes a declared employment relationship (ADR-0086) before the command that names it; the employee row is locked. */
+    void insertRelationship(EmploymentRelationshipId id, EmployeeId employee, LegalEntityId employer, @Nullable EmploymentRelationshipId predecessor, Instant at);
+
+    /** Whether the employee already has a relationship with the employer (the pair is unique, appendix A). */
+    boolean relationshipExists(EmployeeId employee, LegalEntityId employer);
 
     /** The employee's one primary post root, made when the employee has none yet (the employee row is locked). */
     AssignmentRoot primaryRoot(EmployeeId employee, Instant at);

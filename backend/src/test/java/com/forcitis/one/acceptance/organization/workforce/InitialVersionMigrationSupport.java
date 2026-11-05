@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 import static com.forcitis.one.acceptance.organization.workforce.SeparationHoldOperationNames.*;
 
@@ -76,7 +77,37 @@ abstract class InitialVersionMigrationSupport extends PersonnelCommandSupport {
     }
 
     /** The migration with two existing employees as operator and witness; null leaves the option out. */
+    /**
+     * The migration takes a person's employer from the legal entity attribution on the first version day (employment-relationship design
+     * section 7) and refuses a person without one, so the seed gives every person still without an attribution (the world's snapshot-only
+     * people: administrator, callers, the test's own) the world's legal entity from long before any seeded day. No test here depends on the
+     * absence of an attribution.
+     */
+    private void attributeEveryone(UUID except) throws Exception {
+        UUID skipped = except == null ? new UUID(0, 0) : except;
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, """
+                    insert into legal_entity_attributions (attribution_id, employee_id)
+                    select uuidv7(), e.id from employees e
+                     where e.id <> ? and not exists (select 1 from legal_entity_attributions a where a.employee_id = e.id)""", stored(skipped));
+            update(workforce, """
+                    insert into employee_legal_entities (employee_legal_entity_id, employee_id, effective_from_date, legal_entity_id)
+                    select uuidv7(), e.id, ?, ? from employees e
+                     where e.id <> ? and not exists (select 1 from employee_legal_entities p where p.employee_id = e.id)""", LocalDate.of(2000, 1, 1), stored(legalEntity), stored(skipped));
+        }
+    }
+
     protected Result migrate(UUID operator, UUID witness) {
+        return migrateExcept(operator, witness, null);
+    }
+
+    /** As {@link #migrate(UUID, UUID)}, but the given person is left without any attribution (null: nobody is left out). */
+    protected Result migrateExcept(UUID operator, UUID witness, UUID unattributed) {
+        try {
+            attributeEveryone(unattributed);
+        } catch (Exception failure) {
+            throw new AssertionError("seeding the legal entity attribution failed", failure);
+        }
         List<String> line = new ArrayList<>(List.of("--" + OPERATION_OPTION + "=" + MIGRATE_OPERATION));
         if (operator != null) {
             line.add("--" + OPERATOR_OPTION + "=" + operator);
@@ -118,9 +149,8 @@ abstract class InitialVersionMigrationSupport extends PersonnelCommandSupport {
             // #711: on the person's PRIMARY root once employee_assignments exists (AssignmentRoots), as the sync writer does (DD rev 2 section 4.3).
             UUID root = AssignmentRoots.primaryOf(workforce, stored(person));
             update(workforce, AssignmentRoots.withRoot("""
-                    insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, effective_to_date, org_unit_id,
-                      change_channel_kind, closed_at, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?, ?)""", root),
-                    AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), stored(person), from, to, stored(unit), to == null ? null : at, at, at));
+                    insert into assignment_versions (employment_relationship_id, assignment_version_id, employee_id, effective_from_date, effective_to_date, org_unit_id,
+                      change_channel_kind, closed_at, created_at, updated_at) values (?, ?, ?, ?, ?, ?, 'MIGRATION', ?, ?, ?)""", root), AssignmentRoots.arguments(root, EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), Uuids.timeOrdered(NOW), stored(person), from, to, stored(unit), to == null ? null : at, at, at));
         }
     }
 
@@ -129,7 +159,7 @@ abstract class InitialVersionMigrationSupport extends PersonnelCommandSupport {
     /** Every row of both version tables, all people, in a fixed order: a rerun must leave this list exactly as it was. */
     protected List<Map<String, Object>> everyVersionRow() throws Exception {
         List<Map<String, Object>> all = new ArrayList<>();
-        all.addAll(rows("select * from " + EMPLOYEE_VERSIONS + " order by employee_version_id"));
+        all.addAll(rows("select * from " + EMPLOYEE_VERSIONS + " order by employment_relationship_version_id"));
         all.addAll(rows("select * from " + ASSIGNMENT_VERSIONS + " order by assignment_version_id"));
         return all;
     }

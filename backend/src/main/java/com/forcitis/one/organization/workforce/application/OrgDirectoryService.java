@@ -52,7 +52,7 @@ class OrgDirectoryService implements OrgDirectory {
 
     @Override
     public Availability availabilityOn(EmployeeId employeeId, LocalDate day) {
-        return new Availability(versions.isOnLeave(employeeId, day), commands.isHeld(employeeId), commands.isLeaving(employeeId));
+        return new Availability(versions.isOnLeave(employeeId, day), commands.isHeld(employeeId), commands.isLeaving(employeeId, day));
     }
 
     @Override

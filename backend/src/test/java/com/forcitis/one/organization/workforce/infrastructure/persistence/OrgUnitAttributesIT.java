@@ -156,20 +156,20 @@ class OrgUnitAttributesIT {
                 values (:id, :employee, 'PRIMARY', :at, :at)
                 """).param("id", assignment).param("employee", employee).param("at", EFFECTIVE.atStartOfDay().atOffset(ZoneOffset.UTC)).update();
         jdbc.sql("""
-                insert into organization_workforce.assignment_versions (assignment_version_id, assignment_id, assignment_kind, employee_id,
+                insert into organization_workforce.assignment_versions (assignment_version_id, employment_relationship_id, assignment_id, assignment_kind, employee_id,
                        org_unit_id, effective_from_date)
-                values (:id, :assignment, 'PRIMARY', :employee, :unit, :since)
-                """).param("id", ids.next()).param("assignment", assignment).param("employee", employee)
+                values (:id, :relationship, :assignment, 'PRIMARY', :employee, :unit, :since)
+                """).param("id", ids.next()).param("relationship", com.forcitis.one.organization.workforce.application.EmploymentRelationshipSeed.relationship(jdbc, employee)).param("assignment", assignment).param("employee", employee)
                 .param("unit", previous.value()).param("since", EFFECTIVE.minusYears(1)).update();
         jdbc.sql("""
                 insert into organization_workforce.legal_entities (id, code, name, status)
                 values (:id, :code, 'entity', 'ACTIVE')
                 """).param("id", entity).param("code", code).update();
         jdbc.sql("""
-                insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status,
+                insert into organization_workforce.personnel_commands (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status,
                        target_org_unit_id, target_assignment_id, target_assignment_kind, created_at, created_by, updated_at)
-                values (:id, :employee, 'TRANSFER', :day, 'PENDING', :unit, :assignment, 'PRIMARY', :at, :actor, :at)
-                """).param("id", command).param("employee", employee).param("day", EFFECTIVE.plusDays(10)).param("unit", target.value())
+                values (:id, :relationship, :employee, 'TRANSFER', :day, 'PENDING', :unit, :assignment, 'PRIMARY', :at, :actor, :at)
+                """).param("id", command).param("relationship", com.forcitis.one.organization.workforce.application.EmploymentRelationshipSeed.relationship(jdbc, employee)).param("employee", employee).param("day", EFFECTIVE.plusDays(10)).param("unit", target.value())
                 .param("assignment", assignment).param("at", EFFECTIVE.atStartOfDay().atOffset(ZoneOffset.UTC)).param("actor", actor).update();
         jdbc.sql("""
                 insert into organization_workforce.attribution_countersigns (attribution_countersign_id, personnel_command_id, employee_id,

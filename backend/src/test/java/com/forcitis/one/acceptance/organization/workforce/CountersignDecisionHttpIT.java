@@ -173,7 +173,7 @@ class CountersignDecisionHttpIT extends OrgCountersignSupport {
 
     private long versionsWrittenBy(UUID command) throws SQLException {
         long total = 0;
-        for (String table : List.of("employee_versions", "assignment_versions", "employee_legal_entities")) {
+        for (String table : List.of("employment_relationship_versions", "assignment_versions", "employee_legal_entities")) {
             total += (long) rows("select count(*) as n from " + table + " where change_command_id = ?", command).get(0).get("n");
         }
         return total;
@@ -181,7 +181,7 @@ class CountersignDecisionHttpIT extends OrgCountersignSupport {
 
     private long currentVersionsWrittenBy(UUID command) throws SQLException {
         long total = 0;
-        for (String table : List.of("employee_versions", "assignment_versions", "employee_legal_entities")) {
+        for (String table : List.of("employment_relationship_versions", "assignment_versions", "employee_legal_entities")) {
             total += (long) rows("select count(*) as n from " + table + " where change_command_id = ? and superseded_at is null", command).get(0).get("n");
         }
         return total;
@@ -360,10 +360,29 @@ class CountersignDecisionHttpIT extends OrgCountersignSupport {
     @Test
     @DisplayName("#1170 完成标准第 3 条（先到期的在前，与 id 先后无关）：先录入的请求因工作日历当时有假日而到期更晚，之后日历改掉再录入的请求到期更早；列表里后者在前")
     void theDueDateComesBeforeTheId() throws Exception {
-        Staff maintainer = person("org_data_admin");
-        maintainCalendar(maintainer, "{\"calendarDate\":\"" + TODAY.plusDays(1) + "\",\"dayKind\":\"HOLIDAY\"},{\"calendarDate\":\"" + TODAY.plusDays(2) + "\",\"dayKind\":\"HOLIDAY\"}");
+        dueDateComesBeforeTheId(TODAY, person("org_data_admin"));
+    }
+
+    @Test
+    @DisplayName("#1464 同一条在年末也成立：当天是年底的工作日，假日与到期日跨到下一年，两年的工作日历都已维护")
+    void theDueDateComesBeforeTheIdAcrossTheYearEnd() throws Exception {
+        LocalDate yearEnd = LocalDate.of(TODAY.getYear(), 12, 29);
+        if (!yearEnd.isAfter(TODAY)) {
+            yearEnd = yearEnd.plusYears(1);
+        }
+        while (yearEnd.getDayOfWeek() == java.time.DayOfWeek.SATURDAY || yearEnd.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
+            yearEnd = yearEnd.plusDays(1);
+        }
+        setToday(yearEnd);  // signs the org data admin in again, as the same employee
+        dueDateComesBeforeTheId(yearEnd, orgAdmin);
+    }
+
+    private void dueDateComesBeforeTheId(LocalDate today, Staff maintainer) throws Exception {
+        LocalDate firstWorkday = nextWeekday(today);  // holidays on weekend days would change nothing, so they sit on the next two weekdays whatever the day is
+        LocalDate secondWorkday = nextWeekday(firstWorkday);
+        maintainCalendar(maintainer, today, firstWorkday, secondWorkday);
         UUID slow = request(personnel().command(), false, KIND_CHANGE, e1);
-        maintainCalendar(maintainer, "");
+        maintainCalendar(maintainer, today);
         UUID quick = request(personnel().command(), false, KIND_CHANGE, e1);
 
         assertThat(dueOf(slow)).isAfter(dueOf(quick));
@@ -371,14 +390,33 @@ class CountersignDecisionHttpIT extends OrgCountersignSupport {
         assertThat(listed(headE1, "").stream().map(UUID::fromString)).containsSubsequence(quick, slow);
     }
 
-    /** Re-maintains 2026 through the attendance endpoint; the first call creates it (If-Match 0), later ones take the stored ETag. */
-    private void maintainCalendar(Staff maintainer, String days) throws Exception {
-        String year = "/api/v1/organization/work-calendars/2026";
-        MockHttpServletResponse stored = read(maintainer, year);
-        String tag = stored.getStatus() == 200 ? stored.getHeader("ETag") : "\"0\"";
-        MockHttpServletResponse maintained = mvc.perform(put(year).header("If-Match", tag).with(csrf()).with(session(maintainer.session()))
-                .contentType(MediaType.APPLICATION_JSON).content("{\"days\":[" + days + "],\"lockedDaysConfirmed\":true}")).andReturn().getResponse();
-        assertThat(maintained.getStatus()).as("maintaining 2026: " + maintained.getContentAsString()).isEqualTo(200);
+    private static LocalDate nextWeekday(LocalDate from) {
+        LocalDate day = from.plusDays(1);
+        while (day.getDayOfWeek() == java.time.DayOfWeek.SATURDAY || day.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
+            day = day.plusDays(1);
+        }
+        return day;
+    }
+
+    /**
+     * Re-maintains the work calendars of the years the day, the holidays and the following 30 days fall in (the due dates run into the next year at the year end)
+     * through the attendance endpoint, with exactly the given holidays; the first call for a year creates it (If-Match 0), later ones take the stored ETag.
+     */
+    private void maintainCalendar(Staff maintainer, LocalDate day, LocalDate... holidays) throws Exception {
+        java.util.SortedSet<Integer> years = new java.util.TreeSet<>(List.of(day.getYear(), day.plusDays(30).getYear()));
+        for (LocalDate holiday : holidays) {
+            years.add(holiday.getYear());
+        }
+        for (int year : years) {
+            String days = java.util.Arrays.stream(holidays).filter(holiday -> holiday.getYear() == year)
+                    .map(holiday -> "{\"calendarDate\":\"" + holiday + "\",\"dayKind\":\"HOLIDAY\"}").collect(java.util.stream.Collectors.joining(","));
+            String path = "/api/v1/organization/work-calendars/" + year;
+            MockHttpServletResponse stored = read(maintainer, path);
+            String tag = stored.getStatus() == 200 ? stored.getHeader("ETag") : "\"0\"";
+            MockHttpServletResponse maintained = mvc.perform(put(path).header("If-Match", tag).with(csrf()).with(session(maintainer.session()))
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"days\":[" + days + "],\"lockedDaysConfirmed\":true}")).andReturn().getResponse();
+            assertThat(maintained.getStatus()).as("maintaining " + year + ": " + maintained.getContentAsString()).isEqualTo(200);
+        }
     }
 
     @Test

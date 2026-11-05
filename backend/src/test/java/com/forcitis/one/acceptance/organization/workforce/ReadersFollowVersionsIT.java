@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -299,11 +300,10 @@ class ReadersFollowVersionsIT extends PersonnelCommandSupport {
         OffsetDateTime at = OffsetDateTime.ofInstant(NOW, ZoneOffset.UTC);
         try (Connection workforce = schemaConnection("organization_workforce")) {
             update(workforce, """
-                    insert into employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+                    insert into employment_relationship_versions (employment_relationship_id, employment_relationship_version_id, employee_id, effective_from_date, revision_number, employment_status,
                       employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
                       change_channel_kind, created_at, updated_at)
-                    values (?, ?, ?, 0, 'EMPLOYED', 'REGULAR', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""",
-                    Uuids.timeOrdered(NOW), stored(person), from, from, at, at);
+                    values (?, ?, ?, ?, 0, 'EMPLOYED', 'REGULAR', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), Uuids.timeOrdered(NOW), stored(person), from, from, at, at);
         }
     }
 

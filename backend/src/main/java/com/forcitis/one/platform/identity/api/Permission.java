@@ -41,7 +41,8 @@ public enum Permission {
     ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE(Codes.ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE),
     ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE(Codes.ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE),
     ORGANIZATION_ATTENDANCE_STANDARD_HOURS_PUBLISH(Codes.ORGANIZATION_ATTENDANCE_STANDARD_HOURS_PUBLISH),
-    ORGANIZATION_ATTENDANCE_STANDARD_HOURS_READ(Codes.ORGANIZATION_ATTENDANCE_STANDARD_HOURS_READ);
+    ORGANIZATION_ATTENDANCE_STANDARD_HOURS_READ(Codes.ORGANIZATION_ATTENDANCE_STANDARD_HOURS_READ),
+    ACCOUNTING_PERIOD_FISCAL_YEAR_CREATE(Codes.ACCOUNTING_PERIOD_FISCAL_YEAR_CREATE);
 
     private final String code;
     /** The acceptance test DeprecatedCodeIT (role_versioning) sets this field by reflection under this name: rename it only together with that test. */
@@ -112,5 +113,6 @@ public enum Permission {
         String ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE = "organization.attendance:locked-day:update";
         String ORGANIZATION_ATTENDANCE_STANDARD_HOURS_PUBLISH = "organization.attendance:standard-hours:publish";
         String ORGANIZATION_ATTENDANCE_STANDARD_HOURS_READ = "organization.attendance:standard-hours:read";
+        String ACCOUNTING_PERIOD_FISCAL_YEAR_CREATE = "accounting.period:fiscal-year:create";
     }
 }

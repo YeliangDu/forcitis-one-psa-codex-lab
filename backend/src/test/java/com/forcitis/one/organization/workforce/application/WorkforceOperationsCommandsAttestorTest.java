@@ -58,6 +58,6 @@ class WorkforceOperationsCommandsAttestorTest {
     @DisplayName("both attestors known: the migration runs and the exit code is 0")
     void bothKnownRuns() {
         assertThat(run(Set.of(OPERATOR_ID, WITNESS_ID))).isZero();
-        Mockito.verify(migrate).execute(Mockito.any());
+        Mockito.verify(migrate).execute(Mockito.any(), Mockito.eq(false));
     }
 }

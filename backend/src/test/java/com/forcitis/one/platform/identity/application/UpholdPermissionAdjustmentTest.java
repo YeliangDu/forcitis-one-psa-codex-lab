@@ -36,7 +36,7 @@ class UpholdPermissionAdjustmentTest {
     private final PermissionAdjustmentAccess access = mock(PermissionAdjustmentAccess.class);
     private final UpholdPermissionAdjustment uphold = new UpholdPermissionAdjustment(adjustments, access, mock(CurrentUser.class),
             mock(AccountEmployees.class), mock(OrgDirectory.class), mock(DomainEvents.class), Clock.fixed(AT, ZoneOffset.UTC),
-            new BusinessZone(ZoneId.of("Asia/Shanghai")));
+            new BusinessZone(ZoneId.of("Asia/Shanghai")), mock(PermissionAdjustmentViews.class));
 
     @Test
     @DisplayName("#730 S3: a scope review upheld with a business owner is a 400 and changes nothing")

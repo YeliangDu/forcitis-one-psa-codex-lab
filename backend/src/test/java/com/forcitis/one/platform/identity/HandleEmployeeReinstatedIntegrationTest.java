@@ -29,7 +29,7 @@ class HandleEmployeeReinstatedIntegrationTest extends IdentityIntegrationTest {
 
     private EmployeeReinstated reinstated(EmployeeId employee) {
         return new EmployeeReinstated(TestEnvelopes.of("organization.workforce.EmployeeReinstated", "Employee", employee.value()),
-                new PersonnelCommandId(UUID.randomUUID()), employee, LocalDate.now());
+                new PersonnelCommandId(UUID.randomUUID()), employee, LocalDate.now(), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
     }
 
     private boolean handled(EmployeeReinstated event) {
@@ -57,7 +57,7 @@ class HandleEmployeeReinstatedIntegrationTest extends IdentityIntegrationTest {
 
         tx.executeWithoutResult(status -> events.publishEvent(event));
         EmployeeReinstated same = new EmployeeReinstated(TestEnvelopes.of("organization.workforce.EmployeeReinstated", "Employee", employee.value()),
-                event.personnelCommandId(), employee, event.effectiveDate());
+                event.personnelCommandId(), employee, event.effectiveDate(), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
         tx.executeWithoutResult(status -> events.publishEvent(same));
 
         await().atMost(Duration.ofSeconds(15)).until(() -> handled(same));
@@ -87,7 +87,7 @@ class HandleEmployeeReinstatedIntegrationTest extends IdentityIntegrationTest {
 
     private EmployeeReinstated again(EmployeeReinstated event) {
         return new EmployeeReinstated(TestEnvelopes.of("organization.workforce.EmployeeReinstated", "Employee", event.employeeId().value()),
-                event.personnelCommandId(), event.employeeId(), event.effectiveDate());
+                event.personnelCommandId(), event.employeeId(), event.effectiveDate(), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
     }
 
     @Test

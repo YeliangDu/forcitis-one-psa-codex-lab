@@ -63,6 +63,11 @@ categories:
   - organization.workforce.EmployeeSeparated
   - organization.workforce.EmployeeTransferred
   - organization.workforce.EmployeeUnpaidLeaveStarted
+  - organization.workforce.EmploymentRelationshipCorrected
+  - organization.workforce.EmploymentRelationshipEnded
+  - organization.workforce.EmploymentRelationshipPhaseChanged
+  - organization.workforce.EmploymentRelationshipStarted
+  - organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
   - organization.workforce.attribution-countersign.approved
   - organization.workforce.attribution-countersign.lapsed
   - organization.workforce.attribution-countersign.rejected
@@ -148,6 +153,7 @@ categories:
   - platform.audit.audit-entry.searched
 - name: 配置变更
   actions:
+  - accounting.period.fiscal-year.opened
   - organization.attendance.standard-hours.published
   - organization.attendance.standard-hours.voided
   - organization.attendance.WorkCalendarLockedDaysChanged

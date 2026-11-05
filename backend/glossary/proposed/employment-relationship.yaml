@@ -57,7 +57,7 @@ terms:
   status: proposed
   note: ''
 - id: employment_relationships
-  zh: 雇佣关系读取
+  zh: 雇佣关系清单
   en: EmploymentRelationships
   snake: employment_relationships
   kind: read_model
@@ -125,7 +125,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: '现名 employee_versions；更名在结构 PR'
+  note: '原名 employee_versions；已在结构 PR（#1372）更名'
 - id: predecessor_relationship
   zh: 前任雇佣关系
   en: PredecessorRelationship
@@ -162,6 +162,34 @@ terms:
   bc: organization.workforce
   scope: domain
   definition: 人事确认迁入回填用人单位的时刻；为空表示未确认或非回填行；置值后该行冻结
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_workforce_primary_assignment_on_ending_relationship
+  zh: 主岗仍在结束的雇佣关系上
+  en: OrganizationWorkforcePrimaryAssignmentOnEndingRelationship
+  snake: organization_workforce_primary_assignment_on_ending_relationship
+  kind: error_code
+  bc: organization.workforce
+  scope: domain
+  definition: 离职使一段雇佣关系结束，而员工的主岗位仍挂在它上、且另有雇佣关系继续在职时，拒绝该离职（409），须先调整或结束主岗；不变量 6
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '代码名由验收测试定（EmploymentRelationshipSupport.PRIMARY_ON_ENDING）'
+- id: ending
+  zh: 结束中
+  en: Ending
+  snake: ending
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 描述正在因离职而结束的雇佣关系，只用于命名规则与错误码
   standard_ref: []
   confidence: low
   aliases: []

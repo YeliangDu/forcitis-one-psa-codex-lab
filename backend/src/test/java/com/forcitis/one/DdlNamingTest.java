@@ -345,14 +345,10 @@ class DdlNamingTest {
         Map<String, String> found = violations(model(readMigrations()));
         List<String> problems = new ArrayList<>();
         found.forEach((v, why) -> {
-            if (!baseline.containsKey(v)) {
-                problems.add(v + " — " + why);
-            }
+            if (!baseline.containsKey(v)) problems.add(v + " — " + why);
         });
         for (String b : baseline.keySet()) {
-            if (!found.containsKey(b)) {
-                problems.add(b + " — fixed or gone: remove it from " + BASELINE);
-            }
+            if (!found.containsKey(b)) problems.add(b + " — fixed or gone: remove it from " + BASELINE);
         }
         if (!problems.isEmpty()) {
             throw new AssertionError(GuardMessage.of("D2 (NAMING_STANDARD.md §2.4)", "a column, constraint or index of the resulting schema breaks the class word or name rules, or a baseline line is stale", "rename or retype it in a new migration as each line says; delete a stale line from " + BASELINE + ", and add a line there only for a gap with a reason") + "\n  " + String.join("\n  ", problems));
@@ -522,9 +518,7 @@ class DdlNamingTest {
             for (String raw : t.group(3).split(",\\s*\\n")) {
                 String line = raw.trim().replaceAll("\\s+", " ");
                 String first = line.split(" ")[0].toLowerCase(Locale.ROOT);
-                if (first.isEmpty()) {
-                    continue;
-                }
+                if (first.isEmpty()) continue;
                 if (KEYWORDS.contains(first)) {
                     tableConstraint(table, model, line);
                 } else {
@@ -560,14 +554,16 @@ class DdlNamingTest {
                     tableConstraint(table, model, m.group(1));
                 } else if ((m = Pattern.compile("(?i)RENAME COLUMN ([a-z0-9_]+) TO ([a-z0-9_]+)").matcher(a)).matches()) {
                     Column c = model.columns.remove(m.group(1));
-                    if (c != null) {
-                        model.columns.put(m.group(2), new Column(m.group(2), c.type(), c.checked()));
-                    }
+                    if (c != null) model.columns.put(m.group(2), new Column(m.group(2), c.type(), c.checked()));
+                    String from = m.group(1), to = m.group(2);
+                    model.primaryKey.replaceAll(key -> key.equals(from) ? to : key);
                 } else if ((m = Pattern.compile("(?i)RENAME CONSTRAINT ([a-z0-9_]+) TO ([a-z0-9_]+)").matcher(a)).matches()) {
                     Constraint c = model.constraints.remove(m.group(1));
-                    if (c != null) {
-                        model.constraints.put(m.group(2), new Constraint(c.kind(), m.group(2), c.inlineCheck()));
-                    }
+                    if (c != null) model.constraints.put(m.group(2), new Constraint(c.kind(), m.group(2), c.inlineCheck()));
+                } else if ((m = Pattern.compile("(?i)RENAME TO ([a-z0-9_]+)").matcher(a)).matches()) {
+                    Schema renamed = schemas.get(alter.group(1)); String newName = m.group(1);
+                    renamed.tables.put(newName, renamed.tables.remove(table));
+                    renamed.indexes.replaceAll((index, owner) -> owner.equals(table) ? newName : owner);
                 } else if ((m = Pattern.compile("(?i)DROP CONSTRAINT (?:IF EXISTS )?([a-z0-9_]+).*").matcher(a)).matches()) {
                     model.constraints.remove(m.group(1));
                 } else if ((m = Pattern.compile("(?i)DROP COLUMN (?:IF EXISTS )?([a-z0-9_]+).*").matcher(a)).matches()) {
