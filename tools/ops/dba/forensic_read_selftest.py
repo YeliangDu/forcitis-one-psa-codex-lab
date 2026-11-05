@@ -16,8 +16,16 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import forensic_read as f  # noqa: E402
 
-CONF = {"aliyun_profile": "p", "region": "r", "app_host": "app", "secret_host": "sec", "app_work_dir": "/w/app", "app_jar_process": "x.jar",
-        "secret_file": "/w/s.env", "secret_work_dir": "/w/sec", "account": "acct", "targets": {"t1": {"database": "db1"}}}
+def CONF_WITH_PUB(tmp):
+    pub = Path(tmp, "pub2.pem")
+    pub.write_text(PUB)
+    return {**CONF, "app_public_key_file": str(pub)}
+
+
+CONF = {"aliyun_profile": "p", "region": "r", "command_id": "c-test", "app_host": "app", "secret_host": "sec", "app_work_dir": "/w/app", "app_jar_process": "x.jar",
+        "app_client_file": "/w/OneSql.java", "app_key_file": "/w/k.key", "app_public_key_file": "/nonexistent-set-by-entry", "secret_file": "/w/s.env", "account": "acct",
+        "targets": {"t1": {"database": "db1"}}}
+PUB = "-----BEGIN PUBLIC KEY-----\n" + "A" * 64 + "\n-----END PUBLIC KEY-----\n"
 BASE_ROWS = ([("login", "acct", "db1"), ("perm", "CONNECT", "-"), ("perm", "SELECT", "-"), ("srvperm", "CONNECT SQL", "-"), ("srvperm", "VIEW SERVER STATE", "-")]
              + [("dbperm", "D:0", d) for d in sorted(f.DATABASE_DENIES)] + [("dbperm", "G:0", "CONNECT"), ("dbperm", "G:0", "SELECT")]
              + [("owned", k, "0") for k in ("schemas", "objects", "roles", "database")])
@@ -68,34 +76,34 @@ READS = ["SELECT 1", "select a, b from dbo.t where c = 'x; DELETE' -- DROP\n", "
 
 
 class Fake:
-    def __init__(self, results, log):
-        self.results, self.log, self.sent = list(results), log, []
+    """Stands for the one pre-created cloud command: answers the two requests (encrypt on the secret host, query on the app host) the way forensic_server.py prints them."""
 
-    def run(self, instance, script, timeout=600):
+    def __init__(self, results, log, conf=None):
+        self.results, self.log, self.sent, self.requests = list(results), log, [], []
+        try:
+            self.rev = f.command_rev(conf)
+        except (KeyError, TypeError, OSError):  # a config the entry will refuse anyway
+            self.rev = "REVX"
+
+    def invoke(self, instance, request, timeout=600):
         self.log.append("cloud")
-        if "genpkey" in script:
-            return "Success", 0, "-----BEGIN PUBLIC KEY-----\nAAAA\n-----END PUBLIC KEY-----\n"
-        if "enc.py" in script and "EVIDENCE_DB_PASSWORD" not in script.split("enc.py")[-1]:
-            return "Success", 0, "EVIDENCE:QUJD\n"
-        if "OneSql.java ro" in script:
-            subprocess.run(["bash", "-n"], input=script.encode(), check=True)
-            q_sent = gzip.decompress(base64.b64decode(re.search(r"echo '([A-Za-z0-9+/=]+)' \| base64 -d \| gunzip > \S+/q\.sql", script).group(1))).decode()
-            gated = "ONE_SQL_PLAN_GATE=1 " in script.replace("\n", " ")
-            assert gated == (q_sent not in (f.CHECK_SQL, f.CHECK_DBS_SQL)), "the plan gate is on for the caller's query only, not for the two fixed check queries"
-            q = re.search(r"echo '([A-Za-z0-9+/=]+)' \| base64 -d \| gunzip > \S+/q\.sql", script)
-            self.sent.append(gzip.decompress(base64.b64decode(q.group(1))).decode())
-            res = self.results.pop(0)
-            return "Success", 0, res if res == "TOOBIG" else base64.b64encode(gzip.compress(res.encode())).decode() + "\n"
-        if "test -e" in script:
-            self.log.append("cleanup")
-            return "Success", 0, "CLEAN\n"
-        raise AssertionError("unexpected script")
+        self.requests.append((instance, request))
+        if request["op"] == "encrypt":
+            assert instance == "sec", "the credential is encrypted on the secret host"
+            return "Success", f"REV:{self.rev}\nEVIDENCE:QUJD\n"
+        assert request["op"] == "query" and instance == "app" and set(request) == {"op", "db", "cipher", "sql"} and request["cipher"] == "QUJD", request
+        self.sent.append(base64.b64decode(request["sql"]).decode())
+        res = self.results.pop(0)
+        return "Success", f"REV:{self.rev}\n" + (res if res == "TOOBIG" else base64.b64encode(gzip.compress(res.encode())).decode() + "\n")
 
 
 def entry(tmp, sql, results=(), conf=CONF, out=None, mode=0o600, checked=False, flags=(), existing=False, factory=None, raw=False):
     """Runs main() against a fake cloud; returns (code, stderr, stdout, fake, log, out path)."""
     cfg = Path(tmp, "cfg", "config.json")
     cfg.parent.mkdir(exist_ok=True)
+    pub = Path(tmp, "pub.pem")
+    pub.write_text(PUB)
+    conf = {**conf, "app_public_key_file": str(pub)} if "app_public_key_file" in conf else conf
     cfg.write_text(json.dumps(conf))
     cfg.chmod(mode)
     if not raw:  # a real run ends its output with the DONE line; raw=True leaves results as given
@@ -109,7 +117,7 @@ def entry(tmp, sql, results=(), conf=CONF, out=None, mode=0o600, checked=False, 
     if existing:
         Path(out).write_text("old")
     log, fake = [], None
-    fake = Fake(results, log)
+    fake = Fake(results, log, {**conf, "app_public_key_file": str(pub)})
     f.CONFIG = cfg
     f.register = lambda *a: log.append("register")
     so, se = io.StringIO(), io.StringIO()
@@ -142,7 +150,7 @@ def main():
         assert code == 0 and log[0] == "register"
         assert fake.sent == [f.CHECK_SQL, f.CHECK_DBS_SQL, "SELECT a FROM t"], fake.sent
         assert "PERSON-X" not in out + err and Path(path).read_text() == ROW_DATA and oct(os.stat(path).st_mode & 0o777) == "0o600", "result goes to the file only"
-        assert log.count("cleanup") == 3, "work dir removed after each server run"
+        assert log.count("cloud") == 2 * 3, "per run: one encrypt and one query call"
         # every run checks the account first: a second run, and a config edited after a good run (another account) is refused
         code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [ROW_DATA], checked=True)
         assert code == 0 and fake.sent == [f.CHECK_SQL, f.CHECK_DBS_SQL, "SELECT a FROM t"], fake.sent
@@ -151,7 +159,7 @@ def main():
         # the account check stops the run: an extra permission, a wrong login, a wrong database, an error text
         for why, bad in BAD_CHECKS.items():
             code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [bad, GOOD_DBS, ROW_DATA])
-            assert code == 2 and "account check failed" in err and fake.sent == [f.CHECK_SQL] and not Path(path).exists() and log[-1] == "cleanup", why
+            assert code == 2 and "account check failed" in err and fake.sent == [f.CHECK_SQL] and not Path(path).exists() , why
         # the login must reach exactly the configured databases (plus the platform guest ones): one more, one fewer, none
         for bad in (GOOD_DBS + "  extra\n", GOOD_DBS.replace("  db1\n", ""), "  # name\n  (0 rows)\n", "  # name\n  db1\n  master\nSQLERROR 1222 x\n", GOOD_DBS.rsplit("  (", 1)[0], GOOD_DBS + "SQLERROR 1222 x\n"):
             code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [GOOD_CHECK, bad, ROW_DATA])
@@ -212,9 +220,67 @@ def main():
             raise RuntimeError("SECRETHOST")
         code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", conf=secrets_conf, checked=True, factory=broken)
         assert code == 2 and "RuntimeError" in err and "SECRET" not in err + out, err
+    # card #1389: the entry reaches production only through the one pre-created command. Every aliyun call is InvokeCommand with that command id or a result read for it;
+    # never RunCommand, command creation, file send or a terminal session. Missing command id or profile fails closed before anything is registered or sent.
+    with tempfile.TemporaryDirectory() as tmp:
+        for field in ("command_id", "aliyun_profile", "app_public_key_file", "app_client_file", "app_key_file"):
+            code, err, out, fake, log, _ = entry(tmp, "SELECT 1", conf={k: v for k, v in CONF.items() if k != field})
+            assert code == 2 and "lacks a required field" in err and not log, (field, err, log)
+        calls = []
+        def recorder(cmd, *a, **k):
+            calls.append(cmd)
+            action = cmd[1:3]
+            if action == ["ecs", "InvokeCommand"]:
+                return subprocess.CompletedProcess(cmd, 0, stdout=json.dumps({"InvokeId": "t-1"}), stderr="")
+            out = base64.b64encode(f"REV:{f.command_rev(CONF_WITH_PUB(tmp))}\nEVIDENCE:QUJD\n".encode()).decode()
+            return subprocess.CompletedProcess(cmd, 0, stdout=json.dumps({"Invocation": {"InvocationResults": {"InvocationResult": [{"InvocationStatus": "Success", "Output": out}]}}}), stderr="")
+        subprocess.run, real_sleep = recorder, f.time.sleep
+        f.time.sleep = lambda s: None
+        try:
+            cloud = f.Cloud(CONF)
+            status, text = cloud.invoke("sec", {"op": "encrypt"})
+        finally:
+            subprocess.run, f.time.sleep = real_run, real_sleep
+        assert status == "Success" and "EVIDENCE:QUJD" in text
+        invoke = next(c for c in calls if c[2] == "InvokeCommand")
+        assert invoke[invoke.index("--CommandId") + 1] == "c-test" and invoke[invoke.index("--InstanceId.1") + 1] == "sec", invoke
+        parameters = json.loads(invoke[invoke.index("--Parameters") + 1])
+        assert set(parameters) == {"req"} and re.fullmatch(r"[A-Za-z0-9_-]+", parameters["req"]), "the single request parameter is one base64url line"
+        assert json.loads(base64.urlsafe_b64decode(parameters["req"] + "==")) == {"op": "encrypt"}
+        read = next(c for c in calls if c[2] == "DescribeInvocationResults")
+        assert read[read.index("--CommandId") + 1] == "c-test", "results are read for the command only"
+        assert all(c[:3] in (["aliyun", "ecs", "InvokeCommand"], ["aliyun", "ecs", "DescribeInvocationResults"]) for c in calls), calls
+        assert not re.search(r"RunCommand|CreateCommand|ModifyCommand|SendFile|Session", (HERE / "forensic_read.py").read_text().replace("no RunCommand, no command creation", "")), "the entry names no other cloud action"
+        # a request longer than one parameter can carry is refused before any call
+        calls.clear()
+        subprocess.run = recorder
+        try:
+            try:
+                f.Cloud(CONF).invoke("app", {"op": "query", "db": "d", "cipher": "x", "sql": "A" * 9000})
+                raise AssertionError("long request accepted")
+            except f.Refused as error:
+                assert "too long" in str(error) and not calls
+        finally:
+            subprocess.run = real_run
+        # a refusal from the command, a command of another revision, a command that did not run: fixed messages, nothing written
+        for text, why in (("REV:abc\nREFUSED:database not allowed\n", "refused the request (database not allowed)"), ("REV:stale\nEVIDENCE:QUJD\n", "not the repository revision"), ("", "not the repository revision")):
+            class One(Fake):
+                def invoke(self, instance, request, timeout=600):
+                    return "Success", text
+            code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", checked=True, factory=lambda conf: One([], [], None))
+            assert code == 2 and why in err and not Path(path).exists(), (text, err)
+        # the answer check itself, with the real computed revision: a good answer passes, a failed invocation of the right command is refused, a stale one is refused
+        rev = f.command_rev(CONF_WITH_PUB(tmp))
+        assert f.answer("Success", f"REV:{rev}\nEVIDENCE:QUJD\n", rev).startswith("REV:")
+        for status, text, why in (("Failed", f"REV:{rev}\n", "did not succeed (Failed)"), ("Success", f"REV:{rev}x\n", "not the repository revision"), ("Success", f"REV:{rev}\nREFUSED:x\n", "refused the request (x)")):
+            try:
+                f.answer(status, text, rev)
+                raise AssertionError("answer accepted: " + why)
+            except f.Refused as error:
+                assert why in str(error), str(error)
     # the entry's source holds no production fingerprint (the gate would refuse the command otherwise, and identifiers belong in the local config)
     table = json.loads(Path(f.REPO, "scripts", "gates", "prod_targets.json").read_text())["targets"]
-    folded = re.sub(r"[^0-9a-z]", "", (HERE / "forensic_read.py").read_text().lower() + (HERE / "forensic_read_selftest.py").read_text().lower())
+    folded = re.sub(r"[^0-9a-z]", "", "".join((HERE / n).read_text().lower() for n in ("forensic_read.py", "forensic_read_selftest.py", "forensic_command.py", "forensic_command_selftest.py", "forensic_server.py")))
     assert not [p for t in table for p in t["patterns"] if re.sub(r"[^0-9a-z]", "", p.lower()) in folded], "fingerprint in the entry source"
     print("forensic_read self-test: ok")
 
