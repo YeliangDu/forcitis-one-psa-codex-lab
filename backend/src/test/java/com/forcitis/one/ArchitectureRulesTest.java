@@ -22,6 +22,8 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
@@ -465,6 +467,60 @@ class ArchitectureRulesTest {
                 .because(GuardMessage.of("G30", "@NamedInterface is used outside an api or events package", "remove @NamedInterface from that package; expose only api and events"))
                 .allowEmptyShould(true)
                 .check(CLASSES);
+    }
+
+    // DATA_DESIGN_CHECKLIST section 14 row 3: events come from the aggregate; the application hands them to the registry and never makes one itself.
+    static List<String> eventsBuiltOutsideTheDomain(JavaClasses classes) {
+        List<String> problems = new ArrayList<>();
+        for (JavaClass type : classes) {
+            if (type.getPackageName().matches(".*\\.(domain|events)(\\..*)?")) {
+                continue;
+            }
+            type.getConstructorCallsFromSelf().stream().filter(call -> call.getTargetOwner().isRecord() && call.getTargetOwner().getPackageName().matches(".*\\.events(\\..*)?"))
+                    .forEach(call -> problems.add(type.getName() + " builds the event " + call.getTargetOwner().getSimpleName()));
+        }
+        return problems.stream().distinct().toList();
+    }
+
+    @Test
+    void eventsAreMadeByTheAggregateAndPublishedOnlyByEventing() {
+        assertThat(eventsBuiltOutsideTheDomain(CLASSES)).as(GuardMessage.of("DDD-3", "an event record is built outside a domain class",
+                "build the event in the aggregate's transition method (domain) and have the use case hand it to DomainEvents")).isEmpty();
+        noClasses().that().resideOutsideOfPackage(ROOT + ".platform.eventing..").should().dependOnClassesThat().haveFullyQualifiedName("org.springframework.context.ApplicationEventPublisher")
+                .because(GuardMessage.of("DDD-3", "a class outside platform.eventing uses ApplicationEventPublisher", "hand the event to DomainEvents; platform.eventing publishes through the Modulith registry")).check(CLASSES);
+        JavaClasses fixture = new ClassFileImporter().withImportOption(ImportOption.Predefined.ONLY_INCLUDE_TESTS).importPackages("com.forcitis.one.fixture.eventbuild");
+        assertThat(eventsBuiltOutsideTheDomain(fixture)).as("injected: only the use case that builds the event is caught, not the aggregate").hasSize(1).first().asString().contains("ThingUseCase");
+    }
+
+    // DATA_DESIGN_CHECKLIST section 14.3 I3: no external system is called inside a database transaction: a @Transactional use case, with the application helpers it calls, reaches no external-call port.
+    // WecomGateway is not one: it writes the outbox and is meant to run inside the transaction. Existing gaps are listed and may only shrink.
+    static final List<String> EXTERNAL_CALL_PORTS = List.of("WecomClient", "OrgSource", "OrgShortNames", "ArchiveVault", "BusinessFileStore", "ObjectStore", "MalwareScanner", "ExternalConnections");
+    static final java.nio.file.Path EXTERNAL_GAPS = java.nio.file.Path.of("architecture/external-call-in-transaction-gaps.txt");
+
+    static List<String> externalCallsInTransactions(JavaClasses classes, java.util.function.Predicate<JavaClass> port) {
+        java.util.Set<String> problems = new java.util.TreeSet<>();
+        for (JavaClass type : classes) {
+            for (JavaMethod entry : TransactionalUseCases.entries(type)) {
+                TransactionalUseCases.reachableAccesses(entry).stream().filter(a -> port.test(a.owner())).forEach(a -> problems.add(type.getName()));
+            }
+        }
+        return new ArrayList<>(problems);
+    }
+
+    @Test
+    void noExternalCallInATransaction() throws java.io.IOException {
+        assertThat(EXTERNAL_CALL_PORTS).as(GuardMessage.of("I3", "EXTERNAL_CALL_PORTS names a type that no longer exists", "update the list in ArchitectureRulesTest to the current external-call ports"))
+                .allMatch(name -> CLASSES.stream().anyMatch(c -> c.getSimpleName().equals(name)));
+        List<String> gaps = java.nio.file.Files.readAllLines(EXTERNAL_GAPS).stream().filter(l -> !l.isBlank() && !l.startsWith("#")).toList();
+        List<String> found = externalCallsInTransactions(CLASSES, c -> EXTERNAL_CALL_PORTS.contains(c.getSimpleName()) && c.getPackageName().startsWith(ROOT + ".platform.integration"));
+        assertThat(found.stream().filter(c -> !gaps.contains(c)).toList()).as(GuardMessage.of("I3",
+                "a @Transactional use case, directly or through an application helper, reaches an external-call port, so an external call may run inside a database transaction",
+                "do the external call outside the transaction, or send through the outbox (OutboundDelivery); do not add it to external-call-in-transaction-gaps.txt")).isEmpty();
+        assertThat(gaps.stream().filter(c -> !found.contains(c)).toList()).as(GuardMessage.of("I3",
+                "backend/architecture/external-call-in-transaction-gaps.txt lists a use case that no longer reaches an external-call port, or no longer exists", "delete the line (the list may only shrink)")).isEmpty();
+        JavaClasses fixture = new ClassFileImporter().withImportOption(ImportOption.Predefined.ONLY_INCLUDE_TESTS).importPackages("com.forcitis.one.fixture.externaltx");
+        assertThat(externalCallsInTransactions(fixture, c -> c.getSimpleName().equals("RemoteGateway"))).as("injected: the transactional caller and the one that goes through a helper are caught, the one without a transaction is not")
+                .containsExactly("com.forcitis.one.fixture.externaltx.application.CallsOutsideInTransaction", "com.forcitis.one.fixture.externaltx.application.CallsViaHelper");
     }
 
     @SuppressWarnings("unused")

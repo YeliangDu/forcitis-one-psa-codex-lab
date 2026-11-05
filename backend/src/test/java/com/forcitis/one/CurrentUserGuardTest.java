@@ -90,4 +90,40 @@ class CurrentUserGuardTest {
         assertThat(problems("Z.java", unrelated)).isEmpty();
         assertThat(problems("W.java", commented)).isEmpty();
     }
+
+    // DATA_DESIGN_CHECKLIST G-T2: production code has no hard-coded id of a dimension (legal entity, org unit, employee, position, project); a constant or literal is a default in disguise.
+    static final String DIMENSION_ID = "(?:LegalEntityId|OrgUnitId|EmployeeId|PositionId|ProjectId)";
+    static final Pattern LITERAL_DIMENSION_ID = Pattern.compile("\\bnew\\s+" + DIMENSION_ID + "\\(\\s*(?:\"|[0-9]|new\\s+UUID\\s*\\(|UUID\\s*\\.\\s*fromString\\(\\s*\")|\\b" + DIMENSION_ID + "\\.(?:of|from|parse)\\(\\s*(?:\"|[0-9])");
+    static final Pattern CONSTANT_DIMENSION_ID = Pattern.compile("\\bstatic\\s+final\\s+" + DIMENSION_ID + "\\s+\\w+\\s*=");
+
+    static List<String> hardCodedDimensionIds(String file, String source) {
+        String code = StateWritePolicy.withoutComments(source);
+        List<String> problems = new ArrayList<>();
+        if (LITERAL_DIMENSION_ID.matcher(code).find()) {
+            problems.add(file + ": it builds a dimension id (legal entity, org unit, employee, position, project) from a literal");
+        }
+        if (CONSTANT_DIMENSION_ID.matcher(code).find()) {
+            problems.add(file + ": it declares a dimension id as a static final constant");
+        }
+        return problems;
+    }
+
+    @Test
+    @DisplayName("G-T2 production code has no hard-coded or constant id of a legal entity, org unit, employee, position or project")
+    void noHardCodedDimensionIds() throws IOException {
+        List<String> problems = new ArrayList<>();
+        try (Stream<Path> files = Files.walk(MAIN)) {
+            for (Path file : files.filter(f -> f.toString().endsWith(".java")).toList()) {
+                problems.addAll(hardCodedDimensionIds(MAIN.relativize(file).toString(), Files.readString(file)));
+            }
+        }
+        // the one registered exception: the approval replay derives stable ids from exported numbers; it never stands in for a missing answer
+        String replay = "com/forcitis/one/platform/approval/infrastructure/replay/ExportedIds.java";
+        assertThat(problems.removeIf(p -> p.startsWith(replay))).as(GuardMessage.of("G-T2", "the registered exception ExportedIds no longer builds an id from a number", "delete the exception from CurrentUserGuardTest")).isTrue();
+        assertThat(problems).as(GuardMessage.of("G-T2", "production code hard-codes a dimension id", "take the id from the request, the session or the database and fail when the source is uncertain; never a literal, a constant or a default")).isEmpty();
+        assertThat(hardCodedDimensionIds("A.java", "class A { LegalEntityId x = new LegalEntityId(new UUID(0, 1)); }")).hasSize(1);
+        assertThat(hardCodedDimensionIds("B.java", "class B { Object o = EmployeeId.of(1); }")).hasSize(1);
+        assertThat(hardCodedDimensionIds("C.java", "class C { static final OrgUnitId ROOT = load(); }")).hasSize(1);
+        assertThat(hardCodedDimensionIds("D.java", "class D { OrgUnitId id = new OrgUnitId(request.orgUnitId()); // new OrgUnitId(1)\n }")).isEmpty();
+    }
 }

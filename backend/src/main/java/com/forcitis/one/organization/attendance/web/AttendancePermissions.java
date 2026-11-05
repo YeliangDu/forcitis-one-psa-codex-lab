@@ -6,6 +6,9 @@ final class AttendancePermissions {
     static final String WORK_CALENDAR_UPDATE = "organization.attendance:work-calendar:update";
     static final String LOCKED_DAY_UPDATE = "organization.attendance:locked-day:update";
 
+    static final String STANDARD_HOURS_PUBLISH = "organization.attendance:standard-hours:publish";
+    static final String STANDARD_HOURS_READ = "organization.attendance:standard-hours:read";
+
     private AttendancePermissions() {
     }
 }
