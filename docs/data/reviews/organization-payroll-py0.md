@@ -15,7 +15,7 @@ Not signed here, and not to be built by the PY0 card:
 
 | Table | Source | Aggregate | Registry role |
 |---|---|---|---|
-| `payroll_rule_versions` | AGG-119 (spec 4.1) | PayrollRuleVersion | `CONFIG_VERSIONED`-style root, `CONDITIONAL_UPDATE` (see invariants) |
+| `payroll_rule_versions` | AGG-119 (spec 4.1) | PayrollRuleVersion | `AGGREGATE_ROOT`, `CONDITIONAL_UPDATE` (see invariants) |
 | `payroll_rule_rows` | AGG-119 content (spec 4.1) | PayrollRuleVersion | `AGGREGATE_CHILD`, `REPLACE_SET` while the version is `DRAFT`, frozen afterwards |
 
 One version is one aggregate (state machine note: 每版本一个聚合). Class words and names follow `naming-standard.md` 2.4/2.4a; audit columns `created_at`, `updated_at` on both tables, `version bigint NOT NULL DEFAULT 0` on the root. Keys are UUIDv7 `id`, primary key `pk_<table>`. User ids (`drafted_by_user_id`, `approved_by_user_id`) belong to `platform.identity`: `uuid`, no foreign key (cross-BC rule B4).
@@ -30,7 +30,7 @@ One version is one aggregate (state machine note: 每版本一个聚合). Class 
 | `rule_kind` | text NOT NULL | `ck_payroll_rule_versions_rule_kind`: `INCOME_TAX`, `SOCIAL_INSURANCE`, `HOUSING_FUND`, `ROUNDING`. The category of the state machine note ("同类别同适用范围") |
 | `jurisdiction_key` | text NOT NULL | scope of the rule: `CN` for the national IIT rule, a locality key for insurance and fund rules; format CHECK `~ '^[A-Z][A-Z0-9_]{1,31}$'`. The value list is data, not a CHECK |
 | `effective_from_date` | date NOT NULL | first day the version applies |
-| `effective_to_date` | date null | 为空表示 open-ended (no successor yet); `ck_payroll_rule_versions_effective_interval` `effective_to_date IS NULL OR effective_to_date >= effective_from_date` |
+| `effective_to_date` | date null | 为空表示 open-ended (no successor yet); half-open interval as everywhere in the repo (data-design-checklist D6): the day of `effective_to_date` is **not** covered, and the successor's `effective_from_date` equals it; `ck_payroll_rule_versions_effective_interval` `effective_to_date IS NULL OR effective_to_date > effective_from_date` |
 | `status` | text NOT NULL | `DRAFT`, `EFFECTIVE`, `SUPERSEDED` (state machine; the repo's enum word is `status`, not the sketch's `version_status`) |
 | `drafted_by_user_id` | uuid NOT NULL | author |
 | `approved_by_user_id` | uuid null | 为空表示 not published yet; `ck_payroll_rule_versions_approver_columns` `(status = 'DRAFT') = (approved_by_user_id IS NULL)` |
@@ -41,9 +41,9 @@ One version is one aggregate (state machine note: 每版本一个聚合). Class 
 Constraints:
 
 - `ck_payroll_rule_versions_drafter_not_approver` `approved_by_user_id IS NULL OR approved_by_user_id <> drafted_by_user_id` (U7(3), drafter and approver differ).
-- `ex_payroll_rule_versions_effective_interval_overlap` `EXCLUDE USING gist (rule_kind WITH =, jurisdiction_key WITH =, daterange(effective_from_date, effective_to_date, '[]') WITH &&) WHERE (status IN ('EFFECTIVE','SUPERSEDED'))` (INV-139; needs `btree_gist`, which other baselines already create). A `DRAFT` may overlap; publishing is the check. `SUPERSEDED` rows stay in the exclusion so history never overlaps either.
+- `ex_payroll_rule_versions_effective_interval_overlap` `EXCLUDE USING gist (rule_kind WITH =, jurisdiction_key WITH =, daterange(effective_from_date, effective_to_date) WITH &&) WHERE (status IN ('EFFECTIVE','SUPERSEDED'))` (INV-139; needs `btree_gist`, which other baselines already create). A `DRAFT` may overlap; publishing is the check. `SUPERSEDED` rows stay in the exclusion so history never overlaps either.
 - `ck_payroll_rule_versions_supersede_has_end` `status <> 'SUPERSEDED' OR effective_to_date IS NOT NULL`.
-- Trigger `guard_payroll_rule_version_change`: a row that is `EFFECTIVE` or `SUPERSEDED` cannot be deleted; its only legal updates are `EFFECTIVE` to `SUPERSEDED` with `effective_to_date` set in the same statement (the successor's publish closes the interval, D15: a correction is a new version, never an edit). `DRAFT` to `EFFECTIVE` sets `approved_by_user_id`, `published_at` and nothing else. Same condition form as `work_calendar_versions` (`CONDITIONAL_UPDATE`).
+- Trigger `tg_payroll_rule_versions_change` (and `tg_payroll_rule_versions_truncate`, which refuses TRUNCATE): the full list of legal writes, everything else is refused. (1) Insert always `DRAFT`. (2) `DRAFT` to `DRAFT`: the identifying and descriptive columns may change (`rule_kind`, `jurisdiction_key`, dates, `source_note`, `drafted_by_user_id`), plus `version`, `updated_at`. (3) `DRAFT` to `EFFECTIVE` (publish): only `status`, `approved_by_user_id`, `published_at`, `version`, `updated_at` change. (4) `EFFECTIVE` to `SUPERSEDED` (the successor's publish): only `status`, `effective_to_date` (from null to the successor's `effective_from_date`, which must be set in the same statement), `version`, `updated_at` change. (5) Delete only a `DRAFT`. No other edge (in particular no `DRAFT` to `SUPERSEDED`, no change of an `EFFECTIVE` or `SUPERSEDED` row beyond (4); D15: a correction is a new version). Command order for a successor: close the old interval first, then publish the successor, so the immediate exclusion check passes. Same condition form as `work_calendar_versions` (`CONDITIONAL_UPDATE`).
 - Index `ix_payroll_rule_versions_lookup` `(rule_kind, jurisdiction_key, effective_from_date)` (the calculation looks up the version in force for a month; at most hundreds of rows).
 
 ### payroll_rule_rows
@@ -53,17 +53,17 @@ Constraints:
 | `id` | uuid | pk |
 | `rule_version_id` | uuid NOT NULL | `fk_payroll_rule_rows_rule_version_id` RESTRICT; index starts with it (G-DDL2) via the unique key below |
 | `row_kind` | text NOT NULL | `ck_payroll_rule_rows_row_kind`: `INCOME_TAX_BAND`, `INCOME_TAX_MONTHLY_BASIC_DEDUCTION`, `SOCIAL_INSURANCE_RATE`, `SOCIAL_INSURANCE_BASE_LIMIT`, `HOUSING_FUND_RATE`, `HOUSING_FUND_BASE_LIMIT`, `ROUNDING_MODE` |
-| `row_key` | text NOT NULL | insurance kind key for the insurance rows (for example a pension or medical key from the registered component list), band number text for `INCOME_TAX_BAND`, `-` where the kind has one row; format CHECK `~ '^[A-Za-z0-9_-]{1,40}$'`. Insurance kind values are data (registered later with #1373), not a CHECK |
+| `row_key` | text NOT NULL | insurance kind key for the insurance rows (for example a pension or medical key from the registered component list), a two-digit zero-padded band number (`01`, `02`, ...) for `INCOME_TAX_BAND` so text order is band order, `-` where the kind has one row; format CHECK `~ '^[A-Za-z0-9_-]{1,40}$'` and `row_kind <> 'INCOME_TAX_BAND' OR row_key ~ '^[0-9]{2}$'`. Insurance kind values are data (registered later with #1373), not a CHECK |
 | `party_kind` | text null | `EMPLOYER`, `EMPLOYEE`; 为空表示 the row has no side (bands, deduction, base limits, rounding) |
-| `lower_bound_amount` | numeric(19,2) null | 为空表示 the kind has no lower bound; `>= 0` |
-| `upper_bound_amount` | numeric(19,2) null | 为空表示 no upper bound (top band, or the kind has none); `> lower_bound_amount` when both are set |
-| `rate_ratio` | numeric(9,6) null | 为空表示 the kind has no ratio; `0 <= rate_ratio <= 1` |
-| `quick_deduction_amount` | numeric(19,2) null | 为空表示 not a tax band; `>= 0` |
-| `amount` | numeric(19,2) null | 为空表示 the kind has no flat amount (used by the monthly basic deduction); `>= 0` |
-| `rounding_mode` | text null | 为空表示 not a rounding row; `HALF_UP`, `HALF_EVEN`, `DOWN` (numeric precision itself is C-4: `numeric(19,2)` CNY) |
+| `lower_bound_amount`, `lower_bound_currency` | numeric(19,2) null, text null | 为空表示 the kind has no lower bound (both columns null together); `lower_bound_amount >= 0`; currency `CHECK = 'CNY'` (C-4; naming standard 2.4 pairs every `_amount` with a same-named `_currency`) |
+| `upper_bound_amount`, `upper_bound_currency` | numeric(19,2) null, text null | 为空表示 no upper bound (top band, or the kind has none); `upper_bound_amount > lower_bound_amount` when both are set; currency as above |
+| `applied_rate` | numeric(9,6) null | 为空表示 the kind has no rate; `0 <= applied_rate <= 1` (`_rate` is the class word for a ratio) |
+| `quick_deduction_amount`, `quick_deduction_currency` | numeric(19,2) null, text null | 为空表示 not a tax band; `>= 0`; currency as above |
+| `flat_amount`, `flat_currency` | numeric(19,2) null, text null | 为空表示 the kind has no flat amount (used by the monthly basic deduction); `>= 0`; currency as above |
+| `rounding_kind` | text null | 为空表示 not a rounding row; minimal set `HALF_UP`, `HALF_EVEN`, `DOWN`: the legacy rule is still open (P-11), and a further value is a lossless widening of the CHECK in a later migration; scale stays `numeric(19,2)` (C-4) |
 | `created_at`, `updated_at` | | audit |
 
-Constraints: `ck_payroll_rule_rows_kind_columns`, one CHECK per kind giving exactly which of the six nullable columns must be set and which must be null (`INCOME_TAX_BAND`: lower, rate and quick deduction set; `INCOME_TAX_MONTHLY_BASIC_DEDUCTION`: amount only; `*_RATE`: rate and party; `*_BASE_LIMIT`: lower and upper; `ROUNDING_MODE`: rounding mode only); `ck_payroll_rule_rows_bounds_order` (upper above lower); `uk_payroll_rule_rows_version_kind_key_party` unique on `(rule_version_id, row_kind, row_key, COALESCE(party_kind, '-'))` (one row per version, kind, key and side; band numbers make band rows distinct). Trigger `guard_payroll_rule_row_change`: insert, update and delete only while the parent version is `DRAFT` (published rows are frozen, spec section 8).
+Constraints: `ck_payroll_rule_rows_kind_columns`, one CHECK per kind giving exactly which of the seven nullable value columns must be set and which must be null (`INCOME_TAX_BAND`: lower, rate and quick deduction set; `INCOME_TAX_MONTHLY_BASIC_DEDUCTION`: flat amount only; `*_RATE`: rate and party; `*_BASE_LIMIT`: lower and upper; `ROUNDING_MODE`: rounding kind only; each amount and its currency are set or null together); `ck_payroll_rule_rows_bounds_order` (upper above lower); `uk_payroll_rule_rows_version_kind_key_party`, a unique **index** (PostgreSQL has no expression in a unique constraint; naming standard 2.4 allows `uk_` for it) on `(rule_version_id, row_kind, row_key, COALESCE(party_kind, '-'))`, one row per version, kind, key and side; it leads with `rule_version_id`, so it also serves as the foreign key's index (G-DDL2). Trigger `tg_payroll_rule_rows_change` (and `tg_payroll_rule_rows_truncate`): insert, update and delete only while the parent version is `DRAFT`, read with `SELECT ... FOR SHARE` on the parent so a concurrent publish cannot slip a row into a version that has just become `EFFECTIVE` (published rows are frozen, spec section 8).
 
 ## Differences from the section 8 sketch
 
@@ -79,7 +79,7 @@ None of these changes a command or an event.
 |---|---|---|
 | Effective intervals do not overlap per category and jurisdiction (INV-139) | `ex_payroll_rule_versions_effective_interval_overlap` | |
 | Drafter differs from approver | `ck_payroll_rule_versions_drafter_not_approver` | |
-| Published versions and their rows never change (D15) | `guard_payroll_rule_version_change`, `guard_payroll_rule_row_change` | |
+| Published versions and their rows never change (D15) | `tg_payroll_rule_versions_change`, `tg_payroll_rule_rows_change`, both truncate triggers | |
 | Only the successor's publish closes an interval | trigger (legal update set above) | |
 | Status matches approval columns | `ck_payroll_rule_versions_approver_columns` | |
 | Row shape per kind | `ck_payroll_rule_rows_kind_columns` | |
@@ -116,10 +116,10 @@ Row counts stay in the hundreds for years; no partition, no `fillfactor`.
 
 | Table | Registry |
 |---|---|
-| `payroll_rule_versions` | role `CONFIG_VERSIONED`, aggregate `PayrollRuleVersion`, mutability `CONDITIONAL_UPDATE` with condition "`DRAFT` to `EFFECTIVE` (publish), and `EFFECTIVE` to `SUPERSEDED` closing `effective_to_date` when the successor is published (`guard_payroll_rule_version_change`)", retention `PERMANENT`, lineage `NEW` (values entered by authors; no legacy import), writers `organization.payroll` |
+| `payroll_rule_versions` | role `AGGREGATE_ROOT` (one version is one aggregate, so there is no separate append-only `CONFIG_VERSIONED` root and `DataArchitectureTest` D10 does not apply), aggregate `PayrollRuleVersion`, business key `[rule_kind, jurisdiction_key, effective_from_date]`, mutability `CONDITIONAL_UPDATE` with condition "`DRAFT` to `EFFECTIVE` (publish), and `EFFECTIVE` to `SUPERSEDED` closing `effective_to_date` when the successor is published (`tg_payroll_rule_versions_change`)", retention `PERMANENT`, lineage `NEW` (values entered by authors; no legacy import), writers `organization.payroll` |
 | `payroll_rule_rows` | role `AGGREGATE_CHILD`, aggregate `PayrollRuleVersion`, mutability `REPLACE_SET` while the version is `DRAFT`, retention `PERMANENT`, lineage `NEW`, writers `organization.payroll` |
 
-**Retention basis.** `PERMANENT` is the user-approved design口径 for non-personal configuration version tables (`work_calendar_*`: 「维持」, `docs/data/retention-proposal.md`, the same registry roles); these two tables hold public statute values and a citation, no personal information, so C3's ban on permanent retention (it applies to `PI` tables) does not bite, and permanence is also what lets any past month be recomputed exactly. If the user wants a limit, it is a one-line registry change later.
+**Retention basis.** `PERMANENT` is the user-approved design口径 for non-personal configuration version tables (`work_calendar_*`: 「维持」, `docs/data/retention-proposal.md` line 32; the registry also keeps `work_calendar_versions` and `config_set_versions` `PERMANENT`); the roles differ (those are split root plus versions table, here one version is one aggregate), the retention class is what is extended; these two tables hold public statute values and a citation, no personal information, so C3's ban on permanent retention (it applies to `PI` tables) does not bite, and permanence is also what lets any past month be recomputed exactly. If the user wants a limit, it is a one-line registry change later.
 
 | Column | Access level | PI | Reason |
 |---|---|---|---|
@@ -131,11 +131,11 @@ Table comments: `payroll_rule_versions`: 「粒度：每个薪酬规则类别 ×
 
 ## Baseline, target, transition, rollback (T1 to T4)
 
-New schema, new tables, no legacy table of this name (`LegacyShapeTest`: names are the new system's own). Transition: none (no data). Rollback: drop the two tables and the schema, nothing else references them until PY4. Expected diff for the schema PR: `organization_payroll.payroll_rule_versions`, `organization_payroll.payroll_rule_rows`, their constraints, indexes, the two guard triggers and functions, and `CREATE EXTENSION IF NOT EXISTS btree_gist`.
+New schema, new tables, no legacy table of this name (`LegacyShapeTest`: names are the new system's own). Transition: none (no data). Rollback: drop the two tables and the schema, nothing else references them until PY4. Expected diff for the schema PR: `organization_payroll.payroll_rule_versions`, `organization_payroll.payroll_rule_rows`, their constraints, indexes, the two row-change triggers and two truncate triggers with their functions, and an existence check for `btree_gist` (the extension is created by the ops setup, as in the attendance and leave migrations).
 
 ## Events and read models (E1 to E3)
 
-`PayrollRuleVersionEffective` (analytical, ids only) is raised by `PublishPayrollRuleVersion`; its payload is written in `docs/architecture/events/` with the implementing slice, because a catalogue entry of a code-tier event without its publisher fails `EventCatalogueTest`. No read model, no migration mapping.
+`PayrollRuleVersionEffective` (analytical, ids only) is raised by `PublishPayrollRuleVersion`; the `EFFECTIVE` to `SUPERSEDED` edge is the same command acting on the predecessor and needs no event of its own (recorded in `state_transitions`); its payload is written in `docs/architecture/events/` with the implementing slice, because a catalogue entry of a code-tier event without its publisher fails `EventCatalogueTest`. No read model, no migration mapping.
 
 ## Why PY3 is not signed
 
@@ -145,7 +145,7 @@ New schema, new tables, no legacy table of this name (`LegacyShapeTest`: names a
 
 数据设计审查
 - 审查：one-design，2026-11-05，依据 origin/main `a61c6c42c`
-- 判定：B1、B2、B3a、B5、O3、O4、O6、O10、O13、O14、O15、C1 至 C5、T1 至 T4、E1 通过（两张表）；`bonus_inputs` 与其余个人薪酬表不在本次范围，C3/C4 待用户（P-9）
+- 判定：B1、B2、B3a、B5、O3、O4、O6、O10、O13、O14、O15、C1 至 C5、T1 至 T4、E1 通过（两张表）；B3、B4（外键 RESTRICT、跨 BC 无外键）、B6、B7（枚举最小集，扩展为无损加宽）、O1、O2（UUIDv7 主键）、O5、O7（已生效版本只关闭不改写）、O8（金额与币种成对）、O9、O10a、O11（行数百，无需分区）、O12、O16 通过，证据见上文各节；B8（术语表登记 `payroll_rule_version` 等词）按请假 L1a 先例记为实现卡的前置，不在本记录内；A1 至 A8 不适用（无分析事实，A6 已判）；`bonus_inputs` 与其余个人薪酬表不在本次范围，C3/C4 待用户（P-9）
 - 豁免与待用户决定：薪酬个人数据表的保留期与分级（spec P-9）；规则表 `PERMANENT` 依据 `work_calendar_*` 先例，用户可随时改
 - 结论：通过（仅 `payroll_rule_versions`、`payroll_rule_rows`）
 - 数据设计：通过（one-design，2026-11-05，依据 a61c6c42c）
