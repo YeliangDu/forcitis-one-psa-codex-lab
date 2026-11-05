@@ -139,3 +139,103 @@ The model does not time-guard `Separate` and `Submit` in the G-1 trace; the shor
 `LineKeyOnce` and `NoWriteToSealed` with `Unique = FALSE` are negative controls: they are violated, which shows the invariants can fail.
 
 Two earlier rows are not in the table: `g2_wd` and its fixed twin used a span that makes withdraw impossible (withdraw needs `today` before the start), so they held vacuously; `g2b_wd` (span `s22`) replaces them. `g1c_appr` (approval after withdraw) holds in the literal reading.
+
+## employment-relationship
+
+The lifecycle of an employment relationship (`docs/architecture/proposals/employment-relationship.md`, ADR-0086) and the three consumers that act on its events: leave (account opening and closing, carry-over from a predecessor), the identity separation flag, and timesheet attribution. Card #1359. Bounded model: one person, two employing entities, at most two relationships, three days, at most five emitted events (six for the rows marked MaxEv 6). Events are delivered at least once and in any order: every emitted event stays available, so any of them can arrive again. Commands take effect on a day not later than today; future-dated entry and corrections that move a date to today or later are not modelled (the ordering problem does not depend on them, but see F-5).
+
+Run from `docs/architecture/formal/employment-relationship/`, `-workers 4`, a wall-clock cap in front, heap 6 GB (the biggest run below needs about 30 minutes):
+
+```bash
+timeout 1700 java -XX:+UseParallelGC -Xmx6g -cp /path/to/tla2tools.jar tlc2.TLC -workers 4 -deadlock -config spec.cfg spec.tla
+```
+
+`spec.cfg` is the passing reading: `Payload = read`, `UnseenPolicy = defer`, `IdentityCorrection = recompute`, `IdentityHires = TRUE`, `CarryTrigger = both`. It lists the eight invariants; TLC stops at the first violated one, so the results below come from running the invariants one after another (each violated one dropped and the rest rerun).
+
+### Actions and the clauses they model
+
+| Action | Clause (`employment-relationship.md`) |
+|---|---|
+| `Hire` | 5 HIRE: names the employer; first or additional relationship; `EmployeeHired` fires when the person goes from not in service to in service (6.1); 4.2 item 1 (`SameEmployer`) |
+| `Reinstate` | 5 REINSTATE of an ended relationship; `EmployeeReinstated` (6.1) |
+| `Separate`, `ReleaseSeparate`, `WithdrawSeparate` | 5 SEPARATE on one relationship, 4.2 item 7, 6.2; the separation hold (`HoldSeparate`): entered, not in effect, no event until released; `EmployeeSeparated` only for the last relationship (6.1) |
+| `ChangeEmployer` | 5 "employer change in continuous service": SEPARATE on the old and HIRE with predecessor on the new, one date; neither `EmployeeSeparated` nor `EmployeeHired` fires (6.1) |
+| `Regularize` | 6.1 `EmploymentRelationshipPhaseChanged` |
+| `UnpaidChange` | 6.1 `EmploymentRelationshipUnpaidLeaveChanged` |
+| `Correct` | 5 CORRECTION: names the relationship; `EmploymentRelationshipCorrected` and `EmployeeCorrected` (6.1); moves the start or the end within the past |
+| `DeliverRel` (leave, timesheet) | 6.1: leave (and payroll) subscribe to the relationship-level events, in any order, at least once; leave opens and closes the year account. Timesheet is **not** a subscriber in the design (it reads person-level state at submission, 6.2); the model gives it a replica anyway, as a conservative stand-in for any consumer that would act on relationship events, so a violation there is a rule for any future subscriber, not a clause of today's design. The carry-over of a predecessor's balance is modelled only for the option `CarryFromPred = TRUE`; the adopted T-6 is the opposite (fresh account, settlement per T-10) |
+| `DeliverIdn` | 6.1: identity keeps its person-level subscriptions (`EmployeeHired`, `EmployeeSeparated`, `EmployeeReinstated`, `EmployeeCorrected`); sets the separated flag on `EmployeeSeparated`, clears it on `EmployeeReinstated` |
+| `Tick` | time |
+
+Not modelled, on purpose: `EmployeeTransferred`, `EmployeeRegularized` and `EmployeeUnpaidLeaveStarted` (identity's review reads them; no effect on the flag), a SEPARATE hold on the old relationship while a `ChangeEmployer` is entered (not refused in the model; the design does not say), fairness and liveness ("every event reaches every consumer" is assumed through the quiescence premise of `Converged`, not checked), concurrent handlers of one consumer (a consumer reads and applies in one atomic step, so a lost race between two handlers is outside the model; a read result applied without a version check could still regress there), assignments and the primary-assignment rule (4.2 items 6 to 8), employer succession records (4.3), void relationships (4.2 item 9), the paying entity and attribution entity (4.2 item 4), the amounts of leave entitlement (the leave ledger is `leave-ledger`).
+
+### Invariants
+
+| Invariant | Statement | Clause |
+|---|---|---|
+| `OneInServicePerEmployer` | at most one relationship in service per (person, employer) | 4.2 item 1 |
+| `Converged` | once every event has reached every subscriber, each consumer holds what the producer holds, whatever the delivery order. This is also the card's "no consumer in service on a non-service day": it can only hold at quiescence, because while events are in flight a consumer is legitimately behind; `ReinstatedEverywhere` covers the opposite direction | 6.1 |
+| `NoActOnUnseenStrict` | no consumer holds service days of a relationship whose start it has not handled | 6.1 (leave opens the account on `Started`) |
+| `ReinstatedEverywhere` | a person back in service is not flagged separated and every consumer shows the relationship open | 5 REINSTATE, 6.1 |
+| `PredecessorCarried` | a predecessor's balance reaches the successor whatever the order of `Ended(old)` and `Started(new)` | 5 employer change, T-6 |
+| `NoSeparatedStranger` | the flag never says separated for a person never hired | 6.1 |
+| `NoRegression`, `RedeliveryHarmless` | action level: a delivery never takes a consumer back in time; a redelivery changes nothing or moves toward the truth | 6.1 at-least-once |
+| `NotBothInService`, `NotChangedEmployer`, `NotHeld`, `NotReinstated` | reachability checks: each is violated on purpose, so the states they name are reachable. The first three at MaxEv 5 (3 to 4 states deep); `NotReinstated` (a REINSTATE puts the person back in service) needs MaxEv 6, because HIRE, SEPARATE and REINSTATE emit two events each | all four reached, see Results |
+
+### Options
+
+Open business treatments and design gaps are constants; the model chooses none. Every option below was checked.
+
+| Constant | Values | What it stands for | Source |
+|---|---|---|---|
+| `Payload` | `read`, `snapshot`, `versioned` | what an event gives its consumer: a notice (the consumer reads the relationship now), the state at emission applied as it arrives, or that state applied only if newer | gap G-1 (6.1 lists payload fields, not what a consumer does with them) |
+| `UnseenPolicy` | `act`, `defer` | an event of a relationship the consumer has not seen start | gap G-2 |
+| `IdentityCorrection` | `recompute`, `none` | identity recomputes its flag on `EmployeeCorrected` (the code reviews org unit and position only) | gap G-4 |
+| `IdentityHires` | TRUE, FALSE | identity clears the flag on `EmployeeHired` (a HIRE by another employer after a separation) | gap G-4 |
+| `CarryTrigger` | `started`, `ended`, `both` | leave carries a predecessor's balance when the successor's start, the predecessor's end, or whichever is handled second | gap G-3 |
+| `SameEmployer` | `unique`, `newRow` | a second HIRE by the same employer is refused (REINSTATE is used), or makes a second row; `newRow` is a negative control | 4.2 item 1 |
+| `HoldSeparate` | TRUE, FALSE | business B-I (c) separation hold | 5 |
+| `CarryFromPred` | TRUE, FALSE | business T-6 (a): the unused balance follows a predecessor | T-6 |
+| `PredNoProbation` | TRUE, FALSE | business B-E: a HIRE with predecessor starts after probation | B-E |
+
+### Results
+
+All counts are distinct states of the last run of a row (the one that passed everything not listed as violated); time is wall clock with 4 workers. Bound: relationships r1 r2; employers e1 e2; days 1 to 3; MaxEv 5 unless said. A REINSTATE and a HIRE after a separation need six events, so the MaxEv 5 rows never exercise them; the four MaxEv 6 rows are the ones that do (`idh_false6`, `good6`, `versioned6`, `reach_reinst`). `Reinstate` itself is checked against `ReinstatedEverywhere` only in `good6` and `versioned6`.
+
+| Run | Options (changed from `spec.cfg`) | Violated | Held | Distinct states | Time |
+|---|---|---|---|---|---|
+| good | none | none | all eight | 18450071 | 254 s |
+| versioned | `Payload = versioned` | none | all eight | 7672935 | 338 s |
+| snapshot | `Payload = snapshot` | `NoRegression`, `RedeliveryHarmless`, `Converged`, `PredecessorCarried` | the other four | 33302735 | 1275 s |
+| act | `UnseenPolicy = act` | `NoActOnUnseenStrict` | the other seven | 41462327 | 1535 s |
+| carry_started | `CarryTrigger = started` | `PredecessorCarried` | the other seven | 18642779 | 600 s |
+| carry_ended | `CarryTrigger = ended` | `PredecessorCarried` | the other seven | 18443999 | 584 s |
+| newRow | `SameEmployer = newRow` (negative control) | `OneInServicePerEmployer` | the other seven | 34709571 | 1160 s |
+| nohold | `HoldSeparate = FALSE` | none | all eight | 4915187 | 121 s |
+| nocarry | `CarryFromPred = FALSE` | none (`PredecessorCarried` is vacuous) | all eight | 18322143 | 488 s |
+| probation | `PredNoProbation = FALSE` | none (phase converges under `Converged`) | all eight | 18578147 | 438 s |
+| idc_none | `IdentityCorrection = none` | none at MaxEv 5, see Findings F-5 | all eight | 18641127 | 650 s |
+| idh_false | `IdentityHires = FALSE` | none at MaxEv 5: the HIRE after a separation needs six events, out of bound | all eight | 18268059 | 722 s |
+| idh_false6 | `IdentityHires = FALSE`; MaxEv 6, days 1 to 2, only `ReinstatedEverywhere` and `Converged` | `ReinstatedEverywhere` | `Converged` not reached (TLC stops at the first violation) | 23849583 (at the stop) | 374 s |
+| good6 | `spec.cfg` options; MaxEv 6, days 1 to 2, only `ReinstatedEverywhere` and `Converged` | none | both | 61062042 | 1820 s |
+| versioned6 | `Payload = versioned`; MaxEv 6, days 1 to 2, only `ReinstatedEverywhere` and `Converged` | none | both | 18911234 | 513 s |
+| reach_reinst | `NotReinstated` (reachability), MaxEv 6, days 1 to 3, `spec.cfg` options | violated on purpose: a REINSTATE is reachable | - | 293 at the stop | 1 s |
+
+The state-space counts differ between rows because the options change which replicas exist, not only which transitions are enabled.
+
+### Findings
+
+Sequences are TLC's shortest traces (`Tick` advances time; `Deliver` hands one event to one consumer).
+
+| ID | Check (option) | Shortest trace | Disposition |
+|---|---|---|---|
+| F-1 | `NoRegression`, `RedeliveryHarmless`, `Converged`, `PredecessorCarried` violated (`Payload = snapshot`) | `Tick`, `Hire r1` (emits Started, Hired), `Separate r1` (Ended, Separated), `DeliverIdn(Separated)`, `DeliverIdn(Hired)`: the older payload is applied after the newer one and the flag goes back to "in service". Redelivering `Started` after `PhaseChanged` likewise puts the old phase back | Spec-change PR: `employment-relationship.md` 6.1 gains the delivery contract (events are notices; a consumer reads the relationship through the `EmploymentRelationships` api when it handles an event, or applies a payload only if it is newer on the sequence its events order on: the relationship version for relationship-level events, a per-employee sequence for person-level events, which does not exist yet). `read` holds all eight and `versioned` holds the two it was run for at MaxEv 6 (see Results); under `read` the action-level checks `NoRegression` and `RedeliveryHarmless` hold by construction (the consumer takes the current state). No business answer needed |
+| F-2 | `NoActOnUnseenStrict` violated (`UnseenPolicy = act`) | `Hire r1`, `Regularize r1`, `DeliverRel(leave, PhaseChanged)`: leave handles the regularization of a relationship whose `Started` it has not handled and holds service days with no account opened | Spec-change PR, same paragraph: a consumer that has not handled `Started` of the relationship defers (or reconciles from a read, F-1). `defer` holds |
+| F-3 | `PredecessorCarried` violated (`CarryTrigger = started` and `= ended`, with `CarryFromPred = TRUE`) | `Tick`, `Hire r1`, `ChangeEmployer r1 -> r2` (Ended, Started), then the two events handled in the order the trigger does not look at: with `started` the successor's start is handled before the predecessor's account is closed; with `ended` the predecessor's end is handled before the successor is seen | Moot under the adopted T-6 (user 2026-11-05: fresh successor account by cumulative service, the predecessor's balance settled per T-10, so `CarryFromPred = FALSE` and the invariant is vacuous). Kept as a note for lead: if the user ever changes T-6 to carry the balance, the carry must happen at whichever of `Started(successor)` and `Ended(predecessor)` is handled second (`both` holds). No text in `employment-relationship.md`, no change to ADR-0086 |
+| F-4 | `ReinstatedEverywhere` violated (`IdentityHires = FALSE`, MaxEv 6) | `Tick`, `Hire r1`, `Separate r1`, `DeliverIdn(Separated)`, `Hire r2` (another employer, 6.1: `EmployeeHired` fires), every event delivered: the person is in service on r2 and identity still holds the separated flag | Spec-change PR: 6.1 states that identity recomputes the person's separated state on `EmployeeHired` and `EmployeeCorrected`, not only on `EmployeeSeparated` and `EmployeeReinstated`. Code evidence: `HandleEmployeeHired` (32 lines) opens an account entry only and never reads the separated state. The identity code change is for `one-dev-identity`, outside this card |
+| F-5 | `IdentityCorrection = none` holds in the model | none | Not a finding: corrections are limited to dates before today, so a correction never changes whether the person is in service today and the flag cannot go stale. A correction that moves an end to today or later is outside the model. Today `HandleEmployeeCorrected` already handles one such case, a correction that undoes a wrong separation (previous org unit empty, one today), by opening a sensitive-role review; whether identity must also recompute its separated state on `EmployeeCorrected` is **unverified by the model** and is a recommendation for lead, not a clause added to the design |
+| F-6 | `OneInServicePerEmployer` violated (`SameEmployer = newRow`, negative control) | `Hire r1 (e1)`, `Hire r2 (e1)`: two rows for one pair overlap | Shows the invariant can fail; `UNIQUE (employee, employer)` (4.2 item 1) is what keeps it, and `unique` holds |
+
+Business options. `HoldSeparate` (B-I c), `CarryFromPred` (T-6 a) and `PredNoProbation` (B-E) hold both ways for every invariant: whichever way the user decides, none of the eight invariants changes. The model chooses none of them.
+
+Not found: any violation of `OneInServicePerEmployer` under `unique`, of `NoSeparatedStranger`, or of `ReinstatedEverywhere` under the passing options; no ADR-0086 clause needs a new ADR.
