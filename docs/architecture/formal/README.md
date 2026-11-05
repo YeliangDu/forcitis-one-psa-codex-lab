@@ -144,7 +144,7 @@ Two earlier rows are not in the table: `g2_wd` and its fixed twin used a span th
 
 The lifecycle of an employment relationship (`docs/architecture/proposals/employment-relationship.md`, ADR-0086) and the three consumers that act on its events: leave (account opening and closing, carry-over from a predecessor), the identity separation flag, and timesheet attribution. Card #1359. Bounded model: one person, two employing entities, at most two relationships, three days, at most five emitted events (six for the rows marked MaxEv 6). Events are delivered at least once and in any order: every emitted event stays available, so any of them can arrive again. Commands take effect on a day not later than today; future-dated entry and corrections that move a date to today or later are not modelled (the ordering problem does not depend on them, but see the finding on identity).
 
-Run from `docs/architecture/formal/employment-relationship/`, `-workers 4`, a wall-clock cap in front, heap 6 GB (the biggest run below needs about 26 minutes):
+Run from `docs/architecture/formal/employment-relationship/`, `-workers 4`, a wall-clock cap in front, heap 6 GB (the biggest run below needs about 30 minutes):
 
 ```bash
 timeout 1700 java -XX:+UseParallelGC -Xmx6g -cp /path/to/tla2tools.jar tlc2.TLC -workers 4 -deadlock -config spec.cfg spec.tla
@@ -217,7 +217,7 @@ All counts are distinct states of the last run of a row (the one that passed eve
 | idc_none | `IdentityCorrection = none` | none at MaxEv 5, see Findings F-5 | all eight | 18641127 | 650 s |
 | idh_false | `IdentityHires = FALSE` | none at MaxEv 5: the HIRE after a separation needs six events, out of bound | all eight | 18268059 | 722 s |
 | idh_false6 | `IdentityHires = FALSE`; MaxEv 6, days 1 to 2, only `ReinstatedEverywhere` and `Converged` | `ReinstatedEverywhere` | `Converged` not reached (TLC stops at the first violation) | 23849583 (at the stop) | 374 s |
-@@GOOD2@@
+| good6 | `spec.cfg` options; MaxEv 6, days 1 to 2, only `ReinstatedEverywhere` and `Converged` | none | both | 61062042 | 1820 s |
 
 The state-space counts differ between rows because the options change which replicas exist, not only which transitions are enabled.
 
