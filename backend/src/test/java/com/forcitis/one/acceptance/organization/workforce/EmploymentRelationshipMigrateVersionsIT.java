@@ -19,8 +19,8 @@ import org.springframework.test.context.DynamicPropertySource;
  * #1371 acceptance part, done-when 3 (rest) of the employment-relationship design (ADR-0086) (section 7, MigrateInitialVersions): the operations
  * command writes the first employee versions on the relationship a person already has, creates an unconfirmed MIGRATION_ATTRIBUTION
  * relationship for a person with no row anywhere (employer = the attribution entity on the snapshot day), and does not guess for a person without
- * attribution. It is driven as the existing InitialVersionMigrationIT drives it; the first two tests also assert that the run succeeded; the
- * third does not, because design 7 names no exit code for a person who is refused and listed.
+ * attribution. It is driven as the existing InitialVersionMigrationIT drives it; every test also asserts that the run succeeded: lead ruling on #1371, a person without
+ * attribution is refused and the others are migrated, the run is not failed as a whole.
  */
 class EmploymentRelationshipMigrateVersionsIT extends InitialVersionMigrationSupport {
 
@@ -77,7 +77,7 @@ class EmploymentRelationshipMigrateVersionsIT extends InitialVersionMigrationSup
     }
 
     @Test
-    @DisplayName("#1371 完成标准 3 余项（设计 7）：没有法人归属的人不被猜测：不建关系、不写任何版本，命令输出里没有此人的编号；别的人已有的关系不受影响")
+    @DisplayName("#1371 完成标准 3 余项（设计 7）：没有法人归属的人不被猜测：不建关系、不写任何版本，命令输出里没有此人的编号；运行不因他而整体失败，别的人照常迁移")
     void aPersonWithoutAttributionIsRefusedAndNothingIsWrittenForHim() throws Exception {
         UUID person = snapshotPerson(false, null);
         UUID other = snapshotPerson(false, null);
@@ -88,10 +88,13 @@ class EmploymentRelationshipMigrateVersionsIT extends InitialVersionMigrationSup
 
         Result result = migrateExcept(employed(REGULAR), employed(REGULAR), person);
 
+        assertThat(result.exitCode()).as("lead ruling: the run is not failed as a whole by one refused person: " + result.text()).isEqualTo(DONE);
         assertThat(relationshipsOf(person)).as("design 7: no employer is guessed, so no relationship").isEmpty();
         assertThat(currentVersions(EMPLOYEE_VERSIONS, person)).as("design 7: it never writes a version without a relationship").isEmpty();
         assertThat(currentVersions(ASSIGNMENT_VERSIONS, person)).as("and no assignment version either").isEmpty();
         assertThat(relationshipsOf(other)).as("the other person's existing relationship row is unchanged").isEqualTo(otherBefore);
+        assertThat(currentVersions(EMPLOYEE_VERSIONS, other)).as("design 7: the others are migrated, they get their first versions on the existing relationship").isNotEmpty()
+                .allSatisfy(version -> assertThat(version.get("employment_relationship_id")).as("relationship of the version").isEqualTo(otherBefore.get(0).get("employment_relationship_id")));
         assertThat(result.text()).as("design 7: the reject list is an aggregate count, the person's id is personal data").doesNotContain(person.toString());
     }
 }
