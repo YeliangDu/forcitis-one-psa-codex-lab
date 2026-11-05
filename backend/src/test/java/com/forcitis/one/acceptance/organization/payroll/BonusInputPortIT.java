@@ -177,14 +177,16 @@ class BonusInputPortIT extends BonusInputSupport {
     }
 
     @Test
-    @DisplayName("#1436 PY3 路由（#1494）：第一级只有直属上级看得到，第二级只有非发起人的薪酬角色持有人看得到；第二级裁决前没有行")
+    @DisplayName("#1436 PY3 路由（#1494）：第一级只有直属上级能处理（别人看不到，发起人不能领取或裁决），第二级只有非发起人的薪酬角色持有人看得到；第二级裁决前没有行")
     void eachStageIsSeenOnlyByItsCandidates() throws Exception {
         Submitted submitted = submit(UUID.randomUUID(), OCTOBER, "700.00", "YEAR_END");
         UUID first = nextTask(submitted, List.of());
 
         assertThat(detail(first, outsiderAccount).getStatus()).as("a person who is no candidate of the step does not see it (fail closed)").isEqualTo(404);
         assertThat(detail(first, secondSpecialistAccount).getStatus()).as("a payroll-role holder is not a candidate of the supervisor stage").isEqualTo(404);
-        assertThat(detail(first, specialistAccount).getStatus()).as("the initiator is not a candidate of the stage that approves the own request").isEqualTo(404);
+        assertThat(writeBy(specialistAccount, first, "claim", lineManagerAccount)).as("the initiator cannot claim the supervisor stage of the own request").isIn(403, 404);
+        assertThat(writeBy(specialistAccount, first, "decide", lineManagerAccount)).as("nor decide it").isIn(403, 404);
+        assertThat(rowsOf(submitted)).as("the refused writes approved nothing").isEmpty();
         assertThat(detail(first, lineManagerAccount).getStatus()).as("the initiator's line manager is the first candidate").isEqualTo(200);
         claimAndDecide(first, lineManagerAccount, "APPROVE");
         assertThat(rowsOf(submitted)).as("one stage is not the approval").isEmpty();
@@ -197,18 +199,25 @@ class BonusInputPortIT extends BonusInputSupport {
     }
 
     @Test
-    @DisplayName("#1436 PY3 职责分离（#1494、完成标准 11）：发起人即使持有薪酬角色也不是第二级候选人，不能裁决；不写行")
+    @DisplayName("#1436 PY3 职责分离（#1494、完成标准 11）：发起人即使持有薪酬角色也不能领取或裁决第二级；不写行")
     void theInitiatorCannotApproveTheOwnInput() throws Exception {
         Submitted submitted = submit(UUID.randomUUID(), OCTOBER, "800.00", "YEAR_END");
         UUID first = decideFirstStage(submitted, "APPROVE");
         UUID second = nextTask(submitted, List.of(first));
 
-        assertThat(detail(second, specialistAccount).getStatus()).as("the initiator holds the payroll role but is no candidate").isEqualTo(404);
-        // the version is read as a real candidate: the initiator cannot even read it, so act() would fail on that read instead of on the claim
-        String version = versionOf(second, secondSpecialistAccount);
-        int claimed = mvc.perform(post(TASKS + second + ":claim").header("If-Match", version).with(csrf()).with(session(specialistAccount))).andReturn().getResponse().getStatus();
-        assertThat(claimed).as("the initiator cannot claim the second stage").isIn(403, 404);
+        // the initiator may read the own task (platform rule: the initiator is a participant); the user's decision fixes who approves, not who reads
+        assertThat(writeBy(specialistAccount, second, "claim", secondSpecialistAccount)).as("the initiator holds the payroll role but cannot claim the second stage").isIn(403, 404);
+        assertThat(writeBy(specialistAccount, second, "decide", secondSpecialistAccount)).as("nor decide it").isIn(403, 404);
         assertThat(rowsOf(submitted)).as("nothing was approved").isEmpty();
         assertThat(openTaskIds(submitted.document())).as("the stage is still open for a real candidate").contains(second);
+    }
+
+    /** The status of a write on the task by {@code writer}, sent with the version a real candidate just read (so the refusal is the write's, not the read's). */
+    private int writeBy(SignedIn writer, UUID task, String operation, SignedIn candidate) throws Exception {
+        var request = post(TASKS + task + ":" + operation).header("If-Match", versionOf(task, candidate)).with(csrf()).with(session(writer));
+        if (operation.equals("decide")) {
+            request = request.contentType(org.springframework.http.MediaType.APPLICATION_JSON).content("{\"outcome\":\"APPROVE\",\"reason\":\"synthetic\"}");
+        }
+        return mvc.perform(request).andReturn().getResponse().getStatus();
     }
 }
