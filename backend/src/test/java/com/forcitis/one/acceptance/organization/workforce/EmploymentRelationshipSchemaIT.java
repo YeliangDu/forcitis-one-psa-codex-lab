@@ -19,7 +19,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
- * #1371 acceptance part, database lines of done-when 2 of docs/architecture/proposals/employment-relationship.md (section 4.1 and 4.2):
+ * #1371 acceptance part, database lines of done-when 2 of the employment-relationship design (ADR-0086) (section 4.1 and 4.2):
  * one relationship per person and employer, versions of one relationship never overlap while two relationships of one person may, the
  * per-kind CHECK on the relationship id of personnel commands, the immutable employer (4.2-2) and the predecessor link. Rows are written
  * directly, as a writer that bypassed the application would, so only the database is under test.

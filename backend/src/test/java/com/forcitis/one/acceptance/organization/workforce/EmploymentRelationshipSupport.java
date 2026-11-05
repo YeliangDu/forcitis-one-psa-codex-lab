@@ -13,7 +13,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
- * Ground of the #1371 scenario tests (docs/architecture/proposals/employment-relationship.md, sections 5, 6.1 to 6.3). The new command
+ * Ground of the #1371 scenario tests (the employment-relationship design (ADR-0086), sections 5, 6.1 to 6.3). The new command
  * components are the ruled names of the lead ruling on #1371; no new Java type is referenced, so that this compiles before the
  * implementation exists. People are made through the HIRE command, never by writing employee versions directly.
  */

@@ -15,7 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * #1371 acceptance part, done-when 1, 7 and 10 of docs/architecture/proposals/employment-relationship.md (ruled names of the lead ruling on
+ * #1371 acceptance part, done-when 1, 7 and 10 of the employment-relationship design (ADR-0086) (ruled names of the lead ruling on
  * #1371): the glossary names, the read api {@code EmploymentRelationships} with exactly on, get and employerOn, and the five relationship
  * events. Types are looked up by name, so that this file compiles before the implementation exists.
  */

@@ -18,7 +18,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
- * #1371 acceptance part, done-when 3 of docs/architecture/proposals/employment-relationship.md (section 7), rows only, no reject-list count
+ * #1371 acceptance part, done-when 3 of the employment-relationship design (ADR-0086) (section 7), rows only, no reject-list count
  * (lead ruling item 5). The database is migrated to the last migration of main, rows are written in today's shape, then the rest is
  * migrated: every attributed employee has exactly one relationship, and no version, command or assignment lacks one. Synthetic data only.
  */

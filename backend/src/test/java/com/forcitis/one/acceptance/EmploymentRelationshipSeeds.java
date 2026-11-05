@@ -10,7 +10,7 @@ import java.time.ZoneOffset;
 import java.util.UUID;
 
 /**
- * #1371 (ADR-0086, docs/architecture/proposals/employment-relationship.md section 4.1): every version of a person hangs on one of the
+ * #1371 (ADR-0086, the employment-relationship design (ADR-0086) section 4.1): every version of a person hangs on one of the
  * person's employment relationships, so a seed that writes employment relationship versions or assignment versions directly first
  * takes the person's relationship from here and binds it in its own insert. Only the set-up of a test goes through here, never an assertion.
  */

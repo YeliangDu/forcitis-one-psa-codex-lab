@@ -19,7 +19,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
- * #1371 acceptance part, done-when 4, 5, 6 and 8 of docs/architecture/proposals/employment-relationship.md (sections 4.2-3, 5, 6.1, 6.3):
+ * #1371 acceptance part, done-when 4, 5, 6 and 8 of the employment-relationship design (ADR-0086) (sections 4.2-3, 5, 6.1, 6.3):
  * a person is in service while any relationship is, the person-level events fire only on person transitions, an employer change in
  * continuous service keeps the person in service, and the relationship that holds the primary post cannot end while another stays.
  * Everything goes through the HIRE and SEPARATE commands and the due-date job; no version is written by hand.

@@ -13,7 +13,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
- * #1371 acceptance part, done-when 9 of docs/architecture/proposals/employment-relationship.md (section 6.2): the person-level availability
+ * #1371 acceptance part, done-when 9 of the employment-relationship design (ADR-0086) (section 6.2): the person-level availability
  * read composes over the relationships in service: onUnpaidLeave only if all are, leaving only if all have an effective separation ahead,
  * separationHeld if any has a held separation. The existing read {@code OrgDirectory.availabilityOn} is used; the second relationship
  * is made by the HIRE input of the lead ruling on #1371.
