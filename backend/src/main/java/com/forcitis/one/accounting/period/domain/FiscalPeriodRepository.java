@@ -11,6 +11,6 @@ public interface FiscalPeriodRepository {
 
     boolean hasYear(LegalEntityId legalEntityId, int fiscalYear);
 
-    /** Inserts the twelve periods in one statement batch; a year that is opened concurrently meets the unique key and is refused as already opened. */
+    /** Inserts the twelve periods one by one in the caller's transaction; a year that is opened concurrently meets the unique key and is refused as already opened. */
     void insertAll(List<FiscalPeriod> periods);
 }

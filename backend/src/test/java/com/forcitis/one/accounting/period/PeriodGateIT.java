@@ -200,4 +200,43 @@ class PeriodGateIT extends AcceptanceSupport {
             pool.shutdownNow();
         }
     }
+
+    @Test
+    @DisplayName("#1439 INV-92 the open period a closed date is routed to stays shared-locked too: its close waits for the posting transaction")
+    void closeOfTheRoutedToPeriodCannotSlipBetweenCheckAndWrite() throws Exception {
+        LegalEntityId entity = newEntity();
+        period(entity, 2026, 2, "CLOSED");
+        FiscalPeriodId march = period(entity, 2026, 3, "OPEN");
+        CountDownLatch holding = new CountDownLatch(1);
+        CountDownLatch finish = new CountDownLatch(1);
+        ExecutorService pool = Executors.newSingleThreadExecutor();
+        try {
+            Future<PostingPeriod> posting = pool.submit(() -> tx.execute(status -> {
+                PostingPeriod answer = gate.forPosting(entity, LocalDate.of(2026, 2, 5));
+                holding.countDown();
+                try {
+                    finish.await(30, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(e);
+                }
+                return answer;
+            }));
+            assertThat(holding.await(30, TimeUnit.SECONDS)).isTrue();
+
+            assertThatThrownBy(() -> tx.executeWithoutResult(status -> {
+                jdbc.sql("set local lock_timeout = '500ms'").update();
+                jdbc.sql("update accounting_period.fiscal_periods set status = 'CLOSING', updated_at = now(), version = version + 1 where id = :id")
+                        .param("id", march.value()).update();
+            })).as("the close of the routed-to period waits for the posting transaction and times out here").hasMessageContaining("lock");
+
+            finish.countDown();
+            assertThat(posting.get(30, TimeUnit.SECONDS)).isEqualTo(new PostingPeriod.ClosedRouteTo(march, new AccountingPeriod(2026, 2)));
+            tx.executeWithoutResult(status -> jdbc.sql("update accounting_period.fiscal_periods set status = 'CLOSING', updated_at = now(), version = version + 1 where id = :id")
+                    .param("id", march.value()).update());
+        } finally {
+            finish.countDown();
+            pool.shutdownNow();
+        }
+    }
 }
