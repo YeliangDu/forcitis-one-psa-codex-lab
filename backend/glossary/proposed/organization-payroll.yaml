@@ -1,0 +1,392 @@
+# #1429 PY0 payroll rule version vocabulary (data design: docs/data/reviews/organization-payroll-py0.md).
+terms:
+- id: payroll_rule_version
+  zh: 薪酬规则版本
+  en: PayrollRuleVersion
+  snake: payroll_rule_version
+  kind: aggregate
+  bc: organization.payroll
+  scope: domain
+  definition: 一个规则类别在一个适用地区的一段生效区间内的整套规则，生效后冻结，由后继版本关闭区间
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: payroll_rule_row
+  zh: 薪酬规则行
+  en: PayrollRuleRow
+  snake: payroll_rule_row
+  kind: entity
+  bc: organization.payroll
+  scope: domain
+  definition: 规则版本中的一行：税率档、费率、基数上下限或取整方式，随所属版本冻结
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: rule_kind
+  zh: 规则类别
+  en: RuleKind
+  snake: rule_kind
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 薪酬规则版本的类别：个人所得税、社会保险、住房公积金、取整
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: jurisdiction_key
+  zh: 适用地区代码
+  en: JurisdictionKey
+  snake: jurisdiction_key
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 规则适用的国家或地方代码，大写，如 CN、CN_SH
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: row_kind
+  zh: 规则行类别
+  en: RowKind
+  snake: row_kind
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 规则行的种类，决定该行设置哪些值列
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: row_key
+  zh: 规则行键
+  en: RowKey
+  snake: row_key
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 同一版本同一行类别内区分各行的键，如税率档序号或险种代码
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: party_kind
+  zh: 缴费方
+  en: PartyKind
+  snake: party_kind
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 费率行所属一方：单位或个人
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: applied_rate
+  zh: 适用比例
+  en: AppliedRate
+  snake: applied_rate
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 税率或缴费比例，0 到 1 之间的小数
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: quick_deduction
+  zh: 速算扣除数
+  en: QuickDeduction
+  snake: quick_deduction
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 个人所得税某一档按应纳税所得额乘税率后减去的固定金额
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: rounding_kind
+  zh: 取整方式
+  en: RoundingKind
+  snake: rounding_kind
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 金额取整到分的方式：四舍五入、银行家舍入、截断
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: source_note
+  zh: 依据说明
+  en: SourceNote
+  snake: source_note
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 规则版本依据的法规文号或公告，只写出处
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: payroll_rule_version_became_effective
+  zh: 薪酬规则版本生效
+  en: PayrollRuleVersionBecameEffective
+  snake: payroll_rule_version_became_effective
+  kind: domain_event
+  bc: organization.payroll
+  scope: domain
+  definition: 规则版本从草稿发布为生效后产生的分析事件
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: income_tax_band
+  zh: 个税税率档
+  en: IncomeTaxBand
+  snake: income_tax_band
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 个人所得税的一档：应纳税所得额的区间、税率与速算扣除数
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: monthly_basic_deduction
+  zh: 月基本减除
+  en: MonthlyBasicDeduction
+  snake: monthly_basic_deduction
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 个人所得税每月按定额先行扣减的基本减除费用
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: flat_amount
+  zh: 定额
+  en: FlatAmount
+  snake: flat_amount
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 规则行上不随基数变化的固定金额
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: lower_bound
+  zh: 区间下限
+  en: LowerBound
+  snake: lower_bound
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 区间或基数范围的下界，含
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: upper_bound
+  zh: 上限
+  en: UpperBound
+  snake: upper_bound
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 区间或基数范围的上界，不含；为空表示没有上界
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_rule_version_not_found
+  zh: 薪酬规则版本不存在
+  en: OrganizationPayrollRuleVersionNotFound
+  snake: organization_payroll_rule_version_not_found
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 要发布的薪酬规则版本不存在（404）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_rule_version_state_conflict
+  zh: 薪酬规则版本状态不允许
+  en: OrganizationPayrollRuleVersionStateConflict
+  snake: organization_payroll_rule_version_state_conflict
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 薪酬规则版本的当前状态不允许这次发布或关闭（409）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_rule_version_overlap
+  zh: 薪酬规则版本期间重叠
+  en: OrganizationPayrollRuleVersionOverlap
+  snake: organization_payroll_rule_version_overlap
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 同一类别同一辖区的规则版本生效期间重叠（409）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_rule_version_same_person
+  zh: 薪酬规则版本起草人不得发布
+  en: OrganizationPayrollRuleVersionSamePerson
+  snake: organization_payroll_rule_version_same_person
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 起草人与发布人是同一人（422），须另一人发布
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_rule_version_incomplete
+  zh: 薪酬规则版本行不完整
+  en: OrganizationPayrollRuleVersionIncomplete
+  snake: organization_payroll_rule_version_incomplete
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 版本的规则行不属于该类别、缺少必需的行或档位不连续（422）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_rule_version_concurrent_change
+  zh: 薪酬规则版本被并发修改
+  en: OrganizationPayrollRuleVersionConcurrentChange
+  snake: organization_payroll_rule_version_concurrent_change
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 保存时版本号已变，读到的版本已被别人改过（409）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_no_effective_rule_version
+  zh: 薪酬规则版本在该日无生效
+  en: OrganizationPayrollNoEffectiveRuleVersion
+  snake: organization_payroll_no_effective_rule_version
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 该类别、辖区、日期没有生效的规则版本（422），不假定任何值
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_rule_version_backdated
+  zh: 薪酬规则版本不得倒签
+  en: OrganizationPayrollRuleVersionBackdated
+  snake: organization_payroll_rule_version_backdated
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 生效日早于今天（422），规则版本不追溯已结算的月份，历史走导入路径
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
+- id: error__organization_payroll_rule_version_not_period_start
+  zh: 薪酬规则版本须从月初生效
+  en: OrganizationPayrollRuleVersionNotPeriodStart
+  snake: organization_payroll_rule_version_not_period_start
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 生效日不是某月 1 日（422），规则版本与薪酬期间对齐
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py0.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1429 PY0；中文名待术语确认'
