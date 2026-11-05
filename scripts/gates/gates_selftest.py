@@ -944,6 +944,7 @@ def forensic_entry_test():
                               "--out", os.path.join(tmp, "out.txt"), os.path.join(tmp, "w.sql")], capture_output=True, text=True, env={"HOME": tmp, "PATH": os.environ.get("PATH", "")})
         assert run.returncode == 2 and "refused" in run.stderr and not os.path.exists(os.path.join(tmp, "out.txt")), run
     assert subprocess.run([sys.executable, "-I", os.path.join(HERE, "..", "..", "tools", "ops", "dba", "forensic_read_selftest.py"), "--self-test"], capture_output=True, text=True).returncode == 0
+    assert subprocess.run([sys.executable, "-I", os.path.join(HERE, "..", "..", "tools", "ops", "dba", "forensic_command_selftest.py"), "--self-test"], capture_output=True, text=True).returncode == 0
     print("forensic_entry self-test: ok（入口命令放行；直连云助手 / aliyun 命中特征仍拒；非 SELECT 文件在入口内拒，什么都没发出）")
 
 

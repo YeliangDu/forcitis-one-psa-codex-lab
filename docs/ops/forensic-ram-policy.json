@@ -1,0 +1,22 @@
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["ecs:InvokeCommand", "ecs:DescribeInvocations", "ecs:DescribeInvocationResults"],
+      "Resource": [
+        "acs:ecs:*:*:command/<COMMAND_ID>",
+        "acs:ecs:*:*:instance/<APP_INSTANCE_ID>",
+        "acs:ecs:*:*:instance/<SECRET_INSTANCE_ID>"
+      ]
+    },
+    {
+      "Effect": "Deny",
+      "Action": [
+        "ecs:RunCommand", "ecs:SendFile", "ecs:CreateCommand", "ecs:ModifyCommand", "ecs:DeleteCommand", "ecs:StopInvocation", "ecs:CancelInvocation",
+        "ecs:StartTerminalSession"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
