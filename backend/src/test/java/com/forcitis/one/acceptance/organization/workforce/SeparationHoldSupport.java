@@ -6,11 +6,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import org.awaitility.Awaitility;
+import org.awaitility.core.ConditionTimeoutException;
 import org.junit.jupiter.api.AfterEach;
 
 /**
@@ -73,6 +77,19 @@ abstract class SeparationHoldSupport extends PersonnelCommandSupport {
     // ---- entering and releasing ----
 
     /** The last working day before today, so that the separation takes effect today and runs inside the entry transaction (ADR-0068 item 1.8). */
+    /**
+     * The rows once there are some. The identity listeners of personnel events run after the command commits and on their own thread
+     * (@ApplicationModuleListener: async, after commit), so a read right after the command can precede them. Bounded wait; on a timeout the
+     * empty list comes back and the caller's own assertion fails with its message.
+     */
+    protected static List<Map<String, Object>> whenOpened(Callable<List<Map<String, Object>>> rows) {
+        try {
+            return Awaitility.await().atMost(Duration.ofSeconds(20)).pollInterval(Duration.ofMillis(100)).until(rows, found -> !found.isEmpty());
+        } catch (ConditionTimeoutException timeout) {
+            return List.of();
+        }
+    }
+
     protected static final LocalDate LAST_DAY = TODAY.minusDays(1);
 
     /** Enters a SEPARATE of the administrator as the 人事专员 and answers its id. */
