@@ -30,8 +30,6 @@
       <extensionElements>
         <forcitis:assignmentRule type="ROLE" role="payroll_specialist"/>
       </extensionElements>
-      <multiInstanceLoopCharacteristics isSequential="false" flowable:collection="${approverResolution.apply(execution)}"
-                                        flowable:elementVariable="approver"/>
     </userTask>
     <sequenceFlow id="toEnd" sourceRef="payrollReview" targetRef="end"/>
     <endEvent id="end"/>
