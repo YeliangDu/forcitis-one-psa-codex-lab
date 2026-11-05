@@ -40,6 +40,9 @@ class LocalClockIT extends IdentityIntegrationTest {
         assertThat(set.path("adjusted").asBoolean()).isTrue();
         assertThat(set.path("instant").asString()).startsWith("2026-03-15T08:00");
 
+        // the pretend month has an audit partition, so what the jobs and the requests write for that day is not refused
+        assertThat(jdbc.sql("select to_regclass('platform_audit.audit_entries_p202603') is not null").query(Boolean.class).single()).isTrue();
+
         var inOrder = org.mockito.Mockito.inOrder(personnelJob, orgJob, countersignJob);
         inOrder.verify(personnelJob).run();
         inOrder.verify(orgJob).run();
