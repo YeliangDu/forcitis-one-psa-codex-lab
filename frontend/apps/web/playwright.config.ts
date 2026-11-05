@@ -7,6 +7,8 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
+  // the dev server compiles the first page on first request; the assertion itself is unchanged
+  expect: { timeout: 15_000 },
   reporter: [['list']],
   outputDir: '../../node_modules/.cache/playwright-results',
   use: {

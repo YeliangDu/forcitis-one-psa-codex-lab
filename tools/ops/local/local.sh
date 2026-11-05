@@ -82,6 +82,11 @@ cmd_up() {
   docker exec -i forcitis-local-db psql -U "$LOCAL_DB_USER" -d forcitis_local -q -v ON_ERROR_STOP=1 < "$HERE/bootstrap.sql" >/dev/null || die "the bootstrap account could not be written"
   say "[5/5] web client on :5173"
   ( cd "$REPO/frontend" && pnpm install --frozen-lockfile >/dev/null )
+  # a clean checkout has no generated API client (openapi.json and src/generated are build products): without it the web client fails on its first import
+  if ! bash "$REPO/scripts/codegen/generate_api.sh" --check >/dev/null 2>&1; then
+    say "      generating the API client (first start of a clean checkout; needs a few minutes)"
+    bash "$REPO/scripts/codegen/generate_api.sh" >"$STATE/codegen.log" 2>&1 || die "API client generation failed (see $STATE/codegen.log)"
+  fi
   # node itself, started directly, so the recorded pid is the one that listens (a pnpm or subshell pid would leave vite running after down)
   cd "$REPO/frontend/apps/web"
   nohup node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 5173 --strictPort > "$STATE/web.log" 2>&1 &
