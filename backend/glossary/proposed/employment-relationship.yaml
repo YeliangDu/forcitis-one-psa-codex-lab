@@ -125,7 +125,7 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
-  note: '现名 employee_versions；更名在结构 PR'
+  note: '原名 employee_versions；已在结构 PR（#1372）更名'
 - id: predecessor_relationship
   zh: 前任雇佣关系
   en: PredecessorRelationship

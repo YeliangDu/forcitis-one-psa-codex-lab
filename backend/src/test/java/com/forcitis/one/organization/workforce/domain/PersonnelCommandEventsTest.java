@@ -39,6 +39,8 @@ import org.junit.jupiter.api.Test;
  * numbered after the employee's own event sequence; unpaid leave records none.
  */
 class PersonnelCommandEventsTest {
+    private static final PersonnelHistory EMPTY_HISTORY = new PersonnelHistory(List.of(), List.of(), List.of(), List.of(), List.of(), Map.of());
+
     static final Instant NOW = Instant.parse("2026-11-02T02:00:00Z");
     static final LocalDate DAY = LocalDate.of(2026, 11, 2);
     static final EmployeeId EMPLOYEE = new EmployeeId(UUID.fromString("019a0000-0000-7000-8000-000000000001"));
@@ -62,7 +64,7 @@ class PersonnelCommandEventsTest {
     }
 
     private static DomainEvent published(PersonnelCommand command, VersionRow before, VersionRow after) {
-        command.recordEffect(before, after, null);
+        command.recordEffect(before, after, null, EMPTY_HISTORY);
         List<DomainEvent> events = command.drainEvents(TestEnvelopes.INSTANCE);
         assertThat(events).hasSize(1);
         assertThat(events.getFirst().envelope().aggregateType()).as("the envelope is about the employee").isEqualTo("Employee");
@@ -106,7 +108,7 @@ class PersonnelCommandEventsTest {
             assertThat(e.newPositionId()).as("the position did not change").isEqualTo(POSITION);
         });
         PersonnelCommand leaveEnd = command(request(PersonnelCommandKind.UNPAID_LEAVE_END, DAY, null, null, null, null, null));
-        leaveEnd.recordEffect(null, null, null);
+        leaveEnd.recordEffect(null, null, null, EMPTY_HISTORY);
         assertThat(leaveEnd.hasPendingEvents()).isFalse();
     }
 
@@ -197,7 +199,7 @@ class PersonnelCommandEventsTest {
 
         UserId releaser = new UserId(UUID.fromString("019a0000-0000-7000-8000-0000000000bb"));
         separation.releaseHeld(NOW, DAY);
-        separation.recordEffect(null, null, null);
+        separation.recordEffect(null, null, null, EMPTY_HISTORY);
         separation.recordReleased(hold, releaser, null);
         List<DomainEvent> events = separation.drainEvents(TestEnvelopes.INSTANCE);
         assertThat(events).hasSize(2);
@@ -221,7 +223,7 @@ class PersonnelCommandEventsTest {
         assertThat(change.hasPendingEvents()).as("nothing is published while it waits").isFalse();
 
         change.completeCountersign(NOW, DAY);
-        change.recordEffect(null, null, next);
+        change.recordEffect(null, null, next, EMPTY_HISTORY);
 
         assertThat(change.status()).isEqualTo(CommandStatus.EFFECTIVE);
         assertThat(change.drainEvents(TestEnvelopes.INSTANCE)).singleElement().isInstanceOfSatisfying(EmployeeLegalEntityChanged.class, e -> {

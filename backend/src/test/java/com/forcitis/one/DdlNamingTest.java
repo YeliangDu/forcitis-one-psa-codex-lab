@@ -522,9 +522,7 @@ class DdlNamingTest {
             for (String raw : t.group(3).split(",\\s*\\n")) {
                 String line = raw.trim().replaceAll("\\s+", " ");
                 String first = line.split(" ")[0].toLowerCase(Locale.ROOT);
-                if (first.isEmpty()) {
-                    continue;
-                }
+                if (first.isEmpty()) continue;
                 if (KEYWORDS.contains(first)) {
                     tableConstraint(table, model, line);
                 } else {
@@ -560,17 +558,12 @@ class DdlNamingTest {
                     tableConstraint(table, model, m.group(1));
                 } else if ((m = Pattern.compile("(?i)RENAME COLUMN ([a-z0-9_]+) TO ([a-z0-9_]+)").matcher(a)).matches()) {
                     Column c = model.columns.remove(m.group(1));
-                    if (c != null) {
-                        model.columns.put(m.group(2), new Column(m.group(2), c.type(), c.checked()));
-                    }
+                    if (c != null) model.columns.put(m.group(2), new Column(m.group(2), c.type(), c.checked()));
                 } else if ((m = Pattern.compile("(?i)RENAME CONSTRAINT ([a-z0-9_]+) TO ([a-z0-9_]+)").matcher(a)).matches()) {
                     Constraint c = model.constraints.remove(m.group(1));
-                    if (c != null) {
-                        model.constraints.put(m.group(2), new Constraint(c.kind(), m.group(2), c.inlineCheck()));
-                    }
+                    if (c != null) model.constraints.put(m.group(2), new Constraint(c.kind(), m.group(2), c.inlineCheck()));
                 } else if ((m = Pattern.compile("(?i)RENAME TO ([a-z0-9_]+)").matcher(a)).matches()) {
-                    Schema renamed = schemas.get(alter.group(1));
-                    String newName = m.group(1);
+                    Schema renamed = schemas.get(alter.group(1)); String newName = m.group(1);
                     renamed.tables.put(newName, renamed.tables.remove(table));
                     renamed.indexes.replaceAll((index, owner) -> owner.equals(table) ? newName : owner);
                 } else if ((m = Pattern.compile("(?i)DROP CONSTRAINT (?:IF EXISTS )?([a-z0-9_]+).*").matcher(a)).matches()) {

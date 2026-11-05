@@ -120,7 +120,7 @@ DO $$
 DECLARE t text;
 BEGIN
     FOREACH t IN ARRAY ARRAY['organization_workforce.org_unit_versions', 'organization_workforce.position_versions', 'organization_workforce.assignment_versions',
-                             'organization_workforce.legal_entity_versions', 'organization_workforce.employee_versions',
+                             'organization_workforce.legal_entity_versions', 'organization_workforce.employment_relationship_versions',
                              'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities',
                              'platform_identity.role_versions', 'platform_identity.account_role_grants',
                              'organization_attendance.standard_hours_versions'] LOOP

@@ -1,4 +1,4 @@
--- IMP-1372（雇佣关系建表，ADR-0086；数据设计 docs/architecture/proposals/employment-relationship.md 附录 A，评审记录 docs/data/reviews/1308.md）。
+-- IMP-1372（雇佣关系建表，ADR-0086；数据设计见雇佣关系设计文档附录 A，评审记录见 #1308）。
 -- 本迁移只改表结构与已有行：新增雇佣关系表；员工版本表改名为雇佣关系版本表并加关系 ID；任职版本与人事命令各加关系 ID；同日一条的唯一索引改按关系计。
 -- 已有行：每个在版本表、任职版本表或（关系绑定的）人事命令里有行的员工回填一条雇佣关系，用人单位取该员工最早一行生效日当天的有效法人归属，来源 MIGRATION_ATTRIBUTION、未确认。
 -- 取不到归属的员工不回填，整体失败并报聚合数（不猜用人单位）。三张只追加表补写关系 ID 要在只追加触发器拆掉之后、重建之前（同 V20261103130000 第 2 节）。
@@ -35,6 +35,7 @@ COMMENT ON COLUMN organization_workforce.employment_relationships.predecessor_re
 COMMENT ON COLUMN organization_workforce.employment_relationships.employer_source_kind IS 'DECLARED 人事申报 / MIGRATION_ATTRIBUTION 迁入按归属法人回填、待人事确认';
 COMMENT ON COLUMN organization_workforce.employment_relationships.employer_confirmed_at IS '为空表示回填行尚未确认或非回填行；回填行确认后置值，之后冻结；确认不改用人单位';
 COMMENT ON COLUMN organization_workforce.employment_relationships.created_at IS '创建时间';
+COMMENT ON COLUMN organization_workforce.employment_relationships.updated_at IS '最近一次变更时间；行除确认回填雇主外不可改，故等于创建时间，确认时与 employer_confirmed_at 一起写（设计附录 A 之外加的列，lead 裁定）';
 -- 与附录 A 的偏差：附录 A 只列 created_at；DdlNamingTest D2 要求每表都有 updated_at，经 lead 裁定加列（设计将在下一份设计 PR 修订附录 A）。
 
 
