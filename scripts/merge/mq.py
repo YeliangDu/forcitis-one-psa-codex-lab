@@ -61,7 +61,7 @@ sys.path.insert(0, HERE)
 import driftscan   # noqa: E402
 import gapscan   # noqa: E402
 import issue_gate   # noqa: E402  (one title check for post_review and the merge)
-import mq_acceptance, mq_event_payload, mq_merge_end, mq_title   # noqa: E402  (the acceptance guard, the event payload check and the title check at enqueue)
+import mq_acceptance, mq_event_payload, mq_merge_end, mq_title   # noqa: E402  (the acceptance guard, the event payload check, the end of a merge and the title check)
 import mq_waiting   # noqa: E402  (the label of a pull request waiting for its turn)
 import post_review   # noqa: E402  (the machine-read header of a review: one parser for the poster and the queue)
 from mq_github import Gh, SignalError, failure_detail, sh, update_over_ssh   # noqa: E402,F401  (the GitHub and git side)
