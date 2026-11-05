@@ -1,6 +1,6 @@
--- 薪酬 PY0：#1429，逐表依据签署的数据设计 organization-payroll-py0（#1425）。只建结构，不写任何数据行。
+-- 薪酬 PY0：#1429，逐表依据签署的数据设计 organization-payroll-py0（#1425）；PY3：#1436，奖金输入表依据 organization-payroll-py3。只建结构，不写任何数据行。
 CREATE SCHEMA IF NOT EXISTS organization_payroll;
-COMMENT ON SCHEMA organization_payroll IS '薪酬；PY0 两表，薪酬规则版本及其规则行，无数值';
+COMMENT ON SCHEMA organization_payroll IS '薪酬；PY0 两表（薪酬规则版本及其规则行，无数值），PY3 一表（奖金输入）';
 
 DO $$
 BEGIN
@@ -201,3 +201,86 @@ COMMENT ON COLUMN organization_payroll.payroll_rule_rows.flat_currency IS '定�
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.rounding_kind IS '取整方式：HALF_UP 四舍五入、HALF_EVEN 银行家舍入、DOWN 截断；为空表示不是舍入行';
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.created_at IS '创建时刻';
 COMMENT ON COLUMN organization_payroll.payroll_rule_rows.updated_at IS '更新时刻';
+
+-- PY3（#1436）：奖金输入。一行永远是已审批的输入，没有待定状态；写入只来自审批通过后的监听器。
+CREATE TABLE organization_payroll.bonus_inputs (
+    id uuid NOT NULL,
+    employment_relationship_id uuid NOT NULL,
+    paying_legal_entity_id uuid NOT NULL,
+    payroll_month_start_date date NOT NULL,
+    bonus_amount numeric(19,2) NOT NULL,
+    bonus_currency text NOT NULL,
+    source_kind text NOT NULL,
+    reason_key text NOT NULL,
+    approval_instance_id uuid NOT NULL,
+    entered_by_employee_id uuid NOT NULL,
+    status text NOT NULL,
+    voided_by_user_id uuid,
+    voided_at timestamptz,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    CONSTRAINT pk_bonus_inputs PRIMARY KEY (id),
+    CONSTRAINT uk_bonus_inputs_approval_instance_id UNIQUE (approval_instance_id),
+    CONSTRAINT ck_bonus_inputs_payroll_month_start_date CHECK (EXTRACT(DAY FROM payroll_month_start_date) = 1),
+    CONSTRAINT ck_bonus_inputs_bonus_amount CHECK (bonus_amount > 0),
+    CONSTRAINT ck_bonus_inputs_bonus_currency CHECK (bonus_currency = 'CNY'),
+    CONSTRAINT ck_bonus_inputs_source_kind CHECK (source_kind IN ('MANUAL_APPROVED')),
+    CONSTRAINT ck_bonus_inputs_reason_key CHECK (reason_key ~ '^[A-Z][A-Z0-9_]{1,39}$'),
+    CONSTRAINT ck_bonus_inputs_status CHECK (status IN ('ACTIVE', 'VOIDED')),
+    CONSTRAINT ck_bonus_inputs_void_columns CHECK ((status = 'VOIDED') = (voided_at IS NOT NULL) AND (voided_at IS NULL) = (voided_by_user_id IS NULL))
+);
+
+-- 作废释放业务键：同一关系、月份、原因的有效输入只有一行，已作废的行不占键。
+CREATE UNIQUE INDEX uk_bonus_inputs_relationship_month_reason ON organization_payroll.bonus_inputs (employment_relationship_id, payroll_month_start_date, reason_key)
+    WHERE status = 'ACTIVE';
+CREATE INDEX ix_bonus_inputs_entity_month ON organization_payroll.bonus_inputs (paying_legal_entity_id, payroll_month_start_date);
+
+-- 唯一合法的写入：以 ACTIVE 插入，以及 ACTIVE 到 VOIDED 且只改状态、作废人、作废时间、更新时间；不删除，不清空（清除路径是后续清除卡的函数）。
+CREATE FUNCTION organization_payroll.guard_bonus_input_change() RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+    IF TG_OP = 'TRUNCATE' THEN
+        RAISE EXCEPTION 'bonus_inputs cannot be truncated' USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF TG_OP = 'DELETE' THEN
+        RAISE EXCEPTION 'a bonus input is never deleted, only voided' USING ERRCODE = 'restrict_violation';
+    END IF;
+    IF TG_OP = 'INSERT' THEN
+        IF NEW.status <> 'ACTIVE' THEN
+            RAISE EXCEPTION 'a bonus input is inserted as ACTIVE' USING ERRCODE = 'restrict_violation';
+        END IF;
+        RETURN NEW;
+    END IF;
+    IF OLD.status = 'ACTIVE' AND NEW.status = 'VOIDED' THEN
+        IF NEW.id IS DISTINCT FROM OLD.id OR NEW.employment_relationship_id IS DISTINCT FROM OLD.employment_relationship_id
+                OR NEW.paying_legal_entity_id IS DISTINCT FROM OLD.paying_legal_entity_id
+                OR NEW.payroll_month_start_date IS DISTINCT FROM OLD.payroll_month_start_date OR NEW.bonus_amount IS DISTINCT FROM OLD.bonus_amount
+                OR NEW.bonus_currency IS DISTINCT FROM OLD.bonus_currency OR NEW.source_kind IS DISTINCT FROM OLD.source_kind
+                OR NEW.reason_key IS DISTINCT FROM OLD.reason_key OR NEW.approval_instance_id IS DISTINCT FROM OLD.approval_instance_id
+                OR NEW.entered_by_employee_id IS DISTINCT FROM OLD.entered_by_employee_id OR NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+            RAISE EXCEPTION 'voiding a bonus input changes only its status, the void pair and updated_at' USING ERRCODE = 'restrict_violation';
+        END IF;
+        RETURN NEW;
+    END IF;
+    RAISE EXCEPTION 'a % bonus input cannot become %', OLD.status, NEW.status USING ERRCODE = 'restrict_violation';
+END $$;
+CREATE TRIGGER tg_bonus_inputs_change BEFORE INSERT OR UPDATE OR DELETE ON organization_payroll.bonus_inputs
+    FOR EACH ROW EXECUTE FUNCTION organization_payroll.guard_bonus_input_change();
+CREATE TRIGGER tg_bonus_inputs_truncate BEFORE TRUNCATE ON organization_payroll.bonus_inputs
+    FOR EACH STATEMENT EXECUTE FUNCTION organization_payroll.guard_bonus_input_change();
+
+COMMENT ON TABLE organization_payroll.bonus_inputs IS '奖金输入。粒度：每个任职关系 × 薪酬月份 × 奖金原因一行（有效行），一行就是一条已审批的奖金输入，只能作废不能改。';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.id IS '主键（UUIDv7）；不是审批单据号，单据号是薪酬自己的申请号，不入表';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.employment_relationship_id IS '奖金所属的任职关系 ID，跨上下文不建外键';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.paying_legal_entity_id IS '承担这笔奖金所在结算的发薪法人 ID，读取的法人范围依据，跨上下文不建外键';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.payroll_month_start_date IS '薪酬月份，取该月一日';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.bonus_amount IS '奖金金额，大于零，单位见币种；扣回是以后结算的调整行，不是负数输入';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.bonus_currency IS '奖金币种，目前只有 CNY';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.source_kind IS '来源种类：MANUAL_APPROVED 手工录入并经审批；绩效来源建成后加宽';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.reason_key IS '奖金原因键，取自选择清单（数据，不在约束里列举），大写字母开头';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.approval_instance_id IS '这条输入的审批实例 ID，必填，同一审批只对应一行，重放审批结果只找到一行';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.entered_by_employee_id IS '录入人员工 ID，即审批的发起人；结算审批人不得是此人';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.status IS '状态：ACTIVE 有效、VOIDED 已作废';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.voided_by_user_id IS '作废人用户 ID；为空表示未作废';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.voided_at IS '作废时刻；为空表示未作废';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.created_at IS '创建时刻';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.updated_at IS '更新时刻';
