@@ -124,6 +124,14 @@ class ContractSeparationTablesIntegrationTest extends WorkforceIntegrationSuppor
     }
 
     @Test
+    @DisplayName("#1438 done-when 7: a contract becomes TERMINATED only with its termination date and basis")
+    void terminatedNeedsItsDate() {
+        UUID signed = contract("SIGNED", D2026, null);
+        assertThatThrownBy(() -> jdbc.sql("update " + CONTRACTS + " set status = 'TERMINATED', updated_at = now(), version = version + 1 where employment_contract_id = :id").param("id", signed).update())
+                .hasMessageContaining("ck_employment_contracts_state_columns");
+    }
+
+    @Test
     @DisplayName("#1438 done-when 1: a terminated contract frees the days after its termination date")
     void aTerminatedContractEndsAtItsTerminationDate() {
         UUID first = contract("SIGNED", D2026, null);
@@ -196,19 +204,29 @@ class ContractSeparationTablesIntegrationTest extends WorkforceIntegrationSuppor
         jdbc.sql("update " + REQUESTS + " set status = 'APPROVED', approved_on_date = '2026-01-02', decided_by = :hr, updated_at = now(), version = version + 1 where separation_request_id = :id")
                 .param("hr", HR_B).param("id", id).update();
         UUID wrongDay = command(LocalDate.of(2026, 4, 2));
-        UUID right = command(LocalDate.of(2026, 4, 1));
         String link = "update " + REQUESTS + " set status = 'SEPARATING', personnel_command_id = :cmd, updated_at = now(), version = version + 1 where separation_request_id = :id";
         assertThatThrownBy(() -> jdbc.sql(link).param("cmd", wrongDay).param("id", id).update()).hasMessageContaining("last_working_date");
+        UUID notSeparate = command(LocalDate.of(2026, 4, 1), "REGULARIZE", "PENDING");
+        assertThatThrownBy(() -> jdbc.sql(link).param("cmd", notSeparate).param("id", id).update()).hasMessageContaining("last_working_date");
+        jdbc.sql("delete from organization_workforce.personnel_commands where personnel_command_id = :id").param("id", notSeparate).update();
+        UUID withdrawn = command(LocalDate.of(2026, 4, 1), "SEPARATE", "WITHDRAWN");
+        assertThatThrownBy(() -> jdbc.sql(link).param("cmd", withdrawn).param("id", id).update()).hasMessageContaining("last_working_date");
+        UUID right = command(LocalDate.of(2026, 4, 1));
         assertThat(jdbc.sql(link).param("cmd", right).param("id", id).update()).isEqualTo(1);
         jdbc.sql("update " + REQUESTS + " set status = 'APPROVED', personnel_command_id = null, updated_at = now(), version = version + 1 where separation_request_id = :id").param("id", id).update();
     }
 
     private UUID command(LocalDate effective) {
+        return command(effective, "SEPARATE", "PENDING");
+    }
+
+    private UUID command(LocalDate effective, String kind, String status) {
         UUID id = UUID.randomUUID();
         jdbc.sql("""
-                insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, employment_relationship_id, command_kind, effective_date, status, created_at, created_by, updated_at)
-                values (:id, :employee, :relationship, 'SEPARATE', :effective, 'PENDING', now(), :by, now())""")
-                .param("id", id).param("employee", employee).param("relationship", relationship).param("effective", effective).param("by", HR_A).update();
+                insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, employment_relationship_id, command_kind, effective_date, status, created_at, created_by, updated_at, withdrawn_at, withdrawn_by, withdrawal_reason)
+                values (:id, :employee, :relationship, :kind, :effective, :status, now(), :by, now(),
+                        case when :status = 'WITHDRAWN' then now() end, case when :status = 'WITHDRAWN' then cast(:by as uuid) end, case when :status = 'WITHDRAWN' then 'test' end)""")
+                .param("kind", kind).param("status", status).param("id", id).param("employee", employee).param("relationship", relationship).param("effective", effective).param("by", HR_A).update();
         return id;
     }
 
@@ -218,9 +236,13 @@ class ContractSeparationTablesIntegrationTest extends WorkforceIntegrationSuppor
         UUID signed = contract("SIGNED", D2026, null);
         assertThatThrownBy(() -> jdbc.sql("update " + CONTRACTS + " set contract_start_date = '2025-12-31', updated_at = now(), version = version + 1 where employment_contract_id = :id").param("id", signed).update())
                 .hasMessageContaining("employment contracts");
+        assertThatThrownBy(() -> jdbc.sql("update " + CONTRACTS + " set status = 'DRAFT', submitted_by = null, approved_by = null, signed_on_date = null, updated_at = now(), version = version + 1 where employment_contract_id = :id")
+                .param("id", signed).update()).hasMessageContaining("no legal change");
         UUID approved = request("APPROVED", "EMPLOYER_CHANGE", Map.of("request_source_kind", "SYSTEM", "initiator_kind", "BOTH", "decided_by", HR_B, "approved_on_date", D2026, "last_working_date", D2026.plusDays(30)));
         assertThatThrownBy(() -> jdbc.sql("update " + REQUESTS + " set last_working_date = '2026-03-01', updated_at = now(), version = version + 1 where separation_request_id = :id").param("id", approved).update())
                 .hasMessageContaining("separation requests");
+        assertThatThrownBy(() -> jdbc.sql("update " + REQUESTS + " set status = 'REQUESTED', decided_by = null, approved_on_date = null, updated_at = now(), version = version + 1 where separation_request_id = :id")
+                .param("id", approved).update()).hasMessageContaining("no legal change");
         for (String table : new String[] {CONTRACTS, REQUESTS, BASES}) {
             assertThatThrownBy(() -> jdbc.sql("truncate table " + table + " cascade").update()).hasMessageContaining("truncate");
         }
