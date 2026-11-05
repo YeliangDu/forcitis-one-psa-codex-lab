@@ -15,7 +15,7 @@ cat >"$tmp/backend/mvnw" <<'EOF'
 #!/usr/bin/env bash
 echo "$*" >>"$STUB_LOG"
 echo $$ >>"${STUB_PIDS:-/dev/null}"
-[ -n "${STUB_HANG:-}" ] && case "$*" in *export-openapi*) ;; *surefire:test*|*failsafe:*) echo "$*" >>"$STUB_LOG"; (exec -a "java fork $PWD/target/surefire/booter" sleep 60) & echo $! >>"$STUB_PIDS"; exec sleep 60 ;; esac
+[ -n "${STUB_HANG:-}" ] && case "$*" in *export-openapi*) ;; *surefire:test*|*failsafe:*) echo "$*" >>"$STUB_LOG"; (exec -a "java fork $PWD/target/surefire/booter" /bin/sleep 60) & echo $! >>"$STUB_PIDS"; exec sleep 60 ;; esac
 case "$*" in *export-openapi*) ;; *surefire:test*) if [ -n "${STUB_ID:-}" ]; then echo "enter $STUB_ID" >>"$STUB_LOG"; sleep 2; echo "leave $STUB_ID" >>"$STUB_LOG"; fi ;; esac
 case "$*" in *export-openapi*) printf '%s' "$EXPORTED" >../frontend/packages/api/openapi.json ;; esac
 exit 0
@@ -92,7 +92,7 @@ check_ "two local runs started together run one after the other" $r
 # Watchdog (#1385): a local run defaults to 2400 s, CI keeps 1500 s; a stub sleep on PATH records the watchdog's argument (STUB_ID keeps the tests running long enough for the watchdog to start).
 mkdir -p "$tmp/bin"
 # shellcheck disable=SC2016  # the stub's $1, $SLEEP_LOG and $@ expand when the stub runs, not here
-printf '#!/usr/bin/env bash\necho "$1" >>"$SLEEP_LOG"\nexec /bin/sleep "$@"\n' >"$tmp/bin/sleep"
+printf '#!/usr/bin/env bash\necho "$1" >>"$SLEEP_LOG"\n[ -z "${SLEEP_PIDS:-}" ] || echo $$ >>"$SLEEP_PIDS"\nexec /bin/sleep "$@"\n' >"$tmp/bin/sleep"
 chmod +x "$tmp/bin/sleep"
 watchdog_() {  # watchdog_ <name> <expected seconds> [env assignments...]
   local name=$1 want=$2; shift 2; : >"$tmp/w.log"; : >"$tmp/sl.log"; printf '{"same":1}' >"$tmp/frontend/packages/api/openapi.json"
@@ -103,18 +103,32 @@ rm -rf "$tmp/lock"
 watchdog_ "local run: watchdog defaults to 2400 s" 2400 A=1
 watchdog_ "CI: watchdog stays 1500 s" 1500 GITHUB_ACTIONS=true
 
-# Stopped from outside (#1385): TERM to a local run stops its test runs and their forks (the stub starts a detached fake fork whose command line
-# matches the script's fork pattern), and the lock names the holder's checkout.
-rm -rf "$tmp/lock"; : >"$tmp/pids"; : >"$tmp/k.log"; printf '{"same":1}' >"$tmp/frontend/packages/api/openapi.json"
-STUB_HANG=1 STUB_PIDS="$tmp/pids" STUB_LOG="$tmp/k.log" EXPORTED='{"same":1}' BACKEND_WATCHDOG_SECONDS=60 bash "$tmp/scripts/ci/backend_verify.sh" >"$tmp/out.log" 2>&1 &
-victim=$! n=0
-while [ "$(grep -cE 'surefire:test|failsafe:integration-test' "$tmp/k.log" 2>/dev/null)" -lt 2 ] && [ "$n" -lt 20 ]; do sleep 1; n=$((n + 1)); done
-where=$(cat "$tmp/lock/where" 2>/dev/null || true)
-if [ "$where" = "$tmp/backend" ]; then check_ "the lock names the holder's checkout" 0; else echo "  where: $where"; check_ "the lock names the holder's checkout" 1; fi
-kill -TERM "$victim"; wait "$victim" 2>/dev/null || true; sleep 1
-alive=0; while read -r p; do kill -0 "$p" 2>/dev/null && alive=$((alive + 1)); done <"$tmp/pids"
-if [ "$alive" -eq 0 ] && [ ! -e "$tmp/lock" ]; then check_ "a stopped local run stops its test runs and releases the lock" 0; else check_ "a stopped local run stops its test runs and releases the lock" 1; fi
-while read -r p; do kill "$p" 2>/dev/null || true; done <"$tmp/pids"
+# Stopped from outside (#1385): TERM or INT to a local run stops its test runs, their forks (the stub starts a detached fake fork whose command line
+# matches the script's fork pattern) and its watchdog (the stub sleep records the watchdog's sleep), and the lock names the holder's checkout.
+# set -m starts the run in its own process group; without it a non-interactive shell starts background jobs ignoring INT and the trap never fires.
+stop_() {
+  local sig=$1
+  rm -rf "$tmp/lock"; : >"$tmp/pids"; : >"$tmp/k.log"; printf '{"same":1}' >"$tmp/frontend/packages/api/openapi.json"
+  set -m
+  STUB_HANG=1 STUB_PIDS="$tmp/pids" STUB_LOG="$tmp/k.log" EXPORTED='{"same":1}' BACKEND_WATCHDOG_SECONDS=60 PATH="$tmp/bin:$PATH" SLEEP_LOG=/dev/null SLEEP_PIDS="$tmp/pids" \
+    bash "$tmp/scripts/ci/backend_verify.sh" >"$tmp/out.log" 2>&1 &
+  victim=$!
+  set +m
+  local n=0
+  while [ "$(grep -cE 'surefire:test|failsafe:integration-test' "$tmp/k.log" 2>/dev/null)" -lt 2 ] && [ "$n" -lt 20 ]; do sleep 1; n=$((n + 1)); done
+  if [ "$sig" = TERM ]; then
+    where=$(cat "$tmp/lock/where" 2>/dev/null || true)
+    if [ "$where" = "$tmp/backend" ]; then check_ "the lock names the holder's checkout" 0; else echo "  where: $where"; check_ "the lock names the holder's checkout" 1; fi
+  fi
+  kill -"$sig" "$victim"; wait "$victim" 2>/dev/null || true; sleep 1
+  local alive=0 p
+  while read -r p; do kill -0 "$p" 2>/dev/null && alive=$((alive + 1)); done <"$tmp/pids"
+  local name="a local run stopped by $sig stops its test runs, forks and watchdog and releases the lock"
+  if [ "$alive" -eq 0 ] && [ ! -e "$tmp/lock" ]; then check_ "$name" 0; else echo "  alive: $alive"; check_ "$name" 1; fi
+  while read -r p; do kill "$p" 2>/dev/null || true; done <"$tmp/pids"
+}
+stop_ TERM
+stop_ INT
 
 # shellcheck disable=SC2015  # echo cannot fail, so the || branch runs only when there are failures
 [ "$failures" -eq 0 ] && echo "backend_verify_selftest: ok" || { echo "backend_verify_selftest: $failures failed"; exit 1; }
