@@ -10,7 +10,6 @@ import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
-import java.util.ArrayList;
 import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -157,18 +156,20 @@ public final class AssigneeResolver {
     }
 
     private Optional<EmployeeId> headFrom(OrgUnitId unit, Set<EmployeeId> excluded) {
-        List<OrgUnitId> chain = new ArrayList<>();
-        chain.add(unit);
-        chain.addAll(org.findAncestors(unit));
-        for (OrgUnitId candidate : chain) {
-            boolean active = org.findOrgUnit(candidate).map(OrgUnitProfile::active).orElse(false);
-            if (!active) {
+        Set<OrgUnitId> seen = new LinkedHashSet<>();
+        OrgUnitId candidate = unit;
+        while (candidate != null && seen.add(candidate)) {
+            Optional<OrgUnitProfile> profile = org.findOrgUnit(candidate);
+            OrgUnitId parent = profile.map(OrgUnitProfile::parentOrgUnitId).orElse(null);
+            if (!profile.map(OrgUnitProfile::active).orElse(false)) {
+                candidate = parent;
                 continue;
             }
             Optional<EmployeeId> head = org.findOrgUnitHead(candidate).filter(h -> !excluded.contains(h)).filter(this::isEmployed);
             if (head.isPresent()) {
                 return head;
             }
+            candidate = parent;
         }
         return Optional.empty();
     }
