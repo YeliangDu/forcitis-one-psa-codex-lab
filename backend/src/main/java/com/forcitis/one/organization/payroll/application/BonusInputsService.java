@@ -87,6 +87,10 @@ class BonusInputsService implements BonusInputs {
             throw new DomainException(PayrollError.ORGANIZATION_PAYROLL_BONUS_INPUT_INVALID, ErrorKind.UNPROCESSABLE,
                     "the employment relationship is not in service with a confirmed employer that is the paying legal entity in that month");
         }
+        if (inputs.existsActive(command.employmentRelationshipId(), command.payrollMonthStartDate(), command.reasonKey())) {
+            throw new DomainException(PayrollError.ORGANIZATION_PAYROLL_BONUS_INPUT_DUPLICATE_REASON, ErrorKind.CONFLICT,
+                    "an active bonus input of this relationship, month and reason exists; void it first");
+        }
         UUID requestId = UUID.nameUUIDFromBytes((REQUEST_NAMESPACE + command.idempotencyKey()).getBytes(StandardCharsets.UTF_8));
         List<ApprovalField> fields = List.of(field(BonusInputApprovalProcess.EMPLOYMENT_RELATIONSHIP_ID, command.employmentRelationshipId().toString()),
                 field(BonusInputApprovalProcess.PAYROLL_MONTH_START_DATE, command.payrollMonthStartDate().toString()),

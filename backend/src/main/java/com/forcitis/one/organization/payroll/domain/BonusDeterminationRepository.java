@@ -12,6 +12,9 @@ public interface BonusDeterminationRepository {
     /** Writes a new ACTIVE row; false when the database already holds a row of this approval or an ACTIVE one of the same relationship, month and reason. */
     boolean insertApproved(BonusDetermination input);
 
+    /** An ACTIVE row of the relationship, month and reason exists. */
+    boolean existsActive(EmploymentRelationshipId relationship, LocalDate month, String reasonKey);
+
     boolean existsForApproval(ApprovalInstanceId approval);
 
     Optional<BonusDetermination> find(BonusInputId id);

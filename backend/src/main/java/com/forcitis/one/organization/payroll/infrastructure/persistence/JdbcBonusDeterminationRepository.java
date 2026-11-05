@@ -50,6 +50,14 @@ class JdbcBonusDeterminationRepository implements BonusDeterminationRepository {
     }
 
     @Override
+    public boolean existsActive(EmploymentRelationshipId relationship, LocalDate month, String reasonKey) {
+        return jdbc.sql("""
+                select count(*) from organization_payroll.bonus_inputs
+                where employment_relationship_id = :relationship and payroll_month_start_date = :month and reason_key = :reason and status = 'ACTIVE'
+                """).param("relationship", relationship.value()).param("month", month).param("reason", reasonKey).query(Long.class).single() > 0;
+    }
+
+    @Override
     public boolean existsForApproval(ApprovalInstanceId approval) {
         return jdbc.sql("select count(*) from organization_payroll.bonus_inputs where approval_instance_id = :approval").param("approval", approval.value())
                 .query(Long.class).single() > 0;
