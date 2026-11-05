@@ -15,6 +15,7 @@ import java.util.Random;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /** An upload goes through the idempotency filter: a large body must reach the handler unchanged without being held in the heap. */
 class CachedBodyTest {
@@ -33,8 +34,12 @@ class CachedBodyTest {
         return HexFormat.of().formatHex(digest.digest());
     }
 
-    private static long spoolFiles() throws IOException {
-        try (Stream<Path> files = Files.list(Path.of(System.getProperty("java.io.tmpdir")))) {
+    /** Only this test's own spill directory: the JVM's temporary directory is shared with every other fork and runner on the machine. */
+    @TempDir
+    Path spool;
+
+    private long spoolFiles() throws IOException {
+        try (Stream<Path> files = Files.list(spool)) {
             return files.filter(path -> path.getFileName().toString().startsWith("idempotent-body-")).count();
         }
     }
@@ -45,7 +50,7 @@ class CachedBodyTest {
         long before = spoolFiles();
         for (int length : new int[] {0, 1, CachedBody.MEMORY_LIMIT, CachedBody.MEMORY_LIMIT + 1, 3 * 1024 * 1024 + 5}) {
             byte[] content = bytes(length);
-            try (CachedBody body = CachedBody.read(new ByteArrayInputStream(content), PREFIX, 4 * 1024 * 1024)) {
+            try (CachedBody body = CachedBody.read(new ByteArrayInputStream(content), PREFIX, 4 * 1024 * 1024, spool)) {
                 assertThat(body.hash()).as("hash of " + length).isEqualTo(expectedHash(content));
                 try (InputStream in = body.open()) {
                     assertThat(in.readAllBytes()).as("content of " + length).isEqualTo(content);
@@ -63,11 +68,11 @@ class CachedBodyTest {
     @DisplayName("a body above the limit is refused and leaves no file behind, even when it already went to disk")
     void tooLargeIsRefusedWithoutLeavingAFile() throws Exception {
         long before = spoolFiles();
-        assertThatThrownBy(() -> CachedBody.read(new ByteArrayInputStream(bytes(CachedBody.MEMORY_LIMIT * 3)), PREFIX, CachedBody.MEMORY_LIMIT * 2L))
+        assertThatThrownBy(() -> CachedBody.read(new ByteArrayInputStream(bytes(CachedBody.MEMORY_LIMIT * 3)), PREFIX, CachedBody.MEMORY_LIMIT * 2L, spool))
                 .isInstanceOf(CachedBody.TooLarge.class);
         assertThat(spoolFiles()).isEqualTo(before);
-        assertThatThrownBy(() -> CachedBody.read(new ByteArrayInputStream(bytes(10)), PREFIX, 9)).isInstanceOf(CachedBody.TooLarge.class);
-        CachedBody.read(new ByteArrayInputStream(bytes(10)), PREFIX, 10).close();
+        assertThatThrownBy(() -> CachedBody.read(new ByteArrayInputStream(bytes(10)), PREFIX, 9, spool)).isInstanceOf(CachedBody.TooLarge.class);
+        CachedBody.read(new ByteArrayInputStream(bytes(10)), PREFIX, 10, spool).close();
     }
 
     @Test
@@ -92,7 +97,7 @@ class CachedBodyTest {
                 return count;
             }
         };
-        assertThatThrownBy(() -> CachedBody.read(failing, PREFIX, 1L << 30)).isInstanceOf(IOException.class).hasMessage("connection reset");
+        assertThatThrownBy(() -> CachedBody.read(failing, PREFIX, 1L << 30, spool)).isInstanceOf(IOException.class).hasMessage("connection reset");
         assertThat(spoolFiles()).isEqualTo(before);
     }
 }
