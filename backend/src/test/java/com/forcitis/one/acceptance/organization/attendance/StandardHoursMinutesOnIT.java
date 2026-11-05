@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
+import com.forcitis.one.BusinessDay;
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
@@ -51,7 +52,7 @@ class StandardHoursMinutesOnIT extends AcceptanceSupport {
     private static final String VERSIONS = "/api/v1/organization/standard-hours-versions";
 
     /** Real Shanghai date: the database triggers use the real clock, and a version never starts before it. */
-    private static final LocalDate TODAY = LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
+    private static final LocalDate TODAY = BusinessDay.today();
     /** First Monday on or after today with four weeks left in its year; the calendar fixtures and every assertion hang off it. */
     private static final LocalDate A = anchor();
     private static final int YEAR = A.getYear();

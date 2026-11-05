@@ -8,6 +8,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.forcitis.one.BusinessDay;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.fixture.doubles.MutableClock;
 import com.forcitis.one.kernel.UserId;
@@ -57,9 +58,10 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @Import(AcceptanceSupport.FixedClock.class)
 public abstract class AcceptanceSupport {
 
-    public static final Instant NOW = Instant.parse("2026-11-02T02:00:00Z");
-    public static final LocalDate TODAY = LocalDate.of(2026, 11, 2);
-    public static final ZoneId BUSINESS_ZONE = ZoneId.of("Asia/Shanghai");
+    /** The test clock starts at 10:00 on the business today; see {@link BusinessDay} for why this is not a fixed date. */
+    public static final Instant NOW = BusinessDay.tenOClock();
+    public static final LocalDate TODAY = BusinessDay.today();
+    public static final ZoneId BUSINESS_ZONE = BusinessDay.ZONE;
     public static final String LEGAL_ENTITIES = "/api/v1/organization/legal-entities";
     public static final String AUDIT_ENTRIES = "/api/v1/platform/audit-entries";
 

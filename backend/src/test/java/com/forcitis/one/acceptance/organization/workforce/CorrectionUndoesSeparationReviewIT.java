@@ -61,7 +61,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
     }
 
     static final Duration SETTLE = Duration.ofSeconds(20);
-    static final LocalDate BACK_ON = LocalDate.of(2026, 11, 1);
+    static final LocalDate BACK_ON = TODAY.minusDays(1);
     static final String SECURITY_AUDITOR = "security_auditor";
 
     @Autowired
@@ -267,7 +267,20 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
     // ---- real EmployeeTransferred (personnel command) and the escalation due date (one-design ruling A-6, #730 comment 6600968506) ----
 
     private static final java.time.ZoneId BUSINESS_ZONE = java.time.ZoneId.of("Asia/Shanghai");
-    private static final LocalDate HOLIDAY_OF_X = LocalDate.of(2026, 11, 4);
+    /** The second weekday after TODAY is the entity's own holiday (a Wednesday when TODAY is a Monday, as it was when the case was written). */
+    private static final LocalDate HOLIDAY_OF_X = weekdaysAfter(TODAY, 2, java.util.Set.of());
+
+    /** The day that is the n-th weekday after the start, skipping Saturdays, Sundays and the given holidays (the default calendar has weekends off only). */
+    private static LocalDate weekdaysAfter(LocalDate start, int n, java.util.Set<LocalDate> holidays) {
+        LocalDate day = start;
+        for (int counted = 0; counted < n; ) {
+            day = day.plusDays(1);
+            if (day.getDayOfWeek() != java.time.DayOfWeek.SATURDAY && day.getDayOfWeek() != java.time.DayOfWeek.SUNDAY && !holidays.contains(day)) {
+                counted++;
+            }
+        }
+        return day;
+    }
 
     /** Instant of the local midnight that starts the given day in the business zone. */
     private static java.time.Instant startOf(LocalDate day) {
@@ -284,7 +297,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         }
     }
 
-    /** The five workdays after Monday 2026-11-02 end on Mon 11-09 by the default calendar and, with 11-04 a holiday, on Tue 11-10. */
+    /** The fifth workday after TODAY ends the escalation: by the default calendar, or with HOLIDAY_OF_X off by the entity's own calendar. */
     private void assertDueAtEndOfDay(Object due, LocalDate fifthWorkday) {
         java.time.Instant at = instantOf(due);
         assertThat(at).as("the due instant is the end of " + fifthWorkday + " in the business zone").isAfterOrEqualTo(startOf(fifthWorkday.plusDays(1)).minusSeconds(1))
@@ -325,7 +338,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
                 .containsEntry("trigger_field_kind", "ORG_UNIT").containsEntry("trigger_personnel_command_id", command)
                 .containsEntry("before_org_unit_id", unit).containsEntry("after_org_unit_id", toUnit);
         assertThat(item.get("recipient_employee_id")).as("a person item has no recipient").isNull();
-        assertDueAtEndOfDay(dueRowAbout(user).get("escalation_due_at"), LocalDate.of(2026, 11, 10));
+        assertDueAtEndOfDay(dueRowAbout(user).get("escalation_due_at"), weekdaysAfter(TODAY, 5, java.util.Set.of(HOLIDAY_OF_X)));
     }
 
     @Test
@@ -356,7 +369,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         identityHandled(event.envelope().eventId().toString());
 
         assertThat(itemsAbout(user)).hasSize(1);
-        assertDueAtEndOfDay(dueRowAbout(user).get("escalation_due_at"), LocalDate.of(2026, 11, 9));
+        assertDueAtEndOfDay(dueRowAbout(user).get("escalation_due_at"), weekdaysAfter(TODAY, 5, java.util.Set.of()));
     }
 
     @Test
@@ -379,7 +392,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         }
 
         assertThat(itemsAbout(user)).as("a lost review is worse than an approximate date").hasSize(1);
-        assertDueAtEndOfDay(dueRowAbout(user).get("escalation_due_at"), LocalDate.of(2026, 11, 9));
+        assertDueAtEndOfDay(dueRowAbout(user).get("escalation_due_at"), weekdaysAfter(TODAY, 5, java.util.Set.of()));
         List<ILoggingEvent> alerts = logged.list.stream().filter(line -> line.getFormattedMessage().startsWith("ALERT P3 platform.identity ")).toList();
         assertThat(alerts).as("exactly one P3 alert line").hasSize(1);
         String line = alerts.getFirst().getFormattedMessage();

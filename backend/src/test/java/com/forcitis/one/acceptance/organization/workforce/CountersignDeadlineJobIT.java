@@ -6,6 +6,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 
+import com.forcitis.one.BusinessDay;
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.Uuids;
@@ -13,6 +14,7 @@ import com.forcitis.one.platform.integration.api.WecomCard;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -42,8 +44,8 @@ import org.springframework.test.context.DynamicPropertySource;
  * one step), a repeated run sends nothing. Working days come from the row's legal entity calendar; a year that is not maintained counts
  * Monday to Friday and the run still completes. Decided and LAPSED rows are never touched, and the job never decides anything.
  *
- * <p>Fixed dates (TODAY is Monday 2026-11-02): the 2026 calendar has a holiday on Tuesday 2026-11-10; 2027 is not maintained. Rows are
- * requested on 11-02 but carry the stored due date 11-06, not the 11-05 the entry rule would give: on purpose, the job reads the stored
+ * <p>Dates are laid out from MONDAY, the Monday on or after the real business day: the 2026 calendar has a holiday on the Tuesday of the following week and 2027 is not maintained, so the class is valid for runs whose Monday and the two weeks after it fall in 2026 (known limit: the last weeks of December). Rows are
+ * requested on the real business day but carry the stored due date of its Friday, not the Thursday the entry rule would give: on purpose, the job reads the stored
  * due_on_date and never recomputes it (ruling item 6; due_on_date at entry is #895's).
  */
 class CountersignDeadlineJobIT extends PersonnelCommandSupport {
@@ -64,8 +66,10 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
     /** one-design naming ruling on #893 (comment 6589791372, item 1) and the #896 ruling item 2. */
     static final String LEVEL = "escalation_level_number";
 
-    private static final LocalDate DUE = LocalDate.of(2026, 11, 6);
-    private static final LocalDate HOLIDAY = LocalDate.of(2026, 11, 10);
+    /** The Monday on or after the real business day: the calendar below is laid out from it (weekdays, one holiday on the next Tuesday week, due on the Friday). */
+    private static final LocalDate MONDAY = BusinessDay.nextOrSame(DayOfWeek.MONDAY);
+    private static final LocalDate DUE = MONDAY.plusDays(4);
+    private static final LocalDate HOLIDAY = MONDAY.plusDays(8);
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -247,14 +251,14 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
         UUID row = openChangeRow(DUE);
 
         String levelOne = purposeOf(noticeOnRun(row, DUE.plusDays(1)));
-        runOn(LocalDate.of(2026, 11, 11));
+        runOn(MONDAY.plusDays(9));
         assertThat(levelOf(row)).as("the holiday 11-10 does not count, so 11-11 is only the 2nd working day").isEqualTo(1);
 
-        runOn(LocalDate.of(2026, 11, 12));
+        runOn(MONDAY.plusDays(10));
         assertThat(levelOf(row)).isEqualTo(2);
-        runOn(LocalDate.of(2026, 11, 13));
+        runOn(MONDAY.plusDays(11));
         assertThat(levelOf(row)).isEqualTo(2);
-        String levelThree = purposeOf(noticeOnRun(row, LocalDate.of(2026, 11, 14)));
+        String levelThree = purposeOf(noticeOnRun(row, MONDAY.plusDays(12)));
         assertThat(levelOf(row)).isEqualTo(3);
         assertThat(levelThree).as("each level its own purpose_kind").isNotEqualTo(levelOne);
         Mockito.clearInvocations(wecomGateway);
@@ -267,7 +271,7 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
     @DisplayName("#896 one-design 裁定第 2 项（补跑一步到位）：一行停在第 0 级、作业多日未跑，到 11-16 跑一次直接升到第 3 级，只发一条第 3 级的提醒（用途与逐级跑到第 3 级时相同）")
     void aMissedStretchIsCaughtUpInOneStep() throws Exception {
         UUID stepped = openChangeRow(DUE);
-        for (LocalDate day : List.of(DUE.plusDays(1), LocalDate.of(2026, 11, 12), LocalDate.of(2026, 11, 14))) {
+        for (LocalDate day : List.of(DUE.plusDays(1), MONDAY.plusDays(10), MONDAY.plusDays(12))) {
             runOn(day);
         }
         assertThat(levelOf(stepped)).isEqualTo(3);
@@ -277,7 +281,7 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
         UUID late = openChangeRow(DUE);
         Mockito.clearInvocations(wecomGateway);
 
-        runOn(LocalDate.of(2026, 11, 16));
+        runOn(MONDAY.plusDays(14));
 
         assertThat(levelOf(late)).isEqualTo(3);
         assertThat(noticesOf(late)).singleElement().satisfies(card -> assertThat(purposeOf(card)).isEqualTo(levelThreePurpose));
@@ -297,7 +301,7 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
         UUID open = openChangeRow(DUE);
         UUID openCommand = (UUID) row(open).get("personnel_command_id");
 
-        runOn(LocalDate.of(2026, 11, 16));
+        runOn(MONDAY.plusDays(14));
 
         assertThat(levelOf(withdrawal)).isEqualTo(3);
         assertThat(noticesOf(withdrawal)).hasSize(1);
@@ -365,7 +369,7 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
         runOn(DUE.plusDays(1));
 
         Mockito.clearInvocations(wecomGateway);
-        runOn(LocalDate.of(2026, 11, 12));
+        runOn(MONDAY.plusDays(10));
 
         assertThat(levelOf(row)).isEqualTo(2);
         List<WecomCard> levelTwo = noticesOf(row);
@@ -374,7 +378,7 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
         assertThat(reached).as("every business_admin holder is notified (one-design amendment, #896 comment 6590086619)")
                 .contains(wecomUserIdOf(first), wecomUserIdOf(second)).doesNotContain(wecomUserIdOf(headE1), wecomUserIdOf(hr.employeeId()));
         Mockito.clearInvocations(wecomGateway);
-        runOn(LocalDate.of(2026, 11, 13));
+        runOn(MONDAY.plusDays(11));
         assertThat(noticesOf(row)).as("a later run at the same level notifies nobody again").isEmpty();
     }
 
@@ -383,9 +387,9 @@ class CountersignDeadlineJobIT extends PersonnelCommandSupport {
     void levelThreeGoesToTheFinanceHeadAgain() throws Exception {
         UUID row = openChangeRow(DUE);
         runOn(DUE.plusDays(1));
-        runOn(LocalDate.of(2026, 11, 12));
+        runOn(MONDAY.plusDays(10));
 
-        WecomCard levelThree = noticeOnRun(row, LocalDate.of(2026, 11, 14));
+        WecomCard levelThree = noticeOnRun(row, MONDAY.plusDays(12));
 
         assertThat(levelOf(row)).isEqualTo(3);
         assertThat(recipientsOf(levelThree)).containsExactly(wecomUserIdOf(headE1));

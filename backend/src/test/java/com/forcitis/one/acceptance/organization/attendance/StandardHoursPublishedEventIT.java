@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.BusinessDay;
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
@@ -41,8 +42,8 @@ import tools.jackson.databind.json.JsonMapper;
 @RecordApplicationEvents
 class StandardHoursPublishedEventIT extends AcceptanceSupport {
 
-    /** Version dates follow the real Asia/Shanghai date because the database triggers use the real clock. */
-    private static final LocalDate TODAY = LocalDate.now(java.time.ZoneId.of("Asia/Shanghai"));
+    /** The business today, read once per JVM: the database triggers use the real Asia/Shanghai date, so version dates are relative to it. */
+    private static final LocalDate TODAY = BusinessDay.today();
 
     static final TestDatabase postgres = TestPostgres.database(StandardHoursPublishedEventIT.class, TestPostgres.MIGRATED)
             .withUrlParam("currentSchema", "platform_approval");
