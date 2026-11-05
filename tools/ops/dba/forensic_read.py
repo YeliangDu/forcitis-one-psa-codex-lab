@@ -336,7 +336,7 @@ def main(argv, cloud_factory=Cloud):
         text = server_run(cloud, conf, database, sql, gate=True)
         if "SQLERROR" in text or "Exception in thread" in text or not re.search(r"^DONE batches=1$", text, re.M):  # a refusal by the plan gate or a server error is not a result: nothing written, nonzero exit
             raise Refused("the server refused or failed the query (plan gate or error); nothing written")
-        if checked_rows(text) is None or any(not l.startswith(("  ", "connected as ", "---- batch ", "DONE batches=")) for l in text.splitlines()):  # OneSql prints cells raw: a line break inside a cell must not hide text from the cell-length check
+        if checked_rows(text) is None or any(not l.startswith(("  ", "connected as ", "---- batch ", "DONE batches=")) for l in text.splitlines()):  # second defence: OneSql escapes cells (line breaks, control characters, bars); a shape that still shows must not hide text from the cell-length check
             raise Refused("the result does not have the expected shape (one result, matching row count, no line break inside a cell); nothing written")
         problems = output_problems(text, DEFINITION_CELL_LIMIT if args.definitions else CELL_LIMIT)
         if problems:

@@ -157,7 +157,7 @@ def main():
             code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [GOOD_CHECK, bad, ROW_DATA])
             assert code == 2 and fake.sent == [f.CHECK_SQL, f.CHECK_DBS_SQL] and not Path(path).exists(), bad
         # a result with personal-data shapes or long cells is withheld: nothing written, only kinds and counts named (--definitions allows long definition text, not personal shapes)
-        for rows, flags, why in (("  # a\n  11010519491231002X\n", [], "id number"), ("  # a\n  13812345678\n", [], "mobile"), ("  # a\n  x@y.com\n", [], "email"), ("  # a\n  138 1234 5678\n", [], "mobile"), ("  # a\n  +8613812345678\n", [], "mobile"), ("  # a\n  110105491231002\n", [], "id number"), ("  # a\n  " + "x" * 301 + "\n", [], "300"),
+        for rows, flags, why in (("  # a\n  11010519491231002X\n", [], "id number"), ("  # a\n  13812345678\n", [], "mobile"), ("  # a\n  x@y.com\n", [], "email"), ("  # a\n  tel:\\u{0009}13800138000\n", [], "mobile"), ("  # a\n  id\\u{0001}11010519491231002X\n", [], "id number"), ("  # a\n  138 1234 5678\n", [], "mobile"), ("  # a\n  +8613812345678\n", [], "mobile"), ("  # a\n  110105491231002\n", [], "id number"), ("  # a\n  " + "x" * 301 + "\n", [], "300"),
                                  ("  # a\n  " + "x" * 2001 + "\n", ["--definitions"], "2000"), ("  # a\n  11010519491231002X\n", ["--definitions"], "id number")):
             code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [rows], checked=True, flags=flags)
             assert code == 2 and "withheld" in err and why in err and not Path(path).exists() and "1101051949" not in err + out, (why, err)
