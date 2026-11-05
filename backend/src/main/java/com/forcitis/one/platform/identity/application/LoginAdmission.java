@@ -80,8 +80,7 @@ class LoginAdmission {
         accounts.recordLogin(userId, now, origin.address());
         AuditEntry succeeded = new AuditEntry("platform.identity.login.succeeded", userId, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
                 describe(method, null));
-        audit.record(method == LoginMethod.LOCAL_TEST ? succeeded.withTrace(origin.address(), AuditOutcome.SUCCEEDED, null)
-                : succeeded.withTrace(origin.address(), AuditOutcome.SUCCEEDED, method.name()));
+        audit.record(succeeded.withTrace(origin.address(), AuditOutcome.SUCCEEDED, method.auditKind()));
         StartedSession started = sessions.start(userId, method, identityConfirmed);
         meters.counter("forcitis.platform.identity.login", "method", method.name(), "outcome", "success").increment();
         if (started.administratorModeExpiresAt() != null) {
@@ -112,7 +111,7 @@ class LoginAdmission {
         AuditSubject subject = actor == null ? AuditSubject.without(AuditSubjectKind.LOGIN_ATTEMPT) : AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, actor.value());
         try {
             audit.recordIndependently(new AuditEntry("platform.identity.login.failed", actor, null, subject, describe(method, reason))
-                    .withTrace(origin.address(), AuditOutcome.FAILED, method.name()));
+                    .withTrace(origin.address(), AuditOutcome.FAILED, method.auditKind()));
         } catch (RuntimeException failed) {
             log.error("Audit entry for the failed login of {} could not be written: {}", subject, failed.getClass().getName());
             meters.counter("forcitis.platform.identity.login.audit.failed").increment();

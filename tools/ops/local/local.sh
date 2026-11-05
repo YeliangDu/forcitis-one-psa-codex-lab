@@ -1,5 +1,5 @@
 #!/bin/bash
-# The whole system on this machine (card #1478). Usage: tools/ops/local/local.sh up | down | wipe | status   (README.md next to this file)
+# The whole system on this machine (card #1478). Usage: tools/ops/local/local.sh up | down | wipe | status | e2e   (README.md next to this file)
 #  up      database container, migrations (profile migrate,local), backend on :8080 (profile local), web client on :5173; waits until each answers
 #  down    stops what `up` started (only the processes it recorded); the data stays
 #  wipe    down, then deletes the database volume and the generated local settings: the next `up` starts from nothing
@@ -37,14 +37,14 @@ need() { command -v "$1" >/dev/null 2>&1 || die "missing prerequisite: $1"; }
 
 pid_alive() { [ -f "$1" ] && kill -0 "$(cat "$1")" 2>/dev/null; }
 
-stop_pid() { # only the pid this script recorded, and only while that pid still runs the command it recorded
-  local file="$1" pid
+stop_pid() { # args: pid file, text the process command must contain (the jar or vite path). Only the pid this script recorded, and only while that pid still runs that command (a reused pid is left alone)
+  local file="$1" marker="$2" pid
   [ -f "$file" ] || return 0
   pid="$(cat "$file")"
-  if kill -0 "$pid" 2>/dev/null; then
+  if kill -0 "$pid" 2>/dev/null && ps -p "$pid" -o command= 2>/dev/null | grep -qF -- "$marker"; then
     kill "$pid" 2>/dev/null || true
     for _ in $(seq 1 20); do kill -0 "$pid" 2>/dev/null || break; sleep 0.5; done
-    kill -0 "$pid" 2>/dev/null && kill -9 "$pid" 2>/dev/null || true
+    if kill -0 "$pid" 2>/dev/null; then kill -9 "$pid" 2>/dev/null || true; fi
   fi
   rm -f "$file"
 }
@@ -92,8 +92,8 @@ cmd_up() {
 }
 
 cmd_down() {
-  stop_pid "$STATE/web.pid"
-  stop_pid "$STATE/backend.pid"
+  stop_pid "$STATE/web.pid" "node_modules/vite/bin/vite.js"
+  stop_pid "$STATE/backend.pid" "forcitis"
   if [ -f "$ENV_FILE" ] && command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
     load_env; "${COMPOSE[@]}" stop db >/dev/null 2>&1 || true
   fi

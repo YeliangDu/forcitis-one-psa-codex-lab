@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.io.StringReader;
@@ -12,13 +13,18 @@ import java.util.Properties;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.bootstrap.DefaultBootstrapContext;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.context.event.ApplicationEnvironmentPreparedEvent;
 import org.springframework.context.ApplicationListener;
+import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.springframework.core.io.support.SpringFactoriesLoader;
 import org.springframework.mock.env.MockEnvironment;
 
 /** Card #1478: the profile local starts only on a developer's own machine, and nothing shipped can switch it on. */
 class LocalProfileListenerTest {
 
+    static final String MIGRATE_LISTENER = "com.forcitis.one.platform.integration.infrastructure.transport.MigrateOnlyListener";
     static final String LISTENER = "com.forcitis.one.platform.identity.infrastructure.startup.LocalProfileListener";
     static final Path RESOURCES = Path.of("src/main/resources");
     static final Path JAVA = Path.of("src/main/java");
@@ -112,6 +118,45 @@ class LocalProfileListenerTest {
             }
         }
         assertThat(problems).isEmpty();
-        assertThat(namingIt).containsExactlyInAnyOrder("LocalProfileListener.java", "LoginAsLocalTestUser.java", "LocalTestLoginController.java", "KernelConfiguration.java", "LocalClockController.java");
+        assertThat(namingIt).containsExactlyInAnyOrder("LocalProfileListener.java", "LoginAsLocalTestUser.java", "LocalTestLoginController.java", "KernelConfiguration.java", "LocalClockController.java", "WorkforceLocalDueJobs.java");
+    }
+
+    @Test
+    @DisplayName("#1478 the listener itself stops the start: it throws for the profile local next to another machine's database, and for nothing else")
+    void listenerThrows() throws Exception {
+        ApplicationListener<ApplicationEnvironmentPreparedEvent> listener = factoryListener(LISTENER);
+        assertThatThrownBy(() -> listener.onApplicationEvent(prepared(local("jdbc:postgresql://db.example.com/forcitis"))))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("spring.datasource.url").hasMessageNotContaining("example.com");
+        listener.onApplicationEvent(prepared(local("jdbc:postgresql://localhost/forcitis_local")));
+        MockEnvironment other = new MockEnvironment().withProperty("spring.datasource.url", "jdbc:postgresql://db.example.com/forcitis");
+        other.setActiveProfiles("dev");
+        listener.onApplicationEvent(prepared(other));
+    }
+
+    @Test
+    @DisplayName("#1478 the profile local that is only the default profile is checked like an active one")
+    void defaultProfileIsChecked() throws Exception {
+        MockEnvironment environment = new MockEnvironment().withProperty("spring.datasource.url", "jdbc:postgresql://db.example.com/forcitis");
+        environment.setDefaultProfiles("local");
+        assertThat(refusal(environment)).contains("spring.datasource.url");
+    }
+
+    @Test
+    @DisplayName("#1478 the check runs before the migrate listener, which ends the process: in the order Spring sorts the registered listeners")
+    void runsBeforeMigrate() {
+        List<String> order = SpringFactoriesLoader.forDefaultResourceLocation(getClass().getClassLoader()).load(ApplicationListener.class).stream()
+                .sorted(AnnotationAwareOrderComparator.INSTANCE).map(listener -> listener.getClass().getName()).toList();
+        assertThat(order).contains(LISTENER, MIGRATE_LISTENER);
+        assertThat(order.indexOf(LISTENER)).isLessThan(order.indexOf(MIGRATE_LISTENER));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static ApplicationListener<ApplicationEnvironmentPreparedEvent> factoryListener(String name) {
+        return SpringFactoriesLoader.forDefaultResourceLocation(LocalProfileListenerTest.class.getClassLoader()).load(ApplicationListener.class).stream()
+                .filter(listener -> listener.getClass().getName().equals(name)).findFirst().orElseThrow();
+    }
+
+    private static ApplicationEnvironmentPreparedEvent prepared(MockEnvironment environment) {
+        return new ApplicationEnvironmentPreparedEvent(new DefaultBootstrapContext(), new SpringApplication(), new String[0], environment);
     }
 }

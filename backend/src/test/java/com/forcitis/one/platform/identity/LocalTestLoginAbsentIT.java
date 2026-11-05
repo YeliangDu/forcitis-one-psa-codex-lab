@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.kernel.LocalDueJobs;
 import com.forcitis.one.kernel.SettableClock;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.platform.identity.application.LoginAsLocalTestUser;
@@ -30,6 +31,7 @@ class LocalTestLoginAbsentIT extends IdentityIntegrationTest {
         assertThat(context.containsBean("localTestLoginController")).isFalse();
         assertThat(context.getBeanNamesForType(SettableClock.class)).isEmpty();
         assertThat(context.containsBean("localClockController")).isFalse();
+        assertThat(context.getBeanNamesForType(LocalDueJobs.class)).isEmpty();
         assertThat(mapping.getHandlerMethods().keySet().stream().flatMap(info -> info.getPatternValues().stream()))
                 .noneMatch(pattern -> pattern.contains("/local-"));
     }

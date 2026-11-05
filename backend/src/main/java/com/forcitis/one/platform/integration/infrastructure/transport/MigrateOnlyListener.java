@@ -19,7 +19,7 @@ import org.springframework.core.env.Profiles;
 /**
  * Release pipeline step: with the profile "migrate" the process runs the Flyway migrations with the migration account and exits, before any
  * application context exists, so no web server, job, process engine or event listener starts. Exit code 0 when the migrations succeed, 1 when not.
- * "migrate" alone is refused: the environment profile (dev or prod) decides the database transport requirement and must be named.
+ * "migrate" alone is refused: the environment profile (dev, prod or, on a developer's own machine, local) decides the database transport requirement and must be named.
  * The settings are Spring Boot's own spring.flyway.* binding (FlywayProperties); the connection is spring.flyway.url / user / password, falling back to
  * spring.datasource.*. The running service has spring.flyway.enabled=false.
  */

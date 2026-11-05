@@ -43,10 +43,13 @@ describe('本机登录入口（卡 #1478）', () => {
   });
 
   it('后端的答复不是账号列表时同样不显示', async () => {
-    stubServer({ 'GET sessions:current': { status: 401, body: {} }, 'GET local-accounts': { body: { not: 'a list' } } });
+    const server = stubServer({ 'GET sessions:current': { status: 401, body: {} }, 'GET local-accounts': { body: { not: 'a list' } } });
     renderWithProviders(<LoginPage />, { route: '/login' });
 
     expect(await screen.findByText('企业微信扫码登录')).toBeInTheDocument();
+    // the answer has been asked for and has had time to settle before absence is asserted (otherwise the check runs on the first render and proves nothing)
+    await waitFor(() => expect(server.calls.some((call) => call.url.endsWith('/local-accounts'))).toBe(true));
+    await new Promise((resolve) => setTimeout(resolve, 50));
     expect(screen.queryByText(/本机登录/)).not.toBeInTheDocument();
   });
 

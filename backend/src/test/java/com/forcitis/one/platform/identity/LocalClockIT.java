@@ -4,9 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.forcitis.one.organization.workforce.application.AttributionCountersignDeadlineJob;
+import com.forcitis.one.organization.workforce.application.OrgStructureCommandDueJob;
+import com.forcitis.one.organization.workforce.application.PersonnelCommandDueJob;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
@@ -16,6 +20,15 @@ import org.springframework.test.context.TestPropertySource;
 class LocalClockIT extends IdentityIntegrationTest {
 
     static final String CLOCK = "/api/v1/platform/local-clocks";
+
+    @MockitoSpyBean
+    PersonnelCommandDueJob personnelJob;
+
+    @MockitoSpyBean
+    OrgStructureCommandDueJob orgJob;
+
+    @MockitoSpyBean
+    AttributionCountersignDeadlineJob countersignJob;
 
     @Test
     @DisplayName("#1478 the clock endpoint reads, sets a golden date and resets")
@@ -27,7 +40,16 @@ class LocalClockIT extends IdentityIntegrationTest {
         assertThat(set.path("adjusted").asBoolean()).isTrue();
         assertThat(set.path("instant").asString()).startsWith("2026-03-15T08:00");
 
+        var inOrder = org.mockito.Mockito.inOrder(personnelJob, orgJob, countersignJob);
+        inOrder.verify(personnelJob).run();
+        inOrder.verify(orgJob).run();
+        inOrder.verify(countersignJob).run();
+
+        org.mockito.Mockito.clearInvocations(personnelJob, orgJob, countersignJob);
         var reset = body(mvc.perform(post(CLOCK + ":reset").with(xsrf())).andReturn());
         assertThat(reset.path("adjusted").asBoolean()).isFalse();
+        org.mockito.Mockito.verify(personnelJob, org.mockito.Mockito.never()).run();
+        org.mockito.Mockito.verify(orgJob, org.mockito.Mockito.never()).run();
+        org.mockito.Mockito.verify(countersignJob, org.mockito.Mockito.never()).run();
     }
 }

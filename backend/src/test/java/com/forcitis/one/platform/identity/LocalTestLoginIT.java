@@ -2,6 +2,7 @@ package com.forcitis.one.platform.identity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import jakarta.servlet.http.Cookie;
@@ -42,7 +43,7 @@ class LocalTestLoginIT extends IdentityIntegrationTest {
 
         assertThat(listed.getResponse().getStatus()).isEqualTo(200);
         assertThat(body(listed).findValuesAsString("userId")).contains(accountOf(1001).toString(), accountOf(1002).toString());
-        assertThat(body(listed).toString()).contains("Employee 1001", "super_admin");
+        assertThat(body(listed).toString()).contains("\"name\":\"Synthetic\"", "super_admin");
     }
 
     @Test
@@ -81,5 +82,29 @@ class LocalTestLoginIT extends IdentityIntegrationTest {
             assertThat(entry.detail()).contains("method=LOCAL_TEST");
             assertThat(entry.loginMethod()).isNull();
         });
+    }
+
+    @Test
+    @DisplayName("#1478 no audit entry of a local session names LOCAL_TEST as its login method (the column's CHECK does not list it): refused login, logout")
+    void noEntryNamesTheMethodInTheColumn() throws Exception {
+        pick(accountOf(1003));
+        assertThat(recordedIndependently()).anySatisfy(entry -> {
+            assertThat(entry.action()).isEqualTo("platform.identity.login.failed");
+            assertThat(entry.loginMethod()).isNull();
+        });
+
+        MvcResult other = pick(accountOf(1002));
+        assertThat(enterAdministratorMode(cookie(other, "SESSION"), 1001).getResponse().getStatus()).isEqualTo(403);
+        assertThat(recordedIndependently()).anySatisfy(entry -> assertThat(entry.action()).contains("administrator-mode"));
+
+        MvcResult login = pick(accountOf(1001));
+        Cookie session = new Cookie("SESSION", cookie(login, "SESSION"));
+        mvc.perform(post("/api/v1/platform/sessions:logout").cookie(session).with(xsrf())).andReturn();
+        assertThat(recorded()).anySatisfy(entry -> {
+            assertThat(entry.action()).isEqualTo("platform.identity.logout");
+            assertThat(entry.loginMethod()).isNull();
+        });
+        assertThat(recorded()).noneMatch(entry -> "LOCAL_TEST".equals(entry.loginMethod()));
+        assertThat(recordedIndependently()).noneMatch(entry -> "LOCAL_TEST".equals(entry.loginMethod()));
     }
 }
