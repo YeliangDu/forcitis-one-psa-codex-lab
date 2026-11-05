@@ -1,0 +1,9 @@
+-- ADR-0037 第 5 项第 4 条 · 取证账号在 [u8cloud] 的用户：与 [a8_db] 同形（库级只读、库级 DENY 写 / DDL / EXECUTE / REFERENCES 、不入角色）；卡 #1377，用户 2026-11-05 经 lead 定：U8C 两库复用取证登录
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+CREATE USER [one_evidence_ro] FOR LOGIN [one_evidence_ro] WITH DEFAULT_SCHEMA = dbo;
+GRANT SELECT ON DATABASE::[u8cloud] TO [one_evidence_ro];
+DENY INSERT, UPDATE, DELETE, ALTER, EXECUTE, REFERENCES, CREATE TABLE, CREATE VIEW, CREATE PROCEDURE, CREATE FUNCTION, CREATE SCHEMA
+  ON DATABASE::[u8cloud] TO [one_evidence_ro];
+COMMIT TRANSACTION;
+GO
