@@ -45,6 +45,7 @@ import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.identitylink.api.IdentityLinkInfo;
 import org.flowable.identitylink.api.IdentityLinkType;
 import org.flowable.task.api.Task;
+import org.flowable.variable.api.history.HistoricVariableInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -114,7 +115,20 @@ class FlowableApprovalEngine implements ApprovalEngine {
                 }
             }
         }
+        fields.addAll(ProcessDefinitionDeclarations.dataFormFields(processKey, latestModel(processKey).getMainProcess()));
         return fields;
+    }
+
+    @Override
+    public Map<String, List<String>> submittedFormFields(ApprovalInstanceId instanceId) {
+        Map<String, Object> engine = new LinkedHashMap<>();
+        for (HistoricVariableInstance variable : history.createHistoricVariableInstanceQuery()
+                .processInstanceId(instanceId.value().toString()).list()) {
+            if (variable.getVariableName().startsWith(EngineVariables.FIELD_PREFIX)) {
+                engine.put(variable.getVariableName(), variable.getValue());
+            }
+        }
+        return EngineVariables.fromEngine(engine).formFields();
     }
 
     @Override
