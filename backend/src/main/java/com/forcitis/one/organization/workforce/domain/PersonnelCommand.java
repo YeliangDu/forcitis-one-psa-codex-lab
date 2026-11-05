@@ -405,8 +405,7 @@ public final class PersonnelCommand extends AggregateRoot {
                 && history.commands().stream().noneMatch(o -> o.kind() == PersonnelCommandKind.HIRE && o.status() != CommandStatus.WITHDRAWN && o.effectiveDate().equals(effectiveDate)
                         && history.relationship(o.employmentRelationshipId() == null ? rel : o.employmentRelationshipId())
                                 .map(r -> rel.equals(r.predecessorId())).orElse(false));
-        boolean onLeave = kind != PersonnelCommandKind.UNPAID_LEAVE_START || history.personOnLeave(rel, effectiveDate);
-        return new PersonnelCommandEvents.PersonTransition(enters, leaves, onLeave);
+        return new PersonnelCommandEvents.PersonTransition(enters, leaves);
     }
 
     public PersonnelCommandId id() {

@@ -167,8 +167,10 @@ tables:
   organization_workforce.employment_relationships:
     role: AGGREGATE_CHILD
     aggregate: Employee
-    mutability: APPEND_ONLY
-    retention: {policy: PERMANENT}  # 离职满 10 年随员工清除（ADR-0068 第 7 项）
+    mutability: CONDITIONAL_UPDATE
+    condition: 只有 employer_source_kind 为 MIGRATION_ATTRIBUTION 且 employer_confirmed_at 为空的行可更新一次（只置确认时刻与更新时刻，用人单位不变），之后冻结（触发器 tg_employment_relationships_append_only，ADR-0086 决定 2 的回填确认）
+    business_key: [employee_id, employer_legal_entity_id]
+    retention: {policy: PERMANENT}  # 个人任职史随员工清除：离职满 10 年删除；清除次序：保全、版本、命令、任职根、雇佣关系（关系最后删，其余三表对它有 RESTRICT 外键）；清除函数须加入本表（清除作业另批）
     lineage: {source: NEW}
     references: {employee_id: organization_workforce.employees, employer_legal_entity_id: organization_workforce.legal_entities, predecessor_relationship_id: organization_workforce.employment_relationships}
     writers: [organization.workforce]

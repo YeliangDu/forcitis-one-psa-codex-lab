@@ -62,3 +62,11 @@ organization_workforce.employee_profile_change_requests.decision_reason | INTERN
 platform_identity.permission_adjustments.recipient_employee_id | INTERNAL | PI | 用途：调动产生的范围复核发给新部门负责人，按此员工显示待办
 platform_identity.permission_adjustments.business_owner_employee_id | INTERNAL | PI | 用途：敏感角色复核维持时记录确认需要的业务负责人，供复核与审计取证
 platform_identity.permission_adjustments.uphold_reason | INTERNAL | PI | 用途：维持授权的理由，供办理、复核与审计取证；办理人自由填写
+organization_workforce.employment_relationships.employee_id | INTERNAL | PI | 用途：关联自然人与其用人单位；个人信息 PI（沿员工任职史）
+organization_workforce.employment_relationships.employer_legal_entity_id | INTERNAL | PI | 用途：某自然人受雇于哪个法人，属就业信息，社保与请假口径据此定；个人信息 PI
+organization_workforce.employment_relationships.predecessor_relationship_id | INTERNAL | PI | 用途：换用人单位的前后关系，属就业历史；个人信息 PI
+organization_workforce.employment_relationships.employer_source_kind | INTERNAL | PI | 用途：就业信息来源（人事申报或迁入回填）；个人信息 PI
+organization_workforce.employment_relationships.employer_confirmed_at | INTERNAL | PI | 用途：迁入回填行的人事确认记录；个人信息 PI
+organization_workforce.personnel_commands.employment_relationship_id | INTERNAL | PI | 用途：命令所涉的雇佣关系；个人信息 PI
+organization_workforce.assignment_versions.employment_relationship_id | INTERNAL | PI | 用途：任职版本所属的雇佣关系；个人信息 PI
+organization_workforce.employment_relationship_versions.employment_relationship_id | INTERNAL | PI | 用途：状态历史所属的雇佣关系；个人信息 PI

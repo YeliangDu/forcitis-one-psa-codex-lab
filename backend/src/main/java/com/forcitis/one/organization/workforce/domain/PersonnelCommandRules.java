@@ -43,15 +43,19 @@ public final class PersonnelCommandRules {
                     "the employee already has an open command for " + command.effectiveDate() + " that writes a primary post version (design 12a)");
         }
         boolean person = command.employmentRelationshipId() == null;
-        if (command.kind() == PersonnelCommandKind.CORRECTION || command.kind() == PersonnelCommandKind.START_CONCURRENT) {
+        if (!countsPerDay(command)) {
             return;
         }
         boolean clash = all.commands().stream().filter(o -> !o.id().equals(command.id())).filter(o -> o.status().isOpen() && o.effectiveDate().equals(command.effectiveDate()))
-                .filter(o -> o.kind() != PersonnelCommandKind.START_CONCURRENT && o.kind() != PersonnelCommandKind.CORRECTION)
-                .anyMatch(o -> person || o.employmentRelationshipId() == null);
+                .filter(PersonnelCommandRules::countsPerDay).anyMatch(o -> person || o.employmentRelationshipId() == null);
         if (clash) {
             throw refused("the employee already has an open command for " + command.effectiveDate() + " that is about the person or about another relationship");
         }
+    }
+
+    /** The commands the per-employee rule always counted: not the start of a concurrent post, nor a command on one (a correction counts: it can wait for a countersign). */
+    private static boolean countsPerDay(PersonnelCommand c) {
+        return c.kind() != PersonnelCommandKind.START_CONCURRENT && c.targetAssignmentKind() != AssignmentKind.CONCURRENT;
     }
 
     /** A transfer or correction of the primary post, or a hire or reinstatement that carries a post, writes a version of the primary post. */
@@ -66,7 +70,7 @@ public final class PersonnelCommandRules {
 
     /**
      * Invariant 6 (design 6.3): the relationship that holds the primary post is not separated while another relationship stays in service, because the
-     * person would be left in service without a primary post. Moving the primary first is a transfer, not built with this card.
+     * person would be left in service without a primary post. A move of the primary to another relationship is the entry's own transfer or hire (PersonnelCommandService.bindRelationship), which this rule does not refuse.
      */
     public static void requirePrimaryNotOnEndingRelationship(PersonnelCommand command, PersonnelHistory all) {
         if (command.kind() != PersonnelCommandKind.SEPARATE || command.employmentRelationshipId() == null) {

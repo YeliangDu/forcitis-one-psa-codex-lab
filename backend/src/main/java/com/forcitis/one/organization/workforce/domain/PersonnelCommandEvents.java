@@ -38,8 +38,8 @@ final class PersonnelCommandEvents {
     }
 
     /** What the command did to the person, not only to its relationship (ADR-0086 design 6.1): the person-level events fire on these transitions only. */
-    record PersonTransition(boolean enters, boolean leaves, boolean onLeave) {
-        static final PersonTransition NONE = new PersonTransition(true, true, true);
+    record PersonTransition(boolean enters, boolean leaves) {
+        static final PersonTransition NONE = new PersonTransition(true, true);
     }
 
     static List<PendingEvent> of(PersonnelCommand c, @Nullable VersionRow assignmentBefore, @Nullable VersionRow assignmentAfter, @Nullable LegalEntityId legalEntity,
@@ -86,10 +86,9 @@ final class PersonnelCommandEvents {
             }
             case TRANSFER -> out.add(transferred(c, assignmentBefore, legalEntity));
             case UNPAID_LEAVE_START -> {
-                if (person.onLeave()) {
-                    out.add((envelopes, sequence) -> new EmployeeUnpaidLeaveStarted(envelopes.wrap(draft("EmployeeUnpaidLeaveStarted", c, legalEntity, sequence)), c.id(),
-                            c.employeeId(), c.effectiveDate(), rel));
-                }
+                // design 6.1: every UNPAID_LEAVE_START that takes effect, even when the person keeps working in another relationship (the sensitive-role review is conservative)
+                out.add((envelopes, sequence) -> new EmployeeUnpaidLeaveStarted(envelopes.wrap(draft("EmployeeUnpaidLeaveStarted", c, legalEntity, sequence)), c.id(),
+                        c.employeeId(), c.effectiveDate(), rel));
                 out.add(leaveChanged(c, legalEntity));
             }
             case UNPAID_LEAVE_END -> out.add(leaveChanged(c, legalEntity));

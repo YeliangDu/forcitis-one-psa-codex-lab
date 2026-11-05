@@ -35,6 +35,7 @@ import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRules;
 import com.forcitis.one.organization.workforce.domain.PersonnelHistory;
+import com.forcitis.one.organization.workforce.domain.RelationshipRow;
 import com.forcitis.one.organization.workforce.domain.SeparationHold;
 import com.forcitis.one.organization.workforce.domain.SeparationHoldCheck;
 import com.forcitis.one.organization.workforce.domain.VersionPlan;
@@ -363,10 +364,14 @@ class PersonnelCommandService implements PersonnelCommands {
         if (!commands.legalEntityIsActive(employer)) {
             throw invalid("the employer does not exist or is not active");
         }
-        if (all.relationships().stream().anyMatch(r -> r.employerLegalEntityId().equals(employer))) {
+        EmploymentRelationshipId predecessor = request.predecessorRelationshipId();
+        RelationshipRow earlier = all.relationships().stream().filter(r -> r.employerLegalEntityId().equals(employer)).findFirst().orElse(null);
+        if (earlier != null && !all.currentEmployeeRows(earlier.id()).isEmpty()) {
             throw invalid("the employee already has a relationship with this employer; a return is a REINSTATE on it");
         }
-        EmploymentRelationshipId predecessor = request.predecessorRelationshipId();
+        if (earlier != null && !Objects.equals(earlier.predecessorId(), predecessor)) {
+            throw invalid("the employee's earlier hire by this employer was withdrawn with another predecessor (relationship " + earlier.id() + "); a re-entry names the same one");
+        }
         LocalDate day = command.effectiveDate();
         if (predecessor != null) {
             if (all.relationship(predecessor).isEmpty()) {
@@ -374,7 +379,7 @@ class PersonnelCommandService implements PersonnelCommands {
             }
             if (all.commands().stream().noneMatch(o -> o.kind() == PersonnelCommandKind.SEPARATE && o.status() != CommandStatus.WITHDRAWN
                     && o.employmentRelationshipId() != null && o.employmentRelationshipId().equals(predecessor) && o.effectiveDate().equals(day))) {
-                throw invalid("the predecessor relationship is separated on " + day + " by an earlier command; enter that separation first");
+                throw invalid("the predecessor relationship is not separated on " + day + "; enter that separation first");
             }
         }
         boolean primaryInService = all.assignmentOn(day) != null && all.assignmentOn(day).covers(day);
@@ -382,6 +387,9 @@ class PersonnelCommandService implements PersonnelCommands {
             if (command.targetOrgUnitId() == null && !primaryInService) {
                 throw invalid("a hire without a post needs the employee's primary post in service on " + day);
             }
+        }
+        if (earlier != null) {
+            return earlier.id();  // design 4.2-9: a relationship left without a live version by a withdrawn hire is re-used, never deleted
         }
         EmploymentRelationshipId id = new EmploymentRelationshipId(ids.next());
         commands.insertRelationship(id, employee, employer, predecessor, now);
@@ -392,7 +400,7 @@ class PersonnelCommandService implements PersonnelCommands {
         return new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID, ErrorKind.UNPROCESSABLE, message);
     }
 
-    /** Every kind but a hire is about a named employee and carries no profile (the profile of an existing employee is changed by its own use case). */
+    /** Every kind but the hire of a new person is about a named employee and carries no profile (the profile of an existing employee is changed by its own use case). */
     private static EmployeeId existingEmployee(EnterPersonnelCommand request) {
         if (request.employeeId() == null) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID, ErrorKind.UNPROCESSABLE, "the employee is required");
