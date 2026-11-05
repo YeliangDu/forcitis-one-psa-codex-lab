@@ -46,7 +46,7 @@ Owner: one-architecture. A projection finds the entry by concept `id`, selects t
 | Naming surface | Format | Guard |
 |---|---|---|
 | Code identifiers | PascalCase types, camelCase fields / methods, UPPER_SNAKE_CASE constants; affixes per §2.2; never split a concept id | `ArchitectureRulesTest`, `GlossaryTest`; role selection planned |
-| schema, table, column, constraint, index | schema from the path below; table = registered plural in snake_case; column = qualifier + §2.4 class word; constraints / indexes per §2.4 | `DdlNamingTest`, `GlossaryTest`; plural planned |
+| schema, table, column, constraint, index | schema from the path below; table = registered plural in snake_case; column = qualifier + §2.4 class word; constraints / indexes per §2.4; no separate snake designation | `DdlNamingTest`, `GlossaryTest`; plural planned |
 | Event name, payload key | object + controlled verb slots (§2.1.5); type PascalCase, keys camelCase | `ArchitectureRulesTest`, `GlossaryTest`, `NamingSurfaceTest`; slot equality planned |
 | API path, parameters | subdomain slug + kebab-case registered plural; action from the controlled actions; parameters camelCase; a BC never stands for the subdomain | `NamingSurfaceTest` (G41), `ApplicationIntegrationTest`; controlled forms planned |
 | Permission code | `{subdomain}.{BC}:{kebab resource}:{standard action}`; resource singular as in the existing catalog, not the API plural | `NamingSurfaceTest` (G43); concept-reference projection planned |
@@ -54,7 +54,7 @@ Owner: one-architecture. A projection finds the entry by concept `id`, selects t
 
 - **Schema path**: match the BC reference exactly against `bcs.yaml` `bcs[].id` with `kind: bc` (`kind: kernel` is not projected; its schema follows ADR-0051 decision 2); the subdomain is the `kind: subdomain` entry by its `subdomain`. Each fragment is that entry's `designations[].name` selected as `en / code_name / preferred`, snake_case, joined by `_`; `id` and `subdomain` are references only. A missing field, invalid reference or unusable designation fails, no fallback. `bcs.yaml` has no `designations` yet; the projection is enabled after they are filled.
 - **Controlled plural**: a table or API resource needs a registered plural for that concept and surface; unregistered fails, no automatic `s` (`Analysiss`, `Staffs` are counter-examples).
-- **Message-key usage**: `[a-z]+` segments joined by `.`; resource slot singular kebab-case, e.g. `cost.timesheet.timesheet.submit.succeeded`, `kernel.document.version.conflict`. `DOTTED` / `OWN_KEY` in `NamingSurfaceTest` check job / metric and config keys, not message keys, and exclude kebab resources.
+- **Message-key usage**: `[a-z]+` segments joined by `.`; resource slot singular kebab-case, e.g. `cost.timesheet.timesheet.submit.succeeded`, `kernel.document.version.conflict`. `DOTTED` in `NamingSurfaceTest` checks job / metric and config keys, not message keys, and excludes kebab resources.
 - **Not projected**: value-stream and value-stage names are `zh-CN canonical` only, never code identifiers, tables, events or message keys; value-stream names are verb-object result views (「获得内部服务」), stage names verb-object (「提交申请」) with the verb in the controlled verb table (NAM-1017-ARC-04); guard planned.
 
 **Length and abbreviation** (one-architecture owns format, one-glossary abbreviation designations):
@@ -132,12 +132,12 @@ Column name = qualifier + class word (ISO 11179); the class word decides the typ
 (User 2026-10-15: 「全部采纳 (Recommended)」.) For all own tables. "Guard" = `DdlNamingTest` / `DataArchitectureTest` (planned ones in §4); others by per-wave review (DATA_DESIGN_CHECKLIST §14.1).
 
 1. **Business unique constraint**: primary key always UUIDv7 (ADR-0041; `docs/architecture/frameworks.md` §9; order by a business-time column, not the id). Transaction, master-data, reference and configuration tables also need a business unique constraint (exclusion constraint for effective-interval rows) and register `business_key` in the data-access registry; pure log / event tables may be exempt with a reason. A business key is never a foreign key. Guard.
-2. **Indexes**: a foreign-key column has an index starting with it (G-DDL2); every list / query path is registered (filter, sort) and index-covered, cursor sort key falls back to `id` in a composite index (G-P3 + G-DDL4, one EXPLAIN test); hot status paths use a partial index; no duplicate or redundant indexes (G-DDL3). Planned.
+2. **Indexes**: a foreign-key column has an index starting with it (G-DDL2); every list / query path is registered (filter, sort) and index-covered, cursor sort key falls back to `id` in a composite index (G-P3 + G-DDL4, one EXPLAIN test); hot status paths use a partial index; no duplicate or redundant indexes (G-DDL3). Planned (hot-status partial index: no guard).
 3. **Nulls and defaults**: `NOT NULL` by default; a nullable column's comment states the meaning of "empty" (「为空表示」 or equivalent); no empty string for null in text columns (`CHECK (col <> '')`); only technical defaults (initial `version`), business values and times written by the application. Guard.
 4. **Delete**: foreign keys `ON DELETE RESTRICT`; `CASCADE` only for child rows of the same aggregate, registered; no soft-delete flag column (business delete = status or version); physical delete only for expiring technical data. Guard.
 5. **Codes and text**: a `_code` column has a format CHECK (character set, case, length); case-insensitive uniqueness on the normalised value (`lower(email_address)`); free text `CHECK (char_length(col) <= n)`. Guard.
 6. **Enums**: no PostgreSQL `ENUM`, uniformly `text + CHECK` (§2.4); a new value = `DROP CONSTRAINT`, `ADD CONSTRAINT … NOT VALID`, `VALIDATE`; removing a value migrates data first. Guard (ban on `CREATE TYPE ... AS ENUM`).
-7. **jsonb**: only for payloads with no fixed structure (event archive, external raw text, idempotent response body); each `jsonb` column registers its purpose and has a `jsonb_typeof` CHECK. Guard.
+7. **jsonb**: only for payloads with no fixed structure (event archive, external raw text, idempotent response body); domain fields must be proper columns; each `jsonb` column registers its purpose and has a `jsonb_typeof` CHECK. Guard.
 8. **Large tables**: append-only with retention over 3 years or over ten million expected rows decide partition key (time range) and archive / purge method at creation and register them. Review.
 9. **Post-go-live migrations** (after the open-baseline marker is deleted): expand then contract; `CREATE INDEX CONCURRENTLY` in a separate non-transactional migration; set `lock_timeout` and `statement_timeout`; no full-table rewrite (column type change, volatile default); drop / rename a column takes two releases. Guard planned (G-DDL11).
 10. **Frequently updated rows** (numbering counters, idempotency registry): may set `fillfactor`, explained in the table comment. Recommendation.
@@ -251,7 +251,7 @@ Format: id | rule | enforced by; the cell follows the Check-column format of `do
 | G41 | HTTP path `/api/v{n}/{subdomain of the owning module}/{kebab plural resource}[/{id}][:{action}]`, resource registered | `NamingSurfaceTest` |
 | G42 | OpenAPI schemas PascalCase, properties / parameters camelCase and registered; event JSON keys camelCase | `NamingSurfaceTest` (reads `/v3/api-docs`) |
 | G43 | Permission code `{subdomain}.{BC}:{resource}:{action}`, action from `standard_actions`; `@PreAuthorize` codes in the catalog | `NamingSurfaceTest` |
-| G44 | Flyway `V{14-digit timestamp}__{module}_{english_snake}.sql`, directory = module schema, prefix matches, no duplicate versions | `NamingSurfaceTest` |
+| G44 | Flyway `V{14-digit real timestamp}__{module}_{english_snake}.sql`, directory = module schema, prefix matches, no duplicate versions | `NamingSurfaceTest` |
 | G45 | Document-type enum matches seed rows one-to-one, upper snake case, registered | `NamingSurfaceTest` |
 | G46 | `@Scheduled` job has ShedLock lock `{module}.{name}`; metric names literals prefixed by module; `job_type` checked; config keys `forcitis.{module}.` or framework keys | `NamingSurfaceTest` |
 | G47 | Process / decision id `{subdomain}_{BC}_{snake}`, file name = id, `ProcessKey` matches processes one-to-one, user-task ids camelCase | `NamingSurfaceTest` |
@@ -287,7 +287,7 @@ Format: id | rule | enforced by; the cell follows the Check-column format of `do
 | G34 | `operations.facts` fact repositories only insert and query; fact tables have triggers rejecting UPDATE / DELETE | ADR-0016 | first card building `operations.facts` / `accounting.ledger` | planned (modules do not exist yet); ArchUnit + DDL test |
 | G35 | only `accounting.ledger` depends on accounting subjects and subject mapping | ADR-0016 | as G34 | as G34; ArchUnit |
 | G36 | a booking-touching BC submits posting candidates only via the `operations.facts` api, writes no fact tables | ADR-0016 | as G34 | as G34; D1 + ArchUnit |
-| G-A1 | §2.6 A-7 own IDs `type: string, format: uuid`; frontend ID types not number | §2.6 A-7 | before handoff / reassignment UI | R-1b |
+| G-A1 | §2.6 A-7 own IDs `type: string, format: uuid`; frontend ID types not number | §2.6 A-7 | immediately (before handoff / reassignment UI) | R-1b |
 | G-A3 | Merged into G-C4 | §2.6 A-8, ADR-0035 item 8 | see G-C4 | see G-C4 |
 | G-A4 | Merged into G-C4 | §2.6 A-2, ADR-0035 item 8 | see G-C4 | see G-C4 |
 | G-A5 | No `PATCH` mapping | §2.6 A-5 | before 1b | unscheduled (HTTP contract guard) |
@@ -295,16 +295,16 @@ Format: id | rule | enforced by; the cell follows the Check-column format of `do
 | G-A7 | A controller returns only a `web` `*Response` | §2.6 A-11 | FD | unscheduled (HTTP contract; complements G-X6) |
 | G-A8 | No common error codes outside kernel | §2.3, §2.6 A-9 | FD | R-5 (same implementation as G48) |
 | G-A9 | Error responses only from the unified handler | §2.6 A-9 | before 1b | unscheduled (HTTP contract) |
-| G-C1 | `scripts/ci/openapi_compat.py` (to be created): OpenAPI vs merge-base and deprecation register; a breaking change fails unless registered and expired, or the commit trailer `Contract-Break:` (listed in the PR) | ADR-0035 items 3, 7, 9 | PD | unscheduled (contract evolution) |
+| G-C1 | `scripts/ci/openapi_compat.py` (to be created): OpenAPI vs merge-base and deprecation register; a registered and expired deletion passes; any other breaking change fails and passes only with the commit trailer `Contract-Break:` (listed separately in the PR) | ADR-0035 items 3, 7, 9 | PD | unscheduled (contract evolution) |
 | G-C2 | AsyncAPI shape vs merge-base: a changed payload schema, class or package name needs `schemaVersion + 1` or a new event type and marks the release "needs drain" | ADR-0035 items 3, 5, 9 | PD | as G-C1 |
 | G-C3 | Drain check: for a "needs drain" release, after maintenance mode (`platform_scheduling.maintenance_modes`) unfinished event publications and dead letters are 0 (undrainable ones quarantine-registered), else deployment aborts | ADR-0035 item 6 | PD | as G-C1 (playbook: one-ops) |
 | G-C4 | Truthful contract: status codes (201 with `Location`), required headers (`If-Match`, 412 / 428), `ETag`, named enums, no untyped bodies, `info` matches runtime (extends `HttpContractIT`; absorbs G-A3, G-A4); with G-C5 the two dev-time contract guards | ADR-0035 items 2, 8, §2.6 | when H-1 merges (after R-5) | H-1 |
 | G-C5 | Event and outbound payloads flat: string uuid IDs, no `{value: …}` wrapper | ADR-0035 items 2, 5 | when R-1b merges | R-1b |
-| G-C6 | Scheduled check of expired undeleted deprecated items (P3 reminder to the scheduling session); a PR changing a deprecated object (deletion excepted) fails | ADR-0035 item 7 | PD | as G-C1 |
+| G-C6 | Scheduled check of expired undeleted deprecated items (P3 reminder to the scheduling session; does not turn unrelated PRs red); a PR changing a deprecated object (deletion excepted) fails | ADR-0035 item 7 | PD | as G-C1 |
 | G-C7 | `reporting` dataset contract: view column names and types match the registration | ADR-0035 | R1 | R1 work unit |
 | G-P2 | SQL statement count of list and batch use cases does not grow with row count (counting DataSource decorator, budget ≤ 5) | `docs/architecture/guiding-principles.md` §7a R-P3 | before 1b | unscheduled (performance) |
 | G-P3 | Registered query paths use an index in `EXPLAIN` with `enable_seqscan = off` | guiding-principles §7a, DATA_DESIGN_CHECKLIST §14.1 D19 | before 1b | as G-P2 |
-| G-P4 | Three timeouts of external read-only connections take effect (test against a hanging port) | DATA_DESIGN_CHECKLIST §14.3 I2 | FD | as G-P2 (card of G-I1, G-I3) |
+| G-P4 | Three timeouts of external read-only connections take effect (test against a hanging port: fails or degrades within budget) | DATA_DESIGN_CHECKLIST §14.3 I2 | FD | as G-P2 (card of G-I1, G-I3) |
 | G-P5 | Production config: connection pool, statement timeout, histogram buckets, slow-query threshold per R-P4–R-P6 | guiding-principles §7a | FD | as G-P2 |
 | G-P6 | k6 load test: every interface class of R-P1 meets target | guiding-principles §7a R-P1 | Phase 2 entry | unscheduled (performance; ask before installing k6) |
 | G-S1 | `scripts/ci/workflows_pinned.py` (to be created): workflow `uses:` pinned to a 40-character SHA; `pull_request_target` forbidden | docs/ops/supply-chain.md S6 | FD | unscheduled (CI supply chain) |

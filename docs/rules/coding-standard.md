@@ -1,6 +1,6 @@
 # Coding standard details — FORCITIS one
 
-Core page: `docs/rules/coding-core.md`. Look rules up by id (CS-x.y). "(new)" = this file is the source (Q-1, §10).
+Core page: `docs/rules/coding-core.md`. Look rules up by id (CS-x.y). "(new)" = this file is the source; a rule or part marked "(new)" takes effect only after user approval (§10 Q-1).
 
 ## 0. Scope and precedence
 
@@ -17,7 +17,7 @@ Core page: `docs/rules/coding-core.md`. Look rules up by id (CS-x.y). "(new)" = 
 | CS-1.1 | **No code comment if avoidable**: one line only for an unseen "why"; no restatement, history, author/date, commented-out code, TODO without number; a comment contradicting code is must-fix | manual: review |
 | CS-1.2 | **Legacy code is evidence only, never copied** (no snippets, structure, paths, names such as `psa_`, `system_`, `bpm_`, `/admin-api/`, yudao, pinyin abbreviations); equivalence shown by tests named by RULE-id; exceptions only approved anti-corruption layers | Guard: `LegacyShapeTest`, G40; manual: review (specifically for "legacy shape") |
 | CS-1.3 | **No external or legacy system names in domain modules**; only in `platform.integration` adapters | Guard: `LegacyShapeTest`, `ExternalConnectionIsolationTest`, G1 |
-| CS-1.4 | **Glossary first**: look up identifiers, UI text, table/column names in `docs/glossary/terms.yaml`, else register a proposed term at once (ADR-0018); rename PR merges before forbidding merges (forbidding first needs allow-list with expiry and owner); dialects and homonyms go to GitHub Issues | Guard: `GlossaryTest` (stock in `backend/glossary/code-term-baseline.txt` may only shrink), `ErrorCodeGlossaryTest`, G48, `scripts/guards/term_rules.py`, `pnpm check:copy` (frontend) |
+| CS-1.4 | **Glossary first**: look up identifiers, UI text, table/column names in `docs/glossary/terms.yaml`, else register a proposed term at once (ADR-0018) with usage scope and bc, kind only DDD tactical categories, event = aggregate name + past-tense business verb, command = imperative verb, the same name in different bcs registered separately (`<bc>__` prefix, listed as homonyms), error-code Chinese names globally unique; business wording follows what the user or finance confirmed and no unconfirmed accounting-type proposal is left at a phase exit; rename PR merges before forbidding merges (forbidding first needs allow-list with expiry and owner); dialects and homonyms go to GitHub Issues | Guard: `GlossaryTest` (stock in `backend/glossary/code-term-baseline.txt` may only shrink), `ErrorCodeGlossaryTest`, G48, `scripts/guards/term_rules.py`, `pnpm check:copy` (frontend) |
 | CS-1.5 | **Naming and location follow NAMING_STANDARD**; no merge while a guard fails | Guard: G1–G33, G37–G48, D1–D3, F1–F14; planned: G34–G36 |
 | CS-1.6 | Replicate legacy behavior on read-only production evidence, not guesses | manual: review |
 | CS-1.7 | **Missing or invalid input fails and alerts, never skipped silently** (unless a rule card allows) | Guard: `CurrentUserGuardTest` (legal entity not hard-coded or defaulted); manual: review (the rest) |
@@ -52,7 +52,7 @@ Core page: `docs/rules/coding-core.md`. Look rules up by id (CS-x.y). "(new)" = 
 
 ### 2.2 Language-level rules (new)
 
-**CS-2.20 Output ID value objects with `value()`** (new): a typed ID written to a response, event, log key, cursor, audit detail or SQL parameter uses `id.value()`, never `String.valueOf(id)`, `toString()` or concatenation; errors are RFC 9457 problem details (ADR-0041).
+**CS-2.20 Output ID value objects with `value()`** (new): a typed ID written to a response, event, log key, cursor, audit detail or SQL parameter uses `id.value()`, never `String.valueOf(id)`, `toString()` or concatenation; a response record's ID field uses the ID's value type directly (the contract is what springdoc actually outputs; version upgrades go through an ADR); errors are RFC 9457 problem details (ADR-0041).
 
 Check: planned: G-CS1
 
@@ -60,7 +60,7 @@ Check: planned: G-CS1
 
 Check: planned: G-CS2; manual: review
 
-**CS-2.22 Value objects, records, immutability** (new): value object = `@ValueObject` record validated in its compact constructor (`IllegalArgumentException` = programming error; input is validated at the web boundary); records copy collections with `List.copyOf` / `Set.copyOf` / `Map.copyOf`, no arrays, no `Date`; aggregates and entities are not records, `private` fields, no setters; `api` / `events` hold only interfaces, records, enums, typed IDs; no mutable `public static`.
+**CS-2.22 Value objects, records, immutability** (summary + new): value object = `@ValueObject` record validated in its compact constructor (`IllegalArgumentException` = programming error; input is validated at the web boundary); records copy collections with `List.copyOf` / `Set.copyOf` / `Map.copyOf`, no arrays, no `Date`; aggregates and entities are not records, `private` fields, no setters; `api` / `events` hold only interfaces, records, enums, typed IDs; no mutable `public static`.
 
 Check: Guard: G2, G5, G21, G22, G32; planned: G-CS3 (collection copy); manual: review (the rest)
 
@@ -68,7 +68,7 @@ Check: Guard: G2, G5, G21, G22, G32; planned: G-CS3 (collection copy); manual: r
 
 Check: Guard: `NullableResponseGuardTest` (boxed-type components must be `@Nullable`), `LegacyApiGuardTest` (LA-9); planned: G-CS3 (the rest)
 
-**CS-2.24 Exception classification** (new): business rejection throws `kernel.DomainException` (or subclass) with the module's `kernel.ErrorCode` enum (`{SUBDOMAIN}_{BC}_{REASON}`) and an `ErrorKind`; **common error codes only in `kernel`**; messages are for logs, no sensitive value (CS-6.2); web-boundary input failure uses `kernel.InvalidRequestException` (400); programming errors use `IllegalArgumentException` / `IllegalStateException` / `NullPointerException`, never business rejection; unavailable external system uses `kernel.ExternalSystemUnavailableException`; no swallowed exception, no empty `catch`.
+**CS-2.24 Exception classification** (summary + new): business rejection throws `kernel.DomainException` (or subclass) with the module's `kernel.ErrorCode` enum (`{SUBDOMAIN}_{BC}_{REASON}`) and an `ErrorKind`; **common error codes only in `kernel`**; messages are for logs and no sensitive value (CS-6.2); the caller sees only the error code, the kind and extension fields the exception declares displayable; web-boundary input failure uses `kernel.InvalidRequestException` (400); programming errors use `IllegalArgumentException` / `IllegalStateException` / `NullPointerException`, never business rejection; unavailable external system uses `kernel.ExternalSystemUnavailableException`; no swallowed exception, no empty `catch`.
 
 Check: Guard: G48, `ErrorCodeGlossaryTest`; planned: G-CS4 (no new `RuntimeException`, empty `catch`); manual: review (the rest)
 
@@ -84,7 +84,7 @@ Check: Guard: `TimeSourceGuardTest`, `EventBusinessDateGuardTest` (migration-fil
 
 Check: Guard: G17, G23, G24 (the new K-1 guards ship with K-1); manual: review (the rest)
 
-**CS-2.28 Injection and visibility** (new): constructor injection, `private final` fields; web and infrastructure classes package-private, others too unless used from another package; configuration via `@ConfigurationProperties("forcitis.<subdomain>.<bc>…")` records; no static mutable singletons or config/time reads in static initialization.
+**CS-2.28 Injection and visibility** (summary + new): constructor injection (no `@Autowired` on a single constructor), `private final` fields; web and infrastructure classes package-private, others too unless used from another package; configuration via `@ConfigurationProperties("forcitis.<subdomain>.<bc>…")` records; no static mutable singletons or config/time reads in static initialization.
 
 Check: Guard: G6, G18, G46; manual: review (default package-private, no static mutable state)
 
@@ -119,7 +119,7 @@ Check: planned: G-CS5
 | CS-4.3 | Modules: `app → modules(index) → shared`; across modules only via `modules/<m>/index.ts`; no `export *`; `model/` and `shared/lib` pure | Guard: F1–F4, F9, F12, F13, `pnpm check:structure` |
 | CS-4.4 | ASCII identifiers, kebab-case files, PascalCase components, hooks `useXxx` in `hooks/` | Guard: F6, F8, `pnpm check:structure` |
 | CS-4.5 | **UI text from the glossary** (`zh` in `docs/glossary/terms.yaml`); non-business words in `frontend/scripts/copy-allow-list.yaml` | Guard: `pnpm check:copy` |
-| CS-4.6 | **Errors only via `describeFailure`** of `@forcitis/core`; every `ErrorCode` in `error-messages.ts` has text or explicit `null`; pages never show server `detail`, exception message or English; failures show an actionable message | Guard: `pnpm typecheck` (`Record<ErrorCode, …>` exhaustive); planned: G-CS7 (pages reading message directly) |
+| CS-4.6 | **Errors only via `describeFailure`** of `@forcitis/core`; every `ErrorCode` in `error-messages.ts` has text or explicit `null`; pages never show server `detail`, exception message (new) or English; failures show an actionable message | Guard: `pnpm typecheck` (`Record<ErrorCode, …>` exhaustive); planned: G-CS7 (pages reading message directly) |
 | CS-4.7 | No direct antd or Taro primitives in business modules, no inline styles or hard-coded colors; tokens read only in `packages/design-system` (ADR-0013) | Guard: F14, `frontend/stylelint.config.js` |
 | CS-4.8 | No `dangerouslySetInnerHTML`; external links via `safe-url` (SEC-008) | Guard: F11; manual: review (`safe-url`) |
 | CS-4.9 | No `console.log`, use the shared logger | Guard: `no-restricted-properties` |
@@ -136,10 +136,10 @@ Check: planned: G-CS5
 | CS-5.3 | **Acceptance tests separate from implementation**: the test agent commits first, the implementation agent never modifies them | Guard: `scripts/guards/acceptance_guard.py`, `acceptance_rulings.py`, `acceptance_reports.py` |
 | CS-5.4 | **Never loosen or delete an assertion to pass**; a needed change lists its reason in report and PR | manual: review (PR template) |
 | CS-5.5 | A test asserts only this module's effects | Guard: `TestIsolationGuardTest` |
-| CS-5.6 | **Deterministic waiting**: bounded deterministic wait for async, no `Thread.sleep`, no broad `never()` (new) | Guard: `LegacyApiGuardTest#NO_THREAD_SLEEP`; planned: G-CS8 (broad `never()`) |
+| CS-5.6 | **Deterministic waiting**: bounded deterministic wait for async, no broad `never()`; no `Thread.sleep` (new) | Guard: `LegacyApiGuardTest#NO_THREAD_SLEEP`; planned: G-CS8 (broad `never()`) |
 | CS-5.7 | **Tests contain no secret literals** | Guard: `gitleaks` (pre-commit, CI) |
-| CS-5.8 | Tests use a fixed `Clock` and `IdGenerator`, not runtime instant or ID order | manual: review |
-| CS-5.9 | **A new guard carries negative samples** (injects an error, is blocked, message says where to put it / what to name it); every exception-list line has a reason | manual: review |
+| CS-5.8 | (new) Tests use a fixed `Clock` and `IdGenerator`, not runtime instant or ID order | manual: review |
+| CS-5.9 | **A new guard carries negative samples** (injects an error, is blocked, message says where to put it / what to name it); every exception-list line has a reason and a new exception needs review | manual: review |
 | CS-5.10 | **Review produces failing tests** for Blocker / High / Medium where possible, named by the review number | manual: review |
 | CS-5.11 | A fix loop runs only affected modules; before delivery and at the integration commit run affected tests, `scripts/ci/light.sh` and all guards (CS-7.6) | Guard: `scripts/ci/light.sh` |
 
@@ -164,12 +164,12 @@ Check: planned: G-CS5
 |---|---|---|
 | CS-7.1 | **Before delivery run affected tests plus `scripts/ci/light.sh`**; open the PR only with no FAIL, state its last line and any FAIL/SKIP | manual: review (PR template) |
 | CS-7.2 | Fill every field of `.github/pull_request_template.md` truthfully | manual: review |
-| CS-7.3 | **Defect fixes, feature completion and structural refactors (including renames) are dispatched separately, never mixed.** A defect fix is surgical: one card = one minimal change plus one regression test that fails first; only card files, report before going beyond, no drive-by refactor or rename; a defect not fixable locally is marked "structural" and becomes a refactor | manual: review |
+| CS-7.3 | **Defect fixes, feature completion and structural refactors (including renames) are dispatched separately, never mixed.** A defect fix is surgical: one card = one minimal change plus one regression test that fails first; only card files, report before going beyond (a defect card names review number, reproduction steps, expected changed files), small PRs merged once review passes, no accumulating big integration branches, no drive-by refactor or rename; a defect not fixable locally is marked "structural" and becomes a refactor | manual: review |
 | CS-7.4 | **Record the user's spoken decisions verbatim with `python3 scripts/session/new_intent.py`**; never name the file by hand; output is not committed or edited | manual: review |
 | CS-7.5 | **Change-governance self-check** (unsure: stricter, config < code < ADR): an adopted ADR changes only its status line (`docs/adr/readme-lifecycle.md`), a new ADR carries the required sections; code class (domain rules, calculations, validation, state machines, DDL): first append a draft conclusion to `revisions` in `docs/business/rule-reviews.json` (original fields unchanged, the last is current), after user confirmation change tests named by rule ID (RULE-NNN), last the implementation; config class (DMN, business numbers, operating basis, policy parameters; business basis approved by the user, accounting basis by finance): register version and effective date in `docs/ops/config-changelog.md`, versions append-only, effective by a date aligned with the accounting period, no retroactive effect, no back-dating, no recomputation (`docs/rules/playbooks/design.md` step 9) | manual: review |
 | CS-7.6 | Parallel subagents start from the same baseline; the integration commit reruns all guards | manual: review |
 | CS-7.7 | **Review and enqueue**: fresh review subagent per `scripts/review/PROMPT.md`; security and production changes add a final opus review; the lead releases must-fix repairs after reading the diff; after review passes the author runs `python3 scripts/merge/mq.py enqueue <PR>` and does not push after; no auto-merge | Guard: `mq.py`; manual: review (lead releases must-fix fixes) |
-| CS-7.8 | Titles of issue, PR, commit: `type(scope): 中文摘要`; type from the card's 类型 (impl→feat, bugfix→fix, docs/design→docs, ops→ci or chore, acceptance→test, investigation→spike), scope the subdomain or module slug, summary ≤ 30 characters. PR and commit titles end `（#<issue>）`; issue titles carry no self-made card id (user 2026-10-30 「同意」) | manual: review (check: card in the ops queue) |
+| CS-7.8 | (new) Titles of issue, PR, commit (a card's issue and PR use the same short name; old titles are not rewritten): `type(scope): 中文摘要`; type from the card's 类型 (impl→feat, bugfix→fix, docs/design→docs, ops→ci or chore, acceptance→test, investigation→spike), scope the subdomain or module slug, summary ≤ 30 characters stating the result, identifiers as they are. PR and commit titles end `（#<issue>）`; issue titles carry no self-made card id (user 2026-10-30 「同意」) | manual: review (check: card in the ops queue) |
 | CS-7.9 | **IntelliJ build** does not read `backend/.mvn/jvm.config` (Error Prone fails with `IllegalAccessError`): add the same `--add-exports` / `--add-opens` to Shared build process VM options, or build with Maven (ADR-0033 guard 14) | manual: review |
 | CS-7.10 | Drafts under `proposals/` are not authoritative; an ADR cites only the intent number, never the user's words | manual: review |
 
@@ -196,8 +196,8 @@ Design only; each ships in its own PR with negative samples (CS-5.9), existing v
 
 | Id | Question | Recommendation |
 |---|---|---|
-| Q-1 | Adopt the rules marked "new" | Adopt; record an intent |
+| Q-1 | Whether to adopt the rules marked "new" (the new parts of CS-2.20–CS-2.29, CS-3.7, the non-null assertion in CS-4.1, pages not reading message in CS-4.6, the `Thread.sleep` ban in CS-5.6, CS-5.8, the format in CS-7.8) | Recommend adopting; record an intent after adoption |
 | Q-2 | Accept the precedence order in §0 | Accept |
-| Q-4 | Where the `Source*` translation of `SourceTerms`, `SnapshotReconciler`, `EmployeeChecks` in `organization.workforce.domain` goes (ADR-0039 item 3: the integration layer) | Application-layer translation class, via a refactor batch |
+| Q-4 | Where the `Source*` translation of `SourceTerms`, `SnapshotReconciler`, `EmployeeChecks` in `organization.workforce.domain` goes | Answered by ADR-0039 item 3: translation is done in the integration layer; business modules have no translation package |
 | Q-6 | Coverage threshold (lines ≥ 80%, branches ≥ 70%, `docs/architecture/guiding-principles.md` §9) is unchecked, CI runs `-Djacoco.skip=true` | Pending the user |
 | Q-7 | Unverified: Testcontainers 2 `PostgreSQLContainer` package, Security 7 dropping `.and()` and `AntPathRequestMatcher`, Awaitility | After #810, into table D of the core page |
