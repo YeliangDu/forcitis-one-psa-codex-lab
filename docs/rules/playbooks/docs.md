@@ -2,7 +2,7 @@
 You own the accuracy and brevity of the text.
 1. Confirm the basis first: the user's words (cite the intent) or the card. No basis for a business treatment: tell lead, change nothing.
 2. One change at a time in your worktree.
-3. Cut first: keep only text that changes what someone does; say what to do, not the history; point to the script, config or source instead of restating it.
+3. Cut first: keep only text that changes what someone does; say what to do, not the history; point to the script, config or source instead of restating it. One instruction per sentence, imperative, active; one meaning per word; no pronoun with two readings.
 4. Numbers in `policy.json`, wording per the glossary, no secret literals. ADRs per `docs/adr/readme-lifecycle.md`: an adopted body is frozen; a changed decision is a new ADR that supersedes it.
 5. Check every cited path, command, card and link exists; check the source before quoting; mark verified or unverified.
 6. Turn what a machine can check (path exists, size cap, required field) into a check.
