@@ -9,7 +9,7 @@ The forensic credential never leaves the servers: it is encrypted on the secret 
 Java process there. Nothing the server prints is shown here: the result is written to --out (outside any git work tree) and only counts are printed.
 
 What is sent: the SQL file after validate_select (one SELECT, comments removed, no write/EXEC/INTO/second statement); the Java side (tools/ops/dba/OneSql.java ro)
-checks again and rolls back. Each run first appends one register fragment (docs/ops/legacy-read/) without row data. Before every read it
+checks again, asks the server for the plan first (SET SHOWPLAN_XML: exactly one SELECT statement or nothing runs) and rolls back. Each run first appends one register fragment (docs/ops/legacy-read/) without row data. Before every read it
 runs the ADR-0037 item 4 checks (a)-(f) on the forensic account and stops when it is not the expected read-only one.
 """
 import base64
@@ -213,7 +213,7 @@ def server_run(cloud, conf, database, sql):
         stage = f"{work}/stage"
         driver = (f"if [ ! -s {work}/jdbc.jar ]; then pid=$(pgrep -f '{conf['app_jar_process']}' | head -1); jar=\"$(readlink -f /proc/$pid/cwd)/{conf['app_jar_process']}\"; "
                   f"entry=$(unzip -l \"$jar\" | grep -oE 'BOOT-INF/lib/mssql-jdbc-[^ ]+\\.jar' | head -1); unzip -p \"$jar\" \"$entry\" > {work}/jdbc.jar; fi\n")
-        env = f"LOGIN_USER={conf['account']} LOGIN_SECRET_ENC={stage}/enc LOGIN_KEY={work}/k.key"
+        env = f"LOGIN_USER={conf['account']} LOGIN_SECRET_ENC={stage}/enc LOGIN_KEY={work}/k.key ONE_SQL_PLAN_GATE=1"
         script = (f"set -u; umask 077\n{put(f'{stage}/OneSql.java', ONE_SQL.read_text(encoding='utf-8'))}{put(f'{stage}/enc', cipher[0])}{put(f'{stage}/q.sql', sql)}{driver}"
                   f"{env} java -cp {work}/jdbc.jar {stage}/OneSql.java ro {database} {stage}/q.sql < /dev/null 2>&1 | head -c 4000000 > {work}/out.txt; rc=$?\n"
                   f"if [ \"$(gzip -9 -c {work}/out.txt | base64 -w0 | wc -c)\" -gt 22000 ]; then echo TOOBIG; else gzip -9 -c {work}/out.txt | base64 -w0; echo; fi; exit $rc\n")

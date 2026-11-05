@@ -66,12 +66,17 @@ public class OneSql {
         try (Connection c = DriverManager.getConnection(url, user, secret)) {
             secret = null;
             System.out.println("connected as " + user + " db=" + db + " mode=ro");
-            System.out.println("DONE batches=" + runRolledBack(c, batches, pub));
+            System.out.println("DONE batches=" + runRolledBack(c, batches, pub, "1".equals(System.getenv("ONE_SQL_PLAN_GATE"))));
         }
     }
 
     /** Runs the batches with auto-commit off and rolls back whatever happened, also when a batch fails. Returns the number of batches run. */
     static int runRolledBack(Connection c, List<String> batches, PublicKey pub) throws Exception {
+        return runRolledBack(c, batches, pub, false);
+    }
+
+    /** With planGate every batch first goes through planGate(): the server itself says what the batch is before anything runs. */
+    static int runRolledBack(Connection c, List<String> batches, PublicKey pub, boolean planGate) throws Exception {
         c.setAutoCommit(false);
         int n = 0;
         try {
@@ -79,12 +84,72 @@ public class OneSql {
                 n++;
                 String head = firstComment(b);
                 System.out.println("---- batch " + n + (head.isEmpty() ? "" : " " + head));
+                if (planGate) planGate(c, b);
                 run(c, b, pub);
             }
         } finally {
             c.rollback();
         }
         return n;
+    }
+
+    /**
+     * The structural gate (lead ruling on PR #1381): on the same connection and driver, SET SHOWPLAN_XML ON as its own batch, the exact final batch (the server compiles and returns
+     * its plan without running anything), then the plan must hold one statement of type SELECT; any parse error or other statement refuses. SET SHOWPLAN_XML OFF follows in every case;
+     * the caller then runs the same string unchanged. The keyword checks above stay as an early refusal and for what a plan does not show (NEXT VALUE FOR, linked-server names).
+     */
+    static void planGate(Connection c, String batch) throws Exception {
+        try (Statement st = c.createStatement()) {
+            st.setQueryTimeout(60);
+            st.execute("SET SHOWPLAN_XML ON");
+            try {
+                StringBuilder xml = new StringBuilder();
+                int plans = 0;
+                boolean rs = st.execute(batch);
+                while (true) {
+                    if (rs) {
+                        try (ResultSet r = st.getResultSet()) {
+                            while (r.next()) {
+                                xml.append(r.getString(1)).append('\n');
+                                plans++;
+                            }
+                        }
+                    } else if (st.getUpdateCount() == -1) {
+                        break;
+                    }
+                    rs = st.getMoreResults();
+                }
+                String problem = planProblem(xml.toString(), plans);
+                if (problem != null) throw new IllegalStateException("plan gate refused the batch: " + problem);
+            } finally {
+                try (Statement off = c.createStatement()) {
+                    off.execute("SET SHOWPLAN_XML OFF");
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("SQLERROR " + e.getErrorCode() + " " + e.getMessage());
+            throw e;
+        }
+    }
+
+    /** Null when the plan text is exactly one plan with exactly one statement element, a StmtSimple of StatementType SELECT; else the reason. XML escapes < and " inside attribute values, so text in a StatementText cannot fake an element or an attribute. */
+    static String planProblem(String xml, int plans) {
+        if (plans != 1) return "expected exactly one plan, got " + plans;
+        Matcher stmts = Pattern.compile("<Stmt[A-Za-z]*[\\s/>]").matcher(xml);
+        int count = 0;
+        String first = "";
+        while (stmts.find()) {
+            if (count++ == 0) first = stmts.group();
+        }
+        if (count != 1 || !first.startsWith("<StmtSimple")) return "the plan holds " + count + " statement elements, the first being " + first.trim();
+        Matcher types = Pattern.compile("\\sStatementType=\"([^\"]*)\"").matcher(xml);
+        int typed = 0;
+        String type = "";
+        while (types.find()) {
+            typed++;
+            type = types.group(1);
+        }
+        return typed == 1 && type.equals("SELECT") ? null : "the statement type is not SELECT (" + typed + " typed)";
     }
 
     /** The batch with comments blanked and string literals emptied, scanned in one pass so that '--' inside a string is no comment and a quote inside a comment no string. */
@@ -143,6 +208,14 @@ public class OneSql {
         check(readOnlyBatches("SELECT N'EXECUTE', 'it''s -- not a comment' AS a INTO #tmp FROM t\nSELECT p.permission_name FROM #tmp p WHERE p.x IN (N'DELETE')", none).size() == 1,
                 "keywords inside string literals and SELECT INTO a temporary table are reads");
         check(readOnlyBatches("SELECT N'{}', '{' AS a -- {\n/* { */", none).size() == 1, "a brace inside a string or a comment is a read");
+        String plan = "<ShowPlanXML><BatchSequence><Batch><Statements><StmtSimple StatementText=\"SELECT 1\" StatementId=\"1\" StatementType=\"SELECT\"><QueryPlan/></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>";
+        check(planProblem(plan, 1) == null, "one SELECT plan passes the plan gate");
+        for (String bad : new String[] {plan.replace("\"SELECT\" ", "\"DELETE\" ").replace("StatementType=\"SELECT\"", "StatementType=\"DELETE\""), plan.replace("</Statements>", "<StmtSimple StatementType=\"SELECT\"/></Statements>"),
+                plan.replace("StmtSimple", "StmtCond"), plan.replace("StatementType=\"SELECT\"", "StatementType=\"SELECT INTO\""), plan.replace("StatementType=\"SELECT\"", ""),
+                plan.replace("StatementText=\"SELECT 1\"", "StatementText=\"&lt;StmtSimple StatementType=&quot;SELECT&quot;\"").replace("StatementType=\"SELECT\"><", "StatementType=\"KILL\"><")}) {
+            check(planProblem(bad, 1) != null, "a plan that is not exactly one SELECT is refused by the plan gate: " + bad.substring(0, Math.min(90, bad.length())));
+        }
+        check(planProblem(plan, 0) != null && planProblem(plan + plan, 2) != null, "no plan and two plans are refused by the plan gate");
         check(readOnlyBatches("SELECT [2024Q1], [1st], 1.5, 007, t1.c2 FROM t1 WHERE a = 10", none).size() == 1, "plain numbers and bracketed names starting with a digit are reads");
         for (String write : new String[] {"DELETE FROM t", "update t set a = 1", "INSERT INTO t VALUES (1)", "DROP TABLE t", "GRANT SELECT ON t TO u",
                 "ALTER LOGIN x WITH PASSWORD = 'p'", "EXEC sp_who", "TRUNCATE TABLE t", "MERGE t USING s ON 1 = 1 WHEN MATCHED THEN DELETE;",

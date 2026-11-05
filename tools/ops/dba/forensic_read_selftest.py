@@ -79,6 +79,7 @@ class Fake:
             return "Success", 0, "EVIDENCE:QUJD\n"
         if "OneSql.java ro" in script:
             subprocess.run(["bash", "-n"], input=script.encode(), check=True)
+            assert "ONE_SQL_PLAN_GATE=1 " in script.replace("\n", " "), "the Java side runs the plan gate"
             q = re.search(r"echo '([A-Za-z0-9+/=]+)' \| base64 -d \| gunzip > \S+/q\.sql", script)
             self.sent.append(gzip.decompress(base64.b64decode(q.group(1))).decode())
             res = self.results.pop(0)
