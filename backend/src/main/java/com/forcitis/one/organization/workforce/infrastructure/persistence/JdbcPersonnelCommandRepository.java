@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
 import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdGenerator;
@@ -63,10 +64,12 @@ import org.springframework.stereotype.Repository;
 class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, PersonnelCommandQueries {
     private final JdbcClient jdbc;
     private final IdGenerator ids;
+    private final BusinessZone zone;
 
-    JdbcPersonnelCommandRepository(JdbcClient jdbc, IdGenerator ids) {
+    JdbcPersonnelCommandRepository(JdbcClient jdbc, IdGenerator ids, BusinessZone zone) {
         this.jdbc = jdbc;
         this.ids = ids;
+        this.zone = zone;
     }
 
     @Override
@@ -103,21 +106,25 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
                 .param("employee", employee.value()).query(Boolean.class).single();
     }
 
-    /** Leaving needs every relationship in service on the day to carry a held or released-and-waiting separation or an unpaid-leave start not yet started (ADR-0086 design 6.2). */
+    /**
+     * Leaving needs every relationship in service on the day to be gone (leaving, or on unpaid leave) and at least one to be leaving; a relationship is leaving
+     * with a held separation, a released one waiting for its date, or an unpaid-leave start entered and not yet started (ADR-0086 design 6.2).
+     */
     @Override
     public boolean isLeaving(EmployeeId employee, LocalDate day) {
         return jdbc.sql("""
                 with in_service as (
-                    select distinct v.employment_relationship_id from organization_workforce.employment_relationship_versions v
+                    select v.employment_relationship_id, v.is_on_unpaid_leave,
+                           exists (select 1 from organization_workforce.personnel_commands c
+                                    left join organization_workforce.separation_holds h on h.personnel_command_id = c.personnel_command_id
+                                   where c.employment_relationship_id = v.employment_relationship_id
+                                     and ((h.status = 'HELD' or (h.status = 'RELEASED' and c.status = 'PENDING'))
+                                          or (c.command_kind = 'UNPAID_LEAVE_START' and c.status = 'PENDING'))) as leaving
+                      from organization_workforce.employment_relationship_versions v
                      where v.employee_id = :employee and v.superseded_at is null and v.employment_status = 'EMPLOYED'
                        and v.effective_from_date <= :day and (v.effective_to_date is null or :day < v.effective_to_date))
-                select exists (select 1 from in_service)
-                   and not exists (select 1 from in_service s
-                                    where not exists (select 1 from organization_workforce.personnel_commands c
-                                                       left join organization_workforce.separation_holds h on h.personnel_command_id = c.personnel_command_id
-                                                      where c.employment_relationship_id = s.employment_relationship_id
-                                                        and ((h.status = 'HELD' or (h.status = 'RELEASED' and c.status = 'PENDING'))
-                                                             or (c.command_kind = 'UNPAID_LEAVE_START' and c.status = 'PENDING'))))
+                select exists (select 1 from in_service where leaving)
+                   and not exists (select 1 from in_service where not leaving and not is_on_unpaid_leave)
                 """).param("employee", employee.value()).param("day", day).query(Boolean.class).single();
     }
 
@@ -404,6 +411,27 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
                 insertAssignmentVersion(employee, row, revision, at, command);
             }
         }
+        if (employeeTable) {
+            refreshSnapshot(employee, at);
+        }
+    }
+
+    /** The derived snapshot columns of the root row follow the relationships (ADR-0086 design 6.2): employed while any relationship is in service on the day, else separated on the latest end. */
+    private void refreshSnapshot(EmployeeId employee, Instant at) {
+        LocalDate day = zone.dateOf(at);
+        boolean inService = jdbc.sql("""
+                select exists (select 1 from organization_workforce.employment_relationship_versions
+                                where employee_id = :employee and superseded_at is null and employment_status = 'EMPLOYED'
+                                  and effective_from_date <= :day and (effective_to_date is null or :day < effective_to_date))
+                """).param("employee", employee.value()).param("day", day).query(Boolean.class).single();
+        LocalDate lastEnd = inService ? null : jdbc.sql("""
+                select max(effective_from_date) from organization_workforce.employment_relationship_versions
+                 where employee_id = :employee and superseded_at is null and employment_status = 'SEPARATED' and effective_from_date <= :day
+                """).param("employee", employee.value()).param("day", day).query(LocalDate.class).optional().orElse(null);
+        jdbc.sql("update organization_workforce.employees set employment_status = :status, separated_at = :separatedAt where id = :employee")
+                .param("status", inService ? "EMPLOYED" : "SEPARATED")
+                .param("separatedAt", lastEnd == null ? null : lastEnd.atStartOfDay(zone.zone()).toOffsetDateTime(), Types.TIMESTAMP_WITH_TIMEZONE)
+                .param("employee", employee.value()).update();
     }
 
     /** The employee's own attribution: its root row is made on the first one; a row has no revision number, a superseded row gives up its day. */
