@@ -151,7 +151,7 @@ public final class UserAccount extends AggregateRoot {
     }
 
     /** The person is back: roles may be given again. */
-    public void recordReinstatement() {
+    public void recordReinstated() {
         separatedAt = null;
     }
 

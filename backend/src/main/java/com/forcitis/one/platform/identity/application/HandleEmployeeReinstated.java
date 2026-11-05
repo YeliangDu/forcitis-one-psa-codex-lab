@@ -77,7 +77,7 @@ class HandleEmployeeReinstated {
                 return;
             }
             boolean marked = account.separatedAt().isPresent();
-            account.recordReinstatement();
+            account.recordReinstated();
             if (!account.roles().isEmpty()) {
                 if (marked) {
                     accounts.save(account);

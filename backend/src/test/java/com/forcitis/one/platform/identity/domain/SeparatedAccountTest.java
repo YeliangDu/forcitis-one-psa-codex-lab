@@ -62,13 +62,13 @@ class SeparatedAccountTest {
     @DisplayName("#1326 reinstatement lifts the mark, after which roles may be given again")
     void reinstatementLiftsTheMark() {
         UserAccount separated = account(Set.of(), AT);
-        separated.recordReinstatement();
+        separated.recordReinstated();
         assertThat(separated.separatedAt()).isEmpty();
         separated.replaceRoles(Set.of(EMPLOYEE));
         assertThat(separated.roles()).containsExactly(EMPLOYEE);
 
         UserAccount employed = account(Set.of(), null);
-        employed.recordReinstatement();
+        employed.recordReinstated();
         assertThat(employed.separatedAt()).isEmpty();
     }
 }
