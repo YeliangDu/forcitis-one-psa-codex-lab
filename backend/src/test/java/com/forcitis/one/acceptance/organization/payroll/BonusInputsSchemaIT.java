@@ -290,6 +290,14 @@ class BonusInputsSchemaIT {
         timeWithoutUser.put("status", "VOIDED");
         timeWithoutUser.put("voided_at", AT);
         refused(() -> insert(timeWithoutUser));  // the insert trigger (only ACTIVE) may answer before the CHECK
+
+        // the same rule on an update (the void-only trigger lets a status change through, so a half pair must be refused by the pair rule or the void trigger)
+        UUID half = active(UUID.randomUUID(), MONTH, "YEAR_END");
+        refused(() -> exec("update " + TABLE + " set status = 'VOIDED', updated_at = ? where id = ?", AT.plusHours(1), half));
+        refused(() -> exec("update " + TABLE + " set status = 'VOIDED', voided_at = ?, updated_at = ? where id = ?", AT.plusHours(1), AT.plusHours(1), half));
+        refused(() -> exec("update " + TABLE + " set status = 'VOIDED', voided_by_user_id = ?, updated_at = ? where id = ?", VOIDER, AT.plusHours(1), half));
+        refused(() -> exec("update " + TABLE + " set voided_at = ?, voided_by_user_id = ? where id = ?", AT.plusHours(1), VOIDER, half));
+        assertThat(statusOf(half)).as("PY3 record: no half void, the row stays ACTIVE").isEqualTo("ACTIVE");
     }
 
     @Test
