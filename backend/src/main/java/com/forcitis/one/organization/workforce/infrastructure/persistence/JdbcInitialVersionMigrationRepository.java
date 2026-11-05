@@ -32,7 +32,7 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
         // Commands lock the employee row without changing it, so a row that waited for the lock is not re-checked: lock first, then look again in a new statement.
         jdbc.sql("""
                 select e.id from organization_workforce.employees e
-                 where not exists (select 1 from organization_workforce.employee_versions ev where ev.employee_id = e.id)
+                 where not exists (select 1 from organization_workforce.employment_relationship_versions ev where ev.employee_id = e.id)
                  order by e.created_at, e.id
                    for update of e
                 """).query(UUID.class).list();
@@ -44,7 +44,7 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
                         and not exists (select 1 from organization_workforce.assignment_versions v
                                          where v.employee_id = e.id and v.assignment_kind = 'PRIMARY' and v.superseded_at is null)) as missing_assignment_version
                   from organization_workforce.employees e
-                 where not exists (select 1 from organization_workforce.employee_versions ev where ev.employee_id = e.id)
+                 where not exists (select 1 from organization_workforce.employment_relationship_versions ev where ev.employee_id = e.id)
                  order by e.created_at, e.id
                 """).query((rs, n) -> {
             OffsetDateTime separatedAt = rs.getObject("separated_at", OffsetDateTime.class);
@@ -56,7 +56,7 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
 
     @Override
     public long countEmployeesWithVersions() {
-        return jdbc.sql("select count(distinct employee_id) from organization_workforce.employee_versions").query(Long.class).single();
+        return jdbc.sql("select count(distinct employee_id) from organization_workforce.employment_relationship_versions").query(Long.class).single();
     }
 
     @Override
@@ -75,7 +75,7 @@ class JdbcInitialVersionMigrationRepository implements InitialVersionMigrationRe
     public void insertEmployeeVersion(EmployeeId employee, InitialVersionPlan.Row row, Instant at) {
         OffsetDateTime stamp = OffsetDateTime.ofInstant(at, ZoneOffset.UTC);
         jdbc.sql("""
-                insert into organization_workforce.employee_versions (employee_version_id, employee_id, effective_from_date, effective_to_date, revision_number,
+                insert into organization_workforce.employment_relationship_versions (employment_relationship_version_id, employee_id, effective_from_date, effective_to_date, revision_number,
                        employment_status, employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
                        change_channel_kind, closed_at, created_at, updated_at)
                 values (:id, :employee, :from, :to, 0, :status, :phase, false, :feeEarner, null, :startBasis, 'MIGRATION', :closedAt, :at, :at)

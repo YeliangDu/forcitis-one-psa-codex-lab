@@ -205,10 +205,10 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
     @Override
     public PersonnelHistory load(EmployeeId employee) {
         List<VersionRow> employeeRows = jdbc.sql("""
-                select employee_version_id as id, effective_from_date, effective_to_date, employment_status, employment_phase_kind, is_on_unpaid_leave,
+                select employment_relationship_version_id as id, effective_from_date, effective_to_date, employment_status, employment_phase_kind, is_on_unpaid_leave,
                        is_fee_earner, employment_start_date, employment_start_basis_kind, change_channel_kind, change_command_id, version_audit_entry_id,
                        corrected_from_version_id, superseded_at is not null as superseded
-                  from organization_workforce.employee_versions where employee_id = :id order by effective_from_date, revision_number
+                  from organization_workforce.employment_relationship_versions where employee_id = :id order by effective_from_date, revision_number
                 """).param("id", employee.value()).query((rs, n) -> row(rs, VersionTable.EMPLOYEE)).list();
         List<VersionRow> assignmentRows = jdbc.sql("""
                 select assignment_version_id as id, assignment_id, effective_from_date, effective_to_date, org_unit_id, position_id, reports_to_employee_id,
@@ -327,16 +327,16 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
         ConcurrentAssignmentRoot.insert(jdbc, root.value(), employee.value(), at);
     }
 
-    private static final String CLOSE_EMPLOYEE = "update organization_workforce.employee_versions set effective_to_date = :to, closed_at = :at, updated_at = :at"
-            + " where employee_version_id = :id";
+    private static final String CLOSE_EMPLOYEE = "update organization_workforce.employment_relationship_versions set effective_to_date = :to, closed_at = :at, updated_at = :at"
+            + " where employment_relationship_version_id = :id";
     private static final String CLOSE_ASSIGNMENT = "update organization_workforce.assignment_versions set effective_to_date = :to, closed_at = :at, updated_at = :at"
             + " where assignment_version_id = :id";
-    private static final String SUPERSEDE_EMPLOYEE = "update organization_workforce.employee_versions set superseded_at = :at, superseding_command_id = :command,"
-            + " updated_at = :at where employee_version_id = :id";
+    private static final String SUPERSEDE_EMPLOYEE = "update organization_workforce.employment_relationship_versions set superseded_at = :at, superseding_command_id = :command,"
+            + " updated_at = :at where employment_relationship_version_id = :id";
     private static final String SUPERSEDE_ASSIGNMENT = "update organization_workforce.assignment_versions set superseded_at = :at, superseding_command_id = :command,"
             + " updated_at = :at where assignment_version_id = :id";
-    private static final String REVISION_EMPLOYEE = "select coalesce(max(revision_number) + 1, 0) from organization_workforce.employee_versions"
-            + " where employee_id = :employee and effective_from_date = :from";
+    private static final String REVISION_EMPLOYEE = "select coalesce(max(revision_number) + 1, 0) from organization_workforce.employment_relationship_versions"
+            + " where employment_relationship_id = ("+"select employment_relationship_id from organization_workforce.employment_relationships where employee_id = :employee) and effective_from_date = :from";
     private static final String REVISION_ASSIGNMENT = "select coalesce(max(revision_number) + 1, 0) from organization_workforce.assignment_versions"
             + " where employee_id = :employee and effective_from_date = :from";
 
@@ -397,10 +397,10 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
     private void insertEmployeeVersion(EmployeeId employee, VersionPlan.NewRow row, int revision, Instant at) {
         Map<String, Object> v = row.values();
         jdbc.sql("""
-                insert into organization_workforce.employee_versions (employee_version_id, employee_id, effective_from_date, effective_to_date, revision_number,
+                insert into organization_workforce.employment_relationship_versions (employment_relationship_version_id, employee_id, employment_relationship_id, effective_from_date, effective_to_date, revision_number,
                        employment_status, employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
                        change_channel_kind, change_command_id, version_audit_entry_id, closed_at, corrected_from_version_id, created_at, updated_at)
-                values (:id, :employee, :from, :to, :revision, :status, :phase, :onLeave, :feeEarner, :startDate, :startBasis, :channel, :command, :audit,
+                values (:id, :employee, (select employment_relationship_id from organization_workforce.employment_relationships where employee_id = :employee), :from, :to, :revision, :status, :phase, :onLeave, :feeEarner, :startDate, :startBasis, :channel, :command, :audit,
                         :closedAt, :correctedFrom, :at, :at)
                 """)
                 .param("id", row.id()).param("employee", employee.value()).param("from", row.from()).param("to", row.to(), Types.DATE).param("revision", revision)
@@ -415,10 +415,10 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
     private void insertAssignmentVersion(EmployeeId employee, VersionPlan.NewRow row, int revision, Instant at) {
         Map<String, Object> v = row.values();
         jdbc.sql("""
-                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, employment_relationship_id, assignment_id, assignment_kind, effective_from_date,
                        effective_to_date, org_unit_id, position_id, reports_to_employee_id, revision_number, change_channel_kind, change_command_id,
                        version_audit_entry_id, closed_at, corrected_from_version_id, created_at, updated_at)
-                values (:id, :employee, :root, (select assignment_kind from organization_workforce.employee_assignments where assignment_id = :root), :from, :to, :unit, :position, :reportsTo, :revision, :channel, :command, :audit, :closedAt, :correctedFrom, :at, :at)
+                values (:id, :employee, (select employment_relationship_id from organization_workforce.employment_relationships where employee_id = :employee), :root, (select assignment_kind from organization_workforce.employee_assignments where assignment_id = :root), :from, :to, :unit, :position, :reportsTo, :revision, :channel, :command, :audit, :closedAt, :correctedFrom, :at, :at)
                 """)
                 .param("id", row.id()).param("employee", employee.value()).param("root", row.root() != null ? row.root() : PrimaryAssignmentRoot.of(jdbc, ids, employee.value(), at))
                 .param("from", row.from()).param("to", row.to(), Types.DATE)

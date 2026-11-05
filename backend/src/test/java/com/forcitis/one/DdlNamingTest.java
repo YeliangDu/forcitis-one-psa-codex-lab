@@ -568,6 +568,11 @@ class DdlNamingTest {
                     if (c != null) {
                         model.constraints.put(m.group(2), new Constraint(c.kind(), m.group(2), c.inlineCheck()));
                     }
+                } else if ((m = Pattern.compile("(?i)RENAME TO ([a-z0-9_]+)").matcher(a)).matches()) {
+                    Schema renamed = schemas.get(alter.group(1));
+                    String newName = m.group(1);
+                    renamed.tables.put(newName, renamed.tables.remove(table));
+                    renamed.indexes.replaceAll((index, owner) -> owner.equals(table) ? newName : owner);
                 } else if ((m = Pattern.compile("(?i)DROP CONSTRAINT (?:IF EXISTS )?([a-z0-9_]+).*").matcher(a)).matches()) {
                     model.constraints.remove(m.group(1));
                 } else if ((m = Pattern.compile("(?i)DROP COLUMN (?:IF EXISTS )?([a-z0-9_]+).*").matcher(a)).matches()) {

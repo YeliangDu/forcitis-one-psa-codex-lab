@@ -61,8 +61,8 @@ final class OrgSnapshotRows {
                      case when v.versioned then av.position_id else a.position_id end as position_id,
                      case when v.versioned then av.reports_to_employee_id else a.reports_to_employee_id end as reports_to_employee_id
                 from organization_workforce.employees e
-                cross join lateral (select exists (select 1 from organization_workforce.employee_versions x where x.employee_id = e.id) as versioned) v
-                left join organization_workforce.employee_versions ev on v.versioned and ev.employee_id = e.id and ev.superseded_at is null
+                cross join lateral (select exists (select 1 from organization_workforce.employment_relationship_versions x where x.employee_id = e.id) as versioned) v
+                left join organization_workforce.employment_relationship_versions ev on v.versioned and ev.employee_id = e.id and ev.superseded_at is null
                      and ev.effective_from_date <= :day and (ev.effective_to_date is null or :day < ev.effective_to_date)
                 left join organization_workforce.assignment_versions av on v.versioned and av.employee_id = e.id and av.assignment_kind = 'PRIMARY' and av.superseded_at is null
                      and av.effective_from_date <= :day and (av.effective_to_date is null or :day < av.effective_to_date)

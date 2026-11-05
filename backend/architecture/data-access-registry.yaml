@@ -163,13 +163,22 @@ tables:
     lineage: {source: ORG_SOURCE}  # own ids through the confirmed source references of platform.integration (经来源对照, R-1b P3b)
     readers: [organization.workforce]  # nothing writes it any more since ADR-0069 s9: the snapshot sync is the last reader path; the table goes with the reconciliation (#1222)
   # W2 PR-B (data design W2_EMPLOYEE_POSITION_VERSIONING_DESIGN section 3.2, signed in reviews/W2-PR-B.md): no writer yet, the personnel commands and the reads land with the next cards.
-  organization_workforce.employee_versions:
+  # IMP-1372 (ADR-0086, data design employment-relationship.md appendix A): one row per employee and employer; append-only except the one-time confirmation of a migrated row.
+  organization_workforce.employment_relationships:
+    role: AGGREGATE_CHILD
+    aggregate: Employee
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}  # 离职满 10 年随员工清除（ADR-0068 第 7 项）
+    lineage: {source: NEW}
+    references: {employee_id: organization_workforce.employees, employer_legal_entity_id: organization_workforce.legal_entities, predecessor_relationship_id: organization_workforce.employment_relationships}
+    writers: [organization.workforce]
+  organization_workforce.employment_relationship_versions:
     role: DIMENSION_VERSIONED
     aggregate: Employee
     mutability: APPEND_ONLY
     retention: {policy: PERMANENT}  # 个人任职史版本表：离职满 10 年删除该员工的行（RETENTION_PROPOSAL 第 16 行，W2 第 8 节清理通道另批）
     lineage: {source: NEW}
-    references: {corrected_from_version_id: organization_workforce.employee_versions, change_command_id: organization_workforce.personnel_commands, superseding_command_id: organization_workforce.personnel_commands}
+    references: {employment_relationship_id: organization_workforce.employment_relationships, corrected_from_version_id: organization_workforce.employment_relationship_versions, change_command_id: organization_workforce.personnel_commands, superseding_command_id: organization_workforce.personnel_commands}
     writers: [organization.workforce]
   organization_workforce.personnel_commands:
     role: AGGREGATE_CHILD
@@ -272,7 +281,7 @@ tables:
     condition: 关闭列对与作废列对各只能由空变非空一次，已关闭的行也可被作废，其余列不变，不删除（触发器 tg_assignment_versions_append_only，ADR-0068 15.1，W2 设计第 2 节）
     retention: {policy: PERMANENT}
     lineage: {source: ORG_SOURCE}
-    references: {assignment_id: organization_workforce.employee_assignments, corrected_from_version_id: organization_workforce.assignment_versions, change_command_id: organization_workforce.personnel_commands, superseding_command_id: organization_workforce.personnel_commands}
+    references: {assignment_id: organization_workforce.employee_assignments, employment_relationship_id: organization_workforce.employment_relationships, corrected_from_version_id: organization_workforce.assignment_versions, change_command_id: organization_workforce.personnel_commands, superseding_command_id: organization_workforce.personnel_commands}
     writers: [organization.workforce]
   # legal_entities is the current-value projection of the open row of legal_entity_versions: code, name and status are written in the same transaction as the version
   # (history in the versions table); WorkforceRowConstraintsIntegrationTest checks that the root equals its open version.
