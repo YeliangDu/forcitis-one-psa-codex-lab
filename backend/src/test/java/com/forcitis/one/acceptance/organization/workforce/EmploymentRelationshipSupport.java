@@ -19,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 abstract class EmploymentRelationshipSupport extends FutureHoldSupport {
 
-    protected static final String TARGET_EMPLOYER_LEGAL_ENTITY_ID = "targetEmployerLegalEntityId";
     protected static final String PREDECESSOR_RELATIONSHIP_ID = "predecessorRelationshipId";
     protected static final String EMPLOYMENT_RELATIONSHIP_ID = "employmentRelationshipId";
     protected static final String EVENT_STARTED = "EmploymentRelationshipStarted";
@@ -36,6 +35,9 @@ abstract class EmploymentRelationshipSupport extends FutureHoldSupport {
 
     /** HIRE of a new person by the given employer, effective today, with a primary post (design 5, HIRE). */
     protected UUID hireNewPerson(UUID employer) throws Exception {
+        // HIRE numbers the new person; the seeded EMPLOYEE rule is only a pending template until someone other than its writer confirms it
+        // (a no-op when already confirmed).
+        confirmSeededNumberingRule(EMPLOYEE_DOCUMENT_TYPE, staff(BUSINESS_ADMIN).session());
         actIn(hr);
         Map<String, Object> fields = hireFields(employer);
         fields.put(DISPLAY_NAME, "Synthetic relationship " + UUID.randomUUID().toString().substring(0, 8));

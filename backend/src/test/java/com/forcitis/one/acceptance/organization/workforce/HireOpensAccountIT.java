@@ -133,6 +133,7 @@ class HireOpensAccountIT extends EmployeeHireSupport {
     private UUID hireOn(LocalDate effective, String wecomUserId) {
         Map<String, Object> fields = new HashMap<>();
         fields.put(COMMAND_KIND, HIRE);
+        fields.put(TARGET_EMPLOYER_LEGAL_ENTITY_ID, legalEntity);
         fields.put(EFFECTIVE_DATE, effective);
         fields.put(TARGET_ORG_UNIT_ID, unit);
         fields.put(TARGET_POSITION_ID, positionFor());

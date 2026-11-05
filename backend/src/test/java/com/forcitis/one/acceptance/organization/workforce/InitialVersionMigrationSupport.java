@@ -77,7 +77,31 @@ abstract class InitialVersionMigrationSupport extends PersonnelCommandSupport {
     }
 
     /** The migration with two existing employees as operator and witness; null leaves the option out. */
+    /**
+     * The migration takes a person's employer from the legal entity attribution on the first version day (employment-relationship design
+     * section 7) and refuses a person without one, so the seed gives every person still without an attribution (the world's snapshot-only
+     * people: administrator, callers, the test's own) the world's legal entity from long before any seeded day. No test here depends on the
+     * absence of an attribution.
+     */
+    private void attributeEveryone() throws Exception {
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            update(workforce, """
+                    insert into legal_entity_attributions (attribution_id, employee_id)
+                    select uuidv7(), e.id from employees e
+                     where not exists (select 1 from legal_entity_attributions a where a.employee_id = e.id)""");
+            update(workforce, """
+                    insert into employee_legal_entities (employee_legal_entity_id, employee_id, effective_from_date, legal_entity_id)
+                    select uuidv7(), e.id, ?, ? from employees e
+                     where not exists (select 1 from employee_legal_entities p where p.employee_id = e.id)""", LocalDate.of(2000, 1, 1), stored(legalEntity));
+        }
+    }
+
     protected Result migrate(UUID operator, UUID witness) {
+        try {
+            attributeEveryone();
+        } catch (Exception failure) {
+            throw new AssertionError("seeding the legal entity attribution failed", failure);
+        }
         List<String> line = new ArrayList<>(List.of("--" + OPERATION_OPTION + "=" + MIGRATE_OPERATION));
         if (operator != null) {
             line.add("--" + OPERATOR_OPTION + "=" + operator);

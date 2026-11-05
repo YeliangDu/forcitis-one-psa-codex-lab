@@ -147,4 +147,6 @@ final class PersonnelCommandNames {
     static final String EMPLOYEE_DOCUMENT_TYPE = "EMPLOYEE";
     static final String EMPLOYEE_CODE_PATTERN = "EMP\\d{6}";
     static final String BUSINESS_ADMIN = "business_admin";
+    /** A HIRE names the employer (employment-relationship design section 5); the request field of the legal entity that employs the person. */
+    static final String TARGET_EMPLOYER_LEGAL_ENTITY_ID = "targetEmployerLegalEntityId";
 }
