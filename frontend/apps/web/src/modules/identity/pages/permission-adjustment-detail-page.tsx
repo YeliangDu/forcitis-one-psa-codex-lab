@@ -1,8 +1,9 @@
 import { describeFailure, formatDateTime, versionOf } from '@forcitis/core';
-import { Button, DescriptionList, Dialog, LoadingState, Notice, PageTitle, SelectField, StatusBadge, TextAreaField, TextField } from '@forcitis/ui';
+import { Button, DescriptionList, Dialog, LoadingState, Notice, PageTitle, SelectField, StatusBadge, TextAreaField, TextField, TextLink } from '@forcitis/ui';
 import { useState } from 'react';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { useMarkAdjusted, usePermissionAdjustment, useUpholdAdjustment } from '../hooks/use-permission-adjustments';
+import { accountPath } from '../model/account';
 import { KIND_LABELS, ORIGIN_LABELS, REFERENCE_LABELS, STATUS_LABELS, TRIGGER_FIELD_LABELS, aboutLabel, nameOrId, statusTone, type PermissionAdjustment, type ReferenceKind } from '../model/permission-adjustment';
 
 type Asking = 'uphold' | 'adjusted' | undefined;
@@ -20,6 +21,7 @@ function triggerItems(item: PermissionAdjustment) {
 
 export function PermissionAdjustmentDetailPage() {
   const { permissionAdjustmentId = '' } = useParams();
+  const navigate = useNavigate();
   const item = usePermissionAdjustment(permissionAdjustmentId);
   const uphold = useUpholdAdjustment(permissionAdjustmentId);
   const adjust = useMarkAdjusted(permissionAdjustmentId);
@@ -66,7 +68,7 @@ export function PermissionAdjustmentDetailPage() {
         items={[
           { label: '类型', value: KIND_LABELS[detail.kind] ?? detail.kind },
           { label: '来源', value: ORIGIN_LABELS[detail.originKind] ?? detail.originKind },
-          ...(detail.userId === undefined ? [] : [{ label: '人员', value: nameOrId(detail.userName, detail.userId) }]),
+          ...(detail.userId === undefined ? [] : [{ label: '人员', value: nameOrId(detail.userName, detail.userId) }, { label: '账号', value: <TextLink href={accountPath(detail.userId)} onNavigate={() => void navigate(accountPath(detail.userId ?? ''))}>查看账号并调整角色</TextLink> }]),
           ...(detail.roleId === undefined ? [] : [{ label: '角色', value: nameOrId(detail.roleName, detail.roleId) }]),
           ...(detail.orgUnitId === undefined ? [] : [{ label: '组织单元', value: nameOrId(detail.orgUnitName, detail.orgUnitId) }]),
           ...triggerItems(detail),
