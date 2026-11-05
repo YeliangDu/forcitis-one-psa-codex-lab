@@ -77,7 +77,7 @@ public record PersonnelHistory(List<VersionRow> employeeRows, List<VersionRow> a
         return relationships.stream().noneMatch(r -> !r.id().equals(relationship) && inService(r.id(), day));
     }
 
-    public boolean inService(EmploymentRelationshipId relationship, LocalDate day) {
+    private boolean inService(EmploymentRelationshipId relationship, LocalDate day) {
         return currentEmployeeRows(relationship).stream().anyMatch(r -> r.covers(day) && "EMPLOYED".equals(r.values().get(CommandEffects.EMPLOYMENT)));
     }
 

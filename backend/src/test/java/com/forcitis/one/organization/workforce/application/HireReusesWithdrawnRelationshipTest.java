@@ -48,6 +48,8 @@ class HireReusesWithdrawnRelationshipTest {
     static final LegalEntityId EMPLOYER = new LegalEntityId(UUID.fromString("019a0000-0000-7000-8000-0000000000e1"));
     static final EmploymentRelationshipId VOID = new EmploymentRelationshipId(UUID.fromString("019a0000-0000-7000-8000-0000000000f1"));
     static final EmploymentRelationshipId OTHER = new EmploymentRelationshipId(UUID.fromString("019a0000-0000-7000-8000-0000000000f2"));
+    static final com.forcitis.one.organization.workforce.api.OrgUnitId UNIT = new com.forcitis.one.organization.workforce.api.OrgUnitId(UUID.fromString("019a0000-0000-7000-8000-0000000000b1"));
+    static final com.forcitis.one.organization.workforce.api.PositionId POSITION = new com.forcitis.one.organization.workforce.api.PositionId(UUID.fromString("019a0000-0000-7000-8000-0000000000b3"));
     static final LocalDate DAY = LocalDate.of(2026, 11, 3);
 
     final PersonnelCommandRepository commands = mock(PersonnelCommandRepository.class);
@@ -60,6 +62,8 @@ class HireReusesWithdrawnRelationshipTest {
         when(currentUser.userId()).thenReturn(USER);
         when(commands.lockEmployee(any())).thenReturn(true);
         when(commands.legalEntityIsActive(EMPLOYER)).thenReturn(true);
+        when(commands.orgUnitExists(any())).thenReturn(true);
+        when(commands.positionExists(any())).thenReturn(true);
         service = new PersonnelCommandService(commands, new NewEmployees(commands, mock(GlobalDocumentNumberSource.class), ids), new PersonnelPlans(ids), mock(SeparationHoldCheck.class),
                 mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), mock(CountersignBases.class), mock(CountersignRequests.class),
                 new OrgCountersignFreeze(mock(com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository.class)),
@@ -73,7 +77,7 @@ class HireReusesWithdrawnRelationshipTest {
     }
 
     private static EnterPersonnelCommand hire(EmploymentRelationshipId predecessor) {
-        return new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.HIRE, DAY, null, null, null, null, true, EmploymentPhaseKind.PROBATION, null, null, null, null, null,
+        return new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.HIRE, DAY, null, UNIT, POSITION, null, true, EmploymentPhaseKind.PROBATION, null, null, null, null, null,
                 null, EMPLOYER, predecessor, null);
     }
 
@@ -84,7 +88,8 @@ class HireReusesWithdrawnRelationshipTest {
         try {
             service.enter(hire(null));
         } catch (RuntimeException afterTheBinding) {
-            // The mocks end the run somewhere after the relationship is chosen; only that choice is under test.
+            assertThat(afterTheBinding.getMessage()).doesNotContain("already has a relationship").doesNotContain("another predecessor");
+            // The mocks end the run after the relationship is chosen; the assertion below is about that choice only.
         }
         verify(commands, never()).insertRelationship(any(), any(), any(), any(), any());
     }
@@ -94,7 +99,7 @@ class HireReusesWithdrawnRelationshipTest {
     void anotherPredecessorIsRefused() {
         historyWithVoidRelationship(null);
         assertThatThrownBy(() -> service.enter(hire(OTHER))).isInstanceOfSatisfying(DomainException.class,
-                refusal -> assertThat(refusal.errorCode()).isEqualTo(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID));
+                refusal -> assertThat(refusal.getMessage()).contains("another predecessor"));
         verify(commands, never()).insertRelationship(any(), any(), any(), any(), any());
     }
 }

@@ -323,9 +323,6 @@ class PersonnelCommandService implements PersonnelCommands {
         boolean primaryTransfer = command.kind() == PersonnelCommandKind.TRANSFER && (request.targetAssignmentId() == null
                 || all.primaryRoot().map(root -> root.id().equals(request.targetAssignmentId())).orElse(false));
         if (primaryTransfer && movesPrimary(command, all, named)) {
-            if (!all.inService(named, command.effectiveDate())) {
-                throw invalid("the primary post moves only to a relationship in service on " + command.effectiveDate());
-            }
             return all.withPrimaryIn(named);
         }
         if (command.kind() == PersonnelCommandKind.REINSTATE && movesPrimary(command, all, named)) {
