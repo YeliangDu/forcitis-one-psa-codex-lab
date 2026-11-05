@@ -34,6 +34,18 @@ tables:
     writers: [cost.timesheet]
 
 
+  # D17 rule 2: master data, effective basis not needed, "a single state the audit can fully reconstruct" (ADR-0046 decision 8.6; data design record accounting-spine-p1, #1434): one status that only moves forward, every open is an audit record.
+  # The aggregate class is FiscalPeriod: kernel.AccountingPeriod is already the year-and-month value record that callers pass to the gate.
+  accounting_period.fiscal_periods:
+    role: AGGREGATE_ROOT
+    aggregate: FiscalPeriod
+    mutability: CONDITIONAL_UPDATE
+    condition: "OPEN to CLOSING and CLOSING to CLOSED, status, updated_at and version only; a CLOSED row never changes; no delete, no truncate (tg_fiscal_periods_change, tg_fiscal_periods_truncate)"
+    business_key: [legal_entity_id, fiscal_year_number, period_number]
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [accounting.period]
+
   # 卡 A 只建立数据库基线；当前没有 Java SQL 使用方，后续卡随仓储实现登记 writers。
   organization_administration.config_sets:
     role: CONFIG_VERSIONED
@@ -128,6 +140,25 @@ tables:
     aggregate: StandardHours
     writers: [organization.attendance]
     mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+
+  # #1429 PY0: payroll rule versions. One version with its rows is one aggregate; values are data (ADR-0087), there is no value row yet.
+  organization_payroll.payroll_rule_versions:
+    role: AGGREGATE_ROOT
+    aggregate: PayrollRuleVersion
+    business_key: [rule_kind, jurisdiction_key, effective_from_date]
+    writers: [organization.payroll]
+    mutability: CONDITIONAL_UPDATE
+    condition: "DRAFT to EFFECTIVE (publish), and EFFECTIVE to SUPERSEDED closing effective_to_date when the successor is published (tg_payroll_rule_versions_change)"
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+  organization_payroll.payroll_rule_rows:
+    role: AGGREGATE_CHILD
+    aggregate: PayrollRuleVersion
+    readers: [organization.payroll]  # the publish check reads the rows; no code writes them until the draft commands of PY1
+    mutability: REPLACE_SET
+    condition: "the rows of a version are replaced as a set only while the version is DRAFT (tg_payroll_rule_rows_change)"
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
 

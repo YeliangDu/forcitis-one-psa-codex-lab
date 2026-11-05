@@ -27,6 +27,49 @@ describe('登录页', () => {
   });
 });
 
+describe('本机登录入口（卡 #1478）', () => {
+  const accounts = [
+    { userId: '019a0000-0000-7000-8000-00000000a001', name: '甲', roleCodes: ['employee'] },
+    { userId: '019a0000-0000-7000-8000-00000000a002', name: '乙', roleCodes: [] },
+  ];
+
+  it('后端不说有本机登录（路径被拒）时页面不显示任何本机入口', async () => {
+    const server = stubServer({ 'GET sessions:current': { status: 401, body: {} } });
+    renderWithProviders(<LoginPage />, { route: '/login' });
+
+    expect(await screen.findByText('企业微信扫码登录')).toBeInTheDocument();
+    await waitFor(() => expect(server.unmatched).toContain('GET /api/v1/platform/local-accounts'));
+    expect(screen.queryByText(/本机登录/)).not.toBeInTheDocument();
+  });
+
+  it('后端的答复不是账号列表时同样不显示', async () => {
+    const server = stubServer({ 'GET sessions:current': { status: 401, body: {} }, 'GET local-accounts': { body: { not: 'a list' } } });
+    renderWithProviders(<LoginPage />, { route: '/login' });
+
+    expect(await screen.findByText('企业微信扫码登录')).toBeInTheDocument();
+    // the answer has been asked for and has had time to settle before absence is asserted (otherwise the check runs on the first render and proves nothing)
+    await waitFor(() => expect(server.calls.some((call) => call.url.endsWith('/local-accounts'))).toBe(true));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.queryByText(/本机登录/)).not.toBeInTheDocument();
+  });
+
+  it('后端列出账号时每个账号一个入口，选中后用该账号登录', async () => {
+    const server = stubServer({
+      'GET sessions:current': { status: 401, body: {} },
+      'GET local-accounts': { body: accounts },
+      'POST local-sessions': { body: { userId: accounts[0]?.userId, absoluteExpiresAt: '2026-10-15T00:00:00Z', identityConfirmationRequired: false } },
+    });
+    renderWithProviders(<LoginPage />, { route: '/login' });
+
+    expect(await screen.findByText('本机登录：乙')).toBeInTheDocument();
+    expect(screen.getByText('角色：employee')).toBeInTheDocument();
+    expect(screen.getByText('没有角色')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('本机登录：甲'));
+
+    await waitFor(() => expect(server.calls.find((call) => call.method === 'POST')?.body).toEqual({ accountId: accounts[0]?.userId }));
+  });
+});
+
 describe('应急管理员登录', () => {
   it('表单只在应急登录路由出现', async () => {
     renderWithProviders(<EmergencyLoginPage />, { route: '/emergency' });

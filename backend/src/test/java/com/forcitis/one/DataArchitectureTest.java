@@ -633,7 +633,7 @@ class DataArchitectureTest {
         }
     }
 
-    static final List<String> SCHEMAS = List.of("platform_idempotency", "cost_timesheet", "organization_attendance", "organization_leave", "organization_workforce", "platform_approval",
+    static final List<String> SCHEMAS = List.of("platform_idempotency", "cost_timesheet", "organization_attendance", "organization_leave", "accounting_period", "organization_payroll", "organization_workforce", "platform_approval",
             "platform_audit", "platform_file", "platform_identity", "platform_integration", "platform_numbering", "platform_scheduling");
     static final Pattern STRING = Pattern.compile("\"\"\"(.*?)\"\"\"|\"((?:[^\"\\\\\\n]|\\\\.)*)\"", Pattern.DOTALL);
     static final Pattern TABLE_USE = Pattern.compile("\\b(from|join|into|update|delete\\s+from|truncate\\s+table|truncate)\\s+((?:" + String.join("|", SCHEMAS)
