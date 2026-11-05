@@ -86,6 +86,24 @@ describe('应用外壳与登录状态', () => {
     expect(screen.getByTestId('location')).toHaveTextContent(`/admin/permission-adjustments/${ID}`);
   });
 
+  it('待调整权限标记已调整被拒（403 带业务码）：留在详情页并显示提示，不进权限不足页', async () => {
+    const ID = '019a0000-0000-7000-8000-000000009a02';
+    stubServer({
+      'GET sessions:current': { body: currentUserBody([], NAVIGATION) },
+      [`GET permission-adjustments/${ID}`]: { body: { permissionAdjustmentId: ID, kind: 'SCOPE_REVIEW', originKind: 'ASSIGNMENT_CHANGE', status: 'OPEN', userId: '019a0000-0000-7000-8000-000000001001' }, headers: { ETag: '"1"' } },
+      [`POST permission-adjustments/${ID}:mark-adjusted`]: { status: 403, body: problemBody(403, 'PLATFORM_IDENTITY_PERMISSION_ADJUSTMENT_HANDLER_NOT_ALLOWED') },
+    });
+    renderWithProviders(<AppRoutes />, { route: `/admin/permission-adjustments/${ID}` });
+
+    await userEvent.click(await screen.findByRole('button', { name: '标记已调整' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText('授权申请编号'), '019a0000-0000-7000-8000-000000005001');
+    await userEvent.click(within(dialog).getByRole('button', { name: '标记已调整' }));
+
+    expect(await within(dialog).findByText('无权办理待调整权限条目')).toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent(`/admin/permission-adjustments/${ID}`);
+  });
+
   it('授权申请页里申请人自己确认被拒（403 带业务码）：留在本页并显示提示，不进权限不足页', async () => {
     const FIRST = '019a0000-0000-7000-8000-000000009001';
     stubServer({
