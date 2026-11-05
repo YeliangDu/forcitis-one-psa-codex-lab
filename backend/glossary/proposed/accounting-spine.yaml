@@ -1,0 +1,30 @@
+# 薄账务脊柱（设计 docs/architecture/proposals/accounting-spine.md，#1402；one-design 2026-11-05）。中文名待用户确认。
+terms:
+- id: posting_fact
+  zh: 过账事实
+  en: PostingFact
+  snake: posting_fact
+  kind: entity
+  bc: operations.facts
+  scope: domain
+  definition: 经过账管道校验后只追加的一条事实，带法人、业务日期、落账期间、单调序号 PostSeq 和若干借贷方向的明细行；不含科目
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '设计 accounting-spine.md（#1402）；AGG-77；中文名待用户确认'
+- id: account_mapping_version
+  zh: 科目映射表版本
+  en: AccountMappingVersion
+  snake: account_mapping_version
+  kind: aggregate
+  bc: accounting.ledger
+  scope: domain
+  definition: 收付口径科目与权责口径科目之间的对照表一个版本，每行带对账类别（相同或差异），发布后只新增行
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '设计 accounting-spine.md；AGG-85；ADR-0022 决定 2；中文名待用户确认'
