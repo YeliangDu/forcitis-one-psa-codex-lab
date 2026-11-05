@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipEventIds;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -145,7 +146,8 @@ class ReinstatementOpensBaseRoleIT extends PersonnelCommandSupport {
         EventEnvelope envelope = new EventEnvelope(Uuids.timeOrdered(NOW), "organization.workforce.EmployeeReinstated", 1, NOW, "Employee", employee, 1,
                 Uuids.timeOrdered(NOW), null, ActorType.SYSTEM, com.forcitis.one.kernel.SystemActors.idOf("test.envelope"), new LegalEntityId(legalEntity),
                 BACK_ON, null, List.of());
-        return new EmployeeReinstated(envelope, new PersonnelCommandId(command), employeeIdOf(employee), BACK_ON);
+        return new EmployeeReinstated(envelope, new PersonnelCommandId(command), employeeIdOf(employee), BACK_ON,
+                EmploymentRelationshipEventIds.of(employee));
     }
 
     private void publish(Object event) {

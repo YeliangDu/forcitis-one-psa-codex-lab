@@ -16,7 +16,7 @@ Not signed here, and not to be built by the P1 card:
 
 | Table | Source | Aggregate | Registry role |
 |---|---|---|---|
-| `fiscal_periods` | AGG-81 AccountingPeriod (spec 4.1) | AccountingPeriod, one row = one aggregate | `AGGREGATE_ROOT`, `CONDITIONAL_UPDATE` (see invariants) |
+| `fiscal_periods` | AGG-81 FiscalPeriod (spec 4.1) | FiscalPeriod, one row = one aggregate | `AGGREGATE_ROOT`, `CONDITIONAL_UPDATE` (see invariants) |
 
 Names follow `naming-standard.md` 2.4/2.4a. Key: UUIDv7 `id`, primary key `pk_fiscal_periods`. `legal_entity_id` belongs to `organization.workforce`: `uuid`, no foreign key (cross-BC rule B4, ADR-0086).
 
@@ -45,6 +45,8 @@ Constraints:
 1. `fiscal_year` becomes `fiscal_year_number`; `period_number` is `integer` (class-word types).
 2. Added `ck_fiscal_periods_fiscal_year_number` and the no-delete rule; the allowed status edges are listed instead of "CLOSED is frozen" alone.
 3. Constraint names follow the repo's `uk_<table>_<columns>` form.
+
+4. Names (2026-11-05, lead accepted on #1454): the aggregate is `FiscalPeriod` / 账务期间 (the spec's `AccountingPeriod` is the kernel type of 会计期间), and the permission for `OpenFiscalYear` ends in `create` (`open` is not a standard action); no column or constraint changes.
 
 None of these changes a command or an event. `OpenFiscalYear` raises no event (spec 4.1).
 
@@ -105,7 +107,7 @@ Tens of rows per entity per decade, about five entities: no partition, no `fillf
 
 | Table | Registry |
 |---|---|
-| `fiscal_periods` | D17 class master data, exemption reason "a single state the audit can fully reconstruct" (ADR-0046 decision 8.6); role `AGGREGATE_ROOT`, aggregate `AccountingPeriod`, business key `[legal_entity_id, fiscal_year_number, period_number]`, mutability `CONDITIONAL_UPDATE` with condition "`OPEN` to `CLOSING` and `CLOSING` to `CLOSED`, status columns only; a `CLOSED` row never changes; no delete (`tg_fiscal_periods_change`)", retention `PERMANENT`, lineage `NEW`, writers `accounting.period` |
+| `fiscal_periods` | D17 class master data, exemption reason "a single state the audit can fully reconstruct" (ADR-0046 decision 8.6); role `AGGREGATE_ROOT`, aggregate `FiscalPeriod`, business key `[legal_entity_id, fiscal_year_number, period_number]`, mutability `CONDITIONAL_UPDATE` with condition "`OPEN` to `CLOSING` and `CLOSING` to `CLOSED`, status columns only; a `CLOSED` row never changes; no delete (`tg_fiscal_periods_change`)", retention `PERMANENT`, lineage `NEW`, writers `accounting.period` |
 
 **Retention.** `PERMANENT`: the spec's Q-8, answered by the user 2026-11-05 (adopt the recommendation: accounting records, statutory minimum 30 years under `会计档案管理办法`, ADR-0022 decision 9). The table holds no personal information, so C3's ban on permanent retention for `PI` tables does not apply.
 

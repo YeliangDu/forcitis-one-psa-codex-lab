@@ -106,7 +106,7 @@ class PermissionAdjustmentCloseoutIntegrationTest extends IdentityIntegrationTes
 
     private static EmployeeSeparated separated(long person, PersonnelCommandId command) {
         return new EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", TestAccounts.employee(person).value()), command,
-                TestAccounts.employee(person), LocalDate.of(2026, 11, 3));
+                TestAccounts.employee(person), LocalDate.of(2026, 11, 3), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
     }
 
     @Test

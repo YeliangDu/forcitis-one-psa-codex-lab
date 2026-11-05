@@ -39,6 +39,7 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
         }
         jdbc.sql("insert into organization_workforce.positions (id, name, status) values (" + POSITION + ", 'position', 'ACTIVE')").update();
         jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values (" + EMPLOYEE + ", 'E-1', 'name', 'EMPLOYED')").update();
+        EmploymentRelationshipSeed.seed(jdbc, EMPLOYEE);
         jdbc.sql("insert into organization_workforce.legal_entities (id, code, name, status) values (" + LEGAL_ENTITY + ", 'ZQO', 'entity', 'ACTIVE') on conflict (id) do nothing").update();
     }
 
@@ -262,8 +263,8 @@ class OrgStructureCommandTablesIntegrationTest extends WorkforceIntegrationSuppo
     void personnelCommandForeignKey() {
         // #908 (DD §3, note §4.5): a transfer made by a merge needs the merge IN_PROGRESS, so the fixture merge is already in progress; the assertions below are unchanged.
         command(COMMAND, "MERGE", "ORG_UNIT", "IN_PROGRESS", ", merge_into_org_unit_id, affected_employee_count, transferred_employee_count", ", " + OTHER_UNIT + ", 1, 0");
-        String insert = "insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id,"
-                + " target_assignment_id, target_assignment_kind, org_structure_command_id, created_at, created_by, updated_at) values (gen_random_uuid(), " + EMPLOYEE
+        String insert = "insert into organization_workforce.personnel_commands (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status, target_org_unit_id,"
+                + " target_assignment_id, target_assignment_kind, org_structure_command_id, created_at, created_by, updated_at) values (gen_random_uuid(), " + EmploymentRelationshipSeed.ref(EMPLOYEE) + ", " + EMPLOYEE
                 + ", 'TRANSFER', date '2026-11-10', 'PENDING', " + OTHER_UNIT + ", " + primaryRoot(EMPLOYEE) + ", 'PRIMARY', ";
         refused("fk_personnel_commands_org_structure_command_id", () -> jdbc.sql(insert + "gen_random_uuid(), now(), " + USER + ", now())").update());
         assertThat(jdbc.sql(insert + COMMAND + ", now(), " + USER + ", now())").update()).isEqualTo(1);

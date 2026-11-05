@@ -55,7 +55,7 @@ class HandleEmployeeUnpaidLeaveStartedIntegrationTest extends IdentityIntegratio
 
     private EmployeeUnpaidLeaveStarted started(EmployeeId employee, PersonnelCommandId command) {
         return new EmployeeUnpaidLeaveStarted(TestEnvelopes.of("organization.workforce.EmployeeUnpaidLeaveStarted", "Employee", employee.value()),
-                command, employee, LocalDate.now());
+                command, employee, LocalDate.now(), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
     }
 
     private void deliver(EmployeeUnpaidLeaveStarted event) {
