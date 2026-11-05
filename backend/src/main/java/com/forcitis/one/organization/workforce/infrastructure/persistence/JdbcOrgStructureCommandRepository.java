@@ -59,7 +59,7 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
               from organization_workforce.org_structure_commands
             """;
     private static final String OPEN_HOLDERS = """
-            from organization_workforce.assignment_versions a join organization_workforce.employee_versions e on e.employee_id = a.employee_id
+            from organization_workforce.assignment_versions a join organization_workforce.employment_relationship_versions e on e.employee_id = a.employee_id
              where a.%s = :target and a.superseded_at is null and e.superseded_at is null and e.employment_status = 'EMPLOYED'
                and (a.effective_to_date is null or a.effective_to_date > :day) and (e.effective_to_date is null or e.effective_to_date > :day)
                and daterange(greatest(a.effective_from_date, :day), a.effective_to_date) && daterange(greatest(e.effective_from_date, :day), e.effective_to_date)
@@ -563,7 +563,7 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     public List<EmployeeId> employedIn(OrgUnitId orgUnit, LocalDate day) {
         return jdbc.sql("""
                 select a.employee_id
-                  from organization_workforce.assignment_versions a join organization_workforce.employee_versions e on e.employee_id = a.employee_id
+                  from organization_workforce.assignment_versions a join organization_workforce.employment_relationship_versions e on e.employee_id = a.employee_id
                  where a.org_unit_id = :unit and a.assignment_kind = 'PRIMARY' and a.superseded_at is null and e.superseded_at is null and e.employment_status = 'EMPLOYED'
                    and a.effective_from_date <= :day and (a.effective_to_date is null or a.effective_to_date > :day)
                    and e.effective_from_date <= :day and (e.effective_to_date is null or e.effective_to_date > :day)
@@ -575,7 +575,7 @@ class JdbcOrgStructureCommandRepository implements OrgStructureCommandRepository
     public List<HeldPost> postsIn(OrgUnitId orgUnit, LocalDate day) {
         return jdbc.sql("""
                 select a.employee_id, a.assignment_id, a.assignment_kind
-                  from organization_workforce.assignment_versions a join organization_workforce.employee_versions e on e.employee_id = a.employee_id
+                  from organization_workforce.assignment_versions a join organization_workforce.employment_relationship_versions e on e.employee_id = a.employee_id
                  where a.org_unit_id = :unit and a.superseded_at is null and e.superseded_at is null and e.employment_status = 'EMPLOYED'
                    and a.effective_from_date <= :day and (a.effective_to_date is null or a.effective_to_date > :day)
                    and e.effective_from_date <= :day and (e.effective_to_date is null or e.effective_to_date > :day)

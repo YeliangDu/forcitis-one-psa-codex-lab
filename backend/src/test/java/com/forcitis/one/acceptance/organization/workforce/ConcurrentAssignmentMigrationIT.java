@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.TestDatabase;
@@ -42,9 +43,8 @@ class ConcurrentAssignmentMigrationIT extends InitialVersionMigrationSupport {
         try (Connection workforce = schemaConnection("organization_workforce")) {
             concurrent = AssignmentRoots.create(workforce, stored(person), AssignmentRoots.CONCURRENT);
             update(workforce, """
-                    insert into assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date, revision_number,
-                      org_unit_id, change_channel_kind, created_at, updated_at) values (?, ?, ?, 'CONCURRENT', ?, 0, ?, 'MIGRATION', ?, ?)""",
-                    Uuids.timeOrdered(NOW), stored(person), concurrent, TODAY.minusDays(40), stored(concurrentUnit), at, at);
+                    insert into assignment_versions (employment_relationship_id, assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date, revision_number,
+                      org_unit_id, change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, 'CONCURRENT', ?, 0, ?, 'MIGRATION', ?, ?)""", EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), Uuids.timeOrdered(NOW), stored(person), concurrent, TODAY.minusDays(40), stored(concurrentUnit), at, at);
         }
         List<Map<String, Object>> concurrentBefore = rows("select * from assignment_versions where assignment_id = ?", concurrent);
 

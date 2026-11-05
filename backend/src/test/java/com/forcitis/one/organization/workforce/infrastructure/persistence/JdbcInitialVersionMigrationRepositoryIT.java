@@ -62,9 +62,15 @@ class JdbcInitialVersionMigrationRepositoryIT {
                     return q.executeQuery("select 1 from pg_stat_activity where wait_event_type = 'Lock'").next();
                 }
             });
-            s.execute("insert into organization_workforce.employee_versions (employee_version_id, employee_id, effective_from_date, revision_number,"
+            s.execute("insert into organization_workforce.legal_entities (id, code, name, status) values ('019a0000-0000-7000-8000-00000000e0e1', 'ZREMP', 'Synthetic employer', 'ACTIVE')"
+                    + " on conflict (id) do nothing");
+            UUID relationship = UUID.randomUUID();
+            s.execute("insert into organization_workforce.employment_relationships (employment_relationship_id, employee_id, employer_legal_entity_id, employer_source_kind,"
+                    + " created_at, updated_at) values ('" + relationship + "', '" + person + "', '019a0000-0000-7000-8000-00000000e0e1', 'DECLARED', now(), now())");
+            s.execute("insert into organization_workforce.employment_relationship_versions (employment_relationship_version_id, employment_relationship_id, employee_id,"
+                    + " effective_from_date, revision_number,"
                     + " employment_status, employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_basis_kind, change_channel_kind,"
-                    + " created_at, updated_at) values ('" + UUID.randomUUID() + "', '" + person + "', date '2026-10-01', 0, 'EMPLOYED', 'REGULAR', false,"
+                    + " created_at, updated_at) values ('" + UUID.randomUUID() + "', '" + relationship + "', '" + person + "', date '2026-10-01', 0, 'EMPLOYED', 'REGULAR', false,"
                     + " false, 'UNKNOWN', 'MIGRATION', now(), now())");
             holder.commit();
             assertThat(migration.get()).extracting(InitialVersionPlan.SnapshotPerson::id).doesNotContain(person);

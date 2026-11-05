@@ -45,6 +45,7 @@ class OrgCountersignTablesIntegrationTest extends WorkforceIntegrationSupport {
             jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values (" + id + ", 'FCF-" + id.substring(34, 37)
                     + "', 'name', 'EMPLOYED') on conflict do nothing").update();
         }
+        EmploymentRelationshipSeed.seed(jdbc, EMPLOYEE, OTHER_EMPLOYEE);
         for (String id : new String[] {UNIT, OTHER_UNIT}) {
             jdbc.sql("insert into organization_workforce.org_units (id, name, status) values (" + id + ", 'unit', 'ACTIVE') on conflict do nothing").update();
         }
@@ -78,9 +79,9 @@ class OrgCountersignTablesIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     private String transferSql(String employee, String orgCommand, String status) {
-        return "insert into " + PC + " (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id, target_assignment_id, target_assignment_kind, org_structure_command_id, created_at, created_by, updated_at"
+        return "insert into " + PC + " (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status, target_org_unit_id, target_assignment_id, target_assignment_kind, org_structure_command_id, created_at, created_by, updated_at"
                 + (status.equals("AWAITING_ATTRIBUTION_COUNTERSIGN") ? ", countersign_previous_legal_entity_id, countersign_new_legal_entity_id" : "") + ") values (gen_random_uuid(), "
-                + employee + ", 'TRANSFER', " + day + ", '" + status + "', " + OTHER_UNIT + ", " + primaryRoot(employee) + ", 'PRIMARY', " + orgCommand + ", now(), " + DRAFTER + ", now()"
+                + EmploymentRelationshipSeed.ref(employee) + ", " + employee + ", 'TRANSFER', " + day + ", '" + status + "', " + OTHER_UNIT + ", " + primaryRoot(employee) + ", 'PRIMARY', " + orgCommand + ", now(), " + DRAFTER + ", now()"
                 + (status.equals("AWAITING_ATTRIBUTION_COUNTERSIGN") ? ", " + ENTITY_A + ", " + ENTITY_B : "") + ")";
     }
 

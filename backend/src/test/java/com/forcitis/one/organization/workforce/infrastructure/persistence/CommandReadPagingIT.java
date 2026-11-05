@@ -125,9 +125,9 @@ class CommandReadPagingIT {
 
     private void personnelCommand(UUID id, UUID employee, String kind, String status) {
         jdbc.sql("""
-                insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
-                values (:id, :employee, :kind, date '2026-12-01', :status, :at, :by, :at)
-                """).param("id", id).param("employee", employee).param("kind", kind).param("status", status)
+                insert into organization_workforce.personnel_commands (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
+                values (:id, :relationship, :employee, :kind, date '2026-12-01', :status, :at, :by, :at)
+                """).param("id", id).param("relationship", com.forcitis.one.organization.workforce.application.EmploymentRelationshipSeed.relationship(jdbc, employee)).param("employee", employee).param("kind", kind).param("status", status)
                 .param("at", java.time.OffsetDateTime.ofInstant(SAME, java.time.ZoneOffset.UTC)).param("by", ids.next()).update();
     }
 }

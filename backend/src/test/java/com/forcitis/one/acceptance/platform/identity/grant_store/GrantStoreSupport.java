@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.platform.identity.grant_store;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipEventIds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -184,13 +185,15 @@ abstract class GrantStoreSupport extends AccountsAcceptanceSupport {
 
     EmployeeSeparated separated(UUID employee, UUID command, LocalDate effectiveDate) {
         return new EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", employee), new PersonnelCommandId(command),
-                employeeIdOf(employee), effectiveDate);
+                employeeIdOf(employee), effectiveDate,
+                EmploymentRelationshipEventIds.of(employee));
     }
 
     /** What organization.workforce publishes when a reinstatement takes effect after a separation (ADR-0068 items 1.5, 1.10); returns the event id. */
     UUID publishReinstated(UUID employee, UUID command, LocalDate effectiveDate) {
         EmployeeReinstated event = new EmployeeReinstated(TestEnvelopes.of("organization.workforce.EmployeeReinstated", "Employee", employee),
-                new PersonnelCommandId(command), employeeIdOf(employee), effectiveDate);
+                new PersonnelCommandId(command), employeeIdOf(employee), effectiveDate,
+                EmploymentRelationshipEventIds.of(employee));
         publish(event);
         return event.envelope().eventId();
     }
