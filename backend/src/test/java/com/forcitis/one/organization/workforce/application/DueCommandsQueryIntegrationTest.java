@@ -28,9 +28,10 @@ class DueCommandsQueryIntegrationTest extends WorkforceIntegrationSupport {
         String employee = "'019a0000-0000-7000-8000-00000000010" + n + "'";
         String command = "'019a0000-0000-7000-8000-00000000020" + n + "'";
         jdbc.sql("insert into organization_workforce.employees (id, employee_code, display_name, employment_status) values (" + employee + ", 'D-" + n + "', 'name', 'EMPLOYED')").update();
+        EmploymentRelationshipSeed.seed(jdbc, employee);
         String withdrawn = status.equals("WITHDRAWN") ? "now(), " + USER + ", 'synthetic'" : "null, null, null";
-        jdbc.sql("insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at,"
-                + " applied_at, withdrawn_at, withdrawn_by, withdrawal_reason) values (" + command + ", " + employee + ", '" + kind + "', date '" + effective + "', '" + status
+        jdbc.sql("insert into organization_workforce.personnel_commands (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at,"
+                + " applied_at, withdrawn_at, withdrawn_by, withdrawal_reason) values (" + command + ", " + EmploymentRelationshipSeed.ref(employee) + ", " + employee + ", '" + kind + "', date '" + effective + "', '" + status
                 + "', now(), " + USER + ", now(), " + (status.equals("EFFECTIVE") ? "now()" : "null") + ", " + withdrawn + ")").update();
         if (holdStatus != null) {
             String released = holdStatus.equals("RELEASED") ? "now(), " + USER + ", 'synthetic', 'INTERFACE'" : "null, null, null, null";
