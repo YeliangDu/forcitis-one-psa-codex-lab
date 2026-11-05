@@ -4,6 +4,7 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.Money;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.payroll.api.BonusInputApprovalProcess;
 import com.forcitis.one.organization.payroll.api.BonusInputId;
@@ -11,7 +12,6 @@ import com.forcitis.one.organization.payroll.api.BonusInputStatus;
 import com.forcitis.one.organization.payroll.api.PayrollError;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -33,7 +33,7 @@ public final class BonusInput {
     private final EmploymentRelationshipId employmentRelationshipId;
     private final LegalEntityId payingLegalEntityId;
     private final LocalDate payrollMonthStartDate;
-    private final BigDecimal bonusAmount;
+    private final Money bonus;
     private final String reasonKey;
     private final ApprovalInstanceId approvalInstanceId;
     private final EmployeeId enteredByEmployeeId;
@@ -43,13 +43,13 @@ public final class BonusInput {
     private @Nullable Instant voidedAt;
 
     private BonusInput(BonusInputId id, EmploymentRelationshipId employmentRelationshipId, LegalEntityId payingLegalEntityId, LocalDate payrollMonthStartDate,
-            BigDecimal bonusAmount, String reasonKey, ApprovalInstanceId approvalInstanceId, EmployeeId enteredByEmployeeId, Instant createdAt,
+            Money bonus, String reasonKey, ApprovalInstanceId approvalInstanceId, EmployeeId enteredByEmployeeId, Instant createdAt,
             BonusInputStatus status, @Nullable UserId voidedByUserId, @Nullable Instant voidedAt) {
         this.id = id;
         this.employmentRelationshipId = employmentRelationshipId;
         this.payingLegalEntityId = payingLegalEntityId;
         this.payrollMonthStartDate = payrollMonthStartDate;
-        this.bonusAmount = bonusAmount;
+        this.bonus = bonus;
         this.reasonKey = reasonKey;
         this.approvalInstanceId = approvalInstanceId;
         this.enteredByEmployeeId = enteredByEmployeeId;
@@ -59,15 +59,15 @@ public final class BonusInput {
         this.voidedAt = voidedAt;
     }
 
-    /** The five entry rules, shared by the request and the recording of its approval. Never puts the amount or the reason into the message (SENSITIVE). */
-    public static void check(LocalDate payrollMonthStartDate, BigDecimal bonusAmount, String bonusCurrency, String reasonKey) {
+    /** The entry rules, shared by the request and the recording of its approval. Never puts the amount or the reason into the message (SENSITIVE). */
+    public static void check(LocalDate payrollMonthStartDate, Money bonus, String reasonKey) {
         if (payrollMonthStartDate.getDayOfMonth() != 1) {
             throw invalid("the payroll month is the first day of the month");
         }
-        if (bonusAmount.signum() <= 0 || bonusAmount.scale() > 2 || bonusAmount.precision() - bonusAmount.scale() > 17) {
-            throw invalid("the bonus amount is positive with at most two decimals");
+        if (!bonus.isPositive() || bonus.amount().precision() - bonus.amount().scale() > 17) {
+            throw invalid("the bonus amount is positive with at most 17 integer digits");
         }
-        if (!CURRENCY.equals(bonusCurrency)) {
+        if (!CURRENCY.equals(bonus.currency().getCurrencyCode())) {
             throw invalid("the bonus currency is CNY");
         }
         if (!REASON_KEY.matcher(reasonKey).matches()) {
@@ -81,20 +81,19 @@ public final class BonusInput {
         try {
             EmploymentRelationshipId relationship = new EmploymentRelationshipId(UUID.fromString(single(fields, BonusInputApprovalProcess.EMPLOYMENT_RELATIONSHIP_ID)));
             LocalDate month = LocalDate.parse(single(fields, BonusInputApprovalProcess.PAYROLL_MONTH_START_DATE));
-            BigDecimal amount = new BigDecimal(single(fields, BonusInputApprovalProcess.BONUS_AMOUNT));
-            String currency = single(fields, BonusInputApprovalProcess.BONUS_CURRENCY);
+            Money bonus = Money.of(single(fields, BonusInputApprovalProcess.BONUS_AMOUNT), single(fields, BonusInputApprovalProcess.BONUS_CURRENCY));
             String reason = single(fields, BonusInputApprovalProcess.REASON_KEY);
-            check(month, amount, currency, reason);
-            return new BonusInput(id, relationship, payingLegalEntityId, month, amount, reason, approval, enteredBy, now, BonusInputStatus.ACTIVE, null, null);
+            check(month, bonus, reason);
+            return new BonusInput(id, relationship, payingLegalEntityId, month, bonus, reason, approval, enteredBy, now, BonusInputStatus.ACTIVE, null, null);
         } catch (IllegalArgumentException | DateTimeParseException malformed) {
             throw invalid("the approval's form fields are not a valid bonus input");
         }
     }
 
     public static BonusInput restore(BonusInputId id, EmploymentRelationshipId relationship, LegalEntityId payingLegalEntityId, LocalDate month,
-            BigDecimal amount, String reasonKey, ApprovalInstanceId approval, EmployeeId enteredBy, Instant createdAt, BonusInputStatus status,
+            Money bonus, String reasonKey, ApprovalInstanceId approval, EmployeeId enteredBy, Instant createdAt, BonusInputStatus status,
             @Nullable UserId voidedBy, @Nullable Instant voidedAt) {
-        return new BonusInput(id, relationship, payingLegalEntityId, month, amount, reasonKey, approval, enteredBy, createdAt, status, voidedBy, voidedAt);
+        return new BonusInput(id, relationship, payingLegalEntityId, month, bonus, reasonKey, approval, enteredBy, createdAt, status, voidedBy, voidedAt);
     }
 
     /** ACTIVE to VOIDED, once. */
@@ -135,8 +134,8 @@ public final class BonusInput {
         return payrollMonthStartDate;
     }
 
-    public BigDecimal bonusAmount() {
-        return bonusAmount;
+    public Money bonus() {
+        return bonus;
     }
 
     public String reasonKey() {

@@ -270,14 +270,14 @@ CREATE TRIGGER tg_bonus_inputs_truncate BEFORE TRUNCATE ON organization_payroll.
 
 COMMENT ON TABLE organization_payroll.bonus_inputs IS '奖金输入。粒度：每个任职关系 × 薪酬月份 × 奖金原因一行（有效行），一行就是一条已审批的奖金输入，只能作废不能改。';
 COMMENT ON COLUMN organization_payroll.bonus_inputs.id IS '主键（UUIDv7）；不是审批单据号，单据号是薪酬自己的申请号，不入表';
-COMMENT ON COLUMN organization_payroll.bonus_inputs.employment_relationship_id IS '奖金所属的任职关系 ID，跨上下文不建外键';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.employment_relationship_id IS '雇佣关系 ID，奖金所属的那一条，跨上下文不建外键';
 COMMENT ON COLUMN organization_payroll.bonus_inputs.paying_legal_entity_id IS '承担这笔奖金所在结算的发薪法人 ID，读取的法人范围依据，跨上下文不建外键';
 COMMENT ON COLUMN organization_payroll.bonus_inputs.payroll_month_start_date IS '薪酬月份，取该月一日';
 COMMENT ON COLUMN organization_payroll.bonus_inputs.bonus_amount IS '奖金金额，大于零，单位见币种；扣回是以后结算的调整行，不是负数输入';
 COMMENT ON COLUMN organization_payroll.bonus_inputs.bonus_currency IS '奖金币种，目前只有 CNY';
 COMMENT ON COLUMN organization_payroll.bonus_inputs.source_kind IS '来源种类：MANUAL_APPROVED 手工录入并经审批；绩效来源建成后加宽';
 COMMENT ON COLUMN organization_payroll.bonus_inputs.reason_key IS '奖金原因键，取自选择清单（数据，不在约束里列举），大写字母开头';
-COMMENT ON COLUMN organization_payroll.bonus_inputs.approval_instance_id IS '这条输入的审批实例 ID，必填，同一审批只对应一行，重放审批结果只找到一行';
+COMMENT ON COLUMN organization_payroll.bonus_inputs.approval_instance_id IS '审批实例 ID，这条输入的审批，必填，同一审批只对应一行，重放审批结果只找到一行';
 COMMENT ON COLUMN organization_payroll.bonus_inputs.entered_by_employee_id IS '录入人员工 ID，即审批的发起人；结算审批人不得是此人';
 COMMENT ON COLUMN organization_payroll.bonus_inputs.status IS '状态：ACTIVE 有效、VOIDED 已作废';
 COMMENT ON COLUMN organization_payroll.bonus_inputs.voided_by_user_id IS '作废人用户 ID；为空表示未作废';

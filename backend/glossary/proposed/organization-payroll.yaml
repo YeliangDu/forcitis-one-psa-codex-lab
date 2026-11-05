@@ -390,3 +390,33 @@ terms:
   forbidden: []
   status: proposed
   note: '#1429 PY0；中文名待术语确认'
+- id: entered
+  zh: 录入
+  en: Entered
+  snake: entered
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 一条输入由谁录入：奖金输入记录发起审批的那名员工（entered_by_employee_id）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1436 PY3；中文名待术语确认'
+- id: paying
+  zh: 发薪
+  en: Paying
+  snake: paying
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 承担薪酬支付的主体，如发薪法人（paying_legal_entity_id）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1436 PY3；中文名待术语确认'

@@ -2,6 +2,7 @@ package com.forcitis.one.organization.payroll.infrastructure.persistence;
 
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.Money;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.payroll.api.BonusInputId;
 import com.forcitis.one.organization.payroll.api.BonusInputStatus;
@@ -17,6 +18,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Currency;
 import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -42,7 +44,7 @@ class JdbcBonusInputRepository implements BonusInputRepository {
                 values (:id, :relationship, :entity, :month, :amount, 'CNY', 'MANUAL_APPROVED', :reason, :approval, :enteredBy, 'ACTIVE', :at, :at)
                 on conflict do nothing
                 """).param("id", input.id().value()).param("relationship", input.employmentRelationshipId().value())
-                .param("entity", input.payingLegalEntityId().value()).param("month", input.payrollMonthStartDate()).param("amount", input.bonusAmount())
+                .param("entity", input.payingLegalEntityId().value()).param("month", input.payrollMonthStartDate()).param("amount", input.bonus().amount())
                 .param("reason", input.reasonKey()).param("approval", input.approvalInstanceId().value()).param("enteredBy", input.enteredByEmployeeId().value())
                 .param("at", at(input.createdAt())).update() == 1;
     }
@@ -92,7 +94,7 @@ class JdbcBonusInputRepository implements BonusInputRepository {
         return BonusInput.restore(new BonusInputId(rs.getObject("id", UUID.class)),
                 new EmploymentRelationshipId(rs.getObject("employment_relationship_id", UUID.class)),
                 new LegalEntityId(rs.getObject("paying_legal_entity_id", UUID.class)), rs.getObject("payroll_month_start_date", LocalDate.class),
-                rs.getBigDecimal("bonus_amount"), rs.getString("reason_key"), new ApprovalInstanceId(rs.getObject("approval_instance_id", UUID.class)),
+                new Money(rs.getBigDecimal("bonus_amount"), Currency.getInstance(rs.getString("bonus_currency"))), rs.getString("reason_key"), new ApprovalInstanceId(rs.getObject("approval_instance_id", UUID.class)),
                 new EmployeeId(rs.getObject("entered_by_employee_id", UUID.class)), rs.getObject("created_at", OffsetDateTime.class).toInstant(),
                 BonusInputStatus.valueOf(rs.getString("status")), voidedBy == null ? null : new UserId(voidedBy), voidedAt == null ? null : voidedAt.toInstant());
     }

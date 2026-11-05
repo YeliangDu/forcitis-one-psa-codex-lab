@@ -73,20 +73,20 @@ class BonusInputsService implements BonusInputs {
     @PreAuthorize("hasAuthority('" + SUBMIT + "')")
     @Transactional
     public ApprovalInstanceId request(RequestBonusInput command) {
-        BonusInput.check(command.payrollMonthStartDate(), command.bonusAmount(), command.bonusCurrency(), command.reasonKey());
+        BonusInput.check(command.payrollMonthStartDate(), command.bonus(), command.reasonKey());
         if (relationships.get(command.employmentRelationshipId()).isEmpty()) {
             throw new DomainException(PayrollError.ORGANIZATION_PAYROLL_BONUS_INPUT_INVALID, ErrorKind.UNPROCESSABLE, "no such employment relationship");
         }
         UUID requestId = UUID.nameUUIDFromBytes((REQUEST_NAMESPACE + command.idempotencyKey()).getBytes(StandardCharsets.UTF_8));
         List<ApprovalField> fields = List.of(field(BonusInputApprovalProcess.EMPLOYMENT_RELATIONSHIP_ID, command.employmentRelationshipId().toString()),
                 field(BonusInputApprovalProcess.PAYROLL_MONTH_START_DATE, command.payrollMonthStartDate().toString()),
-                field(BonusInputApprovalProcess.BONUS_AMOUNT, command.bonusAmount().toPlainString()),
-                field(BonusInputApprovalProcess.BONUS_CURRENCY, command.bonusCurrency()), field(BonusInputApprovalProcess.REASON_KEY, command.reasonKey()));
+                field(BonusInputApprovalProcess.BONUS_AMOUNT, command.bonus().amount().toPlainString()),
+                field(BonusInputApprovalProcess.BONUS_CURRENCY, command.bonus().currency().getCurrencyCode()), field(BonusInputApprovalProcess.REASON_KEY, command.reasonKey()));
         return approvals.start(new ApprovalStartRequest(BonusInputApprovalProcess.KEY,
                 new DocumentReference(BonusInputApprovalProcess.DOCUMENT_TYPE, new DocumentId(requestId)), command.payingLegalEntityId(), currentUser.employeeId(),
                 new RoundNumber(1), command.idempotencyKey(), Set.of(), fields, contentHash(fields),
-                new ApprovalSummary("奖金输入 " + command.payrollMonthStartDate() + " " + command.reasonKey() + " " + command.bonusAmount().toPlainString() + " "
-                        + command.bonusCurrency())));
+                new ApprovalSummary("奖金输入 " + command.payrollMonthStartDate() + " " + command.reasonKey() + " " + command.bonus().amount().toPlainString() + " "
+                        + command.bonus().currency().getCurrencyCode())));
     }
 
     @Override
@@ -117,8 +117,8 @@ class BonusInputsService implements BonusInputs {
     }
 
     private static BonusInputSummary summary(BonusInput input) {
-        return new BonusInputSummary(input.id(), input.employmentRelationshipId(), input.payingLegalEntityId(), input.payrollMonthStartDate(), input.bonusAmount(),
-                "CNY", input.reasonKey(), input.status(), input.enteredByEmployeeId(), input.voidedByUserId());
+        return new BonusInputSummary(input.id(), input.employmentRelationshipId(), input.payingLegalEntityId(), input.payrollMonthStartDate(), input.bonus(),
+                input.reasonKey(), input.status(), input.enteredByEmployeeId(), input.voidedByUserId());
     }
 
     private static DomainException notFound(BonusInputId id) {
