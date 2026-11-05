@@ -21,7 +21,7 @@ Every enum is `text` with a named `ck_<table>_<column>` CHECK; free text has `ch
 | Column | Type | Rule |
 |---|---|---|
 | `id` | uuid | pk |
-| `requisition_number` | text null | 为空表示 still a draft; issued by `platform.numbering` at submit; `ck_recruitment_requisitions_number_set` `(status = 'DRAFT') = (requisition_number IS NULL)`; `uk_recruitment_requisitions_requisition_number` unique where not null; length 1 to 40 |
+| `requisition_number` | text null | 为空表示 still a draft; issued by `platform.numbering` at submit; null exactly while `DRAFT` (carried by `ck_recruitment_requisitions_state_columns` below); `uk_recruitment_requisitions_requisition_number` unique where not null; length 1 to 40 |
 | `position_id` | uuid NOT NULL | no FK |
 | `org_unit_id` | uuid NOT NULL | no FK; scope key of reads |
 | `legal_entity_id` | uuid NOT NULL | requester's cost entity on the creation day; no FK. Spec's choice, accepted: no org-unit-to-entity lookup exists, and `ApprovalStartRequest` needs an entity |
@@ -37,21 +37,21 @@ Every enum is `text` with a named `ck_<table>_<column>` CHECK; free text has `ch
 
 One state-pairing CHECK, `ck_recruitment_requisitions_state_columns` (this is the spec's `closed_columns`, widened to cover the other pairs so the database refuses an impossible row):
 
-- `(status = 'CLOSED') = (close_reason_kind IS NOT NULL AND closed_at IS NOT NULL)`, and `(close_reason_kind IS NULL) = (closed_at IS NULL)`;
-- `(status = 'DRAFT') = (submitted_at IS NULL AND approval_instance_id IS NULL)`;
-- `approved_at IS NOT NULL` only when `status IN ('APPROVED','CLOSED')`;
-- `close_reason_kind IN ('CANCELLED','FILLED')` requires `approved_at IS NOT NULL`; `close_reason_kind IN ('REJECTED','WITHDRAWN')` requires `approved_at IS NULL` (rejection and withdrawal happen only from `SUBMITTED`).
+- `(status = 'CLOSED') = (close_reason_kind IS NOT NULL)` and `(close_reason_kind IS NULL) = (closed_at IS NULL)`;
+- `status = 'DRAFT'` requires `submitted_at`, `approval_instance_id`, `requisition_number`, `approved_at` all null; every other status requires `submitted_at`, `approval_instance_id` and `requisition_number` all not null (each of the three, not "either");
+- `approved_at` is not null exactly when `status = 'APPROVED'` or (`status = 'CLOSED'` and `close_reason_kind IN ('CANCELLED','FILLED')`); so `REJECTED` and `WITHDRAWN` (closed from `SUBMITTED`) always have it null, and `CANCELLED`, `FILLED` (closed from `APPROVED`) always have it set;
+- order: `submitted_at <= approved_at` and `approved_at <= closed_at` and `submitted_at <= closed_at`, each when both are set.
 
-The implementing card may split it into several named CHECKs; the four rules above are the signed content.
+The implementing card may split it into several named CHECKs; the rules above are the signed content.
 
-Trigger `tg_recruitment_requisitions_change` and `tg_recruitment_requisitions_truncate` (refuses TRUNCATE): the full list of legal writes, everything else refused. (1) Insert as `DRAFT`, or directly as `SUBMITTED` when the client sends the full form (spec 4.1: number and `approval_instance_id` are then set in the same insert, the approval process having been started with the client-generated id first). (2) `DRAFT` to `DRAFT`: descriptive columns (`position_id`, `org_unit_id`, `requested_count`, `expected_start_date`, `description_text`) plus `version`, `updated_at`. (3) Edges `DRAFT`→`SUBMITTED`, `SUBMITTED`→`APPROVED`, `SUBMITTED`→`CLOSED`, `APPROVED`→`CLOSED`: only the state columns of that edge change, never the descriptive ones. (4) A `CLOSED` row never changes. (5) Delete only a `DRAFT`. `legal_entity_id`, `requested_by_employee_id` and `created_at` never change.
+Trigger `tg_recruitment_requisitions_change` and `tg_recruitment_requisitions_truncate` (refuses TRUNCATE): the full list of legal writes, everything else refused. (1) Insert as `DRAFT`, or directly as `SUBMITTED` when the client sends the full form (spec 4.1: number and `approval_instance_id` are then set in the same insert, the approval process having been started with the client-generated id first). (2) `DRAFT` to `DRAFT`: descriptive columns (`position_id`, `org_unit_id`, `requested_count`, `expected_start_date`, `description_text`) plus `version`, `updated_at`. (3) Edge `DRAFT`→`SUBMITTED` sets the state columns and may also change the descriptive columns (`SubmitRequisition` carries the full form, spec 4.1); edges `SUBMITTED`→`APPROVED`, `SUBMITTED`→`CLOSED`, `APPROVED`→`CLOSED` change only the state columns of that edge, never the descriptive ones. (4) A `CLOSED` row never changes. (5) Delete only a `DRAFT`. `legal_entity_id`, `requested_by_employee_id` and `created_at` never change.
 
 Indexes: `ix_recruitment_requisitions_org_unit_id_status` `(org_unit_id, status)`; `ix_recruitment_requisitions_requested_by_employee_id` `(requested_by_employee_id)`. All names are at most 52 bytes (63-byte limit checked).
 
 ## Differences from the section 8 sketch
 
 1. `ck_…_closed_columns` is widened to the state-pairing rules above (database-level carrier for B5; the spec had only the close pair).
-2. Added `ck_…_number_set` (number null exactly while `DRAFT`) and `uk_…_approval_instance_id` (one process per requisition, spec 4.1 invariant).
+2. Number null exactly while `DRAFT` (inside the state-pairing CHECK), timestamp order, and `uk_…_approval_instance_id` (one process per requisition, spec 4.1 invariant).
 3. Added the `TRUNCATE` trigger and the explicit legal-write list; the sketch named only the edges.
 
 None changes a command or an event.
@@ -62,7 +62,7 @@ None changes a command or an event.
 |---|---|---|
 | Legal state edges; a `CLOSED` row never changes (spec 4.1) | `tg_recruitment_requisitions_change` | |
 | Close columns set exactly when closed; rejection and withdrawal only before approval | `ck_recruitment_requisitions_state_columns` | |
-| Number null exactly in `DRAFT`, unique when set | `ck_…_number_set`, `uk_…_requisition_number` | |
+| Number null exactly in `DRAFT`, unique when set | `ck_…_state_columns`, `uk_…_requisition_number` | |
 | One active approval process per requisition | `uk_…_approval_instance_id` | |
 | Requester is never the approver | | cross-aggregate, checked at process start by the command (spec 4.1) |
 | Position `ACTIVE`, org unit valid at submit (R-01) | | cross-context, command check through the workforce api |
@@ -108,7 +108,7 @@ Row count: tens a year (211 legacy instances over about six years); no partition
 | `requested_count`, `expected_start_date`, `status`, `close_reason_kind`, `submitted_at`, `approved_at`, `closed_at` | `INTERNAL` | `NONE` | 用途：需求人数、期望到岗日与流程状态，不含个人信息 |
 | `position_id`, `org_unit_id`, `legal_entity_id`, `approval_instance_id` | surrogate keys, not registered (default `INTERNAL`) | | |
 
-`description_text` and `requested_by_employee_id` must not appear in event payloads or audit `detail` (ADR-0043 item 4); the two events (spec 4.1) carry ids, a reason kind and timestamps only. No `SENSITIVE`, `RESTRICTED` or `SPI` column; no pay figure.
+`description_text` and `requested_by_employee_id` must not appear in event payloads or audit `detail` (ADR-0043 §4 item 1); the two events (spec 4.1) carry ids, a reason kind and timestamps only. No `SENSITIVE`, `RESTRICTED` or `SPI` column; no pay figure.
 
 ## Comments (C1)
 
