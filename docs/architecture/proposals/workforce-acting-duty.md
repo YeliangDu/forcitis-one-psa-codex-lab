@@ -108,7 +108,7 @@ Sessions per `policy.json`: org = one-dev-org, identity = one-dev-identity, test
 | # | PR | Scope | Owner | Needs |
 |---|---|---|---|---|
 | 1 | Schema and event contract: `acting_duties`, command columns, kind CHECK, yaml entries for both events, registry rows | `backend/src/main/resources/db/migration/organization_workforce/`, `docs/architecture/events/workforce.yaml`, `docs/data/` registry files | one-dev-org | data-design-gate signature; user answers not needed |
-| 2 | Acceptance tests for slices 3 to 6 | `backend/src/test/java/.../acceptance/organization/workforce/` | one-test | slice 1 merged |
+| 2 | Acceptance tests for slices 3 to 6 | `backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/` | one-test | slice 1 merged |
 | 3 | `ACTING_START` + `Started` event + scheduled expiry command | `organization/workforce/{api,application,domain,infrastructure}` | one-dev-org | 1, 2 |
 | 4 | `ACTING_END` (early) + `Ended` event | same | one-dev-org | 3 |
 | 5 | `ACTING_EXTEND` | same | one-dev-org | 3 |
