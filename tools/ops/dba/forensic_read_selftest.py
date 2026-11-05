@@ -19,6 +19,7 @@ import forensic_read as f  # noqa: E402
 CONF = {"aliyun_profile": "p", "region": "r", "app_host": "app", "secret_host": "sec", "app_work_dir": "/w/app", "app_jar_process": "x.jar",
         "secret_file": "/w/s.env", "secret_work_dir": "/w/sec", "account": "acct", "targets": {"t1": {"database": "db1"}}}
 GOOD_CHECK = "  # login_name | current_db | permission_name\n  acct | db1 | CONNECT\n  acct | db1 | SELECT\n  (2 rows)\n"
+GOOD_DBS = "  # name\n  db1\n  master\n  tempdb\n  (3 rows)\n"
 ROW_DATA = "  # a | b\n  PERSON-X | 12345\n  (1 rows)\n"
 WRITES = ["DELETE FROM t", "update t set a = 1", "INSERT INTO t VALUES (1)", "DROP TABLE t", "EXEC sp_who", "SELECT * INTO x FROM t", "SELECT 1; SELECT 2", "SELECT 1; DELETE FROM t",
           "SELECT 1\nGO\nDELETE FROM t", "SELECT 1 /* x */ ; DROP TABLE t", "WITH c AS (SELECT 1 a) DELETE FROM c", "SELECT 'a'' --'; DELETE FROM t", "SELECT * FROM OPENROWSET('x','y','z')",
@@ -51,7 +52,7 @@ class Fake:
         raise AssertionError("unexpected script")
 
 
-def entry(tmp, sql, results=(), conf=CONF, out=None, mode=0o600, marker=False):
+def entry(tmp, sql, results=(), conf=CONF, out=None, mode=0o600, marker=False, flags=()):
     """Runs main() against a fake cloud; returns (code, stderr, stdout, fake, log, out path)."""
     cfg = Path(tmp, "cfg", "config.json")
     cfg.parent.mkdir(exist_ok=True)
@@ -71,7 +72,7 @@ def entry(tmp, sql, results=(), conf=CONF, out=None, mode=0o600, marker=False):
     f.register = lambda *a: log.append("register")
     so, se = io.StringIO(), io.StringIO()
     with contextlib.redirect_stdout(so), contextlib.redirect_stderr(se):
-        code = f.main(["--target", "t1", "--session", "s", "--purpose", "p", "--delete-at", "d", "--out", out, str(Path(tmp, "q.sql"))], cloud_factory=lambda conf: fake)
+        code = f.main(["--target", "t1", "--session", "s", "--purpose", "p", "--delete-at", "d", "--out", out, *flags, str(Path(tmp, "q.sql"))], cloud_factory=lambda conf: fake)
     return code, se.getvalue(), so.getvalue(), fake, log, out
 
 
@@ -92,18 +93,29 @@ def main():
             code, err, out, fake, log, _ = entry(tmp, sql)
             assert code == 2 and log == [] and "refused" in err and "config" not in err, (sql, code, log, err)
         # a SELECT file runs: registered before the first cloud call, sanitized text sent, first run checks the account then runs, only counts are printed
-        code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t -- why\n", [GOOD_CHECK, ROW_DATA])
+        code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t -- why\n", [GOOD_CHECK, GOOD_DBS, ROW_DATA])
         assert code == 0 and log[0] == "register"
-        assert fake.sent == [f.CHECK_SQL, "SELECT a FROM t"], fake.sent
+        assert fake.sent == [f.CHECK_SQL, f.CHECK_DBS_SQL, "SELECT a FROM t"], fake.sent
         assert "PERSON-X" not in out + err and Path(path).read_text() == ROW_DATA and oct(os.stat(path).st_mode & 0o777) == "0o600", "result goes to the file only"
-        assert log.count("cleanup") == 2 and Path(tmp, "cfg", "verified-t1").exists(), "work dir removed after each server run; marker written"
+        assert log.count("cleanup") == 3 and Path(tmp, "cfg", "verified-t1").exists(), "work dir removed after each server run; marker written"
         # verified recently: no second check
         code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [ROW_DATA], marker=True)
         assert code == 0 and fake.sent == ["SELECT a FROM t"], fake.sent
         # the account check stops the run: an extra permission, a wrong login, a wrong database, an error text
         for bad in (GOOD_CHECK + "  acct | db1 | ALTER\n", GOOD_CHECK.replace("acct", "other"), GOOD_CHECK.replace("db1", "db2"), "SQLERROR 1 x\n", GOOD_CHECK.replace("  acct | db1 | SELECT\n", "")):
-            code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [bad, ROW_DATA])
+            code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [bad, GOOD_DBS, ROW_DATA])
             assert code == 2 and fake.sent == [f.CHECK_SQL] and not Path(path).exists() and not Path(tmp, "cfg", "verified-t1").exists() and log[-1] == "cleanup", bad
+        # the login must reach exactly the configured databases (plus the platform guest ones): one more, one fewer, none
+        for bad in (GOOD_DBS + "  extra\n", GOOD_DBS.replace("  db1\n", ""), "  # name\n  (0 rows)\n"):
+            code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [GOOD_CHECK, bad, ROW_DATA])
+            assert code == 2 and fake.sent == [f.CHECK_SQL, f.CHECK_DBS_SQL] and not Path(path).exists() and not Path(tmp, "cfg", "verified-t1").exists(), bad
+        # a result with personal-data shapes or long cells is withheld: nothing written, only kinds and counts named (--definitions allows long definition text, not personal shapes)
+        for rows, flags, why in (("  # a\n  11010519491231002X\n", [], "id number"), ("  # a\n  13812345678\n", [], "mobile"), ("  # a\n  x@y.com\n", [], "email"), ("  # a\n  " + "x" * 301 + "\n", [], "300"),
+                                 ("  # a\n  " + "x" * 2001 + "\n", ["--definitions"], "2000"), ("  # a\n  11010519491231002X\n", ["--definitions"], "id number")):
+            code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", [rows], marker=True, flags=flags)
+            assert code == 2 and "withheld" in err and why in err and not Path(path).exists() and "1101051949" not in err + out, (why, err)
+        code, err, out, fake, log, path = entry(tmp, "SELECT a FROM t", ["  # a\n  " + "x" * 2000 + "\n"], marker=True, flags=["--definitions"])
+        assert code == 0 and Path(path).exists(), "definition text up to 2000 characters passes with --definitions"
         # too large a reply, --out inside the repo or existing, a config readable by others, an unknown target: refused, nothing leaks
         code, err, *_ = entry(tmp, "SELECT a FROM t", ["TOOBIG"], marker=True)
         assert code == 2 and "too large" in err

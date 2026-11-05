@@ -145,16 +145,14 @@ public class OneSql {
         calls.clear();
         check(refusedAny(() -> runRolledBack(fake, List.of("SELECT 1", "FAIL", "SELECT 3"), null)) && calls.equals(List.of("setAutoCommit:false", "execute:SELECT 1", "execute:FAIL", "rollback")),
                 "a failing batch still ends in a rollback, and stops the rest: " + calls);
+        Path scratch = Files.createTempDirectory("onesql-scan");
+        Files.createDirectories(scratch.resolve("sub/deeper"));
+        Files.writeString(scratch.resolve("sub/deeper/w.sql"), "SELECT 1\nGO\nINSERT INTO t VALUES (1)", StandardCharsets.UTF_8);
+        check(refused(() -> scanEvidence(scratch)), "a write statement in a subdirectory of the evidence folder is refused");
+        Files.writeString(scratch.resolve("sub/deeper/w.sql"), "SELECT 1", StandardCharsets.UTF_8);
+        check(scanEvidence(scratch) == 1, "a read in a subdirectory is scanned and accepted");
         if (evidence != null) {
-            int scripts = 0;
-            try (var files = Files.list(evidence)) {
-                for (Path f : (Iterable<Path>) files.sorted()::iterator) {
-                    String name = f.getFileName().toString();
-                    if (!name.endsWith(".sql") || name.startsWith("evidence-")) continue;  // evidence-*.sql create the evidence account: run by the DBA, never through OneSql
-                    readOnlyBatches(Files.readString(f, StandardCharsets.UTF_8), none);
-                    scripts++;
-                }
-            }
+            int scripts = scanEvidence(evidence);
             check(scripts > 0, "no evidence script found in " + evidence);
             System.out.println("evidence scripts accepted: " + scripts);
         }
@@ -195,6 +193,20 @@ public class OneSql {
             }
         };
         return (Connection) java.lang.reflect.Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class<?>[] {Connection.class}, connection);
+    }
+
+    /** Every .sql file under the folder, subdirectories included, must pass readOnlyBatches (evidence-*.sql create the evidence account: run by the DBA, never through OneSql). Returns the number of scripts. */
+    static int scanEvidence(Path folder) throws Exception {
+        int scripts = 0;
+        try (var files = Files.walk(folder)) {
+            for (Path f : (Iterable<Path>) files.sorted()::iterator) {
+                String name = f.getFileName().toString();
+                if (!Files.isRegularFile(f) || !name.endsWith(".sql") || name.startsWith("evidence-")) continue;
+                readOnlyBatches(Files.readString(f, StandardCharsets.UTF_8), new LinkedHashMap<>());
+                scripts++;
+            }
+        }
+        return scripts;
     }
 
     static boolean refused(Call call) {

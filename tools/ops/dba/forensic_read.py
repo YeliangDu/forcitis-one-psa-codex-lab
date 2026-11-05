@@ -33,6 +33,10 @@ RECHECK_DAYS = 30
 # Effective database permissions of the forensic account (docs/ops/legacy-read fragment 2026-10-15, platform baseline): anything else, or no SELECT, stops the run.
 EXPECTED_PERMISSIONS = {"CONNECT", "KILL DATABASE CONNECTION", "SELECT", "SHOWPLAN", "VIEW ANY COLUMN ENCRYPTION KEY DEFINITION",
                         "VIEW ANY COLUMN MASTER KEY DEFINITION", "VIEW DATABASE STATE"}
+CHECK_DBS_SQL = "SELECT name FROM sys.databases WHERE HAS_DBACCESS(name) = 1"
+SYSTEM_DATABASES = {"master", "msdb", "rdscore", "tempdb"}  # guest access the platform gives every login (2026-10-15 baseline)
+CELL_LIMIT, DEFINITION_CELL_LIMIT = 300, 2000  # longest cell a result may hold; --definitions raises it for form/field definition text
+PERSONAL = {"id number": r"(?<!\d)[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx](?!\d)", "mobile number": r"(?<!\d)1[3-9]\d{9}(?!\d)", "email address": r"[\w.+-]+@[\w-]+\.[\w.-]+"}
 CHECK_SQL = "SELECT SUSER_SNAME() AS login_name, DB_NAME() AS current_db, permission_name FROM fn_my_permissions(NULL, 'DATABASE')"
 FORBIDDEN = re.compile(r"\b(INTO|INSERT|UPDATE|DELETE|MERGE|CREATE|ALTER|DROP|TRUNCATE|GRANT|DENY|REVOKE|EXEC|EXECUTE|DECLARE|SET|USE|BEGIN|COMMIT|ROLLBACK|SAVE|"
                        r"IF|WHILE|GOTO|RETURN|TRY|CATCH|PRINT|RAISERROR|THROW|WAITFOR|BACKUP|RESTORE|SHUTDOWN|KILL|DBCC|RECONFIGURE|BULK|WRITETEXT|UPDATETEXT|"
@@ -191,6 +195,18 @@ def account_ok(conf, target, rows):
     return logins == {conf["account"]} and dbs == {conf["targets"][target]["database"]} and "SELECT" in perms and perms <= EXPECTED_PERMISSIONS
 
 
+def databases_ok(conf, rows):  # the login reaches exactly the configured target databases (plus the platform guest ones)
+    names = {r[0] for r in rows}
+    return bool(rows) and all(len(r) == 1 for r in rows) and names - SYSTEM_DATABASES == {t["database"] for t in conf["targets"].values()}
+
+
+def output_problems(text, limit):  # kinds and counts only, never the matched text: personal-data shapes anywhere, cells longer than the limit
+    found = {kind: len(re.findall(rx, text)) for kind, rx in PERSONAL.items()}
+    long_cells = sum(1 for line in text.splitlines() if line.startswith("  ") for cell in line[2:].split(" | ") if len(cell) > limit)
+    found["cell longer than %d characters" % limit] = long_cells
+    return ", ".join(f"{n} x {kind}" for kind, n in found.items() if n)
+
+
 def marker_for(target):
     return CONFIG.parent / f"verified-{target}"
 
@@ -224,6 +240,7 @@ def main(argv, cloud_factory=Cloud):
     parser = argparse.ArgumentParser(description="registered read-only forensic entry", usage="forensic_read.py --target T --session S --purpose P --delete-at D --out FILE SQLFILE")
     for name in ("target", "session", "purpose", "delete-at", "out"):
         parser.add_argument("--" + name, required=True)
+    parser.add_argument("--definitions", action="store_true", help="the result is definition text (formulas, field defaults): cells up to 2000 characters")
     parser.add_argument("sqlfile")
     args = parser.parse_args(argv)
     try:
@@ -236,10 +253,14 @@ def main(argv, cloud_factory=Cloud):
         register(args, conf, sql)
         cloud = cloud_factory(conf)
         if not verified_recently(args.target):
-            if not account_ok(conf, args.target, rows_of(server_run(cloud, conf, database, CHECK_SQL))):
-                raise Refused("forensic account check failed; nothing was run")
+            if not (account_ok(conf, args.target, rows_of(server_run(cloud, conf, database, CHECK_SQL)))
+                    and databases_ok(conf, rows_of(server_run(cloud, conf, database, CHECK_DBS_SQL)))):
+                raise Refused("forensic account check failed (login, database, permissions or reachable databases); nothing was run")
             marker_for(args.target).write_text(datetime.date.today().isoformat(), encoding="utf-8")
         text = server_run(cloud, conf, database, sql)
+        problems = output_problems(text, DEFINITION_CELL_LIMIT if args.definitions else CELL_LIMIT)
+        if problems:
+            raise Refused(f"result withheld, nothing written: it holds {problems}; aggregate the query, or pass --definitions for definition text only")
         out.write_text(text, encoding="utf-8")
         os.chmod(out, 0o600)
         print(f"ok: {len(rows_of(text))} rows in the first result, {len(text)} characters written to the --out file; nothing else is shown")

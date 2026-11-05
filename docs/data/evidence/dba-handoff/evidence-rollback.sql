@@ -6,5 +6,11 @@ GO
 USE [ruoyi-vue-pro];
 DROP USER IF EXISTS [one_evidence_ro];
 GO
+USE [u8cloud];
+DROP USER IF EXISTS [one_evidence_ro];
+GO
+USE [u8cloud_QZ];
+DROP USER IF EXISTS [one_evidence_ro];
+GO
 DROP LOGIN [one_evidence_ro];
 GO
