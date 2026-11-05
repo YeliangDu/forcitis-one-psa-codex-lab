@@ -65,15 +65,6 @@ class WorkCalendarService implements WorkCalendar {
         return day.plusDays(1).atStartOfDay(businessZone.zone()).toInstant();
     }
 
-    /** What the calendar makes of one day for a legal entity; fails like isWorkday when the year was not maintained. */
-    WorkdayShape shapeOn(LocalDate date, LegalEntityId legalEntityId) {
-        WorkCalendarYearRecord year = yearOf(date, legalEntityId, new HashMap<>());
-        if (!year.isWorkday(date)) {
-            return WorkdayShape.REST_DAY;
-        }
-        return year.isMakeUpWorkday(date) ? WorkdayShape.MAKE_UP_WORKDAY : WorkdayShape.WORKDAY;
-    }
-
     private boolean isWorkday(LocalDate date, @Nullable LegalEntityId legalEntityId, Map<Integer, WorkCalendarYearRecord> loaded) {
         return yearOf(date, legalEntityId, loaded).isWorkday(date);
     }

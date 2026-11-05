@@ -21,13 +21,17 @@ class JdbcStandardHoursQueries implements StandardHoursQueries {
     }
 
     @Override
-    public List<StandardHoursVersionRecord> list(@Nullable LegalEntityId legalEntityId) {
+    public List<StandardHoursVersionRecord> list(@Nullable LegalEntityId legalEntityId, @Nullable Integer beforeVersionNumber, int limit) {
         return jdbc.sql("select " + StandardHoursRows.COLUMNS + """
                   from organization_attendance.standard_hours_versions
                  where legal_entity_id is not distinct from :legalEntityId
+                   and (cast(:beforeVersionNumber as integer) is null or version_number < :beforeVersionNumber)
                  order by version_number desc
+                 limit :limit
                 """)
                 .param("legalEntityId", scope(legalEntityId), Types.OTHER)
+                .param("beforeVersionNumber", beforeVersionNumber, Types.INTEGER)
+                .param("limit", limit)
                 .query((rs, n) -> StandardHoursRows.map(rs, StandardHoursRows.overrides(jdbc, rs.getObject("id", UUID.class)))).list();
     }
 

@@ -1,9 +1,12 @@
 package com.forcitis.one.organization.attendance.web;
 
+import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.organization.attendance.application.ListStandardHoursVersions;
 import com.forcitis.one.organization.attendance.application.PublishStandardHoursVersion;
 import com.forcitis.one.organization.attendance.application.PublishedStandardHours;
+import com.forcitis.one.organization.attendance.application.StandardHoursVersionView;
 import com.forcitis.one.organization.attendance.application.VoidStandardHoursVersion;
 import java.util.UUID;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -45,8 +48,10 @@ class StandardHoursVersionController {
     /** Without legalEntityId the DEFAULT scope is listed. */
     @GetMapping
     @PreAuthorize("hasAuthority('" + AttendancePermissions.STANDARD_HOURS_READ + "')")
-    StandardHoursVersionsResponse versions(@RequestParam(required = false) UUID legalEntityId) {
-        return new StandardHoursVersionsResponse(list.execute(legalEntityId == null ? null : new LegalEntityId(legalEntityId))
-                .stream().map(StandardHoursVersionResponse::of).toList());
+    CursorPage<StandardHoursVersionResponse> versions(@RequestParam(required = false) UUID legalEntityId, @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String cursor) {
+        CursorPage<StandardHoursVersionView> page = list.execute(legalEntityId == null ? null : new LegalEntityId(legalEntityId),
+                PageRequest.of(limit, cursor, "standard-hours-versions"));
+        return CursorPage.of(page.items().stream().map(StandardHoursVersionResponse::of).toList(), page.nextCursor());
     }
 }

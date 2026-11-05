@@ -5,11 +5,13 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.organization.attendance.api.AttendanceError;
 import com.forcitis.one.organization.attendance.api.StandardHours;
+import com.forcitis.one.organization.attendance.api.WorkCalendar;
 import com.forcitis.one.organization.attendance.domain.DateOverride;
 import com.forcitis.one.organization.attendance.domain.StandardHoursQueries;
 import com.forcitis.one.organization.attendance.domain.StandardHoursVersionRecord;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.Objects;
 import org.slf4j.Logger;
@@ -25,10 +27,10 @@ class StandardHoursService implements StandardHours {
     private static final Logger LOG = LoggerFactory.getLogger(StandardHoursService.class);
 
     private final StandardHoursQueries versions;
-    private final WorkCalendarService calendar;
+    private final WorkCalendar calendar;
     private final Counter missing;
 
-    StandardHoursService(StandardHoursQueries versions, WorkCalendarService calendar, MeterRegistry meters) {
+    StandardHoursService(StandardHoursQueries versions, WorkCalendar calendar, MeterRegistry meters) {
         this.versions = versions;
         this.calendar = calendar;
         this.missing = Counter.builder("forcitis.organization.attendance.standard.hours.missing")
@@ -41,11 +43,12 @@ class StandardHoursService implements StandardHours {
         Objects.requireNonNull(date, "date");
         LegalEntityId scope = versions.hasVersionInEffect(legalEntityId) ? legalEntityId : null;
         StandardHoursVersionRecord version = versions.inEffectOn(scope, date).orElseThrow(() -> notFound(legalEntityId, date));
-        return switch (calendar.shapeOn(date, legalEntityId)) {
-            case REST_DAY -> 0;
-            case WORKDAY -> overrideOn(version, date, version.workdayMinutes());
-            case MAKE_UP_WORKDAY -> overrideOn(version, date, version.adjustedWorkdayMinutes());
-        };
+        if (!calendar.isWorkday(date, legalEntityId)) {
+            return 0;
+        }
+        // The calendar only lets a make-up workday fall on a weekend, so a workday on a weekend is one.
+        boolean makeUp = date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY;
+        return overrideOn(version, date, makeUp ? version.adjustedWorkdayMinutes() : version.workdayMinutes());
     }
 
     private static int overrideOn(StandardHoursVersionRecord version, LocalDate date, int ordinary) {

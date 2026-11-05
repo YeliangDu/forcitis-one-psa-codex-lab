@@ -10,7 +10,8 @@ import org.jspecify.annotations.Nullable;
 public interface StandardHoursQueries {
 
     /** Newest first, voided versions included. */
-    List<StandardHoursVersionRecord> list(@Nullable LegalEntityId legalEntityId);
+    /** Newest first; only versions numbered below beforeVersionNumber when given; at most limit rows. */
+    List<StandardHoursVersionRecord> list(@Nullable LegalEntityId legalEntityId, @Nullable Integer beforeVersionNumber, int limit);
 
     boolean hasVersionInEffect(@Nullable LegalEntityId legalEntityId);
 
