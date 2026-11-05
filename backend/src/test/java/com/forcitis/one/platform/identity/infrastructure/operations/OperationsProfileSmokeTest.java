@@ -69,6 +69,8 @@ class OperationsProfileSmokeTest {
             Mockito.doReturn(Optional.of(new EmployeeProfile(id, "Synthetic attestor", TestOrgIds.orgUnit(10), null, EmploymentStatus.EMPLOYED, false)))
                     .when(directory).findEmployee(id);
         }
+        // The granted person has an account row but no employee in the real snapshot; the grant judges employment (#1333), so the directory must say employed.
+        Mockito.doReturn(com.forcitis.one.organization.workforce.api.EmploymentVerdict.EMPLOYED).when(directory).employmentOf(TestAccounts.employee(7));
         return directory;
     }
 
