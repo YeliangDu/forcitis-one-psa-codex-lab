@@ -10,6 +10,7 @@ import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
 import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.event.TestEnvelopes;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
+import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
 import com.forcitis.one.organization.workforce.events.EmployeeSeparated;
 import com.jayway.jsonpath.JsonPath;
 import java.sql.Connection;
@@ -184,6 +185,14 @@ abstract class GrantStoreSupport extends AccountsAcceptanceSupport {
     EmployeeSeparated separated(UUID employee, UUID command, LocalDate effectiveDate) {
         return new EmployeeSeparated(TestEnvelopes.of("organization.workforce.EmployeeSeparated", "Employee", employee), new PersonnelCommandId(command),
                 employeeIdOf(employee), effectiveDate);
+    }
+
+    /** What organization.workforce publishes when a reinstatement takes effect after a separation (ADR-0068 items 1.5, 1.10); returns the event id. */
+    UUID publishReinstated(UUID employee, UUID command, LocalDate effectiveDate) {
+        EmployeeReinstated event = new EmployeeReinstated(TestEnvelopes.of("organization.workforce.EmployeeReinstated", "Employee", employee),
+                new PersonnelCommandId(command), employeeIdOf(employee), effectiveDate);
+        publish(event);
+        return event.envelope().eventId();
     }
 
     void publish(Object event) {

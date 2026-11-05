@@ -184,6 +184,8 @@ class AuthorizationHistoryAsOfIT extends GrantStoreSupport {
         publishSeparated(target.employeeId(), newCommandId(), LocalDate.of(2026, 10, 20));
         await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> assertThat(openGrants(target.userId())).isEmpty());
         clock.set(t4);
+        publishReinstated(target.employeeId(), newCommandId(), TODAY);
+        await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> assertThat(openGrants(target.userId())).as("the reinstatement reopens the base role").isNotEmpty());
         replacedRoles(administrator, target.userId(), List.of("employee", role));
         assertThat(grants(target.userId(), role)).as("the re-grant is a new row").hasSize(2);
 
