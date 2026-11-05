@@ -16,6 +16,7 @@ CONSTANTS
     OverlapRefuse,  \* T-11: a day taken from one relationship is refused while the other holds leave on an overlapping day
     SuccCarry,      \* T-6: the successor relationship (r2) receives the predecessor's (r1) remaining balance
     Unique,         \* section 4.2 retry safety: unique (account, source kind, source id, line kind, consumes_line_id)
+    RetryKey,       \* gap G-6: "account" (the key as written, holds the target account) or "event" (proposed: an event-driven ADJUST is keyed by relationship, not by the account it landed on)
     EndedMode,      \* gap G-1: "literal" (section 11.9 as written) or "cancelOutside" (proposed fix)
     WithdrawMode,   \* gap G-2: "literal" (withdraw an approved leave = ReleaseLeaveHold) or "reverse" (proposed fix)
     SealMode,       \* gap G-3: "refuse" (sealed account refuses the line, no rule says where it goes) or "redirect" (ADJUST in the open year, RULE-514)
@@ -67,7 +68,8 @@ NoReq == [st |-> "none", r |-> "r1", t |-> "DAY", sp |-> <<1, 1>>, parts |-> {}]
 
 \* A line: account, kind, source id, consumes_line_id (lot), quantity, effective day, written-on-sealed flag, occurrence number
 L(a, k, s, c, q) == [a |-> a, k |-> k, s |-> s, c |-> c, q |-> q, d |-> today, n |-> 0, sl |-> (acct[a] = "SEALED")]
-Key(l) == <<l.a, l.k, l.s, l.c>>
+\* RetryKey = "event": a relationship event's entitlement ADJUST keeps one key whatever year account it is redirected to (year 0 stands for "any year")
+Key(l) == IF RetryKey = "event" /\ l.k = "ADJUST" /\ l.s \in {"ended", "unpaid", "corrected"} THEN <<<<l.a[1], 0>>, l.k, l.s, l.c>> ELSE <<l.a, l.k, l.s, l.c>>
 Cnt(S, l) == Cardinality({x \in S : Key(x) = Key(l)})
 
 \* Insert with the unique key: a repeat of the same key is dropped when Unique, else it becomes occurrence n+1 (capped at 2)
@@ -215,7 +217,7 @@ Redo(q, k) ==
 ---------------------------------------------------------------------------
 \* Workforce truth and the relationship events (ADR-0086 decision 6; spec 3.5)
 
-\* Workforce facts per relationship, delivered as the five events of ADR-0086 decision 6 (employment-relationship.md 6.1); the leave side
+\* Workforce facts per relationship, delivered as four of the five events of ADR-0086 decision 6 (PhaseChanged is not modelled) (employment-relationship.md 6.1); the leave side
 \* learns them only through Deliver.
 \* EmploymentRelationshipEnded (3.5, 4.2 Consumes): entitlement cut EndCut (T-3).
 Separate(r, e) ==
@@ -452,13 +454,14 @@ NoStrandedCarry ==
     \A r \in R : (CarryCap > 0 /\ acct[<<r, 1>>] = "SEALED" /\ Continues(r)) =>
         ~(Avail(<<r, 1>>, "-") > 0 /\ Sm(<<r, 1>>, "CARRY_OUT", "-") < CarryCap)
 
-\* 3.5 / RULE-515: every relationship event that reached the leave side moved the entitlement once
+\* 3.5 / RULE-515: every relationship event that reached the leave side moved the entitlement exactly once (a redelivery changes nothing)
 EntitlementFollowsEvents ==
     \A r \in R, k \in {"ended", "unpaid", "corrected"} :
         (k \in handled[r] /\ eff[r][k].d # 0) =>
-            \E l \in lines : l.k = "ADJUST" /\ l.s = k /\ l.a[1] = r
+            Cardinality({l \in lines : l.k = "ADJUST" /\ l.s = k /\ l.a[1] = r}) = 1
 
-\* T-11: with the refusing option, two relationships of one person never hold overlapping leave
+\* T-11 (as modelled: refuse a request whose days overlap leave held on the other relationship; the section 9 text says overlap with the other
+\* relationship's WORK, which is not modelled). Vacuous with OverlapRefuse = FALSE, so it is no evidence about the option being off.
 NoCrossOverlap ==
     OverlapRefuse =>
         \A x, y \in Q : (x # y /\ rq[x].st \in {"IN_APPROVAL", "APPROVED"} /\ rq[y].st \in {"IN_APPROVAL", "APPROVED"} /\ rq[x].r # rq[y].r)
