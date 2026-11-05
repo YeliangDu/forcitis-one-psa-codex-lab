@@ -2,7 +2,7 @@ import { describeFailure, formatDateTime, versionOf } from '@forcitis/core';
 import { Button, DescriptionList, Dialog, LoadingState, Notice, PageTitle, SelectField, StatusBadge, TextAreaField, TextField } from '@forcitis/ui';
 import { useState } from 'react';
 import { useParams } from 'react-router';
-import { useMarkAdjusted, useOwnerChoices, usePermissionAdjustment, useUpholdAdjustment } from '../hooks/use-permission-adjustments';
+import { useMarkAdjusted, usePermissionAdjustment, useUpholdAdjustment } from '../hooks/use-permission-adjustments';
 import { KIND_LABELS, ORIGIN_LABELS, REFERENCE_LABELS, STATUS_LABELS, TRIGGER_FIELD_LABELS, aboutLabel, nameOrId, statusTone, type PermissionAdjustment, type ReferenceKind } from '../model/permission-adjustment';
 
 type Asking = 'uphold' | 'adjusted' | undefined;
@@ -29,7 +29,6 @@ export function PermissionAdjustmentDetailPage() {
   const [reference, setReference] = useState<ReferenceKind>('authorizationRequestId');
   const [referenceId, setReferenceId] = useState('');
   const needsOwner = item.data?.kind === 'SENSITIVE_ROLE_REVIEW';
-  const owners = useOwnerChoices(asking === 'uphold' && needsOwner);
 
   if (item.isPending) return <LoadingState />;
   if (item.isError) return <Notice tone="error" title="待调整权限加载失败">{describeFailure(item.error)}</Notice>;
@@ -44,7 +43,7 @@ export function PermissionAdjustmentDetailPage() {
     adjust.reset();
   };
   const version = versionOf(detail);
-  const confirmUphold = () => uphold.mutate({ version, reason: reason.trim(), owner }, { onSuccess: close });
+  const confirmUphold = () => uphold.mutate({ version, reason: reason.trim(), owner: owner.trim() }, { onSuccess: close });
   const confirmAdjusted = () => adjust.mutate({ version, reference, referenceId: referenceId.trim() }, { onSuccess: close });
 
   return (
@@ -75,17 +74,8 @@ export function PermissionAdjustmentDetailPage() {
           ...(detail.upholdExpiresAt === undefined ? [] : [{ label: '维持到期时间', value: formatDateTime(detail.upholdExpiresAt) }]),
         ]}
       />
-      <Dialog open={asking === 'uphold'} title="维持授权" confirmText="维持授权" confirmLoading={uphold.isPending} confirmDisabled={needsOwner && owner === ''} onConfirm={confirmUphold} onClose={close}>
-        {needsOwner ? (
-          owners.isError ? <Notice tone="error" title="业务负责人加载失败">{describeFailure(owners.error)}</Notice> : (
-            <SelectField
-              label="业务负责人"
-              value={owner}
-              options={[{ value: '', label: '请选择' }, ...(owners.data ?? []).map((employee) => ({ value: employee.employeeId, label: `${employee.displayName}（${employee.employeeCode}）` }))]}
-              onChange={setOwner}
-            />
-          )
-        ) : null}
+      <Dialog open={asking === 'uphold'} title="维持授权" confirmText="维持授权" confirmLoading={uphold.isPending} confirmDisabled={needsOwner && owner.trim() === ''} onConfirm={confirmUphold} onClose={close}>
+        {needsOwner ? <TextField label="业务负责人编号" value={owner} onChange={setOwner} /> : null}
         <TextAreaField label="理由（选填）" value={reason} onChange={setReason} />
         {uphold.isError ? <Notice tone="error" title="维持授权失败">{describeFailure(uphold.error)}</Notice> : null}
       </Dialog>

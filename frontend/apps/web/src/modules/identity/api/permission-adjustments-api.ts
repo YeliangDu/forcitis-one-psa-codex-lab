@@ -1,4 +1,4 @@
-import { DEFAULT_PAGE_LIMIT, checkedPage, collectPages, operations } from '@forcitis/api';
+import { DEFAULT_PAGE_LIMIT, checkedPage, operations } from '@forcitis/api';
 import type { ReferenceKind } from '../model/permission-adjustment';
 
 export interface AdjustmentFilter {
@@ -25,20 +25,15 @@ export function fetchAdjustment(permissionAdjustmentId: string) {
   return operations.getPlatformPermissionAdjustmentsByPermissionAdjustmentId({ path: { permissionAdjustmentId } });
 }
 
-/** `version` is versionOf(the item as read): a decision on another version answers 412. A sensitive-role review needs the business owner; a scope review takes none. */
+/** `version` is versionOf(the item as read): a decision on another version answers 412. A sensitive-role review needs the business owner (typed employee id: choosing from the employee list needs employee:read, which the handling role does not hold); a scope review takes none. */
 export async function upholdAdjustment(permissionAdjustmentId: string, version: string | undefined, reason: string, businessOwnerEmployeeId: string): Promise<void> {
   await operations.postPlatformPermissionAdjustmentsByPermissionAdjustmentIdUphold({
     path: { permissionAdjustmentId },
     body: { ...(reason === '' ? {} : { reason }), ...(businessOwnerEmployeeId === '' ? {} : { businessOwnerEmployeeId }) },
-  }, { ifMatch: version });
+  }, { ifMatch: version, keepBusinessForbidden: true });
 }
 
 /** Exactly one reference: the authorization request or the audit entry that shows the permissions were adjusted. */
 export async function markAdjusted(permissionAdjustmentId: string, version: string | undefined, reference: ReferenceKind, referenceId: string): Promise<void> {
-  await operations.postPlatformPermissionAdjustmentsByPermissionAdjustmentIdMarkAdjusted({ path: { permissionAdjustmentId }, body: { [reference]: referenceId } }, { ifMatch: version });
-}
-
-/** Employed people, for choosing the business owner. */
-export function fetchOwnerChoices() {
-  return collectPages((cursor) => operations.getOrganizationEmployees({ query: { employmentStatus: 'EMPLOYED', limit: DEFAULT_PAGE_LIMIT, ...(cursor === undefined ? {} : { cursor }) } }));
+  await operations.postPlatformPermissionAdjustmentsByPermissionAdjustmentIdMarkAdjusted({ path: { permissionAdjustmentId }, body: { [reference]: referenceId } }, { ifMatch: version, keepBusinessForbidden: true });
 }

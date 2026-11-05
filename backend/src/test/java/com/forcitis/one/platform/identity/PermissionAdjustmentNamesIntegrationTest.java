@@ -121,7 +121,7 @@ class PermissionAdjustmentNamesIntegrationTest extends IdentityIntegrationTest {
 
         JsonNode orgItem = read(administrator, org);
         assertThat(orgItem.path("roleId").asString()).isEqualTo(role.value().toString());
-        assertThat(orgItem.path("roleName").asString()).isNotBlank();
+        assertThat(orgItem.path("roleName").asString()).isEqualTo("员工");
         assertThat(orgItem.path("orgUnitId").asString()).isEqualTo(inactive.value().toString());
         assertThat(orgItem.path("orgUnitName").asString()).isEqualTo("Dissolved unit");
         assertThat(orgItem.path("userId").isNull()).isTrue();

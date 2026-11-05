@@ -25,7 +25,6 @@ const ORG_STRUCTURE = {
   orgUnitName: '合成失效部门', triggerOrgStructureCommandId: COMMAND,
 };
 const SCOPE = { ...ASSIGNMENT, kind: 'SCOPE_REVIEW' };
-const EMPLOYEES = { 'GET employees': { body: { items: [{ employeeId: OWNER, employeeCode: 'E0002', displayName: '合成负责人', employmentStatus: 'EMPLOYED', hireDate: '2024-03-01', assignments: [] }] } } };
 
 function renderDetail() {
   return renderWithProviders(<PermissionAdjustmentDetailPage />, { route: `/admin/permission-adjustments/${ID}`, path: '/admin/permission-adjustments/:permissionAdjustmentId' });
@@ -120,12 +119,11 @@ describe('待调整权限详情', () => {
     expect(screen.queryByRole('button', { name: '标记已调整' })).not.toBeInTheDocument();
   });
 
-  it('敏感角色复核的维持要选业务负责人，If-Match 带详情的版本，成功后重新读取', async () => {
+  it('敏感角色复核的维持要填业务负责人编号，If-Match 带详情的版本，成功后重新读取', async () => {
     let upheld = false;
     const server = stubServer({
       [`GET permission-adjustments/${ID}`]: () => ({ body: upheld ? { ...ASSIGNMENT, status: 'UPHELD' } : ASSIGNMENT, headers: VERSION }),
       [`POST permission-adjustments/${ID}:uphold`]: () => { upheld = true; return { body: { ...ASSIGNMENT, status: 'UPHELD' }, headers: { ETag: '"4"' } }; },
-      ...EMPLOYEES,
     });
     renderDetail();
 
@@ -133,7 +131,7 @@ describe('待调整权限详情', () => {
     const dialog = await screen.findByRole('dialog');
     const confirm = within(dialog).getByRole('button', { name: '维持授权' });
     expect(confirm).toBeDisabled();
-    await userEvent.selectOptions(await within(dialog).findByLabelText('业务负责人'), '合成负责人（E0002）');
+    await userEvent.type(within(dialog).getByLabelText('业务负责人编号'), OWNER);
     await userEvent.type(within(dialog).getByLabelText('理由（选填）'), '仍需保留');
     await userEvent.click(confirm);
 
@@ -152,7 +150,7 @@ describe('待调整权限详情', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: '维持授权' }));
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).queryByLabelText('业务负责人')).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText('业务负责人编号')).not.toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', { name: '维持授权' }));
 
     await waitFor(() => expect(server.calls.some((call) => call.method === 'POST')).toBe(true));

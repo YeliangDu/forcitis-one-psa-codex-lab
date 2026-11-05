@@ -1,6 +1,6 @@
 import { nextCursorOf, useVersionedQuery } from '@forcitis/core';
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { type AdjustmentFilter, fetchAdjustment, fetchAdjustmentPage, fetchOwnerChoices, markAdjusted, upholdAdjustment } from '../api/permission-adjustments-api';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { type AdjustmentFilter, fetchAdjustment, fetchAdjustmentPage, markAdjusted, upholdAdjustment } from '../api/permission-adjustments-api';
 import type { ReferenceKind } from '../model/permission-adjustment';
 
 const KEY = ['identity', 'permission-adjustments'] as const;
@@ -17,10 +17,6 @@ export function usePermissionAdjustments(filter: AdjustmentFilter) {
 
 export function usePermissionAdjustment(permissionAdjustmentId: string) {
   return useVersionedQuery({ queryKey: [...KEY, 'item', permissionAdjustmentId], queryFn: () => fetchAdjustment(permissionAdjustmentId), enabled: permissionAdjustmentId !== '' });
-}
-
-export function useOwnerChoices(enabled: boolean) {
-  return useQuery({ queryKey: [...KEY, 'owner-choices'], queryFn: fetchOwnerChoices, enabled });
 }
 
 /**
