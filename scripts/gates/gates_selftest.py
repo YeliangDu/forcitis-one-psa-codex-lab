@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """门的自测，合一（O8，D25；定稿 1.10「自测 1 个文件」）。`gates_selftest.py [段…]` 跑指定的段，不带参数跑全部；各门的 `--self-test` 只跑自己那一段。
-- prod_write_gate：命令原文与特征表字面匹配（用户 intent 2026-10-28-202019：命中即拒、不分大小写、无关命令不误拦、拆开或编码的按设计放行、无表失败关闭）、版式。
+- prod_write_gate：命令原文与特征表字面匹配（用户 intent 2026-11-05-085026：命中即拒、不分大小写、无关命令不误拦、拆开或编码的按设计放行、无表失败关闭）、版式。
 - pre_tool_dispatch：预筛不藏拒绝、失败关闭、时限。main_checkout_gate（含 git_ceiling_env.sh）：在临时仓库与 worktree 里端到端提交。pre_commit：.pre-commit-config.yaml 只挂两项、会话改名。
 - install：install.sh 与 .claude/settings.json 挂载，全部在临时目录里做，HOME 指向临时目录，不碰真实安装目录（安装、切换、并发、自检不过、只读、篡改核对与修复、挂载失败关闭）。
 不写任何真实生产样本的字面值，拆段拼接也不行（O2 复审 M3）：真实特征运行时按 target id 从 prod_targets.json 取（install 段只经 install.sh 自检与探针按位置取用）；其余用虚构样本（192.0.2.x 是文档专用地址）。"""
@@ -69,7 +69,7 @@ MISBLOCKED = (  # no production sample on the line: allowed (卡 #736; the first
     "aliyun --profile dev-ro ecs DescribeRegions", "./deploy.sh", "bash deploy.sh")
 
 def gate_self_test():
-    """用户 intent 2026-10-28-202019「不用，你直接简化」：整条命令原文与特征表字面匹配，不分大小写，命中即拒、没命中放行；不解析写法。"""
+    """用户 intent 2026-11-05-085026（承接 2026-10-28-202019「不用，你直接简化」）：整条命令原文与特征表字面匹配，不分大小写，命中即拒、没命中放行；不解析写法。"""
     patterns, P, H = ["pgm-prod0001", "db.prod.example.com", TEST_IP], "pgm-prod0001", TEST_IP
     verdict = lambda command, table=patterns, problem=None: judge(command, table, problem)  # noqa: E731
     hit = (f"psql -h {P} -c 'select 1'", f"ssh {H} uptime", f"curl https://{P}/health", "wget https://db.prod.example.com/x", f"git commit -m '{P} 续费说明'", f"grep -rn {P} docs",
@@ -80,7 +80,7 @@ def gate_self_test():
         expected = g.REFUSED if TEST_IP in command else None
         assert verdict(command) == expected, ("no pattern in the text: allowed", command, verdict(command))
     hidden = ("pgm-pr\"\"od0001", "pgm-pr\\od0001", "H=pgm-pr; echo ${H}od0001", "echo pgm-prod{0001,0002}", "curl http://192.0.{2,2}.15/", f"echo {P[::-1]} | rev | sh")
-    for command in hidden:  # the text is not parsed: a pattern split, built or encoded is not seen (by design, 202019; the user clears production credentials, 202108)
+    for command in hidden:  # the text is not parsed: a pattern split, built or encoded is not seen (by design, 085026; the user clears production credentials, 202108)
         assert verdict(command) is None, ("not on the text as written: allowed by design", command)
     assert verdict("ls", None, "表坏了") and verdict("ls -la", None, "表坏了"), "no table: refused (fail closed)"
     with tempfile.TemporaryDirectory() as tmp:
@@ -493,14 +493,14 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
     def bash(command): return json.dumps({"tool_name": "Bash", "tool_input": {"command": command}, "cwd": repo})
     def points_to(): return os.readlink(current) if os.path.islink(current) else None
     def leftovers(): return [n for n in os.listdir(hooks) if n.startswith(".")] if os.path.isdir(hooks) else []
-    def closed(why, shells=SHELLS, extra=()):  # the gate failed: settings.json's own pre-filter decides (H4, C3) with the same feature table and the same literal match (用户 intent 2026-10-28-202019); no table refuses all
+    def closed(why, shells=SHELLS, extra=()):  # the gate failed: settings.json's own pre-filter decides (H4, C3) with the same feature table and the same literal match (用户 intent 2026-11-05-085026); no table refuses all
         for shell in shells:
             for command, code in (("ls", 0), ("ls -la | wc -l", 0), ("git status", 0), ("gh pr list", 0), ("git -c core.pager='sh w.sh' log -1", 0), ("GIT_EXTERNAL_DIFF=./w.sh git diff", 0), ("PATH=./bin:/usr/bin ls", 0),
                                   ("echo x > /dev/tcp/10.0.0.5/6379", 0), ("sort --compress-program=./w.sh x", 0), (f"psql -h {PROD_P} -c 'delete from t'", 2), ("./deploy.sh", 0), ("echo `deploy`", 0), ("rg --pre deploy x", 0),
                                   ("ssh dev uptime", 0), ("curl -s https://x.example.invalid", 0), ("codex exec --sandbox workspace-write 'a b'", 2), ('co""dex exec x', 2), ("$'\\x63odex' exec x", 2),
                                   ("co{dex,} exec x", 2), ("co{d..d}ex exec x", 2), ("co\\\ndex exec x", 2), ("cod?x exec x", 2), ("c\\odex exec x", 2), ("ls src/{a,b}", 2), ("grep -E '^[-+][^-+]' x", 0), ("ls [z-a]", 0), ("[z-a] ; c[o]dex exec x", 2), ("[^-+]odex exec x", 2), ("[^+-]odex exec x", 2), ("[z-ac]odex exec x", 2), ("echo codex | bash", 2), ("git -c alias.x='!codex exec y' x", 2), ("git commit -m 'codex'", 0), ("echo CoDeX", 0),   # #1180: a broken gate refuses codex, even the one allowed shape; #1206 (user, intent 2026-11-04-081723): the word in a commit message or an argument is no use of it, so the last two are let through (were 2)
                                    (f"grep -rn {PROD_H} docs", 2), (f"s''sh {PROD_H} uptime", 2), (f"echo {PROD_D.upper()}", 2),
-                                  (f"c\\url https://{PROD_P[:3]}\\{PROD_P[3:]}/", 0),  # split by a backslash: not on the text as written, allowed by design (202019)
+                                  (f"c\\url https://{PROD_P[:3]}\\{PROD_P[3:]}/", 0),  # split by a backslash: not on the text as written, allowed by design (085026)
                                   *((c, 0) for c in MISBLOCKED), *((c, 2) for c in extra)):
                 r = mount(gate_cmd, bash(command), shell)
                 assert r.returncode == code and why in r.stderr and ("放行" in r.stderr) == (code == 0) and os.path.isfile(os.path.join(hooks, "gate_failures.log")) == os.path.isdir(hooks), (shell, why, command, r.returncode, r.stderr)
@@ -929,7 +929,25 @@ def pkill_gate_test():
     print("pkill_gate self-test: ok")
 
 
-SECTIONS = {"prod_write_gate": prod_write_gate_test, "codex_gate": codex_gate_test, "pkill_gate": pkill_gate_test, "pre_tool_dispatch": pre_tool_dispatch_test, "main_checkout_gate": main_checkout_gate_test, "pre_commit": pre_commit_test, "install": install_test}
+def forensic_entry_test():
+    """Card #1377: the registered forensic entry is the only production command that passes; direct calls stay refused; a non-SELECT file never leaves the entry."""
+    firsts = shipped_firsts()
+    entry = "python3 tools/ops/dba/forensic_read.py --target a8 --session s --purpose p --delete-at d --out /elsewhere/r.txt q.sql"
+    assert g.decide({"tool_name": "Bash", "tool_input": {"command": entry}, "cwd": HERE})[0] == 0, "the entry command line holds no fingerprint: allowed"
+    for name, value in firsts.items():  # a direct cloud-assistant or aliyun call naming any production fingerprint: refused
+        for command in (f"aliyun ecs RunCommand --InstanceId.1 {value} --CommandContent x", f"aliyun ecs RunCommand --profile {value} --Type RunShellScript", f"{entry} {value}"):
+            code, _, err = g.decide({"tool_name": "Bash", "tool_input": {"command": command}, "cwd": HERE})
+            assert code == 2 and "底线 4" in err, (name, command[:30])
+    with tempfile.TemporaryDirectory() as tmp:
+        Path(tmp, "w.sql").write_text("DELETE FROM t", encoding="utf-8")
+        run = subprocess.run([sys.executable, "-I", os.path.join(HERE, "..", "..", "tools", "ops", "dba", "forensic_read.py"), "--target", "a8", "--session", "s", "--purpose", "p", "--delete-at", "d",
+                              "--out", os.path.join(tmp, "out.txt"), os.path.join(tmp, "w.sql")], capture_output=True, text=True, env={"HOME": tmp, "PATH": os.environ.get("PATH", "")})
+        assert run.returncode == 2 and "refused" in run.stderr and not os.path.exists(os.path.join(tmp, "out.txt")), run
+    assert subprocess.run([sys.executable, "-I", os.path.join(HERE, "..", "..", "tools", "ops", "dba", "forensic_read_selftest.py"), "--self-test"], capture_output=True, text=True).returncode == 0
+    print("forensic_entry self-test: ok（入口命令放行；直连云助手 / aliyun 命中特征仍拒；非 SELECT 文件在入口内拒，什么都没发出）")
+
+
+SECTIONS = {"prod_write_gate": prod_write_gate_test, "forensic_entry": forensic_entry_test, "codex_gate": codex_gate_test, "pkill_gate": pkill_gate_test, "pre_tool_dispatch": pre_tool_dispatch_test, "main_checkout_gate": main_checkout_gate_test, "pre_commit": pre_commit_test, "install": install_test}
 
 if __name__ == "__main__":
     unknown = [name for name in sys.argv[1:] if name not in SECTIONS]

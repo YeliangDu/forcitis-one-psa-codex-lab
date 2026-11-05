@@ -15,6 +15,7 @@ import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.spi.ThrowableProxyUtil;
 import ch.qos.logback.core.read.ListAppender;
+import com.forcitis.one.BusinessDay;
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
@@ -271,12 +272,13 @@ class TimesheetEmployeeDayUniqueIT extends TimesheetWorkerSupport {
     @DisplayName("TS-UNIQ 工作日期按自然日保存不做时区转换；「不晚于今天」按上海业务日判断（固定 Clock 在 UTC 前一日 16:30 时，上海次日的工作日期被接受）")
     void workDateIsACalendarDayAndTodayIsTheShanghaiDay() throws Exception {
         SignedIn worker = newWorker();
-        LocalDate shanghaiNextDay = LocalDate.of(2026, 11, 3);
+        LocalDate shanghaiNextDay = TODAY.plusDays(1);
+        Instant shanghaiMidnight = shanghaiNextDay.atStartOfDay(BusinessDay.ZONE).toInstant();
 
-        clock.set(Instant.parse("2026-11-02T15:59:00Z"));
+        clock.set(shanghaiMidnight.minusSeconds(60));
         refusedWith("COST_TIMESHEET_WORK_DATE_IN_FUTURE", () -> submit(worker, newTimesheetId(), shanghaiNextDay, "8"));
 
-        clock.set(Instant.parse("2026-11-02T16:30:00Z"));
+        clock.set(shanghaiMidnight.plusSeconds(30 * 60));
         TimesheetId accepted = newTimesheetId();
         TimesheetView view = submit(worker, accepted, shanghaiNextDay, "8");
 

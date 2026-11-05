@@ -1,7 +1,7 @@
 {
   "version": 1,
   "owner": "one-ops",
-  "note": "生产特征表（GOV-1022-QUA-24）：不含密钥。patterns 是出现在命令里的子串（主机名、实例标识、IP、账号与命名前缀），大小写不敏感；来源 one-ops 的生产特征表文档（PROD_FINGERPRINT）。prod_write_gate 只拿整条命令原文转小写后与 patterns 字面匹配，命中即拒（用户 intent 2026-10-28-202019）；不读被运行的文件，不认可信入口。拆开、编码、拼接与间接引用（别名、ssh_config、DSN）不覆盖，由用户清理本机生产凭据兜底（intent 2026-10-28-202108）。改动由 one-ops 提，PR 过 opus 复审。",
+  "note": "生产特征表（GOV-1022-QUA-24）：不含密钥。patterns 是出现在命令里的子串（主机名、实例标识、IP、账号与命名前缀），大小写不敏感；来源 one-ops 的生产特征表文档（PROD_FINGERPRINT）。prod_write_gate 只拿整条命令原文转小写后与 patterns 字面匹配，命中即拒（用户 intent 2026-11-05-085026）；不读被运行的文件，不认可信入口；唯一登记的只读取证入口（tools/ops/dba/forensic_read.py，卡 #1377）的命令行不带特征，靠的不是放行规则。拆开、编码、拼接与间接引用（别名、ssh_config、DSN）不覆盖，由用户清理本机生产凭据兜底（intent 2026-10-28-202108）。改动由 one-ops 提，PR 过 opus 复审。",
   "targets": [
     {
       "id": "legacy-rds-sqlserver",
@@ -60,7 +60,7 @@
       "patterns": [
         "forcitis-production"
       ],
-      "note": "阿里云命令行的生产 profile 名：命令里出现即拒，同其他特征（卡 #736；用户 intent 2026-10-28-202019 门只做字面匹配）"
+      "note": "阿里云命令行的生产 profile 名：命令里出现即拒，同其他特征（卡 #736；用户 intent 2026-11-05-085026 门只做字面匹配）"
     }
   ]
 }

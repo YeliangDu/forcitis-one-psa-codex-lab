@@ -23,7 +23,7 @@ class AttributionCountersignListPagingIntegrationTest extends WorkforceIntegrati
     private static final UUID ENTITY_A = UUID.fromString("019a0000-0000-7000-8000-00000000b1f1");
     private static final UUID ENTITY_B = UUID.fromString("019a0000-0000-7000-8000-00000000b1f2");
     private static final UUID DRAFTER = UUID.fromString("019a0000-0000-7000-8000-00000000b1a1");
-    private static final LocalDate TODAY = LocalDate.parse("2026-12-01");
+    private static final LocalDate TODAY = com.forcitis.one.BusinessDay.today();
 
     @Autowired
     AttributionCountersignQueries queries;

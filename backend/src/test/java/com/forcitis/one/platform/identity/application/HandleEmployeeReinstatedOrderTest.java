@@ -36,7 +36,7 @@ class HandleEmployeeReinstatedOrderTest {
     void theLockComesBeforeTheDirectoryRead() {
         UserId user = TestAccounts.account(1001);
         var employee = TestAccounts.employee(1001);
-        when(accounts.findForUpdate(any())).thenReturn(Optional.of(UserAccount.restore(user, employee, "ENABLED", Set.of(), 1, 1)));
+        when(accounts.findForUpdate(any())).thenReturn(Optional.of(UserAccount.restore(user, employee, "ENABLED", Set.of(), null, 1, 1)));
         when(directory.findEmployee(employee)).thenReturn(Optional.empty());
         var event = new EmployeeReinstated(TestEnvelopes.of("organization.workforce.EmployeeReinstated", "Employee", employee.value()),
                 new PersonnelCommandId(UUID.randomUUID()), employee, LocalDate.of(2026, 11, 2));

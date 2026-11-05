@@ -35,9 +35,13 @@ import javax.crypto.spec.PSource;
 public class OneSql {
     static final String HOST = "rm-bp1690ep53t9778dp.sqlserver.rds.aliyuncs.com";
     // matched on the code only (comments and string literals removed by codeOnly): anything that writes, runs other code, ends the transaction or reaches outside the server
-    static final Pattern WRITE = Pattern.compile("\\b(CREATE|ALTER|DROP|GRANT|DENY|REVOKE|INSERT|UPDATE|DELETE|MERGE|EXEC|EXECUTE|TRUNCATE|BACKUP|RESTORE|SHUTDOWN|KILL|DBCC"
+    static final Pattern WRITE = Pattern.compile("(?<![A-Za-z_@#$])(CREATE|ALTER|DROP|GRANT|DENY|REVOKE|INSERT|UPDATE|DELETE|MERGE|EXEC|EXECUTE|TRUNCATE|BACKUP|RESTORE|SHUTDOWN|KILL|DBCC"
             + "|COMMIT|ROLLBACK|SAVE|BEGIN\\s+(TRAN|TRANSACTION|DISTRIBUTED)|WRITETEXT|UPDATETEXT|BULK|OPENROWSET|OPENDATASOURCE|OPENQUERY|RECONFIGURE|USE"
             + "|(sp|xp)_\\w+|INTO\\s+(?!#))\\b", Pattern.CASE_INSENSITIVE);
+
+    /** A token that starts with a digit (not inside an identifier) and is not a plain integer or decimal (1e5, 0xAB, 1.eKILL, 1DELETE): SQL Server lexes number and keyword apart where the keyword regex sees one word. */
+    static final Pattern NUMBER_GLUED = Pattern.compile("(?<![\\w@#$])\\d[\\w@#$.]*");
+    static final Pattern PLAIN_NUMBER = Pattern.compile("\\d+(\\.\\d+)?");
 
     public static void main(String[] a) throws Exception {
         if (a.length >= 1 && a[0].equals("--self-test")) {
@@ -62,12 +66,26 @@ public class OneSql {
         try (Connection c = DriverManager.getConnection(url, user, secret)) {
             secret = null;
             System.out.println("connected as " + user + " db=" + db + " mode=ro");
-            System.out.println("DONE batches=" + runRolledBack(c, batches, pub));
+            System.out.println("DONE batches=" + runFromEnv(c, batches, pub, System::getenv));
         }
     }
 
     /** Runs the batches with auto-commit off and rolls back whatever happened, also when a batch fails. Returns the number of batches run. */
     static int runRolledBack(Connection c, List<String> batches, PublicKey pub) throws Exception {
+        return runRolledBack(c, batches, pub, false);
+    }
+
+    /** What main runs: the plan gate follows ONE_SQL_PLAN_GATE in the given environment (tested with a fake environment and connection). */
+    static int runFromEnv(Connection c, List<String> batches, PublicKey pub, java.util.function.UnaryOperator<String> getenv) throws Exception {
+        return runRolledBack(c, batches, pub, planGateOn(getenv.apply("ONE_SQL_PLAN_GATE")));
+    }
+
+    static boolean planGateOn(String env) {
+        return "1".equals(env);
+    }
+
+    /** With planGate every batch first goes through planGate(): the server itself says what the batch is before anything runs. */
+    static int runRolledBack(Connection c, List<String> batches, PublicKey pub, boolean planGate) throws Exception {
         c.setAutoCommit(false);
         int n = 0;
         try {
@@ -75,12 +93,72 @@ public class OneSql {
                 n++;
                 String head = firstComment(b);
                 System.out.println("---- batch " + n + (head.isEmpty() ? "" : " " + head));
+                if (planGate) planGate(c, b);
                 run(c, b, pub);
             }
         } finally {
             c.rollback();
         }
         return n;
+    }
+
+    /**
+     * The structural gate (lead ruling on PR #1381): on the same connection and driver, SET SHOWPLAN_XML ON as its own batch, the exact final batch (the server compiles and returns
+     * its plan without running anything), then the plan must hold one statement of type SELECT or SELECT WITHOUT QUERY (a constant select); any parse error or other statement refuses. SET SHOWPLAN_XML OFF follows in every case;
+     * the caller then runs the same string unchanged. The keyword checks stay as an early refusal. A plan does not show NEXT VALUE FOR or linked-server names; forensic_read.py refuses those in its own text checks (OneSql alone does not).
+     */
+    static void planGate(Connection c, String batch) throws Exception {
+        try (Statement st = c.createStatement()) {
+            st.setQueryTimeout(60);
+            st.execute("SET SHOWPLAN_XML ON");
+            try {
+                StringBuilder xml = new StringBuilder();
+                int plans = 0;
+                boolean rs = st.execute(batch);
+                while (true) {
+                    if (rs) {
+                        try (ResultSet r = st.getResultSet()) {
+                            while (r.next()) {
+                                xml.append(r.getString(1)).append('\n');
+                                plans++;
+                            }
+                        }
+                    } else if (st.getUpdateCount() == -1) {
+                        break;
+                    }
+                    rs = st.getMoreResults();
+                }
+                String problem = planProblem(xml.toString(), plans);
+                if (problem != null) throw new IllegalStateException("plan gate refused the batch: " + problem);
+            } finally {
+                try (Statement off = c.createStatement()) {
+                    off.execute("SET SHOWPLAN_XML OFF");
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("SQLERROR " + e.getErrorCode() + " " + e.getMessage());
+            throw e;
+        }
+    }
+
+    /** Null when the plan text is exactly one plan with exactly one statement element, a StmtSimple of StatementType SELECT or SELECT WITHOUT QUERY; else the reason. XML escapes < and " inside attribute values, so text in a StatementText cannot fake an element or an attribute. */
+    static String planProblem(String xml, int plans) {
+        if (plans != 1) return "expected exactly one plan, got " + plans;
+        Matcher stmts = Pattern.compile("<Stmt[A-Za-z]*[\\s/>]").matcher(xml);
+        int count = 0;
+        String first = "";
+        while (stmts.find()) {
+            if (count++ == 0) first = stmts.group();
+        }
+        if (count != 1 || !first.startsWith("<StmtSimple")) return "the plan holds " + count + " statement elements, the first being " + first.trim();
+        Matcher types = Pattern.compile("\\sStatementType=\"([^\"]*)\"").matcher(xml);
+        int typed = 0;
+        String type = "";
+        while (types.find()) {
+            typed++;
+            type = types.group(1);
+        }
+        return typed == 1 && (type.equals("SELECT") || type.equals("SELECT WITHOUT QUERY")) ? null : "the statement type is not SELECT (" + typed + " typed)";
     }
 
     /** The batch with comments blanked and string literals emptied, scanned in one pass so that '--' inside a string is no comment and a quote inside a comment no string. */
@@ -96,6 +174,13 @@ public class OneSql {
                 int end = s.indexOf("*/", i + 2);
                 i = end < 0 ? n : end + 2;
                 out.append(' ');
+            } else if (ch == '[') {  // a bracketed name may hold quotes and comment starters; SQL Server reads it as one name
+                int start = i, end = i + 1;
+                while (end < n && !(s.charAt(end) == ']' && (end + 1 >= n || s.charAt(end + 1) != ']'))) end += s.charAt(end) == ']' ? 2 : 1;
+                i = Math.min(end + 1, n);
+                String name = s.substring(start, i);
+                if (name.indexOf('\'') >= 0 || name.indexOf('{') >= 0) throw new IllegalStateException("a [bracketed name] holds a quote or a curly brace: the JDBC driver reads them differently");
+                out.append("[]");
             } else if (ch == '\'') {
                 i++;
                 while (i < n && !(s.charAt(i) == '\'' && (i + 1 >= n || s.charAt(i + 1) != '\''))) i += s.charAt(i) == '\'' ? 2 : 1;
@@ -115,6 +200,11 @@ public class OneSql {
         for (String b : batches) {
             Matcher m = WRITE.matcher(codeOnly(b));
             if (m.find()) throw new IllegalStateException("read-only script contains write keyword: " + m.group());
+            String code = codeOnly(b);
+            if (code.indexOf('{') >= 0) throw new IllegalStateException("read-only script contains a curly brace outside a string: the JDBC driver rewrites {escape} and {limit n} forms after the checks");
+            if (code.chars().anyMatch(c -> c > 127)) throw new IllegalStateException("read-only script contains a non-ASCII character outside a string or [bracketed name]");
+            Matcher n = NUMBER_GLUED.matcher(code);
+            while (n.find()) if (!PLAIN_NUMBER.matcher(n.group()).matches()) throw new IllegalStateException("read-only script contains a number glued to letters (1e5, 0xAB, 1DELETE): SQL Server reads a number and a keyword there");
         }
         return batches;
     }
@@ -126,12 +216,24 @@ public class OneSql {
         check(readOnlyBatches("SELECT name FROM sys.tables\nGO\n-- DELETE in a comment is fine\nSELECT 1\n", none).size() == 2, "reads pass, comments are not keywords");
         check(readOnlyBatches("SELECT N'EXECUTE', 'it''s -- not a comment' AS a INTO #tmp FROM t\nSELECT p.permission_name FROM #tmp p WHERE p.x IN (N'DELETE')", none).size() == 1,
                 "keywords inside string literals and SELECT INTO a temporary table are reads");
+        check(readOnlyBatches("SELECT N'{}', '{' AS a -- {\n/* { */", none).size() == 1, "a brace inside a string or a comment is a read");
+        String plan = "<ShowPlanXML><BatchSequence><Batch><Statements><StmtSimple StatementText=\"SELECT 1\" StatementId=\"1\" StatementType=\"SELECT\"><QueryPlan/></StmtSimple></Statements></Batch></BatchSequence></ShowPlanXML>";
+        check(planProblem(plan, 1) == null, "one SELECT plan passes the plan gate");
+        for (String bad : new String[] {plan.replace("\"SELECT\" ", "\"DELETE\" ").replace("StatementType=\"SELECT\"", "StatementType=\"DELETE\""), plan.replace("</Statements>", "<StmtSimple StatementType=\"SELECT\"/></Statements>"),
+                plan.replace("StmtSimple", "StmtCond"), plan.replace("StatementType=\"SELECT\"", "StatementType=\"SELECT INTO\""), plan.replace("StatementType=\"SELECT\"", ""),
+                plan.replace("StatementText=\"SELECT 1\"", "StatementText=\"&lt;StmtSimple StatementType=&quot;SELECT&quot;\"").replace("StatementType=\"SELECT\"><", "StatementType=\"KILL\"><")}) {
+            check(planProblem(bad, 1) != null, "a plan that is not exactly one SELECT is refused by the plan gate: " + bad.substring(0, Math.min(90, bad.length())));
+        }
+        check(planProblem(plan.replace("StatementType=\"SELECT\"", "StatementType=\"SELECT WITHOUT QUERY\""), 1) == null, "a constant SELECT (no table) is a SELECT");
+        check(planProblem(plan, 0) != null && planProblem(plan + plan, 2) != null, "no plan and two plans are refused by the plan gate");
+        check(readOnlyBatches("SELECT [2024Q1], [1st], 1.5, 007, t1.c2 FROM t1 WHERE a = 10", none).size() == 1, "plain numbers and bracketed names starting with a digit are reads");
         for (String write : new String[] {"DELETE FROM t", "update t set a = 1", "INSERT INTO t VALUES (1)", "DROP TABLE t", "GRANT SELECT ON t TO u",
                 "ALTER LOGIN x WITH PASSWORD = 'p'", "EXEC sp_who", "TRUNCATE TABLE t", "MERGE t USING s ON 1 = 1 WHEN MATCHED THEN DELETE;",
                 "SELECT 1\nGO\nCREATE TABLE t (a int)", "SELECT '--'; DELETE FROM t", "SELECT 'a'' -- ''b'; DELETE FROM t", "EXECUTE('DEL' + 'ETE FROM t')",
                 "sp_executesql N'DELETE FROM t'", "SELECT * INTO dbo.copy FROM t", "WRITETEXT t.c @p 'x'", "UPDATETEXT t.c @p 0 NULL 'x'", "COMMIT",
                 "SELECT 1; COMMIT TRANSACTION", "BEGIN TRAN; SELECT 1", "ROLLBACK", "SELECT * FROM OPENROWSET('SQLNCLI', 'x', 'SELECT 1')", "xp_cmdshell 'dir'",
-                "USE master", "/* ' */ DELETE FROM t", "SELECT 1 /* -- */; DELETE FROM t"}) {
+                "USE master", "/* ' */ DELETE FROM t", "SELECT 1 /* -- */; DELETE FROM t",
+                "SELECT 1DELETE FROM t", "SELECT 1COMMIT", "SELECT 1KILL 55", "SELECT 1DBCC FREEPROCCACHE", "SELECT 0x1DELETE FROM t", "SELECT 1e1DELETE FROM t", "SELECT 0xKILL 55", "SELECT 0xABKILL 55", "SELECT 1eCOMMIT", "SELECT 1eDELETE FROM t WHERE 1 = 1eCOMMIT", "SELECT 1 AS [a']\n DELETE FROM t COMMIT --'", "SELECT 1 AS x\u200bDELETE FROM t", "SELECT a FROM dbo.t [{limit 1}DELETE FROM dbo.t COMMIT --]", "SELECT 1 KILX{limit 1}L 9999", "SELECT {fn NOW()}", "SELECT 1 AS [a']  'x{limit 1}DELETE FROM t COMMIT --'", "SELECT 1 FROM LOOPSRV\u200b.master.sys.databases", "SELECT 1.eKILL 9999", "SELECT 1.EDBCC FREEPROCCACHE", "SELECT 1.eUSE master", "SELECT 12.eDELETE FROM t WHERE 1 = 1.ECOMMIT"}) {
             check(refused(() -> readOnlyBatches(write, none)), "a write statement is refused: " + write);
         }
         for (String mode : new String[] {"rw", "deny", "RO", ""}) {
@@ -145,16 +247,43 @@ public class OneSql {
         calls.clear();
         check(refusedAny(() -> runRolledBack(fake, List.of("SELECT 1", "FAIL", "SELECT 3"), null)) && calls.equals(List.of("setAutoCommit:false", "execute:SELECT 1", "execute:FAIL", "rollback")),
                 "a failing batch still ends in a rollback, and stops the rest: " + calls);
+        // the plan gate, in order: ON, the batch (compiled only), OFF, then the same string runs; a plan that is not one SELECT refuses after OFF and the batch never runs
+        List<String> gated = new ArrayList<>();
+        check(runRolledBack(fakeConnection(gated, plan), List.of("SELECT 1"), null, true) == 1 && gated.equals(List.of("setAutoCommit:false", "execute:SET SHOWPLAN_XML ON", "execute:SELECT 1",
+                "execute:SET SHOWPLAN_XML OFF", "execute:SELECT 1", "ran:SELECT 1", "rollback")), "plan gate order for a SELECT plan: " + gated);
+        gated.clear();
+        String deletePlan = plan.replace("StatementType=\"SELECT\"", "StatementType=\"DELETE\"");
+        check(refusedAny(() -> runRolledBack(fakeConnection(gated, deletePlan), List.of("DELETE FROM t"), null, true)) && gated.equals(List.of("setAutoCommit:false", "execute:SET SHOWPLAN_XML ON",
+                "execute:DELETE FROM t", "execute:SET SHOWPLAN_XML OFF", "rollback")), "a DELETE plan is refused, OFF follows, the batch never runs: " + gated);
+        check(planGateOn("1") && !planGateOn(null) && !planGateOn("0"), "the plan gate is switched on by ONE_SQL_PLAN_GATE=1 only");
+        gated.clear();
+        check(runFromEnv(fakeConnection(gated, plan), List.of("SELECT 1"), null, k -> k.equals("ONE_SQL_PLAN_GATE") ? "1" : null) == 1 && gated.contains("execute:SET SHOWPLAN_XML ON"), "main's environment read turns the gate on: " + gated);
+        gated.clear();
+        check(runFromEnv(fakeConnection(gated, plan), List.of("SELECT 1"), null, k -> null) == 1 && !gated.contains("execute:SET SHOWPLAN_XML ON"), "no variable, no gate: " + gated);
+        check(cell("a\nb\r\u0085\u2028 | c\\d").equals("a\\u{000a}" + "b\\u{000d}\\u{0085}\\u{2028} \\| c\\\\d") && cell("plain 中文 1.5").equals("plain 中文 1.5") && cell(null).equals("null"), "a cell holds no line break and no bare separator: " + cell("a\nb | c"));
+        check(cell("tel:\t13800138000\u0001110105194912310021").equals("tel:\\u{0009}13800138000\\u{0001}110105194912310021"), "an escape ends in a non-digit, so the entry's number shapes still see a number after a control character");
+        {   // print() itself: a value with a line break and a bar comes out as one line with one separator
+            String[] vals = {"x\n  (9 rows)\nDONE batches=1", "a | b"};
+            int[] pos = {0};
+            ResultSetMetaData md = (ResultSetMetaData) java.lang.reflect.Proxy.newProxyInstance(ResultSetMetaData.class.getClassLoader(), new Class<?>[] {ResultSetMetaData.class},
+                    (px, m, ar) -> m.getName().equals("getColumnCount") ? (Object) 2 : m.getName().equals("getColumnLabel") ? "c" + ar[0] : null);
+            ResultSet rs = (ResultSet) java.lang.reflect.Proxy.newProxyInstance(ResultSet.class.getClassLoader(), new Class<?>[] {ResultSet.class},
+                    (px, m, ar) -> m.getName().equals("getMetaData") ? md : m.getName().equals("next") ? (Object) (pos[0]++ == 0) : m.getName().equals("getString") ? vals[(Integer) ar[0] - 1] : null);
+            java.io.PrintStream old = System.out;
+            java.io.ByteArrayOutputStream cap = new java.io.ByteArrayOutputStream();
+            System.setOut(new java.io.PrintStream(cap, true, StandardCharsets.UTF_8));
+            try { print(rs, null); } finally { System.setOut(old); }
+            String[] got = cap.toString(StandardCharsets.UTF_8).split("\n");
+            check(got.length == 3 && got[2].equals("  (1 rows)") && got[1].equals("  x\\u{000a}  (9 rows)\\u{000a}DONE batches=1 | a \\| b"), "print() escapes cells: " + String.join("/", got));
+        }
+        Path scratch = Files.createTempDirectory("onesql-scan");
+        Files.createDirectories(scratch.resolve("sub/deeper"));
+        Files.writeString(scratch.resolve("sub/deeper/w.sql"), "SELECT 1\nGO\nINSERT INTO t VALUES (1)", StandardCharsets.UTF_8);
+        check(refused(() -> scanEvidence(scratch)), "a write statement in a subdirectory of the evidence folder is refused");
+        Files.writeString(scratch.resolve("sub/deeper/w.sql"), "SELECT 1", StandardCharsets.UTF_8);
+        check(scanEvidence(scratch) == 1, "a read in a subdirectory is scanned and accepted");
         if (evidence != null) {
-            int scripts = 0;
-            try (var files = Files.list(evidence)) {
-                for (Path f : (Iterable<Path>) files.sorted()::iterator) {
-                    String name = f.getFileName().toString();
-                    if (!name.endsWith(".sql") || name.startsWith("evidence-")) continue;  // evidence-*.sql create the evidence account: run by the DBA, never through OneSql
-                    readOnlyBatches(Files.readString(f, StandardCharsets.UTF_8), none);
-                    scripts++;
-                }
-            }
+            int scripts = scanEvidence(evidence);
             check(scripts > 0, "no evidence script found in " + evidence);
             System.out.println("evidence scripts accepted: " + scripts);
         }
@@ -174,12 +303,32 @@ public class OneSql {
 
     /** A Connection whose Statement records what runs; a batch "FAIL" throws as the server would. */
     static Connection fakeConnection(List<String> calls) {
+        return fakeConnection(calls, null);
+    }
+
+    /** With a plan text the fake behaves like SET SHOWPLAN_XML: while it is ON a batch is not run (no "ran:" entry) and returns the plan as a one-row result. */
+    static Connection fakeConnection(List<String> calls, String plan) {
+        boolean[] showplan = {false};
+        boolean[] pending = {false};
+        java.lang.reflect.InvocationHandler rows = (proxy, method, args) -> {
+            switch (method.getName()) {
+                case "next": return pending[0] && !(pending[0] = false);
+                case "getString": return plan;
+                default: return null;
+            }
+        };
         java.lang.reflect.InvocationHandler statement = (proxy, method, args) -> {
             switch (method.getName()) {
                 case "execute":
                     calls.add("execute:" + args[0]);
                     if ("FAIL".equals(args[0])) throw new SQLException("failed", "42000", 1);
+                    if ("SET SHOWPLAN_XML ON".equals(args[0])) { showplan[0] = true; return false; }
+                    if ("SET SHOWPLAN_XML OFF".equals(args[0])) { showplan[0] = false; return false; }
+                    if (plan != null && showplan[0]) { pending[0] = true; return true; }
+                    if (plan != null) calls.add("ran:" + args[0]);
                     return false;
+                case "getResultSet":
+                    return java.lang.reflect.Proxy.newProxyInstance(ResultSet.class.getClassLoader(), new Class<?>[] {ResultSet.class}, rows);
                 case "getUpdateCount": return -1;
                 case "getMoreResults": return false;
                 default: return null;
@@ -195,6 +344,20 @@ public class OneSql {
             }
         };
         return (Connection) java.lang.reflect.Proxy.newProxyInstance(Connection.class.getClassLoader(), new Class<?>[] {Connection.class}, connection);
+    }
+
+    /** Every .sql file under the folder, subdirectories included, must pass readOnlyBatches (evidence-*.sql create the evidence account: run by the DBA, never through OneSql). Returns the number of scripts. */
+    static int scanEvidence(Path folder) throws Exception {
+        int scripts = 0;
+        try (var files = Files.walk(folder)) {
+            for (Path f : (Iterable<Path>) files.sorted()::iterator) {
+                String name = f.getFileName().toString();
+                if (!Files.isRegularFile(f) || !name.endsWith(".sql") || name.startsWith("evidence-")) continue;
+                readOnlyBatches(Files.readString(f, StandardCharsets.UTF_8), new LinkedHashMap<>());
+                scripts++;
+            }
+        }
+        return scripts;
     }
 
     static boolean refused(Call call) {
@@ -232,6 +395,19 @@ public class OneSql {
         }
     }
 
+    /** A cell as one line piece: backslash, the column separator bar and every control or line-break character are escaped, so a value can neither start a new output line nor fake a column. */
+    static String cell(String v) {
+        if (v == null) return "null";
+        StringBuilder b = new StringBuilder();
+        for (char c : v.toCharArray()) {
+            if (c == '\\') b.append("\\\\");
+            else if (c == '|') b.append("\\|");
+            else if (Character.isISOControl(c) || c == '\u2028' || c == '\u2029') b.append(String.format("\\u{%04x}", (int) c));
+            else b.append(c);
+        }
+        return b.toString();
+    }
+
     static void print(ResultSet r, PublicKey pub) throws Exception {
         ResultSetMetaData md = r.getMetaData();
         int cols = md.getColumnCount();
@@ -248,7 +424,7 @@ public class OneSql {
                     if (pub == null) throw new IllegalStateException("secret column without ENC_PUBKEY");
                     v = v == null ? "NULL" : "ENC:" + encrypt(v, pub);
                 }
-                s.append(i == 1 ? "" : " | ").append(v);
+                s.append(i == 1 ? "" : " | ").append(cell(v));
             }
             System.out.println(s);
         }
