@@ -63,7 +63,7 @@ public class GrantRoleByOperations {
         }
         // Judged under the account lock, as ReplaceAccountRoles does: a person who left gets no role, also from operations (#1333).
         if (!employment.isEmployed(account)) {
-            throw new DomainException(IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED, ErrorKind.FORBIDDEN, "the person left; no role is granted");
+            throw IdentityError.PLATFORM_IDENTITY_EMPLOYEE_SEPARATED.refusal("the person left; no role is granted");
         }
         Set<RoleId> wanted = new HashSet<>(account.roles());
         wanted.add(role.roleId());
