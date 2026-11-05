@@ -45,3 +45,48 @@ terms:
   status: approved
   confirmed: 用户 2026-11-04 「照建议」 (#1281)
   note: 授权申请确认页的列名（#1281），对应接口字段 subjectUserId
+- id: authorization_request_kind__create_role
+  zh: 新建角色
+  en: RoleCreation
+  snake: role_creation
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 申请新建一个含敏感权限的角色（CREATE_ROLE）
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-04 「照建议」 (#1286)
+  note: 授权申请确认页的申请类型标签（#1286），对应接口 kind 的取值
+- id: authorization_request_kind__update_role
+  zh: 修改角色
+  en: RoleRevision
+  snake: role_revision
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 申请把一个角色改成含敏感权限（UPDATE_ROLE）
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-04 「照建议」 (#1286)
+  note: 授权申请确认页的申请类型标签（#1286），对应接口 kind 的取值
+- id: authorization_request_kind__replace_roles
+  zh: 替换角色
+  en: RoleReplacement
+  snake: role_replacement
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 申请替换一名用户持有的角色（REPLACE_ROLES）
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: 用户 2026-11-04 「照建议」 (#1286)
+  note: 授权申请确认页的申请类型标签（#1286），对应接口 kind 的取值

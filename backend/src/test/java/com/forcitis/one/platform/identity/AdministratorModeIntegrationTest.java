@@ -180,7 +180,7 @@ class AdministratorModeIntegrationTest extends IdentityIntegrationTest {
     }
 
     @Test
-    @DisplayName("the system management navigation is visible in the administrator mode, with the role page only; in an ordinary session it is not")
+    @DisplayName("the system management navigation is visible in the administrator mode, with the role page and the authorization requests page, in sort order; in an ordinary session it is not")
     void systemManagementIsVisibleInTheAdministratorMode() throws Exception {
         createAccount(9, "super_admin", "employee");
         String ordinary = loginWithWecom(9);
@@ -190,7 +190,7 @@ class AdministratorModeIntegrationTest extends IdentityIntegrationTest {
         var system = entries.valueStream().filter(n -> n.path("name").asString().equals("\u7cfb\u7edf\u7ba1\u7406")).findFirst();
 
         assertThat(system).isPresent();
-        assertThat(system.get().path("children").valueStream().map(n -> n.path("routePath").asString()).toList()).containsExactly("/admin/roles");
+        assertThat(system.get().path("children").valueStream().map(n -> n.path("routePath").asString()).toList()).containsExactly("/admin/roles", "/admin/authorization-requests");
         assertThat(me(loginWithWecom(9)).path("navigation").valueStream().map(n -> n.path("name").asString())).doesNotContain("\u7cfb\u7edf\u7ba1\u7406");
     }
 

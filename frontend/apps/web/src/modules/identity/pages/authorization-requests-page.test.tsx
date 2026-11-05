@@ -7,13 +7,14 @@ import { AuthorizationRequestsPage } from './authorization-requests-page';
 
 const UPDATE = 'platform.identity:account-role:update';
 const FIRST = '019a0000-0000-7000-8000-000000009001';
+const THIRD = '019a0000-0000-7000-8000-000000009003';
 const SECOND = '019a0000-0000-7000-8000-000000009002';
 const REQUESTER = '019a0000-0000-7000-8000-000000001001';
 const SUBJECT = '019a0000-0000-7000-8000-000000001002';
 
 const REQUESTS = [
-  { requestId: FIRST, kind: 'UPDATE_ROLE', roleId: '019a0000-0000-7000-8000-000000008001', roleName: '合成角色甲', roleCodes: ['synthetic_a'], permissionCodes: ['platform.numbering:numbering-rule:approve'], requestedBy: REQUESTER, requestedAt: '2026-11-03T01:00:00Z' },
-  { requestId: SECOND, kind: 'REPLACE_ROLES', roleCodes: ['synthetic_b'], permissionCodes: [], subjectUserId: SUBJECT, requestedBy: REQUESTER, requestedAt: '2026-11-03T02:00:00Z' },
+  { requestId: FIRST, kind: 'UPDATE_ROLE', roleId: '019a0000-0000-7000-8000-000000008001', roleName: '合成角色甲', roleCodes: ['synthetic_a'], roleLabels: [{ code: 'synthetic_a', name: '合成角色甲' }], permissionCodes: ['platform.numbering:numbering-rule:approve'], requestedBy: REQUESTER, requestedByName: '合成申请人', requestedAt: '2026-11-03T01:00:00Z' },
+  { requestId: SECOND, kind: 'REPLACE_ROLES', roleCodes: ['synthetic_b'], roleLabels: [{ code: 'synthetic_b', name: '合成角色乙' }], permissionCodes: [], subjectUserId: SUBJECT, subjectUserName: '合成被授权人', requestedBy: REQUESTER, requestedByName: '合成申请人', requestedAt: '2026-11-03T02:00:00Z' },
 ];
 
 function rowOf(text: string) {
@@ -36,8 +37,31 @@ describe('授权申请页', () => {
 
     expect(await screen.findByText('合成角色甲')).toBeInTheDocument();
     expect(rowOf('合成角色甲').getByText(/platform\.numbering:numbering-rule:approve/)).toBeInTheDocument();
-    expect(rowOf('synthetic_b').getByText(SUBJECT)).toBeInTheDocument();
-    expect(screen.getAllByText(REQUESTER)).toHaveLength(2);
+    expect(rowOf('合成角色乙').getByText('合成被授权人')).toBeInTheDocument();
+    expect(screen.getAllByText('合成申请人')).toHaveLength(2);
+    expect(screen.queryByText(REQUESTER)).not.toBeInTheDocument();
+    expect(screen.queryByText(SUBJECT)).not.toBeInTheDocument();
+  });
+
+  it('每一行显示申请类型：新建角色、修改角色、替换角色', async () => {
+    const created = { requestId: THIRD, kind: 'CREATE_ROLE', roleName: '合成角色丙', roleCodes: ['synthetic_c'], roleLabels: [], permissionCodes: [], requestedBy: REQUESTER, requestedAt: '2026-11-03T03:00:00Z' };
+    stubServer({ 'GET sessions:current': { body: currentUserBody([UPDATE]) }, 'GET authorization-requests': { body: { items: [...REQUESTS, created] } } });
+    renderWithProviders(<AuthorizationRequestsPage />);
+
+    await screen.findByText('合成角色甲');
+    expect(rowOf('合成角色甲').getByText('修改角色')).toBeInTheDocument();
+    expect(rowOf('合成角色乙').getByText('替换角色')).toBeInTheDocument();
+    expect(rowOf('合成角色丙').getByText('新建角色')).toBeInTheDocument();
+  });
+
+  it('服务端没有给出名称时显示它代表的编号，角色显示角色代码', async () => {
+    const bare = { requestId: THIRD, kind: 'REPLACE_ROLES', roleCodes: ['synthetic_d'], roleLabels: [{ code: 'synthetic_d' }], permissionCodes: [], subjectUserId: SUBJECT, requestedBy: REQUESTER, requestedAt: '2026-11-03T03:00:00Z' };
+    stubServer({ 'GET sessions:current': { body: currentUserBody([UPDATE]) }, 'GET authorization-requests': { body: { items: [bare] } } });
+    renderWithProviders(<AuthorizationRequestsPage />);
+
+    expect(await screen.findByText('synthetic_d')).toBeInTheDocument();
+    expect(rowOf('synthetic_d').getByText(SUBJECT)).toBeInTheDocument();
+    expect(rowOf('synthetic_d').getByText(REQUESTER)).toBeInTheDocument();
   });
 
   it('没有待确认的申请：显示空状态', async () => {
@@ -55,7 +79,7 @@ describe('授权申请页', () => {
     renderWithProviders(<AuthorizationRequestsPage />);
 
     expect(await screen.findByText('合成角色甲')).toBeInTheDocument();
-    expect(screen.getByText('synthetic_b')).toBeInTheDocument();
+    expect(screen.getByText('合成角色乙')).toBeInTheDocument();
     expect(server.calls.filter((call) => call.url.includes('authorization-requests')).length).toBe(2);
   });
 
@@ -92,7 +116,7 @@ describe('授权申请页', () => {
     expect(post?.url.endsWith(`${FIRST}:confirm`)).toBe(true);
     expect(post?.headers.get('Idempotency-Key')).toMatch(/^[0-9a-f-]{36}$/);
     expect(post?.headers.get('If-Match')).toBeNull();
-    expect(screen.getByText('synthetic_b')).toBeInTheDocument();
+    expect(screen.getByText('合成角色乙')).toBeInTheDocument();
   });
 
   it('驳回：提交到驳回接口', async () => {
@@ -103,8 +127,8 @@ describe('授权申请页', () => {
     });
     renderWithProviders(<AuthorizationRequestsPage />);
 
-    await screen.findByText('synthetic_b');
-    await decide('synthetic_b', '驳回');
+    await screen.findByText('合成角色乙');
+    await decide('合成角色乙', '驳回');
 
     await waitFor(() => expect(server.calls.some((call) => call.url.endsWith(`${SECOND}:reject`))).toBe(true));
     expect(server.calls.some((call) => call.url.endsWith(':confirm'))).toBe(false);
