@@ -5,6 +5,7 @@ export { DataTable, DescriptionList } from './data-display';
 export type { DataColumn } from './data-display';
 export { Dialog, EmptyState, LoadingState, Notice } from './feedback';
 export { SelectField, TextAreaField, TextField } from './form-fields';
+export { ReasonDialog } from './reason-dialog';
 export { InboxList } from './inbox-list';
 export type { InboxFilter, InboxRow } from './inbox-list';
 export { LoginPanel } from './login-panel';

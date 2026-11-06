@@ -913,6 +913,7 @@ processes:
     status: draft
     human_orchestration: true
     bpmn: ~
+    runtime_bpmn: backend/src/main/resources/processes/organization_recruitment_requisition_approval.bpmn20.xml
   - id: PRC-82
     name: "登记候选人并作出录用决定"
     type: business

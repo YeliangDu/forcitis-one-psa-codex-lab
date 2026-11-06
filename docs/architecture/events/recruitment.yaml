@@ -1,0 +1,121 @@
+# 事件目录分片（AsyncAPI 3 的 components.messages）：本模块的事件由 build_asyncapi.py 合成 asyncapi.yaml
+components:
+  messages:
+    RequisitionSubmitted:
+      name: RequisitionSubmitted
+      title: 招聘需求提交
+      payload:
+        type: object
+        properties:
+          requisitionId:
+            type: string
+            format: uuid
+            x-type: RequisitionId
+            description: 提交的招聘需求
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 用人的组织单元
+          positionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            description: 需求的岗位
+          submittedAt:
+            type: string
+            format: date-time
+            x-type: Instant
+            description: 提交的时刻
+      x-event:
+        eventType: organization.recruitment.RequisitionSubmitted
+        version: 1
+        class: com.forcitis.one.organization.recruitment.events.RequisitionSubmitted
+        aggregate: RecruitmentRequisition
+        idempotencyKey: eventId
+        publisher: organization.recruitment
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 提交当日（业务时区）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.recruitment.domain.RecruitmentRequisitionTest
+        noConsumer: 暂无消费方：只供审计；它同事务命名了审批请求和编号计数器，满足一事务一聚合的登记要求
+    RequisitionApproved:
+      name: RequisitionApproved
+      title: 招聘需求获批
+      payload:
+        type: object
+        properties:
+          requisitionId:
+            type: string
+            format: uuid
+            x-type: RequisitionId
+            description: 获批的招聘需求
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 用人的组织单元
+          positionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            description: 需求的岗位
+          approvedAt:
+            type: string
+            format: date-time
+            x-type: Instant
+            description: 审批通过的时刻
+      x-event:
+        eventType: organization.recruitment.RequisitionApproved
+        version: 1
+        class: com.forcitis.one.organization.recruitment.events.RequisitionApproved
+        aggregate: RecruitmentRequisition
+        idempotencyKey: eventId
+        publisher: organization.recruitment
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 审批通过当日（业务时区）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.recruitment.domain.RecruitmentRequisitionTest
+        noConsumer: 暂无消费方：只供审计和分析；应聘环节（下一张卡）才会订阅
+    RequisitionClosed:
+      name: RequisitionClosed
+      title: 招聘需求关闭
+      payload:
+        type: object
+        properties:
+          requisitionId:
+            type: string
+            format: uuid
+            x-type: RequisitionId
+            description: 关闭的招聘需求
+          closeReasonKind:
+            type: string
+            enum: [REJECTED, WITHDRAWN, CANCELLED, FILLED]
+            x-type: CloseReasonKind
+            description: 关闭原因：驳回、撤回、取消、录满
+          closedAt:
+            type: string
+            format: date-time
+            x-type: Instant
+            description: 关闭的时刻
+      x-event:
+        eventType: organization.recruitment.RequisitionClosed
+        version: 1
+        class: com.forcitis.one.organization.recruitment.events.RequisitionClosed
+        aggregate: RecruitmentRequisition
+        idempotencyKey: eventId
+        publisher: organization.recruitment
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 关闭当日（业务时区）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.recruitment.domain.RecruitmentRequisitionTest
+        noConsumer: 暂无消费方：只供审计和分析
