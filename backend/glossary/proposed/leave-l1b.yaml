@@ -1,0 +1,100 @@
+# 请假 L1b 六张表用到的新词（Refs #1470）。中文名待用户确认。
+terms:
+- id: leave_quota_counted
+  zh: 计入额度
+  en: QuotaCounted
+  snake: quota_counted
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 假期类型是否设有额度账户（年假、调休为是；病假、事假等为否，只有申请，没有账户）；列 is_quota_counted
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'L1b 数据设计记录 organization-leave-l1b.md；中文名待用户确认'
+- id: leave_exempt
+  zh: 免审批
+  en: Exempt
+  snake: exempt
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 假期规则版本中的免审批时长门槛：申请时长不超过该分钟数时无需审批；为空表示没有免审批时长；列 exempt_threshold_minutes_count
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'L1b 数据设计记录；中文名待用户确认'
+- id: leave_proof
+  zh: 证明材料
+  en: Proof
+  snake: proof
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 请假申请是否需要附证明材料（规则版本上的开关，如病假条）；列 is_proof_required
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'L1b 数据设计记录；中文名待用户确认'
+- id: leave_proration
+  zh: 折算
+  en: Proration
+  snake: proration
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 当年入职等不满整年时，按剩余日历天数折算全年额度的方式（不折算，或按剩余天数除以 365 乘额度后不足一天舍去并取整到整天）；列 proration_kind
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'L1b 数据设计记录；中文名待用户确认'
+- id: leave_quota
+  zh: 额度
+  en: Quota
+  snake: quota
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 假期类型按账户发放、按流水扣减的可休数量，单位见假期类型的流水单位
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'L1b 数据设计记录；中文名待用户确认'
+- id: leave_counted
+  zh: 计入
+  en: Counted
+  snake: counted
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 与 quota 连用的词，指计入额度账户；见 leave_quota_counted
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'L1b 数据设计记录；中文名待用户确认'
+- id: leave_sealed
+  zh: 已封存
+  en: Sealed
+  snake: sealed
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 假期年度账户在年度关闭后的状态：不再接受任何流水，账户本身也不再变化；列 status 取 SEALED，封存时刻列 sealed_at
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'L1b 数据设计记录；中文名待用户确认'

@@ -180,10 +180,12 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
         assertThat(item.get("recipient_employee_id")).isNull();
 
         EmployeeCorrected again = undoneSeparation(employee, command, toUnit, toPosition);
+        // #1550, same cause as #1104: two deliveries of one eventId in flight at once race on Modulith's publication bookkeeping and can leave one publication incomplete; each redelivery goes out only after the one before is handled
         publish(event);
-        publish(event);
-        publish(again);
         identityHandled(event);
+        publish(event);
+        identityHandled(event);
+        publish(again);
         identityHandled(again);
         assertThat(itemsAbout(user)).as("a redelivery or another event of the same command adds none").hasSize(1);
     }

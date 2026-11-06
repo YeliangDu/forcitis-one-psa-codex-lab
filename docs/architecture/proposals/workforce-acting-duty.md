@@ -10,7 +10,7 @@ How workforce records "person A acts for post P from date X to date Y", how it i
 
 ## 2. Verified facts
 
-1. Personnel changes are commands with a lifecycle `PENDING` → `EFFECTIVE` / `WITHDRAWN`; kinds are an enum with a table CHECK (`PersonnelCommandKind`: HIRE … UNPAID_LEAVE_START, UNPAID_LEAVE_END, START_CONCURRENT, END_CONCURRENT) [V: `PersonnelCommandKind.java`, baseline `ck_personnel_commands_command_kind`].
+1. Personnel changes are commands with a lifecycle `PENDING` → `EFFECTIVE` / `WITHDRAWN`; kinds are an enum with a table CHECK (`PersonnelCommandKind`: HIRE … UNPAID_LEAVE_START, UNPAID_LEAVE_END, START_CONCURRENT, END_CONCURRENT) [V: `PersonnelCommandKind.java`, `ck_personnel_commands_command_kind` as last redefined in `V20261103130000__organization_workforce_employee_assignments.sql`, not the baseline].
 2. `PersonnelCommandDueJob` runs daily at 00:05 business time and applies future-dated pending commands, one transaction per command, failed ones retried next run [V: `PersonnelCommandDueJob.java`]. A new job is therefore not needed to end a duty on its date (section 4).
 3. A person has one primary assignment and any number of concurrent assignments (兼职); both are dated, same-assignment versions may not overlap, different assignments may [V: `V20261103130000__organization_workforce_employee_assignments.sql`]. A concurrent assignment is the person's own standing post. An acting duty is not that: the person keeps their own posts and covers another's for a term [P: "代理有独立期限；不是第二项重叠主职"].
 4. Date columns use `effective_from_date` inclusive and `effective_to_date` exclusive, nullable for open-ended [V: baseline comments `失效日（不含）`].
@@ -52,11 +52,11 @@ State is derived, not stored: **SCHEDULED** (today < `starts_on`), **ACTIVE** (`
 
 | Command | Effective date means | Creates / changes | Event on effect |
 |---|---|---|---|
-| `ACTING_START` | `starts_on` | writes the duty row; at the same time schedules one system `ACTING_END` command due on `ends_before` (pending) | `EmployeeActingDutyStarted` |
-| `ACTING_END` (by a person) | first day the duty no longer holds | sets `ended_on`, `end_cause = ENDED_EARLY`; withdraws the scheduled expiry command | `EmployeeActingDutyEnded` |
-| `ACTING_EXTEND` | not a date; carries `new_ends_before` | moves `ends_before`; withdraws the scheduled expiry command and schedules a new one | none (identity holds no end date; see section 6) |
+| `ACTING_START` | `starts_on` | writes the duty row | `EmployeeActingDutyStarted` |
+| `ACTING_END` (by a person) | first day the duty no longer holds | sets `ended_on`, `end_cause = ENDED_EARLY` | `EmployeeActingDutyEnded` |
+| `ACTING_EXTEND` | applied at once like `CORRECTION` (`effective_date` = the business day it is entered); carries `acting_ends_before` | moves `ends_before` on an open duty | none (identity holds no end date; see section 6) |
 
-Expiry reuses `PersonnelCommandDueJob`: the scheduled `ACTING_END` is created by the system actor when the duty starts and is applied by the existing daily job with `end_cause = EXPIRED`. No new job. [U: confirm a system-created command is allowed by `created_by` and the audit rules; if not, the due job gets one extra query instead.]
+Expiry has no command (amended by the data design record `docs/data/reviews/workforce-acting-duty.md`, difference 1): `PersonnelCommandDueJob` gets one extra step that closes every open duty whose `ends_before` ≤ today with `ended_on = ends_before`, `end_cause = EXPIRED`, one transaction per duty, and publishes `EmployeeActingDutyEnded` with `personnelCommandId` empty. Reason: a scheduled system command would collide with the one-open-command-per-relationship-day unique index (a TRANSFER or SEPARATE due the same day), would need a system actor, and every extension would withdraw and re-create it. Running the step twice changes nothing (closed duties are not selected).
 
 **Rules** (all technical or integrity rules; none is a business rule):
 
@@ -83,12 +83,12 @@ A section "代理职务" (name subject to the glossary check, #1516 H1) on the e
 
 ## 6. What identity hears
 
-Events (payloads go to `docs/architecture/events/workforce.yaml` in the schema slice; the card forbids touching the yaml here):
+Events (payloads are signed in `docs/data/reviews/workforce-acting-duty.md`; the catalogue entries go into `docs/architecture/events/workforce.yaml` together with the event classes, because the catalogue guards fail on an entry without a class):
 
 | Event | When | Payload (ids and dates only) | Consumers |
 |---|---|---|---|
 | `EmployeeActingDutyStarted` | `ACTING_START` takes effect | `personnelCommandId`, `employeeId`, `actingDutyId`, `coveredOrgUnitId`, `coveredPositionId?`, `coveredEmployeeId?`, `startsOn`, `endsBefore`, `employmentRelationshipId` | platform.identity, platform.audit |
-| `EmployeeActingDutyEnded` | duty ends by any cause | the same ids, `endedOn`, `endCause` (`EXPIRED` / `ENDED_EARLY` / `SEPARATION`) | platform.identity, platform.audit |
+| `EmployeeActingDutyEnded` | duty ends by any cause | the same ids, `endedOn`, `endCause` (`EXPIRED` / `ENDED_EARLY` / `SEPARATION`); `personnelCommandId` is empty for `EXPIRED` (consumers dedupe by event id only) | platform.identity, platform.audit |
 
 Envelope `businessDate` = `startsOn` / `endedOn`; `aggregateId` = employee; legal entity as in the existing events.
 
@@ -124,15 +124,15 @@ Slices 1 to 8 need no user answer. Slices 9 to 11 wait for Q-A1 and Q-A2.
 ## 8. Done-when (for the test engineer; one checkable line each)
 
 1. Starting a duty with `starts_on` in the future leaves state SCHEDULED, writes no duty row until the date, and publishes nothing until then.
-2. On `starts_on` the daily job writes the duty row, publishes `EmployeeActingDutyStarted` once (redelivery does not duplicate), and creates exactly one pending expiry command due on `ends_before`.
+2. On `starts_on` the daily job writes the duty row, publishes `EmployeeActingDutyStarted` once (redelivery does not duplicate), and creates no expiry command (expiry is the due job's own step).
 3. A duty with `starts_on` ≥ `ends_before` is refused; a one-day duty is accepted.
 4. Two overlapping duties for the same person and same covered post: the second start is refused; back-to-back duties are accepted.
 5. A duty covering the person's own current assignment (same unit and post) is refused; a duty covering another unit is accepted while the person keeps both assignments unchanged.
 6. `covered_employee_id` equal to the acting person is refused.
-7. `ACTING_END` on an active duty sets `ended_on`, `end_cause = ENDED_EARLY`, withdraws the expiry command and publishes `Ended` once; the same command on `starts_on` or earlier is refused.
-8. `ACTING_EXTEND` moves `ends_before`, replaces the expiry command (old one `WITHDRAWN`, one new pending), publishes no event; extending an ENDED duty is refused.
-9. At `ends_before` the due job closes the duty with `EXPIRED` and publishes `Ended`; running the job twice the same day changes nothing the second time.
-10. Separating the person ends open duties on the separation date with `SEPARATION` and withdraws scheduled ones, in the same transaction as the separation.
+7. `ACTING_END` on an active duty sets `ended_on`, `end_cause = ENDED_EARLY`, and publishes `Ended` once; the same command on `starts_on` or earlier is refused.
+8. `ACTING_EXTEND` moves `ends_before`, publishes no event and the due job then closes it on the new `ends_before`; extending an ENDED duty is refused.
+9. At `ends_before` the due job closes the duty with `EXPIRED` and publishes `Ended` with no command id; running the job twice the same day changes nothing the second time.
+10. Separating the person ends open duties on the separation date with `SEPARATION` and withdraws scheduled ones, in the same transaction as the separation. A duty that starts on the separation day is closed the same day with `ended_on = starts_on` and still publishes `Ended`; a start dated after the separation day is refused.
 11. Employee detail shows state, term (first and last day), cause and reason; the covered person's page shows the cover line; roster and headcount counts are unchanged by a duty.
 12. After Q-A1 is answered: `Ended` leaves no grant opened by the duty current, and no review item open for it; sensitive roles are never granted by the path.
 
