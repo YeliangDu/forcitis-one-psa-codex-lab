@@ -135,6 +135,9 @@ public class ApplyDueCommand {
             LocalDate entityDay = command.kind() == PersonnelCommandKind.SEPARATE ? command.effectiveDate().minusDays(1) : command.effectiveDate();
             LegalEntityId legalEntity = LegalEntityResolution.resolve(legalEntities, command.employeeId(), entityDay).orElse(null);
             command.recordEffect(assignmentBefore(command), null, legalEntity, commands.load(command.employeeId()));
+            if (command.kind() == PersonnelCommandKind.SEPARATE) {
+                effects.recordSeparation(command, legalEntity, today, now, ActorType.SYSTEM, actor);
+            }
             if (command.hasPendingEvents()) {
                 events.publish(command);
                 commands.saveEventSequence(command.employeeId(), command.eventSequenceAfterSave());

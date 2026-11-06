@@ -115,7 +115,7 @@ class SeparationLockOrderTest {
     void releasingLocksTheDecisionFirst() {
         SeparationReview review = mock(SeparationReview.class);
         SeparationHoldService service = new SeparationHoldService(commands, new SeparationHoldReview(commands, review),
-                new HeldSeparationRelease(commands, new PersonnelPlans(ids), mock(LegalEntityResolutionSources.class), mock(AuditLog.class), mock(DomainEvents.class), ids, zone, mergeProgress),
+                new HeldSeparationRelease(commands, new PersonnelPlans(ids), mock(LegalEntityResolutionSources.class), mock(AuditLog.class), mock(DomainEvents.class), ids, zone, mergeProgress, mock(EffectPublisher.class)),
                 mergeProgress, mock(SeparationHoldNotice.class), currentUser, clock);
         heldSeparation();
         SeparationHold hold = SeparationHold.restore(HOLD, COMMAND, EMPLOYEE, HoldStatus.HELD, 0, null, null, null, null);

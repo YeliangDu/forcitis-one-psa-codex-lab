@@ -420,6 +420,8 @@ class PersonnelCommandService implements PersonnelCommands {
 
     private @Nullable ActingDuty validateActing(PersonnelCommand command, PersonnelHistory all) {
         if (command.kind() == PersonnelCommandKind.ACTING_START) {
+            // Separation closes the person's duties across relationships, so a start also checks the person's whole history.
+            PersonnelCommandRules.check(command, all);
             ActingDutyRules.requireAvailable(command, all, duties.findOverlap(command.employeeId(), Objects.requireNonNull(command.actingCoveredOrgUnitId()),
                     command.actingCoveredPositionId(), command.effectiveDate(), Objects.requireNonNull(command.actingEndsBeforeDate())));
         } else if (command.kind() == PersonnelCommandKind.ACTING_END || command.kind() == PersonnelCommandKind.ACTING_EXTEND) {

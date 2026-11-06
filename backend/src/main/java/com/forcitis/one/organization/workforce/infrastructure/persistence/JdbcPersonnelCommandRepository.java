@@ -143,7 +143,8 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
         return jdbc.sql("""
                 select c.personnel_command_id from organization_workforce.personnel_commands c
                 where c.status = 'PENDING' and c.effective_date <= :day
-                order by c.effective_date, c.personnel_command_id limit :limit""")
+                order by c.effective_date, case c.command_kind when 'ACTING_START' then 0 when 'SEPARATE' then 1 else 2 end,
+                         c.personnel_command_id limit :limit""")
                 .param("day", day).param("limit", DUE_BATCH_LIMIT).query((rs, n) -> new PersonnelCommandId(rs.getObject("personnel_command_id", UUID.class))).list();
     }
 

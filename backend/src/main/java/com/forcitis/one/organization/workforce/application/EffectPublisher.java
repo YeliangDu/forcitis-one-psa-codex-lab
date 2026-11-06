@@ -2,6 +2,10 @@ package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.SystemActors;
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.WorkContext;
+import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.ActingDutyEndCause;
 import com.forcitis.one.organization.workforce.api.ActingDutyId;
@@ -9,6 +13,7 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.domain.ActingDuty;
 import com.forcitis.one.organization.workforce.domain.ActingDutyRepository;
 import com.forcitis.one.organization.workforce.domain.ActingDutyRules;
+import com.forcitis.one.organization.workforce.domain.CommandStatus;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolution;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolutionSources;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
@@ -16,8 +21,11 @@ import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository
 import com.forcitis.one.organization.workforce.domain.PersonnelHistory;
 import com.forcitis.one.organization.workforce.domain.VersionRow;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Objects;
+import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 
 /**
@@ -64,7 +72,33 @@ class EffectPublisher {
         } else {
             command.recordEffect(assignmentBefore, assignmentAfter, legalEntity, commands.load(command.employeeId()));
         }
+        if (command.kind() == PersonnelCommandKind.SEPARATE) {
+            boolean system = WorkContext.systemActor().isPresent();
+            UUID actor = WorkContext.systemActor().map(SystemActors::idOf).orElse(command.createdBy().value());
+            recordSeparation(command, legalEntity, today, clock.instant(), system ? ActorType.SYSTEM : ActorType.USER, actor);
+        }
         publishRecorded(command);
+    }
+
+    /** Called inside the separation's transaction, after its employee row is locked and only when it takes effect. */
+    void recordSeparation(PersonnelCommand separation, @Nullable LegalEntityId legalEntity, LocalDate today, Instant now, ActorType type, UUID actor) {
+        LocalDate day = separation.effectiveDate();
+        for (ActingDuty duty : duties.listOpen(separation.employeeId())) {
+            if (duty.endedOn() == null && !duty.startsOn().isAfter(day) && duty.endsBefore().isAfter(day)) {
+                duties.updateEnd(duty, day, ActingDutyEndCause.SEPARATION, now);
+                separation.recordActingSeparation(duty, legalEntity);
+            }
+        }
+        for (PersonnelCommand pending : commands.load(separation.employeeId()).commands()) {
+            if (pending.kind() == PersonnelCommandKind.ACTING_START && pending.status() == CommandStatus.PENDING && pending.effectiveDate().isAfter(day)) {
+                long loaded = pending.version();
+                String before = pending.status().name();
+                pending.withdraw(new UserId(actor), "the employee separates before the acting duty starts", now);
+                commands.update(pending, now, loaded);
+                commands.insertTransition("PersonnelCommand", pending.id().value(), loaded + 1, before, pending.status().name(), type, actor,
+                        today, now, separation.id(), WorkContext.correlationId().orElseGet(ids::next));
+            }
+        }
     }
 
     boolean actingEndIsClosed(PersonnelCommand command) {

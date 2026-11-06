@@ -26,7 +26,7 @@ public final class PersonnelCommandRules {
         List<PersonnelCommand> others = history.commands().stream().filter(o -> !o.id().equals(command.id())).toList();
         requireDayFree(command, others);
         requireSeparationOrder(command, others);
-        requireStateOnTheDay(command, history.currentEmployeeRows());
+        requireStateOnTheDay(command, history.currentEmployeeRows(), others);
         requireLiveConcurrentPost(command, history);
         requireCorrectionOpenEnded(command, history);
         requirePostsEndWithTheSeparation(command, others);
@@ -202,12 +202,13 @@ public final class PersonnelCommandRules {
         if (uncovered.isPresent() && command.effectiveDate().isAfter(uncovered.get().effectiveDate())) {
             throw refused("the employee separates on " + uncovered.get().effectiveDate() + "; only a reinstatement can be dated later");
         }
-        if (command.kind() == PersonnelCommandKind.SEPARATE && others.stream().anyMatch(o -> o.status() != CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN && o.effectiveDate().isAfter(command.effectiveDate()))) {
+        if (command.kind() == PersonnelCommandKind.SEPARATE && others.stream().anyMatch(o -> !ActingDutyRules.isActing(o.kind())
+                && o.status() != CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN && o.effectiveDate().isAfter(command.effectiveDate()))) {
             throw refused("a separation dated before another command of the employee is refused; correct those commands first (a command still awaiting countersign has written nothing; its approval judges it again)");
         }
     }
 
-    private static void requireStateOnTheDay(PersonnelCommand command, List<VersionRow> employeeRows) {
+    private static void requireStateOnTheDay(PersonnelCommand command, List<VersionRow> employeeRows, List<PersonnelCommand> others) {
         LocalDate day = command.effectiveDate();
         // A change of legal entity is the person's: it looks at every relationship, and any in service is enough.
         VersionRow row = employeeRows.stream().filter(r -> r.covers(day)).min(java.util.Comparator.comparing(r -> !"EMPLOYED".equals(r.values().get(CommandEffects.EMPLOYMENT)))).orElse(null);
@@ -227,7 +228,10 @@ public final class PersonnelCommandRules {
             }
             return;
         }
-        if (!employed) {
+        boolean startsOnPendingSeparation = command.kind() == PersonnelCommandKind.ACTING_START
+                && others.stream().anyMatch(o -> o.kind() == PersonnelCommandKind.SEPARATE && o.status() == CommandStatus.PENDING && o.effectiveDate().equals(day))
+                && employeeRows.stream().anyMatch(r -> r.covers(day.minusDays(1)) && "EMPLOYED".equals(r.values().get(CommandEffects.EMPLOYMENT)));
+        if (!employed && !startsOnPendingSeparation) {
             throw refused("the employee is not employed on " + day);
         }
         Object phase = row.values().get(CommandEffects.PHASE);

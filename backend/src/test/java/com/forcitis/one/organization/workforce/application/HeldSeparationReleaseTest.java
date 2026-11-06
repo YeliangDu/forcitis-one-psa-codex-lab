@@ -53,7 +53,7 @@ class HeldSeparationReleaseTest {
         SeparationHold hold = SeparationHold.restore(HOLD, COMMAND, EMPLOYEE, HoldStatus.HELD, 0, null, null, null, null);
         hold.release(USER, "synthetic: confirmed", NOW);
         HeldSeparationRelease release = new HeldSeparationRelease(commands, new PersonnelPlans(ids), mock(LegalEntityResolutionSources.class), mock(AuditLog.class),
-                mock(DomainEvents.class), ids, new BusinessZone(ZoneId.of("Asia/Shanghai")), mergeProgress);
+                mock(DomainEvents.class), ids, new BusinessZone(ZoneId.of("Asia/Shanghai")), mergeProgress, mock(EffectPublisher.class));
         List<OrgStructureCommandId> holding = List.of(MERGE);
 
         release.execute(command, 0, hold, 0, HeldSeparationRelease.Releaser.user(USER), NOW, "synthetic", holding);
