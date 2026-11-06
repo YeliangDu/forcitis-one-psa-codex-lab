@@ -315,6 +315,7 @@ CREATE TABLE organization_leave.leave_rule_versions (
     request_unit_kind text NOT NULL,
     is_negative_allowed boolean NOT NULL,
     exempt_threshold_minutes_count integer,
+    hr_lead_threshold_days_count integer,
     is_proof_required boolean NOT NULL,
     rollover_kind text NOT NULL,
     rollover_cap_qty integer,
@@ -339,6 +340,7 @@ CREATE TABLE organization_leave.leave_rule_versions (
     CONSTRAINT ck_leave_rule_versions_effective_range CHECK (effective_to_date IS NULL OR effective_to_date > effective_from_date),
     CONSTRAINT ck_leave_rule_versions_request_unit_kind CHECK (request_unit_kind IN ('MINUTE', 'HALF_DAY', 'DAY')),
     CONSTRAINT ck_leave_rule_versions_exempt_threshold_minutes_count CHECK (exempt_threshold_minutes_count > 0),
+    CONSTRAINT ck_leave_rule_versions_hr_lead_threshold_days_count CHECK (hr_lead_threshold_days_count > 0),
     CONSTRAINT ck_leave_rule_versions_rollover_kind CHECK (rollover_kind IN ('NONE', 'CAPPED', 'UNLIMITED')),
     CONSTRAINT ck_leave_rule_versions_rollover_columns CHECK (
         (rollover_kind = 'CAPPED') = (rollover_cap_qty IS NOT NULL)
@@ -702,6 +704,7 @@ COMMENT ON COLUMN organization_leave.leave_rule_versions.effective_to_date IS '�
 COMMENT ON COLUMN organization_leave.leave_rule_versions.request_unit_kind IS '最小申请步长：MINUTE 分钟、HALF_DAY 半天、DAY 一天';
 COMMENT ON COLUMN organization_leave.leave_rule_versions.is_negative_allowed IS '是否允许负余额，布尔值';
 COMMENT ON COLUMN organization_leave.leave_rule_versions.exempt_threshold_minutes_count IS '免审批时长阈值，单位分钟，正数；为空表示没有免审批时长';
+COMMENT ON COLUMN organization_leave.leave_rule_versions.hr_lead_threshold_days_count IS '人力负责人层审批天数阈值，单位整天，正数；为空表示没有人力负责人层审批；请假覆盖的工作日数超过此天数时，审批路线增加人力负责人一层；以提交当天生效的规则版本为准';
 COMMENT ON COLUMN organization_leave.leave_rule_versions.is_proof_required IS '是否要求证明，布尔值';
 COMMENT ON COLUMN organization_leave.leave_rule_versions.rollover_kind IS '结转方式：NONE 不结转、CAPPED 限额、UNLIMITED 不限额';
 COMMENT ON COLUMN organization_leave.leave_rule_versions.rollover_cap_qty IS '结转上限，单位为类型的账本单位（分钟或百分之一天）；为空表示不设结转上限（结转方式不是限额）';
