@@ -16,6 +16,8 @@ export const EMPLOYMENT_STATUS_LABELS: Readonly<Record<string, string>> = {
   SEPARATED: '已离职',
 };
 
+export const EMPLOYMENT_STATUS_TONES: Readonly<Record<string, 'posted'>> = { EMPLOYED: 'posted' };
+
 /** A person on unpaid leave is still EMPLOYED; the badge says 停薪留职 instead of 在职. */
 export function employmentStatusLabel(employmentStatus: string, onUnpaidLeave: boolean): string {
   if (employmentStatus === 'EMPLOYED' && onUnpaidLeave) return '停薪留职';

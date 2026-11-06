@@ -20,6 +20,14 @@ export function toneOf<Tone extends string>(tones: Readonly<Record<string, Tone>
   return tones[value] ?? 'neutral';
 }
 
+/**
+ * The text and tone of a status badge from a label table and a tone table. Unlike labelOf, a value the label table does not know shows as
+ * itself: these pages show the server's own status code, as they did before this helper. The tone of an unknown value is neutral.
+ */
+export function badgeOf<Tone extends string>(labels: Readonly<Record<string, string>>, tones: Readonly<Record<string, Tone>>, value: string): { label: string; tone: Tone | 'neutral' } {
+  return { label: labels[value] ?? value, tone: toneOf(tones, value) };
+}
+
 export const DOCUMENT_TYPE_LABELS: Readonly<Record<string, string>> = {
   JOURNAL_VOUCHER: '会计凭证',
   QUOTE: '报价单',

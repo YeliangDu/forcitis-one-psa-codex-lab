@@ -8,7 +8,7 @@ export { useVersionedQuery } from './versioned-query';
 export { safeExternalUrl, safeInternalPath } from './safe-url';
 
 export { useInbox, useTask, useTaskActions, useTaskRecords } from './approval/hooks';
-export { DOCUMENT_TYPE_LABELS, TASK_RECORD_ACTION_LABELS, TASK_RECORD_ACTION_TONES, labelOf, processNameText, toneOf } from './approval/labels';
+export { DOCUMENT_TYPE_LABELS, TASK_RECORD_ACTION_LABELS, TASK_RECORD_ACTION_TONES, badgeOf, labelOf, processNameText, toneOf } from './approval/labels';
 export type { DocumentType } from './approval/labels';
 export {
   REASON_RULES,
