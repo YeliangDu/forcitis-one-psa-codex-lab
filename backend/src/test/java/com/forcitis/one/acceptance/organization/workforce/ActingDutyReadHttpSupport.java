@@ -198,7 +198,8 @@ abstract class ActingDutyReadHttpSupport extends DataScopeSupport {
         Map<String, Object> body = new LinkedHashMap<>(fields);
         body.put(EMPLOYEE_ID, UUID.fromString(employeeIdOf(key)));
         body.put(COMMAND_KIND, kind);
-        body.put(REASON, REASON_TEXT);
+        // Only an acting command carries a reason (#1574 domain rule); a separation does not.
+        if (kind.startsWith("ACTING_")) body.put(REASON, REASON_TEXT);
         actAsWriter();
         assertThat(PersonnelCommandsProbe.of(beans, AccountsAcceptanceSupport::employeeIdOf).enter(body)).isNotNull();
     }
