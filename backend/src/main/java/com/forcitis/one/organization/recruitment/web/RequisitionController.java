@@ -7,7 +7,9 @@ import com.forcitis.one.organization.recruitment.api.RecruitmentError;
 import com.forcitis.one.organization.recruitment.api.RequisitionId;
 import com.forcitis.one.organization.recruitment.application.CloseRequisition;
 import com.forcitis.one.organization.recruitment.application.GetRequisition;
+import com.forcitis.one.organization.recruitment.application.ListRequestedRequisitions;
 import com.forcitis.one.organization.recruitment.application.ListRequisitions;
+import com.forcitis.one.organization.recruitment.application.ListApprovableRequisitions;
 import com.forcitis.one.organization.recruitment.application.RequisitionView;
 import com.forcitis.one.organization.recruitment.application.SubmitRequisition;
 import com.forcitis.one.organization.recruitment.application.WithdrawRequisition;
@@ -33,13 +35,18 @@ class RequisitionController {
     private final CloseRequisition close;
     private final GetRequisition get;
     private final ListRequisitions list;
+    private final ListRequestedRequisitions requested;
+    private final ListApprovableRequisitions approvable;
 
-    RequisitionController(SubmitRequisition submit, WithdrawRequisition withdraw, CloseRequisition close, GetRequisition get, ListRequisitions list) {
+    RequisitionController(SubmitRequisition submit, WithdrawRequisition withdraw, CloseRequisition close, GetRequisition get, ListRequisitions list,
+            ListRequestedRequisitions requested, ListApprovableRequisitions approvable) {
         this.submit = submit;
         this.withdraw = withdraw;
         this.close = close;
         this.get = get;
         this.list = list;
+        this.requested = requested;
+        this.approvable = approvable;
     }
 
     @PostMapping
@@ -50,10 +57,20 @@ class RequisitionController {
                 .eTag(ExpectedVersion.etag(view.version())).body(RequisitionResponse.of(view));
     }
 
+    /** view absent: everything in the reader's org-unit scope; "requested": what the caller submitted; "approvable": what the caller holds an open approval task for. */
     @GetMapping
-    @PreAuthorize("hasAuthority('" + RecruitmentPermissions.READ + "')")
-    CursorPage<RequisitionResponse> list(@RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
-        CursorPage<RequisitionView> page = list.execute(PageRequest.of(limit, cursor, "recruitment-requisitions"));
+    @PreAuthorize("(#view == null and hasAuthority('" + RecruitmentPermissions.READ + "')) or (#view == 'requested' and hasAuthority('"
+            + RecruitmentPermissions.SUBMIT + "')) or (#view == 'approvable' and hasRole('" + RecruitmentPermissions.ORDINARY_SESSION + "'))")
+    CursorPage<RequisitionResponse> list(@RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) String view) {
+        CursorPage<RequisitionView> page;
+        if (view == null) {
+            page = list.execute(PageRequest.of(limit, cursor, "recruitment-requisitions"));
+        } else if (view.equals("requested")) {
+            page = requested.execute(PageRequest.of(limit, cursor, "recruitment-requisitions-requested"));
+        } else {
+            page = approvable.execute(PageRequest.of(limit, cursor, "recruitment-requisitions-approvable"));
+        }
         return CursorPage.of(page.items().stream().map(RequisitionResponse::of).toList(), page.nextCursor());
     }
 
