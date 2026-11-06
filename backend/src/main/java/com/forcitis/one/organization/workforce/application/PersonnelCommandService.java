@@ -13,6 +13,8 @@ import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.AssignmentId;
+import com.forcitis.one.organization.workforce.api.AttributionSubject;
+import com.forcitis.one.organization.workforce.api.CountersignRequestKind;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
@@ -22,13 +24,12 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommands;
 import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.WithdrawPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
-import com.forcitis.one.organization.workforce.api.AttributionSubject;
+import com.forcitis.one.organization.workforce.domain.ActingDuty;
+import com.forcitis.one.organization.workforce.domain.ActingDutyRepository;
+import com.forcitis.one.organization.workforce.domain.ActingDutyRules;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersign;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
-import com.forcitis.one.organization.workforce.domain.ActingDutyRepository;
-import com.forcitis.one.organization.workforce.domain.ActingDutyRules;
-import com.forcitis.one.organization.workforce.api.CountersignRequestKind;
 import com.forcitis.one.organization.workforce.domain.HoldStatus;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolution;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolutionSources;
@@ -166,10 +167,7 @@ class PersonnelCommandService implements PersonnelCommands {
         PersonnelHistory history = bindRelationship(command, request, all, employee, now);
         command.actOnPost(history, () -> commands.primaryRoot(employee, now));
         PersonnelCommandRules.check(command, history);
-        if (command.kind() == PersonnelCommandKind.ACTING_START) {
-            ActingDutyRules.requireAvailable(command, all, duties.findOverlap(employee, Objects.requireNonNull(command.actingCoveredOrgUnitId()),
-                    command.actingCoveredPositionId(), command.effectiveDate(), Objects.requireNonNull(command.actingEndsBeforeDate())));
-        }
+        @Nullable ActingDuty actingTarget = validateActing(command, all);
         PersonnelCommandRules.requireOneCommandPerDay(command, all);
         PersonnelCommandRules.requirePrimaryNotOnEndingRelationship(command, all);
         PersonnelCommandRules.requireNoAwaitingOnOrBefore(command, all);
@@ -220,7 +218,11 @@ class PersonnelCommandService implements PersonnelCommands {
         } else if (awaiting) {
             requests.open(command, CountersignRequestKind.CHANGE, null, List.of(), by, now, today, correlation());
         } else if (command.status() == CommandStatus.EFFECTIVE && !(command.kind() == PersonnelCommandKind.CORRECTION && command.effectiveDate().isAfter(today))) {
-            effects.publish(command, all, today);
+            if (actingTarget != null) {
+                effects.changeActingDuty(command, actingTarget);
+            } else {
+                effects.publish(command, all, today);
+            }
         }
         if (leaveVerdict != null) {
             leaveFloor.announce(command, leaveVerdict, by);
@@ -414,6 +416,23 @@ class PersonnelCommandService implements PersonnelCommands {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID, ErrorKind.UNPROCESSABLE, "only a hire carries a profile");
         }
         return request.employeeId();
+    }
+
+    private @Nullable ActingDuty validateActing(PersonnelCommand command, PersonnelHistory all) {
+        if (command.kind() == PersonnelCommandKind.ACTING_START) {
+            ActingDutyRules.requireAvailable(command, all, duties.findOverlap(command.employeeId(), Objects.requireNonNull(command.actingCoveredOrgUnitId()),
+                    command.actingCoveredPositionId(), command.effectiveDate(), Objects.requireNonNull(command.actingEndsBeforeDate())));
+        } else if (command.kind() == PersonnelCommandKind.ACTING_END || command.kind() == PersonnelCommandKind.ACTING_EXTEND) {
+            ActingDuty target = ActingDutyRules.requireTarget(command, duties.find(Objects.requireNonNull(command.targetActingDutyId())).orElse(null));
+            if (command.kind() == PersonnelCommandKind.ACTING_END) {
+                ActingDutyRules.requireEnd(command, target, all.commands());
+            } else {
+                ActingDutyRules.requireExtend(command, target, all, duties.findOverlap(command.employeeId(), target.coveredOrgUnitId(),
+                        target.coveredPositionId(), target.startsOn(), Objects.requireNonNull(command.actingEndsBeforeDate())));
+            }
+            return target;
+        }
+        return null;
     }
 
     private void requireTargetsExist(PersonnelCommand command) {

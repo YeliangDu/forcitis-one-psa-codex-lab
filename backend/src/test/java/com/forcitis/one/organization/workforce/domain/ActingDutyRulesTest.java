@@ -1,29 +1,28 @@
 package com.forcitis.one.organization.workforce.domain;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
-
-import com.forcitis.one.organization.workforce.api.ActingDutyId;
-import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
-import com.forcitis.one.organization.workforce.api.PositionId;
-import java.util.List;
-import java.util.Map;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.provider.NullSource;
-import org.junit.jupiter.params.provider.EnumSource;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.forcitis.one.TestIds;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.organization.workforce.api.ActingDutyId;
+import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
+import com.forcitis.one.organization.workforce.api.PositionId;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class ActingDutyRulesTest {
@@ -58,7 +57,7 @@ class ActingDutyRulesTest {
 
     static ActingDuty duty(PositionId position, EmployeeId employee, LocalDate from, LocalDate end) {
         return new ActingDuty(new ActingDutyId(TestIds.uuid(7)), employee, REL, UNIT, position, null, from, end, null,
-                "coverage", new PersonnelCommandId(TestIds.uuid(8)), new UserId(TestIds.uuid(4)), Instant.parse("2026-11-06T08:00:00Z"));
+                "coverage", new PersonnelCommandId(TestIds.uuid(8)), new UserId(TestIds.uuid(4)), Instant.parse("2026-11-06T08:00:00Z"), 0);
     }
 
     @ParameterizedTest
@@ -128,13 +127,13 @@ class ActingDutyRulesTest {
     }
     @ParameterizedTest
     @EnumSource(value = PersonnelCommandKind.class, names = {"ACTING_END", "ACTING_EXTEND"})
-    @DisplayName("#1566 later acting kinds are refused explicitly until their implementation slices")
-    void refusesUnsupportedKinds(PersonnelCommandKind kind) {
+    @DisplayName("#1566 acting changes without a target duty are refused")
+    void refusesChangesWithoutTarget(PersonnelCommandKind kind) {
         EnterPersonnelCommand request = new EnterPersonnelCommand(EMPLOYEE, kind, DAY, null, null, null, null, null,
                 null, null, null, null, null);
         assertThatThrownBy(() -> PersonnelCommand.enter(new PersonnelCommandId(TestIds.uuid(3)), EMPLOYEE, request,
                 new UserId(TestIds.uuid(4)), Instant.parse("2026-11-06T08:00:00Z"), DAY, 0))
-                .isInstanceOf(DomainException.class).hasMessageContaining("unsupported personnel command kind");
+                .isInstanceOf(DomainException.class).hasMessageContaining("an acting change names an existing duty");
     }
 
     @Test

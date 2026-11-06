@@ -16,11 +16,11 @@ import org.jspecify.annotations.Nullable;
 public record ActingDuty(ActingDutyId id, EmployeeId employeeId, EmploymentRelationshipId employmentRelationshipId,
                          OrgUnitId coveredOrgUnitId, @Nullable PositionId coveredPositionId, @Nullable EmployeeId coveredEmployeeId,
                          LocalDate startsOn, LocalDate endsBefore, @Nullable LocalDate endedOn,
-                         String reason, PersonnelCommandId sourcePersonnelCommandId, UserId createdBy, Instant createdAt) {
+                         String reason, PersonnelCommandId sourcePersonnelCommandId, UserId createdBy, Instant createdAt, long version) {
     public static ActingDuty start(ActingDutyId id, PersonnelCommand command, Instant at) {
         return new ActingDuty(id, command.employeeId(), Objects.requireNonNull(command.employmentRelationshipId()),
                 Objects.requireNonNull(command.actingCoveredOrgUnitId()), command.actingCoveredPositionId(), command.actingCoveredEmployeeId(),
                 command.effectiveDate(), Objects.requireNonNull(command.actingEndsBeforeDate()), null, Objects.requireNonNull(command.reason()),
-                command.id(), command.createdBy(), at);
+                command.id(), command.createdBy(), at, 0);
     }
 }

@@ -3,13 +3,13 @@ package com.forcitis.one.organization.workforce.domain;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.api.SeparationHoldId;
-import com.forcitis.one.kernel.event.ActorType;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -20,6 +20,7 @@ import org.jspecify.annotations.Nullable;
 
 /** Storage of personnel commands, their version rows, their transitions and the hold a held separation carries. Every method joins the caller's transaction. */
 public interface PersonnelCommandRepository {
+    int DUE_BATCH_LIMIT = 100;
 
     /** Locks the employee row for the rest of the transaction; false when there is no such employee. */
     boolean lockEmployee(EmployeeId employee);

@@ -1,7 +1,7 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
-import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.BusinessZone;
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdGenerator;
@@ -9,8 +9,9 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.SeparationReview;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
-import com.forcitis.one.organization.workforce.api.AssignmentId;
+import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.organization.workforce.api.ActingDutyId;
+import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.Gender;
@@ -18,30 +19,29 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.PositionId;
-import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.api.SeparationHoldId;
+import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.AssignmentKind;
 import com.forcitis.one.organization.workforce.domain.AssignmentRoot;
+import com.forcitis.one.organization.workforce.domain.ChangeSource;
 import com.forcitis.one.organization.workforce.domain.CommandEffects;
-import com.forcitis.one.organization.workforce.domain.HoldStatus;
-import com.forcitis.one.organization.workforce.domain.SeparationHold;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
+import com.forcitis.one.organization.workforce.domain.HoldStatus;
 import com.forcitis.one.organization.workforce.domain.NewEmployee;
 import com.forcitis.one.organization.workforce.domain.PersonalProfile;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
-import com.forcitis.one.organization.workforce.domain.ReleaseChannelKind;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandQueries;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
 import com.forcitis.one.organization.workforce.domain.PersonnelHistory;
 import com.forcitis.one.organization.workforce.domain.RelationshipRow;
-import com.forcitis.one.organization.workforce.domain.ChangeSource;
+import com.forcitis.one.organization.workforce.domain.ReleaseChannelKind;
+import com.forcitis.one.organization.workforce.domain.SeparationHold;
 import com.forcitis.one.organization.workforce.domain.VersionPlan;
 import com.forcitis.one.organization.workforce.domain.VersionRow;
 import com.forcitis.one.organization.workforce.domain.VersionTable;
 import com.forcitis.one.platform.audit.api.AuditEntryId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import com.forcitis.one.kernel.event.ActorType;
 import java.sql.Types;
 import java.time.Clock;
 import java.time.Instant;
@@ -143,8 +143,8 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
         return jdbc.sql("""
                 select c.personnel_command_id from organization_workforce.personnel_commands c
                 where c.status = 'PENDING' and c.effective_date <= :day
-                order by c.effective_date, c.personnel_command_id""")
-                .param("day", day).query((rs, n) -> new PersonnelCommandId(rs.getObject("personnel_command_id", UUID.class))).list();
+                order by c.effective_date, c.personnel_command_id limit :limit""")
+                .param("day", day).param("limit", DUE_BATCH_LIMIT).query((rs, n) -> new PersonnelCommandId(rs.getObject("personnel_command_id", UUID.class))).list();
     }
 
     @Override
@@ -338,6 +338,19 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
 
     @Override
     public void insert(PersonnelCommand c) {
+        try {
+            insertCommand(c);
+        } catch (org.springframework.dao.DuplicateKeyException duplicate) {
+            if (c.kind() == PersonnelCommandKind.ACTING_END && duplicate.contains(java.sql.SQLException.class)
+                    && "uk_personnel_commands_open_acting_end".equals(CommandConstraintNames.of(duplicate))) {
+                throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_ALLOWED, ErrorKind.UNPROCESSABLE,
+                        "the acting duty already has a pending early end");
+            }
+            throw duplicate;
+        }
+    }
+
+    private void insertCommand(PersonnelCommand c) {
         Boolean onLeave = c.kind() == PersonnelCommandKind.UNPAID_LEAVE_START ? Boolean.TRUE : c.kind() == PersonnelCommandKind.UNPAID_LEAVE_END ? Boolean.FALSE : null;
         jdbc.sql("""
                 insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status,

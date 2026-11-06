@@ -6,8 +6,9 @@ import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.organization.workforce.api.AssignmentId;
+import com.forcitis.one.organization.workforce.api.ActingDutyEndCause;
 import com.forcitis.one.organization.workforce.api.ActingDutyId;
+import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
@@ -124,8 +125,11 @@ public final class PersonnelCommand extends AggregateRoot {
             }
             effective = require(request.effectiveDate(), "the effective date");
         }
-        // A correction is immediate whatever its day (ck_personnel_commands_correction_immediate); it never waits.
-        CommandStatus status = kind != PersonnelCommandKind.CORRECTION && effective.isAfter(today) ? CommandStatus.PENDING : CommandStatus.EFFECTIVE;
+        if (kind == PersonnelCommandKind.ACTING_EXTEND && !effective.equals(today)) {
+            throw invalid("an acting extension takes the business day of entry as its effective date");
+        }
+        // ck_personnel_commands_correction_immediate also covers extensions.
+        CommandStatus status = kind != PersonnelCommandKind.CORRECTION && kind != PersonnelCommandKind.ACTING_EXTEND && effective.isAfter(today) ? CommandStatus.PENDING : CommandStatus.EFFECTIVE;
         PersonnelCommand command = new PersonnelCommand(id, employee, kind, effective, status, request.targetOrgUnitId(),
                 request.targetPositionId(), request.targetReportsToEmployeeId(), request.isTargetFeeEarner(), request.targetEmploymentPhaseKind(),
                 request.targetLegalEntityId(), null, null, request.targetAssignmentId(), null, createdBy, now,
@@ -199,11 +203,10 @@ public final class PersonnelCommand extends AggregateRoot {
 
     /** Stored columns that must hold for the kind (ck_personnel_commands_*_columns). */
     private void requireShapeOfKind() {
-        if (kind == PersonnelCommandKind.ACTING_END || kind == PersonnelCommandKind.ACTING_EXTEND) {
-            throw invalid("unsupported personnel command kind: " + kind);
-        }
         if (kind == PersonnelCommandKind.ACTING_START) {
             ActingDutyRules.requireStart(this);
+        } else if (kind == PersonnelCommandKind.ACTING_END || kind == PersonnelCommandKind.ACTING_EXTEND) {
+            ActingDutyRules.requireChange(this);
         } else if (count(actingCoveredOrgUnitId, actingCoveredPositionId, actingCoveredEmployeeId, actingEndsBeforeDate, targetActingDutyId, reason) != 0) {
             throw invalid("only an acting command carries acting-duty fields or a reason");
         }
@@ -426,6 +429,18 @@ public final class PersonnelCommand extends AggregateRoot {
     /** Records the duty fact created by this effective command, on the employee event stream. */
     public void recordActingStarted(ActingDuty duty, @Nullable LegalEntityId legalEntity) {
         record(PersonnelCommandEvents.actingStarted(this, duty, legalEntity));
+    }
+
+    public void recordActingEnded(ActingDuty duty, @Nullable LegalEntityId legalEntity) {
+        record(PersonnelCommandEvents.actingEnded(this, duty, id, effectiveDate, ActingDutyEndCause.ENDED_EARLY, legalEntity));
+    }
+
+    /** The start command carries the employee's current event sequence; expiry creates no command and changes no command state. */
+    public void recordActingExpiry(ActingDuty duty, @Nullable LegalEntityId legalEntity) {
+        if (!id.equals(duty.sourcePersonnelCommandId()) || !employeeId.equals(duty.employeeId())) {
+            throw invalid("an expiry is recorded on the duty's source command");
+        }
+        record(PersonnelCommandEvents.actingEnded(this, duty, null, duty.endsBefore(), ActingDutyEndCause.EXPIRED, legalEntity));
     }
 
     /**
