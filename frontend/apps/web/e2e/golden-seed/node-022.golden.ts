@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { PERSON, loginAs, openEmployee } from './golden-s1-support';
 
 // HCM-LIFE-022 register a future promotion (pack 2026-06-15): "06-30仍旧职旧薪；两项决定分别存储". Role: personnel specialist. Client: web.
-// Start state: seed_s1.py --stop-before 022, clock 2026-06-15. Only the post decision (AS-A2) has a command; the salary decision SAL-A-V2 has none (gap list).
+// Start state: seed.py --stop-before 022, clock 2026-06-15. Only the post decision (AS-A2) has a command; the salary decision SAL-A-V2 has none (gap list).
 test('HCM-LIFE-022 the personnel specialist registers the promotion effective 2026-07-01, the old post stays until then', async ({ page }) => {
   await loginAs(page, 'Synthetic Admin');
   await page.goto('/admin/personnel-commands/new');

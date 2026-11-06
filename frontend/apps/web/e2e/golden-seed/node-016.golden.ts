@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { PERSON, loginAs, openEmployee } from './golden-s1-support';
 
 // HCM-LIFE-016 probation passed (pack 2026-04-05): "仍为ER-001-A；转正经历保留、主职未改变". Role: personnel specialist. Client: web.
-// Start state: seed_s1.py --stop-before 016, clock 2026-04-05.
+// Start state: seed.py --stop-before 016, clock 2026-04-05.
 test('HCM-LIFE-016 the personnel specialist confirms the regularization of F-P01', async ({ page }) => {
   await loginAs(page, 'Synthetic Admin');
   await page.goto('/admin/personnel-commands/new');

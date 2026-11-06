@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { PERSON, loginAs, openEmployee, setClock } from './golden-s1-support';
 
 // HCM-LIFE-023 promotion takes effect (pack 2026-07-01): "当前主职1；原主职历史可查；关系仍1". Role: personnel specialist. Client: web.
-// Start state: after node 022 (seed_s1.py --stop-before 023). The test moves the local clock to the day; the due job then runs once (ruling of card #1486).
+// Start state: after node 022 (seed.py --stop-before 023). The test moves the local clock to the day; the due job then runs once (ruling of card #1486).
 test('HCM-LIFE-023 on 2026-07-01 the promotion is effective and the senior post is the current primary post', async ({ page }) => {
   await loginAs(page, 'Synthetic Admin');
   await setClock(page, '2026-07-01T02:00:00Z');

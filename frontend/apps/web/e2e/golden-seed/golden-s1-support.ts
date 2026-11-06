@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 
-// Pilot slice S1 (card #1479). Each spec expects the stack seeded by `seed_s1.py --stop-before <node>` with the local clock on the node's pack day.
+// Pilot slice S1 (card #1479). Each spec expects the stack seeded by `seed.py --stop-before <node>` with the local clock on the node's pack day.
 // Expected values are the pack's (NOT_REVIEWED); a mismatch is reported in the gap list, never bent to pass.
 export const PERSON = 'Synthetic Golden Person F-P01';
 

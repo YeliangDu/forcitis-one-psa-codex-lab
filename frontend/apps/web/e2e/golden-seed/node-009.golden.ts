@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { PERSON, loginAs, loginAsPlatformAdmin } from './golden-s1-support';
 
 // HCM-LIFE-009 ordinary access by source (pack 2026-01-05): "普通访问可用、可追来源；管理员权限未授予". Roles: F-P01 herself (ordinary access), the administrator-mode account of #1499 (traceable source; Synthetic Admin has no role:read).
-// Start state: after node 007 (seed_s1.py --stop-before 009). The pack's "G-A-WORK granted from ER-001-A": the hire opens the account with role employee.
+// Start state: after node 007 (seed.py --stop-before 009). The pack's "G-A-WORK granted from ER-001-A": the hire opens the account with role employee.
 test('HCM-LIFE-009 F-P01 can sign in and use ordinary pages, and has no administrator pages', async ({ page }) => {
   await loginAs(page, PERSON);
   await page.goto('/inbox');

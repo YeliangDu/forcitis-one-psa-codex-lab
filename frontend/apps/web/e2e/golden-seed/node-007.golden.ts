@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { PERSON, loginAs } from './golden-s1-support';
 
 // HCM-LIFE-007 first day at work (pack 2026-01-05): "员工1、关系1、存续1、主职1". Role: personnel specialist (the seeded admin). Client: web.
-// Start state: seed_s1.py --stop-before 007, clock 2026-01-05.
+// Start state: seed.py --stop-before 007, clock 2026-01-05.
 test('HCM-LIFE-007 the personnel specialist hires F-P01 in the Nanjing unit', async ({ page }) => {
   await loginAs(page, 'Synthetic Admin');
   await page.goto('/admin/personnel-commands/new');
