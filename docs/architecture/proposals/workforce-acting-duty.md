@@ -38,7 +38,7 @@ How workforce records "person A acts for post P from date X to date Y", how it i
 | `acting_duty_id` | UUIDv7 |
 | `employee_id` | who acts (the stand-in) |
 | `covered_org_unit_id` | required: the org unit whose duties are taken |
-| `covered_position_id` | optional: a post in that unit; empty = the unit head's duties |
+| `covered_position_id` | optional: the post covered, a catalogue position; not checked against the unit (no table ties a position to a unit); empty = the unit head's duties |
 | `covered_employee_id` | optional: the person being covered (leave, travel); informational and the basis for copying permissions if the user chooses so (Q-A1) |
 | `starts_on` | first day, inclusive |
 | `ends_before` | day after the last day, exclusive (screens show the last day = `ends_before` − 1, in the same words as other dated facts) |
