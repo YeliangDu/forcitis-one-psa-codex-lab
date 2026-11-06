@@ -3,7 +3,7 @@
 - a records PR (every file under docs/decisions/ or docs/rules/rulings/): one per calendar day (Europe/Berlin), merged or queued;
 - a rule PR (CLAUDE.md, backend/CLAUDE.md, docs/rules/rules.md, docs/rules/roles/**, docs/rules/playbooks/**): `User-Decision: <path>` or `Incident: #a, #b`, and without a User-Decision at most one per ISO week (Europe/Berlin), merged or queued;
 - a PR that adds a gate, guard or hook file (not its self-test): `Incident:` or `User-Decision:`.
-Runtime code is never refused here (only the title check applies to it). Whatever cannot be read (gh, git, the time zone data) lets the pull request through, said on stderr (ops playbook: fail open); a refusal exits with nothing queued."""
+A runtime-only PR is never refused here (only the title check applies to it); a PR that also edits a rule file or adds a check file is judged on that part, runtime code or not (lead's ruling of 2026-11-06, option A). Whatever cannot be read (gh, git, the time zone data) lets the pull request through, said on stderr (ops playbook: fail open); a refusal exits with nothing queued."""
 import datetime
 import os
 import re

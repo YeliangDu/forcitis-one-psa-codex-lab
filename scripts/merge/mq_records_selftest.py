@@ -144,6 +144,10 @@ def main():
         # ---- records PRs: one per calendar day (Europe/Berlin)
         rec = lambda *p, **kw: pr("docs(decisions): 记录（#1）", list(p) or [NEW_FRAGMENT], **kw)
         assert run(root, FakeGh({1: rec()}, merged=[]), [1]) == (None, "")
+        # lead's ruling A: a runtime-only PR is never refused; a rule file edit or a new check file is judged even inside a code PR
+        assert run(root, FakeGh({1: pr("x", ["backend/src/main/A.java"])}, merged=[]), [1]) == (None, "")
+        why, _ = run(root, FakeGh({1: pr("x", ["backend/src/main/A.java", "backend/CLAUDE.md"])}, merged=[]), [1])
+        assert why and "User-Decision" in why, why
         why, _ = run(root, FakeGh({1: rec()}, merged=[merged(5, [FRAGMENT], today)]), [1])
         assert why and "#5 (merged)" in why and "one per calendar day" in why and "next day" in why, why
         assert run(root, FakeGh({1: rec()}, merged=[merged(5, ["docs/rules/rulings/r.md"], "2026-11-05T23:30:00Z")]), [1])[0], "23:30Z on the 5th is 00:30 Berlin on the 6th: today"
