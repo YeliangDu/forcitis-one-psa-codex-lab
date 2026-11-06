@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval;
 
+import com.forcitis.one.BusinessDay;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import java.time.LocalDate;
 import com.forcitis.one.fixture.doubles.TestAccounts;
@@ -120,7 +121,7 @@ public abstract class ApprovalIntegrationSupport {
 
     protected EventEnvelope envelope(String eventType, String aggregateType, UUID aggregateId, long aggregateVersion) {
         return envelopes.wrap(new com.forcitis.one.kernel.event.EventDraft(eventType, 1, aggregateType, aggregateId, aggregateVersion, LEGAL_ENTITY,
-                LocalDate.now(), List.of()));
+                BusinessDay.today(), List.of()));
     }
 
     @Autowired

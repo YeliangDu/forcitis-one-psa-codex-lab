@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.audit.infrastructure.archive;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -79,7 +80,7 @@ class AuditArchiveJobIT {
 
     /** The entries here are years old and the table has no catch-all partition, so the months they fall in are created first, as the application does for the months ahead. */
     private void partitionsForTheOldMonths() {
-        LocalDate end = YearMonth.now(ZoneOffset.UTC).atDay(1);
+        LocalDate end = BusinessDay.utcMonth().atDay(1);
         for (LocalDate from = end.minusMonths(47); !from.isAfter(end); from = from.plusMonths(24)) {
             LocalDate through = from.plusMonths(23).isAfter(end) ? end : from.plusMonths(23);
             jdbc.sql("select platform_audit.create_audit_entry_partitions(:from, :through)").param("from", from).param("through", through).query(Integer.class).single();

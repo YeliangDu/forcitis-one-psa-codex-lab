@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity.application;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
@@ -53,7 +54,7 @@ class OpenAssignmentReviewsLeaveConcurrencyIntegrationTest extends IdentityInteg
 
     @Test
     void concurrentDeliveriesOfOneCommandOpenOneReview() throws Exception {
-        when(calendar.endOfWorkdayAfter(any(), anyInt(), any())).thenReturn(Instant.now().plus(Duration.ofDays(7)));
+        when(calendar.endOfWorkdayAfter(any(), anyInt(), any())).thenReturn(BusinessDay.instant().plus(Duration.ofDays(7)));
         knownEmployee(7301, EmploymentStatus.EMPLOYED);
         createAccount(7301, "super_admin");
         UserId user = TestAccounts.account(7301);
