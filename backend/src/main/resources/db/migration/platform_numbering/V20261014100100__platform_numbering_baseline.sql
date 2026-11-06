@@ -262,14 +262,14 @@ INSERT INTO platform_numbering.document_types (document_type_id, code, number_co
     ('019a0000-0000-7000-8000-000000000402', 'TIMESHEET', 'TS', 'cost.timesheet', false, DATE '2000-01-01'),
     ('019a0000-0000-7000-8000-000000000403', 'JOURNAL_VOUCHER', 'JV', 'accounting.ledger', true, DATE '2000-01-01'),
     ('019a0000-0000-7000-8000-000000000404', 'EMPLOYEE', 'EMP', 'organization.workforce', false, DATE '2000-01-01'),
-    ('019a0000-0000-7000-8000-000000000405', 'BONUS_INPUT', 'BI', 'organization.payroll', false, DATE '2000-01-01');
+    ('019a0000-0000-7000-8000-000000000406', 'BONUS_INPUT', 'BI', 'organization.payroll', false, DATE '2000-01-01');
 
 INSERT INTO platform_numbering.numbering_rules (numbering_rule_id, document_type_id, version, event_count) VALUES
     ('019a0000-0000-7000-8000-000000000301', '019a0000-0000-7000-8000-000000000401', 1, 0),
     ('019a0000-0000-7000-8000-000000000302', '019a0000-0000-7000-8000-000000000402', 1, 0),
     ('019a0000-0000-7000-8000-000000000303', '019a0000-0000-7000-8000-000000000403', 1, 0),
     ('019a0000-0000-7000-8000-000000000304', '019a0000-0000-7000-8000-000000000404', 1, 0),
-    ('019a0000-0000-7000-8000-000000000305', '019a0000-0000-7000-8000-000000000405', 1, 0);
+    ('019a0000-0000-7000-8000-000000000306', '019a0000-0000-7000-8000-000000000406', 1, 0);
 
 -- 种子规则的模板成为版本 1，一律待确认：由业务管理员按四眼确认（凭证号模板另由财务确认）。
 INSERT INTO platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status, source_kind)
@@ -284,4 +284,4 @@ VALUES ('019a0000-0000-7000-8000-000000000504', '019a0000-0000-7000-8000-0000000
 
 -- BONUS_INPUT（奖金输入，#1436）：审批单据类型码；输入的申请号是薪酬自己的，不发单据号，模板只为满足每种单据一条规则，同样待确认。
 INSERT INTO platform_numbering.numbering_rule_versions (numbering_rule_version_id, numbering_rule_id, version_number, template_text, reset_policy, start_value, effective_from_date, authored_at, status, source_kind)
-VALUES ('019a0000-0000-7000-8000-000000000505', '019a0000-0000-7000-8000-000000000305', 1, '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, DATE '2000-01-01', now(), 'PENDING_CONFIRMATION', 'SEEDED');
+VALUES ('019a0000-0000-7000-8000-000000000506', '019a0000-0000-7000-8000-000000000306', 1, '{TYPE}-{LE}-{yyyyMM}-{seq:4}', 'MONTHLY', 1, DATE '2000-01-01', now(), 'PENDING_CONFIRMATION', 'SEEDED');

@@ -20,7 +20,7 @@
 SELECT rolname FROM pg_roles WHERE rolname LIKE 'one\_dev\_%';
 SELECT nspname FROM pg_namespace
  WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering', 'platform_file',
-                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'accounting_period', 'organization_payroll', 'organization_administration', 'platform_idempotency', 'cost_timesheet', 'one_migration');
+                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'accounting_period', 'organization_payroll', 'organization_recruitment', 'organization_administration', 'platform_idempotency', 'cost_timesheet', 'one_migration');
 -- it_portal 现有对象一览（供核对，不修改）
 SELECT nspname, pg_get_userbyid(nspowner) AS owner FROM pg_namespace WHERE nspname NOT LIKE 'pg\_%' AND nspname <> 'information_schema';
 
@@ -74,6 +74,7 @@ CREATE SCHEMA organization_workforce AUTHORIZATION one_dev_owner;  -- 组织快�
 CREATE SCHEMA organization_attendance AUTHORIZATION one_dev_owner;  -- 工作日历（考勤与休假 BC，1a 只含工作日历）
 CREATE SCHEMA organization_leave      AUTHORIZATION one_dev_owner;
 CREATE SCHEMA organization_payroll    AUTHORIZATION one_dev_owner;
+CREATE SCHEMA organization_recruitment AUTHORIZATION one_dev_owner;
 CREATE SCHEMA accounting_period     AUTHORIZATION one_dev_owner;
 CREATE SCHEMA organization_administration AUTHORIZATION one_dev_owner;
 CREATE SCHEMA cost_timesheet         AUTHORIZATION one_dev_owner;  -- 工时单与幂等记录（cost.timesheet 是 1a 正式模块）
@@ -87,7 +88,7 @@ DO $$
 DECLARE s text;
 BEGIN
   FOREACH s IN ARRAY ARRAY['platform_identity', 'platform_approval', 'platform_integration', 'platform_numbering', 'platform_file',
-                           'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'accounting_period', 'organization_payroll', 'organization_administration', 'platform_idempotency', 'cost_timesheet']
+                           'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'accounting_period', 'organization_payroll', 'organization_recruitment', 'organization_administration', 'platform_idempotency', 'cost_timesheet']
   LOOP
     EXECUTE format('GRANT USAGE ON SCHEMA %I TO one_dev_app, one_dev_readonly', s);
     EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA %I GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO one_dev_app', s);
@@ -104,7 +105,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT S
 
 -- 运行角色不得建对象
 REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering, platform_file,
-                        platform_scheduling, organization_workforce, organization_attendance, organization_leave, accounting_period, organization_payroll, organization_administration, platform_idempotency, cost_timesheet, one_migration FROM one_dev_app, one_dev_readonly;
+                        platform_scheduling, organization_workforce, organization_attendance, organization_leave, accounting_period, organization_payroll, organization_recruitment, organization_administration, platform_idempotency, cost_timesheet, one_migration FROM one_dev_app, one_dev_readonly;
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- §4 Flowable 引擎表（ACT_*）
@@ -126,7 +127,7 @@ BEGIN
                              'organization_workforce.legal_entity_versions', 'organization_workforce.employment_relationship_versions',
                              'organization_workforce.org_unit_legal_entities', 'organization_workforce.employee_legal_entities',
                              'platform_identity.role_versions', 'platform_identity.account_role_grants',
-                             'organization_attendance.standard_hours_versions'] LOOP
+                             'organization_attendance.standard_hours_versions', 'organization_leave.leave_rule_versions'] LOOP
         EXECUTE format('REVOKE DELETE, TRUNCATE ON %s FROM one_dev_app', t);
     END LOOP;
 END $$;
@@ -184,5 +185,5 @@ GRANT EXECUTE ON FUNCTION platform_audit.drop_archived_audit_entry_partition(dat
 -- §5 撤销（回滚本文件；仅在尚无数据时使用）
 -- ---------------------------------------------------------------------------------------------------------------------
 -- DROP SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering, platform_file,
---             platform_scheduling, organization_workforce, organization_attendance, organization_leave, accounting_period, organization_payroll, organization_administration, platform_idempotency, cost_timesheet, one_migration CASCADE;
+--             platform_scheduling, organization_workforce, organization_attendance, organization_leave, accounting_period, organization_payroll, organization_recruitment, organization_administration, platform_idempotency, cost_timesheet, one_migration CASCADE;
 -- DROP ROLE one_dev_audit_maintainer; DROP ROLE one_dev_app; DROP ROLE one_dev_readonly; DROP ROLE one_dev_migrator; DROP ROLE one_dev_history_loader; DROP ROLE one_dev_owner;

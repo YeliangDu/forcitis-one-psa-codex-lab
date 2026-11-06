@@ -95,17 +95,19 @@ class NumberingRowRulesIT {
     }
 
     @Test
-    @DisplayName("DATA-REPAIR-approval AP-11: the four seed rules stay with event_count 0 and the seed versions keep their template; EMPLOYEE is global ({TYPE}{seq:6}, NEVER, no {LE}) and pending confirmation (#959, #963)")
+    @DisplayName("DATA-REPAIR-approval AP-11: the six seed rules stay with event_count 0 and the seed versions keep their template; EMPLOYEE is global ({TYPE}{seq:6}, NEVER, no {LE}) and pending confirmation (#959, #963)")
     void seedsKeepTheirTemplateAndStartAtEventCountZero() throws SQLException {
         assertThat(db.column("select t.code || ':' || r.event_count || ':' || r.version from platform_numbering.numbering_rules r join platform_numbering.document_types t using (document_type_id) order by t.code"))
-                .containsExactly("EMPLOYEE:0:1", "JOURNAL_VOUCHER:0:1", "QUOTE:0:1", "TIMESHEET:0:1");
+                .containsExactly("BONUS_INPUT:0:1", "EMPLOYEE:0:1", "JOURNAL_VOUCHER:0:1", "QUOTE:0:1", "RECRUITMENT_REQUISITION:0:1", "TIMESHEET:0:1");
         assertThat(db.column("select t.code || '|' || v.template_text || '|' || v.reset_policy || '|' || v.start_value || '|' || v.status"
                 + " || '|' || v.version_number || '|' || v.numbering_rule_version_id from platform_numbering.numbering_rule_versions v"
                 + " join platform_numbering.numbering_rules r using (numbering_rule_id) join platform_numbering.document_types t using (document_type_id) order by t.code"))
                 .containsExactly(
+                        "BONUS_INPUT|{TYPE}-{LE}-{yyyyMM}-{seq:4}|MONTHLY|1|PENDING_CONFIRMATION|1|019a0000-0000-7000-8000-000000000506",
                         "EMPLOYEE|{TYPE}{seq:6}|NEVER|1|PENDING_CONFIRMATION|1|019a0000-0000-7000-8000-000000000504",
                         "JOURNAL_VOUCHER|{TYPE}-{LE}-{yyyyMM}-{seq:4}|MONTHLY|1|PENDING_CONFIRMATION|1|019a0000-0000-7000-8000-000000000503",
                         "QUOTE|{TYPE}-{LE}-{yyyyMM}-{seq:4}|MONTHLY|1|PENDING_CONFIRMATION|1|019a0000-0000-7000-8000-000000000501",
+                        "RECRUITMENT_REQUISITION|{TYPE}-{LE}-{yyyyMM}-{seq:4}|MONTHLY|1|PENDING_CONFIRMATION|1|019a0000-0000-7000-8000-000000000505",
                         "TIMESHEET|{TYPE}-{LE}-{yyyyMM}-{seq:4}|MONTHLY|1|PENDING_CONFIRMATION|1|019a0000-0000-7000-8000-000000000502");
     }
 
@@ -113,7 +115,7 @@ class NumberingRowRulesIT {
     @DisplayName("DATA-REPAIR-approval AP-14: numbering still takes QUOTE and JOURNAL_VOUCHER, only a document type id that is not registered is refused (fk_numbering_counters_document_type_id)")
     void numberingKeepsQuoteAndJournalVoucher() throws SQLException {
         assertThat(db.column("select t.code from platform_numbering.numbering_rules r join platform_numbering.document_types t using (document_type_id) order by t.code"))
-                .containsExactly("EMPLOYEE", "JOURNAL_VOUCHER", "QUOTE", "TIMESHEET");
+                .containsExactly("BONUS_INPUT", "EMPLOYEE", "JOURNAL_VOUCHER", "QUOTE", "RECRUITMENT_REQUISITION", "TIMESHEET");
         db.accepted(COUNTER, UUID.randomUUID(), "QUOTE", "202610", 1L);
         db.accepted(COUNTER, UUID.randomUUID(), "JOURNAL_VOUCHER", "202610", 1L);
         db.refused("23503", "fk_numbering_counters_document_type_id", COUNTER_BY_TYPE_ID, UUID.randomUUID(), UUID.randomUUID(), "202610", 1L);

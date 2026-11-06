@@ -16,6 +16,8 @@ import com.forcitis.one.platform.approval.domain.TaskView;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 /** Offers nothing that acts on a task (I-5, I-7). */
@@ -63,6 +65,12 @@ class ApprovalProcessesFacade implements ApprovalProcesses {
     @Override
     public Optional<ApprovalProgress> progress(ProcessKey processKey, DocumentReference document) {
         return getProgress.execute(processKey, document);
+    }
+
+    @Override
+    public Set<DocumentReference> openDocumentsFor(ProcessKey processKey, UserId user) {
+        return engine.findOpenTasksFor(user).stream().filter(task -> task.processKey().equals(processKey)).map(task -> task.document())
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     @Override
