@@ -821,3 +821,33 @@ terms:
   status: approved
   confirmed: 用户 2026-11-04 批准（one-lead 转达，#1296）
   note: 人事命令页面用语（#1296）
+- id: covered_target
+  zh: 被代理对象
+  en: CoveredTarget
+  snake: covered_target
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 代理职务所覆盖的部门、岗位或被代理的人；岗位为空表示代理该部门负责人（#1525 数据设计）
+  standard_ref:
+  - docs/data/reviews/workforce-acting-duty.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 只为让代码与迁移里的 covered_* 列和事件字段用词登记在册（#1536）
+- id: ended_early
+  zh: 提前结束
+  en: EndedEarly
+  snake: ended_early
+  kind: state
+  bc: organization.workforce
+  scope: domain
+  definition: 代理职务在截止日之前由人事命令结束；对应结束原因 ENDED_EARLY（#1525 数据设计）
+  standard_ref:
+  - docs/data/reviews/workforce-acting-duty.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 登记枚举常量 ENDED_EARLY 用词（#1536）
