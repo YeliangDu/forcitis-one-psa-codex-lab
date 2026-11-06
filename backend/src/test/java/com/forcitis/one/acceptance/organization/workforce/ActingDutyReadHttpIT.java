@@ -128,11 +128,11 @@ class ActingDutyReadHttpIT extends ActingDutyReadHttpSupport {
     @Test
     @DisplayName("#1579 three duties of one person are listed newest first by starts_on")
     void dutiesAreNewestFirst() throws Exception {
-        for (int day = 0; day < 3; day++) {
-            on(TODAY.plusDays(day));
-            dueJob();
-            start("ordered", null, true, TODAY.plusDays(day), TODAY.plusDays(day + 1));
-        }
+        // Entered out of starts_on order, so that neither creation time nor the id order can pass for starts_on order.
+        on(TODAY.plusDays(2));
+        start("ordered", null, true, TODAY.plusDays(2), TODAY.plusDays(3));
+        start("ordered", null, true, TODAY, TODAY.plusDays(1));
+        start("ordered", null, true, TODAY.plusDays(1), TODAY.plusDays(2));
         List<Map<String, Object>> rows = duties("all", DUTIES, "ordered");
         assertThat(field(rows, "firstDay")).containsExactly(TODAY.plusDays(2).toString(), TODAY.plusDays(1).toString(), TODAY.toString());
         assertThat(field(rows, "employeeId")).containsOnly(employeeIdOf("ordered"));
@@ -141,12 +141,12 @@ class ActingDutyReadHttpIT extends ActingDutyReadHttpSupport {
     @Test
     @DisplayName("#1579 covering list contains only the named person's duties, with stand-ins newest first; nobody covered gets empty items")
     void dutiesCoveringAPerson() throws Exception {
-        for (int day = 0; day < 3; day++) {
-            on(TODAY.plusDays(day));
-            start("cover" + (day + 1), "orderedCovered", true, TODAY.plusDays(day), TODAY.plusDays(10));
-        }
+        on(TODAY.plusDays(2));
+        start("cover1", "orderedCovered", true, TODAY.plusDays(2), TODAY.plusDays(10));
+        start("cover2", "orderedCovered", true, TODAY, TODAY.plusDays(10));
+        start("cover3", "orderedCovered", true, TODAY.plusDays(1), TODAY.plusDays(10));
         List<Map<String, Object>> rows = duties("all", COVERING, "orderedCovered");
-        assertThat(field(rows, "employeeId")).containsExactly(employeeIdOf("cover3"), employeeIdOf("cover2"), employeeIdOf("cover1"));
+        assertThat(field(rows, "employeeId")).containsExactly(employeeIdOf("cover1"), employeeIdOf("cover3"), employeeIdOf("cover2"));
         assertThat(field(rows, "firstDay")).containsExactly(TODAY.plusDays(2).toString(), TODAY.plusDays(1).toString(), TODAY.toString());
         assertThat(field(rows, "coveredEmployeeId")).containsOnly(employeeIdOf("orderedCovered"));
         assertThat(duties("all", COVERING, "nobodyCovered")).isEmpty();

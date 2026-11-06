@@ -44,7 +44,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.util.ClassUtils;
 
-/** #1579: HTTP commands create every duty; SQL prepares only the organisation and employment fixtures. */
+/** #1579: duties are entered in process through the personnel command use case, the reads under test are HTTP; SQL prepares only the organisation and employment fixtures (and one assignment deletion in emptyScopes). */
 abstract class ActingDutyReadHttpSupport extends DataScopeSupport {
     static final String DUTIES = "/api/v1/organization/acting-duties/";
     static final String COVERING = "/api/v1/organization/covered-acting-duties/";
