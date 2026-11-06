@@ -4,8 +4,9 @@ import com.forcitis.one.kernel.InvalidRequestException;
 import com.forcitis.one.kernel.LegalEntityId;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
+import tools.jackson.databind.annotation.JsonDeserialize;
 
-record OpenFiscalYearRequest(@Nullable UUID legalEntityId, @Nullable Integer fiscalYear) {
+record OpenFiscalYearRequest(@Nullable UUID legalEntityId, @JsonDeserialize(using = StrictYear.class) @Nullable Integer fiscalYear) {
 
     LegalEntityId requiredLegalEntityId() {
         if (legalEntityId == null) {
