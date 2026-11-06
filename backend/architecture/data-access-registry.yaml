@@ -944,6 +944,16 @@ tables:
     retention: {policy: PERMANENT}      # Q-3 (user decision 2026-11-05, docs/decisions/2026-11-05-120403-one-lead-均采纳-监管部门有明确法规且和企.md): a leave account and its ledger are the employee's leave record, kept with the employee record period; an expiry job is a later decision (ADR-0043 R-2)
     lineage: {source: NEW, migrated_from: [old annual leave archive 年假档案], via: ONE_OFF_IMPORT}
     writers: []  # L1b has no Java SQL; register the writer with the command slice
+  # #1592 S3 slice A, signed record docs/data/reviews/leave-attendance-s3.md.
+  organization_leave.leave_policy_grants:
+    role: AGGREGATE_CHILD
+    aggregate: LeaveBalanceAccount
+    mutability: APPEND_ONLY
+    fk_exceptions:
+      leave_type_id: carried by the composite foreign key fk_leave_policy_grants_account_relationship_type, which holds it equal to the type of its account
+    retention: {policy: PERMANENT}      # Q-3: kept with the employee record period, as the ledger rows
+    lineage: {source: NEW}
+    writers: []  # Slice A has no Java SQL; slice C registers the command writer
   organization_leave.leave_grant_basis:
     role: AGGREGATE_CHILD
     aggregate: LeaveBalanceAccount
