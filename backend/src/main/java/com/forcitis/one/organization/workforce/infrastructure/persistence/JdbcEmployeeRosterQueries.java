@@ -34,6 +34,11 @@ class JdbcEmployeeRosterQueries implements EmployeeRosterQueries {
                 select e.id, e.employee_code, e.display_name,
                        case when v.versioned then ev.employment_status else e.employment_status end as employment_status,
                        ev.employment_start_date as hire_date,
+                       -- ADR-0086 design 6.2, as JdbcEmployeeVersionQueries.isOnLeave: on leave when every relationship in service that day is
+                       (v.versioned and ev.employment_status = 'EMPLOYED' and not exists (
+                           select 1 from organization_workforce.employment_relationship_versions y
+                            where y.employee_id = e.id and y.superseded_at is null and y.employment_status = 'EMPLOYED' and not y.is_on_unpaid_leave
+                              and y.effective_from_date <= :day and (y.effective_to_date is null or :day < y.effective_to_date))) as on_unpaid_leave,
                        case when ev.employment_status = 'SEPARATED' then ev.effective_from_date - 1 else :day end as posts_day
                   from organization_workforce.employees e
                   cross join lateral (select exists (select 1 from organization_workforce.employment_relationship_versions x where x.employee_id = e.id) as versioned) v
@@ -60,15 +65,16 @@ class JdbcEmployeeRosterQueries implements EmployeeRosterQueries {
 
     private static final String VISIBLE = """
             , visible_rows as (
-                select e.id, e.employee_code, e.display_name, e.employment_status, e.hire_date
+                select e.id, e.employee_code, e.display_name, e.employment_status, e.hire_date, e.on_unpaid_leave
                   from employee_rows e
                  where (cast(:status as text) is null or e.employment_status = :status)
+                   and (not :onLeaveOnly or e.on_unpaid_leave)
                    and ((:everything and cast(:orgUnit as uuid) is null) or exists (
                        select 1 from assignment_rows a where a.employee_id = e.id
                          and (:everything or a.org_unit_id = any(:units))
                          and (cast(:orgUnit as uuid) is null or a.org_unit_id = :orgUnit)))
             )
-            select id, employee_code, display_name, employment_status, hire_date from visible_rows
+            select id, employee_code, display_name, employment_status, hire_date, on_unpaid_leave from visible_rows
             """;
 
     private final JdbcClient jdbc;
@@ -82,15 +88,15 @@ class JdbcEmployeeRosterQueries implements EmployeeRosterQueries {
     }
 
     @Override
-    public List<Row> list(Visible visible, @Nullable OrgUnitId orgUnit, @Nullable EmploymentStatus status, @Nullable EmployeeId after, int limit) {
+    public List<Row> list(Visible visible, @Nullable OrgUnitId orgUnit, @Nullable EmploymentStatus status, boolean onLeaveOnly, @Nullable EmployeeId after, int limit) {
         LocalDate day = zone.today(clock);
         var rows = visibleQuery(jdbc.sql(CURRENT + VISIBLE + """
                  where cast(:after as uuid) is null or employee_code > (select employee_code from visible_rows where id = :after)
                  order by employee_code limit :limit
-                """), visible, orgUnit, status, day)
+                """), visible, orgUnit, status, onLeaveOnly, day)
                 .param("after", after == null ? null : after.value(), Types.OTHER).param("limit", limit)
                 .query((rs, n) -> row(rs)).list();
-        if (rows.isEmpty() && after != null && visibleQuery(jdbc.sql(CURRENT + VISIBLE + " where id = :id"), visible, orgUnit, status, day)
+        if (rows.isEmpty() && after != null && visibleQuery(jdbc.sql(CURRENT + VISIBLE + " where id = :id"), visible, orgUnit, status, onLeaveOnly, day)
                 .param("id", after.value()).query((rs, n) -> 1).list().isEmpty()) {
             // A cursor row that left the caller's result set between two pages must not look like the end of the list.
             throw new InvalidCursorException("the cursor row is no longer in the result");
@@ -101,7 +107,7 @@ class JdbcEmployeeRosterQueries implements EmployeeRosterQueries {
     @Override
     public Optional<Row> find(Visible visible, EmployeeId employee) {
         LocalDate day = zone.today(clock);
-        var rows = visibleQuery(jdbc.sql(CURRENT + VISIBLE + " where id = :id"), visible, null, null, day)
+        var rows = visibleQuery(jdbc.sql(CURRENT + VISIBLE + " where id = :id"), visible, null, null, false, day)
                 .param("id", employee.value()).query((rs, n) -> row(rs)).list();
         return withAssignments(rows, day).stream().findFirst();
     }
@@ -137,10 +143,11 @@ class JdbcEmployeeRosterQueries implements EmployeeRosterQueries {
     }
 
     private static JdbcClient.StatementSpec visibleQuery(JdbcClient.StatementSpec query, Visible visible, @Nullable OrgUnitId orgUnit,
-                                                         @Nullable EmploymentStatus status, LocalDate day) {
+                                                         @Nullable EmploymentStatus status, boolean onLeaveOnly, LocalDate day) {
         return query.param("day", day).param("everything", visible.everything())
                 .param("units", visible.orgUnits().stream().map(OrgUnitId::value).toArray(UUID[]::new))
                 .param("orgUnit", orgUnit == null ? null : orgUnit.value(), Types.OTHER)
+                .param("onLeaveOnly", onLeaveOnly)
                 .param("status", status == null ? null : status.name(), Types.VARCHAR);
     }
 
@@ -171,13 +178,13 @@ class JdbcEmployeeRosterQueries implements EmployeeRosterQueries {
                     assignments.computeIfAbsent(employee, ignored -> new ArrayList<>()).add(assignment(rs));
                     return employee;
                 }).list();
-        return rows.stream().map(row -> new Row(row.employeeId(), row.employeeCode(), row.displayName(), row.employmentStatus(), row.hireDate(),
+        return rows.stream().map(row -> new Row(row.employeeId(), row.employeeCode(), row.displayName(), row.employmentStatus(), row.hireDate(), row.onUnpaidLeave(),
                 assignments.getOrDefault(row.employeeId(), List.of()))).toList();
     }
 
     private static Row row(ResultSet rs) throws SQLException {
         return new Row(new EmployeeId(rs.getObject("id", UUID.class)), rs.getString("employee_code"), rs.getString("display_name"),
-                EmploymentStatus.valueOf(rs.getString("employment_status")), rs.getObject("hire_date", LocalDate.class), List.of());
+                EmploymentStatus.valueOf(rs.getString("employment_status")), rs.getObject("hire_date", LocalDate.class), rs.getBoolean("on_unpaid_leave"), List.of());
     }
 
     private static AssignmentRow assignment(ResultSet rs) throws SQLException {

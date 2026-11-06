@@ -4,7 +4,7 @@ import { optionsOf } from '../../../shared/options';
 import { RouterLink } from '../../../shared/router-link';
 import { PagedTable } from '../../../shared/paged-table';
 import { useEmployees, useOrgUnits } from '../hooks/use-workforce';
-import { EMPLOYMENT_FILTERS, EMPLOYMENT_STATUS_LABELS, type EmployeeRoster, type EmploymentFilter, employeePath, employmentFilterOf } from '../model/employee';
+import { EMPLOYMENT_FILTERS, employmentStatusLabel, type EmployeeRoster, type EmploymentFilter, employeePath, employmentFilterOf } from '../model/employee';
 
 export function EmployeeRosterPage() {
   const [status, setStatus] = useState<EmploymentFilter>('EMPLOYED');
@@ -25,7 +25,7 @@ export function EmployeeRosterPage() {
     {
       key: 'status',
       title: '在职状态',
-      render: (employee) => <StatusBadge tone={employee.employmentStatus === 'EMPLOYED' ? 'posted' : 'neutral'}>{EMPLOYMENT_STATUS_LABELS[employee.employmentStatus] ?? employee.employmentStatus}</StatusBadge>,
+      render: (employee) => <StatusBadge tone={employee.employmentStatus === 'EMPLOYED' && !employee.onUnpaidLeave ? 'posted' : 'neutral'}>{employmentStatusLabel(employee.employmentStatus, employee.onUnpaidLeave)}</StatusBadge>,
     },
   ];
 
