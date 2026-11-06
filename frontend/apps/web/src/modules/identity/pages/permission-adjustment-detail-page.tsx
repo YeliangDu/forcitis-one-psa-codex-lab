@@ -1,5 +1,6 @@
-import { describeFailure, formatDateTime, versionOf } from '@forcitis/core';
-import { Button, DescriptionList, Dialog, LoadingState, Notice, PageTitle, SelectField, StatusBadge, TextAreaField, TextField } from '@forcitis/ui';
+import { formatDateTime, versionOf } from '@forcitis/core';
+import { Button, DescriptionList, Dialog, PageTitle, ReasonDialog, SelectField, StatusBadge, TextField } from '@forcitis/ui';
+import { MutationNotice, QueryBoundary } from '../../../shared/query-boundary';
 import { useState } from 'react';
 import { useParams } from 'react-router';
 import { useMarkAdjusted, usePermissionAdjustment, useUpholdAdjustment } from '../hooks/use-permission-adjustments';
@@ -24,66 +25,64 @@ export function PermissionAdjustmentDetailPage() {
   const uphold = useUpholdAdjustment(permissionAdjustmentId);
   const adjust = useMarkAdjusted(permissionAdjustmentId);
   const [asking, setAsking] = useState<Asking>();
-  const [reason, setReason] = useState('');
   const [owner, setOwner] = useState('');
   const [reference, setReference] = useState<ReferenceKind>('authorizationRequestId');
   const [referenceId, setReferenceId] = useState('');
   const needsOwner = item.data?.kind === 'SENSITIVE_ROLE_REVIEW';
 
-  if (item.isPending) return <LoadingState />;
-  if (item.isError) return <Notice tone="error" title="待调整权限加载失败">{describeFailure(item.error)}</Notice>;
-
-  const detail = item.data;
-  const close = () => {
-    setAsking(undefined);
-    setReason('');
-    setOwner('');
-    setReferenceId('');
-    uphold.reset();
-    adjust.reset();
-  };
-  const version = versionOf(detail);
-  const confirmUphold = () => uphold.mutate({ version, reason: reason.trim(), owner: owner.trim() }, { onSuccess: close });
-  const confirmAdjusted = () => adjust.mutate({ version, reference, referenceId: referenceId.trim() }, { onSuccess: close });
-
   return (
-    <>
-      <PageTitle
-        text={`${KIND_LABELS[detail.kind] ?? detail.kind} · ${aboutLabel(detail)}`}
-        actions={
+    <QueryBoundary query={item} errorTitle="待调整权限加载失败">
+      {(detail) => {
+        const close = () => {
+          setAsking(undefined);
+          setOwner('');
+          setReferenceId('');
+          uphold.reset();
+          adjust.reset();
+        };
+        const version = versionOf(detail);
+        const confirmUphold = (reason: string) => uphold.mutate({ version, reason, owner: owner.trim() }, { onSuccess: close });
+        const confirmAdjusted = () => adjust.mutate({ version, reference, referenceId: referenceId.trim() }, { onSuccess: close });
+
+        return (
           <>
-            <StatusBadge tone={statusTone(detail.status)}>{STATUS_LABELS[detail.status] ?? detail.status}</StatusBadge>
-            {detail.status === 'OPEN' ? (
-              <>
-                <Button onClick={() => setAsking('uphold')}>维持授权</Button>
-                <Button variant="default" onClick={() => setAsking('adjusted')}>标记已调整</Button>
-              </>
-            ) : null}
+            <PageTitle
+              text={`${KIND_LABELS[detail.kind] ?? detail.kind} · ${aboutLabel(detail)}`}
+              actions={
+                <>
+                  <StatusBadge tone={statusTone(detail.status)}>{STATUS_LABELS[detail.status] ?? detail.status}</StatusBadge>
+                  {detail.status === 'OPEN' ? (
+                    <>
+                      <Button onClick={() => setAsking('uphold')}>维持授权</Button>
+                      <Button variant="default" onClick={() => setAsking('adjusted')}>标记已调整</Button>
+                    </>
+                  ) : null}
+                </>
+              }
+            />
+            <DescriptionList
+              items={[
+                { label: '类型', value: KIND_LABELS[detail.kind] ?? detail.kind },
+                { label: '来源', value: ORIGIN_LABELS[detail.originKind] ?? detail.originKind },
+                ...(detail.userId === undefined ? [] : [{ label: '人员', value: nameOrId(detail.userName, detail.userId) }]),
+                ...(detail.roleId === undefined ? [] : [{ label: '角色', value: nameOrId(detail.roleName, detail.roleId) }]),
+                ...(detail.orgUnitId === undefined ? [] : [{ label: '组织单元', value: nameOrId(detail.orgUnitName, detail.orgUnitId) }]),
+                ...triggerItems(detail),
+                ...(detail.businessOwnerEmployeeId === undefined ? [] : [{ label: '业务负责人', value: nameOrId(detail.businessOwnerName, detail.businessOwnerEmployeeId) }]),
+                ...(detail.upholdExpiresAt === undefined ? [] : [{ label: '维持到期时间', value: formatDateTime(detail.upholdExpiresAt) }]),
+              ]}
+            />
+            <ReasonDialog open={asking === 'uphold'} title="维持授权" confirmText="维持授权" label="理由（选填）" required={false} loading={uphold.isPending} confirmDisabled={needsOwner && owner.trim() === ''} error={<MutationNotice mutation={uphold} title="维持授权失败" />} onConfirm={confirmUphold} onClose={close}>
+              {needsOwner ? <TextField label="业务负责人编号" value={owner} onChange={setOwner} /> : null}
+            </ReasonDialog>
+            <Dialog open={asking === 'adjusted'} title="标记已调整" confirmText="标记已调整" confirmLoading={adjust.isPending} confirmDisabled={referenceId.trim() === ''} onConfirm={confirmAdjusted} onClose={close}>
+              <SelectField label="编号类型" value={reference} options={REFERENCE_OPTIONS} onChange={(value) => setReference(value as ReferenceKind)} />
+              <TextField label={REFERENCE_LABELS[reference]} value={referenceId} onChange={setReferenceId} />
+              <MutationNotice mutation={adjust} title="标记已调整失败" />
+            </Dialog>
           </>
-        }
-      />
-      <DescriptionList
-        items={[
-          { label: '类型', value: KIND_LABELS[detail.kind] ?? detail.kind },
-          { label: '来源', value: ORIGIN_LABELS[detail.originKind] ?? detail.originKind },
-          ...(detail.userId === undefined ? [] : [{ label: '人员', value: nameOrId(detail.userName, detail.userId) }]),
-          ...(detail.roleId === undefined ? [] : [{ label: '角色', value: nameOrId(detail.roleName, detail.roleId) }]),
-          ...(detail.orgUnitId === undefined ? [] : [{ label: '组织单元', value: nameOrId(detail.orgUnitName, detail.orgUnitId) }]),
-          ...triggerItems(detail),
-          ...(detail.businessOwnerEmployeeId === undefined ? [] : [{ label: '业务负责人', value: nameOrId(detail.businessOwnerName, detail.businessOwnerEmployeeId) }]),
-          ...(detail.upholdExpiresAt === undefined ? [] : [{ label: '维持到期时间', value: formatDateTime(detail.upholdExpiresAt) }]),
-        ]}
-      />
-      <Dialog open={asking === 'uphold'} title="维持授权" confirmText="维持授权" confirmLoading={uphold.isPending} confirmDisabled={needsOwner && owner.trim() === ''} onConfirm={confirmUphold} onClose={close}>
-        {needsOwner ? <TextField label="业务负责人编号" value={owner} onChange={setOwner} /> : null}
-        <TextAreaField label="理由（选填）" value={reason} onChange={setReason} />
-        {uphold.isError ? <Notice tone="error" title="维持授权失败">{describeFailure(uphold.error)}</Notice> : null}
-      </Dialog>
-      <Dialog open={asking === 'adjusted'} title="标记已调整" confirmText="标记已调整" confirmLoading={adjust.isPending} confirmDisabled={referenceId.trim() === ''} onConfirm={confirmAdjusted} onClose={close}>
-        <SelectField label="编号类型" value={reference} options={REFERENCE_OPTIONS} onChange={(value) => setReference(value as ReferenceKind)} />
-        <TextField label={REFERENCE_LABELS[reference]} value={referenceId} onChange={setReferenceId} />
-        {adjust.isError ? <Notice tone="error" title="标记已调整失败">{describeFailure(adjust.error)}</Notice> : null}
-      </Dialog>
-    </>
+        );
+      }}
+    </QueryBoundary>
   );
 }
