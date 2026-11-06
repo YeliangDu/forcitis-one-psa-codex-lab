@@ -81,10 +81,10 @@ Each PR keeps behaviour; the move PRs (1 to 4) change no visible text.
 
 | # | Question | Options | Recommendation |
 |---|---|---|---|
-| H1 | Area names and which existing pages go to the look-up area | the card's three names; other words | Use the card's words after the glossary check; move roster, org units and work calendars to look-up |
-| H2 | Landing page now or later | B now; A only | A only; add B when two areas hold content |
-| H3 | Internal name for the feature (the glossary term `workbench` is the WeCom entry) | `home`, `my-work` | `my-work` |
-| H4 | Backend read for "what I started" | in the approval module (new api method) or each module lists its own documents | approval module, one read by initiator; modules keep their own lists for admin views |
+| H1 | Area names and which existing pages go to the look-up area | the card's three names; other words | Use the card's words after the glossary check; move roster, org units and work calendars to look-up. **lead 代定（用户授权 23:50），待用户确认**: option 1 (the card's words after the glossary check; roster, org units and work calendars move to look-up) |
+| H2 | Landing page now or later | B now; A only | A only; add B when two areas hold content. **lead 代定（用户授权 23:50），待用户确认**: A only, no landing page |
+| H3 | Internal name for the feature (the glossary term `workbench` is the WeCom entry) | `home`, `my-work` | `my-work`. **lead 代定（用户授权 23:50），待用户确认**: `my-work` |
+| H4 | Backend read for "what I started" | in the approval module (new api method) or each module lists its own documents | approval module, one read by initiator; modules keep their own lists for admin views. **lead 代定（用户授权 23:50），待用户确认**: approval module, one read by initiator (slice 7); the card for it is written after slice 6 |
 
 None blocks slices 1 to 5.
 
