@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
+import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.platform.integration.api.WecomCard;
 import com.jayway.jsonpath.JsonPath;
 import java.util.List;
@@ -89,6 +90,7 @@ class BonusInputApproverReadIT extends BonusInputSupport {
         Submitted submitted = submit(relationship, OCTOBER, AMOUNT, REASON);
         UUID task = nextTask(submitted, List.of());
 
+        assertReads(task, lineManagerAccount, relationship, "the line manager (so that the 404s below are not a wrong path)");
         assertNotFound(task, specialistAccount, "the initiator (a payroll-role holder)");
         assertNotFound(task, outsiderAccount, "an unrelated employee");
         assertNotFound(task, secondSpecialistAccount, "the payroll-role holder of the second stage, before the stage is reached");
@@ -126,20 +128,46 @@ class BonusInputApproverReadIT extends BonusInputSupport {
     }
 
     @Test
-    @DisplayName("#1436 (a) 通知、企业微信卡片与审批任务详情不含金额与原因（金额只经薪资专属读取）")
-    void noNotificationOrTaskDetailCarriesTheAmount() throws Exception {
+    @DisplayName("#1436 (a) 同时有两份申请时，各候选人只能读自己任务上的那份：A 的第一阶段候选人读 B 的第二阶段任务得 404，反之亦然")
+    void aCandidateOfOneTaskCannotReadAnotherOpenTask() throws Exception {
+        UUID relationshipA = employedRelationship();
+        UUID relationshipB = employedRelationship();
+        Submitted a = submit(relationshipA, OCTOBER, AMOUNT, REASON);
+        Submitted b = submit(relationshipB, OCTOBER, "99.00", "PROJECT");
+        UUID taskA = nextTask(a, List.of());
+        UUID firstOfB = decideFirstStage(b, "APPROVE");
+        UUID taskB = nextTask(b, List.of(firstOfB));
+
+        assertReads(taskA, lineManagerAccount, relationshipA, "the line manager on request A");
+        assertNotFound(taskB, lineManagerAccount, "the line manager (candidate of A) on the open task of B");
+        assertNotFound(taskA, secondSpecialistAccount, "the payroll-role holder (candidate of B) on the open task of A");
+        MockHttpServletResponse own = read(taskB, secondSpecialistAccount);
+        assertThat(own.getStatus()).as(own.getContentAsString()).isEqualTo(200);
+        assertThat((String) JsonPath.read(own.getContentAsString(), "$.employmentRelationshipId")).as("B's own relationship, not A's").isEqualTo(relationshipB.toString());
+        assertThat((String) JsonPath.read(own.getContentAsString(), "$.amount.amount")).isEqualTo("99.00");
+    }
+
+    @Test
+    @DisplayName("#1436 (a) 经真实命令发起：审批任务详情（两个阶段）与企业微信卡片不含金额、原因键与任职关系编号，且至少发出一张给直属上级的卡片")
+    void noNotificationOrTaskDetailOfARealRequestCarriesTheAmount() throws Exception {
         UUID relationship = employedRelationship();
-        Submitted submitted = submit(relationship, OCTOBER, AMOUNT, REASON);
+        request(specialistAccount, requestOf(relationship, legalEntity.value(), OCTOBER, new java.math.BigDecimal(AMOUNT).toPlainString(), "CNY", REASON, UUID.randomUUID()));
+        UUID documentId = (UUID) bonusApprovals().getLast().get("document_id");
+        Submitted submitted = new Submitted(documentId, relationship, null, new DocumentReference(DOCUMENT_TYPE, documentIdOf(documentId)));
         UUID first = nextTask(submitted, List.of());
         String detailOfFirst = detail(first, lineManagerAccount).getContentAsString();
-        decide(submitted, "APPROVE");
-        awaitConsumed(submitted.requestId());
+        claimAndDecide(first, lineManagerAccount, "APPROVE");
+        UUID second = nextTask(submitted, List.of(first));
+        String detailOfSecond = detail(second, secondSpecialistAccount).getContentAsString();
 
-        assertThat(detailOfFirst).as("the approval task detail").doesNotContain(AMOUNT).doesNotContain(REASON);
+        for (String body : List.of(detailOfFirst, detailOfSecond)) {
+            assertThat(body).as("the approval task detail").doesNotContain(AMOUNT).doesNotContain(REASON).doesNotContain(relationship.toString());
+        }
         ArgumentCaptor<WecomCard> cards = ArgumentCaptor.forClass(WecomCard.class);
-        verify(wecomGateway, atLeast(0)).send(cards.capture());
+        verify(wecomGateway, atLeast(1)).send(cards.capture());
         for (WecomCard card : cards.getAllValues()) {
-            assertThat(card.title() + " " + card.description() + " " + card.targetUrl()).as("a WeCom card of the flow").doesNotContain(AMOUNT).doesNotContain(REASON);
+            assertThat(card.title() + " " + card.description() + " " + card.targetUrl()).as("a WeCom card of the flow").doesNotContain(AMOUNT).doesNotContain(REASON)
+                    .doesNotContain(relationship.toString());
         }
     }
 }
