@@ -1,5 +1,5 @@
 import { formatDateTime, versionOf } from '@forcitis/core';
-import { Button, DescriptionList, Dialog, PageTitle, SelectField, StatusBadge, TextAreaField, TextField } from '@forcitis/ui';
+import { Button, DescriptionList, Dialog, PageTitle, ReasonDialog, SelectField, StatusBadge, TextField } from '@forcitis/ui';
 import { MutationNotice, QueryBoundary } from '../../../shared/query-boundary';
 import { useState } from 'react';
 import { useParams } from 'react-router';
@@ -25,7 +25,6 @@ export function PermissionAdjustmentDetailPage() {
   const uphold = useUpholdAdjustment(permissionAdjustmentId);
   const adjust = useMarkAdjusted(permissionAdjustmentId);
   const [asking, setAsking] = useState<Asking>();
-  const [reason, setReason] = useState('');
   const [owner, setOwner] = useState('');
   const [reference, setReference] = useState<ReferenceKind>('authorizationRequestId');
   const [referenceId, setReferenceId] = useState('');
@@ -36,14 +35,13 @@ export function PermissionAdjustmentDetailPage() {
       {(detail) => {
         const close = () => {
           setAsking(undefined);
-          setReason('');
           setOwner('');
           setReferenceId('');
           uphold.reset();
           adjust.reset();
         };
         const version = versionOf(detail);
-        const confirmUphold = () => uphold.mutate({ version, reason: reason.trim(), owner: owner.trim() }, { onSuccess: close });
+        const confirmUphold = (reason: string) => uphold.mutate({ version, reason, owner: owner.trim() }, { onSuccess: close });
         const confirmAdjusted = () => adjust.mutate({ version, reference, referenceId: referenceId.trim() }, { onSuccess: close });
 
         return (
@@ -74,11 +72,9 @@ export function PermissionAdjustmentDetailPage() {
                 ...(detail.upholdExpiresAt === undefined ? [] : [{ label: '维持到期时间', value: formatDateTime(detail.upholdExpiresAt) }]),
               ]}
             />
-            <Dialog open={asking === 'uphold'} title="维持授权" confirmText="维持授权" confirmLoading={uphold.isPending} confirmDisabled={needsOwner && owner.trim() === ''} onConfirm={confirmUphold} onClose={close}>
+            <ReasonDialog open={asking === 'uphold'} title="维持授权" confirmText="维持授权" label="理由（选填）" required={false} loading={uphold.isPending} confirmDisabled={needsOwner && owner.trim() === ''} error={<MutationNotice mutation={uphold} title="维持授权失败" />} onConfirm={confirmUphold} onClose={close}>
               {needsOwner ? <TextField label="业务负责人编号" value={owner} onChange={setOwner} /> : null}
-              <TextAreaField label="理由（选填）" value={reason} onChange={setReason} />
-              <MutationNotice mutation={uphold} title="维持授权失败" />
-            </Dialog>
+            </ReasonDialog>
             <Dialog open={asking === 'adjusted'} title="标记已调整" confirmText="标记已调整" confirmLoading={adjust.isPending} confirmDisabled={referenceId.trim() === ''} onConfirm={confirmAdjusted} onClose={close}>
               <SelectField label="编号类型" value={reference} options={REFERENCE_OPTIONS} onChange={(value) => setReference(value as ReferenceKind)} />
               <TextField label={REFERENCE_LABELS[reference]} value={referenceId} onChange={setReferenceId} />
