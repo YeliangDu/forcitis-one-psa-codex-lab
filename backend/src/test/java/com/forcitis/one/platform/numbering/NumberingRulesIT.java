@@ -131,9 +131,9 @@ class NumberingRulesIT {
     void ruleListShowsTheDefaultQuoteTemplateAsPending() throws Exception {
         mvc.perform(get(RULES).with(READER))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items.length()").value(5))
+                .andExpect(jsonPath("$.items.length()").value(6))
                 .andExpect(jsonPath("$.items[*].documentType").value(org.hamcrest.Matchers.containsInAnyOrder(
-                        "EMPLOYEE", "JOURNAL_VOUCHER", "QUOTE", "RECRUITMENT_REQUISITION", "TIMESHEET")))
+                        "BONUS_INPUT", "EMPLOYEE", "JOURNAL_VOUCHER", "QUOTE", "RECRUITMENT_REQUISITION", "TIMESHEET")))
                 .andExpect(jsonPath("$.items[?(@.documentType == 'RECRUITMENT_REQUISITION')].confirmationStatus").value("PENDING_CONFIRMATION"))
                 .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:4}"))
                 .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].resetPolicy").value("MONTHLY"))

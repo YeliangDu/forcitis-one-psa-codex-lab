@@ -36,11 +36,11 @@ class EmployeeController {
                                            @RequestParam(defaultValue = "EMPLOYED") EmploymentFilter employmentStatus,
                                            @RequestParam(required = false) @Nullable Integer limit, @RequestParam(required = false) @Nullable String cursor) {
         EmploymentStatus status = switch (employmentStatus) {
-            case EMPLOYED -> EmploymentStatus.EMPLOYED;
+            case EMPLOYED, ON_UNPAID_LEAVE -> EmploymentStatus.EMPLOYED;
             case SEPARATED -> EmploymentStatus.SEPARATED;
             case ALL -> null;
         };
-        var page = list.execute(orgUnitId == null ? null : new OrgUnitId(orgUnitId), status, PageRequest.of(limit, cursor, "employees"));
+        var page = list.execute(orgUnitId == null ? null : new OrgUnitId(orgUnitId), status, employmentStatus == EmploymentFilter.ON_UNPAID_LEAVE, PageRequest.of(limit, cursor, "employees"));
         return CursorPage.of(page.items().stream().map(EmployeeRosterResponse::of).toList(), page.nextCursor());
     }
 
@@ -52,6 +52,6 @@ class EmployeeController {
     }
 
     enum EmploymentFilter {
-        EMPLOYED, ALL, SEPARATED
+        EMPLOYED, ALL, SEPARATED, ON_UNPAID_LEAVE
     }
 }

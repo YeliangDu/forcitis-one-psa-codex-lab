@@ -162,6 +162,19 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
 
+  # #1436 PY3: one approved bonus input per relationship, month and reason (docs/data/reviews/organization-payroll-py3.md). A row is written when its approval completes.
+  organization_payroll.bonus_inputs:
+    role: AGGREGATE_ROOT
+    aggregate: BonusDetermination
+    business_key: [employment_relationship_id, payroll_month_start_date, reason_key]
+    writers: [organization.payroll]
+    mutability: CONDITIONAL_UPDATE
+    condition: "ACTIVE to VOIDED once, setting the void pair (tg_bonus_inputs_change); no delete except the purge function"
+    # The signed retention is ten years after the person's last separation, removed by the purge route (user 2026-11-05 P-9 a). The purge function does not cover payroll tables yet,
+    # so this line carries the placeholder of the other per-person tables; the purge extension is owed and nothing here enforces the retention.
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+
   # Identity of positions, org_units and employees comes from platform_integration.source_references, unique on (source_system, source_object_kind, source_id).
   # positions.code, org_units.code and employees.employee_code are display only and not unique in the source (five employee codes sit on several rows, three of them on both
   # an employed and a separated record), so no local unique constraint exists; whether they are unique within some scope is open (card DATA-REPAIR-workforce, open item 4).

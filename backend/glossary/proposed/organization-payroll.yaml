@@ -390,3 +390,108 @@ terms:
   forbidden: []
   status: proposed
   note: '#1429 PY0；中文名待术语确认'
+- id: entered
+  zh: 录入
+  en: Entered
+  snake: entered
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 一条输入由谁录入：奖金输入记录发起审批的那名员工（entered_by_employee_id）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1436 PY3；中文名待术语确认'
+- id: paying
+  zh: 发薪
+  en: Paying
+  snake: paying
+  kind: value_object
+  bc: organization.payroll
+  scope: domain
+  definition: 承担薪酬支付的主体，如发薪法人（paying_legal_entity_id）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1436 PY3；中文名待术语确认'
+- id: error__organization_payroll_bonus_input_not_found
+  zh: 奖金输入不存在
+  en: OrganizationPayrollBonusInputNotFound
+  snake: organization_payroll_bonus_input_not_found
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 要读取或作废的奖金输入不存在（404）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1436 PY3；中文名待术语确认'
+- id: error__organization_payroll_bonus_input_already_voided
+  zh: 奖金输入已作废
+  en: OrganizationPayrollBonusInputAlreadyVoided
+  snake: organization_payroll_bonus_input_already_voided
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 要作废的奖金输入已经作废，不能再作废（409）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1436 PY3；中文名待术语确认'
+- id: error__organization_payroll_bonus_input_duplicate_reason
+  zh: 奖金输入原因重复
+  en: OrganizationPayrollBonusInputDuplicateReason
+  snake: organization_payroll_bonus_input_duplicate_reason
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 同一任职关系同一发薪月同一原因已有生效的奖金输入，需先作废（409）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1436 PY3；中文名待术语确认'
+- id: error__organization_payroll_bonus_input_invalid
+  zh: 奖金输入无效
+  en: OrganizationPayrollBonusInputInvalid
+  snake: organization_payroll_bonus_input_invalid
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 奖金输入的月份、金额、币种、原因键或任职关系不合规（422）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1436 PY3；中文名待术语确认'
+- id: error__organization_payroll_bonus_input_no_approver
+  zh: 奖金输入无审批人
+  en: OrganizationPayrollBonusInputNoApprover
+  snake: organization_payroll_bonus_input_no_approver
+  kind: error_code
+  bc: organization.payroll
+  scope: domain
+  definition: 薪资专员角色除发起人外没有其他持有人，第二级审批无人可办（422）
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1436 用户裁决 (b)；中文名待术语确认'

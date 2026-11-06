@@ -24,9 +24,9 @@ public class ListEmployees {
     }
 
     @Transactional(readOnly = true)
-    public CursorPage<EmployeeRosterView> execute(@Nullable OrgUnitId orgUnit, @Nullable EmploymentStatus status, PageRequest page) {
+    public CursorPage<EmployeeRosterView> execute(@Nullable OrgUnitId orgUnit, @Nullable EmploymentStatus status, boolean onLeaveOnly, PageRequest page) {
         UUID after = page.cursorUuid();
-        List<EmployeeRosterQueries.Row> rows = queries.list(visibility.forList(), orgUnit, status, after == null ? null : new EmployeeId(after), page.limit() + 1);
+        List<EmployeeRosterQueries.Row> rows = queries.list(visibility.forList(), orgUnit, status, onLeaveOnly, after == null ? null : new EmployeeId(after), page.limit() + 1);
         boolean more = rows.size() > page.limit();
         var shown = more ? rows.subList(0, page.limit()) : rows;
         return CursorPage.of(shown.stream().map(EmployeeRosterView::of).toList(),
