@@ -288,6 +288,12 @@ bcs:
   kind: bc
   business_owner: 用户兼任
   description: "绩效评估与绩效更正（ADR-0084 决定 1；contexts.yaml status planned）"
+- id: organization.competency
+  zh: 人员能力
+  subdomain: organization
+  kind: bc
+  business_owner: 用户兼任
+  description: "技能目录、员工技能与注册执业证书（提议 ADR-0089，设计 competency-zone.md；contexts.yaml 随采纳登记）"
 - id: organization.recruitment
   zh: 招聘
   subdomain: organization
