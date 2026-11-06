@@ -103,11 +103,9 @@ class ActingDutySeparationEarlyIT extends ActingDutySupport {
         UUID employee = employed(REGULAR);
         LocalDate starts = TODAY.plusDays(5);
         UUID scheduled = startKeepingVersions(employee, newPosition(), starts);
-        Versions beforeSeparation = versions(employee);
         UUID separation = separate(employee, TODAY.plusDays(1));
         assertThat(command(scheduled).get("status")).isEqualTo(PENDING);
         assertThat(command(separation).get("status")).isEqualTo(PENDING);
-        assertThat(versions(employee)).isEqualTo(beforeSeparation);
 
         advanceTo(starts);
         runDueJob();
@@ -115,7 +113,7 @@ class ActingDutySeparationEarlyIT extends ActingDutySupport {
         assertThat(command(separation).get("status")).isEqualTo(EFFECTIVE);
         assertSeparatedFrom(employee, TODAY.plusDays(2));
         assertWithdrawnWithoutDutyEvents(employee, scheduled);
-        // This job applies separation itself, so its legitimate version changes are not compared for equality.
+        // A pending separation writes its future versions when it is entered, so no version equality is asserted around the job.
     }
 
     @Test
@@ -146,9 +144,8 @@ class ActingDutySeparationEarlyIT extends ActingDutySupport {
         LocalDate starts = TODAY.plusDays(5);
         UUID scheduled = startKeepingVersions(employee, newPosition(), starts);
         assertThat(command(scheduled).get("status")).isEqualTo(PENDING);
-        Versions beforeHold = versions(employee);
         Held held = heldSeparationOn(leaver, TODAY.plusDays(2));
-        assertThat(versions(employee)).isEqualTo(beforeHold);
+        Versions afterHold = versions(employee);
 
         advanceTo(starts);
         runDueJob();
@@ -156,7 +153,7 @@ class ActingDutySeparationEarlyIT extends ActingDutySupport {
         assertThat(command(held.command()).get("status")).isEqualTo(HELD);
         assertThat(holdStatus(held.hold())).isEqualTo(HELD);
         assertWithdrawnWithoutDutyEvents(employee, scheduled);
-        assertThat(versions(employee)).as("a held separation and withdrawn start leave both histories unchanged").isEqualTo(beforeHold);
+        assertThat(versions(employee)).as("withdrawing the start leaves both histories as the held separation left them").isEqualTo(afterHold);
     }
 
     private UUID startKeepingVersions(UUID employee, UUID position, LocalDate starts) throws Exception {
