@@ -832,6 +832,17 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: [accounting.ledger]
+  # #1450 R1, signed record docs/data/reviews/organization-recruitment-r1.md.
+  organization_recruitment.recruitment_requisitions:
+    # PERMANENT by user decision 2026-11-05-163008 (docs/decisions/2026-11-05-163008-one-lead-B-2-a.md, ADR-0043 R-2): tens of rows a year; the requester id is staff identity that the audit trail and the employee history keep permanently in any case, so a shorter limit on this table removes nothing from those; the description is limited to the position need. The reason text moves into a registry field once DG-0 adds it.
+    role: AGGREGATE_ROOT
+    aggregate: RecruitmentRequisition
+    mutability: CONDITIONAL_UPDATE
+    condition: legal state edges and DRAFT edits only (tg_recruitment_requisitions_change)
+    business_key: [requisition_number]
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [organization.recruitment]
   organization_leave.leave_types:
     role: CONFIG
     mutability: MIGRATION_ONLY

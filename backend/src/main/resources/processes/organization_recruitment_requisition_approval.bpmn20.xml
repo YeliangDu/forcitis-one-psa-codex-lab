@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:forcitis="https://forcitis.com/psa/approval/extension"
+             targetNamespace="https://forcitis.com/psa/approval">
+  <!-- One node: the head of the requisition's org unit (form field orgUnitId). A requester who is that head goes to the requester's
+       superior, which is what DEPARTMENT_HEAD does when the head is the initiator (closeout/people/commands.yaml:412). -->
+  <process id="organization_recruitment_requisition_approval" name="招聘需求审批" isExecutable="true">
+    <extensionElements>
+      <forcitis:documentType code="RECRUITMENT_REQUISITION"/>
+      <forcitis:routingFlagRequired value="false"/>
+    </extensionElements>
+    <startEvent id="start"/>
+    <sequenceFlow id="toHeadApproval" sourceRef="start" targetRef="orgUnitHeadApproval"/>
+    <userTask id="orgUnitHeadApproval" name="用人部门负责人审批">
+      <extensionElements>
+        <forcitis:assignmentRule type="DEPARTMENT_HEAD" department="orgUnitId"/>
+      </extensionElements>
+      <multiInstanceLoopCharacteristics isSequential="false" flowable:collection="${approverResolution.apply(execution)}"
+                                        flowable:elementVariable="approver"/>
+    </userTask>
+    <sequenceFlow id="toEnd" sourceRef="orgUnitHeadApproval" targetRef="end"/>
+    <endEvent id="end"/>
+  </process>
+</definitions>

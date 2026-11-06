@@ -35,7 +35,10 @@ class TypedIdComparisonGuardTest {
     /** Classes that may build one kind of id from the raw value of another; an entry that no longer builds anything fails, so it is removed. */
     private static final Map<String, String> MAY_BUILD_FROM_ANOTHER_ID = Map.of(
             "com.forcitis.one.cost.timesheet.domain.Timesheet", "the id of a timesheet is the id of the document it is, so its document reference wraps the value unchanged (R-1b P4)",
-            "com.forcitis.one.cost.timesheet.application.ApplyApprovalResult", "流程标识为工时审批时，单据 ID 即工时单 ID，值不变（R-1b P4）");
+            "com.forcitis.one.cost.timesheet.application.ApplyApprovalResult", "流程标识为工时审批时，单据 ID 即工时单 ID，值不变（R-1b P4）",
+            "com.forcitis.one.organization.recruitment.domain.RecruitmentRequisition", "the id of a requisition is the id of the document it is, so its document reference wraps the value unchanged (#1451)",
+            "com.forcitis.one.organization.recruitment.application.SubmitRequisition", "the approval start names the requisition as a document, whose id is the requisition id unchanged (#1451)",
+            "com.forcitis.one.organization.recruitment.application.ApplyRequisitionApprovalResult", "for the requisition approval process the document id is the requisition id, value unchanged (#1451)");
 
     /**
      * Classes that convert one kind of id into another in a way the scan cannot see (through a method that takes the raw number), kept on

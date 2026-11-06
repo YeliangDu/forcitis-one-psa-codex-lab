@@ -14,7 +14,7 @@ SELECT r.rolname, s.setconfig
 SELECT nspname, pg_get_userbyid(nspowner) AS owner
   FROM pg_namespace
  WHERE nspname IN ('one_migration', 'platform_identity', 'platform_approval', 'platform_integration', 'platform_audit',
-                   'platform_numbering', 'platform_file', 'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'accounting_period', 'accounting_ledger', 'organization_payroll', 'organization_administration',
+                   'platform_numbering', 'platform_file', 'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'accounting_period', 'accounting_ledger', 'organization_payroll', 'organization_recruitment', 'organization_administration',
                    'platform_idempotency', 'cost_timesheet')
  ORDER BY nspname;
 

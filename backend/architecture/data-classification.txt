@@ -81,6 +81,18 @@ organization_leave.attendance_records.employee_id | INTERNAL | PI | 用途：打
 organization_leave.attendance_records.occurred_at | INTERNAL | PI | 用途：打卡时刻，考勤月确认与加班校验
 organization_leave.attendance_records.external_record_key | INTERNAL | NONE | 豁免：来源系统的记录标识，不指向个人
 organization_leave.monthly_confirmations.employee_id | INTERNAL | PI | 用途：月确认的所属员工
+
+# #1450 signed R1 classification (organization-recruitment-r1); position_id, org_unit_id, legal_entity_id, approval_instance_id are surrogate keys and are not registered.
+organization_recruitment.recruitment_requisitions.requested_by_employee_id | INTERNAL | PI | 用途：申请人，审批发起、本人查询与审计
+organization_recruitment.recruitment_requisitions.description_text | INTERNAL | PI | 用途：岗位需求说明，人工填写的自由文本，可能提到具体人
+organization_recruitment.recruitment_requisitions.requisition_number | INTERNAL | NONE | 用途：招聘需求单据编号，展示与检索
+organization_recruitment.recruitment_requisitions.requested_count | INTERNAL | NONE | 用途：需求人数与流程状态，不含个人信息
+organization_recruitment.recruitment_requisitions.expected_start_date | INTERNAL | NONE | 用途：期望到岗日，不含个人信息
+organization_recruitment.recruitment_requisitions.status | INTERNAL | NONE | 用途：流程状态，不含个人信息
+organization_recruitment.recruitment_requisitions.close_reason_kind | INTERNAL | NONE | 用途：关闭原因，不含个人信息
+organization_recruitment.recruitment_requisitions.submitted_at | INTERNAL | NONE | 用途：提交时刻，不含个人信息
+organization_recruitment.recruitment_requisitions.approved_at | INTERNAL | NONE | 用途：批准时刻，不含个人信息
+organization_recruitment.recruitment_requisitions.closed_at | INTERNAL | NONE | 用途：关闭时刻，不含个人信息
 organization_leave.leave_accounts.employee_id | INTERNAL | PI | 用途：额度账户所属员工，数据范围判断与本人查询
 organization_leave.leave_ledger_lines.effective_date | INTERNAL | PI | 用途：额度流水发生日，额度核对与审计（用掉、占用的日子即个人的请假日期）
 organization_leave.leave_ledger_lines.adjusted_by | INTERNAL | PI | 用途：人事手工调整的操作人，审计
