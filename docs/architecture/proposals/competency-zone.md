@@ -130,6 +130,8 @@ Step 2 (fill rates and year buckets per column, holders, per-person histogram, r
 | Q5 | Registering a certificate for a person already separated | (a) allowed to correct history, for a bounded time; (b) refused | (a) with the bound set at build time; low stakes |
 | Q6 | Does INV-47 delivery sign-off also refuse a certificate whose holder has left the registered entity (the ruling states sealing only)? | (a) yes, use `usableForSealing`; (b) no, `hasValidCertificate` | (a): same legal reason, one rule; lead decides because the ruling is lead's |
 
+**Lead decisions 2026-11-06 (pending user review for the business rules; nothing here is decided for the user):** Q1 to Q5 as recommended in the table (Q1 (a), Q2 (a), Q3 (a) for certificates and (b) for skills with the person's record, Q4 90 days as configuration data, Q5 (a) with the bound set at build time); Q6 (a), use `usableForSealing` (within lead's own ruling). Q1, Q2, Q4, Q5 stay open to the user as business rules and Q3 is the user's under ADR-0043 R-2, so the build cards may proceed on these answers but the data design sign-off for retention still cites the user's answer to Q3 (done-when 9).
+
 None of these blocks the ADR, which decides placement, names and the supersessions. Q1, Q2, Q4 and Q5 are business rules that lead routes to the user; Q3 is the user's (ADR-0043 R-2); Q6 is within lead's own ruling; the allowance question comes with the payroll design.
 
 ## 10. Done-when (for the build cards, each checkable)
