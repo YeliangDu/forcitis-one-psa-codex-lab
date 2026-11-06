@@ -51,7 +51,7 @@ CREATE INDEX ix_acting_duties_covered_position_id ON organization_workforce.acti
 CREATE INDEX ix_acting_duties_covered_employee_id ON organization_workforce.acting_duties (covered_employee_id) WHERE covered_employee_id IS NOT NULL;
 CREATE INDEX ix_acting_duties_open_due ON organization_workforce.acting_duties (ends_before_date) WHERE ended_on_date IS NULL;
 
-COMMENT ON TABLE organization_workforce.acting_duties IS '代理职务：员工在一段期限内暂代某部门或岗位职责的有期限事实，员工聚合内的实体，由人事命令生效时写入；期限内可延长，结束时写一次结束日与原因；状态（待开始、进行中、已结束）由日期算出，不存列；历史在只追加的人事命令里（数据设计 the signed workforce-acting-duty data design record）。粒度：每个代理职务一行';
+COMMENT ON TABLE organization_workforce.acting_duties IS '代理职务：员工在一段期限内暂代某部门或岗位职责的有期限事实，员工聚合内的实体，由人事命令生效时写入；期限内可延长，结束时写一次结束日与原因；状态（待开始、进行中、已结束）由日期算出，不存列；历史在只追加的人事命令里（数据设计签发记录 workforce-acting-duty）。粒度：每个代理职务一行';
 COMMENT ON COLUMN organization_workforce.acting_duties.acting_duty_id IS '代理职务 ID（UUIDv7，由应用层生成）';
 COMMENT ON COLUMN organization_workforce.acting_duties.employment_relationship_id IS '雇佣关系 ID：代理人在代理期间所属的雇佣关系（ADR-0086）；与员工 ID 一起做复合外键';
 COMMENT ON COLUMN organization_workforce.acting_duties.employee_id IS '员工 ID：代理人';

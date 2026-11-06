@@ -282,6 +282,34 @@ class ActingDutiesTablesIntegrationTest extends WorkforceIntegrationSupport {
                 "acting_ends_before_date", "date '2027-01-30'", "reason", "'again'")).hasMessageContaining("uk_personnel_commands_open_acting_start_position");
     }
 
+    @Test
+    @DisplayName("#1536 reason of a duty is 1 to 500 non-blank characters, the period is finite, a command names only the own person's duty, and start and extension carry only their own columns")
+    void remainingDefencesOfDutyAndCommandAreRed() {
+        PersonnelSeedSupport.Person who = person("AD-16");
+        PersonnelSeedSupport.Person other = person("AD-17");
+        UUID unit = otherUnit();
+        UUID command = startCommand(who, START, END, unit);
+        for (String[] bad : new String[][] {{"date '2026-12-10'", "' '"}, {"date '2026-12-10'", "repeat('x', 501)"}}) {
+            assertThatThrownBy(() -> insertDutyRaw(who, unit, command, bad[0], bad[1])).hasMessageContaining("ck_acting_duties_reason");
+        }
+        assertThatThrownBy(() -> insertDutyRaw(who, unit, command, "'infinity'::date", "'x'")).hasMessageContaining("ck_acting_duties_period");
+
+        UUID duty = duty(who, unit, null, START, END);
+        assertThatThrownBy(() -> command(other, "ACTING_END", "PENDING", START, "target_acting_duty_id", "'" + duty + "'", "reason", "'not mine'"))
+                .hasMessageContaining("fk_personnel_commands_target_acting_duty");
+        assertThatThrownBy(() -> startCommand(who, START.plusDays(1), END, unit, "target_acting_duty_id", "'" + duty + "'")).hasMessageContaining("ck_personnel_commands_acting_columns");
+        assertThatThrownBy(() -> command(who, "ACTING_EXTEND", "EFFECTIVE", START, "target_acting_duty_id", "'" + duty + "'", "reason", "'x'", "acting_ends_before_date",
+                "date '2026-12-20'", "acting_covered_org_unit_id", "'" + unit + "'")).hasMessageContaining("ck_personnel_commands_acting_columns");
+    }
+
+    private void insertDutyRaw(PersonnelSeedSupport.Person who, UUID unit, UUID command, String endsBefore, String reason) {
+        jdbc.sql("insert into " + DUTIES + " (acting_duty_id, employment_relationship_id, employee_id, covered_org_unit_id, starts_on_date, ends_before_date, reason,"
+                + " source_personnel_command_id, created_at, created_by, updated_at) values (:id, :relationship, :employee, :unit, :starts, " + endsBefore + ", " + reason
+                + ", :command, now(), :by, now())")
+                .param("id", Uuids.timeOrdered(clock)).param("relationship", EmploymentRelationshipSeed.relationship(jdbc, who.employee())).param("employee", who.employee())
+                .param("unit", unit).param("starts", START).param("command", command).param("by", Uuids.timeOrdered(clock)).update();
+    }
+
     /** A command of the person; the extra arguments are column / value pairs (SQL literals) added to the base columns. */
     private void command(PersonnelSeedSupport.Person who, String kind, String status, LocalDate day, String... more) {
         StringBuilder columns = new StringBuilder();
