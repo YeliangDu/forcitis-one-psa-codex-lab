@@ -1,0 +1,16 @@
+# 请求文本里的空字符（#1557）。中文名待用户确认。
+terms:
+- id: nul
+  zh: 空字符
+  en: Nul
+  snake: nul
+  kind: value_object
+  bc: platform.web
+  scope: domain
+  definition: 码点 U+0000；PostgreSQL 的文本列存不下它，请求体的任何字符串含它即在网络边缘以 400 拒绝，不剥除
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1557；中文名待用户确认'

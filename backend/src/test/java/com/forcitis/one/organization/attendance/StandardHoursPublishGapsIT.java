@@ -134,7 +134,7 @@ class StandardHoursPublishGapsIT extends AcceptanceSupport {
     }
 
     @Test
-    @DisplayName("#1335 a NUL character in the basis, an override reason or a void reason is refused with 400 INVALID, not 500, and nothing is stored")
+    @DisplayName("#1335 a NUL character in the basis, an override reason or a void reason is refused at the request edge with 400 PLATFORM_WEB_REQUEST_INVALID (#1557), not 500, and nothing is stored")
     void nulCharacterIsRefused() throws Exception {
         LocalDate today = shanghaiToday();
         UUID entity = createLegalEntity(newEntityCode(), "Synthetic gap entity");
@@ -144,7 +144,7 @@ class StandardHoursPublishGapsIT extends AcceptanceSupport {
 
         for (MockHttpServletResponse refused : List.of(inBasis, inReason)) {
             assertThat(refused.getStatus()).as(refused.getContentAsString()).isEqualTo(400);
-            assertThat((String) JsonPath.read(refused.getContentAsString(), "$.errorCode")).isEqualTo("ORGANIZATION_ATTENDANCE_STANDARD_HOURS_INVALID");
+            assertThat((String) JsonPath.read(refused.getContentAsString(), "$.errorCode")).isEqualTo("PLATFORM_WEB_REQUEST_INVALID");
         }
         assertThat(storedVersionCount(entity)).as("nothing is stored").isZero();
 
@@ -154,7 +154,7 @@ class StandardHoursPublishGapsIT extends AcceptanceSupport {
         MockHttpServletResponse voided = mvc.perform(post(VERSIONS + "/" + id + ":void").with(PUBLISHER).with(csrf()).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"reason\":\"Synthetic\\u0000reason\"}")).andReturn().getResponse();
         assertThat(voided.getStatus()).as(voided.getContentAsString()).isEqualTo(400);
-        assertThat((String) JsonPath.read(voided.getContentAsString(), "$.errorCode")).isEqualTo("ORGANIZATION_ATTENDANCE_STANDARD_HOURS_INVALID");
+        assertThat((String) JsonPath.read(voided.getContentAsString(), "$.errorCode")).isEqualTo("PLATFORM_WEB_REQUEST_INVALID");
     }
 
     @Test
