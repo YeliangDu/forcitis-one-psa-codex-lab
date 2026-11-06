@@ -78,6 +78,22 @@ organization.attendance::api organization.attendance.api.StandardHoursVersionNum
 organization.attendance::api organization.attendance.api.WorkCalendar implements kernel.WorkdayDeadlines
 organization.attendance::api organization.attendance.api.WorkCalendar public abstract boolean organization.attendance.api.WorkCalendar.isWorkday(java.time.LocalDate,kernel.LegalEntityId)
 organization.attendance::api organization.attendance.api.WorkCalendar public abstract interface organization.attendance.api.WorkCalendar
+organization.workforce::api organization.workforce.api.ActingDutyEndCause extends java.lang.Enum<organization.workforce.api.ActingDutyEndCause>
+organization.workforce::api organization.workforce.api.ActingDutyEndCause public final enum organization.workforce.api.ActingDutyEndCause
+organization.workforce::api organization.workforce.api.ActingDutyEndCause public static final organization.workforce.api.ActingDutyEndCause organization.workforce.api.ActingDutyEndCause.ENDED_EARLY
+organization.workforce::api organization.workforce.api.ActingDutyEndCause public static final organization.workforce.api.ActingDutyEndCause organization.workforce.api.ActingDutyEndCause.EXPIRED
+organization.workforce::api organization.workforce.api.ActingDutyEndCause public static final organization.workforce.api.ActingDutyEndCause organization.workforce.api.ActingDutyEndCause.SEPARATION
+organization.workforce::api organization.workforce.api.ActingDutyEndCause public static organization.workforce.api.ActingDutyEndCause organization.workforce.api.ActingDutyEndCause.valueOf(java.lang.String)
+organization.workforce::api organization.workforce.api.ActingDutyEndCause public static organization.workforce.api.ActingDutyEndCause[] organization.workforce.api.ActingDutyEndCause.values()
+organization.workforce::api organization.workforce.api.ActingDutyId component value: java.util.UUID
+organization.workforce::api organization.workforce.api.ActingDutyId extends java.lang.Record
+organization.workforce::api organization.workforce.api.ActingDutyId public final boolean organization.workforce.api.ActingDutyId.equals(java.lang.Object)
+organization.workforce::api organization.workforce.api.ActingDutyId public final int organization.workforce.api.ActingDutyId.hashCode()
+organization.workforce::api organization.workforce.api.ActingDutyId public final record organization.workforce.api.ActingDutyId
+organization.workforce::api organization.workforce.api.ActingDutyId public java.lang.String organization.workforce.api.ActingDutyId.toString()
+organization.workforce::api organization.workforce.api.ActingDutyId public java.util.UUID organization.workforce.api.ActingDutyId.value()
+organization.workforce::api organization.workforce.api.ActingDutyId public organization.workforce.api.ActingDutyId(java.util.UUID)
+organization.workforce::api organization.workforce.api.ActingDutyId public static organization.workforce.api.ActingDutyId organization.workforce.api.ActingDutyId.parse(java.lang.String)
 organization.workforce::api organization.workforce.api.ApproveAttributionCountersign component attributionCountersignId: organization.workforce.api.AttributionCountersignId
 organization.workforce::api organization.workforce.api.ApproveAttributionCountersign component reason: java.lang.String
 organization.workforce::api organization.workforce.api.ApproveAttributionCountersign extends java.lang.Record
@@ -907,6 +923,60 @@ organization.workforce::api organization.workforce.api.WorkforceError public sta
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_WECOM_USER_ID_TAKEN
 organization.workforce::api organization.workforce.api.WorkforceError public static organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.valueOf(java.lang.String)
 organization.workforce::api organization.workforce.api.WorkforceError public static organization.workforce.api.WorkforceError[] organization.workforce.api.WorkforceError.values()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded component actingDutyId: organization.workforce.api.ActingDutyId
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded component coveredEmployeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded component coveredOrgUnitId: organization.workforce.api.OrgUnitId
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded component coveredPositionId: organization.workforce.api.PositionId
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded component employmentRelationshipId: organization.workforce.api.EmploymentRelationshipId
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded component endCause: organization.workforce.api.ActingDutyEndCause
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded component endedOn: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded extends java.lang.Record
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded public final boolean organization.workforce.events.EmployeeActingDutyEnded.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded public final int organization.workforce.events.EmployeeActingDutyEnded.hashCode()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded public final java.lang.String organization.workforce.events.EmployeeActingDutyEnded.toString()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded public final record organization.workforce.events.EmployeeActingDutyEnded
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded public java.time.LocalDate organization.workforce.events.EmployeeActingDutyEnded.endedOn()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded public kernel.EmployeeId organization.workforce.events.EmployeeActingDutyEnded.coveredEmployeeId()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded public kernel.EmployeeId organization.workforce.events.EmployeeActingDutyEnded.employeeId()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded public kernel.event.EventEnvelope organization.workforce.events.EmployeeActingDutyEnded.envelope()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded public organization.workforce.api.ActingDutyEndCause organization.workforce.events.EmployeeActingDutyEnded.endCause()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded public organization.workforce.api.ActingDutyId organization.workforce.events.EmployeeActingDutyEnded.actingDutyId()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded public organization.workforce.api.EmploymentRelationshipId organization.workforce.events.EmployeeActingDutyEnded.employmentRelationshipId()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded public organization.workforce.api.OrgUnitId organization.workforce.events.EmployeeActingDutyEnded.coveredOrgUnitId()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeActingDutyEnded.personnelCommandId()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded public organization.workforce.api.PositionId organization.workforce.events.EmployeeActingDutyEnded.coveredPositionId()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded public organization.workforce.events.EmployeeActingDutyEnded(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,organization.workforce.api.ActingDutyId,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,kernel.EmployeeId,java.time.LocalDate,organization.workforce.api.ActingDutyEndCause,organization.workforce.api.EmploymentRelationshipId)
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted component actingDutyId: organization.workforce.api.ActingDutyId
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted component coveredEmployeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted component coveredOrgUnitId: organization.workforce.api.OrgUnitId
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted component coveredPositionId: organization.workforce.api.PositionId
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted component employeeId: kernel.EmployeeId
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted component employmentRelationshipId: organization.workforce.api.EmploymentRelationshipId
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted component endsBefore: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted component envelope: kernel.event.EventEnvelope
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted component personnelCommandId: organization.workforce.api.PersonnelCommandId
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted component startsOn: java.time.LocalDate
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted extends java.lang.Record
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted implements kernel.event.DomainEvent
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted public final boolean organization.workforce.events.EmployeeActingDutyStarted.equals(java.lang.Object)
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted public final int organization.workforce.events.EmployeeActingDutyStarted.hashCode()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted public final java.lang.String organization.workforce.events.EmployeeActingDutyStarted.toString()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted public final record organization.workforce.events.EmployeeActingDutyStarted
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted public java.time.LocalDate organization.workforce.events.EmployeeActingDutyStarted.endsBefore()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted public java.time.LocalDate organization.workforce.events.EmployeeActingDutyStarted.startsOn()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted public kernel.EmployeeId organization.workforce.events.EmployeeActingDutyStarted.coveredEmployeeId()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted public kernel.EmployeeId organization.workforce.events.EmployeeActingDutyStarted.employeeId()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted public kernel.event.EventEnvelope organization.workforce.events.EmployeeActingDutyStarted.envelope()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted public organization.workforce.api.ActingDutyId organization.workforce.events.EmployeeActingDutyStarted.actingDutyId()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted public organization.workforce.api.EmploymentRelationshipId organization.workforce.events.EmployeeActingDutyStarted.employmentRelationshipId()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted public organization.workforce.api.OrgUnitId organization.workforce.events.EmployeeActingDutyStarted.coveredOrgUnitId()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted public organization.workforce.api.PersonnelCommandId organization.workforce.events.EmployeeActingDutyStarted.personnelCommandId()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted public organization.workforce.api.PositionId organization.workforce.events.EmployeeActingDutyStarted.coveredPositionId()
+organization.workforce::events organization.workforce.events.EmployeeActingDutyStarted public organization.workforce.events.EmployeeActingDutyStarted(kernel.event.EventEnvelope,organization.workforce.api.PersonnelCommandId,kernel.EmployeeId,organization.workforce.api.ActingDutyId,organization.workforce.api.OrgUnitId,organization.workforce.api.PositionId,kernel.EmployeeId,java.time.LocalDate,java.time.LocalDate,organization.workforce.api.EmploymentRelationshipId)
 organization.workforce::events organization.workforce.events.EmployeeCorrected component affectedFrom: java.time.LocalDate
 organization.workforce::events organization.workforce.events.EmployeeCorrected component affectedTo: java.time.LocalDate
 organization.workforce::events organization.workforce.events.EmployeeCorrected component employeeId: kernel.EmployeeId
