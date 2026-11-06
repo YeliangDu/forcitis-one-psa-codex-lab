@@ -82,7 +82,8 @@ class PersonnelCommandEndpointsIntegrationTest extends WorkforceIntegrationSuppo
 
         mvc.perform(post(COMMANDS + "/" + id + ":withdraw").with(csrf()).with(caller("organization.workforce:personnel-command:create")).contentType(MediaType.APPLICATION_JSON)
                 .content("{\"reason\":\"before\\u0000after\"}")).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_REQUEST_INVALID"));
+                .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_REQUEST_INVALID"))
+                .andExpect(jsonPath("$.detail").value("Failed to read request: field reason"));
         assertThat(jdbc.sql("select status from organization_workforce.personnel_commands").query(String.class).single()).isEqualTo("PENDING");
     }
 

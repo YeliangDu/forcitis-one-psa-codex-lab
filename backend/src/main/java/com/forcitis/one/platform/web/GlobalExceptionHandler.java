@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -121,6 +122,18 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         } catch (ReflectiveOperationException absent) {
             return null;
         }
+    }
+
+    /** Names the body field that could not be read (property names only, never the value: values can be personal data). */
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException failure, HttpHeaders headers,
+                                                                  HttpStatusCode status, WebRequest request) {
+        String field = failure.getCause() instanceof tools.jackson.databind.DatabindException databind
+                ? databind.getPath().stream().map(ref -> ref.getPropertyName() != null ? ref.getPropertyName() : "[" + ref.getIndex() + "]")
+                        .collect(java.util.stream.Collectors.joining(".")).replace(".[", "[")
+                : "";
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, field.isEmpty() ? "Failed to read request" : "Failed to read request: field " + field);
+        return handleExceptionInternal(failure, problem, headers, status, request);
     }
 
     @Override
