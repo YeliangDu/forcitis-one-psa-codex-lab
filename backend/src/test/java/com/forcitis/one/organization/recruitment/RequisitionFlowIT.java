@@ -281,6 +281,37 @@ class RequisitionFlowIT extends ApprovalIntegrationSupport {
     }
 
     @Test
+    @DisplayName("#1451 two simultaneous submits of the same id by the same person both answer the one stored requisition: one number, one approval, no conflict")
+    void simultaneousSubmitsOfOneIdMakeOneRequisition() throws Exception {
+        RequisitionId id = new RequisitionId(UUID.randomUUID());
+        SubmitRequisitionCommand command = new SubmitRequisitionCommand(id, position, unitId(), 1, null, "x");
+        var pool = java.util.concurrent.Executors.newFixedThreadPool(2);
+        try {
+            var ready = new java.util.concurrent.CyclicBarrier(2);
+            java.util.concurrent.Callable<RequisitionView> call = () -> {
+                signInAs(requester);
+                try {
+                    ready.await();
+                    return submit.execute(command);
+                } finally {
+                    SecurityContextHolder.clearContext();
+                }
+            };
+            var first = pool.submit(call);
+            var second = pool.submit(call);
+
+            RequisitionView a = first.get(30, java.util.concurrent.TimeUnit.SECONDS);
+            RequisitionView b = second.get(30, java.util.concurrent.TimeUnit.SECONDS);
+
+            assertThat(a.number()).isEqualTo(b.number());
+            assertThat(listInbox.execute(TestAccounts.account(head), ListPage.first()).items().stream()
+                    .filter(item -> item.documentId().filter(id.value()::equals).isPresent())).hasSize(1);
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    @Test
     @DisplayName("#1451 s11 item 1 the requisition stores the requester's legal entity of that day")
     void storesTheRequestersLegalEntity() {
         RequisitionView view = submitOne(1);
