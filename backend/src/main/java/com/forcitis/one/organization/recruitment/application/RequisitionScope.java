@@ -4,11 +4,13 @@ import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.OrgUnitAccess;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
 import com.forcitis.one.platform.audit.api.AuditEntry;
 import com.forcitis.one.platform.audit.api.AuditLog;
 import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.platform.audit.api.AuditSubjectKind;
 import java.util.LinkedHashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -60,6 +62,18 @@ class RequisitionScope {
         if (visible.orgUnitSubtrees().isEmpty()) {
             return false;
         }
-        return org.findAncestors(unit).stream().anyMatch(ancestor -> visible.orgUnitSubtrees().contains(ancestor.value()));
+        Set<OrgUnitId> seen = new LinkedHashSet<>();
+        Optional<OrgUnitId> above = parentOf(unit);
+        while (above.isPresent() && seen.add(above.get())) {
+            if (visible.orgUnitSubtrees().contains(above.get().value())) {
+                return true;
+            }
+            above = parentOf(above.get());
+        }
+        return false;
+    }
+
+    private Optional<OrgUnitId> parentOf(OrgUnitId unit) {
+        return org.findOrgUnit(unit).map(OrgUnitProfile::parentOrgUnitId);
     }
 }

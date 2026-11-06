@@ -668,7 +668,6 @@ organization.workforce::api organization.workforce.api.OrgUnitId public java.uti
 organization.workforce::api organization.workforce.api.OrgUnitId public organization.workforce.api.OrgUnitId(java.util.UUID)
 organization.workforce::api organization.workforce.api.OrgUnitId public static organization.workforce.api.OrgUnitId organization.workforce.api.OrgUnitId.parse(java.lang.String)
 organization.workforce::api organization.workforce.api.OrgUnitProfile component active: boolean
-organization.workforce::api organization.workforce.api.OrgUnitProfile component ancestors: java.util.List<organization.workforce.api.OrgUnitId>
 organization.workforce::api organization.workforce.api.OrgUnitProfile component name: java.lang.String
 organization.workforce::api organization.workforce.api.OrgUnitProfile component orgUnitId: organization.workforce.api.OrgUnitId
 organization.workforce::api organization.workforce.api.OrgUnitProfile component parentOrgUnitId: organization.workforce.api.OrgUnitId
@@ -679,10 +678,9 @@ organization.workforce::api organization.workforce.api.OrgUnitProfile public fin
 organization.workforce::api organization.workforce.api.OrgUnitProfile public final java.lang.String organization.workforce.api.OrgUnitProfile.toString()
 organization.workforce::api organization.workforce.api.OrgUnitProfile public final record organization.workforce.api.OrgUnitProfile
 organization.workforce::api organization.workforce.api.OrgUnitProfile public java.lang.String organization.workforce.api.OrgUnitProfile.name()
-organization.workforce::api organization.workforce.api.OrgUnitProfile public java.util.List<organization.workforce.api.OrgUnitId> organization.workforce.api.OrgUnitProfile.ancestors()
 organization.workforce::api organization.workforce.api.OrgUnitProfile public organization.workforce.api.OrgUnitId organization.workforce.api.OrgUnitProfile.orgUnitId()
 organization.workforce::api organization.workforce.api.OrgUnitProfile public organization.workforce.api.OrgUnitId organization.workforce.api.OrgUnitProfile.parentOrgUnitId()
-organization.workforce::api organization.workforce.api.OrgUnitProfile public organization.workforce.api.OrgUnitProfile(organization.workforce.api.OrgUnitId,java.lang.String,organization.workforce.api.OrgUnitId,boolean,java.util.List<organization.workforce.api.OrgUnitId>)
+organization.workforce::api organization.workforce.api.OrgUnitProfile public organization.workforce.api.OrgUnitProfile(organization.workforce.api.OrgUnitId,java.lang.String,organization.workforce.api.OrgUnitId,boolean)
 organization.workforce::api organization.workforce.api.PersonnelCommandId component value: java.util.UUID
 organization.workforce::api organization.workforce.api.PersonnelCommandId extends java.lang.Record
 organization.workforce::api organization.workforce.api.PersonnelCommandId public final boolean organization.workforce.api.PersonnelCommandId.equals(java.lang.Object)
