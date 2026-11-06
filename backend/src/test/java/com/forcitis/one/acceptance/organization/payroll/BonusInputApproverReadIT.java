@@ -170,4 +170,40 @@ class BonusInputApproverReadIT extends BonusInputSupport {
                     .doesNotContain(relationship.toString());
         }
     }
+
+    @Test
+    @DisplayName("#1436 (a) 管理员模式下的 super_admin 与持 bonus-input:read（范围 ALL）的人读这个接口也得 404（他们自己的薪资读取是别的接口）")
+    void anAdministratorAndAHolderOfTheReadPermissionAreNotCandidatesEither() throws Exception {
+        UUID relationship = employedRelationship();
+        Submitted submitted = submit(relationship, OCTOBER, AMOUNT, REASON);
+        UUID task = nextTask(submitted, List.of());
+
+        assertReads(task, lineManagerAccount, relationship, "the line manager (so that the 404s below are not a wrong path)");
+        assertNotFound(task, newAdministrator(), "a super_admin in the administrator mode");
+        assertNotFound(task, holderOfReadWithScope("ALL"), "a holder of organization.payroll:bonus-input:read with scope ALL");
+        UUID first = decideFirstStage(submitted, "APPROVE");
+        UUID second = nextTask(submitted, List.of(first));
+        assertNotFound(second, newAdministrator(), "a super_admin in the administrator mode, second stage task");
+        assertNotFound(second, holderOfReadWithScope("ALL"), "a holder of the read permission with scope ALL, second stage task");
+    }
+
+    @Test
+    @DisplayName("#1436 (a) 第二阶段有两位非发起人的薪资专员：认领前两人都读到 200；一人认领后，认领人 200，另一位不再是当前候选人而得 404")
+    void afterOneOfTwoCandidatesClaimsTheOtherCannotReadAnyMore() throws Exception {
+        UUID thirdSpecialist = newEmployeeId();
+        employee(thirdSpecialist, unit, null);
+        grantByOperations(thirdSpecialist, PAYROLL_ROLE);
+        SignedIn thirdAccount = signIn(thirdSpecialist);
+        UUID relationship = employedRelationship();
+        Submitted submitted = submit(relationship, OCTOBER, AMOUNT, REASON);
+        UUID first = decideFirstStage(submitted, "APPROVE");
+        UUID second = nextTask(submitted, List.of(first));
+
+        assertReads(second, secondSpecialistAccount, relationship, "the first payroll-role holder, before any claim");
+        assertReads(second, thirdAccount, relationship, "the second payroll-role holder, before any claim");
+        actOk(second, secondSpecialistAccount, "claim", null);
+
+        assertReads(second, secondSpecialistAccount, relationship, "the claimant (assignee)");
+        assertNotFound(second, thirdAccount, "the other holder, no longer a current candidate");
+    }
 }
