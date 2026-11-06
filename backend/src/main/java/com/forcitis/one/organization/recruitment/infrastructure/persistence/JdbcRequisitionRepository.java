@@ -134,6 +134,32 @@ class JdbcRequisitionRepository implements RequisitionRepository, RequisitionQue
                 """).param("units", orgUnitIds).param("after", after == null ? null : after.value()).param("limit", limit).query((rs, n) -> read(rs)).list();
     }
 
+    @Override
+    public List<RecruitmentRequisition> listRequestedBy(EmployeeId requester, @Nullable RequisitionId after, int limit) {
+        return jdbc.sql(SELECT + """
+                 where requested_by_employee_id = :requester
+                   and (cast(:after as uuid) is null
+                        or (created_at, id) < (select created_at, id from organization_recruitment.recruitment_requisitions where id = cast(:after as uuid)))
+                 order by created_at desc, id desc
+                 limit :limit
+                """).param("requester", requester.value()).param("after", after == null ? null : after.value()).param("limit", limit)
+                .query((rs, n) -> read(rs)).list();
+    }
+
+    @Override
+    public List<RecruitmentRequisition> listByIds(Set<UUID> ids, @Nullable RequisitionId after, int limit) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return jdbc.sql(SELECT + """
+                 where id in (:ids)
+                   and (cast(:after as uuid) is null
+                        or (created_at, id) < (select created_at, id from organization_recruitment.recruitment_requisitions where id = cast(:after as uuid)))
+                 order by created_at desc, id desc
+                 limit :limit
+                """).param("ids", ids).param("after", after == null ? null : after.value()).param("limit", limit).query((rs, n) -> read(rs)).list();
+    }
+
     private static @Nullable OffsetDateTime at(@Nullable Instant instant) {
         return instant == null ? null : OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
