@@ -1,6 +1,7 @@
 import { describeFailure } from '@forcitis/core';
 import { Button, DataTable, LoadingState, Notice, PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
+import { optionsOf } from '../../../shared/options';
 import { useNavigate } from 'react-router';
 import { useEmployees, useOrgUnits } from '../hooks/use-workforce';
 import { EMPLOYMENT_FILTERS, EMPLOYMENT_STATUS_LABELS, type EmployeeRoster, type EmploymentFilter, employeePath, employmentFilterOf } from '../model/employee';
@@ -34,7 +35,7 @@ export function EmployeeRosterPage() {
       <PageTitle text="员工名册" />
       <SelectField label="在职状态" value={status} options={EMPLOYMENT_FILTERS} onChange={(value) => setStatus(employmentFilterOf(value))} />
       {units.isSuccess ? (
-        <SelectField label="组织单元" value={orgUnitId} options={[{ value: '', label: '全部' }, ...units.data.map((unit) => ({ value: unit.orgUnitId, label: unit.name }))]} onChange={setOrgUnitId} />
+        <SelectField label="组织单元" value={orgUnitId} options={optionsOf(units.data, (unit) => unit.orgUnitId, (unit) => unit.name, '全部')} onChange={setOrgUnitId} />
       ) : null}
       {list.isPending ? <LoadingState /> : null}
       {list.isError ? <Notice tone="error" title="员工名册加载失败">{describeFailure(list.error)}</Notice> : null}
