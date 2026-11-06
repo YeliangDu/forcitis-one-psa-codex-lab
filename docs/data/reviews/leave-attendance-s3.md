@@ -29,7 +29,7 @@ Everything below is an edit of the open baseline file `V20261105160000__organiza
 |---|---|---|
 | `id` | uuid | `pk_leave_policy_grants`; UUIDv7; this id is the `source_id` of the ledger GRANT line it produces |
 | `request_key` | text NOT NULL | client-supplied replay key of one grant command: `ck_leave_policy_grants_request_key` `request_key = btrim(request_key) AND char_length(request_key) BETWEEN 1 AND 100`; `uk_leave_policy_grants_account_request_key` UNIQUE `(leave_account_id, request_key)` |
-| `leave_account_id` | uuid NOT NULL | with `employment_relationship_id` and `leave_type_id`: `fk_leave_policy_grants_account_relationship_type` to `leave_accounts (id, employment_relationship_id, leave_type_id)` via the existing `uk_leave_accounts_id_relationship_type`, RESTRICT; `ix_leave_policy_grants_leave_account_id` |
+| `leave_account_id` | uuid NOT NULL | with `employment_relationship_id` and `leave_type_id`: `fk_leave_policy_grants_account_relationship_type` to `leave_accounts (id, employment_relationship_id, leave_type_id)` via the existing `uk_leave_accounts_id_relationship_type`, RESTRICT |
 | `employment_relationship_id` | uuid NOT NULL | another context's id: stored, covered by the composite FK to the account only (B4) |
 | `leave_type_id` | uuid NOT NULL | same composite FK |
 | `grant_qty` | integer NOT NULL | `ck_leave_policy_grants_grant_qty` `grant_qty > 0`; in the type's ledger unit |
@@ -132,7 +132,7 @@ Expected volume: a few thousand confirmations per month for the firm; grants and
 | O7 | pass | append-only trigger; FK RESTRICT; no `is_deleted` |
 | O8 | pass | `text + CHECK` named; quantity is an integer in the type's unit (no money); 500-char limit on `basis_text` |
 | O9 | pass | no derived values stored: credit, held, used, available are computed from lines |
-| O10, O10a | pass | index list above; the composite FK column set has the `leave_account_id` index |
+| O10, O10a | pass | index list above; the composite FK column set is covered by the leading column of `uk_leave_policy_grants_account_request_key`, so no separate index (no redundant index) |
 | O11 | pass | small tables |
 | O12, T4 | pass | open period: the baseline file is edited and the expected diff is attached below; additive: one table, one nullable column, one redefined CHECK, one new CHECK, one redefined exclusion; no rows exist in `leave_requests` (no code writes it: verified), and the new table is empty, so every addition is safe in every environment; rollback = previous code ignores the new objects |
 | O13 | pass | the fact rows carry no legal entity of their own: the entity is derived from the relationship (ADR-0086) and the events carry the cost entity on the date; an accounting period does not apply (no posting fact); the one entity-dependent number is the calendar of seam 3, resolved at read time |
@@ -140,7 +140,7 @@ Expected volume: a few thousand confirmations per month for the firm; grants and
 | O15 | pass | ADR-0033 items 1, 2 (UUIDv7, no composite pk): included; ADR-0035 (event version 1): included; ADR-0043: classification below; ADR-0079 leave lines: unchanged; ADR-0086: relationship id keys: included |
 | O16 | pass | quantities are `integer` in the type's declared unit (spec 3.2); API types carry the unit; no float |
 | C1 | pass | the schema PR writes the table comment 「政策授予：一次经确认的额度授予决定，写一条授予流水，只追加……粒度：每次授予一行」 and column comments from the tables above |
-| C2 | pass | one owner BC `organization.leave`, writers `[organization.leave]`; no new `module-dependencies.txt` line |
+| C2 | pass | one owner BC `organization.leave`; the registry row lists `writers: []` in slice A (no Java SQL touches the table yet; `DataArchitectureTest` fails otherwise) and the command slice C registers `[organization.leave]`; no new `module-dependencies.txt` line |
 | C3 | pass | retention follows the ledger: kept with the employee record period (spec Q-3, decided) |
 | C4 | pass | classification below; `basis_text` allowed content: the business basis of the grant; it must not state health, pregnancy or other special-category facts (a note rule) |
 | C5 | pass | lineage `NEW`; no legacy source |
@@ -159,7 +159,7 @@ organization_leave.leave_policy_grants.effective_date | INTERNAL | PI | 用途�
 organization_leave.leave_requests.taken_until_at | INTERNAL | PI | 用途：销假后第一天未休的起点，随请假期间；个人信息 PI
 ```
 
-`leave_requests.taken_until_at` is an instant of the leave period (sibling of `start_at` and `end_at`, registered PI): two of the five lines below (it and the grant's `effective_date`). Registry (`data-access-registry.yaml`): a row for `organization_leave.leave_policy_grants` with role `AGGREGATE_CHILD`, aggregate `LeaveBalanceAccount`, mutability `APPEND_ONLY`, retention as the ledger, lineage `NEW`, writers `[organization.leave]`.
+`leave_requests.taken_until_at` is an instant of the leave period (sibling of `start_at` and `end_at`, registered PI): two of the five lines below (it and the grant's `effective_date`). Registry (`data-access-registry.yaml`): a row for `organization_leave.leave_policy_grants` with role `AGGREGATE_CHILD`, aggregate `LeaveBalanceAccount`, mutability `APPEND_ONLY`, retention as the ledger, lineage `NEW`, writers `[]` in slice A (the slice that writes the table, C, registers `[organization.leave]`), `fk_exceptions: {leave_type_id: carried by the composite foreign key fk_leave_policy_grants_account_relationship_type, which holds it equal to the type of its account}`.
 
 ## Expected diff for the schema PR (DG-3, section 1.4)
 

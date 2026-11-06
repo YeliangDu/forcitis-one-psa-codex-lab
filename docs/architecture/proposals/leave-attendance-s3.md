@@ -116,7 +116,7 @@ Each slice is one behaviour with its own tests. Owner: lead assigns. Slice A is 
 | C | `GrantPolicyCredit`, the year account open, `LeaveBalances.of` | 010, 021 | B |
 | D | `SubmitLeave` (day split, HOLD, relationship-in-service check, approval start) and the approval process definition and numbering type | 018, 024 | C |
 | E | `ApproveLeave` (USE of the hold), `RejectLeave` and `WithdrawLeave` (RELEASE), event `LeaveApproved`; `LeaveRejected` and `LeaveWithdrawn` (spec 4.3, RULE-405) are added with the timesheet seam card, not signed here; `WithdrawLeave` of an `APPROVED` request writes REVERSE_USE (not RELEASE) and is outside S3 (spec 4.3), the hold-release path covers `IN_APPROVAL` only | 019, 024 | D |
-| F | `RecallLeave` with `taken_until_at`, event `LeaveRecalled` | 020 | E |
+| F | `RecallLeave` with `taken_until_at`, event `LeaveRecalled`; a recall after the leave year is sealed is refused by the ledger trigger and is outside S3 (spec T-13) | 020 | E |
 | G0 | `ImportAttendanceRecords` and its port (4.4), append-only, replay-safe; no schema change | 013 | A |
 | G | Monthly confirmation generate (punches only, missing day fails), confirm, lock, the read `MonthlyAttendance.of`, events | 013 | G0, D (leave lines), E, F (recall counted) |
 | I | Web pages for the role walks of section 9.2 (frontend session; page list waits for the role-task mapping, B11.5) | all | C-G |
@@ -126,7 +126,7 @@ C to F run in sequence (same aggregate); G0 can start right after A; G can start
 
 ## 9. Done-when (for the test engineer; one checkable line each)
 
-Dates and numbers. The pack's amounts are asserted as they are (4500, 900, 450, 3600, 4050, 4950, 1350). The pack's calendar dates are labels, not fixture dates: a rule version cannot be backdated (fact 13), so every fixture date derives from D0 = today of the database clock (Asia/Shanghai), which the test cannot move. The rule version of the fixture type takes effect on D0 and has no end. L1 is the first workday on or after D0 whose next workday lies in the same month and the same leave year (a helper skips forward over a month-end or year-end, so a run on any date asserts the same numbers); L2 is that next workday. The leave request covers L1 and L2; the grant's `effective_date` is L1 (so the year account is the year of L1); the relationship starts on D0 at the latest; the confirmation month is the month of L1; the application `Clock` is fixed at L1 and moved forward within the test (CS-5.8).
+Dates and numbers. The pack's amounts are asserted as they are (4500, 900, 450, 3600, 4050, 4950, 1350). The pack's calendar dates are labels, not fixture dates: a rule version cannot be backdated (fact 13), so every fixture date derives from D0 = today of the database clock (Asia/Shanghai), which the test cannot move. The rule version of the fixture type takes effect on D0 and has no end. L1 is the first workday on or after D0 such that the next three workdays L2, L3, L4 all lie in the same month and the same leave year as L1 (a helper skips forward over a month-end or year-end, so a run on any date asserts the same numbers). The first request covers L1 and L2; the second request of node 024 (item 10) covers L3 and L4; no request overlaps another. The grant's `effective_date` is L1 (so the year account is the year of L1); the relationship starts on D0 at the latest; the confirmation month is the month of L1; the application `Clock` is fixed at L1 and moved forward within the test (CS-5.8).
 
 ### 9.1 Behaviour (each line is an API-level test)
 
@@ -142,7 +142,7 @@ Dates and numbers. The pack's amounts are asserted as they are (4500, 900, 450, 
 10. A second request of 900 approved reads used 1350, held 0, available 3600.
 11. A rejected or withdrawn request releases its hold: held 0 and available as before the request.
 12. A confirmation generated after node 020 lists approved leave by type with `is_paid_leave` copied, counts the taken part of the `RECALLED` request (450 minutes, the days before `taken_until_at`), and counts neither an `IN_APPROVAL` request nor the returned day.
-13. Each new database rule is violated once in a test and refused: a `POLICY_GRANT` line that is not a GRANT; `taken_until_at` set on a request that is not `RECALLED`, or outside `[start_at, end_at]`; a second grant with the same `(account, request_key)`; an update or delete of a grant row (append-only).
+13. Each of these new database rules is violated once in a test and refused (the schema PR's own tests cover the rest: grant quantity and text formats, the composite FK, the truncate trigger): a `POLICY_GRANT` line that is not a GRANT; `taken_until_at` set on a request that is not `RECALLED`, or outside `[start_at, end_at]`; a second grant with the same `(account, request_key)`; an update or delete of a grant row (append-only).
 14. A foreign person's request, balance or confirmation returns 404; every command is reachable only through its permission.
 
 ### 9.2 Role walks in the web UI (T3: each activity walked by the real role, no admin shortcut)
@@ -173,15 +173,19 @@ Roles (user decisions 2026-11-06): employee; direct manager; HR lead (a separate
 | Q-S3-4 | Who may grant a policy credit, and does a grant need approval? | HR permission with audit; HR permission plus approval | **User-decided 2026-11-06: HR permission with audit, no approval.** |
 | Q-S3-5 | Who verifies the actual leave and registers the recall? | the applicant; the direct manager; HR | **User-decided 2026-11-06: HR or the direct manager registers it after verifying** (HR also acts for a separated applicant who cannot log in). The command is permission-gated for both roles; the data shape is the same |
 | Q-S3-6 | May a policy credit be dated before the day it is entered (backdated)? The rule-version guard already refuses a backdated version, so a backdated grant would have no version in force | no, effective date is the entry day or later; yes with HR-lead approval | no, as the guard does |
-| Q-S3-8 | Node 013 under punches only: does a workday with approved leave and no punch count as fine, and do OUTFIELD and MAKE_UP records count as attendance? | yes and yes; punches only, leave days need a punch too | yes and yes (leave covers the day; every record kind is evidence of presence) |
+| Q-S3-8 | Node 013 under punches only: does a workday with approved leave and no punch count as fine, do OUTFIELD and MAKE_UP records count as attendance, and is a day covered by approved leave inside the attendance-days count (it then appears once in ATTENDANCE_DAYS and once in LEAVE minutes, so payroll must not deduct it twice)? | yes and yes; punches only, leave days need a punch too | yes and yes (leave covers the day; every record kind is evidence of presence) |
 | Q-S3-7 | When does the HR-lead approval layer apply to a leave request (user decision 2026-11-06: the layer exists)? | every request; above a number of days; for given leave types | above a number of days the user names; until then the process definition has the layer behind a threshold of the rule version |
 
 ## 11. Unverified (the implementing slice checks; none changes a column)
 
-1. The pack names no leave dates for node 018, so the test picks two workdays after 2026-05-04 and one day before the recall on 2026-05-08 [P].
+1. The pack names no leave dates the tests can use (a rule version cannot be backdated, fact 13): the fixture dates L1 to L4 derive from the database's today as set out in section 9 [P].
 2. A rule version with zero entitlement rows is accepted: the entitlement trigger fires only on entitlement inserts (reviewer read, 2026-11-07); the backdating guard is a fact (13), handled by today-relative fixtures in section 9.
 3. Field names of `EmploymentRelationships` for the service boundary and unpaid periods.
 4. The approval process type and the numbering document type for a leave request follow the #1436 template; the events documents list the new document type (as `58535e073` did for `BONUS_INPUT`).
+5. Q-S3-7's threshold ("above N days") has no column in `leave_rule_versions` (its `exempt_threshold_minutes_count` is the auto-approve exemption, a different meaning); it lives in the approval process definition, or a new gate run adds a column.
+6. `attendance_records` carries only `employee_id`, so a person with two relationships in service on one month gets one attendance-days count, not one per relationship; the pack has one relationship and the case is out of S3.
+7. The events of the confirmation carry the cost entity of the month's last day in their envelope (a month can span an entity change).
+8. A MINUTE-unit type on a year account is a reading of spec 4.2 ("year accounts are for DAY types"): the schema allows it.
 
 ## 12. Seams this slice defines or reuses
 
