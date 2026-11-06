@@ -460,6 +460,21 @@ class RequisitionFlowIT extends ApprovalIntegrationSupport {
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isNotFound());
     }
 
+    @Test
+    void aNulInTheDescriptionIsRefusedAtTheEdge() throws Exception {
+        UUID id = UUID.randomUUID();
+        String body = "{\"requisitionId\":\"" + id + "\",\"positionId\":\"" + position.value() + "\",\"orgUnitId\":\"" + unitId().value()
+                + "\",\"requestedCount\":2,\"description\":\"before\\u0000after\"}";
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/v1/organization/recruitment-requisitions")
+                        .with(asRequester(com.forcitis.one.platform.identity.api.Permission.Codes.ORGANIZATION_RECRUITMENT_REQUISITION_SUBMIT))
+                        .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+                        .contentType(org.springframework.http.MediaType.APPLICATION_JSON).content(body))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isBadRequest())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.errorCode").value("PLATFORM_WEB_REQUEST_INVALID"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.detail").value("Failed to read request: field description"));
+        assertThat(jdbc.queryForObject("select count(*) from organization_recruitment.recruitment_requisitions where id = cast(? as uuid)", Long.class, id.toString())).isZero();
+    }
+
     static void assertCode(Runnable call, com.forcitis.one.kernel.ErrorCode expected) {
         assertThatThrownBy(call::run).isInstanceOfSatisfying(DomainException.class, e -> assertThat(e.errorCode()).isEqualTo(expected));
     }
