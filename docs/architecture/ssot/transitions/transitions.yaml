@@ -17,7 +17,7 @@ transitions:
   zh: 报价
   status: not-started
   after: [TA-1a]
-  delivers: [presales.quoting]
+  delivers: [presales.opportunity]
   wave: W2
   waves: [W2]
   conditions: MODERNIZATION_BRIEF.md §3「Phase 1b」
@@ -42,7 +42,7 @@ transitions:
   zh: 合同与收入（OA 迁入）
   status: not-started
   after: [TA-2]
-  delivers: [contract.baseline, contract.changeorder, contract.riskdelivery, receivables.wip, delivery.acceptance]
+  delivers: [contract.agreement, receivables.wip, delivery.acceptance]
   wave: W3
   waves: [W2, W3]
   note: ADR-0021、ADR-0024：6a–6c 为 Phase 4 出口前置
@@ -84,7 +84,7 @@ transitions:
   zh: 自建 HRM 与薪酬
   status: not-started
   after: [TA-4]
-  delivers: [organization.payroll, organization.incentive]
+  delivers: [organization.payroll]
   wave: W4
   waves: [W4]
   note: 与已建 organization.attendance 的边界待用户定（架构决策页 Q3）
@@ -93,7 +93,7 @@ transitions:
   zh: 客户经营与经营计划（视情况）
   status: not-started
   after: [TA-4]
-  delivers: [presales.customer, operations.planning, operations.budgeting]
+  delivers: [masterdata.counterparty, presales.opportunity, operations.planning]
   wave: W2
   waves: [W1, W2]
   conditions: OA_PROCESS_INVENTORY.md「6f」

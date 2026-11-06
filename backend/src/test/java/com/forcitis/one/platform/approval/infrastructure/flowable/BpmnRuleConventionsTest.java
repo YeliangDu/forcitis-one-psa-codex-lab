@@ -231,17 +231,26 @@ class BpmnRuleConventionsTest {
     @Test
     @DisplayName("G-1 an attribute that is neither true nor false does not read as false: the node does not load")
     void aFlagMustBeTrueOrFalse() {
-        for (String attribute : List.of("skipWhenEmpty", "autoApproveRepeat", "cutoff")) {
+        for (String attribute : List.of("skipWhenEmpty", "autoApproveRepeat", "cutoff", "noFallback")) {
             assertThatThrownBy(() -> NodePolicyReader.read(review(parse("<extensionElements><forcitis:assignmentRule type=\"ROLE\" role=\"r\" "
                     + attribute + "=\"yes\"/></extensionElements>")))).as(attribute).isInstanceOf(DomainException.class)
                     .hasMessageContaining(attribute);
         }
         NodePolicy policy = NodePolicyReader.read(review(parse("<extensionElements><forcitis:assignmentRule type=\"ROLE\" role=\"r\""
-                + " routingFlag=\"projectHours\" skipWhenEmpty=\"true\" autoApproveRepeat=\"true\" cutoff=\"true\"/></extensionElements>")));
+                + " routingFlag=\"projectHours\" skipWhenEmpty=\"true\" autoApproveRepeat=\"true\" cutoff=\"true\" noFallback=\"true\"/></extensionElements>")));
+        assertThat(policy.noFallback()).isTrue();
         assertThat(policy.routingFlag()).contains("projectHours");
         assertThat(policy.skipWhenEmpty()).isTrue();
         assertThat(policy.autoApproveRepeat()).isTrue();
         assertThat(policy.cutoff()).isTrue();
+    }
+
+    @Test
+    @DisplayName("#1436 noFallback with a deadline does not load: the overdue escalation would be the fallback the node refuses")
+    void noFallbackExcludesADeadline() {
+        assertThatThrownBy(() -> NodePolicyReader.read(review(parse("<extensionElements><forcitis:assignmentRule type=\"ROLE\" role=\"r\" "
+                + "noFallback=\"true\" deadlineWorkdays=\"3\" escalationWorkdays=\"1\"/></extensionElements>")))).isInstanceOf(DomainException.class)
+                .hasMessageContaining("noFallback");
     }
 
     @Test

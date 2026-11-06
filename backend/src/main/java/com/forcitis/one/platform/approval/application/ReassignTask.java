@@ -68,6 +68,10 @@ public class ReassignTask {
             throw ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID.refusal(
                     "Reassignment target " + to.value() + " already has a task on node " + task.nodeKey() + " of this approval");
         }
+        if (engine.handoverTargetsOf(taskId).map(named -> !named.contains(assignee)).orElse(false)) {
+            throw ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID.refusal(
+                    "Reassignment target " + to.value() + " is not a person node " + task.nodeKey() + " names, and the node takes no fallback");
+        }
         engine.reassignTask(taskId, assignee);
         request.reassignTask(taskId, actor, assignee, Reason.ofNullable(reason), time.moment());
         approvals.save(request);
