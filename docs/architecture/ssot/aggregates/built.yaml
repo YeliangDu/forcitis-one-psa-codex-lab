@@ -16,6 +16,10 @@ meta:
     owner: one-dev-identity
     due: '2026-12-31'
     reason: 请假首片（#1400）只建表；AttendanceRecord 根类随 L7（#1325 规格 10 节），截止日由 lead 定
+  - table: organization_leave.leave_accounts
+    owner: one-dev-identity
+    due: '2026-12-31'
+    reason: 请假 L1b（#1470）只建表；LeaveBalanceAccount 根类随 L3（#1325 规格 10 节），截止日由 lead 定
   - table: organization_leave.leave_requests
     owner: one-dev-identity
     due: '2026-12-31'
