@@ -167,12 +167,27 @@ def main():
         commit_on("acc-other", 10, "acceptance\n\nAcceptance-Test-Author: somebody-else")
         only_acc = [(acc, None, 40, 0)]
         why, _ = run(main_co, fake(files=only_acc, body="Closes #1\n"), sessions, 8)
-        assert why and "acceptance tests of one-test" in why and "no `Codex:` line" in why, why
-        assert run(main_co, fake(files=only_acc), sessions, 8) == (None, ""), "a true line holds for acceptance tests too"
+        assert why and "acceptance tests of one-test" in why and "no `Codex-Acceptance:` line" in why, why
+        # one-test's run: a session worktree other than the author's, from before the acceptance commit (here also before the implementation branch began)
+        accept_line = f"Codex-Acceptance: {early}\n"
+        assert run(main_co, fake(files=only_acc, body=accept_line), sessions, 8) == (None, ""), "a true line holds for acceptance tests too"
+        assert "no `Codex-Acceptance:` line" in run(main_co, fake(files=only_acc), sessions, 8)[0], "the implementation's `Codex:` line does not cover them"
         assert run(main_co, fake(files=only_acc, body="Closes #1\n"), sessions, 9) == (None, ""), "no trailer: not in scope"
         assert run(main_co, fake(files=only_acc, body="Closes #1\n"), sessions, 10) == (None, ""), "another trailer value: not in scope"
-        assert run(main_co, fake(files=[(acc, None, 5, 5)], body="Codex: skip small\n"), sessions, 8)[0] is None
-        assert "fewer than 20" in run(main_co, fake(files=[(acc, None, 10, 10)], body="Codex: skip small\n"), sessions, 8)[0]
+        assert run(main_co, fake(files=[(acc, None, 5, 5)], body="Codex-Acceptance: skip small\n"), sessions, 8)[0] is None
+        assert "fewer than 20" in run(main_co, fake(files=[(acc, None, 10, 10)], body="Codex-Acceptance: skip small\n"), sessions, 8)[0]
+        late = "e3a18901-dd25-71b0-addd-7a5fcb6d205b"
+        put_session(late, other_wt, datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=10))
+        why, _ = run(main_co, fake(files=only_acc, body=f"Codex-Acceptance: {late}\n"), sessions, 8)
+        assert why and "not before the oldest acceptance commit" in why, why
+        # an implementation PR that carries one-test's acceptance commits unchanged: its own run for backend/src/main and one-test's run for the tests; each is refused without its line
+        impl = java + only_acc
+        both = f"Closes #1\n\nCodex: {SID}\n{accept_line}"
+        assert run(main_co, fake(files=impl, body=both), sessions, 8) == (None, ""), "an implementation PR with the unchanged acceptance commits and both lines passes"
+        why = run(main_co, fake(files=impl, body=f"Closes #1\n\nCodex: {SID}\n"), sessions, 8)[0]
+        assert why and "no `Codex-Acceptance:` line" in why and "no `Codex:` line" not in why, why
+        why = run(main_co, fake(files=impl, body=f"Closes #1\n\n{accept_line}"), sessions, 8)[0]
+        assert why and "no `Codex:` line" in why and "no `Codex-Acceptance:` line" not in why, why
         # skips: small from the diff, anything else from a lead comment posted after the last body edit
         assert run(main_co, fake(files=[("backend/src/main/A.java", None, 5, 5)], body="Codex: skip small\n"), sessions)[0] is None
         assert "fewer than 20" in run(main_co, fake(body="Codex: skip small\n"), sessions)[0]

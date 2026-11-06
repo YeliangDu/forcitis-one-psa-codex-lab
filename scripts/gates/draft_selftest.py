@@ -49,16 +49,54 @@ def test_scope(tmp):
     log = "\x01test-engineer\n\n%s\nfoo.txt\n\x01\n\n%sB.java\n\x01other,test-engineer\n\nbackend/src/main/x.java\n%sC.java\n\x01somebody\n\n%sD.java\n" % (acc, rules.ACCEPTANCE, rules.ACCEPTANCE, rules.ACCEPTANCE)
     assert rules.acceptance_files(log) == {acc, rules.ACCEPTANCE + "C.java"}, rules.acceptance_files(log)
     assert rules.acceptance_files("") == set() and rules.acceptance_files("\x01\n") == set()
+    # the log carries the committer time after the trailers; the oldest trailer commit's time is the scope's `oldest`
+    dated = "\x01test-engineer\x022026-11-06T09:00:00+00:00\n\n%s\n\x01test-engineer\x022026-11-06T08:00:00+00:00\n\n%sB.java\n\x01\x022026-11-05T01:00:00+00:00\n\nbackend/src/main/x.java\n" % (acc, rules.ACCEPTANCE)
+    assert rules.acceptance_files(dated).oldest == datetime.datetime(2026, 11, 6, 8, 0, tzinfo=datetime.timezone.utc), "the oldest commit that carries the trailer, not an older one without it"
+    assert rules.acceptance_files(log).oldest is None and rules.acceptance_files("").oldest is None
     root = os.path.join(tmp, "sessions")
     ok = lambda stats, body, scoped=(): rules.judge(stats, body, [], None, None, BASE, root, scoped)
     stats = [(acc, None, 40, 0)]
     assert ok(stats, "none") is None, "without the trailer commit it is not in scope"
     why = ok(stats, "none", {acc})
-    assert why and "acceptance tests of one-test" in why and "no `Codex:` line" in why, why
-    assert ok(stats, "Codex: skip small\n", {acc}) and "fewer than 20" in ok(stats, "Codex: skip small\n", {acc})
-    assert ok(lines_of(10, 4) + [(acc, None, 3, 2)], "Codex: skip small\n", {acc}) is None, "19 lines of both together"
-    assert ok(lines_of(10, 5) + [(acc, None, 3, 2)], "Codex: skip small\n", {acc}), "20 lines of both together"
-    assert ok(lines_of(10, 5) + [(acc, None, 3, 2)], "Codex: skip small\n") is None, "the acceptance file does not count without the trailer: 15 lines"
+    assert why and "acceptance tests of one-test" in why and "no `Codex-Acceptance:` line" in why, why
+    assert ok(stats, "Codex: skip small\n", {acc}) and "no `Codex-Acceptance:` line" in ok(stats, "Codex: skip small\n", {acc}), "the implementation's own line does not cover the acceptance part"
+    assert ok(stats, "Codex-Acceptance: skip small\n", {acc}) and "fewer than 20" in ok(stats, "Codex-Acceptance: skip small\n", {acc})
+    assert ok([(acc, None, 10, 9)], "Codex-Acceptance: skip small\n", {acc}) is None, "19 acceptance lines"
+    # the parts count apart: a big backend change does not make acceptance lines big, nor the other way round
+    both = lines_of(10, 5) + [(acc, None, 3, 2)]
+    assert ok(both, "Codex: skip small\nCodex-Acceptance: skip small\n", {acc}) is None, "15 backend lines and 5 acceptance lines, each under 20"
+    assert "no `Codex-Acceptance:` line" in ok(both, "Codex: skip small\n", {acc}), "both parts need their own line"
+    assert "no `Codex:` line" in ok(both, "Codex-Acceptance: skip small\n", {acc})
+    assert ok(lines_of(40) + [(acc, None, 3, 2)], "Codex-Acceptance: skip small\n", {acc}) and "no `Codex:` line" in ok(lines_of(40) + [(acc, None, 3, 2)], "Codex-Acceptance: skip small\n", {acc})
+    assert ok(lines_of(18) + [(acc, None, 30, 0)], "Codex: skip small\n", {acc}) and "no `Codex-Acceptance:` line" in ok(lines_of(18) + [(acc, None, 30, 0)], "Codex: skip small\n", {acc}), "small backend lines do not excuse a big acceptance part"
+    # a one-test session: another worktree, before the acceptance commits; the implementation branch began after it
+    other = os.path.join(tmp, "repo", ".claude", "worktrees", "one-test-w")
+    t_commit = NOW - datetime.timedelta(hours=1)
+    scope = rules.Scope({acc})
+    scope.oldest = t_commit
+    mine = "11a18901-dd25-71b0-addd-7a5fcb6d205b"
+    session(root, mine, other, when=NOW - datetime.timedelta(hours=5))   # before the implementation branch's start (BASE = NOW - 2 h), before the acceptance commit
+    accept_line = f"Codex-Acceptance: {mine}\n"
+    assert ok(stats, accept_line, scope) is None, "a one-test session in another worktree, from before the branch and before the commit, holds for the acceptance part"
+    session(root, SID, other, when=NOW)   # the implementation's own run: after the branch began
+    both_parts = stats + lines_of(40)
+    assert ok(both_parts, accept_line + body_ids(SID), scope) is None, "an implementation PR with unchanged acceptance commits: its own run plus one-test's run hold"
+    why = ok(both_parts, body_ids(SID), scope)
+    assert why and "no `Codex-Acceptance:` line" in why, "the same without the one-test run is refused: " + str(why)
+    late = "22a18901-dd25-71b0-addd-7a5fcb6d205b"
+    session(root, late, other, when=NOW)
+    why = ok(stats, f"Codex-Acceptance: {late}\n", scope)
+    assert why and "not before the oldest acceptance commit" in why, why
+    away = "33a18901-dd25-71b0-addd-7a5fcb6d205b"
+    session(root, away, os.path.join(tmp, "elsewhere"), when=NOW - datetime.timedelta(hours=5))
+    why = ok(stats, f"Codex-Acceptance: {away}\n", scope)
+    assert why and "not a session worktree" in why, why
+    assert "no file" in ok(stats, "Codex-Acceptance: 44a18901-dd25-71b0-addd-7a5fcb6d205b\n", scope)
+    assert "is not a session id" in ok(stats, "Codex-Acceptance: nothing\n", scope)
+    assert "without a session id" in ok(stats, "Codex-Acceptance:\n", scope)
+    # the same one-test session does not prove the backend part: that needs the author's worktree and a time after the branch began
+    why = ok(both_parts, f"Codex: {mine}\nCodex-Acceptance: {mine}\n", scope)
+    assert why and f"session {mine}: started" in why and "not after the branch was cut" in why, why
 
 
 def test_pr_body():
@@ -194,7 +232,7 @@ def test_gate(tmp):
     open(os.path.join(w3, acc), "a").write("class U {}\n")
     git(w3, "add", "."), git(w3, "commit", "-q", "-m", "acceptance\n\nAcceptance-Test-Author: test-engineer")
     code, out, err = ask(create("Closes #1\n"), cwd=w3)
-    assert code == 2 and "acceptance tests of one-test" in err and "no `Codex:` line" in err, (code, err)
+    assert code == 2 and "acceptance tests of one-test" in err and "no `Codex-Acceptance:` line" in err, (code, err)
     heredoc = f"gh pr create --title 'x' --body \"$(cat <<'EOF'\nCloses #1\n\nCodex: {sid}\nEOF\n)\""
     assert ask(heredoc) == (0, "", ""), ask(heredoc)
     assert ask(heredoc.replace(sid, "11111111-2222-3333-4444-555555555555"))[0] == 2
