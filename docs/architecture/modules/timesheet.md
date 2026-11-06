@@ -29,15 +29,7 @@
 
 ## 2. 它拥有的东西，再加一个的标准做法
 
-### 2.1 加一个权限码
-
-按 ADR-0091：在本模块的 `api` 权限声明接口加一条（码、授予方式、停用标记），`@PreAuthorize` 与使用点引用同一处，不复制常量类；要授予谁去 identity 的 `SystemRoleDeclaration` 加并加修订号。ADR-0091 迁移 P1 之前仍在 identity 的 `Permission` 里加。
-
-**文件数**：今天以 `TIMESHEET_SUBMIT` 为例，`git grep -l TIMESHEET_SUBMIT -- backend/src/main` 命中 1 个主代码文件（量法如此，使用点若引用的是字符串常量则不计入）→ 目标 1 至 2 个：本模块的声明文件，加 `SystemRoleDeclaration`（要授予时）。目标数是 ADR-0091 的设计值，未实测。
-
-锁：`NamingSurfaceTest` G43（今天已有）；收集目录的失败检查（**待建**，ADR-0091 P1）。
-
-### 2.2 加一个事件
+### 2.1 加一个事件
 
 在 `events` 加过去时 record（只含 ID 与值对象），在聚合保存后的同一事务里发布；载荷写进 `docs/architecture/events/timesheet.yaml` 与 `asyncapi.yaml`（设计类 PR 可写，其余 PR 改它会被入队拒绝）。
 
@@ -45,7 +37,7 @@
 
 锁：`EventCatalogueTest`（今天已有）。
 
-### 2.3 加一个对外读端口或类型
+### 2.2 加一个对外读端口或类型
 
 在 `api` 加接口或 record（G2：`api` 只放接口、record、枚举），实现放 `application`；调用方在 `module-dependencies.txt` 有边（platform 层读 organization 的另要在 `platform-org-interfaces.txt` 有一行并重生成签名快照）。先看上面的引用统计，别新增没人用的。
 
@@ -53,14 +45,14 @@
 
 锁：`ModuleDependencyTest`、`ArchitectureRulesTest` G2（今天已有）。
 
-### 2.4 加一个错误码
+### 2.3 加一个错误码
 
 `TimesheetError` 是本模块唯一的错误码枚举（G48、CS-2.24），只往里加；拆分是规则变更，走 CS-7.5，由用户定，本页不提。
 
 **文件数**：今天 1 个 → 目标不变。
 锁：`NamingSurfaceTest` G48（今天已有）。
 
-### 2.5 加一种工时表状态或审批结果处理
+### 2.4 加一种工时表状态或审批结果处理
 
 状态枚举 `TimesheetStatus`（`api`），转移只在 `Timesheet` 聚合方法里；审批结果经 `ApplyApprovalResult` 去重后应用（`ConsumedEvents`）。
 

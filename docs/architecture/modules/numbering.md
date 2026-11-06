@@ -70,11 +70,11 @@
 
 ### 2.6 加一个单据类型（让新单据拿到编号）
 
-单据类型由 `DocumentTypeRegistry` 登记（`RegisteredDocumentTypes` 在 `api`）；使用方只经 `DocumentNumbers`/`GlobalDocumentNumbers` 取号，事务内取（coding-core 第 B 节第 5 条）；规则版本经确认后生效。
+单据类型是库里的行（`platform_numbering.document_types`），由**迁移**加一行，走数据设计门（例：recruitment 需求类型的迁移 `V20261105180100__platform_numbering_recruitment_requisition_type.sql`）；`DocumentTypeRegistry`/`RegisteredDocumentTypes` 只读它。使用方只经 `DocumentNumbers`/`GlobalDocumentNumbers` 取号，事务内取（coding-core 第 B 节第 5 条）；规则版本经确认后生效。
 
-**文件数**：今天：登记 1 + 规则配置 1 + 使用方取号调用 → 目标不变。
+**文件数**：今天：迁移 1 + 规则配置 1 + 使用方取号调用 → 目标不变。
 
-锁：`CheckDocumentTypeRegistered`（取号前检查类型已登记，今天已有）。
+锁：发起审批时 `Approvals.requireAcceptedDocumentType` 经 `RegisteredDocumentTypes` 拒绝未登记类型（运行期检查，不是守护测试；取号路径上没有这个检查，今天如此）；表结构变化走数据设计门（`docs/data/data-design-gate.md`）。
 
 ## 3. 不要这样做
 

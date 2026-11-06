@@ -28,15 +28,7 @@
 
 ## 2. 它拥有的东西，再加一个的标准做法
 
-### 2.1 加一个权限码
-
-按 ADR-0091：在本模块的 `api` 权限声明接口加一条（码、授予方式、停用标记），`@PreAuthorize` 与使用点引用同一处，不复制常量类；要授予谁去 identity 的 `SystemRoleDeclaration` 加并加修订号。ADR-0091 迁移 P1 之前仍在 identity 的 `Permission` 里加。
-
-**文件数**：本模块今天没有权限码；第一个码按上面做，今天落在 identity 的 `Permission` 与 `SystemRoleDeclaration` 2 个文件，目标 1 至 2 个（设计值，未实测）。
-
-锁：`NamingSurfaceTest` G43（今天已有）；收集目录的失败检查（**待建**，ADR-0091 P1）。
-
-### 2.2 加一个对外读端口或类型
+### 2.1 加一个对外读端口或类型
 
 在 `api` 加接口或 record（G2：`api` 只放接口、record、枚举），实现放 `application`；调用方在 `module-dependencies.txt` 有边（platform 层读 organization 的另要在 `platform-org-interfaces.txt` 有一行并重生成签名快照）。先看上面的引用统计，别新增没人用的。
 
@@ -44,7 +36,7 @@
 
 锁：`ModuleDependencyTest`、`ArchitectureRulesTest` G2（今天已有）。
 
-### 2.3 加一种账本口径（`LedgerBasis`）
+### 2.2 加一种账本口径（`LedgerBasis`）
 
 在 `domain` 的 `LedgerBasis` 加值，`EnsureLedgers`/`BackfillLedgers` 按口径建账；口径是库里的值时走数据设计门。
 

@@ -61,7 +61,7 @@
 
 ### 2.5 加一类必审计动作或审计对象种类
 
-`AuditSubjectKind`（25 个值）在 `api`，被 73 个主代码文件使用；必审计动作登记在 `docs/architecture/must-audit-actions.yaml`；详情里不放姓名。
+`AuditSubjectKind`（25 个值）在 `api`，被许多主代码文件使用（`git grep -lw AuditSubjectKind -- backend/src/main` 可数）；必审计动作登记在 `docs/architecture/must-audit-actions.yaml`；详情里不放姓名。
 
 **文件数**：今天：枚举值 1 + 登记 1 + 写审计的调用点 → 目标不变。
 
