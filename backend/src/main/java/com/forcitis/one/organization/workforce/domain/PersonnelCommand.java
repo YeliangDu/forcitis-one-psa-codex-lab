@@ -439,7 +439,8 @@ public final class PersonnelCommand extends AggregateRoot {
         if (kind != PersonnelCommandKind.SEPARATE || status != CommandStatus.EFFECTIVE || !employeeId.equals(duty.employeeId())) {
             throw invalid("a duty's separation end is recorded by its employee's effective separation");
         }
-        record(PersonnelCommandEvents.actingEnded(this, duty, id, effectiveDate, ActingDutyEndCause.SEPARATION, legalEntity));
+        LocalDate endedOn = duty.startsOn().isAfter(effectiveDate) ? duty.startsOn() : effectiveDate;
+        record(PersonnelCommandEvents.actingEnded(this, duty, id, endedOn, ActingDutyEndCause.SEPARATION, legalEntity));
     }
 
     /** The start command carries the employee's current event sequence; expiry creates no command and changes no command state. */

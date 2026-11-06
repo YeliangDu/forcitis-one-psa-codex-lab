@@ -84,8 +84,9 @@ class EffectPublisher {
     void recordSeparation(PersonnelCommand separation, @Nullable LegalEntityId legalEntity, LocalDate today, Instant now, ActorType type, UUID actor) {
         LocalDate day = separation.effectiveDate();
         for (ActingDuty duty : duties.listOpen(separation.employeeId())) {
-            if (duty.endedOn() == null && !duty.startsOn().isAfter(day) && duty.endsBefore().isAfter(day)) {
-                duties.updateEnd(duty, day, ActingDutyEndCause.SEPARATION, now);
+            if (duty.endedOn() == null && duty.endsBefore().isAfter(day)) {
+                LocalDate endedOn = duty.startsOn().isAfter(day) ? duty.startsOn() : day;
+                duties.updateEnd(duty, endedOn, ActingDutyEndCause.SEPARATION, now);
                 separation.recordActingSeparation(duty, legalEntity);
             }
         }

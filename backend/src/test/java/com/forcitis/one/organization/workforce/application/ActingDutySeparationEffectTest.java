@@ -121,6 +121,63 @@ class ActingDutySeparationEffectTest {
     }
 
     @Test
+    @DisplayName("#1566 rule 6 backdated separation closes a later-starting open duty on its start day")
+    void backdatedSeparationEndsLaterStartingDutyOnStartDay() {
+        PersonnelCommand separation = command(10, PersonnelCommandKind.SEPARATE, DAY, CommandStatus.EFFECTIVE);
+        ActingDuty later = duty(20, DAY.plusDays(2), DAY.plusDays(5), null);
+        when(duties.listOpen(EMPLOYEE)).thenReturn(List.of(later));
+
+        effects.publish(separation, history(List.of()), DAY.plusDays(3));
+
+        verify(duties).updateEnd(later, DAY.plusDays(2), ActingDutyEndCause.SEPARATION, NOW);
+        List<EmployeeActingDutyEnded> ended = published.stream().filter(EmployeeActingDutyEnded.class::isInstance).map(EmployeeActingDutyEnded.class::cast).toList();
+        assertThat(ended).singleElement().satisfies(event -> {
+            assertThat(event.actingDutyId()).isEqualTo(later.id());
+            assertThat(event.personnelCommandId()).isEqualTo(separation.id());
+            assertThat(event.employeeId()).isEqualTo(EMPLOYEE);
+            assertThat(event.endedOn()).isEqualTo(DAY.plusDays(2));
+            assertThat(event.endCause()).isEqualTo(ActingDutyEndCause.SEPARATION);
+            assertThat(event.employmentRelationshipId()).isEqualTo(REL);
+            assertThat(event.envelope().businessDate()).isEqualTo(DAY.plusDays(2));
+            assertThat(event.envelope().legalEntityId()).isEqualTo(ENTITY);
+        });
+    }
+
+    @Test
+    @DisplayName("#1566 rule 6 separation ends mixed duty dates once and leaves already closed duties unchanged")
+    void separationEndsMixedDutyDatesOnceAndSkipsClosedDuties() {
+        PersonnelCommand separation = command(10, PersonnelCommandKind.SEPARATE, DAY, CommandStatus.EFFECTIVE);
+        ActingDuty later = duty(20, DAY.plusDays(2), DAY.plusDays(5), null);
+        ActingDuty earlier = duty(21, DAY.minusDays(2), DAY.plusDays(4), null);
+        when(duties.listOpen(EMPLOYEE)).thenReturn(List.of(later, earlier));
+        PersonnelHistory history = history(List.of());
+
+        effects.publish(separation, history, DAY.plusDays(3));
+
+        List<EmployeeActingDutyEnded> ended = published.stream().filter(EmployeeActingDutyEnded.class::isInstance).map(EmployeeActingDutyEnded.class::cast).toList();
+        assertThat(ended).extracting(EmployeeActingDutyEnded::actingDutyId).containsExactly(later.id(), earlier.id());
+        assertThat(ended).extracting(EmployeeActingDutyEnded::endedOn).containsExactly(DAY.plusDays(2), DAY);
+        assertThat(ended).allSatisfy(event -> {
+            assertThat(event.personnelCommandId()).isEqualTo(separation.id());
+            assertThat(event.endCause()).isEqualTo(ActingDutyEndCause.SEPARATION);
+            assertThat(event.envelope().businessDate()).isEqualTo(event.endedOn());
+        });
+
+        when(duties.listOpen(EMPLOYEE)).thenReturn(List.of(
+                duty(20, DAY.plusDays(2), DAY.plusDays(5), DAY.plusDays(2)),
+                duty(21, DAY.minusDays(2), DAY.plusDays(4), DAY)));
+        effects.publish(separation, history, DAY.plusDays(3));
+
+        verify(duties).updateEnd(later, DAY.plusDays(2), ActingDutyEndCause.SEPARATION, NOW);
+        verify(duties).updateEnd(earlier, DAY, ActingDutyEndCause.SEPARATION, NOW);
+        assertThat(published.stream().filter(EmployeeActingDutyEnded.class::isInstance).toList()).containsExactlyElementsOf(ended);
+        verify(duties, never()).updateEnd(
+                duty(20, DAY.plusDays(2), DAY.plusDays(5), DAY.plusDays(2)), DAY.plusDays(2), ActingDutyEndCause.SEPARATION, NOW);
+        verify(duties, never()).updateEnd(
+                duty(21, DAY.minusDays(2), DAY.plusDays(4), DAY), DAY, ActingDutyEndCause.SEPARATION, NOW);
+    }
+
+    @Test
     @DisplayName("#1566 duties expiring by separation day are left to expiry, and covered people's duties are never selected")
     void leavesExpiredDutiesToExpiry() {
         PersonnelCommand separation = command(10, PersonnelCommandKind.SEPARATE, DAY, CommandStatus.EFFECTIVE);
