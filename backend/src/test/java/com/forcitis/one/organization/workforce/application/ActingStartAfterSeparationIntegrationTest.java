@@ -27,8 +27,11 @@ class ActingStartAfterSeparationIntegrationTest extends WorkforceIntegrationSupp
         UUID command = Uuids.timeOrdered(clock);
         jdbc.sql("""
                 insert into organization_workforce.personnel_commands (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at,
-                  applied_at)
-                values (:command, :relationship, :employee, :kind, :day, :status, now(), :by, now(), case when :status = 'EFFECTIVE' then now() end)""").param("command", command)
+                  applied_at, target_org_unit_id, target_position_id, is_target_fee_earner, target_employment_phase_kind)
+                values (:command, :relationship, :employee, :kind, :day, :status, now(), :by, now(), case when :status = 'EFFECTIVE' then now() end,
+                  case when :kind = 'REINSTATE' then :unit end, case when :kind = 'REINSTATE' then :position end, case when :kind = 'REINSTATE' then false end,
+                  case when :kind = 'REINSTATE' then 'REGULAR' end)""").param("unit", person.orgUnit()).param("position", person.position())
+                .param("command", command)
                 .param("relationship", EmploymentRelationshipSeed.relationship(jdbc, person.employee())).param("employee", person.employee()).param("kind", kind).param("day", day)
                 .param("status", status).param("by", Uuids.timeOrdered(clock)).update();
         return command;
@@ -67,7 +70,7 @@ class ActingStartAfterSeparationIntegrationTest extends WorkforceIntegrationSupp
     void sameDayStartIsClosedBySeparation() {
         LocalDate today = zone.today(clock);
         PersonnelSeedSupport.Person person = PersonnelSeedSupport.employed(jdbc, clock, "AC-1");
-        UUID separation = command(person, "SEPARATE", today, "EFFECTIVE");
+        command(person, "SEPARATE", today, "EFFECTIVE");
         UUID start = pendingStart(person, today);
 
         dueJob.run();
@@ -79,7 +82,6 @@ class ActingStartAfterSeparationIntegrationTest extends WorkforceIntegrationSupp
         UUID id = (UUID) duty.get("acting_duty_id");
         assertThat(events("EmployeeActingDutyStarted", id)).isEqualTo(1);
         assertThat(events("EmployeeActingDutyEnded", id)).isEqualTo(1);
-        assertThat(separation).isNotNull();
     }
 
     @Test
@@ -127,5 +129,40 @@ class ActingStartAfterSeparationIntegrationTest extends WorkforceIntegrationSupp
 
         assertThat(statusOf(start)).isEqualTo("WITHDRAWN");
         assertThat(dutiesOf(start)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("#1566 a late start is closed for a separation even when a reinstatement follows it: the reinstatement does not reopen the duty")
+    void lateStartIsClosedAlthoughReinstatedAfterwards() {
+        LocalDate today = zone.today(clock);
+        PersonnelSeedSupport.Person person = PersonnelSeedSupport.employed(jdbc, clock, "AC-5");
+        command(person, "SEPARATE", today.minusDays(2), "EFFECTIVE");
+        command(person, "REINSTATE", today.minusDays(1), "EFFECTIVE");
+        UUID start = pendingStart(person, today.minusDays(3));
+
+        dueJob.run();
+
+        Map<String, Object> duty = dutiesOf(start).getFirst();
+        assertThat(duty).containsEntry("ended_on_date", java.sql.Date.valueOf(today.minusDays(2))).containsEntry("end_cause_kind", "SEPARATION");
+        UUID id = (UUID) duty.get("acting_duty_id");
+        assertThat(events("EmployeeActingDutyStarted", id)).isEqualTo(1);
+        assertThat(events("EmployeeActingDutyEnded", id)).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("#1566 a start dated after a separation that was reinstated before it takes effect and stays open")
+    void startAfterReinstatementStaysOpen() {
+        LocalDate today = zone.today(clock);
+        PersonnelSeedSupport.Person person = PersonnelSeedSupport.employed(jdbc, clock, "AC-6");
+        command(person, "SEPARATE", today.minusDays(5), "EFFECTIVE");
+        command(person, "REINSTATE", today.minusDays(3), "EFFECTIVE");
+        UUID start = pendingStart(person, today);
+
+        dueJob.run();
+
+        assertThat(statusOf(start)).isEqualTo("EFFECTIVE");
+        Map<String, Object> duty = dutiesOf(start).getFirst();
+        assertThat(duty.get("ended_on_date")).isNull();
+        assertThat(events("EmployeeActingDutyEnded", (UUID) duty.get("acting_duty_id"))).isZero();
     }
 }

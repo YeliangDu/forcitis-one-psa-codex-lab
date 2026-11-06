@@ -79,9 +79,8 @@ class EffectPublisher {
                 publishRecorded(current);
             });
             return;
-        } else {
-            command.recordEffect(assignmentBefore, assignmentAfter, legalEntity, commands.load(command.employeeId()));
         }
+        command.recordEffect(assignmentBefore, assignmentAfter, legalEntity, commands.load(command.employeeId()));
         if (command.kind() == PersonnelCommandKind.SEPARATE) {
             boolean system = WorkContext.systemActor().isPresent();
             UUID actor = WorkContext.systemActor().map(SystemActors::idOf).orElse(command.createdBy().value());

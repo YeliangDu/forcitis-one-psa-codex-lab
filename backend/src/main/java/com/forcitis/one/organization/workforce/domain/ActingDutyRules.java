@@ -68,7 +68,7 @@ public final class ActingDutyRules {
         }
     }
 
-    /** True when a separation that no effective reinstatement covers falls before the start day, so the start can never take effect. */
+    /** True when a separation that no effective reinstatement covers falls before the start day, so the start is withdrawn by rule 6. */
     public static boolean startIsAfterSeparation(PersonnelCommand start, List<PersonnelCommand> all) {
         return all.stream().filter(s -> s.kind() == PersonnelCommandKind.SEPARATE && s.status() != CommandStatus.WITHDRAWN
                         && s.status() != CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN && s.effectiveDate().isBefore(start.effectiveDate()))
@@ -76,12 +76,10 @@ public final class ActingDutyRules {
                         && r.effectiveDate().isAfter(s.effectiveDate()) && !r.effectiveDate().isAfter(start.effectiveDate())));
     }
 
-    /** A delayed start takes effect, then closes for the first effective separation that no effective reinstatement covers. */
+    /** A delayed start takes effect, then closes for the first effective separation inside its term; a later reinstatement does not reopen a duty. */
     public static Optional<PersonnelCommand> separationClosingStart(ActingDuty duty, List<PersonnelCommand> all) {
         return all.stream().filter(s -> s.kind() == PersonnelCommandKind.SEPARATE && s.status() == CommandStatus.EFFECTIVE
                         && !s.effectiveDate().isBefore(duty.startsOn()) && duty.endsBefore().isAfter(s.effectiveDate()))
-                .filter(s -> all.stream().noneMatch(r -> r.kind() == PersonnelCommandKind.REINSTATE && r.status() == CommandStatus.EFFECTIVE
-                        && r.effectiveDate().isAfter(s.effectiveDate())))
                 .min(Comparator.comparing(PersonnelCommand::effectiveDate));
     }
 

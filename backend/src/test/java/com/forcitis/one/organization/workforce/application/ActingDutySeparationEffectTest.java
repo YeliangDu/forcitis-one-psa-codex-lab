@@ -3,6 +3,7 @@ package com.forcitis.one.organization.workforce.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -50,6 +51,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 class ActingDutySeparationEffectTest {
@@ -106,12 +108,16 @@ class ActingDutySeparationEffectTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, 1})
-    @DisplayName("#1566 a same-day or overdue start publishes Started then separation Ended exactly once")
-    void dueStartClosesForEffectiveSeparation(int daysOverdue) {
+    @CsvSource({"0,false", "1,false", "1,true"})
+    @DisplayName("#1566 a same-day or overdue start publishes Started then separation Ended exactly once, also when a reinstatement follows the separation")
+    void dueStartClosesForEffectiveSeparation(int daysOverdue, boolean reinstatedAfter) {
         PersonnelCommand separation = command(10, PersonnelCommandKind.SEPARATE, DAY, CommandStatus.EFFECTIVE);
         PersonnelCommand start = pendingStart(DAY.minusDays(daysOverdue));
-        history(List.of(separation, start));
+        List<PersonnelCommand> all = new ArrayList<>(List.of(separation, start));
+        if (reinstatedAfter) {
+            all.add(command(12, PersonnelCommandKind.REINSTATE, DAY.plusDays(1), CommandStatus.EFFECTIVE));
+        }
+        history(all);
         // Repository reads carry the employee's current sequence, including the Started just published.
         when(commands.find(separation.id())).thenAnswer(ignored -> Optional.of(PersonnelCommand.restore(separation.id(), EMPLOYEE,
                 PersonnelCommandKind.SEPARATE, DAY, CommandStatus.EFFECTIVE, null, null, null, null, null, null, null, null, null, null,
@@ -153,8 +159,8 @@ class ActingDutySeparationEffectTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"none", "pending", "held", "withdrawn", "reinstated", "afterTerm"})
-    @DisplayName("#1566 a due start stays open without an uncovered effective separation")
+    @ValueSource(strings = {"none", "pending", "held", "withdrawn", "afterTerm"})
+    @DisplayName("#1566 a due start stays open without an effective separation inside its term")
     void dueStartStaysOpen(String scenario) {
         PersonnelCommand start = pendingStart(DAY.minusDays(2));
         List<PersonnelCommand> all = new ArrayList<>(List.of(start));
@@ -167,9 +173,6 @@ class ActingDutySeparationEffectTest {
             };
             all.add(command(10, PersonnelCommandKind.SEPARATE, scenario.equals("afterTerm") ? DAY.plusDays(5) : DAY.minusDays(1), status));
         }
-        if (scenario.equals("reinstated")) {
-            all.add(command(12, PersonnelCommandKind.REINSTATE, DAY, CommandStatus.EFFECTIVE));
-        }
         history(all);
 
         due().execute(start.id());
@@ -178,6 +181,22 @@ class ActingDutySeparationEffectTest {
         verify(duties).insert(any());
         verify(duties, never()).updateEnd(any(), any(), any(), any());
         assertThat(published).singleElement().isInstanceOf(EmployeeActingDutyStarted.class);
+    }
+
+    @Test
+    @DisplayName("#1566 entry path: a backdated start across a reinstated separation is closed at the separation day")
+    void backdatedEntryAcrossReinstatementIsClosed() {
+        PersonnelCommand separation = command(10, PersonnelCommandKind.SEPARATE, DAY.minusDays(1), CommandStatus.EFFECTIVE);
+        PersonnelCommand reinstatement = command(12, PersonnelCommandKind.REINSTATE, DAY, CommandStatus.EFFECTIVE);
+        PersonnelCommand start = pendingStart(DAY.minusDays(3));
+        PersonnelHistory history = history(List.of(separation, reinstatement, start));
+
+        effects.publish(start, history, DAY);
+
+        verify(duties).updateEnd(any(), eq(DAY.minusDays(1)), eq(ActingDutyEndCause.SEPARATION), any());
+        assertThat(published).hasSize(2);
+        assertThat(published.getLast()).isInstanceOfSatisfying(EmployeeActingDutyEnded.class,
+                event -> assertThat(event.personnelCommandId()).isEqualTo(separation.id()));
     }
 
     @Test
