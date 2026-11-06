@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.BusinessDay;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -29,6 +30,6 @@ public final class AdjustableClock extends Clock {
 
     @Override
     public Instant instant() {
-        return Instant.now().plus(offset);
+        return BusinessDay.instant().plus(offset);
     }
 }

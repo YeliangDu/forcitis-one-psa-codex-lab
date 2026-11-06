@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.numbering;
 
+import com.forcitis.one.BusinessDay;
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -111,7 +112,7 @@ class NumberingRuleFourEyesIT {
     }
 
     private static LocalDate today() {
-        return LocalDate.now(ZoneId.of("Asia/Shanghai"));
+        return BusinessDay.today();
     }
 
     private static LocalDate tomorrow() {

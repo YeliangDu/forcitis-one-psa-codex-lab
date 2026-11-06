@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.audit.infrastructure.archive;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.forcitis.one.TestDatabase;
@@ -44,7 +45,7 @@ class Nits1PartitionJobIT {
     @DisplayName("NITS-1 months-ahead=23 时跨度为 24 个月，数据库函数接受：作业不报失败，最远一个月的分区已建")
     void theLargestMonthsAheadSpans24MonthsAndTheFunctionAccepts() {
         SimpleMeterRegistry meters = new SimpleMeterRegistry();
-        Clock clock = Clock.systemUTC();
+        Clock clock = BusinessDay.fixedClock();
         AuditPartitionJob job = new AuditPartitionJob(jdbc, clock, new AuditPartitionJob.Policy(AuditPartitionJob.MAX_MONTHS_AHEAD), meters);
 
         job.ensurePartitions();

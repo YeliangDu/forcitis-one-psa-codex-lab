@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.BusinessDay;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -30,6 +31,6 @@ public final class MutableClock extends Clock {
 
     @Override
     public Instant instant() {
-        return Instant.now().plus(offset);
+        return BusinessDay.instant().plus(offset);
     }
 }

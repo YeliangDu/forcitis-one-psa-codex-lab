@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.audit.infrastructure.archive;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -105,7 +106,7 @@ class AuditPartitionsIT {
     }
 
     private static YearMonth ahead(int months) {
-        return YearMonth.now(ZoneOffset.UTC).plusMonths(months);
+        return BusinessDay.utcMonth().plusMonths(months);
     }
 
     private static String day(int monthsAhead, int dayOfMonth) {
@@ -353,7 +354,7 @@ class AuditPartitionsIT {
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TB-07 the job has created the current month and the months ahead, and counts a failure when a month cannot be created")
     void theJobPreCreatesTheMonthsAhead() {
-        YearMonth now = YearMonth.now(ZoneOffset.UTC);
+        YearMonth now = BusinessDay.utcMonth();
         for (int ahead = 0; ahead <= 3; ahead++) {
             assertThat(exists("audit_entries_p" + now.plusMonths(ahead).toString().replace("-", ""))).as("month +" + ahead).isTrue();
         }

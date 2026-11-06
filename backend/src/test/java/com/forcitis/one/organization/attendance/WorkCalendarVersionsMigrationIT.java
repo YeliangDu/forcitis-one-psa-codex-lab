@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.attendance;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
@@ -47,7 +48,7 @@ class WorkCalendarVersionsMigrationIT {
     static final LocalDate MONDAY = LocalDate.of(2026, 10, 5);
     static final String NOTICE_URL = "https://www.gov.cn/zhengce/notice";
     /** The confirmation day is the database's own day, so the dates of the no-retroactivity cases hang on the year after today's. */
-    static final LocalDate TODAY = LocalDate.now(ZoneId.of("Asia/Shanghai"));
+    static final LocalDate TODAY = BusinessDay.today();
     static final int NEXT_YEAR = TODAY.getYear() + 1;
     static final LocalDate JANUARY_SATURDAY = LocalDate.of(NEXT_YEAR, 1, 1).with(TemporalAdjusters.firstInMonth(DayOfWeek.SATURDAY));
     static final LocalDate MARCH_SATURDAY = LocalDate.of(NEXT_YEAR, 3, 1).with(TemporalAdjusters.firstInMonth(DayOfWeek.SATURDAY));
