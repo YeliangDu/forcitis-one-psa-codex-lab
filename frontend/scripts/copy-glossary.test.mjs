@@ -75,7 +75,7 @@ test('a one-character word is only a connector between two words (M-16)', () => 
   assert.deepEqual(kinds('工时单和审批'), []);
   assert.deepEqual(kinds('工时单的审批'), []);
   assert.deepEqual(kinds('已认领'), [], 'a state is a registered term, not 已 + 认领');
-  for (const text of ['的', '的审批', '工时单的', '请重试', '工时单的是审批', '已通知']) assert.notDeepEqual(kinds(text), [], text);
+  for (const text of ['的', '的审批', '工时单的', '请重试', '工时单的是审批', '已晾晒']) assert.notDeepEqual(kinds(text), [], text);
 });
 
 test('connectors cannot be chained into a text that no term explains', () => {

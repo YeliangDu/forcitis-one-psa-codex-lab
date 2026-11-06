@@ -803,8 +803,7 @@ tables:
     role: AGGREGATE_CHILD
     aggregate: LeaveRequest
     mutability: APPEND_ONLY
-    fk_exceptions:
-      ledger_line_id: Signed L1a defers the key to leave_ledger_lines until L1b creates it; this is not a monthly_confirmation_lines reference (docs/data/reviews/organization-leave-l1a.md).
+    references: {ledger_line_id: organization_leave.leave_ledger_lines}
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: []  # L1a has no Java SQL; register the writer with the command slice
@@ -836,3 +835,62 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: []  # L1a has no Java SQL; register the writer with the command slice
+  # #1450 R1, signed record docs/data/reviews/organization-recruitment-r1.md.
+  organization_recruitment.recruitment_requisitions:
+    # PERMANENT by user decision 2026-11-05-163008 (docs/decisions/2026-11-05-163008-one-lead-B-2-a.md, ADR-0043 R-2): tens of rows a year; the requester id is staff identity that the audit trail and the employee history keep permanently in any case, so a shorter limit on this table removes nothing from those; the description is limited to the position need. The reason text moves into a registry field once DG-0 adds it.
+    role: AGGREGATE_ROOT
+    aggregate: RecruitmentRequisition
+    mutability: CONDITIONAL_UPDATE
+    condition: legal state edges and DRAFT edits only (tg_recruitment_requisitions_change)
+    business_key: [requisition_number]
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [organization.recruitment]
+  organization_leave.leave_types:
+    role: CONFIG
+    mutability: MIGRATION_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: []  # L1b has no Java SQL; register the writer with the command slice
+  organization_leave.leave_rule_versions:
+    role: DIMENSION_VERSIONED
+    aggregate: LeaveRuleVersion
+    mutability: APPEND_ONLY
+    condition: "closing the previous version (effective_to_date null to a date by the publish of the next), its reopening and the voiding of a future latest version are the only updates; nothing is deleted (tg_leave_rule_versions_change)"
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: []  # L1b has no Java SQL; register the writer with the command slice
+  organization_leave.leave_entitlement_rules:
+    role: AGGREGATE_CHILD
+    aggregate: LeaveRuleVersion
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: []  # L1b has no Java SQL; register the writer with the command slice
+  organization_leave.leave_accounts:
+    role: AGGREGATE_ROOT
+    aggregate: LeaveBalanceAccount
+    mutability: CONDITIONAL_UPDATE
+    condition: "OPEN to SEALED once, with sealed_at (tg_leave_accounts_change); nothing else changes"
+    retention: {policy: PERMANENT}      # Q-3 (user decision 2026-11-05, docs/decisions/2026-11-05-120403-one-lead-均采纳-监管部门有明确法规且和企.md): a leave account and its ledger are the employee's leave record, kept with the employee record period; an expiry job is a later decision (ADR-0043 R-2)
+    lineage: {source: NEW, migrated_from: [old annual leave archive 年假档案], via: ONE_OFF_IMPORT}
+    writers: []  # L1b has no Java SQL; register the writer with the command slice
+  organization_leave.leave_ledger_lines:
+    role: AGGREGATE_CHILD
+    aggregate: LeaveBalanceAccount
+    mutability: APPEND_ONLY
+    references: {consumes_line_id: organization_leave.leave_ledger_lines, corrects_line_id: organization_leave.leave_ledger_lines}
+    fk_exceptions:
+      leave_type_id: carried by the composite foreign key fk_leave_ledger_lines_account_relationship_type, which holds it equal to the type of its account
+    retention: {policy: PERMANENT}      # Q-3 (user decision 2026-11-05, docs/decisions/2026-11-05-120403-one-lead-均采纳-监管部门有明确法规且和企.md): a leave account and its ledger are the employee's leave record, kept with the employee record period; an expiry job is a later decision (ADR-0043 R-2)
+    lineage: {source: NEW, migrated_from: [old annual leave archive 年假档案], via: ONE_OFF_IMPORT}
+    writers: []  # L1b has no Java SQL; register the writer with the command slice
+  organization_leave.leave_grant_basis:
+    role: AGGREGATE_CHILD
+    aggregate: LeaveBalanceAccount
+    mutability: APPEND_ONLY
+    fk_exceptions:
+      leave_type_id: carried by the composite foreign keys fk_leave_grant_basis_line_type and fk_leave_grant_basis_rule_version_type, which hold it equal to the type of its line and of its rule version
+    retention: {policy: PERMANENT}      # Q-3 (user decision 2026-11-05, docs/decisions/2026-11-05-120403-one-lead-均采纳-监管部门有明确法规且和企.md): a leave account and its ledger are the employee's leave record, kept with the employee record period; an expiry job is a later decision (ADR-0043 R-2)
+    lineage: {source: NEW}
+    writers: []  # L1b has no Java SQL; register the writer with the command slice

@@ -158,6 +158,16 @@ public final class ApprovalRequest extends AggregateRoot {
                 && task.approvedHash().map(digest::equals).orElse(false));
     }
 
+    /**
+     * Whether the user already decided a task of the node of this task in the same round (the same instance). A node with several tasks is a countersign:
+     * one person does not decide two of them, so a task is not handed to such a person.
+     */
+    public boolean hasDecidedOnNodeOf(ApprovalTaskId taskId, UserId user) {
+        ApprovalTask task = task(taskId);
+        return tasks.stream().anyMatch(decided -> decided.instanceId().equals(task.instanceId()) && decided.nodeKey().equals(task.nodeKey())
+                && decided.status() == ApprovalTaskStatus.COMPLETED && decided.assignee().map(user::equals).orElse(false));
+    }
+
     public void passAutomatically(TaskAssignment assignment, UserId approver, Moment now) {
         requireOpenRound(assignment);
         ApprovalTask passed = ApprovalTask.passedBySystem(assignment, approver, now.at());
