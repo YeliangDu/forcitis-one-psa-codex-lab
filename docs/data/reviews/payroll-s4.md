@@ -42,7 +42,7 @@ Append-only by a guard trigger (`BEFORE UPDATE OR DELETE` and `BEFORE TRUNCATE`,
 | `decision_reference_text` | text NOT NULL | the allowance decision number (the pack: decided elsewhere); there is no column for qualification evidence on purpose (proposal 4.1) |
 | `created_by_user_id` | uuid NOT NULL | |
 
-`ex_compensation_allowance_versions_period_overlap` `EXCLUDE USING gist (employment_relationship_id WITH =, allowance_key WITH =, daterange(effective_from_date, effective_to_date) WITH &&)` (a null end is an open range; every range is non-empty by the period CHECK, so two versions of one kind with the same start already overlap: no separate unique key). The extension `btree_gist` is created by a `DO` block at the top of the baseline edit, as `V20261021170000__organization_attendance_work_calendar_versions.sql` does [V]. Guard trigger: the only legal update sets `effective_to_date` from null to a date and `updated_at`, once; every other update, any delete and truncate are refused.
+`ex_compensation_allowance_versions_period_overlap` `EXCLUDE USING gist (employment_relationship_id WITH =, allowance_key WITH =, daterange(effective_from_date, effective_to_date) WITH &&)` (a null end is an open range; every range is non-empty by the period CHECK, so two versions of one kind with the same start already overlap: no separate unique key). The extension `btree_gist` is already guaranteed by the existence check at the top of the payroll baseline (its `DO` block, used by the rule-version exclusion) [V]; no extension change is needed. Guard trigger: the only legal update sets `effective_to_date` from null to a date and `updated_at`, once; every other update, any delete and truncate are refused.
 
 ### insurance_enrolments (grain: one enrolment status of one kind of one relationship from one date)
 
@@ -67,7 +67,7 @@ Append-only by the guard trigger. No contribution base column in S4 (proposal se
 | `gross_amount`, `deduction_amount`, `amount_currency` | numeric(19,2), numeric(19,2), text NOT NULL | `gross_amount >= 0`, `deduction_amount >= 0`, `deduction_amount <= gross_amount`, currency `'CNY'`; net is not stored (derivable) |
 | `source_kind` | text NOT NULL | `IN ('EXTERNAL_CONFIRMED')` |
 | `decision_reference_text` | text NOT NULL | the number of the confirmation (Q-S4-2) |
-| `entered_by_employee_id` | uuid NOT NULL | the person who entered it; the settlement's approver may not be the calculator (the bonus input rule of spec 5, applied to inputs by the command) |
+| `entered_by_employee_id` | uuid NOT NULL | the person who entered it (for the audit trail); the separation of duties compares the settlement's approver with `calculated_by_user_id`, not with this column |
 | `status` | text NOT NULL | `IN ('ACTIVE', 'VOIDED')` |
 | `voided_by_user_id`, `voided_at` | uuid, timestamptz | 为空表示 not voided; `ck_..._void_columns` `(status = 'VOIDED') = (voided_at IS NOT NULL) AND (voided_at IS NULL) = (voided_by_user_id IS NULL)` |
 
@@ -87,7 +87,7 @@ Append-only by the guard trigger. No contribution base column in S4 (proposal se
 | `payment_status` | text NOT NULL | `IN ('NOT_REQUESTED', 'REQUESTED', 'PAID', 'PARTLY_FAILED')`; `ck_..._payment_after_approval` `payment_status = 'NOT_REQUESTED' OR status = 'APPROVED'` |
 | `version` | bigint NOT NULL DEFAULT 0 | optimistic lock (`If-Match`) |
 
-`uk_payroll_settlements_entity_month` UNIQUE partial `(paying_legal_entity_id, payroll_month_start_date) WHERE status <> 'CANCELLED'` (the business key: a settlement is unique within a paying entity and month). Guard trigger: once `APPROVED`, only `payment_status`, `updated_at` and `version` may change: `status` is terminal (an approved settlement cannot become `CANCELLED` or return to `CALCULATED`, so its (entity, month) key is never freed), and the amount columns, `payroll_month_start_date`, `paying_legal_entity_id`, `calculated_by_user_id` and `approval_instance_id` never change; `payroll_settlements` rows are never deleted. The legal moves of `status` are `CALCULATED` to `IN_REVIEW` or `CANCELLED`, `IN_REVIEW` to `CALCULATED` (rejected or withdrawn) or `APPROVED`; `CANCELLED` is terminal. `payment_status`: `NOT_REQUESTED` to `REQUESTED` at approval's payment request; `REQUESTED` to `PAID` or `PARTLY_FAILED` when no attempt of the settlement is open (any `FAILED` line gives `PARTLY_FAILED`, including all lines failed); `PARTLY_FAILED` to `REQUESTED` by a re-disbursement.
+`uk_payroll_settlements_entity_month` UNIQUE partial `(paying_legal_entity_id, payroll_month_start_date) WHERE status <> 'CANCELLED'` (the business key: a settlement is unique within a paying entity and month). Guard trigger: once `APPROVED`, only `payment_status`, `updated_at` and `version` may change: `status` is terminal (an approved settlement cannot become `CANCELLED` or return to `CALCULATED`, so its (entity, month) key is never freed), and the amount columns, `payroll_month_start_date`, `paying_legal_entity_id`, `calculated_by_user_id` and `approval_instance_id` never change; `payroll_settlements` rows are never deleted. The legal moves of `status` are `CALCULATED` to `IN_REVIEW` or `CANCELLED`, `IN_REVIEW` to `CALCULATED` (rejected or withdrawn) or `APPROVED`; `CANCELLED` is terminal. `payment_status`: `NOT_REQUESTED` to `REQUESTED` at approval's payment request; `REQUESTED` to `PAID` or `PARTLY_FAILED` when no attempt of the settlement is open (any `FAILED` line gives `PARTLY_FAILED`, including all lines failed); `PARTLY_FAILED` to `REQUESTED` by a re-disbursement (a re-disbursement while other attempts are still open leaves `REQUESTED` unchanged).
 
 ### payroll_settlement_lines (grain: the pay of one relationship in one settlement)
 
@@ -125,11 +125,11 @@ Both events: publisher `organization.payroll`, audited, version 1; payload field
 |---|---|---|
 | aggregate / `aggregateId` | `PayrollSettlement` / settlement id | same |
 | `payingLegalEntityId` | required | required |
-| `payrollMonth` (first day) | required, `businessDate` | required |
+| `payrollMonth` (first day of the month; the envelope `businessDate` is the last day) | required | required |
 | `lineCount` | required | required (lines of the settlement) |
 | `totalGrossAmount`, `totalDeductionAmount`, `totalNetAmount` (decimal string, currency CNY) | required | n/a |
 | `paymentStatus` | n/a | required: `PAID` / `PARTLY_FAILED` (the settlement's `payment_status` after the change; never `REQUESTED`) |
-| `paidLineCount`, `failedLineCount` | n/a | required (`paidLineCount + failedLineCount = lineCount`) |
+| `paidLineCount`, `failedLineCount` | n/a | required (`paidLineCount + failedLineCount = lineCount`, each line counted by its latest attempt) |
 
 **Firing rule of `PayrollDisbursementResultRegistered`:** settlement scope, once each time a registered result leaves the settlement with no open (`REQUESTED`) attempt, i.e. when `payment_status` becomes `PAID` or `PARTLY_FAILED`; a result that leaves attempts open fires nothing; a replayed result (same idempotency key) is a no-op and fires nothing; a re-disbursement that settles fires again with the new counts. Consumers de-duplicate on the envelope event id. Consumers now: `platform.audit` for both. Posting, filing and payables consumers are later slices (proposal 6). **Why the catalogue file is not in this PR:** `EventCatalogueTest` fails when the catalogue names an event class absent from the code (the rule of #1525); the slice that adds each class adds its entry from this table in the same PR.
 
@@ -215,7 +215,7 @@ One line per non-surrogate column, in the form of the merged `bonus_inputs` line
 | `payroll_settlement_lines` | `gross_amount`, `deduction_amount`, `net_amount` | `employment_relationship_id`, `employee_id`, `adjustment_of_month_start_date` | `amount_currency` and the three line-level ids |
 | `payroll_disbursements` | none | `payment_reference_text`, `paid_on_date` | `disbursement_status`, `failure_reason_key`, `result_idempotency_key` and the line ids |
 
-Registry (`data-access-registry.yaml`): a row per table with role `AGGREGATE_ROOT` (`payroll_settlements`, and the three version tables each as the root of its append-only versions) or `AGGREGATE_CHILD` (`payroll_settlement_lines`, `payroll_disbursements`), mutability `APPEND_ONLY` for the version tables and `payroll_confirmed_inputs` (`CONDITIONAL_UPDATE` for the void), `CONDITIONAL_UPDATE` for settlement and disbursement, retention and lineage as stated, writers `[]` in slice A.
+Registry (`data-access-registry.yaml`): a row per table with role `AGGREGATE_ROOT` (`payroll_settlements`, and the three version tables each as the root of its append-only versions) or `AGGREGATE_CHILD` (`payroll_settlement_lines`, `payroll_disbursements`), mutability `APPEND_ONLY` for `compensation_profile_versions` and `insurance_enrolments`, `CONDITIONAL_UPDATE` for `payroll_confirmed_inputs` (void only), `compensation_allowance_versions` (first end date only), `payroll_settlements` (status moves and `payment_status`) and `payroll_disbursements` (`REQUESTED` to a terminal state once), each with a `condition` text as the `bonus_inputs` row has, retention and lineage as stated, writers `[]` in slice A.
 
 ## Expected diff for the schema PR (DG-3, section 1.4)
 
