@@ -2,14 +2,14 @@ import { formatDateTime } from '@forcitis/core';
 
 import { PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
+import { optionsOf } from '../../../shared/options';
 import { useNavigate } from 'react-router';
 import { PagedTable } from '../../../shared/paged-table';
 import { usePermissionAdjustments } from '../hooks/use-permission-adjustments';
 import { KIND_LABELS, ORIGIN_LABELS, STATUS_LABELS, aboutLabel, permissionAdjustmentPath, statusTone, type PermissionAdjustment } from '../model/permission-adjustment';
 
-const ALL = { value: '', label: '全部' };
-const STATUS_OPTIONS = [ALL, ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))];
-const KIND_OPTIONS = [ALL, ...Object.entries(KIND_LABELS).map(([value, label]) => ({ value, label }))];
+const STATUS_OPTIONS = optionsOf(Object.entries(STATUS_LABELS), ([value]) => value, ([, label]) => label, '全部');
+const KIND_OPTIONS = optionsOf(Object.entries(KIND_LABELS), ([value]) => value, ([, label]) => label, '全部');
 
 export function PermissionAdjustmentListPage() {
   const navigate = useNavigate();
