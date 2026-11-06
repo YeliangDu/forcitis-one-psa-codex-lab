@@ -17,3 +17,4 @@ test.flaky-listener | 18d52d1e-0c79-5e77-a337-50297f12fbed | test | 审批测试
 test.correlation.probe | c0c9a9ad-8b8b-5ddf-b804-f2f1dd408d7a | test | CorrelationIT 的探针监听器
 acceptance.accounting-code-outbound | 7d82fa70-5dfd-525e-bc07-95d86dc2ad38 | acceptance | 验收测试 SourceReferenceHttpSupport 模拟核算系统出站适配器按法人取核算组织编码（生产尚无该出站作业）
 test.organization.payroll | 97349f97-9dd8-5c86-b6f7-09c007f8f6fb | test | 薪酬测试
+test.event-publication.probe | 994e30ea-5b16-52b8-99f8-2ef90b579bca | test | EventPublicationOperationsIT 的探针监听器（登记里每个监听器一行，用无业务监听器的事件）
