@@ -96,3 +96,18 @@ terms:
   status: approved
   confirmed: 用户 2026-11-02「采纳」（#1048，界面用词）
   note: ''
+- id: bi
+  zh: 奖金输入单据类型代码
+  en: Bi
+  snake: bi
+  kind: value_object
+  bc: platform.numbering
+  scope: domain
+  definition: 奖金输入（DocumentType.BONUS_INPUT）的单据类型代码 BI，供审批文档编号使用
+  standard_ref:
+  - docs/data/reviews/organization-payroll-py3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1436 PY3；中文名待术语确认'

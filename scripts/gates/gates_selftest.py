@@ -748,6 +748,8 @@ def codex_gate_test():
             git(main, "worktree", "add", "-q", path, "-b", name)
         os.makedirs(os.path.join(w1, "sub"))
         S, M, E = "codex exec --sandbox workspace-write", "-m gpt-5.5", "-c model_reasoning_effort=high"
+        NETV = "sandbox_workspace_write.network_access=true"
+        NET, M2, X = f"-c {NETV}", os.path.join(os.path.expanduser("~"), ".m2"), "co" + "dex"
 
         def ask(command, cwd=w1, project=w1, tool="Bash"):
             with mock.patch.dict(os.environ, {"CLAUDE_PROJECT_DIR": project} if project else {}, clear=False):
@@ -758,7 +760,9 @@ def codex_gate_test():
                    f"{S} --model=gpt-5.5 'fix the bug'", f"{S} {E} 'fix the bug'", f"{S} --config model_reasoning_effort=xhigh 'fix the bug'", f'{S} -c \'model_reasoning_effort="low"\' \'fix the bug\'',
                    f"{S} {M} {E} 'fix the bug'", f"codex exec {M} {E} -s workspace-write 'fix the bug'", f"{S} -- '--odd prompt'", f"{S} -",
                    f"{S} 'fix the bug' < PROMPT.md > out.txt 2>&1", f"{S} 'fix the bug' >> sub/out.txt", f"{S} 'fix the bug' 2>/dev/null", f"{S} 'fix the bug' &> out.txt", f"{S} \"fix $(date) the bug\"",
-                   f"{S} 'fix the bug'\n", "git commit -m 'codex pilot'", "gh issue comment 1 --body 'ask codex'", "ls ~/.codex", "which codex", "echo codex", "printf codex | cat",   # data programs and script files that only carry the word as an argument (lead's list, one per program)
+                   f"{S} 'fix the bug'\n", f"{S} {NET} 'fix the bug'", f"{S} {NET} {E} --add-dir {M2} 'fix the bug'", f"{S} --add-dir={M2} 'fix the bug'", f"{S} --config {NETV} {E} 'fix the bug'",
+                   f"git switch -c claude/x-{X}-y origin/main && git log -1", f"git switch -c claude/x-{X}-y origin/main", f"git checkout -b claude/{X}-y", f"git branch -c a {X}-b", f"git commit -m 'x' -c {X}",   # #1561: -c after git's subcommand is the subcommand's own option
+                   "git commit -m 'codex pilot'", "gh issue comment 1 --body 'ask codex'", "ls ~/.codex", "which codex", "echo codex", "printf codex | cat",   # data programs and script files that only carry the word as an argument (lead's list, one per program)
                    "cat docs/codex/notes.md", "cat docs/codex", "sed -n '1,5p' docs/codex.md", "rg codex docs", "rg -n 'codex pilot' scripts", "grep -rn codex docs", "head -5 notes-codex.md", "ls docs/codex", "git log --oneline -- docs/codex",
                    "git add docs/codex.md", "gh issue create --title 'ops(gates): codex pilot' --body-file body.md", "gh pr create --title 'x (#1)' --body 'codex'", "printf '%s' codex > note.txt", "date", "basename /x/codex",
                    "python3 scripts/session/new_intent.py --who 'x' 'the user said use codex for drafting'", "python3 scripts/merge/post_review.py --pr 1 --body-file codex-review.md", "python3 -I scripts/merge/mq.py status codex",
@@ -776,8 +780,17 @@ def codex_gate_test():
             ("codex", "exec"), ("codex exec 'fix the bug'", "workspace-write"), ("codex exec -s read-only 'fix the bug'", "workspace-write"), ("codex exec -s danger-full-access 'fix the bug'", "workspace-write"),
             ("codex exec --sandbox 'fix the bug'", "workspace-write"), (f"{S} --dangerously-bypass-approvals-and-sandbox 'fix the bug'", "开关"), (f"{S} --full-auto 'fix the bug'", "开关"),
             (f"{S} --oss 'fix the bug'", "开关"), (f"{S} -p dev 'fix the bug'", "开关"), (f"{S} --profile dev 'fix the bug'", "开关"), (f"{S} -C / 'fix the bug'", "开关"), (f"{S} --cd / 'fix the bug'", "开关"),
-            (f"{S} --add-dir /etc 'fix the bug'", "开关"), (f"{S} --enable x 'fix the bug'", "开关"), (f"{S} -c sandbox_workspace_write.network_access=true 'fix the bug'", "model_reasoning_effort"),
-            (f"{S} -c model=gpt 'fix the bug'", "model_reasoning_effort"), (f"{S} -c model_reasoning_effort=extreme 'fix the bug'", "model_reasoning_effort"), (f"{S} {E} {E} 'fix the bug'", "-c 只放一个"),
+            (f"{S} --add-dir /etc 'fix the bug'", "--add-dir 只放"), (f"{S} --enable x 'fix the bug'", "开关"),
+            # #1561: network_access=true and --add-dir <home>/.m2 are the only additions; every other value of them, and everything else, stays refused
+            (f"{S} -c sandbox_workspace_write.network_access=false 'fix the bug'", "model_reasoning_effort"), (f"{S} -c sandbox_workspace_write.network_access=1 'fix the bug'", "model_reasoning_effort"),
+            (f"{S} -c 'sandbox_workspace_write.network_access=true ' 'fix the bug'", "model_reasoning_effort"), (f"{S} -c sandbox_workspace_write.writable_roots=/etc 'fix the bug'", "model_reasoning_effort"),
+            (f"{S} {NET} {NET} 'fix the bug'", "重复"), (f"{S} {NET} -c sandbox_mode=danger-full-access 'fix the bug'", "model_reasoning_effort"),
+            (f"{S} --add-dir {M2}/ 'fix the bug'", "--add-dir 只放"), (f"{S} --add-dir {M2}/.. 'fix the bug'", "--add-dir 只放"), (f"{S} --add-dir {M2}x 'fix the bug'", "--add-dir 只放"),
+            (f"{S} --add-dir {os.path.dirname(M2)} 'fix the bug'", "--add-dir 只放"), (f"{S} --add-dir ~/.m2 'fix the bug'", "展开"), (f"{S} --add-dir $HOME/.m2 'fix the bug'", "展开"),
+            (f"{S} --add-dir {M2} --add-dir {M2} 'fix the bug'", "--add-dir 重复"), (f"{S} --add-dir {M2} --add-dir /etc 'fix the bug'", "--add-dir"), (f"{S} --add-dir 'fix the bug'", "--add-dir 只放"),
+            (f"{S} --add-dir {M2} 'fix the bug' && ls", "codex 只放一种用法"), (f"{S} --sandbox danger-full-access {NET} 'fix the bug'", "沙箱开关重复"), (f"codex exec {NET} --add-dir {M2} 'fix the bug'", "workspace-write"),
+            (f"git -c core.pager={X} log", "codex 只放一种用法"), (f"git -C . -c core.pager={X} log", "codex 只放一种用法"), (f"git --no-pager -c alias.x='!{X} exec y' x", "codex 只放一种用法"),
+            (f"{S} -c model=gpt 'fix the bug'", "model_reasoning_effort"), (f"{S} -c model_reasoning_effort=extreme 'fix the bug'", "model_reasoning_effort"), (f"{S} {E} {E} 'fix the bug'", "重复"),
             (f"{S} --config sandbox_mode=danger-full-access 'fix the bug'", "model_reasoning_effort"), (f"{S} -m '-x' 'fix the bug'", "模型名"), (f"{S} -m 'a b' 'fix the bug'", "模型名"),
             (f"{S} {S[11:]} 'fix the bug'", "沙箱开关重复"), (f"CODEX_HOME=/x {S} 'fix the bug'", "codex 只放一种用法"), (f"FOO=1 {S} 'fix the bug'", "codex 只放一种用法"),
             ("codex exec resume --last", "workspace-write"), (f"{S} resume", "单个词"), (f"{S} review", "单个词"), (f"{S} 'one' 'two'", "恰有一个提示词"), (f"{S}", "恰有一个提示词"),

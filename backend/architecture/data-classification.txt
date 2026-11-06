@@ -121,6 +121,15 @@ organization_workforce.separation_bases.default_initiator_kind | INTERNAL | NONE
 organization_workforce.separation_bases.is_employer_initiated | INTERNAL | NONE | 豁免：依据清单是配置，不含个人信息
 organization_workforce.separation_bases.is_system_only | INTERNAL | NONE | 豁免：依据清单是配置，不含个人信息
 organization_workforce.separation_bases.is_active | INTERNAL | NONE | 豁免：依据清单是配置，不含个人信息
+organization_payroll.bonus_inputs.bonus_amount | SENSITIVE | PI | 用途：一个人的奖金数额，任职关系的工资数据
+organization_payroll.bonus_inputs.reason_key | SENSITIVE | PI | 用途：谁因何获得奖金，对应一个任职关系
+organization_payroll.bonus_inputs.bonus_currency | INTERNAL | NONE | 用途：限定奖金数额的币种，单独不指向个人
+organization_payroll.bonus_inputs.source_kind | INTERNAL | NONE | 用途：奖金输入的来源种类，单独不指向个人
+organization_payroll.bonus_inputs.payroll_month_start_date | INTERNAL | NONE | 用途：奖金所属薪酬月份，单独不指向个人
+organization_payroll.bonus_inputs.status | INTERNAL | NONE | 用途：奖金输入有效或已作废，单独不指向个人
+organization_payroll.bonus_inputs.entered_by_employee_id | INTERNAL | NONE | 用途：录入人，结算审批的职责分离判断
+organization_payroll.bonus_inputs.voided_by_user_id | INTERNAL | NONE | 用途：作废人，审计身份
+organization_payroll.bonus_inputs.voided_at | INTERNAL | NONE | 用途：作废时刻，审计
 organization_workforce.acting_duties.employee_id | INTERNAL | PI | 用途：代理人；个人信息 PI
 organization_workforce.acting_duties.employment_relationship_id | INTERNAL | PI | 用途：代理人的雇佣关系；个人信息 PI
 organization_workforce.acting_duties.covered_employee_id | INTERNAL | PI | 用途：被代理人（请假、出差期间被暂代的人）；个人信息 PI

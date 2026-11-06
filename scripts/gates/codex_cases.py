@@ -35,6 +35,12 @@ ALLOWED = [
     "bash -lc 'ls docs/codex'",
     "eval 'echo codex'",
     "bash <<'EOF'\necho codex\nEOF",
+    # `-c` after the git subcommand is that subcommand's option (new branch, commit template), not git config (#1561)
+    "git switch -c claude/x-codex-y origin/main && git log -1",
+    "git switch -c claude/x-codex-y origin/main",
+    "git branch -c codex-old codex-new",
+    "git checkout -b claude/x-codex-y origin/main",
+    "git -C wt switch -c claude/x-codex-y origin/main",
 ]
 
 REFUSED = [
@@ -53,6 +59,10 @@ REFUSED = [
     # a harmless program told to run it
     "git -c alias.x='!codex exec y' x", "git -c core.pager=codex log", "git config alias.x '!codex exec y'", "GIT_PAGER=codex git log", "rg --pre codex x", "sort --compress-program=codex x",
     "git ls-remote --upload-pack codex origin",
+    # git clone takes -c/--config after the subcommand and runs core.sshCommand, core.fsmonitor and the like (#1561 review): a value that is key=value is a config wherever it stands
+    "git clone -c core.sshCommand=codex git@example.invalid:x/y.git", "git clone -c core.fsmonitor=codex https://example.invalid/x.git", "git -C wt clone -c core.sshCommand=codex git@example.invalid:x/y.git",
+    "git clone --config core.sshCommand=codex git@example.invalid:x/y.git", "git clone --config=core.sshCommand=codex git@example.invalid:x/y.git", "git clone -c 'core.sshCommand=c\"o\"dex' git@example.invalid:x/y.git",
+    "git submodule add -c alias.x='!codex exec y' https://example.invalid/x.git", "git switch -c codex=y origin/main",
     # review of #1206: eval joins its arguments, any !-alias is refused whatever its quoting, the pre-filter sees quotes stripped
     "eval 'true #' 'cat <<E\ncodex exec y\nE'", 'eval "$(echo codex) exec x"', 'X=codex; eval "$X exec x"', "bash <<E\n$(echo codex) exec x\nE",
     "git -c 'alias.x=!c\"o\"dex exec y' x", "git -c 'alias.x=! codex exec y' x", "git config alias.x '! codex exec y' && git x", "git config alias.x '!c\"o\"dex exec y' && git x",
