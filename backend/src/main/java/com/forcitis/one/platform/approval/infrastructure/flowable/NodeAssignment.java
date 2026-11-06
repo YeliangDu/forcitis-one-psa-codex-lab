@@ -3,6 +3,7 @@ package com.forcitis.one.platform.approval.infrastructure.flowable;
 import com.forcitis.one.kernel.AccountEmployees;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.domain.AssigneeResolver;
@@ -16,6 +17,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Locale;
 import java.time.Clock;
 import java.util.Map;
+import java.util.Set;
 import org.flowable.bpmn.model.UserTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,6 +92,20 @@ class NodeAssignment {
             }
         }
         return resolution;
+    }
+
+    /**
+     * Who the node's rule names now, with no side effect (no alert, no metric): the candidates the resolution holds, which is exactly who the node would assign
+     * the task to now (a node that takes no fallback resolves to nobody rather than to a supervisor or an administrator, so the set is empty then). A node that
+     * takes no fallback hands its task over only to these people.
+     */
+    Set<UserId> namedNow(UserTask node, String instanceId, Map<String, Object> engineVariables) {
+        NodePolicy policy = NodePolicyReader.read(node);
+        ProcessVariables variables = EngineVariables.fromEngine(engineVariables);
+        EmployeeId initiator = FlowableApprovalEngine.initiatorOf(variables, instanceId);
+        Resolution resolution = new AssigneeResolver(org, roles, administrator.holders(), accountEmployees, zone.today(clock))
+                .resolve(policy.rule(), policy.selfApprovalAllowed(), policy.skipWhenEmpty(), policy.noFallback(), initiator, variables);
+        return resolution.candidates();
     }
 
     static boolean isSkipped(Resolution resolution) {
