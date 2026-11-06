@@ -48,6 +48,7 @@ src/main/java/com/forcitis/one/platform/identity/application/ExitAdministratorMo
 src/main/java/com/forcitis/one/platform/identity/application/ForceUserLogout.java | 1 | 16 | POSSIBLE
 src/main/java/com/forcitis/one/platform/identity/application/GetPermissionAdjustment.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/GrantRoleByOperations.java | 1 | 15 | SURROGATE
+src/main/java/com/forcitis/one/platform/identity/application/LocalEnterAdministratorMode.java | 2 | 4,5 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/LoginAdmission.java | 4 | 4,10,12,13 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/Logout.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/platform/identity/application/PermissionAdjustmentAccess.java | 1 | 1 | NONE
