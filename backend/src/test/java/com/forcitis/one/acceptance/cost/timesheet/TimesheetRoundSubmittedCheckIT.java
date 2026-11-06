@@ -2,6 +2,7 @@ package com.forcitis.one.acceptance.cost.timesheet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.BusinessDay;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
@@ -100,8 +101,13 @@ class TimesheetRoundSubmittedCheckIT extends ApprovalIntegrationSupport {
         return new TimesheetId(TestIds.uuid(TIMESHEETS.incrementAndGet()));
     }
 
+    /** The real Shanghai day at this moment (the application runs on the real clock here), read through the one sanctioned reader. */
+    static LocalDate shanghaiDayNow() {
+        return BusinessDay.instant().atZone(ZONE).toLocalDate();
+    }
+
     static LocalDate workDay(int daysBack) {
-        return LocalDate.now(ZONE).minusDays(daysBack);
+        return BusinessDay.today().minusDays(daysBack);
     }
 
     static DocumentReference documentOf(TimesheetId id) {
@@ -111,9 +117,9 @@ class TimesheetRoundSubmittedCheckIT extends ApprovalIntegrationSupport {
     /** Submits and returns the Shanghai days just before and just after the call, so a midnight crossing cannot fail the test. */
     LocalDate[] submit(TimesheetId id, LocalDate day, String hours) {
         signInAs(employee);
-        LocalDate before = LocalDate.now(ZONE);
+        LocalDate before = shanghaiDayNow();
         submitTimesheet.execute(new SubmitTimesheetCommand(id, day, Hours.of(hours), TestAccounts.employee(manager)));
-        return new LocalDate[] {before, LocalDate.now(ZONE)};
+        return new LocalDate[] {before, shanghaiDayNow()};
     }
 
     TimesheetView view(TimesheetId id) {
