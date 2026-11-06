@@ -73,7 +73,7 @@ def test_scope(tmp):
     other = os.path.join(tmp, "repo", ".claude", "worktrees", "one-test-w")
     t_commit = NOW - datetime.timedelta(hours=1)
     scope = rules.Scope({acc})
-    scope.oldest = t_commit
+    scope.oldest = scope.newest = t_commit
     mine = "11a18901-dd25-71b0-addd-7a5fcb6d205b"
     session(root, mine, other, when=NOW - datetime.timedelta(hours=5))   # before the implementation branch's start (BASE = NOW - 2 h), before the acceptance commit
     accept_line = f"Codex-Acceptance: {mine}\n"
@@ -86,7 +86,20 @@ def test_scope(tmp):
     late = "22a18901-dd25-71b0-addd-7a5fcb6d205b"
     session(root, late, other, when=NOW)
     why = ok(stats, f"Codex-Acceptance: {late}\n", scope)
-    assert why and "not before the oldest acceptance commit" in why, why
+    assert why and "not before the newest acceptance commit" in why, why
+    # acceptance drafted in two batches (#1577): a second run for cases added in a later commit holds, the first batch must be older than every acceptance commit
+    batched = rules.Scope({acc})
+    batched.oldest, batched.newest = NOW - datetime.timedelta(hours=3), NOW - datetime.timedelta(hours=1)
+    second = "55a18901-dd25-71b0-addd-7a5fcb6d205b"
+    session(root, second, other, when=NOW - datetime.timedelta(hours=2))   # after the first commit, before the later one
+    assert ok(stats, f"Codex-Acceptance: {mine}\nCodex-Acceptance: {second}\n", batched) is None, "two runs, the second for a later batch"
+    assert ok(stats, f"Codex-Acceptance: {mine}, {second}\n", batched) is None, "the same on one line"
+    assert ok(stats, f"Codex-Acceptance: {mine}\n", batched) is None, "one run (the first batch)"
+    why = ok(stats, f"Codex-Acceptance: {second}\n", batched)
+    assert why and "first batch needs a run that started before" in why, "a second batch alone is not enough: " + str(why)
+    why = ok(stats, f"Codex-Acceptance: {mine}\nCodex-Acceptance: {late}\n", batched)
+    assert why and "not before the newest acceptance commit" in why, "a run after every acceptance commit is refused: " + str(why)
+    assert "no `Codex-Acceptance:` line" in ok(stats, "Closes #1\n", batched)
     away = "33a18901-dd25-71b0-addd-7a5fcb6d205b"
     session(root, away, os.path.join(tmp, "elsewhere"), when=NOW - datetime.timedelta(hours=5))
     why = ok(stats, f"Codex-Acceptance: {away}\n", scope)
