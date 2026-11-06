@@ -66,6 +66,8 @@ t_new_card|new_card_selftest (self-test)|python3 scripts/session/new_card_selfte
 t_new_adr|new_adr (self-test)|python3 tools/docs/new_adr.py --self-test
 t_mq|mq (self-test)|python3 scripts/merge/mq.py --self-test
 t_mq|draft_check (self-test)|python3 scripts/merge/draft_check_selftest.py
+t_mq|mq_records (self-test)|python3 scripts/merge/mq_records_selftest.py
+t_mq|pr_mix (self-test)|python3 scripts/merge/pr_mix.py --self-test
 t_unit_classes|light_unit_classes (self-test)|python3 scripts/ci/light_unit_classes.py --self-test
 t_heavy_gate|heavy_gate (self-test)|python3 scripts/ci/heavy_gate.py --self-test
 t_backend_verify|backend_verify_selftest (OpenAPI export skipped only for this commit)|bash scripts/ci/backend_verify_selftest.sh

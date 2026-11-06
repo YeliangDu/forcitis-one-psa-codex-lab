@@ -933,7 +933,7 @@ def main(argv=None):
                 print(f"mq: line not understood, never started, kept as it is: {l!r}", file=sys.stderr)
         print("\n".join(f"{n}" + (f" after={','.join(map(str, sorted(q.deps(n))))}" if q.deps(n) else "") for n in q.numbers()))
     elif a.cmd == "enqueue":
-        mq_title.enforce(gh := Gh(), a.prs); mq_acceptance.enforce(repo_root(), gh, a.prs); mq_event_payload.enforce(repo_root(), gh, a.prs); mq_enqueue.enforce(repo_root(), gh, a.prs)
+        mq_title.enforce(gh := Gh(), a.prs); mq_acceptance.enforce(repo_root(), gh, a.prs); mq_event_payload.enforce(repo_root(), gh, a.prs); mq_enqueue.enforce(repo_root(), gh, a.prs, q.numbers())
         try:
             added = q.enqueue(*a.prs, after=a.after)
         except ValueError as e:

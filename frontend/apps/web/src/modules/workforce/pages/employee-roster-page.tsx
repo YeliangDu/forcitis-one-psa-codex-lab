@@ -1,5 +1,6 @@
 import { PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
+import { optionsOf } from '../../../shared/options';
 import { useNavigate } from 'react-router';
 import { PagedTable } from '../../../shared/paged-table';
 import { useEmployees, useOrgUnits } from '../hooks/use-workforce';
@@ -34,7 +35,7 @@ export function EmployeeRosterPage() {
       <PageTitle text="员工名册" />
       <SelectField label="在职状态" value={status} options={EMPLOYMENT_FILTERS} onChange={(value) => setStatus(employmentFilterOf(value))} />
       {units.isSuccess ? (
-        <SelectField label="组织单元" value={orgUnitId} options={[{ value: '', label: '全部' }, ...units.data.map((unit) => ({ value: unit.orgUnitId, label: unit.name }))]} onChange={setOrgUnitId} />
+        <SelectField label="组织单元" value={orgUnitId} options={optionsOf(units.data, (unit) => unit.orgUnitId, (unit) => unit.name, '全部')} onChange={setOrgUnitId} />
       ) : null}
       <PagedTable query={list} rows={list.employees} columns={columns} rowKey={(employee) => employee.employeeId} emptyText="暂无员工" errorTitle="员工名册加载失败" />
     </>
