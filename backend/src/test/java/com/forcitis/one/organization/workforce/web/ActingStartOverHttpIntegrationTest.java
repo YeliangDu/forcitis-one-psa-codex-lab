@@ -42,7 +42,7 @@ class ActingStartOverHttpIntegrationTest extends WorkforceIntegrationSupport {
                 + covered.orgUnit() + "\",\"actingCoveredPositionId\":\"" + covered.position() + "\",\"actingCoveredEmployeeId\":\"" + covered.employee()
                 + "\",\"actingEndsBeforeDate\":\"" + first.plusDays(5) + "\",\"reason\":\"synthetic coverage\"}";
 
-        mvc.perform(post("/api/v1/organization/personnel-commands").with(csrf()).with(user(Uuids.timeOrdered(java.time.Clock.systemUTC()).toString())
+        mvc.perform(post("/api/v1/organization/personnel-commands").with(csrf()).with(user(Uuids.timeOrdered(clock).toString())
                         .authorities(() -> "organization.workforce:personnel-command:create")).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.personnelCommandId").isNotEmpty());
 
