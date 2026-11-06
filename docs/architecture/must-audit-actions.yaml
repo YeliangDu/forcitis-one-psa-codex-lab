@@ -109,6 +109,7 @@ categories:
   - organization.workforce.org-unit.denied
   - organization.workforce.profile-change-request.denied
   - organization.workforce.personnel-command.denied
+  - organization.recruitment.requisition.denied
 - name: 编号规则
   actions:
   - platform.numbering.NumberingRuleConfirmationGiven
@@ -166,6 +167,11 @@ categories:
   - cost.timesheet.TimesheetRejected
   - cost.timesheet.TimesheetReturned
   - cost.timesheet.TimesheetSubmitted
+- name: 招聘需求
+  actions:
+  - organization.recruitment.RequisitionSubmitted
+  - organization.recruitment.RequisitionApproved
+  - organization.recruitment.RequisitionClosed
 - name: 文件
   actions:
   - platform.file.stored-file.bound
