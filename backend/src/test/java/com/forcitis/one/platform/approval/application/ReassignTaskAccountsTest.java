@@ -38,7 +38,7 @@ class ReassignTaskAccountsTest {
     final ApprovalRequest request = mock(ApprovalRequest.class);
     final BusinessTime time = mock(BusinessTime.class);
     final ReassignTask reassign = new ReassignTask(administrator, guard, engine, approvals, OpenTasks.employed(1001, 1003, 6001), mock(DenialAudit.class),
-            time, TestAccounts.everyoneHasOne());
+            time, TestAccounts.everyoneHasOne(), new NodeShares(engine));
 
     ReassignTaskAccountsTest() {
         when(administrator.isAdministrator(ADMINISTRATOR)).thenReturn(true);

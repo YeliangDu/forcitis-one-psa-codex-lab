@@ -32,9 +32,12 @@ public class ReassignTask {
     private final DenialAudit denials;
     private final BusinessTime time;
     private final AccountEmployees accountEmployees;
+    private final NodeShares shares;
 
     ReassignTask(ProcessAdministrator administrator, TaskGuard guard, ApprovalEngine engine, Approvals approvals, OrgDirectory org,
-            DenialAudit denials, BusinessTime time, AccountEmployees accountEmployees) {
+            DenialAudit denials, BusinessTime time, AccountEmployees accountEmployees,
+            NodeShares shares) {
+        this.shares = shares;
         this.accountEmployees = accountEmployees;
         this.administrator = administrator;
         this.guard = guard;
@@ -62,19 +65,13 @@ public class ReassignTask {
         }
         UserId assignee = accountEmployees.accountOf(to).orElseThrow(() -> ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID.refusal(
                 "Reassignment target " + to.value() + " has no account"));
-        boolean alreadyOnTheNode = engine.findOpenTasksFor(assignee).stream().anyMatch(other -> other.instanceId().equals(task.instanceId())
-                && other.nodeKey().equals(task.nodeKey()) && !other.taskId().equals(taskId));
-        if (alreadyOnTheNode) {
+        if (shares.takenElsewhere(request, task, assignee)) {
             throw ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID.refusal(
-                    "Reassignment target " + to.value() + " already has a task on node " + task.nodeKey() + " of this approval");
+                    "Reassignment target " + to.value() + " already has or decided another task of node " + task.nodeKey() + " in this round");
         }
         if (engine.handoverTargetsOf(taskId).map(named -> !named.contains(assignee)).orElse(false)) {
             throw ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID.refusal(
                     "Reassignment target " + to.value() + " is not a person node " + task.nodeKey() + " names, and the node takes no fallback");
-        }
-        if (request.hasDecidedOnNodeOf(taskId, assignee)) {
-            throw ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID.refusal(
-                    "Reassignment target " + to.value() + " already decided a task of node " + task.nodeKey() + " in this round");
         }
         engine.reassignTask(taskId, assignee);
         request.reassignTask(taskId, actor, assignee, Reason.ofNullable(reason), time.moment());
