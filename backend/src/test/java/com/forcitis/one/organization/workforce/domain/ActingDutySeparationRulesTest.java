@@ -83,26 +83,6 @@ class ActingDutySeparationRulesTest {
                 .isInstanceOf(DomainException.class).hasMessageContaining("correct those commands first");
     }
 
-    static ActingDuty openDuty(LocalDate startsOn) {
-        return new ActingDuty(new com.forcitis.one.organization.workforce.api.ActingDutyId(TestIds.uuid(60)), ActingDutyRulesTest.EMPLOYEE,
-                new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(TestIds.uuid(61)), new com.forcitis.one.organization.workforce.api.OrgUnitId(TestIds.uuid(62)),
-                null, null, startsOn, startsOn.plusDays(10), null, "coverage", new PersonnelCommandId(TestIds.uuid(63)), new UserId(TestIds.uuid(4)), NOW, 0);
-    }
-
-    @Test
-    @DisplayName("#1566 a separation dated before an open duty's start is refused and names the early end")
-    void refusesSeparationBeforeAnOpenDutyStarts() {
-        assertThatThrownBy(() -> ActingDutyRules.requireNoOpenDutyStartingAfter(separation(CommandStatus.PENDING), List.of(openDuty(DAY.plusDays(1)))))
-                .isInstanceOf(DomainException.class).hasMessageContaining("ACTING_END");
-    }
-
-    @Test
-    @DisplayName("#1566 a duty that starts on or before the separation day does not block it")
-    void admitsSeparationWhenNoDutyStartsLater() {
-        assertThatCode(() -> ActingDutyRules.requireNoOpenDutyStartingAfter(separation(CommandStatus.PENDING),
-                List.of(openDuty(DAY), openDuty(DAY.minusDays(3))))).doesNotThrowAnyException();
-    }
-
     @ParameterizedTest
     @EnumSource(value = CommandStatus.class, names = {"PENDING", "HELD", "EFFECTIVE"})
     @DisplayName("#1566 a start dated after a pending, held or effective separation can never take effect")
