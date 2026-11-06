@@ -288,6 +288,12 @@ bcs:
   kind: bc
   business_owner: 用户兼任
   description: "绩效评估与绩效更正（ADR-0084 决定 1；contexts.yaml status planned）"
+- id: organization.competency
+  zh: 人员能力
+  subdomain: organization
+  kind: bc
+  business_owner: 用户兼任
+  description: "技能目录、员工技能与注册执业证书（提议 ADR-0089，设计 competency-zone.md；contexts.yaml 随采纳登记）"
 - id: organization.recruitment
   zh: 招聘
   subdomain: organization
@@ -461,6 +467,12 @@ bcs:
   kind: bc
   business_owner: 用户兼任
   description: "用印申请与登记、信息技术服务工单、信息技术资产领用调拨归还与维修、员工活动申请的业务记录（B-31，用户 2026-10-16 定新增，intent 2026-10-16-152807）；先行期含合同原件借阅（W3 移交 contract.agreement）；审批只用于用印与受控信息技术类别，走 platform.approval；资产卡片、折旧、报废与盘点账务归 accounting.fixedasset，采购由采购所属 BC 处理（one-architecture 裁定 2026-10-21，B31_ARCH_RULINGS）"
+- id: organization.recruitment
+  zh: 招聘
+  subdomain: organization
+  kind: bc
+  business_owner: 用户兼任
+  description: "招聘需求（AGG-65）及后续应聘者、应聘申请、面试评估、录用决定；自 organization.workforce 迁出（ADR-0085）；本词表只登记名称，schema、模块与守护登记在 R1 卡"
 - id: organization.leave
   zh: 考勤与休假
   subdomain: organization

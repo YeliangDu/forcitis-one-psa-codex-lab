@@ -2,6 +2,8 @@ package com.forcitis.one.platform.approval.api;
 
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.kernel.UserId;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /** Deliberately offers no way to approve, claim or return a task and no HTTP start (I-5, I-7). */
@@ -11,6 +13,9 @@ public interface ApprovalProcesses {
     ApprovalInstanceId start(ApprovalStartRequest request);
 
     boolean isFinished(ApprovalInstanceId instance);
+
+    /** The form fields as submitted at start, running or finished; empty for an unknown instance. Reads without locking and needs no actor: for a trusted module listener, like progress. */
+    Map<String, List<String>> formFields(ApprovalInstanceId instance);
 
     /** Reads without locking; empty while no approval of the document was started. */
     Optional<ApprovalProgress> progress(ProcessKey processKey, DocumentReference document);

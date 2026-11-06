@@ -30,7 +30,7 @@ public class Logout {
     @Transactional
     public void execute() {
         UserId userId = currentUser.userId();
-        String method = session.loginMethod().name();
+        String method = session.loginMethod().auditKind();
         sessions.end();
         audit.record(new AuditEntry("platform.identity.logout", userId, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()), "logout by the user")
                 .withTrace(origin.address(), AuditOutcome.SUCCEEDED, method));
