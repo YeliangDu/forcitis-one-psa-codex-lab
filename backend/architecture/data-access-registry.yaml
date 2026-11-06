@@ -285,7 +285,7 @@ tables:
     references: {employment_relationship_id: organization_workforce.employment_relationships, covered_org_unit_id: organization_workforce.org_units, covered_position_id: organization_workforce.positions, covered_employee_id: organization_workforce.employees, source_personnel_command_id: organization_workforce.personnel_commands}
     fk_exceptions:
       employee_id: carried by the composite foreign key fk_acting_duties_relationship (employment_relationship_id, employee_id), which also pins it to the relationship's employee
-    writers: []  # the writer (the ACTING_START effect, #1525 slice 2) lands in the next card; set organization.workforce there
+    writers: [organization.workforce]
   organization_workforce.attribution_countersigns:
     role: AGGREGATE_CHILD
     aggregate: Employee

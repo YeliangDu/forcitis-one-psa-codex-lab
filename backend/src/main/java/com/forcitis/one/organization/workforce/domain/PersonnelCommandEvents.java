@@ -4,12 +4,16 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.EventDraft;
 import com.forcitis.one.kernel.event.PendingEvent;
+import com.forcitis.one.organization.workforce.api.ActingDutyEndCause;
 import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
+import com.forcitis.one.organization.workforce.events.EmployeeActingDutyEnded;
+import com.forcitis.one.organization.workforce.events.EmployeeActingDutyStarted;
 import com.forcitis.one.organization.workforce.events.EmployeeCorrected;
 import com.forcitis.one.organization.workforce.events.EmployeeHired;
 import com.forcitis.one.organization.workforce.events.EmployeeLegalEntityChanged;
@@ -25,6 +29,7 @@ import com.forcitis.one.organization.workforce.events.EmploymentRelationshipStar
 import com.forcitis.one.organization.workforce.events.EmploymentRelationshipUnpaidLeaveChanged;
 import com.forcitis.one.organization.workforce.events.SeparationHeld;
 import com.forcitis.one.organization.workforce.events.SeparationHoldReleased;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -96,6 +101,19 @@ final class PersonnelCommandEvents {
             }
         }
         return out;
+    }
+
+    static PendingEvent actingStarted(PersonnelCommand c, ActingDuty duty, @Nullable LegalEntityId legalEntity) {
+        return (envelopes, sequence) -> new EmployeeActingDutyStarted(envelopes.wrap(draft("EmployeeActingDutyStarted", c, legalEntity, sequence)),
+                c.id(), c.employeeId(), duty.id(), duty.coveredOrgUnitId(), duty.coveredPositionId(), duty.coveredEmployeeId(),
+                duty.startsOn(), duty.endsBefore(), duty.employmentRelationshipId());
+    }
+
+    static PendingEvent actingEnded(PersonnelCommand c, ActingDuty duty, @Nullable PersonnelCommandId trigger, LocalDate endedOn,
+                                     ActingDutyEndCause cause, @Nullable LegalEntityId legalEntity) {
+        return (envelopes, sequence) -> new EmployeeActingDutyEnded(envelopes.wrap(new EventDraft("organization.workforce.EmployeeActingDutyEnded", 1,
+                "Employee", c.employeeId().value(), sequence, legalEntity, endedOn, List.of())), trigger, c.employeeId(), duty.id(),
+                duty.coveredOrgUnitId(), duty.coveredPositionId(), duty.coveredEmployeeId(), endedOn, cause, duty.employmentRelationshipId());
     }
 
     private static PendingEvent started(PersonnelCommand c, @Nullable LegalEntityId legalEntity) {

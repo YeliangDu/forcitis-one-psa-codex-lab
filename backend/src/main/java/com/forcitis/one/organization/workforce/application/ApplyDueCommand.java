@@ -3,16 +3,17 @@ package com.forcitis.one.organization.workforce.application;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.SystemActorName;
 import com.forcitis.one.kernel.SystemActors;
+import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.kernel.event.ActorType;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
-import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
+import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolution;
@@ -30,9 +31,9 @@ import java.time.LocalDate;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,6 +55,7 @@ public class ApplyDueCommand {
     private static final String HOLD = "SeparationHold";
 
     private final PersonnelCommandRepository commands;
+    private final EffectPublisher effects;
     private final PersonnelPlans timelines;
     private final SeparationHoldCheck holdCheck;
     private final LegalEntityResolutionSources legalEntities;
@@ -66,8 +68,9 @@ public class ApplyDueCommand {
     private final BusinessZone zone;
 
     ApplyDueCommand(PersonnelCommandRepository commands, PersonnelPlans timelines, SeparationHoldCheck holdCheck,
-                    LegalEntityResolutionSources legalEntities, CountersignRequests countersignRequests, AttributionCountersignRepository countersigns, OrgMergeProgress mergeProgress, DomainEvents events, IdGenerator ids, Clock clock, BusinessZone zone) {
+                    LegalEntityResolutionSources legalEntities, CountersignRequests countersignRequests, AttributionCountersignRepository countersigns, OrgMergeProgress mergeProgress, DomainEvents events, IdGenerator ids, Clock clock, BusinessZone zone, EffectPublisher effects) {
         this.commands = commands;
+        this.effects = effects;
         this.timelines = timelines;
         this.holdCheck = holdCheck;
         this.legalEntities = legalEntities;
@@ -109,18 +112,34 @@ public class ApplyDueCommand {
             }
             long loaded = command.version();
             String before = command.status().name();
-            command.dueEffect(now, today);
+            if (effects.actingEndIsClosed(command)) {
+                command.withdraw(new UserId(actor), "the acting duty was already closed before the pending early end was applied", now);
+            } else if (command.kind() == PersonnelCommandKind.ACTING_START && effects.actingStartIsOverrun(command, commands.load(command.employeeId()))) {
+                command.withdraw(new UserId(actor), "the employee separates before the acting duty would start", now);
+            } else {
+                command.dueEffect(now, today);
+            }
             commands.update(command, now, loaded);
             commands.insertTransition(COMMAND, command.id().value(), loaded + 1, before, command.status().name(), ActorType.SYSTEM, actor, today, now,
                     command.id(), WorkContext.correlationId().orElseGet(ids::next));
+            if (command.status() == CommandStatus.WITHDRAWN) {
+                return;
+            }
             // The day has come: the versions are in force, so a withdrawal still awaiting its countersign lapses (user answer Q2 of 2026-10-30).
             if (command.countersignNewLegalEntityId() != null) {
                 countersignRequests.lapse(command, countersigns.lockOfCommand(command.id()), ActorType.SYSTEM, actor, now, today, WorkContext.correlationId().orElseGet(ids::next));
+            }
+            if (command.kind() == PersonnelCommandKind.ACTING_START || command.kind() == PersonnelCommandKind.ACTING_END) {
+                effects.publish(command, commands.load(command.employeeId()), today);
+                return;
             }
             // As at the entry: a separation's envelope names the entity of the last day employed, any other command the entity of its effective day.
             LocalDate entityDay = command.kind() == PersonnelCommandKind.SEPARATE ? command.effectiveDate().minusDays(1) : command.effectiveDate();
             LegalEntityId legalEntity = LegalEntityResolution.resolve(legalEntities, command.employeeId(), entityDay).orElse(null);
             command.recordEffect(assignmentBefore(command), null, legalEntity, commands.load(command.employeeId()));
+            if (command.kind() == PersonnelCommandKind.SEPARATE) {
+                effects.recordSeparation(command, legalEntity, today, now, ActorType.SYSTEM, actor);
+            }
             if (command.hasPendingEvents()) {
                 events.publish(command);
                 commands.saveEventSequence(command.employeeId(), command.eventSequenceAfterSave());

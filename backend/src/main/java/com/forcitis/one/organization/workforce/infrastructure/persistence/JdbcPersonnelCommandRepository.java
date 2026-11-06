@@ -1,7 +1,7 @@
 package com.forcitis.one.organization.workforce.infrastructure.persistence;
 
-import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.BusinessZone;
+import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.IdGenerator;
@@ -9,6 +9,8 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.SeparationReview;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.WecomUserId;
+import com.forcitis.one.kernel.event.ActorType;
+import com.forcitis.one.organization.workforce.api.ActingDutyId;
 import com.forcitis.one.organization.workforce.api.AssignmentId;
 import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
@@ -17,30 +19,29 @@ import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandId;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.PositionId;
-import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.api.SeparationHoldId;
+import com.forcitis.one.organization.workforce.api.WorkforceError;
 import com.forcitis.one.organization.workforce.domain.AssignmentKind;
 import com.forcitis.one.organization.workforce.domain.AssignmentRoot;
+import com.forcitis.one.organization.workforce.domain.ChangeSource;
 import com.forcitis.one.organization.workforce.domain.CommandEffects;
-import com.forcitis.one.organization.workforce.domain.HoldStatus;
-import com.forcitis.one.organization.workforce.domain.SeparationHold;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
+import com.forcitis.one.organization.workforce.domain.HoldStatus;
 import com.forcitis.one.organization.workforce.domain.NewEmployee;
 import com.forcitis.one.organization.workforce.domain.PersonalProfile;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommand;
-import com.forcitis.one.organization.workforce.domain.ReleaseChannelKind;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandQueries;
 import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository;
 import com.forcitis.one.organization.workforce.domain.PersonnelHistory;
 import com.forcitis.one.organization.workforce.domain.RelationshipRow;
-import com.forcitis.one.organization.workforce.domain.ChangeSource;
+import com.forcitis.one.organization.workforce.domain.ReleaseChannelKind;
+import com.forcitis.one.organization.workforce.domain.SeparationHold;
 import com.forcitis.one.organization.workforce.domain.VersionPlan;
 import com.forcitis.one.organization.workforce.domain.VersionRow;
 import com.forcitis.one.organization.workforce.domain.VersionTable;
 import com.forcitis.one.platform.audit.api.AuditEntryId;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import com.forcitis.one.kernel.event.ActorType;
 import java.sql.Types;
 import java.time.Clock;
 import java.time.Instant;
@@ -142,7 +143,8 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
         return jdbc.sql("""
                 select c.personnel_command_id from organization_workforce.personnel_commands c
                 where c.status = 'PENDING' and c.effective_date <= :day
-                order by c.effective_date, c.personnel_command_id""")
+                order by c.effective_date, case c.command_kind when 'ACTING_START' then 0 when 'SEPARATE' then 1 else 2 end,
+                         c.personnel_command_id""")
                 .param("day", day).query((rs, n) -> new PersonnelCommandId(rs.getObject("personnel_command_id", UUID.class))).list();
     }
 
@@ -291,6 +293,7 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
             select c.personnel_command_id, c.employee_id, c.command_kind, c.effective_date, c.status, c.target_org_unit_id, c.target_position_id,
                    c.target_reports_to_employee_id, c.is_target_fee_earner, c.target_employment_phase_kind, c.target_legal_entity_id,
                    c.countersign_previous_legal_entity_id, c.countersign_new_legal_entity_id, c.target_assignment_id, c.target_assignment_kind, c.employment_relationship_id, c.created_by, c.created_at, c.applied_at, c.version,
+                   c.acting_covered_org_unit_id, c.acting_covered_position_id, c.acting_covered_employee_id, c.acting_ends_before_date, c.target_acting_duty_id, c.reason,
                    e.event_count
               from organization_workforce.personnel_commands c join organization_workforce.employees e on e.id = c.employee_id
             """;
@@ -307,6 +310,10 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
         UUID previous = rs.getObject("countersign_previous_legal_entity_id", UUID.class);
         UUID next = rs.getObject("countersign_new_legal_entity_id", UUID.class);
         UUID relationship = rs.getObject("employment_relationship_id", UUID.class);
+        UUID coveredUnit = rs.getObject("acting_covered_org_unit_id", UUID.class);
+        UUID coveredPosition = rs.getObject("acting_covered_position_id", UUID.class);
+        UUID coveredEmployee = rs.getObject("acting_covered_employee_id", UUID.class);
+        UUID duty = rs.getObject("target_acting_duty_id", UUID.class);
         PersonnelCommand restored = PersonnelCommand.restore(new PersonnelCommandId(rs.getObject("personnel_command_id", UUID.class)),
                 new EmployeeId(rs.getObject("employee_id", UUID.class)), PersonnelCommandKind.valueOf(rs.getString("command_kind")),
                 rs.getObject("effective_date", LocalDate.class), CommandStatus.valueOf(rs.getString("status")),
@@ -316,7 +323,9 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
                 previous == null ? null : new LegalEntityId(previous), next == null ? null : new LegalEntityId(next), post == null ? null : new AssignmentId(post),
                 postKind == null ? null : AssignmentKind.valueOf(postKind), new UserId(rs.getObject("created_by", UUID.class)),
                 rs.getObject("created_at", OffsetDateTime.class).toInstant(), applied == null ? null : applied.toInstant(), rs.getLong("version"),
-                rs.getLong("event_count"));
+                rs.getLong("event_count"), coveredUnit == null ? null : new OrgUnitId(coveredUnit),
+                coveredPosition == null ? null : new PositionId(coveredPosition), coveredEmployee == null ? null : new EmployeeId(coveredEmployee),
+                rs.getObject("acting_ends_before_date", LocalDate.class), duty == null ? null : new ActingDutyId(duty), rs.getString("reason"));
         if (relationship != null) {
             restored.bindTo(new EmploymentRelationshipId(relationship));
         }
@@ -330,15 +339,33 @@ class JdbcPersonnelCommandRepository implements PersonnelCommandRepository, Pers
 
     @Override
     public void insert(PersonnelCommand c) {
+        try {
+            insertCommand(c);
+        } catch (org.springframework.dao.DuplicateKeyException duplicate) {
+            if (c.kind() == PersonnelCommandKind.ACTING_END && duplicate.contains(java.sql.SQLException.class)
+                    && "uk_personnel_commands_open_acting_end".equals(CommandConstraintNames.of(duplicate))) {
+                throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_NOT_ALLOWED, ErrorKind.UNPROCESSABLE,
+                        "the acting duty already has a pending early end");
+            }
+            throw duplicate;
+        }
+    }
+
+    private void insertCommand(PersonnelCommand c) {
         Boolean onLeave = c.kind() == PersonnelCommandKind.UNPAID_LEAVE_START ? Boolean.TRUE : c.kind() == PersonnelCommandKind.UNPAID_LEAVE_END ? Boolean.FALSE : null;
         jdbc.sql("""
                 insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status,
                        target_org_unit_id, target_position_id, target_reports_to_employee_id, is_target_fee_earner, target_employment_phase_kind,
                        is_target_on_unpaid_leave, target_legal_entity_id, countersign_previous_legal_entity_id, countersign_new_legal_entity_id,
-                       target_assignment_id, target_assignment_kind, org_structure_command_id, employment_relationship_id, applied_at, created_at, created_by, updated_at, version)
+                       target_assignment_id, target_assignment_kind, org_structure_command_id, employment_relationship_id, acting_covered_org_unit_id, acting_covered_position_id, acting_covered_employee_id, acting_ends_before_date, target_acting_duty_id, reason, applied_at, created_at, created_by, updated_at, version)
                 values (:id, :employee, :kind, :day, :status, :unit, :position, :reportsTo, :feeEarner, :phase, :onLeave, :targetEntity, :previousEntity, :newEntity,
-                        :root, :rootKind, :orgCommand, :relationship, :appliedAt, :createdAt, :createdBy, :createdAt, :version)
+                        :root, :rootKind, :orgCommand, :relationship, :coveredUnit, :coveredPosition, :coveredEmployee, :actingEnd, :duty, :actingReason, :appliedAt, :createdAt, :createdBy, :createdAt, :version)
                 """)
+                .param("coveredUnit", c.actingCoveredOrgUnitId() == null ? null : c.actingCoveredOrgUnitId().value(), Types.OTHER)
+                .param("coveredPosition", c.actingCoveredPositionId() == null ? null : c.actingCoveredPositionId().value(), Types.OTHER)
+                .param("coveredEmployee", c.actingCoveredEmployeeId() == null ? null : c.actingCoveredEmployeeId().value(), Types.OTHER)
+                .param("actingEnd", c.actingEndsBeforeDate(), Types.DATE).param("duty", c.targetActingDutyId() == null ? null : c.targetActingDutyId().value(), Types.OTHER)
+                .param("actingReason", c.reason(), Types.VARCHAR)
                 .param("id", c.id().value()).param("employee", c.employeeId().value()).param("kind", c.kind().name()).param("day", c.effectiveDate())
                 .param("status", c.status().name()).param("unit", c.targetOrgUnitId() == null ? null : c.targetOrgUnitId().value(), Types.OTHER)
                 .param("position", c.targetPositionId() == null ? null : c.targetPositionId().value(), Types.OTHER)
