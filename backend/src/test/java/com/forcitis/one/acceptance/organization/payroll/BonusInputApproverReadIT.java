@@ -10,7 +10,9 @@ import com.forcitis.one.TestPostgres;
 import com.forcitis.one.kernel.DocumentReference;
 import com.forcitis.one.platform.integration.api.WecomCard;
 import com.jayway.jsonpath.JsonPath;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -60,6 +62,18 @@ class BonusInputApproverReadIT extends BonusInputSupport {
         MockHttpServletResponse seen = read(taskId, who);
         assertThat(seen.getStatus()).as("%s must not see the task (404, not 403): %s", as, seen.getContentAsString()).isEqualTo(404);
         assertThat(seen.getContentAsString()).as("%s: the refusal names no amount", as).doesNotContain(AMOUNT);
+        UUID absent = UUID.randomUUID();
+        MockHttpServletResponse nothing = read(absent, who);
+        assertThat(nothing.getStatus()).as("the same caller, an id that does not exist").isEqualTo(404);
+        assertThat(refusalBody(seen, taskId.toString())).as("%s: the refusal answers like an id that does not exist", as)
+                .isEqualTo(refusalBody(nothing, absent.toString()));
+    }
+
+    /** The error body without the per-request correlation id and with the asked id masked, as the #730 A5 adapters compare refusals. */
+    private static String refusalBody(MockHttpServletResponse answer, String id) throws Exception {
+        Map<String, Object> body = new LinkedHashMap<>(JsonPath.parse(answer.getContentAsString()).<Map<String, Object>>read("$"));
+        body.remove("correlationId");
+        return body.toString().replace(id, "<id>");
     }
 
     @Test
