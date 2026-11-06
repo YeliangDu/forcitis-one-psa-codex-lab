@@ -42,6 +42,9 @@ READ_BY_BUILDS = (
     "docs/ops/runbooks/prod-approvals.txt",
     # DataArchitectureTest runs the V11 part of the c3/c9 verify scripts against a container database (also checked by db_scripts_aligned.py)
     "docs/ops/runbooks/sql/",
+    # #1436 acceptance tests (BonusInput*) cite the PY3 record and the user decision they follow
+    "docs/data/reviews/",
+    "docs/decisions/2026-11-05-195500-one-lead-均采纳推荐.md",
 )
 
 # inside READ_BY_BUILDS directories but read by no build: the one-glossary records

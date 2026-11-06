@@ -24,11 +24,11 @@ class DocumentTypeCodeTest {
     private static final Pattern SEED = Pattern.compile("\\('[0-9a-f-]{36}', '([A-Z][A-Z0-9_]+)', '([A-Z]+)', '[a-z.]+', (?:true|false), DATE");
 
     @Test
-    @DisplayName("the baseline registers the number tokens QT, TS, JV and EMP")
+    @DisplayName("the baseline registers the number tokens QT, TS, JV, EMP and BI")
     void everyNumberedTypeHasATokenInTheSeed() throws IOException {
         Map<String, String> registered = seededTokens();
 
-        assertThat(registered).containsOnly(Map.entry("QUOTE", "QT"), Map.entry("TIMESHEET", "TS"), Map.entry("JOURNAL_VOUCHER", "JV"), Map.entry("EMPLOYEE", "EMP"));
+        assertThat(registered).containsOnly(Map.entry("QUOTE", "QT"), Map.entry("TIMESHEET", "TS"), Map.entry("JOURNAL_VOUCHER", "JV"), Map.entry("EMPLOYEE", "EMP"), Map.entry("BONUS_INPUT", "BI"));
     }
 
     @Test

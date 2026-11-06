@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:forcitis="https://forcitis.com/psa/approval/extension"
+             targetNamespace="https://forcitis.com/psa/approval">
+  <!-- Bonus input approval (#1436, PY3). Routing is the user's decision of 2026-11-05 (docs/decisions/2026-11-05-195500-one-lead-均采纳推荐.md, item 1): one stage, the
+       initiator's line manager (INITIATOR_SUPERVISOR level 1), then a holder of the payroll role. The platform never offers the initiator as a candidate of the
+       second stage; payrollReview is noFallback, so when no other holder is eligible at that moment the stage is NOT escalated to the initiator's supervisor or to an
+       administrator: the stage-1 approval is refused and rolled back (request stays pending, NO_ASSIGNEE_FOUND + ALERT), and the stage-1 approver approves again once a
+       holder exists (user decision 「不转交，挂起并告警」, fragment PR #1513). No routing flags, no deadlines (none decided). The five fields are data only: no node reads them for an approver, payroll
+       reads them back through ApprovalProcesses.formFields when the approval completes. supervisorReview is a countersign (one task per distinct approver, all must approve); payrollReview has no loop, so it is ONE pool task with every non-initiator holder as a candidate and the first claim decides. -->
+  <process id="organization_payroll_bonus_input" name="奖金输入审批" isExecutable="true">
+    <extensionElements>
+      <forcitis:documentType code="BONUS_INPUT"/>
+      <forcitis:routingFlagRequired value="false"/>
+      <forcitis:formField name="employmentRelationshipId"/>
+      <forcitis:formField name="payrollMonthStartDate"/>
+      <forcitis:formField name="bonusAmount"/>
+      <forcitis:formField name="bonusCurrency"/>
+      <forcitis:formField name="reasonKey"/>
+    </extensionElements>
+    <startEvent id="start"/>
+    <sequenceFlow id="toSupervisorReview" sourceRef="start" targetRef="supervisorReview"/>
+    <userTask id="supervisorReview" name="一级汇报人审批">
+      <extensionElements>
+        <forcitis:assignmentRule type="INITIATOR_SUPERVISOR" level="1"/>
+      </extensionElements>
+      <multiInstanceLoopCharacteristics isSequential="false" flowable:collection="${approverResolution.apply(execution)}"
+                                        flowable:elementVariable="approver"/>
+    </userTask>
+    <sequenceFlow id="toPayrollReview" sourceRef="supervisorReview" targetRef="payrollReview"/>
+    <userTask id="payrollReview" name="薪资专员审批">
+      <extensionElements>
+        <forcitis:assignmentRule type="ROLE" role="payroll_specialist" noFallback="true"/>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="toEnd" sourceRef="payrollReview" targetRef="end"/>
+    <endEvent id="end"/>
+  </process>
+</definitions>
