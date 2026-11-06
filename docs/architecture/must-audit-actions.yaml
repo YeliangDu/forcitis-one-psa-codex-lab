@@ -162,6 +162,9 @@ categories:
   - organization.attendance.WorkCalendarLockedDaysChanged
   - organization.attendance.WorkCalendarYearMaintained
   - organization.payroll.rule-version.published
+- name: 薪酬输入
+  actions:
+  - organization.payroll.bonus-input.voided
 - name: 工时单
   actions:
   - cost.timesheet.TimesheetApproved

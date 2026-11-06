@@ -34,7 +34,9 @@ class ArchitectureRulesTest {
     // 登记例外：模块 -> {上限, 出处}；全局上限不抬，新增例外须有出处并经 one-architecture 裁定
     static final Map<String, ApiLimitException> API_LIMIT_EXCEPTIONS = Map.of(
             ROOT + ".platform.integration", new ApiLimitException(17,
-                    "ADR-0060 检测与业务文件桶端口；one-architecture 裁定 2026-10-21；到期：ADR-0069 D2 合入"));
+                    "ADR-0060 检测与业务文件桶端口；one-architecture 裁定 2026-10-21；到期：ADR-0069 D2 合入"),
+            ROOT + ".organization.workforce", new ApiLimitException(13,
+                    "ADR-0086 EmploymentRelationships.employerOn 为按关系取用人单位的唯一读口，首个外部消费方 organization.payroll（#1436）；one-architecture（one-design）裁定 2026-11-06；到期：workforce api 下次合并有外部调用方的方法时撤销，出现第 14 个外部调用方时重新裁定"));
 
     record ApiLimitException(int max, String source) {}
 
