@@ -1,4 +1,4 @@
-# Data design review: organization.leave slice S3 (one table, two columns, one widened CHECK, four events)
+# Data design review: organization.leave slice S3 (one table with the replay key, one request column and a redefined overlap exclusion, two CHECKs, four events)
 
 Card: #1581 (design). Basis: `docs/architecture/proposals/leave-attendance-s3.md` (the proposal, added by the PR that carries this record), the merged schema `V20261105160000__organization_leave_baseline.sql` (#1400, #1470) and its records `organization-leave-l1a.md`, `organization-leave-l1b.md`, gate `docs/data/data-design-gate.md` appendix A. Signed by one-design in the form of `workforce-acting-duty.md`. Where this record differs from the proposal's section 5 the record governs.
 
@@ -154,9 +154,11 @@ Expected volume: a few thousand confirmations per month for the firm; grants and
 organization_leave.leave_policy_grants.employment_relationship_id | INTERNAL | PI | 用途：额度所属的雇佣关系；个人信息 PI
 organization_leave.leave_policy_grants.basis_text | INTERNAL | PI | 用途：授予依据，由人填写；个人信息 PI；不得写健康、孕产等信息
 organization_leave.leave_policy_grants.granted_by | INTERNAL | PI | 用途：做出授予决定的操作人；个人信息 PI
+organization_leave.leave_policy_grants.effective_date | INTERNAL | PI | 用途：授予生效日，随雇佣关系的假期额度；个人信息 PI
+organization_leave.leave_requests.taken_until_at | INTERNAL | PI | 用途：销假后第一天未休的起点，随请假期间；个人信息 PI
 ```
 
-`leave_requests.taken_until_at` is an instant on an already classified row: no new line. Registry (`data-access-registry.yaml`): a row for `organization_leave.leave_policy_grants` with role `AGGREGATE_CHILD`, aggregate `LeaveAccount`, mutability `APPEND_ONLY`, retention as the ledger, lineage `NEW`, writers `[organization.leave]`.
+`leave_requests.taken_until_at` is an instant of the leave period (sibling of `start_at` and `end_at`, registered PI): two new lines below (it and the grant's `effective_date`). Registry (`data-access-registry.yaml`): a row for `organization_leave.leave_policy_grants` with role `AGGREGATE_CHILD`, aggregate `LeaveAccount`, mutability `APPEND_ONLY`, retention as the ledger, lineage `NEW`, writers `[organization.leave]`.
 
 ## Expected diff for the schema PR (DG-3, section 1.4)
 

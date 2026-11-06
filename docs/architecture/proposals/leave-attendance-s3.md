@@ -16,7 +16,7 @@ How the pack's leave and attendance nodes 010, 013, 018, 019, 020, 021, 024 run 
 | 1 | The schema `organization_leave` exists: 13 tables in one baseline migration (729 lines), merged by #1400 and #1470 | [V] `db/migration/organization_leave/V20261105160000__organization_leave_baseline.sql` |
 | 2 | The Java module is one file, `package-info.java`: no aggregate, command, controller, event or api type | [V] `organization/leave/` |
 | 3 | `organization.attendance` (64 files) holds only the work calendar and standard-hours versions; its api is `WorkCalendar.isWorkday(date, legalEntityId)` and `StandardHours.minutesOn(legalEntityId, date)`. It has no attendance record, no monthly confirmation and no leave concept | [V] `organization/attendance/api/` |
-| 4 | The spec's AGG-97 (monthly confirmation) and AGG-69 (attendance record) are tables in `organization_leave`, not in `organization.attendance` | [V] baseline lines 83-130 |
+| 4 | The spec's AGG-97 (monthly confirmation) and AGG-69 (attendance record) are tables in `organization_leave`, not in `organization.attendance` | [V] baseline lines 83-145 |
 | 5 | A year account takes lines with no lot: the ledger trigger refuses `consumes_line_id` on a year account and requires it on a rolling account for HOLD, RELEASE, USE, REVERSE_USE, EXPIRE, ADJUST | [V] baseline `guard_leave_ledger_line` |
 | 6 | `leave_ledger_lines.source_kind` allows `LEAVE_REQUEST, OVERTIME_REQUEST, HR_ADJUSTMENT, SEALED_YEAR_CORRECTION, RELATIONSHIP_EVENT, YEAR_OPEN, YEAR_CLOSE, COMP_TIME_EXPIRY, MIGRATION`: no value fits "a grant by a confirmed policy decision"; `reason_text` is allowed only on `ADJUST` | [V] baseline CHECKs |
 | 7 | The unique source key is `(account, source_kind, source_id, line_kind, consumes_line_id)` with NULLS NOT DISTINCT, so one REVERSE_USE and one USE per request per year account | [V] `uk_leave_ledger_lines_source_key` |
@@ -27,7 +27,7 @@ How the pack's leave and attendance nodes 010, 013, 018, 019, 020, 021, 024 run 
 | 12 | The pack's balance counters are credit, used, reserved, expired, available | [P] `fixtures/anchors.json` |
 | 13 | A new rule version is refused when its `effective_from_date` is before today (Asia/Shanghai, the database clock) or not later than the latest version: no backdating | [V] baseline `guard_leave_rule_version_insert` |
 | 14 | The migration baseline is open: `backend/architecture/migration-baseline-open` exists, so the merged baseline file may be edited and no migration is appended (data gate O12, open period) | [V] |
-| 15 | The request overlap guard is `ex_leave_requests_live_period_overlap`: one relationship, `tstzrange(start_at, end_at)`, only for status `SUBMITTED`, `IN_APPROVAL`, `APPROVED`; a `RECALLED` request is outside it | [V] baseline line 24 |
+| 15 | The request overlap guard is `ex_leave_requests_live_period_overlap`: one relationship, `tstzrange(start_at, end_at)`, only for status `SUBMITTED`, `IN_APPROVAL`, `APPROVED`; a `RECALLED` request is outside it | [V] baseline line 29 |
 
 ## 3. Node map
 
@@ -43,7 +43,7 @@ How the pack's leave and attendance nodes 010, 013, 018, 019, 020, 021, 024 run 
 | 021 | extra credit 450 from a confirmed rule: credit 4950, available 4500, used 450 | `GrantPolicyCredit` again, another grant id | as 010 |
 | 024 | second leave 900: used 1350, held 0, available 3600 | `SubmitLeave` then `ApproveLeave` | as 018, 019 |
 
-Balance formulas, checked against every pack number [P]: credit = GRANT + ROLLOVER_IN + positive ADJUST; held = HOLD - RELEASE - USE; used = USE - REVERSE_USE; available = credit - held - used - EXPIRE - ROLLOVER_OUT. 010: 4500. 018: held 900, available 3600. 019: held 0, used 900, available 3600. 020: used 450, available 4050. 021: credit 4950, available 4500. 024: held 900 then used 1350, available 3600.
+Balance formulas, checked against every pack number [P]: credit = GRANT + ROLLOVER_IN; ADJUST is signed (a negative adjustment is legal, `ck_leave_ledger_lines_sign` only forbids zero; spec 4.2 sums it signed); held = HOLD - RELEASE - USE; used = USE - REVERSE_USE; available = credit + ADJUST - held - used - EXPIRE - ROLLOVER_OUT (the pack has no ADJUST, so every pack number is unchanged). 010: 4500. 018: held 900, available 3600. 019: held 0, used 900, available 3600. 020: used 450, available 4050. 021: credit 4950, available 4500. 024: held 900 then used 1350, available 3600.
 
 ## 4. Options and choices (technical; mine to choose)
 
@@ -58,7 +58,7 @@ Balance formulas, checked against every pack number [P]: credit = GRANT + ROLLOV
 
 Chosen B. Cost: one new table and one widened CHECK; benefit: credit equals the sum of grants, and every grant names who and on what basis.
 
-**4.2 Account kind of the pack's leave type (nodes 010-024).** Year account or rolling account. Fact 5 decides the cost: a rolling account needs a lot on every HOLD and USE, so two grants (010, 021) make the 900-minute hold pick lots; the pack states no expiry (its `expired` counter is 0). Chosen: a **year account** for 2026 (calendar leave year, spec Q-2). The pack never crosses a year; whether a policy credit expires or rolls over is a business question (Q-S3-2) and, if yes, a later slice moves that type to rolling lots. No schema change either way.
+**4.2 Account kind of the pack's leave type (nodes 010-024).** Year account or rolling account. Fact 5 decides the cost: a rolling account needs a lot on every HOLD and USE, so two grants (010, 021) make the 900-minute hold pick lots; the pack states no expiry (its `expired` counter is 0). Chosen: a **year account** for 2026 (calendar leave year, spec Q-2). The pack never crosses a year; the user decided on 2026-11-06 (Q-S3-2) that a policy credit stays valid within its year with nothing carried, so no rolling lots are needed; a later carry-over rule would move that type to rolling lots. No schema change either way.
 
 **4.3 Partial recall (node 020).**
 
@@ -76,7 +76,7 @@ Chosen A. `taken_until_at` is the start instant (business zone) of the first unt
 
 **Punch input the slice needs.** The table exists and has no writer, so the slice adds the spec's `ImportAttendanceRecords` command (spec 4.5) behind an import port in `organization.leave`: input is a batch of `{sourceSystem, externalRecordKey, employeeId, recordKind, occurredAt}`; the whole batch fails when a person cannot be resolved; a replay of a known `(sourceSystem, externalRecordKey)` writes nothing and is not an error; rows are append-only (RULE-519). The attendance source system is still open (R2): no adapter is built here, and every test feeds punches through this port with a fixed test source code. When R2 is decided, its adapter calls the same port and no leave code changes. This port and the command are the new slice G0 (section 8).
 
-**4.5 Which entity's calendar.** The cost (attribution) entity of the person on the day, as the user ruled for standard hours (Q-11 a, spec section 2). The first-day boundary is the relationship's start date and the end boundary its end date from `EmploymentRelationships`; unpaid-leave days from the relationship are not attendance days [U: the api field names are checked by the slice].
+**4.5 Which entity's calendar.** The cost (attribution) entity of the person on the day, as the user ruled for standard hours (Q-11 a, spec section 2). The first-day boundary is the relationship's start date and the end boundary its end date, and unpaid-leave days are not attendance days; none of these is readable on main (seam 4), so slice G adds that read to the workforce api and its done-when covers it.
 
 ## 5. Changes to the spec and the schema (the record governs, section 8 of it)
 
@@ -115,23 +115,23 @@ Each slice is one behaviour with its own tests. Owner: lead assigns. Slice A is 
 | B | Leave types read, rule version publish and read (a version with no entitlement rows is allowed for a policy type), the module's api package | 010 | A |
 | C | `GrantPolicyCredit`, the year account open, `LeaveBalances.of` | 010, 021 | B |
 | D | `SubmitLeave` (day split, HOLD, relationship-in-service check, approval start) and the approval process definition and numbering type | 018, 024 | C |
-| E | `ApproveLeave` (USE of the hold), `RejectLeave` and `WithdrawLeave` (RELEASE), event `LeaveApproved` | 019, 024 | D |
+| E | `ApproveLeave` (USE of the hold), `RejectLeave` and `WithdrawLeave` (RELEASE), event `LeaveApproved`; `LeaveRejected` and `LeaveWithdrawn` (spec 4.3, RULE-405) are added with the timesheet seam card, not signed here; `WithdrawLeave` of an `APPROVED` request writes REVERSE_USE (not RELEASE) and is outside S3 (spec 4.3), the hold-release path covers `IN_APPROVAL` only | 019, 024 | D |
 | F | `RecallLeave` with `taken_until_at`, event `LeaveRecalled` | 020 | E |
 | G0 | `ImportAttendanceRecords` and its port (4.4), append-only, replay-safe; no schema change | 013 | A |
-| G | Monthly confirmation generate (punches only, missing day fails), confirm, lock, the read `MonthlyAttendance.of`, events | 013 | G0, D (leave lines), E |
+| G | Monthly confirmation generate (punches only, missing day fails), confirm, lock, the read `MonthlyAttendance.of`, events | 013 | G0, D (leave lines), E, F (recall counted) |
 | I | Web pages for the role walks of section 9.2 (frontend session; page list waits for the role-task mapping, B11.5) | all | C-G |
 | H | Acceptance tests for the seven nodes, API side and seam tests (one-test, not design) | all | C-G |
 
-C to F run in sequence (same aggregate); G0 can start right after A; G can start after E and G0; I follows each of C to G page by page. A slice is done only when its role walk (T3) and its seam tests (T4) of section 9 pass.
+C to F run in sequence (same aggregate); G0 can start right after A; G can start after E, F and G0; I follows each of C to G page by page. A slice is done only when its role walk (T3) and its seam tests (T4) of section 9 pass.
 
 ## 9. Done-when (for the test engineer; one checkable line each)
 
-Dates and numbers. The pack's amounts are asserted as they are (4500, 900, 450, 3600, 4050, 4950, 1350). The pack's calendar dates are labels, not fixture dates: a rule version cannot be backdated (fact 13), so every fixture date is today-relative. D0 = today of the database clock (Asia/Shanghai); the rule version of the fixture type takes effect on D0; the application `Clock` is fixed at D0 and moved forward within the test (CS-5.8); the relationship starts on D0; the leave days are two workdays after D0; the confirmation month is the month containing D0.
+Dates and numbers. The pack's amounts are asserted as they are (4500, 900, 450, 3600, 4050, 4950, 1350). The pack's calendar dates are labels, not fixture dates: a rule version cannot be backdated (fact 13), so every fixture date derives from D0 = today of the database clock (Asia/Shanghai), which the test cannot move. The rule version of the fixture type takes effect on D0 and has no end. L1 is the first workday on or after D0 whose next workday lies in the same month and the same leave year (a helper skips forward over a month-end or year-end, so a run on any date asserts the same numbers); L2 is that next workday. The leave request covers L1 and L2; the grant's `effective_date` is L1 (so the year account is the year of L1); the relationship starts on D0 at the latest; the confirmation month is the month of L1; the application `Clock` is fixed at L1 and moved forward within the test (CS-5.8).
 
 ### 9.1 Behaviour (each line is an API-level test)
 
 1. A grant of 4500 minutes to a minute-unit type for a relationship in service on D0 reads credit 4500, held 0, used 0, available 4500 through `LeaveBalances.of`; the ledger line has source `POLICY_GRANT`, the grant row names its basis, and an audit entry exists.
-2. A second call with the same `request_key` returns the same grant and writes no second row or line; a different key with the same quantity writes a second grant; quantity 0 or negative is refused; a grant for a relationship not in service on its `effective_date` is refused; a grant dated before the business day is refused (Q-S3-6 pending, then as answered).
+2. A second call with the same `request_key` returns the same grant and writes no second row or line, while the same key with a different quantity is refused as a conflict; a different key with the same quantity writes a second grant; quantity 0 or negative is refused; a grant for a relationship not in service on its `effective_date` is refused; a grant dated before the business day is refused (Q-S3-6 pending, then as answered).
 3. The grant touches no statutory annual-leave account: no `leave_grant_basis` row is written and the person's annual-leave balance is unchanged.
 4. Punches are fed through the import port with a fixed test source code: a batch with an unresolvable person writes nothing and fails; a replayed batch writes no second row; a punch that is not a business-day match is stored as it is. Generating the confirmation of D0's month for a relationship that started on D0, with punches on every workday from D0 to the month's last day of the cost entity's calendar (the test builds them from the fixture calendar; the pack states no count [U]), counts exactly those days; no day before D0 is counted and no proration factor is stored. With one workday lacking a punch and any approved leave, generation fails naming that day; with approved leave covering that day it succeeds (Q-S3-8 pending, then as answered).
 5. `ConfirmByEmployee` by the person on the month's last day moves the month to `CONFIRMED`; another person's call returns 404; regenerate after confirm is refused; after lock nothing changes and a later change is a correction row of the next month (INV-105).
@@ -142,7 +142,7 @@ Dates and numbers. The pack's amounts are asserted as they are (4500, 900, 450, 
 10. A second request of 900 approved reads used 1350, held 0, available 3600.
 11. A rejected or withdrawn request releases its hold: held 0 and available as before the request.
 12. A confirmation generated after node 020 lists approved leave by type with `is_paid_leave` copied, counts the taken part of the `RECALLED` request (450 minutes, the days before `taken_until_at`), and counts neither an `IN_APPROVAL` request nor the returned day.
-13. Each new database rule is violated once in a test and refused: a `POLICY_GRANT` line that is not a GRANT; `taken_until_at` set on a request that is not `RECALLED`, or outside `[start_at, end_at]`; a second grant with the same `(account, request_key)`.
+13. Each new database rule is violated once in a test and refused: a `POLICY_GRANT` line that is not a GRANT; `taken_until_at` set on a request that is not `RECALLED`, or outside `[start_at, end_at]`; a second grant with the same `(account, request_key)`; an update or delete of a grant row (append-only).
 14. A foreign person's request, balance or confirmation returns 404; every command is reachable only through its permission.
 
 ### 9.2 Role walks in the web UI (T3: each activity walked by the real role, no admin shortcut)
@@ -157,7 +157,7 @@ Roles (user decisions 2026-11-06): employee; direct manager; HR lead (a separate
 
 ### 9.3 Seam tests (T4: both sides of each seam, numbers as in section 12.1)
 
-20. Seams 1, 2, 3, 4: leave's test calls the real attendance and workforce read ports (no stubs); each port's own contract test covers its failure answers (no standard-hours version, calendar year not maintained, relationship not in service).
+20. Seams 1, 2, 3, 4: leave's test calls the real attendance and workforce read ports (no stubs), including the workforce read slice G adds (start date, end date, unpaid periods: a day before the start or inside an unpaid period is not an attendance day); each port's own contract test covers its failure answers (no standard-hours version, calendar year not maintained, relationship not in service).
 21. Seam 5: a leave request starts a real approval process and the result returns by `ApprovalCompleted`; the approval-side test of the new process definition checks its route (manager, then the HR-lead layer by Q-S3-7).
 22. Seam 6: the provider test asserts the `LeaveApproved` and `LeaveRecalled` payloads field by field against the record; the consumer side waits for the timesheet seam card (listed, not skipped): until then a recorded-payload contract test in leave stands in for it.
 23. Seam 7: the provider test asserts `MonthlyAttendance.of` and `MonthlyConfirmationLocked` against the record, including `is_paid_leave`; `MonthlyAttendance.of` on an unlocked month fails; the consumer side is #1582's.
@@ -194,11 +194,11 @@ Rule (the user's HR development chart, `04-P03-HR_dev-strategy-v0.svg`, read-onl
 | 1 | 标准工时 | `organization.attendance` -> `organization.leave` | read port `StandardHours.minutesOn(legalEntityId, date)` -> minutes; fails when no version covers the date | reused (#1310) [V]; crossed here by `SubmitLeave` (day split) |
 | 2 | (none in the chart) work calendar | `organization.attendance` -> `organization.leave` | read port `WorkCalendar.isWorkday(date, legalEntityId)`; fails when the year is not maintained | reused [V]; crossed here by `SubmitLeave` and `GenerateMonthlyConfirmation` |
 | 3 | 承担成本 | `organization.workforce` -> `organization.leave` | read port `EmployeeLegalEntities.on(employee, date)` -> the cost (attribution) entity; it is the entity whose calendar and standard hours apply (Q-11 a) and the `legal_entity_id` of a request | reused [V: has outside callers on main]; crossed here |
-| 4 | (the chart's 任职生效 / 任职结束 are events; the service boundary is a read) | `organization.workforce` -> `organization.leave` | read port `EmploymentRelationships` (service period and unpaid-leave periods of a relationship) [U: field names]; the events `EmploymentRelationshipStarted/Ended` are **not** consumed in S3 | read reused (ADR-0086, on main); the two events are not crossed in S3 (Ended: the S5 separation slice cancels open leave, spec 4.3; Started: the entitlement slice opens the annual account) |
+| 4 | (the chart's 任职生效 / 任职结束 are events; the service boundary is a read) | `organization.workforce` -> `organization.leave` | read `EmploymentRelationships` (ADR-0086) exists on main but **does not** give what S3 needs: `EmploymentRelationshipView` is `(id, employerLegalEntityId, employerConfirmed, phaseKind, onUnpaidLeave)`, with no start date, end date or unpaid period [V]. The slice that first needs them (G: attendance days inside the service period) **adds** a read to the workforce api: the relationship's start date, its end date or null, and its unpaid-leave periods; the events `EmploymentRelationshipStarted/Ended` are **not** consumed in S3 | **gap, added by slice G** (the first crosser; the spec lists the same gap, `organization-leave.md:49`); the two events are not crossed in S3 (Ended: the S5 separation slice cancels open leave, spec 4.3; Started: the entitlement slice opens the annual account) |
 | 5 | (none in the chart) approval | `organization.leave` -> `platform.approval` -> `organization.leave` | `ApprovalProcesses.start` per (process type, document, round); result `ApprovalCompleted`; withdraw | reused (platform pattern, template #1436 [V]); crossed here; the leave process definition is new (slice D) |
 | 6 | 请假事实 | `organization.leave` -> `cost.timesheet` | events `LeaveApproved`, `LeaveRecalled` (payloads in the data record) and later the read `LeaveHours.forDay` (spec 4.3) | **defined here** (payloads); provider side only: `TimesheetOvertimeSeamGuardTest` keeps the edge closed until the seam card opens it |
 | 7 | 考勤结果 | `organization.leave` -> `organization.payroll` | read `MonthlyAttendance.of(employeeId, month)` (per relationship: attendance days, leave minutes by type with `is_paid_leave`) readable only when `LOCKED`; event `MonthlyConfirmationLocked` | **defined here**; provider side only until #1582 builds the consumer |
-| 8 | 关系额度 | `organization.leave` -> `organization.payroll` (and own UI) | S3 defines the read `LeaveBalances.of(relationship, type, year)` (credit, held, used, expired, available). The spec's `LeaveBalances.unused(...)` for separation settlement is **added** by the S5 slice | `of` defined here, consumed by leave's own pages and tests only; `unused` not crossed |
+| 8 | 关系额度 | `organization.leave` -> `organization.payroll` (and own UI) | S3 defines the read `LeaveBalances.of(relationship, type, year)` (credit, held, used, expired, available). The spec's `LeaveBalances.unused(...)` for separation settlement is **added** by the S5 slice | `of` defined here, consumed by leave's own pages and tests in S3, and reused by #1582 (section 12.2); `unused` not crossed |
 | 9 | (none in the chart) audit | `organization.leave` -> `platform.audit` | audit entry per balance- or state-changing command; events audited | reused (platform) |
 | 10 | (none in the chart) permissions | `platform.identity` -> `organization.leave` | permission codes registered per role; no leave table reads identity | reused; new codes per slice |
 
