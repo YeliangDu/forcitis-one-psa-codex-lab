@@ -57,6 +57,7 @@ class LeaveMigrationIT extends LeaveSchemaProbe {
                 check("leave_rule_versions", "effective_range", "effective_to_date", LocalDate.of(2000, 1, 1)),
                 check("leave_rule_versions", "request_unit_kind", "request_unit_kind", "UNKNOWN"),
                 check("leave_rule_versions", "exempt_threshold_minutes_count", "exempt_threshold_minutes_count", 0),
+                check("leave_rule_versions", "hr_lead_threshold_days_count", "hr_lead_threshold_days_count", 0),
                 check("leave_rule_versions", "rollover_kind", "rollover_kind", "UNKNOWN"),
                 check("leave_rule_versions", "rollover_columns", "rollover_kind", "CAPPED"),
                 check("leave_rule_versions", "rollover_columns", "rollover_cap_qty", 1),
