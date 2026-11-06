@@ -179,7 +179,32 @@ def main():
         late = "e3a18901-dd25-71b0-addd-7a5fcb6d205b"
         put_session(late, other_wt, datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=10))
         why, _ = run(main_co, fake(files=only_acc, body=f"Codex-Acceptance: {late}\n"), sessions, 8)
-        assert why and "not before the oldest acceptance commit" in why, why
+        assert why and "not before the newest acceptance commit" in why, why
+        # drafted in two batches (#1577): two trailer commits three hours apart; a second run between them holds beside the first, alone it does not, and a run after both is refused
+        now = datetime.datetime.now(datetime.timezone.utc)
+        git(main_co, "checkout", "-q", "-b", "acc-two", "main")
+        os.makedirs(os.path.join(main_co, os.path.dirname(acc)), exist_ok=True)
+        for k, when in enumerate((now - datetime.timedelta(hours=3), now)):
+            open(os.path.join(main_co, acc.replace("T.java", f"B{k}.java")), "w").write("class T {}\n" * 30)
+            git(main_co, "add", ".")
+            os.environ["GIT_COMMITTER_DATE"] = when.isoformat()
+            try:
+                git(main_co, "commit", "-q", "-m", f"acceptance {k}\n\nAcceptance-Test-Author: test-engineer")
+            finally:
+                del os.environ["GIT_COMMITTER_DATE"]
+        git(main_co, "push", "-q", "origin", "HEAD:refs/heads/acc-two")
+        git(origin, "update-ref", "refs/pull/11/head", git(main_co, "rev-parse", "HEAD"))
+        git(main_co, "checkout", "-q", "main")
+        second = "e4a18901-dd25-71b0-addd-7a5fcb6d205b"
+        put_session(second, other_wt, now - datetime.timedelta(hours=1))
+        two = [(acc.replace("T.java", "B0.java"), None, 40, 0), (acc.replace("T.java", "B1.java"), None, 40, 0)]
+        assert run(main_co, fake(files=two, body=f"Codex-Acceptance: {early}\nCodex-Acceptance: {second}\n"), sessions, 11) == (None, ""), "the case of #1574: two runs, the second drafted the later commit"
+        assert run(main_co, fake(files=two, body=f"Codex-Acceptance: {early}\n"), sessions, 11) == (None, ""), "one run"
+        why = run(main_co, fake(files=two, body=f"Codex-Acceptance: {second}\n"), sessions, 11)[0]
+        assert why and "first batch needs a run" in why, why
+        why = run(main_co, fake(files=two, body=f"Codex-Acceptance: {early}\nCodex-Acceptance: {late}\n"), sessions, 11)[0]
+        assert why and "not before the newest acceptance commit" in why, why
+        assert "no `Codex-Acceptance:` line" in run(main_co, fake(files=two, body="Closes #1\n"), sessions, 11)[0]
         # an implementation PR that carries one-test's acceptance commits unchanged: its own run for backend/src/main and one-test's run for the tests; each is refused without its line
         impl = java + only_acc
         both = f"Closes #1\n\nCodex: {SID}\n{accept_line}"

@@ -4,7 +4,7 @@ A pull request that changes backend runtime code (`backend/src/main/**`) or acce
 The two parts are judged apart, each by its own lines. Backend runtime code: one or more lines `Codex: <session-id>[, <session-id>...]` (one line per module drafted) or `Codex: skip <reason>`. One-test's acceptance files: lines `Codex-Acceptance: <session-id>[, ...]` or `Codex-Acceptance: skip <reason>`.
 (An implementation PR of a two-part card carries one-test's acceptance commits unchanged; their Codex run belongs to one-test's worktree and to a time before the implementation branch began, so the implementation's own rules would refuse it.)
 - Each `Codex:` session id must name a file ~/.codex/sessions/**/rollout-<time>-<id>.jsonl whose first record is a `session_meta` with originator `codex_exec`, a cwd inside the author's worktree and a timestamp after the branch was cut from main.
-- Each `Codex-Acceptance:` session id must name such a file whose cwd is inside some session worktree (.claude/worktrees/<name>) and whose timestamp is before the oldest of the acceptance commits (the run drafted what they committed).
+- Each `Codex-Acceptance:` session id must name such a file whose cwd is inside some session worktree (.claude/worktrees/<name>) and whose timestamp is before the newest of the acceptance commits (a run started before the commit it drafted; a later run may draft cases added in a later commit); at least one run must be older than the oldest acceptance commit (the first batch).
 - `skip small` is accepted when its own part of the diff changes fewer than SMALL lines (added + deleted): backend/src/main/** for `Codex:`, the acceptance files of one-test commits for `Codex-Acceptance:`. Any other `Codex: skip <reason>` (and `skip small` on a bigger diff) is accepted only when the pull request has a comment holding LEAD_OK posted after the body was last edited (at PR opening there is no comment yet: comments=None, such a line passes there and is judged at enqueue).
 - A missing line, an id that matches nothing, or a skip without its condition is a refusal. A tool that cannot answer (no ~/.codex) is not: it raises ToolError and the caller lets the pull request through with a warning (ops playbook: fail open)."""
 import datetime
@@ -32,8 +32,9 @@ FORMS = ("Accepted forms in the pull request body (a line of its own): `Codex: <
 
 
 class Scope(set):
-    """The acceptance files in scope; `oldest` is the committer time of the oldest commit that carries the one-test trailer (None when the log has none)."""
+    """The acceptance files in scope; `oldest` and `newest` are the committer times of the oldest and the newest commit that carries the one-test trailer (None when the log has none)."""
     oldest = None
+    newest = None
 
 
 
@@ -60,6 +61,8 @@ def acceptance_files(log_text):
             at = parse_time(stamp.strip()) if stamp.strip() else None
             if at is not None and (found.oldest is None or at < found.oldest):
                 found.oldest = at
+            if at is not None and (found.newest is None or at > found.newest):
+                found.newest = at
     return found
 
 
@@ -122,7 +125,7 @@ def session_problem(sid, sessions_dir, worktree, base_time, before=None):
     if base_time is not None and at <= base_time:
         return f"session {sid}: started {at.isoformat()}, not after the branch was cut from main ({base_time.isoformat()})"
     if before is not None and at >= before:
-        return f"session {sid}: started {at.isoformat()}, not before the oldest acceptance commit ({before.isoformat()}); the run must have drafted what that commit holds"
+        return f"session {sid}: started {at.isoformat()}, not before the newest acceptance commit ({before.isoformat()}); a run must have started before the commit it drafted"
     return None
 
 
@@ -133,14 +136,18 @@ def judge(stats, body, comments, edited_at, worktree, base_time, sessions_dir, s
     (main_files, main_lines), (acc_files, acc_lines) = parts(stats, scoped)
     if not main_files and not acc_files:
         return None
-    oldest = getattr(scoped, "oldest", None)
+    oldest, newest = getattr(scoped, "oldest", None), getattr(scoped, "newest", None)
     problems = []
     if main_files:
         problems += check_part(KEY, "backend runtime code (backend/src/main)", main_files, main_lines, body, comments, edited_at,
                                lambda sid: session_problem(sid, sessions_dir, worktree, base_time))
     if acc_files:
         problems += check_part(ACCEPTANCE_KEY, "acceptance tests of one-test", acc_files, acc_lines, body, comments, edited_at,
-                               lambda sid: session_problem(sid, sessions_dir, None, None, oldest))
+                               lambda sid: session_problem(sid, sessions_dir, None, None, newest))
+        if not problems and oldest is not None:   # a drafted part may come in batches (a later run for cases added later), but the first batch must come from a run older than every acceptance commit
+            ids = [sid for value in pr_body.lines(body, ACCEPTANCE_KEY) if not value.lower().startswith("skip") for sid in pr_body.ids(value)]
+            if ids and all(session_problem(sid, sessions_dir, None, None, oldest) for sid in ids):
+                problems.append("every `Codex-Acceptance:` run started after the oldest acceptance commit; the first batch needs a run that started before it (" + oldest.isoformat() + ")")
     return None if not problems else "backend runtime code or one-test acceptance tests are changed and the Codex lines do not hold:\n- " + "\n- ".join(problems) + "\n" + FORMS
 
 
