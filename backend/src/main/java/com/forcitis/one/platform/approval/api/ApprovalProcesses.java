@@ -17,6 +17,13 @@ public interface ApprovalProcesses {
     /** The form fields as submitted at start, running or finished; empty for an unknown instance. Reads without locking and needs no actor: for a trusted module listener, like progress. */
     Map<String, List<String>> formFields(ApprovalInstanceId instance);
 
+    /**
+     * The instance of an open task of that process, only while the person may act on it now: its assignee once somebody claimed it, otherwise any candidate.
+     * Empty for everyone else and for a task that is decided, closed, of another process or unknown: the caller answers "not found" without telling which. Reads
+     * without locking and audits nothing.
+     */
+    Optional<ApprovalInstanceId> instanceOfTaskOpenTo(ProcessKey processKey, ApprovalTaskId taskId, UserId actor);
+
     /** Reads without locking; empty while no approval of the document was started. */
     Optional<ApprovalProgress> progress(ProcessKey processKey, DocumentReference document);
 
