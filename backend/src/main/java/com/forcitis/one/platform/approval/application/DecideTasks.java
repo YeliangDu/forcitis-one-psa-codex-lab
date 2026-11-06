@@ -112,6 +112,7 @@ public class DecideTasks {
 
     private void apply(ApprovalRequest request, TaskDecision decision, TaskView view, UserId actor) {
         if (!view.isClaimed()) {
+            approvals.requireOneTaskOfNode(request, view, actor);
             approvals.claim(request, view, actor);
         }
         Reason reason = Reason.ofNullable(decision.reason());

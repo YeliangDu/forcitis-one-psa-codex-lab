@@ -74,6 +74,7 @@ class EngineWiring implements ApplicationListener<ApplicationReadyEvent> {
                 ProcessDefinitionDeclarations.nameOf(key, model.getMainProcess());
                 ProcessDefinitionDeclarations.routingFlagRequired(key, model.getMainProcess());
                 ProcessDefinitionDeclarations.dataFormFields(key, model.getMainProcess());
+                ProcessDefinitionDeclarations.requireCountersignEnteredOnce(key, model.getMainProcess());
             } catch (DomainException e) {
                 problems.add(key + ": " + e.getMessage());
             }

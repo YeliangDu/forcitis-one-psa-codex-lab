@@ -46,7 +46,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
  * 2026-11-04, intent 055504); an out-of-scope id answers 404 and writes the audit entry organization.workforce.employee.denied; no ID-card number,
  * ethnicity or household registration anywhere (ADR-0079:124, ADR-0080 U-14).
  *
- * <p>Contract fixed here, because the card names no field. A row: {@code employeeId, employeeCode, displayName, employmentStatus, hireDate,
+ * <p>Contract fixed here, because the card names no field. A row: {@code employeeId, employeeCode, displayName, employmentStatus, onUnpaidLeave (#1530, boolean, optional here), hireDate,
  * assignments[]}; an assignment: {@code assignmentKind (PRIMARY|CONCURRENT), orgUnitId, orgUnitName, positionId, positionName}; the detail adds
  * {@code reportsToEmployeeId, reportsToDisplayName} to each assignment (null on a concurrent one). A page is {@code items} and {@code nextCursor}. A scope
  * that cannot be worked out answers 403 on the list and 404 on the detail (one-design, #730 comment 6597359528, as DataScopeReadBehaviourIT). The
@@ -67,7 +67,7 @@ class EmployeeRosterHttpIT extends DataScopeSupport {
     static final LocalDate STARTED_SUB = LocalDate.of(2024, 7, 15);
     static final LocalDate SINCE = LocalDate.of(2026, 1, 1);
     static final List<String> WORLD = List.of("a", "sub", "a1", "b", "c", "multi", "gone");
-    static final Set<String> ROW_KEYS = Set.of("employeeId", "employeeCode", "displayName", "employmentStatus", "hireDate", "assignments");
+    static final Set<String> ROW_KEYS = Set.of("employeeId", "employeeCode", "displayName", "employmentStatus", "onUnpaidLeave", "hireDate", "assignments");
     static final Set<String> ASSIGNMENT_KEYS = Set.of("assignmentKind", "orgUnitId", "orgUnitName", "positionId", "positionName", "reportsToEmployeeId", "reportsToDisplayName");
     static final Pattern FORBIDDEN_KEY = Pattern.compile("(?i)id.?card|idnumber|identity.?(card|number)|ethnic|household|national.?id");
 
