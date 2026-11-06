@@ -1,6 +1,7 @@
 package com.forcitis.one.organization.workforce.api;
 
 import com.forcitis.one.kernel.LegalEntityId;
+import java.util.List;
 import java.util.Optional;
 
 public interface LegalEntityDirectory {
@@ -12,4 +13,7 @@ public interface LegalEntityDirectory {
      * so a correction or a deactivation (which needs the exclusive lock) waits for the numbers issued meanwhile.
      */
     Optional<LegalEntityCode> lockActiveCode(LegalEntityId legalEntityId);
+
+    /** Every legal entity, active or not, for a consumer that reconciles what its own tables hold with what is registered. */
+    List<LegalEntityId> allIds();
 }

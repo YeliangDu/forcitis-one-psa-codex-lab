@@ -45,7 +45,7 @@ class TaskDeadlineAccountsTest {
     final ApprovalRequest request = mock(ApprovalRequest.class);
     final BusinessTime time = mock(BusinessTime.class);
     final TaskDeadline deadline = new TaskDeadline(requests, mock(Approvals.class), engine, org, administrator, new SimpleMeterRegistry(), time,
-            TestAccounts.everyoneHasOne());
+            TestAccounts.everyoneHasOne(), new NodeShares(engine));
 
     TaskDeadlineAccountsTest() {
         ApprovalTask task = mock(ApprovalTask.class);
@@ -92,5 +92,18 @@ class TaskDeadlineAccountsTest {
         deadline.enforce(OpenTasks.TASK);
 
         verify(engine).addCandidates(eq(OpenTasks.TASK), eq(List.of(PROCESS_ADMINISTRATOR)));
+    }
+
+    @Test
+    @DisplayName("a direct superior without an account ends the walk: the task goes to the process administrator, not to the superior above")
+    void superiorWithoutAccountGoesToTheAdministrator() {
+        TaskDeadline withoutAccount = new TaskDeadline(requests, mock(Approvals.class), engine, org, administrator, new SimpleMeterRegistry(), time,
+                TestAccounts.except(TestAccounts.employee(1003)), new NodeShares(engine));
+        when(org.findSupervisor(TestAccounts.employee(1002))).thenReturn(Optional.of(TestAccounts.employee(1003)));
+        when(org.findSupervisor(TestAccounts.employee(1003))).thenReturn(Optional.of(TestAccounts.employee(1004)));
+
+        withoutAccount.enforce(OpenTasks.TASK);
+
+        verify(request).escalateTask(eq(OpenTasks.TASK), eq(List.of(PROCESS_ADMINISTRATOR)), eq(true), any());
     }
 }

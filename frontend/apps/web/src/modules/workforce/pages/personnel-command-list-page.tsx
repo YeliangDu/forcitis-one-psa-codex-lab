@@ -1,9 +1,10 @@
 import { badgeOf, formatDateTime } from '@forcitis/core';
 
-import { Button, PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
+import { Button, PageTitle, SelectField, StatusBadge, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
 import { optionsOf } from '../../../shared/options';
 import { useNavigate, useSearchParams } from 'react-router';
+import { RouterLink } from '../../../shared/router-link';
 import { PagedTable } from '../../../shared/paged-table';
 import { useEmployeeChoices, usePersonnelCommands } from '../hooks/use-workforce';
 import { COMMAND_KIND_LABELS, COMMAND_STATUS_LABELS, COMMAND_STATUS_TONES, type PersonnelCommand, newPersonnelCommandPath, personnelCommandPath } from '../model/personnel-command';
@@ -24,7 +25,7 @@ export function PersonnelCommandListPage() {
     {
       key: 'employee',
       title: '员工',
-      render: (command) => <TextLink href={personnelCommandPath(command.personnelCommandId)} onNavigate={() => void navigate(personnelCommandPath(command.personnelCommandId))}>{command.displayName}</TextLink>,
+      render: (command) => <RouterLink to={personnelCommandPath(command.personnelCommandId)}>{command.displayName}</RouterLink>,
     },
     { key: 'code', title: '员工编码', render: (command) => command.employeeCode },
     { key: 'kind', title: '命令类型', render: (command) => COMMAND_KIND_LABELS[command.commandKind] ?? command.commandKind },
