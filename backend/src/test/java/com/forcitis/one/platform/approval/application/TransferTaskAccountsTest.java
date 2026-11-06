@@ -38,7 +38,7 @@ class TransferTaskAccountsTest {
     final Approvals approvals = mock(Approvals.class);
     final ApprovalRequest request = mock(ApprovalRequest.class);
     final BusinessTime time = mock(BusinessTime.class);
-    final TransferTask transfer = new TransferTask(guard, engine, approvals, OpenTasks.employed(1001, 1002, 1003, 6001), time, TestAccounts.everyoneHasOne());
+    final TransferTask transfer = new TransferTask(guard, engine, approvals, OpenTasks.employed(1001, 1002, 1003, 6001), time, TestAccounts.everyoneHasOne(), new NodeShares(engine));
 
     TransferTaskAccountsTest() {
         TaskView task = OpenTasks.claimedBy(INITIATOR, HANDLER);
