@@ -446,11 +446,15 @@ def names_command(cmd, name, nxt):
     for t in words[:nxt - 1]:
         if ASSIGN.match(t) and (TOKEN.search(t) or could_be_codex(t.split("=", 1)[1])):
             return True
-    global_end = git_subcommand_at(words, nxt) if name == "git" else len(words)   # git's -c <key>=<value> is a config only before the subcommand; after it, -c is the subcommand's own option (git switch -c <branch>, git branch -c, git commit -c)
+    global_end = git_subcommand_at(words, nxt) if name == "git" else len(words)   # before git's subcommand every -c value is a config; after it, -c is the subcommand's own option (git switch -c <branch>, git branch -c, git commit -c) unless the value is <key>=<value> (git clone -c core.sshCommand=..., --config): a config is always key=value, a branch name has no =
     for i, t in enumerate(words[nxt:], nxt):
         key, _, tail = t.partition("=")
         if key in CMD_OPTS and tail:
             value = tail
+        elif name == "git" and i >= global_end and key == "--config" and tail:
+            value = tail
+        elif name == "git" and i >= global_end and t in ("-c", "--config") and i + 1 < len(words) and "=" in words[i + 1]:
+            value = words[i + 1]
         elif t in CMD_OPTS or (name == "git" and i < global_end and t in ("-c", "--config-env")):
             value = words[i + 1] if i + 1 < len(words) else ""
         elif re.search(r"(^|=)!", t):
@@ -459,7 +463,7 @@ def names_command(cmd, name, nxt):
             value = t
         else:
             continue
-        if TOKEN.search(value) or could_be_codex(value):
+        if TOKEN.search(value) or TOKEN.search(bare(value)) or could_be_codex(value):   # a config value is run through sh: quotes inside it do not hide the word
             return True
     return False
 

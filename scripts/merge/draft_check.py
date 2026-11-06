@@ -26,7 +26,7 @@ def worktree_of(root, branch):
 
 
 def branch_cut_time(root, branch, head):
-    """When the branch was cut from main: the oldest entry of its reflog (a rebase or an update from main moves the merge base, not this), else the committer date of the merge base with origin/main."""
+    """The time the branch began: the committer date of the commit at the oldest entry of its reflog (a rebase or an update from main moves the merge base, not this), else the committer date of the merge base with origin/main."""
     r = sh(["git", "reflog", "show", "--format=%cI", f"refs/heads/{branch}"], cwd=root, timeout=30)
     dates = [x for x in r.stdout.split() if x] if r.returncode == 0 else []
     if dates:
@@ -51,15 +51,21 @@ def enforce(root, gh, numbers, sessions_dir=None):
             stats = gh.file_stats(n)
             if stats is None:
                 raise ToolError("gh cannot list its files")
-            if not draft_rules.backend_part(stats)[0]:
+            if not any(x.startswith((draft_rules.BACKEND, draft_rules.ACCEPTANCE)) for p in stats for x in (p[0], p[1] or "")):
+                continue
+            fetched = sh(["git", "fetch", "-q", "origin", "main", f"+refs/pull/{n}/head:refs/mq-draft/{n}"], cwd=root, timeout=60)
+            if fetched.returncode:
+                raise ToolError(f"cannot fetch it ({(fetched.stderr or '').strip()[:200]})")
+            log = sh(["git", *draft_rules.LOG_ARGS, f"origin/main..refs/mq-draft/{n}"], cwd=root, timeout=60)
+            if log.returncode:
+                raise ToolError(f"cannot list its commits ({(log.stderr or '').strip()[:200]})")
+            scoped = draft_rules.acceptance_files(log.stdout)
+            if not draft_rules.backend_part(stats, scoped)[0]:
                 continue
             comments, edited = gh.comments(n), gh.body_edited_at(n)
             if comments is None or edited is None:
                 raise ToolError("gh cannot read its comments or when the body was edited")
-            fetched = sh(["git", "fetch", "-q", "origin", "main", f"refs/pull/{n}/head"], cwd=root, timeout=60)
-            if fetched.returncode:
-                raise ToolError(f"cannot fetch it ({(fetched.stderr or '').strip()[:200]})")
-            why = draft_rules.judge(stats, v["body"], comments, parse_time(edited), worktree_of(root, v["branch"]), branch_cut_time(root, v["branch"], v["head"]), sessions_dir or draft_rules.sessions_root())
+            why = draft_rules.judge(stats, v["body"], comments, parse_time(edited), worktree_of(root, v["branch"]), branch_cut_time(root, v["branch"], v["head"]), sessions_dir or draft_rules.sessions_root(), scoped)
         except Exception as error:   # ToolError, or anything else the gathering hits (a missing checkout, a parse): the check is a help, never a reason to stop the queue
             print(f"mq: first-draft check not run for #{n}: {error}; queued without the check", file=sys.stderr)
             continue

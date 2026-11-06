@@ -43,11 +43,11 @@ class FakeGh:
         return self.edited
 
 
-def run(root, gh, sessions):
+def run(root, gh, sessions, number=7):
     err = io.StringIO()
     try:
         with contextlib.redirect_stderr(err):
-            draft_check.enforce(root, gh, [7], sessions_dir=sessions)
+            draft_check.enforce(root, gh, [number], sessions_dir=sessions)
     except SystemExit as e:
         return str(e), err.getvalue()
     return None, err.getvalue()
@@ -128,6 +128,11 @@ def main():
         os.makedirs(folder)
         with open(os.path.join(folder, f"rollout-{when.strftime('%Y-%m-%dT%H-%M-%S')}-{SID}.jsonl"), "w") as f:
             f.write(json.dumps({"type": "session_meta", "payload": {"id": SID, "timestamp": when.isoformat(), "cwd": wt, "originator": "codex_exec"}}) + "\n")
+        def put_session(sid, cwd, at):
+            day = os.path.join(sessions, str(at.year), f"{at.month:02d}", f"{at.day:02d}")
+            os.makedirs(day, exist_ok=True)
+            with open(os.path.join(day, f"rollout-{at.strftime('%Y-%m-%dT%H-%M-%S')}-{sid}.jsonl"), "w") as f:
+                f.write(json.dumps({"type": "session_meta", "payload": {"id": sid, "timestamp": at.isoformat(), "cwd": cwd, "originator": "codex_exec"}}) + "\n")
         java = [("backend/src/main/java/A.java", None, 40, 0)]
         fake = lambda **kw: FakeGh(**{"files": java, "body": f"Closes #1\n\nCodex: {SID}\n", "branch": "feat", "head": head, **kw})
         # a pull request that is not backend runtime code is never asked
@@ -138,6 +143,36 @@ def main():
         assert run(main_co, fake(), sessions) == (None, "")
         why, _ = run(main_co, fake(body="Codex: 11111111-2222-3333-4444-555555555555\n"), sessions)
         assert why and "no file rollout" in why, why
+        # a session ties to the author's worktree and to the branch's start: the enqueue check passes both on (a session in another worktree, a session from before the branch)
+        other_wt = os.path.join(main_co, ".claude", "worktrees", "w2")
+        git(main_co, "worktree", "add", "-q", other_wt, "-b", "other")
+        elsewhere, early = "e1a18901-dd25-71b0-addd-7a5fcb6d205b", "e2a18901-dd25-71b0-addd-7a5fcb6d205b"
+        put_session(elsewhere, other_wt, datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=6))
+        put_session(early, wt, datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=3))
+        why, _ = run(main_co, fake(body=f"Codex: {elsewhere}\n"), sessions)
+        assert why and "not inside the author's worktree" in why, why
+        why, _ = run(main_co, fake(body=f"Codex: {early}\n"), sessions)
+        assert why and "not after the branch was cut" in why, why
+        # acceptance tests of one-test are in scope only in commits with the trailer
+        acc = "backend/src/test/java/com/forcitis/one/acceptance/T.java"
+        def commit_on(branch, number, message):
+            git(main_co, "checkout", "-q", "-b", branch, "main")
+            os.makedirs(os.path.join(main_co, os.path.dirname(acc)), exist_ok=True)
+            open(os.path.join(main_co, acc), "w").write("class T {}\n" * 30)
+            git(main_co, "add", "."), git(main_co, "commit", "-q", "-m", message), git(main_co, "push", "-q", "origin", f"HEAD:refs/heads/{branch}")
+            git(origin, "update-ref", f"refs/pull/{number}/head", git(main_co, "rev-parse", "HEAD"))
+            git(main_co, "checkout", "-q", "main")
+        commit_on("acc-trailer", 8, "acceptance\n\nAcceptance-Test-Author: test-engineer")
+        commit_on("acc-plain", 9, "acceptance by hand")
+        commit_on("acc-other", 10, "acceptance\n\nAcceptance-Test-Author: somebody-else")
+        only_acc = [(acc, None, 40, 0)]
+        why, _ = run(main_co, fake(files=only_acc, body="Closes #1\n"), sessions, 8)
+        assert why and "acceptance tests of one-test" in why and "no `Codex:` line" in why, why
+        assert run(main_co, fake(files=only_acc), sessions, 8) == (None, ""), "a true line holds for acceptance tests too"
+        assert run(main_co, fake(files=only_acc, body="Closes #1\n"), sessions, 9) == (None, ""), "no trailer: not in scope"
+        assert run(main_co, fake(files=only_acc, body="Closes #1\n"), sessions, 10) == (None, ""), "another trailer value: not in scope"
+        assert run(main_co, fake(files=[(acc, None, 5, 5)], body="Codex: skip small\n"), sessions, 8)[0] is None
+        assert "fewer than 20" in run(main_co, fake(files=[(acc, None, 10, 10)], body="Codex: skip small\n"), sessions, 8)[0]
         # skips: small from the diff, anything else from a lead comment posted after the last body edit
         assert run(main_co, fake(files=[("backend/src/main/A.java", None, 5, 5)], body="Codex: skip small\n"), sessions)[0] is None
         assert "fewer than 20" in run(main_co, fake(body="Codex: skip small\n"), sessions)[0]

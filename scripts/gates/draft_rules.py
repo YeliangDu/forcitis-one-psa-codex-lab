@@ -1,9 +1,9 @@
 """The rules of the first-draft check (#1561), shared by the PR-opening gate (scripts/gates/pr_open_gate.py) and the merge queue's enqueue check (scripts/merge/draft_check.py). Only the standard library: the installed hooks hold scripts/gates alone.
 
-A pull request that changes backend runtime code (`backend/src/main/**`) must say, in its body, that Codex drafted it, and the claim must be true.
+A pull request that changes backend runtime code (`backend/src/main/**`) or acceptance tests that one-test drafts (`backend/src/test/java/com/forcitis/one/acceptance/**` in commits with the trailer `Acceptance-Test-Author: test-engineer`) must say, in its body, that Codex drafted it, and the claim must be true.
 The body carries one or more lines `Codex: <session-id>[, <session-id>...]` (one line per module drafted) or `Codex: skip <reason>`.
 - Each session id must name a file ~/.codex/sessions/**/rollout-<time>-<id>.jsonl whose first record is a `session_meta` with originator `codex_exec`, a cwd inside the author's worktree and a timestamp after the branch was cut from main.
-- `Codex: skip small` is accepted when the `backend/src/main/**` part of the diff changes fewer than SMALL lines (added + deleted). Any other `Codex: skip <reason>` (and `skip small` on a bigger diff) is accepted only when the pull request has a comment holding LEAD_OK posted after the body was last edited (at PR opening there is no comment yet: comments=None, such a line passes there and is judged at enqueue).
+- `Codex: skip small` is accepted when the scoped part of the diff (backend/src/main/** and the acceptance files of one-test commits) changes fewer than SMALL lines (added + deleted). Any other `Codex: skip <reason>` (and `skip small` on a bigger diff) is accepted only when the pull request has a comment holding LEAD_OK posted after the body was last edited (at PR opening there is no comment yet: comments=None, such a line passes there and is judged at enqueue).
 - A missing line, an id that matches nothing, or a skip without its condition is a refusal. A tool that cannot answer (no ~/.codex) is not: it raises ToolError and the caller lets the pull request through with a warning (ops playbook: fail open)."""
 import datetime
 import glob
@@ -15,12 +15,15 @@ import pr_body
 
 KEY = "Codex"
 BACKEND = "backend/src/main/"
+ACCEPTANCE = "backend/src/test/java/com/forcitis/one/acceptance/"   # one-test's acceptance tests: in scope only in commits with the trailer below (docs/rules/rulings/codex-required.md item 1(b))
+TRAILER = ("Acceptance-Test-Author", "test-engineer")
+LOG_ARGS = ["log", "--no-renames", "--name-only", "--format=%x01%(trailers:key=" + TRAILER[0] + ",valueonly,separator=%x2C)"]   # callers add the range; acceptance_files reads the output
 SMALL = 20
 LEAD_OK = "lead 准许跳过 Codex"
 ORIGINATOR = "codex_exec"
 SESSION_ID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 FORMS = ("Accepted forms in the pull request body (a line of its own): `Codex: <session-id>[, <session-id>...]` (the id of each `codex exec` run that drafted the backend change, one line per module; "
-         "the run's file is ~/.codex/sessions/<y>/<m>/<d>/rollout-<time>-<id>.jsonl), `Codex: skip small` (only when backend/src/main changes fewer than "
+         "the run's file is ~/.codex/sessions/<y>/<m>/<d>/rollout-<time>-<id>.jsonl), `Codex: skip small` (only when backend/src/main and the acceptance files of one-test change fewer than "
          f"{SMALL} lines), or `Codex: skip <reason>` together with a comment `{LEAD_OK}` posted after the body was last edited.")
 
 
@@ -37,9 +40,23 @@ def parse_time(text):
         return None
 
 
-def backend_part(stats):
-    """(files, changed lines) of the runtime backend part of a diff; stats is [(path, previous path or None, additions, deletions)]."""
-    mine = [s for s in stats if s[0].startswith(BACKEND) or (s[1] or "").startswith(BACKEND)]
+def acceptance_files(log_text):
+    """The acceptance-test files that commits with the one-test trailer touch, from the output of `git ` + LOG_ARGS + a range."""
+    found = set()
+    for chunk in log_text.split("\x01")[1:]:
+        head, _, names = chunk.partition("\n")
+        if TRAILER[1] in [x.strip() for x in head.split(",")]:
+            found |= {n.strip() for n in names.splitlines() if n.strip().startswith(ACCEPTANCE)}
+    return found
+
+
+def in_scope(path, scoped=()):
+    return path.startswith(BACKEND) or path in scoped
+
+
+def backend_part(stats, scoped=()):
+    """(files, changed lines) of the part of a diff the Codex rule covers: backend/src/main and the acceptance files in `scoped` (acceptance_files); stats is [(path, previous path or None, additions, deletions)]."""
+    mine = [s for s in stats if in_scope(s[0], scoped) or in_scope(s[1] or "", scoped)]
     return len(mine), sum(s[2] + s[3] for s in mine)
 
 
@@ -85,14 +102,15 @@ def session_problem(sid, sessions_dir, worktree, base_time):
     return None
 
 
-def judge(stats, body, comments, edited_at, worktree, base_time, sessions_dir):
-    """The refusal text, or None when the pull request needs no Codex line or has valid ones. Raises ToolError when a tool cannot answer."""
-    files, changed = backend_part(stats)
+def judge(stats, body, comments, edited_at, worktree, base_time, sessions_dir, scoped=()):
+    """The refusal text, or None when the pull request needs no Codex line or has valid ones. Raises ToolError when a tool cannot answer.
+    Notes: the lead comment is matched on its text only (a session and lead may share one GitHub login); with worktree None (the author's worktree is gone) a session from any .claude/worktrees/<name> counts, so one id could be claimed by several pull requests."""
+    files, changed = backend_part(stats, scoped)
     if not files:
         return None
     values = pr_body.lines(body, KEY)
     if not values:
-        return f"backend/src/main is changed ({files} files, {changed} lines) but the body has no `Codex:` line. {FORMS}"
+        return f"backend runtime code (backend/src/main) or acceptance tests of one-test are changed ({files} files, {changed} lines) but the body has no `Codex:` line. {FORMS}"
     problems = []
     for value in values:
         if value.lower().startswith("skip"):
@@ -104,7 +122,7 @@ def judge(stats, body, comments, edited_at, worktree, base_time, sessions_dir):
             elif comments is None or any(LEAD_OK in c["body"] and parse_time(c["at"]) and edited_at and parse_time(c["at"]) > edited_at for c in comments):
                 continue
             elif reason == "small":
-                problems.append(f"`Codex: skip small` is for fewer than {SMALL} changed lines of backend/src/main; this change has {changed}")
+                problems.append(f"`Codex: skip small` is for fewer than {SMALL} changed lines of backend/src/main and one-test acceptance files; this change has {changed}")
             else:
                 problems.append(f"`Codex: skip {reason}` needs a comment `{LEAD_OK}` posted after the body was last edited"
                                 f"{f' ({edited_at.isoformat()})' if edited_at else ''}; none found")
@@ -116,7 +134,7 @@ def judge(stats, body, comments, edited_at, worktree, base_time, sessions_dir):
             why = session_problem(sid, sessions_dir, worktree, base_time)
             if why:
                 problems.append(why)
-    return None if not problems else "backend/src/main is changed and the `Codex:` lines do not hold:\n- " + "\n- ".join(problems) + "\n" + FORMS
+    return None if not problems else "backend runtime code or one-test acceptance tests are changed and the `Codex:` lines do not hold:\n- " + "\n- ".join(problems) + "\n" + FORMS
 
 
 def sessions_root():

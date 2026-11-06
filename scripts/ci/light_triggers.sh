@@ -59,6 +59,7 @@ t_gates|gates (gates_selftest.py)|python3 scripts/gates/gates_selftest.py
 t_gates|stop_language (self-test)|python3 -I scripts/hooks/stop_language.py --self-test
 t_gates|card_handover (self-test)|python3 -I scripts/hooks/card_handover.py --self-test
 t_gates|pr_open_gate and draft rules (self-test)|python3 scripts/gates/pr_open_gate.py --self-test
+t_gates|draft_check on the shared rules (self-test)|python3 scripts/merge/draft_check_selftest.py
 t_session|build_decisions (self-test)|python3 scripts/session/build_decisions.py --self-test
 t_session|new_intent_selftest (self-test)|python3 scripts/session/new_intent_selftest.py --self-test
 t_new_card|new_card_selftest (self-test)|python3 scripts/session/new_card_selftest.py --self-test

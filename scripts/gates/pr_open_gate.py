@@ -16,6 +16,7 @@ import codex_gate as shell   # the tokenizer and the session-worktree test of th
 import draft_rules
 
 GIT_WAIT = 20
+FETCH_WAIT = 8   # six git calls at most share the dispatcher's 100 s: a hung fetch must not eat them
 
 
 def read_flag(args, i, long_names, short):
@@ -84,18 +85,20 @@ def create_body(command, cwd):
     return False, None
 
 
-def git(cwd, *args):
-    return subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True, timeout=GIT_WAIT, stdin=subprocess.DEVNULL)
+def git(cwd, *args, wait=GIT_WAIT):
+    return subprocess.run(["git", "-C", cwd, *args], capture_output=True, text=True, timeout=wait, stdin=subprocess.DEVNULL)
 
 
 def local_facts(top):
-    """(stats, branch cut time) of the branch checked out in the worktree `top`; raises ToolError when git cannot say."""
+    """(stats, branch start time, acceptance files in scope) of the branch checked out in the worktree `top`; raises ToolError when git cannot say."""
     try:
-        git(top, "fetch", "-q", "origin", "main")   # a stale origin/main would list main's own commits as this branch's; a failed fetch is no reason to stop
+        git(top, "fetch", "-q", "origin", "main", wait=FETCH_WAIT)   # a stale origin/main would list main's own commits as this branch's; a failed fetch is no reason to stop
         branch = git(top, "symbolic-ref", "--short", "HEAD")
         numstat = git(top, "diff", "--numstat", "--no-renames", "origin/main...HEAD")
-        if branch.returncode or numstat.returncode:
-            raise draft_rules.ToolError("git cannot say the branch or its diff against origin/main")
+        log = git(top, *draft_rules.LOG_ARGS, "origin/main..HEAD")
+        if branch.returncode or numstat.returncode or log.returncode:
+            raise draft_rules.ToolError("git cannot say the branch, its diff or its commits against origin/main")
+        scoped = draft_rules.acceptance_files(log.stdout)
         stats = []
         for line in numstat.stdout.splitlines():
             added, deleted, path = line.split("\t", 2)
@@ -103,12 +106,12 @@ def local_facts(top):
         log = git(top, "reflog", "show", "--format=%cI", f"refs/heads/{branch.stdout.strip()}")
         dates = [x for x in log.stdout.split() if x] if log.returncode == 0 else []
         if dates:
-            return stats, draft_rules.parse_time(dates[-1])
+            return stats, draft_rules.parse_time(dates[-1]), scoped
         base = git(top, "merge-base", "origin/main", "HEAD")
         when = git(top, "show", "-s", "--format=%cI", base.stdout.strip()) if base.returncode == 0 and base.stdout.strip() else None
         if when is None or when.returncode:
             raise draft_rules.ToolError("git cannot find the merge base with origin/main")
-        return stats, draft_rules.parse_time(when.stdout.strip())
+        return stats, draft_rules.parse_time(when.stdout.strip()), scoped
     except (OSError, subprocess.SubprocessError, ValueError) as error:
         raise draft_rules.ToolError(f"{error.__class__.__name__}: {error}")
 
@@ -129,8 +132,8 @@ def decide(payload, command):
         top, why = shell.own_worktree(payload.get("cwd"))
         if top is None:
             return 0, "", ""   # the main checkout and other places are the main-checkout gate's business, not this one's
-        stats, cut = local_facts(top)
-        problem = draft_rules.judge(stats, body, None, None, top, cut, draft_rules.sessions_root())
+        stats, cut, scoped = local_facts(top)
+        problem = draft_rules.judge(stats, body, None, None, top, cut, draft_rules.sessions_root(), scoped)
     except draft_rules.ToolError as error:
         return warning(str(error))
     except Exception as error:   # a gate that cannot read something does not stop the work

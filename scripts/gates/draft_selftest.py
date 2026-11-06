@@ -44,6 +44,23 @@ def body_ids(*ids):
     return "Closes #1\n\n" + "".join(f"Codex: {i}\n" for i in ids)
 
 
+def test_scope(tmp):
+    acc = rules.ACCEPTANCE + "A.java"
+    log = "\x01test-engineer\n\n%s\nfoo.txt\n\x01\n\n%sB.java\n\x01other,test-engineer\n\nbackend/src/main/x.java\n%sC.java\n\x01somebody\n\n%sD.java\n" % (acc, rules.ACCEPTANCE, rules.ACCEPTANCE, rules.ACCEPTANCE)
+    assert rules.acceptance_files(log) == {acc, rules.ACCEPTANCE + "C.java"}, rules.acceptance_files(log)
+    assert rules.acceptance_files("") == set() and rules.acceptance_files("\x01\n") == set()
+    root = os.path.join(tmp, "sessions")
+    ok = lambda stats, body, scoped=(): rules.judge(stats, body, [], None, None, BASE, root, scoped)
+    stats = [(acc, None, 40, 0)]
+    assert ok(stats, "none") is None, "without the trailer commit it is not in scope"
+    why = ok(stats, "none", {acc})
+    assert why and "acceptance tests of one-test" in why and "no `Codex:` line" in why, why
+    assert ok(stats, "Codex: skip small\n", {acc}) and "fewer than 20" in ok(stats, "Codex: skip small\n", {acc})
+    assert ok(lines_of(10, 4) + [(acc, None, 3, 2)], "Codex: skip small\n", {acc}) is None, "19 lines of both together"
+    assert ok(lines_of(10, 5) + [(acc, None, 3, 2)], "Codex: skip small\n", {acc}), "20 lines of both together"
+    assert ok(lines_of(10, 5) + [(acc, None, 3, 2)], "Codex: skip small\n") is None, "the acceptance file does not count without the trailer: 15 lines"
+
+
 def test_pr_body():
     assert pr_body.lines("a\nCodex: x, y\nb\n  Codex: z  \n", "Codex") == ["x, y", "z"]
     assert pr_body.lines("```\nCodex: quoted\n```\nCodex: real\n~~~\nCodex: also\n~~~", "Codex") == ["real"], "a fenced line is a quotation, not a declaration"
@@ -166,6 +183,18 @@ def test_gate(tmp):
     assert ask(create("Closes #1\n\nCodex: skip small\n"))[0] == 0, "any skip may be lead-approved: judged at enqueue, where the comments are"
     assert ask(create("Closes #1\n\nCodex: skip boring\n")) == (0, "", ""), "a lead-approved skip is judged at enqueue, there is no comment to look at yet"
     # the body in the forms a session writes
+    # acceptance tests of one-test: in scope when the commit has the trailer
+    acc = rules.ACCEPTANCE + "T.java"
+    git(main, "worktree", "add", "-q", os.path.join(main, ".claude/worktrees/w3"), "-b", "acc")
+    w3 = os.path.join(main, ".claude/worktrees/w3")
+    os.makedirs(os.path.join(w3, os.path.dirname(acc)))
+    open(os.path.join(w3, acc), "w").write("class T {}\n" * 30)
+    git(w3, "add", "."), git(w3, "commit", "-q", "-m", "acceptance by hand")
+    assert ask(create("Closes #1\n"), cwd=w3) == (0, "", ""), "acceptance tests without the trailer are not in scope"
+    open(os.path.join(w3, acc), "a").write("class U {}\n")
+    git(w3, "add", "."), git(w3, "commit", "-q", "-m", "acceptance\n\nAcceptance-Test-Author: test-engineer")
+    code, out, err = ask(create("Closes #1\n"), cwd=w3)
+    assert code == 2 and "acceptance tests of one-test" in err and "no `Codex:` line" in err, (code, err)
     heredoc = f"gh pr create --title 'x' --body \"$(cat <<'EOF'\nCloses #1\n\nCodex: {sid}\nEOF\n)\""
     assert ask(heredoc) == (0, "", ""), ask(heredoc)
     assert ask(heredoc.replace(sid, "11111111-2222-3333-4444-555555555555"))[0] == 2
@@ -220,6 +249,7 @@ def main():
         tmp = os.path.realpath(tmp)
         os.makedirs(os.path.join(tmp, "r"))
         test_rules(os.path.join(tmp, "r"))
+        test_scope(os.path.join(tmp, "r"))
         os.makedirs(os.path.join(tmp, "g"))
         test_gate(os.path.join(tmp, "g"))
     print("draft_selftest: ok")
