@@ -52,7 +52,7 @@ class OrgDirectoryService implements OrgDirectory {
 
     @Override
     public Availability availabilityOn(EmployeeId employeeId, LocalDate day) {
-        return new Availability(versions.isOnLeave(employeeId, day), commands.isHeld(employeeId), commands.isLeaving(employeeId));
+        return new Availability(versions.isOnLeave(employeeId, day), commands.isHeld(employeeId), commands.isLeaving(employeeId, day));
     }
 
     @Override
@@ -105,11 +105,6 @@ class OrgDirectoryService implements OrgDirectory {
     public Optional<OrgUnitProfile> findOrgUnit(OrgUnitId orgUnitId) {
         return snapshots.findOrgUnit(orgUnitId).map(unit -> new OrgUnitProfile(unit.orgUnitId(), unit.name(),
                 unit.parentOrgUnitId(), unit.status() == OrgUnitStatus.ACTIVE));
-    }
-
-    @Override
-    public List<OrgUnitId> findAncestors(OrgUnitId orgUnitId) {
-        return snapshots.findAncestors(orgUnitId);
     }
 
     private EmployeeProfile profile(StaffEmployee staff) {

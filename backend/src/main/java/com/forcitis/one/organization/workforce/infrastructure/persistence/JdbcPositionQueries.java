@@ -66,6 +66,12 @@ class JdbcPositionQueries implements PositionQueries {
                 .query((rs, n) -> row(rs)).optional();
     }
 
+    @Override
+    public boolean isActive(PositionId position) {
+        return jdbc.sql(CURRENT + SELECT + " where position_id = :id and status = 'ACTIVE' and exists (select 1 from organization_workforce.positions p where p.id = :id and p.status = 'ACTIVE')")
+                .param("day", zone.today(clock)).param("id", position.value()).query((rs, n) -> 1).list().size() == 1;
+    }
+
     private static Row row(ResultSet rs) throws SQLException {
         return new Row(new PositionId(rs.getObject("position_id", UUID.class)), rs.getString("code"), rs.getString("name"),
                 PositionStatus.valueOf(rs.getString("status")), rs.getObject("effective_from_date", LocalDate.class), rs.getObject("effective_to_date", LocalDate.class));

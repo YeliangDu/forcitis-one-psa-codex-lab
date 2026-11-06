@@ -7,4 +7,6 @@ export { ApiError, MissingVersionError, ResponseShapeError, newIdempotencyKey, v
 export { DEFAULT_PAGE_LIMIT, checkedPage, collectPages, nextCursorOf } from './paging';
 export type { ApiHandlers } from './http';
 export { operations };
+export type { LocalAccount } from './local-login';
+export { fetchLocalAccounts, loginAsLocalAccount } from './local-login';
 export { setApiHandlers } from './runtime';

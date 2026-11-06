@@ -76,7 +76,9 @@ public final class CommandEffects {
     /** The assignment version columns the command sets. */
     public static Map<String, Object> assignmentValues(PersonnelCommand c) {
         Map<String, Object> v = new LinkedHashMap<>();
-        if (c.kind() == PersonnelCommandKind.HIRE || c.kind() == PersonnelCommandKind.REINSTATE || c.kind() == PersonnelCommandKind.START_CONCURRENT) {
+        boolean entersPost = c.kind() == PersonnelCommandKind.START_CONCURRENT
+                || (c.kind() == PersonnelCommandKind.HIRE || c.kind() == PersonnelCommandKind.REINSTATE) && c.targetOrgUnitId() != null;
+        if (entersPost) {
             v.put(ORG_UNIT, Objects.requireNonNull(c.targetOrgUnitId(), "department").value());
             v.put(POSITION, Objects.requireNonNull(c.targetPositionId(), "position").value());
             v.put(REPORTS_TO, c.targetReportsToEmployeeId() == null ? null : c.targetReportsToEmployeeId().value());

@@ -39,7 +39,7 @@ class HandleEmployeeReinstatedOrderTest {
         when(accounts.findForUpdate(any())).thenReturn(Optional.of(UserAccount.restore(user, employee, "ENABLED", Set.of(), null, 1, 1)));
         when(directory.findEmployee(employee)).thenReturn(Optional.empty());
         var event = new EmployeeReinstated(TestEnvelopes.of("organization.workforce.EmployeeReinstated", "Employee", employee.value()),
-                new PersonnelCommandId(UUID.randomUUID()), employee, LocalDate.of(2026, 11, 2));
+                new PersonnelCommandId(UUID.randomUUID()), employee, LocalDate.of(2026, 11, 2), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
         try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "platform.identity.account-provisioning")) {
             handler.on(event);
         }

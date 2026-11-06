@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import com.forcitis.one.acceptance.AssignmentRoots;
 import static com.forcitis.one.acceptance.organization.workforce.OrgStructureCommandNames.*;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.ASSIGNMENT_VERSIONS;
@@ -10,6 +11,7 @@ import static com.forcitis.one.acceptance.organization.workforce.PersonnelComman
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.HIRE;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.IS_TARGET_FEE_EARNER;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.TARGET_EMPLOYMENT_PHASE_KIND;
+import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.TARGET_EMPLOYER_LEGAL_ENTITY_ID;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.TARGET_POSITION_ID;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.WECOM_USER_ID;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.EFFECTIVE;
@@ -183,9 +185,8 @@ class OrgMergeLaterArrivalIT extends OrgStructureCommandSupport {
                     from, at, at, stored(person));
             UUID root = AssignmentRoots.primaryOf(workforce, stored(person));
             update(workforce, AssignmentRoots.withRoot("""
-                    insert into assignment_versions (assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
-                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root),
-                    AssignmentRoots.arguments(root, Uuids.timeOrdered(NOW), stored(person), from, stored(merged), position, at, at));
+                    insert into assignment_versions (employment_relationship_id, assignment_version_id, employee_id, effective_from_date, org_unit_id, position_id,
+                      change_channel_kind, created_at, updated_at) values (?, ?, ?, ?, ?, ?, 'MIGRATION', ?, ?)""", root), AssignmentRoots.arguments(root, EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person)), Uuids.timeOrdered(NOW), stored(person), from, stored(merged), position, at, at));
         }
     }
 
@@ -209,6 +210,7 @@ class OrgMergeLaterArrivalIT extends OrgStructureCommandSupport {
         String wecomUserId = "late-hire-" + UUID.randomUUID().toString().substring(0, 13);
         Map<String, Object> fields = new HashMap<>();
         fields.put(COMMAND_KIND, HIRE);
+        fields.put(TARGET_EMPLOYER_LEGAL_ENTITY_ID, legalEntity);
         fields.put(EFFECTIVE_DATE, effective);
         fields.put(TARGET_ORG_UNIT_ID, orgUnit);
         fields.put(TARGET_POSITION_ID, newPosition());

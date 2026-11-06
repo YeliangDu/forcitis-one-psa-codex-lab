@@ -1,9 +1,9 @@
 # 由 panorama/scan_aggregates.py 生成，勿手改
 meta:
-  count: 19
+  count: 21
   code_only: 8
   registry_only: 0
-  both: 11
+  both: 13
   sources:
   - backend/src/main/java/com/forcitis/one
   - backend/architecture/data-access-registry.yaml
@@ -33,6 +33,17 @@ meta:
     due: '2026-11-15'
     reason: 单元 3 基线建表，隔离读取申请代码未写（ADR-0070）；根类随 5a 补，11-01 前 5a 未开工先报改期（one-platform-file 2026-10-22）
 aggregates:
+- id: accounting.period/FiscalPeriod
+  bc: accounting.period
+  root_class: backend/src/main/java/com/forcitis/one/accounting/period/domain/FiscalPeriod.java
+  source:
+  - code
+  - registry
+  tables:
+  - accounting_period.fiscal_periods
+  commands:
+  - OpenFiscalYear
+  events: []
 - id: cost.timesheet/Timesheet
   bc: cost.timesheet
   root_class: backend/src/main/java/com/forcitis/one/cost/timesheet/domain/Timesheet.java
@@ -88,6 +99,19 @@ aggregates:
   - organization.attendance.StandardHoursVersionPublished
   - organization.attendance.WorkCalendarLockedDaysChanged
   - organization.attendance.WorkCalendarYearMaintained
+- id: organization.payroll/PayrollRuleVersion
+  bc: organization.payroll
+  root_class: backend/src/main/java/com/forcitis/one/organization/payroll/domain/PayrollRuleVersion.java
+  source:
+  - code
+  - registry
+  tables:
+  - organization_payroll.payroll_rule_rows
+  - organization_payroll.payroll_rule_versions
+  commands:
+  - PublishPayrollRuleVersion
+  events:
+  - organization.payroll.PayrollRuleVersionBecameEffective
 - id: organization.workforce/EmployeeLegalEntityChange
   bc: organization.workforce
   root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/EmployeeLegalEntityChange.java
@@ -108,6 +132,11 @@ aggregates:
   - organization.workforce.EmployeeSeparated
   - organization.workforce.EmployeeTransferred
   - organization.workforce.EmployeeUnpaidLeaveStarted
+  - organization.workforce.EmploymentRelationshipCorrected
+  - organization.workforce.EmploymentRelationshipEnded
+  - organization.workforce.EmploymentRelationshipPhaseChanged
+  - organization.workforce.EmploymentRelationshipStarted
+  - organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected
@@ -156,6 +185,11 @@ aggregates:
   - organization.workforce.EmployeeSeparated
   - organization.workforce.EmployeeTransferred
   - organization.workforce.EmployeeUnpaidLeaveStarted
+  - organization.workforce.EmploymentRelationshipCorrected
+  - organization.workforce.EmploymentRelationshipEnded
+  - organization.workforce.EmploymentRelationshipPhaseChanged
+  - organization.workforce.EmploymentRelationshipStarted
+  - organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected
@@ -204,6 +238,11 @@ aggregates:
   - organization.workforce.EmployeeSeparated
   - organization.workforce.EmployeeTransferred
   - organization.workforce.EmployeeUnpaidLeaveStarted
+  - organization.workforce.EmploymentRelationshipCorrected
+  - organization.workforce.EmploymentRelationshipEnded
+  - organization.workforce.EmploymentRelationshipPhaseChanged
+  - organization.workforce.EmploymentRelationshipStarted
+  - organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected
@@ -257,6 +296,11 @@ aggregates:
   - organization.workforce.EmployeeSeparated
   - organization.workforce.EmployeeTransferred
   - organization.workforce.EmployeeUnpaidLeaveStarted
+  - organization.workforce.EmploymentRelationshipCorrected
+  - organization.workforce.EmploymentRelationshipEnded
+  - organization.workforce.EmploymentRelationshipPhaseChanged
+  - organization.workforce.EmploymentRelationshipStarted
+  - organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected
@@ -309,6 +353,11 @@ aggregates:
   - organization.workforce.EmployeeSeparated
   - organization.workforce.EmployeeTransferred
   - organization.workforce.EmployeeUnpaidLeaveStarted
+  - organization.workforce.EmploymentRelationshipCorrected
+  - organization.workforce.EmploymentRelationshipEnded
+  - organization.workforce.EmploymentRelationshipPhaseChanged
+  - organization.workforce.EmploymentRelationshipStarted
+  - organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
   - organization.workforce.LegalEntityActivated
   - organization.workforce.LegalEntityAttributed
   - organization.workforce.LegalEntityAttributionCorrected
@@ -508,7 +557,7 @@ aggregates:
   - PermissionAdjustmentAccess
   - PermissionAdjustmentEscalationNotice
   - PermissionAdjustmentTransitions
-  - PermissionAdjustmentView
+  - PermissionAdjustmentViews
   - UpholdPermissionAdjustment
   events:
   - platform.identity.PermissionAdjustmentAdjusted
@@ -563,6 +612,7 @@ aggregates:
   - ListAuthorizationRequests
   - OrgUnitScopes
   - PermissionAdjustmentEscalationNotice
+  - PermissionAdjustmentViews
   - ReplaceAccountRoles
   - RevokeRoleByOperations
   - RoleScopeRefusal

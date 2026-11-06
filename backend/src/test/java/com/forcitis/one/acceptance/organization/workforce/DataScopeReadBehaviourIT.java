@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
@@ -66,6 +67,7 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
     static final String ORG_UNIT = "/api/v1/organization/org-units/{orgUnitId}";
     static final String ADJUSTMENTS = "/api/v1/platform/permission-adjustments";
     static final String ADJUSTMENT = ADJUSTMENTS + "/{permissionAdjustmentId}";
+    static final String PRIMARY_ASSIGNMENTS = "/api/v1/organization/primary-assignments/{employeeId}";
 
     /**
      * A4 does not apply to these lines: their scope is a relation (permission-adjustment:read holders, else recipient = caller), the list is always 200
@@ -156,14 +158,15 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
             for (String key : List.of("a1", "b1", "a2", "b2")) {
                 UUID id = UUID.randomUUID();
                 try (PreparedStatement statement = workforce.prepareStatement("""
-                        insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
-                        values (?, ?, 'REGULARIZE', ?, 'PENDING', ?, ?, ?)""")) {
+                        insert into personnel_commands (personnel_command_id, employee_id, employment_relationship_id, command_kind, effective_date, status, created_at, created_by, updated_at)
+                        values (?, ?, ?, 'REGULARIZE', ?, 'PENDING', ?, ?, ?)""")) {
                     statement.setObject(1, id);
                     statement.setObject(2, UUID.fromString(employeeIdOf(key)));
-                    statement.setObject(3, java.time.LocalDate.of(2026, 12, 1));
-                    statement.setObject(4, at);
-                    statement.setObject(5, UUID.randomUUID());
-                    statement.setObject(6, at);
+                    statement.setObject(3, EmploymentRelationshipSeeds.relationshipOf(workforce, UUID.fromString(employeeIdOf(key))));
+                    statement.setObject(4, java.time.LocalDate.of(2026, 12, 1));
+                    statement.setObject(5, at);
+                    statement.setObject(6, UUID.randomUUID());
+                    statement.setObject(7, at);
                     statement.executeUpdate();
                 }
                 personnelCommandOf.put(id.toString(), key);
@@ -239,6 +242,7 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
                 new DetailPath("GET " + EMPLOYEE_ENTITIES, employeeIdOf("a1"), employeeIdOf("b1")),
                 new DetailPath("GET " + EMPLOYEES + "/{employeeId}", employeeIdOf("a1"), employeeIdOf("b1")),
                 new DetailPath("GET " + PERSONNEL_COMMANDS + "/{personnelCommandId}", personnelCommandOf("a1"), personnelCommandOf("b1")),
+                new DetailPath("GET " + PRIMARY_ASSIGNMENTS, employeeIdOf("a1"), employeeIdOf("b1")),
                 new DetailPath("GET " + ADJUSTMENT, adjustmentIn("F1-A"), adjustmentIn("F1-B")));
     }
 

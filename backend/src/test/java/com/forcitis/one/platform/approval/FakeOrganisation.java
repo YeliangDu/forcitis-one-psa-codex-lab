@@ -145,21 +145,6 @@ public class FakeOrganisation implements OrgDirectory, RoleDirectory {
     }
 
     @Override
-    public List<OrgUnitId> findAncestors(OrgUnitId orgUnitId) {
-        List<OrgUnitId> ancestors = new ArrayList<>();
-        Unit current = units.get(orgUnitId.value());
-        Set<Long> seen = new HashSet<>();
-        if (current != null) {
-            seen.add(current.id());
-        }
-        while (current != null && current.parent() != null && seen.add(current.parent())) {
-            ancestors.add(TestOrgIds.orgUnit(current.parent()));
-            current = units.get(unitKey(current.parent()));
-        }
-        return ancestors;
-    }
-
-    @Override
     public Set<UserId> findRoleHolders(RoleCode roleCode) {
         Set<UserId> holders = new LinkedHashSet<>();
         for (Long holder : roles.getOrDefault(roleCode.value(), Set.of())) {

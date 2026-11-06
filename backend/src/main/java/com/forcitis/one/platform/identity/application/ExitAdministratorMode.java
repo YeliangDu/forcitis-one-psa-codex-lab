@@ -40,7 +40,7 @@ public class ExitAdministratorMode {
         }
         LoginMethod method = session.loginMethod();
         audit.record(new AuditEntry("platform.identity.administrator-mode.exited", userId, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()), null)
-                .withTrace(origin.address(), AuditOutcome.SUCCEEDED, method.name()));
+                .withTrace(origin.address(), AuditOutcome.SUCCEEDED, method.auditKind()));
         log.error("ALERT platform.identity administrator mode left by user {}", userId.value());
         if (method == LoginMethod.EMERGENCY) {
             sessions.end();
