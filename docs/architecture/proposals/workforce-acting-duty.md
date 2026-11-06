@@ -46,7 +46,7 @@ How workforce records "person A acts for post P from date X to date Y", how it i
 | `ended_on` | empty while open; set when ended early or expired (the first day it no longer holds) |
 | `end_cause` | `EXPIRED` / `ENDED_EARLY` / `SEPARATION`; empty while open |
 
-State is derived, not stored: **SCHEDULED** (today < `starts_on`), **ACTIVE** (`starts_on` ≤ today < effective end), **ENDED** (today ≥ effective end). The effective end is `ended_on` if set, else `ends_before`. A duty withdrawn before it starts keeps its command row as `WITHDRAWN` and never gets a duty row (the row is written when the start command becomes effective, like other facts).
+State of a duty row is derived, not stored: **ACTIVE** (`starts_on` ≤ today < effective end) or **ENDED** (today ≥ effective end). Before `starts_on` there is no row (the row is written when the start takes effect); that time exists only as a pending `ACTING_START` command, which is not a duty state. The effective end is `ended_on` if set, else `ends_before`. A duty withdrawn before it starts keeps its command row as `WITHDRAWN` and never gets a duty row (the row is written when the start command becomes effective, like other facts).
 
 **Commands** (new `PersonnelCommandKind` values; same lifecycle, same withdraw, same audit):
 
@@ -79,7 +79,7 @@ Expiry has no command (amended by the data design record `docs/data/reviews/work
 
 ## 5. How it shows on employee detail
 
-A section "代理职务" (name subject to the glossary check, #1516 H1) on the employee detail page beneath assignments, listing the person's duties newest first: covered unit and post, covered person (name only if the reader may see it), term as first day and last day, state (scheduled / active / ended with cause), reason; row actions "提前结束" and "延期" for the personnel-command permission holders on SCHEDULED and ACTIVE rows. The same person's detail also shows, on the covered person's page, a read-only line "currently covered by …" when a duty names them. The personnel-command list and detail pages show the three new kinds like the existing ones. Rosters and org-unit headcount do not change.
+A section "代理职务" (name subject to the glossary check, #1516 H1) on the employee detail page beneath assignments, listing the person's duty rows only (ACTIVE / ENDED) newest first: covered unit and post, covered person (name only if the reader may see it), term as first day and last day, state (active / ended with cause), reason; row actions "提前结束" and "延期" for the personnel-command permission holders on ACTIVE rows (both need a duty id, which a pending start lacks). The read API returns duty rows only. A pending start is not shown here: it stays in the personnel-command list, where it can be withdrawn. Last day = effective end − 1; it is empty for a zero-length duty (closed by separation with `ended_on = starts_on`), which shows its first day, ended with cause SEPARATION, and no last day. The same person's detail also shows, on the covered person's page, a read-only line "currently covered by …" when a duty names them. The personnel-command list and detail pages show the three new kinds like the existing ones. Rosters and org-unit headcount do not change.
 
 ## 6. What identity hears
 
@@ -123,7 +123,7 @@ Slices 1 to 8 need no user answer. Slices 9 to 11 wait for Q-A1 and Q-A2.
 
 ## 8. Done-when (for the test engineer; one checkable line each)
 
-1. Starting a duty with `starts_on` in the future leaves state SCHEDULED, writes no duty row until the date, and publishes nothing until then.
+1. Starting a duty with `starts_on` in the future leaves the command pending (no duty state), writes no duty row until the date, and publishes nothing until then.
 2. On `starts_on` the daily job writes the duty row, publishes `EmployeeActingDutyStarted` once (redelivery does not duplicate), and creates no expiry command (expiry is the due job's own step).
 3. A duty with `starts_on` ≥ `ends_before` is refused; a one-day duty is accepted.
 4. Two overlapping duties for the same person and same covered post: the second start is refused; back-to-back duties are accepted.
@@ -133,7 +133,7 @@ Slices 1 to 8 need no user answer. Slices 9 to 11 wait for Q-A1 and Q-A2.
 8. `ACTING_EXTEND` moves `ends_before`, publishes no event and the due job then closes it on the new `ends_before`; extending an ENDED duty is refused.
 9. At `ends_before` the due job closes the duty with `EXPIRED` and publishes `Ended` with no command id; running the job twice the same day changes nothing the second time.
 10. Separating the person ends open duties on the separation date with `SEPARATION` and withdraws scheduled ones, in the same transaction as the separation. A duty that starts on the separation day is closed the same day with `ended_on = starts_on` and still publishes `Ended`; a start dated after the separation day is refused. A duty already started with `starts_on` after the separation day is closed with `ended_on = starts_on` and `SEPARATION`, publishes `Ended`, in the separation transaction; a start that falls due after an earlier-dated separation is withdrawn, not applied.
-11. Employee detail shows state, term (first and last day), cause and reason; the covered person's page shows the cover line; roster and headcount counts are unchanged by a duty.
+11. Employee detail lists duty rows only (ACTIVE / ENDED, never a pending start; a pending start is in the personnel-command list), with state, term (first day; last day = effective end − 1, empty for a zero-length duty closed by separation), cause and reason; "提前结束" and "延期" appear on ACTIVE rows only; the covered person's page shows the cover line; roster and headcount counts are unchanged by a duty.
 12. After Q-A1 is answered: `Ended` leaves no grant opened by the duty current, and no review item open for it; sensitive roles are never granted by the path.
 
 ## 9. Questions only the user can answer (none decided here)
