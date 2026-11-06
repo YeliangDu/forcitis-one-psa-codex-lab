@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.forcitis.one.BusinessDay;
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.TestPostgres;
@@ -25,7 +26,6 @@ import com.forcitis.one.platform.numbering.api.DocumentNumbers;
 import com.forcitis.one.platform.numbering.api.IssuedNumber;
 import com.forcitis.one.platform.numbering.api.NumberingRuleVersionId;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -136,7 +136,7 @@ class NumberingRuleVersionIdIT {
     }
 
     private void saveSecondVersionEffectiveTomorrow() throws Exception {
-        saveSecondVersionEffectiveOn(LocalDate.now(ZoneId.of("Asia/Shanghai")).plusDays(1));
+        saveSecondVersionEffectiveOn(BusinessDay.today().plusDays(1));
     }
 
     private void saveSecondVersionEffectiveOn(LocalDate effectiveFrom) throws Exception {
@@ -164,7 +164,7 @@ class NumberingRuleVersionIdIT {
     @Test
     @DisplayName("NV-02 规则新增版本后，新版本取号返回的是新版本的 ID，旧日期仍返回旧版本的 ID（生效日分界）")
     void eachBusinessDateGetsTheIdOfTheVersionInForceThen() throws Exception {
-        LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
+        LocalDate today = BusinessDay.today();
         saveSecondVersionEffectiveOn(today.plusDays(1));
         confirmSecondVersion();
         UUID first = versionRowId(1);

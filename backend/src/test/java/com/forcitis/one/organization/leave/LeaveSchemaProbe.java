@@ -37,7 +37,7 @@ abstract class LeaveSchemaProbe {
     static final LocalDate MONTH = LocalDate.of(2026, 11, 1);
     static final List<String> TABLES = List.of("leave_requests", "leave_request_days", "leave_request_holds",
             "overtime_requests", "attendance_records", "monthly_confirmations", "monthly_confirmation_lines",
-            "leave_types", "leave_rule_versions", "leave_entitlement_rules", "leave_accounts", "leave_ledger_lines", "leave_grant_basis");
+            "leave_types", "leave_rule_versions", "leave_entitlement_rules", "leave_accounts", "leave_ledger_lines", "leave_grant_basis", "leave_policy_grants");
     static final String SCHEMA = "organization_leave.";
 
     @BeforeAll
@@ -183,6 +183,12 @@ abstract class LeaveSchemaProbe {
                 row.put("leave_type_id", UUID.randomUUID()); row.put("line_kind", "GRANT"); row.put("line_qty", 0);
                 row.put("source_kind", "LEAVE_REQUEST"); row.put("source_id", UUID.randomUUID()); row.put("effective_date", MONTH);
             }
+            case "leave_policy_grants" -> {
+                row.put("request_key", UUID.randomUUID().toString());
+                row.put("leave_account_id", UUID.randomUUID()); row.put("employment_relationship_id", UUID.randomUUID());
+                row.put("leave_type_id", UUID.randomUUID()); row.put("grant_qty", 1); row.put("effective_date", MONTH);
+                row.put("basis_text", "Synthetic policy decision"); row.put("granted_by", UUID.randomUUID());
+            }
             case "leave_grant_basis" -> {
                 row.put("leave_ledger_line_id", UUID.randomUUID()); row.put("relationship_start_date", MONTH);
                 row.put("prior_service_months_count", 0); row.put("relationship_end_date", null); row.put("unpaid_leave_days_count", 0);
@@ -215,7 +221,7 @@ abstract class LeaveSchemaProbe {
             var version = validRow(db, "leave_rule_versions");
             row.put("rule_version_id", insert(db, "leave_rule_versions", version));
             if (table.equals("leave_accounts")) row.put("leave_type_id", version.get("leave_type_id"));
-        } else if (table.equals("leave_ledger_lines")) {
+        } else if (table.equals("leave_ledger_lines") || table.equals("leave_policy_grants")) {
             var account = validRow(db, "leave_accounts"); row.put("leave_account_id", insert(db, "leave_accounts", account));
             row.put("employment_relationship_id", account.get("employment_relationship_id")); row.put("leave_type_id", account.get("leave_type_id"));
         } else if (table.equals("leave_grant_basis")) {
