@@ -1,12 +1,11 @@
-import { PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
+import { PageTitle, SelectField, StatusBadge, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { RouterLink } from '../../../shared/router-link';
 import { PagedTable } from '../../../shared/paged-table';
 import { useEmployees, useOrgUnits } from '../hooks/use-workforce';
 import { EMPLOYMENT_FILTERS, EMPLOYMENT_STATUS_LABELS, type EmployeeRoster, type EmploymentFilter, employeePath, employmentFilterOf } from '../model/employee';
 
 export function EmployeeRosterPage() {
-  const navigate = useNavigate();
   const [status, setStatus] = useState<EmploymentFilter>('EMPLOYED');
   const [orgUnitId, setOrgUnitId] = useState('');
   const units = useOrgUnits(false);
@@ -17,7 +16,7 @@ export function EmployeeRosterPage() {
     {
       key: 'name',
       title: '姓名',
-      render: (employee) => <TextLink href={employeePath(employee.employeeId)} onNavigate={() => void navigate(employeePath(employee.employeeId))}>{employee.displayName}</TextLink>,
+      render: (employee) => <RouterLink to={employeePath(employee.employeeId)}>{employee.displayName}</RouterLink>,
     },
     { key: 'unit', title: '组织单元', render: (employee) => employee.assignments.map((assignment) => assignment.orgUnitName).join('、') || '—' },
     { key: 'position', title: '岗位', render: (employee) => employee.assignments.map((assignment) => assignment.positionName).filter((name) => name != null).join('、') || '—' },

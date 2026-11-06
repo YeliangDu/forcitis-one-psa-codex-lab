@@ -1,8 +1,8 @@
 import { formatDateTime } from '@forcitis/core';
 
-import { PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
+import { PageTitle, SelectField, StatusBadge, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { RouterLink } from '../../../shared/router-link';
 import { PagedTable } from '../../../shared/paged-table';
 import { usePermissionAdjustments } from '../hooks/use-permission-adjustments';
 import { KIND_LABELS, ORIGIN_LABELS, STATUS_LABELS, aboutLabel, permissionAdjustmentPath, statusTone, type PermissionAdjustment } from '../model/permission-adjustment';
@@ -12,7 +12,6 @@ const STATUS_OPTIONS = [ALL, ...Object.entries(STATUS_LABELS).map(([value, label
 const KIND_OPTIONS = [ALL, ...Object.entries(KIND_LABELS).map(([value, label]) => ({ value, label }))];
 
 export function PermissionAdjustmentListPage() {
-  const navigate = useNavigate();
   const [status, setStatus] = useState('OPEN');
   const [kind, setKind] = useState('');
   const list = usePermissionAdjustments({ status, kind });
@@ -21,7 +20,7 @@ export function PermissionAdjustmentListPage() {
     {
       key: 'about',
       title: '对象',
-      render: (item) => <TextLink href={permissionAdjustmentPath(item.permissionAdjustmentId)} onNavigate={() => void navigate(permissionAdjustmentPath(item.permissionAdjustmentId))}>{aboutLabel(item)}</TextLink>,
+      render: (item) => <RouterLink to={permissionAdjustmentPath(item.permissionAdjustmentId)}>{aboutLabel(item)}</RouterLink>,
     },
     { key: 'kind', title: '类型', render: (item) => KIND_LABELS[item.kind] ?? item.kind },
     { key: 'origin', title: '来源', render: (item) => ORIGIN_LABELS[item.originKind] ?? item.originKind },

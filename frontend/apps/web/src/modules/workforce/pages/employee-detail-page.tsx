@@ -1,5 +1,6 @@
-import { DataTable, DescriptionList, PageTitle, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
-import { useNavigate, useParams } from 'react-router';
+import { DataTable, DescriptionList, PageTitle, StatusBadge, type DataColumn } from '@forcitis/ui';
+import { useParams } from 'react-router';
+import { RouterLink } from '../../../shared/router-link';
 import { QueryBoundary } from '../../../shared/query-boundary';
 import { useEmployee } from '../hooks/use-workforce';
 import { ASSIGNMENT_KIND_LABELS, EMPLOYMENT_STATUS_LABELS, type EmployeeDetail } from '../model/employee';
@@ -17,7 +18,6 @@ const ASSIGNMENT_COLUMNS: DataColumn<Assignment>[] = [
 
 export function EmployeeDetailPage() {
   const { employeeId = '' } = useParams();
-  const navigate = useNavigate();
   const employee = useEmployee(employeeId);
 
   return (
@@ -34,9 +34,9 @@ export function EmployeeDetailPage() {
               ]}
             />
             <p>
-              <TextLink href={employeeCommandsPath(employeeId)} onNavigate={() => void navigate(employeeCommandsPath(employeeId))}>人事命令</TextLink>
+              <RouterLink to={employeeCommandsPath(employeeId)}>人事命令</RouterLink>
               {' '}
-              <TextLink href={newPersonnelCommandPath(employeeId)} onNavigate={() => void navigate(newPersonnelCommandPath(employeeId))}>发起人事命令</TextLink>
+              <RouterLink to={newPersonnelCommandPath(employeeId)}>发起人事命令</RouterLink>
             </p>
             <DataTable columns={ASSIGNMENT_COLUMNS} rows={detail.assignments} rowKey={(assignment) => `${assignment.assignmentKind}:${assignment.orgUnitId}:${assignment.positionId ?? ''}`} emptyText="暂无任职" />
             <PrimaryAssignmentHistorySection employeeId={employeeId} />
