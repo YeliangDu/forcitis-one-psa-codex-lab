@@ -131,7 +131,7 @@ def session_problem(sid, sessions_dir, worktree, base_time, before=None):
 
 def judge(stats, body, comments, edited_at, worktree, base_time, sessions_dir, scoped=()):
     """The refusal text, or None when the pull request needs no Codex line or has valid ones. Raises ToolError when a tool cannot answer.
-    Backend runtime code is judged by `Codex:` lines against the author's worktree and the branch's start; the acceptance files in `scoped` by `Codex-Acceptance:` lines against any session worktree and the time of the oldest acceptance commit (scoped.oldest).
+    Backend runtime code is judged by `Codex:` lines against the author's worktree and the branch's start; the acceptance files in `scoped` by `Codex-Acceptance:` lines against any session worktree and the acceptance commits' times: every run must start before the newest one (scoped.newest), and at least one before the oldest (scoped.oldest), the first batch.
     Notes: the lead comment is matched on its text only (a session and lead may share one GitHub login); with worktree None (the author's worktree is gone) a session from any .claude/worktrees/<name> counts, so one id could be claimed by several pull requests."""
     (main_files, main_lines), (acc_files, acc_lines) = parts(stats, scoped)
     if not main_files and not acc_files:
