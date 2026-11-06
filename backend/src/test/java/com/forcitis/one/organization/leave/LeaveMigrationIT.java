@@ -21,156 +21,14 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.postgresql.util.PSQLException;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
-/** #1400: plain SQL probes of the signed L1a schema; no application validation masks a database refusal. */
+/** #1400 / #1470: plain SQL probes of the signed L1a and L1b schemas (the L1b version, account and ledger rules are in LeaveLedgerMigrationIT); no application validation masks a database refusal. */
 @Testcontainers
-class LeaveMigrationIT {
-    @Container
-    static PostgreSQLContainer postgres = TestPostgres.container().withInitScript("init-schemas.sql");
-    private static final OffsetDateTime AT = OffsetDateTime.parse("2026-11-05T02:00:00Z");
-    private static final LocalDate MONTH = LocalDate.of(2026, 11, 1);
-    private static final List<String> TABLES = List.of("leave_requests", "leave_request_days", "leave_request_holds",
-            "overtime_requests", "attendance_records", "monthly_confirmations", "monthly_confirmation_lines");
-    private static final String SCHEMA = "organization_leave.";
-
-    @BeforeAll
-    static void migrate() {
-        Flyway.configure().dataSource(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword())
-                .locations("classpath:db/migration").load().migrate();
-    }
-
-    private static Connection connect() throws SQLException {
-        Connection db = DriverManager.getConnection(postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-        db.setAutoCommit(false);
-        return db;
-    }
-
-    private static void run(Connection db, String sql, Object... values) throws SQLException {
-        try (var statement = db.prepareStatement(sql)) {
-            for (int i = 0; i < values.length; i++) {
-                statement.setObject(i + 1, values[i]);
-            }
-            statement.execute();
-        }
-    }
-
-    private static List<String> strings(Connection db, String sql) throws SQLException {
-        List<String> values = new ArrayList<>();
-        try (var statement = db.createStatement(); var rows = statement.executeQuery(sql)) {
-            while (rows.next()) {
-                values.add(rows.getString(1));
-            }
-        }
-        return values;
-    }
-
-    interface Sql {
-        void run() throws SQLException;
-    }
-
-    private static void refused(Connection db, String state, String rule, Sql action) throws SQLException {
-        var savepoint = db.setSavepoint();
-        SQLException refusal;
-        try {
-            refusal = catchThrowableOfType(SQLException.class, action::run);
-        } finally {
-            db.rollback(savepoint);
-            db.releaseSavepoint(savepoint);
-        }
-        assertThat((Throwable) refusal).as("database refuses " + rule).isNotNull();
-        assertThat(refusal.getSQLState()).as(refusal.getMessage()).isEqualTo(state);
-        assertThat(refusal.getMessage()).contains(rule);
-    }
-
-    private static Map<String, Object> row(String table) {
-        Map<String, Object> row = new LinkedHashMap<>();
-        row.put("id", UUID.randomUUID());
-        row.put("created_at", AT);
-        row.put("updated_at", AT);
-        switch (table) {
-            case "leave_requests" -> {
-                row.put("employment_relationship_id", UUID.randomUUID());
-                row.put("employee_id", UUID.randomUUID());
-                row.put("leave_type_id", UUID.randomUUID());
-                row.put("start_at", AT);
-                row.put("end_at", AT.plusHours(1));
-                row.put("status", "DRAFT");
-                row.put("approval_instance_id", null);
-                row.put("legal_entity_id", UUID.randomUUID());
-            }
-            case "leave_request_days" -> {
-                row.put("leave_request_id", UUID.randomUUID());
-                row.put("work_date", MONTH);
-                row.put("minutes_count", 0);
-                row.put("day_hundredths_count", 0);
-            }
-            case "leave_request_holds" -> {
-                row.put("leave_request_id", UUID.randomUUID());
-                row.put("ledger_line_id", UUID.randomUUID());
-            }
-            case "overtime_requests" -> {
-                row.put("employment_relationship_id", UUID.randomUUID());
-                row.put("employee_id", UUID.randomUUID());
-                row.put("work_date", MONTH);
-                row.put("minutes_count", 1);
-                row.put("day_kind", "WORKDAY");
-                row.put("compensation_kind", "PAY");
-                row.put("status", "REQUESTED");
-                row.put("approval_instance_id", null);
-                row.put("legal_entity_id", UUID.randomUUID());
-            }
-            case "attendance_records" -> {
-                row.put("employee_id", UUID.randomUUID());
-                row.put("record_kind", "PUNCH");
-                row.put("occurred_at", AT);
-                row.put("source_system", "SYNTHETIC");
-                row.put("external_record_key", UUID.randomUUID().toString());
-            }
-            case "monthly_confirmations" -> {
-                row.put("employee_id", UUID.randomUUID());
-                row.put("month_start_date", MONTH);
-                row.put("status", "GENERATED");
-                row.put("confirmed_by_kind", null);
-                row.put("confirmed_at", null);
-                row.put("locked_at", null);
-            }
-            case "monthly_confirmation_lines" -> {
-                row.put("monthly_confirmation_id", UUID.randomUUID());
-                row.put("employment_relationship_id", UUID.randomUUID());
-                row.put("line_kind", "ATTENDANCE_DAYS");
-                row.put("leave_type_id", null);
-                row.put("is_paid_leave", null);
-                row.put("compensation_kind", null);
-                row.put("day_kind", null);
-                row.put("minutes_count", null);
-                row.put("day_hundredths_count", 100);
-                row.put("original_month_start_date", null);
-            }
-            default -> throw new IllegalArgumentException(table);
-        }
-        return row;
-    }
-
-    private static UUID insert(Connection db, String table, Map<String, Object> row) throws SQLException {
-        run(db, "insert into " + SCHEMA + table + " (" + String.join(", ", row.keySet()) + ") values ("
-                + row.keySet().stream().map(key -> "?").collect(Collectors.joining(", ")) + ")", row.values().toArray());
-        return (UUID) row.get("id");
-    }
-
-    /** Parent identities are synthetic: cross-context references intentionally need no workforce/identity data. */
-    private static Map<String, Object> validRow(Connection db, String table) throws SQLException {
-        Map<String, Object> row = row(table);
-        if (table.equals("leave_request_days") || table.equals("leave_request_holds")) {
-            row.put("leave_request_id", insert(db, "leave_requests", row("leave_requests")));
-        } else if (table.equals("monthly_confirmation_lines")) {
-            row.put("monthly_confirmation_id", insert(db, "monthly_confirmations", row("monthly_confirmations")));
-        }
-        return row;
-    }
-
+class LeaveMigrationIT extends LeaveSchemaProbe {
     record Check(String table, String suffix, Map<String, Object> changes) {
         String name() {
             return "ck_" + table + "_" + suffix;
@@ -187,6 +45,57 @@ class LeaveMigrationIT {
 
     private static List<Check> checks() {
         return List.of(
+                check("leave_types", "code", "code", "x"),
+                check("leave_types", "display_name", "display_name", " "),
+                check("leave_types", "display_name", "display_name", "X".repeat(61)),
+                check("leave_types", "ledger_unit_kind", "ledger_unit_kind", "UNKNOWN"),
+                check("leave_rule_versions", "scope_kind", "scope_kind", "UNKNOWN", "employer_entity_id", UUID.randomUUID()),
+                check("leave_rule_versions", "scope_matches_entity", "employer_entity_id", UUID.randomUUID()),
+                check("leave_rule_versions", "scope_matches_entity", "scope_kind", "EMPLOYER_ENTITY"),
+                check("leave_rule_versions", "version_number", "version_number", 0),
+                check("leave_rule_versions", "status", "status", "UNKNOWN"),
+                check("leave_rule_versions", "effective_range", "effective_to_date", LocalDate.of(2000, 1, 1)),
+                check("leave_rule_versions", "request_unit_kind", "request_unit_kind", "UNKNOWN"),
+                check("leave_rule_versions", "exempt_threshold_minutes_count", "exempt_threshold_minutes_count", 0),
+                check("leave_rule_versions", "rollover_kind", "rollover_kind", "UNKNOWN"),
+                check("leave_rule_versions", "rollover_columns", "rollover_kind", "CAPPED"),
+                check("leave_rule_versions", "rollover_columns", "rollover_cap_qty", 1),
+                check("leave_rule_versions", "rollover_columns", "rollover_kind", "CAPPED", "rollover_cap_qty", 0),
+                check("leave_rule_versions", "rollover_columns", "rollover_expiry_month_number", 1),
+                check("leave_rule_versions", "rollover_expiry_month_number", "rollover_kind", "UNLIMITED", "rollover_expiry_month_number", 13),
+                check("leave_rule_versions", "grant_valid_days_count", "grant_valid_days_count", 0),
+                check("leave_rule_versions", "basis_ref_text", "basis_ref_text", " spaced "),
+                check("leave_rule_versions", "basis_ref_text", "basis_ref_text", "X".repeat(201)),
+                check("leave_rule_versions", "void_columns", "status", "VOIDED"),
+                check("leave_rule_versions", "void_columns", "voided_at", AT),
+                check("leave_rule_versions", "void_columns", "void_reason_text", "Synthetic"),
+                check("leave_rule_versions", "void_columns", "voided_by", UUID.randomUUID()),
+                check("leave_rule_versions", "void_columns", "status", "VOIDED", "voided_by", UUID.randomUUID(), "voided_at", AT, "void_reason_text", " "),
+                check("leave_entitlement_rules", "service_years_from_count", "service_years_from_count", -1),
+                check("leave_entitlement_rules", "service_range", "service_years_to_count", 0),
+                check("leave_entitlement_rules", "granted_qty", "granted_qty", -1),
+                check("leave_entitlement_rules", "proration_kind", "proration_kind", "UNKNOWN"),
+                check("leave_accounts", "leave_year_number", "leave_year_number", 1999),
+                check("leave_accounts", "status", "status", "UNKNOWN"),
+                check("leave_accounts", "sealed_columns", "sealed_at", AT),
+                check("leave_accounts", "sealed_columns", "status", "SEALED"),
+                check("leave_accounts", "sealed_columns", "status", "SEALED", "sealed_at", AT, "leave_year_number", null),
+                check("leave_ledger_lines", "line_kind", "line_kind", "UNKNOWN"),
+                check("leave_ledger_lines", "sign", "line_qty", -1),
+                check("leave_ledger_lines", "sign", "line_kind", "ADJUST", "original_leave_year_number", 2026),
+                check("leave_ledger_lines", "source_kind", "source_kind", "x"),
+                check("leave_ledger_lines", "expiry_kind", "expiry_date", MONTH),
+                check("leave_ledger_lines", "expiry_kind", "line_kind", "HOLD", "expiry_date", MONTH.plusDays(1)),
+                check("leave_ledger_lines", "consumes_kind", "consumes_line_id", UUID.randomUUID()),
+                check("leave_ledger_lines", "reason_text", "line_kind", "ADJUST", "line_qty", 1, "adjusted_by", UUID.randomUUID(), "reason_text", " "),
+                check("leave_ledger_lines", "adjust_columns", "adjusted_by", UUID.randomUUID(), "reason_text", "Synthetic"),
+                check("leave_ledger_lines", "adjust_columns", "corrects_line_id", UUID.randomUUID()),
+                check("leave_ledger_lines", "adjust_columns", "line_kind", "ADJUST", "line_qty", 1),
+                check("leave_ledger_lines", "adjust_columns", "line_kind", "ADJUST", "line_qty", 1, "reason_text", "Synthetic"),
+                check("leave_ledger_lines", "adjust_columns", "line_kind", "ADJUST", "line_qty", 1, "original_leave_year_number", 2026, "reason_text", "Synthetic"),
+                check("leave_ledger_lines", "adjust_columns", "line_kind", "ADJUST", "line_qty", 1, "adjusted_by", UUID.randomUUID()),
+                check("leave_grant_basis", "prior_service_months_count", "prior_service_months_count", -1),
+                check("leave_grant_basis", "unpaid_leave_days_count", "unpaid_leave_days_count", -1),
                 check("leave_requests", "period", "end_at", AT),
                 check("leave_requests", "status", "status", "UNKNOWN"),
                 check("leave_requests", "in_approval_has_instance", "status", "IN_APPROVAL"),
@@ -236,9 +145,10 @@ class LeaveMigrationIT {
     }
 
     @Test
-    @DisplayName("#1400 every named CHECK refuses a violating insert and accepts a valid insert")
+    @DisplayName("#1400 / #1470 every named CHECK refuses a violating insert and accepts a valid insert")
     void everyCheckHasARedAndGreenInsertAndNoneIsLeftUnprobed() throws Exception {
         try (Connection db = connect()) {
+            constraintMode(db); // Otherwise BEFORE guards can mask the named CHECK under test. Transaction rolls this back.
             Set<String> tested = new TreeSet<>();
             for (Check probe : checks()) {
                 var valid = validRow(db, probe.table());
@@ -258,6 +168,7 @@ class LeaveMigrationIT {
     @DisplayName("#1400 all primary keys and NOT NULL columns reject a violating insert")
     void primaryKeysAndRequiredColumnsAreEnforced() throws Exception {
         try (Connection db = connect()) {
+            constraintMode(db);
             for (String table : TABLES) {
                 var valid = validRow(db, table);
                 insert(db, table, valid);
@@ -308,12 +219,12 @@ class LeaveMigrationIT {
                 };
                 if (table.equals("leave_request_holds")) {
                     // PostgreSQL checks the request/line key first for a duplicate pair.
-                    same.put("leave_request_id", insert(db, "leave_requests", row("leave_requests")));
+                    same.put("leave_request_id", insert(db, "leave_requests", validRow(db, "leave_requests")));
                 }
                 duplicate(db, table, "uk_" + table + "_" + key, first, same);
                 switch (table) {
                     case "leave_request_days" -> same.put("work_date", MONTH.plusDays(1));
-                    case "leave_request_holds" -> same.put("ledger_line_id", UUID.randomUUID());
+                    case "leave_request_holds" -> same.put("ledger_line_id", insert(db, "leave_ledger_lines", validRow(db, "leave_ledger_lines")));
                     case "attendance_records" -> same.put("external_record_key", "another-key");
                     case "monthly_confirmations" -> same.put("month_start_date", MONTH.plusMonths(1));
                     case "monthly_confirmation_lines" -> same.put("original_month_start_date", MONTH.minusMonths(1));
@@ -321,7 +232,7 @@ class LeaveMigrationIT {
                 }
                 insert(db, table, same);
             }
-            assertThat(strings(db, "select indexname from pg_indexes where schemaname = 'organization_leave' and indexname like 'uk_%'"))
+            assertThat(strings(db, "select indexname from pg_indexes where schemaname = 'organization_leave' and indexname like 'uk_%' and tablename not in ('leave_types', 'leave_rule_versions', 'leave_entitlement_rules', 'leave_accounts', 'leave_ledger_lines', 'leave_grant_basis')"))
                     .containsExactlyInAnyOrder("uk_leave_requests_approval_instance_id", "uk_overtime_requests_approval_instance_id",
                             "uk_leave_request_days_request_work_date", "uk_leave_request_holds_request_line", "uk_leave_request_holds_ledger_line_id",
                             "uk_attendance_records_source_external_record_key", "uk_monthly_confirmations_employee_month", "uk_monthly_confirmation_lines_identity");
@@ -331,14 +242,14 @@ class LeaveMigrationIT {
             var sameHold = new LinkedHashMap<>(hold);
             sameHold.put("id", UUID.randomUUID());
             duplicate(db, "leave_request_holds", "uk_leave_request_holds_request_line", hold, sameHold);
-            sameHold.put("ledger_line_id", UUID.randomUUID());
+            sameHold.put("ledger_line_id", insert(db, "leave_ledger_lines", validRow(db, "leave_ledger_lines")));
             insert(db, "leave_request_holds", sameHold);
             db.rollback();
         }
     }
 
     @Test
-    @DisplayName("#1400 only the three same-context parent keys exist; missing parents and parent deletion are refused")
+    @DisplayName("#1400 L1a parent keys still refuse missing parents and parent deletion")
     void foreignKeysRestrictOrphansAndDeletionWithoutCrossContextKeys() throws Exception {
         try (Connection db = connect()) {
             List<String> expected = new ArrayList<>();
@@ -347,15 +258,16 @@ class LeaveMigrationIT {
                 String parent = table.equals("monthly_confirmation_lines") ? "monthly_confirmations" : "leave_requests";
                 String key = "fk_" + table + "_" + column;
                 expected.add(key);
-                var invalid = row(table);
+                var invalid = validRow(db, table);
+                invalid.put(column, UUID.randomUUID());
                 refused(db, "23503", key, () -> insert(db, table, invalid));
                 var valid = validRow(db, table);
                 insert(db, table, valid);
                 refused(db, "23001", key, () -> run(db, "delete from " + SCHEMA + parent + " where id = ?", valid.get(column)));
-                UUID unreferenced = insert(db, parent, row(parent));
+                UUID unreferenced = insert(db, parent, validRow(db, parent));
                 run(db, "delete from " + SCHEMA + parent + " where id = ?", unreferenced);
             }
-            assertThat(strings(db, "select conname from pg_constraint where connamespace = 'organization_leave'::regnamespace and contype = 'f'"))
+            assertThat(strings(db, "select conname from pg_constraint where connamespace = 'organization_leave'::regnamespace and contype = 'f' and conrelid in ('organization_leave.leave_request_days'::regclass, 'organization_leave.leave_request_holds'::regclass, 'organization_leave.monthly_confirmation_lines'::regclass) and conname not in ('fk_leave_request_holds_ledger_line_id', 'fk_monthly_confirmation_lines_leave_type_id')"))
                     .containsExactlyInAnyOrderElementsOf(expected);
             db.rollback();
         }
@@ -366,7 +278,7 @@ class LeaveMigrationIT {
     void liveLeaveOverlapIsExcludedOnInsertAndActivation() throws Exception {
         try (Connection db = connect()) {
             for (String status : List.of("SUBMITTED", "IN_APPROVAL", "APPROVED")) {
-                var first = row("leave_requests");
+                var first = validRow(db, "leave_requests");
                 first.put("status", status);
                 first.put("approval_instance_id", UUID.randomUUID());
                 insert(db, "leave_requests", first);
@@ -483,7 +395,7 @@ class LeaveMigrationIT {
                 line.put("line_kind", "LEAVE");
                 line.put("minutes_count", 0);
                 line.put("day_hundredths_count", null);
-                line.put("leave_type_id", UUID.randomUUID());
+                line.put("leave_type_id", insert(db, "leave_types", row("leave_types")));
                 line.put("is_paid_leave", paid);
                 insert(db, "monthly_confirmation_lines", line);
             }
@@ -530,11 +442,11 @@ class LeaveMigrationIT {
             leave.put("line_kind", "LEAVE");
             leave.put("compensation_kind", null);
             leave.put("day_kind", null);
-            leave.put("leave_type_id", UUID.randomUUID());
+            leave.put("leave_type_id", insert(db, "leave_types", row("leave_types")));
             leave.put("is_paid_leave", true);
             insert(db, "monthly_confirmation_lines", leave);
             leave.put("id", UUID.randomUUID());
-            leave.put("leave_type_id", UUID.randomUUID());
+            leave.put("leave_type_id", insert(db, "leave_types", row("leave_types")));
             insert(db, "monthly_confirmation_lines", leave);
             leave.put("id", UUID.randomUUID());
             refused(db, "23505", "uk_monthly_confirmation_lines_identity", () -> insert(db, "monthly_confirmation_lines", leave));
@@ -582,9 +494,11 @@ class LeaveMigrationIT {
     }
 
     @Test
-    @DisplayName("#1400 signed schema has exactly seven tables; nullable comments, no carved-out or biometric/location fields, three deferred UUIDs")
+    @DisplayName("#1400 signed schema has exactly thirteen tables; nullable comments, no carved-out or biometric/location fields, three completed deferred UUID keys")
     void schemaAndCommentsMatchTheSignedSlice() throws Exception {
         try (Connection db = connect()) {
+            assertThat(strings(db, "select conname from pg_constraint where connamespace = 'organization_leave'::regnamespace and octet_length(conname) > 63")).isEmpty();
+            assertThat(strings(db, "select proname from pg_proc where pronamespace = 'organization_leave'::regnamespace and not coalesce(proconfig @> array['search_path=pg_catalog, pg_temp'], false)")).isEmpty();
             assertThat(strings(db, "select table_name from information_schema.tables where table_schema = 'organization_leave' and table_type = 'BASE TABLE'"))
                     .containsExactlyInAnyOrderElementsOf(TABLES);
             assertThat(strings(db, """
@@ -598,7 +512,7 @@ class LeaveMigrationIT {
                     and coalesce(obj_description(oid), '') not like '%粒度%'
                     """)).isEmpty();
             assertThat(strings(db, "select column_name from information_schema.columns where table_schema = 'organization_leave'"))
-                    .doesNotContain("reason_text", "proof_file_id", "latitude", "longitude", "location", "biometric", "face_image");
+                    .doesNotContain("proof_file_id", "latitude", "longitude", "location", "biometric", "face_image");
             assertThat(strings(db, """
                     select table_name || '.' || column_name from information_schema.columns where table_schema = 'organization_leave'
                     and data_type = 'uuid' and ((table_name in ('leave_requests', 'monthly_confirmation_lines') and column_name = 'leave_type_id')
@@ -607,4 +521,5 @@ class LeaveMigrationIT {
             db.rollback();
         }
     }
+
 }
