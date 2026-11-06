@@ -1,5 +1,5 @@
 import { formatDateTime } from '@forcitis/core';
-import { Button, Dialog, DescriptionList, PageTitle, StatusBadge, TextAreaField, TextLink } from '@forcitis/ui';
+import { Button, DescriptionList, PageTitle, ReasonDialog, StatusBadge, TextLink } from '@forcitis/ui';
 import { MutationNotice, QueryBoundary } from '../../../shared/query-boundary';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
@@ -13,17 +13,15 @@ export function PersonnelCommandDetailPage() {
   const command = usePersonnelCommand(personnelCommandId);
   const withdraw = useWithdrawPersonnelCommand(personnelCommandId);
   const [asking, setAsking] = useState(false);
-  const [reason, setReason] = useState('');
 
   return (
     <QueryBoundary query={command} errorTitle="人事命令加载失败">
       {(detail) => {
         const close = () => {
           setAsking(false);
-          setReason('');
           withdraw.reset();
         };
-        const confirm = () => withdraw.mutate(reason.trim(), { onSuccess: close });
+        const confirm = (reason: string) => withdraw.mutate(reason, { onSuccess: close });
 
         return (
           <>
@@ -49,10 +47,7 @@ export function PersonnelCommandDetailPage() {
                 { label: '撤回原因', value: detail.withdrawalReason ?? '—' },
               ]}
             />
-            <Dialog open={asking} title="撤回人事命令" confirmText="确认撤回" danger confirmLoading={withdraw.isPending} confirmDisabled={reason.trim() === ''} onConfirm={confirm} onClose={close}>
-              <TextAreaField label="撤回原因" value={reason} onChange={setReason} />
-              <MutationNotice mutation={withdraw} title="撤回失败" />
-            </Dialog>
+            <ReasonDialog open={asking} title="撤回人事命令" confirmText="确认撤回" label="撤回原因" required danger loading={withdraw.isPending} error={<MutationNotice mutation={withdraw} title="撤回失败" />} onConfirm={confirm} onClose={close} />
           </>
         );
       }}
