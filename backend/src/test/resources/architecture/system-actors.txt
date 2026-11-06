@@ -16,3 +16,4 @@ test.scheduling.works | 477b751d-f6be-5cff-81d3-bc40557c8440 | test | ScheduledJ
 test.flaky-listener | 18d52d1e-0c79-5e77-a337-50297f12fbed | test | 审批测试中首投失败的监听器
 test.correlation.probe | c0c9a9ad-8b8b-5ddf-b804-f2f1dd408d7a | test | CorrelationIT 的探针监听器
 acceptance.accounting-code-outbound | 7d82fa70-5dfd-525e-bc07-95d86dc2ad38 | acceptance | 验收测试 SourceReferenceHttpSupport 模拟核算系统出站适配器按法人取核算组织编码（生产尚无该出站作业）
+test.organization.payroll | 97349f97-9dd8-5c86-b6f7-09c007f8f6fb | test | 薪酬测试

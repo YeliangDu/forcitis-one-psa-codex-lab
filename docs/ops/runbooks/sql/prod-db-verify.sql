@@ -14,14 +14,14 @@ SELECT r.rolname, s.setconfig
 SELECT nspname, pg_get_userbyid(nspowner) AS owner
   FROM pg_namespace
  WHERE nspname IN ('one_migration', 'platform_identity', 'platform_approval', 'platform_integration', 'platform_audit',
-                   'platform_numbering', 'platform_file', 'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'organization_administration',
+                   'platform_numbering', 'platform_file', 'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'accounting_period', 'organization_payroll', 'organization_administration',
                    'platform_idempotency', 'cost_timesheet')
  ORDER BY nspname;
 
 -- V4 运行角色无建对象权限：期望 0 行
 SELECT n.nspname, r.rolname
   FROM pg_namespace n CROSS JOIN (VALUES ('one_prod_app'), ('one_prod_readonly'), ('one_prod_audit_maintainer')) r(rolname)
- WHERE n.nspname LIKE ANY (ARRAY['platform\_%', 'organization\_%', 'cost\_%', 'one\_migration'])
+ WHERE n.nspname LIKE ANY (ARRAY['platform\_%', 'organization\_%', 'cost\_%', 'accounting\_%', 'one\_migration'])
    AND has_schema_privilege(r.rolname, n.oid, 'CREATE');
 
 -- V5 默认权限：platform_audit 中 one_prod_app 只有 SELECT、INSERT（arwd 中只含 a、r）

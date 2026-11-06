@@ -24,4 +24,4 @@ Change acceptance tests; merge by hand; touch others' exclusive paths; decide fo
 2. Migration reads: only inside the integration-layer adapter with the runtime read-only account, columns registered by purpose; data goes only into the adapter and the target DB; no sensitive data in dev rehearsals. Enforced by: manual: first-round review / every PR
 
 ## Handoff
-`~/.modernize/psa/state/<session>/handoff.md`; when the card is handed over, end the session; worktree and branch go with the card.
+`~/.modernize/psa/state/<session>/handoff.md`; when the card is handed over (PR merged or closed), write it, end the turn and do not clear yourself: lead clears, verifies and sends 接续; worktree and branch go with the card.
