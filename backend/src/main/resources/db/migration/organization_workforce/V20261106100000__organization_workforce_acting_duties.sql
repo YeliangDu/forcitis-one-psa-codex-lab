@@ -1,4 +1,4 @@
--- #1536（代理职务切片 1：表结构；数据设计签发记录 docs/data/reviews/workforce-acting-duty.md，#1537）。
+-- #1536（代理职务切片 1：表结构；数据设计签发记录 workforce-acting-duty，#1537）。
 -- 只改结构：新增代理职务表；人事命令加六列与三个命令种类；同日一条的唯一索引把三个代理种类排除在外，另加两个代理专用唯一索引。
 -- 没有已有行要处理（此前没有代理概念）。命令表的只追加触发器按 to_jsonb 比较整行，新列自动写一次后不再变，不用改。
 
@@ -51,7 +51,7 @@ CREATE INDEX ix_acting_duties_covered_position_id ON organization_workforce.acti
 CREATE INDEX ix_acting_duties_covered_employee_id ON organization_workforce.acting_duties (covered_employee_id) WHERE covered_employee_id IS NOT NULL;
 CREATE INDEX ix_acting_duties_open_due ON organization_workforce.acting_duties (ends_before_date) WHERE ended_on_date IS NULL;
 
-COMMENT ON TABLE organization_workforce.acting_duties IS '代理职务：员工在一段期限内暂代某部门或岗位职责的有期限事实，员工聚合内的实体，由人事命令生效时写入；期限内可延长，结束时写一次结束日与原因；状态（待开始、进行中、已结束）由日期算出，不存列；历史在只追加的人事命令里（数据设计 docs/data/reviews/workforce-acting-duty.md）。粒度：每个代理职务一行';
+COMMENT ON TABLE organization_workforce.acting_duties IS '代理职务：员工在一段期限内暂代某部门或岗位职责的有期限事实，员工聚合内的实体，由人事命令生效时写入；期限内可延长，结束时写一次结束日与原因；状态（待开始、进行中、已结束）由日期算出，不存列；历史在只追加的人事命令里（数据设计 the signed workforce-acting-duty data design record）。粒度：每个代理职务一行';
 COMMENT ON COLUMN organization_workforce.acting_duties.acting_duty_id IS '代理职务 ID（UUIDv7，由应用层生成）';
 COMMENT ON COLUMN organization_workforce.acting_duties.employment_relationship_id IS '雇佣关系 ID：代理人在代理期间所属的雇佣关系（ADR-0086）；与员工 ID 一起做复合外键';
 COMMENT ON COLUMN organization_workforce.acting_duties.employee_id IS '员工 ID：代理人';
@@ -62,7 +62,7 @@ COMMENT ON COLUMN organization_workforce.acting_duties.starts_on_date IS '开始
 COMMENT ON COLUMN organization_workforce.acting_duties.ends_before_date IS '截止日：代理期的最后一天的次日（业务日期，区间右开）；延长时只增不减，每次延长的值留在延长命令里';
 COMMENT ON COLUMN organization_workforce.acting_duties.ended_on_date IS '结束日：代理实际结束的业务日期；为空表示尚未结束。到期结束取截止日，提前结束与离职结束取命令生效日；离职恰在开始日生效时等于开始日（空区间）';
 COMMENT ON COLUMN organization_workforce.acting_duties.end_cause_kind IS '结束原因：EXPIRED 到期 / ENDED_EARLY 提前结束 / SEPARATION 因离职结束；为空表示尚未结束，与结束日同有同无';
-COMMENT ON COLUMN organization_workforce.acting_duties.reason IS '代理事由：人填写的业务原因，1 到 500 字；不得写健康、孕产等个人情况（个人信息 PI）';
+COMMENT ON COLUMN organization_workforce.acting_duties.reason IS '理由：人填写的业务原因，1 到 500 字；不得写健康、孕产等个人情况（个人信息 PI）';
 COMMENT ON COLUMN organization_workforce.acting_duties.source_personnel_command_id IS '起始人事命令 ID：使本代理职务生效的 ACTING_START 命令；一个命令至多生成一个代理职务';
 COMMENT ON COLUMN organization_workforce.acting_duties.created_at IS '创建时间';
 COMMENT ON COLUMN organization_workforce.acting_duties.created_by IS '创建人 ID（用户）';
@@ -161,6 +161,10 @@ DROP INDEX organization_workforce.uk_personnel_commands_open_per_relationship_da
 CREATE UNIQUE INDEX uk_personnel_commands_open_per_relationship_day ON organization_workforce.personnel_commands (employment_relationship_id, effective_date)
     WHERE status IN ('PENDING', 'HELD', 'AWAITING_ATTRIBUTION_COUNTERSIGN') AND employment_relationship_id IS NOT NULL
         AND command_kind NOT IN ('START_CONCURRENT', 'ACTING_START', 'ACTING_END', 'ACTING_EXTEND') AND target_assignment_kind IS DISTINCT FROM 'CONCURRENT';
+-- Postgres reports the first violated unique index in index-creation order; the per-assignment index is recreated unchanged after the relationship one so a command that breaks both is still reported against the relationship, as before.
+DROP INDEX organization_workforce.uk_personnel_commands_open_per_assignment_day;
+CREATE UNIQUE INDEX uk_personnel_commands_open_per_assignment_day ON organization_workforce.personnel_commands (target_assignment_id, effective_date)
+    WHERE status IN ('PENDING', 'HELD', 'AWAITING_ATTRIBUTION_COUNTERSIGN') AND target_assignment_id IS NOT NULL;
 -- One open start per person, covered unit and day; the post is nullable, so a unit-head start and a post start are two partial indexes (no sentinel value).
 CREATE UNIQUE INDEX uk_personnel_commands_open_acting_start_unit ON organization_workforce.personnel_commands (employee_id, acting_covered_org_unit_id, effective_date)
     WHERE command_kind = 'ACTING_START' AND status = 'PENDING' AND acting_covered_position_id IS NULL;
@@ -176,4 +180,4 @@ COMMENT ON COLUMN organization_workforce.personnel_commands.acting_covered_posit
 COMMENT ON COLUMN organization_workforce.personnel_commands.acting_covered_employee_id IS '被代理人 ID：代理开始可填；为空表示不指明被代理的具体人，或不是代理开始命令';
 COMMENT ON COLUMN organization_workforce.personnel_commands.acting_ends_before_date IS '代理截止日（最后一天的次日）：代理开始与代理延长必填；为空表示不是这两种命令';
 COMMENT ON COLUMN organization_workforce.personnel_commands.target_acting_duty_id IS '目标代理职务 ID：代理提前结束与代理延长必填，指向被结束或被延长的代理职务；为空表示不是这两种命令';
-COMMENT ON COLUMN organization_workforce.personnel_commands.reason IS '事由：代理三种命令必填，人填写的业务原因，1 到 500 字，不得写健康、孕产等个人情况；为空表示不是代理命令';
+COMMENT ON COLUMN organization_workforce.personnel_commands.reason IS '理由：代理三种命令必填，人填写的业务原因，1 到 500 字，不得写健康、孕产等个人情况；为空表示不是代理命令';

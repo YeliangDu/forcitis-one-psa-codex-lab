@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
- * #1536 (slice 1 of #1525, data design docs/data/reviews/workforce-acting-duty.md): the acting duty table and the acting columns of the personnel commands
+ * #1536 (slice 1 of #1525, the signed workforce-acting-duty data design record): the acting duty table and the acting columns of the personnel commands
  * refuse every row the design says is wrong, and take every row it says is right.
  */
 class ActingDutiesTablesIntegrationTest extends WorkforceIntegrationSupport {

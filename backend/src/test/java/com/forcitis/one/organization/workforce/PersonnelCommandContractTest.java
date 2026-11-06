@@ -87,6 +87,8 @@ class PersonnelCommandContractTest {
     static final EmploymentRelationshipId RELATIONSHIP = new EmploymentRelationshipId(TestIds.uuid(742));
     /** ADR-0073 item 3.7 adds a ninth event that names the command; its contract is the publisher test of #895, not the eight of ADR-0068. */
     static final Set<String> ADR_0073_EVENTS = Set.of("EmployeeLegalEntityChanged");
+    /** The two acting-duty events (#1525) have their own signed contract (the signed workforce-acting-duty data design record): their business date is the duty's own day, not the command's effective date, and the end event may name no command. */
+    static final Set<String> ACTING_DUTY_EVENTS = Set.of("EmployeeActingDutyStarted", "EmployeeActingDutyEnded");
     static final List<String> PERSONAL_DATA_WORDS = List.of("name", "email", "mail", "gender", "phone", "mobile", "birth", "address", "card",
             "certificate", "salary", "wage", "login");
 
@@ -95,7 +97,7 @@ class PersonnelCommandContractTest {
                 .<Class<?>>map(JavaClass::reflect)
                 .filter(type -> type.isRecord() && DomainEvent.class.isAssignableFrom(type))
                 .filter(type -> Arrays.stream(type.getRecordComponents()).anyMatch(c -> c.getType() == PersonnelCommandId.class))
-                .filter(type -> !ADR_0073_EVENTS.contains(type.getSimpleName()))
+                .filter(type -> !ADR_0073_EVENTS.contains(type.getSimpleName()) && !ACTING_DUTY_EVENTS.contains(type.getSimpleName()))
                 .toList();
     }
 
