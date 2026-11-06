@@ -118,6 +118,30 @@ class JdbcEmployeeRosterQueries implements EmployeeRosterQueries {
                 .param("day", zone.today(clock)).param("id", employee.value()).query(Boolean.class).single();
     }
 
+    @Override
+    public List<PrimaryAssignmentVersion> primaryAssignmentHistory(EmployeeId employee) {
+        return jdbc.sql("""
+                select av.org_unit_id, coalesce(uv.name, u.name) as org_unit_name, av.position_id, coalesce(pv.name, p.name) as position_name,
+                       av.effective_from_date, av.effective_to_date,
+                       (av.effective_from_date <= :day and (av.effective_to_date is null or :day < av.effective_to_date)) as current
+                  from organization_workforce.assignment_versions av
+                  join organization_workforce.org_units u on u.id = av.org_unit_id
+                  left join organization_workforce.org_unit_versions uv on uv.org_unit_id = u.id and uv.superseded_at is null
+                       and uv.effective_from_date <= av.effective_from_date and (uv.effective_to_date is null or av.effective_from_date < uv.effective_to_date)
+                  left join organization_workforce.positions p on p.id = av.position_id
+                  left join organization_workforce.position_versions pv on pv.position_id = p.id and pv.superseded_at is null
+                       and pv.effective_from_date <= av.effective_from_date and (pv.effective_to_date is null or av.effective_from_date < pv.effective_to_date)
+                 where av.employee_id = :id and av.assignment_kind = 'PRIMARY' and av.superseded_at is null
+                   and (av.effective_to_date is null or av.effective_to_date > av.effective_from_date)
+                 order by av.effective_from_date desc, av.revision_number desc
+                """).param("id", employee.value()).param("day", zone.today(clock)).query((rs, n) -> {
+                    UUID position = rs.getObject("position_id", UUID.class);
+                    return new PrimaryAssignmentVersion(new OrgUnitId(rs.getObject("org_unit_id", UUID.class)), rs.getString("org_unit_name"),
+                            position == null ? null : new PositionId(position), rs.getString("position_name"),
+                            rs.getObject("effective_from_date", LocalDate.class), rs.getObject("effective_to_date", LocalDate.class), rs.getBoolean("current"));
+                }).list();
+    }
+
     private static JdbcClient.StatementSpec visibleQuery(JdbcClient.StatementSpec query, Visible visible, @Nullable OrgUnitId orgUnit,
                                                          @Nullable EmploymentStatus status, boolean onLeaveOnly, LocalDate day) {
         return query.param("day", day).param("everything", visible.everything())

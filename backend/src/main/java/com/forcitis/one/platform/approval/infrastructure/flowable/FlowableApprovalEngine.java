@@ -72,10 +72,12 @@ class FlowableApprovalEngine implements ApprovalEngine {
     private final RepositoryService repository;
     private final HistoryService history;
     private final MeterRegistry meters;
+    private final NodeAssignment assignment;
     private final Map<String, Definition> definitions = new ConcurrentHashMap<>();
 
     FlowableApprovalEngine(RuntimeService runtime, TaskService tasks, RepositoryService repository, HistoryService history,
-            MeterRegistry meters) {
+            MeterRegistry meters, NodeAssignment assignment) {
+        this.assignment = assignment;
         this.runtime = runtime;
         this.tasks = tasks;
         this.repository = repository;
@@ -239,6 +241,19 @@ class FlowableApprovalEngine implements ApprovalEngine {
     @Override
     public void reassignTask(ApprovalTaskId taskId, UserId to) {
         tasks.setAssignee(taskId.value().toString(), EngineUserIds.text(to));
+    }
+
+    @Override
+    public Optional<Set<UserId>> handoverTargetsOf(ApprovalTaskId taskId) {
+        Task task = tasks.createTaskQuery().taskId(taskId.value().toString()).singleResult();
+        if (task == null) {
+            throw new IllegalStateException("Task " + taskId.value() + " is gone");
+        }
+        UserTask node = (UserTask) definition(task.getProcessDefinitionId()).model().getFlowElement(task.getTaskDefinitionKey());
+        if (!NodePolicyReader.read(node).noFallback()) {
+            return Optional.empty();
+        }
+        return Optional.of(assignment.namedNow(node, task.getProcessInstanceId(), runtime.getVariables(task.getProcessInstanceId())));
     }
 
     @Override

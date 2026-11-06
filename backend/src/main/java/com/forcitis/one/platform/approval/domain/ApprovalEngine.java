@@ -54,6 +54,12 @@ public interface ApprovalEngine {
 
     void reassignTask(ApprovalTaskId taskId, UserId to);
 
+    /**
+     * Empty when the task may be handed to any employed person (the node's rule does not forbid it); present when the node takes no fallback: the task may
+     * then go only to a person the node's rule names now (possibly nobody). Whoever hands a task over, the handler or the administrator, is bound by it.
+     */
+    Optional<Set<UserId>> handoverTargetsOf(ApprovalTaskId taskId);
+
     void addCandidates(ApprovalTaskId taskId, Collection<UserId> users);
 
     void completeTask(ApprovalTaskId taskId);

@@ -34,3 +34,5 @@ export function employmentFilterOf(value: string): EmploymentFilter {
 export function employeePath(employeeId: string): string {
   return `/admin/employees/${encodeURIComponent(employeeId)}`;
 }
+
+export type PrimaryAssignment = Schema<'PrimaryAssignmentHistoryResponse'>['items'][number];
