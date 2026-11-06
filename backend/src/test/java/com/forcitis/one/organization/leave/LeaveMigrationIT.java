@@ -84,6 +84,7 @@ class LeaveMigrationIT extends LeaveSchemaProbe {
                 check("leave_ledger_lines", "sign", "line_qty", -1),
                 check("leave_ledger_lines", "sign", "line_kind", "ADJUST", "original_leave_year_number", 2026),
                 check("leave_ledger_lines", "source_kind", "source_kind", "x"),
+                check("leave_ledger_lines", "policy_grant_kind", "source_kind", "POLICY_GRANT", "line_kind", "USE"),
                 check("leave_ledger_lines", "expiry_kind", "expiry_date", MONTH),
                 check("leave_ledger_lines", "expiry_kind", "line_kind", "HOLD", "expiry_date", MONTH.plusDays(1)),
                 check("leave_ledger_lines", "consumes_kind", "consumes_line_id", UUID.randomUUID()),
@@ -96,8 +97,13 @@ class LeaveMigrationIT extends LeaveSchemaProbe {
                 check("leave_ledger_lines", "adjust_columns", "line_kind", "ADJUST", "line_qty", 1, "adjusted_by", UUID.randomUUID()),
                 check("leave_grant_basis", "prior_service_months_count", "prior_service_months_count", -1),
                 check("leave_grant_basis", "unpaid_leave_days_count", "unpaid_leave_days_count", -1),
+                check("leave_policy_grants", "grant_qty", "grant_qty", 0),
+                check("leave_policy_grants", "request_key", "request_key", " "),
+                check("leave_policy_grants", "basis_text", "basis_text", " "),
+                check("leave_policy_grants", "effective_date", "effective_date", new java.sql.Date(org.postgresql.PGStatement.DATE_POSITIVE_INFINITY)),
                 check("leave_requests", "period", "end_at", AT),
                 check("leave_requests", "status", "status", "UNKNOWN"),
+                check("leave_requests", "taken_until_at", "status", "RECALLED"),
                 check("leave_requests", "in_approval_has_instance", "status", "IN_APPROVAL"),
                 check("leave_request_days", "minutes_count", "minutes_count", -1),
                 check("leave_request_days", "minutes_count", "minutes_count", 1441),
@@ -205,7 +211,7 @@ class LeaveMigrationIT extends LeaveSchemaProbe {
                 insert(db, table, validRow(db, table));
                 insert(db, table, validRow(db, table)); // multiple NULL approval ids are allowed
             }
-            for (String table : List.of("leave_request_days", "leave_request_holds", "attendance_records", "monthly_confirmations", "monthly_confirmation_lines")) {
+            for (String table : List.of("leave_request_days", "leave_request_holds", "attendance_records", "monthly_confirmations", "monthly_confirmation_lines", "leave_policy_grants")) {
                 var first = validRow(db, table);
                 var same = new LinkedHashMap<>(first);
                 same.put("id", UUID.randomUUID());
@@ -215,6 +221,7 @@ class LeaveMigrationIT extends LeaveSchemaProbe {
                     case "attendance_records" -> "source_external_record_key";
                     case "monthly_confirmations" -> "employee_month";
                     case "monthly_confirmation_lines" -> "identity";
+                    case "leave_policy_grants" -> "account_request_key";
                     default -> throw new IllegalArgumentException(table);
                 };
                 if (table.equals("leave_request_holds")) {
@@ -228,6 +235,7 @@ class LeaveMigrationIT extends LeaveSchemaProbe {
                     case "attendance_records" -> same.put("external_record_key", "another-key");
                     case "monthly_confirmations" -> same.put("month_start_date", MONTH.plusMonths(1));
                     case "monthly_confirmation_lines" -> same.put("original_month_start_date", MONTH.minusMonths(1));
+                    case "leave_policy_grants" -> same.put("request_key", "another-key");
                     default -> throw new IllegalArgumentException(table);
                 }
                 insert(db, table, same);
@@ -235,7 +243,8 @@ class LeaveMigrationIT extends LeaveSchemaProbe {
             assertThat(strings(db, "select indexname from pg_indexes where schemaname = 'organization_leave' and indexname like 'uk_%' and tablename not in ('leave_types', 'leave_rule_versions', 'leave_entitlement_rules', 'leave_accounts', 'leave_ledger_lines', 'leave_grant_basis')"))
                     .containsExactlyInAnyOrder("uk_leave_requests_approval_instance_id", "uk_overtime_requests_approval_instance_id",
                             "uk_leave_request_days_request_work_date", "uk_leave_request_holds_request_line", "uk_leave_request_holds_ledger_line_id",
-                            "uk_attendance_records_source_external_record_key", "uk_monthly_confirmations_employee_month", "uk_monthly_confirmation_lines_identity");
+                            "uk_attendance_records_source_external_record_key", "uk_monthly_confirmations_employee_month", "uk_monthly_confirmation_lines_identity",
+                            "uk_leave_policy_grants_account_request_key");
             // The stronger ledger-line unique also prevents a duplicate pair. Drop only it inside this rolled-back probe.
             run(db, "alter table organization_leave.leave_request_holds drop constraint uk_leave_request_holds_ledger_line_id");
             var hold = validRow(db, "leave_request_holds");
@@ -294,9 +303,10 @@ class LeaveMigrationIT extends LeaveSchemaProbe {
                     draft.put("id", UUID.randomUUID());
                     draft.put("approval_instance_id", null);
                     draft.put("status", inactive);
+                    if (inactive.equals("RECALLED")) draft.put("taken_until_at", draft.get("start_at"));
                     UUID id = insert(db, "leave_requests", draft);
                     refused(db, "23P01", "ex_leave_requests_live_period_overlap", () ->
-                            run(db, "update organization_leave.leave_requests set status = 'SUBMITTED' where id = ?", id));
+                            run(db, "update organization_leave.leave_requests set status = 'SUBMITTED', taken_until_at = null where id = ?", id));
                 }
                 var other = new LinkedHashMap<>(first);
                 other.put("id", UUID.randomUUID());
@@ -309,10 +319,10 @@ class LeaveMigrationIT extends LeaveSchemaProbe {
     }
 
     @Test
-    @DisplayName("#1400 RULE-519 attendance and holds allow inserts but reject every update, delete and truncate")
+    @DisplayName("#1400 / #1592 RULE-519 attendance, holds and policy grants allow inserts but reject every update, delete and truncate")
     void appendOnlyFactsCannotBeRewrittenOrCleared() throws Exception {
         try (Connection db = connect()) {
-            for (String table : List.of("attendance_records", "leave_request_holds")) {
+            for (String table : List.of("attendance_records", "leave_request_holds", "leave_policy_grants")) {
                 UUID id = insert(db, table, validRow(db, table));
                 refused(db, "23001", "append-only", () -> run(db, "update " + SCHEMA + table + " set id = id where id = ?", id));
                 refused(db, "23001", "append-only", () -> run(db, "delete from " + SCHEMA + table + " where id = ?", id));
@@ -494,7 +504,7 @@ class LeaveMigrationIT extends LeaveSchemaProbe {
     }
 
     @Test
-    @DisplayName("#1400 signed schema has exactly thirteen tables; nullable comments, no carved-out or biometric/location fields, three completed deferred UUID keys")
+    @DisplayName("#1400 / #1592 signed schema has exactly fourteen tables; nullable comments, no carved-out or biometric/location fields, three completed deferred UUID keys")
     void schemaAndCommentsMatchTheSignedSlice() throws Exception {
         try (Connection db = connect()) {
             assertThat(strings(db, "select conname from pg_constraint where connamespace = 'organization_leave'::regnamespace and octet_length(conname) > 63")).isEmpty();

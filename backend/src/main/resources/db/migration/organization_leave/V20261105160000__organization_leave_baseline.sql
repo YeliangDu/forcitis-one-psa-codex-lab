@@ -1,6 +1,6 @@
 -- 请假与考勤事实 L1a：#1400，逐表依据签署的数据设计 organization-leave-l1a。
 CREATE SCHEMA IF NOT EXISTS organization_leave;
-COMMENT ON SCHEMA organization_leave IS '请假与考勤事实及额度规则、账户与账本；L1a、L1b 十三表';
+COMMENT ON SCHEMA organization_leave IS '请假与考勤事实及额度规则、账户与账本；L1a、L1b、S3 十四表';
 
 DO $$
 BEGIN
@@ -16,6 +16,7 @@ CREATE TABLE organization_leave.leave_requests (
     leave_type_id uuid NOT NULL,
     start_at timestamptz NOT NULL,
     end_at timestamptz NOT NULL,
+    taken_until_at timestamptz,
     status text NOT NULL,
     approval_instance_id uuid,
     legal_entity_id uuid NOT NULL,
@@ -26,7 +27,8 @@ CREATE TABLE organization_leave.leave_requests (
     CONSTRAINT ck_leave_requests_period CHECK (end_at > start_at),
     CONSTRAINT ck_leave_requests_status CHECK (status IN ('DRAFT', 'SUBMITTED', 'IN_APPROVAL', 'APPROVED', 'REJECTED', 'WITHDRAWN', 'RECALLED', 'CANCELLED')),
     CONSTRAINT ck_leave_requests_in_approval_has_instance CHECK (status <> 'IN_APPROVAL' OR approval_instance_id IS NOT NULL),
-    CONSTRAINT ex_leave_requests_live_period_overlap EXCLUDE USING gist (employment_relationship_id WITH =, tstzrange(start_at, end_at) WITH &&) WHERE (status IN ('SUBMITTED', 'IN_APPROVAL', 'APPROVED'))
+    CONSTRAINT ck_leave_requests_taken_until_at CHECK ((status = 'RECALLED') = (taken_until_at IS NOT NULL) AND (taken_until_at IS NULL OR taken_until_at BETWEEN start_at AND end_at)),
+    CONSTRAINT ex_leave_requests_live_period_overlap EXCLUDE USING gist (employment_relationship_id WITH =, tstzrange(start_at, CASE WHEN status = 'RECALLED' THEN taken_until_at ELSE end_at END) WITH &&) WHERE (status IN ('SUBMITTED', 'IN_APPROVAL', 'APPROVED', 'RECALLED'))
 );
 
 CREATE TABLE organization_leave.leave_request_days (
@@ -207,6 +209,7 @@ COMMENT ON COLUMN organization_leave.leave_requests.employee_id IS '员工 ID，
 COMMENT ON COLUMN organization_leave.leave_requests.leave_type_id IS '请假类型 ID';
 COMMENT ON COLUMN organization_leave.leave_requests.start_at IS '请假起始时刻（含）';
 COMMENT ON COLUMN organization_leave.leave_requests.end_at IS '请假结束时刻（不含）';
+COMMENT ON COLUMN organization_leave.leave_requests.taken_until_at IS '已休截止时刻；为空表示未被提前终止；销假后为第一天未休的起点（业务时区当天零点；整单销假且请假起点晚于当天零点时取起点 start_at）';
 COMMENT ON COLUMN organization_leave.leave_requests.status IS '申请状态：DRAFT 草稿、SUBMITTED 已提交、IN_APPROVAL 审批中、APPROVED 已批准、REJECTED 已拒绝、WITHDRAWN 已撤回、RECALLED 已撤销、CANCELLED 已取消';
 COMMENT ON COLUMN organization_leave.leave_requests.approval_instance_id IS '审批实例 ID；为空表示尚未发起审批（草稿、自动通过或在进入审批前被拒）';
 COMMENT ON COLUMN organization_leave.leave_requests.legal_entity_id IS '法人主体 ID，事实开始日的成本归属法人，不是用人单位 ID，跨上下文不建外键';
@@ -398,6 +401,45 @@ CREATE INDEX ix_leave_accounts_leave_type_id ON organization_leave.leave_account
 CREATE INDEX ix_leave_accounts_rule_version_id ON organization_leave.leave_accounts (rule_version_id);
 CREATE INDEX ix_leave_accounts_employee_id ON organization_leave.leave_accounts (employee_id);
 
+-- S3 切片 A：政策授予决定，签署记录 leave-attendance-s3；重放键在账户内唯一。
+CREATE TABLE organization_leave.leave_policy_grants (
+    id uuid NOT NULL,
+    request_key text NOT NULL,
+    leave_account_id uuid NOT NULL,
+    employment_relationship_id uuid NOT NULL,
+    leave_type_id uuid NOT NULL,
+    grant_qty integer NOT NULL,
+    effective_date date NOT NULL,
+    basis_text text NOT NULL,
+    granted_by uuid NOT NULL,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL,
+    CONSTRAINT pk_leave_policy_grants PRIMARY KEY (id),
+    CONSTRAINT uk_leave_policy_grants_account_request_key UNIQUE (leave_account_id, request_key),
+    CONSTRAINT fk_leave_policy_grants_account_relationship_type FOREIGN KEY (leave_account_id, employment_relationship_id, leave_type_id) REFERENCES organization_leave.leave_accounts (id, employment_relationship_id, leave_type_id) ON DELETE RESTRICT,
+    CONSTRAINT ck_leave_policy_grants_request_key CHECK (request_key = btrim(request_key) AND char_length(request_key) BETWEEN 1 AND 100),
+    CONSTRAINT ck_leave_policy_grants_grant_qty CHECK (grant_qty > 0),
+    CONSTRAINT ck_leave_policy_grants_effective_date CHECK (isfinite(effective_date)),
+    CONSTRAINT ck_leave_policy_grants_basis_text CHECK (basis_text = btrim(basis_text) AND char_length(basis_text) BETWEEN 1 AND 500)
+);
+CREATE TRIGGER tg_leave_policy_grants_append_only BEFORE UPDATE OR DELETE ON organization_leave.leave_policy_grants
+    FOR EACH ROW EXECUTE FUNCTION organization_leave.guard_append_only();
+CREATE TRIGGER tg_leave_policy_grants_truncate BEFORE TRUNCATE ON organization_leave.leave_policy_grants
+    FOR EACH STATEMENT EXECUTE FUNCTION organization_leave.guard_append_only();
+
+COMMENT ON TABLE organization_leave.leave_policy_grants IS '请假额度的政策授予：一次经确认的额度授予决定，写一条授予流水，只追加，不可改写或删除。粒度：每次授予一行';
+COMMENT ON COLUMN organization_leave.leave_policy_grants.id IS '主键（UUIDv7），也是对应 POLICY_GRANT 授予流水的来源 ID';
+COMMENT ON COLUMN organization_leave.leave_policy_grants.request_key IS '客户端提供的授予命令重放键，账户内唯一，去首尾空格，1 至 100 字符';
+COMMENT ON COLUMN organization_leave.leave_policy_grants.leave_account_id IS '所属额度账户 ID，与雇佣关系、假期类型共同受账户复合外键约束';
+COMMENT ON COLUMN organization_leave.leave_policy_grants.employment_relationship_id IS '雇佣关系 ID，额度所属关系，与账户一致，跨上下文不建外键';
+COMMENT ON COLUMN organization_leave.leave_policy_grants.leave_type_id IS '假期类型 ID，与账户一致';
+COMMENT ON COLUMN organization_leave.leave_policy_grants.grant_qty IS '授予数量，正整数，单位为假期类型的账本单位';
+COMMENT ON COLUMN organization_leave.leave_policy_grants.effective_date IS '授予生效日，由操作人声明的有限业务日期';
+COMMENT ON COLUMN organization_leave.leave_policy_grants.basis_text IS '操作人填写并确认的授予依据，去首尾空格，1 至 500 字符，不得写健康、孕产等信息';
+COMMENT ON COLUMN organization_leave.leave_policy_grants.granted_by IS '做出授予决定的操作人账号 ID，来自 platform.identity，跨上下文不建外键';
+COMMENT ON COLUMN organization_leave.leave_policy_grants.created_at IS '创建时刻，带时区时间戳';
+COMMENT ON COLUMN organization_leave.leave_policy_grants.updated_at IS '更新时刻（只追加表，触发器拒绝更新，列只为满足通用审计列约定）';
+
 CREATE TABLE organization_leave.leave_ledger_lines (
     id uuid NOT NULL,
     leave_account_id uuid NOT NULL,
@@ -424,7 +466,8 @@ CREATE TABLE organization_leave.leave_ledger_lines (
     CONSTRAINT uk_leave_ledger_lines_source_key UNIQUE NULLS NOT DISTINCT (leave_account_id, source_kind, source_id, line_kind, consumes_line_id),
     CONSTRAINT ck_leave_ledger_lines_line_kind CHECK (line_kind IN ('GRANT', 'ROLLOVER_IN', 'HOLD', 'RELEASE', 'USE', 'REVERSE_USE', 'ADJUST', 'EXPIRE', 'ROLLOVER_OUT')),
     CONSTRAINT ck_leave_ledger_lines_sign CHECK ((line_kind = 'ADJUST' AND line_qty <> 0) OR (line_kind <> 'ADJUST' AND line_qty >= 0)),
-    CONSTRAINT ck_leave_ledger_lines_source_kind CHECK (source_kind IN ('LEAVE_REQUEST', 'OVERTIME_REQUEST', 'HR_ADJUSTMENT', 'SEALED_YEAR_CORRECTION', 'RELATIONSHIP_EVENT', 'YEAR_OPEN', 'YEAR_CLOSE', 'COMP_TIME_EXPIRY', 'MIGRATION')),
+    CONSTRAINT ck_leave_ledger_lines_source_kind CHECK (source_kind IN ('LEAVE_REQUEST', 'OVERTIME_REQUEST', 'HR_ADJUSTMENT', 'SEALED_YEAR_CORRECTION', 'RELATIONSHIP_EVENT', 'YEAR_OPEN', 'YEAR_CLOSE', 'COMP_TIME_EXPIRY', 'MIGRATION', 'POLICY_GRANT')),
+    CONSTRAINT ck_leave_ledger_lines_policy_grant_kind CHECK (source_kind <> 'POLICY_GRANT' OR line_kind = 'GRANT'),
     CONSTRAINT ck_leave_ledger_lines_expiry_kind CHECK (expiry_date IS NULL OR (line_kind IN ('GRANT', 'ROLLOVER_IN') AND expiry_date > effective_date)),
     CONSTRAINT ck_leave_ledger_lines_consumes_kind CHECK (consumes_line_id IS NULL OR line_kind IN ('HOLD', 'RELEASE', 'USE', 'REVERSE_USE', 'EXPIRE', 'ADJUST')),
     CONSTRAINT ck_leave_ledger_lines_reason_text CHECK (reason_text IS NULL OR (reason_text = btrim(reason_text) AND char_length(reason_text) BETWEEN 1 AND 500)),
@@ -703,7 +746,7 @@ COMMENT ON COLUMN organization_leave.leave_ledger_lines.employment_relationship_
 COMMENT ON COLUMN organization_leave.leave_ledger_lines.leave_type_id IS '假期类型 ID，与账户一致，事件幂等键使用';
 COMMENT ON COLUMN organization_leave.leave_ledger_lines.line_kind IS '流水类型：GRANT 发放、ROLLOVER_IN 转入、HOLD 占用、RELEASE 释放、USE 使用、REVERSE_USE 退回、ADJUST 调整、EXPIRE 到期、ROLLOVER_OUT 转出';
 COMMENT ON COLUMN organization_leave.leave_ledger_lines.line_qty IS '流水数量，单位为类型的账本单位（分钟或百分之一天）；ADJUST 有符号且非零，其余非负';
-COMMENT ON COLUMN organization_leave.leave_ledger_lines.source_kind IS '来源类型：请假、加班、人事调整、封存年度更正、关系事件、开年、结年、调休到期、迁移';
+COMMENT ON COLUMN organization_leave.leave_ledger_lines.source_kind IS '来源类型：请假、加班、人事调整、封存年度更正、关系事件、开年、结年、调休到期、迁移、政策授予';
 COMMENT ON COLUMN organization_leave.leave_ledger_lines.source_id IS '来源申请、事件、审批或命令 ID';
 COMMENT ON COLUMN organization_leave.leave_ledger_lines.original_leave_year_number IS '关系事件原属年度，跨封存重投仍用同年；为空表示该行不是由关系事件按年度触发';
 COMMENT ON COLUMN organization_leave.leave_ledger_lines.effective_date IS '流水发生日期';

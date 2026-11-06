@@ -228,6 +228,7 @@ class LeaveLedgerMigrationIT extends LeaveSchemaProbe {
                 new Key("leave_accounts", "fk_leave_accounts_leave_type_id", List.of("leave_type_id")),
                 new Key("leave_accounts", "fk_leave_accounts_rule_version_type", List.of("rule_version_id", "leave_type_id")),
                 new Key("leave_ledger_lines", "fk_leave_ledger_lines_account_relationship_type", List.of("leave_account_id", "employment_relationship_id", "leave_type_id")),
+                new Key("leave_policy_grants", "fk_leave_policy_grants_account_relationship_type", List.of("leave_account_id", "employment_relationship_id", "leave_type_id")),
                 new Key("leave_ledger_lines", "fk_leave_ledger_lines_consumes_line_id", List.of("consumes_line_id")),
                 new Key("leave_ledger_lines", "fk_leave_ledger_lines_corrects_line_id", List.of("corrects_line_id")),
                 new Key("leave_grant_basis", "fk_leave_grant_basis_line_type", List.of("leave_ledger_line_id", "leave_type_id")),
