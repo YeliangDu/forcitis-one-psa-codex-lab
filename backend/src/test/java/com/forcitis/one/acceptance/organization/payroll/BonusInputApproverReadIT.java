@@ -19,7 +19,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 
 /**
- * #1436 (a), user decision 2026-11-05 22:05 point 1 (docs/decisions/2026-11-05-221322-one-lead-*.md) and the shape ruled by lead on 2026-11-06:
+ * #1436 (a), user decision of 2026-11-05 22:05, point 1 (the decision fragment of the card comment), and the shape ruled by lead on 2026-11-06:
  * {@code GET /api/v1/organization/payroll/bonus-input-approvals/{taskId}} (the platform.approval task id) answers 200 with
  * {@code {employmentRelationshipId, payrollMonthStartDate, amount{amount,currency}, reasonKey}} only to the task's current open candidates or its assignee, with
  * no payroll permission needed, and 404 to everyone else (initiator, people not on the task, people of another stage, anyone once the task is decided or closed,
