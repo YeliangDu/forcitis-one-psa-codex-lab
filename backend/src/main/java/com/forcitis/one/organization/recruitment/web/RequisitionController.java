@@ -60,7 +60,7 @@ class RequisitionController {
     /** view absent: everything in the reader's org-unit scope; "requested": what the caller submitted; "approvable": what the caller holds an open approval task for. */
     @GetMapping
     @PreAuthorize("(#view == null and hasAuthority('" + RecruitmentPermissions.READ + "')) or (#view == 'requested' and hasAuthority('"
-            + RecruitmentPermissions.SUBMIT + "')) or #view == 'approvable'")
+            + RecruitmentPermissions.SUBMIT + "')) or (#view == 'approvable' and hasRole('" + RecruitmentPermissions.ORDINARY_SESSION + "'))")
     CursorPage<RequisitionResponse> list(@RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor,
             @RequestParam(required = false) String view) {
         CursorPage<RequisitionView> page;

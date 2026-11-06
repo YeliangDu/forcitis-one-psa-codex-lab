@@ -21,7 +21,7 @@ public interface ApprovalProcesses {
     /** Reads without locking; empty while no approval of the document was started. */
     Optional<ApprovalProgress> progress(ProcessKey processKey, DocumentReference document);
 
-    /** The documents of the given type the user holds an open task for (as assignee or candidate); reads without locking. */
+    /** The documents of the given type the user holds an open task for (as assignee or candidate); reads without locking. Callers pass the signed-in user: the answer is that user's own work. */
     Set<DocumentReference> openDocumentsFor(ProcessKey processKey, UserId user);
 
     /** The answer the withdraw and cancel below act on. */

@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -114,9 +115,16 @@ class RequisitionViewsIT extends ApprovalIntegrationSupport {
         return page.items().stream().map(RequisitionView::requisitionId).toList();
     }
 
+    /** An ordinary session (ROLE_ORDINARY_SESSION) holding the given permission codes. */
     RequestPostProcessor as(long person, String... permissions) {
         return SecurityMockMvcRequestPostProcessors.user(TestAccounts.account(person).value().toString())
-                .authorities(Arrays.stream(permissions).map(SimpleGrantedAuthority::new).toList());
+                .authorities(Stream.concat(Stream.of("ROLE_ORDINARY_SESSION"), Arrays.stream(permissions)).map(SimpleGrantedAuthority::new).toList());
+    }
+
+    /** An administrator-mode session: platform codes only, no ordinary-session role (I-11). */
+    RequestPostProcessor asAdministrator(long person) {
+        return SecurityMockMvcRequestPostProcessors.user(TestAccounts.account(person).value().toString())
+                .authorities(new SimpleGrantedAuthority(Permission.Codes.PLATFORM_IDENTITY_ROLE_READ));
     }
 
     @Test
@@ -204,6 +212,7 @@ class RequisitionViewsIT extends ApprovalIntegrationSupport {
                 .andExpect(jsonPath("$.items[0].requisitionId").value(view.requisitionId().value().toString()));
         mvc.perform(get(PATH + "?view=approvable").with(as(requester))).andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(0));
         mvc.perform(get(PATH + "?view=approvable")).andExpect(status().isUnauthorized());
+        mvc.perform(get(PATH + "?view=approvable").with(asAdministrator(head))).andExpect(status().isForbidden());
 
         when(access.visibleOrgUnits(any())).thenReturn(OrgUnitAccess.Visible.nothing());
         mvc.perform(get(PATH).with(as(other, readCode))).andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(0));
