@@ -161,7 +161,9 @@ public final class ApprovalRequest extends AggregateRoot {
     /**
      * Whether the user already decided a task of the node of this task in the same round (the same instance). A node with several tasks is a countersign:
      * one person does not decide two of them, so a task is not handed to such a person.
-     * Only shares decided while this task was already there count: a node that was left and entered again (a repeat after changed content) is a new round of its own.
+     * Only shares decided while this task was already there count, so a node that is left and entered again (the repeat approver after changed content) starts afresh.
+     * That cut cannot tell such a re-entry from a share the system passed a moment earlier in the same round, so a countersign node must never be re-entered:
+     * the deployment check (ProcessDefinitionDeclarations.requireCountersignEnteredOnce) refuses a definition that can loop back to one. A looping countersign would need a visit number on the task.
      */
     public boolean hasDecidedOnNodeOf(ApprovalTaskId taskId, UserId user) {
         ApprovalTask task = task(taskId);
