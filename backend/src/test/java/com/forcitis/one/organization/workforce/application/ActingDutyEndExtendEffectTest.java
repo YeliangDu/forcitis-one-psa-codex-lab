@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -225,5 +226,23 @@ class ActingDutyEndExtendEffectTest {
         job.run();
         verify(expiry, times(2)).execute(DUTY);
         verify(expiry, times(1)).execute(other);
+    }
+
+    @Test
+    @DisplayName("#1566 a due start dated after a held or effective separation is withdrawn without a duty or event")
+    void startAfterSeparationIsWithdrawn() {
+        EnterPersonnelCommand request = new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.ACTING_START, DAY.plusDays(2), null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null, REL,
+                COVERED, null, null, DAY.plusDays(9), null, "cover");
+        PersonnelCommand start = PersonnelCommand.enter(new PersonnelCommandId(TestIds.uuid(9)), EMPLOYEE, request, RECORDER, NOW, DAY, 7);
+        PersonnelCommand separation = PersonnelCommand.restore(new PersonnelCommandId(TestIds.uuid(10)), EMPLOYEE, PersonnelCommandKind.SEPARATE, DAY,
+                CommandStatus.HELD, null, null, null, null, null, null, null, null, null, null, RECORDER, NOW, null, 0, 7);
+        when(commands.find(start.id())).thenReturn(Optional.of(start));
+        when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), List.of(), List.of(separation), Map.of()));
+        due(Clock.fixed(NOW.plusSeconds(2 * 86400L), ZONE.zone())).execute(start.id());
+        assertThat(start.status()).isEqualTo(CommandStatus.WITHDRAWN);
+        assertThat(start.withdrawalReason()).contains("separates before");
+        verify(duties, never()).insert(any());
+        assertThat(published).isEmpty();
     }
 }

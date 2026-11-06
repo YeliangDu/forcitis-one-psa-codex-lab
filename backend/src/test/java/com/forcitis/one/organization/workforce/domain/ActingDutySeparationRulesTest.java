@@ -82,4 +82,44 @@ class ActingDutySeparationRulesTest {
         assertThatThrownBy(() -> PersonnelCommandRules.check(separation(CommandStatus.PENDING), employed))
                 .isInstanceOf(DomainException.class).hasMessageContaining("correct those commands first");
     }
+
+    static ActingDuty openDuty(LocalDate startsOn) {
+        return new ActingDuty(new com.forcitis.one.organization.workforce.api.ActingDutyId(TestIds.uuid(60)), ActingDutyRulesTest.EMPLOYEE,
+                new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(TestIds.uuid(61)), new com.forcitis.one.organization.workforce.api.OrgUnitId(TestIds.uuid(62)),
+                null, null, startsOn, startsOn.plusDays(10), null, "coverage", new PersonnelCommandId(TestIds.uuid(63)), new UserId(TestIds.uuid(4)), NOW, 0);
+    }
+
+    @Test
+    @DisplayName("#1566 a separation dated before an open duty's start is refused and names the early end")
+    void refusesSeparationBeforeAnOpenDutyStarts() {
+        assertThatThrownBy(() -> ActingDutyRules.requireNoOpenDutyStartingAfter(separation(CommandStatus.PENDING), List.of(openDuty(DAY.plusDays(1)))))
+                .isInstanceOf(DomainException.class).hasMessageContaining("ACTING_END");
+    }
+
+    @Test
+    @DisplayName("#1566 a duty that starts on or before the separation day does not block it")
+    void admitsSeparationWhenNoDutyStartsLater() {
+        assertThatCode(() -> ActingDutyRules.requireNoOpenDutyStartingAfter(separation(CommandStatus.PENDING),
+                List.of(openDuty(DAY), openDuty(DAY.minusDays(3))))).doesNotThrowAnyException();
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = CommandStatus.class, names = {"PENDING", "HELD", "EFFECTIVE"})
+    @DisplayName("#1566 a start dated after a pending, held or effective separation can never take effect")
+    void startFollowsSeparation(CommandStatus status) {
+        PersonnelCommand start = ActingDutyRulesTest.start(DAY.plusDays(2), DAY.plusDays(5), ActingDutyRulesTest.UNIT, null, null, "coverage", 53);
+        org.assertj.core.api.Assertions.assertThat(ActingDutyRules.startFollowsSeparation(start, List.of(separation(status)))).isTrue();
+    }
+
+    @Test
+    @DisplayName("#1566 a start on the separation day, or after a covering reinstatement, still takes effect")
+    void startOnTheDayOrAfterReinstatementIsKept() {
+        PersonnelCommand onTheDay = ActingDutyRulesTest.start(DAY, DAY.plusDays(5), ActingDutyRulesTest.UNIT, null, null, "coverage", 53);
+        org.assertj.core.api.Assertions.assertThat(ActingDutyRules.startFollowsSeparation(onTheDay, List.of(separation(CommandStatus.PENDING)))).isFalse();
+        PersonnelCommand later = ActingDutyRulesTest.start(DAY.plusDays(4), DAY.plusDays(9), ActingDutyRulesTest.UNIT, null, null, "coverage", 53);
+        PersonnelCommand reinstatement = PersonnelCommand.restore(new PersonnelCommandId(TestIds.uuid(64)), ActingDutyRulesTest.EMPLOYEE,
+                PersonnelCommandKind.REINSTATE, DAY.plusDays(2), CommandStatus.EFFECTIVE, null, null, null, null, null, null, null, null, null, null,
+                new UserId(TestIds.uuid(4)), NOW, NOW, 0, 0);
+        org.assertj.core.api.Assertions.assertThat(ActingDutyRules.startFollowsSeparation(later, List.of(separation(CommandStatus.EFFECTIVE), reinstatement))).isFalse();
+    }
 }

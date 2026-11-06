@@ -106,6 +106,10 @@ class EffectPublisher {
                 && duties.find(Objects.requireNonNull(command.targetActingDutyId())).orElseThrow().endedOn() != null;
     }
 
+    boolean actingStartIsOverrun(PersonnelCommand command, PersonnelHistory history) {
+        return command.kind() == PersonnelCommandKind.ACTING_START && ActingDutyRules.startFollowsSeparation(command, history.commands());
+    }
+
     void changeActingDuty(PersonnelCommand command, ActingDuty loaded) {
         ActingDutyRules.requireTarget(command, loaded);
         if (command.kind() == PersonnelCommandKind.ACTING_EXTEND) {

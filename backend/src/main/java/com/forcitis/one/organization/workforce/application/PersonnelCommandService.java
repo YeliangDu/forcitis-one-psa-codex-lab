@@ -424,6 +424,8 @@ class PersonnelCommandService implements PersonnelCommands {
             PersonnelCommandRules.check(command, all);
             ActingDutyRules.requireAvailable(command, all, duties.findOverlap(command.employeeId(), Objects.requireNonNull(command.actingCoveredOrgUnitId()),
                     command.actingCoveredPositionId(), command.effectiveDate(), Objects.requireNonNull(command.actingEndsBeforeDate())));
+        } else if (command.kind() == PersonnelCommandKind.SEPARATE) {
+            ActingDutyRules.requireNoOpenDutyStartingAfter(command, duties.listOpen(command.employeeId()));
         } else if (command.kind() == PersonnelCommandKind.ACTING_END || command.kind() == PersonnelCommandKind.ACTING_EXTEND) {
             ActingDuty target = ActingDutyRules.requireTarget(command, duties.find(Objects.requireNonNull(command.targetActingDutyId())).orElse(null));
             if (command.kind() == PersonnelCommandKind.ACTING_END) {

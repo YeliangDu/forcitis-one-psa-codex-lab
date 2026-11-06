@@ -66,6 +66,22 @@ public final class ActingDutyRules {
         }
     }
 
+    /** A separation cannot precede the start of a duty that is still open: the duty would outlive the person's service. End the duty (ACTING_END) first. */
+    public static void requireNoOpenDutyStartingAfter(PersonnelCommand separation, List<ActingDuty> openDuties) {
+        if (openDuties.stream().anyMatch(d -> d.startsOn().isAfter(separation.effectiveDate()))) {
+            throw refused("the employee has an acting duty that starts after " + separation.effectiveDate()
+                    + "; end it with an early end (ACTING_END) before the separation");
+        }
+    }
+
+    /** True when a separation that no effective reinstatement covers falls before the start day, so the start can never take effect. */
+    public static boolean startFollowsSeparation(PersonnelCommand start, List<PersonnelCommand> all) {
+        return all.stream().filter(s -> s.kind() == PersonnelCommandKind.SEPARATE && s.status() != CommandStatus.WITHDRAWN
+                        && s.status() != CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN && s.effectiveDate().isBefore(start.effectiveDate()))
+                .anyMatch(s -> all.stream().noneMatch(r -> r.kind() == PersonnelCommandKind.REINSTATE && r.status() == CommandStatus.EFFECTIVE
+                        && r.effectiveDate().isAfter(s.effectiveDate()) && !r.effectiveDate().isAfter(start.effectiveDate())));
+    }
+
     public static void requireExtend(PersonnelCommand command, ActingDuty duty, PersonnelHistory history, List<ActingDuty> duties) {
         requireTarget(command, duty);
         LocalDate to = Objects.requireNonNull(command.actingEndsBeforeDate());
