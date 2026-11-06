@@ -132,7 +132,7 @@ Slices 1 to 8 need no user answer. Slices 9 to 11 wait for Q-A1 and Q-A2.
 7. `ACTING_END` on an active duty sets `ended_on`, `end_cause = ENDED_EARLY`, and publishes `Ended` once; the same command on `starts_on` or earlier is refused.
 8. `ACTING_EXTEND` moves `ends_before`, publishes no event and the due job then closes it on the new `ends_before`; extending an ENDED duty is refused.
 9. At `ends_before` the due job closes the duty with `EXPIRED` and publishes `Ended` with no command id; running the job twice the same day changes nothing the second time.
-10. Separating the person ends open duties on the separation date with `SEPARATION` and withdraws scheduled ones, in the same transaction as the separation.
+10. Separating the person ends open duties on the separation date with `SEPARATION` and withdraws scheduled ones, in the same transaction as the separation. A duty that starts on the separation day is closed the same day with `ended_on = starts_on` and still publishes `Ended`; a start dated after the separation day is refused.
 11. Employee detail shows state, term (first and last day), cause and reason; the covered person's page shows the cover line; roster and headcount counts are unchanged by a duty.
 12. After Q-A1 is answered: `Ended` leaves no grant opened by the duty current, and no review item open for it; sensitive roles are never granted by the path.
 

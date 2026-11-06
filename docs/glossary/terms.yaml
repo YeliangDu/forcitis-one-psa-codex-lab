@@ -10946,7 +10946,7 @@ terms:
   scope: domain
   definition: 一个部门或一名员工在某段时间内归属于哪个法人主体的记录；各段期间互不重叠，历史只能关闭、不能改写，新的归属只能从最近一段的开始日之后起算
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -11091,7 +11091,7 @@ terms:
   scope: domain
   definition: 员工第一次登录时，被登记进组织快照；此后下一次同步会带入完整信息
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -11107,7 +11107,7 @@ terms:
   scope: domain
   definition: 一个法人主体被启用，可以开始作为法人使用
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -11123,7 +11123,7 @@ terms:
   scope: domain
   definition: 部门或员工从某日起归属于某个法人主体
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -11139,7 +11139,7 @@ terms:
   scope: domain
   definition: 已关闭的法人归属期间的结束日被更正
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -11155,7 +11155,7 @@ terms:
   scope: domain
   definition: 部门或员工对某个法人主体的归属在某日结束
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -11171,7 +11171,7 @@ terms:
   scope: domain
   definition: 法人主体的代码被更正；仅在尚未发过号时允许
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -11187,7 +11187,7 @@ terms:
   scope: domain
   definition: 一个法人主体被停用，不再作为法人使用
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -11203,7 +11203,7 @@ terms:
   scope: domain
   definition: 一个新的法人主体被登记进组织人事
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -11219,7 +11219,7 @@ terms:
   scope: domain
   definition: 法人主体的名称被改变
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -11236,7 +11236,7 @@ terms:
   acl_class: 过渡期
   definition: 一次组织同步使组织快照发生了变化；离职人员的会话据此被收回；业务日为快照截止日，生效日同截止日
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -11252,7 +11252,7 @@ terms:
   scope: domain
   definition: 一次组织同步运行失败
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -11284,7 +11284,7 @@ terms:
   scope: domain
   definition: 被暂停的同步，其中一类暂停被有权的人解除；另一类暂停仍在时，运行保持暂停
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -11300,7 +11300,7 @@ terms:
   scope: domain
   definition: 被中止的同步已由管理员放行，或被后续成功的同步取代；记下接替的运行与管理员给出的原因
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -11316,7 +11316,7 @@ terms:
   scope: domain
   definition: 一次组织同步运行成功
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -23603,7 +23603,7 @@ common_words:
   scope: domain
   definition: 代理职务开始命令已生效：员工自开始日起暂代某部门或岗位的职责；负载为 ID 与日期，不含姓名与事由
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
@@ -23619,7 +23619,7 @@ common_words:
   scope: domain
   definition: 代理职务因到期、提前结束或代理人离职而结束；到期时没有人事命令，负载里的人事命令 ID 为空
   standard_ref:
-  - docs/architecture/events/workforce.yaml
+  - docs/data/reviews/workforce-acting-duty.md
   confidence: medium
   aliases: []
   forbidden: []
