@@ -4,7 +4,7 @@
 
 ## 统计与判据
 
-- 已建：21；仅 code 8；仅 registry 0；两者 13。
+- 已建：22；仅 code 8；仅 registry 0；两者 14。
 - registry 来源只取 role=AGGREGATE_ROOT；tables 取同模块全部同名 aggregate 表。
 - commands 取同模块 application 中直接引用根类型的类（含 record、查询视图和辅助类），不追间接调用。
 - events 仅取同模块 DomainEvent 类型在根或上述类的 record/emit/publish 参数内直接构造的证据；不做跨方法数据流推断。
