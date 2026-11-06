@@ -151,6 +151,29 @@ class FiscalPeriodsMigrationIT {
     }
 
     @Test
+    @DisplayName("#1551 a move adds exactly 1 to version and never sets updated_at back; the moves that obey both still work")
+    void versionAndUpdatedAtMoveForward() throws Exception {
+        try (Connection db = connect()) {
+            UUID entity = UUID.randomUUID();
+            UUID id = period(db, entity, 2026, 1, "OPEN");
+            String move = "update accounting_period.fiscal_periods set status = 'CLOSING', updated_at = ?, version = ? where id = ?";
+            refused(db, RESTRICT_VIOLATION, "tg_fiscal_periods_change", () -> run(db, move, AT.plusDays(1), 0L, id));
+            refused(db, RESTRICT_VIOLATION, "tg_fiscal_periods_change", () -> run(db, move, AT.plusDays(1), 2L, id));
+            refused(db, RESTRICT_VIOLATION, "tg_fiscal_periods_change", () -> run(db, move, AT.plusDays(1), -1L, id));
+            refused(db, RESTRICT_VIOLATION, "tg_fiscal_periods_change", () -> run(db, move, AT.minusSeconds(1), 1L, id));
+            assertThat(text(db, "select status || version from accounting_period.fiscal_periods where id = ?", id)).as("nothing moved").isEqualTo("OPEN0");
+
+            run(db, move, AT, 1L, id);
+            assertThat(text(db, "select status || version from accounting_period.fiscal_periods where id = ?", id)).as("the same instant is not earlier").isEqualTo("CLOSING1");
+            String close = "update accounting_period.fiscal_periods set status = 'CLOSED', updated_at = ?, version = ? where id = ?";
+            refused(db, RESTRICT_VIOLATION, "tg_fiscal_periods_change", () -> run(db, close, AT.plusDays(1), 1L, id));
+            run(db, close, AT.plusDays(1), 2L, id);
+            assertThat(text(db, "select status || version from accounting_period.fiscal_periods where id = ?", id)).isEqualTo("CLOSED2");
+            db.rollback();
+        }
+    }
+
+    @Test
     @DisplayName("#1439 INV-99 a CLOSED period accepts no update of any column")
     void closedIsFinal() throws Exception {
         try (Connection db = connect()) {
