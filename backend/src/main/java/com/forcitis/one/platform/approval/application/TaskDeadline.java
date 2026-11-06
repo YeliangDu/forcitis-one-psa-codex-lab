@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval.application;
 
 import com.forcitis.one.kernel.AccountEmployees;
+import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.approval.api.ApprovalError;
@@ -14,8 +15,10 @@ import com.forcitis.one.platform.approval.domain.ProcessAdministrator;
 import com.forcitis.one.platform.approval.domain.TaskView;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -40,9 +43,11 @@ class TaskDeadline {
     private final MeterRegistry meters;
     private final BusinessTime time;
     private final AccountEmployees accountEmployees;
+    private final NodeShares shares;
 
     TaskDeadline(ApprovalRequestRepository requests, Approvals approvals, ApprovalEngine engine, OrgDirectory org,
-            ProcessAdministrator administrator, MeterRegistry meters, BusinessTime time, AccountEmployees accountEmployees) {
+            ProcessAdministrator administrator, MeterRegistry meters, BusinessTime time, AccountEmployees accountEmployees, NodeShares shares) {
+        this.shares = shares;
         this.accountEmployees = accountEmployees;
         this.requests = requests;
         this.approvals = approvals;
@@ -84,17 +89,55 @@ class TaskDeadline {
 
     private void escalate(ApprovalRequest request, TaskView view, Moment now) {
         List<UserId> holders = holders(view);
-        UserId superior = view.assignee().flatMap(accountEmployees::employeeOf).flatMap(org::findSupervisor)
-                .filter(supervisor -> !supervisor.equals(view.initiator())).flatMap(accountEmployees::accountOf)
-                .filter(supervisor -> !holders.contains(supervisor)).orElse(null);
-        boolean toAdministrator = superior == null;
-        List<UserId> receivers = toAdministrator ? administratorsFor(view, holders) : List.of(superior);
+        Superior superior = superiorOf(request, view, holders);
+        List<UserId> receivers;
+        boolean toAdministrator = false;
+        if (superior.found().isPresent()) {
+            receivers = List.of(superior.found().get());
+        } else if (superior.skippedSomebody()) {
+            receivers = List.of();
+        } else {
+            toAdministrator = true;
+            receivers = administratorsFor(view, holders).stream().filter(each -> !shares.takenElsewhere(request, view, each)).toList();
+        }
+        if (receivers.isEmpty()) {
+            meters.counter("forcitis.platform.approval.task.escalation.unresolved").increment();
+            log.error("Task {} is overdue and stays with {}: everybody it could go to already has another task of node {}", view.taskId().value(),
+                    holders, view.nodeKey());
+            return;
+        }
+        if (toAdministrator) {
+            meters.counter("forcitis.platform.approval.task.escalation.administrator").increment();
+        }
         if (view.isClaimed()) {
             engine.releaseClaim(view.taskId());
         }
         engine.addCandidates(view.taskId(), receivers);
         request.escalateTask(view.taskId(), receivers, toAdministrator, now);
         meters.counter("forcitis.platform.approval.task.escalated").increment();
+    }
+
+    /** The first supervisor up the line who is not the initiator, a holder, or somebody with another task of the node; the initiator ends the line. */
+    private Superior superiorOf(ApprovalRequest request, TaskView view, List<UserId> holders) {
+        Optional<EmployeeId> current = view.assignee().flatMap(accountEmployees::employeeOf);
+        Set<EmployeeId> seen = new HashSet<>();
+        boolean skipped = false;
+        while (current.isPresent() && seen.add(current.get())) {
+            Optional<EmployeeId> next = org.findSupervisor(current.get());
+            if (next.isEmpty() || next.get().equals(view.initiator())) {
+                break;
+            }
+            Optional<UserId> account = accountEmployees.accountOf(next.get());
+            if (account.isPresent() && !holders.contains(account.get()) && !shares.takenElsewhere(request, view, account.get())) {
+                return new Superior(account, skipped);
+            }
+            skipped = skipped || account.isPresent();
+            current = next;
+        }
+        return new Superior(Optional.empty(), skipped);
+    }
+
+    private record Superior(Optional<UserId> found, boolean skippedSomebody) {
     }
 
     private List<UserId> administratorsFor(TaskView view, List<UserId> holders) {
@@ -105,7 +148,6 @@ class TaskDeadline {
                     holders);
             throw ApprovalError.PLATFORM_APPROVAL_ESCALATION_TARGET_MISSING.refusal("Nobody to escalate task " + view.taskId().value() + " to");
         }
-        meters.counter("forcitis.platform.approval.task.escalation.administrator").increment();
         if (view.isClaimed()) {
             log.error("Task {} is overdue and its holder {} has no superior: handed to the process administrator", view.taskId().value(),
                     holders);

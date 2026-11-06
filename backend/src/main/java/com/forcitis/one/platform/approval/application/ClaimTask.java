@@ -1,6 +1,7 @@
 package com.forcitis.one.platform.approval.application;
 
 import com.forcitis.one.kernel.UserId;
+import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.domain.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.TaskView;
@@ -14,10 +15,12 @@ public class ClaimTask {
 
     private final TaskGuard guard;
     private final Approvals approvals;
+    private final NodeShares shares;
 
-    ClaimTask(TaskGuard guard, Approvals approvals) {
+    ClaimTask(TaskGuard guard, Approvals approvals, NodeShares shares) {
         this.guard = guard;
         this.approvals = approvals;
+        this.shares = shares;
     }
 
     @Transactional
@@ -31,6 +34,9 @@ public class ClaimTask {
         TaskView current = guard.requireActor(taskId, actor, "claim");
         if (current.isClaimed()) {
             return;
+        }
+        if (shares.takenElsewhere(request, current, actor)) {
+            throw ApprovalError.PLATFORM_APPROVAL_SHARE_ALREADY_TAKEN.refusal("Task " + taskId.value() + " cannot be claimed by somebody who already has another task of node " + current.nodeKey());
         }
         approvals.claim(request, current, actor);
         approvals.save(request);

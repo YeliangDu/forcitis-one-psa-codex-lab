@@ -45,7 +45,7 @@ class TaskDeadlineAccountsTest {
     final ApprovalRequest request = mock(ApprovalRequest.class);
     final BusinessTime time = mock(BusinessTime.class);
     final TaskDeadline deadline = new TaskDeadline(requests, mock(Approvals.class), engine, org, administrator, new SimpleMeterRegistry(), time,
-            TestAccounts.everyoneHasOne());
+            TestAccounts.everyoneHasOne(), new NodeShares(engine));
 
     TaskDeadlineAccountsTest() {
         ApprovalTask task = mock(ApprovalTask.class);
