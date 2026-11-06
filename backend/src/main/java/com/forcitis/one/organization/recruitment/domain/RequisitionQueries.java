@@ -22,6 +22,6 @@ public interface RequisitionQueries {
     /** Newest first, the ones the employee submitted; scope does not apply to one's own. */
     List<RecruitmentRequisition> listRequestedBy(EmployeeId requester, @Nullable RequisitionId after, int limit);
 
-    /** Newest first, among exactly these requisitions; an empty set answers nothing. */
-    List<RecruitmentRequisition> listAmong(Set<UUID> ids, @Nullable RequisitionId after, int limit);
+    /** Newest first, of exactly these requisitions; an empty set answers nothing. */
+    List<RecruitmentRequisition> listByIds(Set<UUID> ids, @Nullable RequisitionId after, int limit);
 }

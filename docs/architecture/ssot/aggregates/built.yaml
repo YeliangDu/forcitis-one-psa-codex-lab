@@ -124,6 +124,8 @@ aggregates:
   - ApplyRequisitionApprovalResult
   - CloseRequisition
   - GetRequisition
+  - ListApprovableRequisitions
+  - ListRequestedRequisitions
   - ListRequisitions
   - RequisitionView
   - SubmitRequisition

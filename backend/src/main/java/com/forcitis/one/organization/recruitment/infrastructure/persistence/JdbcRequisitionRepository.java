@@ -147,7 +147,7 @@ class JdbcRequisitionRepository implements RequisitionRepository, RequisitionQue
     }
 
     @Override
-    public List<RecruitmentRequisition> listAmong(Set<UUID> ids, @Nullable RequisitionId after, int limit) {
+    public List<RecruitmentRequisition> listByIds(Set<UUID> ids, @Nullable RequisitionId after, int limit) {
         if (ids.isEmpty()) {
             return List.of();
         }
