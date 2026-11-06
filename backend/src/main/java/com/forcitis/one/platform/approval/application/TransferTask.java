@@ -26,8 +26,10 @@ public class TransferTask {
     private final OrgDirectory org;
     private final BusinessTime time;
     private final AccountEmployees accountEmployees;
+    private final NodeShares shares;
 
-    TransferTask(TaskGuard guard, ApprovalEngine engine, Approvals approvals, OrgDirectory org, BusinessTime time, AccountEmployees accountEmployees) {
+    TransferTask(TaskGuard guard, ApprovalEngine engine, Approvals approvals, OrgDirectory org, BusinessTime time, AccountEmployees accountEmployees, NodeShares shares) {
+        this.shares = shares;
         this.accountEmployees = accountEmployees;
         this.guard = guard;
         this.engine = engine;
@@ -46,7 +48,7 @@ public class TransferTask {
                 "Transfer target " + to.value() + " has no account"));
         requireValidTarget(task, actor, to, assignee);
         requireNamedByNode(task, to, assignee);
-        requireNotDecidedOnNode(request, task, to, assignee);
+        requireOneTaskOfNode(request, task, to, assignee);
         engine.reassignTask(taskId, assignee);
         request.transferTask(taskId, actor, assignee, Reason.ofNullable(reason), time.moment());
         approvals.save(request);
@@ -60,12 +62,6 @@ public class TransferTask {
         if (assignee.equals(actor) || to.equals(task.initiator())) {
             throw refused("A task cannot be handed to its handler or to the initiator");
         }
-        boolean alreadyOnNode = engine.findOpenTasks(task.instanceId()).stream()
-                .filter(other -> other.nodeKey().equals(task.nodeKey()) && !other.taskId().equals(task.taskId()))
-                .anyMatch(other -> other.candidates().contains(assignee) || other.assignee().map(assignee::equals).orElse(false));
-        if (alreadyOnNode) {
-            throw refused("Transfer target " + to.value() + " already has a task on this node");
-        }
     }
 
     /** A node that takes no fallback is handed over only inside the people its rule names. */
@@ -75,10 +71,10 @@ public class TransferTask {
         }
     }
 
-    /** A countersign task does not go to somebody who already decided a task of the node in this round. */
-    private static void requireNotDecidedOnNode(ApprovalRequest request, TaskView task, EmployeeId to, UserId assignee) {
-        if (request.hasDecidedOnNodeOf(task.taskId(), assignee)) {
-            throw refused("Transfer target " + to.value() + " already decided a task of node " + task.nodeKey() + " in this round");
+    /** A task of a node does not go to somebody who already has or decided another task of the node in this round. */
+    private void requireOneTaskOfNode(ApprovalRequest request, TaskView task, EmployeeId to, UserId assignee) {
+        if (shares.takenElsewhere(request, task, assignee)) {
+            throw refused("Transfer target " + to.value() + " already has or decided another task of node " + task.nodeKey() + " in this round");
         }
     }
 

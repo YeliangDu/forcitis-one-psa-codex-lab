@@ -1,15 +1,15 @@
-import { formatDateTime } from '@forcitis/core';
-import { Button, DescriptionList, PageTitle, ReasonDialog, StatusBadge, TextLink } from '@forcitis/ui';
+import { badgeOf, formatDateTime } from '@forcitis/core';
+import { Button, DescriptionList, PageTitle, ReasonDialog, StatusBadge } from '@forcitis/ui';
 import { MutationNotice, QueryBoundary } from '../../../shared/query-boundary';
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
+import { useParams } from 'react-router';
+import { RouterLink } from '../../../shared/router-link';
 import { usePersonnelCommand, useWithdrawPersonnelCommand } from '../hooks/use-workforce';
 import { employeePath } from '../model/employee';
-import { COMMAND_KIND_LABELS, COMMAND_STATUS_LABELS, HOLD_STATUS_LABELS } from '../model/personnel-command';
+import { COMMAND_KIND_LABELS, COMMAND_STATUS_LABELS, COMMAND_STATUS_TONES, HOLD_STATUS_LABELS } from '../model/personnel-command';
 
 export function PersonnelCommandDetailPage() {
   const { personnelCommandId = '' } = useParams();
-  const navigate = useNavigate();
   const command = usePersonnelCommand(personnelCommandId);
   const withdraw = useWithdrawPersonnelCommand(personnelCommandId);
   const [asking, setAsking] = useState(false);
@@ -29,14 +29,14 @@ export function PersonnelCommandDetailPage() {
               text={`${COMMAND_KIND_LABELS[detail.commandKind] ?? detail.commandKind} · ${detail.displayName}`}
               actions={
                 <>
-                  <StatusBadge tone={detail.status === 'EFFECTIVE' ? 'posted' : 'neutral'}>{COMMAND_STATUS_LABELS[detail.status] ?? detail.status}</StatusBadge>
+                  <StatusBadge tone={badgeOf(COMMAND_STATUS_LABELS, COMMAND_STATUS_TONES, detail.status).tone}>{badgeOf(COMMAND_STATUS_LABELS, COMMAND_STATUS_TONES, detail.status).label}</StatusBadge>
                   {detail.withdrawnAt == null ? <Button variant="danger" onClick={() => setAsking(true)}>撤回</Button> : null}
                 </>
               }
             />
             <DescriptionList
               items={[
-                { label: '员工', value: <TextLink href={employeePath(detail.employeeId)} onNavigate={() => void navigate(employeePath(detail.employeeId))}>{detail.displayName}</TextLink> },
+                { label: '员工', value: <RouterLink to={employeePath(detail.employeeId)}>{detail.displayName}</RouterLink> },
                 { label: '员工编码', value: detail.employeeCode },
                 { label: '命令类型', value: COMMAND_KIND_LABELS[detail.commandKind] ?? detail.commandKind },
                 { label: '生效日期', value: detail.effectiveDate },

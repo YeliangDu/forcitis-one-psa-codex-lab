@@ -30,6 +30,8 @@ export const COMMAND_STATUS_LABELS: Readonly<Record<string, string>> = {
   AWAITING_ATTRIBUTION_COUNTERSIGN: '待法人归属会签',
 };
 
+export const COMMAND_STATUS_TONES: Readonly<Record<string, 'posted'>> = { EFFECTIVE: 'posted' };
+
 export const HOLD_STATUS_LABELS: Readonly<Record<string, string>> = {
   HELD: '待放行',
   RELEASED: '已放行',

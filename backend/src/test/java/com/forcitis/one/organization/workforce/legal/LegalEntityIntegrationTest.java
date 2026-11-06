@@ -78,6 +78,15 @@ class LegalEntityIntegrationTest extends WorkforceIntegrationSupport {
     }
 
     @Test
+    @org.junit.jupiter.api.DisplayName("#1440 allIds lists every legal entity, deactivated ones included")
+    void allIdsListsEveryLegalEntity() throws Exception {
+        assertThat(directory.allIds()).isEmpty();
+        UUID one = create("ONE", "First");
+        UUID two = create("TWO", "Second");
+        assertThat(directory.allIds()).containsExactlyInAnyOrder(new LegalEntityId(one), new LegalEntityId(two));
+    }
+
+    @Test
     @DisplayName("an administrator creates a legal entity: id from the database, code and name as given, active, audited with the actor")
     void createLegalEntity() throws Exception {
         mvc.perform(post(LEGAL_ENTITIES).with(csrf()).with(MAINTAINER).contentType(MediaType.APPLICATION_JSON)

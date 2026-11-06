@@ -29,11 +29,7 @@ export function permissionAdjustmentPath(id: string): string {
 
 export const LIST_PATH = '/admin/permission-adjustments';
 
-export function statusTone(status: string): 'pending' | 'posted' | 'neutral' {
-  if (status === 'OPEN') return 'pending';
-  if (status === 'UPHELD' || status === 'ADJUSTED') return 'posted';
-  return 'neutral';
-}
+export const STATUS_TONES: Readonly<Record<string, 'pending' | 'posted'>> = { OPEN: 'pending', UPHELD: 'posted', ADJUSTED: 'posted' };
 
 /** The name when the server found one, else the id it stands for. */
 export function nameOrId(name: string | undefined, id: string | undefined): string {
