@@ -40,7 +40,7 @@ class FileServiceConfigurationTest {
                 .withBean(ContentChecks.class, () -> mock(ContentChecks.class)).withBean(StoredFileRepository.class, () -> mock(StoredFileRepository.class))
                 .withBean(StoreAudit.class, () -> mock(StoreAudit.class))
                 .withBean(FileBindingRepository.class, () -> mock(FileBindingRepository.class)).withBean(BindingAudit.class, () -> mock(BindingAudit.class)).withBean(IdGenerator.class, () -> UUID::randomUUID)
-                .withBean(Clock.class, Clock::systemUTC).withBean(BusinessZone.class, () -> new BusinessZone(ZoneId.of("Asia/Shanghai"))).withBean(PlatformTransactionManager.class, () -> mock(PlatformTransactionManager.class))
+                .withBean(Clock.class, com.forcitis.one.BusinessDay::fixedClock).withBean(BusinessZone.class, () -> new BusinessZone(ZoneId.of("Asia/Shanghai"))).withBean(PlatformTransactionManager.class, () -> mock(PlatformTransactionManager.class))
                 .withBean(MeterRegistry.class, SimpleMeterRegistry::new).withBean(CurrentUser.class, () -> mock(CurrentUser.class))
                 .withPropertyValues("forcitis.platform.file.store.enabled=true", "forcitis.platform.file.store.environment-prefix=dev",
                         "forcitis.platform.file.store.max-file-size=100MB", "forcitis.platform.file.store.allowed-media-types=application/pdf",

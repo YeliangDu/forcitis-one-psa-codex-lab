@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.idempotency;
 
+import com.forcitis.one.BusinessDay;
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -246,14 +247,14 @@ class IdempotencyIT {
     @DisplayName("after 24 hours the key is free again, and the cleanup removes the expired answer")
     void expiry() throws Exception {
         mvc.perform(order("1", "k-old", "{\"a\":1}")).andReturn();
-        jdbc.sql("update platform_idempotency.idempotent_responses set expires_at = :past").param("past", Timestamp.from(Instant.now().minusSeconds(60))).update();
+        jdbc.sql("update platform_idempotency.idempotent_responses set expires_at = :past").param("past", Timestamp.from(BusinessDay.instant().minusSeconds(60))).update();
 
         MvcResult again = mvc.perform(order("1", "k-old", "{\"a\":1}")).andReturn();
         assertThat(again.getResponse().getHeader("Idempotent-Replayed")).isNull();
         assertThat(probe.runs.get()).isEqualTo(2);
 
-        jdbc.sql("update platform_idempotency.idempotent_responses set expires_at = :past").param("past", Timestamp.from(Instant.now().minusSeconds(60))).update();
-        assertThat(responses.purgeExpired(Instant.now())).isEqualTo(1);
+        jdbc.sql("update platform_idempotency.idempotent_responses set expires_at = :past").param("past", Timestamp.from(BusinessDay.instant().minusSeconds(60))).update();
+        assertThat(responses.purgeExpired(BusinessDay.instant())).isEqualTo(1);
         assertThat(jdbc.sql("select count(*) from platform_idempotency.idempotent_responses").query(Long.class).single()).isZero();
     }
 
@@ -263,7 +264,7 @@ class IdempotencyIT {
         mvc.perform(order("1", "k-dead", "{\"a\":1}")).andReturn();
         jdbc.sql("""
                 update platform_idempotency.idempotent_responses set response_number = null, response_name = null, response_text = null, response_header_text = null, updated_at = :old
-                """).param("old", Timestamp.from(Instant.now().minus(Duration.ofMinutes(10)))).update();
+                """).param("old", Timestamp.from(BusinessDay.instant().minus(Duration.ofMinutes(10)))).update();
         probe.runs.set(0);
 
         probe.entered = new CountDownLatch(1);
@@ -335,7 +336,7 @@ class IdempotencyIT {
     void heldKeyOutlivesTheInProgressTimeout() throws Exception {
         UserId user = TestAccounts.account(1);
         Duration reclaimAfter = Duration.ofMinutes(2);
-        Instant now = Instant.now();
+        Instant now = BusinessDay.instant();
         mvc.perform(sized("k-held", IdempotentResponses.MAX_RESPONSE_LENGTH + 1)).andReturn();
         assertThat(jdbc.sql("select updated_at = expires_at from platform_idempotency.idempotent_responses where idempotency_key = 'k-held'").query(Boolean.class).single())
                 .as("the hold pushes updated_at to expires_at").isTrue();

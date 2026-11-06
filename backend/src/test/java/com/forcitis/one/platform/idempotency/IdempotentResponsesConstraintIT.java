@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.idempotency;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -50,7 +51,7 @@ class IdempotentResponsesConstraintIT {
             statement.setString(6, name);
             statement.setString(7, text);
             statement.setString(8, headers);
-            statement.setTimestamp(9, Timestamp.from(Instant.now().plusSeconds(86400)));
+            statement.setTimestamp(9, Timestamp.from(BusinessDay.instant().plusSeconds(86400)));
             statement.executeUpdate();
         }
     }
