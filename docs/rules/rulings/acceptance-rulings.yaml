@@ -585,3 +585,11 @@ rulings:
       - backend/src/test/java/com/forcitis/one/acceptance/platform/identity/role_versioning/SystemRoleDeclarationIT.java
     reason: '#1222 按 ADR-0069 第 11 节删组织每日对账：删 OldSyncRemovedIT.theReconciliationIsKeptUnderItsNewName（已删行为；接口与作业已去由非验收 WorkforceHttpIntegrationTest.theReconciliationIsGone 断言）；SystemRoleDeclarationIT 中 org_data_admin 声明修订号 4→5、预期码与种子比对去掉 org-reconciliation:execute（该码按 ADR-0034 第 3 项标停用不删），SeededRole javadoc 随之改写；其余断言不变'
     ref: "commit 5f34ad435991a0e20845b2b75321627e1f044ccd (#1222, PR #1253), patch-id --verbatim c3d3ee56ea10d8780d8d530a2ee535f52ee16318; reviewed predecessor 57be10360 (patch-id b76a333fd); rv1222acc.md"
+  - id: RULING-LEAD-20261106-01
+    date: 2026-11-06
+    ruled_by: independent opus reviewer dispatched by one-test on commit 35273f1b2 alone (review1530.md, first round 通过, no must-fix, substance ruled consistent), recorded by one-lead
+    implementer: one-dev-org
+    files:
+      - backend/src/test/java/com/forcitis/one/acceptance/organization/workforce/EmployeeRosterHttpIT.java
+    reason: '#1530 done-when 1 requires the roster row and employee detail to carry the unpaid-leave state; ROW_KEYS (isSubsetOf whitelist) gains only onUnpaidLeave, a derived boolean, not identity card / ethnicity / household data; FORBIDDEN_KEY and contains() unchanged; class javadoc key list updated to match'
+    ref: "commit 35273f1b2412284de49717bca7d0227487ae0aa2 (#1530, one-test, branch claude/one-test-1530-roster-key), patch-id --verbatim 3041e03d696930fbd2ffc0e76ee39c4ac9519c51; review1530.md"

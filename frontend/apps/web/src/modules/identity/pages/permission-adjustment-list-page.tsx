@@ -1,13 +1,15 @@
-import { badgeOf, describeFailure, formatDateTime } from '@forcitis/core';
-import { Button, DataTable, LoadingState, Notice, PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
+import { badgeOf, formatDateTime } from '@forcitis/core';
+
+import { PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
+import { optionsOf } from '../../../shared/options';
 import { useNavigate } from 'react-router';
+import { PagedTable } from '../../../shared/paged-table';
 import { usePermissionAdjustments } from '../hooks/use-permission-adjustments';
 import { KIND_LABELS, ORIGIN_LABELS, STATUS_LABELS, STATUS_TONES, aboutLabel, permissionAdjustmentPath, type PermissionAdjustment } from '../model/permission-adjustment';
 
-const ALL = { value: '', label: '全部' };
-const STATUS_OPTIONS = [ALL, ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))];
-const KIND_OPTIONS = [ALL, ...Object.entries(KIND_LABELS).map(([value, label]) => ({ value, label }))];
+const STATUS_OPTIONS = optionsOf(Object.entries(STATUS_LABELS), ([value]) => value, ([, label]) => label, '全部');
+const KIND_OPTIONS = optionsOf(Object.entries(KIND_LABELS), ([value]) => value, ([, label]) => label, '全部');
 
 export function PermissionAdjustmentListPage() {
   const navigate = useNavigate();
@@ -35,10 +37,7 @@ export function PermissionAdjustmentListPage() {
       <PageTitle text="待调整权限" />
       <SelectField label="状态" value={status} options={STATUS_OPTIONS} onChange={setStatus} />
       <SelectField label="类型" value={kind} options={KIND_OPTIONS} onChange={setKind} />
-      {list.isPending ? <LoadingState /> : null}
-      {list.isError ? <Notice tone="error" title="待调整权限加载失败">{describeFailure(list.error)}</Notice> : null}
-      {list.items === undefined ? null : <DataTable columns={columns} rows={list.items} rowKey={(item) => item.permissionAdjustmentId} emptyText="暂无待调整权限" />}
-      {list.hasNextPage ? <Button variant="default" loading={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>显示更多</Button> : null}
+      <PagedTable query={list} rows={list.items} columns={columns} rowKey={(item) => item.permissionAdjustmentId} emptyText="暂无待调整权限" errorTitle="待调整权限加载失败" />
     </>
   );
 }

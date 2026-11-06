@@ -42,6 +42,9 @@ READ_BY_BUILDS = (
     "docs/ops/runbooks/prod-approvals.txt",
     # DataArchitectureTest runs the V11 part of the c3/c9 verify scripts against a container database (also checked by db_scripts_aligned.py)
     "docs/ops/runbooks/sql/",
+    # #1436 acceptance tests (BonusInput*) cite the PY3 record and the user decision they follow
+    "docs/data/reviews/",
+    "docs/decisions/2026-11-05-195500-one-lead-均采纳推荐.md",
 )
 
 # inside READ_BY_BUILDS directories but read by no build: the one-glossary records
@@ -184,7 +187,8 @@ DOCS_TOP = "adr|architecture|business|data|decisions|glossary|legacy|ops|rules"
 LITERAL = re.compile(rf"(?<![\w-])(?<![\w-]/)docs/(?:{DOCS_TOP})(?![\w.-])(?:/[\w.*{{}}-]+)*")
 SEGMENTS = re.compile(rf"""['"]docs['"]((?:\s*,\s*['"](?:{DOCS_TOP})['"])(?:\s*,\s*['"][\w.*-]+['"])*)""")
 # this script and its self-test name docs paths as data and fixtures: never readers
-OWN_FILES = {Path(__file__).name, "relevant_change_selftest.py"}
+# the enqueue/report scripts that sort a pull request by its changed paths (#1562) name docs prefixes as classification data and read no repository document, nor do their self-tests
+OWN_FILES = {Path(__file__).name, "relevant_change_selftest.py", "pr_kinds.py", "mq_records.py", "mq_records_selftest.py", "pr_mix_selftest.py"}
 
 
 def source_files(root):

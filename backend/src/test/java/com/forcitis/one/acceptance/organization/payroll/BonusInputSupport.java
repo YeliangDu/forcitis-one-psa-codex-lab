@@ -1,0 +1,465 @@
+package com.forcitis.one.acceptance.organization.payroll;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+
+import com.forcitis.one.acceptance.P5Support;
+import com.forcitis.one.kernel.DocumentReference;
+import com.forcitis.one.kernel.DocumentTypeCode;
+import com.forcitis.one.kernel.DomainException;
+import com.forcitis.one.kernel.WorkContext;
+import com.forcitis.one.kernel.event.EventEnvelope;
+import com.forcitis.one.platform.approval.api.ApprovalField;
+import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
+import com.forcitis.one.platform.approval.api.ApprovalOutcome;
+import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
+import com.forcitis.one.platform.approval.api.ApprovalSummary;
+import com.forcitis.one.platform.approval.api.ContentHash;
+import com.forcitis.one.platform.approval.api.ProcessKey;
+import com.forcitis.one.platform.approval.api.RoundNumber;
+import com.forcitis.one.platform.approval.events.ApprovalCompleted;
+import com.forcitis.one.platform.identity.api.SessionRoles;
+import com.jayway.jsonpath.JsonPath;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import org.awaitility.Awaitility;
+import org.springframework.http.MediaType;
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+/**
+ * #1436 acceptance part (PY3 bonus input port). Sources: the signed PY3 record, section "Approval seam, process and permissions" (docs/data/reviews/
+ * organization-payroll-py3.md), and the user's routing decision of 2026-11-05 (docs/decisions/2026-11-05-195500-one-lead-均采纳推荐.md, item 1): a bonus input
+ * enters through a real approval of the process {@code organization_payroll_bonus_input} with the five signed form fields, in ONE stage: the initiator's line
+ * manager ({@code INITIATOR_SUPERVISOR} level 1), then a holder of the payroll role who is not the initiator. The payroll consumer of
+ * {@code ApprovalCompleted} writes the row (its own id; {@code approval_instance_id} is the link, the document id is payroll's request id and is no table
+ * key); the void and the reads are the {@code BonusInputs} api of {@code com.forcitis.one.organization.payroll.api}. Types are looked up by name and called by
+ * reflection, so the class compiles before the slice exists. ONE role holds submit, update (the void) and read; its code is
+ * {@code payroll_specialist} (display 薪资专员), declared by the #1436 implementation, and the command is {@code RequestBonusInput} in
+ * {@code com.forcitis.one.organization.payroll.api} (lead ruling on #1446, 2026-11-05, PR comment). The command is tested in BonusInputRequestIT,
+ * BonusInputSoleApproverIT and BonusInputPortIT; the start in {@link #submit} below is the record's own call of {@code ApprovalProcesses.start} (process key,
+ * document, legal entity of the request, initiator, five fields), used to drive the approval stages without the command.
+ */
+abstract class BonusInputSupport extends P5Support {
+
+    static final String API = "com.forcitis.one.organization.payroll.api.";
+    static final String RELATIONSHIP_ID = "com.forcitis.one.organization.workforce.api.EmploymentRelationshipId";
+    static final String PAYROLL_ROLE = "payroll_specialist";
+    static final ProcessKey PROCESS = ProcessKey.of("organization_payroll_bonus_input");
+    static final DocumentTypeCode DOCUMENT_TYPE = new DocumentTypeCode("BONUS_INPUT");
+    static final LocalDate OCTOBER = LocalDate.of(2026, 10, 1);
+
+    @Autowired
+    ApplicationContext context;
+
+    /** The initiator: holds the payroll role, has a line manager. */
+    UUID specialist;
+    /** The initiator's line manager: no payroll role, decides the first stage. */
+    UUID lineManager;
+    /** A second holder of the payroll role: decides the second stage. */
+    UUID secondSpecialist;
+    UUID outsider;
+    SignedIn specialistAccount;
+    SignedIn lineManagerAccount;
+    SignedIn secondSpecialistAccount;
+    SignedIn outsiderAccount;
+
+    /** One bonus input sent to approval: {@code requestId} is the document id (payroll's own, not a table key), {@code instance} links the row. */
+    record Submitted(UUID requestId, UUID relationship, ApprovalInstanceId instance, DocumentReference document) {
+    }
+
+    /** False in a test class that needs the initiator to be the only holder of the payroll role; the second one is then granted by the test. */
+    boolean secondHolderFromTheStart() {
+        return true;
+    }
+
+    @BeforeEach
+    void thePayrollPeople() throws Exception {
+        lineManager = newEmployeeId();
+        employee(lineManager, unit, null);
+        lineManagerAccount = signIn(lineManager);
+        specialist = newEmployeeId();
+        employee(specialist, unit, lineManager);
+        grantByOperations(specialist, PAYROLL_ROLE);
+        specialistAccount = signIn(specialist);
+        secondSpecialist = newEmployeeId();
+        employee(secondSpecialist, unit, null);
+        if (secondHolderFromTheStart()) {
+            grantByOperations(secondSpecialist, PAYROLL_ROLE);
+        }
+        secondSpecialistAccount = signIn(secondSpecialist);
+        outsider = newEmployeeId();
+        employee(outsider, unit, null);
+        outsiderAccount = signIn(outsider);
+    }
+
+    // ---- the approval path ----
+
+    Submitted submit(UUID relationship, LocalDate month, String amount, String reason) {
+        UUID requestId = UUID.randomUUID();
+        DocumentReference document = new DocumentReference(DOCUMENT_TYPE, documentIdOf(requestId));
+        List<ApprovalField> fields = List.of(new ApprovalField("employmentRelationshipId", List.of(text(relationship))),
+                new ApprovalField("payrollMonthStartDate", List.of(month.toString())), new ApprovalField("bonusAmount", List.of(amount)),
+                new ApprovalField("bonusCurrency", List.of("CNY")), new ApprovalField("reasonKey", List.of(reason)));
+        actInSession(specialistAccount);
+        ApprovalInstanceId instance;
+        try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "acceptance.bonus-input-request")) {
+            instance = approvals.start(new ApprovalStartRequest(PROCESS, document, legalEntity, employeeIdOf(specialist), new RoundNumber(1), UUID.randomUUID(),
+                    Set.of(), fields, new ContentHash("synthetic-bonus-" + requestId), new ApprovalSummary("Synthetic bonus input " + requestId)));
+        }
+        return new Submitted(requestId, relationship, instance, document);
+    }
+
+    /** The open task of the document once there is one that is not in {@code seen}. */
+    UUID nextTask(Submitted submitted, List<UUID> seen) {
+        Awaitility.await().atMost(Duration.ofSeconds(20)).pollInterval(Duration.ofMillis(100))
+                .until(() -> openTaskIds(submitted.document()).stream().anyMatch(task -> !seen.contains(task)));
+        try {
+            return openTaskIds(submitted.document()).stream().filter(task -> !seen.contains(task)).findFirst().orElseThrow();
+        } catch (SQLException unexpected) {
+            throw new AssertionError(unexpected);
+        }
+    }
+
+    void claimAndDecide(UUID task, SignedIn who, String outcome) throws Exception {
+        actOk(task, who, "claim", null);
+        actOk(task, who, "decide", "{\"outcome\":\"" + outcome + "\",\"reason\":\"synthetic\"}");
+    }
+
+    /** The first stage: the line manager decides. Returns the task so a caller can look for the next one. */
+    UUID decideFirstStage(Submitted submitted, String outcome) throws Exception {
+        UUID task = nextTask(submitted, List.of());
+        claimAndDecide(task, lineManagerAccount, outcome);
+        return task;
+    }
+
+    /** Both stages: the line manager, then a payroll-role holder who is not the initiator. */
+    void decide(Submitted submitted, String outcome) throws Exception {
+        UUID first = decideFirstStage(submitted, outcome);
+        if (outcome.equals("APPROVE")) {
+            claimAndDecide(nextTask(submitted, List.of(first)), secondSpecialistAccount, outcome);
+        }
+    }
+
+    /** Submitted, approved by both stages and the payroll consumer done with the result. */
+    Submitted approved(UUID relationship, LocalDate month, String amount, String reason) throws Exception {
+        Submitted submitted = submit(relationship, month, amount, reason);
+        decide(submitted, "APPROVE");
+        awaitConsumed(submitted.requestId());
+        return submitted;
+    }
+
+    /** The result event of the document is published and no listener still owes it. */
+    void awaitConsumed(UUID documentId) {
+        String mention = "%" + documentId + "%";
+        Awaitility.await().atMost(Duration.ofSeconds(30)).pollInterval(Duration.ofMillis(100)).until(() -> published(mention) && !pending(mention));
+    }
+
+    /** Publishes a second result event for the same approval instance, as a redelivery by another publisher would. */
+    void replay(Submitted submitted, ApprovalOutcome outcome) {
+        EventEnvelope envelope = (EventEnvelope) envelopeFor("platform.approval.ApprovalCompleted", "ApprovalRequest", UUID.randomUUID());
+        ApprovalCompleted again = new ApprovalCompleted(envelope, submitted.document(), PROCESS, submitted.instance(), new RoundNumber(1), employeeIdOf(specialist),
+                outcome, null, null);
+        transaction.executeWithoutResult(status -> publisher.publishEvent(again));
+        awaitConsumed(UUID.fromString(envelope.eventId().toString()));
+    }
+
+    private boolean published(String mention) throws SQLException {
+        return !query("platform_integration", "select 1 from event_publication_archive where event_type like '%.ApprovalCompleted' and serialized_event like ? "
+                + "union all select 1 from event_publication where event_type like '%.ApprovalCompleted' and serialized_event like ?", mention, mention).isEmpty();
+    }
+
+    private boolean pending(String mention) throws SQLException {
+        return !query("platform_integration", "select 1 from event_publication where completion_date is null and serialized_event like ?", mention).isEmpty();
+    }
+
+    // ---- the rows ----
+
+    /** The rows of one approval: found by {@code approval_instance_id}, the only link (the document id is no table key). */
+    List<Map<String, Object>> rowsOf(Submitted submitted) throws SQLException {
+        return query("organization_payroll", "select * from bonus_inputs where approval_instance_id = ?", submitted.instance().value());
+    }
+
+    /** The id of the one row of the approval (the row has its own id, not the document id). */
+    UUID rowId(Submitted submitted) throws SQLException {
+        List<Map<String, Object>> rows = rowsOf(submitted);
+        assertThat(rows).as("the row of the approval %s", submitted.instance().value()).hasSize(1);
+        return (UUID) rows.getFirst().get("id");
+    }
+
+    long activeRowsOf(UUID relationship, LocalDate month, String reason) throws SQLException {
+        return (long) query("organization_payroll", "select count(*) as n from bonus_inputs where employment_relationship_id = ? and payroll_month_start_date = ? "
+                + "and reason_key = ? and status = 'ACTIVE'", relationship, month, reason).getFirst().get("n");
+    }
+
+    // ---- real relationships and the request command ----
+
+    /**
+     * The relationship of a new employee with {@code employer} (the fixture employer, which is not the paying entity, when null), seeded for the setup of a
+     * test. {@code inServiceFrom} adds an EMPLOYED version from that date (null: no version, so no phase on any month). {@code unconfirmedEmployer} makes
+     * the employer a migration attribution nobody has confirmed (the only source kind that may stay unconfirmed).
+     */
+    UUID relationshipOf(UUID employer, LocalDate inServiceFrom, boolean unconfirmedEmployer) throws Exception {
+        UUID person = newEmployeeId();
+        employee(person, unit, null);
+        java.time.OffsetDateTime at = java.time.OffsetDateTime.ofInstant(NOW, java.time.ZoneOffset.UTC);
+        try (java.sql.Connection workforce = schemaConnection("organization_workforce")) {
+            UUID relationship;
+            if (unconfirmedEmployer) {
+                // inserted as such: the table is append-only, so a declared row cannot be turned into an unconfirmed attribution afterwards
+                relationship = com.forcitis.one.kernel.Uuids.timeOrdered(NOW);
+                try (java.sql.PreparedStatement insert = workforce.prepareStatement("""
+                        insert into employment_relationships (employment_relationship_id, employee_id, employer_legal_entity_id, employer_source_kind, created_at, updated_at)
+                        values (?, ?, ?, 'MIGRATION_ATTRIBUTION', ?, ?)""")) {
+                    insert.setObject(1, relationship);
+                    insert.setObject(2, stored(person));
+                    insert.setObject(3, employer);
+                    insert.setObject(4, at);
+                    insert.setObject(5, at);
+                    insert.executeUpdate();
+                }
+            } else {
+                relationship = com.forcitis.one.acceptance.EmploymentRelationshipSeeds.relationshipOf(workforce, stored(person), employer);
+            }
+            if (inServiceFrom != null) {
+                try (java.sql.PreparedStatement insert = workforce.prepareStatement("""
+                        insert into employment_relationship_versions (employment_relationship_id, employment_relationship_version_id, employee_id, effective_from_date,
+                          revision_number, employment_status, employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind,
+                          change_channel_kind, created_at, updated_at)
+                        values (?, ?, ?, ?, 0, 'EMPLOYED', 'REGULAR', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', ?, ?)""")) {
+                    insert.setObject(1, relationship);
+                    insert.setObject(2, com.forcitis.one.kernel.Uuids.timeOrdered(NOW));
+                    insert.setObject(3, stored(person));
+                    insert.setObject(4, inServiceFrom);
+                    insert.setObject(5, inServiceFrom);
+                    insert.setObject(6, at);
+                    insert.setObject(7, at);
+                    insert.executeUpdate();
+                }
+            }
+            return relationship;
+        }
+    }
+
+    /** A relationship in service from before October, with the paying entity of the world as confirmed employer: the one that must be accepted. */
+    UUID employedRelationship() throws Exception {
+        return relationshipOf(legalEntity.value(), OCTOBER.minusMonths(6), false);
+    }
+
+    /** {@code new RequestBonusInput(relationship, payingEntity, month, Money.of(amount, currency), reason, key)}, built by name. */
+    static Object requestOf(UUID relationship, UUID payingEntity, LocalDate month, String amount, String currency, String reason, UUID key) {
+        try {
+            return type(API + "RequestBonusInput").getDeclaredConstructors()[0].newInstance(relationshipId(relationship), new com.forcitis.one.kernel.LegalEntityId(payingEntity), month,
+                    com.forcitis.one.kernel.Money.of(amount, currency), reason, key);
+        } catch (ReflectiveOperationException unexpected) {
+            throw new AssertionError("cannot build RequestBonusInput", unexpected);
+        }
+    }
+
+    /** {@code BonusInputs.request(command)} as the signed-in user. */
+    ApprovalInstanceId request(SignedIn caller, Object command) {
+        return (ApprovalInstanceId) call(caller, "request", command);
+    }
+
+    /** The approval requests of the bonus process (all documents). */
+    List<Map<String, Object>> bonusApprovals() throws SQLException {
+        return query("platform_approval", "select * from approval_requests where process_key = ? order by created_at", PROCESS.value());
+    }
+
+    private static final String ROLES = "/api/v1/platform/roles";
+
+    /** An administrator in the administrator mode (the roles and grants of two-person permissions are made and confirmed by two of them). */
+    SignedIn newAdministrator() throws Exception {
+        UUID adminEmployee = newEmployeeId();
+        employee(adminEmployee, unit, null);
+        grantByOperations(adminEmployee, "super_admin");
+        return administratorMode(signIn(adminEmployee));
+    }
+
+    /**
+     * A two-person role (the bonus-input permissions are sensitive): the creation is only an authorization request (202) that a second administrator
+     * confirms; the role exists once confirmed. Returns the code.
+     */
+    String twoPersonRole(SignedIn requester, SignedIn confirmer, String accessScope, String... permissionCodes) throws Exception {
+        String code = "synthetic_bonus_" + accessScope.toLowerCase() + "_" + Long.toString(System.nanoTime() % 1000000, 36);
+        MockHttpServletResponse asked = mvc.perform(post(ROLES).with(csrf()).with(session(requester)).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"" + code + "\",\"name\":\"Synthetic " + code + "\",\"enabled\":true,\"accessScope\":\"" + accessScope
+                        + "\",\"permissionCodes\":[" + String.join(",", java.util.Arrays.stream(permissionCodes).map(c -> "\"" + c + "\"").toList()) + "]}"))
+                .andReturn().getResponse();
+        assertThat(asked.getStatus()).as("a role with a two-person permission is only requested: " + asked.getContentAsString()).isEqualTo(202);
+        assertThat(mvc.perform(get(ROLES).with(session(requester))).andReturn().getResponse().getContentAsString()).as("not yet a role").doesNotContain(code);
+        confirm(confirmer, JsonPath.read(asked.getContentAsString(), "$.requestId"));
+        Awaitility.await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(100)).until(
+                () -> mvc.perform(get(ROLES).with(session(requester))).andReturn().getResponse().getContentAsString().contains(code));
+        return code;
+    }
+
+    /** The request to give the person the role: 202 and the authorization request id (the grant waits for a second administrator). */
+    String askToGrant(SignedIn requester, SignedIn person, String roleCode) throws Exception {
+        String accountPath = "/api/v1/platform/user-accounts/" + person.userId();
+        MockHttpServletResponse read = mvc.perform(get(accountPath).with(session(requester))).andReturn().getResponse();
+        assertThat(read.getStatus()).as(read.getContentAsString()).isEqualTo(200);
+        MockHttpServletResponse asked = mvc.perform(post(accountPath + ":replace-roles").header("If-Match", read.getHeader("ETag")).with(csrf()).with(session(requester))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"roleCodes\":[\"employee\",\"" + roleCode + "\"]}")).andReturn().getResponse();
+        assertThat(asked.getStatus()).as("a grant of a two-person role is only requested: " + asked.getContentAsString()).isEqualTo(202);
+        return JsonPath.read(asked.getContentAsString(), "$.requestId");
+    }
+
+    void confirm(SignedIn confirmer, String requestId) throws Exception {
+        MockHttpServletResponse confirmed = mvc.perform(post("/api/v1/platform/authorization-requests/" + requestId + ":confirm").with(csrf()).with(session(confirmer)))
+                .andReturn().getResponse();
+        assertThat(confirmed.getStatus()).as("the second administrator confirms: " + confirmed.getContentAsString()).isEqualTo(204);
+    }
+
+    /** The permission codes the person's own session carries now. */
+    List<String> permissionsOf(SignedIn person) throws Exception {
+        MockHttpServletResponse current = mvc.perform(get("/api/v1/platform/sessions:current").with(session(person))).andReturn().getResponse();
+        assertThat(current.getStatus()).as(current.getContentAsString()).isEqualTo(200);
+        return JsonPath.read(current.getContentAsString(), "$.permissionCodes");
+    }
+
+    /**
+     * A person whose only source of the read permission is a role with the given data scope. The permission is a two-person one, so its roles may only
+     * have the scopes ALL, CUSTOM_ORG_UNITS or SELF (a relative scope such as OWN_ORG_UNIT is refused at creation); a narrower one than ALL must read
+     * nothing, fail-closed. Role and grant are made by one administrator and confirmed by another, the way an operator would.
+     */
+    SignedIn holderOfReadWithScope(String accessScope) throws Exception {
+        SignedIn requester = newAdministrator();
+        SignedIn confirmer = newAdministrator();
+        String code = twoPersonRole(requester, confirmer, accessScope, "organization.payroll:bonus-input:read");
+        UUID holder = newEmployeeId();
+        employee(holder, unit, null);
+        SignedIn account = signIn(holder);
+        confirm(confirmer, askToGrant(requester, account, code));
+        Awaitility.await().atMost(Duration.ofSeconds(15)).pollInterval(Duration.ofMillis(100)).until(() -> permissionsOf(signIn(holder)).contains("organization.payroll:bonus-input:read"));
+        return signIn(holder); // a role change ends the person's sessions; the new one starts with the role
+    }
+
+    // ---- the api, by name ----
+
+    static Class<?> type(String name) {
+        try {
+            return Class.forName(name);
+        } catch (ClassNotFoundException missing) {
+            throw new AssertionError("the type " + name + " does not exist yet", missing);
+        }
+    }
+
+    static Object newId(String simpleName, UUID value) {
+        try {
+            return type(API + simpleName).getDeclaredConstructor(UUID.class).newInstance(value);
+        } catch (ReflectiveOperationException unexpected) {
+            throw new AssertionError("cannot build " + simpleName, unexpected);
+        }
+    }
+
+    static Object relationshipId(UUID value) {
+        try {
+            return type(RELATIONSHIP_ID).getDeclaredConstructor(UUID.class).newInstance(value);
+        } catch (ReflectiveOperationException unexpected) {
+            throw new AssertionError("cannot build EmploymentRelationshipId", unexpected);
+        }
+    }
+
+    /**
+     * The stored context of a login carries no authorities (the session filter fills them in per HTTP request), and the api is called in process: so the
+     * production authentication of the login is kept and given the permissions the production path resolved from the roles (as PersonnelCommandSupport does).
+     */
+    void actWithAuthorities(SignedIn who) {
+        try {
+            MockHttpServletResponse current = mvc.perform(get("/api/v1/platform/sessions:current").with(session(who))).andReturn().getResponse();
+            assertThat(current.getStatus()).as("the session's own profile: " + current.getContentAsString()).isEqualTo(200);
+            List<GrantedAuthority> authorities = new ArrayList<>();
+            for (String code : JsonPath.<List<String>>read(current.getContentAsString(), "$.permissionCodes")) {
+                authorities.add(new SimpleGrantedAuthority(code));
+            }
+            if ("ORDINARY".equals(JsonPath.<String>read(current.getContentAsString(), "$.mode"))) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + SessionRoles.ORDINARY));
+            }
+            actInSession(who);
+            Authentication login = SecurityContextHolder.getContext().getAuthentication();
+            Method refresh = login.getClass().getDeclaredMethod("withAuthorities", java.util.Collection.class, boolean.class);
+            refresh.setAccessible(true);
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication((Authentication) refresh.invoke(login, authorities, true));
+            SecurityContextHolder.setContext(context);
+        } catch (Exception unexpected) {
+            throw new AssertionError("cannot act as the signed-in user with the permissions of the roles", unexpected);
+        }
+    }
+
+    /** The api bean's method of that name, called as the signed-in user; a refusal is thrown as it is. */
+    Object call(SignedIn caller, String method, Object... arguments) {
+        actWithAuthorities(caller);
+        Object api = context.getBean(type(API + "BonusInputs"));
+        Method found = java.util.Arrays.stream(api.getClass().getMethods()).filter(m -> m.getName().equals(method) && m.getParameterCount() == arguments.length)
+                .findFirst().orElseThrow(() -> new AssertionError("BonusInputs has no method " + method + "/" + arguments.length));
+        try {
+            return found.invoke(api, arguments);
+        } catch (InvocationTargetException refused) {
+            if (refused.getCause() instanceof RuntimeException runtime) {
+                throw runtime;
+            }
+            throw new AssertionError(refused.getCause());
+        } catch (IllegalAccessException unexpected) {
+            throw new AssertionError(unexpected);
+        }
+    }
+
+    Object summary(SignedIn caller, UUID id) {
+        return call(caller, "get", newId("BonusInputId", id));
+    }
+
+    void voidInput(SignedIn caller, UUID id) {
+        try {
+            call(caller, "voidInput", type(API + "VoidBonusInput").getDeclaredConstructor(type(API + "BonusInputId")).newInstance(newId("BonusInputId", id)));
+        } catch (ReflectiveOperationException unexpected) {
+            throw new AssertionError(unexpected);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    List<Object> list(SignedIn caller, UUID relationship, LocalDate from, LocalDate to) {
+        return (List<Object>) call(caller, "listForRelationship", relationshipId(relationship), from, to);
+    }
+
+    /** A record component of a summary, ids unwrapped to their UUID. */
+    static Object field(Object summary, String name) {
+        try {
+            Object value = summary.getClass().getMethod(name).invoke(summary);
+            if (value != null && value.getClass().isRecord() && value.getClass().getRecordComponents().length == 1 && value.getClass().getName().endsWith("Id")) {
+                return value.getClass().getMethod("value").invoke(value);
+            }
+            return value;
+        } catch (ReflectiveOperationException unexpected) {
+            throw new AssertionError("a summary has no " + name, unexpected);
+        }
+    }
+
+    static void assertRefusedWith(Runnable action, String code) {
+        try {
+            action.run();
+        } catch (DomainException refused) {
+            assertThat(refused.errorCode().name()).as("the refusal code").isEqualTo(code);
+            return;
+        }
+        throw new AssertionError("expected the refusal " + code);
+    }
+}

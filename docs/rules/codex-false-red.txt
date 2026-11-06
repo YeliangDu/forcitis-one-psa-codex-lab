@@ -1,5 +1,6 @@
 # Test classes that are red only inside the Codex sandbox (codex exec --sandbox workspace-write); read by docs/rules/codex-preamble.md.
 # One line per class: <simple class name> | <reason>. Any other red class is your change. Measured 2026-11-04 on main with the full guard set (1553 run, 0 failures, 24 errors, 0 Mockito errors).
+# The four socket rows were measured with the network off. The sandbox now has the network on (#1561), so they should pass; they stay listed until a first-draft run with the network on shows them green, then the next session that sees that deletes them.
 ReadOnlyVerificationCommandTest | socket: SocketException Operation not permitted
 ClamdScannerTest | socket: SocketException Operation not permitted
 SingleOperatorModeLaunchRetryTest | socket: SocketException Operation not permitted
