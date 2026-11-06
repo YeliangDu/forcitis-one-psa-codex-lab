@@ -1,6 +1,8 @@
 package com.forcitis.one.organization.payroll;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
@@ -23,6 +25,7 @@ import java.util.UUID;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -75,6 +78,55 @@ class BonusInputNoFallbackIT extends P5Support {
         UUID second = awaitTask(document, List.of(first));
         assertThat(act(second, initiatorAccount, "claim", null).getStatus()).as("the initiator is not a candidate of the second stage").isNotIn(200, 204);
         actOk(second, signIn(newHolder), "claim", null);
+    }
+
+    @Test
+    @DisplayName("#1436 薪资专员阶段只有规则点名的人能接手：持有人把任务转给无薪资专员角色的人被拒绝，转给另一位持有人可以；流程管理员改派给自己或外人被拒绝")
+    void theSecondStageGoesOnlyToHoldersOfThePayrollRole() throws Exception {
+        UUID lineManager = person(null);
+        SignedIn lineManagerAccount = signIn(lineManager);
+        UUID initiator = person(lineManager);
+        grantByOperations(initiator, PAYROLL_ROLE);
+        SignedIn initiatorAccount = signIn(initiator);
+        UUID holder = person(null);
+        grantByOperations(holder, PAYROLL_ROLE);
+        UUID peer = person(null);
+        grantByOperations(peer, PAYROLL_ROLE);
+        UUID outsider = person(null);
+        UUID administrator = person(null);
+        grantByOperations(administrator, "process_administrator");
+        SignedIn holderAccount = signIn(holder);
+        SignedIn outsiderAccount = signIn(outsider);
+        SignedIn administratorAccount = signIn(administrator);
+        DocumentReference document = start(initiatorAccount, initiator);
+        UUID first = awaitTask(document, List.of());
+        actOk(first, lineManagerAccount, "claim", null);
+        actOk(first, lineManagerAccount, "decide", APPROVE);
+        UUID second = awaitTask(document, List.of(first));
+        actOk(second, holderAccount, "claim", null);
+
+        MockHttpServletResponse toOutsider = act(second, holderAccount, "transfer", handover(outsider));
+        MockHttpServletResponse adminToSelf = actAs(second, holderAccount, administratorAccount, "reassign", handover(administrator));
+        MockHttpServletResponse adminToOutsider = actAs(second, holderAccount, administratorAccount, "reassign", handover(outsider));
+
+        assertThat(toOutsider.getStatus()).as(toOutsider.getContentAsString()).isNotIn(200, 204);
+        assertThat(toOutsider.getContentAsString()).contains("PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID");
+        assertThat(adminToSelf.getStatus()).as(adminToSelf.getContentAsString()).isNotIn(200, 204);
+        assertThat(adminToOutsider.getStatus()).as(adminToOutsider.getContentAsString()).isNotIn(200, 204);
+        assertThat(actAs(second, holderAccount, outsiderAccount, "decide", APPROVE).getStatus()).as("nobody outside the role decides the stage").isNotIn(200, 204);
+        assertThat(actAs(second, holderAccount, administratorAccount, "decide", APPROVE).getStatus()).as("the administrator does not decide the stage").isNotIn(200, 204);
+        actOk(second, holderAccount, "transfer", handover(peer));
+        actOk(second, signIn(peer), "decide", APPROVE);
+    }
+
+    /** A write by a caller who cannot read the task's detail (an outsider, the administrator): the version comes from the person who holds it. */
+    private MockHttpServletResponse actAs(UUID task, SignedIn holder, SignedIn caller, String operation, String body) throws Exception {
+        return mvc.perform(post(TASKS + task + ":" + operation).header("If-Match", versionOf(task, holder)).with(csrf()).with(session(caller))
+                .contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse();
+    }
+
+    private static String handover(UUID employee) {
+        return "{\"assigneeId\":\"" + employee + "\",\"reason\":\"synthetic\"}";
     }
 
     private UUID person(UUID reportsTo) throws Exception {
