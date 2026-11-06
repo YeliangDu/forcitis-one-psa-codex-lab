@@ -1,9 +1,10 @@
-import { formatDateTime, versionOf } from '@forcitis/core';
-import { Button, DescriptionList, Dialog, PageTitle, ReasonDialog, SelectField, StatusBadge, TextField } from '@forcitis/ui';
+import { formatDateTime, useCurrentUser, versionOf } from '@forcitis/core';
+import { Button, DescriptionList, Dialog, PageTitle, ReasonDialog, SelectField, StatusBadge, TextField, TextLink } from '@forcitis/ui';
 import { MutationNotice, QueryBoundary } from '../../../shared/query-boundary';
 import { useState } from 'react';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { useMarkAdjusted, usePermissionAdjustment, useUpholdAdjustment } from '../hooks/use-permission-adjustments';
+import { ROLE_READ, accountPath } from '../model/account';
 import { KIND_LABELS, ORIGIN_LABELS, REFERENCE_LABELS, STATUS_LABELS, TRIGGER_FIELD_LABELS, aboutLabel, nameOrId, statusTone, type PermissionAdjustment, type ReferenceKind } from '../model/permission-adjustment';
 
 type Asking = 'uphold' | 'adjusted' | undefined;
@@ -21,6 +22,8 @@ function triggerItems(item: PermissionAdjustment) {
 
 export function PermissionAdjustmentDetailPage() {
   const { permissionAdjustmentId = '' } = useParams();
+  const navigate = useNavigate();
+  const session = useCurrentUser();
   const item = usePermissionAdjustment(permissionAdjustmentId);
   const uphold = useUpholdAdjustment(permissionAdjustmentId);
   const adjust = useMarkAdjusted(permissionAdjustmentId);
@@ -41,6 +44,7 @@ export function PermissionAdjustmentDetailPage() {
           adjust.reset();
         };
         const version = versionOf(detail);
+        const userId = detail.userId;
         const confirmUphold = (reason: string) => uphold.mutate({ version, reason, owner: owner.trim() }, { onSuccess: close });
         const confirmAdjusted = () => adjust.mutate({ version, reference, referenceId: referenceId.trim() }, { onSuccess: close });
 
@@ -64,7 +68,7 @@ export function PermissionAdjustmentDetailPage() {
               items={[
                 { label: '类型', value: KIND_LABELS[detail.kind] ?? detail.kind },
                 { label: '来源', value: ORIGIN_LABELS[detail.originKind] ?? detail.originKind },
-                ...(detail.userId === undefined ? [] : [{ label: '人员', value: nameOrId(detail.userName, detail.userId) }]),
+                ...(userId === undefined ? [] : [{ label: '人员', value: nameOrId(detail.userName, userId) }, ...(session.can(ROLE_READ) ? [{ label: '账号', value: <TextLink href={accountPath(userId)} onNavigate={() => void navigate(accountPath(userId))}>查看账号并调整角色</TextLink> }] : [])]),
                 ...(detail.roleId === undefined ? [] : [{ label: '角色', value: nameOrId(detail.roleName, detail.roleId) }]),
                 ...(detail.orgUnitId === undefined ? [] : [{ label: '组织单元', value: nameOrId(detail.orgUnitName, detail.orgUnitId) }]),
                 ...triggerItems(detail),

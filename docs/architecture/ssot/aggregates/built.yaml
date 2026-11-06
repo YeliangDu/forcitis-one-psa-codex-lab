@@ -1,8 +1,8 @@
 # 由 panorama/scan_aggregates.py 生成，勿手改
 meta:
-  count: 22
+  count: 23
   code_only: 8
-  registry_only: 0
+  registry_only: 1
   both: 14
   sources:
   - backend/src/main/java/com/forcitis/one
@@ -103,6 +103,19 @@ aggregates:
   - organization.attendance.StandardHoursVersionPublished
   - organization.attendance.WorkCalendarLockedDaysChanged
   - organization.attendance.WorkCalendarYearMaintained
+- id: organization.payroll/BonusDetermination
+  bc: organization.payroll
+  root_class: backend/src/main/java/com/forcitis/one/organization/payroll/domain/BonusDetermination.java
+  source:
+  - registry
+  tables:
+  - organization_payroll.bonus_inputs
+  commands:
+  - BonusInputsService
+  - RecordApprovedBonusInput
+  events: []
+  events_in_module:
+  - organization.payroll.PayrollRuleVersionBecameEffective
 - id: organization.payroll/PayrollRuleVersion
   bc: organization.payroll
   root_class: backend/src/main/java/com/forcitis/one/organization/payroll/domain/PayrollRuleVersion.java
@@ -150,6 +163,8 @@ aggregates:
   events:
   - organization.workforce.EmployeeLegalEntityChanged
   events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged
@@ -203,6 +218,8 @@ aggregates:
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
   events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged
@@ -256,6 +273,8 @@ aggregates:
   - organization.workforce.LegalEntityAttributionCorrected
   - organization.workforce.LegalEntityAttributionEnded
   events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged
@@ -314,6 +333,8 @@ aggregates:
   - PreviewMergeAttribution
   events: []
   events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged
@@ -371,6 +392,8 @@ aggregates:
   - UnpaidLeaveStartNotice
   events: []
   events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged

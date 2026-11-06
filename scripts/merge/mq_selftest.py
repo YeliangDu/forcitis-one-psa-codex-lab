@@ -618,7 +618,7 @@ def _queue(mq, d):
     q = mq.Queue(qpath)
     q.enqueue(*range(100, 110))
     me = os.path.abspath(mq.__file__)
-    stub = "import sys; sys.path.insert(0, sys.argv[1]); import mq; mq.mq_title.enforce = lambda *a: None; mq.main(sys.argv[2:])"   # the title check has its own case (mq_title_selftest); this one is about the queue file, not gh
+    stub = "import sys; sys.path.insert(0, sys.argv[1]); import mq; mq.mq_title.enforce = mq.mq_enqueue.enforce = lambda *a: None; mq.main(sys.argv[2:])"   # the title check has its own case (mq_title_selftest); this one is about the queue file, not gh
     procs = [subprocess.Popen([sys.executable, "-c", stub, os.path.dirname(me), "--queue", qpath, op, str(n)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) for op, ns in (("enqueue", range(1, 11)), ("remove", range(100, 110))) for n in ns]
     assert all(p.wait() == 0 for p in procs) and sorted(q.numbers()) == list(range(1, 11))
     real_replace = os.replace
@@ -678,7 +678,7 @@ def _queue(mq, d):
 
     def cli(*args):
         err = io.StringIO()
-        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()) as out, mock.patch.object(mq.mq_title, "enforce", lambda *a: None):   # the title check has its own case (mq_title_selftest)
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()) as out, mock.patch.object(mq.mq_title, "enforce", lambda *a: None), mock.patch.object(mq.mq_enqueue, "enforce", lambda *a: None):   # the title check has its own case (mq_title_selftest)
             try:
                 mq.main(["--queue", qpath, "--log", lpath, *args])
                 code = 0
@@ -820,7 +820,7 @@ def _head_changed(mq, d):
     # enqueue asks gh only for the view (card #736): no comment, review or label call
     probe, real = type("ViewOnly", (), {"view": lambda self, n: {"state": "OPEN", "merge": "CLEAN", "labels": [], "branch": "b", "head": f"{n:040x}", "title": f"fix(q): 修复（#{n}）", "body": f"Closes #{n}\n"}})(), mq.Gh
     mq.Gh, enforce, enforce2 = (lambda: probe), mq.mq_acceptance.enforce, mq.mq_event_payload.enforce
-    mq.mq_acceptance.enforce = mq.mq_event_payload.enforce = lambda *args: None   # the guards have their own cases (mq_acceptance_selftest, mq_event_payload_selftest); this one must not touch the network
+    mq.mq_acceptance.enforce = mq.mq_event_payload.enforce = mq.mq_enqueue.enforce = lambda *args: None   # the guards have their own cases (mq_acceptance_selftest, mq_event_payload_selftest); this one must not touch the network
     try:
         mq.main(["--queue", os.path.join(d, "dev", "q"), "enqueue", "21"])
     finally:

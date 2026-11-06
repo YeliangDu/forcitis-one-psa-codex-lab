@@ -55,6 +55,8 @@ categories:
   - organization.workforce.separation-hold.released
 - name: 人事命令
   actions:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged
@@ -160,6 +162,9 @@ categories:
   - organization.attendance.WorkCalendarLockedDaysChanged
   - organization.attendance.WorkCalendarYearMaintained
   - organization.payroll.rule-version.published
+- name: 薪酬输入
+  actions:
+  - organization.payroll.bonus-input.voided
 - name: 工时单
   actions:
   - cost.timesheet.TimesheetApproved

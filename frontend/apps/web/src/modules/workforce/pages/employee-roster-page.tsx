@@ -1,8 +1,8 @@
-import { describeFailure } from '@forcitis/core';
-import { Button, DataTable, LoadingState, Notice, PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
+import { PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
 import { optionsOf } from '../../../shared/options';
 import { useNavigate } from 'react-router';
+import { PagedTable } from '../../../shared/paged-table';
 import { useEmployees, useOrgUnits } from '../hooks/use-workforce';
 import { EMPLOYMENT_FILTERS, EMPLOYMENT_STATUS_LABELS, type EmployeeRoster, type EmploymentFilter, employeePath, employmentFilterOf } from '../model/employee';
 
@@ -37,10 +37,7 @@ export function EmployeeRosterPage() {
       {units.isSuccess ? (
         <SelectField label="组织单元" value={orgUnitId} options={optionsOf(units.data, (unit) => unit.orgUnitId, (unit) => unit.name, '全部')} onChange={setOrgUnitId} />
       ) : null}
-      {list.isPending ? <LoadingState /> : null}
-      {list.isError ? <Notice tone="error" title="员工名册加载失败">{describeFailure(list.error)}</Notice> : null}
-      {list.employees === undefined ? null : <DataTable columns={columns} rows={list.employees} rowKey={(employee) => employee.employeeId} emptyText="暂无员工" />}
-      {list.hasNextPage ? <Button variant="default" loading={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>显示更多</Button> : null}
+      <PagedTable query={list} rows={list.employees} columns={columns} rowKey={(employee) => employee.employeeId} emptyText="暂无员工" errorTitle="员工名册加载失败" />
     </>
   );
 }

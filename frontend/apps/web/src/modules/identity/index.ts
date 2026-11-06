@@ -4,3 +4,5 @@ export const AuthorizationRequestsPage = lazy(() => import('./pages/authorizatio
 export const AccountGrantsPage = lazy(() => import('./pages/account-grants-page').then((m) => ({ default: m.AccountGrantsPage })));
 export const PermissionAdjustmentListPage = lazy(() => import('./pages/permission-adjustment-list-page').then((m) => ({ default: m.PermissionAdjustmentListPage })));
 export const PermissionAdjustmentDetailPage = lazy(() => import('./pages/permission-adjustment-detail-page').then((m) => ({ default: m.PermissionAdjustmentDetailPage })));
+export const AccountListPage = lazy(() => import('./pages/account-list-page').then((m) => ({ default: m.AccountListPage })));
+export const AccountDetailPage = lazy(() => import('./pages/account-detail-page').then((m) => ({ default: m.AccountDetailPage })));

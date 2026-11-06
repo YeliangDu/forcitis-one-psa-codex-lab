@@ -1,8 +1,10 @@
-import { describeFailure, formatDateTime } from '@forcitis/core';
-import { Button, DataTable, LoadingState, Notice, PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
+import { formatDateTime } from '@forcitis/core';
+
+import { Button, PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
 import { optionsOf } from '../../../shared/options';
 import { useNavigate, useSearchParams } from 'react-router';
+import { PagedTable } from '../../../shared/paged-table';
 import { useEmployeeChoices, usePersonnelCommands } from '../hooks/use-workforce';
 import { COMMAND_KIND_LABELS, COMMAND_STATUS_LABELS, type PersonnelCommand, newPersonnelCommandPath, personnelCommandPath } from '../model/personnel-command';
 
@@ -44,10 +46,7 @@ export function PersonnelCommandListPage() {
           onChange={(value) => setParams(value === '' ? {} : { employeeId: value })}
         />
       ) : null}
-      {list.isPending ? <LoadingState /> : null}
-      {list.isError ? <Notice tone="error" title="人事命令加载失败">{describeFailure(list.error)}</Notice> : null}
-      {list.commands === undefined ? null : <DataTable columns={columns} rows={list.commands} rowKey={(command) => command.personnelCommandId} emptyText="暂无人事命令" />}
-      {list.hasNextPage ? <Button variant="default" loading={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>显示更多</Button> : null}
+      <PagedTable query={list} rows={list.commands} columns={columns} rowKey={(command) => command.personnelCommandId} emptyText="暂无人事命令" errorTitle="人事命令加载失败" />
     </>
   );
 }
