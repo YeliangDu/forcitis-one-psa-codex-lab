@@ -18,6 +18,7 @@ GET /api/v1/organization/attribution-countersign-bases/{orgStructureCommandId} |
 GET /api/v1/organization/employees | SCOPED | the employee roster (name, employee code, status, hire date, assignments); a person is in scope when any assignment's department is in scope, an unresolvable scope answers 403 (#1171)
 GET /api/v1/organization/employees/{employeeId} | SCOPED | one roster entry with reports-to; out of scope answers 404 and writes organization.workforce.employee.denied (#1171)
 GET /api/v1/organization/primary-assignments/{employeeId} | SCOPED | the primary assignment versions of one employee; readable exactly when that employee's detail is, so the scope is the employee's current assignments; out of scope answers 404 and writes organization.workforce.employee.denied (#1495)
+GET /api/v1/organization/bonus-input-approvals/{taskId} | SELF | one bonus input as its approvers see it: only the assignee of the open task, or a candidate while it is unclaimed, reads it; every other caller, whatever the payroll permissions or data scope, gets 404 (#1436)
 GET /api/v1/organization/employee-legal-entities/{employeeId} | SCOPED | legal-entity periods of one employee
 GET /api/v1/organization/employee-profile-change-requests | SCOPED | pending profile changes, one employee each (name, gender, requester)
 GET /api/v1/organization/legal-entities | NOT_SCOPE_BOUND | legal-entity master data (code, name, status): company level, no unit or person

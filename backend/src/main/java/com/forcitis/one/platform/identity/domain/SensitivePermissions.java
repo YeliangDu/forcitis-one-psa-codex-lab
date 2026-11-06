@@ -21,7 +21,10 @@ public final class SensitivePermissions {
             Permission.Codes.PLATFORM_AUDIT_ENTRY_EXPORT,
             Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE,
             Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE,
-            Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE);
+            Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE,
+            Permission.Codes.ORGANIZATION_PAYROLL_BONUS_SUBMIT,
+            Permission.Codes.ORGANIZATION_PAYROLL_BONUS_UPDATE,
+            Permission.Codes.ORGANIZATION_PAYROLL_BONUS_READ);
 
     /** ADR-0032 section 3 (a), answer 0032-Q1: the scopes that do not move with the holder's job. */
     public static final Set<AccessScopeKind> TWO_PERSON_SCOPES = Set.of(AccessScopeKind.ALL, AccessScopeKind.CUSTOM_ORG_UNITS, AccessScopeKind.SELF);

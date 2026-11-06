@@ -485,6 +485,13 @@ operations:
     summary: platform.approval 消费
     messages:
     - $ref: '#/channels/approvalCompleted/messages/ApprovalCompleted'
+  handleApprovalCompletedInOrganizationPayroll:
+    action: receive
+    channel:
+      $ref: '#/channels/approvalCompleted'
+    summary: organization.payroll 消费
+    messages:
+    - $ref: '#/channels/approvalCompleted/messages/ApprovalCompleted'
   handleApprovalCompletedInOrganizationRecruitment:
     action: receive
     channel:
@@ -1845,6 +1852,7 @@ components:
         - platform.audit
         - cost.timesheet
         - platform.approval
+        - organization.payroll
         - organization.recruitment
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
@@ -1878,6 +1886,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -1977,6 +1986,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2097,6 +2107,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2190,6 +2201,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2258,6 +2270,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2350,6 +2363,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2431,6 +2445,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2507,6 +2522,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2583,6 +2599,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2655,6 +2672,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2734,6 +2752,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2788,6 +2807,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -6678,6 +6698,10 @@ x-system-actors:
   actorId: ea631485-fb5d-58ad-87ec-7c953ee85365
   module: cost.timesheet
   description: 作业：清理已消费事件登记
+- name: organization.payroll.bonus-input-approval
+  actorId: f8c616b7-1590-5a3d-aa45-d5e79ee89657
+  module: organization.payroll
+  description: 监听器 RecordApprovedBonusInput：审批通过后写出奖金输入行
 - name: organization.workforce.countersign.deadline
   actorId: 1e4cbd76-6e78-5ed9-b8ed-5f9ea2692f55
   module: organization.workforce

@@ -18,3 +18,6 @@ test.correlation.probe | c0c9a9ad-8b8b-5ddf-b804-f2f1dd408d7a | test | Correlati
 acceptance.accounting-code-outbound | 7d82fa70-5dfd-525e-bc07-95d86dc2ad38 | acceptance | 验收测试 SourceReferenceHttpSupport 模拟核算系统出站适配器按法人取核算组织编码（生产尚无该出站作业）
 test.organization.payroll | 97349f97-9dd8-5c86-b6f7-09c007f8f6fb | test | 薪酬测试
 test.event-publication.probe | 994e30ea-5b16-52b8-99f8-2ef90b579bca | test | EventPublicationOperationsIT 的探针监听器（登记里每个监听器一行，用无业务监听器的事件）
+acceptance.bonus-input-request | a22b5082-5aaf-57e2-b573-e386aea28958 | acceptance | 验收测试 BonusInputSupport 模拟奖金输入的申请（发起审批）
+test.bonus-input-no-fallback | 3c22256d-5dee-5580-8063-5cbfa75baf17 | test | 自测 BonusInputNoFallbackIT 模拟奖金输入审批的发起（#1436）
+test.bonus-input-read-guards | 62fba6eb-1f1b-5b4a-8e12-d9efe3c1a444 | test | 自测 BonusInputApprovalReadGuardsIT 模拟奖金输入审批的发起（#1436）

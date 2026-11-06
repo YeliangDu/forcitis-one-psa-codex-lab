@@ -122,6 +122,47 @@ class Gh:
         r = sh(["gh", "api", "--paginate", f"repos/{{owner}}/{{repo}}/pulls/{n}/files", "--jq", ".[] | .filename, .previous_filename"])
         return [x for x in r.stdout.splitlines() if x and x != "null"] if r.returncode == 0 else None
 
+    def file_stats(self, n):
+        """[(path, previous path or None, additions, deletions)] of the pull request's files, or None when gh cannot say."""
+        r = sh(["gh", "api", "--paginate", f"repos/{{owner}}/{{repo}}/pulls/{n}/files", "--jq", '.[] | [.filename, (.previous_filename // ""), .additions, .deletions] | @tsv'])
+        if r.returncode:
+            return None
+        try:
+            return [(p[0], p[1] or None, int(p[2]), int(p[3])) for p in (line.split("\t") for line in r.stdout.splitlines() if line)]
+        except (IndexError, ValueError):
+            return None
+
+    def added_paths(self, n):
+        """[(path, previous path or None)] of the files the pull request adds or renames into place, or None when gh cannot say."""
+        r = sh(["gh", "api", "--paginate", f"repos/{{owner}}/{{repo}}/pulls/{n}/files", "--jq", '.[] | select(.status == "added" or .status == "renamed") | [.filename, (.previous_filename // "")] | @tsv'])
+        if r.returncode:
+            return None
+        return [(p[0], p[1] or None) for p in (line.split("\t") for line in r.stdout.splitlines() if line)]
+
+    def issue_state(self, n):
+        """'closed' or 'open' for an issue, 'pull request' when the number is a pull request, None when gh cannot say."""
+        r = sh(["gh", "api", f"repos/{{owner}}/{{repo}}/issues/{n}", "--jq", 'if .pull_request then "pull request" else .state end'])
+        return r.stdout.strip() or None if r.returncode == 0 else None
+
+    def merged_since_day(self, since_day):
+        """[{number, title, body, merged_at, paths}] of the pull requests merged on or after the date `since_day` (YYYY-MM-DD, the search is by UTC day: ask a day early), or None when gh cannot say."""
+        r = sh(["gh", "pr", "list", "--state", "merged", "--limit", "1000", "--search", f"merged:>={since_day}", "--json", "number,title,body,mergedAt,files"], timeout=300)
+        try:
+            return [{"number": p["number"], "title": p["title"], "body": p["body"] or "", "merged_at": p["mergedAt"], "paths": [f["path"] for f in p["files"]]} for p in json.loads(r.stdout)]
+        except (ValueError, KeyError, TypeError):
+            return None
+
+    def body_edited_at(self, n):
+        """When the pull request's body was last edited (its creation time if never), ISO text, or None when gh cannot say."""
+        repo = sh(["gh", "repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner"])   # gh fills {owner}/{repo} in REST paths only, not in a GraphQL query
+        owner, _, name = repo.stdout.strip().partition("/")
+        if repo.returncode or not owner or not name or not re.fullmatch(r"[\w.-]+", owner + name):
+            return None
+        q = f'query($n:Int!){{repository(owner:"{owner}",name:"{name}"){{pullRequest(number:$n){{createdAt lastEditedAt}}}}}}'
+        r = sh(["gh", "api", "graphql", "-F", f"n={n}", "-f", f"query={q}", "--jq", ".data.repository.pullRequest | (.lastEditedAt // .createdAt)"])
+        text = r.stdout.strip()
+        return text if r.returncode == 0 and text and text != "null" else None
+
     def checks(self, n):
         r = sh(["gh", "pr", "checks", str(n), "--json", "name,bucket,link"])
         try:
