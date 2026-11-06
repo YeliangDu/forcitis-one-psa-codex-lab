@@ -438,20 +438,25 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
     }
 
     @Test
-    @DisplayName("#1451 R2: a requisition of unit A read by a caller of unit B alone is audited as denied, and the audit entry names unit A")
+    @DisplayName("#1451 R2: a requisition of unit A read by a caller of unit B alone is audited as denied, and the audit entry names unit A; a read inside the scope adds no denied entry for any unit")
     void aRequisitionOutOfScopeIsAuditedAsDenied() throws Exception {
         String requisition = requisitionIn("F1-A");
-        int before = deniedRequisitionReads(unitIds.get("F1-A"));
+        int deniedBefore = deniedRequisitionReads(null);
+        int aBefore = deniedRequisitionReads(unitIds.get("F1-A"));
         assertThat(read("scopeB", urlOf("GET " + REQUISITION, requisition)).getStatus()).isEqualTo(404);
-        assertThat(deniedRequisitionReads(unitIds.get("F1-A"))).as("the denied read is audited").isEqualTo(before + 1);
+        assertThat(deniedRequisitionReads(unitIds.get("F1-A"))).as("the denied read is audited and names unit A").isEqualTo(aBefore + 1);
+        assertThat(deniedRequisitionReads(null)).as("exactly one denied entry in all").isEqualTo(deniedBefore + 1);
         assertThat(read("scopeB", urlOf("GET " + REQUISITION, requisitionIn("F1-B"))).getStatus()).isEqualTo(200);
-        assertThat(deniedRequisitionReads(unitIds.get("F1-A"))).as("a read inside the scope adds no denied entry").isEqualTo(before + 1);
+        assertThat(deniedRequisitionReads(null)).as("a read inside the scope adds no denied entry, for unit B or any other").isEqualTo(deniedBefore + 1);
     }
 
+    /** The denied-read entries of requisitions for the unit, or for every unit when null. */
     private int deniedRequisitionReads(String unitId) throws Exception {
-        try (Connection audit = schemaConnection("platform_audit");
-                PreparedStatement statement = audit.prepareStatement("select count(*) from audit_entries where action = 'organization.recruitment.requisition.denied' and subject_id = ?")) {
-            statement.setObject(1, UUID.fromString(unitId));
+        String sql = "select count(*) from audit_entries where action = 'organization.recruitment.requisition.denied'" + (unitId == null ? "" : " and subject_id = ?");
+        try (Connection audit = schemaConnection("platform_audit"); PreparedStatement statement = audit.prepareStatement(sql)) {
+            if (unitId != null) {
+                statement.setObject(1, UUID.fromString(unitId));
+            }
             try (java.sql.ResultSet found = statement.executeQuery()) {
                 found.next();
                 return found.getInt(1);
