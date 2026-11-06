@@ -17,6 +17,7 @@ import {
 import { DataTable, DescriptionList, LoadingState, Notice, PageTitle, StatusBadge, type DataColumn } from '@forcitis/ui';
 import { useNavigate, useParams } from 'react-router';
 import { TaskActionBar } from '../components/task-action-bar';
+import { taskDocumentOf } from '../components/task-documents';
 
 const HISTORY_COLUMNS: DataColumn<TaskHistoryEntry>[] = [
   { key: 'node', title: '节点', render: (record) => record.nodeName },
@@ -39,6 +40,7 @@ export function TaskDetailPage() {
   const failed = [actions.claim, actions.approve, actions.reject, actions.sendBack].find((mutation) => mutation.isError);
   const busy = [actions.claim, actions.approve, actions.reject, actions.sendBack].some((mutation) => mutation.isPending);
   const claimed = detail.assigneeName !== undefined;
+  const Document = taskDocumentOf(detail.documentType);
 
   return (
     <>
@@ -58,6 +60,7 @@ export function TaskDetailPage() {
           ...(detail.summary === undefined ? [] : [{ label: '业务摘要', value: detail.summary }]),
         ]}
       />
+      {Document === undefined ? null : <Document documentId={detail.documentId} />}
       <TaskActionBar
         actions={availableActions(detail)}
         busy={busy}
