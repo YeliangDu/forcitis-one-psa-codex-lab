@@ -57,7 +57,7 @@ class NodeAssignment {
         try {
             EmployeeId initiator = FlowableApprovalEngine.initiatorOf(variables, instanceId);
             resolution = new AssigneeResolver(org, roles, administrator.holders(), accountEmployees, zone.today(clock))
-                    .resolve(policy.rule(), policy.selfApprovalAllowed(), policy.skipWhenEmpty(), initiator, variables);
+                    .resolve(policy.rule(), policy.selfApprovalAllowed(), policy.skipWhenEmpty(), policy.noFallback(), initiator, variables);
         } catch (RuntimeException failed) {
             log.error("ALERT platform.approval resolving the assignees of node {} (instance {}) failed: {}", node.getId(), instanceId, failed.toString());
             meters.counter("forcitis.platform.approval.assignee.resolution.failed").increment();
@@ -75,8 +75,12 @@ class NodeAssignment {
                 throw ApprovalError.PLATFORM_APPROVAL_ASSIGNEE_INPUT_INVALID.refusal("The approver field read by node " + node.getId()
                         + " is not an employed person");
             }
-            case UNRESOLVED -> throw ApprovalError.PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND.refusal("Nobody can handle node " + node.getId()
-                    + " of instance " + instanceId + " and nobody holds the process administrator role");
+            case UNRESOLVED -> {
+                log.error("ALERT platform.approval nobody can handle node {} (instance {}): the step that led here is refused and stays where it was", node.getId(), instanceId);
+                meters.counter("forcitis.platform.approval.assignee.unresolved").increment();
+                throw ApprovalError.PLATFORM_APPROVAL_NO_ASSIGNEE_FOUND.refusal("Nobody can handle node " + node.getId()
+                        + " of instance " + instanceId + (policy.noFallback() ? " and the node takes no fallback" : " and nobody holds the process administrator role"));
+            }
             case RESOLVED -> {
             }
             default -> {
