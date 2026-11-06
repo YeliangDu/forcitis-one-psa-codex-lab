@@ -51,6 +51,31 @@ class ActingDutyEndExtendIT extends ActingDutySupport {
         assertThat(eventsOf(EVENT_ACTING_ENDED, duty)).isEqualTo(1);
     }
 
+    @Test
+    @DisplayName("#1566 §8-L7 an end dated ahead waits PENDING and is applied by the due job on its date, ENDED_EARLY, Ended once")
+    void aFutureDatedEndIsAppliedOnItsDate() throws Exception {
+        UUID employee = employed(REGULAR);
+        UUID duty = dutyOf(start(employee, newUnit(), newPosition(), TODAY, TODAY.plusDays(10)));
+        LocalDate ended = TODAY.plusDays(3);
+
+        UUID command = end(employee, duty, ended);
+
+        assertThat(command(command).get("status")).isEqualTo(PENDING);
+        assertOpen(duty, TODAY, TODAY.plusDays(10));
+        assertThat(eventsOf(EVENT_ACTING_ENDED, duty)).isZero();
+        advanceTo(ended.minusDays(1));
+        runDueJob();
+        assertOpen(duty, TODAY, TODAY.plusDays(10));
+        advanceTo(ended);
+        runDueJob();
+        assertThat(command(command).get("status")).isEqualTo(EFFECTIVE);
+        assertEnded(duty, ended, "ENDED_EARLY");
+        Map<String, Object> first = duty(duty);
+        runDueJob();
+        assertThat(duty(duty)).isEqualTo(first);
+        assertThat(eventsOf(EVENT_ACTING_ENDED, duty)).isEqualTo(1);
+    }
+
     @ParameterizedTest
     @ValueSource(ints = {0, -1})
     @DisplayName("#1566 §8-L7 end on or before starts_on is refused without a command or duty change")
@@ -72,6 +97,7 @@ class ActingDutyEndExtendIT extends ActingDutySupport {
         UUID duty = dutyOf(start(employee, newUnit(), newPosition(), TODAY, originalEnd));
         int started = eventsOf(EVENT_ACTING_STARTED, duty);
         int ended = eventsOf(EVENT_ACTING_ENDED, duty);
+        int allEvents = eventsMentioning(duty);
         assertThat(started).isEqualTo(1);
         assertThat(ended).isZero();
         advanceTo(TODAY.plusDays(1));
@@ -82,6 +108,7 @@ class ActingDutyEndExtendIT extends ActingDutySupport {
         assertOpen(duty, TODAY, newEnd);
         assertThat(eventsOf(EVENT_ACTING_STARTED, duty)).isEqualTo(started);
         assertThat(eventsOf(EVENT_ACTING_ENDED, duty)).isEqualTo(ended);
+        assertThat(eventsMentioning(duty)).as("an extension publishes no event of any type").isEqualTo(allEvents);
         advanceTo(originalEnd);
         runDueJob();
         assertOpen(duty, TODAY, newEnd);

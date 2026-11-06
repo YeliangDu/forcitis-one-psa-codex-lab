@@ -1,6 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
-/** #1566: command components and event names from the card; table name from the signed schema. */
+/** #1566: command kinds and event names from the card; components (camelCase of the signed columns) and table from the signed schema. */
 final class ActingDutyNames {
     private ActingDutyNames() {
     }

@@ -85,6 +85,21 @@ abstract class ActingDutySupport extends FutureHoldSupport {
         assertThat(eventsOf(EVENT_ACTING_ENDED, duty)).isEqualTo(1);
     }
 
+    /** Distinct published events of any type that mention the id (by envelope event id), for "publishes nothing". */
+    protected int eventsMentioning(UUID id) throws Exception {
+        java.util.Set<String> events = new java.util.HashSet<>();
+        try (Connection registry = schemaConnection("platform_integration")) {
+            for (String table : List.of("event_publication", "event_publication_archive")) {
+                for (Map<String, Object> row : query(registry, "select serialized_event from " + table + " where serialized_event like ?", "%" + id + "%")) {
+                    String json = (String) row.get("serialized_event");
+                    java.util.regex.Matcher found = java.util.regex.Pattern.compile("\"eventId\"\\s*:\\s*\"([^\"]+)\"").matcher(json);
+                    events.add(found.find() ? found.group(1) : json);
+                }
+            }
+        }
+        return events.size();
+    }
+
     protected void advanceTo(LocalDate day) throws Exception {
         setToday(day);
         hr = signedInAgain(hr);
@@ -100,7 +115,7 @@ abstract class ActingDutySupport extends FutureHoldSupport {
         assertThat(duties(employee)).as("refusal leaves duties unchanged").isEqualTo(beforeDuties);
     }
 
-    /** A5 explicitly requires read-only approval counts; no approval state is prepared or modified. */
+    /** A5: no approval task is created; the counts are only read, no approval state is prepared or modified. */
     protected List<Map<String, Object>> approvalCounts() throws Exception {
         try (Connection approval = schemaConnection("platform_approval")) {
             return query(approval, """

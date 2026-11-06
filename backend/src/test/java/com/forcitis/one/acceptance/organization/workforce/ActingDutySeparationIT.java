@@ -138,6 +138,24 @@ class ActingDutySeparationIT extends ActingDutySupport {
         assertThat(eventsOf(EVENT_ACTING_STARTED, duty)).isEqualTo(1);
     }
 
+    @Test
+    @DisplayName("#1566 §8-L10 a start entered after a pending separation and dated on the separation day is accepted, starts and is closed that day")
+    void aStartOnThePendingSeparationDayIsAccepted() throws Exception {
+        UUID employee = employed(REGULAR);
+        LocalDate separationDay = TODAY.plusDays(2);
+        UUID separation = separate(employee, separationDay.minusDays(1));
+
+        UUID startCommand = start(employee, newUnit(), newPosition(), separationDay, separationDay.plusDays(6));
+
+        assertThat(command(separation).get("status")).isEqualTo(PENDING);
+        assertThat(command(startCommand).get("status")).isEqualTo(PENDING);
+        advanceTo(separationDay);
+        runDueJob();
+        UUID duty = dutyOf(startCommand);
+        assertEnded(duty, separationDay, "SEPARATION");
+        assertThat(eventsOf(EVENT_ACTING_STARTED, duty)).isEqualTo(1);
+    }
+
     @ParameterizedTest
     @ValueSource(ints = {0, 3})
     @DisplayName("#1566 §8-L10 start after a pending or effective separation date is refused at entry")
