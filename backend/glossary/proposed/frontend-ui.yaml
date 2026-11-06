@@ -146,6 +146,20 @@ terms:
   forbidden: []
   status: proposed
   note: 待调整权限来源标签（#1297），待用语确认
+- id: account_label
+  zh: 账号
+  en: AccountLabel
+  snake: account_label
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 登录并持有角色的用户账号的简称
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 账号列表与详情页的名称（#1520），指用户账号，待用语确认
 - id: primary_assignment_history
   zh: 主岗历史
   en: PrimaryAssignmentHistory
@@ -160,6 +174,20 @@ terms:
   forbidden: []
   status: proposed
   note: 员工详情页的主岗历史一段（#1495）；卡片里叫「主职历史」，词表里主任职已登记为主岗，沿用
+- id: account_status_enabled
+  zh: 已启用
+  en: AccountStatusEnabled
+  snake: account_status_enabled
+  kind: value_object
+  bc: platform.identity
+  scope: domain
+  definition: 账号处于启用状态（ENABLED）
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 账号状态标签（#1520），对应接口 status 的取值，待用语确认
 - id: assignment_effective_to_date
   zh: 失效日
   en: AssignmentEffectiveToDate
