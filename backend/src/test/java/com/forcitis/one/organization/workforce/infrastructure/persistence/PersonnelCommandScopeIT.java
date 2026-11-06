@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import com.forcitis.one.organization.workforce.application.EmploymentRelationshipSeed;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -99,10 +100,10 @@ class PersonnelCommandScopeIT {
         UUID correcting = command(employee, "CORRECTION", "EFFECTIVE", "2026-02-01", null);
         UUID version = ids.next();
         jdbc.sql("""
-                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, effective_to_date, closed_at, superseded_at,
+                insert into organization_workforce.assignment_versions (assignment_version_id, employment_relationship_id, employee_id, effective_from_date, effective_to_date, closed_at, superseded_at,
                   superseding_command_id, org_unit_id, assignment_id, assignment_kind, revision_number)
-                values (:id, :employee, date '2026-01-01', date '2026-07-01', now(), now(), :command, :unit, :root, 'PRIMARY', 1)
-                """).param("id", version).param("employee", employee).param("command", correcting).param("unit", wrong).param("root", root).update();
+                values (:id, :relationship, :employee, date '2026-01-01', date '2026-07-01', now(), now(), :command, :unit, :root, 'PRIMARY', 1)
+                """).param("id", version).param("relationship", EmploymentRelationshipSeed.relationship(jdbc, employee)).param("employee", employee).param("command", correcting).param("unit", wrong).param("root", root).update();
         UUID command = command(employee, "SEPARATE", "EFFECTIVE", "2026-07-01", null);
         assertThat(visible(right)).contains(command);
         assertThat(visible(wrong)).doesNotContain(command);
@@ -117,10 +118,10 @@ class PersonnelCommandScopeIT {
         UUID command = command(employee, "REGULARIZE", "PENDING", "2027-06-01", null);
         assertThat(visible(snapshot)).as("a snapshot-only person is scoped by the snapshot post").contains(command);
         jdbc.sql("""
-                insert into organization_workforce.employee_versions (employee_version_id, employee_id, effective_from_date, employment_status, employment_phase_kind,
+                insert into organization_workforce.employment_relationship_versions (employment_relationship_version_id, employment_relationship_id, employee_id, effective_from_date, employment_status, employment_phase_kind,
                   is_on_unpaid_leave, is_fee_earner, employment_start_basis_kind, change_channel_kind, created_at, updated_at)
-                values (:id, :employee, date '2026-01-01', 'EMPLOYED', 'REGULAR', false, false, 'UNKNOWN', 'MIGRATION', now(), now())
-                """).param("id", ids.next()).param("employee", employee).update();
+                values (:id, :relationship, :employee, date '2026-01-01', 'EMPLOYED', 'REGULAR', false, false, 'UNKNOWN', 'MIGRATION', now(), now())
+                """).param("id", ids.next()).param("relationship", EmploymentRelationshipSeed.relationship(jdbc, employee)).param("employee", employee).update();
         assertThat(visible(snapshot)).as("once versioned, no assignment version means no scope").doesNotContain(command);
     }
 
@@ -154,9 +155,9 @@ class PersonnelCommandScopeIT {
         jdbc.sql("insert into organization_workforce.employee_assignments (assignment_id, employee_id, assignment_kind, created_at, updated_at) values (:id, :employee, :kind, now(), now())")
                 .param("id", root).param("employee", employee).param("kind", kind).update();
         jdbc.sql("""
-                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, effective_from_date, effective_to_date, closed_at, org_unit_id, assignment_id, assignment_kind)
-                values (:id, :employee, cast(:from as date), cast(:to as date), case when cast(:to as date) is null then null else now() end, :unit, :root, :kind)
-                """).param("id", ids.next()).param("employee", employee).param("from", from).param("to", to, java.sql.Types.VARCHAR).param("unit", unit).param("root", root).param("kind", kind).update();
+                insert into organization_workforce.assignment_versions (assignment_version_id, employment_relationship_id, employee_id, effective_from_date, effective_to_date, closed_at, org_unit_id, assignment_id, assignment_kind)
+                values (:id, :relationship, :employee, cast(:from as date), cast(:to as date), case when cast(:to as date) is null then null else now() end, :unit, :root, :kind)
+                """).param("id", ids.next()).param("relationship", EmploymentRelationshipSeed.relationship(jdbc, employee)).param("employee", employee).param("from", from).param("to", to, java.sql.Types.VARCHAR).param("unit", unit).param("root", root).param("kind", kind).update();
         return root;
     }
 
@@ -178,9 +179,9 @@ class PersonnelCommandScopeIT {
         UUID id = ids.next();
         UUID position = kind.equals("HIRE") ? position() : null;
         jdbc.sql("""
-                insert into organization_workforce.personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, target_org_unit_id, target_position_id, is_target_fee_earner, target_employment_phase_kind, target_assignment_id, target_assignment_kind, applied_at, created_at, created_by, updated_at)
-                values (:id, :employee, :kind, cast(:effective as date), :status, :unit, :position, case when cast(:kind as text) = 'HIRE' then false end, case when cast(:kind as text) = 'HIRE' then 'PROBATION' end, :root, case when cast(:root as uuid) is null then null else 'PRIMARY' end, case when cast(:status as text) = 'EFFECTIVE' then now() end, now(), :by, now())
-                """).param("id", id).param("employee", employee).param("kind", kind).param("effective", effective).param("status", status)
+                insert into organization_workforce.personnel_commands (personnel_command_id, employment_relationship_id, employee_id, command_kind, effective_date, status, target_org_unit_id, target_position_id, is_target_fee_earner, target_employment_phase_kind, target_assignment_id, target_assignment_kind, applied_at, created_at, created_by, updated_at)
+                values (:id, :relationship, :employee, :kind, cast(:effective as date), :status, :unit, :position, case when cast(:kind as text) = 'HIRE' then false end, case when cast(:kind as text) = 'HIRE' then 'PROBATION' end, :root, case when cast(:root as uuid) is null then null else 'PRIMARY' end, case when cast(:status as text) = 'EFFECTIVE' then now() end, now(), :by, now())
+                """).param("id", id).param("relationship", EmploymentRelationshipSeed.relationship(jdbc, employee)).param("employee", employee).param("kind", kind).param("effective", effective).param("status", status)
                 .param("unit", targetUnit, java.sql.Types.OTHER).param("position", position, java.sql.Types.OTHER).param("root", kind.equals("TRANSFER") ? jdbc.sql("select assignment_id from organization_workforce.employee_assignments where employee_id = :e and assignment_kind = 'PRIMARY'").param("e", employee).query(UUID.class).single() : null, java.sql.Types.OTHER).param("by", ids.next()).update();
         return id;
     }

@@ -2,6 +2,8 @@ package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import com.forcitis.one.organization.workforce.api.LoginLookup;
+import com.forcitis.one.organization.workforce.api.OrgUnitId;
+import com.forcitis.one.organization.workforce.api.OrgUnitProfile;
 import com.forcitis.one.platform.integration.api.SourceRecordState;
 import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlOrgUnit;
 import static com.forcitis.one.fixture.doubles.TestOrgIds.sqlEmployee;
@@ -22,6 +24,7 @@ import com.forcitis.one.organization.workforce.api.EmployeeProfile;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.platform.integration.api.SourceOrgUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -63,10 +66,10 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     private void notYetInPost(long person) {
         java.time.LocalDate start = java.time.LocalDate.ofInstant(clock.instant(), java.time.ZoneOffset.UTC).plusDays(30);
         jdbc.sql("""
-                insert into organization_workforce.employee_versions (employee_version_id, employee_id, effective_from_date, revision_number, employment_status,
+                insert into organization_workforce.employment_relationship_versions (employment_relationship_version_id, employment_relationship_id, employee_id, effective_from_date, revision_number, employment_status,
                   employment_phase_kind, is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind, change_channel_kind, created_at, updated_at)
-                values (gen_random_uuid(), ?, ?, 0, 'EMPLOYED', 'REGULAR', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', now(), now())
-                """).param(TestAccounts.employee(person).value()).param(start).param(start).update();
+                values (gen_random_uuid(), ?, ?, ?, 0, 'EMPLOYED', 'REGULAR', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', now(), now())
+                """).param(EmploymentRelationshipSeed.relationship(jdbc, TestAccounts.employee(person).value())).param(TestAccounts.employee(person).value()).param(start).param(start).update();
     }
 
     @Test
@@ -162,9 +165,19 @@ class OrgDirectoryIntegrationTest extends WorkforceIntegrationSupport {
     void ancestorsNearestFirst() {
         synced();
 
-        assertThat(directory.findAncestors(unitId(3))).containsExactly(unitId(2), unitId(1));
-        assertThat(directory.findAncestors(unitId(2))).containsExactly(unitId(1));
-        assertThat(directory.findAncestors(unitId(1))).isEmpty();
-        assertThat(directory.findAncestors(unitId(404))).isEmpty();
+        assertThat(parentChain(unitId(3))).containsExactly(unitId(2), unitId(1));
+        assertThat(parentChain(unitId(2))).containsExactly(unitId(1));
+        assertThat(parentChain(unitId(1))).isEmpty();
+        assertThat(parentChain(unitId(404))).isEmpty();
+    }
+
+    private List<OrgUnitId> parentChain(OrgUnitId unit) {
+        List<OrgUnitId> chain = new ArrayList<>();
+        OrgUnitId parent = directory.findOrgUnit(unit).map(OrgUnitProfile::parentOrgUnitId).orElse(null);
+        while (parent != null) {
+            chain.add(parent);
+            parent = directory.findOrgUnit(parent).map(OrgUnitProfile::parentOrgUnitId).orElse(null);
+        }
+        return chain;
     }
 }

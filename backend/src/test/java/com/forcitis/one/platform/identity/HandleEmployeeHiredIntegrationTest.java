@@ -29,7 +29,7 @@ class HandleEmployeeHiredIntegrationTest extends IdentityIntegrationTest {
 
     private EmployeeHired hired(EmployeeId employee) {
         return new EmployeeHired(TestEnvelopes.of("organization.workforce.EmployeeHired", "Employee", employee.value()), new PersonnelCommandId(UUID.randomUUID()), employee,
-                LocalDate.of(2026, 11, 2));
+                LocalDate.of(2026, 11, 2), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
     }
 
     private long accountsOf(EmployeeId employee) {

@@ -1,7 +1,9 @@
 import { describeFailure, useCurrentUser } from '@forcitis/core';
 import { LoginPanel, Notice } from '@forcitis/ui';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Navigate } from 'react-router';
+import { fetchLocalAccounts, loginAsLocalAccount } from '../api/local-login-api';
 import { rememberReturnPath } from '../api/return-path-storage';
 import { requestWecomLoginState } from '../api/session-api';
 import { useReturnPath } from '../hooks/use-return-path';
@@ -13,6 +15,8 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState<string>();
   const config = readLoginConfig(import.meta.env);
+  // Shown only when the backend itself says it has a local test login (its profile local): no setting of the client can switch it on.
+  const localAccounts = useQuery({ queryKey: ['local-login-accounts'], queryFn: fetchLocalAccounts, staleTime: Infinity, retry: false });
 
   if (session.status === 'signed-in') return <Navigate to={returnPath} replace />;
 
@@ -22,6 +26,17 @@ export function LoginPage() {
     rememberReturnPath(returnPath);
     requestWecomLoginState()
       .then((state) => window.location.assign(wecomAuthorizeUrl(config, state, window.location.origin)))
+      .catch((error: unknown) => {
+        setProblem(describeFailure(error));
+        setBusy(false);
+      });
+  };
+
+  const startLocal = (userId: string) => {
+    setBusy(true);
+    setProblem(undefined);
+    loginAsLocalAccount(userId)
+      .then(() => window.location.assign(returnPath))
       .catch((error: unknown) => {
         setProblem(describeFailure(error));
         setBusy(false);
@@ -42,6 +57,13 @@ export function LoginPage() {
           loading: busy,
           ...(wecomConfigured(config) ? {} : { unavailableText: '尚未配置企业微信登录' }),
         },
+        ...(localAccounts.data ?? []).map((account) => ({
+          key: `local-${account.userId}`,
+          label: `本机登录：${account.name}`,
+          description: account.roleCodes.length === 0 ? '没有角色' : `角色：${account.roleCodes.join('、')}`,
+          onSelect: () => startLocal(account.userId),
+          loading: busy,
+        })),
       ]}
     />
   );

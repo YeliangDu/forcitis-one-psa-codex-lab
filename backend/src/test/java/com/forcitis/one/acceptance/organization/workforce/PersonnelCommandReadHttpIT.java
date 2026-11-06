@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
@@ -72,9 +73,17 @@ class PersonnelCommandReadHttpIT extends CommandReadHttpSupport {
         commands.put("heldAdmin", held);
     }
 
+    /** The relationship of the person (setup only). */
+    private String relationshipField(String key) throws Exception {
+        try (Connection db = schemaConnection("organization_workforce")) {
+            UUID relationship = EmploymentRelationshipSeeds.relationshipOf(db, stored(UUID.fromString(employeeIdOf(key))));
+            return ",\"employmentRelationshipId\":\"" + relationship + "\"";
+        }
+    }
+
     private String enter(String key, String kind, String dateField, LocalDate date) throws Exception {
         MockHttpServletResponse answer = write(resource(), "{\"employeeId\":\"" + employeeIdOf(key) + "\",\"commandKind\":\"" + kind
-                + "\",\"" + dateField + "\":\"" + date + "\"" + (kind.equals("TRANSFER") ? ",\"targetOrgUnitId\":\"" + unitsByCode.get("READ-B") + "\"" : "") + "}");
+                + "\",\"" + dateField + "\":\"" + date + "\"" + relationshipField(key) + (kind.equals("TRANSFER") ? ",\"targetOrgUnitId\":\"" + unitsByCode.get("READ-B") + "\"" : "") + "}");
         require(answer, 200, "entering a personnel command through HTTP");
         String id = JsonPath.read(answer.getContentAsString(), "$.personnelCommandId");
         commandUnits.put(id, key.equals("b") ? "READ-B" : key.equals("child") ? "READ-CHILD" : "READ-A");
@@ -269,16 +278,15 @@ abstract class CommandReadHttpSupport extends DataScopeSupport {
                     unitName(unit.getKey()), unit.getKey().equals("READ-CHILD") ? UUID.fromString(unitsByCode.get("READ-A")) : null);
             for (String key : List.of("a", "child", "b", "heldAdmin")) {
                 UUID employee = UUID.fromString(employeeIdOf(key));
+                UUID relationship = EmploymentRelationshipSeeds.relationshipOf(db, stored(employee));
                 run(db, """
-                        insert into employee_versions (employee_version_id, employee_id, effective_from_date, employment_status, employment_phase_kind,
+                        insert into employment_relationship_versions (employment_relationship_id, employment_relationship_version_id, employee_id, effective_from_date, employment_status, employment_phase_kind,
                           is_on_unpaid_leave, is_fee_earner, employment_start_date, employment_start_basis_kind, change_channel_kind, created_at, updated_at)
-                        values (?, ?, ?, 'EMPLOYED', 'PROBATION', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', now(), now())""",
-                        Uuids.timeOrdered(NOW), stored(employee), LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 1));
+                        values (?, ?, ?, ?, 'EMPLOYED', 'PROBATION', false, false, ?, 'LEGACY_HR_RECORD', 'MIGRATION', now(), now())""", relationship, Uuids.timeOrdered(NOW), stored(employee), LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 1));
                 run(db, """
-                        insert into assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                        insert into assignment_versions (employment_relationship_id, assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
                           org_unit_id, position_id, change_channel_kind)
-                        select ?, a.employee_id, ?, 'PRIMARY', ?, a.org_unit_id, a.position_id, 'MIGRATION' from assignments a where a.employee_id = ?""",
-                        Uuids.timeOrdered(NOW), AssignmentRoots.primaryOf(db, stored(employee)), LocalDate.of(2026, 1, 1), stored(employee));
+                        select ?, ?, a.employee_id, ?, 'PRIMARY', ?, a.org_unit_id, a.position_id, 'MIGRATION' from assignments a where a.employee_id = ?""", relationship, Uuids.timeOrdered(NOW), AssignmentRoots.primaryOf(db, stored(employee)), LocalDate.of(2026, 1, 1), stored(employee));
             }
         }
     }

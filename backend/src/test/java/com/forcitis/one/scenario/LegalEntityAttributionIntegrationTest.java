@@ -110,10 +110,20 @@ class LegalEntityAttributionIntegrationTest extends WorkforceIntegrationSupport 
                 select uuidv7(), employee_id, 'PRIMARY', now(), now() from organization_workforce.assignments
                 """).update();
         jdbc.sql("""
-                insert into organization_workforce.assignment_versions (assignment_version_id, employee_id, assignment_id, assignment_kind, effective_from_date,
+                insert into organization_workforce.legal_entities (id, code, name, status) values ('019a0000-0000-7000-8000-00000000e0e1', 'ZREMP', 'Synthetic employer', 'ACTIVE')
+                on conflict (id) do nothing
+                """).update();
+        jdbc.sql("""
+                insert into organization_workforce.employment_relationships (employment_relationship_id, employee_id, employer_legal_entity_id, employer_source_kind, created_at, updated_at)
+                select uuidv7(), employee_id, '019a0000-0000-7000-8000-00000000e0e1', 'DECLARED', now(), now() from organization_workforce.assignments
+                on conflict (employee_id, employer_legal_entity_id) do nothing
+                """).update();
+        jdbc.sql("""
+                insert into organization_workforce.assignment_versions (assignment_version_id, employment_relationship_id, employee_id, assignment_id, assignment_kind, effective_from_date,
                        org_unit_id, position_id, reports_to_employee_id, revision_number)
-                select uuidv7(), a.employee_id, r.assignment_id, r.assignment_kind, :day, a.org_unit_id, a.position_id, a.reports_to_employee_id, 0
+                select uuidv7(), q.employment_relationship_id, a.employee_id, r.assignment_id, r.assignment_kind, :day, a.org_unit_id, a.position_id, a.reports_to_employee_id, 0
                   from organization_workforce.assignments a join organization_workforce.employee_assignments r on r.employee_id = a.employee_id and r.assignment_kind = 'PRIMARY'
+                  join organization_workforce.employment_relationships q on q.employee_id = a.employee_id
                 """).param("day", today()).update();
     }
 

@@ -176,14 +176,15 @@ class PermissionAdjustmentJobsIT extends PermissionAdjustmentApiSupport {
         OffsetDateTime at = OffsetDateTime.parse(CREATED);
         try (Connection workforce = schemaConnection("organization_workforce")) {
             try (PreparedStatement insert = workforce.prepareStatement("""
-                    insert into personnel_commands (personnel_command_id, employee_id, command_kind, effective_date, status, created_at, created_by, updated_at)
-                    values (?, ?, 'SEPARATE', ?, 'HELD', ?, ?, ?)""")) {
+                    insert into personnel_commands (personnel_command_id, employee_id, employment_relationship_id, command_kind, effective_date, status, created_at, created_by, updated_at)
+                    values (?, ?, ?, 'SEPARATE', ?, 'HELD', ?, ?, ?)""")) {
                 insert.setObject(1, command);
                 insert.setObject(2, employee);
-                insert.setObject(3, java.time.LocalDate.of(2027, 1, 20));
-                insert.setObject(4, at);
-                insert.setObject(5, UUID.fromString(userId("admin1")));
-                insert.setObject(6, at);
+                insert.setObject(3, com.forcitis.one.acceptance.EmploymentRelationshipSeeds.relationshipOf(workforce, employee));
+                insert.setObject(4, java.time.LocalDate.of(2027, 1, 20));
+                insert.setObject(5, at);
+                insert.setObject(6, UUID.fromString(userId("admin1")));
+                insert.setObject(7, at);
                 insert.executeUpdate();
             }
             try (PreparedStatement insert = workforce.prepareStatement("""

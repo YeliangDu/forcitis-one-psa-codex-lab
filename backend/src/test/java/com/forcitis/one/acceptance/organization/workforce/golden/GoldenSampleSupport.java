@@ -61,6 +61,8 @@ abstract class GoldenSampleSupport extends AccountsAcceptanceSupport {
 
     protected UUID nanjingUnit;
     protected UUID shanghaiUnit;
+    private UUID employer;
+    private UUID employerB;
     private SecurityContext acting;
 
     @BeforeEach
@@ -73,7 +75,8 @@ abstract class GoldenSampleSupport extends AccountsAcceptanceSupport {
         employee(admin, nanjingUnit, null);
         grantByOperations(admin, "org_data_admin");
         SignedIn administrator = signIn(admin);
-        createLegalEntity(administrator, newLegalEntityCode("GA"), "Synthetic employer A");
+        employer = createLegalEntity(administrator, newLegalEntityCode("GA"), "Synthetic employer A");
+        employerB = createLegalEntity(administrator, newLegalEntityCode("GB"), "Synthetic employer B");
         UUID businessAdminEmployee = newEmployeeId();
         employee(businessAdminEmployee, nanjingUnit, null);
         grantByOperations(businessAdminEmployee, "business_admin");
@@ -117,8 +120,20 @@ abstract class GoldenSampleSupport extends AccountsAcceptanceSupport {
 
     protected PersonnelCommandId hire(LocalDate effective, UUID unit, UUID position, EmploymentPhaseKind phase) {
         return enter(new EnterPersonnelCommand(null, PersonnelCommandKind.HIRE, effective, null, new com.forcitis.one.organization.workforce.api.OrgUnitId(unit),
-                new com.forcitis.one.organization.workforce.api.PositionId(position), null, true, phase, "Synthetic Golden Person F-P01",
-                null, "f-p01@golden.example", null));
+                new com.forcitis.one.organization.workforce.api.PositionId(position), null, true, phase, null, "Synthetic Golden Person F-P01",
+                null, "f-p01@golden.example", null, null, new com.forcitis.one.kernel.LegalEntityId(employer), null, null));
+    }
+
+    /** The second round: the same person is hired by the other employer (the pack's LE-B), regular from the first day. */
+    protected PersonnelCommandId hireByOtherEmployer(UUID employee, LocalDate effective, UUID unit, UUID position) {
+        return enter(new EnterPersonnelCommand(employeeIdOf(employee), PersonnelCommandKind.HIRE, effective, null, new com.forcitis.one.organization.workforce.api.OrgUnitId(unit),
+                new com.forcitis.one.organization.workforce.api.PositionId(position), null, true, EmploymentPhaseKind.REGULAR, null, null, null, null, null,
+                null, new com.forcitis.one.kernel.LegalEntityId(employerB), null, null));
+    }
+
+    protected PersonnelCommandId separate(UUID employee, LocalDate lastWorkingDay, UUID relationship) {
+        return enter(new EnterPersonnelCommand(employeeIdOf(employee), PersonnelCommandKind.SEPARATE, null, lastWorkingDay, null, null, null, null, null,
+                null, null, null, null, null, null, null, null, new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(relationship)));
     }
 
     protected PersonnelCommandId enter(UUID employee, PersonnelCommandKind kind, LocalDate effective) {
@@ -136,12 +151,6 @@ abstract class GoldenSampleSupport extends AccountsAcceptanceSupport {
                 null, null, null, null));
     }
 
-    protected PersonnelCommandId reinstate(UUID employee, LocalDate effective, UUID unit, UUID position, EmploymentPhaseKind phase) {
-        return enter(new EnterPersonnelCommand(employeeIdOf(employee), PersonnelCommandKind.REINSTATE, effective, null,
-                new com.forcitis.one.organization.workforce.api.OrgUnitId(unit), new com.forcitis.one.organization.workforce.api.PositionId(position),
-                null, false, phase, null, null, null, null));
-    }
-
     private PersonnelCommandId enter(EnterPersonnelCommand command) {
         restoreActing();
         return personnelCommands.enter(command);
@@ -155,6 +164,30 @@ abstract class GoldenSampleSupport extends AccountsAcceptanceSupport {
 
     protected Optional<EmploymentStatus> employmentOn(UUID employee, LocalDate day) {
         return directory.employmentOn(employeeIdOf(employee), day);
+    }
+
+    protected UUID employerAId() {
+        return employer;
+    }
+
+    protected UUID employerBId() {
+        return employerB;
+    }
+
+    /** The relationship of the person with the employer (one row per employee and employer). */
+    protected UUID relationOf(UUID employee, UUID employerEntity) throws SQLException {
+        return fromStored(rows("select employment_relationship_id from employment_relationships where employee_id = ? and employer_legal_entity_id = ?",
+                stored(employee), stored(employerEntity)).get(0).get("employment_relationship_id"));
+    }
+
+    protected long relationshipCount(UUID employee) throws SQLException {
+        return (long) rows("select count(*) as n from employment_relationships where employee_id = ?", stored(employee)).get(0).get("n");
+    }
+
+    /** Primary assignment versions in force on the day. */
+    protected List<Map<String, Object>> currentPrimaries(UUID employee, LocalDate day) throws SQLException {
+        return rows("select * from assignment_versions where employee_id = ? and superseded_at is null and effective_from_date <= ? "
+                + "and (effective_to_date is null or effective_to_date > ?)", stored(employee), day, day);
     }
 
     protected long employeeCount() throws SQLException {

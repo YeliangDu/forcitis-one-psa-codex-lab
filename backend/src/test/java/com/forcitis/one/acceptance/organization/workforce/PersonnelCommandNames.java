@@ -69,7 +69,7 @@ final class PersonnelCommandNames {
 
     // Tables and columns of the workforce schema asserted on (baseline, and the signed-off shapes of #870 and #880).
     static final String COMMANDS = "personnel_commands";
-    static final String EMPLOYEE_VERSIONS = "employee_versions";
+    static final String EMPLOYEE_VERSIONS = "employment_relationship_versions";
     static final String ASSIGNMENT_VERSIONS = "assignment_versions";
     static final String SEPARATION_HOLDS = "separation_holds";
     static final String STATE_TRANSITIONS = "state_transitions";
@@ -147,4 +147,6 @@ final class PersonnelCommandNames {
     static final String EMPLOYEE_DOCUMENT_TYPE = "EMPLOYEE";
     static final String EMPLOYEE_CODE_PATTERN = "EMP\\d{6}";
     static final String BUSINESS_ADMIN = "business_admin";
+    /** A HIRE names the employer (employment-relationship design section 5); the request field of the legal entity that employs the person. */
+    static final String TARGET_EMPLOYER_LEGAL_ENTITY_ID = "targetEmployerLegalEntityId";
 }
