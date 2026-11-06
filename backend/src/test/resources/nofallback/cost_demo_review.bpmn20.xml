@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Test fixture for #1436: the only node names its initiator and takes no fallback, so nobody can handle it. -->
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:forcitis="https://forcitis.com/psa/approval/extension"
+             targetNamespace="https://forcitis.com/psa/approval">
+  <process id="cost_demo_review" name="演示复核" isExecutable="true">
+    <extensionElements>
+      <forcitis:documentType code="TIMESHEET"/>
+      <forcitis:routingFlagRequired value="false"/>
+    </extensionElements>
+    <startEvent id="start"/>
+    <sequenceFlow id="toReview" sourceRef="start" targetRef="review"/>
+    <userTask id="review" name="复核">
+      <extensionElements>
+        <forcitis:assignmentRule type="FORM_FIELD_USERS" field="projectManagerId" noFallback="true"/>
+      </extensionElements>
+      <multiInstanceLoopCharacteristics isSequential="false" flowable:collection="${approverResolution.apply(execution)}"
+                                        flowable:elementVariable="approver"/>
+    </userTask>
+    <sequenceFlow id="toEnd" sourceRef="review" targetRef="end"/>
+    <endEvent id="end"/>
+  </process>
+</definitions>
