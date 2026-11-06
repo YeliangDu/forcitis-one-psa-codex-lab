@@ -25,6 +25,9 @@ public enum Permission {
     PLATFORM_AUDIT_ENTRY_EXPORT(Codes.PLATFORM_AUDIT_ENTRY_EXPORT),
     PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ(Codes.PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ),
     ORGANIZATION_WORKFORCE_ORG_UNIT_READ(Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ),
+    ORGANIZATION_RECRUITMENT_REQUISITION_SUBMIT(Codes.ORGANIZATION_RECRUITMENT_REQUISITION_SUBMIT),
+    ORGANIZATION_RECRUITMENT_REQUISITION_READ(Codes.ORGANIZATION_RECRUITMENT_REQUISITION_READ),
+    ORGANIZATION_RECRUITMENT_REQUISITION_UPDATE(Codes.ORGANIZATION_RECRUITMENT_REQUISITION_UPDATE),
     // Retired with the org reconciliation (#1222); it was granted from #934 until then and is kept, no longer granted (ADR-0034 decision 1 item 3).
     ORGANIZATION_WORKFORCE_ORG_RECONCILIATION_EXECUTE("organization.workforce:org-reconciliation:execute", true),
     // Retired with the old sync (#934); kept so that old role versions still read (ADR-0034 decision 1 item 3), no longer granted.
@@ -101,6 +104,9 @@ public enum Permission {
         String PLATFORM_AUDIT_ENTRY_EXPORT = "platform.audit:audit-entry:export";
         String PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ = "platform.audit:own-login-record:read";
         String ORGANIZATION_WORKFORCE_ORG_UNIT_READ = "organization.workforce:org-unit:read";
+        String ORGANIZATION_RECRUITMENT_REQUISITION_SUBMIT = "organization.recruitment:requisition:submit";
+        String ORGANIZATION_RECRUITMENT_REQUISITION_READ = "organization.recruitment:requisition:read";
+        String ORGANIZATION_RECRUITMENT_REQUISITION_UPDATE = "organization.recruitment:requisition:update";
         String ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE = "organization.workforce:separation-hold:approve";
         String ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_CREATE = "organization.workforce:personnel-command:create";
         String ORGANIZATION_WORKFORCE_EMPLOYEE_READ = "organization.workforce:employee:read";

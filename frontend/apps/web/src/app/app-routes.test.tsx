@@ -55,6 +55,13 @@ describe('应用外壳与登录状态', () => {
     expect(await screen.findByText('暂无待确认的授权申请')).toBeInTheDocument();
   });
 
+  it('账号授权记录页挂在 /admin/account-grants', async () => {
+    stubServer({ 'GET sessions:current': { body: currentUserBody([], NAVIGATION) }, 'GET user-accounts': { body: { items: [], nextCursor: null } } });
+    renderWithProviders(<AppRoutes />, { route: '/admin/account-grants' });
+
+    expect(await screen.findByLabelText('用户账号')).toBeInTheDocument();
+  });
+
   it('待调整权限列表挂在 /admin/permission-adjustments，详情挂在其下', async () => {
     const ID = '019a0000-0000-7000-8000-000000009a01';
     stubServer({

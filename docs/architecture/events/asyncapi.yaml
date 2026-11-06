@@ -246,6 +246,21 @@ channels:
     messages:
       PayrollRuleVersionBecameEffective:
         $ref: '#/components/messages/PayrollRuleVersionBecameEffective'
+  requisitionSubmitted:
+    address: organization.recruitment.RequisitionSubmitted
+    messages:
+      RequisitionSubmitted:
+        $ref: '#/components/messages/RequisitionSubmitted'
+  requisitionApproved:
+    address: organization.recruitment.RequisitionApproved
+    messages:
+      RequisitionApproved:
+        $ref: '#/components/messages/RequisitionApproved'
+  requisitionClosed:
+    address: organization.recruitment.RequisitionClosed
+    messages:
+      RequisitionClosed:
+        $ref: '#/components/messages/RequisitionClosed'
   timesheetSubmitted:
     address: cost.timesheet.TimesheetSubmitted
     messages:
@@ -458,6 +473,13 @@ operations:
     channel:
       $ref: '#/channels/approvalCompleted'
     summary: platform.approval 消费
+    messages:
+    - $ref: '#/channels/approvalCompleted/messages/ApprovalCompleted'
+  handleApprovalCompletedInOrganizationRecruitment:
+    action: receive
+    channel:
+      $ref: '#/channels/approvalCompleted'
+    summary: organization.recruitment 消费
     messages:
     - $ref: '#/channels/approvalCompleted/messages/ApprovalCompleted'
   publishDocumentSubmittedForApproval:
@@ -1125,6 +1147,48 @@ operations:
     summary: organization.payroll 发布
     messages:
     - $ref: '#/channels/payrollRuleVersionBecameEffective/messages/PayrollRuleVersionBecameEffective'
+  publishRequisitionSubmitted:
+    action: send
+    channel:
+      $ref: '#/channels/requisitionSubmitted'
+    summary: organization.recruitment 发布
+    messages:
+    - $ref: '#/channels/requisitionSubmitted/messages/RequisitionSubmitted'
+  handleRequisitionSubmittedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/requisitionSubmitted'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/requisitionSubmitted/messages/RequisitionSubmitted'
+  publishRequisitionApproved:
+    action: send
+    channel:
+      $ref: '#/channels/requisitionApproved'
+    summary: organization.recruitment 发布
+    messages:
+    - $ref: '#/channels/requisitionApproved/messages/RequisitionApproved'
+  handleRequisitionApprovedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/requisitionApproved'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/requisitionApproved/messages/RequisitionApproved'
+  publishRequisitionClosed:
+    action: send
+    channel:
+      $ref: '#/channels/requisitionClosed'
+    summary: organization.recruitment 发布
+    messages:
+    - $ref: '#/channels/requisitionClosed/messages/RequisitionClosed'
+  handleRequisitionClosedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/requisitionClosed'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/requisitionClosed/messages/RequisitionClosed'
   publishTimesheetSubmitted:
     action: send
     channel:
@@ -1736,6 +1800,7 @@ components:
         - platform.audit
         - cost.timesheet
         - platform.approval
+        - organization.recruitment
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 审批结束当日（Asia/Shanghai）
@@ -4303,6 +4368,151 @@ components:
             format: date
             x-type: LocalDate
             description: 新版本的生效日期，也是信封的业务日期
+    RequisitionSubmitted:
+      name: RequisitionSubmitted
+      title: 招聘需求提交
+      x-event:
+        eventType: organization.recruitment.RequisitionSubmitted
+        version: 1
+        class: com.forcitis.one.organization.recruitment.events.RequisitionSubmitted
+        aggregate: RecruitmentRequisition
+        idempotencyKey: eventId
+        publisher: organization.recruitment
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 提交当日（业务时区）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.recruitment.domain.RecruitmentRequisitionTest
+        noConsumer: 暂无消费方：只供审计；它同事务命名了审批请求和编号计数器，满足一事务一聚合的登记要求
+      payload:
+        type: object
+        required:
+        - envelope
+        - requisitionId
+        - orgUnitId
+        - positionId
+        - submittedAt
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          requisitionId:
+            type: string
+            format: uuid
+            x-type: RequisitionId
+            description: 提交的招聘需求
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 用人的组织单元
+          positionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            description: 需求的岗位
+          submittedAt:
+            type: string
+            format: date-time
+            x-type: Instant
+            description: 提交的时刻
+    RequisitionApproved:
+      name: RequisitionApproved
+      title: 招聘需求获批
+      x-event:
+        eventType: organization.recruitment.RequisitionApproved
+        version: 1
+        class: com.forcitis.one.organization.recruitment.events.RequisitionApproved
+        aggregate: RecruitmentRequisition
+        idempotencyKey: eventId
+        publisher: organization.recruitment
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 审批通过当日（业务时区）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.recruitment.domain.RecruitmentRequisitionTest
+        noConsumer: 暂无消费方：只供审计和分析；应聘环节（下一张卡）才会订阅
+      payload:
+        type: object
+        required:
+        - envelope
+        - requisitionId
+        - orgUnitId
+        - positionId
+        - approvedAt
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          requisitionId:
+            type: string
+            format: uuid
+            x-type: RequisitionId
+            description: 获批的招聘需求
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 用人的组织单元
+          positionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            description: 需求的岗位
+          approvedAt:
+            type: string
+            format: date-time
+            x-type: Instant
+            description: 审批通过的时刻
+    RequisitionClosed:
+      name: RequisitionClosed
+      title: 招聘需求关闭
+      x-event:
+        eventType: organization.recruitment.RequisitionClosed
+        version: 1
+        class: com.forcitis.one.organization.recruitment.events.RequisitionClosed
+        aggregate: RecruitmentRequisition
+        idempotencyKey: eventId
+        publisher: organization.recruitment
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 关闭当日（业务时区）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.recruitment.domain.RecruitmentRequisitionTest
+        noConsumer: 暂无消费方：只供审计和分析
+      payload:
+        type: object
+        required:
+        - envelope
+        - requisitionId
+        - closeReasonKind
+        - closedAt
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          requisitionId:
+            type: string
+            format: uuid
+            x-type: RequisitionId
+            description: 关闭的招聘需求
+          closeReasonKind:
+            type: string
+            enum:
+            - REJECTED
+            - WITHDRAWN
+            - CANCELLED
+            - FILLED
+            x-type: CloseReasonKind
+            description: 关闭原因：驳回、撤回、取消、录满
+          closedAt:
+            type: string
+            format: date-time
+            x-type: Instant
+            description: 关闭的时刻
     TimesheetSubmitted:
       name: TimesheetSubmitted
       title: 工时单提交审批（进入新一轮）
@@ -6418,3 +6628,7 @@ x-system-actors:
   actorId: 0a716c3e-8620-59b2-8e01-5f7b23f88a6c
   module: platform.identity
   description: 作业：待调整权限超期升级（待处理超过升级期限的条目标记升级一次）
+- name: organization.recruitment.approval-result
+  actorId: c74e532c-16ab-5485-874a-224ee1e484d1
+  module: organization.recruitment
+  description: 监听器 ApplyRequisitionApprovalResult：把审批结果写回招聘需求
