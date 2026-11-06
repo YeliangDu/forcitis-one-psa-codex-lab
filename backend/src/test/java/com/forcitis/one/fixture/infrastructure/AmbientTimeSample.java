@@ -13,4 +13,8 @@ public final class AmbientTimeSample {
         return new Object[] {ZonedDateTime.now(), OffsetDateTime.now(), LocalDateTime.now(), LocalDate.now(), Instant.now(),
                 Clock.systemUTC(), Clock.systemDefaultZone(), System.currentTimeMillis()};
     }
+
+    public java.util.function.Supplier<Clock> byReference() {
+        return Clock::systemUTC;
+    }
 }

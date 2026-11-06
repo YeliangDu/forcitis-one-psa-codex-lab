@@ -59,7 +59,7 @@ class WecomConfigurationTest {
     @DisplayName("while WeCom is off no call is made: sending and code exchange are unavailable")
     void disabledClientRefusesEverything() {
         var client = new WecomConfiguration().wecomClient(bind(Map.of(PREFIX + ".enabled", "false")),
-                NO_BEANS.getBeanProvider(JsonMapper.class), NO_BEANS.getBeanProvider(java.time.Clock.class));
+                NO_BEANS.getBeanProvider(JsonMapper.class), com.forcitis.one.BusinessDay.fixedClock());
 
         assertThat(client).isInstanceOf(DisabledWecomClient.class);
         assertThatThrownBy(() -> client.userIdOfCode("code", WecomEntry.WORKBENCH)).isInstanceOf(ExternalSystemUnavailableException.class);
@@ -71,12 +71,12 @@ class WecomConfigurationTest {
         WecomProperties missing = bind(Map.of(PREFIX + ".enabled", "true"));
 
         assertThatThrownBy(() -> new WecomConfiguration().wecomClient(missing, NO_BEANS.getBeanProvider(JsonMapper.class),
-                NO_BEANS.getBeanProvider(java.time.Clock.class))).isInstanceOf(IllegalStateException.class).hasMessageContaining("corp-id");
+                com.forcitis.one.BusinessDay.fixedClock())).isInstanceOf(IllegalStateException.class).hasMessageContaining("corp-id");
 
         WecomProperties notNumeric = bind(Map.of(PREFIX + ".enabled", "true", PREFIX + ".corp-id", "c-" + UUID.randomUUID(),
                 PREFIX + ".secret", "s-" + UUID.randomUUID(), PREFIX + ".agent-id", "abc"));
         assertThatThrownBy(() -> new WecomConfiguration().wecomClient(notNumeric, NO_BEANS.getBeanProvider(JsonMapper.class),
-                NO_BEANS.getBeanProvider(java.time.Clock.class))).isInstanceOf(IllegalStateException.class).hasMessageContaining("agent-id");
+                com.forcitis.one.BusinessDay.fixedClock())).isInstanceOf(IllegalStateException.class).hasMessageContaining("agent-id");
     }
 
     @Test
