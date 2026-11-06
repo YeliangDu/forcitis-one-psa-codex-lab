@@ -1,5 +1,6 @@
 package com.forcitis.one.acceptance.organization.workforce;
 
+import com.forcitis.one.acceptance.EmploymentRelationshipEventIds;
 import static com.forcitis.one.acceptance.organization.workforce.PersonnelCommandNames.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -105,7 +106,8 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
                 BACK_ON, null, List.of());
         return new EmployeeCorrected(envelope, new PersonnelCommandId(command), employeeIdOf(employee), BACK_ON, null, kinds,
                 previousUnit == null ? null : new OrgUnitId(previousUnit), newUnit == null ? null : new OrgUnitId(newUnit),
-                previousPosition == null ? null : new PositionId(previousPosition), newPosition == null ? null : new PositionId(newPosition));
+                previousPosition == null ? null : new PositionId(previousPosition), newPosition == null ? null : new PositionId(newPosition),
+                EmploymentRelationshipEventIds.of(employee));
     }
 
     private void publish(Object event) {
@@ -236,7 +238,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
                 Uuids.timeOrdered(NOW), null, ActorType.SYSTEM, com.forcitis.one.kernel.SystemActors.idOf("test.envelope"), new LegalEntityId(legalEntity),
                 BACK_ON, null, List.of());
         EmployeeTransferred event = new EmployeeTransferred(envelope, new PersonnelCommandId(command), employeeIdOf(employee), BACK_ON,
-                List.of(TriggerFieldKind.ORG_UNIT), null, new OrgUnitId(newUnit()), null, null);
+                List.of(TriggerFieldKind.ORG_UNIT), null, new OrgUnitId(newUnit()), null, null, EmploymentRelationshipEventIds.of(employee));
         Logger root = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         ListAppender<ILoggingEvent> logged = new ListAppender<>();
         logged.start();
@@ -351,7 +353,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
                 Uuids.timeOrdered(NOW), null, ActorType.SYSTEM, com.forcitis.one.kernel.SystemActors.idOf("test.envelope"),
                 entity == null ? null : new LegalEntityId(entity), BACK_ON, null, List.of());
         return new EmployeeTransferred(envelope, new PersonnelCommandId(command), employeeIdOf(employee), BACK_ON, List.of(TriggerFieldKind.ORG_UNIT),
-                new OrgUnitId(fromUnit), new OrgUnitId(toUnit), null, null);
+                new OrgUnitId(fromUnit), new OrgUnitId(toUnit), null, null, EmploymentRelationshipEventIds.of(employee));
     }
 
     @Test
@@ -613,7 +615,7 @@ class CorrectionUndoesSeparationReviewIT extends PersonnelCommandSupport {
                 Uuids.timeOrdered(NOW), null, ActorType.SYSTEM, com.forcitis.one.kernel.SystemActors.idOf("test.envelope"), new LegalEntityId(legalEntity),
                 BACK_ON, null, List.of());
         EmployeeTransferred event = new EmployeeTransferred(envelope, new PersonnelCommandId(Uuids.timeOrdered(NOW)), employeeIdOf(employee), BACK_ON,
-                List.of(TriggerFieldKind.POSITION), new OrgUnitId(unit), new OrgUnitId(unit), new PositionId(newPosition()), new PositionId(newPosition()));
+                List.of(TriggerFieldKind.POSITION), new OrgUnitId(unit), new OrgUnitId(unit), new PositionId(newPosition()), new PositionId(newPosition()), EmploymentRelationshipEventIds.of(employee));
 
         publish(event);
         identityHandled(envelope.eventId().toString());

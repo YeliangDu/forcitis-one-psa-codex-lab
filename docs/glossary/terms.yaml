@@ -13571,7 +13571,7 @@ terms:
   en: RecruitmentRequisition
   snake: recruitment_requisition
   kind: aggregate
-  bc: organization.workforce
+  bc: organization.recruitment
   scope: domain
   definition: 记录岗位招聘所需人员要求及批准、招聘和关闭状态的需求。
   standard_ref:
