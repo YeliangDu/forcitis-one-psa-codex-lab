@@ -1,10 +1,10 @@
-import { formatDateTime, versionOf } from '@forcitis/core';
+import { badgeOf, formatDateTime, versionOf } from '@forcitis/core';
 import { Button, DescriptionList, Dialog, PageTitle, ReasonDialog, SelectField, StatusBadge, TextField } from '@forcitis/ui';
 import { MutationNotice, QueryBoundary } from '../../../shared/query-boundary';
 import { useState } from 'react';
 import { useParams } from 'react-router';
 import { useMarkAdjusted, usePermissionAdjustment, useUpholdAdjustment } from '../hooks/use-permission-adjustments';
-import { KIND_LABELS, ORIGIN_LABELS, REFERENCE_LABELS, STATUS_LABELS, TRIGGER_FIELD_LABELS, aboutLabel, nameOrId, statusTone, type PermissionAdjustment, type ReferenceKind } from '../model/permission-adjustment';
+import { KIND_LABELS, ORIGIN_LABELS, REFERENCE_LABELS, STATUS_LABELS, STATUS_TONES, TRIGGER_FIELD_LABELS, aboutLabel, nameOrId, type PermissionAdjustment, type ReferenceKind } from '../model/permission-adjustment';
 
 type Asking = 'uphold' | 'adjusted' | undefined;
 
@@ -50,7 +50,7 @@ export function PermissionAdjustmentDetailPage() {
               text={`${KIND_LABELS[detail.kind] ?? detail.kind} · ${aboutLabel(detail)}`}
               actions={
                 <>
-                  <StatusBadge tone={statusTone(detail.status)}>{STATUS_LABELS[detail.status] ?? detail.status}</StatusBadge>
+                  <StatusBadge tone={badgeOf(STATUS_LABELS, STATUS_TONES, detail.status).tone}>{badgeOf(STATUS_LABELS, STATUS_TONES, detail.status).label}</StatusBadge>
                   {detail.status === 'OPEN' ? (
                     <>
                       <Button onClick={() => setAsking('uphold')}>维持授权</Button>

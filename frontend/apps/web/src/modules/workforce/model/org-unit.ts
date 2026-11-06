@@ -29,3 +29,5 @@ export const ORG_UNIT_STATUS_LABELS: Readonly<Record<string, string>> = {
   ACTIVE: '有效',
   REVOKED: '已撤销',
 };
+
+export const ORG_UNIT_STATUS_TONES: Readonly<Record<string, 'posted'>> = { ACTIVE: 'posted' };

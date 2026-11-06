@@ -1,11 +1,11 @@
-import { formatDateTime } from '@forcitis/core';
+import { badgeOf, formatDateTime } from '@forcitis/core';
 import { Button, DescriptionList, PageTitle, ReasonDialog, StatusBadge, TextLink } from '@forcitis/ui';
 import { MutationNotice, QueryBoundary } from '../../../shared/query-boundary';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { usePersonnelCommand, useWithdrawPersonnelCommand } from '../hooks/use-workforce';
 import { employeePath } from '../model/employee';
-import { COMMAND_KIND_LABELS, COMMAND_STATUS_LABELS, HOLD_STATUS_LABELS } from '../model/personnel-command';
+import { COMMAND_KIND_LABELS, COMMAND_STATUS_LABELS, COMMAND_STATUS_TONES, HOLD_STATUS_LABELS } from '../model/personnel-command';
 
 export function PersonnelCommandDetailPage() {
   const { personnelCommandId = '' } = useParams();
@@ -29,7 +29,7 @@ export function PersonnelCommandDetailPage() {
               text={`${COMMAND_KIND_LABELS[detail.commandKind] ?? detail.commandKind} · ${detail.displayName}`}
               actions={
                 <>
-                  <StatusBadge tone={detail.status === 'EFFECTIVE' ? 'posted' : 'neutral'}>{COMMAND_STATUS_LABELS[detail.status] ?? detail.status}</StatusBadge>
+                  <StatusBadge tone={badgeOf(COMMAND_STATUS_LABELS, COMMAND_STATUS_TONES, detail.status).tone}>{badgeOf(COMMAND_STATUS_LABELS, COMMAND_STATUS_TONES, detail.status).label}</StatusBadge>
                   {detail.withdrawnAt == null ? <Button variant="danger" onClick={() => setAsking(true)}>撤回</Button> : null}
                 </>
               }

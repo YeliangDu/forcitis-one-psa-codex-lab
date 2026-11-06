@@ -15,6 +15,8 @@ export const EMPLOYMENT_STATUS_LABELS: Readonly<Record<string, string>> = {
   SEPARATED: '已离职',
 };
 
+export const EMPLOYMENT_STATUS_TONES: Readonly<Record<string, 'posted'>> = { EMPLOYED: 'posted' };
+
 export const ASSIGNMENT_KIND_LABELS: Readonly<Record<string, string>> = {
   PRIMARY: '主岗',
   CONCURRENT: '兼岗',

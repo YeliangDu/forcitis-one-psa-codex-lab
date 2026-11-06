@@ -1,9 +1,9 @@
-import { describeFailure, formatDateTime } from '@forcitis/core';
+import { badgeOf, describeFailure, formatDateTime } from '@forcitis/core';
 import { Button, DataTable, LoadingState, Notice, PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { useEmployeeChoices, usePersonnelCommands } from '../hooks/use-workforce';
-import { COMMAND_KIND_LABELS, COMMAND_STATUS_LABELS, type PersonnelCommand, newPersonnelCommandPath, personnelCommandPath } from '../model/personnel-command';
+import { COMMAND_KIND_LABELS, COMMAND_STATUS_LABELS, COMMAND_STATUS_TONES, type PersonnelCommand, newPersonnelCommandPath, personnelCommandPath } from '../model/personnel-command';
 
 const ALL = { value: '', label: '全部' };
 const STATUS_OPTIONS = [ALL, ...Object.entries(COMMAND_STATUS_LABELS).map(([value, label]) => ({ value, label }))];
@@ -27,7 +27,10 @@ export function PersonnelCommandListPage() {
     { key: 'code', title: '员工编码', render: (command) => command.employeeCode },
     { key: 'kind', title: '命令类型', render: (command) => COMMAND_KIND_LABELS[command.commandKind] ?? command.commandKind },
     { key: 'date', title: '生效日期', render: (command) => command.effectiveDate },
-    { key: 'status', title: '状态', render: (command) => <StatusBadge tone={command.status === 'EFFECTIVE' ? 'posted' : 'neutral'}>{COMMAND_STATUS_LABELS[command.status] ?? command.status}</StatusBadge> },
+    { key: 'status', title: '状态', render: (command) => {
+      const badge = badgeOf(COMMAND_STATUS_LABELS, COMMAND_STATUS_TONES, command.status);
+      return <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>;
+    } },
     { key: 'created', title: '创建时间', render: (command) => formatDateTime(command.createdAt) },
   ];
 

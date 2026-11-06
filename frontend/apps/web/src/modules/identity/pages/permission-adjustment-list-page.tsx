@@ -1,9 +1,9 @@
-import { describeFailure, formatDateTime } from '@forcitis/core';
+import { badgeOf, describeFailure, formatDateTime } from '@forcitis/core';
 import { Button, DataTable, LoadingState, Notice, PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { usePermissionAdjustments } from '../hooks/use-permission-adjustments';
-import { KIND_LABELS, ORIGIN_LABELS, STATUS_LABELS, aboutLabel, permissionAdjustmentPath, statusTone, type PermissionAdjustment } from '../model/permission-adjustment';
+import { KIND_LABELS, ORIGIN_LABELS, STATUS_LABELS, STATUS_TONES, aboutLabel, permissionAdjustmentPath, type PermissionAdjustment } from '../model/permission-adjustment';
 
 const ALL = { value: '', label: '全部' };
 const STATUS_OPTIONS = [ALL, ...Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))];
@@ -23,7 +23,10 @@ export function PermissionAdjustmentListPage() {
     },
     { key: 'kind', title: '类型', render: (item) => KIND_LABELS[item.kind] ?? item.kind },
     { key: 'origin', title: '来源', render: (item) => ORIGIN_LABELS[item.originKind] ?? item.originKind },
-    { key: 'status', title: '状态', render: (item) => <StatusBadge tone={statusTone(item.status)}>{STATUS_LABELS[item.status] ?? item.status}</StatusBadge> },
+    { key: 'status', title: '状态', render: (item) => {
+      const badge = badgeOf(STATUS_LABELS, STATUS_TONES, item.status);
+      return <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>;
+    } },
     { key: 'expires', title: '维持到期时间', render: (item) => (item.upholdExpiresAt === undefined ? '—' : formatDateTime(item.upholdExpiresAt)) },
   ];
 

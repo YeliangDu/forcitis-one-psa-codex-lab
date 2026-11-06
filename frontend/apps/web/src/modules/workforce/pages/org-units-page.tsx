@@ -1,8 +1,8 @@
 import { Button, DataTable, LoadingState, Notice, PageTitle, StatusBadge, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
-import { describeFailure } from '@forcitis/core';
+import { badgeOf, describeFailure } from '@forcitis/core';
 import { useOrgUnits } from '../hooks/use-workforce';
-import { ORG_UNIT_STATUS_LABELS, type OrgUnitNode, buildOrgTree } from '../model/org-unit';
+import { ORG_UNIT_STATUS_LABELS, ORG_UNIT_STATUS_TONES, type OrgUnitNode, buildOrgTree } from '../model/org-unit';
 
 const COLUMNS: DataColumn<OrgUnitNode>[] = [
   { key: 'name', title: '组织单元', render: (unit) => unit.name },
@@ -12,7 +12,10 @@ const COLUMNS: DataColumn<OrgUnitNode>[] = [
   {
     key: 'status',
     title: '状态',
-    render: (unit) => <StatusBadge tone={unit.status === 'ACTIVE' ? 'posted' : 'neutral'}>{ORG_UNIT_STATUS_LABELS[unit.status] ?? unit.status}</StatusBadge>,
+    render: (unit) => {
+      const badge = badgeOf(ORG_UNIT_STATUS_LABELS, ORG_UNIT_STATUS_TONES, unit.status);
+      return <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>;
+    },
   },
 ];
 
