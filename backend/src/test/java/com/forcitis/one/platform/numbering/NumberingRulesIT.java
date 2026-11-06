@@ -131,7 +131,7 @@ class NumberingRulesIT {
     void ruleListShowsTheDefaultQuoteTemplateAsPending() throws Exception {
         mvc.perform(get(RULES).with(READER))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.items.length()").value(4))
+                .andExpect(jsonPath("$.items.length()").value(5))
                 .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].pattern").value("{TYPE}-{LE}-{yyyyMM}-{seq:4}"))
                 .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].resetPolicy").value("MONTHLY"))
                 .andExpect(jsonPath("$.items[?(@.documentType == 'QUOTE')].documentTypeCode").value("QT"))
