@@ -1,0 +1,104 @@
+# One strong type per command kind, and declarations kept in their own module (#1585)
+
+Design card #1585. Draft ADR: ADR-0090 (Chinese, in `docs/adr`). This file holds the facts, the options and the done-when lines; the ADR holds the decision text. Evidence marks: **[V]** read on origin/main (head b7ebe7ab2, 2026-11-06) by the command shown; **[U]** not verified.
+
+## 1. The one thing to decide
+
+Two patterns turn compile-time errors into runtime or review errors and are merge-conflict magnets: (A) one aggregate and one request carry many command kinds with optional fields; (B) central registries (permission, system role, error code, audit subject kind) that every slice appends to. Decide the target shape of each and an incremental path with no big-bang rewrite and no table change unless shown necessary. This is a technical decision (playbook: the design session chooses); no business question arises. The adoption of the ADR is the user's.
+
+## 2. Facts, pattern A (kinds with optional fields)
+
+Window for every commit count below: commits that touch the path, `git log --since=2026-10-30 --oneline -- <path>` on origin/main [V]. The lead's count (31 / 29 / 24) and an independent count from 11-01 (26 / 30 / 23) differ from mine only by window and merge handling; the order of magnitude is the same.
+
+| # | Fact | Evidence |
+|---|---|---|
+| A1 | Three kind enums drive commands: `PersonnelCommandKind` (14), `OrgStructureCommandKind` (9), `CountersignCommandKind` (23: the union of the other two, a read-side classification, used in 4 files, no `switch`) | [V] `workforce/api/*CommandKind.java`; `grep` of the enum bodies |
+| A2 | Personnel: the internal command `EnterPersonnelCommand` has **24 components**, all but kind and two others `@Nullable`, and **three telescoping constructors** besides the canonical one; the HTTP record `EnterPersonnelCommandRequest` is a second wide record; the frontend holds a third list `KIND_FIELDS` per kind | [V] `workforce/api/EnterPersonnelCommand.java`, `web/EnterPersonnelCommandRequest.java`, `frontend/apps/web/src/modules/workforce/model/personnel-command.ts` |
+| A3 | The rule "which fields a kind takes" is written once as code in `PersonnelCommand` (a `switch (kind)` of 8 arms plus about ten `if (kind == ...)` tests, lines 117 to 365) and once as data in the frontend `KIND_FIELDS`; nothing ties the two | [V] `workforce/domain/PersonnelCommand.java`; frontend file above |
+| A4 | Size and churn of the personnel path: `JdbcPersonnelCommandRepository` 653 lines (49 KB), `PersonnelCommand` 618 lines, `PersonnelCommandService` 465 lines; 17 files name the kind; commits since 10-30: repository 30, service 31, aggregate 23 | [V] `wc`, `git log` |
+| A5 | Org structure: `EnterOrgStructureCommand` has 15 components (12 nullable), the HTTP record repeats them; `JdbcOrgStructureCommandRepository` 650 lines (48 KB), `OrgStructureCommand` 447 lines; 16 files name the kind | [V] |
+| A6 | Defects of this class already happened: #1579 (the six acting fields and the reason missing on the HTTP record, so `ACTING_START` answered 422) and #1489 (the frontend `KIND_FIELDS` missed a HIRE field) | [V] card text; `EnterPersonnelCommand` has 24 components against 18 on the HTTP record |
+| A7 | What is shared across the kinds and must stay one thing: the status machine (`PENDING`, `HELD`, `EFFECTIVE`, `WITHDRAWN`, awaiting countersign), the due-date application job `ApplyDueCommand`, the countersign freeze, audit, idempotency, one table per family (`personnel_commands`, `org_structure_commands`) with one nullable column per optional field | [V] `PersonnelCommand`, `ApplyDueCommand`, `OrgCountersignFreeze`; table names [U] (the schema was not re-read for this card) |
+| A8 | Sealed interfaces are already used on main (`LoginLookup`, `PostingPeriod`, `RoleChangeResponse`); no `@JsonTypeInfo` or `@JsonSubTypes` appears anywhere in main code, so a discriminated HTTP body (OpenAPI `oneOf`) would be the first | [V] `grep -rn "sealed" `, `grep -rln "JsonSubTypes\|JsonTypeInfo"` (no match) |
+| A9 | Other kind enums measured, none of the same size: `PermissionAdjustmentKind` 2, `AuthorizationRequestKind` 3, `CountersignRequestKind` 2, `AssignmentKind` 2, `PayrollRuleRowKind` 6, `ChangeKind` 7; each has at most one `switch`. Whether any of them carries kind-dependent optional fields was **not** read to the end | [V] counts; [U] field use |
+
+## 3. Facts, pattern B (central registries)
+
+| # | Fact | Evidence |
+|---|---|---|
+| B1 | `Permission` (130 lines) lists every permission **twice**: an enum constant and a string constant in `Permission.Codes`; commits since 10-30: 16 (all since 11-01) | [V] `platform/identity/api/Permission.java` |
+| B2 | `SystemRoleDeclaration` (the six system roles with their permission sets and a declaration revision number, ADR-0034 decision 1 item 7): 14 commits since 10-30 | [V] |
+| B3 | `WorkforceError` (58 lines, one enum for the whole workforce module): 15 commits since 10-30. Error enums are already one per module (15 `*Error` files), so this is a per-module hot file, not a cross-module registry | [V] |
+| B4 | `AuditSubjectKind`: 6 commits since 10-30; 63 files name it (the card said 25 values; the enum file has 52 lines) | [V] |
+| B5 | Permission codes are copied across modules: 10 `*Permissions` classes (recruitment has two: web and application), and `PersonnelCommandService.PERMISSION` duplicates `WorkforcePermissions`; 54 files hold `@PreAuthorize`, 132 annotation lines build strings | [V] `find ... -name "*Permissions.java"`; `grep -rl "@PreAuthorize"` |
+| B6 | Kernel ports take `String`: `CallerPermissions.holds(String)`, `AccountRoles.holds(UserId, String)`, while identity has a typed `RoleCode` record (no `PermissionCode` exists). Only 5 files outside `platform.identity` mention `RoleCode`, so the typed role code mostly stays inside identity | [V] `kernel/CallerPermissions.java`, `kernel/AccountRoles.java`, `platform/identity/api/RoleCode.java`; `grep -rl RoleCode` |
+| B7 | Consistency of codes rests on `NamingSurfaceTest` G43 (it reflects over `Permission.Codes` and `Permission.values()` and checks format and that every `@PreAuthorize` code is catalogued) and reflection tests | [V] `NamingSurfaceTest.java` lines 167 to 199 |
+| B8 | An annotation value must be a compile-time constant, so a typed `PermissionCode` record alone cannot go into `@PreAuthorize`; a string constant stays for the annotation | Java rule [V]; hence option B-ii below keeps one constant per permission |
+
+## 4. Options, pattern A
+
+| Option | What it is | Gains | Costs |
+|---|---|---|---|
+| A-1 | A sealed interface per family with one record per kind (`PersonnelCommandBody permits Hire, Transfer, Separate, ...`); one aggregate and one table remain; the aggregate holds the body | The compiler lists the fields of each kind; a missing field is a compile error; `switch` over the sealed type needs no `default`; the HTTP body can be a discriminated union and the frontend field list can be generated | Many small records; the repository maps each record to the same wide row; HTTP `oneOf` is unproven in this repo (A8) |
+| A-2 | One aggregate (and table) per kind family (hire and reinstatement; post change; legal entity; acting duty) | Smaller aggregates | Duplicates the status machine, due-date job, countersign freeze; table and migration changes; a cross-family ordering rule appears |
+| A-3 | Keep the wide record, publish a per-kind field matrix as data and generate the frontend list and a validation from it | Cheapest; ends the frontend drift | The compiler still sees 24 optional fields; the backend rule and the matrix can still disagree; telescoping constructors stay |
+| A-4 | Keep as is | None | The cost grows with every kind (the acting slices added six fields and one defect) |
+
+**Chosen: A-1, entered by an incremental path** (section 6): the sealed interface starts with one permitted subtype `Wide` that is today's record, so nothing breaks; each slice that touches a kind moves that kind to its own record; the `Wide` type is frozen (a test fails when it gains a component) and disappears with the last kind. The tables do not change: a per-kind record is mapped to the same row. A-2 is rejected unless the evidence changes (it forces the table and the shared machinery to split without a measured gain). A-3 is a fallback if the HTTP `oneOf` cannot be exported (fact A8), not an alternative to A-1 inside the domain: the domain type is sealed either way; only the edge differs.
+
+Not converted now: `CountersignCommandKind` (a classification, no fields), the 2- and 3-kind enums, `PayrollRuleRowKind` and `ChangeKind` until their kind-dependent optional fields are read (A9). Rule for later cases, stated in the ADR: a family gets per-kind records when it has more than one kind-dependent set of optional fields.
+
+## 5. Options, pattern B
+
+| Option | What it is | Gains | Costs |
+|---|---|---|---|
+| B-i | Each module declares its own permissions once (a `<Module>Permissions` class in its `api` holding typed `PermissionCode` values and the string constants for annotations, and a catalogue contribution bean); `platform.identity` collects the contributions at start into the permission catalogue; `Permission` and `Permission.Codes` shrink to the platform's own and go away | A new permission touches one module file; no copies; G43 checks the collected catalogue | Identity and the guard need a collection mechanism; every module that checks another module's permission imports it from that module's `api` (allowed by the dependency rules); one-time migration of 10 classes and 54 annotation sites |
+| B-ii | As B-i, plus typed `PermissionCode` and `RoleCode` in `kernel` (the ports take them instead of `String`; identity's `RoleCode` moves or is re-exported) | Wrong-type calls fail to compile; ends the copied constants | A type in `kernel` (the shared kernel is a deliberate place, ADR-0004); annotation strings remain, one per permission, next to the typed value |
+| B-iii | Generate the catalogue from annotations (scan `@PreAuthorize` strings) | No declaration to write | The catalogue is derived from usage, so a typo creates a permission; rejected |
+| B-iv | Keep central | None | 16 and 14 commits in a week and the copies |
+
+**Chosen: B-ii in two steps** (B-i first, the kernel types second). Role grants stay central: `SystemRoleDeclaration` keeps the six system roles and their permission sets with the revision number (ADR-0034 decision 1 item 7), because who may hold which permission is a security decision that should be reviewed in one place; it refers to permission codes by the typed constants where the module is visible to identity and otherwise by code string, and the start-up check fails when a granted code is not in the collected catalogue. Moving grants into modules would change the revision rule of ADR-0034 and is **not** proposed here.
+
+Error codes: split `WorkforceError` into one enum per aggregate family (each implements `ErrorCode`, as the 15 existing enums do); no new mechanism. `AuditSubjectKind`: leave as is (6 commits; a typed per-module subject is a separate decision if the count grows).
+
+## 6. Incremental path (no big-bang)
+
+| Step | What | Trigger | Prerequisite |
+|---|---|---|---|
+| S0 | Prototype that settles fact A8: one sealed HTTP body with `@JsonTypeInfo` and `@JsonSubTypes`; run `OpenApiExportTest` and the frontend schema generation; record whether `oneOf` and a discriminator come out and whether `Schema<'...'>` types are usable | first slice that converts a kind | ADR adopted |
+| S1 | `PersonnelCommandBody` sealed with `Wide` plus the first converted kind; the freeze test on `Wide`; HTTP edge per S0 result | the next personnel slice (for example acting duty slice 2 or a hire change) | S0 |
+| S2 | Each later slice that touches a kind converts it and deletes its arms from `PersonnelCommand` rules; same for org structure | every slice | S1 |
+| S3 | Last kind converted: `Wide`, the three extra constructors and the frontend `KIND_FIELDS` are deleted | the last conversion | S2 |
+| P1 | `PermissionCode` declarations in a first module (workforce, the biggest) and the collection in identity; G43 reads the collected catalogue as well as `Permission.Codes` | the next slice that adds a permission | ADR adopted |
+| P2 | Each later slice declares its new permissions in its own module; the existing ones move when a slice touches their module; copies are deleted as modules move | every slice | P1 |
+| P3 | Kernel types `PermissionCode` and `RoleCode`; ports change from `String`; `Permission`, `Permission.Codes` removed when empty | after most modules moved | P2 |
+| E1 | `WorkforceError` split by aggregate family | the next workforce slice | none |
+
+No step changes a table. A step that would (a new column for a kind) goes through the data design gate as usual.
+
+## 7. Done-when (one checkable line each, for the implementing slices and the test engineer)
+
+1. S0 prototype: `OpenApiExportTest` passes with a sealed discriminated body, and the generated frontend type for it is a union keyed by `commandKind`; if not, the step records the fallback (flat HTTP record converted at the edge) and the decision stays valid.
+2. Each converted kind: a record with only its own components; the aggregate's rule for that kind has no `if (kind == ...)` left; a `switch` over the sealed type compiles without `default`.
+3. A test fails when `Wide` gains a component or a constructor (the freeze), and passes after the last kind is converted and `Wide` is removed.
+4. Existing behaviour of a converted kind is unchanged: the acceptance tests of that kind pass without edit (no assertion loosened).
+5. A kind enum with a `KIND_FIELDS` entry in the frontend is generated from the schema after S3: no hand-written field list remains for personnel commands.
+6. P1: a permission declared in a module appears in the collected catalogue; a duplicate code across modules, a code not in the format of G43 and a granted code absent from the catalogue each fail at start or in the guard (one test per failure).
+7. P2: a new permission is added by editing one module file (plus a role grant when one is wanted); no `*Permissions` copy is created; a guard fails when a module declares a code that another module's class also declares.
+8. P3: no kernel port takes `String` for a permission or role code; `grep "holds(String"` returns nothing.
+9. E1: no enum of the workforce errors exceeds the size the ADR sets (proposal: one enum per aggregate family).
+
+## 8. Out of scope
+
+Code and tables; `AuditSubjectKind` and the 2- to 7-kind enums; moving role grants into modules (touches ADR-0034 and is a security decision); the frontend page rewrite; a general plugin mechanism for modules.
+
+## 9. Questions
+
+None for the business. For the reviewer and the user at adoption: (1) whether the HTTP edge must be `oneOf` (S0 decides by evidence) or the flat record at the edge is acceptable; (2) whether role grants stay central (this draft: yes).
+
+## 10. Unverified
+
+1. The schema of `personnel_commands` and `org_structure_commands` was not re-read; the claim "no table change" rests on the mapping staying the same wide row.
+2. Whether `PayrollRuleRowKind` and `ChangeKind` carry kind-dependent optional fields.
+3. That Spring Modulith or the existing module guards allow a collection bean in identity that reads contributions from other modules without a dependency edge identity to each module (the contribution is a bean of a kernel-visible interface; to be proven in P1).
+4. The commit counts follow `git log` simplification on origin/main; a different window changes the numbers, not the order.
