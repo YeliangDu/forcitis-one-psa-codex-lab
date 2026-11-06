@@ -23,11 +23,12 @@ const ROW = {
   createdBy: '019a0000-0000-7000-8000-000000000e01',
 };
 const EMPLOYEE = { employeeId: EMPLOYEE_ID, employeeCode: 'E0001', displayName: '张三', employmentStatus: 'EMPLOYED', hireDate: '2024-03-01', assignments: [] };
+const EMPLOYER_ID = '019a0000-0000-7000-8000-000000000a11';
 const CHOICES = {
   'GET employees': { body: { items: [EMPLOYEE], nextCursor: null } },
   'GET org-units': { body: [{ orgUnitId: UNIT_ID, name: '交付一部', code: 'D1', status: 'ACTIVE', deliveryUnit: true, sortOrder: 1 }] },
   'GET positions': { body: { items: [{ positionId: POSITION_ID, code: 'P1', name: '项目经理', status: 'ACTIVE', effectiveFromDate: '2024-01-01' }], nextCursor: null } },
-  'GET legal-entities': { body: { items: [], nextCursor: null } },
+  'GET legal-entities': { body: { items: [{ legalEntityId: EMPLOYER_ID, code: 'LE1', name: '上海分公司', status: 'ACTIVE' }], nextCursor: null } },
 };
 
 describe('人事命令列表', () => {
@@ -149,12 +150,14 @@ describe('发起人事命令', () => {
     await userEvent.selectOptions(screen.getByLabelText('目标岗位'), POSITION_ID);
     await userEvent.selectOptions(screen.getByLabelText('是否计费人员'), 'true');
     await userEvent.selectOptions(screen.getByLabelText('任职阶段'), 'PROBATION');
+    await userEvent.selectOptions(screen.getByLabelText('用人单位'), EMPLOYER_ID);
     await userEvent.click(screen.getByRole('button', { name: '提交' }));
 
     await screen.findByTestId('location');
     expect(server.calls.find((call) => call.method === 'POST')?.body).toEqual({
       commandKind: 'HIRE', displayName: '李四', gender: 'FEMALE', email: 'li@example.com', effectiveDate: '2026-12-01',
       targetOrgUnitId: UNIT_ID, targetPositionId: POSITION_ID, isTargetFeeEarner: true, targetEmploymentPhaseKind: 'PROBATION',
+      targetEmployerLegalEntityId: EMPLOYER_ID,
     });
   });
 

@@ -71,7 +71,7 @@ class BrowserIdentity {
             identifiers.invalidateAll(userId);
             audit.record(new AuditEntry("platform.identity.browser-identifier.replayed", userId, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
                     "risk=HIGH identifier=" + prefix(presentedHash) + " every browser identifier of the account was invalidated")
-                    .withTrace(origin.address(), AuditOutcome.FAILED, method.name()));
+                    .withTrace(origin.address(), AuditOutcome.FAILED, method.auditKind()));
         }
         String issued = null;
         if (reason == null) {
@@ -81,7 +81,7 @@ class BrowserIdentity {
         audit.record(new AuditEntry("platform.identity.login.identity-check", userId, null, AuditSubject.of(AuditSubjectKind.USER_ACCOUNT, userId.value()),
                 reason == null ? "outcome=SKIPPED identifier=" + prefix(presentedHash)
                         : "outcome=CONFIRMATION_REQUIRED reason=" + reason + (presentedHash == null ? "" : " identifier=" + prefix(presentedHash)))
-                .withTrace(origin.address(), reason == null ? AuditOutcome.SUCCEEDED : AuditOutcome.FAILED, method.name()));
+                .withTrace(origin.address(), reason == null ? AuditOutcome.SUCCEEDED : AuditOutcome.FAILED, method.auditKind()));
         return new Judgement(reason, issued);
     }
 

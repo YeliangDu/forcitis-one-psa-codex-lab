@@ -19,7 +19,7 @@ import org.springframework.core.env.Profiles;
 /**
  * Release pipeline step: with the profile "migrate" the process runs the Flyway migrations with the migration account and exits, before any
  * application context exists, so no web server, job, process engine or event listener starts. Exit code 0 when the migrations succeed, 1 when not.
- * "migrate" alone is refused: the environment profile (dev or prod) decides the database transport requirement and must be named.
+ * "migrate" alone is refused: the environment profile (dev, prod or, on a developer's own machine, local) decides the database transport requirement and must be named.
  * The settings are Spring Boot's own spring.flyway.* binding (FlywayProperties); the connection is spring.flyway.url / user / password, falling back to
  * spring.datasource.*. The running service has spring.flyway.enabled=false.
  */
@@ -51,8 +51,8 @@ final class MigrateOnlyListener implements ApplicationListener<ApplicationEnviro
     }
 
     static MigrateResult migrate(ConfigurableEnvironment environment) {
-        if (!environment.acceptsProfiles(Profiles.of("dev | prod"))) {
-            throw new IllegalStateException("the profile migrate needs the environment profile too (migrate,dev or migrate,prod): it decides the database transport requirement");
+        if (!environment.acceptsProfiles(Profiles.of("dev | prod | local"))) {
+            throw new IllegalStateException("the profile migrate needs the environment profile too (migrate,dev or migrate,prod; on a developer's own machine migrate,local): it decides the database transport requirement");
         }
         FlywayProperties properties = Binder.get(environment).bindOrCreate("spring.flyway", FlywayProperties.class);
         String url = first(properties.getUrl(), environment.getProperty("spring.datasource.url"), "spring.flyway.url or spring.datasource.url");
