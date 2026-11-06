@@ -161,11 +161,13 @@ public final class ApprovalRequest extends AggregateRoot {
     /**
      * Whether the user already decided a task of the node of this task in the same round (the same instance). A node with several tasks is a countersign:
      * one person does not decide two of them, so a task is not handed to such a person.
+     * Only shares decided while this task was already there count: a node that was left and entered again (a repeat after changed content) is a new round of its own.
      */
     public boolean hasDecidedOnNodeOf(ApprovalTaskId taskId, UserId user) {
         ApprovalTask task = task(taskId);
         return tasks.stream().anyMatch(decided -> decided.instanceId().equals(task.instanceId()) && decided.nodeKey().equals(task.nodeKey())
-                && decided.status() == ApprovalTaskStatus.COMPLETED && decided.assignee().map(user::equals).orElse(false));
+                && decided.status() == ApprovalTaskStatus.COMPLETED && decided.assignee().map(user::equals).orElse(false)
+                && decided.completedAt().map(done -> !done.isBefore(task.createdAt())).orElse(false));
     }
 
     public void passAutomatically(TaskAssignment assignment, UserId approver, Moment now) {
