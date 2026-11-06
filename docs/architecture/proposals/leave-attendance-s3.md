@@ -82,7 +82,8 @@ Chosen A. `taken_until_at` is the later of `start_at` and the start instant (bus
 
 1. New ledger source `POLICY_GRANT` (only with line kind GRANT) and new table `leave_policy_grants` (4.1).
 2. `leave_requests.taken_until_at`, and the overlap exclusion redefined to cover `RECALLED` with the range cut there (4.3).
-3. No column for the confirmation basis (punches only, 4.4); `attendance_records` is reused unchanged and gets its writer in slice G0.
+3. `leave_rule_versions.hr_lead_threshold_minutes_count` (nullable): the threshold above which the HR-lead approval layer applies (Q-S3-7, user-decided).
+3a. No column for the confirmation basis (punches only, 4.4); `attendance_records` is reused unchanged and gets its writer in slice G0.
 4. Spec 4.2 names the ledger kinds `CARRY_IN`, `CARRY_OUT`; the schema has `ROLLOVER_IN`, `ROLLOVER_OUT`. The schema governs; the spec text is read that way (no document edit of the spec in this PR).
 5. Spec 4.2 says an account is never opened implicitly by a hold. `GrantPolicyCredit` may open the year account (rule version in force on the business day of the command, else it fails; the grant's `effective_date` may not be earlier than that day, see Q-S3-6), because a policy credit has no relationship-start event to open it.
 6. No new module edge: leave already depends on workforce, attendance and platform.approval (spec 4).
@@ -111,7 +112,7 @@ Each slice is one behaviour with its own tests. Owner: lead assigns. Slice A is 
 
 | Slice | Behaviour | Nodes | Needs |
 |---|---|---|---|
-| A | Schema PR: edit the open baseline file (fact 14), no appended migration: `POLICY_GRANT`, `leave_policy_grants`, `taken_until_at` and the redefined overlap guard, registry and classification entries; dev database rebuilt | all | this PR merged |
+| A | Schema PR: edit the open baseline file (fact 14), no appended migration: `POLICY_GRANT`, `leave_policy_grants`, `taken_until_at`, the redefined overlap guard and the threshold column on `leave_rule_versions`, registry and classification entries; dev database rebuilt | all | this PR merged |
 | B | Leave types read, rule version publish and read (a version with no entitlement rows is allowed for a policy type), the module's api package | 010 | A |
 | C | `GrantPolicyCredit`, the year account open, `LeaveBalances.of` | 010, 021 | B |
 | D | `SubmitLeave` (day split, HOLD, relationship-in-service check, approval start) and the approval process definition and numbering type | 018, 024 | C |
@@ -150,7 +151,7 @@ Dates and numbers. The pack's amounts are asserted as they are (4500, 900, 450, 
 Roles (user decisions 2026-11-06): employee; direct manager; HR lead (a separate approval layer); HR specialist (also holds the attendance-specialist role); permission administrator. A separated employee cannot log in; the HR specialist acts for them.
 
 15. HR specialist grants a policy credit (nodes 010, 021; HR permission with audit, no approval step) on the HR page and sees credit and available change; an employee account sees the same balance on its own page and cannot see another person's.
-16. Employee submits the two-day request (018, 024) on the own-leave page; the direct manager finds it in the to-do list and approves; the HR-lead layer approves it when the route includes that layer (Q-S3-7 pending: layer condition); the employee sees held, then used; the applicant's "my requests" list shows each state.
+16. Employee submits the two-day request (018, 024) on the own-leave page; the direct manager finds it in the to-do list and approves; the HR-lead layer approves it when the route includes that layer (Q-S3-7: the layer applies when the request exceeds the rule version's `hr_lead_threshold_minutes_count`; a version with the value empty has no layer); the employee sees held, then used; the applicant's "my requests" list shows each state.
 17. HR specialist registers the recall (020) for the applicant, or for a separated applicant (login impossible); the direct manager registers it for a current report in a second walk; the employee's page shows used 450 and the request `RECALLED`; the manager's to-do list shows nothing new.
 18. After punches are fed through the import port (no source-system adapter exists), the employee confirms the month on the attendance page (013); for a separated employee the HR specialist confirms by default (`ConfirmByDefault`); the HR specialist locks the month; a non-HR role sees no lock action.
 19. Permission administrator sees the leave permissions granted automatically by source (employee, manager, HR specialist, HR lead) in the grant review list and can revoke one; the revoked role's page action disappears. [U: the review list is the identity module's existing mechanism]
@@ -158,12 +159,12 @@ Roles (user decisions 2026-11-06): employee; direct manager; HR lead (a separate
 ### 9.3 Seam tests (T4: both sides of each seam, numbers as in section 12.1)
 
 20. Seams 1, 2, 3, 4: leave's test calls the real attendance and workforce read ports (no stubs), including the workforce read slice G adds (start date, end date, unpaid periods: a day before the start or inside an unpaid period is not an attendance day); each port's own contract test covers its failure answers (no standard-hours version, calendar year not maintained, relationship not in service).
-21. Seam 5: a leave request starts a real approval process and the result returns by `ApprovalCompleted`; the approval-side test of the new process definition checks its route (manager, then the HR-lead layer by Q-S3-7).
+21. Seam 5: a leave request starts a real approval process and the result returns by `ApprovalCompleted`; the approval-side test of the new process definition checks its route (manager, then the HR-lead layer when the request exceeds the rule version's threshold; both sides of the threshold are tested).
 22. Seam 6: the provider test asserts the `LeaveApproved` and `LeaveRecalled` payloads field by field against the record; the consumer side waits for the timesheet seam card (listed, not skipped): until then a recorded-payload contract test in leave stands in for it.
 23. Seam 7: the provider test asserts `MonthlyAttendance.of` and `MonthlyConfirmationLocked` against the record, including `is_paid_leave`; `MonthlyAttendance.of` on an unlocked month fails; the consumer side is #1582's.
 24. Seam 8: `LeaveBalances.of` is asserted for credit, held, used, expired, available after every pack step (1 to 10 above).
 
-## 10. Questions for the user (Q-S3-1, 2, 4, 5 user-decided 2026-11-06 through lead; the rest open)
+## 10. Questions for the user (Q-S3-1, 2, 4, 5, 6, 7, 8 user-decided 2026-11-06 through lead; Q-S3-3 open)
 
 | # | Question | Options | Recommendation |
 |---|---|---|---|
@@ -172,9 +173,9 @@ Roles (user decisions 2026-11-06): employee; direct manager; HR lead (a separate
 | Q-S3-3 | Which leave types exist in production, with unit and paid flag? The type table is migration-only; the pack's type is fictional and lives in test fixtures | the user lists them | the user lists them before the first production seed; not needed for S3 tests |
 | Q-S3-4 | Who may grant a policy credit, and does a grant need approval? | HR permission with audit; HR permission plus approval | **User-decided 2026-11-06: HR permission with audit, no approval.** |
 | Q-S3-5 | Who verifies the actual leave and registers the recall? | the applicant; the direct manager; HR | **User-decided 2026-11-06: HR or the direct manager registers it after verifying** (HR also acts for a separated applicant who cannot log in). The command is permission-gated for both roles; the data shape is the same |
-| Q-S3-6 | May a policy credit be dated before the day it is entered (backdated)? The rule-version guard already refuses a backdated version, so a backdated grant would have no version in force | no, effective date is the entry day or later; yes with HR-lead approval | no, as the guard does |
-| Q-S3-8 | Node 013 under punches only: does a workday with approved leave and no punch count as fine, do OUTFIELD and MAKE_UP records count as attendance, and is a day covered by approved leave inside the attendance-days count (it then appears once in ATTENDANCE_DAYS and once in LEAVE minutes, so payroll must not deduct it twice)? | yes and yes; punches only, leave days need a punch too | yes and yes (leave covers the day; every record kind is evidence of presence) |
-| Q-S3-7 | When does the HR-lead approval layer apply to a leave request (user decision 2026-11-06: the layer exists)? | every request; above a number of days; for given leave types | above a number of days the user names; until then the process definition has the layer behind a threshold of the rule version |
+| Q-S3-6 | May a policy credit be dated before the day it is entered (backdated)? The rule-version guard already refuses a backdated version, so a backdated grant would have no version in force | no, effective date is the entry day or later; yes with HR-lead approval | **User-decided 2026-11-06: no backdated policy credit** (the effective date is the entry day or later, as the guard does) |
+| Q-S3-8 | Node 013 under punches only: does a workday with approved leave and no punch count as fine, do OUTFIELD and MAKE_UP records count as attendance, and is a day covered by approved leave inside the attendance-days count (it then appears once in ATTENDANCE_DAYS and once in LEAVE minutes, so payroll must not deduct it twice)? | yes and yes; punches only, leave days need a punch too | **User-decided 2026-11-06: an approved-leave day needs no punch; `OUTFIELD` and `MAKE_UP` records count as attendance** |
+| Q-S3-7 | When does the HR-lead approval layer apply to a leave request (user decision 2026-11-06: the layer exists)? | every request; above a number of days; for given leave types | **User-decided 2026-11-06: the layer applies above a day threshold that is a configurable setting in the leave rule version, maintained by HR; the design fixes no number.** Stored as the nullable column `leave_rule_versions.hr_lead_threshold_minutes_count` (record, "Scope"); an empty value means the layer never applies; the rule version in force on the submission day decides |
 
 ## 11. Unverified (the implementing slice checks; none changes a column)
 
@@ -182,7 +183,7 @@ Roles (user decisions 2026-11-06): employee; direct manager; HR lead (a separate
 2. A rule version with zero entitlement rows is accepted: the entitlement trigger fires only on entitlement inserts (reviewer read, 2026-11-07); the backdating guard is a fact (13), handled by today-relative fixtures in section 9.
 3. Field names of `EmploymentRelationships` for the service boundary and unpaid periods.
 4. The approval process type and the numbering document type for a leave request follow the #1436 template; the events documents list the new document type (as `58535e073` did for `BONUS_INPUT`).
-5. Q-S3-7's threshold ("above N days") has no column in `leave_rule_versions` (its `exempt_threshold_minutes_count` is the auto-approve exemption, a different meaning); it lives in the approval process definition, or a new gate run adds a column.
+5. Q-S3-7 (user-decided): the threshold is the new column `hr_lead_threshold_minutes_count` (signed in the record; the existing `exempt_threshold_minutes_count` is the auto-approve exemption, a different meaning). Whether the HR page enters it in days and converts to minutes with the day length of the standard-hours rule, or in minutes, is the page's decision [U]; the stored unit is minutes like the ledger. How the approval process definition reads the rule version at submission is checked by the slice.
 6. `attendance_records` carries only `employee_id`, so a person with two relationships in service on one month gets one attendance-days count, not one per relationship; the pack has one relationship and the case is out of S3.
 7. The events of the confirmation carry the cost entity of the month's last day in their envelope (a month can span an entity change).
 8. A MINUTE-unit type on a year account is a reading of spec 4.2 ("year accounts are for DAY types"): the schema allows it.

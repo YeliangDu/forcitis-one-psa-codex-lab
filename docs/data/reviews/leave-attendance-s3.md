@@ -1,4 +1,4 @@
-# Data design review: organization.leave slice S3 (one table with the replay key, one request column and a redefined overlap exclusion, two CHECKs, four events)
+# Data design review: organization.leave slice S3 (one table with the replay key, one request column, one rule-version column and a redefined overlap exclusion, three CHECKs, four events)
 
 Card: #1581 (design). Basis: `docs/architecture/proposals/leave-attendance-s3.md` (the proposal, added by the PR that carries this record), the merged schema `V20261105160000__organization_leave_baseline.sql` (#1400, #1470) and its records `organization-leave-l1a.md`, `organization-leave-l1b.md`, gate `docs/data/data-design-gate.md` appendix A. Signed by one-design in the form of `workforce-acting-duty.md`. Where this record differs from the proposal's section 5 the record governs.
 
@@ -6,9 +6,9 @@ Evidence marks: **verified** = read on origin/main on 2026-11-07 (migration, reg
 
 ## Scope
 
-Signed: schema `organization_leave`; new table `leave_policy_grants`; the ledger `source_kind` CHECK widened by `POLICY_GRANT` and one new CHECK tying it to the GRANT kind; new column `leave_requests.taken_until_at` with the overlap exclusion redefined; new column `leave_policy_grants.request_key` with its unique key; the payloads of `LeaveApproved`, `LeaveRecalled`, `MonthlyConfirmationConfirmed`, `MonthlyConfirmationLocked`; terms (`backend/glossary/proposed/leave-s3.yaml`).
+Signed: schema `organization_leave`; new table `leave_policy_grants`; new nullable column `leave_rule_versions.hr_lead_threshold_minutes_count` with `ck_leave_rule_versions_hr_lead_threshold_minutes_count` `> 0` and the comment 「为空表示没有总监层审批；请假时长超过此分钟数时，审批路线增加人力负责人一层；以提交当天生效的规则版本为准」 (user answer Q-S3-7 of 2026-11-06, additive and nullable, so the open baseline is edited in place; a published rule version is append-only, so a changed threshold is a new version); the ledger `source_kind` CHECK widened by `POLICY_GRANT` and one new CHECK tying it to the GRANT kind; new column `leave_requests.taken_until_at` with the overlap exclusion redefined; new column `leave_policy_grants.request_key` with its unique key; the payloads of `LeaveApproved`, `LeaveRecalled`, `MonthlyConfirmationConfirmed`, `MonthlyConfirmationLocked`; terms (`backend/glossary/proposed/leave-s3.yaml`).
 
-Not signed (separate gate runs): any table of overtime, comp time, carry-over, year close and attendance import; the `cost.timesheet` consumer edge; payroll tables (#1582). `attendance_records` is reused unchanged (the table exists; the import command that writes it is code). The user answers of 2026-11-06 change no column: Q-S3-1 (punches only) is why the confirmation needs no basis column, Q-S3-2 and Q-S3-3 are rule-version and seed data, Q-S3-4 and Q-S3-5 are command permissions.
+Not signed (separate gate runs): any table of overtime, comp time, carry-over, year close and attendance import; the `cost.timesheet` consumer edge; payroll tables (#1582). `attendance_records` is reused unchanged (the table exists; the import command that writes it is code). The user answers of 2026-11-06 change no column except Q-S3-7 (the threshold column above): Q-S3-1 (punches only) is why the confirmation needs no basis column, Q-S3-2 and Q-S3-3 are rule-version and seed data, Q-S3-4 and Q-S3-5 are command permissions.
 
 ## Table to object source (B1, B2, B7)
 
@@ -51,13 +51,17 @@ Append-only by `organization_leave.guard_append_only()` (`BEFORE UPDATE OR DELET
 
 New `taken_until_at timestamptz`, comment 「为空表示未被提前终止；销假后为第一天未休的起点（业务时区当天零点；整单销假且请假起点晚于当天零点时取起点 start_at）」. `ck_leave_requests_taken_until_at` `(status = 'RECALLED') = (taken_until_at IS NOT NULL)` and `taken_until_at IS NULL OR taken_until_at BETWEEN start_at AND end_at`. `ex_leave_requests_live_period_overlap` is redefined: `EXCLUDE USING gist (employment_relationship_id WITH =, tstzrange(start_at, CASE WHEN status = 'RECALLED' THEN taken_until_at ELSE end_at END) WITH &&) WHERE (status IN ('SUBMITTED', 'IN_APPROVAL', 'APPROVED', 'RECALLED'))`. A whole-request recall sets `taken_until_at = start_at`, an empty range that blocks nothing; a partial recall keeps the taken days blocked, so a second request cannot double-book them. That `taken_until_at` is a business-day start is a command check (business zone).
 
+### leave_rule_versions (changed)
+
+New `hr_lead_threshold_minutes_count integer`, nullable, `> 0`, same unit as the sibling `exempt_threshold_minutes_count` (minutes) and a different meaning (it is not the auto-approve exemption). It is part of the rule version row, so the existing guards (a version cannot be backdated, versions are append-only) already apply to it; no trigger changes.
+
 ### monthly_confirmations, attendance_records (unchanged)
 
 User-decided 2026-11-06: the month is confirmed against punches only, so no basis column is added. `attendance_records` (baseline lines 83-97) already holds the punch facts with a unique `(source_system, external_record_key)`: it is the replay key of the import command and the row grain is one punch. Its writer, the import command, is code; nothing in the table changes.
 
 ## Differences from the proposal's section 5 (the record governs)
 
-None. The proposal's items 1 to 3 are the three changes above; its items 4 to 6 are notes on the spec.
+None. The proposal's items 1 to 3a are the changes above; its items 4 to 6 are notes on the spec.
 
 ## Event payloads (E1)
 
@@ -157,13 +161,14 @@ organization_leave.leave_policy_grants.basis_text | INTERNAL | PI | 用途：授
 organization_leave.leave_policy_grants.granted_by | INTERNAL | PI | 用途：做出授予决定的操作人；个人信息 PI
 organization_leave.leave_policy_grants.effective_date | INTERNAL | PI | 用途：授予生效日，随雇佣关系的假期额度；个人信息 PI
 organization_leave.leave_requests.taken_until_at | INTERNAL | PI | 用途：销假后第一天未休的起点，随请假期间；个人信息 PI
+organization_leave.leave_rule_versions.hr_lead_threshold_minutes_count | INTERNAL | NONE | 用途：超过此分钟数的请假加人力负责人一层审批，为空表示没有此层；规则参数，不涉及个人
 ```
 
-`leave_requests.taken_until_at` is an instant of the leave period (sibling of `start_at` and `end_at`, registered PI): two of the five lines below (it and the grant's `effective_date`). Registry (`data-access-registry.yaml`): a row for `organization_leave.leave_policy_grants` with role `AGGREGATE_CHILD`, aggregate `LeaveBalanceAccount`, mutability `APPEND_ONLY`, retention as the ledger, lineage `NEW`, writers `[]` in slice A (the slice that writes the table, C, registers `[organization.leave]`), `fk_exceptions: {leave_type_id: carried by the composite foreign key fk_leave_policy_grants_account_relationship_type, which holds it equal to the type of its account}`.
+`leave_requests.taken_until_at` is an instant of the leave period (sibling of `start_at` and `end_at`, registered PI): two of the six lines below (it and the grant's `effective_date`). Registry (`data-access-registry.yaml`): a row for `organization_leave.leave_policy_grants` with role `AGGREGATE_CHILD`, aggregate `LeaveBalanceAccount`, mutability `APPEND_ONLY`, retention as the ledger, lineage `NEW`, writers `[]` in slice A (the slice that writes the table, C, registers `[organization.leave]`), `fk_exceptions: {leave_type_id: carried by the composite foreign key fk_leave_policy_grants_account_relationship_type, which holds it equal to the type of its account}`.
 
 ## Expected diff for the schema PR (DG-3, section 1.4)
 
-Table set: `leave_policy_grants` added (columns, FK, index, trigger above). `leave_ledger_lines`: `ck_leave_ledger_lines_source_kind` redefined (ten values), `ck_leave_ledger_lines_policy_grant_kind` added. `leave_requests`: column `taken_until_at`, `ck_leave_requests_taken_until_at`, `ex_leave_requests_live_period_overlap` redefined. `leave_policy_grants` also has `request_key` and its key. No other object changes.
+Table set: `leave_policy_grants` added (columns, FK, index, trigger above). `leave_ledger_lines`: `ck_leave_ledger_lines_source_kind` redefined (ten values), `ck_leave_ledger_lines_policy_grant_kind` added. `leave_rule_versions`: column `hr_lead_threshold_minutes_count` and its CHECK. `leave_requests`: column `taken_until_at`, `ck_leave_requests_taken_until_at`, `ex_leave_requests_live_period_overlap` redefined. `leave_policy_grants` also has `request_key` and its key. No other object changes.
 
 ## Unverified items (the dev card checks them; none changes a column)
 
@@ -176,6 +181,6 @@ Table set: `leave_policy_grants` added (columns, FK, index, trigger above). `lea
 
 - 审查：one-design，2026-11-07，依据卡版本 origin/main（已合并的 organization_leave 基线）加本记录
 - 判定：B1 B2 B3 B3a B4 B5 B6 B7 B8 O1 O2 O3 O4 O5 O6 O7 O8 O9 O10 O10a O11 O12 O13 O14 O15 O16 C1 C2 C3 C4 C5 T1 T2 T3 T4 E1 通过；E2 E3 A1–A8 不适用（理由见上表）
-- 豁免与待用户决定：无；Q-S3-1 至 Q-S3-5 不影响本记录的表与列
-- 结论：通过（仅限切片 A：一张表、两列、一条放宽的约束、一条新约束、四个事件载荷）
+- 豁免与待用户决定：无；Q-S3-7 的用户答复（2026-11-06）新增 `leave_rule_versions.hr_lead_threshold_minutes_count` 一列（可空、正数、增量），其余用户答复（Q-S3-1 至 Q-S3-6、Q-S3-8）不影响表与列
+- 结论：通过（仅限切片 A：一张表、三列、一条放宽的约束、两条新约束、四个事件载荷）
 - 数据设计：通过（one-design，2026-11-07，依据已合并的 organization_leave 基线加本记录）
