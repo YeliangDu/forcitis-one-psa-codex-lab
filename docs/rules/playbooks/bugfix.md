@@ -3,7 +3,7 @@ You own root cause and fix. Every changed line needs run evidence; no "might hel
 1. Reproduce from the same entry point first; if you can't, narrow the conditions or add observation, never guess.
 2. List hypotheses and eliminate them with run evidence until one remains; production is read-only, aggregates only.
 3. Change code only once the mechanism is confirmed; if evidence overturns a hypothesis, revert what it led to.
-4. Commit the failing reproduction test before the fix; no symptom-masking defensive code. Codex drafts as in impl step 3.
+4. Commit the failing reproduction test before the fix; no symptom-masking defensive code. Codex must draft test and fix (`docs/rules/rulings/codex-required.md`).
 5. Verify the original reproduction now passes from the same entry; run affected tests plus `scripts/ci/light.sh`. Backend: the full suite runs only in queue CI, not locally (user 2026-11-05); queue acceptance failures to lead in one list.
 6. Ship only the minimal change the evidence supports, only in the card's files; other bugs you notice go to lead as new cards.
 7. If the same kind of bug can recur, propose a machine check (light.sh or ArchUnit) and show it goes red on this bug.

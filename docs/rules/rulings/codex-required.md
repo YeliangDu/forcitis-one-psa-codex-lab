@@ -1,0 +1,9 @@
+# Codex first draft is required for backend code and acceptance tests
+
+User 2026-11-06: 「我同意，你必须保证这次不会被绕过，因为我的周额度还剩 6%。」 (approving lead's proposal; 11-05 night only 1 of 11 backend runtime PRs used Codex). Builds on user 2026-11-04 「我们首先是要充分发挥 codex 的价值，这个基础上拦得严，不能本末倒置」 and, for acceptance tests, user 2026-11-04 「我觉得完全可以，可以随意使用你希望的推理强度。我不认为会比 sonnet 差」 (`docs/decisions/2026-11-04-093054-one-lead-我觉得完全可以-可以随意使用你希.md`, never carried into a rule until now).
+
+1. Scope: (a) any PR whose diff touches `backend/src/main/**` (impl and bugfix); (b) one-test's acceptance commits (trailer `Acceptance-Test-Author: test-engineer`) under `backend/src/test/java/com/forcitis/one/acceptance/**`. Never frontend, ops, docs or `scripts/`.
+2. (a) Codex (`docs/rules/codex-preamble.md`) drafts the code, the failing unit test first, unit tests and migrations, once the data design is signed and acceptance tests are on main or released. A change across modules is one Codex run per module. The session runs ITs and fixes what Codex left. (b) Codex drafts the acceptance tests from the card's done-when; one-test owns the contract: writes the prompt, checks each done-when line, adds edges, breaks the implementation to show red, runs the checks.
+3. PR body (for (b): the acceptance PR or branch description): one line `Codex: <session-id>` per run (the id Codex prints), plus the verbatim prompt, tokens, reasoning effort and each hand edit.
+4. Skips, nothing else: `Codex: skip small` (under 20 lines added plus deleted in the scoped paths of the whole PR), or `Codex: skip <reason>` with a lead comment `lead 准许跳过 Codex` posted after it.
+5. Until the check exists, lead does not release or let merge a scoped PR without a `Codex:` line. The check at PR opening and at `mq.py enqueue` is card #1561. Enforced by: manual: lead / every backend and acceptance PR release and merge
