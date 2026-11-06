@@ -1,0 +1,16 @@
+# 假期额度结转（L1b 记录改名，Refs #1470；one-design 2026-11-05）。中文名待用户确认。
+terms:
+- id: leave_rollover
+  zh: 年假结转
+  en: LeaveRollover
+  snake: leave_rollover
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 年度结束时把未用完的假期额度按规则（不结转、限额、不限额，可设到期月）转入下一年度的处理；在关闭年度的同一事务内写一条转出和一条转入流水。英文一律 rollover，不用 carry（carry 已是用户批准的禁用拼写）
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'L1b 数据设计记录（organization-leave-l1b.md）；列名 rollover_kind / rollover_cap_qty / rollover_expiry_month_number，流水类型 ROLLOVER_IN / ROLLOVER_OUT；中文名待用户确认'

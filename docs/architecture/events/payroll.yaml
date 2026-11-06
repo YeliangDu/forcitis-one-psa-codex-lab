@@ -1,0 +1,42 @@
+# 事件目录分片（AsyncAPI 3 的 components.messages）：本模块的事件由 build_asyncapi.py 合成 asyncapi.yaml
+components:
+  messages:
+    PayrollRuleVersionBecameEffective:
+      name: PayrollRuleVersionBecameEffective
+      title: 薪酬规则的新版本生效
+      payload:
+        type: object
+        properties:
+          payrollRuleVersionId:
+            type: string
+            format: uuid
+            x-type: PayrollRuleVersionId
+            description: 变为生效的薪酬规则版本
+          ruleKind:
+            type: string
+            enum: [INCOME_TAX, SOCIAL_INSURANCE, HOUSING_FUND, ROUNDING]
+            x-type: PayrollRuleKind
+            description: 规则类别：个人所得税、社会保险、住房公积金、取整
+          jurisdictionKey:
+            type: string
+            x-type: JurisdictionKey
+            description: 规则适用的地区代码，大写字母开头，如 CN 或 CN_SH
+          effectiveFromDate:
+            type: string
+            format: date
+            x-type: LocalDate
+            description: 新版本的生效日期，也是信封的业务日期
+      x-event:
+        eventType: organization.payroll.PayrollRuleVersionBecameEffective
+        version: 1
+        class: com.forcitis.one.organization.payroll.events.PayrollRuleVersionBecameEffective
+        aggregate: PayrollRuleVersion
+        idempotencyKey: eventId
+        publisher: organization.payroll
+        consumers: []
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 新版本的生效日期
+        audit: 'not-audited: 发布同事务直写审计 organization.payroll.rule-version.published'
+        publisherTest: com.forcitis.one.organization.payroll.domain.PayrollRuleVersionTest
+        noConsumer: 暂无消费方：只供分析（规则版本的生效时间线）；按薪酬期间取规则走 PayrollRuleVersions 读取口，不订阅事件；发布本身已写审计，事件不替代审计

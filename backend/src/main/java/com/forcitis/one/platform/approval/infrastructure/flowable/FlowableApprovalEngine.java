@@ -45,6 +45,7 @@ import org.flowable.engine.repository.ProcessDefinition;
 import org.flowable.identitylink.api.IdentityLinkInfo;
 import org.flowable.identitylink.api.IdentityLinkType;
 import org.flowable.task.api.Task;
+import org.flowable.variable.api.history.HistoricVariableInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -71,10 +72,12 @@ class FlowableApprovalEngine implements ApprovalEngine {
     private final RepositoryService repository;
     private final HistoryService history;
     private final MeterRegistry meters;
+    private final NodeAssignment assignment;
     private final Map<String, Definition> definitions = new ConcurrentHashMap<>();
 
     FlowableApprovalEngine(RuntimeService runtime, TaskService tasks, RepositoryService repository, HistoryService history,
-            MeterRegistry meters) {
+            MeterRegistry meters, NodeAssignment assignment) {
+        this.assignment = assignment;
         this.runtime = runtime;
         this.tasks = tasks;
         this.repository = repository;
@@ -114,7 +117,20 @@ class FlowableApprovalEngine implements ApprovalEngine {
                 }
             }
         }
+        fields.addAll(ProcessDefinitionDeclarations.dataFormFields(processKey, latestModel(processKey).getMainProcess()));
         return fields;
+    }
+
+    @Override
+    public Map<String, List<String>> submittedFormFields(ApprovalInstanceId instanceId) {
+        Map<String, Object> engine = new LinkedHashMap<>();
+        for (HistoricVariableInstance variable : history.createHistoricVariableInstanceQuery()
+                .processInstanceId(instanceId.value().toString()).list()) {
+            if (variable.getVariableName().startsWith(EngineVariables.FIELD_PREFIX)) {
+                engine.put(variable.getVariableName(), variable.getValue());
+            }
+        }
+        return EngineVariables.fromEngine(engine).formFields();
     }
 
     @Override
@@ -225,6 +241,19 @@ class FlowableApprovalEngine implements ApprovalEngine {
     @Override
     public void reassignTask(ApprovalTaskId taskId, UserId to) {
         tasks.setAssignee(taskId.value().toString(), EngineUserIds.text(to));
+    }
+
+    @Override
+    public Optional<Set<UserId>> handoverTargetsOf(ApprovalTaskId taskId) {
+        Task task = tasks.createTaskQuery().taskId(taskId.value().toString()).singleResult();
+        if (task == null) {
+            throw new IllegalStateException("Task " + taskId.value() + " is gone");
+        }
+        UserTask node = (UserTask) definition(task.getProcessDefinitionId()).model().getFlowElement(task.getTaskDefinitionKey());
+        if (!NodePolicyReader.read(node).noFallback()) {
+            return Optional.empty();
+        }
+        return Optional.of(assignment.namedNow(node, task.getProcessInstanceId(), runtime.getVariables(task.getProcessInstanceId())));
     }
 
     @Override

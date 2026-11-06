@@ -13,6 +13,9 @@ public interface PositionQueries {
 
     Optional<Row> find(PositionId position);
 
+    /** The position row is {@code ACTIVE} (not disabled or deleted at the source) and so is the version in force today. */
+    boolean isActive(PositionId position);
+
     record Row(PositionId positionId, @Nullable String code, String name, PositionStatus status, LocalDate effectiveFromDate,
                @Nullable LocalDate effectiveToDate) {
     }
