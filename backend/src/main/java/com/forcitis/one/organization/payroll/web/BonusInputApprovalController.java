@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
  * administrator mode too, is answered 404. The platform approval controller's ordinary-session guard is not copied: it would answer 403.
  */
 @RestController
-@RequestMapping("/api/v1/organization/payroll/bonus-input-approvals")
+@RequestMapping("/api/v1/organization/bonus-input-approvals")
 class BonusInputApprovalController {
 
     private final GetBonusInputApproval getBonusInputApproval;
