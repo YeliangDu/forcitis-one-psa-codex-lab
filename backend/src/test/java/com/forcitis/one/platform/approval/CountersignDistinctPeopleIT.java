@@ -117,4 +117,27 @@ class CountersignDistinctPeopleIT extends ApprovalIntegrationSupport {
         reassignTask.execute(s.bShare(), TestAccounts.account(ADMINISTRATOR), TestAccounts.employee(s.b()), "back", OptionalLong.empty());
         assertThat(holderOf(s)).isEqualTo(TestAccounts.account(s.b()).value().toString());
     }
+
+    @Test
+    @DisplayName("#1555 the administrator cannot reassign a share to somebody who is still a candidate of another share that someone else holds")
+    void aShareIsNotReassignedToACandidateOfAnotherShareHeldByAnother() {
+        long unit = newId();
+        long initiator = newId();
+        long a = newId();
+        long b = newId();
+        long outsider = newId();
+        organisation.unit(unit, null, null).person(initiator, unit, null).person(a, unit, null).person(b, unit, null).person(outsider, unit, null);
+        ApprovalInstanceId instance = tx.execute(s -> approvals.start(startRequest(newKey("countersign"), TestAccounts.employee(initiator),
+                Set.of(TimesheetRoutingFlag.PROJECT_HOURS.flagName()), List.of(new ApprovalField(TimesheetApprovalField.PROJECT_MANAGER.fieldName(),
+                        List.of(TestAccounts.employee(a).toString(), TestAccounts.employee(b).toString()))))));
+        ApprovalTaskId aShare = shareOf(instance, a);
+        ApprovalTaskId bShare = shareOf(instance, b);
+        actAs(a);
+        claimTask.execute(aShare, TestAccounts.account(a), OptionalLong.empty());
+        transferTask.execute(aShare, TestAccounts.account(a), TestAccounts.employee(outsider), "on leave", OptionalLong.empty());
+
+        assertRefused(() -> reassignTask.execute(bShare, TestAccounts.account(ADMINISTRATOR), TestAccounts.employee(a), "r", OptionalLong.empty()));
+
+        assertThat(taskService.createTaskQuery().taskId(bShare.value().toString()).singleResult().getAssignee()).isNotEqualTo(TestAccounts.account(a).value().toString());
+    }
 }
