@@ -23426,6 +23426,71 @@ terms:
   status: approved
   confirmed: one-design 2026-11-03 裁定（#955，内部名，用户 2026-10-30「同意」内部名由设计裁定）
   note: 随
+- id: acting_duty
+  zh: 代理职务
+  en: ActingDuty
+  snake: acting_duty
+  kind: entity
+  bc: organization.workforce
+  scope: domain
+  definition: 员工在一段期限内暂代某部门（或其中某岗位）职责的有期限事实；员工保留自己的任职，不是第二项任职；状态由日期推出（待开始、生效中、已结束），不存列
+  standard_ref:
+  - docs/architecture/proposals/workforce-acting-duty.md
+  - docs/data/reviews/workforce-acting-duty.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-06 裁定（#1525，内部名，用户 2026-10-30「同意」内部名由设计裁定；界面用词随 #1516 H1 的术语核对）
+  note: 与审批的「代理办理」（platform.approval，流程管理员替人办任务）不是一回事，不互列同名
+- id: acting_duty_end_cause
+  zh: 代理职务结束原因
+  en: ActingDutyEndCause
+  snake: acting_duty_end_cause
+  kind: state
+  bc: organization.workforce
+  scope: domain
+  definition: 代理职务为何结束：EXPIRED 到期 / ENDED_EARLY 提前结束 / SEPARATION 代理人离职；开放中的代理职务无结束原因
+  standard_ref:
+  - docs/architecture/proposals/workforce-acting-duty.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-06 裁定（#1525，内部名）
+  note: ''
+- id: employee_acting_duty_started
+  zh: 员工代理职务已开始
+  en: EmployeeActingDutyStarted
+  snake: employee_acting_duty_started
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 代理职务开始命令已生效：员工自开始日起暂代某部门或岗位的职责；负载为 ID 与日期，不含姓名与事由
+  standard_ref:
+  - docs/data/reviews/workforce-acting-duty.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-06 裁定（#1525，内部名）
+  note: ''
+- id: employee_acting_duty_ended
+  zh: 员工代理职务已结束
+  en: EmployeeActingDutyEnded
+  snake: employee_acting_duty_ended
+  kind: domain_event
+  bc: organization.workforce
+  scope: domain
+  definition: 代理职务因到期、提前结束或代理人离职而结束；到期时没有人事命令，负载里的人事命令 ID 为空
+  standard_ref:
+  - docs/data/reviews/workforce-acting-duty.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: approved
+  confirmed: one-design 2026-11-06 裁定（#1525，内部名）
+  note: ''
 common_words:
 - Id
 - Uuid
@@ -23561,68 +23626,3 @@ common_words:
 - Http
 - Json
 - Dto
-- id: acting_duty
-  zh: 代理职务
-  en: ActingDuty
-  snake: acting_duty
-  kind: entity
-  bc: organization.workforce
-  scope: domain
-  definition: 员工在一段期限内暂代某部门（或其中某岗位）职责的有期限事实；员工保留自己的任职，不是第二项任职；状态由日期推出（待开始、生效中、已结束），不存列
-  standard_ref:
-  - docs/architecture/proposals/workforce-acting-duty.md
-  - docs/data/reviews/workforce-acting-duty.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: approved
-  confirmed: one-design 2026-11-06 裁定（#1525，内部名，用户 2026-10-30「同意」内部名由设计裁定；界面用词随 #1516 H1 的术语核对）
-  note: 与审批的「代理办理」（platform.approval，流程管理员替人办任务）不是一回事，不互列同名
-- id: acting_duty_end_cause
-  zh: 代理职务结束原因
-  en: ActingDutyEndCause
-  snake: acting_duty_end_cause
-  kind: state
-  bc: organization.workforce
-  scope: domain
-  definition: 代理职务为何结束：EXPIRED 到期 / ENDED_EARLY 提前结束 / SEPARATION 代理人离职；开放中的代理职务无结束原因
-  standard_ref:
-  - docs/architecture/proposals/workforce-acting-duty.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: approved
-  confirmed: one-design 2026-11-06 裁定（#1525，内部名）
-  note: ''
-- id: employee_acting_duty_started
-  zh: 员工代理职务已开始
-  en: EmployeeActingDutyStarted
-  snake: employee_acting_duty_started
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 代理职务开始命令已生效：员工自开始日起暂代某部门或岗位的职责；负载为 ID 与日期，不含姓名与事由
-  standard_ref:
-  - docs/data/reviews/workforce-acting-duty.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: approved
-  confirmed: one-design 2026-11-06 裁定（#1525，内部名）
-  note: ''
-- id: employee_acting_duty_ended
-  zh: 员工代理职务已结束
-  en: EmployeeActingDutyEnded
-  snake: employee_acting_duty_ended
-  kind: domain_event
-  bc: organization.workforce
-  scope: domain
-  definition: 代理职务因到期、提前结束或代理人离职而结束；到期时没有人事命令，负载里的人事命令 ID 为空
-  standard_ref:
-  - docs/data/reviews/workforce-acting-duty.md
-  confidence: medium
-  aliases: []
-  forbidden: []
-  status: approved
-  confirmed: one-design 2026-11-06 裁定（#1525，内部名）
-  note: ''
