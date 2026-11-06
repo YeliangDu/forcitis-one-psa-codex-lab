@@ -157,3 +157,8 @@ organization_leave.leave_grant_basis.relationship_end_date | INTERNAL | PI | 用
 organization_leave.leave_grant_basis.prior_service_months_count | INTERNAL | PI | 用途：额度折算与档位的依据，个人的累计工龄
 organization_leave.leave_grant_basis.unpaid_leave_days_count | INTERNAL | PI | 用途：额度折算的依据，个人的停薪留职天数
 organization_leave.leave_types.display_name | INTERNAL | NONE | 豁免：假期类型的名称，不指向个人
+organization_leave.leave_policy_grants.employment_relationship_id | INTERNAL | PI | 用途：额度所属的雇佣关系；个人信息 PI
+organization_leave.leave_policy_grants.basis_text | INTERNAL | PI | 用途：授予依据，由人填写；个人信息 PI；不得写健康、孕产等信息
+organization_leave.leave_policy_grants.granted_by | INTERNAL | PI | 用途：做出授予决定的操作人；个人信息 PI
+organization_leave.leave_policy_grants.effective_date | INTERNAL | PI | 用途：授予生效日，随雇佣关系的假期额度；个人信息 PI
+organization_leave.leave_requests.taken_until_at | INTERNAL | PI | 用途：销假后第一天未休的起点，随请假期间；个人信息 PI
