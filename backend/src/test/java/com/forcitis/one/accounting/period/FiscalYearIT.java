@@ -151,6 +151,20 @@ class FiscalYearIT extends AcceptanceSupport {
     }
 
     @Test
+    @DisplayName("#1551 a year that is not a JSON integer (fractional, a string, a boolean) is a 400 and stores nothing; an integer still opens the year")
+    void theYearIsStrictlyAnInteger() throws Exception {
+        UUID entity = entity("FYS");
+        for (String year : new String[] {"2026.9", "2026.0", "\"2027\"", "true", "[2027]", "{}"}) {
+            MockHttpServletResponse refused = open(FINANCE, entity, year);
+            assertThat(refused.getStatus()).as(year + ": " + refused.getContentAsString()).isEqualTo(400);
+        }
+        assertThat(periodCount(entity, 2026)).isZero();
+        assertThat(periodCount(entity, 2027)).isZero();
+        assertThat(open(FINANCE, entity, 2026).getStatus()).as("a JSON integer opens the year").isEqualTo(201);
+        assertThat(periodCount(entity, 2026)).isEqualTo(12);
+    }
+
+    @Test
     @DisplayName("#1439 without accounting.period:fiscal-year:create the call is 403 and stores nothing")
     void permissionIsRequired() throws Exception {
         UUID entity = entity("FYG");

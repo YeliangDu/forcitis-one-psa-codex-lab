@@ -7,6 +7,7 @@
 # EmployeeProfileService may carry (#959, ADR-0043 U-7(b)): it writes the changed L2 profile columns (name, gender, email, WeCom user id) as before and after text.
 # A new writer must name the row it belongs to, or add a row to the card first. Changes need design review.
 src/main/java/com/forcitis/one/organization/payroll/application/PublishPayrollRuleVersion.java | 1 | 41 | SURROGATE
+src/main/java/com/forcitis/one/organization/recruitment/application/RequisitionScope.java | 1 | 1 | NONE
 src/main/java/com/forcitis/one/organization/workforce/application/AttributionCountersignService.java | 1 | 32 | NONE
 src/main/java/com/forcitis/one/organization/workforce/application/ChangeFinanceHead.java | 1 | 38 | SURROGATE
 src/main/java/com/forcitis/one/organization/workforce/application/CorrectLegalEntityAttribution.java | 1 | 4 | NONE
