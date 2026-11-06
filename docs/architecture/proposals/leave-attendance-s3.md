@@ -100,10 +100,10 @@ Payload tables are in the record. This PR does not write them into the leave eve
 
 ## 7. Seam to payroll (what node 014 will read; payroll is not designed here)
 
-- Payroll reads the locked monthly confirmation only, through a new read `MonthlyAttendance.of(employeeId, month)` that returns, per relationship, attendance days (hundredths), leave minutes by leave type with the copied `is_paid_leave`, and the basis kind; it never reads requests or ledger lines (spec 9a).
+- Payroll reads the locked monthly confirmation only, through a new read `MonthlyAttendance.of(employeeId, month)` that returns, per relationship, attendance days (hundredths), leave minutes by leave type with the copied `is_paid_leave`; it never reads requests or ledger lines (spec 9a).
 - A month is readable only when `LOCKED`; locking is a command (`LockMonthlyConfirmation`) that runs before payroll computes; node 013 asserts `CONFIRMED` on 2026-01-31 and the lock is asserted separately.
 - The pack's first-month gross, deductions and net are approved inputs, not a formula of attendance [P: `payroll_input_status SYNTHETIC_CONFIRMED_INPUT_NOT_STATUTORY_FORMULA`]. So S4 needs from this seam only "the month is confirmed and locked". Whether payroll later derives a proration from attendance days (this needs the month's scheduled days as a denominator, which the confirmation does not hold) is left to #1582.
-- Assumed by #1582 until this design is signed: the read name and its three fields above; the lock-before-payroll order; the event `MonthlyConfirmationLocked`.
+- Assumed by #1582 until this design is signed: the read name and its two fields above; the lock-before-payroll order; the event `MonthlyConfirmationLocked`.
 
 ## 8. Slicing
 

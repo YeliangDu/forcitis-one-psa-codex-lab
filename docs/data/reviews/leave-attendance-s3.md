@@ -99,7 +99,7 @@ Consumers now: `platform.audit` for all four; `cost.timesheet` for the first two
 | A grant replay with the same key writes nothing | `uk_leave_policy_grants_account_request_key` | |
 | One REVERSE_USE per request per year account | existing `uk_leave_ledger_lines_source_key` | |
 | A replayed import row writes nothing | `uk_attendance_records_source_external_record_key` (existing) | |
-| A `PUNCHES` month with a missing imported day fails | command | spans attendance records |
+| A month with a workday that has neither a punch nor covering approved leave fails to generate | command | spans attendance records |
 | A grant into a sealed year account is refused | existing ledger trigger | |
 
 ## Use cases to tables (O1, O10, O10a)
