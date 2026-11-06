@@ -1,0 +1,62 @@
+# #1581 S3 leave and attendance: database vocabulary of the schema delta signed in docs/data/reviews/leave-attendance-s3.md.
+terms:
+- id: leave_policy_grant
+  zh: 请假额度的政策授予
+  en: LeavePolicyGrant
+  snake: leave_policy_grant
+  kind: entity
+  bc: organization.leave
+  scope: domain
+  definition: 一次经确认的额度授予决定，写一条授予流水，只追加
+  standard_ref:
+  - docs/data/reviews/leave-attendance-s3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1581；中文名待术语确认'
+- id: policy_grant
+  zh: 政策授予
+  en: PolicyGrant
+  snake: policy_grant
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 额度流水来源种类之一，表示由政策授予决定产生的授予流水
+  standard_ref:
+  - docs/data/reviews/leave-attendance-s3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1581；中文名待术语确认'
+- id: confirmation_basis_kind
+  zh: 月度出勤确认依据
+  en: ConfirmationBasisKind
+  snake: confirmation_basis_kind
+  kind: state
+  bc: organization.leave
+  scope: domain
+  definition: 月度出勤确认依据的种类：按工作日历与在岗日推算，或按打卡记录
+  standard_ref:
+  - docs/data/reviews/leave-attendance-s3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1581；中文名待术语确认'
+- id: recalled_from_date
+  zh: 销假后第一天未休的日期
+  en: RecalledFromDate
+  snake: recalled_from_date
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 请假被提前终止时，第一天未休的日期；未提前终止为空
+  standard_ref:
+  - docs/data/reviews/leave-attendance-s3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1581；中文名待术语确认'
