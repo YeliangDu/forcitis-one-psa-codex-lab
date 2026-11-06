@@ -246,6 +246,21 @@ channels:
     messages:
       PayrollRuleVersionBecameEffective:
         $ref: '#/components/messages/PayrollRuleVersionBecameEffective'
+  requisitionSubmitted:
+    address: organization.recruitment.RequisitionSubmitted
+    messages:
+      RequisitionSubmitted:
+        $ref: '#/components/messages/RequisitionSubmitted'
+  requisitionApproved:
+    address: organization.recruitment.RequisitionApproved
+    messages:
+      RequisitionApproved:
+        $ref: '#/components/messages/RequisitionApproved'
+  requisitionClosed:
+    address: organization.recruitment.RequisitionClosed
+    messages:
+      RequisitionClosed:
+        $ref: '#/components/messages/RequisitionClosed'
   timesheetSubmitted:
     address: cost.timesheet.TimesheetSubmitted
     messages:
@@ -351,6 +366,16 @@ channels:
     messages:
       EmployeeCorrected:
         $ref: '#/components/messages/EmployeeCorrected'
+  employeeActingDutyStarted:
+    address: organization.workforce.EmployeeActingDutyStarted
+    messages:
+      EmployeeActingDutyStarted:
+        $ref: '#/components/messages/EmployeeActingDutyStarted'
+  employeeActingDutyEnded:
+    address: organization.workforce.EmployeeActingDutyEnded
+    messages:
+      EmployeeActingDutyEnded:
+        $ref: '#/components/messages/EmployeeActingDutyEnded'
   employmentRelationshipStarted:
     address: organization.workforce.EmploymentRelationshipStarted
     messages:
@@ -458,6 +483,20 @@ operations:
     channel:
       $ref: '#/channels/approvalCompleted'
     summary: platform.approval 消费
+    messages:
+    - $ref: '#/channels/approvalCompleted/messages/ApprovalCompleted'
+  handleApprovalCompletedInOrganizationPayroll:
+    action: receive
+    channel:
+      $ref: '#/channels/approvalCompleted'
+    summary: organization.payroll 消费
+    messages:
+    - $ref: '#/channels/approvalCompleted/messages/ApprovalCompleted'
+  handleApprovalCompletedInOrganizationRecruitment:
+    action: receive
+    channel:
+      $ref: '#/channels/approvalCompleted'
+    summary: organization.recruitment 消费
     messages:
     - $ref: '#/channels/approvalCompleted/messages/ApprovalCompleted'
   publishDocumentSubmittedForApproval:
@@ -1125,6 +1164,48 @@ operations:
     summary: organization.payroll 发布
     messages:
     - $ref: '#/channels/payrollRuleVersionBecameEffective/messages/PayrollRuleVersionBecameEffective'
+  publishRequisitionSubmitted:
+    action: send
+    channel:
+      $ref: '#/channels/requisitionSubmitted'
+    summary: organization.recruitment 发布
+    messages:
+    - $ref: '#/channels/requisitionSubmitted/messages/RequisitionSubmitted'
+  handleRequisitionSubmittedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/requisitionSubmitted'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/requisitionSubmitted/messages/RequisitionSubmitted'
+  publishRequisitionApproved:
+    action: send
+    channel:
+      $ref: '#/channels/requisitionApproved'
+    summary: organization.recruitment 发布
+    messages:
+    - $ref: '#/channels/requisitionApproved/messages/RequisitionApproved'
+  handleRequisitionApprovedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/requisitionApproved'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/requisitionApproved/messages/RequisitionApproved'
+  publishRequisitionClosed:
+    action: send
+    channel:
+      $ref: '#/channels/requisitionClosed'
+    summary: organization.recruitment 发布
+    messages:
+    - $ref: '#/channels/requisitionClosed/messages/RequisitionClosed'
+  handleRequisitionClosedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/requisitionClosed'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/requisitionClosed/messages/RequisitionClosed'
   publishTimesheetSubmitted:
     action: send
     channel:
@@ -1461,6 +1542,34 @@ operations:
     summary: platform.identity 消费
     messages:
     - $ref: '#/channels/employeeCorrected/messages/EmployeeCorrected'
+  publishEmployeeActingDutyStarted:
+    action: send
+    channel:
+      $ref: '#/channels/employeeActingDutyStarted'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/employeeActingDutyStarted/messages/EmployeeActingDutyStarted'
+  handleEmployeeActingDutyStartedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeActingDutyStarted'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/employeeActingDutyStarted/messages/EmployeeActingDutyStarted'
+  publishEmployeeActingDutyEnded:
+    action: send
+    channel:
+      $ref: '#/channels/employeeActingDutyEnded'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/employeeActingDutyEnded/messages/EmployeeActingDutyEnded'
+  handleEmployeeActingDutyEndedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeActingDutyEnded'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/employeeActingDutyEnded/messages/EmployeeActingDutyEnded'
   publishEmploymentRelationshipStarted:
     action: send
     channel:
@@ -1736,6 +1845,8 @@ components:
         - platform.audit
         - cost.timesheet
         - platform.approval
+        - organization.payroll
+        - organization.recruitment
         delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
         formsFact: false
         businessDate: 审批结束当日（Asia/Shanghai）
@@ -1768,6 +1879,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -1867,6 +1979,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -1987,6 +2100,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2080,6 +2194,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2148,6 +2263,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2240,6 +2356,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2321,6 +2438,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2397,6 +2515,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2473,6 +2592,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2545,6 +2665,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2624,6 +2745,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -2678,6 +2800,7 @@ components:
                 - QUOTE
                 - TIMESHEET
                 - JOURNAL_VOUCHER
+                - BONUS_INPUT
               documentId:
                 type: string
                 x-type: DocumentId
@@ -4303,6 +4426,151 @@ components:
             format: date
             x-type: LocalDate
             description: 新版本的生效日期，也是信封的业务日期
+    RequisitionSubmitted:
+      name: RequisitionSubmitted
+      title: 招聘需求提交
+      x-event:
+        eventType: organization.recruitment.RequisitionSubmitted
+        version: 1
+        class: com.forcitis.one.organization.recruitment.events.RequisitionSubmitted
+        aggregate: RecruitmentRequisition
+        idempotencyKey: eventId
+        publisher: organization.recruitment
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 提交当日（业务时区）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.recruitment.domain.RecruitmentRequisitionTest
+        noConsumer: 暂无消费方：只供审计；它同事务命名了审批请求和编号计数器，满足一事务一聚合的登记要求
+      payload:
+        type: object
+        required:
+        - envelope
+        - requisitionId
+        - orgUnitId
+        - positionId
+        - submittedAt
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          requisitionId:
+            type: string
+            format: uuid
+            x-type: RequisitionId
+            description: 提交的招聘需求
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 用人的组织单元
+          positionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            description: 需求的岗位
+          submittedAt:
+            type: string
+            format: date-time
+            x-type: Instant
+            description: 提交的时刻
+    RequisitionApproved:
+      name: RequisitionApproved
+      title: 招聘需求获批
+      x-event:
+        eventType: organization.recruitment.RequisitionApproved
+        version: 1
+        class: com.forcitis.one.organization.recruitment.events.RequisitionApproved
+        aggregate: RecruitmentRequisition
+        idempotencyKey: eventId
+        publisher: organization.recruitment
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 审批通过当日（业务时区）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.recruitment.domain.RecruitmentRequisitionTest
+        noConsumer: 暂无消费方：只供审计和分析；应聘环节（下一张卡）才会订阅
+      payload:
+        type: object
+        required:
+        - envelope
+        - requisitionId
+        - orgUnitId
+        - positionId
+        - approvedAt
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          requisitionId:
+            type: string
+            format: uuid
+            x-type: RequisitionId
+            description: 获批的招聘需求
+          orgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 用人的组织单元
+          positionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            description: 需求的岗位
+          approvedAt:
+            type: string
+            format: date-time
+            x-type: Instant
+            description: 审批通过的时刻
+    RequisitionClosed:
+      name: RequisitionClosed
+      title: 招聘需求关闭
+      x-event:
+        eventType: organization.recruitment.RequisitionClosed
+        version: 1
+        class: com.forcitis.one.organization.recruitment.events.RequisitionClosed
+        aggregate: RecruitmentRequisition
+        idempotencyKey: eventId
+        publisher: organization.recruitment
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 关闭当日（业务时区）
+        audit: audited
+        publisherTest: com.forcitis.one.organization.recruitment.domain.RecruitmentRequisitionTest
+        noConsumer: 暂无消费方：只供审计和分析
+      payload:
+        type: object
+        required:
+        - envelope
+        - requisitionId
+        - closeReasonKind
+        - closedAt
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          requisitionId:
+            type: string
+            format: uuid
+            x-type: RequisitionId
+            description: 关闭的招聘需求
+          closeReasonKind:
+            type: string
+            enum:
+            - REJECTED
+            - WITHDRAWN
+            - CANCELLED
+            - FILLED
+            x-type: CloseReasonKind
+            description: 关闭原因：驳回、撤回、取消、录满
+          closedAt:
+            type: string
+            format: date-time
+            x-type: Instant
+            description: 关闭的时刻
     TimesheetSubmitted:
       name: TimesheetSubmitted
       title: 工时单提交审批（进入新一轮）
@@ -5480,6 +5748,171 @@ components:
             format: uuid
             x-type: EmploymentRelationshipId
             description: 事件所属的雇佣关系 ID（ADR-0086）
+    EmployeeActingDutyStarted:
+      name: EmployeeActingDutyStarted
+      title: 员工代理任职已生效
+      description: 代理开始命令生效时发布（数据设计 docs/data/reviews/workforce-acting-duty.md）。信封以员工为聚合（aggregateId 为代理人的员工 ID），businessDate 为代理开始日，occurredAt 为命令生效落地时刻；endsBefore 为开始时的截止日，之后的延长不再发布事件。负载只含 ID 与日期，不含姓名和事由。
+      x-event:
+        eventType: organization.workforce.EmployeeActingDutyStarted
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.EmployeeActingDutyStarted
+        aggregate: Employee
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 代理开始日（startsOn）：开始命令的生效日
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
+        noConsumer: 暂无消费方：platform.identity 在 Q-A1 之后的身份切片订阅（订阅后把它加进 consumers）；先登记，是因为事件只在代理开始或结束时发布，漏发补不回（同 EmployeeTransferred）
+      payload:
+        type: object
+        required:
+        - envelope
+        - personnelCommandId
+        - employeeId
+        - actingDutyId
+        - coveredOrgUnitId
+        - coveredPositionId
+        - coveredEmployeeId
+        - startsOn
+        - endsBefore
+        - employmentRelationshipId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          personnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            description: 触发本事件的人事命令 ID（UUIDv7）
+          employeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 代理人的员工 ID，与信封的 aggregateId 相同
+          actingDutyId:
+            type: string
+            format: uuid
+            x-type: ActingDutyId
+            description: 代理任职 ID
+          coveredOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 代理所覆盖的部门 ID
+          coveredPositionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            nullable: true
+            description: 代理所覆盖的岗位 ID；未指定岗位时为空，表示代理该部门负责人
+          coveredEmployeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            nullable: true
+            description: 被代理的人（休假的上级等）；未指定时为空
+          startsOn:
+            type: string
+            x-type: LocalDate
+            description: 代理开始日（DECLARED）：含当天
+          endsBefore:
+            type: string
+            x-type: LocalDate
+            description: 开始时的代理截止日（不含当天）
+          employmentRelationshipId:
+            type: string
+            format: uuid
+            x-type: EmploymentRelationshipId
+            description: 事件所属的雇佣关系 ID（ADR-0086）
+    EmployeeActingDutyEnded:
+      name: EmployeeActingDutyEnded
+      title: 员工代理任职已结束
+      description: 一次代理任职结束时发布一次：到期、提前结束或代理人离职。信封以员工为聚合（aggregateId 为代理人的员工 ID），businessDate 为结束日，occurredAt 为结束落地时刻；到期由定时任务关闭、没有人事命令，故 personnelCommandId 为空。负载只含 ID、日期与结束原因，不含姓名和事由。
+      x-event:
+        eventType: organization.workforce.EmployeeActingDutyEnded
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.EmployeeActingDutyEnded
+        aggregate: Employee
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 代理结束日（endedOn）：到期为截止日，提前结束和离职为命令生效日
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
+        noConsumer: 暂无消费方：platform.identity 在 Q-A1 之后的身份切片订阅（订阅后把它加进 consumers）；先登记，是因为事件只在代理开始或结束时发布，漏发补不回（同 EmployeeTransferred）
+      payload:
+        type: object
+        required:
+        - envelope
+        - personnelCommandId
+        - employeeId
+        - actingDutyId
+        - coveredOrgUnitId
+        - coveredPositionId
+        - coveredEmployeeId
+        - endedOn
+        - endCause
+        - employmentRelationshipId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          personnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            nullable: true
+            description: 提前结束命令或离职命令的 ID；到期结束时为空
+          employeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 代理人的员工 ID，与信封的 aggregateId 相同
+          actingDutyId:
+            type: string
+            format: uuid
+            x-type: ActingDutyId
+            description: 代理任职 ID
+          coveredOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 代理所覆盖的部门 ID
+          coveredPositionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            nullable: true
+            description: 代理所覆盖的岗位 ID；未指定岗位时为空，表示代理该部门负责人
+          coveredEmployeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            nullable: true
+            description: 被代理的人（休假的上级等）；未指定时为空
+          endedOn:
+            type: string
+            x-type: LocalDate
+            description: 代理结束日（DECLARED）：不含当天，即代理不再有效的第一天
+          endCause:
+            type: string
+            enum:
+            - EXPIRED
+            - ENDED_EARLY
+            - SEPARATION
+            x-type: ActingDutyEndCause
+            description: 结束原因：EXPIRED 到期 / ENDED_EARLY 提前结束 / SEPARATION 代理人离职
+          employmentRelationshipId:
+            type: string
+            format: uuid
+            x-type: EmploymentRelationshipId
+            description: 事件所属的雇佣关系 ID（ADR-0086）
     EmploymentRelationshipStarted:
       name: EmploymentRelationshipStarted
       title: 雇佣关系已开始
@@ -6258,6 +6691,10 @@ x-system-actors:
   actorId: ea631485-fb5d-58ad-87ec-7c953ee85365
   module: cost.timesheet
   description: 作业：清理已消费事件登记
+- name: organization.payroll.bonus-input-approval
+  actorId: f8c616b7-1590-5a3d-aa45-d5e79ee89657
+  module: organization.payroll
+  description: 监听器 RecordApprovedBonusInput：审批通过后写出奖金输入行
 - name: organization.workforce.countersign.deadline
   actorId: 1e4cbd76-6e78-5ed9-b8ed-5f9ea2692f55
   module: organization.workforce
@@ -6418,3 +6855,7 @@ x-system-actors:
   actorId: 0a716c3e-8620-59b2-8e01-5f7b23f88a6c
   module: platform.identity
   description: 作业：待调整权限超期升级（待处理超过升级期限的条目标记升级一次）
+- name: organization.recruitment.approval-result
+  actorId: c74e532c-16ab-5485-874a-224ee1e484d1
+  module: organization.recruitment
+  description: 监听器 ApplyRequisitionApprovalResult：把审批结果写回招聘需求

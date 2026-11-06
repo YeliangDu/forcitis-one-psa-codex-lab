@@ -5,6 +5,7 @@
 # UUID = v5(名字)；名字与 UUID 都不重复；名字以所属模块开头。改名时新增一行、旧行不删（已发出的事件仍要能反查）。
 cost.timesheet.approval-result | 01070adc-19b2-5433-9ff5-f10eac533d00 | cost.timesheet | 监听器 ApplyApprovalResult：把审批结果写回工时单
 cost.timesheet.consumed.events.purge | ea631485-fb5d-58ad-87ec-7c953ee85365 | cost.timesheet | 作业：清理已消费事件登记
+organization.payroll.bonus-input-approval | f8c616b7-1590-5a3d-aa45-d5e79ee89657 | organization.payroll | 监听器 RecordApprovedBonusInput：审批通过后写出奖金输入行
 organization.workforce.countersign.deadline | 1e4cbd76-6e78-5ed9-b8ed-5f9ea2692f55 | organization.workforce | 作业：法人归属会签到期后的逐级提醒与升级（AttributionCountersignDeadlineJob）
 organization.workforce.login-registration | 8fb8643a-127d-507d-91a8-5fb200b233a5 | organization.workforce | 登录时登记员工（LoginMissRegistration）：企业微信或单点登录未命中快照、来源查到在职员工时登记并发布 EmployeeRegistered；登录请求尚无会话用户（P2-F1）
 organization.workforce.short.name.refresh | 99a33b03-dfe7-501f-8537-da3c7b1b87bd | organization.workforce | 作业：刷新部门简称
@@ -45,3 +46,4 @@ organization.workforce.org.structure.merge.execute | 550a37fb-c036-51bb-be7a-9fd
 organization.workforce.org.structure.command.due | 4737f619-4001-5185-819b-e2760387602b | organization.workforce | 作业：到日执行组织结构命令（待生效转已生效，发组织事件与员工成本法人已变更；#1146）
 platform.identity.permission.adjustment.expire | cf9e57dc-ff3d-5eba-8e8e-bc12a222bf2b | platform.identity | 作业：待调整权限到期（维持到期转已到期，并按条件生成新条目）
 platform.identity.permission.adjustment.escalate | 0a716c3e-8620-59b2-8e01-5f7b23f88a6c | platform.identity | 作业：待调整权限超期升级（待处理超过升级期限的条目标记升级一次）
+organization.recruitment.approval-result | c74e532c-16ab-5485-874a-224ee1e484d1 | organization.recruitment | 监听器 ApplyRequisitionApprovalResult：把审批结果写回招聘需求

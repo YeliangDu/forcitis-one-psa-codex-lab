@@ -104,7 +104,7 @@ class OpenApiExportTest {
     }
 
     /** Ids of this system (R-1a) are string / uuid on the wire; the rest are named here until R-1b gives them their own ids. */
-    static final Set<String> OWN_ID_FIELDS = Set.of("AttributeLegalEntityRequest.legalEntityId", "AuditEntryResponse.entryId",
+    static final Set<String> OWN_ID_FIELDS = Set.of("AttributeLegalEntityRequest.legalEntityId", "AuditEntryResponse.entryId", "BonusInputApprovalResponse.employmentRelationshipId",
             "AuthorizationRequestResponse.requestId", "AuthorizationRequestResponse.roleId", "AwaitingConfirmationResponse.requestId", "HandledTaskResponse.recordId", "HistoryEntry.recordId",
             "LegacyNumberResponse.documentId", "LegacyNumberResponse.legalEntityId", "LegacyNumberResponse.migrationBatchId", "LegalEntityResponse.legalEntityId", "Period.legalEntityId",
             "EmployeeRosterResponse.employeeId", "EmployeeDetailResponse.employeeId", "RosterAssignmentResponse.orgUnitId", "RosterAssignmentResponse.positionId",
@@ -139,7 +139,9 @@ class OpenApiExportTest {
             "BasisLineResponse.employeeId", "BasisLineResponse.newLegalEntityId", "BasisLineResponse.previousLegalEntityId", "CommandResponse.newLegalEntityId", "CommandResponse.orgStructureCommandId", "CommandResponse.orgUnitId", "CommandResponse.personnelCommandId", "CommandResponse.previousLegalEntityId", "MergeLineResponse.employeeId", "MergeLineResponse.newLegalEntityId", "MergeLineResponse.orgUnitId", "MergeLineResponse.previousLegalEntityId", "PersonResponse.employeeId", "RequestResponse.attributionCountersignId", "RequestResponse.legalEntityId", "SummaryResponse.attributionCountersignId", "SummaryResponse.employeeId", "SummaryResponse.legalEntityId", "SummaryResponse.newLegalEntityId", "SummaryResponse.personnelCommandId", "SummaryResponse.previousLegalEntityId", "parameter attributionCountersignId", "parameter mergeIntoOrgUnitId", "parameter orgStructureCommandId",
             "AuthorizationRequestResponse.requestedBy", "ProfileChangeRequestResponse.requestId", "ProfileChangeRequestResponse.employeeId", "ProfileChangeRequestResponse.requestedBy",
             "ProfileChangeRequestResponse.decidedBy", "AwaitingSecondPersonResponse.requestId", "PendingTemplate.confirmedBy", "PendingTemplate.financeConfirmedBy",
-            "TaskDetailResponse.initiator", "TaskDetailResponse.assignee", "TaskOverviewResponse.assignee");
+            "TaskDetailResponse.initiator", "TaskDetailResponse.assignee", "TaskOverviewResponse.assignee",
+            "RequisitionResponse.requisitionId", "RequisitionResponse.positionId", "RequisitionResponse.orgUnitId", "RequisitionResponse.requestedByEmployeeId",
+            "SubmitRequisitionRequest.requisitionId", "SubmitRequisitionRequest.positionId", "SubmitRequisitionRequest.orgUnitId", "parameter requisitionId");
 
     /** Employee ids whose names do not end in Id or By (D-10): named in full so the guard looks at them. */
     static final Set<String> NAMED_OWN_ID_FIELDS = Set.of("TaskDetailResponse.initiator", "TaskDetailResponse.assignee",

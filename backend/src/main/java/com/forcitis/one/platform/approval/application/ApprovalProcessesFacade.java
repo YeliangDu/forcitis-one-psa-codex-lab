@@ -6,13 +6,18 @@ import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
 import com.forcitis.one.platform.approval.api.ApprovalProgress;
 import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
+import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RetractionResult;
 import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
+import com.forcitis.one.platform.approval.domain.TaskActors;
+import com.forcitis.one.platform.approval.domain.TaskView;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 /** Offers nothing that acts on a task (I-5, I-7). */
@@ -52,8 +57,20 @@ class ApprovalProcessesFacade implements ApprovalProcesses {
     }
 
     @Override
+    public Optional<ApprovalInstanceId> instanceOfTaskOpenTo(ProcessKey processKey, ApprovalTaskId taskId, UserId actor) {
+        return engine.findTask(taskId).filter(task -> task.processKey().equals(processKey)).filter(task -> TaskActors.mayAct(task, actor))
+                .map(TaskView::instanceId);
+    }
+
+    @Override
     public Optional<ApprovalProgress> progress(ProcessKey processKey, DocumentReference document) {
         return getProgress.execute(processKey, document);
+    }
+
+    @Override
+    public Set<DocumentReference> openDocumentsFor(ProcessKey processKey, UserId user) {
+        return engine.findOpenTasksFor(user).stream().filter(task -> task.processKey().equals(processKey)).map(task -> task.document())
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     @Override

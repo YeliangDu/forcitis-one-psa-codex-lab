@@ -72,6 +72,22 @@ class PersonnelCommandEndpointsIntegrationTest extends WorkforceIntegrationSuppo
     }
 
     @Test
+    @DisplayName("#1557 a NUL in a text field of a command body is a 400 at the edge, not a 500, and the command stays pending")
+    void nulInTextIsRefusedAtTheEdge() throws Exception {
+        PersonnelSeedSupport.Person person = PersonnelSeedSupport.employed(jdbc, clock, "EP-NUL");
+        UUID target = PersonnelSeedSupport.orgUnit(jdbc, clock);
+        String entered = mvc.perform(post(COMMANDS).with(csrf()).with(caller("organization.workforce:personnel-command:create")).contentType(MediaType.APPLICATION_JSON)
+                .content(transfer(person, target, zone.today(clock).plusDays(7)))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String id = com.jayway.jsonpath.JsonPath.read(entered, "$.personnelCommandId");
+
+        mvc.perform(post(COMMANDS + "/" + id + ":withdraw").with(csrf()).with(caller("organization.workforce:personnel-command:create")).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"reason\":\"before\\u0000after\"}")).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("PLATFORM_WEB_REQUEST_INVALID"))
+                .andExpect(jsonPath("$.detail").value("Failed to read request: field reason"));
+        assertThat(jdbc.sql("select status from organization_workforce.personnel_commands").query(String.class).single()).isEqualTo("PENDING");
+    }
+
+    @Test
     @DisplayName("#933 POST personnel-commands/{id}:withdraw: 401, 403, 200 and the command is withdrawn")
     void withdrawEndpoint() throws Exception {
         PersonnelSeedSupport.Person person = PersonnelSeedSupport.employed(jdbc, clock, "EP-2");

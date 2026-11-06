@@ -1,9 +1,9 @@
 # 由 panorama/scan_aggregates.py 生成，勿手改
 meta:
-  count: 21
+  count: 23
   code_only: 8
-  registry_only: 0
-  both: 13
+  registry_only: 1
+  both: 14
   sources:
   - backend/src/main/java/com/forcitis/one
   - backend/architecture/data-access-registry.yaml
@@ -103,6 +103,19 @@ aggregates:
   - organization.attendance.StandardHoursVersionPublished
   - organization.attendance.WorkCalendarLockedDaysChanged
   - organization.attendance.WorkCalendarYearMaintained
+- id: organization.payroll/BonusDetermination
+  bc: organization.payroll
+  root_class: backend/src/main/java/com/forcitis/one/organization/payroll/domain/BonusDetermination.java
+  source:
+  - registry
+  tables:
+  - organization_payroll.bonus_inputs
+  commands:
+  - BonusInputsService
+  - RecordApprovedBonusInput
+  events: []
+  events_in_module:
+  - organization.payroll.PayrollRuleVersionBecameEffective
 - id: organization.payroll/PayrollRuleVersion
   bc: organization.payroll
   root_class: backend/src/main/java/com/forcitis/one/organization/payroll/domain/PayrollRuleVersion.java
@@ -116,6 +129,28 @@ aggregates:
   - PublishPayrollRuleVersion
   events:
   - organization.payroll.PayrollRuleVersionBecameEffective
+- id: organization.recruitment/RecruitmentRequisition
+  bc: organization.recruitment
+  root_class: backend/src/main/java/com/forcitis/one/organization/recruitment/domain/RecruitmentRequisition.java
+  source:
+  - code
+  - registry
+  tables:
+  - organization_recruitment.recruitment_requisitions
+  commands:
+  - ApplyRequisitionApprovalResult
+  - CloseRequisition
+  - GetRequisition
+  - ListApprovableRequisitions
+  - ListRequestedRequisitions
+  - ListRequisitions
+  - RequisitionView
+  - SubmitRequisition
+  - WithdrawRequisition
+  events:
+  - organization.recruitment.RequisitionApproved
+  - organization.recruitment.RequisitionClosed
+  - organization.recruitment.RequisitionSubmitted
 - id: organization.workforce/EmployeeLegalEntityChange
   bc: organization.workforce
   root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/EmployeeLegalEntityChange.java
@@ -128,6 +163,8 @@ aggregates:
   events:
   - organization.workforce.EmployeeLegalEntityChanged
   events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged
@@ -181,6 +218,8 @@ aggregates:
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
   events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged
@@ -234,6 +273,8 @@ aggregates:
   - organization.workforce.LegalEntityAttributionCorrected
   - organization.workforce.LegalEntityAttributionEnded
   events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged
@@ -292,6 +333,8 @@ aggregates:
   - PreviewMergeAttribution
   events: []
   events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged
@@ -349,6 +392,8 @@ aggregates:
   - UnpaidLeaveStartNotice
   events: []
   events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged

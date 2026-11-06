@@ -38,7 +38,7 @@ How workforce records "person A acts for post P from date X to date Y", how it i
 | `acting_duty_id` | UUIDv7 |
 | `employee_id` | who acts (the stand-in) |
 | `covered_org_unit_id` | required: the org unit whose duties are taken |
-| `covered_position_id` | optional: a post in that unit; empty = the unit head's duties |
+| `covered_position_id` | optional: the post covered, a catalogue position; not checked against the unit (no table ties a position to a unit); empty = the unit head's duties |
 | `covered_employee_id` | optional: the person being covered (leave, travel); informational and the basis for copying permissions if the user chooses so (Q-A1) |
 | `starts_on` | first day, inclusive |
 | `ends_before` | day after the last day, exclusive (screens show the last day = `ends_before` − 1, in the same words as other dated facts) |
@@ -65,7 +65,7 @@ Expiry has no command (amended by the data design record `docs/data/reviews/work
 3. Overlap with the person's own assignment: acting is not an assignment, so it does not conflict with the person's primary or concurrent assignment. One refusal: a duty whose covered (unit, post) equals one of the person's own assignments on any day of the term is refused as a no-op.
 4. Acting for oneself: `covered_employee_id` equal to `employee_id` is refused.
 5. Several people may act for the same post at once. The data allows it; whether the business wants only one stand-in at a time is Q-A3.
-6. Separation of the acting person: the separation command ends every open or scheduled duty of that person on the separation date (`end_cause = SEPARATION`) in the same transaction; scheduled duties not yet started are withdrawn. Separation or transfer of the covered person does not change the duty.
+6. Separation of the acting person: the separation command ends every open or scheduled duty of that person on the separation date (`end_cause = SEPARATION`) in the same transaction; scheduled duties not yet started are withdrawn. A duty already started whose `starts_on` is later than the separation date (the separation was entered with an earlier date) is closed with `ended_on = starts_on` and `end_cause = SEPARATION`, publishing `Ended`, in the same transaction; this is the one way out, because rule 8 forbids `ACTING_END` on or before `starts_on`. A start that becomes due after an earlier-dated separation exists is withdrawn. Separation or transfer of the covered person does not change the duty.
 7. Past start dates: the same floor as other ordinary personnel commands applies [U: take it from `PersonnelCommandService` as UNPAID_LEAVE_START does, not defined here].
 8. `ACTING_END` on or before `starts_on` of a started duty is refused; withdraw the start command instead if it is still pending.
 9. Unpaid leave of the stand-in during the term does not end the duty; consumers already skip unpaid-leave people on their own (fact 7).
@@ -132,7 +132,7 @@ Slices 1 to 8 need no user answer. Slices 9 to 11 wait for Q-A1 and Q-A2.
 7. `ACTING_END` on an active duty sets `ended_on`, `end_cause = ENDED_EARLY`, and publishes `Ended` once; the same command on `starts_on` or earlier is refused.
 8. `ACTING_EXTEND` moves `ends_before`, publishes no event and the due job then closes it on the new `ends_before`; extending an ENDED duty is refused.
 9. At `ends_before` the due job closes the duty with `EXPIRED` and publishes `Ended` with no command id; running the job twice the same day changes nothing the second time.
-10. Separating the person ends open duties on the separation date with `SEPARATION` and withdraws scheduled ones, in the same transaction as the separation. A duty that starts on the separation day is closed the same day with `ended_on = starts_on` and still publishes `Ended`; a start dated after the separation day is refused.
+10. Separating the person ends open duties on the separation date with `SEPARATION` and withdraws scheduled ones, in the same transaction as the separation. A duty that starts on the separation day is closed the same day with `ended_on = starts_on` and still publishes `Ended`; a start dated after the separation day is refused. A duty already started with `starts_on` after the separation day is closed with `ended_on = starts_on` and `SEPARATION`, publishes `Ended`, in the separation transaction; a start that falls due after an earlier-dated separation is withdrawn, not applied.
 11. Employee detail shows state, term (first and last day), cause and reason; the covered person's page shows the cover line; roster and headcount counts are unchanged by a duty.
 12. After Q-A1 is answered: `Ended` leaves no grant opened by the duty current, and no review item open for it; sensitive roles are never granted by the path.
 

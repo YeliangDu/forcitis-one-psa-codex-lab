@@ -22,7 +22,7 @@ const ROW = {
   createdAt: '2026-11-04T08:00:00Z',
   createdBy: '019a0000-0000-7000-8000-000000000e01',
 };
-const EMPLOYEE = { employeeId: EMPLOYEE_ID, employeeCode: 'E0001', displayName: '张三', employmentStatus: 'EMPLOYED', hireDate: '2024-03-01', assignments: [] };
+const EMPLOYEE = { employeeId: EMPLOYEE_ID, employeeCode: 'E0001', displayName: '张三', employmentStatus: 'EMPLOYED', onUnpaidLeave: false, hireDate: '2024-03-01', assignments: [] };
 const EMPLOYER_ID = '019a0000-0000-7000-8000-000000000a11';
 const CHOICES = {
   'GET employees': { body: { items: [EMPLOYEE], nextCursor: null } },

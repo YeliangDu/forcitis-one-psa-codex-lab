@@ -7,6 +7,8 @@ import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.kernel.event.DomainEvent;
 import com.forcitis.one.kernel.event.TestEnvelopes;
+import com.forcitis.one.organization.workforce.api.ActingDutyEndCause;
+import com.forcitis.one.organization.workforce.api.ActingDutyId;
 import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
@@ -16,6 +18,8 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
+import com.forcitis.one.organization.workforce.events.EmployeeActingDutyEnded;
+import com.forcitis.one.organization.workforce.events.EmployeeActingDutyStarted;
 import com.forcitis.one.organization.workforce.events.EmployeeCorrected;
 import com.forcitis.one.organization.workforce.events.EmployeeHired;
 import com.forcitis.one.organization.workforce.events.EmployeeLegalEntityChanged;
@@ -332,5 +336,23 @@ class PersonnelCommandEventsTest {
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> sameDay.requireWithdrawalAllowed("plan changed", DAY))
                 .isInstanceOf(com.forcitis.one.kernel.DomainException.class);
+    }
+
+    @Test
+    @DisplayName("#1536 the acting-duty events carry ids and dates only; an expiry has no command and a duty may name no post and no covered person")
+    void actingDutyEventsCarryIdsAndDatesOnly() {
+        ActingDutyId duty = new ActingDutyId(UUID.fromString("019a0000-0000-7000-8000-0000000000d1"));
+        PersonnelCommandId commandId = new PersonnelCommandId(UUID.fromString("019a0000-0000-7000-8000-0000000000c2"));
+        EmployeeActingDutyStarted started = new EmployeeActingDutyStarted(
+                com.forcitis.one.kernel.event.TestEnvelopes.of("organization.workforce.EmployeeActingDutyStarted", "Employee", EMPLOYEE.value()), commandId,
+                EMPLOYEE, duty, NEW_UNIT, null, null, DAY, DAY.plusDays(30), RELATIONSHIP);
+        EmployeeActingDutyEnded expired = new EmployeeActingDutyEnded(
+                com.forcitis.one.kernel.event.TestEnvelopes.of("organization.workforce.EmployeeActingDutyEnded", "Employee", EMPLOYEE.value()), null,
+                EMPLOYEE, duty, NEW_UNIT, POSITION, EMPLOYEE, DAY.plusDays(30), ActingDutyEndCause.EXPIRED, RELATIONSHIP);
+        assertThat(started.actingDutyId()).isEqualTo(duty);
+        assertThat(started.coveredPositionId()).isNull();
+        assertThat(expired.personnelCommandId()).isNull();
+        assertThat(expired.endCause()).isEqualTo(ActingDutyEndCause.EXPIRED);
+        assertThat(ActingDutyEndCause.values()).extracting(Enum::name).containsExactly("EXPIRED", "ENDED_EARLY", "SEPARATION");
     }
 }

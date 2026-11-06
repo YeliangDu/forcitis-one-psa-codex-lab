@@ -31,7 +31,7 @@ public final class SystemRoleDeclarationLauncher {
              where effective_to_at is null and change_channel_kind = 'SEED'
                and (role_id in ('019a0000-0000-7000-8000-000000000101', '019a0000-0000-7000-8000-000000000102', '019a0000-0000-7000-8000-000000000103',
                                '019a0000-0000-7000-8000-000000000104', '019a0000-0000-7000-8000-000000000105', '019a0000-0000-7000-8000-000000000106')
-                    or role_id in (select role_id from platform_identity.roles where code in ('personnel_specialist', 'legal_entity_finance_head')))""";
+                    or role_id in (select role_id from platform_identity.roles where code in ('personnel_specialist', 'legal_entity_finance_head', 'payroll_specialist')))""";
 
     private SystemRoleDeclarationLauncher() {
     }

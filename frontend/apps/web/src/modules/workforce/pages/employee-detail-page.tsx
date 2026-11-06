@@ -1,8 +1,9 @@
-import { describeFailure } from '@forcitis/core';
-import { DataTable, DescriptionList, LoadingState, Notice, PageTitle, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
-import { useNavigate, useParams } from 'react-router';
+import { DataTable, DescriptionList, PageTitle, StatusBadge, type DataColumn } from '@forcitis/ui';
+import { useParams } from 'react-router';
+import { RouterLink } from '../../../shared/router-link';
+import { QueryBoundary } from '../../../shared/query-boundary';
 import { useEmployee } from '../hooks/use-workforce';
-import { ASSIGNMENT_KIND_LABELS, EMPLOYMENT_STATUS_LABELS, type EmployeeDetail } from '../model/employee';
+import { ASSIGNMENT_KIND_LABELS, employmentStatusLabel, type EmployeeDetail } from '../model/employee';
 import { PrimaryAssignmentHistorySection } from './primary-assignment-history-section';
 import { employeeCommandsPath, newPersonnelCommandPath } from '../model/personnel-command';
 
@@ -17,30 +18,31 @@ const ASSIGNMENT_COLUMNS: DataColumn<Assignment>[] = [
 
 export function EmployeeDetailPage() {
   const { employeeId = '' } = useParams();
-  const navigate = useNavigate();
   const employee = useEmployee(employeeId);
 
-  if (employee.isPending) return <LoadingState />;
-  if (employee.isError) return <Notice tone="error" title="员工加载失败">{describeFailure(employee.error)}</Notice>;
-
-  const detail = employee.data;
   return (
-    <>
-      <PageTitle text={detail.displayName} actions={<StatusBadge tone={detail.employmentStatus === 'EMPLOYED' ? 'posted' : 'neutral'}>{EMPLOYMENT_STATUS_LABELS[detail.employmentStatus] ?? detail.employmentStatus}</StatusBadge>} />
-      <DescriptionList
-        items={[
-          { label: '员工编码', value: detail.employeeCode },
-          { label: '姓名', value: detail.displayName },
-          { label: '入职日期', value: detail.hireDate ?? '—' },
-        ]}
-      />
-      <p>
-        <TextLink href={employeeCommandsPath(employeeId)} onNavigate={() => void navigate(employeeCommandsPath(employeeId))}>人事命令</TextLink>
-        {' '}
-        <TextLink href={newPersonnelCommandPath(employeeId)} onNavigate={() => void navigate(newPersonnelCommandPath(employeeId))}>发起人事命令</TextLink>
-      </p>
-      <DataTable columns={ASSIGNMENT_COLUMNS} rows={detail.assignments} rowKey={(assignment) => `${assignment.assignmentKind}:${assignment.orgUnitId}:${assignment.positionId ?? ''}`} emptyText="暂无任职" />
-      <PrimaryAssignmentHistorySection employeeId={employeeId} />
-    </>
+    <QueryBoundary query={employee} errorTitle="员工加载失败">
+      {(detail) => {
+        return (
+          <>
+            <PageTitle text={detail.displayName} actions={<StatusBadge tone={detail.employmentStatus === 'EMPLOYED' && !detail.onUnpaidLeave ? 'posted' : 'neutral'}>{employmentStatusLabel(detail.employmentStatus, detail.onUnpaidLeave)}</StatusBadge>} />
+            <DescriptionList
+              items={[
+                { label: '员工编码', value: detail.employeeCode },
+                { label: '姓名', value: detail.displayName },
+                { label: '入职日期', value: detail.hireDate ?? '—' },
+              ]}
+            />
+            <p>
+              <RouterLink to={employeeCommandsPath(employeeId)}>人事命令</RouterLink>
+              {' '}
+              <RouterLink to={newPersonnelCommandPath(employeeId)}>发起人事命令</RouterLink>
+            </p>
+            <DataTable columns={ASSIGNMENT_COLUMNS} rows={detail.assignments} rowKey={(assignment) => `${assignment.assignmentKind}:${assignment.orgUnitId}:${assignment.positionId ?? ''}`} emptyText="暂无任职" />
+            <PrimaryAssignmentHistorySection employeeId={employeeId} />
+          </>
+        );
+      }}
+    </QueryBoundary>
   );
 }

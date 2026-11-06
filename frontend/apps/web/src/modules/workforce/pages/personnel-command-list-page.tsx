@@ -1,13 +1,16 @@
-import { describeFailure, formatDateTime } from '@forcitis/core';
-import { Button, DataTable, LoadingState, Notice, PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
+import { formatDateTime } from '@forcitis/core';
+
+import { Button, PageTitle, SelectField, StatusBadge, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
+import { optionsOf } from '../../../shared/options';
 import { useNavigate, useSearchParams } from 'react-router';
+import { RouterLink } from '../../../shared/router-link';
+import { PagedTable } from '../../../shared/paged-table';
 import { useEmployeeChoices, usePersonnelCommands } from '../hooks/use-workforce';
 import { COMMAND_KIND_LABELS, COMMAND_STATUS_LABELS, type PersonnelCommand, newPersonnelCommandPath, personnelCommandPath } from '../model/personnel-command';
 
-const ALL = { value: '', label: '全部' };
-const STATUS_OPTIONS = [ALL, ...Object.entries(COMMAND_STATUS_LABELS).map(([value, label]) => ({ value, label }))];
-const KIND_OPTIONS = [ALL, ...Object.entries(COMMAND_KIND_LABELS).map(([value, label]) => ({ value, label }))];
+const STATUS_OPTIONS = optionsOf(Object.entries(COMMAND_STATUS_LABELS), ([value]) => value, ([, label]) => label, '全部');
+const KIND_OPTIONS = optionsOf(Object.entries(COMMAND_KIND_LABELS), ([value]) => value, ([, label]) => label, '全部');
 
 export function PersonnelCommandListPage() {
   const navigate = useNavigate();
@@ -22,7 +25,7 @@ export function PersonnelCommandListPage() {
     {
       key: 'employee',
       title: '员工',
-      render: (command) => <TextLink href={personnelCommandPath(command.personnelCommandId)} onNavigate={() => void navigate(personnelCommandPath(command.personnelCommandId))}>{command.displayName}</TextLink>,
+      render: (command) => <RouterLink to={personnelCommandPath(command.personnelCommandId)}>{command.displayName}</RouterLink>,
     },
     { key: 'code', title: '员工编码', render: (command) => command.employeeCode },
     { key: 'kind', title: '命令类型', render: (command) => COMMAND_KIND_LABELS[command.commandKind] ?? command.commandKind },
@@ -40,14 +43,11 @@ export function PersonnelCommandListPage() {
         <SelectField
           label="员工"
           value={employeeId}
-          options={[ALL, ...employees.data.map((employee) => ({ value: employee.employeeId, label: `${employee.displayName}（${employee.employeeCode}）` }))]}
+          options={optionsOf(employees.data, (employee) => employee.employeeId, (employee) => `${employee.displayName}（${employee.employeeCode}）`, '全部')}
           onChange={(value) => setParams(value === '' ? {} : { employeeId: value })}
         />
       ) : null}
-      {list.isPending ? <LoadingState /> : null}
-      {list.isError ? <Notice tone="error" title="人事命令加载失败">{describeFailure(list.error)}</Notice> : null}
-      {list.commands === undefined ? null : <DataTable columns={columns} rows={list.commands} rowKey={(command) => command.personnelCommandId} emptyText="暂无人事命令" />}
-      {list.hasNextPage ? <Button variant="default" loading={list.isFetchingNextPage} onClick={() => void list.fetchNextPage()}>显示更多</Button> : null}
+      <PagedTable query={list} rows={list.commands} columns={columns} rowKey={(command) => command.personnelCommandId} emptyText="暂无人事命令" errorTitle="人事命令加载失败" />
     </>
   );
 }

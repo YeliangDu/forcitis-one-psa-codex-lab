@@ -65,6 +65,8 @@ class SystemRoleRaisedRevisionIT {
         Map<String, List<List<Object>>> before = allVersions(database);
         List<List<Object>> personnelSpecialistBefore = personnelSpecialistVersions(database);
         assertThat(personnelSpecialistBefore).as("the first start wrote version 1 of personnel_specialist").hasSize(1);
+        List<List<Object>> payrollSpecialistBefore = versionsOf(database, SystemRoleDeclarationIT.PAYROLL_SPECIALIST_ID);
+        assertThat(payrollSpecialistBefore).as("the first start wrote version 1 of payroll_specialist (#1436)").hasSize(1);
         assertThat(before.get(EMPLOYEE)).as("the first start wrote version 1 only").hasSize(1);
 
         Outcome raised = launch(database, RaisedDeclarationLauncher.class);
@@ -122,10 +124,12 @@ class SystemRoleRaisedRevisionIT {
                 assertThat(after.get(role.roleId())).as("%s was declared unchanged: no version written, none closed", role.code()).isEqualTo(before.get(role.roleId()));
             }
         }
+        assertThat(versionsOf(database, SystemRoleDeclarationIT.PAYROLL_SPECIALIST_ID)).as("payroll_specialist was declared unchanged: no version written, none closed")
+                .isEqualTo(payrollSpecialistBefore);
         assertThat(personnelSpecialistVersions(database)).as("personnel_specialist was declared unchanged: no version written, none closed")
                 .isEqualTo(personnelSpecialistBefore);
-        // Eight system roles since #895 (法人财务负责人 legal_entity_finance_head); seven since #872 declared 人事专员 personnel_specialist (lead decision 2026-10-30): the six of the baseline seed and that one.
-        assertThat(rows(database, "select count(*) from platform_identity.roles").getFirst().getFirst()).as("no role row added").isEqualTo(8L);
+        // Nine system roles since #1436 (薪资专员 payroll_specialist); eight since #895 (法人财务负责人 legal_entity_finance_head); seven since #872 declared 人事专员 personnel_specialist (lead decision 2026-10-30): the six of the baseline seed and that one.
+        assertThat(rows(database, "select count(*) from platform_identity.roles").getFirst().getFirst()).as("no role row added").isEqualTo(9L);
 
         Outcome again = launch(database, RaisedDeclarationLauncher.class);
         assertThat(again.started()).as(again.output()).isTrue();
