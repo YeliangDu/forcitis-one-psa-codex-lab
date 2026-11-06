@@ -49,7 +49,7 @@ Append-only by `organization_leave.guard_append_only()` (`BEFORE UPDATE OR DELET
 
 ### leave_requests (changed)
 
-New `taken_until_at timestamptz`, comment 「为空表示未被提前终止；销假后为第一天未休的起点（业务时区当天零点）」. `ck_leave_requests_taken_until_at` `(status = 'RECALLED') = (taken_until_at IS NOT NULL)` and `taken_until_at IS NULL OR taken_until_at BETWEEN start_at AND end_at`. `ex_leave_requests_live_period_overlap` is redefined: `EXCLUDE USING gist (employment_relationship_id WITH =, tstzrange(start_at, CASE WHEN status = 'RECALLED' THEN taken_until_at ELSE end_at END) WITH &&) WHERE (status IN ('SUBMITTED', 'IN_APPROVAL', 'APPROVED', 'RECALLED'))`. A whole-request recall sets `taken_until_at = start_at`, an empty range that blocks nothing; a partial recall keeps the taken days blocked, so a second request cannot double-book them. That `taken_until_at` is a business-day start is a command check (business zone).
+New `taken_until_at timestamptz`, comment 「为空表示未被提前终止；销假后为第一天未休的起点（业务时区当天零点；整单销假且请假起点晚于当天零点时取起点 start_at）」. `ck_leave_requests_taken_until_at` `(status = 'RECALLED') = (taken_until_at IS NOT NULL)` and `taken_until_at IS NULL OR taken_until_at BETWEEN start_at AND end_at`. `ex_leave_requests_live_period_overlap` is redefined: `EXCLUDE USING gist (employment_relationship_id WITH =, tstzrange(start_at, CASE WHEN status = 'RECALLED' THEN taken_until_at ELSE end_at END) WITH &&) WHERE (status IN ('SUBMITTED', 'IN_APPROVAL', 'APPROVED', 'RECALLED'))`. A whole-request recall sets `taken_until_at = start_at`, an empty range that blocks nothing; a partial recall keeps the taken days blocked, so a second request cannot double-book them. That `taken_until_at` is a business-day start is a command check (business zone).
 
 ### monthly_confirmations, attendance_records (unchanged)
 
@@ -95,7 +95,7 @@ Consumers now: `platform.audit` for all four; `cost.timesheet` for the first two
 | The grant row and the ledger line carry the same quantity, date and account | command, integration test | spans two tables |
 | `taken_until_at` is set exactly when the request is `RECALLED`, and lies within the request's period | `ck_leave_requests_taken_until_at` | |
 | A `RECALLED` request still blocks its taken range for a second request | `ex_leave_requests_live_period_overlap` (redefined) | |
-| `taken_until_at` is a business-day start | command | needs the business zone |
+| `taken_until_at` is the later of `start_at` and the business-day start of the first untaken day | command | needs the business zone |
 | A grant replay with the same key writes nothing | `uk_leave_policy_grants_account_request_key` | |
 | One REVERSE_USE per request per year account | existing `uk_leave_ledger_lines_source_key` | |
 | A replayed import row writes nothing | `uk_attendance_records_source_external_record_key` (existing) | |
