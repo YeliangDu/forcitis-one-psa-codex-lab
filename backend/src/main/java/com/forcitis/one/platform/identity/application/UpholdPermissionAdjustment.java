@@ -26,6 +26,7 @@ public class UpholdPermissionAdjustment {
 
     private final PermissionAdjustmentRepository adjustments;
     private final PermissionAdjustmentAccess access;
+    private final PermissionAdjustmentViews views;
     private final CurrentUser currentUser;
     private final AccountEmployees accountEmployees;
     private final OrgDirectory orgDirectory;
@@ -34,7 +35,8 @@ public class UpholdPermissionAdjustment {
     private final BusinessZone zone;
 
     UpholdPermissionAdjustment(PermissionAdjustmentRepository adjustments, PermissionAdjustmentAccess access, CurrentUser currentUser,
-            AccountEmployees accountEmployees, OrgDirectory orgDirectory, DomainEvents events, Clock clock, BusinessZone zone) {
+            AccountEmployees accountEmployees, OrgDirectory orgDirectory, DomainEvents events, Clock clock, BusinessZone zone, PermissionAdjustmentViews views) {
+        this.views = views;
         this.adjustments = adjustments;
         this.access = access;
         this.currentUser = currentUser;
@@ -60,7 +62,7 @@ public class UpholdPermissionAdjustment {
         item.uphold(currentUser.userId(), reason, owner, UpholdExpiry.after(clock.instant(), zone).value());
         adjustments.update(item);
         events.publish(item);
-        return PermissionAdjustmentView.of(item);
+        return views.of(item);
     }
 
     private void requireOwner(PermissionAdjustment item, @Nullable EmployeeId owner) {

@@ -2,3 +2,4 @@
 # StateWriteGuardTest fails for a violation outside this list and for a line here that is no longer needed. Changes need design review.
 com/forcitis/one/platform/approval/infrastructure/replay/ExportedSnapshot.java  # read-only mapping of the exported boolean 'employed' onto the OrgDirectory read contract for the replay tool; it writes no state, and the enum is the contract's own type
 com/forcitis/one/organization/workforce/infrastructure/persistence/JdbcOrgStructureCommandRepository.java  # a created org unit's and position's snapshot row starts ACTIVE, a constant of the create; the command's own status is written from the aggregate
+com/forcitis/one/accounting/period/application/PeriodGateService.java  # read-only mapping of a stored period status onto the gate's own answer types (PeriodStatus, PostingPeriod); it writes no state, the aggregate still decides every status

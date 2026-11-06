@@ -46,10 +46,12 @@ export interface KindFields {
   readonly feeEarner?: 'required' | 'optional';
   readonly phase?: 'required' | 'optional';
   readonly legalEntity?: 'required' | 'optional';
+  /** The employer of a hire (targetEmployerLegalEntityId, required since #1401), distinct from the cost legal entity. */
+  readonly employer?: 'required';
 }
 
 export const KIND_FIELDS: Readonly<Record<SubmittableKind, KindFields>> = {
-  HIRE: { newPerson: true, date: 'effectiveDate', orgUnit: 'required', position: 'required', reportsTo: 'optional', feeEarner: 'required', phase: 'required' },
+  HIRE: { newPerson: true, date: 'effectiveDate', orgUnit: 'required', position: 'required', reportsTo: 'optional', feeEarner: 'required', phase: 'required', employer: 'required' },
   REINSTATE: { date: 'effectiveDate', orgUnit: 'required', position: 'required', reportsTo: 'optional', feeEarner: 'required', phase: 'required' },
   TRANSFER: { date: 'effectiveDate', orgUnit: 'optional', position: 'optional', reportsTo: 'optional', feeEarner: 'optional', legalEntity: 'optional' },
   CORRECTION: { date: 'effectiveDate', orgUnit: 'optional', position: 'optional', reportsTo: 'optional', feeEarner: 'optional', phase: 'optional', legalEntity: 'optional' },
@@ -79,11 +81,12 @@ export interface CommandDraft {
   feeEarner: string;
   phase: string;
   legalEntityId: string;
+  employerLegalEntityId: string;
 }
 
 export const EMPTY_DRAFT: CommandDraft = {
   employeeId: '', date: '', displayName: '', gender: '', email: '', wecomUserId: '',
-  orgUnitId: '', positionId: '', reportsToEmployeeId: '', feeEarner: '', phase: '', legalEntityId: '',
+  orgUnitId: '', positionId: '', reportsToEmployeeId: '', feeEarner: '', phase: '', legalEntityId: '', employerLegalEntityId: '',
 };
 
 export const GENDER_OPTIONS = [{ value: 'MALE', label: '男' }, { value: 'FEMALE', label: '女' }] as const;
@@ -118,6 +121,7 @@ export function bodyOf(kind: SubmittableKind, draft: CommandDraft): EnterPersonn
   if (fields.feeEarner !== undefined && draft.feeEarner !== '') body.isTargetFeeEarner = draft.feeEarner === 'true';
   if (fields.phase !== undefined && (draft.phase === 'PROBATION' || draft.phase === 'REGULAR')) body.targetEmploymentPhaseKind = draft.phase;
   if (fields.legalEntity !== undefined && draft.legalEntityId !== '') body.targetLegalEntityId = draft.legalEntityId;
+  if (fields.employer !== undefined && draft.employerLegalEntityId !== '') body.targetEmployerLegalEntityId = draft.employerLegalEntityId;
   return body;
 }
 

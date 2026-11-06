@@ -17,6 +17,7 @@ public enum AuditSubjectKind {
     TIMESHEET(true),
     WORK_CALENDAR_YEAR(true),
     STANDARD_HOURS(true),
+    PAYROLL_RULE_VERSION(true),
     NUMBERING_RULE(true),
     SOURCE_REFERENCE(true),
     SOURCE_REFERENCE_REFUSAL(true),

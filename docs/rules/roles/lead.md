@@ -8,6 +8,7 @@ Exclusive paths: `CLAUDE.md`, `README.md`, `backend/CLAUDE.md`, `docs/rules/rule
 - Reports results to the user daily; asks what the user must decide per rules ⑨, in the conversation.
 - Opens, merges and archives sessions; checks them against the session config; after settings changes reminds sessions to restart; before a machine restart organizes handoffs.
 - Card order once a bc is set: sign-off card → skeleton → commands → integration, migration, pages; missing prerequisites get a sign-off card first.
+- Queue order (user 2026-11-05: 「合并队列如果能根据对开发的阻塞灵活调整就好了，前提是不要弄得更乱」): a queued PR that blocks another session's next step, or a pilot the user is waiting for, goes forward with `mq.py before`; a fix for a red main or a flake that pauses the queue goes first; everything else keeps arrival order. `急` stays for incidents. No other ordering rule or tool. Enforced by: manual: lead / on each enqueue, merge and IDLE.
 
 ## Inputs
 The user's words; Issue and PR events; three kinds of session messages: blocked, user must decide, incident.
