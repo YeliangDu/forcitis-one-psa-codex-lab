@@ -58,11 +58,13 @@ t_evidence_imports|evidence tools: imports resolve (self-test)|python3 -I script
 t_gates|gates (gates_selftest.py)|python3 scripts/gates/gates_selftest.py
 t_gates|stop_language (self-test)|python3 -I scripts/hooks/stop_language.py --self-test
 t_gates|card_handover (self-test)|python3 -I scripts/hooks/card_handover.py --self-test
+t_gates|pr_open_gate and draft rules (self-test)|python3 scripts/gates/pr_open_gate.py --self-test
 t_session|build_decisions (self-test)|python3 scripts/session/build_decisions.py --self-test
 t_session|new_intent_selftest (self-test)|python3 scripts/session/new_intent_selftest.py --self-test
 t_new_card|new_card_selftest (self-test)|python3 scripts/session/new_card_selftest.py --self-test
 t_new_adr|new_adr (self-test)|python3 tools/docs/new_adr.py --self-test
 t_mq|mq (self-test)|python3 scripts/merge/mq.py --self-test
+t_mq|draft_check (self-test)|python3 scripts/merge/draft_check_selftest.py
 t_unit_classes|light_unit_classes (self-test)|python3 scripts/ci/light_unit_classes.py --self-test
 t_heavy_gate|heavy_gate (self-test)|python3 scripts/ci/heavy_gate.py --self-test
 t_backend_verify|backend_verify_selftest (OpenAPI export skipped only for this commit)|bash scripts/ci/backend_verify_selftest.sh

@@ -35,6 +35,12 @@ ALLOWED = [
     "bash -lc 'ls docs/codex'",
     "eval 'echo codex'",
     "bash <<'EOF'\necho codex\nEOF",
+    # `-c` after the git subcommand is that subcommand's option (new branch, commit template), not git config (#1561)
+    "git switch -c claude/x-codex-y origin/main && git log -1",
+    "git switch -c claude/x-codex-y origin/main",
+    "git branch -c codex-old codex-new",
+    "git checkout -b claude/x-codex-y origin/main",
+    "git -C wt switch -c claude/x-codex-y origin/main",
 ]
 
 REFUSED = [

@@ -3,10 +3,10 @@
 
 放行的唯一形状（整条命令就是它，没有别的命令、管道、链、包装、替换）：
     codex exec --sandbox workspace-write   （也写 -s workspace-write、--sandbox=workspace-write）
-      [-m|--model <名>]  [-c|--config model_reasoning_effort=<low|medium|high|xhigh>]  <一个提示词>  [< 输入文件]  [> 输出文件]  [2>&1]
+      [-m|--model <名>]  [-c|--config model_reasoning_effort=<low|medium|high|xhigh>]  [-c sandbox_workspace_write.network_access=true]  [--add-dir <home>/.m2]  <一个提示词>  [< 输入文件]  [> 输出文件]  [2>&1]
 且当前目录在一个会话 worktree 里（钩子输入的 cwd 的 git 顶层须在 .claude/worktrees/ 下、不是主检出；不比对 CLAUDE_PROJECT_DIR：app 起的 worktree 会话里它指向主检出，钩子分不出哪个 worktree 是调用会话自己的）；
 输入、输出重定向的目标也须在这个 worktree 里（/dev/null 除外；暂存目录不开例外：提示词写进 worktree 里的文件，或直接作参数）。
-其他一切拒：不带沙箱、别的沙箱值、绕过沙箱的开关、--full-auto、--oss、-p、-C、--add-dir、--enable、别的 -c 键、CODEX_HOME=、resume、别的子命令、裸 codex；
+其他一切拒：不带沙箱、别的沙箱值、绕过沙箱的开关、--full-auto、--oss、-p、-C、别的 --add-dir（只放 <home>/.m2 本身）、--enable、别的 -c 键（只放 model_reasoning_effort 与 network_access=true）、CODEX_HOME=、resume、别的子命令、裸 codex；
 也拒 codex 出现在包装（timeout、time、nice、nohup、stdbuf、command、builtin、noglob、env、sudo、xargs、find -exec…）、前置变量赋值、&& ; | 链、$(…) 与反引号、
 bash -c、sh -c、zsh -c、eval、here-document 喂给解释器、绝对或相对路径、npx 之下的任何地方。
 只拦执行，不拦字样（用户 2026-11-04，#1206）：codex 只出现在文本里（提交信息、PR 正文、grep 的参数、rm 的文件名、喂给 cat 的 here-document）不拒；
@@ -46,6 +46,12 @@ INTERPRETERS = {"python", "python3", "python2", "node", "nodejs", "perl", "ruby"
 SHELLS = {"sh", "bash", "zsh", "dash", "ksh"}   # shells whose text this gate reads itself (a -c string, a here-document); eval is read the same way
 CMD_OPTS = ("--pre", "--compress-program", "--pager", "--editor", "--exec", "--upload-pack", "--receive-pack", "--ssh-command", "--hostname-bin")   # options of otherwise harmless programs whose value is a command to run (rg --pre, sort --compress-program, git --upload-pack...); git -c <key>=<value> is the same, see names_command
 SANDBOX_OK = "workspace-write"
+NETWORK = "sandbox_workspace_write.network_access=true"   # the one other -c value allowed (#1561): the sandbox may use the network (Maven downloads); the sandbox itself stays workspace-write
+
+
+def m2_dir():
+    """The one directory --add-dir may name (#1561): the user's Maven repository, written out in full."""
+    return os.path.join(os.path.expanduser("~"), ".m2")
 EFFORT = re.compile(r"""model_reasoning_effort=("?)(low|medium|high|xhigh)\1""")
 MODEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:/@-]*")
 DEPTH = 5
@@ -417,17 +423,35 @@ def static_text(name, cmd, nxt):
     return bool(cmd.bodies)
 
 
+GIT_GLOBAL_WITH_ARG = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--super-prefix", "--config-env", "--exec-path", "--attr-source"}   # git options before the subcommand that take the next word as their value
+
+
+def git_subcommand_at(words, start):
+    """Index of git's subcommand in `words` (the first word after the global options), or len(words) when there is none; a word that is an option's value is not the subcommand."""
+    i = start
+    while i < len(words):
+        t = words[i]
+        if t in GIT_GLOBAL_WITH_ARG:
+            i += 2
+        elif t.startswith("-") and t != "-":
+            i += 1
+        else:
+            return i
+    return len(words)
+
+
 def names_command(cmd, name, nxt):
     """True when a program that only reads its arguments as data is told to run codex: a variable in front (GIT_PAGER=codex git log), an option whose value is a command (rg --pre codex), git -c <key>=<value> (core.pager=..., alias.x=!codex ...), or a `!`-form shell alias."""
     words = [w.text for w in cmd.words]
     for t in words[:nxt - 1]:
         if ASSIGN.match(t) and (TOKEN.search(t) or could_be_codex(t.split("=", 1)[1])):
             return True
+    global_end = git_subcommand_at(words, nxt) if name == "git" else len(words)   # git's -c <key>=<value> is a config only before the subcommand; after it, -c is the subcommand's own option (git switch -c <branch>, git branch -c, git commit -c)
     for i, t in enumerate(words[nxt:], nxt):
         key, _, tail = t.partition("=")
         if key in CMD_OPTS and tail:
             value = tail
-        elif t in CMD_OPTS or (name == "git" and t in ("-c", "--config-env")):
+        elif t in CMD_OPTS or (name == "git" and i < global_end and t in ("-c", "--config-env")):
             value = words[i + 1] if i + 1 < len(words) else ""
         elif re.search(r"(^|=)!", t):
             if name == "git" and (re.match(r"alias\.[^=]*=!", t) or (i and re.match(r"alias\.", words[i - 1]))):
@@ -533,6 +557,7 @@ def shape_problem(cmd, start):
     if not args or args[0].text != "exec" or args[0].expands:
         return "第一个参数必须是 exec（裸 codex 与别的子命令都拒）"
     sandbox = model = effort = None
+    network = add_dir = False
     prompt, flags_done, i = [], False, 1
     def value():
         nonlocal i
@@ -555,11 +580,24 @@ def shape_problem(cmd, start):
             if model is None or not MODEL.fullmatch(model):
                 return "模型名只许字母数字与 . _ : / @ -，且不以 - 开头"
         elif a in ("-c", "--config") or a.startswith("--config="):
-            if effort is not None:
-                return "-c 只放一个，且只能是 model_reasoning_effort"
-            effort = a.split("=", 1)[1] if a.startswith("--config=") else value()
-            if effort is None or not EFFORT.fullmatch(effort):
-                return "-c 只放 model_reasoning_effort=low|medium|high|xhigh，别的配置键一概不放（含 sandbox_workspace_write.network_access）"
+            setting = a.split("=", 1)[1] if a.startswith("--config=") else value()
+            if setting is not None and EFFORT.fullmatch(setting):
+                if effort is not None:
+                    return "model_reasoning_effort 的 -c 重复"
+                effort = setting
+            elif setting == NETWORK:
+                if network:
+                    return f"-c {NETWORK} 重复"
+                network = True
+            else:
+                return f"-c 只放 model_reasoning_effort=low|medium|high|xhigh 与 {NETWORK}，别的配置键一概不放"
+        elif a == "--add-dir" or a.startswith("--add-dir="):
+            if add_dir:
+                return "--add-dir 重复"
+            target = a.split("=", 1)[1] if a.startswith("--add-dir=") else value()
+            if target is None or target != m2_dir():
+                return f"--add-dir 只放 {m2_dir()}（原样写出，不带 ~ 或变量，不多一个字符）"
+            add_dir = True
         else:
             return f"不放行的开关 {a}"
         i += 1
