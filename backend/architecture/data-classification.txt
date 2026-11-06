@@ -121,6 +121,12 @@ organization_workforce.separation_bases.default_initiator_kind | INTERNAL | NONE
 organization_workforce.separation_bases.is_employer_initiated | INTERNAL | NONE | 豁免：依据清单是配置，不含个人信息
 organization_workforce.separation_bases.is_system_only | INTERNAL | NONE | 豁免：依据清单是配置，不含个人信息
 organization_workforce.separation_bases.is_active | INTERNAL | NONE | 豁免：依据清单是配置，不含个人信息
+organization_workforce.acting_duties.employee_id | INTERNAL | PI | 用途：代理人；个人信息 PI
+organization_workforce.acting_duties.employment_relationship_id | INTERNAL | PI | 用途：代理人的雇佣关系；个人信息 PI
+organization_workforce.acting_duties.covered_employee_id | INTERNAL | PI | 用途：被代理人（请假、出差期间被暂代的人）；个人信息 PI
+organization_workforce.acting_duties.reason | INTERNAL | PI | 用途：人填的代理事由；个人信息 PI；不得写健康、孕产等信息
+organization_workforce.personnel_commands.acting_covered_employee_id | INTERNAL | PI | 用途：代理命令里的被代理人；个人信息 PI
+organization_workforce.personnel_commands.reason | INTERNAL | PI | 用途：人填的代理命令事由；个人信息 PI；不得写健康、孕产等信息
 
 # #1450 signed R1 classification (organization-recruitment-r1); position_id, org_unit_id, legal_entity_id, approval_instance_id are surrogate keys and are not registered.
 organization_recruitment.recruitment_requisitions.requested_by_employee_id | INTERNAL | PI | 用途：申请人，审批发起、本人查询与审计
