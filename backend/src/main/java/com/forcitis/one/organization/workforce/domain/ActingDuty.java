@@ -17,6 +17,11 @@ public record ActingDuty(ActingDutyId id, EmployeeId employeeId, EmploymentRelat
                          OrgUnitId coveredOrgUnitId, @Nullable PositionId coveredPositionId, @Nullable EmployeeId coveredEmployeeId,
                          LocalDate startsOn, LocalDate endsBefore, @Nullable LocalDate endedOn,
                          String reason, PersonnelCommandId sourcePersonnelCommandId, UserId createdBy, Instant createdAt, long version) {
+    /** A backdated separation cannot end coverage before it starts; a same-day separation closes it on that day. */
+    public LocalDate separationEndOn(LocalDate separationDay) {
+        return startsOn.isAfter(separationDay) ? startsOn : separationDay;
+    }
+
     public static ActingDuty start(ActingDutyId id, PersonnelCommand command, Instant at) {
         return new ActingDuty(id, command.employeeId(), Objects.requireNonNull(command.employmentRelationshipId()),
                 Objects.requireNonNull(command.actingCoveredOrgUnitId()), command.actingCoveredPositionId(), command.actingCoveredEmployeeId(),

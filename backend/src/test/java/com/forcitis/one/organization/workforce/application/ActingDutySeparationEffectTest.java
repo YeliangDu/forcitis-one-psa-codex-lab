@@ -3,10 +3,12 @@ package com.forcitis.one.organization.workforce.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,6 +38,7 @@ import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository
 import com.forcitis.one.organization.workforce.domain.PersonnelHistory;
 import com.forcitis.one.organization.workforce.domain.SeparationHoldCheck;
 import com.forcitis.one.organization.workforce.events.EmployeeActingDutyEnded;
+import com.forcitis.one.organization.workforce.events.EmployeeActingDutyStarted;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -46,6 +49,8 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 class ActingDutySeparationEffectTest {
     static final Instant NOW = Instant.parse("2026-11-06T08:00:00Z");
@@ -83,6 +88,96 @@ class ActingDutySeparationEffectTest {
         when(commands.load(EMPLOYEE)).thenReturn(history);
         when(sources.employeeAttribution(EMPLOYEE, DAY.minusDays(1))).thenReturn(Optional.of(ENTITY));
         return history;
+    }
+
+    PersonnelCommand pendingStart(LocalDate day) {
+        EnterPersonnelCommand request = new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.ACTING_START, day, null,
+                null, null, null, null, null, null, null, null, null, null, null, null, null, REL,
+                new OrgUnitId(TestIds.uuid(6)), null, null, DAY.plusDays(5), null, "coverage");
+        PersonnelCommand start = PersonnelCommand.enter(new PersonnelCommandId(TestIds.uuid(11)), EMPLOYEE, request, USER,
+                NOW.minusSeconds(3 * 86400L), DAY.minusDays(3), 7);
+        when(commands.find(start.id())).thenReturn(Optional.of(start));
+        return start;
+    }
+
+    ApplyDueCommand due() {
+        return new ApplyDueCommand(commands, new PersonnelPlans(ids), mock(SeparationHoldCheck.class), sources,
+                mock(CountersignRequests.class), mock(AttributionCountersignRepository.class), mock(OrgMergeProgress.class), events, ids, clock, ZONE, effects);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1})
+    @DisplayName("#1566 a same-day or overdue start publishes Started then separation Ended exactly once")
+    void dueStartClosesForEffectiveSeparation(int daysOverdue) {
+        PersonnelCommand separation = command(10, PersonnelCommandKind.SEPARATE, DAY, CommandStatus.EFFECTIVE);
+        PersonnelCommand start = pendingStart(DAY.minusDays(daysOverdue));
+        history(List.of(separation, start));
+        // Repository reads carry the employee's current sequence, including the Started just published.
+        when(commands.find(separation.id())).thenAnswer(ignored -> Optional.of(PersonnelCommand.restore(separation.id(), EMPLOYEE,
+                PersonnelCommandKind.SEPARATE, DAY, CommandStatus.EFFECTIVE, null, null, null, null, null, null, null, null, null, null,
+                USER, NOW, NOW, 0, published.isEmpty() ? 7 : published.getLast().envelope().aggregateVersion())));
+        doAnswer(ignored -> {
+            assertThat(published).singleElement().isInstanceOf(EmployeeActingDutyStarted.class);
+            return null;
+        }).when(duties).updateEnd(any(), any(), any(), any());
+
+        ApplyDueCommand due = due();
+        due.execute(start.id());
+        due.execute(start.id());
+
+        ActingDuty written = ActingDuty.start(new ActingDutyId(TestIds.uuid(30)), start, NOW);
+        var order = inOrder(duties);
+        order.verify(duties).insert(written);
+        order.verify(duties).updateEnd(written, DAY, ActingDutyEndCause.SEPARATION, NOW);
+        verify(duties, times(1)).insert(any());
+        verify(duties, times(1)).updateEnd(any(), any(), any(), any());
+        assertThat(start.status()).isEqualTo(CommandStatus.EFFECTIVE);
+        assertThat(published).hasSize(2);
+        assertThat(published.getFirst()).isInstanceOfSatisfying(EmployeeActingDutyStarted.class, event -> {
+            assertThat(event.personnelCommandId()).isEqualTo(start.id());
+            assertThat(event.actingDutyId()).isEqualTo(written.id());
+            assertThat(event.envelope().aggregateVersion()).isEqualTo(8);
+        });
+        assertThat(published.getLast()).isInstanceOfSatisfying(EmployeeActingDutyEnded.class, event -> {
+            assertThat(event.personnelCommandId()).isEqualTo(separation.id());
+            assertThat(event.actingDutyId()).isEqualTo(written.id());
+            assertThat(event.endedOn()).isEqualTo(DAY);
+            assertThat(event.endCause()).isEqualTo(ActingDutyEndCause.SEPARATION);
+            assertThat(event.envelope().businessDate()).isEqualTo(DAY);
+            assertThat(event.envelope().legalEntityId()).isEqualTo(ENTITY);
+            assertThat(event.envelope().aggregateVersion()).isEqualTo(9);
+        });
+        var sequenceOrder = inOrder(commands);
+        sequenceOrder.verify(commands).saveEventSequence(EMPLOYEE, 8);
+        sequenceOrder.verify(commands).saveEventSequence(EMPLOYEE, 9);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"none", "pending", "held", "withdrawn", "reinstated", "afterTerm"})
+    @DisplayName("#1566 a due start stays open without an uncovered effective separation")
+    void dueStartStaysOpen(String scenario) {
+        PersonnelCommand start = pendingStart(DAY.minusDays(2));
+        List<PersonnelCommand> all = new ArrayList<>(List.of(start));
+        if (!scenario.equals("none")) {
+            CommandStatus status = switch (scenario) {
+                case "pending" -> CommandStatus.PENDING;
+                case "held" -> CommandStatus.HELD;
+                case "withdrawn" -> CommandStatus.WITHDRAWN;
+                default -> CommandStatus.EFFECTIVE;
+            };
+            all.add(command(10, PersonnelCommandKind.SEPARATE, scenario.equals("afterTerm") ? DAY.plusDays(5) : DAY.minusDays(1), status));
+        }
+        if (scenario.equals("reinstated")) {
+            all.add(command(12, PersonnelCommandKind.REINSTATE, DAY, CommandStatus.EFFECTIVE));
+        }
+        history(all);
+
+        due().execute(start.id());
+
+        assertThat(start.status()).isEqualTo(CommandStatus.EFFECTIVE);
+        verify(duties).insert(any());
+        verify(duties, never()).updateEnd(any(), any(), any(), any());
+        assertThat(published).singleElement().isInstanceOf(EmployeeActingDutyStarted.class);
     }
 
     @Test

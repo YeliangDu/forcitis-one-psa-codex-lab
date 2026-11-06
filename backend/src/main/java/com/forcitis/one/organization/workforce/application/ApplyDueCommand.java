@@ -114,7 +114,7 @@ public class ApplyDueCommand {
             String before = command.status().name();
             if (effects.actingEndIsClosed(command)) {
                 command.withdraw(new UserId(actor), "the acting duty was already closed before the pending early end was applied", now);
-            } else if (effects.actingStartIsOverrun(command, commands.load(command.employeeId()))) {
+            } else if (command.kind() == PersonnelCommandKind.ACTING_START && effects.actingStartIsOverrun(command, commands.load(command.employeeId()))) {
                 command.withdraw(new UserId(actor), "the employee separates before the acting duty would start", now);
             } else {
                 command.dueEffect(now, today);

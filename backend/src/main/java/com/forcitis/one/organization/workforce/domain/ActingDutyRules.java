@@ -8,8 +8,10 @@ import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.api.PositionId;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.jspecify.annotations.Nullable;
 
 /** Entry rules for dated coverage, independent of permissions and approval routing (#1566). */
@@ -72,6 +74,15 @@ public final class ActingDutyRules {
                         && s.status() != CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN && s.effectiveDate().isBefore(start.effectiveDate()))
                 .anyMatch(s -> all.stream().noneMatch(r -> r.kind() == PersonnelCommandKind.REINSTATE && r.status() == CommandStatus.EFFECTIVE
                         && r.effectiveDate().isAfter(s.effectiveDate()) && !r.effectiveDate().isAfter(start.effectiveDate())));
+    }
+
+    /** A delayed start takes effect, then closes for the first effective separation that no effective reinstatement covers. */
+    public static Optional<PersonnelCommand> separationClosingStart(ActingDuty duty, List<PersonnelCommand> all) {
+        return all.stream().filter(s -> s.kind() == PersonnelCommandKind.SEPARATE && s.status() == CommandStatus.EFFECTIVE
+                        && !s.effectiveDate().isBefore(duty.startsOn()) && duty.endsBefore().isAfter(s.effectiveDate()))
+                .filter(s -> all.stream().noneMatch(r -> r.kind() == PersonnelCommandKind.REINSTATE && r.status() == CommandStatus.EFFECTIVE
+                        && r.effectiveDate().isAfter(s.effectiveDate())))
+                .min(Comparator.comparing(PersonnelCommand::effectiveDate));
     }
 
     public static void requireExtend(PersonnelCommand command, ActingDuty duty, PersonnelHistory history, List<ActingDuty> duties) {

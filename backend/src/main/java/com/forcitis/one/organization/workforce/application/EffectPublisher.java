@@ -69,6 +69,16 @@ class EffectPublisher {
             ActingDuty duty = ActingDuty.start(new ActingDutyId(ids.next()), command, clock.instant());
             duties.insert(duty);
             command.recordActingStarted(duty, legalEntity);
+            publishRecorded(command);
+            // A due start may have waited through a separation. Started precedes Ended on the same employee stream.
+            ActingDutyRules.separationClosingStart(duty, historyBefore.commands()).ifPresent(separation -> {
+                // Reload after Started saved its sequence; the history carries the sequence from before that event.
+                PersonnelCommand current = commands.find(separation.id()).orElseThrow();
+                LegalEntityId separationEntity = LegalEntityResolution.resolve(legalEntities, command.employeeId(), current.effectiveDate().minusDays(1)).orElse(null);
+                closeForSeparation(duty, current, separationEntity, clock.instant());
+                publishRecorded(current);
+            });
+            return;
         } else {
             command.recordEffect(assignmentBefore, assignmentAfter, legalEntity, commands.load(command.employeeId()));
         }
@@ -85,9 +95,7 @@ class EffectPublisher {
         LocalDate day = separation.effectiveDate();
         for (ActingDuty duty : duties.listOpen(separation.employeeId())) {
             if (duty.endedOn() == null && duty.endsBefore().isAfter(day)) {
-                LocalDate endedOn = duty.startsOn().isAfter(day) ? duty.startsOn() : day;
-                duties.updateEnd(duty, endedOn, ActingDutyEndCause.SEPARATION, now);
-                separation.recordActingSeparation(duty, legalEntity);
+                closeForSeparation(duty, separation, legalEntity, now);
             }
         }
         for (PersonnelCommand pending : commands.load(separation.employeeId()).commands()) {
@@ -100,6 +108,11 @@ class EffectPublisher {
                         today, now, separation.id(), WorkContext.correlationId().orElseGet(ids::next));
             }
         }
+    }
+
+    private void closeForSeparation(ActingDuty duty, PersonnelCommand separation, @Nullable LegalEntityId legalEntity, Instant now) {
+        duties.updateEnd(duty, duty.separationEndOn(separation.effectiveDate()), ActingDutyEndCause.SEPARATION, now);
+        separation.recordActingSeparation(duty, legalEntity);
     }
 
     boolean actingEndIsClosed(PersonnelCommand command) {

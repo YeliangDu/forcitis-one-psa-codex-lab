@@ -50,6 +50,8 @@ import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.dao.DataIntegrityViolationException;
 
 class ActingDutyEndExtendEffectTest {
@@ -136,6 +138,7 @@ class ActingDutyEndExtendEffectTest {
         assertThat(published).singleElement().isInstanceOfSatisfying(EmployeeActingDutyEnded.class,
                 event -> assertThat(event.endedOn()).isEqualTo(day));
         verify(duties, times(1)).updateEnd(any(), eq(day), eq(ActingDutyEndCause.ENDED_EARLY), any());
+        verify(commands, times(1)).load(EMPLOYEE);
     }
 
     @Test
@@ -228,15 +231,16 @@ class ActingDutyEndExtendEffectTest {
         verify(expiry, times(1)).execute(other);
     }
 
-    @Test
+    @ParameterizedTest
+    @EnumSource(value = CommandStatus.class, names = {"HELD", "EFFECTIVE"})
     @DisplayName("#1566 a due start dated after a held or effective separation is withdrawn without a duty or event")
-    void startAfterSeparationIsWithdrawn() {
+    void startAfterSeparationIsWithdrawn(CommandStatus separationStatus) {
         EnterPersonnelCommand request = new EnterPersonnelCommand(EMPLOYEE, PersonnelCommandKind.ACTING_START, DAY.plusDays(2), null,
                 null, null, null, null, null, null, null, null, null, null, null, null, null, REL,
                 COVERED, null, null, DAY.plusDays(9), null, "cover");
         PersonnelCommand start = PersonnelCommand.enter(new PersonnelCommandId(TestIds.uuid(9)), EMPLOYEE, request, RECORDER, NOW, DAY, 7);
         PersonnelCommand separation = PersonnelCommand.restore(new PersonnelCommandId(TestIds.uuid(10)), EMPLOYEE, PersonnelCommandKind.SEPARATE, DAY,
-                CommandStatus.HELD, null, null, null, null, null, null, null, null, null, null, RECORDER, NOW, null, 0, 7);
+                separationStatus, null, null, null, null, null, null, null, null, null, null, RECORDER, NOW, null, 0, 7);
         when(commands.find(start.id())).thenReturn(Optional.of(start));
         when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), List.of(), List.of(separation), Map.of()));
         due(Clock.fixed(NOW.plusSeconds(2 * 86400L), ZONE.zone())).execute(start.id());
