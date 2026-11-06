@@ -45,14 +45,14 @@ terms:
   forbidden: []
   status: proposed
   note: '#1581；中文名待术语确认'
-- id: recalled_from_date
-  zh: 销假后第一天未休的日期
-  en: RecalledFromDate
-  snake: recalled_from_date
+- id: taken_until_at
+  zh: 已休截止时刻
+  en: TakenUntilAt
+  snake: taken_until_at
   kind: value_object
   bc: organization.leave
   scope: domain
-  definition: 请假被提前终止时，第一天未休的日期；未提前终止为空
+  definition: 请假被提前终止（销假）时，第一天未休的起点时刻；未提前终止为空
   standard_ref:
   - docs/data/reviews/leave-attendance-s3.md
   confidence: low

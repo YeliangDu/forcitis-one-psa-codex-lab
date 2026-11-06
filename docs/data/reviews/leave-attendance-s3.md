@@ -6,7 +6,7 @@ Evidence marks: **verified** = read on origin/main on 2026-11-07 (migration, reg
 
 ## Scope
 
-Signed: schema `organization_leave`; new table `leave_policy_grants`; the ledger `source_kind` CHECK widened by `POLICY_GRANT` and one new CHECK tying it to the GRANT kind; new column `leave_requests.recalled_from_date`; new column `monthly_confirmations.basis_kind`; the payloads of `LeaveApproved`, `LeaveRecalled`, `MonthlyConfirmationConfirmed`, `MonthlyConfirmationLocked`; terms (`backend/glossary/proposed/leave-s3.yaml`).
+Signed: schema `organization_leave`; new table `leave_policy_grants`; the ledger `source_kind` CHECK widened by `POLICY_GRANT` and one new CHECK tying it to the GRANT kind; new column `leave_requests.taken_until_at` with the overlap exclusion redefined; new column `leave_policy_grants.request_key` with its unique key; new column `monthly_confirmations.basis_kind`; the payloads of `LeaveApproved`, `LeaveRecalled`, `MonthlyConfirmationConfirmed`, `MonthlyConfirmationLocked`; terms (`backend/glossary/proposed/leave-s3.yaml`).
 
 Not signed (separate gate runs): any table of overtime, comp time, carry-over, year close and attendance import; the `cost.timesheet` consumer edge; payroll tables (#1582). Q-S3-1 to Q-S3-5 do not change a column: Q-S3-1 is the `basis_kind` value written by default (the column carries both values from the start), Q-S3-2 and Q-S3-3 are rule-version and seed data, Q-S3-4 and Q-S3-5 are command permissions.
 
@@ -21,13 +21,14 @@ Not signed (separate gate runs): any table of overtime, comp time, carry-over, y
 
 ## Columns and constraints
 
-Everything below is a new migration file under `db/migration/organization_leave/` (the baseline is closed, ADR-0038). Every enum is `text` with a named CHECK; every free text has `char_length` and `btrim` CHECKs; every nullable column's comment states 「为空表示」.
+Everything below is an edit of the open baseline file `V20261105160000__organization_leave_baseline.sql` (the marker `backend/architecture/migration-baseline-open` exists; data gate O12, open period); no migration file is appended, and the schema PR carries the expected diff given in this record. Every enum is `text` with a named CHECK; every free text has `char_length` and `btrim` CHECKs; every nullable column's comment states 「为空表示」.
 
 ### leave_policy_grants (grain: one row per grant decision)
 
 | Column | Type | Constraints and notes |
 |---|---|---|
 | `id` | uuid | `pk_leave_policy_grants`; UUIDv7; this id is the `source_id` of the ledger GRANT line it produces |
+| `request_key` | text NOT NULL | client-supplied replay key of one grant command: `ck_leave_policy_grants_request_key` `request_key = btrim(request_key) AND char_length(request_key) BETWEEN 1 AND 100`; `uk_leave_policy_grants_account_request_key` UNIQUE `(leave_account_id, request_key)` |
 | `leave_account_id` | uuid NOT NULL | with `employment_relationship_id` and `leave_type_id`: `fk_leave_policy_grants_account_relationship_type` to `leave_accounts (id, employment_relationship_id, leave_type_id)` via the existing `uk_leave_accounts_id_relationship_type`, RESTRICT; `ix_leave_policy_grants_leave_account_id` |
 | `employment_relationship_id` | uuid NOT NULL | another context's id: stored, covered by the composite FK to the account only (B4) |
 | `leave_type_id` | uuid NOT NULL | same composite FK |
@@ -47,7 +48,7 @@ Append-only by `organization_leave.guard_append_only()` (`BEFORE UPDATE OR DELET
 
 ### leave_requests (changed)
 
-New `recalled_from_date date`, comment 「为空表示未被提前终止；销假后为第一天未休的日期」. `ck_leave_requests_recalled_from_date` `(status = 'RECALLED') = (recalled_from_date IS NOT NULL)`. That the date lies inside the request's days is a command check (it compares a business date with `start_at`/`end_at` in the business zone).
+New `taken_until_at timestamptz`, comment 「为空表示未被提前终止；销假后为第一天未休的起点（业务时区当天零点）」. `ck_leave_requests_taken_until_at` `(status = 'RECALLED') = (taken_until_at IS NOT NULL)` and `taken_until_at IS NULL OR taken_until_at BETWEEN start_at AND end_at`. `ex_leave_requests_live_period_overlap` is redefined: `EXCLUDE USING gist (employment_relationship_id WITH =, tstzrange(start_at, CASE WHEN status = 'RECALLED' THEN taken_until_at ELSE end_at END) WITH &&) WHERE (status IN ('SUBMITTED', 'IN_APPROVAL', 'APPROVED', 'RECALLED'))`. A whole-request recall sets `taken_until_at = start_at`, an empty range that blocks nothing; a partial recall keeps the taken days blocked, so a second request cannot double-book them. That `taken_until_at` is a business-day start is a command check (business zone).
 
 ### monthly_confirmations (changed)
 
@@ -69,7 +70,7 @@ All four events: publisher `organization.leave`, audited, version 1, delivery as
 | `leaveTypeId` | required | required |
 | `startsOn`, `endsOn` (business dates of the first and last leave day) | required; `businessDate` = `startsOn` | required |
 | `minutes` | required: total minutes approved | n/a |
-| `recalledFromDate` | n/a | required, `businessDate` |
+| `recalledFromDate` | n/a | required, `businessDate` (business date of `taken_until_at`) |
 | `returnedMinutes` | n/a | required: minutes written back by the REVERSE_USE (0 when the recall returns nothing, e.g. only non-workdays remain) |
 
 | Field | `MonthlyConfirmationConfirmed` | `MonthlyConfirmationLocked` |
@@ -82,7 +83,7 @@ All four events: publisher `organization.leave`, audited, version 1, delivery as
 
 Consumers now: `platform.audit` for all four; `cost.timesheet` for the first two only after the seam card (the guard keeps the edge closed); payroll for `MonthlyConfirmationLocked` is assumed by #1582, not registered.
 
-**Why the yaml is not in this PR.** `docs/architecture/events/leave.yaml` does not exist; `EventCatalogueTest.catalogueMatchesTheCode` fails when the catalogue names an event class that is not in the code (verified in the acting-duty design, #1525, by `scripts/ci/check_all.sh`), and the pending-fragment exemption is per module, not per event. The slice that adds each event class adds its catalogue entry from this table in the same PR.
+**Why the catalogue file is not in this PR.** The leave event catalogue file does not exist; `EventCatalogueTest.catalogueMatchesTheCode` fails when the catalogue names an event class that is not in the code (verified in the acting-duty design, #1525, by `scripts/ci/check_all.sh`), and the pending-fragment exemption is per module, not per event. The slice that adds each event class adds its catalogue entry from this table in the same PR.
 
 ## Invariants to constraints (B5, O4)
 
@@ -92,8 +93,10 @@ Consumers now: `platform.audit` for all four; `cost.timesheet` for the first two
 | A grant quantity is positive | `ck_leave_policy_grants_grant_qty` | |
 | Every `POLICY_GRANT` ledger line has its `leave_policy_grants` row | command, one transaction | `source_id` is generic across source kinds, so no foreign key can name this table |
 | The grant row and the ledger line carry the same quantity, date and account | command, integration test | spans two tables |
-| `recalled_from_date` is set exactly when the request is `RECALLED` | `ck_leave_requests_recalled_from_date` | |
-| `recalled_from_date` lies on a leave day of the request | command | needs the business zone |
+| `taken_until_at` is set exactly when the request is `RECALLED`, and lies within the request's period | `ck_leave_requests_taken_until_at` | |
+| A `RECALLED` request still blocks its taken range for a second request | `ex_leave_requests_live_period_overlap` (redefined) | |
+| `taken_until_at` is a business-day start | command | needs the business zone |
+| A grant replay with the same key writes nothing | `uk_leave_policy_grants_account_request_key` | |
 | One REVERSE_USE per request per year account | existing `uk_leave_ledger_lines_source_key` | |
 | A confirmation records what it was confirmed against | `basis_kind` NOT NULL plus its CHECK | |
 | A `PUNCHES` month with a missing imported day fails | command | spans attendance records |
@@ -105,7 +108,7 @@ Consumers now: `platform.audit` for all four; `cost.timesheet` for the first two
 |---|---|---|---|
 | `GrantPolicyCredit` | `leave_accounts` (open if absent), `leave_policy_grants`, one GRANT line | account by `uk_leave_accounts_relationship_type_year` | one grant, one line |
 | Read `LeaveBalances.of(relationship, type, year)` | none | `ix_leave_ledger_lines_account_effective` | tens of lines per account (one-year ledger of one person) |
-| `RecallLeave` | request row (`status`, `recalled_from_date`), one REVERSE_USE line per year account | request by pk | one to two lines |
+| `RecallLeave` | request row (`status`, `taken_until_at`), one REVERSE_USE line per year account | request by pk | one to two lines |
 | Month confirmation generate | `monthly_confirmations` with `basis_kind`, lines | `uk_monthly_confirmations_employee_month` | one per person and month; a few lines each |
 
 Expected volume: a few thousand confirmations per month for the firm; grants and recalls are rare. All reads are by key.
@@ -123,7 +126,7 @@ Expected volume: a few thousand confirmations per month for the firm; grants and
 | B8 | pass | terms in `backend/glossary/proposed/leave-s3.yaml`; `light.sh` rule check green with the file; UI wording stays with the user |
 | O1 | pass | use cases write one aggregate each (the account opens inside the grant command, the same aggregate) |
 | O2 | pass | UUIDv7 pk, UUID references |
-| O3 | pass | business key of a grant: none beyond the id; replay safety is the ledger's source key (`source_id` = grant id) and the endpoint's registered idempotency |
+| O3 | pass | business unique key: a grant is unique within its leave account by the client-supplied `request_key` (`uk_leave_policy_grants_account_request_key`); a retry with the same key returns the first grant, so the ledger's source key (`source_id` = grant id) cannot be reached twice by one command |
 | O5 | pass | append-only grant row needs no `version`; `leave_requests` and `monthly_confirmations` keep theirs |
 | O6 | pass | category: fact (grant decision), temporal basis `DECLARED` (`effective_date` entered by the operator) |
 | O7 | pass | append-only trigger; FK RESTRICT; no `is_deleted` |
@@ -131,8 +134,8 @@ Expected volume: a few thousand confirmations per month for the firm; grants and
 | O9 | pass | no derived values stored: credit, held, used, available are computed from lines |
 | O10, O10a | pass | index list above; the composite FK column set has the `leave_account_id` index |
 | O11 | pass | small tables |
-| O12, T4 | pass | additive: one table, two nullable-or-empty-table columns, one redefined CHECK, one new CHECK; no rows exist in `leave_requests` or `monthly_confirmations` (no code writes them: verified), so `NOT NULL` without default is safe in every environment; rollback = previous code ignores the new objects |
-| O13 | pass | legal entity: events carry the cost entity on the date; the grant row carries the relationship, from which the employer derives; no accounting period (not a posting fact) |
+| O12, T4 | pass | open period: the baseline file is edited and the expected diff is attached below; additive: one table, two nullable-or-empty-table columns, one redefined CHECK, one new CHECK, one redefined exclusion; no rows exist in `leave_requests` or `monthly_confirmations` (no code writes them: verified), so `NOT NULL` without default is safe in every environment; rollback = previous code ignores the new objects |
+| O13 | pass | the fact rows carry no legal entity of their own: the entity is derived from the relationship (ADR-0086) and the events carry the cost entity on the date; an accounting period does not apply (no posting fact); the one entity-dependent number is the calendar of seam 3, resolved at read time |
 | O14 | pass | business dates in `BusinessZone`; events dedupe by event id; lists by cursor; retention below |
 | O15 | pass | ADR-0033 items 1, 2 (UUIDv7, no composite pk): included; ADR-0035 (event version 1): included; ADR-0043: classification below; ADR-0079 leave lines: unchanged; ADR-0086: relationship id keys: included |
 | O16 | pass | quantities are `integer` in the type's declared unit (spec 3.2); API types carry the unit; no float |
@@ -144,7 +147,7 @@ Expected volume: a few thousand confirmations per month for the firm; grants and
 | T1 to T3 | pass | baseline: the schema without these objects; target: the objects above; transition: none |
 | E1 | pass (payload signed; catalogue entry waits for the classes) | immutable records of ids, dates, counts, enums; no names; version 1 |
 | E2, E3 | n/a | no read model; no migration-in |
-| A1 to A8 | n/a | no analytical fact; A6: the grant row carries the relationship and date; no document number applies |
+| A1 to A8 | n/a | no analytical fact; A6 (judged for each fact row): `leave_policy_grants` carries the relationship, the leave type, the date and the operator; the ledger line carries the same via its account; the leave request and the confirmation line carry the relationship and period; no row carries a document number, and none is required because no posting document is produced |
 
 ### Classification (C4) to add to `backend/architecture/data-classification.txt`
 
@@ -154,11 +157,11 @@ organization_leave.leave_policy_grants.basis_text | INTERNAL | PI | 用途：授
 organization_leave.leave_policy_grants.granted_by | INTERNAL | PI | 用途：做出授予决定的操作人；个人信息 PI
 ```
 
-`leave_requests.recalled_from_date` and `monthly_confirmations.basis_kind` are dates and enums of an already classified row: no new line. Registry (`data-access-registry.yaml`): a row for `organization_leave.leave_policy_grants` with role `AGGREGATE_CHILD`, aggregate `LeaveAccount`, mutability `APPEND_ONLY`, retention as the ledger, lineage `NEW`, writers `[organization.leave]`.
+`leave_requests.taken_until_at` and `monthly_confirmations.basis_kind` are an instant and an enum of an already classified row: no new line. Registry (`data-access-registry.yaml`): a row for `organization_leave.leave_policy_grants` with role `AGGREGATE_CHILD`, aggregate `LeaveAccount`, mutability `APPEND_ONLY`, retention as the ledger, lineage `NEW`, writers `[organization.leave]`.
 
 ## Expected diff for the schema PR (DG-3, section 1.4)
 
-Table set: `leave_policy_grants` added (columns, FK, index, trigger above). `leave_ledger_lines`: `ck_leave_ledger_lines_source_kind` redefined (ten values), `ck_leave_ledger_lines_policy_grant_kind` added. `leave_requests`: column `recalled_from_date`, `ck_leave_requests_recalled_from_date`. `monthly_confirmations`: column `basis_kind`, `ck_monthly_confirmations_basis_kind`. No other object changes.
+Table set: `leave_policy_grants` added (columns, FK, index, trigger above). `leave_ledger_lines`: `ck_leave_ledger_lines_source_kind` redefined (ten values), `ck_leave_ledger_lines_policy_grant_kind` added. `leave_requests`: column `taken_until_at`, `ck_leave_requests_taken_until_at`, `ex_leave_requests_live_period_overlap` redefined. `leave_policy_grants` also has `request_key` and its key. `monthly_confirmations`: column `basis_kind`, `ck_monthly_confirmations_basis_kind`. No other object changes.
 
 ## Unverified items (the dev card checks them; none changes a column)
 
