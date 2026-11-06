@@ -103,7 +103,7 @@ describe('员工详情', () => {
   };
 
   it('主岗历史是一张按标题命名的表，按服务端给的顺序（新到旧）列出，当前一条标记「当前」，未结束的显示「至今」', async () => {
-    const server = stubServer({ [`GET employees/${ID}`]: { body: DETAIL }, [`GET primary-assignments`]: { body: HISTORY } });
+    const server = stubServer({ [`GET employees/${ID}`]: { body: DETAIL }, [`GET primary-assignments/${ID}`]: { body: HISTORY } });
     render();
 
     const table = await screen.findByRole('table', { name: '主岗历史' });
@@ -113,11 +113,11 @@ describe('员工详情', () => {
       ['交付一部', '项目经理', '2025-09-01', '至今', '当前'],
       ['咨询二部', '—', '2024-06-01', '2025-09-01', '—'],
     ]);
-    expect(server.calls.some((call) => call.url.includes('/primary-assignments') && call.url.includes(`employeeId=${ID}`))).toBe(true);
+    expect(server.calls.some((call) => call.url.includes(`/primary-assignments/${ID}`))).toBe(true);
   });
 
   it('主岗历史为空时显示空状态，不画空表', async () => {
-    stubServer({ [`GET employees/${ID}`]: { body: DETAIL }, [`GET primary-assignments`]: { body: { items: [] } } });
+    stubServer({ [`GET employees/${ID}`]: { body: DETAIL }, [`GET primary-assignments/${ID}`]: { body: { items: [] } } });
     render();
 
     expect(await screen.findByText('暂无主岗历史')).toBeInTheDocument();
@@ -127,7 +127,7 @@ describe('员工详情', () => {
   it('主岗历史读取失败只在这一段提示，员工信息照常显示', async () => {
     stubServer({
       [`GET employees/${ID}`]: { body: DETAIL },
-      [`GET primary-assignments`]: { status: 403, body: problemBody(403, 'PLATFORM_WEB_ACCESS_DENIED') },
+      [`GET primary-assignments/${ID}`]: { status: 403, body: problemBody(403, 'PLATFORM_WEB_ACCESS_DENIED') },
     });
     render();
 

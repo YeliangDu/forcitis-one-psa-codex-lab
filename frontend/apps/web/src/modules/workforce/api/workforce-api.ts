@@ -19,7 +19,7 @@ export function fetchEmployee(employeeId: string) {
 }
 
 export function fetchPrimaryAssignmentHistory(employeeId: string) {
-  return operations.getOrganizationPrimaryAssignments({ query: { employeeId } });
+  return operations.getOrganizationPrimaryAssignmentsByEmployeeId({ path: { employeeId } });
 }
 
 export interface PersonnelCommandFilter {

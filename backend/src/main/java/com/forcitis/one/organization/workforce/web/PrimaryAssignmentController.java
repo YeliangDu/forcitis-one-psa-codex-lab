@@ -8,8 +8,8 @@ import com.forcitis.one.organization.workforce.application.GetPrimaryAssignmentH
 import java.util.UUID;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -22,9 +22,9 @@ class PrimaryAssignmentController {
     }
 
     /** The primary assignment versions of one employee that are in force as facts (voided versions and empty same-day ranges left out), newest first; readable by whoever may read that employee. */
-    @GetMapping
+    @GetMapping("/{employeeId}")
     @PreAuthorize("hasAuthority('" + WorkforcePermissions.EMPLOYEE_READ + "')")
-    PrimaryAssignmentHistoryResponse list(@RequestParam UUID employeeId) {
+    PrimaryAssignmentHistoryResponse list(@PathVariable UUID employeeId) {
         return history.execute(new EmployeeId(employeeId)).map(PrimaryAssignmentHistoryResponse::of).orElseThrow(() -> new DomainException(
                 WorkforceError.ORGANIZATION_WORKFORCE_EMPLOYEE_NOT_FOUND, ErrorKind.NOT_FOUND, "no employee " + employeeId));
     }
