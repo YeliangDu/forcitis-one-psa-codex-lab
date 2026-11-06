@@ -148,7 +148,7 @@ class AttributionCountersignServiceTest {
                 null, null, null, null, null, E2, E1, E2, null, null, DRAFTER, NOW, null, 0, 0);
         when(commands.find(COMMAND)).thenReturn(Optional.of(pending));
         ApplyDueCommand due = new ApplyDueCommand(commands, new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(LegalEntityResolutionSources.class), requests,
-                countersigns, mock(OrgMergeProgress.class), mock(DomainEvents.class), ids, clock, zone);
+                countersigns, mock(OrgMergeProgress.class), mock(DomainEvents.class), ids, clock, zone, mock(EffectPublisher.class));
 
         due.execute(COMMAND);
 
@@ -189,7 +189,7 @@ class AttributionCountersignServiceTest {
                 ErrorKind.FORBIDDEN, "own")).when(ownGuard).requireNotOwn(any(), any());
         PersonnelCommandService personnel = new PersonnelCommandService(commands, mock(NewEmployees.class), new PersonnelPlans(ids), mock(SeparationHoldCheck.class),
                 mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), bases, requests, new OrgCountersignFreeze(mock(com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository.class)), countersigns, ownGuard, mock(OrgMergeProgress.class), effects, mock(AuditLog.class),
-                mock(DomainEvents.class), currentUser, ids, clock, zone);
+                mock(DomainEvents.class), currentUser, ids, clock, zone, mock(com.forcitis.one.organization.workforce.domain.ActingDutyRepository.class));
 
         assertThatThrownBy(() -> personnel.withdraw(new com.forcitis.one.organization.workforce.api.WithdrawPersonnelCommand(COMMAND, "plan changed")))
                 .isInstanceOf(DomainException.class);

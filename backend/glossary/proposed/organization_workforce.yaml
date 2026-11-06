@@ -851,3 +851,17 @@ terms:
   forbidden: []
   status: proposed
   note: 登记枚举常量 ENDED_EARLY 用词（#1536）
+- id: extend_acting_duty
+  zh: 代理延长
+  en: ExtendActingDuty
+  snake: extend_acting_duty
+  kind: command
+  bc: organization.workforce
+  scope: domain
+  definition: 将开放代理职务的截止日后移的人事命令种类；本切片仅登记 ACTING_EXTEND，行为由后续切片实现（#1566）
+  standard_ref:
+  - docs/data/reviews/workforce-acting-duty.md
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed

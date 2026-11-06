@@ -12,6 +12,7 @@ import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.TriggerFieldKind;
 import com.forcitis.one.organization.workforce.events.EmployeeCorrected;
 import com.forcitis.one.organization.workforce.events.EmployeeHired;
+import com.forcitis.one.organization.workforce.events.EmployeeActingDutyStarted;
 import com.forcitis.one.organization.workforce.events.EmployeeLegalEntityChanged;
 import com.forcitis.one.organization.workforce.events.EmployeeRegularized;
 import com.forcitis.one.organization.workforce.events.EmployeeReinstated;
@@ -96,6 +97,12 @@ final class PersonnelCommandEvents {
             }
         }
         return out;
+    }
+
+    static PendingEvent actingStarted(PersonnelCommand c, ActingDuty duty, @Nullable LegalEntityId legalEntity) {
+        return (envelopes, sequence) -> new EmployeeActingDutyStarted(envelopes.wrap(draft("EmployeeActingDutyStarted", c, legalEntity, sequence)),
+                c.id(), c.employeeId(), duty.id(), duty.coveredOrgUnitId(), duty.coveredPositionId(), duty.coveredEmployeeId(),
+                duty.startsOn(), duty.endsBefore(), duty.employmentRelationshipId());
     }
 
     private static PendingEvent started(PersonnelCommand c, @Nullable LegalEntityId legalEntity) {

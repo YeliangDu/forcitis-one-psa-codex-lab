@@ -7,6 +7,7 @@ import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.UserId;
 import com.forcitis.one.organization.workforce.api.AssignmentId;
+import com.forcitis.one.organization.workforce.api.ActingDutyId;
 import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
@@ -49,6 +50,12 @@ public final class PersonnelCommand extends AggregateRoot {
     private @Nullable LegalEntityId approvedNewLegalEntityId;
     private @Nullable AssignmentId targetAssignmentId;
     private @Nullable AssignmentKind targetAssignmentKind;
+    private final @Nullable OrgUnitId actingCoveredOrgUnitId;
+    private final @Nullable PositionId actingCoveredPositionId;
+    private final @Nullable EmployeeId actingCoveredEmployeeId;
+    private final @Nullable LocalDate actingEndsBeforeDate;
+    private final @Nullable ActingDutyId targetActingDutyId;
+    private final @Nullable String reason;
     private final UserId createdBy;
     private final Instant createdAt;
     private CommandStatus status;
@@ -64,7 +71,10 @@ public final class PersonnelCommand extends AggregateRoot {
                              @Nullable Boolean isTargetFeeEarner, @Nullable EmploymentPhaseKind targetEmploymentPhaseKind, @Nullable LegalEntityId targetLegalEntityId,
                              @Nullable LegalEntityId countersignPreviousLegalEntityId, @Nullable LegalEntityId countersignNewLegalEntityId,
                              @Nullable AssignmentId targetAssignmentId, @Nullable AssignmentKind targetAssignmentKind, UserId createdBy,
-                             Instant createdAt, @Nullable Instant appliedAt, long version, long eventSequence) {
+                             Instant createdAt, @Nullable Instant appliedAt, long version, long eventSequence,
+                             @Nullable OrgUnitId actingCoveredOrgUnitId, @Nullable PositionId actingCoveredPositionId,
+                             @Nullable EmployeeId actingCoveredEmployeeId, @Nullable LocalDate actingEndsBeforeDate,
+                             @Nullable ActingDutyId targetActingDutyId, @Nullable String reason) {
         super(version, eventSequence);
         this.id = Objects.requireNonNull(id, "id");
         this.employeeId = Objects.requireNonNull(employeeId, "employeeId");
@@ -84,6 +94,12 @@ public final class PersonnelCommand extends AggregateRoot {
         this.createdBy = Objects.requireNonNull(createdBy, "createdBy");
         this.createdAt = createdAt;
         this.appliedAt = appliedAt;
+        this.actingCoveredOrgUnitId = actingCoveredOrgUnitId;
+        this.actingCoveredPositionId = actingCoveredPositionId;
+        this.actingCoveredEmployeeId = actingCoveredEmployeeId;
+        this.actingEndsBeforeDate = actingEndsBeforeDate;
+        this.targetActingDutyId = targetActingDutyId;
+        this.reason = reason;
     }
 
     /**
@@ -113,7 +129,8 @@ public final class PersonnelCommand extends AggregateRoot {
         PersonnelCommand command = new PersonnelCommand(id, employee, kind, effective, status, request.targetOrgUnitId(),
                 request.targetPositionId(), request.targetReportsToEmployeeId(), request.isTargetFeeEarner(), request.targetEmploymentPhaseKind(),
                 request.targetLegalEntityId(), null, null, request.targetAssignmentId(), null, createdBy, now,
-                status == CommandStatus.EFFECTIVE ? now : null, 0, employeeEventSequence);
+                status == CommandStatus.EFFECTIVE ? now : null, 0, employeeEventSequence,
+                request.actingCoveredOrgUnitId(), request.actingCoveredPositionId(), request.actingCoveredEmployeeId(), request.actingEndsBeforeDate(), request.targetActingDutyId(), request.reason());
         command.requireShapeOfKind();
         if (request.employmentRelationshipId() != null) {
             command.bindTo(request.employmentRelationshipId());
@@ -129,9 +146,25 @@ public final class PersonnelCommand extends AggregateRoot {
                                            @Nullable LegalEntityId countersignNewLegalEntityId, @Nullable AssignmentId targetAssignmentId,
                                            @Nullable AssignmentKind targetAssignmentKind, UserId createdBy,
                                            Instant createdAt, @Nullable Instant appliedAt, long version, long employeeEventSequence) {
+        return restore(id, employeeId, kind, effectiveDate, status, targetOrgUnitId, targetPositionId, targetReportsToEmployeeId,
+                isTargetFeeEarner, targetEmploymentPhaseKind, targetLegalEntityId, countersignPreviousLegalEntityId, countersignNewLegalEntityId,
+                targetAssignmentId, targetAssignmentKind, createdBy, createdAt, appliedAt, version, employeeEventSequence, null, null, null, null, null, null);
+    }
+
+    /** A stored command including its acting-duty fields. */
+    public static PersonnelCommand restore(PersonnelCommandId id, EmployeeId employeeId, PersonnelCommandKind kind, LocalDate effectiveDate, CommandStatus status,
+                                           @Nullable OrgUnitId targetOrgUnitId, @Nullable PositionId targetPositionId, @Nullable EmployeeId targetReportsToEmployeeId,
+                                           @Nullable Boolean isTargetFeeEarner, @Nullable EmploymentPhaseKind targetEmploymentPhaseKind,
+                                           @Nullable LegalEntityId targetLegalEntityId, @Nullable LegalEntityId countersignPreviousLegalEntityId,
+                                           @Nullable LegalEntityId countersignNewLegalEntityId, @Nullable AssignmentId targetAssignmentId,
+                                           @Nullable AssignmentKind targetAssignmentKind, UserId createdBy,
+                                           Instant createdAt, @Nullable Instant appliedAt, long version, long employeeEventSequence,
+                                           @Nullable OrgUnitId actingCoveredOrgUnitId, @Nullable PositionId actingCoveredPositionId,
+                                           @Nullable EmployeeId actingCoveredEmployeeId, @Nullable LocalDate actingEndsBeforeDate,
+                                           @Nullable ActingDutyId targetActingDutyId, @Nullable String reason) {
         return new PersonnelCommand(id, employeeId, kind, effectiveDate, status, targetOrgUnitId, targetPositionId, targetReportsToEmployeeId, isTargetFeeEarner,
                 targetEmploymentPhaseKind, targetLegalEntityId, countersignPreviousLegalEntityId, countersignNewLegalEntityId, targetAssignmentId, targetAssignmentKind,
-                createdBy, createdAt, appliedAt, version, employeeEventSequence);
+                createdBy, createdAt, appliedAt, version, employeeEventSequence, actingCoveredOrgUnitId, actingCoveredPositionId, actingCoveredEmployeeId, actingEndsBeforeDate, targetActingDutyId, reason);
     }
 
     /**
@@ -166,6 +199,14 @@ public final class PersonnelCommand extends AggregateRoot {
 
     /** Stored columns that must hold for the kind (ck_personnel_commands_*_columns). */
     private void requireShapeOfKind() {
+        if (kind == PersonnelCommandKind.ACTING_END || kind == PersonnelCommandKind.ACTING_EXTEND) {
+            throw invalid("unsupported personnel command kind: " + kind);
+        }
+        if (kind == PersonnelCommandKind.ACTING_START) {
+            ActingDutyRules.requireStart(this);
+        } else if (count(actingCoveredOrgUnitId, actingCoveredPositionId, actingCoveredEmployeeId, actingEndsBeforeDate, targetActingDutyId, reason) != 0) {
+            throw invalid("only an acting command carries acting-duty fields or a reason");
+        }
         int targets = count(targetOrgUnitId, targetPositionId, targetReportsToEmployeeId, isTargetFeeEarner);
         switch (kind) {
             case HIRE, REINSTATE -> {
@@ -200,6 +241,11 @@ public final class PersonnelCommand extends AggregateRoot {
             case REGULARIZE, SEPARATE, UNPAID_LEAVE_START, UNPAID_LEAVE_END -> {
                 if (targets + count(targetEmploymentPhaseKind) > 0) {
                     throw invalid("a " + kind + " carries no target");
+                }
+            }
+            case ACTING_START, ACTING_END, ACTING_EXTEND -> {
+                if (targets + count(targetEmploymentPhaseKind, targetAssignmentId, targetLegalEntityId) != 0) {
+                    throw invalid("an acting command carries no assignment or attribution targets");
                 }
             }
             case CHANGE_LEGAL_ENTITY -> {
@@ -377,6 +423,11 @@ public final class PersonnelCommand extends AggregateRoot {
         withdrawalReason = reason;
     }
 
+    /** Records the duty fact created by this effective command, on the employee event stream. */
+    public void recordActingStarted(ActingDuty duty, @Nullable LegalEntityId legalEntity) {
+        record(PersonnelCommandEvents.actingStarted(this, duty, legalEntity));
+    }
+
     /**
      * Records the event of a command that took effect (nothing for unpaid leave, whose events are not named yet, contract question Q1).
      *
@@ -406,6 +457,30 @@ public final class PersonnelCommand extends AggregateRoot {
                         && history.relationship(o.employmentRelationshipId() == null ? rel : o.employmentRelationshipId())
                                 .map(r -> rel.equals(r.predecessorId())).orElse(false));
         return new PersonnelCommandEvents.PersonTransition(enters, leaves);
+    }
+
+    public @Nullable OrgUnitId actingCoveredOrgUnitId() {
+        return actingCoveredOrgUnitId;
+    }
+
+    public @Nullable PositionId actingCoveredPositionId() {
+        return actingCoveredPositionId;
+    }
+
+    public @Nullable EmployeeId actingCoveredEmployeeId() {
+        return actingCoveredEmployeeId;
+    }
+
+    public @Nullable LocalDate actingEndsBeforeDate() {
+        return actingEndsBeforeDate;
+    }
+
+    public @Nullable ActingDutyId targetActingDutyId() {
+        return targetActingDutyId;
+    }
+
+    public @Nullable String reason() {
+        return reason;
     }
 
     public PersonnelCommandId id() {

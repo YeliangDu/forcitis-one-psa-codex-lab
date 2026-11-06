@@ -26,6 +26,8 @@ import com.forcitis.one.organization.workforce.api.AttributionSubject;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersign;
 import com.forcitis.one.organization.workforce.domain.AttributionCountersignRepository;
 import com.forcitis.one.organization.workforce.domain.CommandStatus;
+import com.forcitis.one.organization.workforce.domain.ActingDutyRepository;
+import com.forcitis.one.organization.workforce.domain.ActingDutyRules;
 import com.forcitis.one.organization.workforce.api.CountersignRequestKind;
 import com.forcitis.one.organization.workforce.domain.HoldStatus;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolution;
@@ -71,6 +73,7 @@ class PersonnelCommandService implements PersonnelCommands {
     private static final String HOLD = "SeparationHold";
 
     private final PersonnelCommandRepository commands;
+    private final ActingDutyRepository duties;
     private final NewEmployees newEmployees;
     private final PersonnelPlans timelines;
     private final SeparationHoldCheck holdCheck;
@@ -93,8 +96,9 @@ class PersonnelCommandService implements PersonnelCommands {
     PersonnelCommandService(PersonnelCommandRepository commands, NewEmployees newEmployees, PersonnelPlans timelines, SeparationHoldCheck holdCheck, UnpaidLeaveStartFloor leaveFloor,
                             LegalEntityResolutionSources legalEntities, CountersignBases bases, CountersignRequests requests,
                             OrgCountersignFreeze freeze, AttributionCountersignRepository countersigns, OwnAttributionGuard ownGuard, OrgMergeProgress mergeProgress, EffectPublisher effects, AuditLog audit, DomainEvents events,
-                            CurrentUser currentUser, IdGenerator ids, Clock clock, BusinessZone zone) {
+                            CurrentUser currentUser, IdGenerator ids, Clock clock, BusinessZone zone, ActingDutyRepository duties) {
         this.commands = commands;
+        this.duties = duties;
         this.newEmployees = newEmployees;
         this.timelines = timelines;
         this.holdCheck = holdCheck;
@@ -162,6 +166,10 @@ class PersonnelCommandService implements PersonnelCommands {
         PersonnelHistory history = bindRelationship(command, request, all, employee, now);
         command.actOnPost(history, () -> commands.primaryRoot(employee, now));
         PersonnelCommandRules.check(command, history);
+        if (command.kind() == PersonnelCommandKind.ACTING_START) {
+            ActingDutyRules.requireAvailable(command, all, duties.findOverlap(employee, Objects.requireNonNull(command.actingCoveredOrgUnitId()),
+                    command.actingCoveredPositionId(), command.effectiveDate(), Objects.requireNonNull(command.actingEndsBeforeDate())));
+        }
         PersonnelCommandRules.requireOneCommandPerDay(command, all);
         PersonnelCommandRules.requirePrimaryNotOnEndingRelationship(command, all);
         PersonnelCommandRules.requireNoAwaitingOnOrBefore(command, all);
@@ -414,6 +422,11 @@ class PersonnelCommandService implements PersonnelCommands {
                 || command.targetReportsToEmployeeId() != null && !commands.employeeExists(command.targetReportsToEmployeeId())) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID, ErrorKind.UNPROCESSABLE,
                     "a department, position or manager the command names does not exist");
+        }
+        if (command.actingCoveredOrgUnitId() != null && !commands.orgUnitExists(command.actingCoveredOrgUnitId())
+                || command.actingCoveredPositionId() != null && !commands.positionExists(command.actingCoveredPositionId())
+                || command.actingCoveredEmployeeId() != null && !commands.employeeExists(command.actingCoveredEmployeeId())) {
+            throw invalid("a covered department, position or employee does not exist");
         }
         if (command.targetLegalEntityId() != null && !commands.legalEntityIsActive(command.targetLegalEntityId())) {
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_INVALID, ErrorKind.UNPROCESSABLE,

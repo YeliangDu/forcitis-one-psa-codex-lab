@@ -82,7 +82,7 @@ class SeparationLockOrderTest {
     @DisplayName("IMP-1030-PAR-B6 entering a separation takes the separation lock, then the merged units holding the person, before the employee row")
     void enteringLocksTheDecisionFirst() {
         PersonnelCommandService service = new PersonnelCommandService(commands, mock(NewEmployees.class), new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), mock(CountersignBases.class), mock(CountersignRequests.class), new OrgCountersignFreeze(mock(com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository.class)),
-                mock(AttributionCountersignRepository.class), mock(OwnAttributionGuard.class), mergeProgress, mock(EffectPublisher.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone);
+                mock(AttributionCountersignRepository.class), mock(OwnAttributionGuard.class), mergeProgress, mock(EffectPublisher.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone, mock(com.forcitis.one.organization.workforce.domain.ActingDutyRepository.class));
         when(commands.eventSequence(EMPLOYEE)).thenReturn(0L);
         when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), List.of(), List.of(), Map.of()));
 
@@ -99,7 +99,7 @@ class SeparationLockOrderTest {
     @DisplayName("IMP-1030-PAR-B6 withdrawing a held separation takes the separation lock before the employee row")
     void withdrawingLocksTheDecisionFirst() {
         PersonnelCommandService service = new PersonnelCommandService(commands, mock(NewEmployees.class), new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(UnpaidLeaveStartFloor.class), mock(LegalEntityResolutionSources.class), mock(CountersignBases.class), mock(CountersignRequests.class), new OrgCountersignFreeze(mock(com.forcitis.one.organization.workforce.domain.OrgStructureCommandRepository.class)),
-                mock(AttributionCountersignRepository.class), mock(OwnAttributionGuard.class), mergeProgress, mock(EffectPublisher.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone);
+                mock(AttributionCountersignRepository.class), mock(OwnAttributionGuard.class), mergeProgress, mock(EffectPublisher.class), mock(AuditLog.class), mock(DomainEvents.class), currentUser, ids, clock, zone, mock(com.forcitis.one.organization.workforce.domain.ActingDutyRepository.class));
         heldSeparation();
         when(commands.load(EMPLOYEE)).thenReturn(new PersonnelHistory(List.of(), List.of(), List.of(), List.of(), List.of(), Map.of()));
 
@@ -138,7 +138,7 @@ class SeparationLockOrderTest {
     @DisplayName("#933 the due-date step takes the separation lock before the employee row, whatever the kind of the command")
     void dueStepLocksTheDecisionFirst() {
         ApplyDueCommand due = new ApplyDueCommand(commands, new PersonnelPlans(ids), mock(SeparationHoldCheck.class), mock(LegalEntityResolutionSources.class), mock(CountersignRequests.class),
-                mock(AttributionCountersignRepository.class), mock(OrgMergeProgress.class), mock(DomainEvents.class), ids, clock, zone);
+                mock(AttributionCountersignRepository.class), mock(OrgMergeProgress.class), mock(DomainEvents.class), ids, clock, zone, mock(EffectPublisher.class));
         PersonnelCommand pending = PersonnelCommand.restore(COMMAND, EMPLOYEE, PersonnelCommandKind.REGULARIZE, LocalDate.of(2026, 11, 2), CommandStatus.PENDING,
                 null, null, null, null, null, null, null, null, null, null, USER, NOW, null, 0, 0);
         when(commands.find(COMMAND)).thenReturn(java.util.Optional.of(pending));

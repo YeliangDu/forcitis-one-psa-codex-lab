@@ -54,6 +54,7 @@ public class ApplyDueCommand {
     private static final String HOLD = "SeparationHold";
 
     private final PersonnelCommandRepository commands;
+    private final EffectPublisher effects;
     private final PersonnelPlans timelines;
     private final SeparationHoldCheck holdCheck;
     private final LegalEntityResolutionSources legalEntities;
@@ -66,8 +67,9 @@ public class ApplyDueCommand {
     private final BusinessZone zone;
 
     ApplyDueCommand(PersonnelCommandRepository commands, PersonnelPlans timelines, SeparationHoldCheck holdCheck,
-                    LegalEntityResolutionSources legalEntities, CountersignRequests countersignRequests, AttributionCountersignRepository countersigns, OrgMergeProgress mergeProgress, DomainEvents events, IdGenerator ids, Clock clock, BusinessZone zone) {
+                    LegalEntityResolutionSources legalEntities, CountersignRequests countersignRequests, AttributionCountersignRepository countersigns, OrgMergeProgress mergeProgress, DomainEvents events, IdGenerator ids, Clock clock, BusinessZone zone, EffectPublisher effects) {
         this.commands = commands;
+        this.effects = effects;
         this.timelines = timelines;
         this.holdCheck = holdCheck;
         this.legalEntities = legalEntities;
@@ -116,6 +118,10 @@ public class ApplyDueCommand {
             // The day has come: the versions are in force, so a withdrawal still awaiting its countersign lapses (user answer Q2 of 2026-10-30).
             if (command.countersignNewLegalEntityId() != null) {
                 countersignRequests.lapse(command, countersigns.lockOfCommand(command.id()), ActorType.SYSTEM, actor, now, today, WorkContext.correlationId().orElseGet(ids::next));
+            }
+            if (command.kind() == PersonnelCommandKind.ACTING_START) {
+                effects.publish(command, commands.load(command.employeeId()), today);
+                return;
             }
             // As at the entry: a separation's envelope names the entity of the last day employed, any other command the entity of its effective day.
             LocalDate entityDay = command.kind() == PersonnelCommandKind.SEPARATE ? command.effectiveDate().minusDays(1) : command.effectiveDate();

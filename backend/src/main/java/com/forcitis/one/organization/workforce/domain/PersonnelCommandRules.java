@@ -55,7 +55,7 @@ public final class PersonnelCommandRules {
 
     /** The commands the per-employee rule always counted: not the start of a concurrent post, nor a command on one (a correction counts: it can wait for a countersign). */
     private static boolean countsPerDay(PersonnelCommand c) {
-        return c.kind() != PersonnelCommandKind.START_CONCURRENT && c.targetAssignmentKind() != AssignmentKind.CONCURRENT;
+        return !ActingDutyRules.isActing(c.kind()) && c.kind() != PersonnelCommandKind.START_CONCURRENT && c.targetAssignmentKind() != AssignmentKind.CONCURRENT;
     }
 
     /** A transfer or correction of the primary post, or a hire or reinstatement that carries a post, writes a version of the primary post. */
@@ -160,7 +160,7 @@ public final class PersonnelCommandRules {
     private static final Object PERSON = new Object();
 
     private static @Nullable Object dayBucket(PersonnelCommand command) {
-        if (command.kind() == PersonnelCommandKind.START_CONCURRENT) {
+        if (command.kind() == PersonnelCommandKind.START_CONCURRENT || ActingDutyRules.isActing(command.kind())) {
             return null;
         }
         return command.targetAssignmentKind() == AssignmentKind.CONCURRENT ? command.targetAssignmentId() : PERSON;

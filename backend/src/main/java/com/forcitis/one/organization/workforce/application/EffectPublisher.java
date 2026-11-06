@@ -1,6 +1,10 @@
 package com.forcitis.one.organization.workforce.application;
 
 import com.forcitis.one.kernel.LegalEntityId;
+import com.forcitis.one.kernel.IdGenerator;
+import com.forcitis.one.organization.workforce.api.ActingDutyId;
+import com.forcitis.one.organization.workforce.domain.ActingDuty;
+import com.forcitis.one.organization.workforce.domain.ActingDutyRepository;
 import com.forcitis.one.kernel.event.DomainEvents;
 import com.forcitis.one.organization.workforce.api.PersonnelCommandKind;
 import com.forcitis.one.organization.workforce.domain.LegalEntityResolution;
@@ -10,6 +14,7 @@ import com.forcitis.one.organization.workforce.domain.PersonnelCommandRepository
 import com.forcitis.one.organization.workforce.domain.PersonnelHistory;
 import com.forcitis.one.organization.workforce.domain.VersionRow;
 import java.time.LocalDate;
+import java.time.Clock;
 import org.springframework.stereotype.Component;
 
 /**
@@ -21,11 +26,17 @@ class EffectPublisher {
     private final PersonnelCommandRepository commands;
     private final LegalEntityResolutionSources legalEntities;
     private final DomainEvents events;
+    private final ActingDutyRepository duties;
+    private final IdGenerator ids;
+    private final Clock clock;
 
-    EffectPublisher(PersonnelCommandRepository commands, LegalEntityResolutionSources legalEntities, DomainEvents events) {
+    EffectPublisher(PersonnelCommandRepository commands, LegalEntityResolutionSources legalEntities, DomainEvents events, ActingDutyRepository duties, IdGenerator ids, Clock clock) {
         this.commands = commands;
         this.legalEntities = legalEntities;
         this.events = events;
+        this.duties = duties;
+        this.ids = ids;
+        this.clock = clock;
     }
 
     /**
@@ -39,7 +50,13 @@ class EffectPublisher {
         // A separation's envelope names the entity of the last day the employee was employed: on the effective day itself the assignment has just ended.
         LocalDate entityDay = command.kind() == PersonnelCommandKind.SEPARATE ? command.effectiveDate().minusDays(1) : command.effectiveDate();
         LegalEntityId legalEntity = LegalEntityResolution.resolve(legalEntities, command.employeeId(), entityDay).orElse(null);
-        command.recordEffect(assignmentBefore, assignmentAfter, legalEntity, commands.load(command.employeeId()));
+        if (command.kind() == PersonnelCommandKind.ACTING_START) {
+            ActingDuty duty = ActingDuty.start(new ActingDutyId(ids.next()), command, clock.instant());
+            duties.insert(duty);
+            command.recordActingStarted(duty, legalEntity);
+        } else {
+            command.recordEffect(assignmentBefore, assignmentAfter, legalEntity, commands.load(command.employeeId()));
+        }
         if (command.hasPendingEvents()) {
             events.publish(command);
             commands.saveEventSequence(command.employeeId(), command.eventSequenceAfterSave());
