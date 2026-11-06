@@ -35,8 +35,11 @@ class Approvals {
     private final BusinessTime time;
     private final IdGenerator ids;
     private final RegisteredDocumentTypes documentTypes;
+    private final NodeShares shares;
 
-    Approvals(ApprovalRequestRepository requests, ApprovalEngine engine, DomainEvents events, BusinessTime time, IdGenerator ids, RegisteredDocumentTypes documentTypes) {
+    Approvals(ApprovalRequestRepository requests, ApprovalEngine engine, DomainEvents events, BusinessTime time, IdGenerator ids, RegisteredDocumentTypes documentTypes,
+            NodeShares shares) {
+        this.shares = shares;
         this.documentTypes = documentTypes;
         this.ids = ids;
         this.requests = requests;
@@ -88,6 +91,14 @@ class Approvals {
                 throw ApprovalError.PLATFORM_APPROVAL_DOCUMENT_TYPE_UNREGISTERED.refusal(unregistered.getMessage());
             }
             throw unregistered;
+        }
+    }
+
+    /** Whoever takes a task of a node, by claiming it or by deciding it unclaimed, does not already hold or decide another task of that node (#1546). */
+    void requireOneTaskOfNode(ApprovalRequest request, TaskView view, UserId actor) {
+        if (shares.takenElsewhere(request, view, actor)) {
+            throw ApprovalError.PLATFORM_APPROVAL_NODE_TASK_DUPLICATE.refusal("Task " + view.taskId().value()
+                    + " cannot be taken by somebody who already has another task of node " + view.nodeKey());
         }
     }
 

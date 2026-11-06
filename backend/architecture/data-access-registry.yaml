@@ -884,6 +884,16 @@ tables:
     retention: {policy: PERMANENT}
     lineage: {source: NEW}
     writers: []  # L1a has no Java SQL; register the writer with the command slice
+  # #1440 G1, signed record docs/data/reviews/accounting-spine-g1.md.
+  accounting_ledger.ledgers:
+    # PERMANENT by user answer 2026-11-05 to spec question Q-8 (accounting records, statutory minimum 30 years, ADR-0022 decision 9, ADR-0043 R-2); no personal information.
+    role: AGGREGATE_ROOT
+    aggregate: Ledger
+    mutability: APPEND_ONLY
+    business_key: [legal_entity_id, basis_kind]
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: [accounting.ledger]
   # #1450 R1, signed record docs/data/reviews/organization-recruitment-r1.md.
   organization_recruitment.recruitment_requisitions:
     # PERMANENT by user decision 2026-11-05-163008 (docs/decisions/2026-11-05-163008-one-lead-B-2-a.md, ADR-0043 R-2): tens of rows a year; the requester id is staff identity that the audit trail and the employee history keep permanently in any case, so a shorter limit on this table removes nothing from those; the description is limited to the position need. The reason text moves into a registry field once DG-0 adds it.

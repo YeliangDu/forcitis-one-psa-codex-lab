@@ -8,7 +8,7 @@ import java.util.OptionalLong;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Claiming a task one already holds is a harmless repeat; one somebody else holds is refused. */
+/** Claiming a task one already holds is a harmless repeat; one somebody else holds is refused (so is a claimant with another task of the node, #1546). */
 @Service
 public class ClaimTask {
 
@@ -32,6 +32,7 @@ public class ClaimTask {
         if (current.isClaimed()) {
             return;
         }
+        approvals.requireOneTaskOfNode(request, current, actor);
         approvals.claim(request, current, actor);
         approvals.save(request);
     }

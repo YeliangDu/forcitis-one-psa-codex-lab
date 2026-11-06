@@ -33,7 +33,7 @@ class ApprovalsDocumentTypeTest {
 
     private final RegisteredDocumentTypes registered = mock(RegisteredDocumentTypes.class);
     private final com.forcitis.one.platform.approval.domain.ApprovalEngine engine = mock(com.forcitis.one.platform.approval.domain.ApprovalEngine.class);
-    private final Approvals approvals = new Approvals(null, engine, null, null, null, registered);
+    private final Approvals approvals = new Approvals(null, engine, null, null, null, registered, null);
 
     {
         org.mockito.Mockito.when(engine.documentTypeOf(TimesheetApprovalProcess.KEY)).thenReturn(new DocumentTypeCode("TIMESHEET"));

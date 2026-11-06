@@ -6,6 +6,8 @@
 # R-1b P2 (ADR-0033 section 3): kernel.AccountEmployees is implemented by platform.identity; a controller of a module without an edge to identity takes the caller as a UserId parameter that identity resolves.
 # R-1b P3b (RULING-P3B-9): kernel.ExternalSubjectEmployees is asked by platform.integration (the read-only operations command find-accounts-by-external-subject looks up the snapshot employees by an external subject) and implemented by organization.workforce; platform.integration -> organization.workforce would close a cycle. Expires with C1 (federated identity): once C1 lands the port is deleted or reshaped after its identity model, and this line with it (reviewed again at DA-3).
 # REG-1 (ADR-0066 decision 4): platform.approval -> platform.numbering only for platform.numbering.api.DocumentTypes, the write-time check of a document type code (no foreign key across schemas).
+# G1 (#1440, accounting-spine.md section 6): books are created from the workforce LegalEntityRegistered event and backfilled through the legal entity directory (api); nothing points to accounting.ledger yet.
+accounting.ledger -> organization.workforce
 # #1439 (accounting-spine.md section 6): accounting.period asks the legal-entity lookup through kernel.KnownLegalEntities (a kernel port, so no edge to its implementer) and writes its audit record through platform.audit.
 accounting.period -> platform.audit
 cost.timesheet -> organization.workforce, platform.approval, platform.identity, platform.numbering
