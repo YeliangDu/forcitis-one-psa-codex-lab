@@ -366,6 +366,16 @@ channels:
     messages:
       EmployeeCorrected:
         $ref: '#/components/messages/EmployeeCorrected'
+  employeeActingDutyStarted:
+    address: organization.workforce.EmployeeActingDutyStarted
+    messages:
+      EmployeeActingDutyStarted:
+        $ref: '#/components/messages/EmployeeActingDutyStarted'
+  employeeActingDutyEnded:
+    address: organization.workforce.EmployeeActingDutyEnded
+    messages:
+      EmployeeActingDutyEnded:
+        $ref: '#/components/messages/EmployeeActingDutyEnded'
   employmentRelationshipStarted:
     address: organization.workforce.EmploymentRelationshipStarted
     messages:
@@ -1532,6 +1542,34 @@ operations:
     summary: platform.identity 消费
     messages:
     - $ref: '#/channels/employeeCorrected/messages/EmployeeCorrected'
+  publishEmployeeActingDutyStarted:
+    action: send
+    channel:
+      $ref: '#/channels/employeeActingDutyStarted'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/employeeActingDutyStarted/messages/EmployeeActingDutyStarted'
+  handleEmployeeActingDutyStartedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeActingDutyStarted'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/employeeActingDutyStarted/messages/EmployeeActingDutyStarted'
+  publishEmployeeActingDutyEnded:
+    action: send
+    channel:
+      $ref: '#/channels/employeeActingDutyEnded'
+    summary: organization.workforce 发布
+    messages:
+    - $ref: '#/channels/employeeActingDutyEnded/messages/EmployeeActingDutyEnded'
+  handleEmployeeActingDutyEndedInPlatformAudit:
+    action: receive
+    channel:
+      $ref: '#/channels/employeeActingDutyEnded'
+    summary: platform.audit 消费
+    messages:
+    - $ref: '#/channels/employeeActingDutyEnded/messages/EmployeeActingDutyEnded'
   publishEmploymentRelationshipStarted:
     action: send
     channel:
@@ -5705,6 +5743,171 @@ components:
             x-type: PositionId
             nullable: true
             description: 更正后截至今天的岗位；没改岗位时与更正前相同，没有任职或未设岗位时为空
+          employmentRelationshipId:
+            type: string
+            format: uuid
+            x-type: EmploymentRelationshipId
+            description: 事件所属的雇佣关系 ID（ADR-0086）
+    EmployeeActingDutyStarted:
+      name: EmployeeActingDutyStarted
+      title: 员工代理任职已生效
+      description: 代理开始命令生效时发布（数据设计 docs/data/reviews/workforce-acting-duty.md）。信封以员工为聚合（aggregateId 为代理人的员工 ID），businessDate 为代理开始日，occurredAt 为命令生效落地时刻；endsBefore 为开始时的截止日，之后的延长不再发布事件。负载只含 ID 与日期，不含姓名和事由。
+      x-event:
+        eventType: organization.workforce.EmployeeActingDutyStarted
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.EmployeeActingDutyStarted
+        aggregate: Employee
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 代理开始日（startsOn）：开始命令的生效日
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
+        noConsumer: 暂无消费方：platform.identity 在 Q-A1 之后的身份切片订阅（订阅后把它加进 consumers）；先登记，是因为事件只在代理开始或结束时发布，漏发补不回（同 EmployeeTransferred）
+      payload:
+        type: object
+        required:
+        - envelope
+        - personnelCommandId
+        - employeeId
+        - actingDutyId
+        - coveredOrgUnitId
+        - coveredPositionId
+        - coveredEmployeeId
+        - startsOn
+        - endsBefore
+        - employmentRelationshipId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          personnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            description: 触发本事件的人事命令 ID（UUIDv7）
+          employeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 代理人的员工 ID，与信封的 aggregateId 相同
+          actingDutyId:
+            type: string
+            format: uuid
+            x-type: ActingDutyId
+            description: 代理任职 ID
+          coveredOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 代理所覆盖的部门 ID
+          coveredPositionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            nullable: true
+            description: 代理所覆盖的岗位 ID；未指定岗位时为空，表示代理该部门负责人
+          coveredEmployeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            nullable: true
+            description: 被代理的人（休假的上级等）；未指定时为空
+          startsOn:
+            type: string
+            x-type: LocalDate
+            description: 代理开始日（DECLARED）：含当天
+          endsBefore:
+            type: string
+            x-type: LocalDate
+            description: 开始时的代理截止日（不含当天）
+          employmentRelationshipId:
+            type: string
+            format: uuid
+            x-type: EmploymentRelationshipId
+            description: 事件所属的雇佣关系 ID（ADR-0086）
+    EmployeeActingDutyEnded:
+      name: EmployeeActingDutyEnded
+      title: 员工代理任职已结束
+      description: 一次代理任职结束时发布一次：到期、提前结束或代理人离职。信封以员工为聚合（aggregateId 为代理人的员工 ID），businessDate 为结束日，occurredAt 为结束落地时刻；到期由定时任务关闭、没有人事命令，故 personnelCommandId 为空。负载只含 ID、日期与结束原因，不含姓名和事由。
+      x-event:
+        eventType: organization.workforce.EmployeeActingDutyEnded
+        version: 1
+        class: com.forcitis.one.organization.workforce.events.EmployeeActingDutyEnded
+        aggregate: Employee
+        idempotencyKey: eventId
+        publisher: organization.workforce
+        consumers:
+        - platform.audit
+        delivery: 至少一次：与业务写入同事务交给 Spring Modulith 事件发布登记表，提交后投递，未完成的按固定间隔重投；消费方按 eventId 幂等
+        formsFact: false
+        businessDate: 代理结束日（endedOn）：到期为截止日，提前结束和离职为命令生效日
+        audit: audited
+        publisherTest: com.forcitis.one.organization.workforce.domain.PersonnelCommandEventsTest
+        noConsumer: 暂无消费方：platform.identity 在 Q-A1 之后的身份切片订阅（订阅后把它加进 consumers）；先登记，是因为事件只在代理开始或结束时发布，漏发补不回（同 EmployeeTransferred）
+      payload:
+        type: object
+        required:
+        - envelope
+        - personnelCommandId
+        - employeeId
+        - actingDutyId
+        - coveredOrgUnitId
+        - coveredPositionId
+        - coveredEmployeeId
+        - endedOn
+        - endCause
+        - employmentRelationshipId
+        properties:
+          envelope:
+            $ref: '#/components/schemas/EventEnvelope'
+          personnelCommandId:
+            type: string
+            format: uuid
+            x-type: PersonnelCommandId
+            nullable: true
+            description: 提前结束命令或离职命令的 ID；到期结束时为空
+          employeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            description: 代理人的员工 ID，与信封的 aggregateId 相同
+          actingDutyId:
+            type: string
+            format: uuid
+            x-type: ActingDutyId
+            description: 代理任职 ID
+          coveredOrgUnitId:
+            type: string
+            format: uuid
+            x-type: OrgUnitId
+            description: 代理所覆盖的部门 ID
+          coveredPositionId:
+            type: string
+            format: uuid
+            x-type: PositionId
+            nullable: true
+            description: 代理所覆盖的岗位 ID；未指定岗位时为空，表示代理该部门负责人
+          coveredEmployeeId:
+            type: string
+            format: uuid
+            x-type: EmployeeId
+            nullable: true
+            description: 被代理的人（休假的上级等）；未指定时为空
+          endedOn:
+            type: string
+            x-type: LocalDate
+            description: 代理结束日（DECLARED）：不含当天，即代理不再有效的第一天
+          endCause:
+            type: string
+            enum:
+            - EXPIRED
+            - ENDED_EARLY
+            - SEPARATION
+            x-type: ActingDutyEndCause
+            description: 结束原因：EXPIRED 到期 / ENDED_EARLY 提前结束 / SEPARATION 代理人离职
           employmentRelationshipId:
             type: string
             format: uuid

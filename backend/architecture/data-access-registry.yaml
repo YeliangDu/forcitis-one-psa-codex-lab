@@ -237,6 +237,19 @@ tables:
     retention: {policy: PERMANENT}  # 个人任职史随员工清除：离职满 10 年由 purge_employee_history 删除（W2 第 8 节，清理作业另批）
     lineage: {source: NEW}
     writers: [organization.workforce]
+  # #1536 (acting duty, data design docs/data/reviews/workforce-acting-duty.md): a dated stretch of standing in for a unit or a post; created by the ACTING_START effect, closed by expiry, early end or separation.
+  organization_workforce.acting_duties:
+    role: AGGREGATE_CHILD
+    aggregate: Employee
+    mutability: CONDITIONAL_UPDATE
+    condition: 只放行开放行的插入；已关闭的行不再变；开放行只能改截止日（只增不减）与结束日、结束原因、更新时刻、版本，关闭时截止日不变；DELETE 只放行表属主；同一覆盖对象的区间不重叠由排除约束 ex_acting_duties_unit_head_overlap 与 ex_acting_duties_position_overlap 保证（触发器 tg_acting_duties_change，#1525 数据设计）
+    business_key: [acting_duty_id]
+    retention: {policy: PERMANENT}  # 个人任职史随员工清除：离职满 10 年由 purge_employee_history 一并删除（W2 第 8 节，清理作业另批）
+    lineage: {source: NEW}
+    references: {employment_relationship_id: organization_workforce.employment_relationships, covered_org_unit_id: organization_workforce.org_units, covered_position_id: organization_workforce.positions, covered_employee_id: organization_workforce.employees, source_personnel_command_id: organization_workforce.personnel_commands}
+    fk_exceptions:
+      employee_id: carried by the composite foreign key fk_acting_duties_relationship (employment_relationship_id, employee_id), which also pins it to the relationship's employee
+    writers: []  # the writer (the ACTING_START effect, #1525 slice 2) lands in the next card; set organization.workforce there
   organization_workforce.attribution_countersigns:
     role: AGGREGATE_CHILD
     aggregate: Employee

@@ -141,6 +141,8 @@ aggregates:
   - ApplyRequisitionApprovalResult
   - CloseRequisition
   - GetRequisition
+  - ListApprovableRequisitions
+  - ListRequestedRequisitions
   - ListRequisitions
   - RequisitionView
   - SubmitRequisition
@@ -161,6 +163,8 @@ aggregates:
   events:
   - organization.workforce.EmployeeLegalEntityChanged
   events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged
@@ -214,6 +218,8 @@ aggregates:
   - organization.workforce.LegalEntityRegistered
   - organization.workforce.LegalEntityRenamed
   events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged
@@ -267,6 +273,8 @@ aggregates:
   - organization.workforce.LegalEntityAttributionCorrected
   - organization.workforce.LegalEntityAttributionEnded
   events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged
@@ -325,6 +333,8 @@ aggregates:
   - PreviewMergeAttribution
   events: []
   events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged
@@ -382,6 +392,8 @@ aggregates:
   - UnpaidLeaveStartNotice
   events: []
   events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged
