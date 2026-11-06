@@ -126,7 +126,6 @@ ALTER TABLE organization_workforce.personnel_commands
     ADD CONSTRAINT fk_personnel_commands_target_acting_duty FOREIGN KEY (target_acting_duty_id, employee_id)
         REFERENCES organization_workforce.acting_duties (acting_duty_id, employee_id) ON DELETE RESTRICT,
     ADD CONSTRAINT ck_personnel_commands_reason CHECK (reason IS NULL OR (char_length(reason) BETWEEN 1 AND 500 AND btrim(reason) <> '')),
-    ADD CONSTRAINT ck_personnel_commands_acting_position_unit CHECK (acting_covered_position_id IS NULL OR acting_covered_org_unit_id IS NOT NULL),
     ADD CONSTRAINT ck_personnel_commands_acting_not_self CHECK (acting_covered_employee_id IS DISTINCT FROM employee_id),
     ADD CONSTRAINT ck_personnel_commands_acting_no_assignment_targets CHECK (command_kind NOT IN ('ACTING_START', 'ACTING_END', 'ACTING_EXTEND')
         OR num_nonnulls(target_org_unit_id, target_position_id, target_reports_to_employee_id, is_target_fee_earner, target_employment_phase_kind,

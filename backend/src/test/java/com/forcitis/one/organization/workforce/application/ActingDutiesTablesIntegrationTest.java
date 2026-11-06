@@ -193,7 +193,7 @@ class ActingDutiesTablesIntegrationTest extends WorkforceIntegrationSupport {
                 + " :ended, 'EXPIRED', 'x', :command, now(), gen_random_uuid(), now() from " + COMMANDS + " where personnel_command_id = :command")
                 .param("unit", unit).param("s", START).param("e", END).param("ended", END).param("command", command).update()).hasMessageContaining("inserted open");
         duty(who, unit, null, START, END);
-        assertThatThrownBy(() -> jdbc.sql("truncate table " + DUTIES + " cascade").update()).hasMessageContaining("truncate on");
+        assertThatThrownBy(() -> jdbc.sql("truncate table " + DUTIES + " cascade").update()).hasMessageContaining("acting duties cannot be truncated");
         try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
             statement.execute("do $$ begin if not exists (select 1 from pg_roles where rolname = 'acting_duty_reader') then create role acting_duty_reader; end if; end $$");
             statement.execute("grant usage on schema organization_workforce to acting_duty_reader");
@@ -275,9 +275,11 @@ class ActingDutiesTablesIntegrationTest extends WorkforceIntegrationSupport {
 
         command(who, "ACTING_START", "PENDING", day, "acting_covered_org_unit_id", "'" + unit + "'", "acting_ends_before_date", "date '2027-01-20'", "reason", "'x'");
         assertThatThrownBy(() -> command(who, "ACTING_START", "PENDING", day, "acting_covered_org_unit_id", "'" + unit + "'", "acting_ends_before_date", "date '2027-01-25'", "reason", "'y'"))
-                .hasMessageContaining("uk_personnel_commands_open_acting_start");
+                .hasMessageContaining("uk_personnel_commands_open_acting_start_unit");
         command(who, "ACTING_START", "PENDING", day, "acting_covered_org_unit_id", "'" + unit + "'", "acting_covered_position_id", "'" + who.position() + "'",
                 "acting_ends_before_date", "date '2027-01-25'", "reason", "'other post'");
+        assertThatThrownBy(() -> command(who, "ACTING_START", "PENDING", day, "acting_covered_org_unit_id", "'" + unit + "'", "acting_covered_position_id", "'" + who.position() + "'",
+                "acting_ends_before_date", "date '2027-01-30'", "reason", "'again'")).hasMessageContaining("uk_personnel_commands_open_acting_start_position");
     }
 
     /** A command of the person; the extra arguments are column / value pairs (SQL literals) added to the base columns. */
