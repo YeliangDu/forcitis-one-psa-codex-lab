@@ -124,22 +124,17 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         }
     }
 
-    /** Names the body field that could not be read (property names only, never the value: values can be personal data). */
-    @Override
-    protected ResponseEntity<Object> handleHttpMessageNotReadable(HttpMessageNotReadableException failure, HttpHeaders headers,
-                                                                  HttpStatusCode status, WebRequest request) {
-        String field = failure.getCause() instanceof tools.jackson.databind.DatabindException databind
-                ? databind.getPath().stream().map(ref -> ref.getPropertyName() != null ? ref.getPropertyName() : "[" + ref.getIndex() + "]")
-                        .collect(java.util.stream.Collectors.joining(".")).replace(".[", "[")
-                : "";
-        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, field.isEmpty() ? "Failed to read request" : "Failed to read request: field " + field);
-        return handleExceptionInternal(failure, problem, headers, status, request);
-    }
-
     @Override
     protected ResponseEntity<Object> handleExceptionInternal(Exception failure, Object body, HttpHeaders headers,
                                                              HttpStatusCode status, WebRequest request) {
         ProblemDetail problem = body instanceof ProblemDetail given ? given : ProblemDetail.forStatus(status);
+        if (failure instanceof HttpMessageNotReadableException unreadable && unreadable.getCause() instanceof tools.jackson.databind.DatabindException databind) {
+            String field = databind.getPath().stream().map(ref -> ref.getPropertyName() != null ? ref.getPropertyName() : "[" + ref.getIndex() + "]")
+                    .collect(java.util.stream.Collectors.joining(".")).replace(".[", "[");
+            if (!field.isEmpty()) {
+                problem.setDetail("Failed to read request: field " + field); // property names only, never the value
+            }
+        }
         problem.setType(java.net.URI.create(ProblemDetails.TYPE_PREFIX + WebError.PLATFORM_WEB_REQUEST_INVALID.code()));
         problem.setProperty("errorCode", WebError.PLATFORM_WEB_REQUEST_INVALID.code());
         com.forcitis.one.kernel.WorkContext.correlationId().ifPresent(id -> problem.setProperty("correlationId", id.toString()));
