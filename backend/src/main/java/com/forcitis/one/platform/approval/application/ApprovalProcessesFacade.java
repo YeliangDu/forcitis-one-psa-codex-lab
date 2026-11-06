@@ -10,6 +10,8 @@ import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RetractionResult;
 import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
 
@@ -42,6 +44,11 @@ class ApprovalProcessesFacade implements ApprovalProcesses {
     @Override
     public boolean isFinished(ApprovalInstanceId instance) {
         return !engine.isRunning(instance);
+    }
+
+    @Override
+    public Map<String, List<String>> formFields(ApprovalInstanceId instance) {
+        return engine.submittedFormFields(instance);
     }
 
     @Override
