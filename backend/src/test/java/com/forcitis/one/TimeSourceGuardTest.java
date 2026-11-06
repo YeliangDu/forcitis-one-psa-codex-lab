@@ -14,7 +14,10 @@ import com.tngtech.archunit.core.domain.JavaCodeUnitAccess;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
+import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
+import com.tngtech.archunit.lang.ConditionEvents;
+import com.tngtech.archunit.lang.SimpleConditionEvent;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,8 +45,8 @@ class TimeSourceGuardTest {
     static final Path MAIN = Path.of("src/main/java");
     static final Path SQL_EXCEPTIONS = Path.of("architecture/sql-database-clock-exceptions.txt");
 
-    static final DescribedPredicate<JavaMethodCall> ASKS_THE_MACHINE = DescribedPredicate.describe(
-            "asks the machine for the time (java.time now(...), Clock.system*, System.currentTimeMillis)", call -> {
+    static final DescribedPredicate<JavaCodeUnitAccess<?>> ASKS_THE_MACHINE = DescribedPredicate.describe(
+            "asks the machine for the time (java.time now(...), Clock.system*, System.currentTimeMillis), by a call or a method reference", call -> {
                 String owner = call.getTargetOwner().getName();
                 String method = call.getName();
                 return (owner.startsWith("java.time.") && method.equals("now"))
@@ -51,10 +54,20 @@ class TimeSourceGuardTest {
                         || (owner.equals("java.lang.System") && method.equals("currentTimeMillis"));
             });
 
+    /** A call and a method reference (Clock::systemUTC) both ask: callMethodWhere alone sees only the calls. */
+    static final ArchCondition<JavaClass> ASK_THE_MACHINE = new ArchCondition<>("call or reference a method that asks the machine for the time") {
+        @Override
+        public void check(JavaClass holder, ConditionEvents events) {
+            Stream.<JavaCodeUnitAccess<?>>concat(holder.getMethodCallsFromSelf().stream(), holder.getMethodReferencesFromSelf().stream())
+                    .filter(ASKS_THE_MACHINE)
+                    .forEach(access -> events.add(SimpleConditionEvent.satisfied(access, access.getDescription())));
+        }
+    };
+
     /** KernelConfiguration builds the one system Clock that everything else is handed. */
     static ArchRule noAmbientTime() {
         return noClasses().that().doNotHaveFullyQualifiedName(CLOCK_BUILDER).and().doNotHaveFullyQualifiedName(SESSION_STORE_CLOCK)
-                .should().callMethodWhere(ASKS_THE_MACHINE)
+                .should(ASK_THE_MACHINE)
                 .because(GuardMessage.of("G25",
                         "a class asks the machine for the time (java.time now(), Clock.system*, System.currentTimeMillis)",
                         "take the instant from the injected java.time.Clock (application passes the instant or business day into domain); only KernelConfiguration builds the system Clock"));
@@ -73,7 +86,8 @@ class TimeSourceGuardTest {
 
         List<String> details = noAmbientTime().evaluate(samples).getFailureReport().getDetails();
 
-        assertThat(details).hasSize(10);
+        assertThat(details).hasSize(11);
+        assertThat(details).as("a method reference").anyMatch(d -> d.contains("AmbientTimeSample") && d.contains("referenc") && d.contains("Clock.systemUTC"));
         assertThat(details).anyMatch(d -> d.contains("AmbientTimeWebSample"));
         for (String call : List.of("ZonedDateTime.now", "OffsetDateTime.now", "LocalDateTime.now", "LocalDate.now", "Instant.now", "Clock.systemUTC",
                 "Clock.systemDefaultZone", "System.currentTimeMillis")) {
