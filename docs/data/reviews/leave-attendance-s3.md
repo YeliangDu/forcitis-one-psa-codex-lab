@@ -14,10 +14,10 @@ Not signed (separate gate runs): any table of overtime, comp time, carry-over, y
 
 | Table | Source | Aggregate | Registry role |
 |---|---|---|---|
-| `leave_policy_grants` (new) | proposal 4.1: one confirmed grant decision of a quantity to one relationship's account | `LeaveAccount` (child of the year account, the ledger's source of a `POLICY_GRANT` line) | `AGGREGATE_CHILD`, `APPEND_ONLY` |
+| `leave_policy_grants` (new) | proposal 4.1: one confirmed grant decision of a quantity to one relationship's account | `LeaveBalanceAccount` (child of the year account, the ledger's source of a `POLICY_GRANT` line) | `AGGREGATE_CHILD`, `APPEND_ONLY` |
 | `leave_requests` (changed) | spec 4.3, proposal 4.3 | `LeaveRequest` | unchanged (`AGGREGATE_ROOT`, `MUTABLE`) |
 | `monthly_confirmations` (changed) | spec 4.6, proposal 4.4 | `MonthlyConfirmation` | unchanged |
-| `leave_ledger_lines` (changed CHECK) | spec 4.2 | `LeaveAccount` | unchanged |
+| `leave_ledger_lines` (changed CHECK) | spec 4.2 | `LeaveBalanceAccount` | unchanged |
 
 ## Columns and constraints
 
@@ -36,7 +36,8 @@ Everything below is an edit of the open baseline file `V20261105160000__organiza
 | `effective_date` | date NOT NULL | business date of the grant; `ck_leave_policy_grants_effective_date` `isfinite(effective_date)` |
 | `basis_text` | text NOT NULL | the confirmed decision in the operator's words: `ck_leave_policy_grants_basis_text` `basis_text = btrim(basis_text) AND char_length(basis_text) BETWEEN 1 AND 500` |
 | `granted_by` | uuid NOT NULL | the operator (a column with business meaning: who decided the credit); a user id of `platform.identity`, no FK |
-| `created_at` | timestamptz NOT NULL | append-only table: no `updated_at`, no `version` |
+| `created_at` | timestamptz NOT NULL | append-only table: no `version` |
+| `updated_at` | timestamptz NOT NULL | comment 「更新时刻（只追加表，触发器拒绝更新，列只为满足通用审计列约定）」, as on `attendance_records` and `leave_request_holds`; `DdlNamingTest` requires the column on every table |
 
 Append-only by `organization_leave.guard_append_only()` (`BEFORE UPDATE OR DELETE` and `BEFORE TRUNCATE`, same pattern as `leave_request_holds`).
 
@@ -158,7 +159,7 @@ organization_leave.leave_policy_grants.effective_date | INTERNAL | PI | 用途�
 organization_leave.leave_requests.taken_until_at | INTERNAL | PI | 用途：销假后第一天未休的起点，随请假期间；个人信息 PI
 ```
 
-`leave_requests.taken_until_at` is an instant of the leave period (sibling of `start_at` and `end_at`, registered PI): two new lines below (it and the grant's `effective_date`). Registry (`data-access-registry.yaml`): a row for `organization_leave.leave_policy_grants` with role `AGGREGATE_CHILD`, aggregate `LeaveAccount`, mutability `APPEND_ONLY`, retention as the ledger, lineage `NEW`, writers `[organization.leave]`.
+`leave_requests.taken_until_at` is an instant of the leave period (sibling of `start_at` and `end_at`, registered PI): two of the five lines below (it and the grant's `effective_date`). Registry (`data-access-registry.yaml`): a row for `organization_leave.leave_policy_grants` with role `AGGREGATE_CHILD`, aggregate `LeaveBalanceAccount`, mutability `APPEND_ONLY`, retention as the ledger, lineage `NEW`, writers `[organization.leave]`.
 
 ## Expected diff for the schema PR (DG-3, section 1.4)
 
