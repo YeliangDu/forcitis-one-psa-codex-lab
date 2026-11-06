@@ -67,6 +67,7 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
     static final String ORG_UNIT = "/api/v1/organization/org-units/{orgUnitId}";
     static final String ADJUSTMENTS = "/api/v1/platform/permission-adjustments";
     static final String ADJUSTMENT = ADJUSTMENTS + "/{permissionAdjustmentId}";
+    static final String PRIMARY_ASSIGNMENTS = "/api/v1/organization/primary-assignments/{employeeId}";
 
     /**
      * A4 does not apply to these lines: their scope is a relation (permission-adjustment:read holders, else recipient = caller), the list is always 200
@@ -241,6 +242,7 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
                 new DetailPath("GET " + EMPLOYEE_ENTITIES, employeeIdOf("a1"), employeeIdOf("b1")),
                 new DetailPath("GET " + EMPLOYEES + "/{employeeId}", employeeIdOf("a1"), employeeIdOf("b1")),
                 new DetailPath("GET " + PERSONNEL_COMMANDS + "/{personnelCommandId}", personnelCommandOf("a1"), personnelCommandOf("b1")),
+                new DetailPath("GET " + PRIMARY_ASSIGNMENTS, employeeIdOf("a1"), employeeIdOf("b1")),
                 new DetailPath("GET " + ADJUSTMENT, adjustmentIn("F1-A"), adjustmentIn("F1-B")));
     }
 
