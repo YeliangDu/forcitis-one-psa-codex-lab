@@ -2,3 +2,4 @@
 # SensitiveColumnExposureGuardTest fails for such a field that is not listed here and for a line here that is no longer needed. Changes need design review.
 com.forcitis.one.platform.audit.web.OwnLoginRecordResponse#sourceAddress  # the signed-in user's own login history; the controller only ever returns the caller's own records, and seeing where one's own sessions came from is how a stolen session is noticed
 com.forcitis.one.platform.audit.web.AuditEntryResponse#sourceAddress  # the audit trail exists to say who acted from where; it is read only with audit-entry:read, held by the security auditor, and every read is itself audited
+com.forcitis.one.organization.payroll.web.BonusInputApprovalResponse#reasonKey  # the approvers of the input must see why the bonus is asked for to decide it (#1436 (a), user decision); only the assignee of the open task or a candidate while it is unclaimed reads it, everybody else gets 404, and the task detail and cards stay free of it

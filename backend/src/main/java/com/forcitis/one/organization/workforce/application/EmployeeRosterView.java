@@ -7,9 +7,9 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 public record EmployeeRosterView(UUID employeeId, String employeeCode, String displayName, String employmentStatus,
-                                 @Nullable LocalDate hireDate, List<AssignmentView> assignments) {
+                                 @Nullable LocalDate hireDate, boolean onUnpaidLeave, List<AssignmentView> assignments) {
     static EmployeeRosterView of(EmployeeRosterQueries.Row row) {
-        return new EmployeeRosterView(row.employeeId().value(), row.employeeCode(), row.displayName(), row.employmentStatus().name(), row.hireDate(),
+        return new EmployeeRosterView(row.employeeId().value(), row.employeeCode(), row.displayName(), row.employmentStatus().name(), row.hireDate(), row.onUnpaidLeave(),
                 row.assignments().stream().map(a -> new AssignmentView(a.assignmentKind().name(), a.orgUnitId().value(), a.orgUnitName(),
                         a.positionId() == null ? null : a.positionId().value(), a.positionName(),
                         a.reportsToEmployeeId() == null ? null : a.reportsToEmployeeId().value(), a.reportsToDisplayName())).toList());

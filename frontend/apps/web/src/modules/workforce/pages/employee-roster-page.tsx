@@ -1,11 +1,10 @@
-import { badgeOf } from '@forcitis/core';
 import { PageTitle, SelectField, StatusBadge, TextLink, type DataColumn } from '@forcitis/ui';
 import { useState } from 'react';
 import { optionsOf } from '../../../shared/options';
 import { useNavigate } from 'react-router';
 import { PagedTable } from '../../../shared/paged-table';
 import { useEmployees, useOrgUnits } from '../hooks/use-workforce';
-import { EMPLOYMENT_FILTERS, EMPLOYMENT_STATUS_LABELS, EMPLOYMENT_STATUS_TONES, type EmployeeRoster, type EmploymentFilter, employeePath, employmentFilterOf } from '../model/employee';
+import { EMPLOYMENT_FILTERS, employmentStatusLabel, type EmployeeRoster, type EmploymentFilter, employeePath, employmentFilterOf } from '../model/employee';
 
 export function EmployeeRosterPage() {
   const navigate = useNavigate();
@@ -27,10 +26,7 @@ export function EmployeeRosterPage() {
     {
       key: 'status',
       title: '在职状态',
-      render: (employee) => {
-        const badge = badgeOf(EMPLOYMENT_STATUS_LABELS, EMPLOYMENT_STATUS_TONES, employee.employmentStatus);
-        return <StatusBadge tone={badge.tone}>{badge.label}</StatusBadge>;
-      },
+      render: (employee) => <StatusBadge tone={employee.employmentStatus === 'EMPLOYED' && !employee.onUnpaidLeave ? 'posted' : 'neutral'}>{employmentStatusLabel(employee.employmentStatus, employee.onUnpaidLeave)}</StatusBadge>,
     },
   ];
 

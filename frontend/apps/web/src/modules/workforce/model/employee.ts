@@ -6,6 +6,7 @@ export type EmploymentFilter = Schema<'EmploymentFilter'>;
 
 export const EMPLOYMENT_FILTERS: readonly { value: EmploymentFilter; label: string }[] = [
   { value: 'EMPLOYED', label: '在职' },
+  { value: 'ON_UNPAID_LEAVE', label: '停薪留职' },
   { value: 'SEPARATED', label: '已离职' },
   { value: 'ALL', label: '全部' },
 ];
@@ -16,6 +17,12 @@ export const EMPLOYMENT_STATUS_LABELS: Readonly<Record<string, string>> = {
 };
 
 export const EMPLOYMENT_STATUS_TONES: Readonly<Record<string, 'posted'>> = { EMPLOYED: 'posted' };
+
+/** A person on unpaid leave is still EMPLOYED; the badge says 停薪留职 instead of 在职. */
+export function employmentStatusLabel(employmentStatus: string, onUnpaidLeave: boolean): string {
+  if (employmentStatus === 'EMPLOYED' && onUnpaidLeave) return '停薪留职';
+  return EMPLOYMENT_STATUS_LABELS[employmentStatus] ?? employmentStatus;
+}
 
 export const ASSIGNMENT_KIND_LABELS: Readonly<Record<string, string>> = {
   PRIMARY: '主岗',

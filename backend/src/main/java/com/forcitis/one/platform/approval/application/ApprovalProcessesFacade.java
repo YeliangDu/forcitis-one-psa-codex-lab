@@ -6,10 +6,13 @@ import com.forcitis.one.platform.approval.api.ApprovalInstanceId;
 import com.forcitis.one.platform.approval.api.ApprovalProcesses;
 import com.forcitis.one.platform.approval.api.ApprovalProgress;
 import com.forcitis.one.platform.approval.api.ApprovalStartRequest;
+import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.RetractionResult;
 import com.forcitis.one.platform.approval.api.WithdrawCheck;
 import com.forcitis.one.platform.approval.domain.ApprovalEngine;
+import com.forcitis.one.platform.approval.domain.TaskActors;
+import com.forcitis.one.platform.approval.domain.TaskView;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -51,6 +54,12 @@ class ApprovalProcessesFacade implements ApprovalProcesses {
     @Override
     public Map<String, List<String>> formFields(ApprovalInstanceId instance) {
         return engine.submittedFormFields(instance);
+    }
+
+    @Override
+    public Optional<ApprovalInstanceId> instanceOfTaskOpenTo(ProcessKey processKey, ApprovalTaskId taskId, UserId actor) {
+        return engine.findTask(taskId).filter(task -> task.processKey().equals(processKey)).filter(task -> TaskActors.mayAct(task, actor))
+                .map(TaskView::instanceId);
     }
 
     @Override
