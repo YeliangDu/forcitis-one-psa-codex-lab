@@ -4,12 +4,16 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.forcitis.one.fixture.infrastructure.AmbientTestTimeSample;
 import com.forcitis.one.fixture.infrastructure.AmbientTimeSample;
 import com.forcitis.one.fixture.web.AmbientTimeWebSample;
 import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.domain.JavaCodeUnitAccess;
 import com.tngtech.archunit.core.domain.JavaMethodCall;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.lang.ArchRule;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -17,7 +21,10 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -118,6 +125,101 @@ class TimeSourceGuardTest {
                 .evaluate(stray).getFailureReport().getDetails();
 
         assertThat(details).anyMatch(d -> d.contains("StrayClockUser"));
+    }
+
+    // ---- the test tree: a test never asks the machine for the time either (#1586) ----
+
+    static final Path TEST_CLOCK_EXCEPTIONS = Path.of("architecture/test-clock-exceptions.txt");
+    static final String TEST_ROOT = "com.forcitis.one.";
+
+    static final JavaClasses TEST_CLASSES = new ClassFileImporter()
+            .withImportOption(ImportOption.Predefined.ONLY_INCLUDE_TESTS)
+            .importPackages(ArchitectureRulesTest.ROOT);
+
+    /** now() with no Clock to take the instant from (no argument, or only a zone), Clock.system*, System.currentTimeMillis; now(clock) and System.nanoTime are fine. */
+    static boolean testAsksTheMachine(JavaCodeUnitAccess<?> call) {
+        String owner = call.getTargetOwner().getName();
+        String method = call.getName();
+        boolean takesAClock = call.getTarget().getRawParameterTypes().stream().anyMatch(type -> type.getName().equals("java.time.Clock"));
+        return (owner.startsWith("java.time.") && method.equals("now") && !takesAClock)
+                || (owner.equals("java.time.Clock") && (method.startsWith("system") || method.startsWith("tick")))
+                || (owner.equals("java.lang.System") && method.equals("currentTimeMillis"));
+    }
+
+    /** The registered path of the top-level class that holds a class, as the exceptions file spells it. */
+    static String pathOf(JavaClass holder) {
+        String name = holder.getName();
+        int nested = name.indexOf('$');
+        return (nested < 0 ? name : name.substring(0, nested)).substring(TEST_ROOT.length()).replace('.', '/') + ".java";
+    }
+
+    /** Deliberately wrong samples that only the guard tests load. */
+    static boolean isSample(JavaClass holder) {
+        return holder.getSimpleName().endsWith("Sample") || holder.getPackageName().contains(".stray");
+    }
+
+    /** Path of each test class holding a machine-clock reading -> what it reads, samples included (a lambda or nested class counts for its top-level class). */
+    static Map<String, Set<String>> machineClockReadings(JavaClasses classes) {
+        Map<String, Set<String>> found = new TreeMap<>();
+        for (JavaClass holder : classes) {
+            Stream.<JavaCodeUnitAccess<?>>concat(holder.getMethodCallsFromSelf().stream(), holder.getMethodReferencesFromSelf().stream())
+                    .filter(TimeSourceGuardTest::testAsksTheMachine)
+                    .forEach(call -> found.computeIfAbsent(pathOf(holder), k -> new TreeSet<>()).add(call.getTargetOwner().getSimpleName() + "." + call.getName()));
+        }
+        return found;
+    }
+
+    static Set<String> registeredTestClockExceptions() throws IOException {
+        Set<String> entries = new LinkedHashSet<>();
+        for (String line : Files.readAllLines(TEST_CLOCK_EXCEPTIONS)) {
+            if (!line.isBlank() && !line.startsWith("#")) {
+                assertThat(line).as(GuardMessage.of("CS-3.8", "line '" + line + "' in the test clock exceptions register has no reason",
+                        "write each line in backend/architecture/test-clock-exceptions.txt as <path under src/test/java/com/forcitis/one>  # <reason>")).contains("  # ");
+                entries.add(line.substring(0, line.indexOf("  #")).trim());
+            }
+        }
+        return entries;
+    }
+
+    @Test
+    @DisplayName("no test class asks the machine for the time (now() without a Clock, Clock.system*, System.currentTimeMillis): MutableClock or Clock.fixed; registered exceptions only")
+    void testsDoNotAskTheMachine() throws IOException {
+        Set<String> exceptions = registeredTestClockExceptions();
+        Map<String, Set<String>> readings = new TreeMap<>(machineClockReadings(TEST_CLASSES));
+        readings.keySet().removeIf(path -> isSampleFile(path));
+        List<String> problems = new ArrayList<>();
+        readings.forEach((path, calls) -> {
+            if (!exceptions.contains(path)) {
+                problems.add(path + " asks the machine for the time (" + String.join(", ", calls) + ")");
+            }
+        });
+        exceptions.stream().filter(e -> !readings.containsKey(e)).forEach(e -> problems.add(e + " is registered but reads no machine clock (or no longer exists): remove it from " + TEST_CLOCK_EXCEPTIONS));
+        assertThat(problems).as(GuardMessage.of("G25",
+                "a test class asks the machine for the time, or a registered exception is stale",
+                "take the instant from a MutableClock or Clock.fixed (fixture/doubles), the business day from BusinessDay; for a stale exception delete its line from " + TEST_CLOCK_EXCEPTIONS)).isEmpty();
+    }
+
+    static boolean isSampleFile(String path) {
+        String file = path.substring(path.lastIndexOf('/') + 1);
+        return file.endsWith("Sample.java") || path.contains("/stray/");
+    }
+
+    @Test
+    @DisplayName("injection: the test-tree scan finds now() with no argument or only a zone, Clock.system*, in a lambda too, and leaves now(clock) and System.nanoTime alone")
+    void testClockReadingsAreFound() {
+        JavaClasses samples = new ClassFileImporter().importClasses(AmbientTestTimeSample.class);
+
+        Map<String, Set<String>> found = machineClockReadings(samples);
+
+        assertThat(found).containsOnlyKeys("fixture/infrastructure/AmbientTestTimeSample.java");
+        assertThat(found.values().iterator().next()).containsExactlyInAnyOrder("LocalDate.now", "YearMonth.now", "Clock.systemUTC", "Clock.systemDefaultZone", "System.currentTimeMillis", "Instant.now");
+        assertThat(isSample(samples.get(AmbientTestTimeSample.class))).isTrue();
+    }
+
+    @Test
+    @DisplayName("the scan sees the real test classes: the one registered reader is found, so an empty scan cannot pass")
+    void theTestScanIsNotEmpty() {
+        assertThat(machineClockReadings(TEST_CLASSES)).containsKey("BusinessDay.java");
     }
 
     static final Pattern STRING_LITERAL = Pattern.compile("\"\"\"(.*?)\"\"\"|\"((?:[^\"\\\\\\n]|\\\\.)*)\"", Pattern.DOTALL);

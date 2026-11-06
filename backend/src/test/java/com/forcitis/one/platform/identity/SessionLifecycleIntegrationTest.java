@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.BusinessDay;
 import org.assertj.core.groups.Tuple;
 import com.forcitis.one.fixture.doubles.TestOrgIds;
 import com.forcitis.one.fixture.doubles.TestAccounts;
@@ -164,7 +165,7 @@ class SessionLifecycleIntegrationTest extends IdentityIntegrationTest {
     @Test
     @DisplayName("D-1a-45 a session that runs out is audited with its cause (idle or too old) and then removed; a live session is left alone")
     void expiredSessionsAreAuditedThenRemoved() {
-        long now = System.currentTimeMillis(); // the purge judges the session table on the framework's clock
+        long now = BusinessDay.instant().toEpochMilli(); // the purge judges the session table on the framework's clock
         long day = Duration.ofHours(24).toMillis();
         insertSession(java.util.UUID.randomUUID().toString(), now - 1000, now - 500, TestAccounts.account(1001).value().toString());
         insertSession(java.util.UUID.randomUUID().toString(), now - day - 1000, now + 600_000, TestAccounts.account(1002).value().toString());

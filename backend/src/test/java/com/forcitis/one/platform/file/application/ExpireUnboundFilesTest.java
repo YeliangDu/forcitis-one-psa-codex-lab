@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.file.application;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -94,7 +95,7 @@ class ExpireUnboundFilesTest {
     @DisplayName("a missing staging time for a kind of uploader stops the construction")
     void everyKindNeedsATime() {
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> new ExpireUnboundFiles(files, Map.of(FileSubjectKind.USER, Duration.ofDays(2)),
-                Clock.systemUTC(), transactions, meters)).isInstanceOf(IllegalArgumentException.class);
+                BusinessDay.fixedClock(), transactions, meters)).isInstanceOf(IllegalArgumentException.class);
         verify(files, never()).saveExpiry(any(), any());
     }
 }

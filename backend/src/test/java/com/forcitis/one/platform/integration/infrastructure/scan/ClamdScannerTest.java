@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.integration.infrastructure.scan;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -19,7 +20,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 class ClamdScannerTest {
     static final String FRESH = "ClamAV 1.4.1/27435/Tue Oct 21 08:00:00 2026";
-    static final Clock NOW = Clock.systemUTC();
+    static final Clock NOW = BusinessDay.fixedClock();
 
     @TempDir
     Path staging;
@@ -40,7 +41,7 @@ class ClamdScannerTest {
 
     private static String freshVersion() {
         return "ClamAV 1.4.1/27435/" + java.time.format.DateTimeFormatter.ofPattern("EEE MMM d HH:mm:ss yyyy", java.util.Locale.ROOT)
-                .format(java.time.LocalDateTime.now(ZoneOffset.UTC).minusHours(1));
+                .format(java.time.LocalDateTime.ofInstant(NOW.instant(), ZoneOffset.UTC).minusHours(1));
     }
 
     private ClamdScanner scanner(MalwareScanProperties properties) {
@@ -132,7 +133,7 @@ class ClamdScannerTest {
         Path file = staged();
         // A frozen clock: the 200 ms is then spent only waiting on the silent server (the selector waits in real time), never on a stall of the test JVM
         // before the client has written its command (a deadline read from the live clock expired first on a loaded host: the server then saw an empty command)
-        Clock frozen = Clock.fixed(Instant.now(), ZoneOffset.UTC);
+        Clock frozen = Clock.fixed(BusinessDay.instant(), ZoneOffset.UTC);
         try (FakeClamd clamd = FakeClamd.tcp(command -> null)) {
             assertThatThrownBy(() -> new ClamdScanner(tcp(clamd.port(), 2, Duration.ofMillis(200)), frozen).scan(file))
                     .isInstanceOf(ExternalSystemUnavailableException.class).hasMessageContaining("2 attempts");

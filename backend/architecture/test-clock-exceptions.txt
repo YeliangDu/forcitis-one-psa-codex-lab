@@ -1,0 +1,9 @@
+# A test class that reads the machine's clock (java.time now() without a Clock, Clock.system*, System.currentTimeMillis): <path under src/test/java/com/forcitis/one>  # why.
+# TimeSourceGuardTest fails for a test class that reads it and is not listed, and for a line here that no longer reads it. System.nanoTime is not a clock reading.
+# A test takes its instant from a MutableClock, Clock.fixed or SteppingClock; BusinessDay is the one place that reads the machine for tests whose application and
+# database run on the real clock. The acceptance tests below are not edited by the platform session; the test session converts them and deletes their lines (#1586).
+BusinessDay.java  # the one sanctioned read of the machine's clock for the test tree: the day the database triggers use, and the real instant for tests that compare with the application's own stamps
+acceptance/platform/numbering/NumberingRuleVersionIdIT.java  # acceptance test, converted by the test session after #1586's guard merges: LocalDate.now(Asia/Shanghai)
+acceptance/cost/timesheet/TimesheetRoundSubmittedCheckIT.java  # acceptance test, converted by the test session after #1586's guard merges: LocalDate.now(ZONE)
+acceptance/cost/timesheet/TimesheetRejectedResubmitIT.java  # acceptance test, converted by the test session after #1586's guard merges: LocalDate.now(ZONE)
+acceptance/platform/identity/SessionPurgeClockIT.java  # acceptance test, converted by the test session after #1586's guard merges: System.currentTimeMillis

@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.integration.infrastructure.registry;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -111,9 +112,9 @@ class EventPublicationOperationsIT {
                 """).param("a", UUID.randomUUID()).param("b", UUID.randomUUID()).param("c", UUID.randomUUID()).update();
         try {
             assertThat(statistics.exhausted(8)).isGreaterThanOrEqualTo(1);
-            long beforeAdding = statistics.incompleteBefore(Instant.now().minus(Duration.ofMinutes(10)));
+            long beforeAdding = statistics.incompleteBefore(BusinessDay.instant().minus(Duration.ofMinutes(10)));
             assertThat(beforeAdding).isGreaterThanOrEqualTo(2);
-            assertThat(statistics.incompleteBefore(Instant.now().minus(Duration.ofHours(3)))).isLessThan(beforeAdding);
+            assertThat(statistics.incompleteBefore(BusinessDay.instant().minus(Duration.ofHours(3)))).isLessThan(beforeAdding);
         } finally {
             jdbc.sql("delete from platform_integration.event_publication where listener_id like 'stat.%'").update();
         }

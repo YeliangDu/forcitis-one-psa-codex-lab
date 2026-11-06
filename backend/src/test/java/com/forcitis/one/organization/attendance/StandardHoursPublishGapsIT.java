@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.attendance;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -65,7 +66,7 @@ class StandardHoursPublishGapsIT extends AcceptanceSupport {
     }
 
     private static LocalDate shanghaiToday() {
-        return LocalDate.now(ZoneId.of("Asia/Shanghai"));
+        return BusinessDay.today();
     }
 
     private MockHttpServletResponse publish(String body) throws Exception {

@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.leave;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
@@ -163,7 +164,7 @@ abstract class LeaveSchemaProbe {
             }
             case "leave_rule_versions" -> {
                 row.put("leave_type_id", UUID.randomUUID()); row.put("scope_kind", "ALL"); row.put("employer_entity_id", null);
-                row.put("version_number", 1); row.put("status", "IN_EFFECT"); row.put("effective_from_date", LocalDate.now(java.time.ZoneId.of("Asia/Shanghai")));
+                row.put("version_number", 1); row.put("status", "IN_EFFECT"); row.put("effective_from_date", BusinessDay.today());
                 row.put("effective_to_date", null); row.put("request_unit_kind", "DAY"); row.put("is_negative_allowed", false);
                 row.put("is_proof_required", false); row.put("rollover_kind", "NONE"); row.put("basis_ref_text", "Synthetic rule");
                 row.put("published_by", UUID.randomUUID()); row.put("published_at", AT); row.put("decision_audit_entry_id", UUID.randomUUID());

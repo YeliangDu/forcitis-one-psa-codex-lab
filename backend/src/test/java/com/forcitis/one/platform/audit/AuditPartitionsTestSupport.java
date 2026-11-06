@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.audit;
 
+import com.forcitis.one.BusinessDay;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -13,7 +14,7 @@ public final class AuditPartitionsTestSupport {
     }
 
     public static void ensureCurrentMonth(Connection connection) {
-        ensureMonth(connection, YearMonth.now(ZoneOffset.UTC));
+        ensureMonth(connection, BusinessDay.utcMonth());
     }
 
     /** For a database an earlier start may not have migrated yet: does nothing while the audit schema does not exist. */

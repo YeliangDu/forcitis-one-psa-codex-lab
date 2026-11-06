@@ -1,9 +1,12 @@
 package com.forcitis.one;
 
+import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjusters;
 
 /**
@@ -24,6 +27,25 @@ public final class BusinessDay {
     /** The business today. */
     public static LocalDate today() {
         return TODAY;
+    }
+
+    /**
+     * The real instant, for an integration test whose application and database run on the real clock and compare their own stamps with it. This class and
+     * {@link #today()} are the only places of the test tree that read the machine's clock (registered in architecture/test-clock-exceptions.txt, enforced by
+     * TimeSourceGuardTest); a test that can move its own clock takes a MutableClock or Clock.fixed instead.
+     */
+    public static Instant instant() {
+        return Instant.now();
+    }
+
+    /** The UTC month of the real instant: the audit partition the application has just created. */
+    public static YearMonth utcMonth() {
+        return YearMonth.now(ZoneOffset.UTC);
+    }
+
+    /** A clock stopped at the real instant of this call, for a test that needs a Clock but not a moving one. */
+    public static Clock fixedClock() {
+        return Clock.fixed(Instant.now(), ZoneOffset.UTC);
     }
 
     /** 10:00 on the business today in the business zone: the instant a pinned test clock starts at. */

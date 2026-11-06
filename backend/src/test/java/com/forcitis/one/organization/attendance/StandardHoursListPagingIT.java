@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.attendance;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -38,7 +39,7 @@ class StandardHoursListPagingIT extends AcceptanceSupport {
     @Test
     @DisplayName("#1310 the version list pages newest first: the cursor of one answer gives the rest, no version twice, no cursor on the last page")
     void secondPageContinuesWithoutOverlap() throws Exception {
-        LocalDate today = LocalDate.now(ZoneId.of("Asia/Shanghai"));
+        LocalDate today = BusinessDay.today();
         for (int i = 0; i < 3; i++) {
             String body = "{\"effectiveFromDate\":\"" + today.plusDays(i) + "\",\"workdayMinutes\":480,\"adjustedWorkdayMinutes\":420,\"basisRef\":\"Synthetic basis\"}";
             MockHttpServletResponse published = mvc.perform(post(VERSIONS).with(ADMIN).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(body))

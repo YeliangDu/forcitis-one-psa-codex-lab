@@ -35,7 +35,7 @@ class PersonnelCommandCutoverIntegrationTest extends WorkforceIntegrationSupport
     PersonnelCommandDueJob dueJob;
 
     private static RequestPostProcessor hr() {
-        return user(Uuids.timeOrdered(Clock.systemUTC()).toString()).authorities(() -> "organization.workforce:personnel-command:create");
+        return user(Uuids.timeOrdered(new com.forcitis.one.fixture.doubles.SteppingClock()).toString()).authorities(() -> "organization.workforce:personnel-command:create");
     }
 
     private String enter(String body) throws Exception {

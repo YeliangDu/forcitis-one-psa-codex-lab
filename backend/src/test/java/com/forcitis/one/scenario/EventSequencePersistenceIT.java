@@ -1,5 +1,6 @@
 package com.forcitis.one.scenario;
 
+import com.forcitis.one.BusinessDay;
 import com.forcitis.one.fixture.doubles.TestAccounts;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -63,7 +64,7 @@ class EventSequencePersistenceIT extends ApprovalIntegrationSupport {
         for (long seed = 0; seed < 15; seed++) {
             Random random = new Random(seed);
             TimesheetId id = new TimesheetId(TestIds.uuid(IDS.incrementAndGet()));
-            LocalDate today = LocalDate.now();
+            LocalDate today = BusinessDay.today();
             EmployeeId owner = TestAccounts.employee(newId());
             Timesheet created = Timesheet.draft(id, new DocumentNumber("TS-SEQ-" + id.value()), new AggregateReference("NumberingCounter", TestIds.uuid(11)),
                     new NumberingRuleVersionId(TestIds.uuid(12)), owner, new LegalEntityId(TestIds.uuid(1)), TestOrgIds.orgUnit(1), today.minusDays(1), Hours.of("8"), TestAccounts.employee(newId()), today);
