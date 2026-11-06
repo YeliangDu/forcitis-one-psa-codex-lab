@@ -32,7 +32,7 @@ NODES = {
     "026": {"day": "2026-08-10", "needs": ["023"], "does": "UNPAID_LEAVE_START (study leave, relationship kept)"},
     "027": {"day": "2026-08-17", "needs": ["026"], "does": "UNPAID_LEAVE_END (same relationship, no new one)"},
     "030": {"day": "2026-10-01", "needs": ["027"], "primary": ("shanghai", "lighting"), "does": "TRANSFER to the Shanghai unit, lighting support post, same employer"},
-    "031": {"day": "2026-10-02", "needs": ["030"], "does": "nothing to enter through the API yet: the authorization change is done by hand (replace-roles has no page)"},
+    "031": {"day": "2026-10-02", "needs": ["030"], "does": "nothing to enter: F-P01 got the scoped role before 030, so the transfer opened a scope review; the administrator handles it on the pages"},
 }
 # The command each node enters and the day it takes effect (the checks below read them back as EFFECTIVE).
 COMMANDS = {"007": ("HIRE", "2026-01-05"), "016": ("REGULARIZE", "2026-04-05"), "022": ("TRANSFER", "2026-07-01"), "026": ("UNPAID_LEAVE_START", "2026-08-10"),
@@ -47,12 +47,15 @@ LIGHTING_POST = ("lighting", "GP-LS", "Synthetic lighting support post")
 
 
 class Stack:
+    etag = None
+
     def __init__(self, base):
         host = urllib.parse.urlparse(base).hostname
         if host not in ("localhost", "127.0.0.1", "::1"):
             sys.exit("refused: this runner only talks to localhost, not " + str(host))
         self.base = base.rstrip("/")
         self.no_clock = False
+        self.no_prepare = False
         self.account = ""
         self.jar = http.cookiejar.CookieJar()
         self.http = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.jar))
@@ -60,8 +63,10 @@ class Stack:
     def cookie(self, name):
         return next((c.value for c in self.jar if c.name == name), None)
 
-    def call(self, method, path, body=None, expect=(200, 201, 202, 204)):
+    def call(self, method, path, body=None, expect=(200, 201, 202, 204), if_match=None):
         headers = {"Accept": "application/json"}
+        if if_match:
+            headers["If-Match"] = if_match
         data = None
         if body is not None:
             data = json.dumps(body).encode()
@@ -72,6 +77,7 @@ class Stack:
         try:
             with self.http.open(request) as response:
                 status, text = response.status, response.read().decode()
+                self.etag = response.headers.get("ETag")
         except urllib.error.HTTPError as failure:
             status, text = failure.code, failure.read().decode()
         if status not in expect:
@@ -179,9 +185,53 @@ def plan(target):
     return [node for node in NODES if node in needed]
 
 
+SCOPED_ROLE = {"code": "synthetic_unit_reader", "name": "Synthetic unit reader", "permission": "organization.workforce:org-unit:read"}
+
+
+def grant_scoped_role(stack, world, who):
+    """Before the 030 transfer F-P01 holds one role scoped to custom org units (her Nanjing unit), so the transfer opens the scope review of ADR-0032 decision 4
+    and node 031 has a real adjustment to handle. No seeded role has that scope, so one is created: read-only, one permission that is no sensitive one.
+    Needs the access administrator: the Synthetic Platform Admin account and its explicit administrator-mode step (card #1499). Without this step the employee-only run is
+    the case that opens no review."""
+    admin = Stack(stack.base)
+    admin.no_clock = True
+    admin.login("Synthetic Platform Admin")
+    admin.call("POST", "/api/v1/platform/sessions:enter-local-administrator-mode")
+    admin.call("GET", "/api/v1/platform/local-accounts")  # refreshes the XSRF cookie after the session change
+    role = find(admin, "/api/v1/platform/roles", "code", SCOPED_ROLE["code"])
+    if not role:
+        answer = admin.call("POST", "/api/v1/platform/roles", {"code": SCOPED_ROLE["code"], "name": SCOPED_ROLE["name"], "enabled": True, "accessScope": "CUSTOM_ORG_UNITS",
+                                                               "customOrgUnits": [{"orgUnitId": world["nanjing"], "includeDescendants": False}],
+                                                               "permissionCodes": [SCOPED_ROLE["permission"]]})
+        if answer is None or "roleId" not in answer:
+            sys.exit("creating the role %s did not finish (answer %s): it needs a second holder to confirm" % (SCOPED_ROLE["code"], answer))
+    account = next(a for a in items(admin.call("GET", "/api/v1/platform/user-accounts?limit=200")) if a["userId"] and a.get("displayName") == PERSON_NAME)
+    if SCOPED_ROLE["code"] in account["roleCodes"]:
+        return
+    admin.call("GET", "/api/v1/platform/user-accounts/%s" % account["userId"])  # the account version comes as the ETag
+    admin.call("POST", "/api/v1/platform/user-accounts/%s:replace-roles" % account["userId"], {"roleCodes": sorted(set(account["roleCodes"]) | {SCOPED_ROLE["code"]})}, if_match=admin.etag)
+    print("granted the role %s (custom org units: Synthetic Nanjing unit) to F-P01 before HCM-LIFE-030" % SCOPED_ROLE["code"])
+
+
+def maintain_calendar(stack, world, who):
+    """The scope review sets a deadline of five workdays (OpenAssignmentReviews.escalationDueAt), which needs the work calendar of the year: with none saved the listener of the
+    transfer fails ("the work calendar of 2026 has not been maintained") and no review item is raised. Saved as the pack's national holiday only; Synthetic Admin holds org_data_admin."""
+    stack.etag = None
+    stack.call("GET", "/api/v1/organization/work-calendars/2026", expect=(200, 404))
+    if stack.etag:  # set only by an answer 200: the year is already saved
+        return
+    stack.call("PUT", "/api/v1/organization/work-calendars/2026", {"days": [{"calendarDate": "2026-10-01", "dayKind": "HOLIDAY"}], "lockedDaysConfirmed": True}, if_match='"0"')
+    print("saved the work calendar of 2026 (holiday 2026-10-01) before HCM-LIFE-030")
+
+
+PREPARE = {"030": [maintain_calendar, grant_scoped_role]}
+
+
 def run(stack, world, node, who):
     """One node through the API. 009, 023 and 031 enter nothing of their own (see the NODES table)."""
     stack.set_clock(day_of(node))
+    for step in ([] if stack.no_prepare else PREPARE.get(node, [])):
+        step(stack, world, who)
     base = "/api/v1/organization/personnel-commands"
     if node == "007":
         if person(stack):
@@ -242,6 +292,7 @@ def main():
     parser.add_argument("--stop-before", metavar="NODE", help="seed everything the node builds on, leave the node itself to be done by hand")
     parser.add_argument("--list", action="store_true", help="print the supported nodes and exit")
     parser.add_argument("--base", default="http://localhost:8080")
+    parser.add_argument("--no-prepare", action="store_true", help="skip the steps a node stands on (work calendar, scoped role before 030): the employee-only case, node 031 then has no review")
     parser.add_argument("--no-clock", action="store_true", help="leave the local clock alone (start the stack with LOCAL_CLOCK_START instead)")
     args = parser.parse_args()
     if args.list:
@@ -253,6 +304,7 @@ def main():
     todo = plan(args.stop_before)
     stack = Stack(args.base)
     stack.no_clock = args.no_clock
+    stack.no_prepare = args.no_prepare
     stack.login(ADMIN_NAME)
     world = ensure_world(stack)
     who = {}
@@ -268,6 +320,8 @@ def main():
         print("not seeded (other owners, no workforce state): " + ", ".join("HCM-LIFE-%s" % n for n in skipped))
     if args.stop_before:
         stack.set_clock(day_of(args.stop_before))
+        for step in ([] if stack.no_prepare else PREPARE.get(args.stop_before, [])):  # what the node stands on, not part of the node
+            step(stack, world, who)
         print("stopped before HCM-LIFE-%s; clock set to %s; do the node in the web client" % (args.stop_before, day_of(args.stop_before)))
 
 
