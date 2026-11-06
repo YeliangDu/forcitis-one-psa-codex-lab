@@ -3,6 +3,7 @@ package com.forcitis.one.acceptance.platform.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import com.forcitis.one.BusinessDay;
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AccountsAcceptanceSupport;
@@ -51,7 +52,7 @@ class SessionPurgeClockIT extends AccountsAcceptanceSupport {
 
     /** Session times are the framework's own (system clock, epoch millis): the row is aged on that basis, last access 11 h ago, expiry 1 h ago. */
     private void makeIdlePastTheTimeout(SignedIn signedIn) throws Exception {
-        long now = System.currentTimeMillis();
+        long now = BusinessDay.instant().toEpochMilli();
         try (Connection identity = schemaConnection("platform_identity");
              PreparedStatement age = identity.prepareStatement(
                      "update sessions set creation_time = ?, last_access_time = ?, expiry_time = ? where principal_name = ?")) {
