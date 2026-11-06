@@ -4,11 +4,15 @@ import com.forcitis.one.acceptance.EmploymentRelationshipSeeds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doThrow;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.DataScopeSupport;
+import com.forcitis.one.kernel.Uuids;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.jayway.jsonpath.JsonPath;
 import java.io.IOException;
@@ -32,6 +36,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -68,6 +73,10 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
     static final String ADJUSTMENTS = "/api/v1/platform/permission-adjustments";
     static final String ADJUSTMENT = ADJUSTMENTS + "/{permissionAdjustmentId}";
     static final String PRIMARY_ASSIGNMENTS = "/api/v1/organization/primary-assignments/{employeeId}";
+    static final String REQUISITIONS = "/api/v1/organization/recruitment-requisitions";
+    static final String REQUISITION = REQUISITIONS + "/{requisitionId}";
+    static final String REQUISITION_READ = "organization.recruitment:requisition:read";
+    static final String REQUISITION_SUBMIT = "organization.recruitment:requisition:submit";
 
     /**
      * A4 does not apply to these lines: their scope is a relation (permission-adjustment:read holders, else recipient = caller), the list is always 200
@@ -88,6 +97,8 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
     private final Map<String, String> personnelCommandOf = new LinkedHashMap<>();
     /** Permission adjustments are scoped by relation, not by unit: "F1-B" stands for the items addressed to scopeB, "F1-A" for every other item. */
     private final Map<String, String> unitOfAdjustment = new LinkedHashMap<>();
+    /** Recruitment requisitions submitted through the endpoint, by the unit they are for. */
+    private final Map<String, String> unitOfRequisition = new LinkedHashMap<>();
 
     @MockitoSpyBean
     OrgDirectory organisation;
@@ -101,6 +112,9 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
         for (String key : List.of("admin1", "admin2", "oda", "everything", "scopeB", "dangling", "nohome", "broken", "a1", "a2", "b1", "b2")) {
             person(key, key.startsWith("a") && key.length() == 2 ? "F1-A" : key.startsWith("b") && key.length() == 2 ? "F1-B" : "F1-C", "F1-P1");
         }
+        // a requisition starts the approval of the head of its unit: units A and B have one
+        head("F1-A", "a2");
+        head("F1-B", "b2");
         seedOrganisation();
         administrator("admin1");
         administrator("admin2");
@@ -114,12 +128,18 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
         for (String key : List.of("b1", "b2")) {
             unitOfEmployee.put(employeeIdOf(key), "F1-B");
         }
-        String[] perms = {ORG_UNIT_READ, PERSONNEL_COMMAND_CREATE, EMPLOYEE_READ};
+        String[] perms = {ORG_UNIT_READ, PERSONNEL_COMMAND_CREATE, EMPLOYEE_READ, REQUISITION_READ};
         roleWith("f1-read-all", "ALL", null, perms);
         roleWith("f1-read-b", "CUSTOM_ORG_UNITS", List.of(onlyUnit(unitIds.get("F1-B"))), perms);
         roleWith("f1-read-nothing", "CUSTOM_ORG_UNITS", List.of(onlyUnit(UUID.randomUUID().toString())), perms);
         roleWith("f1-read-own", "OWN_ORG_UNIT", null, perms);
-        grantOrdinaryRoles(administrator("admin1"), "everything", "f1-read-all");
+        roleWith("f1-submit-all", "ALL", null, REQUISITION_SUBMIT, "platform.numbering:numbering-rule:approve");
+        MockHttpServletResponse granted = replaceRoles(administrator("admin1"), "everything", "f1-read-all", "f1-submit-all");
+        if (granted.getStatus() == 202) {
+            require(confirm(administrator("admin2"), JsonPath.read(granted.getContentAsString(), "$.requestId")), 204, "confirming the roles of everything (a sensitive permission)");
+        } else {
+            require(granted, 204, "granting the roles of everything");
+        }
         grantByOperations("everything", ORG_DATA_ADMIN);
         grantOrdinaryRoles(administrator("admin1"), "scopeB", "f1-read-b");
         grantOrdinaryRoles(administrator("admin1"), "dangling", "f1-read-nothing");
@@ -127,6 +147,7 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
         grantOrdinaryRoles(administrator("admin1"), "broken", "f1-read-own");
         seedAdjustments();
         seedCommands();
+        seedRequisitions();
         try (Connection workforce = schemaConnection("organization_workforce")) {
             OffsetDateTime at = OffsetDateTime.of(2026, 10, 1, 9, 0, 0, 0, ZoneOffset.UTC);
             int minute = 0;
@@ -171,6 +192,47 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
                 }
                 personnelCommandOf.put(id.toString(), key);
             }
+        }
+    }
+
+    /** Two requisitions for each of units A and B, submitted through the endpoint by the person who holds the submit permission for the whole organisation. */
+    private void seedRequisitions() throws Exception {
+        UUID position;
+        try (Connection workforce = schemaConnection("organization_workforce")) {
+            try (PreparedStatement statement = workforce.prepareStatement("select id from positions where code = 'F1-P1'");
+                    java.sql.ResultSet found = statement.executeQuery()) {
+                assertThat(found.next()).as("the seeded position").isTrue();
+                position = found.getObject(1, UUID.class);
+            }
+            // the world writes the post row only; whether a post is active today is read from its current version
+            try (PreparedStatement statement = workforce.prepareStatement("""
+                    insert into position_versions (position_version_id, position_id, effective_from_date, revision_number, code, name, status, change_channel_kind)
+                    values (?, ?, date '2025-01-01', 0, 'F1-P1', ?, 'ACTIVE', 'MIGRATION')""")) {
+                statement.setObject(1, Uuids.timeOrdered(NOW));
+                statement.setObject(2, position);
+                statement.setString(3, positionName("F1-P1"));
+                statement.executeUpdate();
+            }
+        }
+        // the requester's employer comes from the attribution of the person: a legal entity and the attribution, both through the endpoints
+        MockHttpServletResponse entity = mvc.perform(post("/api/v1/organization/legal-entities").with(csrf()).with(as(session("oda"))).contentType(MediaType.APPLICATION_JSON)
+                .content("{\"code\":\"FIRM\",\"name\":\"Synthetic employer\"}")).andReturn().getResponse();
+        require(entity, 201, "creating the legal entity of the requester");
+        String entityId = JsonPath.read(entity.getContentAsString(), "$.legalEntityId");
+        require(mvc.perform(put("/api/v1/organization/employee-legal-entities/" + employeeIdOf("everything")).header("If-Match", "\"0\"").with(csrf()).with(as(session("oda")))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"legalEntityId\":\"" + entityId + "\",\"effectiveFrom\":\"2025-01-01\"}")).andReturn().getResponse(), 200,
+                "attributing the requester to the legal entity");
+        // the seeded numbering template of the requisition waits for the confirmation of a business administrator before any number is issued
+        MockHttpServletResponse confirmed = mvc.perform(post("/api/v1/platform/numbering-rules/RECRUITMENT_REQUISITION:confirm").with(csrf()).with(as(session("everything")))
+                .contentType(MediaType.APPLICATION_JSON).content("{\"templateVersion\":1}")).andReturn().getResponse();
+        require(confirmed, 200, "confirming the numbering template of the requisition");
+        for (String unit : List.of("F1-A", "F1-B", "F1-A", "F1-B")) {
+            UUID id = Uuids.timeOrdered(NOW);
+            String body = "{\"requisitionId\":\"" + id + "\",\"positionId\":\"" + position + "\",\"orgUnitId\":\"" + unitIds.get(unit)
+                    + "\",\"requestedCount\":1,\"description\":\"Synthetic requisition\"}";
+            require(mvc.perform(post(REQUISITIONS).with(csrf()).with(as(session("everything"))).contentType(MediaType.APPLICATION_JSON).content(body)).andReturn().getResponse(), 201,
+                    "submitting a requisition for " + unit);
+            unitOfRequisition.put(id.toString(), unit);
         }
     }
 
@@ -232,7 +294,8 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
                 new ListPath("GET " + PERSONNEL_COMMANDS, PERSONNEL_COMMANDS, List.of("", "?status=PENDING"), true, "personnelCommandId",
                         row -> unitOfEmployee.get(String.valueOf(row.get("employeeId")))),
                 new ListPath("GET " + ADJUSTMENTS, ADJUSTMENTS, List.of(""), true, "permissionAdjustmentId",
-                        row -> unitOfAdjustment.get(String.valueOf(row.get("permissionAdjustmentId")))));
+                        row -> unitOfAdjustment.get(String.valueOf(row.get("permissionAdjustmentId")))),
+                new ListPath("GET " + REQUISITIONS, REQUISITIONS, List.of(""), true, "requisitionId", row -> unitCodeOf(String.valueOf(row.get("orgUnitId")))));
     }
 
     private List<DetailPath> details() {
@@ -243,7 +306,8 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
                 new DetailPath("GET " + EMPLOYEES + "/{employeeId}", employeeIdOf("a1"), employeeIdOf("b1")),
                 new DetailPath("GET " + PERSONNEL_COMMANDS + "/{personnelCommandId}", personnelCommandOf("a1"), personnelCommandOf("b1")),
                 new DetailPath("GET " + PRIMARY_ASSIGNMENTS, employeeIdOf("a1"), employeeIdOf("b1")),
-                new DetailPath("GET " + ADJUSTMENT, adjustmentIn("F1-A"), adjustmentIn("F1-B")));
+                new DetailPath("GET " + ADJUSTMENT, adjustmentIn("F1-A"), adjustmentIn("F1-B")),
+                new DetailPath("GET " + REQUISITION, requisitionIn("F1-A"), requisitionIn("F1-B")));
     }
 
     private String personnelCommandOf(String key) {
@@ -252,6 +316,10 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
 
     private String adjustmentIn(String unit) {
         return unitOfAdjustment.entrySet().stream().filter(item -> item.getValue().equals(unit)).map(Map.Entry::getKey).findFirst().orElseThrow();
+    }
+
+    private String requisitionIn(String unit) {
+        return unitOfRequisition.entrySet().stream().filter(item -> item.getValue().equals(unit)).map(Map.Entry::getKey).findFirst().orElseThrow();
     }
 
     private String unitCodeOf(String unitId) {
@@ -366,6 +434,28 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
             assertThat(read("everything", urlOf(detail.register(), detail.inA())).getStatus()).as("the seed: " + detail.register() + " reads A for the whole organisation").isEqualTo(200);
             assertAbsentAnswer("scopeB", detail, detail.inA(), detail.register() + " for A");
             assertThat(read("scopeB", urlOf(detail.register(), detail.inB())).getStatus()).as(detail.register() + " for B").isEqualTo(200);
+        }
+    }
+
+    @Test
+    @DisplayName("#1451 R2: a requisition of unit A read by a caller of unit B alone is audited as denied, and the audit entry names unit A")
+    void aRequisitionOutOfScopeIsAuditedAsDenied() throws Exception {
+        String requisition = requisitionIn("F1-A");
+        int before = deniedRequisitionReads(unitIds.get("F1-A"));
+        assertThat(read("scopeB", urlOf("GET " + REQUISITION, requisition)).getStatus()).isEqualTo(404);
+        assertThat(deniedRequisitionReads(unitIds.get("F1-A"))).as("the denied read is audited").isEqualTo(before + 1);
+        assertThat(read("scopeB", urlOf("GET " + REQUISITION, requisitionIn("F1-B"))).getStatus()).isEqualTo(200);
+        assertThat(deniedRequisitionReads(unitIds.get("F1-A"))).as("a read inside the scope adds no denied entry").isEqualTo(before + 1);
+    }
+
+    private int deniedRequisitionReads(String unitId) throws Exception {
+        try (Connection audit = schemaConnection("platform_audit");
+                PreparedStatement statement = audit.prepareStatement("select count(*) from audit_entries where action = 'organization.recruitment.requisition.denied' and subject_id = ?")) {
+            statement.setObject(1, UUID.fromString(unitId));
+            try (java.sql.ResultSet found = statement.executeQuery()) {
+                found.next();
+                return found.getInt(1);
+            }
         }
     }
 
