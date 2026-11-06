@@ -44,6 +44,7 @@ class WorkforceGoldenSampleIT extends GoldenSampleSupport {
     private static final LocalDate N036 = LocalDate.of(2026, 12, 31);
     private static final LocalDate AFTER_N036 = LocalDate.of(2027, 1, 1);
     private static final LocalDate SECOND_ROUND_START = LocalDate.of(2027, 3, 1);
+    private static final LocalDate OBSERVE_052 = LocalDate.of(2027, 3, 15);
     private static final LocalDate N068 = LocalDate.of(2028, 2, 5);
     private static final LocalDate N070 = LocalDate.of(2028, 2, 29);
     private static final LocalDate AFTER_N070 = LocalDate.of(2028, 3, 1);
@@ -51,6 +52,9 @@ class WorkforceGoldenSampleIT extends GoldenSampleSupport {
 
     private static final String ASSIGNMENTS = "assignment_versions";
     private static final String EMPLOYEE_VERSIONS = "employment_relationship_versions";
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.forcitis.one.organization.workforce.api.EmploymentRelationships relationships;
 
     private final List<String> report = new ArrayList<>();
     private final List<String> failed = new ArrayList<>();
@@ -213,14 +217,55 @@ class WorkforceGoldenSampleIT extends GoldenSampleSupport {
             }
         });
 
-        // second round: the same employee comes back (the existing REINSTATE; HCM-LIFE-049 itself waits for #1372)
+        // HCM-LIFE-049 second real start: the same employee E-001 is hired by the other employer LE-B, a new relationship with its own primary post
         onDay(SECOND_ROUND_START);
-        PersonnelCommandId back = reinstate(person, SECOND_ROUND_START, nanjingUnit, secondRound, EmploymentPhaseKind.REGULAR);
-        assertThat(commandStatus(back)).as("setup: the second round starts").isEqualTo("EFFECTIVE");
+        PersonnelCommandId back = hireByOtherEmployer(person, SECOND_ROUND_START, nanjingUnit, secondRound);
+        UUID relationA = relationOf(person, employerAId());
+        UUID relationB = relationOf(person, employerBId());
+        node("HCM-LIFE-049", () -> {
+            try {
+                assertThat(commandStatus(back)).as("HCM-LIFE-049 the second start is effective").isEqualTo("EFFECTIVE");
+                assertThat(employeeCount()).as("HCM-LIFE-049 the employee is kept, one employee").isEqualTo(1);
+                assertThat(relationshipCount(person)).as("HCM-LIFE-049 two relationships, the old one kept as history").isEqualTo(2);
+                assertThat(relationB).as("HCM-LIFE-049 the new relationship is not the old one").isNotEqualTo(relationA);
+                assertThat(relationships.on(employeeIdOf(person), SECOND_ROUND_START).stream().map(view -> view.id().value()).toList())
+                        .as("HCM-LIFE-049 exactly one relationship in service on the day, the new one").containsExactly(relationB);
+                assertThat(relationships.on(employeeIdOf(person), SECOND_ROUND_START).get(0).employerLegalEntityId().value())
+                        .as("HCM-LIFE-049 the employer of the new relationship is LE-B").isEqualTo(stored(employerBId()));
+                assertThat(currentPrimaries(person, SECOND_ROUND_START)).as("HCM-LIFE-049 exactly one primary post on the day").hasSize(1);
+                assertThat(inForceOn(ASSIGNMENTS, person, SECOND_ROUND_START).orElseThrow().get("position_id")).as("HCM-LIFE-049 the primary post is the new one")
+                        .isEqualTo(stored(secondRound));
+                assertThat(inForceOn(ASSIGNMENTS, person, SECOND_ROUND_START).orElseThrow().get("employment_relationship_id"))
+                        .as("HCM-LIFE-049 the primary post belongs to the new relationship").isEqualTo(relationB);
+                assertThat(inForceOn(ASSIGNMENTS, person, N036).orElseThrow().get("employment_relationship_id"))
+                        .as("HCM-LIFE-049 the first round's post stays on the old relationship").isEqualTo(relationA);
+                assertThat(eventsOf("EmployeeHired", back)).as("HCM-LIFE-049 one EmployeeHired event").isEqualTo(1);
+            } catch (java.sql.SQLException failure) {
+                throw new IllegalStateException(failure);
+            }
+        });
+
+        // HCM-LIFE-052 re-check of the first sample's observation point: current and historical relationships
+        onDay(OBSERVE_052);
+        node("HCM-LIFE-052", () -> {
+            try {
+                assertThat(employeeCount()).as("HCM-LIFE-052 one employee").isEqualTo(1);
+                assertThat(relationshipCount(person)).as("HCM-LIFE-052 historical relationships: two").isEqualTo(2);
+                assertThat(relationships.on(employeeIdOf(person), OBSERVE_052).stream().map(view -> view.id().value()).toList())
+                        .as("HCM-LIFE-052 relationships in service: one, the new one").containsExactly(relationB);
+                assertThat(relationships.on(employeeIdOf(person), N036).stream().map(view -> view.id().value()).toList())
+                        .as("HCM-LIFE-052 the old relationship is in service on its last day 2026-12-31").containsExactly(relationA);
+                assertThat(relationships.on(employeeIdOf(person), AFTER_N036)).as("HCM-LIFE-052 nothing in service on 2027-01-01, the old one ended").isEmpty();
+                assertThat(relationships.get(new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(relationA))).as("HCM-LIFE-052 the old one is still readable")
+                        .isPresent();
+            } catch (java.sql.SQLException failure) {
+                throw new IllegalStateException(failure);
+            }
+        });
 
         // HCM-LIFE-068 second round: agreed ending entered with the last working day in the leap year; HCM-LIFE-070 it ends after 02-29
         onDay(N068);
-        PersonnelCommandId secondSeparation = separate(person, N070);
+        PersonnelCommandId secondSeparation = separate(person, N070, relationB);
         node("HCM-LIFE-068", () -> {
             try {
                 assertThat(commandStatus(secondSeparation)).as("HCM-LIFE-068 the second separation is pending").isEqualTo("PENDING");
@@ -255,7 +300,7 @@ class WorkforceGoldenSampleIT extends GoldenSampleSupport {
                 List<Map<String, Object>> chain = rows("select command_kind, status from personnel_commands where employee_id = ? order by effective_date, created_at", stored(person));
                 assertThat(chain).as("HCM-LIFE-078 every command of the chain is effective").allMatch(row -> "EFFECTIVE".equals(row.get("status")));
                 assertThat(chain.stream().map(row -> row.get("command_kind")).toList()).as("HCM-LIFE-078 the chain in order")
-                        .containsExactly("HIRE", "REGULARIZE", "TRANSFER", "UNPAID_LEAVE_START", "UNPAID_LEAVE_END", "TRANSFER", "SEPARATE", "REINSTATE", "SEPARATE");
+                        .containsExactly("HIRE", "REGULARIZE", "TRANSFER", "UNPAID_LEAVE_START", "UNPAID_LEAVE_END", "TRANSFER", "SEPARATE", "HIRE", "SEPARATE");
                 assertThat(inForceOn(ASSIGNMENTS, person, N023.minusDays(1))).as("HCM-LIFE-078 the first round's primary post is traceable").isPresent();
                 assertThat(inForceOn(ASSIGNMENTS, person, SECOND_ROUND_START)).as("HCM-LIFE-078 the second round's primary post is traceable").isPresent();
                 assertThat(inForceOn(ASSIGNMENTS, person, N078)).as("HCM-LIFE-078 no primary post at the end").isEmpty();

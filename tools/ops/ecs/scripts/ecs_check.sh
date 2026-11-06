@@ -88,6 +88,7 @@ manual "E-17 RDS 备份保留 ≥ 7 天、ECS 数据盘每日快照、SLS 保留
 if [[ $PUBLIC -eq 1 ]]; then
   check "公网 80 → 301 https"               "curl -sI http://one.forcitis.com/ | grep -qE '^HTTP/[0-9.]+ 301'"
   check "公网 HSTS"                          "curl -sI https://one.forcitis.com/ | grep -qi '^strict-transport-security'"
+  check "公网内容安全策略（CSP）"            "curl -sI https://one.forcitis.com/ | grep -qi '^content-security-policy:.*default-src .self.'"
   check "公网 /actuator 不可达"              "[[ \$(curl -s -o /dev/null -w '%{http_code}' https://one.forcitis.com/actuator/health) == 404 ]]"
   check "公网匿名 API 返回 401"              "[[ \$(curl -s -o /dev/null -w '%{http_code}' https://one.forcitis.com/api/v1/platform/sessions:current) == 401 ]]"
 fi

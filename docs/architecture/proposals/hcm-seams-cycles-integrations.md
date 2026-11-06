@@ -94,8 +94,8 @@ Pattern worth stating once (an observation, not a rule): every process that exis
 | Q1 | Does acting duty (temporary substitute, LIFE-025) belong to workforce as a dated fact or to identity as a delegation? | workforce fact + identity subscribes; identity delegation only | workforce fact, because it is dated and audited as employment history [U]. **lead 代定（用户授权 23:50），待用户确认**: workforce fact, identity subscribes; designed in `workforce-acting-duty.md` (#1525) |
 | Q2 | Are probation and contract-end reminders wanted (C5)? | yes, a job; no, HR watches a list | list first, job only on the user's request. **lead 代定（用户授权 23:50），待用户确认**: list first, no job |
 | Q3 | Which outside bank, tax channel and social-insurance channel does the business use (E2 to E4)? | user names them; defer | ask the user now so lead times start; no code depends on the answer |
-| Q4 | Does the business keep an outside general ledger (E5)? | yes; no, in-house spine only | read the answer from the posting spine owner; not an HR question [U] |
-| Q5 | Pack node LIFE-054 is dated 2026-12-01 but sits after LIFE-053 (2027-04-02): retroactive adjustment ordering | keep pack order; sort by effective date | evidence only; matters when the test engineer builds scenarios from the pack |
+| Q4 | Does the business keep an outside general ledger (E5)? | yes; no, in-house spine only | read the answer from the posting spine owner; not an HR question [U]. **Status 2026-11-06: routed to the posting spine owner (lead's handling); nothing is decided here and no HR work waits on it** |
+| Q5 | Pack node LIFE-054 is dated 2026-12-01 but sits after LIFE-053 (2027-04-02): retroactive adjustment ordering | keep pack order; sort by effective date | evidence only; matters when the test engineer builds scenarios from the pack. **Status 2026-11-06: evidence only, no decision needed from the user; the test engineer picks the ordering when building the scenario** |
 
 ## 7. Done-when (for the test engineer)
 
