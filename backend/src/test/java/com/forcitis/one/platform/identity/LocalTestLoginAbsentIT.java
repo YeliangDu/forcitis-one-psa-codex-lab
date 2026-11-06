@@ -32,8 +32,10 @@ class LocalTestLoginAbsentIT extends IdentityIntegrationTest {
         assertThat(context.getBeanNamesForType(SettableClock.class)).isEmpty();
         assertThat(context.containsBean("localClockController")).isFalse();
         assertThat(context.getBeanNamesForType(LocalDueJobs.class)).isEmpty();
+        assertThat(context.getBeanNamesForType(com.forcitis.one.platform.identity.application.LocalEnterAdministratorMode.class)).isEmpty();
+        assertThat(context.containsBean("localAdministratorModeController")).isFalse();
         assertThat(mapping.getHandlerMethods().keySet().stream().flatMap(info -> info.getPatternValues().stream()))
-                .noneMatch(pattern -> pattern.contains("/local-"));
+                .noneMatch(pattern -> pattern.contains("/local-") || pattern.contains("local-administrator"));
     }
 
     @Test
@@ -49,6 +51,7 @@ class LocalTestLoginAbsentIT extends IdentityIntegrationTest {
         assertThat(mvc.perform(get("/api/v1/platform/local-clocks")).andReturn().getResponse().getStatus()).isIn(401, 403, 404);
         assertThat(mvc.perform(post("/api/v1/platform/local-clocks:set").with(xsrf()).contentType("application/json").content("{\"at\":\"2026-03-15T08:00:00Z\"}")).andReturn().getResponse().getStatus()).isIn(401, 403, 404);
         assertThat(login.getResponse().getStatus()).isIn(401, 403, 404);
+        assertThat(mvc.perform(post("/api/v1/platform/sessions:enter-local-administrator-mode").with(xsrf())).andReturn().getResponse().getStatus()).isIn(401, 403, 404);
         assertThat(cookie(login, "SESSION")).isNull();
     }
 }

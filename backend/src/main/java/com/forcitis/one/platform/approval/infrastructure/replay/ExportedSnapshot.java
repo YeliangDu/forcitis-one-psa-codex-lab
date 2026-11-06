@@ -86,19 +86,6 @@ final class ExportedSnapshot implements OrgDirectory, RoleDirectory {
     }
 
     @Override
-    public List<OrgUnitId> findAncestors(OrgUnitId orgUnitId) {
-        List<OrgUnitId> ancestors = new ArrayList<>();
-        Set<Long> seen = new HashSet<>();
-        seen.add(ExportedIds.unit(orgUnitId));
-        ReplayExport.OrgUnitRecord current = units.get(ExportedIds.unit(orgUnitId));
-        while (current != null && current.parentOrgUnitId() != null && seen.add(current.parentOrgUnitId())) {
-            ancestors.add(ExportedIds.orgUnit(current.parentOrgUnitId()));
-            current = units.get(current.parentOrgUnitId());
-        }
-        return ancestors;
-    }
-
-    @Override
     public Set<UserId> findRoleHolders(RoleCode roleCode) {
         Set<UserId> holders = new LinkedHashSet<>();
         for (Long holder : roleHolders.getOrDefault(roleCode.value(), Set.of())) {

@@ -118,7 +118,7 @@ class LocalProfileListenerTest {
             }
         }
         assertThat(problems).isEmpty();
-        assertThat(namingIt).containsExactlyInAnyOrder("LocalProfileListener.java", "LoginAsLocalTestUser.java", "LocalTestLoginController.java", "KernelConfiguration.java", "LocalClockController.java", "WorkforceLocalDueJobs.java", "LocalAuditPartitions.java");
+        assertThat(namingIt).containsExactlyInAnyOrder("LocalProfileListener.java", "LoginAsLocalTestUser.java", "LocalTestLoginController.java", "KernelConfiguration.java", "LocalClockController.java", "WorkforceLocalDueJobs.java", "LocalAuditPartitions.java", "LocalEnterAdministratorMode.java", "LocalAdministratorModeController.java");
     }
 
     @Test

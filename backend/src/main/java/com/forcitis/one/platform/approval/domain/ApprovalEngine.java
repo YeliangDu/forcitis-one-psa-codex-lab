@@ -8,6 +8,7 @@ import com.forcitis.one.platform.approval.api.ProcessKey;
 import com.forcitis.one.platform.approval.api.ProcessName;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -17,8 +18,11 @@ public interface ApprovalEngine {
     /** The routing flags the process definition reacts to; a flag outside this set means nothing to the process. */
     Set<String> routingFlagsOf(ProcessKey processKey);
 
-    /** The form field names the process definition reads; a field outside this set would be ignored, so a start that carries one is refused. */
+    /** The form field names the process definition reads for an approver or declares as data-only (forcitis:formField); a field outside this set would be ignored, so a start that carries one is refused. */
     Set<String> formFieldsOf(ProcessKey processKey);
+
+    /** The form fields of an instance as submitted at its start, running or finished; empty for an instance the engine does not know. */
+    Map<String, List<String>> submittedFormFields(ApprovalInstanceId instanceId);
 
     /** The document type the latest deployed definition of the process approves (its forcitis:documentType); a definition without one is a deployment fault. */
     DocumentTypeCode documentTypeOf(ProcessKey processKey);
@@ -49,6 +53,12 @@ public interface ApprovalEngine {
     void releaseClaim(ApprovalTaskId taskId);
 
     void reassignTask(ApprovalTaskId taskId, UserId to);
+
+    /**
+     * Empty when the task may be handed to any employed person (the node's rule does not forbid it); present when the node takes no fallback: the task may
+     * then go only to a person the node's rule names now (possibly nobody). Whoever hands a task over, the handler or the administrator, is bound by it.
+     */
+    Optional<Set<UserId>> handoverTargetsOf(ApprovalTaskId taskId);
 
     void addCandidates(ApprovalTaskId taskId, Collection<UserId> users);
 

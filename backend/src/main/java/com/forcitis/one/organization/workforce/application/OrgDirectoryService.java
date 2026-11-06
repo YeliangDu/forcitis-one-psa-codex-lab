@@ -107,11 +107,6 @@ class OrgDirectoryService implements OrgDirectory {
                 unit.parentOrgUnitId(), unit.status() == OrgUnitStatus.ACTIVE));
     }
 
-    @Override
-    public List<OrgUnitId> findAncestors(OrgUnitId orgUnitId) {
-        return snapshots.findAncestors(orgUnitId);
-    }
-
     private EmployeeProfile profile(StaffEmployee staff) {
         return new EmployeeProfile(staff.employeeId(), staff.employee().displayName(), staff.assignment().orgUnitId(),
                 staff.employee().wecomUserId(), staff.employee().employmentStatus(), staff.employee().feeEarner());

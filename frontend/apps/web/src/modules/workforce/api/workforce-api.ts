@@ -18,6 +18,10 @@ export function fetchEmployee(employeeId: string) {
   return operations.getOrganizationEmployeesByEmployeeId({ path: { employeeId } });
 }
 
+export function fetchPrimaryAssignmentHistory(employeeId: string) {
+  return operations.getOrganizationPrimaryAssignmentsByEmployeeId({ path: { employeeId } });
+}
+
 export interface PersonnelCommandFilter {
   status: string;
   commandKind: string;
