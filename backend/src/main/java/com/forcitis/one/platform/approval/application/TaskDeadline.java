@@ -28,7 +28,9 @@ import org.springframework.transaction.annotation.Transactional;
  * One task per transaction, under the lock of the request it belongs to: a late task is reminded once its reminder time has come
  * and, once the escalation time has come too, handed on. A claimed task goes to the claimant's superior (the claimant stays a
  * candidate); an unclaimed one goes to the process administrator; with no superior known it goes to the administrator and raises an
- * alert (D-1a-113). It is never approved for anyone (RULE-382).
+ * alert (D-1a-113). On a node with several tasks (a countersign) the line is walked up past a supervisor who holds or decided another task of
+ * the node, and the administrator is chosen the same way (#1546); when somebody was passed over and nobody is left, the task stays overdue with its
+ * holder and raises the unresolved alert instead of going to the administrator. It is never approved for anyone (RULE-382).
  */
 @Component
 class TaskDeadline {
@@ -117,7 +119,10 @@ class TaskDeadline {
         meters.counter("forcitis.platform.approval.task.escalated").increment();
     }
 
-    /** The first supervisor up the line who is not the initiator, a holder, or somebody with another task of the node; the initiator ends the line. */
+    /**
+     * The first supervisor up the line who is not a holder or somebody with another task of the node; they are walked past (and counted as skipped).
+     * The initiator, a supervisor without an account, or the top of the line ends the walk.
+     */
     private Superior superiorOf(ApprovalRequest request, TaskView view, List<UserId> holders) {
         Optional<EmployeeId> current = view.assignee().flatMap(accountEmployees::employeeOf);
         Set<EmployeeId> seen = new HashSet<>();
@@ -128,10 +133,13 @@ class TaskDeadline {
                 break;
             }
             Optional<UserId> account = accountEmployees.accountOf(next.get());
-            if (account.isPresent() && !holders.contains(account.get()) && !shares.takenElsewhere(request, view, account.get())) {
+            if (account.isEmpty()) {
+                break;
+            }
+            if (!holders.contains(account.get()) && !shares.takenElsewhere(request, view, account.get())) {
                 return new Superior(account, skipped);
             }
-            skipped = skipped || account.isPresent();
+            skipped = true;
             current = next;
         }
         return new Superior(Optional.empty(), skipped);

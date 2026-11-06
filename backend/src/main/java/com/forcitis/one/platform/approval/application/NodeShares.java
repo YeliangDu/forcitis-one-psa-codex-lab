@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * On a node with several tasks in one round (a countersign) one person takes one share: this says whether a person already has another
- * task of the node, either open (candidate or holder) or decided. Handing over, escalating and claiming all ask it, so they cannot drift apart.
+ * task of the node, either open (candidate or holder) or decided. Escalating and claiming ask it; handing over (TransferTask, ReassignTask) keeps its own check for now.
  */
 @Component
 class NodeShares {

@@ -200,4 +200,25 @@ class CountersignEscalationDistinctPeopleIT extends ApprovalIntegrationSupport {
                 e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_NODE_TASK_DUPLICATE));
         assertThat(holderOf(s.bShare())).isNull();
     }
+
+    @Test
+    @DisplayName("#1546 an unclaimed share is not handed to an administrator who holds another share of the round")
+    void anAdministratorWithAnotherShareDoesNotTakeAnUnclaimedShare() {
+        Scene s = scene(true);
+        engine.addCandidates(s.aShare(), List.of(TestAccounts.account(ADMINISTRATOR)));
+        actAs(ADMINISTRATOR);
+        claimTask.execute(s.aShare(), TestAccounts.account(ADMINISTRATOR), OptionalLong.empty());
+        jdbc.update("update platform_approval.approval_tasks set remind_at = ?, escalate_at = ? where task_id = ?", java.sql.Timestamp.from(Instant.parse("2030-01-01T00:00:00Z")),
+                java.sql.Timestamp.from(Instant.parse("2030-01-02T00:00:00Z")), s.aShare().value());
+        double unresolved = meters.counter("forcitis.platform.approval.task.escalation.unresolved").count();
+        Instant escalateAt = jdbc.queryForObject("select escalate_at from platform_approval.approval_tasks where task_id = ?",
+                java.time.OffsetDateTime.class, s.bShare().value()).toInstant();
+
+        clock.set(escalateAt.plusSeconds(1));
+        enforceDeadlines.execute();
+
+        assertThat(candidatesOf(s.bShare())).doesNotContain(TestAccounts.account(ADMINISTRATOR).value().toString());
+        assertThat(escalationsOf(s.bShare())).isZero();
+        assertThat(meters.counter("forcitis.platform.approval.task.escalation.unresolved").count()).isEqualTo(unresolved + 1);
+    }
 }
