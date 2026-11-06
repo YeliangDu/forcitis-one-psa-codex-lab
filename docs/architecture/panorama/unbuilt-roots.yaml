@@ -26,6 +26,10 @@ roots:
     owner: one-dev-identity
     due: 2026-12-31
     reason: 请假首片（#1400）只建表；MonthlyConfirmation 根类随 L6（#1325 规格 10 节），截止日由 lead 定
+  - table: accounting_ledger.ledgers
+    owner: one-dev-org
+    due: 2026-12-31
+    reason: 总账 G1（#1440）账簿无命令也无状态，只由法人注册事件和回填写入；Ledger 根类随 G2 读取账簿时建立（accounting-spine.md 10 节），截止日由 lead 定
   - table: organization_leave.leave_accounts
     owner: one-dev-identity
     due: 2026-12-31
