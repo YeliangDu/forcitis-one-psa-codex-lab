@@ -441,6 +441,7 @@ aggregates:
   - Approvals
   - ClaimTask
   - DecideTasks
+  - NodeShares
   - ReassignTask
   - RefuseApprovalStart
   - ReleaseTask

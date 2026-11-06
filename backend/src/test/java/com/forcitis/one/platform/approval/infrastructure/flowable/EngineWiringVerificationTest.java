@@ -70,4 +70,13 @@ class EngineWiringVerificationTest {
         assertThatThrownBy(() -> wiringFor("<extensionElements><forcitis:documentType code=\"TIMESHEET\"/><forcitis:routingFlagRequired value=\"maybe\"/></extensionElements><startEvent id=\"s\"/>").verifyDefinitions())
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("forcitis:routingFlagRequired");
     }
+
+    @Test
+    @DisplayName("#1546: a process that can re-enter a countersign node fails the start")
+    void aLoopingCountersignFailsTheStart() {
+        assertThatThrownBy(() -> wiringFor("<extensionElements><forcitis:documentType code=\"TIMESHEET\"/><forcitis:routingFlagRequired value=\"false\"/></extensionElements>"
+                + "<startEvent id=\"s\"/><userTask id=\"cs\"><multiInstanceLoopCharacteristics isSequential=\"false\"/></userTask>"
+                + "<sequenceFlow id=\"f1\" sourceRef=\"s\" targetRef=\"cs\"/><sequenceFlow id=\"f2\" sourceRef=\"cs\" targetRef=\"cs\"/>").verifyDefinitions())
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("Invalid approval process definitions").hasMessageContaining("countersign node cs");
+    }
 }
