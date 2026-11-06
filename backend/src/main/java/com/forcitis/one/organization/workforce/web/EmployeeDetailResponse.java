@@ -6,10 +6,10 @@ import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
-record EmployeeDetailResponse(UUID employeeId, String employeeCode, String displayName, String employmentStatus,
+record EmployeeDetailResponse(UUID employeeId, String employeeCode, String displayName, String employmentStatus, boolean onUnpaidLeave,
                               @Nullable LocalDate hireDate, List<DetailAssignmentResponse> assignments) {
     static EmployeeDetailResponse of(EmployeeRosterView view) {
-        return new EmployeeDetailResponse(view.employeeId(), view.employeeCode(), view.displayName(), view.employmentStatus(), view.hireDate(),
+        return new EmployeeDetailResponse(view.employeeId(), view.employeeCode(), view.displayName(), view.employmentStatus(), view.onUnpaidLeave(), view.hireDate(),
                 view.assignments().stream().map(a -> new DetailAssignmentResponse(a.assignmentKind(), a.orgUnitId(), a.orgUnitName(), a.positionId(), a.positionName(),
                         a.reportsToEmployeeId(), a.reportsToDisplayName())).toList());
     }
