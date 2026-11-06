@@ -7,7 +7,9 @@ import com.forcitis.one.organization.recruitment.api.RecruitmentError;
 import com.forcitis.one.organization.recruitment.api.RequisitionId;
 import com.forcitis.one.organization.recruitment.application.CloseRequisition;
 import com.forcitis.one.organization.recruitment.application.GetRequisition;
+import com.forcitis.one.organization.recruitment.application.ListMyRequisitions;
 import com.forcitis.one.organization.recruitment.application.ListRequisitions;
+import com.forcitis.one.organization.recruitment.application.ListRequisitionsToApprove;
 import com.forcitis.one.organization.recruitment.application.RequisitionView;
 import com.forcitis.one.organization.recruitment.application.SubmitRequisition;
 import com.forcitis.one.organization.recruitment.application.WithdrawRequisition;
@@ -33,13 +35,18 @@ class RequisitionController {
     private final CloseRequisition close;
     private final GetRequisition get;
     private final ListRequisitions list;
+    private final ListMyRequisitions mine;
+    private final ListRequisitionsToApprove toApprove;
 
-    RequisitionController(SubmitRequisition submit, WithdrawRequisition withdraw, CloseRequisition close, GetRequisition get, ListRequisitions list) {
+    RequisitionController(SubmitRequisition submit, WithdrawRequisition withdraw, CloseRequisition close, GetRequisition get, ListRequisitions list,
+            ListMyRequisitions mine, ListRequisitionsToApprove toApprove) {
         this.submit = submit;
         this.withdraw = withdraw;
         this.close = close;
         this.get = get;
         this.list = list;
+        this.mine = mine;
+        this.toApprove = toApprove;
     }
 
     @PostMapping
@@ -54,6 +61,20 @@ class RequisitionController {
     @PreAuthorize("hasAuthority('" + RecruitmentPermissions.READ + "')")
     CursorPage<RequisitionResponse> list(@RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
         CursorPage<RequisitionView> page = list.execute(PageRequest.of(limit, cursor, "recruitment-requisitions"));
+        return CursorPage.of(page.items().stream().map(RequisitionResponse::of).toList(), page.nextCursor());
+    }
+
+    @GetMapping(path = "/mine")
+    @PreAuthorize("hasAuthority('" + RecruitmentPermissions.SUBMIT + "')")
+    CursorPage<RequisitionResponse> mine(@RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
+        CursorPage<RequisitionView> page = mine.execute(PageRequest.of(limit, cursor, "recruitment-requisitions-mine"));
+        return CursorPage.of(page.items().stream().map(RequisitionResponse::of).toList(), page.nextCursor());
+    }
+
+    @GetMapping(path = "/to-approve")
+    @PreAuthorize("isAuthenticated()")
+    CursorPage<RequisitionResponse> toApprove(@RequestParam(required = false) Integer limit, @RequestParam(required = false) String cursor) {
+        CursorPage<RequisitionView> page = toApprove.execute(PageRequest.of(limit, cursor, "recruitment-requisitions-to-approve"));
         return CursorPage.of(page.items().stream().map(RequisitionResponse::of).toList(), page.nextCursor());
     }
 

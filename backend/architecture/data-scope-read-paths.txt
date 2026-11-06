@@ -68,3 +68,5 @@ GET /v3/api-docs.yaml | NOT_SCOPE_BOUND | the OpenAPI document as YAML: the cont
 GET /webjars/** | NOT_SCOPE_BOUND | case i: static library files served from webjars: files, no rows
 GET /api/v1/organization/recruitment-requisitions | SCOPED | recruitment requisitions; filtered by the org-unit scope of requisition:read before any row is read, empty or unresolved scope lists nothing
 GET /api/v1/organization/recruitment-requisitions/{requisitionId} | SCOPED | one requisition; out of scope answers 404 and is audited
+GET /api/v1/organization/recruitment-requisitions/mine | SCOPED | the caller's own requisitions only (requested_by is the caller); org-unit scope does not widen it
+GET /api/v1/organization/recruitment-requisitions/to-approve | SCOPED | only requisitions the caller holds an open approval task for; the task is the grant
