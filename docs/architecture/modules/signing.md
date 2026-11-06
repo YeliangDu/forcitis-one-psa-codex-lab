@@ -1,0 +1,62 @@
+# platform.signing — 对外接口与「再加一个」的标准做法
+
+范围：一页，格式同 identity、workforce 两页。上半是别的模块今天能用到的接口清单与引用统计；下半是它拥有的东西再加一个时的标准做法与文件数。核对日期 2026-11-06，origin/main；数量来自 `ls`、`git grep`，不是估计。「锁」分**今天已有**与**待建**。
+
+职责：印章台账的类型：`SealLedger` 及其视图；目前只有 `api`，没有应用层与 HTTP。
+
+## 1. 对外接口（别的模块可见的）
+
+| 类别 | 内容 |
+|---|---|
+| 端口接口（1） | `SealLedger` |
+| `api` 类型 | 共 9 个；错误码枚举 `SigningError`（每模块一个，G48） |
+| 事件（0） | 无 |
+| HTTP | 0 个端点 |
+| 谁在主代码里用它 | 无（别的模块的主代码没有引用它的 `api` 或 `events` 类型） |
+
+**引用统计**（2026-11-06，origin/main；每个类名一条命令：`git grep -lw <类名> -- backend/src/main`、`git grep -lw <类名> -- backend/src/test`，再去掉模块自己目录下的文件）：
+
+| 类别 | 个数 | 主代码有引用 | 只有测试引用 | 两边都没有 |
+|---|---|---|---|---|
+| `api` 类型 | 9 | 0 | 0 | 9 |
+| `events` 类型 | 0 | 0 | 0 | 0 |
+
+`api` 里两边都没有引用的（退出候选，先看模块内是否在用，再决定改成模块内部类型）：`SealCarrier`、`SealLedger`、`SealLedgerEntryId`、`SealLedgerEntryVersionId`、`SealLedgerEntryVersionView`、`SealLedgerEntryView`、`SealTypeCode`、`SealTypeView`。
+局限：按类名整词搜，同名的别处类型会让数字偏多；经 JSON 字符串、反射或 asyncapi 的使用看不到。目标形态是只暴露消费方真用的。
+
+## 2. 它拥有的东西，再加一个的标准做法
+
+### 2.1 加一个对外读端口或类型
+
+在 `api` 加接口或 record（G2：`api` 只放接口、record、枚举），实现放 `application`；调用方在 `module-dependencies.txt` 有边（platform 层读 organization 的另要在 `platform-org-interfaces.txt` 有一行并重生成签名快照）。先看上面的引用统计，别新增没人用的。
+
+**文件数**：今天 3 至 4 个（接口、实现、依赖登记一行、快照重生成）→ 目标不变。
+
+锁：`ModuleDependencyTest`、`ArchitectureRulesTest` G2（今天已有）。
+
+### 2.2 加一个错误码
+
+`SigningError` 是本模块唯一的错误码枚举（G48、CS-2.24），只往里加；拆分是规则变更，走 CS-7.5，由用户定，本页不提。
+
+**文件数**：今天 1 个 → 目标不变。
+锁：`NamingSurfaceTest` G48（今天已有）。
+
+### 2.3 加一种印章类型或台账字段
+
+`SealTypeCode`、`SealTypeView` 在 `api`；台账字段若入库走数据设计门。目前无应用层，先有消费方再加。
+
+**文件数**：今天 `api` 9 个类型，无一被别的模块引用（见统计）。
+
+锁：数据设计门（`docs/data/data-design-gate.md`）。
+
+## 3. 不要这样做
+
+- 不 import 别的模块的内部类（`application`、`domain`、`infrastructure`）；只经对方的 `api`、`events` 或内核端口。
+- 不在本模块复制别的模块的权限码常量。
+
+## 4. 未核对
+
+- 引用统计按类名整词搜，局限见第 1 节；端点数按控制器里的映射注解数出。
+- 各「今天已有」的守护按类名与登记文件存在判断，断言未逐条读（identity 页第 4 节列出的几个除外）。
+- 「谁在主代码里用它」按引用类型统计，不含经内核端口或事件目录的间接依赖。
+- 各配方的目标文件数是 ADR-0090、0091 的设计值，未实测。
