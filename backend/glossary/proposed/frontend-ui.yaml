@@ -175,7 +175,7 @@ terms:
   status: proposed
   note: 主岗历史表的列名（#1495），对应接口字段 effectiveTo
 - id: grant_source
-  zh: 来源
+  zh: 授予来源
   en: GrantSource
   snake: grant_source
   kind: value_object
