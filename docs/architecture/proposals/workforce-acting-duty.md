@@ -83,7 +83,7 @@ A section "代理职务" (name subject to the glossary check, #1516 H1) on the e
 
 ## 6. What identity hears
 
-Events (payloads go to `docs/architecture/events/workforce.yaml` in the schema slice; the card forbids touching the yaml here):
+Events (payloads are signed in `docs/data/reviews/workforce-acting-duty.md`; the catalogue entries go into `docs/architecture/events/workforce.yaml` together with the event classes, because the catalogue guards fail on an entry without a class):
 
 | Event | When | Payload (ids and dates only) | Consumers |
 |---|---|---|---|

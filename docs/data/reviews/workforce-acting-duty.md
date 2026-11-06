@@ -6,7 +6,7 @@ Evidence marks: **verified** = read on origin/main `cdf7faf55` on 2026-11-06 (mi
 
 ## Scope
 
-Signed: schema `organization_workforce`, new table `acting_duties`; new columns, checks, foreign keys and indexes on `personnel_commands`; the three new command kinds `ACTING_START`, `ACTING_END`, `ACTING_EXTEND`; the payloads of `EmployeeActingDutyStarted` and `EmployeeActingDutyEnded` (written in `docs/architecture/events/workforce.yaml` by this PR, `asyncapi.yaml` regenerated, both listed in `must-audit-actions.yaml`); four terms (`terms.yaml`).
+Signed: schema `organization_workforce`, new table `acting_duties`; new columns, checks, foreign keys and indexes on `personnel_commands`; the three new command kinds `ACTING_START`, `ACTING_END`, `ACTING_EXTEND`; the payloads of `EmployeeActingDutyStarted` and `EmployeeActingDutyEnded` (section "Event payloads" below; they are **not** written into `docs/architecture/events/workforce.yaml` by this PR, see that section); four terms (`terms.yaml`).
 
 Not signed (separate gate runs): any `platform_identity` table or CHECK change (proposal slice 9: needs the user's answer to Q-A1); approval routing (slice 11, Q-A2); read models; migration-in (there is no legacy data to bring in: the pack is evidence only). The schema does not depend on Q-A1 to Q-A5: Q-A3 (several stand-ins at once) is already allowed by the data and a limit would be a command check; Q-A4 (who may act) and Q-A5 (approval first) change command permissions and flow, not columns.
 
@@ -66,6 +66,26 @@ New nullable columns: `acting_covered_org_unit_id`, `acting_covered_position_id`
 4. **The acting duty row carries `employment_relationship_id`** (the proposal's table listed only the employee). The events carry it (ADR-0086) and every dated workforce fact after `V20261105120000` is tied to a relationship.
 5. **`acting_duties` is not a pure append-only table:** `ends_before` may grow while open and the closing pair is set once (trigger above); the proposal said "append-only except the closing columns" and left the trigger question open (unverified item closed here: the triggers on `personnel_commands` are by design, and this table has its own).
 6. **Purge order** (retention, below) is part of the signed design.
+
+## Event payloads (E1)
+
+Both events: aggregate `Employee`, `aggregateId` = employee, publisher `organization.workforce`, consumers `platform.identity` and `platform.audit`, audited, `businessDate` as stated, envelope `legalEntityId` = the employee's legal entity on that date, version 1, delivery as the other personnel events. Payload fields are ids, dates and one enum; no names, no `reason`.
+
+| Field | `EmployeeActingDutyStarted` | `EmployeeActingDutyEnded` |
+|---|---|---|
+| `personnelCommandId` | required | **nullable**: the `ACTING_END` command (early) or the `SEPARATE` command; empty for `EXPIRED`. Consumers dedupe by event id only |
+| `employeeId` | required (= `aggregateId`) | required |
+| `actingDutyId` | required | required |
+| `coveredOrgUnitId` | required | required |
+| `coveredPositionId` | nullable | nullable |
+| `coveredEmployeeId` | nullable | nullable |
+| `startsOn` | required, `businessDate` | n/a |
+| `endsBefore` | required (the value at start; later extensions publish nothing) | n/a |
+| `endedOn` | n/a | required, `businessDate` |
+| `endCause` | n/a | required, `EXPIRED` / `ENDED_EARLY` / `SEPARATION` |
+| `employmentRelationshipId` | required (ADR-0086) | required |
+
+**Why the yaml is not in this PR (conflict reported to lead).** The playbook (step 8) and the proposal ask for the payloads in `docs/architecture/events/workforce.yaml` in the design PR. Tried on this branch: `EventCatalogueTest.catalogueMatchesTheCode` and `EventCatalogueCoverageTest.everyCatalogueEventIsExercised` fail when the catalogue names an event class that is not in the code (verified by `scripts/ci/check_all.sh`), and the pending-fragment exemption in `EventCatalogueTest` is per module, not per event. `enqueue` in turn refuses a non-`docs` PR that changes the yaml. So the entries, the `asyncapi.yaml` regeneration (`python3 scripts/codegen/build_asyncapi.py`) and the two `must-audit-actions.yaml` lines (`organization.workforce.EmployeeActingDutyStarted`, `…Ended`, under 人事命令) cannot land before the event classes. Left to lead: either the schema PR (slice 1) carries the classes, the entries and a publisher-test construction together under whatever label enqueue accepts, or a per-event pending exemption is designed. This record signs the payload; it does not decide the carrier.
 
 ## Invariants to constraints (B5, O4)
 
@@ -128,7 +148,7 @@ Expected volume: a few hundred duties per year for the whole firm; all lists are
 | C4 | pass | classification below; `reason` allowed content: the business reason for the cover in the operator's words; it must not state health, pregnancy or other special-category facts of the stand-in or the covered person (a note rule, like WC0's; a leave kind as the reason would be `SPI` and needs U-14 first); the same holds for `personnel_commands.reason` |
 | C5 | pass | lineage `NEW`; no legacy source, no `legacy_numbers` |
 | T1 to T3 | pass | baseline: no acting concept exists (verified: no table, no kind); target: BC `organization.workforce`; transition: none (new fact) |
-| E1 | pass | payloads are immutable records of ids, dates and the cause enum; no names, no reason text, no `SENSITIVE` column; new events at version 1 (ADR-0035); publisher and consumers registered; `noConsumer` not needed (identity and audit consume) |
+| E1 | pass (payload signed; catalogue entry waits for the classes, see above) | payloads are immutable records of ids, dates and the cause enum; no names, no reason text, no `SENSITIVE` column; new events at version 1 (ADR-0035); publisher and consumers registered; `noConsumer` not needed (identity and audit consume) |
 | E2, E3 | n/a | no read model; no migration-in |
 | A1 to A8 | n/a | no analytical fact; A6: the duty row carries the dates and (via the relationship) the legal entity; no document number applies |
 
@@ -154,7 +174,7 @@ Table set: `acting_duties` added. `personnel_commands`: columns `acting_covered_
 1. The permission code for the three commands (Q-A4, `PersonnelCommandService`).
 2. The floor for past start dates (rule 7), taken from `PersonnelCommandService` as for `UNPAID_LEAVE_START`.
 3. Whether a failing `ACTING_START` effect (exclusion backstop hit by a race) leaves the command retried forever; the dev card makes it fail loudly the way other kinds do.
-4. `must-audit-actions.yaml` entries and `asyncapi.yaml` were checked by `light.sh` only; the backend event-catalogue and audit tests run in the schema PR.
+4. The event-catalogue, audit and consumer guards run against the real classes in the schema PR; here they were only seen failing for the missing classes (the conflict above).
 5. Frontend session name for slice 8 (lead).
 
 ## 数据设计审查

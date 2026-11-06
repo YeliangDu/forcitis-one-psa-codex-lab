@@ -55,8 +55,6 @@ categories:
   - organization.workforce.separation-hold.released
 - name: 人事命令
   actions:
-  - organization.workforce.EmployeeActingDutyEnded
-  - organization.workforce.EmployeeActingDutyStarted
   - organization.workforce.EmployeeCorrected
   - organization.workforce.EmployeeHired
   - organization.workforce.EmployeeLegalEntityChanged
