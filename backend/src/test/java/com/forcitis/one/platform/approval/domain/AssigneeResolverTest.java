@@ -13,6 +13,7 @@ import com.forcitis.one.platform.identity.api.RoleCode;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -72,6 +73,19 @@ class AssigneeResolverTest {
         Resolution r = resolve(new AssignmentRule.Role(new RoleCode("reviewer")), 1, ProcessVariables.empty());
         assertThat(r.candidates()).isEqualTo(ids(2, 3));
         assertThat(r.kind()).isEqualTo(ResolutionKind.RESOLVED);
+    }
+
+    @Test
+    @DisplayName("RULE-253/257 a parent chain that loops back on itself ends at the loop: no endless climb, the head found before the loop still counts")
+    void departmentHeadStopsAtAParentLoop() {
+        org.unit(20, 21L, null).unit(21, 20L, null).unit(22, 21L, 122L).person(122, 22, null);
+        java.time.Duration limit = java.time.Duration.ofSeconds(5);
+        assertTimeoutPreemptively(limit, () -> {
+            assertThat(resolve(new AssignmentRule.DepartmentHead("loopUnitId"), 1, variable("loopUnitId", unit(20))).candidates())
+                    .doesNotContain(TestAccounts.account(TestAccounts.employee(110)));
+            assertThat(resolve(new AssignmentRule.DepartmentHead("loopUnitId"), 1, variable("loopUnitId", unit(22))).candidates())
+                    .isEqualTo(ids(122));
+        });
     }
 
     @Test
@@ -259,6 +273,24 @@ class AssigneeResolverTest {
         // no leader either -> administrator, never the initiator
         Resolution noSupervisor = resolve(new AssignmentRule.FormFieldUsers("projectManagerId"), 3, fields("projectManagerId", person(3)));
         assertThat(noSupervisor.candidates()).isEqualTo(ids(ADMIN));
+    }
+
+    @Test
+    @DisplayName("#1436 a noFallback node never escalates to the supervisor or the administrators: nobody left is UNRESOLVED")
+    void noFallbackLeavesTheNodeUnresolved() {
+        AssignmentRule rule = new AssignmentRule.FormFieldUsers("projectManagerId");
+        // the initiator alone: the supervisor (2) would get it without the option, nobody gets it with it
+        Resolution alone = resolver.resolve(rule, false, false, true, TestAccounts.employee(1), fields("projectManagerId", person(1)));
+        assertThat(alone.kind()).isEqualTo(ResolutionKind.UNRESOLVED);
+        assertThat(alone.candidates()).isEmpty();
+        // the named person is separated: the administrators would get it without the option
+        Resolution separated = resolver.resolve(rule, false, false, true, TestAccounts.employee(1), fields("projectManagerId", person(120)));
+        assertThat(separated.kind()).isEqualTo(ResolutionKind.UNRESOLVED);
+        assertThat(separated.candidates()).isEmpty();
+        // somebody else qualifies: unchanged, the initiator is removed
+        Resolution others = resolver.resolve(rule, false, false, true, TestAccounts.employee(1), fields("projectManagerId", person(1), person(3)));
+        assertThat(others.kind()).isEqualTo(ResolutionKind.RESOLVED);
+        assertThat(others.candidates()).isEqualTo(ids(3));
     }
 
     @Test

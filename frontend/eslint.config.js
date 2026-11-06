@@ -229,6 +229,11 @@ export default tseslint.config(
     },
   },
   {
+    // Card #1478: the two paths of the local test login exist only in the backend's profile local, so they are not in openapi.json and no generated operation can name them. This one file spells them; nothing else may.
+    files: ['packages/api/src/local-login.ts'],
+    rules: { 'no-restricted-syntax': ['error', ...BASE_SYNTAX.slice(2), ...STYLE_SYNTAX] }, // BASE_SYNTAX minus its two URL entries
+  },
+  {
     files: ['packages/api/src/generated/**'],
     rules: { 'no-restricted-syntax': 'off', 'unicorn/filename-case': 'off', '@typescript-eslint/naming-convention': 'off' },
   },
