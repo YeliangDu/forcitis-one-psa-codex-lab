@@ -6,13 +6,13 @@
 
 | 类别 | 内容 | 位置 |
 |---|---|---|
-| 端口接口（13） | 读：`OrgDirectory`、`EmployeeProfiles`、`EmployeeLabels`、`EmployeeLegalEntities`、`EmploymentRelationships`（含 `inServiceIn(month)` 在职判定）、`LegalEntityDirectory`、`LegalEntityNumberUsage`、`PositionLookup`；写与流程：`PersonnelCommands`、`OrgStructureCommands`、`ProfileChangeRequests`、`SeparationHolds`、`AttributionCountersigns` | `organization/workforce/api` |
+| 端口接口（13） | 读：`OrgDirectory`、`EmployeeProfiles`、`EmployeeLabels`、`EmployeeLegalEntities`、`EmploymentRelationships`（雇佣关系视图）、`LegalEntityDirectory`、`LegalEntityNumberUsage`、`PositionLookup`；写与流程：`PersonnelCommands`、`OrgStructureCommands`、`ProfileChangeRequests`、`SeparationHolds`、`AttributionCountersigns` | `organization/workforce/api` |
 | 命令入口（宽 record） | `EnterPersonnelCommand`（24 个组件）、`EnterOrgStructureCommand`（15 个组件）；验收探针按名字反射它们，S3 之前不改名（ADR-0090 决定 2） | 同左 |
 | 值与枚举 | 各类 ID、`PersonnelCommandKind`（14 种）、`OrgStructureCommandKind`（9 种）、`OrgStructureTargetKind`、`EmploymentStatus`、`EmploymentVerdict`、`WorkforceError`（错误码，每模块一个，G48）等 | 同左 |
 | 事件（34） | 入离转调、任职关系、法人归属、组织单元与职位、离职冻结各类；载荷登记在 `docs/architecture/events/workforce.yaml` | `organization/workforce/events` |
 | HTTP | 41 个端点，前缀 `/api/v1/organization`（员工、人事命令、组织结构命令、组织单元、职位、法人、法人归属、资料变更申请、会签、离职冻结、主任职） | `organization/workforce/web` |
 | 内核端口（调用方） | 向 identity 问 `SeparationReview`、`AccountEmployees`、`EmployeeAccountAccess`、`CallerPermissions`、`OrgUnitAccess`；实现 `ExternalSubjectEmployees`（供 integration 查） | `kernel` |
-| 谁用它 | identity、approval、numbering（platform 层）与 leave、timesheet、administration、ledger（见 `module-dependencies.txt`），经 `backend/architecture/module-dependencies.txt` 与（platform 层）`backend/architecture/platform-org-interfaces.txt` 登记；公开签名固定在 `backend/architecture/platform-org-interfaces.signatures.txt` | `backend/architecture` |
+| 谁用它 | 9 个模块：`accounting.ledger`、`cost.timesheet`、`organization.administration`、`organization.leave`、`organization.recruitment`、`organization.payroll`、`platform.approval`、`platform.identity`、`platform.numbering`，经 `backend/architecture/module-dependencies.txt` 登记，其中 platform 层的三个另在 `backend/architecture/platform-org-interfaces.txt` 登记；公开签名固定在 `backend/architecture/platform-org-interfaces.signatures.txt` | `backend/architecture` |
 
 **引用统计**（2026-11-06，origin/main；做法同 identity 页：每个 `api`、`events` 类名在模块目录之外的主代码与测试里各按整词搜索，每个类名一条命令：`git grep -lw <类名> -- backend/src/main`、`git grep -lw <类名> -- backend/src/test`，再去掉模块自己目录下的文件）：
 
@@ -81,7 +81,7 @@
 
 控制器在 `organization/workforce/web`，前缀 `/api/v1/organization`；`@PreAuthorize` 用 2.3 的常量；响应 `*Response` record；POST 要幂等的登记在 `backend/architecture/idempotent-endpoints.txt`。
 
-锁：`OpenApiExportTest`、`IdempotentEndpointGuardTest`、`ArchitectureRulesTest`（今天已有）。
+锁：`OpenApiExportTest`、`IdempotentEndpointGuardTest`、`ArchitectureRulesTest` G28（每个处理器带 `@PreAuthorize` 或 `@PublicEndpoint`）（均今天已有）。
 
 ### 2.7 加一个错误码
 
@@ -102,4 +102,4 @@
 - 13 个端口接口的方法清单与调用方没有逐个列；调用方范围取自两个登记文件，未逐文件核对。
 - 41 个端点按控制器映射注解数出，不含继承或配置生成的端点。
 - `ExternalSubjectEmployees` 由 workforce 实现取自 `module-dependencies.txt` 的注释（RULING-P3B-9），未读实现类。
-- 「两个守护今天已有」按类名与登记文件存在判断，未逐条读断言。
+- 已读的断言：`ArchitectureRulesTest` G28、`NamingSurfaceTest` G43、`IdempotentEndpointGuardTest`；其余标「今天已有」的守护按类名与登记文件存在判断，断言未逐条读。

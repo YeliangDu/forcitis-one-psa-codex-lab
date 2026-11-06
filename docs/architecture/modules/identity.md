@@ -51,7 +51,7 @@
 
 登录方式各有一个应用层入口（企业微信登录、签名票据登录、应急管理员登录、本地测试登录），共用 `LoginAdmission` 判定、`LoginThrottle` 限流与 `SessionRegistry`。新方式：新增一个入口用例，经 `LoginAdmission` 和 `SessionRegistry`，不另写判定与限流；会话种类加枚举值。
 
-锁：每个端点要么 `@PreAuthorize` 要么 `@PublicEndpoint`，公开端点登记在 `backend/architecture/public-endpoints.txt`（今天已有）。
+锁：`ArchitectureRulesTest` G28（每个 web 处理器带 `@PreAuthorize` 或 `@PublicEndpoint`）与 G18（禁 `@PermitAll`），`ApplicationIntegrationTest` I-3（匿名可达的处理器集合等于 `backend/architecture/public-endpoints.txt`）（均今天已有）。
 
 ### 2.4 加一个事件
 
@@ -69,7 +69,7 @@
 
 控制器在 `platform/identity/web`，前缀 `/api/v1/platform`；`@PreAuthorize` 用权限声明的字符串常量（2.1）；响应用 `*Response` record；列表加数据范围过滤，范围外按不存在处理；POST 要幂等时登记在 `backend/architecture/idempotent-endpoints.txt`；敏感响应字段不超出登记。
 
-锁：`OpenApiExportTest`（导出基线）、`ArchitectureRulesTest`（分层与注解）、`IdempotentEndpointGuardTest`（均今天已有）。
+锁：`OpenApiExportTest`（导出基线）、`ArchitectureRulesTest` G28（每个处理器有 `@PreAuthorize` 或 `@PublicEndpoint`）、`NamingSurfaceTest` G43（`@PreAuthorize` 用的码在目录内）、`IdempotentEndpointGuardTest`（均今天已有）。
 
 ### 2.6 加一种命令类（多种类带可选字段的命令）
 
@@ -87,6 +87,6 @@ identity 今天没有这种命令家族（授权请求有 `AuthorizationRequestK
 
 ## 4. 未核对
 
-- 两个守护的具体断言没有逐条读（`ArchitectureRulesTest` 对公开端点登记、`IdempotentEndpointGuardTest` 对幂等登记）；表中只说「今天已有」是按类名与登记文件存在判断的。
+- 已读的断言：`ArchitectureRulesTest` G28（:402）、G18（:275），`ApplicationIntegrationTest` I-3（:123、:148），`NamingSurfaceTest` G43，`IdempotentEndpointGuardTest`；其余标「今天已有」的守护按类名与登记文件存在判断，断言未逐条读。
 - `identity.yaml` 中 24 个事件与 `events` 目录的 24 个类是否一一对应，没有逐个比对；数量来自 `ls`。
 - 31 个端点按控制器里的映射注解数出，不含继承或配置生成的端点。
