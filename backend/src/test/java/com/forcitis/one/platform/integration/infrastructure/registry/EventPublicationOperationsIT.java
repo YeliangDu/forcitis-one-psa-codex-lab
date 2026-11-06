@@ -4,14 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.forcitis.one.TestDatabase;
-import com.forcitis.one.TestIds;
 import com.forcitis.one.TestPostgres;
-import com.forcitis.one.kernel.LegalEntityId;
-import com.forcitis.one.kernel.event.ActorType;
-import com.forcitis.one.kernel.event.EventEnvelope;
-import com.forcitis.one.organization.workforce.api.LegalEntityCode;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
-import com.forcitis.one.organization.workforce.events.LegalEntityRegistered;
 import com.forcitis.one.platform.identity.api.RoleDirectory;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.time.Duration;
@@ -22,14 +16,18 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import com.forcitis.one.kernel.SystemActorName;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Import;
+import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.support.TransactionTemplate;
-import com.forcitis.one.kernel.SystemActors;
 
+@Import(EventPublicationOperationsIT.ProbeListener.class)
 @SpringBootTest(properties = {"flowable.async-executor-activate=false", "flowable.database-schema-update=true",
         "forcitis.platform.integration.event-publication.jobs-enabled=true",
         "forcitis.platform.integration.event-publication.republish-interval=PT6H",
@@ -66,6 +64,18 @@ class EventPublicationOperationsIT {
     @Autowired
     EventPublicationStatistics statistics;
 
+    /** A test-only event with exactly one listener, so the registry holds exactly one row for it (a real domain event gains listeners as modules are added). */
+    record ArchiveProbe(String code) {
+    }
+
+    @TestConfiguration
+    @SystemActorName("test.event-publication.probe")
+    static class ProbeListener {
+        @ApplicationModuleListener
+        void on(ArchiveProbe event) {
+        }
+    }
+
     private int count(String table, String condition) {
         return jdbc.sql("select count(*) from platform_integration." + table + " where " + condition).query(Integer.class).single();
     }
@@ -73,11 +83,7 @@ class EventPublicationOperationsIT {
     @Test
     @DisplayName("a completed publication moves to the archive table; the cleanup job removes archived rows older than 30 days and keeps newer ones")
     void completedPublicationsAreArchivedThenCleaned() {
-        EventEnvelope envelope = new EventEnvelope(UUID.randomUUID(), "organization.workforce.LegalEntityRegistered", 1, Instant.now(), "LegalEntity",
-                TestIds.uuid(701), 1, UUID.randomUUID(), null, ActorType.SYSTEM, SystemActors.idOf("test.envelope"), new LegalEntityId(TestIds.uuid(701)), null,
-                null, List.of());
-
-        tx.executeWithoutResult(status -> publisher.publishEvent(new LegalEntityRegistered(envelope, new LegalEntityId(TestIds.uuid(701)), new LegalEntityCode("ARC"))));
+        tx.executeWithoutResult(status -> publisher.publishEvent(new ArchiveProbe("ARC")));
 
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertThat(count("event_publication_archive", "serialized_event like '%\"ARC\"%'")).isEqualTo(1));
         assertThat(count("event_publication", "serialized_event like '%\"ARC\"%'")).as("moved, not copied").isZero();
