@@ -45,6 +45,8 @@ public class TransferTask {
         UserId assignee = accountEmployees.accountOf(to).orElseThrow(() -> ApprovalError.PLATFORM_APPROVAL_TRANSFER_TARGET_INVALID.refusal(
                 "Transfer target " + to.value() + " has no account"));
         requireValidTarget(task, actor, to, assignee);
+        requireNamedByNode(task, to, assignee);
+        requireNotDecidedOnNode(request, task, to, assignee);
         engine.reassignTask(taskId, assignee);
         request.transferTask(taskId, actor, assignee, Reason.ofNullable(reason), time.moment());
         approvals.save(request);
@@ -63,6 +65,20 @@ public class TransferTask {
                 .anyMatch(other -> other.candidates().contains(assignee) || other.assignee().map(assignee::equals).orElse(false));
         if (alreadyOnNode) {
             throw refused("Transfer target " + to.value() + " already has a task on this node");
+        }
+    }
+
+    /** A node that takes no fallback is handed over only inside the people its rule names. */
+    private void requireNamedByNode(TaskView task, EmployeeId to, UserId assignee) {
+        if (engine.handoverTargetsOf(task.taskId()).map(named -> !named.contains(assignee)).orElse(false)) {
+            throw refused("Transfer target " + to.value() + " is not a person node " + task.nodeKey() + " names, and the node takes no fallback");
+        }
+    }
+
+    /** A countersign task does not go to somebody who already decided a task of the node in this round. */
+    private static void requireNotDecidedOnNode(ApprovalRequest request, TaskView task, EmployeeId to, UserId assignee) {
+        if (request.hasDecidedOnNodeOf(task.taskId(), assignee)) {
+            throw refused("Transfer target " + to.value() + " already decided a task of node " + task.nodeKey() + " in this round");
         }
     }
 

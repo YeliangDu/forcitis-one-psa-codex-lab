@@ -97,7 +97,10 @@ class WorkforceHttpIntegrationTest extends WorkforceIntegrationSupport {
                 // #1169: org data is still not edited in place; a change to the org tree is entered as a command and withdrawn the same way, as for personnel commands.
                 "POST /api/v1/organization/org-structure-commands", "POST /api/v1/organization/org-structure-commands/{orgStructureCommandId}:withdraw",
                 // #1170: the finance head decides a countersign request; no data is edited in place.
-                "POST /api/v1/organization/attribution-countersigns/{attributionCountersignId}:approve", "POST /api/v1/organization/attribution-countersigns/{attributionCountersignId}:reject");
+                "POST /api/v1/organization/attribution-countersigns/{attributionCountersignId}:approve", "POST /api/v1/organization/attribution-countersigns/{attributionCountersignId}:reject",
+                // #1451: a manager submits a recruitment requisition, the requester withdraws it, a manager closes it; none edits org data in place.
+                "POST /api/v1/organization/recruitment-requisitions", "POST /api/v1/organization/recruitment-requisitions/{requisitionId}:withdraw",
+                "POST /api/v1/organization/recruitment-requisitions/{requisitionId}:close");
     }
 
     // RULE-484

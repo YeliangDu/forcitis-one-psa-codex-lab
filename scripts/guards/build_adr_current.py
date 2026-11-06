@@ -1,7 +1,8 @@
 """Generate docs/adr/current.md: which ADRs are in force per BC, which are superseded, and which clauses were partly superseded by whom.
 
 Usage: python3 -I build_adr_current.py [--self-test]
-Fails (exit 1) when an adopted ADR's header BC names an id that docs/architecture/ssot/domain/contexts.yaml does not have (全局 and 待定 excepted).
+Fails (exit 1) when an adopted ADR's header BC names an id that docs/architecture/ssot/domain/contexts.yaml does not have (全局 and 待定 excepted),
+or when a `delivers` list of docs/architecture/ssot/transitions/transitions.yaml names a context that contexts.yaml marks `retired`.
 Reads the ADR headers (状态, 类别, BC, 取代, 被部分取代) and docs/adr/catalog.yaml (bc, category, partially_superseded; it stops at ADR-0051,
 later ADRs are read from their headers only). The page is generated, never hand-edited.
 """
@@ -16,6 +17,7 @@ REPO = Path(__file__).resolve().parents[2]
 ADR = REPO / "docs/adr"
 OUT = ADR / "current.md"
 CONTEXTS = REPO / "docs/architecture/ssot/domain/contexts.yaml"
+TRANSITIONS = REPO / "docs/architecture/ssot/transitions/transitions.yaml"
 NOT_AN_ID = ("全局", "待定")
 REF = re.compile(r"ADR-(\d{4})")
 STATE_WORDS = ("已采纳", "提议", "搁置", "已废弃", "已拒绝", "已撤回")
@@ -121,6 +123,17 @@ def unknown_bcs(adrs, context_ids):
     return out
 
 
+def retired_delivered(transitions, contexts):
+    """{retired id: [transition ids]} for `delivers` entries naming a context whose status is retired."""
+    retired = {c["id"] for c in contexts if c.get("status") == "retired"}
+    out = collections.defaultdict(list)
+    for t in transitions:
+        for bc in t.get("delivers") or []:
+            if bc in retired:
+                out[bc].append(t["id"])
+    return out
+
+
 def self_test():
     import tempfile
     with tempfile.TemporaryDirectory() as d:
@@ -144,6 +157,9 @@ def self_test():
         adrs2 = load(d2)
         assert not unknown_bcs(adrs2, {"platform.x"}), "known id, 全局 and a proposal pass"
         assert dict(unknown_bcs(adrs2, set())) == {"platform.x": ["0001"]}, "break test: removing the context id goes red"
+    ctx = [{"id": "a.new"}, {"id": "a.old", "status": "retired"}]
+    assert not retired_delivered([{"id": "TA-1", "delivers": ["a.new"]}, {"id": "TA-2"}], ctx), "a live id and no delivers pass"
+    assert dict(retired_delivered([{"id": "TA-1", "delivers": ["a.new", "a.old"]}], ctx)) == {"a.old": ["TA-1"]}, "break test: a retired id in delivers goes red"
     print("self-test ok")
 
 
@@ -152,7 +168,13 @@ if __name__ == "__main__":
         self_test()
     else:
         adrs = load()
-        missing = unknown_bcs(adrs, {c["id"] for c in yaml.safe_load(CONTEXTS.read_text(encoding="utf-8"))["contexts"]})
+        contexts = yaml.safe_load(CONTEXTS.read_text(encoding="utf-8"))["contexts"]
+        missing = unknown_bcs(adrs, {c["id"] for c in contexts})
+        stale = retired_delivered(yaml.safe_load(TRANSITIONS.read_text(encoding="utf-8"))["transitions"], contexts)
+        if stale:
+            for bc, ids in sorted(stale.items()):
+                print(f"{bc}: retired in {CONTEXTS.relative_to(REPO)} but delivered by " + ", ".join(ids) + f" in {TRANSITIONS.relative_to(REPO)}")
+            sys.exit(1)
         if missing:
             for bc, ns in sorted(missing.items()):
                 print(f"{bc}: named by adopted " + ", ".join(f"ADR-{n}" for n in ns) + f" but missing from {CONTEXTS.relative_to(REPO)}")

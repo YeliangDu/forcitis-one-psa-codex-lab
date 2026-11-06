@@ -236,6 +236,19 @@ class RequisitionFlowIT extends ApprovalIntegrationSupport {
     }
 
     @Test
+    @DisplayName("#1451 a scope that cannot be worked out: the detail answers not-found, the list refuses with the forbidden scope-unavailable error")
+    void anUnresolvableScopeHidesTheDetailAndRefusesTheList() {
+        RequisitionView view = submitOne(1);
+        signInAs(requester);
+        when(access.visibleOrgUnits(any())).thenThrow(new DomainException(com.forcitis.one.platform.identity.api.IdentityError.PLATFORM_IDENTITY_ACCESS_SCOPE_UNAVAILABLE,
+                com.forcitis.one.kernel.ErrorKind.FORBIDDEN, "scope unavailable"));
+
+        assertCode(() -> get.execute(view.requisitionId()), RecruitmentError.ORGANIZATION_RECRUITMENT_REQUISITION_NOT_FOUND);
+        assertCode(() -> list.execute(PageRequest.of(50, null, "recruitment-requisitions")),
+                com.forcitis.one.platform.identity.api.IdentityError.PLATFORM_IDENTITY_ACCESS_SCOPE_UNAVAILABLE);
+    }
+
+    @Test
     @DisplayName("#1451 a subtree grant on a parent unit covers a requisition of its child unit (get and list), and a grant on the child alone does not cover the parent")
     void aSubtreeOnAnAncestorCoversTheUnit() {
         long child = UNITS.incrementAndGet();
