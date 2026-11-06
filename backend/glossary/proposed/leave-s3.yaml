@@ -45,3 +45,18 @@ terms:
   forbidden: []
   status: proposed
   note: '#1581；中文名待术语确认'
+- id: hr_lead_threshold_days_count
+  zh: 人力负责人层审批天数阈值
+  en: HrLeadThresholdDaysCount
+  snake: hr_lead_threshold_days_count
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 请假规则版本上的可空整数天数；请假覆盖的工作日数超过它时审批路线加人力负责人一层，为空表示没有此层
+  standard_ref:
+  - docs/data/reviews/leave-attendance-s3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1581；中文名待术语确认'
