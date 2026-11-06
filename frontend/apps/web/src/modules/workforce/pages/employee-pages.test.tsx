@@ -13,6 +13,7 @@ const ROW = {
   employeeCode: 'E0001',
   displayName: '张三',
   employmentStatus: 'EMPLOYED',
+  onUnpaidLeave: false,
   hireDate: '2024-03-01',
   assignments: [{ assignmentKind: 'PRIMARY', orgUnitId: UNIT, orgUnitName: '交付一部', positionId: null, positionName: '项目经理' }],
 };
@@ -30,6 +31,18 @@ describe('员工名册', () => {
     await userEvent.selectOptions(screen.getByLabelText('在职状态'), 'SEPARATED');
     await screen.findByText('张三');
     expect(server.calls.some((call) => call.url.includes('employmentStatus=SEPARATED'))).toBe(true);
+  });
+
+  it('停薪留职的人显示「停薪留职」，筛选项带服务端的取值', async () => {
+    const server = stubServer({ 'GET employees': { body: { items: [{ ...ROW, onUnpaidLeave: true }], nextCursor: null } } });
+    renderWithProviders(<EmployeeRosterPage />);
+
+    await screen.findByText('张三');
+    expect(screen.getAllByText('停薪留职').some((node) => node.tagName !== 'OPTION')).toBe(true);
+
+    await userEvent.selectOptions(screen.getByLabelText('在职状态'), 'ON_UNPAID_LEAVE');
+    await screen.findByText('张三');
+    expect(server.calls.some((call) => call.url.includes('employmentStatus=ON_UNPAID_LEAVE'))).toBe(true);
   });
 
   it('按组织单元筛选时请求带着组织单元', async () => {

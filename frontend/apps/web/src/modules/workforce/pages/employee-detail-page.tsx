@@ -2,7 +2,7 @@ import { DataTable, DescriptionList, PageTitle, StatusBadge, TextLink, type Data
 import { useNavigate, useParams } from 'react-router';
 import { QueryBoundary } from '../../../shared/query-boundary';
 import { useEmployee } from '../hooks/use-workforce';
-import { ASSIGNMENT_KIND_LABELS, EMPLOYMENT_STATUS_LABELS, type EmployeeDetail } from '../model/employee';
+import { ASSIGNMENT_KIND_LABELS, employmentStatusLabel, type EmployeeDetail } from '../model/employee';
 import { PrimaryAssignmentHistorySection } from './primary-assignment-history-section';
 import { employeeCommandsPath, newPersonnelCommandPath } from '../model/personnel-command';
 
@@ -25,7 +25,7 @@ export function EmployeeDetailPage() {
       {(detail) => {
         return (
           <>
-            <PageTitle text={detail.displayName} actions={<StatusBadge tone={detail.employmentStatus === 'EMPLOYED' ? 'posted' : 'neutral'}>{EMPLOYMENT_STATUS_LABELS[detail.employmentStatus] ?? detail.employmentStatus}</StatusBadge>} />
+            <PageTitle text={detail.displayName} actions={<StatusBadge tone={detail.employmentStatus === 'EMPLOYED' && !detail.onUnpaidLeave ? 'posted' : 'neutral'}>{employmentStatusLabel(detail.employmentStatus, detail.onUnpaidLeave)}</StatusBadge>} />
             <DescriptionList
               items={[
                 { label: '员工编码', value: detail.employeeCode },

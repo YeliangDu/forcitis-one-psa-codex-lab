@@ -53,7 +53,9 @@ class SelfReadBehaviourIT extends ApprovalP4Support {
      * upload cannot be made over HTTP here; its read path answers a file of someone else as not found by this unit test of the use case.
      */
     private static final Map<String, Path> PROVEN_ELSEWHERE = Map.of("GET /api/v1/platform/files/{fileId}",
-            Path.of("src/test/java/com/forcitis/one/platform/file/application/GetUploadStatusTest.java"));
+            Path.of("src/test/java/com/forcitis/one/platform/file/application/GetUploadStatusTest.java"),
+            "GET /api/v1/organization/bonus-input-approvals/{taskId}",
+            Path.of("src/test/java/com/forcitis/one/acceptance/organization/payroll/BonusInputApproverReadIT.java"));
 
     @Test
     @DisplayName("#730 A5: every SELF line of the register has an adapter here, and every adapter is a SELF line")

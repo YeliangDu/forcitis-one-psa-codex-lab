@@ -2,6 +2,7 @@ import { describeFailure } from '@forcitis/core';
 import { Button, LoadingState, Notice, PageTitle, SelectField, TextField } from '@forcitis/ui';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
+import { optionsOf } from '../../../shared/options';
 import { useEmployeeChoices, useEnterPersonnelCommand, useLegalEntityChoices, useOrgUnits, usePositionChoices } from '../hooks/use-workforce';
 import {
   COMMAND_KIND_LABELS,
@@ -41,10 +42,10 @@ export function PersonnelCommandFormPage() {
   if (failed?.isError) return <Notice tone="error" title="加载失败">{describeFailure(failed.error)}</Notice>;
   if (choices.some((query) => query.isPending)) return <LoadingState />;
 
-  const employeeOptions = [NONE, ...(employees.data ?? []).map((employee) => ({ value: employee.employeeId, label: `${employee.displayName}（${employee.employeeCode}）` }))];
-  const unitOptions = [NONE, ...(units.data ?? []).map((unit) => ({ value: unit.orgUnitId, label: unit.name }))];
-  const positionOptions = [NONE, ...(positions.data ?? []).map((position) => ({ value: position.positionId, label: position.name }))];
-  const legalEntityOptions = [NONE, ...(legalEntities.data ?? []).map((entity) => ({ value: entity.legalEntityId, label: entity.name }))];
+  const employeeOptions = optionsOf(employees.data ?? [], (employee) => employee.employeeId, (employee) => `${employee.displayName}（${employee.employeeCode}）`, '请选择');
+  const unitOptions = optionsOf(units.data ?? [], (unit) => unit.orgUnitId, (unit) => unit.name, '请选择');
+  const positionOptions = optionsOf(positions.data ?? [], (position) => position.positionId, (position) => position.name, '请选择');
+  const legalEntityOptions = optionsOf(legalEntities.data ?? [], (entity) => entity.legalEntityId, (entity) => entity.name, '请选择');
   const reportsToOptions = employeeOptions;
 
   const submit = () => enter.mutate(bodyOf(kind, draft), { onSuccess: (created) => void navigate(personnelCommandPath(created.personnelCommandId)) });
