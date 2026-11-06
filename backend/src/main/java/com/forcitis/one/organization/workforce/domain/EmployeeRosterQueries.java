@@ -1,6 +1,8 @@
 package com.forcitis.one.organization.workforce.domain;
 
 import com.forcitis.one.kernel.EmployeeId;
+import com.forcitis.one.organization.workforce.api.ActingDutyEndCause;
+import com.forcitis.one.organization.workforce.api.ActingDutyId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PositionId;
@@ -20,6 +22,19 @@ public interface EmployeeRosterQueries {
 
     /** Every primary assignment version of the person that is in force (voided and empty ranges left out), newest start first; the caller has already proved the person is in scope. */
     List<PrimaryAssignmentVersion> primaryAssignmentHistory(EmployeeId employee);
+
+    /** Duty facts of the stand-in, newest start first; the caller has proved the employee is in scope. */
+    List<ActingDutyRow> actingDuties(EmployeeId employee);
+
+    /** Duty facts naming the covered person, newest start first; the caller has proved that person is in scope. */
+    List<ActingDutyRow> coveredActingDuties(EmployeeId employee);
+
+    /** A duty's stored term and closing cause, without names or derived business-day state. */
+    record ActingDutyRow(ActingDutyId actingDutyId, EmployeeId employeeId, OrgUnitId coveredOrgUnitId,
+                         @Nullable PositionId coveredPositionId, @Nullable EmployeeId coveredEmployeeId,
+                         LocalDate startsOn, LocalDate endsBefore, @Nullable LocalDate endedOn,
+                         @Nullable ActingDutyEndCause endCause, String reason) {
+    }
 
     record Visible(boolean everything, Set<OrgUnitId> orgUnits) {
         public Visible {
