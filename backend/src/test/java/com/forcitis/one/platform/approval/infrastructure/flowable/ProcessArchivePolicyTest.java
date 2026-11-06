@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.approval.infrastructure.flowable;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Files;
@@ -62,7 +63,7 @@ class ProcessArchivePolicyTest {
         vault.retentionFailure = new IllegalStateException("not the total keep period");
 
         org.assertj.core.api.Assertions.assertThatThrownBy(() -> new ProcessArchiveJob(org.mockito.Mockito.mock(org.springframework.jdbc.core.simple.JdbcClient.class), com.forcitis.one.TestApprovalIds.generator(),
-                org.mockito.Mockito.mock(org.flowable.engine.HistoryService.class), vault, java.time.Clock.systemUTC(),
+                org.mockito.Mockito.mock(org.flowable.engine.HistoryService.class), vault, BusinessDay.fixedClock(),
                 new com.forcitis.one.kernel.BusinessZone(java.time.ZoneId.of("Asia/Shanghai")), new ProcessArchivePolicy(java.time.Period.ofYears(3)),
                 new io.micrometer.core.instrument.simple.SimpleMeterRegistry())).hasMessageContaining("total keep period");
     }

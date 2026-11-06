@@ -250,7 +250,7 @@ class ApplicationIntegrationTest {
 
     @Test
     void issuingOutsideTheCallersTransactionIsRefused() {
-        assertThatThrownBy(() -> numbers.next(new DocumentTypeCode("QUOTE"), LE1, LocalDate.now()))
+        assertThatThrownBy(() -> numbers.next(new DocumentTypeCode("QUOTE"), LE1, BusinessDay.today()))
                 .isInstanceOf(IllegalTransactionStateException.class);
     }
 
@@ -260,7 +260,7 @@ class ApplicationIntegrationTest {
 
     @Test
     void adminCanRedefineRulesButInvalidPatternsAreRejected() throws Exception {
-        LocalDate effectiveFrom = LocalDate.now().plusDays(1);
+        LocalDate effectiveFrom = BusinessDay.today().plusDays(1);
         var admin = user(TestAccounts.account(9).value().toString()).authorities(() -> Permission.Codes.PLATFORM_NUMBERING_RULE_UPDATE);
         mvc.perform(put("/api/v1/platform/numbering-rules/JOURNAL_VOUCHER").with(csrf()).with(admin).header("If-Match", ruleVersion("JOURNAL_VOUCHER"))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"pattern\":\"JV-{seq:6}\",\"resetPolicy\":\"MONTHLY\",\"startValue\":1,\"effectiveFrom\":\"" + effectiveFrom + "\"}"))

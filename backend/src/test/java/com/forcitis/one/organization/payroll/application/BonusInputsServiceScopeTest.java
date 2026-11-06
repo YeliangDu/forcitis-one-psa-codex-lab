@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.payroll.application;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,7 +36,7 @@ class BonusInputsServiceScopeTest {
     private final ApprovalProcesses approvals = mock(ApprovalProcesses.class);
     private final EmploymentRelationships relationships = mock(EmploymentRelationships.class);
     private final OrgUnitAccess orgUnits = mock(OrgUnitAccess.class);
-    private final BonusInputsService service = new BonusInputsService(inputs, approvals, relationships, mock(AuditLog.class), null, Clock.systemUTC(), orgUnits,
+    private final BonusInputsService service = new BonusInputsService(inputs, approvals, relationships, mock(AuditLog.class), null, BusinessDay.fixedClock(), orgUnits,
             mock(PayrollApprovers.class));
 
     private void scopeIsNarrow() {

@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.BusinessDay;
 import com.forcitis.one.platform.integration.api.OwnObjectId;
 import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
 import com.forcitis.one.platform.integration.api.SourceOrgUnit;
@@ -42,7 +43,7 @@ public final class SnapshotSeeder {
         }
         Map<UUID, UUID> heads = firstPerKind(source, SourceRelationshipKind.UNIT_HEAD, staff);
         Map<UUID, UUID> managers = firstPerKind(source, SourceRelationshipKind.REGIONAL_RECEIVABLES_MANAGER, staff);
-        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        OffsetDateTime now = BusinessDay.instant().atOffset(java.time.ZoneOffset.UTC);
         for (SourcePosition p : positions) {
             jdbc.sql("""
                     insert into organization_workforce.positions (id, code, name, sort_order, status, created_at, updated_at)

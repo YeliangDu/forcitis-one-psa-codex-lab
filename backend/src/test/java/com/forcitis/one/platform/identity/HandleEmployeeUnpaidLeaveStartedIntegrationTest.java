@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
@@ -45,7 +46,7 @@ class HandleEmployeeUnpaidLeaveStartedIntegrationTest extends IdentityIntegratio
     /** The work calendar is not under test: the escalation deadline of a review is a fixed instant. */
     @BeforeEach
     void theDeadlineIsFixed() {
-        when(calendar.endOfWorkdayAfter(any(), anyInt(), any())).thenReturn(Instant.now().plus(Duration.ofDays(7)));
+        when(calendar.endOfWorkdayAfter(any(), anyInt(), any())).thenReturn(BusinessDay.instant().plus(Duration.ofDays(7)));
     }
 
     @AfterEach
@@ -55,7 +56,7 @@ class HandleEmployeeUnpaidLeaveStartedIntegrationTest extends IdentityIntegratio
 
     private EmployeeUnpaidLeaveStarted started(EmployeeId employee, PersonnelCommandId command) {
         return new EmployeeUnpaidLeaveStarted(TestEnvelopes.of("organization.workforce.EmployeeUnpaidLeaveStarted", "Employee", employee.value()),
-                command, employee, LocalDate.now(), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
+                command, employee, BusinessDay.today(), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
     }
 
     private void deliver(EmployeeUnpaidLeaveStarted event) {

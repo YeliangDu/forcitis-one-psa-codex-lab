@@ -17,7 +17,7 @@ public final class TestApprovalIds {
     }
 
     public static IdGenerator generator() {
-        return new TimeOrderedIds(Clock.systemUTC());
+        return new TimeOrderedIds(new com.forcitis.one.fixture.doubles.SteppingClock());
     }
 
     public static ApprovalRequestId requestId() {

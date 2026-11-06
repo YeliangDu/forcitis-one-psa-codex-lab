@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.integration;
 
+import com.forcitis.one.BusinessDay;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -432,7 +433,7 @@ class WecomDeliveryIT {
     @DisplayName("ARCH 3.7 a claim whose lease ran out is claimed again; the first holder's late result is rejected")
     void expiredLeaseIsReclaimedAndTheStaleWriteIsRejected() {
         queue(card("approval-task:18", ALICE));
-        java.time.Instant now = java.time.Instant.now();
+        java.time.Instant now = BusinessDay.instant();
         var first = repository.claimDue(now, java.time.Duration.ofMinutes(2), 20).getFirst();
         assertThat(repository.claimDue(now, java.time.Duration.ofMinutes(2), 20)).as("leased, not due").isEmpty();
 

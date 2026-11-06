@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -47,7 +48,7 @@ class SeparatedAccountIntegrationTest extends IdentityIntegrationTest {
     private UUID publishReinstatement(long employee) {
         EmployeeId id = TestAccounts.employee(employee);
         var event = new EmployeeReinstated(TestEnvelopes.of("organization.workforce.EmployeeReinstated", "Employee", id.value()), new PersonnelCommandId(UUID.randomUUID()), id,
-                LocalDate.now(), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
+                BusinessDay.today(), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
         tx.executeWithoutResult(status -> events.publishEvent(event));
         return event.envelope().eventId();
     }
