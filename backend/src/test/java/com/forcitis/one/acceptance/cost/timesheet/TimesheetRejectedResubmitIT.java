@@ -3,6 +3,7 @@ package com.forcitis.one.acceptance.cost.timesheet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import com.forcitis.one.BusinessDay;
 import com.forcitis.one.TestIds;
 import com.forcitis.one.cost.timesheet.api.TimesheetApprovalProcess;
 import com.forcitis.one.cost.timesheet.api.TimesheetId;
@@ -101,7 +102,7 @@ class TimesheetRejectedResubmitIT extends ApprovalIntegrationSupport {
     }
 
     static LocalDate workDay() {
-        return LocalDate.now(ZONE).minusDays(1);
+        return BusinessDay.today().minusDays(1);
     }
 
     static DocumentReference documentOf(TimesheetId id) {
@@ -154,9 +155,9 @@ class TimesheetRejectedResubmitIT extends ApprovalIntegrationSupport {
         awaitStatus(id, TimesheetStatus.REJECTED);
         assertThat(view(id).round()).isEqualTo(1);
 
-        LocalDate dayBefore = LocalDate.now(ZONE);
+        LocalDate dayBefore = BusinessDay.instant().atZone(ZONE).toLocalDate();
         Throwable refused = catchThrowable(() -> submit(id, day, "7.5"));
-        LocalDate dayAfter = LocalDate.now(ZONE);
+        LocalDate dayAfter = BusinessDay.instant().atZone(ZONE).toLocalDate();
 
         assertThat(refused).as("submitting the rejected timesheet again").isNull();
         TimesheetView again = view(id);

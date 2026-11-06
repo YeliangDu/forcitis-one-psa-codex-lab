@@ -17,7 +17,7 @@ import tools.jackson.databind.json.JsonMapper;
 class WecomConfiguration {
 
     @Bean
-    WecomClient wecomClient(WecomProperties properties, ObjectProvider<JsonMapper> json, ObjectProvider<Clock> clock) {
+    WecomClient wecomClient(WecomProperties properties, ObjectProvider<JsonMapper> json, Clock clock) {
         if (!properties.enabled()) {
             return new DisabledWecomClient();
         }
@@ -30,7 +30,7 @@ class WecomConfiguration {
         if (!properties.baseUrl().startsWith("https://") && !properties.baseUrl().startsWith("http://")) {
             throw new IllegalStateException("forcitis.platform.integration.wecom.base-url must be an http(s) URL");
         }
-        return new HttpWecomClient(properties, json.getIfAvailable(() -> JsonMapper.builder().build()), clock.getIfAvailable(Clock::systemUTC));
+        return new HttpWecomClient(properties, json.getIfAvailable(() -> JsonMapper.builder().build()), clock);
     }
 
     @Bean
