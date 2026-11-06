@@ -1,9 +1,9 @@
 # 由 panorama/scan_aggregates.py 生成，勿手改
 meta:
-  count: 21
+  count: 22
   code_only: 8
   registry_only: 0
-  both: 13
+  both: 14
   sources:
   - backend/src/main/java/com/forcitis/one
   - backend/architecture/data-access-registry.yaml
@@ -116,6 +116,26 @@ aggregates:
   - PublishPayrollRuleVersion
   events:
   - organization.payroll.PayrollRuleVersionBecameEffective
+- id: organization.recruitment/RecruitmentRequisition
+  bc: organization.recruitment
+  root_class: backend/src/main/java/com/forcitis/one/organization/recruitment/domain/RecruitmentRequisition.java
+  source:
+  - code
+  - registry
+  tables:
+  - organization_recruitment.recruitment_requisitions
+  commands:
+  - ApplyRequisitionApprovalResult
+  - CloseRequisition
+  - GetRequisition
+  - ListRequisitions
+  - RequisitionView
+  - SubmitRequisition
+  - WithdrawRequisition
+  events:
+  - organization.recruitment.RequisitionApproved
+  - organization.recruitment.RequisitionClosed
+  - organization.recruitment.RequisitionSubmitted
 - id: organization.workforce/EmployeeLegalEntityChange
   bc: organization.workforce
   root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/EmployeeLegalEntityChange.java

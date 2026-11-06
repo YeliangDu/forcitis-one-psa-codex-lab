@@ -13,6 +13,8 @@ cost.timesheet -> organization.workforce, platform.approval, platform.identity, 
 organization.administration -> organization.workforce, platform.approval, platform.audit, platform.file, platform.numbering
 organization.attendance -> platform.audit
 organization.leave -> organization.workforce, organization.attendance, platform.approval, platform.audit
+# R1 (#1450, organization-recruitment.md section 6): the requisition reads positions and org units through the workforce api; approval starts one node; nothing points to recruitment from workforce, approval or numbering. platform.file joins with the applicant slice (ADR-0085 decision 2).
+organization.recruitment -> organization.workforce, platform.approval, platform.audit, platform.numbering
 # #1429 (PY0, docs/data/reviews/organization-payroll-py0.md): the rule version publish writes one audit entry; later payroll slices add their edges with the code that uses them.
 organization.payroll -> platform.audit
 # #959 (one-design DD on #959 section 2): kernel.GlobalDocumentNumberSource is asked by organization.workforce (a hire numbers the employee code) and implemented by platform.numbering, which depends on organization.workforce; an edge workforce -> numbering would close a cycle (ModularityTest G1).
