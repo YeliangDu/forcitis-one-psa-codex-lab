@@ -50,9 +50,10 @@ class HeldSeparationRelease {
     private final IdGenerator ids;
     private final BusinessZone zone;
     private final OrgMergeProgress mergeProgress;
+    private final EffectPublisher effects;
 
     HeldSeparationRelease(PersonnelCommandRepository commands, PersonnelPlans timelines, LegalEntityResolutionSources legalEntities, AuditLog audit,
-                          DomainEvents events, IdGenerator ids, BusinessZone zone, OrgMergeProgress mergeProgress) {
+                          DomainEvents events, IdGenerator ids, BusinessZone zone, OrgMergeProgress mergeProgress, EffectPublisher effects) {
         this.commands = commands;
         this.timelines = timelines;
         this.legalEntities = legalEntities;
@@ -61,6 +62,7 @@ class HeldSeparationRelease {
         this.ids = ids;
         this.zone = zone;
         this.mergeProgress = mergeProgress;
+        this.effects = effects;
     }
 
     /** Who released: an account in the interface, or the operations command, whose actor is the system and whose people are only in the audit detail. */
@@ -101,6 +103,7 @@ class HeldSeparationRelease {
         LegalEntityId legalEntity = LegalEntityResolution.resolve(legalEntities, employee, command.effectiveDate().minusDays(1)).orElse(null);
         if (command.status() == CommandStatus.EFFECTIVE) {
             command.recordEffect(null, null, legalEntity, history);
+            effects.recordSeparation(command, legalEntity, today, now, releaser.type(), releaser.id());
         }
         command.recordReleased(hold.id(), releaser.account(), legalEntity);
         events.publish(command);

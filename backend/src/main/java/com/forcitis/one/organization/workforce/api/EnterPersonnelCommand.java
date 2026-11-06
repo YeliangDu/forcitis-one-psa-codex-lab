@@ -25,7 +25,23 @@ public record EnterPersonnelCommand(@Nullable EmployeeId employeeId, PersonnelCo
                                     @Nullable LegalEntityId targetLegalEntityId,
                                     @Nullable String displayName, @Nullable Gender gender, @Nullable String email, @Nullable WecomUserId wecomUserId,
                                     @Nullable AssignmentId targetAssignmentId, @Nullable LegalEntityId targetEmployerLegalEntityId,
-                                    @Nullable EmploymentRelationshipId predecessorRelationshipId, @Nullable EmploymentRelationshipId employmentRelationshipId) {
+                                    @Nullable EmploymentRelationshipId predecessorRelationshipId, @Nullable EmploymentRelationshipId employmentRelationshipId,
+                                    @Nullable OrgUnitId actingCoveredOrgUnitId, @Nullable PositionId actingCoveredPositionId,
+                                    @Nullable EmployeeId actingCoveredEmployeeId, @Nullable LocalDate actingEndsBeforeDate,
+                                    @Nullable ActingDutyId targetActingDutyId, @Nullable String reason) {
+
+    /** Existing commands carry no acting-duty fields. */
+    public EnterPersonnelCommand(@Nullable EmployeeId employeeId, PersonnelCommandKind commandKind, @Nullable LocalDate effectiveDate,
+                                 @Nullable LocalDate lastWorkingDay, @Nullable OrgUnitId targetOrgUnitId, @Nullable PositionId targetPositionId,
+                                 @Nullable EmployeeId targetReportsToEmployeeId, @Nullable Boolean isTargetFeeEarner,
+                                 @Nullable EmploymentPhaseKind targetEmploymentPhaseKind, @Nullable LegalEntityId targetLegalEntityId,
+                                 @Nullable String displayName, @Nullable Gender gender, @Nullable String email, @Nullable WecomUserId wecomUserId,
+                                 @Nullable AssignmentId targetAssignmentId, @Nullable LegalEntityId targetEmployerLegalEntityId,
+                                 @Nullable EmploymentRelationshipId predecessorRelationshipId, @Nullable EmploymentRelationshipId employmentRelationshipId) {
+        this(employeeId, commandKind, effectiveDate, lastWorkingDay, targetOrgUnitId, targetPositionId, targetReportsToEmployeeId, isTargetFeeEarner,
+                targetEmploymentPhaseKind, targetLegalEntityId, displayName, gender, email, wecomUserId, targetAssignmentId, targetEmployerLegalEntityId,
+                predecessorRelationshipId, employmentRelationshipId, null, null, null, null, null, null);
+    }
 
     /** A command that names no employer and no relationship (a hire of a new person names its employer, so it uses the full form). */
     public EnterPersonnelCommand(@Nullable EmployeeId employeeId, PersonnelCommandKind commandKind, @Nullable LocalDate effectiveDate,

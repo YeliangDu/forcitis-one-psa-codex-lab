@@ -54,7 +54,7 @@ public final class CommandEffects {
                 v.put(START_DATE, null);
                 v.put(START_BASIS, null);
             }
-            case START_CONCURRENT, END_CONCURRENT -> {
+            case START_CONCURRENT, END_CONCURRENT, ACTING_START, ACTING_END, ACTING_EXTEND -> {
             }
             case REGULARIZE -> v.put(PHASE, "REGULAR");
             case UNPAID_LEAVE_START -> v.put(ON_LEAVE, true);
@@ -105,7 +105,7 @@ public final class CommandEffects {
     public static Predicate<VersionRow> employeeFilter(PersonnelCommand c) {
         return switch (c.kind()) {
             case HIRE, REINSTATE, SEPARATE -> ANY;
-            case REGULARIZE, UNPAID_LEAVE_START, UNPAID_LEAVE_END, TRANSFER, CORRECTION, CHANGE_LEGAL_ENTITY, START_CONCURRENT, END_CONCURRENT -> EMPLOYED;
+            case REGULARIZE, UNPAID_LEAVE_START, UNPAID_LEAVE_END, TRANSFER, CORRECTION, CHANGE_LEGAL_ENTITY, START_CONCURRENT, END_CONCURRENT, ACTING_START, ACTING_END, ACTING_EXTEND -> EMPLOYED;
         };
     }
 
