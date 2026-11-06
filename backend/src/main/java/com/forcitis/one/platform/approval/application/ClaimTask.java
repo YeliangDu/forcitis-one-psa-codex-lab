@@ -1,7 +1,6 @@
 package com.forcitis.one.platform.approval.application;
 
 import com.forcitis.one.kernel.UserId;
-import com.forcitis.one.platform.approval.api.ApprovalError;
 import com.forcitis.one.platform.approval.api.ApprovalTaskId;
 import com.forcitis.one.platform.approval.domain.ApprovalRequest;
 import com.forcitis.one.platform.approval.domain.TaskView;
@@ -9,18 +8,16 @@ import java.util.OptionalLong;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-/** Claiming a task one already holds is a harmless repeat; one somebody else holds is refused, and so is one of a node whose other task the claimant already holds or decided (#1546). */
+/** Claiming a task one already holds is a harmless repeat; one somebody else holds is refused (so is a claimant with another task of the node, #1546). */
 @Service
 public class ClaimTask {
 
     private final TaskGuard guard;
     private final Approvals approvals;
-    private final NodeShares shares;
 
-    ClaimTask(TaskGuard guard, Approvals approvals, NodeShares shares) {
+    ClaimTask(TaskGuard guard, Approvals approvals) {
         this.guard = guard;
         this.approvals = approvals;
-        this.shares = shares;
     }
 
     @Transactional
@@ -35,9 +32,7 @@ public class ClaimTask {
         if (current.isClaimed()) {
             return;
         }
-        if (shares.takenElsewhere(request, current, actor)) {
-            throw ApprovalError.PLATFORM_APPROVAL_NODE_TASK_DUPLICATE.refusal("Task " + taskId.value() + " cannot be claimed by somebody who already has another task of node " + current.nodeKey());
-        }
+        approvals.requireOneTaskOfNode(request, current, actor);
         approvals.claim(request, current, actor);
         approvals.save(request);
     }

@@ -221,4 +221,33 @@ class CountersignEscalationDistinctPeopleIT extends ApprovalIntegrationSupport {
         assertThat(escalationsOf(s.bShare())).isZero();
         assertThat(meters.counter("forcitis.platform.approval.task.escalation.unresolved").count()).isEqualTo(unresolved + 1);
     }
+
+    @Test
+    @DisplayName("#1546 somebody who already decided another share cannot take this one by deciding it directly either: the share stays open")
+    void aPersonWithADecidedShareCannotDecideAnother() {
+        Scene s = scene(true);
+        aDecidesHerShare(s);
+        engine.addCandidates(s.bShare(), List.of(TestAccounts.account(s.a())));
+        actAs(s.a());
+
+        assertThatThrownBy(() -> decideTasks.execute(TestAccounts.account(s.a()), List.of(new TaskDecision(s.bShare(), DecisionOutcome.APPROVE, null)),
+                OptionalLong.empty())).isInstanceOfSatisfying(DomainException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_NODE_TASK_DUPLICATE));
+        assertThat(holderOf(s.bShare())).isNull();
+        assertThat(engine.findOpenTasks(s.instance())).extracting(t -> t.taskId()).contains(s.bShare());
+    }
+
+    @Test
+    @DisplayName("#1546 somebody who holds another share cannot decide this one directly without claiming it")
+    void aPersonHoldingAnotherShareCannotDecideAnother() {
+        Scene s = scene(true);
+        actAs(s.a());
+        claimTask.execute(s.aShare(), TestAccounts.account(s.a()), OptionalLong.empty());
+        engine.addCandidates(s.bShare(), List.of(TestAccounts.account(s.a())));
+
+        assertThatThrownBy(() -> decideTasks.execute(TestAccounts.account(s.a()), List.of(new TaskDecision(s.bShare(), DecisionOutcome.APPROVE, null)),
+                OptionalLong.empty())).isInstanceOfSatisfying(DomainException.class,
+                        e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_NODE_TASK_DUPLICATE));
+        assertThat(holderOf(s.bShare())).isNull();
+    }
 }
