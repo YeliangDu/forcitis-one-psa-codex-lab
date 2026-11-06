@@ -36,7 +36,7 @@ public class ClaimTask {
             return;
         }
         if (shares.takenElsewhere(request, current, actor)) {
-            throw ApprovalError.PLATFORM_APPROVAL_SHARE_ALREADY_TAKEN.refusal("Task " + taskId.value() + " cannot be claimed by somebody who already has another task of node " + current.nodeKey());
+            throw ApprovalError.PLATFORM_APPROVAL_NODE_TASK_DUPLICATE.refusal("Task " + taskId.value() + " cannot be claimed by somebody who already has another task of node " + current.nodeKey());
         }
         approvals.claim(request, current, actor);
         approvals.save(request);

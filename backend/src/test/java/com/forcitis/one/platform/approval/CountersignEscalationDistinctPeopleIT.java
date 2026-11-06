@@ -197,7 +197,7 @@ class CountersignEscalationDistinctPeopleIT extends ApprovalIntegrationSupport {
         actAs(s.a());
 
         assertThatThrownBy(() -> claimTask.execute(s.bShare(), TestAccounts.account(s.a()), OptionalLong.empty())).isInstanceOfSatisfying(DomainException.class,
-                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_SHARE_ALREADY_TAKEN));
+                e -> assertThat(e.errorCode()).isEqualTo(ApprovalError.PLATFORM_APPROVAL_NODE_TASK_DUPLICATE));
         assertThat(holderOf(s.bShare())).isNull();
     }
 }
