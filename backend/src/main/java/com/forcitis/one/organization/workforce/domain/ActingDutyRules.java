@@ -67,7 +67,7 @@ public final class ActingDutyRules {
     }
 
     /** True when a separation that no effective reinstatement covers falls before the start day, so the start can never take effect. */
-    public static boolean startFollowsSeparation(PersonnelCommand start, List<PersonnelCommand> all) {
+    public static boolean startIsAfterSeparation(PersonnelCommand start, List<PersonnelCommand> all) {
         return all.stream().filter(s -> s.kind() == PersonnelCommandKind.SEPARATE && s.status() != CommandStatus.WITHDRAWN
                         && s.status() != CommandStatus.AWAITING_ATTRIBUTION_COUNTERSIGN && s.effectiveDate().isBefore(start.effectiveDate()))
                 .anyMatch(s -> all.stream().noneMatch(r -> r.kind() == PersonnelCommandKind.REINSTATE && r.status() == CommandStatus.EFFECTIVE

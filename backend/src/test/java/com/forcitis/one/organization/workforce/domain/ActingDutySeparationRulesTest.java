@@ -86,20 +86,20 @@ class ActingDutySeparationRulesTest {
     @ParameterizedTest
     @EnumSource(value = CommandStatus.class, names = {"PENDING", "HELD", "EFFECTIVE"})
     @DisplayName("#1566 a start dated after a pending, held or effective separation can never take effect")
-    void startFollowsSeparation(CommandStatus status) {
+    void startIsAfterSeparation(CommandStatus status) {
         PersonnelCommand start = ActingDutyRulesTest.start(DAY.plusDays(2), DAY.plusDays(5), ActingDutyRulesTest.UNIT, null, null, "coverage", 53);
-        org.assertj.core.api.Assertions.assertThat(ActingDutyRules.startFollowsSeparation(start, List.of(separation(status)))).isTrue();
+        org.assertj.core.api.Assertions.assertThat(ActingDutyRules.startIsAfterSeparation(start, List.of(separation(status)))).isTrue();
     }
 
     @Test
     @DisplayName("#1566 a start on the separation day, or after a covering reinstatement, still takes effect")
     void startOnTheDayOrAfterReinstatementIsKept() {
         PersonnelCommand onTheDay = ActingDutyRulesTest.start(DAY, DAY.plusDays(5), ActingDutyRulesTest.UNIT, null, null, "coverage", 53);
-        org.assertj.core.api.Assertions.assertThat(ActingDutyRules.startFollowsSeparation(onTheDay, List.of(separation(CommandStatus.PENDING)))).isFalse();
+        org.assertj.core.api.Assertions.assertThat(ActingDutyRules.startIsAfterSeparation(onTheDay, List.of(separation(CommandStatus.PENDING)))).isFalse();
         PersonnelCommand later = ActingDutyRulesTest.start(DAY.plusDays(4), DAY.plusDays(9), ActingDutyRulesTest.UNIT, null, null, "coverage", 53);
         PersonnelCommand reinstatement = PersonnelCommand.restore(new PersonnelCommandId(TestIds.uuid(64)), ActingDutyRulesTest.EMPLOYEE,
                 PersonnelCommandKind.REINSTATE, DAY.plusDays(2), CommandStatus.EFFECTIVE, null, null, null, null, null, null, null, null, null, null,
                 new UserId(TestIds.uuid(4)), NOW, NOW, 0, 0);
-        org.assertj.core.api.Assertions.assertThat(ActingDutyRules.startFollowsSeparation(later, List.of(separation(CommandStatus.EFFECTIVE), reinstatement))).isFalse();
+        org.assertj.core.api.Assertions.assertThat(ActingDutyRules.startIsAfterSeparation(later, List.of(separation(CommandStatus.EFFECTIVE), reinstatement))).isFalse();
     }
 }

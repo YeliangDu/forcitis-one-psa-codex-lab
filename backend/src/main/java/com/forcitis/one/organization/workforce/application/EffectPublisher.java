@@ -107,7 +107,7 @@ class EffectPublisher {
     }
 
     boolean actingStartIsOverrun(PersonnelCommand command, PersonnelHistory history) {
-        return command.kind() == PersonnelCommandKind.ACTING_START && ActingDutyRules.startFollowsSeparation(command, history.commands());
+        return command.kind() == PersonnelCommandKind.ACTING_START && ActingDutyRules.startIsAfterSeparation(command, history.commands());
     }
 
     void changeActingDuty(PersonnelCommand command, ActingDuty loaded) {
