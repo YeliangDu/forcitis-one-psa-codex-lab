@@ -88,7 +88,7 @@ class CountersignDistinctPeopleIT extends ApprovalIntegrationSupport {
 
     @Test
     @DisplayName("#1542 the holder of a share cannot hand it to the person who already decided another share of the round: the round is unchanged")
-    void aShareIsNotTransferredToSomebodyWhoDecidedAnotherShare() {
+    void aShareIsNotTransferredToSomebodyWhoDecidedATaskOfTheNode() {
         Scene s = sceneWhereAHasDecided();
 
         assertRefused(() -> transferTask.execute(s.bShare(), TestAccounts.account(s.b()), TestAccounts.employee(s.a()), "r", OptionalLong.empty()));
@@ -98,7 +98,7 @@ class CountersignDistinctPeopleIT extends ApprovalIntegrationSupport {
 
     @Test
     @DisplayName("#1542 the process administrator cannot reassign a share to the person who already decided another share of the round")
-    void aShareIsNotReassignedToSomebodyWhoDecidedAnotherShare() {
+    void aShareIsNotReassignedToSomebodyWhoDecidedATaskOfTheNode() {
         Scene s = sceneWhereAHasDecided();
 
         assertRefused(() -> reassignTask.execute(s.bShare(), TestAccounts.account(ADMINISTRATOR), TestAccounts.employee(s.a()), "r", OptionalLong.empty()));

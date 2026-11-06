@@ -159,13 +159,13 @@ public final class ApprovalRequest extends AggregateRoot {
     }
 
     /**
-     * Whether the user already decided another share of the node of this task in the same round (the same instance). A node with several shares is a
-     * countersign: one person does not decide two of them, so a share is not handed to such a person.
+     * Whether the user already decided a task of the node of this task in the same round (the same instance). A node with several tasks is a countersign:
+     * one person does not decide two of them, so a task is not handed to such a person.
      */
-    public boolean hasDecidedAnotherShare(ApprovalTaskId taskId, UserId user) {
+    public boolean hasDecidedOnNodeOf(ApprovalTaskId taskId, UserId user) {
         ApprovalTask task = task(taskId);
-        return tasks.stream().anyMatch(other -> !other.taskId().equals(taskId) && other.instanceId().equals(task.instanceId())
-                && other.nodeKey().equals(task.nodeKey()) && other.status() == ApprovalTaskStatus.COMPLETED && other.assignee().map(user::equals).orElse(false));
+        return tasks.stream().anyMatch(decided -> decided.instanceId().equals(task.instanceId()) && decided.nodeKey().equals(task.nodeKey())
+                && decided.status() == ApprovalTaskStatus.COMPLETED && decided.assignee().map(user::equals).orElse(false));
     }
 
     public void passAutomatically(TaskAssignment assignment, UserId approver, Moment now) {
