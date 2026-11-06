@@ -1,0 +1,62 @@
+# 薪酬切片 S4（#1582）。中文名待用户确认。
+terms:
+- id: compensation_profile_version
+  zh: 薪资档案版本
+  en: CompensationProfileVersion
+  snake: compensation_profile_version
+  kind: entity
+  bc: organization.payroll
+  scope: domain
+  definition: 一个任职关系自某一天起的约定基本月薪及付薪法人，只追加；某天生效的版本是生效日不晚于该天的最新一条
+  standard_ref:
+  - docs/data/reviews/payroll-s4.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1582；中文名待术语确认'
+- id: compensation_allowance_version
+  zh: 津贴版本
+  en: CompensationAllowanceVersion
+  snake: compensation_allowance_version
+  kind: entity
+  bc: organization.payroll
+  scope: domain
+  definition: 一个任职关系某一种津贴在一段期间内的金额，自有期间与决定依据；与资格证据无关，同一关系同一种津贴的期间不重叠
+  standard_ref:
+  - docs/data/reviews/payroll-s4.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1582；中文名待术语确认'
+- id: insurance_enrolment
+  zh: 参保缴存状态
+  en: InsuranceEnrolment
+  snake: insurance_enrolment
+  kind: entity
+  bc: organization.payroll
+  scope: domain
+  definition: 一个任职关系某一险种或公积金自某一天起的参保状态（已参保、本处未参保、已停），只追加
+  standard_ref:
+  - docs/data/reviews/payroll-s4.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1582；中文名待术语确认'
+- id: payroll_confirmed_input
+  zh: 已核定薪酬输入
+  en: PayrollConfirmedInput
+  snake: payroll_confirmed_input
+  kind: entity
+  bc: organization.payroll
+  scope: domain
+  definition: 一个任职关系某一薪酬月份由外部核定的应发与代扣合计，由薪酬专员登记并引用核定文号；有效期间每月至多一条，可作废
+  standard_ref:
+  - docs/data/reviews/payroll-s4.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '#1582；中文名待术语确认'

@@ -40,7 +40,7 @@ class PersonnelCommandEndpointsIntegrationTest extends WorkforceIntegrationSuppo
     SeparationReview review;
 
     private static RequestPostProcessor caller(String permission) {
-        return user(Uuids.timeOrdered(java.time.Clock.systemUTC()).toString()).authorities(() -> permission);
+        return user(Uuids.timeOrdered(new com.forcitis.one.fixture.doubles.SteppingClock()).toString()).authorities(() -> permission);
     }
 
     private String transfer(PersonnelSeedSupport.Person person, UUID toUnit, LocalDate effective) {

@@ -566,7 +566,7 @@ class DataArchitectureTest {
             boolean wildcard = name.endsWith("*");
             if (Boolean.TRUE.equals(entry.raw().get("optional"))) {
                 Object due = entry.raw().get("due");
-                if (due == null || LocalDate.parse(String.valueOf(due)).isBefore(LocalDate.now())) {
+                if (due == null || LocalDate.parse(String.valueOf(due)).isBefore(BusinessDay.today())) {
                     problems.add(name + ": an optional entry has a due date (due) that has not passed: it is removed or made required at the integration");
                 }
             }
@@ -586,7 +586,7 @@ class DataArchitectureTest {
     @Test
     @DisplayName("D1..D10 the tables follow the data scorecard rules; the only tolerated violations are the gaps listed (with an owner) in the registry, and a fixed gap must be removed")
     void scorecardRulesHold() throws IOException {
-        List<String> problems = problems(violations(tables, registry, DdlNamingTest.readClassification(), lockNames()), registry, LocalDate.now());
+        List<String> problems = problems(violations(tables, registry, DdlNamingTest.readClassification(), lockNames()), registry, BusinessDay.today());
         assertThat(problems).as(GuardMessage.of("CS-3.3 / scorecard D1..D10 (DATA_SCORECARD section 4)", "a table breaks a data scorecard rule that is not a listed gap", "change the table as the named rule says in a new migration, or record a gap with owner, ref, note and due in backend/architecture/data-access-registry.yaml; remove a gap that is already fixed")).isEmpty();
     }
 

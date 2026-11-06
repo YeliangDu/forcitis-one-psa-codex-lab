@@ -1,5 +1,6 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -81,8 +82,8 @@ class ContractSeparationTablesIntegrationTest extends WorkforceIntegrationSuppor
 
     private void insert(String table, Map<String, Object> values) {
         Map<String, Object> all = new LinkedHashMap<>(values);
-        all.put("created_at", java.time.OffsetDateTime.now());
-        all.put("updated_at", java.time.OffsetDateTime.now());
+        all.put("created_at", BusinessDay.instant().atOffset(java.time.ZoneOffset.UTC));
+        all.put("updated_at", BusinessDay.instant().atOffset(java.time.ZoneOffset.UTC));
         String columns = String.join(", ", all.keySet());
         String params = String.join(", ", all.keySet().stream().map(k -> ":" + k).toList());
         var statement = jdbc.sql("insert into " + table + " (" + columns + ") values (" + params + ")");

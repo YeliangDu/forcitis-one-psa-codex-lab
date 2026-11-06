@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.identity;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -29,7 +30,7 @@ class HandleEmployeeReinstatedIntegrationTest extends IdentityIntegrationTest {
 
     private EmployeeReinstated reinstated(EmployeeId employee) {
         return new EmployeeReinstated(TestEnvelopes.of("organization.workforce.EmployeeReinstated", "Employee", employee.value()),
-                new PersonnelCommandId(UUID.randomUUID()), employee, LocalDate.now(), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
+                new PersonnelCommandId(UUID.randomUUID()), employee, BusinessDay.today(), new com.forcitis.one.organization.workforce.api.EmploymentRelationshipId(java.util.UUID.fromString("019a0000-0000-7000-8000-0000000000e1")));
     }
 
     private boolean handled(EmployeeReinstated event) {

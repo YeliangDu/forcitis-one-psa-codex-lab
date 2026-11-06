@@ -133,7 +133,7 @@ class IdempotentResponseSizeTest {
             return LocalDate.MAX;
         }
         if (type.equals(Instant.class)) {
-            return Instant.now();
+            return BusinessDay.instant();
         }
         if (type instanceof Class<?> raw && raw.isEnum()) {
             return Arrays.stream(raw.getEnumConstants()).max(Comparator.comparingInt(c -> c.toString().length())).orElseThrow();

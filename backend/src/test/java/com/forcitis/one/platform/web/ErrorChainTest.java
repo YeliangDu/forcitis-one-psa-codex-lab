@@ -1,5 +1,6 @@
 package com.forcitis.one.platform.web;
 
+import com.forcitis.one.BusinessDay;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -80,9 +81,9 @@ class ErrorChainTest {
     @BeforeEach
     void setUp() {
         StaticListableBeanFactory beans = new StaticListableBeanFactory();
-        beans.addBean("clock", Clock.systemUTC());
+        beans.addBean("clock", BusinessDay.fixedClock());
         mvc = MockMvcBuilders.standaloneSetup(new StubController()).setControllerAdvice(new GlobalExceptionHandler())
-                .addFilters(new CorrelationIdFilter(Clock.systemUTC())).build();
+                .addFilters(new CorrelationIdFilter(BusinessDay.fixedClock())).build();
     }
 
     @Test

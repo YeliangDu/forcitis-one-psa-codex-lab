@@ -155,7 +155,7 @@ class RoleSeparatedDeploymentIT {
     @Test
     @DisplayName("NITS-1 项1/项5：运行账号能读到分区是否存在（to_regclass 经 schema USAGE）与员工是否存在，缺的月份与员工答否而不是报错")
     void theRuntimeAccountCanAskWhetherAPartitionAndAnEmployeeExist() {
-        java.time.YearMonth now = java.time.YearMonth.now(java.time.ZoneOffset.UTC);
+        java.time.YearMonth now = BusinessDay.utcMonth();
 
         assertThat(jdbc.sql("select current_user").query(String.class).single()).isEqualTo(RUNTIME);
         assertThat(auditPartitions.exists(now)).as("the month the job pre-created").isTrue();
@@ -181,7 +181,7 @@ class RoleSeparatedDeploymentIT {
     @Test
     @DisplayName("DATA-REPAIR-timesheet-audit TB-07 the pre-creation job runs as the runtime account and has created the months ahead; that account cannot run the drop function, detach or drop a partition")
     void theRuntimeAccountPreCreatesButCannotRemovePartitions() {
-        java.time.YearMonth now = java.time.YearMonth.now(java.time.ZoneOffset.UTC);
+        java.time.YearMonth now = BusinessDay.utcMonth();
         java.time.YearMonth ahead = now.plusMonths(3);
         java.time.YearMonth beyond = now.plusMonths(12);
         String beyondStart = beyond.atDay(1).toString();
