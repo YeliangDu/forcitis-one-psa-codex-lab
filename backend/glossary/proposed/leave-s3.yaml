@@ -30,21 +30,6 @@ terms:
   forbidden: []
   status: proposed
   note: '#1581；中文名待术语确认'
-- id: confirmation_basis_kind
-  zh: 月度出勤确认依据
-  en: ConfirmationBasisKind
-  snake: confirmation_basis_kind
-  kind: state
-  bc: organization.leave
-  scope: domain
-  definition: 月度出勤确认依据的种类：按工作日历与在岗日推算，或按打卡记录
-  standard_ref:
-  - docs/data/reviews/leave-attendance-s3.md
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
-  note: '#1581；中文名待术语确认'
 - id: taken_until_at
   zh: 已休截止时刻
   en: TakenUntilAt

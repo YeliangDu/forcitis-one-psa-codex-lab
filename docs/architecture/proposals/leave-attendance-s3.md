@@ -3,7 +3,7 @@
 - Card: #1581 (design). Author: one-design, 2026-11-07. Base: origin/main `6a05eaf4a` plus later merges (fetched 2026-11-07).
 - Companions: `organization-leave.md` (the sign-off spec of the context, #1279, called "the spec" below), `leave-quota-golden-sample.md`, data records `docs/data/reviews/organization-leave-l1a.md` and `-l1b.md` (the merged schema), and this card's record `docs/data/reviews/leave-attendance-s3.md`.
 - Evidence tags: [V] = checked in this repository on 2026-11-07; [U] = unverified, the implementing card checks it; [P] = sample pack R002 (outside the repo, evidence only; its ids, words and structure are not adopted, only its expected numbers).
-- Out of scope: code, payroll design (#1582), the attendance source system (R2) and punch import, overtime and comp time, carry-over and year close, statutory entitlement rules (T-1..T-8), UI.
+- Out of scope: code, payroll design (#1582), the attendance source system (R2) and its adapter (the import port and command are in scope, 4.4), overtime and comp time, carry-over and year close, statutory entitlement rules (T-1..T-8), UI.
 
 ## 1. The one thing to decide
 
@@ -20,7 +20,7 @@ How the pack's leave and attendance nodes 010, 013, 018, 019, 020, 021, 024 run 
 | 5 | A year account takes lines with no lot: the ledger trigger refuses `consumes_line_id` on a year account and requires it on a rolling account for HOLD, RELEASE, USE, REVERSE_USE, EXPIRE, ADJUST | [V] baseline `guard_leave_ledger_line` |
 | 6 | `leave_ledger_lines.source_kind` allows `LEAVE_REQUEST, OVERTIME_REQUEST, HR_ADJUSTMENT, SEALED_YEAR_CORRECTION, RELATIONSHIP_EVENT, YEAR_OPEN, YEAR_CLOSE, COMP_TIME_EXPIRY, MIGRATION`: no value fits "a grant by a confirmed policy decision"; `reason_text` is allowed only on `ADJUST` | [V] baseline CHECKs |
 | 7 | The unique source key is `(account, source_kind, source_id, line_kind, consumes_line_id)` with NULLS NOT DISTINCT, so one REVERSE_USE and one USE per request per year account | [V] `uk_leave_ledger_lines_source_key` |
-| 8 | `monthly_confirmations` has no column for what the month was confirmed against (calendar or punches) | [V] baseline lines 99-117 |
+| 8 | `attendance_records` already exists in the baseline (employee, `record_kind` PUNCH, OUTFIELD or MAKE_UP, `occurred_at`, `source_system`, `external_record_key`, unique `(source_system, external_record_key)`) and nothing writes it; `monthly_confirmations` has no column for the basis and needs none (punches only, 4.4) | [V] baseline lines 83-117 |
 | 9 | Approval is started with `ApprovalProcesses.start` and ends in `ApprovalCompleted`; a new document type needs its own BPMN file and numbering type (template: `organization_payroll_bonus_input.bpmn20.xml`, #1436) | [V] `resources/processes/`, `BonusInputApprovalProcess` |
 | 10 | Payroll imports nothing from attendance or leave today | [V] grep of `organization/payroll` |
 | 11 | The pack's nodes carry only expected numbers: 4500 credit, two days of 450 minutes, 900 reserved, used 900, restored 450, extra credit 450, second leave 900. It names no leave dates and no attendance day count for node 013 | [P] `cases/mainline/HCM-LIFE-010..024.yaml` |
@@ -36,7 +36,7 @@ How the pack's leave and attendance nodes 010, 013, 018, 019, 020, 021, 024 run 
 | Node | Pack expectation [P] | Command / read / event | Reuse or new |
 |---|---|---|---|
 | 010 | credit 4500, available 4500, used 0, held 0; not a statutory annual-leave standard | `GrantPolicyCredit` (opens the year account if absent), read `LeaveBalances.of`; audit entry | account, ledger GRANT: reuse. Policy grant source and table, balance read: **new** |
-| 013 | first month confirmed from the given calendar and first-day boundary; no fixed statutory proration stated | `GenerateMonthlyConfirmation`, `ConfirmByEmployee`, `LockMonthlyConfirmation`; event `MonthlyConfirmationConfirmed`; read `MonthlyAttendance.of` | AGG-97 tables, commands, states: reuse (spec 4.6). Calendar basis column, the read, the generate rule: **new** |
+| 013 | first month confirmed from the first-day boundary and the punches; no fixed statutory proration stated | `ImportAttendanceRecords` (port-fed), `GenerateMonthlyConfirmation`, `ConfirmByEmployee`, `LockMonthlyConfirmation`; event `MonthlyConfirmationConfirmed`; read `MonthlyAttendance.of` | AGG-69 and AGG-97 tables, commands, states: reuse (spec 4.5, 4.6). The import port, the generate rule and the read: **new** |
 | 018 | two days of 450 minutes: available 3600, held 900, used 0 | `SubmitLeave` writes HOLD per year account, splits days by `StandardHours.minutesOn`, starts approval | reuse (spec 4.3, 4.2). Approval process definition: **new** (fact 9) |
 | 019 | held 0, used 900, available 3600; no second deduction | `ApproveLeave` from `ApprovalCompleted` writes USE of the hold; event `LeaveApproved` | reuse (`ConsumeLeaveHold`) |
 | 020 | actual 450 of 900: net used 450, available 4050; request and correction both kept | `RecallLeave` with a first day not taken writes REVERSE_USE for the untaken days; event `LeaveRecalled` | spec has `RecallLeave` but only as a whole-request reversal: partial recall **new** (4.3) |
@@ -72,7 +72,9 @@ Chosen B. Cost: one new table and one widened CHECK; benefit: credit equals the 
 
 Chosen A. `taken_until_at` is the start instant (business zone) of the first untaken day; the command writes it and publishes its business date as `recalledFromDate`. A recall whose `taken_until_at` equals `start_at` is the whole-request recall of the spec (an empty range), so one mechanism covers both. Without the cut a `RECALLED` request would drop its whole period, taken day included, out of the guard (reviewer counter-example, fact 15). `RECALLED` then means "ended before its planned last day"; a leave fully taken stays `APPROVED` (spec 4.3).
 
-**4.4 What attendance days are confirmed against (node 013).** The spec says a missing import day is a failed precondition, never full attendance (4.6); the pack gives only the calendar and the first-day boundary [P], and the attendance source is undecided (R2). Options: (a) require punches: node 013 cannot run; (b) derive the month's attendance days from the work calendar of the cost entity, the relationship's service days and the approved leave, and record that basis; punches validate later. Chosen (b) as the first basis `CALENDAR`, a `basis_kind` column on the confirmation (`CALENDAR` or `PUNCHES`); a month with basis `PUNCHES` keeps the spec's failed precondition. Whether the business confirms against the calendar or the punches is Q-S3-1. The confirmation stores no proration factor: node 013 says the first-month proration follows an explicit input [P], and proration is payroll's (section 7).
+**4.4 What attendance days are confirmed against (node 013). User-decided 2026-11-06 (Q-S3-1): punches only.** No calendar-derived basis exists, so the confirmation has no basis column. A workday of the cost entity's calendar (4.5), inside the relationship's service period, counts as an attendance day when an `attendance_records` row of the person falls on that business day (any kind: PUNCH, OUTFIELD, MAKE_UP) or approved leave covers the whole day; a workday with neither is a missing day, and generation fails as a failed precondition (spec 4.6), never full attendance; the error names the count and the dates of the missing days, no person data. The fixed rule for a rest day is that no record is needed. Whether a day with approved leave and no punch is fine, and whether OUTFIELD and MAKE_UP count, are design readings of the spec for the user to confirm (Q-S3-8).
+
+**Punch input the slice needs.** The table exists and has no writer, so the slice adds the spec's `ImportAttendanceRecords` command (spec 4.5) behind an import port in `organization.leave`: input is a batch of `{sourceSystem, externalRecordKey, employeeId, recordKind, occurredAt}`; the whole batch fails when a person cannot be resolved; a replay of a known `(sourceSystem, externalRecordKey)` writes nothing and is not an error; rows are append-only (RULE-519). The attendance source system is still open (R2): no adapter is built here, and every test feeds punches through this port with a fixed test source code. When R2 is decided, its adapter calls the same port and no leave code changes. This port and the command are the new slice G0 (section 8).
 
 **4.5 Which entity's calendar.** The cost (attribution) entity of the person on the day, as the user ruled for standard hours (Q-11 a, spec section 2). The first-day boundary is the relationship's start date and the end boundary its end date from `EmploymentRelationships`; unpaid-leave days from the relationship are not attendance days [U: the api field names are checked by the slice].
 
@@ -80,7 +82,7 @@ Chosen A. `taken_until_at` is the start instant (business zone) of the first unt
 
 1. New ledger source `POLICY_GRANT` (only with line kind GRANT) and new table `leave_policy_grants` (4.1).
 2. `leave_requests.taken_until_at`, and the overlap exclusion redefined to cover `RECALLED` with the range cut there (4.3).
-3. `monthly_confirmations.basis_kind` (4.4).
+3. No column for the confirmation basis (punches only, 4.4); `attendance_records` is reused unchanged and gets its writer in slice G0.
 4. Spec 4.2 names the ledger kinds `CARRY_IN`, `CARRY_OUT`; the schema has `ROLLOVER_IN`, `ROLLOVER_OUT`. The schema governs; the spec text is read that way (no document edit of the spec in this PR).
 5. Spec 4.2 says an account is never opened implicitly by a hold. `GrantPolicyCredit` may open the year account (rule version in force on the business day of the command, else it fails; the grant's `effective_date` may not be earlier than that day, see Q-S3-6), because a policy credit has no relationship-start event to open it.
 6. No new module edge: leave already depends on workforce, attendance and platform.approval (spec 4).
@@ -109,17 +111,18 @@ Each slice is one behaviour with its own tests. Owner: lead assigns. Slice A is 
 
 | Slice | Behaviour | Nodes | Needs |
 |---|---|---|---|
-| A | Schema PR: edit the open baseline file (fact 14), no appended migration: `POLICY_GRANT`, `leave_policy_grants`, `taken_until_at` and the redefined overlap guard, `basis_kind`; registry and classification entries; dev database rebuilt | all | this PR merged |
+| A | Schema PR: edit the open baseline file (fact 14), no appended migration: `POLICY_GRANT`, `leave_policy_grants`, `taken_until_at` and the redefined overlap guard, registry and classification entries; dev database rebuilt | all | this PR merged |
 | B | Leave types read, rule version publish and read (a version with no entitlement rows is allowed for a policy type), the module's api package | 010 | A |
 | C | `GrantPolicyCredit`, the year account open, `LeaveBalances.of` | 010, 021 | B |
 | D | `SubmitLeave` (day split, HOLD, relationship-in-service check, approval start) and the approval process definition and numbering type | 018, 024 | C |
 | E | `ApproveLeave` (USE of the hold), `RejectLeave` and `WithdrawLeave` (RELEASE), event `LeaveApproved` | 019, 024 | D |
 | F | `RecallLeave` with `taken_until_at`, event `LeaveRecalled` | 020 | E |
-| G | Monthly confirmation generate, confirm, lock with basis `CALENDAR`, the read `MonthlyAttendance.of`, events | 013 | D (leave lines), E |
+| G0 | `ImportAttendanceRecords` and its port (4.4), append-only, replay-safe; no schema change | 013 | A |
+| G | Monthly confirmation generate (punches only, missing day fails), confirm, lock, the read `MonthlyAttendance.of`, events | 013 | G0, D (leave lines), E |
 | I | Web pages for the role walks of section 9.2 (frontend session; page list waits for the role-task mapping, B11.5) | all | C-G |
 | H | Acceptance tests for the seven nodes, API side and seam tests (one-test, not design) | all | C-G |
 
-C to F run in sequence (same aggregate); G can start after E; I follows each of C to G page by page. A slice is done only when its role walk (T3) and its seam tests (T4) of section 9 pass.
+C to F run in sequence (same aggregate); G0 can start right after A; G can start after E and G0; I follows each of C to G page by page. A slice is done only when its role walk (T3) and its seam tests (T4) of section 9 pass.
 
 ## 9. Done-when (for the test engineer; one checkable line each)
 
@@ -130,7 +133,7 @@ Dates and numbers. The pack's amounts are asserted as they are (4500, 900, 450, 
 1. A grant of 4500 minutes to a minute-unit type for a relationship in service on D0 reads credit 4500, held 0, used 0, available 4500 through `LeaveBalances.of`; the ledger line has source `POLICY_GRANT`, the grant row names its basis, and an audit entry exists.
 2. A second call with the same `request_key` returns the same grant and writes no second row or line; a different key with the same quantity writes a second grant; quantity 0 or negative is refused; a grant for a relationship not in service on its `effective_date` is refused; a grant dated before the business day is refused (Q-S3-6 pending, then as answered).
 3. The grant touches no statutory annual-leave account: no `leave_grant_basis` row is written and the person's annual-leave balance is unchanged.
-4. Generating the confirmation of D0's month for a relationship that started on D0 gives basis `CALENDAR`; attendance days equal the workdays from D0 to the month's last day of the cost entity's calendar (the test counts them from the fixture calendar; the pack states no count [U]), no day before D0 is counted, no proration factor is stored.
+4. Punches are fed through the import port with a fixed test source code: a batch with an unresolvable person writes nothing and fails; a replayed batch writes no second row; a punch that is not a business-day match is stored as it is. Generating the confirmation of D0's month for a relationship that started on D0, with punches on every workday from D0 to the month's last day of the cost entity's calendar (the test builds them from the fixture calendar; the pack states no count [U]), counts exactly those days; no day before D0 is counted and no proration factor is stored. With one workday lacking a punch and any approved leave, generation fails naming that day; with approved leave covering that day it succeeds (Q-S3-8 pending, then as answered).
 5. `ConfirmByEmployee` by the person on the month's last day moves the month to `CONFIRMED`; another person's call returns 404; regenerate after confirm is refused; after lock nothing changes and a later change is a correction row of the next month (INV-105).
 6. A request for two workdays of 450 standard minutes each against available 4500 leaves held 900, available 3600, used 0 and the request `IN_APPROVAL`; a request above the available balance is refused (T-4); a second request overlapping the first is refused.
 7. Approval completion turns the hold into use: held 0, used 900, available 3600, request `APPROVED`; delivering the same `ApprovalCompleted` again, or the same consume command, writes no second USE.
@@ -139,17 +142,17 @@ Dates and numbers. The pack's amounts are asserted as they are (4500, 900, 450, 
 10. A second request of 900 approved reads used 1350, held 0, available 3600.
 11. A rejected or withdrawn request releases its hold: held 0 and available as before the request.
 12. A confirmation generated after node 020 lists approved leave by type with `is_paid_leave` copied, counts the taken part of the `RECALLED` request (450 minutes, the days before `taken_until_at`), and counts neither an `IN_APPROVAL` request nor the returned day.
-13. Each new database rule is violated once in a test and refused: a `POLICY_GRANT` line that is not a GRANT; `taken_until_at` set on a request that is not `RECALLED`, or outside `[start_at, end_at]`; a `basis_kind` outside the two values; a second grant with the same `(account, request_key)`.
+13. Each new database rule is violated once in a test and refused: a `POLICY_GRANT` line that is not a GRANT; `taken_until_at` set on a request that is not `RECALLED`, or outside `[start_at, end_at]`; a second grant with the same `(account, request_key)`.
 14. A foreign person's request, balance or confirmation returns 404; every command is reachable only through its permission.
 
 ### 9.2 Role walks in the web UI (T3: each activity walked by the real role, no admin shortcut)
 
 Roles (user decisions 2026-11-06): employee; direct manager; HR lead (a separate approval layer); HR specialist (also holds the attendance-specialist role); permission administrator. A separated employee cannot log in; the HR specialist acts for them.
 
-15. HR specialist grants a policy credit (nodes 010, 021) on the HR page and sees credit and available change; an employee account sees the same balance on its own page and cannot see another person's.
+15. HR specialist grants a policy credit (nodes 010, 021; HR permission with audit, no approval step) on the HR page and sees credit and available change; an employee account sees the same balance on its own page and cannot see another person's.
 16. Employee submits the two-day request (018, 024) on the own-leave page; the direct manager finds it in the to-do list and approves; the HR-lead layer approves it when the route includes that layer (Q-S3-7 pending: layer condition); the employee sees held, then used; the applicant's "my requests" list shows each state.
-17. HR specialist registers the recall (020) for the applicant, or for a separated applicant (login impossible); the employee's page shows used 450 and the request `RECALLED`; the manager's to-do list shows nothing new.
-18. Employee confirms the month on the attendance page (013); for a separated employee the HR specialist confirms by default (`ConfirmByDefault`); the HR specialist locks the month; a non-HR role sees no lock action.
+17. HR specialist registers the recall (020) for the applicant, or for a separated applicant (login impossible); the direct manager registers it for a current report in a second walk; the employee's page shows used 450 and the request `RECALLED`; the manager's to-do list shows nothing new.
+18. After punches are fed through the import port (no source-system adapter exists), the employee confirms the month on the attendance page (013); for a separated employee the HR specialist confirms by default (`ConfirmByDefault`); the HR specialist locks the month; a non-HR role sees no lock action.
 19. Permission administrator sees the leave permissions granted automatically by source (employee, manager, HR specialist, HR lead) in the grant review list and can revoke one; the revoked role's page action disappears. [U: the review list is the identity module's existing mechanism]
 
 ### 9.3 Seam tests (T4: both sides of each seam, numbers as in section 12.1)
@@ -157,19 +160,20 @@ Roles (user decisions 2026-11-06): employee; direct manager; HR lead (a separate
 20. Seams 1, 2, 3, 4: leave's test calls the real attendance and workforce read ports (no stubs); each port's own contract test covers its failure answers (no standard-hours version, calendar year not maintained, relationship not in service).
 21. Seam 5: a leave request starts a real approval process and the result returns by `ApprovalCompleted`; the approval-side test of the new process definition checks its route (manager, then the HR-lead layer by Q-S3-7).
 22. Seam 6: the provider test asserts the `LeaveApproved` and `LeaveRecalled` payloads field by field against the record; the consumer side waits for the timesheet seam card (listed, not skipped): until then a recorded-payload contract test in leave stands in for it.
-23. Seam 7: the provider test asserts `MonthlyAttendance.of` and `MonthlyConfirmationLocked` against the record, including `is_paid_leave` and basis; `MonthlyAttendance.of` on an unlocked month fails; the consumer side is #1582's.
+23. Seam 7: the provider test asserts `MonthlyAttendance.of` and `MonthlyConfirmationLocked` against the record, including `is_paid_leave`; `MonthlyAttendance.of` on an unlocked month fails; the consumer side is #1582's.
 24. Seam 8: `LeaveBalances.of` is asserted for credit, held, used, expired, available after every pack step (1 to 10 above).
 
-## 10. Questions only the user can answer (none decided here)
+## 10. Questions for the user (Q-S3-1, 2, 4, 5 user-decided 2026-11-06 through lead; the rest open)
 
 | # | Question | Options | Recommendation |
 |---|---|---|---|
-| Q-S3-1 | Is the monthly attendance confirmed against the work calendar and service days, or against punches? | calendar now, punches when the attendance source (R2) is decided; punches only | calendar now, punches later: node 013 runs without a source system, and the basis is recorded |
-| Q-S3-2 | Does a policy-granted credit expire or roll over at year end? (the pack carries an `expired` counter) | never expires within its year only; expires at a date; rolls over with a cap | the grant's rule version states it; until the user names a policy, no expiry inside the year and nothing carried |
+| Q-S3-1 | Is the monthly attendance confirmed against the work calendar and service days, or against punches? | calendar; punches | **User-decided 2026-11-06: punches only.** Section 4.4 |
+| Q-S3-2 | Does a policy-granted credit expire or roll over at year end? | no expiry inside the year; expires at a date; rolls over with a cap | **User-decided 2026-11-06: valid within its year, nothing carried, no expiry inside the year.** The pack's `expired` counter is therefore 0 in S3 |
 | Q-S3-3 | Which leave types exist in production, with unit and paid flag? The type table is migration-only; the pack's type is fictional and lives in test fixtures | the user lists them | the user lists them before the first production seed; not needed for S3 tests |
-| Q-S3-4 | Who may grant a policy credit, and does a grant need approval? | HR permission with audit; HR permission plus approval | HR permission with audit, as for other HR adjustments |
-| Q-S3-5 | Who verifies the actual leave and registers the recall (node 020 says the actual days are verified)? | the applicant; the direct manager; HR specialist | HR specialist registers it after verifying (also the only path for a separated employee); the data shape is the same for any of them |
+| Q-S3-4 | Who may grant a policy credit, and does a grant need approval? | HR permission with audit; HR permission plus approval | **User-decided 2026-11-06: HR permission with audit, no approval.** |
+| Q-S3-5 | Who verifies the actual leave and registers the recall? | the applicant; the direct manager; HR | **User-decided 2026-11-06: HR or the direct manager registers it after verifying** (HR also acts for a separated applicant who cannot log in). The command is permission-gated for both roles; the data shape is the same |
 | Q-S3-6 | May a policy credit be dated before the day it is entered (backdated)? The rule-version guard already refuses a backdated version, so a backdated grant would have no version in force | no, effective date is the entry day or later; yes with HR-lead approval | no, as the guard does |
+| Q-S3-8 | Node 013 under punches only: does a workday with approved leave and no punch count as fine, and do OUTFIELD and MAKE_UP records count as attendance? | yes and yes; punches only, leave days need a punch too | yes and yes (leave covers the day; every record kind is evidence of presence) |
 | Q-S3-7 | When does the HR-lead approval layer apply to a leave request (user decision 2026-11-06: the layer exists)? | every request; above a number of days; for given leave types | above a number of days the user names; until then the process definition has the layer behind a threshold of the rule version |
 
 ## 11. Unverified (the implementing slice checks; none changes a column)
@@ -193,7 +197,7 @@ Rule (the user's HR development chart, `04-P03-HR_dev-strategy-v0.svg`, read-onl
 | 4 | (the chart's 任职生效 / 任职结束 are events; the service boundary is a read) | `organization.workforce` -> `organization.leave` | read port `EmploymentRelationships` (service period and unpaid-leave periods of a relationship) [U: field names]; the events `EmploymentRelationshipStarted/Ended` are **not** consumed in S3 | read reused (ADR-0086, on main); the two events are not crossed in S3 (Ended: the S5 separation slice cancels open leave, spec 4.3; Started: the entitlement slice opens the annual account) |
 | 5 | (none in the chart) approval | `organization.leave` -> `platform.approval` -> `organization.leave` | `ApprovalProcesses.start` per (process type, document, round); result `ApprovalCompleted`; withdraw | reused (platform pattern, template #1436 [V]); crossed here; the leave process definition is new (slice D) |
 | 6 | 请假事实 | `organization.leave` -> `cost.timesheet` | events `LeaveApproved`, `LeaveRecalled` (payloads in the data record) and later the read `LeaveHours.forDay` (spec 4.3) | **defined here** (payloads); provider side only: `TimesheetOvertimeSeamGuardTest` keeps the edge closed until the seam card opens it |
-| 7 | 考勤结果 | `organization.leave` -> `organization.payroll` | read `MonthlyAttendance.of(employeeId, month)` (per relationship: attendance days, leave minutes by type with `is_paid_leave`, basis kind) readable only when `LOCKED`; event `MonthlyConfirmationLocked` | **defined here**; provider side only until #1582 builds the consumer |
+| 7 | 考勤结果 | `organization.leave` -> `organization.payroll` | read `MonthlyAttendance.of(employeeId, month)` (per relationship: attendance days, leave minutes by type with `is_paid_leave`) readable only when `LOCKED`; event `MonthlyConfirmationLocked` | **defined here**; provider side only until #1582 builds the consumer |
 | 8 | 关系额度 | `organization.leave` -> `organization.payroll` (and own UI) | S3 defines the read `LeaveBalances.of(relationship, type, year)` (credit, held, used, expired, available). The spec's `LeaveBalances.unused(...)` for separation settlement is **added** by the S5 slice | `of` defined here, consumed by leave's own pages and tests only; `unused` not crossed |
 | 9 | (none in the chart) audit | `organization.leave` -> `platform.audit` | audit entry per balance- or state-changing command; events audited | reused (platform) |
 | 10 | (none in the chart) permissions | `platform.identity` -> `organization.leave` | permission codes registered per role; no leave table reads identity | reused; new codes per slice |

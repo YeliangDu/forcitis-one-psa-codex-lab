@@ -6,9 +6,9 @@ Evidence marks: **verified** = read on origin/main on 2026-11-07 (migration, reg
 
 ## Scope
 
-Signed: schema `organization_leave`; new table `leave_policy_grants`; the ledger `source_kind` CHECK widened by `POLICY_GRANT` and one new CHECK tying it to the GRANT kind; new column `leave_requests.taken_until_at` with the overlap exclusion redefined; new column `leave_policy_grants.request_key` with its unique key; new column `monthly_confirmations.basis_kind`; the payloads of `LeaveApproved`, `LeaveRecalled`, `MonthlyConfirmationConfirmed`, `MonthlyConfirmationLocked`; terms (`backend/glossary/proposed/leave-s3.yaml`).
+Signed: schema `organization_leave`; new table `leave_policy_grants`; the ledger `source_kind` CHECK widened by `POLICY_GRANT` and one new CHECK tying it to the GRANT kind; new column `leave_requests.taken_until_at` with the overlap exclusion redefined; new column `leave_policy_grants.request_key` with its unique key; the payloads of `LeaveApproved`, `LeaveRecalled`, `MonthlyConfirmationConfirmed`, `MonthlyConfirmationLocked`; terms (`backend/glossary/proposed/leave-s3.yaml`).
 
-Not signed (separate gate runs): any table of overtime, comp time, carry-over, year close and attendance import; the `cost.timesheet` consumer edge; payroll tables (#1582). Q-S3-1 to Q-S3-5 do not change a column: Q-S3-1 is the `basis_kind` value written by default (the column carries both values from the start), Q-S3-2 and Q-S3-3 are rule-version and seed data, Q-S3-4 and Q-S3-5 are command permissions.
+Not signed (separate gate runs): any table of overtime, comp time, carry-over, year close and attendance import; the `cost.timesheet` consumer edge; payroll tables (#1582). `attendance_records` is reused unchanged (the table exists; the import command that writes it is code). The user answers of 2026-11-06 change no column: Q-S3-1 (punches only) is why the confirmation needs no basis column, Q-S3-2 and Q-S3-3 are rule-version and seed data, Q-S3-4 and Q-S3-5 are command permissions.
 
 ## Table to object source (B1, B2, B7)
 
@@ -50,9 +50,9 @@ Append-only by `organization_leave.guard_append_only()` (`BEFORE UPDATE OR DELET
 
 New `taken_until_at timestamptz`, comment 「为空表示未被提前终止；销假后为第一天未休的起点（业务时区当天零点）」. `ck_leave_requests_taken_until_at` `(status = 'RECALLED') = (taken_until_at IS NOT NULL)` and `taken_until_at IS NULL OR taken_until_at BETWEEN start_at AND end_at`. `ex_leave_requests_live_period_overlap` is redefined: `EXCLUDE USING gist (employment_relationship_id WITH =, tstzrange(start_at, CASE WHEN status = 'RECALLED' THEN taken_until_at ELSE end_at END) WITH &&) WHERE (status IN ('SUBMITTED', 'IN_APPROVAL', 'APPROVED', 'RECALLED'))`. A whole-request recall sets `taken_until_at = start_at`, an empty range that blocks nothing; a partial recall keeps the taken days blocked, so a second request cannot double-book them. That `taken_until_at` is a business-day start is a command check (business zone).
 
-### monthly_confirmations (changed)
+### monthly_confirmations, attendance_records (unchanged)
 
-New `basis_kind text NOT NULL`, comment 「月度出勤确认依据：CALENDAR 按工作日历与在岗日推算，PUNCHES 按打卡记录」. `ck_monthly_confirmations_basis_kind` `basis_kind IN ('CALENDAR', 'PUNCHES')`. No existing rows to fill: no code writes the table (verified: the Java module is one file), so the migration adds the column without a default. The locked-month trigger compares whole rows and needs no change.
+User-decided 2026-11-06: the month is confirmed against punches only, so no basis column is added. `attendance_records` (baseline lines 83-97) already holds the punch facts with a unique `(source_system, external_record_key)`: it is the replay key of the import command and the row grain is one punch. Its writer, the import command, is code; nothing in the table changes.
 
 ## Differences from the proposal's section 5 (the record governs)
 
@@ -78,7 +78,6 @@ All four events: publisher `organization.leave`, audited, version 1, delivery as
 | aggregate / `aggregateId` | `MonthlyConfirmation` / confirmation id | same |
 | `employeeId` | required | required |
 | `month` (first day of the month) | required, `businessDate` | required, `businessDate` |
-| `basisKind` | required | required |
 | `confirmedByKind` | required, `EMPLOYEE` / `DEFAULT` | n/a |
 
 Consumers now: `platform.audit` for all four; `cost.timesheet` for the first two only after the seam card (the guard keeps the edge closed); payroll for `MonthlyConfirmationLocked` is assumed by #1582, not registered.
@@ -98,7 +97,7 @@ Consumers now: `platform.audit` for all four; `cost.timesheet` for the first two
 | `taken_until_at` is a business-day start | command | needs the business zone |
 | A grant replay with the same key writes nothing | `uk_leave_policy_grants_account_request_key` | |
 | One REVERSE_USE per request per year account | existing `uk_leave_ledger_lines_source_key` | |
-| A confirmation records what it was confirmed against | `basis_kind` NOT NULL plus its CHECK | |
+| A replayed import row writes nothing | `uk_attendance_records_source_external_record_key` (existing) | |
 | A `PUNCHES` month with a missing imported day fails | command | spans attendance records |
 | A grant into a sealed year account is refused | existing ledger trigger | |
 
@@ -109,7 +108,7 @@ Consumers now: `platform.audit` for all four; `cost.timesheet` for the first two
 | `GrantPolicyCredit` | `leave_accounts` (open if absent), `leave_policy_grants`, one GRANT line | account by `uk_leave_accounts_relationship_type_year` | one grant, one line |
 | Read `LeaveBalances.of(relationship, type, year)` | none | `ix_leave_ledger_lines_account_effective` | tens of lines per account (one-year ledger of one person) |
 | `RecallLeave` | request row (`status`, `taken_until_at`), one REVERSE_USE line per year account | request by pk | one to two lines |
-| Month confirmation generate | `monthly_confirmations` with `basis_kind`, lines | `uk_monthly_confirmations_employee_month` | one per person and month; a few lines each |
+| Month confirmation generate | `monthly_confirmations`, lines; reads `attendance_records` by person and month | `uk_monthly_confirmations_employee_month` | one per person and month; a few lines each |
 
 Expected volume: a few thousand confirmations per month for the firm; grants and recalls are rare. All reads are by key.
 
@@ -118,7 +117,7 @@ Expected volume: a few thousand confirmations per month for the firm; grants and
 | # | Result | Evidence |
 |---|---|---|
 | B1, B2 | pass | table-to-object table above |
-| B3, B3a | pass | `basis_kind` CHECK = Java enum `ConfirmationBasisKind`; `source_kind` CHECK = enum `LeaveLedgerSourceKind` (the slice makes them agree, G-D12); request state unchanged (`RECALLED` exists); every event maps to one transition: approve, recall, confirm, lock |
+| B3, B3a | pass | `source_kind` CHECK = enum `LeaveLedgerSourceKind` (the slice makes them agree, G-D12); request state unchanged (`RECALLED` exists); every event maps to one transition: approve, recall, confirm, lock |
 | B4 | pass | the grant row's relationship id sits behind the account's composite FK only; `granted_by` is another context's id, no FK |
 | B5, O4 | pass | invariants table |
 | B6 | pass | produced facts: grant row, ledger lines, the four events |
@@ -134,7 +133,7 @@ Expected volume: a few thousand confirmations per month for the firm; grants and
 | O9 | pass | no derived values stored: credit, held, used, available are computed from lines |
 | O10, O10a | pass | index list above; the composite FK column set has the `leave_account_id` index |
 | O11 | pass | small tables |
-| O12, T4 | pass | open period: the baseline file is edited and the expected diff is attached below; additive: one table, two nullable-or-empty-table columns, one redefined CHECK, one new CHECK, one redefined exclusion; no rows exist in `leave_requests` or `monthly_confirmations` (no code writes them: verified), so `NOT NULL` without default is safe in every environment; rollback = previous code ignores the new objects |
+| O12, T4 | pass | open period: the baseline file is edited and the expected diff is attached below; additive: one table, one nullable column, one redefined CHECK, one new CHECK, one redefined exclusion; no rows exist in `leave_requests` (no code writes it: verified), and the new table is empty, so every addition is safe in every environment; rollback = previous code ignores the new objects |
 | O13 | pass | the fact rows carry no legal entity of their own: the entity is derived from the relationship (ADR-0086) and the events carry the cost entity on the date; an accounting period does not apply (no posting fact); the one entity-dependent number is the calendar of seam 3, resolved at read time |
 | O14 | pass | business dates in `BusinessZone`; events dedupe by event id; lists by cursor; retention below |
 | O15 | pass | ADR-0033 items 1, 2 (UUIDv7, no composite pk): included; ADR-0035 (event version 1): included; ADR-0043: classification below; ADR-0079 leave lines: unchanged; ADR-0086: relationship id keys: included |
@@ -157,11 +156,11 @@ organization_leave.leave_policy_grants.basis_text | INTERNAL | PI | 用途：授
 organization_leave.leave_policy_grants.granted_by | INTERNAL | PI | 用途：做出授予决定的操作人；个人信息 PI
 ```
 
-`leave_requests.taken_until_at` and `monthly_confirmations.basis_kind` are an instant and an enum of an already classified row: no new line. Registry (`data-access-registry.yaml`): a row for `organization_leave.leave_policy_grants` with role `AGGREGATE_CHILD`, aggregate `LeaveAccount`, mutability `APPEND_ONLY`, retention as the ledger, lineage `NEW`, writers `[organization.leave]`.
+`leave_requests.taken_until_at` is an instant on an already classified row: no new line. Registry (`data-access-registry.yaml`): a row for `organization_leave.leave_policy_grants` with role `AGGREGATE_CHILD`, aggregate `LeaveAccount`, mutability `APPEND_ONLY`, retention as the ledger, lineage `NEW`, writers `[organization.leave]`.
 
 ## Expected diff for the schema PR (DG-3, section 1.4)
 
-Table set: `leave_policy_grants` added (columns, FK, index, trigger above). `leave_ledger_lines`: `ck_leave_ledger_lines_source_kind` redefined (ten values), `ck_leave_ledger_lines_policy_grant_kind` added. `leave_requests`: column `taken_until_at`, `ck_leave_requests_taken_until_at`, `ex_leave_requests_live_period_overlap` redefined. `leave_policy_grants` also has `request_key` and its key. `monthly_confirmations`: column `basis_kind`, `ck_monthly_confirmations_basis_kind`. No other object changes.
+Table set: `leave_policy_grants` added (columns, FK, index, trigger above). `leave_ledger_lines`: `ck_leave_ledger_lines_source_kind` redefined (ten values), `ck_leave_ledger_lines_policy_grant_kind` added. `leave_requests`: column `taken_until_at`, `ck_leave_requests_taken_until_at`, `ex_leave_requests_live_period_overlap` redefined. `leave_policy_grants` also has `request_key` and its key. No other object changes.
 
 ## Unverified items (the dev card checks them; none changes a column)
 
