@@ -10,9 +10,9 @@ import java.util.Optional;
 import java.util.Set;
 import org.jspecify.annotations.Nullable;
 
-/** The roster as of a business day; visibility and filters are applied before paging. */
+/** The roster as of a business day; onLeaveOnly keeps the employed people who are on unpaid leave that day (status is then EMPLOYED or empty); visibility and filters are applied before paging. */
 public interface EmployeeRosterQueries {
-    List<Row> list(Visible visible, @Nullable OrgUnitId orgUnit, @Nullable EmploymentStatus status, @Nullable EmployeeId after, int limit);
+    List<Row> list(Visible visible, @Nullable OrgUnitId orgUnit, @Nullable EmploymentStatus status, boolean onLeaveOnly, @Nullable EmployeeId after, int limit);
 
     Optional<Row> find(Visible visible, EmployeeId employee);
 
@@ -28,7 +28,7 @@ public interface EmployeeRosterQueries {
     }
 
     record Row(EmployeeId employeeId, String employeeCode, String displayName, EmploymentStatus employmentStatus,
-               @Nullable LocalDate hireDate, List<AssignmentRow> assignments) {
+               @Nullable LocalDate hireDate, boolean onUnpaidLeave, List<AssignmentRow> assignments) {
         public Row {
             assignments = List.copyOf(assignments);
         }
