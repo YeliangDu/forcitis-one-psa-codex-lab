@@ -47,8 +47,12 @@ class RecruitmentRequisitionTest {
     }
 
     static RecruitmentRequisition submitted(int count, String description) {
+        return submitted(count, null, description);
+    }
+
+    static RecruitmentRequisition submitted(int count, java.time.LocalDate expectedStartDate, String description) {
         return RecruitmentRequisition.submit(new RequisitionId(TestIds.uuid(7)), new DocumentNumber("RR-ABC-202611-0007"), TestOrgIds.position(3),
-                TestOrgIds.orgUnit(5), new LegalEntityId(TestIds.uuid(1)), REQUESTER, count, null, description, new ApprovalInstanceId(TestIds.uuid(9)), COUNTER, NOW, TODAY);
+                TestOrgIds.orgUnit(5), new LegalEntityId(TestIds.uuid(1)), REQUESTER, count, expectedStartDate, description, new ApprovalInstanceId(TestIds.uuid(9)), COUNTER, NOW, TODAY);
     }
 
     @Test
@@ -79,7 +83,20 @@ class RecruitmentRequisitionTest {
             assertThatThrownBy(() -> submitted(refused, null)).isInstanceOfSatisfying(DomainException.class,
                     e -> assertThat(e.errorCode()).isEqualTo(RecruitmentError.ORGANIZATION_RECRUITMENT_COUNT_INVALID));
         }
-        assertThatThrownBy(() -> submitted(1, " ")).isInstanceOf(DomainException.class);
+        for (String refused : new String[] {" ", "x".repeat(501)}) {
+            assertThatThrownBy(() -> submitted(1, refused)).isInstanceOfSatisfying(DomainException.class,
+                    e -> assertThat(e.errorCode()).as("a bad description is not a bad count").isEqualTo(RecruitmentError.ORGANIZATION_RECRUITMENT_DESCRIPTION_INVALID));
+        }
+        assertThat(submitted(1, "x".repeat(500)).description()).isPresent();
+    }
+
+    @Test
+    @DisplayName("#1451 the expected start date may be the creation day or later, never before it (signed data design: a command check, not a CHECK)")
+    void theExpectedStartDateIsNotBeforeTheCreationDay() {
+        assertThat(submitted(1, TODAY, "x").expectedStartDate()).contains(TODAY);
+        assertThat(submitted(1, TODAY.plusDays(30), "x").expectedStartDate()).contains(TODAY.plusDays(30));
+        assertThatThrownBy(() -> submitted(1, TODAY.minusDays(1), "x")).isInstanceOfSatisfying(DomainException.class,
+                e -> assertThat(e.errorCode()).isEqualTo(RecruitmentError.ORGANIZATION_RECRUITMENT_EXPECTED_START_DATE_INVALID));
     }
 
     @Test

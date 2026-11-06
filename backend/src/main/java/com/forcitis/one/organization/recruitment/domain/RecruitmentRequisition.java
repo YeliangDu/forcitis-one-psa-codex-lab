@@ -102,7 +102,10 @@ public final class RecruitmentRequisition extends AggregateRoot {
             throw RecruitmentError.ORGANIZATION_RECRUITMENT_COUNT_INVALID.refusal("The requested count is 1 to 999, was " + requestedCount);
         }
         if (description != null && (description.isBlank() || description.length() > 500)) {
-            throw RecruitmentError.ORGANIZATION_RECRUITMENT_COUNT_INVALID.refusal("The description is 1 to 500 characters when given");
+            throw RecruitmentError.ORGANIZATION_RECRUITMENT_DESCRIPTION_INVALID.refusal("The description is 1 to 500 characters when given");
+        }
+        if (expectedStartDate != null && expectedStartDate.isBefore(today)) {
+            throw RecruitmentError.ORGANIZATION_RECRUITMENT_EXPECTED_START_DATE_INVALID.refusal("The expected start date is not before the creation date " + today);
         }
         RecruitmentRequisition created = new RecruitmentRequisition(requisitionId, Objects.requireNonNull(number, "number"), positionId, orgUnitId,
                 legalEntityId, requestedBy, requestedCount, expectedStartDate, description, RequisitionStatus.SUBMITTED, null,

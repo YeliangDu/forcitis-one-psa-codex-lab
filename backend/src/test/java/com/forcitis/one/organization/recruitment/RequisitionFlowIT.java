@@ -236,6 +236,77 @@ class RequisitionFlowIT extends ApprovalIntegrationSupport {
     }
 
     @Test
+    @DisplayName("#1451 a subtree grant on a parent unit covers a requisition of its child unit (get and list), and a grant on the child alone does not cover the parent")
+    void aSubtreeOnAnAncestorCoversTheUnit() {
+        long child = UNITS.incrementAndGet();
+        organisation.unit(child, unit, head);
+        signInAs(requester);
+        RequisitionView view = submit.execute(new SubmitRequisitionCommand(new RequisitionId(UUID.randomUUID()), position, TestOrgIds.orgUnit(child), 1, null, "x"));
+        RequisitionView parentView = submitOne(1);
+
+        when(access.visibleOrgUnits(any())).thenReturn(new OrgUnitAccess.Visible(false, Set.of(), Set.of(unitId().value())));
+        assertThat(get.execute(view.requisitionId())).as("the parent's subtree covers the child").isPresent();
+        assertThat(list.execute(PageRequest.of(50, null, "recruitment-requisitions")).items()).extracting(RequisitionView::requisitionId).contains(view.requisitionId());
+
+        when(access.visibleOrgUnits(any())).thenReturn(new OrgUnitAccess.Visible(false, Set.of(), Set.of(TestOrgIds.orgUnit(child).value())));
+        assertThat(get.execute(parentView.requisitionId())).as("a subtree below does not cover the parent").isEmpty();
+    }
+
+    @Test
+    @DisplayName("#1451 closing: a caller who is neither the requester nor in scope gets not-found and a denied audit entry; the requisition is untouched")
+    void closeByAnOutOfScopeStrangerIsNotFound() {
+        RequisitionView view = submitOne(1);
+        long stranger = newId();
+        organisation.person(stranger, unit, null);
+        when(access.visibleOrgUnits(any())).thenReturn(OrgUnitAccess.Visible.nothing());
+        signInAs(stranger);
+
+        assertCode(() -> close.execute(view.requisitionId(), CloseReasonKind.CANCELLED, Optional.empty()), RecruitmentError.ORGANIZATION_RECRUITMENT_REQUISITION_NOT_FOUND);
+
+        verify(audit, org.mockito.Mockito.atLeastOnce()).recordIndependently(org.mockito.ArgumentMatchers.argThat(e -> e.action().equals("organization.recruitment.requisition.denied")));
+        assertThat(jdbc.queryForObject("select status from organization_recruitment.recruitment_requisitions where id = cast(? as uuid)", String.class,
+                view.requisitionId().value().toString())).isEqualTo("SUBMITTED");
+    }
+
+    @Test
+    @DisplayName("#1451 the same requisition id submitted by a second person answers not-found, never the first person's requisition")
+    void replayByAnotherPersonIsNotFound() {
+        RequisitionView view = submitOne(1);
+        long other = newId();
+        organisation.person(other, unit, head);
+        signInAs(other);
+
+        assertCode(() -> submit.execute(new SubmitRequisitionCommand(view.requisitionId(), position, unitId(), 1, null, "x")),
+                RecruitmentError.ORGANIZATION_RECRUITMENT_REQUISITION_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("#1451 s11 item 1 the requisition stores the requester's legal entity of that day")
+    void storesTheRequestersLegalEntity() {
+        RequisitionView view = submitOne(1);
+
+        assertThat(jdbc.queryForObject("select legal_entity_id from organization_recruitment.recruitment_requisitions where id = cast(? as uuid)", String.class,
+                view.requisitionId().value().toString())).isEqualTo(LEGAL_ENTITY.value().toString());
+    }
+
+    @Test
+    @DisplayName("#1451 s11 item 3 AR-11 a requester who is the unit head sends the approval to the superior, not to themselves")
+    void aHeadRequesterGoesToTheSuperior() {
+        long superior = newId();
+        long ownUnit = UNITS.incrementAndGet();
+        long headRequester = newId();
+        organisation.person(superior, unit, null).unit(ownUnit, unit, headRequester).person(headRequester, ownUnit, superior);
+        signInAs(headRequester);
+
+        RequisitionView view = submit.execute(new SubmitRequisitionCommand(new RequisitionId(UUID.randomUUID()), position, TestOrgIds.orgUnit(ownUnit), 1, null, "x"));
+
+        assertThat(listInbox.execute(TestAccounts.account(superior), ListPage.first()).items().stream()
+                .filter(item -> item.documentId().filter(view.requisitionId().value()::equals).isPresent())).hasSize(1);
+        assertThat(listInbox.execute(TestAccounts.account(headRequester), ListPage.first()).items().stream()
+                .filter(item -> item.documentId().filter(view.requisitionId().value()::equals).isPresent())).isEmpty();
+    }
+
+    @Test
     @DisplayName("#1451 the head approves: the listener opens the requisition (APPROVED) and publishes RequisitionApproved; delivering the result again changes nothing")
     void approvalOpensTheRequisition(Scenario scenario, org.springframework.modulith.test.PublishedEvents published) {
         RequisitionView view = submitOne(2);

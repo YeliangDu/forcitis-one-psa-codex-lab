@@ -44,13 +44,41 @@ terms:
   status: proposed
   note: ''
 - id: error__organization_recruitment_count_invalid
-  zh: 招聘需求的人数或说明无效
+  zh: 招聘需求的人数无效
   en: OrganizationRecruitmentCountInvalid
   snake: organization_recruitment_count_invalid
   kind: error_code
   bc: organization.recruitment
   scope: domain
-  definition: 招聘人数不在 1 到 999 之间，或岗位要求说明为空或超过 500 字（422）
+  definition: 招聘人数不在 1 到 999 之间（422）
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_recruitment_description_invalid
+  zh: 招聘需求的岗位要求说明无效
+  en: OrganizationRecruitmentDescriptionInvalid
+  snake: organization_recruitment_description_invalid
+  kind: error_code
+  bc: organization.recruitment
+  scope: domain
+  definition: 岗位要求说明给出时为空或超过 500 字（422）
+  standard_ref: []
+  confidence: medium
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: ''
+- id: error__organization_recruitment_expected_start_date_invalid
+  zh: 招聘需求的期望到岗日无效
+  en: OrganizationRecruitmentExpectedStartDateInvalid
+  snake: organization_recruitment_expected_start_date_invalid
+  kind: error_code
+  bc: organization.recruitment
+  scope: domain
+  definition: 期望到岗日早于提交当天（422）
   standard_ref: []
   confidence: medium
   aliases: []
