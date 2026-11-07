@@ -1,6 +1,6 @@
 # 依赖与供应链规则 — FORCITIS one
 
-日期：2026-10-15 · 适用范围：后端（Maven）、前端（pnpm）、CI 工作流与自托管 runner、测试镜像、发布包
+日期：2026-10-15 · 适用范围：后端（Maven）、前端（pnpm）、CI 工作流与 runner、测试镜像、发布包
 
 **出处**：用户 2026-10-15 对原则核对 B 的待决项答「全部按推荐 (Recommended)」（含 Dependabot、osv-scanner、新版本 7 天冷却、AG Grid 1b 前随表格选型定）；同日单独决定时未选「给 CI runner 建专用 macOS 用户」（见 S6）。
 
@@ -12,7 +12,7 @@
 - pnpm 一律 `--frozen-lockfile`；允许执行安装脚本的包只限 `pnpm-workspace.yaml` 的 `allowBuilds` 白名单，新增须在 PR 中写理由。
 - 新发布的版本满 7 天才引入（pnpm `minimumReleaseAge`，Maven 依赖由 Dependabot 冷却期控制）；安全修复可例外，PR 中写明对应的漏洞编号。
 - **守护与生成用的 Python 依赖**（不进发布包与 SBOM，只在 `scripts/ci/light.sh` 与本地运行时用）：
-  - PyYAML 6.0.3（MIT）：`scripts/` 下的守护与生成器（如 `scripts/codegen/scan_aggregates.py`、`scripts/codegen/build_asyncapi.py`）读写 YAML，light.sh 核验版本。来源为本机 pyenv Python 3.12.13 的 site-packages，CI runner（`docs/ops/ci-runners.md`）的 PATH 先走同一 pyenv，因此 CI 与本地是同一份。
+  - PyYAML 6.0.3（MIT）：`scripts/` 下的守护与生成器（如 `scripts/codegen/scan_aggregates.py`、`scripts/codegen/build_asyncapi.py`）读写 YAML，light.sh 核验版本。个人 Lab 由托管工作流安装固定版本，运行前核对版本。旧 Mac runner 的 pyenv 位置只供排查历史配置。
   - 其余脚本只用标准库；新增 Python 依赖照本条登记。
 
 ## S2 升级节奏
@@ -49,7 +49,8 @@
 ## S6 CI 工作流与 runner
 
 - 工作流中 `uses:` 一律固定 40 位提交 SHA（可附版本注释）；禁用 `pull_request_target`；工作流权限按作业最小授予。
-- **目标**：runner 以专用的非管理员用户运行，该用户的 HOME 中没有任何凭据（部署密钥、云凭据、`gh` 令牌、SSH 私钥），也不能写系统级工具目录。
+- **个人 Lab**：CI 用 GitHub-hosted Ubuntu；作业按最小权限取临时 token，不持久化 checkout 凭据，不读取本机或生产凭据。
+- **旧自托管环境的目标**：runner 以专用的非管理员用户运行，该用户的 HOME 中没有任何凭据（部署密钥、云凭据、`gh` 令牌、SSH 私钥），也不能写系统级工具目录。
   - **用户 2026-10-15 本次未选，风险已登记，待决**：现状是 4 个 runner 以开发者账号常驻运行（`docs/ops/ci-runners.md`），依赖与安装脚本在 CI 中执行时能读到本机凭据目录、改写本机工具链。在用户决定之前，S1 的锁定与 `allowBuilds` 白名单、S3 扫描是主要缓解；G-S6 待决定后实现。
 
 ## S7 测试镜像

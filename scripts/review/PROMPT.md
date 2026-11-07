@@ -3,6 +3,7 @@
 When dispatching a review, put this text into the prompt verbatim, followed by "This review's input".
 For the lead:
 - Assign an independent existing Codex resident to the current head. Use a different resident for final review when required by `policy.json` or the card.
+- The author, including lead, never supplies its own review verdict.
 - Input: exact head and base, the Issue, relevant files, and hosted evidence. Keep the author's conclusions out. Ask for tested counterexamples on guarded changes.
 - A head change invalidates the earlier verdict. Collect a new review before admission.
 
