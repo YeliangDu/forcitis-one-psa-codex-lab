@@ -14,6 +14,8 @@ PATHS = (
     ".github/workflows/lab-pr-ci.yml", "scripts/session/codex_lab/lab_pr_ci.py",
     "scripts/session/codex_lab/install_gitleaks.sh", "scripts/session/codex_lab/install_hosted_shellcheck.sh",
     "scripts/ci/light.sh", "scripts/ci/light_triggers.sh", "scripts/ci/backend_verify.sh",
+    "scripts/ci/lab_backend_shards.py", "scripts/ci/lab_backend_lane.sh", "scripts/ci/relevant_change.py",
+    "scripts/ci/legacy_it.sh", "scripts/guards/acceptance_reports.py",
     "scripts/codegen/generate_api.sh", "policy.json", ".gitleaks.toml", ".gitleaksignore",
 )
 
