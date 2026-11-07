@@ -21,8 +21,12 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.awaitility.Awaitility;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +75,18 @@ class LegalEntityCodeRaceIT {
     @Autowired
     LegalEntityDirectory directory;
 
+    private final ExecutorService participants = Executors.newFixedThreadPool(2);
+
+    @AfterEach
+    void stopParticipants() {
+        participants.shutdownNow();
+        participants.close();
+    }
+
+    private <T> CompletableFuture<T> supplyAsync(Supplier<T> task) {
+        return CompletableFuture.supplyAsync(task, participants);
+    }
+
     private static final LocalDate DAY = LocalDate.of(2026, 10, 14);
 
     @org.junit.jupiter.api.BeforeEach
@@ -97,14 +113,14 @@ class LegalEntityCodeRaceIT {
         LegalEntityId le = legalEntity("RAA");
         CountDownLatch issued = new CountDownLatch(1);
         CountDownLatch commit = new CountDownLatch(1);
-        CompletableFuture<String> issuer = CompletableFuture.supplyAsync(() -> tx.execute(status -> {
+        CompletableFuture<String> issuer = supplyAsync(() -> tx.execute(status -> {
             String number = numbers.next(new DocumentTypeCode("QUOTE"), le, DAY).value();
             issued.countDown();
             await(commit);
             return number;
         }));
         assertThat(issued.await(10, TimeUnit.SECONDS)).isTrue();
-        CompletableFuture<Object> correction = CompletableFuture.supplyAsync(() -> {
+        CompletableFuture<Object> correction = supplyAsync(() -> {
             try (WorkContext.Scope acting = WorkContext.enter(UUID.randomUUID(), null, "test.numbering.race")) {
                 return updateLegalEntity.execute(le, com.forcitis.one.kernel.ExpectedVersion.of(1), "RAB", "Synthetic RAA", "ACTIVE");
             }
@@ -127,7 +143,7 @@ class LegalEntityCodeRaceIT {
         LegalEntityId le = legalEntity("RBA");
         CountDownLatch corrected = new CountDownLatch(1);
         CountDownLatch commit = new CountDownLatch(1);
-        CompletableFuture<Object> correction = CompletableFuture.supplyAsync(() -> tx.execute(status -> {
+        CompletableFuture<Object> correction = supplyAsync(() -> tx.execute(status -> {
             try (WorkContext.Scope acting = WorkContext.enter(UUID.randomUUID(), null, "test.numbering.race")) {
                 Object view = updateLegalEntity.execute(le, com.forcitis.one.kernel.ExpectedVersion.of(1), "RBB", "Synthetic RBA", "ACTIVE");
                 corrected.countDown();
@@ -136,7 +152,7 @@ class LegalEntityCodeRaceIT {
             }
         }));
         assertThat(corrected.await(10, TimeUnit.SECONDS)).isTrue();
-        CompletableFuture<String> issuer = CompletableFuture.supplyAsync(() -> tx.execute(status -> numbers.next(new DocumentTypeCode("QUOTE"), le, DAY).value()));
+        CompletableFuture<String> issuer = supplyAsync(() -> tx.execute(status -> numbers.next(new DocumentTypeCode("QUOTE"), le, DAY).value()));
         awaitBlockedStatement();
         commit.countDown();
 
@@ -150,7 +166,7 @@ class LegalEntityCodeRaceIT {
         LegalEntityId le = legalEntity("RCA");
         CountDownLatch deactivated = new CountDownLatch(1);
         CountDownLatch commit = new CountDownLatch(1);
-        CompletableFuture<Object> deactivation = CompletableFuture.supplyAsync(() -> tx.execute(status -> {
+        CompletableFuture<Object> deactivation = supplyAsync(() -> tx.execute(status -> {
             try (WorkContext.Scope acting = WorkContext.enter(UUID.randomUUID(), null, "test.numbering.race")) {
                 Object view = updateLegalEntity.execute(le, com.forcitis.one.kernel.ExpectedVersion.of(1), "RCA", "Synthetic RCA", "INACTIVE");
                 deactivated.countDown();
@@ -159,7 +175,7 @@ class LegalEntityCodeRaceIT {
             }
         }));
         assertThat(deactivated.await(10, TimeUnit.SECONDS)).isTrue();
-        CompletableFuture<Object> issuer = CompletableFuture.supplyAsync(() -> tx.execute(status -> numbers.next(new DocumentTypeCode("QUOTE"), le, DAY).value()));
+        CompletableFuture<Object> issuer = supplyAsync(() -> tx.execute(status -> numbers.next(new DocumentTypeCode("QUOTE"), le, DAY).value()));
         awaitBlockedStatement();
         commit.countDown();
 
