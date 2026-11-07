@@ -4,7 +4,8 @@ name: Lab PR hosted CI
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
+    # Drafts already run exact-head CI; changing draft status is not a new head.
+    types: [opened, synchronize, reopened]
   push:
     branches: [main]
 permissions:
