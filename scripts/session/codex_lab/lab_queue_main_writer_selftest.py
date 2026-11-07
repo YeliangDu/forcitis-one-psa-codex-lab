@@ -87,6 +87,8 @@ class MainWriterAcceptanceTest(unittest.TestCase):
         self.assertEqual([], self.pushes())
 
     def test_authorized_exact_lease_ordered_parents_and_ff(self):
+        self.assertTrue(hasattr(module(), "GitLabMainWriter"),
+                        "authorized release requires the controlled main writer implementation")
         main_writer(self.git, self.read, self.authorize).send(copy.deepcopy(self.intent))
         self.assertEqual(("authorize",), self.events[0])
         self.assertEqual([["push", "--porcelain", f"--force-with-lease={REF}:{BASE}",
