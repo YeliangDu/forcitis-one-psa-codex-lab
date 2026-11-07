@@ -129,6 +129,15 @@ jobs:
           set -euo pipefail
           bash scripts/ci/backend_verify.sh -C -Dtest.forks=1 -Dit.forks=1 -Djacoco.skip=true \
             2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/backend.log"
+      - name: Upload backend watchdog evidence
+        if: always() && steps.backend.outcome == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lab-backend-watchdog-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
+          path: |
+            backend/target/thread-dumps/
+            backend/target/failsafe-reports/failsafe-summary.xml
+          if-no-files-found: warn
       - name: Record every lane and fail on missing required proof
         if: always()
         env:
