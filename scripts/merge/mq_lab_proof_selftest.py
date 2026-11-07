@@ -25,7 +25,7 @@ class Github:
         self.error = None
         self.repo = dict(id=123, full_name=SLUG, private=True)
         self.pr = dict(number=15, state="open", draft=False, merged=False,
-                       title="ci(lab): 统一个人仓合入队列与准确提交闸门", body="Closes #14\n\nRefs #14",
+                       title="ci(lab): 统一个人仓合入队列与准确提交闸门（#14）", body="Closes #14\n\nRefs #14",
                        head=dict(sha=HEAD, ref="lab/14", repo=copy.deepcopy(self.repo)),
                        base=dict(sha=BASE, ref="main", repo=copy.deepcopy(self.repo)))
         self.final_head, self.final_base = HEAD, BASE
@@ -139,6 +139,11 @@ class ReleaseProofAcceptanceTest(unittest.TestCase):
                 elif mutation == "attempt": self.approval["run_attempt"] = 2
                 else: self.approval["run_id"] = 99
                 self.assertEqual("hold", self.check()["action"])
+
+    def test_title_without_required_card_suffix_holds_despite_linked_body(self):
+        self.github.pr["title"] = "ci(lab): 统一个人仓合入队列与准确提交闸门"
+        self.assertTrue(self.github.pr["body"].startswith("Closes #14\n"))
+        self.assertEqual("hold", self.check()["action"])
 
     def test_bootstrap_only_fixed_pr_base_missing_health_and_explicit_attestation(self):
         self.github.health_state = "missing"
