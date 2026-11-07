@@ -5,6 +5,7 @@ import com.forcitis.one.kernel.InvalidRequestException;
 import com.forcitis.one.kernel.LegalEntityId;
 import com.forcitis.one.kernel.WecomUserId;
 import com.forcitis.one.organization.workforce.api.AssignmentId;
+import com.forcitis.one.organization.workforce.api.ActingDutyId;
 import com.forcitis.one.organization.workforce.api.EnterPersonnelCommand;
 import com.forcitis.one.organization.workforce.api.EmploymentPhaseKind;
 import com.forcitis.one.organization.workforce.api.EmploymentRelationshipId;
@@ -26,7 +27,10 @@ record EnterPersonnelCommandRequest(@Nullable UUID employeeId, @Nullable Personn
                                     @Nullable EmploymentPhaseKind targetEmploymentPhaseKind, @Nullable UUID targetLegalEntityId,
                                     @Nullable String displayName, @Nullable Gender gender, @Nullable String email, @Nullable String wecomUserId,
                                     @Nullable UUID targetAssignmentId, @Nullable UUID targetEmployerLegalEntityId, @Nullable UUID predecessorRelationshipId,
-                                    @Nullable UUID employmentRelationshipId) {
+                                    @Nullable UUID employmentRelationshipId,
+                                    @Nullable UUID actingCoveredOrgUnitId, @Nullable UUID actingCoveredPositionId,
+                                    @Nullable UUID actingCoveredEmployeeId, @Nullable LocalDate actingEndsBeforeDate,
+                                    @Nullable UUID targetActingDutyId, @Nullable String reason) {
 
     EnterPersonnelCommand toCommand() {
         if (commandKind == null) {
@@ -42,6 +46,10 @@ record EnterPersonnelCommandRequest(@Nullable UUID employeeId, @Nullable Personn
                 targetAssignmentId == null ? null : new AssignmentId(targetAssignmentId),
                 targetEmployerLegalEntityId == null ? null : new LegalEntityId(targetEmployerLegalEntityId),
                 predecessorRelationshipId == null ? null : new EmploymentRelationshipId(predecessorRelationshipId),
-                employmentRelationshipId == null ? null : new EmploymentRelationshipId(employmentRelationshipId));
+                employmentRelationshipId == null ? null : new EmploymentRelationshipId(employmentRelationshipId),
+                actingCoveredOrgUnitId == null ? null : new OrgUnitId(actingCoveredOrgUnitId),
+                actingCoveredPositionId == null ? null : new PositionId(actingCoveredPositionId),
+                actingCoveredEmployeeId == null ? null : new EmployeeId(actingCoveredEmployeeId), actingEndsBeforeDate,
+                targetActingDutyId == null ? null : new ActingDutyId(targetActingDutyId), reason);
     }
 }

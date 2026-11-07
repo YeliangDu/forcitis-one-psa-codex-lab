@@ -3,6 +3,8 @@ package com.forcitis.one.organization.workforce.infrastructure.persistence;
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.InvalidCursorException;
+import com.forcitis.one.organization.workforce.api.ActingDutyEndCause;
+import com.forcitis.one.organization.workforce.api.ActingDutyId;
 import com.forcitis.one.organization.workforce.api.EmploymentStatus;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.api.PositionId;
@@ -140,6 +142,34 @@ class JdbcEmployeeRosterQueries implements EmployeeRosterQueries {
                             position == null ? null : new PositionId(position), rs.getString("position_name"),
                             rs.getObject("effective_from_date", LocalDate.class), rs.getObject("effective_to_date", LocalDate.class), rs.getBoolean("current"));
                 }).list();
+    }
+
+    private static final String DUTIES = """
+            select acting_duty_id, employee_id, covered_org_unit_id, covered_position_id, covered_employee_id,
+                   starts_on_date, ends_before_date, ended_on_date, end_cause_kind, reason
+              from organization_workforce.acting_duties
+            """;
+
+    @Override
+    public List<ActingDutyRow> actingDuties(EmployeeId employee) {
+        return jdbc.sql(DUTIES + " where employee_id = :id order by starts_on_date desc, acting_duty_id desc")
+                .param("id", employee.value()).query((rs, n) -> duty(rs)).list();
+    }
+
+    @Override
+    public List<ActingDutyRow> coveredActingDuties(EmployeeId employee) {
+        return jdbc.sql(DUTIES + " where covered_employee_id = :id order by starts_on_date desc, acting_duty_id desc")
+                .param("id", employee.value()).query((rs, n) -> duty(rs)).list();
+    }
+
+    private static ActingDutyRow duty(ResultSet rs) throws SQLException {
+        UUID position = rs.getObject("covered_position_id", UUID.class);
+        UUID covered = rs.getObject("covered_employee_id", UUID.class);
+        String cause = rs.getString("end_cause_kind");
+        return new ActingDutyRow(new ActingDutyId(rs.getObject("acting_duty_id", UUID.class)), new EmployeeId(rs.getObject("employee_id", UUID.class)),
+                new OrgUnitId(rs.getObject("covered_org_unit_id", UUID.class)), position == null ? null : new PositionId(position),
+                covered == null ? null : new EmployeeId(covered), rs.getObject("starts_on_date", LocalDate.class), rs.getObject("ends_before_date", LocalDate.class),
+                rs.getObject("ended_on_date", LocalDate.class), cause == null ? null : ActingDutyEndCause.valueOf(cause), rs.getString("reason"));
     }
 
     private static JdbcClient.StatementSpec visibleQuery(JdbcClient.StatementSpec query, Visible visible, @Nullable OrgUnitId orgUnit,
