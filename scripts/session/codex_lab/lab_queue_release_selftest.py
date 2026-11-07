@@ -36,7 +36,7 @@ class LabQueueReleaseAcceptanceTest(unittest.TestCase):
         self.receipt = dict(head_sha=HEAD, observed_head=HEAD, base_sha=BASE,
                             run_id=100, run_attempt=1, ready=True,
                             lanes={lane: dict(applicability="required", proof="passed")
-                                   for lane in ("light", "shadow", "frontend", "backend")})
+                                   for lane in ("light", "secret", "shadow", "frontend", "backend")})
         self.reviews = [dict(kind=kind, verdict="pass", head_sha=HEAD)
                         for kind in ("首轮", "终审")]
 

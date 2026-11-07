@@ -1,17 +1,22 @@
+# Workflow trust/bootstrap requires independent review outside this workflow.
+# A PR run never proves the separate main push health signal.
 name: Lab PR hosted CI
 on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [main]
 permissions:
   contents: read
 concurrency:
-  group: lab-pr-ci-${{ github.event.pull_request.number }}
+  group: lab-hosted-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 jobs:
   verify:
     name: Lab exact-head verification
     if: >-
+      github.event_name == 'pull_request' &&
       github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
       github.event.repository.private == true &&
       github.event.pull_request.head.repo.full_name == 'YeliangDu/forcitis-one-psa-codex-lab' &&
@@ -59,6 +64,26 @@ jobs:
         run: |
           set -euo pipefail
           bash scripts/ci/light.sh "$BASE_SHA" 2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/light.log"
+      - name: Install checksum-verified Gitleaks 8.30.1 on Ubuntu
+        id: gitleaks
+        if: ${{ !cancelled() && steps.plan.outcome == 'success' }}
+        run: bash scripts/session/codex_lab/install_gitleaks.sh
+      - name: Secret scan of the exact PR commit range
+        id: secret
+        if: ${{ !cancelled() && steps.plan.outcome == 'success' && steps.gitleaks.outcome == 'success' }}
+        env:
+          BASE_SHA: ${{ steps.plan.outputs.base_sha }}
+          HEAD_SHA: ${{ steps.plan.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          git cat-file -e "$BASE_SHA^{commit}"
+          git cat-file -e "$HEAD_SHA^{commit}"
+          git merge-base --is-ancestor "$BASE_SHA" "$HEAD_SHA"
+          gitleaks git --redact --no-banner --exit-code 1 \
+            --config=.gitleaks.toml --gitleaks-ignore-path=.gitleaksignore \
+            --log-opts="$BASE_SHA..$HEAD_SHA" . \
+            2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/secret.log"
       - name: Focused Lab control tests
         id: shadow
         if: ${{ !cancelled() && steps.plan.outcome == 'success' && steps.plan.outputs.shadow == 'required' }}
@@ -107,6 +132,7 @@ jobs:
         env:
           PLAN_OUTCOME: ${{ steps.plan.outcome }}
           LIGHT_OUTCOME: ${{ steps.light.outcome }}
+          SECRET_OUTCOME: ${{ steps.secret.outcome }}
           SHADOW_OUTCOME: ${{ steps.shadow.outcome }}
           FRONTEND_OUTCOME: ${{ steps.frontend.outcome }}
           BACKEND_OUTCOME: ${{ steps.backend.outcome }}
@@ -122,21 +148,27 @@ jobs:
                          run_id=os.environ['GITHUB_RUN_ID'], run_attempt=os.environ['GITHUB_RUN_ATTEMPT'],
                          lanes={}, ready=False)
           receipt['observed_head'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          expected_lanes = {'light', 'secret', 'shadow', 'frontend', 'backend'}
           if os.environ['PLAN_OUTCOME'] == 'success':
               plan = json.loads((directory / 'plan.json').read_text())
-              for lane, applicability in plan['lanes'].items():
+              for lane in sorted(expected_lanes):
+                  applicability = plan['lanes'].get(lane, 'unknown')
                   outcome = os.environ[lane.upper() + '_OUTCOME']
                   proof = ('passed' if outcome == 'success' else 'failed' if outcome == 'failure' else 'missing')
                   receipt['lanes'][lane] = dict(applicability=applicability,
-                      proof=proof if applicability == 'required' else 'not-applicable', outcome=outcome)
-              receipt['ready'] = (plan['head_sha'] == receipt['head_sha'] and
+                      proof=proof if applicability == 'required' else 'not-applicable' if applicability == 'not-applicable' else 'missing',
+                      outcome=outcome)
+              receipt['ready'] = (set(plan['lanes']) == expected_lanes and
+                  all(plan['lanes'].get(lane) == 'required' for lane in ('light', 'secret')) and
+                  plan['head_sha'] == receipt['head_sha'] and
                   receipt['observed_head'] == receipt['head_sha'] and
                   plan['base_sha'] == receipt['base_sha'] and
                   all(row['proof'] in ('passed', 'not-applicable') for row in receipt['lanes'].values()))
           else:
               receipt['reason'] = 'missing-or-rejected-plan'
-              receipt['lanes'] = {lane: dict(applicability='unknown', proof='missing')
-                                  for lane in ('light', 'shadow', 'frontend', 'backend')}
+              receipt['lanes'] = {lane: dict(applicability='required' if lane in ('light', 'secret') else 'unknown',
+                                           proof='missing', outcome=os.environ[lane.upper() + '_OUTCOME'])
+                                  for lane in expected_lanes}
           (directory / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
           print(json.dumps(receipt, indent=2))
           raise SystemExit(0 if receipt['ready'] else 1)
@@ -154,3 +186,105 @@ jobs:
             backend/target/thread-dumps/
             frontend/packages/api/openapi.json
             frontend/packages/api/src/generated/*.ts
+  main-health:
+    name: Lab main health
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      github.event.repository.private == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Pin the main push head
+        id: pin
+        env:
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lab-main-health"
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          printf 'head=%s\nrun=%s\n' "$HEAD_SHA" "$GITHUB_RUN_ID" > "$RUNNER_TEMP/lab-main-health/head.txt"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install light-check dependency
+        run: python3 -m pip install PyYAML==6.0.3
+      - name: Main push light checks
+        id: light
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          [[ "$BEFORE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          if [ "$BEFORE_SHA" != 0000000000000000000000000000000000000000 ]; then
+            git cat-file -e "$BEFORE_SHA^{commit}"
+            git merge-base --is-ancestor "$BEFORE_SHA" "$HEAD_SHA"
+          fi
+          bash scripts/ci/light.sh "$BEFORE_SHA" \
+            2>&1 | tee "$RUNNER_TEMP/lab-main-health/light.log"
+      - name: Install checksum-verified Gitleaks 8.30.1 on Ubuntu
+        id: gitleaks
+        if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        run: bash scripts/session/codex_lab/install_gitleaks.sh
+      - name: Main full-history secret scan
+        id: secret
+        if: ${{ !cancelled() && steps.pin.outcome == 'success' && steps.gitleaks.outcome == 'success' }}
+        env:
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          gitleaks git --redact --no-banner --exit-code 1 \
+            --config=.gitleaks.toml --gitleaks-ignore-path=.gitleaksignore \
+            --log-opts="$HEAD_SHA" . \
+            2>&1 | tee "$RUNNER_TEMP/lab-main-health/secret.log"
+      - name: Record main health independently of PR receipts
+        if: always()
+        env:
+          HEAD_SHA: ${{ github.sha }}
+          PIN_OUTCOME: ${{ steps.pin.outcome }}
+          LIGHT_OUTCOME: ${{ steps.light.outcome }}
+          SECRET_OUTCOME: ${{ steps.secret.outcome }}
+        run: |
+          python3 -B - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          directory = Path(os.environ['RUNNER_TEMP']) / 'lab-main-health'
+          directory.mkdir(exist_ok=True)
+          checks = {name: os.environ[name.upper() + '_OUTCOME'] for name in ('pin', 'light', 'secret')}
+          observed = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          healthy = observed == os.environ['HEAD_SHA'] and all(v == 'success' for v in checks.values())
+          health = dict(kind='main-health', event='push', head_sha=os.environ['HEAD_SHA'],
+                        observed_head=observed, run_id=os.environ['GITHUB_RUN_ID'],
+                        run_attempt=os.environ['GITHUB_RUN_ATTEMPT'], checks=checks, healthy=healthy)
+          (directory / 'health.json').write_text(json.dumps(health, indent=2) + '\n')
+          print(json.dumps(health, indent=2))
+          raise SystemExit(0 if healthy else 1)
+          PY
+      - name: Upload main health evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lab-main-health-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          path: ${{ runner.temp }}/lab-main-health/

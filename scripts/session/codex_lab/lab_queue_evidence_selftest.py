@@ -39,7 +39,7 @@ class LabQueueEvidenceAcceptanceTest(unittest.TestCase):
         receipt = dict(head_sha=HEAD, observed_head=HEAD, base_sha=BASE, run_id=100,
                        run_attempt=1, ready=True, lanes={
                            lane: dict(applicability="required", proof="passed")
-                           for lane in ("light", "shadow", "frontend", "backend")})
+                           for lane in ("light", "secret", "shadow", "frontend", "backend")})
         self.artifacts = {(100, 1): [dict(name=f"lab-pr-14-{HEAD}-1", expired=False, receipt=receipt)]}
         reviewers = {"首轮": "codex-首轮-one-design", "终审": "codex-终审-one-dev-identity"}
         self.trusted = dict(workflow_verified=True, held=False, reviewers=reviewers,
