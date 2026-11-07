@@ -10,6 +10,13 @@ import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
+import com.forcitis.one.organization.workforce.application.SnapshotSeeder;
+import com.forcitis.one.platform.integration.api.OwnObjectId;
+import com.forcitis.one.platform.integration.api.SourceOrgSnapshot;
+import com.forcitis.one.platform.integration.api.SourceOrgUnit;
+import com.forcitis.one.platform.integration.api.SourcePerson;
+import com.forcitis.one.platform.integration.api.SourcePosition;
+import com.forcitis.one.platform.integration.api.SourceRecordState;
 import com.forcitis.one.platform.integration.api.WecomGateway;
 import java.lang.reflect.InvocationTargetException;
 import java.time.DayOfWeek;
@@ -159,19 +166,18 @@ class ImportAttendanceRecordsIT {
 
     private EmployeeId employee(String status) {
         EmployeeId person = new EmployeeId(ids.next());
-        jdbc.sql("""
-                insert into organization_workforce.employees (id, employee_code, display_name, employment_status)
-                values (:id, :code, 'Synthetic G0 person', :status)
-                """).param("id", person.value()).param("code", "G0-" + person.value()).param("status", status).update();
-        UUID unit = ids.next();
-        jdbc.sql("""
-                insert into organization_workforce.org_units (id, code, name, status, sort_order)
-                values (:id, :code, 'Synthetic G0 unit', 'ACTIVE', 1)
-                """).param("id", unit).param("code", "G0-" + unit).update();
-        jdbc.sql("""
-                insert into organization_workforce.assignments (employee_id, org_unit_id)
-                values (:employee, :unit)
-                """).param("employee", person.value()).param("unit", unit).update();
+        OwnObjectId unit = new OwnObjectId(ids.next());
+        OwnObjectId position = new OwnObjectId(ids.next());
+        SourceOrgUnit sourceUnit = new SourceOrgUnit(unit, "G0-" + unit.value(), "Synthetic G0 unit",
+                null, 1, SourceRecordState.ACTIVE, List.of(), null, null, false, null);
+        SourcePosition sourcePosition = new SourcePosition(position, "G0-" + position.value(),
+                "Synthetic G0 position", 1, SourceRecordState.ACTIVE);
+        SourcePerson sourcePerson = new SourcePerson(new OwnObjectId(person.value()), "G0-" + person.value(),
+                "Synthetic G0 person", unit, position, null,
+                status.equals("EMPLOYED") ? "synthetic-g0-" + person.value() : null,
+                null, null, null, false);
+        SnapshotSeeder.seed(jdbc, new SourceOrgSnapshot(List.of(sourceUnit), List.of(),
+                List.of(sourcePosition), List.of(sourcePerson)));
         assertThat(directory.findEmployee(person)).as("real local directory resolves fixture, regardless of employment state").isPresent();
         return person;
     }
