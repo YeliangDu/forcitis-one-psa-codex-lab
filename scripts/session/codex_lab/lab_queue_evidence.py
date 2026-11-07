@@ -46,6 +46,47 @@ def _repository(value, repo_id, full=False):
         _require(value.get("full_name") == _release.REPOSITORY, "foreign-repository-name")
 
 
+def _select_run(runs, pr, repo_id):
+    """Select newest current-PR/head run, then verify its exact association.
+
+    Readers use this same selection before fetching jobs/artifacts. A newer
+    pending/red/stale-base run cannot cause fallback to older successful proof.
+    """
+    _require(isinstance(runs, list), "missing-runs")
+    number, head = pr["number"], pr["head"]["sha"]
+    candidates = {}
+    for run in runs:
+        _require(isinstance(run, dict), "malformed-run")
+        if run.get("event") != "pull_request" or run.get("path") != _release.WORKFLOW or run.get("head_sha") != head:
+            continue
+        _repository(run.get("repository"), repo_id)
+        _require(_positive(run.get("id")) and _positive(run.get("run_attempt"))
+                 and isinstance(run.get("pull_requests"), list), "malformed-run-identity")
+        created = run.get("created_at")
+        _require(isinstance(created, str) and bool(created), "missing-run-timestamp")
+        _require(datetime.fromisoformat(created.replace("Z", "+00:00")).tzinfo is not None,
+                 "invalid-run-timestamp")
+        associations = run["pull_requests"]
+        _require(all(isinstance(a, dict) and _positive(a.get("number")) for a in associations),
+                 "malformed-run-association")
+        matching = [a for a in associations if a["number"] == number]
+        if not matching:
+            continue
+        _require(len(matching) == 1, "ambiguous-pr-association")
+        key = (run["id"], run["run_attempt"])
+        _require(key not in candidates, "duplicate-run-identity")
+        candidates[key] = (run, matching[0])
+    _require(bool(candidates), "missing-current-head-run")
+    key = max(candidates)
+    run, association = candidates[key]
+    for branch in ("head", "base"):
+        value = association.get(branch)
+        _require(isinstance(value, dict) and value.get("sha") == pr[branch]["sha"], "stale-run-association")
+        _repository(value.get("repo"), repo_id)
+        _require(value.get("ref") == pr[branch]["ref"], "wrong-run-association-ref")
+    return key, run
+
+
 def _reviews(rows, trusted, head):
     required = trusted.get("required_reviews")
     assigned = trusted.get("reviewers")
@@ -123,38 +164,7 @@ def plan_from_github(repository, main, queue, pr, runs, jobs, artifacts, reviews
         _require(queue["heads"].get(number) == head, "stale-or-missing-admission-head")
         _require(isinstance(runs, list) and isinstance(jobs, dict) and isinstance(artifacts, dict),
                  "missing-action-evidence")
-        candidates = {}
-        for run in runs:
-            _require(isinstance(run, dict), "malformed-run")
-            if run.get("event") != "pull_request" or run.get("path") != _release.WORKFLOW or run.get("head_sha") != head:
-                continue
-            _repository(run.get("repository"), repo_id)
-            _require(_positive(run.get("id")) and _positive(run.get("run_attempt"))
-                     and isinstance(run.get("pull_requests"), list), "malformed-run-identity")
-            created = run.get("created_at")
-            _require(isinstance(created, str) and bool(created), "missing-run-timestamp")
-            _require(datetime.fromisoformat(created.replace("Z", "+00:00")).tzinfo is not None,
-                     "invalid-run-timestamp")
-            associations = run["pull_requests"]
-            _require(all(isinstance(a, dict) and _positive(a.get("number")) for a in associations),
-                     "malformed-run-association")
-            matching = [a for a in associations if a["number"] == number]
-            if not matching:
-                continue
-            _require(len(matching) == 1, "ambiguous-pr-association")
-            key = (run["id"], run["run_attempt"])
-            _require(key not in candidates, "duplicate-run-identity")
-            candidates[key] = (run, matching[0])
-        _require(bool(candidates), "missing-current-head-run")
-        key = max(candidates)
-        run, association = candidates[key]
-        # Select before checking the base or conclusion: a newer stale/red run
-        # must never cause fallback to an older green receipt.
-        for branch, sha in (("head", head), ("base", base)):
-            value = association.get(branch)
-            _require(isinstance(value, dict) and value.get("sha") == sha, "stale-run-association")
-            _repository(value.get("repo"), repo_id)
-            _require(value.get("ref") == pr[branch]["ref"], "wrong-run-association-ref")
+        key, run = _select_run(runs, pr, repo_id)
         _require(isinstance(jobs.get(key), list)
                  and all(isinstance(job, dict) for job in jobs[key]), "missing-jobs")
         matching_jobs = [job for job in jobs[key] if job.get("name") == "Lab exact-head verification"]
