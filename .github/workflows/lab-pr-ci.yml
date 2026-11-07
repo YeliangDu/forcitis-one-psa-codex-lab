@@ -57,6 +57,8 @@ jobs:
           node-version: '24'
       - name: Install light-check dependency
         run: python3 -m pip install PyYAML==6.0.3
+      - name: Install checksum-verified ShellCheck on Ubuntu
+        run: bash scripts/session/codex_lab/install_hosted_shellcheck.sh
       - name: Scoped light checks
         id: light
         env:
@@ -227,6 +229,8 @@ jobs:
           node-version: '24'
       - name: Install light-check dependency
         run: python3 -m pip install PyYAML==6.0.3
+      - name: Install checksum-verified ShellCheck on Ubuntu
+        run: bash scripts/session/codex_lab/install_hosted_shellcheck.sh
       - name: Main push light checks
         id: light
         env:

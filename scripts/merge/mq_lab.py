@@ -118,14 +118,20 @@ def handle_cli(args, parser, sh):
 
     top = git("rev-parse", "--show-toplevel")
     if not top:
-        if args.cmd == "init":
-            parser.error("init requires the personal Lab checkout")
-        return False
+        parser.error("cannot identify a Git checkout for the merge queue")
+    common = git("rev-parse", "--path-format=absolute", "--git-common-dir")
+    if len(top) != 1 or len(common) != 1:
+        parser.error("cannot verify the Git common directory for the merge queue")
     try:
-        profile = checkout_profile(top[0], git("remote"),
+        common_path = Path(common[0])
+        physical = common_path.resolve(strict=True)
+        # A managed worktree can have any name. The common checkout still
+        # identifies the Lab even if reading origin fails or it has changed.
+        context = physical.parent if physical.parent.name == NAME else Path(top[0])
+        profile = checkout_profile(context, git("remote"),
                                    git("remote", "get-url", "--all", "origin"),
                                    git("remote", "get-url", "--push", "--all", "origin"))
-    except ValueError as error:
+    except (OSError, ValueError) as error:
         parser.error(str(error))
     if profile != "lab":
         if args.cmd == "init":
@@ -133,9 +139,6 @@ def handle_cli(args, parser, sh):
         return False
     if args.queue is not None or args.log is not None:
         parser.error("the personal Lab uses its canonical queue and log; path overrides are disabled")
-    common = git("rev-parse", "--path-format=absolute", "--git-common-dir")
-    if len(common) != 1:
-        parser.error("cannot verify the Lab Git common directory")
     result = queue_command(args.cmd, common[0], read_repo)
     if result["status"] != "ok":
         raise SystemExit("HOLD: " + result["reason"])

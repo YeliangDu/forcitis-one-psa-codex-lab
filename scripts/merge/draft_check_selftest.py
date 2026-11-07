@@ -62,7 +62,8 @@ def wiring_test(tmp):
         calls.append("draft")
         raise SystemExit("nothing queued: draft check said no")
     with mock.patch.object(mq.mq_title, "enforce", lambda *a: calls.append("title")), mock.patch.object(mq.mq_acceptance, "enforce", lambda *a: calls.append("acceptance")), \
-            mock.patch.object(mq.mq_event_payload, "enforce", lambda *a: calls.append("payload")), mock.patch.object(mq.mq_enqueue, "enforce", refuse), mock.patch.object(mq, "Gh", lambda: object()):
+            mock.patch.object(mq.mq_event_payload, "enforce", lambda *a: calls.append("payload")), mock.patch.object(mq.mq_enqueue, "enforce", refuse), mock.patch.object(mq, "Gh", lambda: object()), \
+            mock.patch.object(mq.mq_lab, "handle_cli", return_value=False):
         try:
             mq.main(["--queue", queue, "enqueue", "7"])
             raise AssertionError("the refusal of the enqueue check must stop the enqueue")
