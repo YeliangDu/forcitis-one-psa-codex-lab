@@ -12,6 +12,7 @@ REPOSITORY = "YeliangDu/forcitis-one-psa-codex-lab"
 ARCHIVE_LIMIT = 32 * 1024 * 1024
 RECEIPT_LIMIT = 256 * 1024
 RECEIPT_PATHS = {"receipt.json", "_temp/lab-pr-evidence/receipt.json"}
+HEALTH_PATHS = {"health.json", "_temp/lab-main-health/health.json"}
 ARTIFACT_NAME = re.compile(r"lab-pr-([1-9][0-9]*)-([0-9a-f]{40})-([1-9][0-9]*)")
 
 
@@ -43,6 +44,15 @@ def _json(value):
 
 def decode_receipt(blob):
     """Validate ZIP metadata and decode exactly one bounded in-memory receipt."""
+    return _decode_archive(blob, "receipt.json", RECEIPT_PATHS)
+
+
+def decode_health(blob):
+    """Decode the separate main signal with the same bounds and ZIP checks."""
+    return _decode_archive(blob, "health.json", HEALTH_PATHS)
+
+
+def _decode_archive(blob, basename, allowed_paths):
     _require(isinstance(blob, bytes) and 0 < len(blob) <= ARCHIVE_LIMIT, "Invalid archive size/type")
     with zipfile.ZipFile(io.BytesIO(blob)) as archive:
         receipts, names = [], set()
@@ -63,8 +73,8 @@ def decode_receipt(blob):
             _require(member.file_size >= 0 and member.compress_size >= 0, "Invalid ZIP size")
             total += member.file_size
             _require(total <= ARCHIVE_LIMIT, "Oversize expanded archive")
-            if PurePosixPath(path).name == "receipt.json":
-                _require(not member.is_dir() and name in RECEIPT_PATHS, "Unapproved receipt path")
+            if PurePosixPath(path).name == basename:
+                _require(not member.is_dir() and name in allowed_paths, "Unapproved receipt path")
                 _require(member.file_size <= RECEIPT_LIMIT, "Oversize receipt")
                 receipts.append(member)
         _require(len(receipts) == 1, "Missing or duplicate receipt")
@@ -88,6 +98,7 @@ def _request(path, pages=False, binary=False):
         r"actions/runs/[1-9][0-9]*/attempts/[1-9][0-9]*/jobs\?per_page=100",
         r"pulls/[1-9][0-9]*/reviews\?per_page=100",
         r"actions/runs/[1-9][0-9]*/artifacts\?per_page=100",
+        r"actions/runs\?event=push&branch=main&head_sha=[0-9a-f]{40}&per_page=100",
         r"actions/artifacts/[1-9][0-9]*/zip",
     )
     _require(isinstance(path, str) and any(re.fullmatch(p, path) for p in patterns), "Unapproved GET path")
@@ -165,6 +176,28 @@ class GithubRead:
 
     def jobs(self, run_id, attempt):
         return self._pages(f"actions/runs/{_positive(run_id)}/attempts/{_positive(attempt)}/jobs?per_page=100", "jobs")
+
+    def main_runs(self, head_sha):
+        _require(isinstance(head_sha, str) and re.fullmatch(r"[0-9a-f]{40}", head_sha) is not None,
+                 "Expected full lowercase SHA")
+        return self._pages(f"actions/runs?event=push&branch=main&head_sha={head_sha}&per_page=100", "workflow_runs")
+
+    def main_artifacts(self, run_id, attempt, head_sha):
+        _positive(run_id)
+        _positive(attempt)
+        _require(isinstance(head_sha, str) and re.fullmatch(r"[0-9a-f]{40}", head_sha) is not None,
+                 "Expected full lowercase SHA")
+        rows = self._pages(f"actions/runs/{run_id}/artifacts?per_page=100", "artifacts")
+        name = f"lab-main-health-{head_sha}-{attempt}"
+        for row in rows:
+            _require(isinstance(row.get("name"), str) and bool(row["name"])
+                     and type(row.get("expired")) is bool, "Malformed artifact metadata")
+            row.pop("health", None)
+            if row["expired"] or row["name"] != name:
+                continue
+            blob = self._request(f"actions/artifacts/{row['id']}/zip", binary=True)
+            row["health"] = decode_health(blob)
+        return rows
 
     def reviews(self, number):
         return self._pages(f"pulls/{_positive(number)}/reviews?per_page=100")

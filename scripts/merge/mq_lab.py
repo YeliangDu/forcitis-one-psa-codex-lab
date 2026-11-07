@@ -110,6 +110,24 @@ def read_repo():
     return module.GithubRead().repository()
 
 
+def main_health(common_dir):
+    """Validate canonical Lab identity without creating/reading queue state."""
+    import importlib.util
+
+    try:
+        _path(common_dir)
+        directory = Path(__file__).resolve().parents[1] / "session" / "codex_lab"
+        modules = {}
+        for name in ("lab_queue_live", "lab_main_health"):
+            spec = importlib.util.spec_from_file_location("mq_health_" + name, directory / (name + ".py"))
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            modules[name] = module
+        return modules["lab_main_health"].check_main_health(modules["lab_queue_live"].GithubRead())
+    except Exception:
+        return dict(action="hold", reason="main-health-unavailable")
+
+
 def handle_cli(args, parser, sh):
     """Route the physical Lab before the legacy CLI constructs a worker."""
     def git(*argv):
@@ -134,11 +152,17 @@ def handle_cli(args, parser, sh):
     except (OSError, ValueError) as error:
         parser.error(str(error))
     if profile != "lab":
-        if args.cmd == "init":
-            parser.error("init requires the personal Lab checkout")
+        if args.cmd in ("init", "health"):
+            parser.error("init/health require the personal Lab checkout")
         return False
     if args.queue is not None or args.log is not None:
         parser.error("the personal Lab uses its canonical queue and log; path overrides are disabled")
+    if args.cmd == "health":
+        result = main_health(common[0])
+        if result["action"] != "healthy":
+            raise SystemExit("HOLD: " + result["reason"])
+        print(f"Lab main health: healthy; head: {result['head_sha']}; main writer disabled")
+        return True
     result = queue_command(args.cmd, common[0], read_repo)
     if result["status"] != "ok":
         raise SystemExit("HOLD: " + result["reason"])

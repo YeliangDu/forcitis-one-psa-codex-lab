@@ -912,7 +912,7 @@ def main(argv=None):
     p.add_argument("--log")
     p.add_argument("--ci-timeout", type=int, default=90, help="minutes a pull request's CI may stay pending before HOLD")
     sub = p.add_subparsers(dest="cmd", required=True)
-    for name in ("run", "list", "status", "init"):
+    for name in ("run", "list", "status", "init", "health"):
         sub.add_parser(name)
     sub.add_parser("resume").add_argument("runs", nargs="*", help="the red run ids that paused the queue, exactly as `status` shows them")
     sub.add_parser("once").add_argument("pr", type=int)
