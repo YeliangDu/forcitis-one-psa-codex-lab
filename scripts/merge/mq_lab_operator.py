@@ -27,6 +27,47 @@ def _require(value, reason):
         raise ValueError(reason)
 
 
+def _filename(value):
+    _require(isinstance(value, str) and bool(value) and not value.startswith("/")
+             and "\\" not in value and not any(ord(c) < 32 or 127 <= ord(c) <= 159
+                                                or c in "\u2028\u2029" for c in value)
+             and all(part not in ("", ".", "..") for part in value.split("/")), "unsafe-pr-filename")
+    return value
+
+
+def final_readback_count(pr, observed_pr):
+    """Missing/loosely typed counts cannot certify the final file snapshot."""
+    if not isinstance(pr, dict) or not isinstance(observed_pr, dict):
+        return False
+    before, after = pr.get("changed_files"), observed_pr.get("changed_files")
+    return type(before) is int and before > 0 and type(after) is int and after == before
+
+
+def complete_files(pr, files):
+    """Require every declared changed file exactly once, including rename proof.
+
+    The live port fetches all pages. Comparing their validated unique current
+    filenames to PR.changed_files detects truncation, API caps and extra rows.
+    """
+    _require(isinstance(pr, dict) and type(pr.get("changed_files")) is int
+             and pr["changed_files"] > 0, "missing-or-invalid-pr-file-count")
+    _require(isinstance(files, list) and len(files) == pr["changed_files"], "incomplete-pr-file-list")
+    seen, result = set(), []
+    statuses = {"added", "removed", "modified", "renamed", "copied", "changed", "unchanged"}
+    for row in files:
+        _require(isinstance(row, dict), "malformed-pr-file-record")
+        name = _filename(row.get("filename"))
+        _require(name not in seen, "duplicate-pr-filename")
+        _require(isinstance(row.get("status"), str) and row["status"] in statuses, "invalid-pr-file-status")
+        seen.add(name)
+        if row["status"] == "renamed":
+            _filename(row.get("previous_filename"))
+        elif "previous_filename" in row:
+            _filename(row["previous_filename"])
+        result.append(dict(row))
+    return result
+
+
 def _exact(proof, intent):
     return (isinstance(proof, dict) and proof.get("action") == "eligible"
             and type(proof.get("number")) is int
@@ -219,7 +260,8 @@ class ProductionPorts:
         for label, role in (("Codex", approval["author"]),):
             _require(role in identities and re.search(r"^" + label + r":\s*" + re.escape(identities[role]) + r"\s*$",
                                                      pr.get("body", ""), re.M), "missing-current-Codex-provenance")
-        if any(f["filename"].startswith("backend/src/test/java/com/forcitis/one/acceptance/") for f in files):
+        if any(name.startswith("backend/src/test/java/com/forcitis/one/acceptance/")
+               for row in files for name in (row["filename"], row.get("previous_filename", row["filename"]))):
             _require("one-test" in identities and re.search(r"^Codex-Acceptance:\s*" + re.escape(identities["one-test"]) + r"\s*$",
                                                             pr.get("body", ""), re.M), "missing-Codex-acceptance-provenance")
 
@@ -232,8 +274,7 @@ class ProductionPorts:
         _require(isinstance(labels, list) and all(isinstance(x, dict) and isinstance(x.get("name"), str) for x in labels),
                  "missing-pr-label-proof")
         _require(not {"hold", "挂起"} & {x["name"] for x in labels}, "pr-held")
-        files = self.github.files(number)
-        _require(bool(files), "missing-pr-file-proof")
+        files = complete_files(pr, self.github.files(number))
         policy = json.loads((ROOT / "policy.json").read_text())
         paths = policy["review"]["final_paths"]
         _require(isinstance(paths, list) and paths and all(isinstance(p, str) and p for p in paths), "invalid-guard-path-policy")
@@ -243,9 +284,6 @@ class ProductionPorts:
             if row.get("previous_filename") is not None:
                 names.append(row["previous_filename"])
             for name in names:
-                _require(isinstance(name, str) and name and not name.startswith("/") and "\\" not in name
-                         and not any(ord(c) < 32 for c in name) and all(p not in ("", ".", "..") for p in name.split("/")),
-                         "unsafe-pr-path")
                 guarded |= name.startswith(tuple(paths))
         _require(not guarded or {"首轮", "终审"} <= set(approval["required_reviews"]), "missing-guarded-final-review")
         self._provenance(pr, approval, files)
@@ -258,6 +296,7 @@ class ProductionPorts:
 
             def pull(self, current_number):
                 row = owner.github.pull(current_number)
+                _require(final_readback_count(pr, row), "pr-file-count-moved-or-missing-on-readback")
                 _require(row.get("body") == pr.get("body") and row.get("title") == pr.get("title")
                          and row.get("labels") == pr.get("labels"), "pr-metadata-moved-during-proof")
                 return row
