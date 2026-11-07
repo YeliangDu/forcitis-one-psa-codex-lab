@@ -1,5 +1,6 @@
 """Plan exact-head verification for the private Lab, without network access."""
 import argparse
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -76,9 +77,16 @@ def main():
     if paths[-1] == "":
         paths.pop()
     receipt = plan(event, observed, paths)
-    Path(args.receipt).write_text(json.dumps(dict(receipt, paths=paths), indent=2) + "\n")
+    ci = Path(__file__).resolve().parents[2] / "ci" / "relevant_change.py"
+    spec = importlib.util.spec_from_file_location("lab_ci_relevant_change", ci)
+    change = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(change)
+    legacy_it = change.any_legacy_it(paths)
+    if legacy_it:
+        receipt["lanes"]["backend"] = "required"
+    Path(args.receipt).write_text(json.dumps(dict(receipt, paths=paths, legacy_it=legacy_it), indent=2) + "\n")
     with Path(args.output).open("a") as output:
-        for key, value in dict(head_sha=head, base_sha=base, **receipt["lanes"]).items():
+        for key, value in dict(head_sha=head, base_sha=base, legacy_it=str(legacy_it).lower(), **receipt["lanes"]).items():
             output.write(f"{key}={value}\n")
     print(json.dumps(receipt, indent=2))
 

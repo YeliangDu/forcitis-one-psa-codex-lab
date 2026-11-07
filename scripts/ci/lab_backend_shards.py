@@ -1,4 +1,4 @@
-"""Hosted pilot: partition and reconcile the default PostgreSQL Failsafe lane."""
+"""Partition and reconcile the hosted default PostgreSQL Failsafe lane."""
 import argparse
 import json
 from pathlib import Path
@@ -70,9 +70,48 @@ def reports(directory, expected):
         for field in counts:
             counts[field] += int(suite.attrib[field])
     missing, extra = set(expected or ()) - actual, actual - set(expected or ()) if expected else set()
-    print(json.dumps(dict(**counts, executed_classes=len(actual), missing=sorted(missing), extra=sorted(extra)),
+    print(json.dumps(dict(**counts, executed_classes=len(actual), classes=sorted(actual),
+                          missing=sorted(missing), extra=sorted(extra)),
                      sort_keys=True))
     return int(bool(not actual or not counts["tests"] or counts["failures"] or counts["errors"] or missing or extra))
+
+
+def aggregate(inventory, directory, head, run, attempt, legacy):
+    plan = json.loads(inventory.read_text())
+    shards = plan["shards"]
+    expected = [c for shard in shards for c in shard]
+    if (len(shards) != 4 or not all(shards) or len(expected) != len(set(expected))
+            or len(expected) != plan["integration_classes"]):
+        raise ValueError("incomplete or overlapping backend plan")
+    slots = {str(i): set(c) for i, c in enumerate(shards, 1)}
+    slots["unit"] = None
+    if legacy:
+        slots["legacy"] = None
+    prefix = f"lab-backend-result-{head}-{attempt}-"
+    actual_slots = {p.parent.name.removeprefix(prefix) for p in directory.glob(f"{prefix}*/result.json")}
+    if actual_slots != set(slots):
+        raise ValueError("missing or extra backend artifacts")
+    totals = dict(tests=0, failures=0, errors=0, skipped=0)
+    for slot, required in slots.items():
+        result = json.loads((directory / (prefix + slot) / "result.json").read_text())
+        if not (result.get("head") == head and result.get("run") == run
+                and result.get("attempt") == attempt and result.get("slot") == slot
+                and result.get("missing") == [] and result.get("extra") == []):
+            raise ValueError(f"unrelated or incomplete backend evidence for {slot}")
+        classes = result.get("classes")
+        if (not isinstance(classes, list) or not classes or len(set(classes)) != len(classes)
+                or result.get("executed_classes") != len(classes)
+                or (required is not None and set(classes) != required)):
+            raise ValueError(f"incorrect backend class coverage for {slot}")
+        for key in totals:
+            count = result.get(key)
+            if type(count) is not int or count < 0 or (key == "tests" and count == 0):
+                raise ValueError(f"invalid backend counts for {slot}")
+            totals[key] += count
+    if totals["failures"] or totals["errors"]:
+        raise ValueError("backend lanes failed")
+    print(json.dumps(dict(head=head, run=run, attempt=attempt, **totals,
+                          integration_classes=len(expected), slots=sorted(slots))))
 
 
 def main():
@@ -84,11 +123,21 @@ def main():
     verify = sub.add_parser("verify")
     verify.add_argument("reports", type=Path)
     verify.add_argument("--selector")
+    complete = sub.add_parser("aggregate")
+    complete.add_argument("inventory", type=Path)
+    complete.add_argument("directory", type=Path)
+    complete.add_argument("--head", required=True)
+    complete.add_argument("--run", required=True)
+    complete.add_argument("--attempt", required=True)
+    complete.add_argument("--legacy", action="store_true")
     args = p.parse_args()
     if args.cmd == "plan":
         if not 2 <= args.count <= 8:
             p.error("invalid shard count")
         print(json.dumps(plans(args.root, args.count), sort_keys=True))
+        return 0
+    if args.cmd == "aggregate":
+        aggregate(args.inventory, args.directory, args.head, args.run, args.attempt, args.legacy)
         return 0
     return reports(args.reports, args.selector.split(",") if args.selector else None)
 
