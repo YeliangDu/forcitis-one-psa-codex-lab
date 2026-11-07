@@ -62,7 +62,7 @@ import driftscan   # noqa: E402
 import gapscan   # noqa: E402
 import issue_gate   # noqa: E402  (one title check for post_review and the merge)
 import mq_acceptance, mq_enqueue, mq_event_payload, mq_merge_end, mq_title   # noqa: E402  (the acceptance guard, the other enqueue checks, the event payload check, the end of a merge and the title check)
-import mq_waiting   # noqa: E402  (the label of a pull request waiting for its turn)
+import mq_lab, mq_waiting   # noqa: E402  (Lab cutover and the waiting label)
 import post_review   # noqa: E402  (the machine-read header of a review: one parser for the poster and the queue)
 from mq_github import Gh, SignalError, failure_detail, sh, update_over_ssh   # noqa: E402,F401  (the GitHub and git side)
 from mq_queue import LINE, Log, Queue   # noqa: E402,F401  (the queue file and the log)
@@ -912,7 +912,7 @@ def main(argv=None):
     p.add_argument("--log")
     p.add_argument("--ci-timeout", type=int, default=90, help="minutes a pull request's CI may stay pending before HOLD")
     sub = p.add_subparsers(dest="cmd", required=True)
-    for name in ("run", "list", "status"):
+    for name in ("run", "list", "status", "init"):
         sub.add_parser(name)
     sub.add_parser("resume").add_argument("runs", nargs="*", help="the red run ids that paused the queue, exactly as `status` shows them")
     sub.add_parser("once").add_argument("pr", type=int)
@@ -924,6 +924,8 @@ def main(argv=None):
     r.add_argument("--cancel", action="store_true", help="also stop a worker that is processing one of them (before its merge); without it such a pull request is refused")
     b = sub.add_parser("before"); b.add_argument("pr", type=int); b.add_argument("other", type=int)
     a = p.parse_args(argv)
+    if mq_lab.handle_cli(a, p, sh):
+        return
     q = Queue(a.queue or default_queue())
     directory = os.path.dirname(os.path.abspath(q.path))
     log = Log(a.log or os.path.join(directory, "merge.log"))
