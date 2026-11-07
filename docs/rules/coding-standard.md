@@ -152,7 +152,7 @@ Check: planned: G-CS5
 | CS-6.3 | Tests contain no secret literals (same as CS-5.7) | Guard: `gitleaks` (pre-commit, CI) |
 | CS-6.4 | **Secrets never enter session records** | manual: review |
 | CS-6.5 | Credentials stay out of code, logs and sessions. The personal Lab uses the job token and approved GitHub Actions secret injection; the legacy production secret sources remain outside Lab | Guard: `gitleaks`; manual: review |
-| CS-6.6 | Identity, authorization, single-person-mode defenses follow I-1…I-13 of `docs/ops/security-invariants.md`; such changes add a final review by a different existing Codex resident | Guard: `SecurityInvariantsTest`; manual: independent final review |
+| CS-6.6 | Identity, authorization, single-person-mode defenses follow I-1…I-13 of `docs/ops/security-invariants.md`; such changes add a final review by a different existing Codex resident | Guard: `SecurityInvariantsTest`; manual: review (independent final review) |
 | CS-6.7 | Production configuration has no test values, fixed verification codes or mock values (I-4) | Guard: `ProductionConfigSanityTest` |
 | CS-6.8 | Use approved GitHub-hosted containers for the card's tests. New accounts, external services or production calls need separate authorization through lead | manual: review |
 | CS-6.9 | The historical production evidence rule (ADR-0037 item 7) does not authorize Lab production access; use approved evidence already in the Lab | manual: review |
