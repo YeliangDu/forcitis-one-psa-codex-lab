@@ -1,0 +1,156 @@
+name: Lab PR hosted CI
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+permissions:
+  contents: read
+concurrency:
+  group: lab-pr-ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    name: Lab exact-head verification
+    if: >-
+      github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      github.event.repository.private == true &&
+      github.event.pull_request.head.repo.full_name == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      github.event.pull_request.base.repo.full_name == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Plan exact event base and head
+        id: plan
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lab-pr-evidence"
+          python3 -B scripts/session/codex_lab/lab_pr_ci.py \
+            --event "$GITHUB_EVENT_PATH" \
+            --receipt "$RUNNER_TEMP/lab-pr-evidence/plan.json" \
+            --output "$GITHUB_OUTPUT" \
+            2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/plan.log"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install light-check dependency
+        run: python3 -m pip install PyYAML==6.0.3
+      - name: Scoped light checks
+        id: light
+        env:
+          BASE_SHA: ${{ steps.plan.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          bash scripts/ci/light.sh "$BASE_SHA" 2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/light.log"
+      - name: Focused Lab control tests
+        id: shadow
+        if: ${{ !cancelled() && steps.plan.outcome == 'success' && steps.plan.outputs.shadow == 'required' }}
+        run: |
+          set -euo pipefail
+          test -f scripts/session/codex_lab/lab_pr_ci_selftest.py
+          test -f scripts/session/codex_lab/shadow_selftest.py
+          test -f scripts/session/codex_lab/shadow_release_selftest.py
+          python3 -B -m unittest discover -s scripts/session/codex_lab -p '*selftest.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/shadow.log"
+          grep -Eq '^Ran [1-9][0-9]* tests? in ' "$RUNNER_TEMP/lab-pr-evidence/shadow.log"
+          grep -qx 'OK' "$RUNNER_TEMP/lab-pr-evidence/shadow.log"
+      - name: Install frontend dependencies and export exact-head API
+        id: api
+        if: ${{ !cancelled() && steps.plan.outcome == 'success' && (steps.plan.outputs.frontend == 'required' || steps.plan.outputs.backend == 'required') }}
+        env:
+          HEAD_SHA: ${{ steps.plan.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          docker info > "$RUNNER_TEMP/lab-pr-evidence/docker-info.log" 2>&1
+          npm install -g pnpm@12.4.2
+          (cd frontend && pnpm install --frozen-lockfile --ignore-scripts) \
+            2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/install.log"
+          bash scripts/codegen/generate_api.sh \
+            2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/api.log"
+      - name: Frontend verify
+        id: frontend
+        if: ${{ !cancelled() && steps.plan.outputs.frontend == 'required' && steps.api.outcome == 'success' }}
+        working-directory: frontend
+        run: |
+          set -euo pipefail
+          pnpm verify 2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/frontend.log"
+      - name: Backend verify
+        id: backend
+        if: ${{ !cancelled() && steps.plan.outputs.backend == 'required' && steps.api.outcome == 'success' }}
+        env:
+          OPENAPI_EXPORTED_FOR: ${{ steps.plan.outputs.head_sha }}
+          BACKEND_WATCHDOG_SECONDS: '3600'
+        run: |
+          set -euo pipefail
+          bash scripts/ci/backend_verify.sh -Dtest.forks=1 -Dit.forks=1 -Djacoco.skip=true \
+            2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/backend.log"
+      - name: Record every lane and fail on missing required proof
+        if: always()
+        env:
+          PLAN_OUTCOME: ${{ steps.plan.outcome }}
+          LIGHT_OUTCOME: ${{ steps.light.outcome }}
+          SHADOW_OUTCOME: ${{ steps.shadow.outcome }}
+          FRONTEND_OUTCOME: ${{ steps.frontend.outcome }}
+          BACKEND_OUTCOME: ${{ steps.backend.outcome }}
+          EVENT_HEAD: ${{ github.event.pull_request.head.sha }}
+          EVENT_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          python3 -B - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          directory = Path(os.environ['RUNNER_TEMP']) / 'lab-pr-evidence'
+          directory.mkdir(exist_ok=True)
+          receipt = dict(head_sha=os.environ['EVENT_HEAD'], base_sha=os.environ['EVENT_BASE'],
+                         run_id=os.environ['GITHUB_RUN_ID'], run_attempt=os.environ['GITHUB_RUN_ATTEMPT'],
+                         lanes={}, ready=False)
+          receipt['observed_head'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          if os.environ['PLAN_OUTCOME'] == 'success':
+              plan = json.loads((directory / 'plan.json').read_text())
+              for lane, applicability in plan['lanes'].items():
+                  outcome = os.environ[lane.upper() + '_OUTCOME']
+                  proof = ('passed' if outcome == 'success' else 'failed' if outcome == 'failure' else 'missing')
+                  receipt['lanes'][lane] = dict(applicability=applicability,
+                      proof=proof if applicability == 'required' else 'not-applicable', outcome=outcome)
+              receipt['ready'] = (plan['head_sha'] == receipt['head_sha'] and
+                  receipt['observed_head'] == receipt['head_sha'] and
+                  plan['base_sha'] == receipt['base_sha'] and
+                  all(row['proof'] in ('passed', 'not-applicable') for row in receipt['lanes'].values()))
+          else:
+              receipt['reason'] = 'missing-or-rejected-plan'
+              receipt['lanes'] = {lane: dict(applicability='unknown', proof='missing')
+                                  for lane in ('light', 'shadow', 'frontend', 'backend')}
+          (directory / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print(json.dumps(receipt, indent=2))
+          raise SystemExit(0 if receipt['ready'] else 1)
+          PY
+      - name: Upload exact-head receipt and logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lab-pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          path: |
+            ${{ runner.temp }}/lab-pr-evidence/
+            backend/target/surefire-reports/
+            backend/target/failsafe-reports/
+            backend/target/thread-dumps/
+            frontend/packages/api/openapi.json
+            frontend/packages/api/src/generated/*.ts
