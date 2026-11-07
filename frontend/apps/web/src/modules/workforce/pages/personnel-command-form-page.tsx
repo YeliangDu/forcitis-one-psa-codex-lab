@@ -75,7 +75,9 @@ export function PersonnelCommandFormPage() {
   const submit = () => {
     if (fields.acting !== undefined && !session.can(PERSONNEL_COMMAND_CREATE)) return;
     if (needsDuty && !duties.data?.items.some((duty) => duty.actingDutyId === draft.targetActingDutyId && duty.state === 'ACTIVE')) return;
-    enter.mutate(bodyOf(kind, draft), { onSuccess: (created) => void navigate(personnelCommandPath(created.personnelCommandId)) });
+    const body = bodyOf(kind, draft);
+    if (kind === 'ACTING_EXTEND') body.effectiveDate = businessToday(new Date());
+    enter.mutate(body, { onSuccess: (created) => void navigate(personnelCommandPath(created.personnelCommandId)) });
   };
 
   return (
