@@ -41,7 +41,7 @@ class LabPrCiAcceptanceTest(unittest.TestCase):
         self.assertEqual(BASE, result["base_sha"])
         self.assertEqual(
             {lane: "required" if lane in required else "not-applicable"
-             for lane in ("light", "shadow", "frontend", "backend")},
+             for lane in ("light", "secret", "shadow", "frontend", "backend")},
             result["lanes"],
         )
         self.assertEqual(self.event, event)
@@ -49,14 +49,14 @@ class LabPrCiAcceptanceTest(unittest.TestCase):
 
     def test_same_repo_exact_head_receipt_and_path_lanes(self):
         cases = [
-            (["scripts/session/codex_lab/shadow.py"], {"light", "shadow"}),
-            ([".github/workflows/lab-pr-ci.yml"], {"light", "shadow"}),
-            (["frontend/src/example.ts"], {"light", "frontend"}),
-            (["docs/glossary/bcs.yaml"], {"light", "frontend"}),
-            (["backend/src/main/java/Synthetic.java"], {"light", "backend"}),
+            (["scripts/session/codex_lab/shadow.py"], {"light", "secret", "shadow"}),
+            ([".github/workflows/lab-pr-ci.yml"], {"light", "secret", "shadow"}),
+            (["frontend/src/example.ts"], {"light", "secret", "frontend"}),
+            (["docs/glossary/bcs.yaml"], {"light", "secret", "frontend"}),
+            (["backend/src/main/java/Synthetic.java"], {"light", "secret", "backend"}),
             (["backend/pom.xml", "frontend/package.json",
               "scripts/session/codex_lab/shadow.py"],
-             {"light", "shadow", "frontend", "backend"}),
+             {"light", "secret", "shadow", "frontend", "backend"}),
         ]
         for paths, required in cases:
             with self.subTest(paths=paths):
@@ -95,10 +95,10 @@ class LabPrCiAcceptanceTest(unittest.TestCase):
 
     def test_pure_docs_and_unknown_paths_cannot_silently_skip(self):
         for paths, required in (
-            (["docs/example.md"], {"light"}),
-            (["unclassified/synthetic.txt"], {"light", "shadow", "frontend", "backend"}),
+            (["docs/example.md"], {"light", "secret"}),
+            (["unclassified/synthetic.txt"], {"light", "secret", "shadow", "frontend", "backend"}),
             (["docs/example.md", "unclassified/synthetic.txt"],
-             {"light", "shadow", "frontend", "backend"}),
+             {"light", "secret", "shadow", "frontend", "backend"}),
         ):
             with self.subTest(paths=paths):
                 self.assert_plan(paths, required)

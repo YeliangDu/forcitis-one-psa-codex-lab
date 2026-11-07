@@ -76,7 +76,7 @@ class GithubPort:
         receipt = dict(head_sha=HEAD, observed_head=HEAD, base_sha=BASE, run_id=100,
                        run_attempt=1, ready=True, lanes={
                            lane: dict(applicability="required", proof="passed")
-                           for lane in ("light", "shadow", "frontend", "backend")})
+                           for lane in ("light", "secret", "shadow", "frontend", "backend")})
         self.artifact_rows = [dict(name=f"lab-pr-14-{HEAD}-1", expired=False, receipt=receipt)]
         self.review_rows = [dict(commit_id=HEAD, state="COMMENTED", body=(
             f"复审结论：通过\ncommit：{HEAD}\n复审者：codex-{kind}-{suffix}\n\nSynthetic."))

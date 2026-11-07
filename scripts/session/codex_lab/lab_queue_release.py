@@ -11,7 +11,7 @@ import re
 
 REPOSITORY = "YeliangDu/forcitis-one-psa-codex-lab"
 WORKFLOW = ".github/workflows/lab-pr-ci.yml"
-LANES = {"light", "shadow", "frontend", "backend"}
+LANES = {"light", "secret", "shadow", "frontend", "backend"}
 
 
 def _hold(reason):
@@ -86,8 +86,8 @@ def plan_release(context, pr, run, receipt, reviews):
         if not isinstance(evidence, dict):
             return _hold("invalid-lane-evidence")
         applicability, proof = evidence.get("applicability"), evidence.get("proof")
-        if lane == "light" and applicability != "required":
-            return _hold("light-must-be-required")
+        if lane in ("light", "secret") and applicability != "required":
+            return _hold("light-and-secret-must-be-required")
         if not ((applicability == "required" and proof == "passed")
                 or (applicability == "not-applicable" and proof == "not-applicable")):
             return _hold("missing-or-failed-lane-proof")

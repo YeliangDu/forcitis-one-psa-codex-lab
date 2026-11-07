@@ -8,7 +8,7 @@ import subprocess
 
 
 REPOSITORY = "YeliangDu/forcitis-one-psa-codex-lab"
-LANES = ("light", "shadow", "frontend", "backend")
+LANES = ("light", "secret", "shadow", "frontend", "backend")
 
 
 def _identity(event, observed_head):
@@ -37,7 +37,7 @@ def plan(event, observed_head, paths):
     head, base = _identity(event, observed_head)
     if not isinstance(paths, (list, tuple)) or not paths:
         raise ValueError("Changed paths are required")
-    required = {"light"}
+    required = {"light", "secret"}
     for path in paths:
         if (not isinstance(path, str) or not path or path.startswith("/")
                 or "\\" in path or any(ord(c) < 32 or ord(c) == 127 for c in path)
