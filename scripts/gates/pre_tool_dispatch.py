@@ -97,6 +97,8 @@ def main(gate_loader=load_gate, codex_loader=load_codex, pkill_loader=load_pkill
 
 
 if __name__ == "__main__":
+    # The installer hashes the version directory before probing this entrypoint.
+    sys.dont_write_bytecode = True
     if sys.argv[1:] == ["--self-test"]:
         sys.path.insert(0, HERE)
         from gates_selftest import pre_tool_dispatch_test as self_test

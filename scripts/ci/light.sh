@@ -142,8 +142,17 @@ elif ! command -v shellcheck >/dev/null 2>&1; then skip "shellcheck (tracked *.s
 else rule "CI 的 shellcheck 步骤会拦下这个 .sh（本机版本可能与 CI 的 0.11.0 略有出入）" "按输出修，或在原处用 # shellcheck disable=SCxxxx 并写明原因（#856）"; run "shellcheck (tracked *.sh)" shellcheck_tracked; fi
 # 按改动触发（原 precheck.sh 的同名步骤，检查表在 light_triggers.sh；命令按空格切分）
 while IFS='|' read -r key name cmd; do
-  # shellcheck disable=SC2086
-  if touches "${!key}"; then rule "${name%% (*}：工具做不到它的自测所说的事" "按输出修工具，或在同一改动里改它的自测"; run "$name" $cmd; else skip "$name" "相关路径没改（按改动触发）"; fi
+  if touches "${!key}"; then
+    # This check times its own code, not contention from the other hosted guards.
+    isolated=false
+    if [ "${GITHUB_ACTIONS:-}" = true ] && [ "$name" = "stop_language (self-test)" ]; then isolated=true; report; fi
+    rule "${name%% (*}：工具做不到它的自测所说的事" "按输出修工具，或在同一改动里改它的自测"
+    # shellcheck disable=SC2086
+    run "$name" $cmd
+    if [ "$isolated" = true ]; then report; fi
+  else
+    skip "$name" "相关路径没改（按改动触发）"
+  fi
 done <<<"$TRIGGERED_CHECKS"
 report
 rule "本次留下的字节码让随后的后端测试读到 .pyc 而崩（#693）" "手动删掉输出里列的 __pycache__"
