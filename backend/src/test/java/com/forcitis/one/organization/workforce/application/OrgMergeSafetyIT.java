@@ -44,6 +44,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import javax.sql.DataSource;
@@ -113,6 +115,7 @@ class OrgMergeSafetyIT {
     @MockitoBean
     SeparationReview review;
 
+    private final ExecutorService participants = Executors.newFixedThreadPool(2);
     private WorkContext.Scope acting;
     private LocalDate today;
 
@@ -126,9 +129,14 @@ class OrgMergeSafetyIT {
 
     @AfterEach
     void leave() {
-        SecurityContextHolder.clearContext();
-        acting.close();
-        clock.reset();
+        participants.shutdownNow();
+        try {
+            participants.close();
+        } finally {
+            SecurityContextHolder.clearContext();
+            acting.close();
+            clock.reset();
+        }
     }
 
     private static void signIn(String permission) {
@@ -374,8 +382,10 @@ class OrgMergeSafetyIT {
             SecurityContextHolder.setContext(context);
             try (WorkContext.Scope scope = WorkContext.enter(UUID.randomUUID(), null, "test.organization.workforce")) {
                 return call.get();
+            } finally {
+                SecurityContextHolder.clearContext();
             }
-        });
+        }, participants);
     }
 
     private OrgStructureCommandId aDueMerge(UUID merged) {
