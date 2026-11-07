@@ -1,9 +1,11 @@
 """Lab-local queue cutover acceptance with temporary files; hosted only."""
+import argparse
 import importlib.util
 from pathlib import Path
 import tempfile
 import types
 import unittest
+from unittest.mock import patch
 
 SLUG = "YeliangDu/forcitis-one-psa-codex-lab"
 URL = "git@github.com:" + SLUG + ".git"
@@ -140,6 +142,40 @@ class MqLabAcceptanceTest(unittest.TestCase):
                 self.assertEqual([14], result["queued"])
                 self.assertEqual(before, self.snapshot())
         self.assertEqual(0, self.remote_calls)
+
+    def test_managed_lab_common_dir_never_falls_back_with_bad_origin(self):
+        module = target()
+        arbitrary_top = self.root / "agent-synthetic-14"
+        arbitrary_top.mkdir()
+        for mode in ("wrong-origin", "missing-origin", "origin-read-error"):
+            for command in ("list", "run", "once", "enqueue"):
+                with self.subTest(mode=mode, command=command):
+                    calls = []
+
+                    def fake_git(argv):
+                        calls.append(argv)
+                        replies = {
+                            ("git", "rev-parse", "--show-toplevel"): str(arbitrary_top),
+                            ("git", "rev-parse", "--path-format=absolute", "--git-common-dir"): str(self.common),
+                            ("git", "remote"): "" if mode == "missing-origin" else "origin",
+                        }
+                        key = tuple(argv)
+                        if key in replies:
+                            return types.SimpleNamespace(returncode=0, stdout=replies[key] + "\n")
+                        self.assertIn(key, (
+                            ("git", "remote", "get-url", "--all", "origin"),
+                            ("git", "remote", "get-url", "--push", "--all", "origin")))
+                        if mode in ("missing-origin", "origin-read-error"):
+                            return types.SimpleNamespace(returncode=1, stdout="")
+                        return types.SimpleNamespace(returncode=0, stdout="git@github.com:synthetic/foreign.git\n")
+
+                    args = types.SimpleNamespace(cmd=command, queue=None, log=None)
+                    before = self.snapshot()
+                    with patch.object(module, "read_repo", side_effect=AssertionError("no network")):
+                        with self.assertRaises(SystemExit, msg="known Lab common-dir must HOLD, never return False to legacy"):
+                            module.handle_cli(args, argparse.ArgumentParser(), fake_git)
+                    self.assertEqual(before, self.snapshot())
+                    self.assertTrue(calls)
 
 
 if __name__ == "__main__":
