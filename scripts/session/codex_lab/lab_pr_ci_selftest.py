@@ -95,9 +95,9 @@ class LabPrCiAcceptanceTest(unittest.TestCase):
 
     def test_pure_docs_and_unknown_paths_cannot_silently_skip(self):
         for paths, required in (
-            (["docs/architecture/synthetic.md"], {"light"}),
+            (["docs/example.md"], {"light"}),
             (["unclassified/synthetic.txt"], {"light", "shadow", "frontend", "backend"}),
-            (["docs/architecture/synthetic.md", "unclassified/synthetic.txt"],
+            (["docs/example.md", "unclassified/synthetic.txt"],
              {"light", "shadow", "frontend", "backend"}),
         ):
             with self.subTest(paths=paths):
