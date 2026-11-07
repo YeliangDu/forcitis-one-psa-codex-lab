@@ -152,8 +152,8 @@ def handle_cli(args, parser, sh):
     except (OSError, ValueError) as error:
         parser.error(str(error))
     if profile != "lab":
-        if args.cmd in ("init", "health"):
-            parser.error("init/health require the personal Lab checkout")
+        if args.cmd in ("init", "health", "plan"):
+            parser.error("init/health/plan require the personal Lab checkout")
         return False
     if args.queue is not None or args.log is not None:
         parser.error("the personal Lab uses its canonical queue and log; path overrides are disabled")
@@ -162,6 +162,21 @@ def handle_cli(args, parser, sh):
         if result["action"] != "healthy":
             raise SystemExit("HOLD: " + result["reason"])
         print(f"Lab main health: healthy; head: {result['head_sha']}; main writer disabled")
+        return True
+    if args.cmd in ("plan", "enqueue", "once"):
+        import json
+        from mq_lab_operator import ProductionPorts, run_command
+
+        if args.cmd == "enqueue":
+            if len(args.prs) != 1 or args.after:
+                parser.error("Lab enqueue requires one PR without dependency changes")
+            number = args.prs[0]
+        else:
+            number = args.pr
+        result = run_command(args.cmd, number, common[0], ProductionPorts(common[0], sh))
+        if result["action"] == "hold":
+            raise SystemExit("HOLD: " + result["reason"])
+        print(json.dumps(result, ensure_ascii=False, sort_keys=True))
         return True
     result = queue_command(args.cmd, common[0], read_repo)
     if result["status"] != "ok":

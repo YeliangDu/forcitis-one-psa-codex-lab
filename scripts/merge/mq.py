@@ -916,6 +916,7 @@ def main(argv=None):
         sub.add_parser(name)
     sub.add_parser("resume").add_argument("runs", nargs="*", help="the red run ids that paused the queue, exactly as `status` shows them")
     sub.add_parser("once").add_argument("pr", type=int)
+    sub.add_parser("plan").add_argument("pr", type=int)
     e = sub.add_parser("enqueue")
     e.add_argument("prs", type=int, nargs="+")
     e.add_argument("--after", type=positive, action="append", default=[], metavar="M", help="start only once pull request M is merged (repeatable; whatever lane either is in)")

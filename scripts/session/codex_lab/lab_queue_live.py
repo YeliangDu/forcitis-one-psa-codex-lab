@@ -106,6 +106,10 @@ def _decode_archive(blob, basename, allowed_paths):
 
 def _request(path, pages=False, binary=False):
     """Only internally generated relative paths reach this fixed GET command."""
+    closing = re.fullmatch(r"pulls/([1-9][0-9]*)/closing-issues", path) if isinstance(path, str) else None
+    if closing:
+        _require(pages is False and binary is False, "Invalid closing-issues GET mode")
+        return _closing_issues(int(closing[1]))
     patterns = (
         r"", r"git/ref/heads/main", r"pulls/[1-9][0-9]*",
         r"actions/runs\?event=pull_request&head_sha=[0-9a-f]{40}&per_page=100",
@@ -114,6 +118,10 @@ def _request(path, pages=False, binary=False):
         r"actions/runs/[1-9][0-9]*/artifacts\?per_page=100",
         r"actions/runs\?event=push&branch=main&head_sha=[0-9a-f]{40}&per_page=100",
         r"actions/runs/42418209077",
+        r"issues/[1-9][0-9]*",
+        r"pulls/[1-9][0-9]*/files\?per_page=100",
+        r"commits/[0-9a-f]{40}",
+        r"compare/[0-9a-f]{40}\.\.\.[0-9a-f]{40}",
         r"actions/artifacts/[1-9][0-9]*/zip",
     )
     _require(isinstance(path, str) and any(re.fullmatch(p, path) for p in patterns), "Unapproved GET path")
@@ -137,6 +145,45 @@ def _request(path, pages=False, binary=False):
         raise ValueError("Malformed GitHub JSON") from error
 
 
+def _closing_issues(number):
+    """Fixed read-only GraphQL query for issue_gate's actual closing set."""
+    _positive(number)
+    query = ("query($owner:String!,$name:String!,$number:Int!,$endCursor:String){"
+             "repository(owner:$owner,name:$name){nameWithOwner pullRequest(number:$number){"
+             "closingIssuesReferences(first:100,after:$endCursor){totalCount "
+             "nodes{number repository{name owner{login}}} pageInfo{hasNextPage endCursor}}}}}")
+    result = subprocess.run(["gh", "api", "--hostname", "github.com", "--method", "GET", "graphql",
+                             "--paginate", "--slurp", "-f", "query=" + query,
+                             "-f", "owner=YeliangDu", "-f", "name=forcitis-one-psa-codex-lab",
+                             "-F", f"number={number}"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                            timeout=120, check=False)
+    _require(result.returncode == 0, "Fixed Lab closing-issues GET failed")
+    pages = _json(result.stdout.decode("utf-8"))
+    _require(isinstance(pages, list) and bool(pages), "Missing closing-issues pages")
+    rows, totals, seen = [], [], set()
+    for index, page in enumerate(pages):
+        _require(isinstance(page, dict) and not page.get("errors"), "Closing-issues API error")
+        repo = page["data"]["repository"]
+        _require(repo["nameWithOwner"] == REPOSITORY, "Foreign GraphQL repository")
+        connection = repo["pullRequest"]["closingIssuesReferences"]
+        total, nodes, info = connection["totalCount"], connection["nodes"], connection["pageInfo"]
+        _require(type(total) is int and total >= 0 and isinstance(nodes, list)
+                 and isinstance(info, dict) and info.get("hasNextPage") is (index < len(pages) - 1),
+                 "Incomplete closing-issues pagination")
+        if index < len(pages) - 1:
+            _require(isinstance(info.get("endCursor"), str) and bool(info["endCursor"]), "Missing page cursor")
+        totals.append(total)
+        for row in nodes:
+            _require(isinstance(row, dict) and type(row.get("number")) is int and row["number"] > 0,
+                     "Invalid closing issue")
+            identity = (row["number"], row["repository"]["name"], row["repository"]["owner"]["login"])
+            _require(identity not in seen, "Duplicate closing issue")
+            seen.add(identity)
+            rows.append(row)
+    _require(len(set(totals)) == 1 and len(rows) == totals[0], "Incomplete closing set")
+    return dict(closingIssuesReferences=rows)
+
+
 class GithubRead:
     """Read-only port for observe_release; injected requests are fixture seams."""
 
@@ -149,7 +196,7 @@ class GithubRead:
         _require(isinstance(result, dict), "Expected GitHub object")
         return result
 
-    def _pages(self, path, field=None):
+    def _pages(self, path, field=None, identity="id"):
         pages = self._request(path, pages=True)
         _require(isinstance(pages, list) and bool(pages), "Missing complete pages")
         rows, counts, ids = [], [], set()
@@ -166,7 +213,11 @@ class GithubRead:
             _require(isinstance(entries, list), "Malformed page records")
             for row in entries:
                 _require(isinstance(row, dict), "Malformed GitHub record")
-                record_id = _positive(row.get("id"))
+                if identity == "filename":
+                    record_id = row.get("filename")
+                    _require(isinstance(record_id, str) and bool(record_id), "Missing PR filename")
+                else:
+                    record_id = _positive(row.get("id"))
                 _require(record_id not in ids, "Duplicate paged record")
                 ids.add(record_id)
                 rows.append(dict(row))
@@ -201,6 +252,17 @@ class GithubRead:
 
     def pull(self, number):
         return self._single(f"pulls/{_positive(number)}")
+
+    def issue(self, number):
+        row = self._single(f"issues/{_positive(number)}")
+        _require("pull_request" not in row, "Linked card must be an issue")
+        return row
+
+    def closing_issues(self, number):
+        return self._single(f"pulls/{_positive(number)}/closing-issues")
+
+    def files(self, number):
+        return self._pages(f"pulls/{_positive(number)}/files?per_page=100", identity="filename")
 
     def runs(self, head_sha):
         _require(isinstance(head_sha, str) and re.fullmatch(r"[0-9a-f]{40}", head_sha) is not None,
