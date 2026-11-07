@@ -1,11 +1,12 @@
 """Plan exact-head verification for the private Lab, without network access."""
 import argparse
-import importlib.util
 import json
 import os
 from pathlib import Path
 import re
 import subprocess
+import sys
+import tempfile
 
 
 REPOSITORY = "YeliangDu/forcitis-one-psa-codex-lab"
@@ -78,10 +79,16 @@ def main():
         paths.pop()
     receipt = plan(event, observed, paths)
     ci = Path(__file__).resolve().parents[2] / "ci" / "relevant_change.py"
-    spec = importlib.util.spec_from_file_location("lab_ci_relevant_change", ci)
-    change = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(change)
-    legacy_it = change.any_legacy_it(paths)
+    # The legacy classifier is a CLI, not an import-safe module. Feed it the
+    # exact paths already verified above instead of letting it diff a live ref.
+    with tempfile.TemporaryDirectory(prefix="lab-ci-paths-") as temporary:
+        path_list = Path(temporary) / "paths"
+        path_list.write_text("\n".join(paths) + "\n", encoding="utf-8")
+        result = subprocess.check_output([sys.executable, "-B", str(ci), "--paths-from", str(path_list)], text=True)
+    flags = [row for row in result.splitlines() if row.startswith("legacy_it=")]
+    if flags not in (["legacy_it=true"], ["legacy_it=false"]):
+        raise ValueError("Missing exact legacy integration tier")
+    legacy_it = flags == ["legacy_it=true"]
     if legacy_it:
         receipt["lanes"]["backend"] = "required"
     Path(args.receipt).write_text(json.dumps(dict(receipt, paths=paths, legacy_it=legacy_it), indent=2) + "\n")
