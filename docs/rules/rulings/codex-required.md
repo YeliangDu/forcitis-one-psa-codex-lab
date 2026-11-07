@@ -1,5 +1,7 @@
 # Codex first draft is required for backend code and acceptance tests
 
+Personal Lab: the rule below records the earlier first-draft decision and its guard scope. Current delivery uses existing Codex residents as the authors and GitHub-hosted CI for verification, per [the Codex preamble](../codex-preamble.md). Keep the exact PR identity lines required by the guard.
+
 User 2026-11-06: 「我同意，你必须保证这次不会被绕过，因为我的周额度还剩 6%。」 (approving lead's proposal; 11-05 night only 1 of 11 backend runtime PRs used Codex). Builds on user 2026-11-04 「我们首先是要充分发挥 codex 的价值，这个基础上拦得严，不能本末倒置」 and, for acceptance tests, user 2026-11-04 「我觉得完全可以，可以随意使用你希望的推理强度。我不认为会比 sonnet 差」 (`docs/decisions/2026-11-04-093054-one-lead-我觉得完全可以-可以随意使用你希.md`, never carried into a rule until now).
 
 1. Scope: (a) any PR whose diff touches `backend/src/main/**` (impl and bugfix); (b) one-test's acceptance commits (trailer `Acceptance-Test-Author: test-engineer`) under `backend/src/test/java/com/forcitis/one/acceptance/**`. Never frontend, ops, docs or `scripts/`.

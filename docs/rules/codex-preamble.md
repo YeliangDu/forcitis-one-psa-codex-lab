@@ -1,6 +1,6 @@
 # Codex card delivery in the personal Lab
 
-Keep reads, writes and network operations inside the personal Lab. For runner, queue or session recovery changes, read [the Lab workflow](../ops/codex-lab-workflow.md).
+Keep reads, writes and network operations inside the personal Lab. For backend work, read [backend coding core](coding-core.md); for frontend work, read [frontend coding core](coding-core-frontend.md). For runner, queue or session recovery changes, read [the Lab workflow](../ops/codex-lab-workflow.md).
 
 1. Read the card, signed scope and affected repository rules. Confirm the assigned resident session, actual Lab worktree, and exact base. Reuse the session ID; use a separate assigned worktree for a different card. Keep an explicit business hold scoped to that card.
 2. For a behavior change, one-test freezes independent acceptance first. The lead submits that exact tests-only commit to GitHub-hosted Actions. Start implementation once its expected assertion fails; a missing tool, dependency or fixture is a blocked red, not acceptance proof.

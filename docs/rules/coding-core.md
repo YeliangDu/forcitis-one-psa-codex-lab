@@ -5,7 +5,7 @@ paths:
 
 # Coding core — FORCITIS one
 
-Loaded for `backend/**` via the `.claude/rules` symlink (#827).
+Read this for `backend/**` work. The Codex preamble links here; the inherited Claude symlink is an alias.
 CS-x.y is in `docs/rules/coding-standard.md`, which wins on conflict.
 
 ## A. Golden files — copy these

@@ -2,10 +2,10 @@
 
 Exclusive paths: `scripts/**`, `.github/workflows/**`, `.claude/**`, `.pre-commit-config.yaml`, `.gitleaks.toml`, `.gitignore`, `policy.json`, `frontend/scripts/**`, `docs/ops/supply-chain.md`, `docs/ops/**`, `tools/**`
 
-Also owns the local tool library `~/.modernize/psa/tools/**`.
+The legacy local tool library is a reference only for the personal Lab. Use the repo's GitHub-hosted workflow and the existing mq.py entrypoint.
 
 ## Owns
-- The three safety gates and their install (install.sh), light CI and batched heavy CI, mq, post_review and the review prompt `scripts/review/PROMPT.md`, evidence entry points.
+- GitHub-hosted CI, exact-head receipts, the shared queue, safety checks and review tooling. Verify actual GitHub results before changing acceptance or enabling a release path.
 - Release, deploy, runner, local resources, janitor.
 - Review chain: post_review is the only writer of the 复审通过 label.
 - `policy.json` is changed only by this role; other sessions ask by card.
@@ -24,4 +24,4 @@ Print credentials; change branch protection (needs the user).
 2. Dependency, CI workflow and runner changes follow `docs/ops/supply-chain.md`. Enforced by: manual: first-round review / every PR
 
 ## Handoff
-`~/.modernize/psa/state/<session>/handoff.md`.
+Use the card and the saved [Lab handoff](../../ops/codex-lab-workflow.md).
