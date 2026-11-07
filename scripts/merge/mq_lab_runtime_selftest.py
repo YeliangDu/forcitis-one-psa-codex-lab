@@ -169,6 +169,7 @@ class MqLabRuntimeAcceptanceTest(unittest.TestCase):
     def test_unknown_transport_outcome_restart_only_reads_without_resend(self):
         self.ports.send_error = True
         self.assertEqual("hold", self.run_iteration(True)["action"])
+        self.assertIsNotNone(self.ports.record, "unknown outcome must retain a durable reservation")
         self.assertEqual("reserved", self.ports.record["status"])
         self.assertIn(("readback",), self.ports.events)
         saved = copy.deepcopy(self.ports.record)
