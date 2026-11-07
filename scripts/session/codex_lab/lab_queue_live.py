@@ -13,6 +13,8 @@ ARCHIVE_LIMIT = 32 * 1024 * 1024
 RECEIPT_LIMIT = 256 * 1024
 RECEIPT_PATHS = {"receipt.json", "_temp/lab-pr-evidence/receipt.json"}
 HEALTH_PATHS = {"health.json", "_temp/lab-main-health/health.json"}
+BASELINE_RUN = 42418209077
+BASELINE_PATHS = {"baseline.json", "_temp/lab-bootstrap-baseline/baseline.json"}
 ARTIFACT_NAME = re.compile(r"lab-pr-([1-9][0-9]*)-([0-9a-f]{40})-([1-9][0-9]*)")
 
 
@@ -50,6 +52,18 @@ def decode_receipt(blob):
 def decode_health(blob):
     """Decode the separate main signal with the same bounds and ZIP checks."""
     return _decode_archive(blob, "health.json", HEALTH_PATHS)
+
+
+def decode_baseline(blob):
+    """Normalize the known baseline workflow's actual head/run/attempt keys."""
+    value = _decode_archive(blob, "baseline.json", BASELINE_PATHS)
+    actual = {"kind", "head", "repository", "run", "attempt", "light", "secret"}
+    canonical = {"kind", "head_sha", "repository", "run_id", "run_attempt", "light", "secret"}
+    if set(value) == actual:
+        return {({"head": "head_sha", "run": "run_id", "attempt": "run_attempt"}.get(k, k)): v
+                for k, v in value.items()}
+    _require(set(value) == canonical, "Unexpected baseline schema")
+    return value
 
 
 def _decode_archive(blob, basename, allowed_paths):
@@ -99,6 +113,7 @@ def _request(path, pages=False, binary=False):
         r"pulls/[1-9][0-9]*/reviews\?per_page=100",
         r"actions/runs/[1-9][0-9]*/artifacts\?per_page=100",
         r"actions/runs\?event=push&branch=main&head_sha=[0-9a-f]{40}&per_page=100",
+        r"actions/runs/42418209077",
         r"actions/artifacts/[1-9][0-9]*/zip",
     )
     _require(isinstance(path, str) and any(re.fullmatch(p, path) for p in patterns), "Unapproved GET path")
@@ -165,6 +180,24 @@ class GithubRead:
 
     def main_ref(self):
         return self._single("git/ref/heads/main")
+
+    def bootstrap_run(self, run_id):
+        _require(type(run_id) is int and run_id == BASELINE_RUN, "Only the known bootstrap run is allowed")
+        return self._single(f"actions/runs/{BASELINE_RUN}")
+
+    def bootstrap_artifacts(self, run_id, attempt):
+        _require(type(run_id) is int and run_id == BASELINE_RUN
+                 and type(attempt) is int and attempt == 1, "Only the known bootstrap attempt is allowed")
+        rows = self._pages(f"actions/runs/{BASELINE_RUN}/artifacts?per_page=100", "artifacts")
+        for row in rows:
+            _require(isinstance(row.get("name"), str) and bool(row["name"])
+                     and type(row.get("expired")) is bool, "Malformed artifact metadata")
+            row.pop("baseline", None)
+            if row["expired"] or row["name"] != "lab-bootstrap-baseline":
+                continue
+            blob = self._request(f"actions/artifacts/{row['id']}/zip", binary=True)
+            row["baseline"] = decode_baseline(blob)
+        return rows
 
     def pull(self, number):
         return self._single(f"pulls/{_positive(number)}")
