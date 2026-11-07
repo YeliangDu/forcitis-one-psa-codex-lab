@@ -195,3 +195,18 @@ terms:
   forbidden: []
   status: proposed
   note: '#1400 L1a；中文名待术语确认'
+- id: organization_leave__outfield
+  zh: 外勤
+  en: Outfield
+  snake: outfield
+  kind: value_object
+  bc: organization.leave
+  scope: domain
+  definition: 考勤记录类型 OUTFIELD，按签署 S3 接收并原样保存
+  standard_ref:
+  - docs/architecture/proposals/leave-attendance-s3.md
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '仅登记内部枚举用词；不裁决 B-27 或用户界面文案'
