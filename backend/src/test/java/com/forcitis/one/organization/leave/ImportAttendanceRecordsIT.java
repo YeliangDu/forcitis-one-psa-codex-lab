@@ -53,7 +53,7 @@ class ImportAttendanceRecordsIT {
         EmployeeId employed = employee("EMPLOYED");
         EmployeeId separated = employee("SEPARATED");
         assertThat(SUNDAY.atZone(ZoneId.of("Asia/Shanghai")).getDayOfWeek()).isEqualTo(DayOfWeek.SUNDAY);
-        // These synthetic people have no assignment/calendar setup: import does not count workdays.
+        // Directory resolution needs a synthetic assignment; no calendar is configured for these people.
         execute(port, List.of(input(source, "punch", employed, "PUNCH", SUNDAY),
                 input(source, "outfield", separated, "OUTFIELD", SUNDAY.plusSeconds(1)),
                 input(source, "make-up", employed, "MAKE_UP", SUNDAY.plusSeconds(2))));
@@ -163,6 +163,15 @@ class ImportAttendanceRecordsIT {
                 insert into organization_workforce.employees (id, employee_code, display_name, employment_status)
                 values (:id, :code, 'Synthetic G0 person', :status)
                 """).param("id", person.value()).param("code", "G0-" + person.value()).param("status", status).update();
+        UUID unit = ids.next();
+        jdbc.sql("""
+                insert into organization_workforce.org_units (id, code, name, status, sort_order)
+                values (:id, :code, 'Synthetic G0 unit', 'ACTIVE', 1)
+                """).param("id", unit).param("code", "G0-" + unit).update();
+        jdbc.sql("""
+                insert into organization_workforce.assignments (employee_id, org_unit_id)
+                values (:employee, :unit)
+                """).param("employee", person.value()).param("unit", unit).update();
         assertThat(directory.findEmployee(person)).as("real local directory resolves fixture, regardless of employment state").isPresent();
         return person;
     }
