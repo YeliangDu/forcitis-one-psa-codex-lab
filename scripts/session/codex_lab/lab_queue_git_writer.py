@@ -1,4 +1,4 @@
-"""Disposable-only exact-base Git writer over trusted injected argv/GET ports.
+"""Separately scoped exact-base writers over trusted injected argv/GET ports.
 
 No default transport, queue or production adapter is provided. Callers must
 hold the shared release lock and persist a reservation before calling send.
@@ -25,14 +25,25 @@ def _sha(value):
     return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{40}", value) is not None
 
 
-def _intent(value):
+def _identity(value):
     _require(isinstance(value, dict) and set(value) == IDENTITY, "Invalid intent shape")
     _require(type(value["number"]) is int and value["number"] > 0
              and _sha(value["base"]) and _sha(value["head"])
-             and isinstance(value["target"], str)
-             and re.fullmatch(r"lab/disposable-[a-z0-9-]+", value["target"]) is not None,
-             "Only exact disposable release intents are allowed")
+             and isinstance(value["target"], str), "Invalid exact release identity")
     return dict(value)
+
+
+def _intent(value):
+    intent = _identity(value)
+    _require(re.fullmatch(r"lab/disposable-[a-z0-9-]+", intent["target"]) is not None,
+             "Only exact disposable release intents are allowed")
+    return intent
+
+
+def _main_intent(value):
+    intent = _identity(value)
+    _require(intent["target"] == "main", "Controlled main writer accepts only main")
+    return intent
 
 
 def _repository(value):
@@ -52,16 +63,22 @@ def _pr(value, intent, repo_id, merged):
         _require(isinstance(repo, dict) and type(repo.get("id")) is int
                  and repo["id"] == repo_id and repo.get("full_name") == REPOSITORY,
                  "Foreign PR branch")
-    _require(value["base"].get("ref") == intent["target"], "Wrong disposable target")
+    _require(value["base"].get("ref") == intent["target"], "Wrong release target")
     _require(value.get("merged") is merged and value.get("draft") is False
              and value.get("state") == ("closed" if merged else "open"), "Wrong PR state")
 
 
-class GitDisposableWriter:
+class _GitWriter:
     def __init__(self, git, read):
         _require(callable(git) and callable(read), "Expected injected argv and relative GET ports")
         self._git = git
         self._read = read
+
+    def _intent(self, value):
+        raise ValueError("No public writer scope selected")
+
+    def _authorize(self, intent):
+        raise ValueError("No public writer authority selected")
 
     def _origin(self):
         output = self._git(["remote", "-v"])
@@ -83,7 +100,8 @@ class GitDisposableWriter:
         return output.strip()
 
     def send(self, intent):
-        intent = _intent(intent)  # Before any port I/O, including remote reads.
+        intent = self._intent(intent)  # Before any port I/O, including authority.
+        self._authorize(intent)
         ref = "refs/heads/" + intent["target"]
         self._origin()
         repo_id = _repository(self._read(""))
@@ -91,7 +109,7 @@ class GitDisposableWriter:
         base, head = intent["base"], intent["head"]
         tree = self._git_sha(["merge-tree", "--write-tree", base, head])
         merge = self._git_sha(["commit-tree", tree, "-p", base, "-p", head,
-                               "-m", f"Lab disposable release #{intent['number']}"])
+                               "-m", f"{self._message} #{intent['number']}"])
         parents = self._git(["show", "-s", "--format=%P", merge])
         _require(isinstance(parents, str) and parents.split() == [base, head], "Wrong merge parents")
         # Nonzero must raise through the argv port; first-parent verification
@@ -102,13 +120,14 @@ class GitDisposableWriter:
         self._origin()
         _require(_repository(self._read("")) == repo_id, "Repository identity moved")
         _pr(self._read(f"pulls/{intent['number']}"), intent, repo_id, merged=False)
-        _intent(intent)
+        self._intent(intent)
+        self._authorize(intent)
         self._git(["push", "--porcelain", f"--force-with-lease={ref}:{base}",
                    "origin", f"{merge}:{ref}"])
         return dict(merge_sha=merge)  # Request result only, never confirmation.
 
     def readback(self, intent):
-        intent = _intent(intent)
+        intent = self._intent(intent)
         try:
             repo_id = _repository(self._read(""))
             pr = self._read(f"pulls/{intent['number']}")
@@ -137,3 +156,32 @@ class GitDisposableWriter:
             return dict(intent, merged=True, merge_sha=merge, target_contains_merge=True)
         except (ValueError, TypeError, KeyError):
             return None
+
+
+class GitDisposableWriter(_GitWriter):
+    """Disposable scope remains separate and continues to reject main."""
+    _message = "Lab disposable release"
+    _intent = staticmethod(_intent)
+
+    def _authorize(self, intent):
+        # This existing seam remains bounded by its disposable-only validator.
+        return None
+
+
+class GitLabMainWriter(_GitWriter):
+    """Require explicit current authority for every controlled main request.
+
+    The later bound gate owns the shared lock, reservation and authorization
+    provenance. There is no default authority or automatic CLI activation.
+    Readback deliberately remains available with no write authority.
+    """
+    _message = "Lab controlled main release"
+    _intent = staticmethod(_main_intent)
+
+    def __init__(self, git, read, authorize):
+        super().__init__(git, read)
+        self._authority = authorize
+
+    def _authorize(self, intent):
+        _require(callable(self._authority), "Missing main release authority")
+        _require(self._authority(dict(intent)) is True, "Main release authority denied")
