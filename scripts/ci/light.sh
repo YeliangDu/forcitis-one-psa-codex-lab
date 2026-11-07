@@ -143,9 +143,13 @@ else rule "CI 的 shellcheck 步骤会拦下这个 .sh（本机版本可能与 C
 # 按改动触发（原 precheck.sh 的同名步骤，检查表在 light_triggers.sh；命令按空格切分）
 while IFS='|' read -r key name cmd; do
   if touches "${!key}"; then
-    # This check times its own code, not contention from the other hosted guards.
+    # These checks time their own code or fixtures, not other hosted guards.
     isolated=false
-    if [ "${GITHUB_ACTIONS:-}" = true ] && [ "$name" = "stop_language (self-test)" ]; then isolated=true; report; fi
+    if [ "${GITHUB_ACTIONS:-}" = true ]; then
+      case "$name" in
+        'stop_language (self-test)'|'acceptance_reports (self-test)') isolated=true; report ;;
+      esac
+    fi
     rule "${name%% (*}：工具做不到它的自测所说的事" "按输出修工具，或在同一改动里改它的自测"
     # shellcheck disable=SC2086
     run "$name" $cmd

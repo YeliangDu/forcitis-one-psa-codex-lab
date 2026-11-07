@@ -100,7 +100,7 @@ jobs:
           grep -qx 'OK' "$RUNNER_TEMP/lab-pr-evidence/shadow.log"
       - name: Install frontend dependencies and export exact-head API
         id: api
-        if: ${{ !cancelled() && steps.plan.outcome == 'success' && (steps.plan.outputs.frontend == 'required' || steps.plan.outputs.backend == 'required') }}
+        if: ${{ !cancelled() && steps.plan.outcome == 'success' && steps.light.outcome == 'success' && steps.secret.outcome == 'success' && (steps.plan.outputs.frontend == 'required' || steps.plan.outputs.backend == 'required') }}
         env:
           HEAD_SHA: ${{ steps.plan.outputs.head_sha }}
         run: |
