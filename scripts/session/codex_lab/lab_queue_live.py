@@ -152,18 +152,21 @@ def _closing_issues(number):
              "repository(owner:$owner,name:$name){nameWithOwner pullRequest(number:$number){"
              "closingIssuesReferences(first:100,after:$endCursor){totalCount "
              "nodes{number repository{name owner{login}}} pageInfo{hasNextPage endCursor}}}}}")
-    result = subprocess.run(["gh", "api", "--hostname", "github.com", "--method", "GET", "graphql",
+    # GitHub's GraphQL endpoint expects a POST body even for a read-only query.
+    result = subprocess.run(["gh", "api", "--hostname", "github.com", "--method", "POST", "graphql",
                              "--paginate", "--slurp", "-f", "query=" + query,
                              "-f", "owner=YeliangDu", "-f", "name=forcitis-one-psa-codex-lab",
                              "-F", f"number={number}"], stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             timeout=120, check=False)
-    _require(result.returncode == 0, "Fixed Lab closing-issues GET failed")
+    _require(result.returncode == 0, "Fixed Lab closing-issues query failed")
     pages = _json(result.stdout.decode("utf-8"))
     _require(isinstance(pages, list) and bool(pages), "Missing closing-issues pages")
     rows, totals, seen = [], [], set()
     for index, page in enumerate(pages):
         _require(isinstance(page, dict) and not page.get("errors"), "Closing-issues API error")
-        repo = page["data"]["repository"]
+        data = page.get("data")
+        repo = data.get("repository") if isinstance(data, dict) else None
+        _require(isinstance(repo, dict), "Missing closing-issues repository proof")
         _require(repo["nameWithOwner"] == REPOSITORY, "Foreign GraphQL repository")
         connection = repo["pullRequest"]["closingIssuesReferences"]
         total, nodes, info = connection["totalCount"], connection["nodes"], connection["pageInfo"]
