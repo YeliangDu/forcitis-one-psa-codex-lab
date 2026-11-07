@@ -157,6 +157,13 @@ def handle_cli(args, parser, sh):
         return False
     if args.queue is not None or args.log is not None:
         parser.error("the personal Lab uses its canonical queue and log; path overrides are disabled")
+    if args.cmd == "run":
+        from mq_lab_worker import run_live
+
+        result = run_live(common[0], sh)
+        if result["action"] == "hold":
+            raise SystemExit("HOLD: " + result["reason"])
+        return True
     if args.cmd == "health":
         result = main_health(common[0])
         if result["action"] != "healthy":
