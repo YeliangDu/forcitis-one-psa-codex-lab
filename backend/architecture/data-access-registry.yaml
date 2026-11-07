@@ -869,7 +869,7 @@ tables:
     mutability: APPEND_ONLY
     retention: {policy: BUSINESS_RECORD}      # ADR-0079:123 sets a 2-year minimum, not a purge; no purge job in L1a (a time-bound policy needs a ShedLock job)
     lineage: {source: NEW}
-    writers: []  # L1a has no Java SQL; register the writer with the command slice
+    writers: [organization.leave]
   organization_leave.monthly_confirmations:
     role: AGGREGATE_ROOT
     aggregate: MonthlyConfirmation
