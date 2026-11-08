@@ -142,6 +142,26 @@ jobs:
           raise SystemExit(0 if result.testsRun == 6 and result.wasSuccessful()
                            and not (result.skipped or result.expectedFailures or result.unexpectedSuccesses) else 1)
           PY
+          python3 -B - "$dest/native-ci-verdict.json" <<'PYCODE'
+          import hashlib, json, os, sys, unittest
+          from pathlib import Path
+          root = Path("scripts/session/codex_lab")
+          name = "lab_branch_native_ci_selftest.py"
+          assert hashlib.sha256((root / name).read_bytes()).hexdigest() == "ec52af46fc0d861beb45557e9a2b2250a78065118745284244b1649a2b6ef114"
+          suite = unittest.TestLoader().discover(str(root), pattern=name)
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          report = dict(head=os.environ["SUBJECT"], base=os.environ["BASE_SHA"],
+                        run=os.environ["GITHUB_RUN_ID"], attempt=os.environ["GITHUB_RUN_ATTEMPT"],
+                        tests=result.testsRun,
+                        failures=[dict(name=t.id(), detail=err) for t,err in result.failures],
+                        errors=[dict(name=t.id(), detail=err) for t,err in result.errors],
+                        skipped=[t.id() for t,_ in result.skipped],
+                        expected_failures=[t.id() for t,_ in result.expectedFailures],
+                        unexpected_successes=[t.id() for t,_ in result.unexpectedSuccesses])
+          Path(sys.argv[1]).write_text(json.dumps(report, indent=2) + "\n")
+          raise SystemExit(0 if result.testsRun == 9 and result.wasSuccessful()
+                           and not (result.skipped or result.expectedFailures or result.unexpectedSuccesses) else 1)
+          PYCODE
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
