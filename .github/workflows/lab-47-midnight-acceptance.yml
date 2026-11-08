@@ -54,7 +54,7 @@ jobs:
           set -euo pipefail
           dest="$RUNNER_TEMP/lab-47-midnight"
           ./mvnw -B -C test-compile failsafe:integration-test failsafe:verify \
-            -Dit.test=StandardHoursMidnightIT,StandardHoursExpiredDefaultIT,StandardHoursPublishedEventIT \
+            -Dit.test=StandardHoursMidnightIT,StandardHoursExpiredDefaultIT,StandardHoursPublishedEventIT,StandardHoursVersionIT \
             -Dspring.datasource.hikari.minimum-idle=1 -Dit.forks=1 \
             -Djacoco.skip=true -Dtest.fork.timeout=900 2>&1 | tee "$dest/failsafe.log"
       - name: Preserve Failsafe reports
