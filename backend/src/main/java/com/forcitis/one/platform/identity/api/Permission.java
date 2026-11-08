@@ -1,19 +1,22 @@
 package com.forcitis.one.platform.identity.api;
 
+import com.forcitis.one.kernel.PermissionGrantMode;
+import com.forcitis.one.organization.workforce.api.WorkforcePermissions;
+
 /** Code format (G43): {subdomain}.{bc}:{resource}:{action}, action from standard_actions in glossary/terms.yaml; use Permission.Codes in @PreAuthorize. */
 public enum Permission {
     TIMESHEET_SUBMIT(Codes.TIMESHEET_SUBMIT),
     TIMESHEET_APPROVE(Codes.TIMESHEET_APPROVE),
     PLATFORM_NUMBERING_RULE_UPDATE(Codes.PLATFORM_NUMBERING_RULE_UPDATE),
     PLATFORM_NUMBERING_RULE_READ(Codes.PLATFORM_NUMBERING_RULE_READ),
-    PLATFORM_NUMBERING_RULE_APPROVE(Codes.PLATFORM_NUMBERING_RULE_APPROVE),
-    PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE(Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE),
+    PLATFORM_NUMBERING_RULE_APPROVE(Codes.PLATFORM_NUMBERING_RULE_APPROVE, PermissionGrantMode.TWO_PERSON_INDIVIDUAL),
+    PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE(Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE, PermissionGrantMode.TWO_PERSON_INDIVIDUAL),
     PLATFORM_NUMBERING_LEGACY_NUMBER_READ(Codes.PLATFORM_NUMBERING_LEGACY_NUMBER_READ),
     PLATFORM_APPROVAL_TASK_READ(Codes.PLATFORM_APPROVAL_TASK_READ),
     PLATFORM_APPROVAL_TASK_APPROVE(Codes.PLATFORM_APPROVAL_TASK_APPROVE),
     PLATFORM_IDENTITY_ROLE_READ(Codes.PLATFORM_IDENTITY_ROLE_READ),
     PLATFORM_IDENTITY_ROLE_UPDATE(Codes.PLATFORM_IDENTITY_ROLE_UPDATE),
-    PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE(Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE),
+    PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE(Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE, PermissionGrantMode.TWO_PERSON_INDIVIDUAL),
     PLATFORM_IDENTITY_SESSION_DELETE(Codes.PLATFORM_IDENTITY_SESSION_DELETE),
     PLATFORM_IDENTITY_PERMISSION_ADJUSTMENT_READ(Codes.PLATFORM_IDENTITY_PERMISSION_ADJUSTMENT_READ),
     PLATFORM_IDENTITY_PERMISSION_ADJUSTMENT_UPDATE(Codes.PLATFORM_IDENTITY_PERMISSION_ADJUSTMENT_UPDATE),
@@ -21,8 +24,8 @@ public enum Permission {
     PLATFORM_INTEGRATION_SOURCE_REFERENCE_APPROVE(Codes.PLATFORM_INTEGRATION_SOURCE_REFERENCE_APPROVE),
     PLATFORM_FILE_FILE_CREATE(Codes.PLATFORM_FILE_FILE_CREATE),
     PLATFORM_FILE_FILE_READ(Codes.PLATFORM_FILE_FILE_READ),
-    PLATFORM_AUDIT_ENTRY_READ(Codes.PLATFORM_AUDIT_ENTRY_READ),
-    PLATFORM_AUDIT_ENTRY_EXPORT(Codes.PLATFORM_AUDIT_ENTRY_EXPORT),
+    PLATFORM_AUDIT_ENTRY_READ(Codes.PLATFORM_AUDIT_ENTRY_READ, PermissionGrantMode.TWO_PERSON_INDIVIDUAL),
+    PLATFORM_AUDIT_ENTRY_EXPORT(Codes.PLATFORM_AUDIT_ENTRY_EXPORT, PermissionGrantMode.TWO_PERSON_INDIVIDUAL),
     PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ(Codes.PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ),
     ORGANIZATION_WORKFORCE_ORG_UNIT_READ(Codes.ORGANIZATION_WORKFORCE_ORG_UNIT_READ),
     ORGANIZATION_RECRUITMENT_REQUISITION_SUBMIT(Codes.ORGANIZATION_RECRUITMENT_REQUISITION_SUBMIT),
@@ -33,7 +36,7 @@ public enum Permission {
     // Retired with the old sync (#934); kept so that old role versions still read (ADR-0034 decision 1 item 3), no longer granted.
     ORGANIZATION_WORKFORCE_SYNC_RUN_READ("organization.workforce:sync-run:read", true),
     ORGANIZATION_WORKFORCE_SYNC_RUN_EXECUTE("organization.workforce:sync-run:execute", true),
-    ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE(Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE),
+    ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE(Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE, PermissionGrantMode.TWO_PERSON_INDIVIDUAL),
     ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE(Codes.ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE),
     ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_CREATE(Codes.ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_CREATE),
     ORGANIZATION_WORKFORCE_EMPLOYEE_READ(Codes.ORGANIZATION_WORKFORCE_EMPLOYEE_READ),
@@ -45,12 +48,13 @@ public enum Permission {
     ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE(Codes.ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE),
     ORGANIZATION_ATTENDANCE_STANDARD_HOURS_PUBLISH(Codes.ORGANIZATION_ATTENDANCE_STANDARD_HOURS_PUBLISH),
     ORGANIZATION_ATTENDANCE_STANDARD_HOURS_READ(Codes.ORGANIZATION_ATTENDANCE_STANDARD_HOURS_READ),
-    ORGANIZATION_PAYROLL_BONUS_SUBMIT(Codes.ORGANIZATION_PAYROLL_BONUS_SUBMIT),
-    ORGANIZATION_PAYROLL_BONUS_UPDATE(Codes.ORGANIZATION_PAYROLL_BONUS_UPDATE),
-    ORGANIZATION_PAYROLL_BONUS_READ(Codes.ORGANIZATION_PAYROLL_BONUS_READ),
+    ORGANIZATION_PAYROLL_BONUS_SUBMIT(Codes.ORGANIZATION_PAYROLL_BONUS_SUBMIT, PermissionGrantMode.TWO_PERSON_INDIVIDUAL),
+    ORGANIZATION_PAYROLL_BONUS_UPDATE(Codes.ORGANIZATION_PAYROLL_BONUS_UPDATE, PermissionGrantMode.TWO_PERSON_INDIVIDUAL),
+    ORGANIZATION_PAYROLL_BONUS_READ(Codes.ORGANIZATION_PAYROLL_BONUS_READ, PermissionGrantMode.TWO_PERSON_INDIVIDUAL),
     ACCOUNTING_PERIOD_FISCAL_YEAR_CREATE(Codes.ACCOUNTING_PERIOD_FISCAL_YEAR_CREATE);
 
     private final String code;
+    private final PermissionGrantMode grantMode;
     /** The acceptance test DeprecatedCodeIT (role_versioning) sets this field by reflection under this name: rename it only together with that test. */
     private final boolean deprecated;
 
@@ -60,9 +64,20 @@ public enum Permission {
 
     /** A code is never removed from the catalogue (ADR-0034 decision 1 item 3): one that is no longer granted is kept and marked deprecated. */
     Permission(String code, boolean deprecated) {
+        this(code, PermissionGrantMode.INDIVIDUAL, deprecated);
+    }
+
+    Permission(String code, PermissionGrantMode grantMode) {
+        this(code, grantMode, false);
+    }
+
+    Permission(String code, PermissionGrantMode grantMode, boolean deprecated) {
         this.code = code;
+        this.grantMode = grantMode;
         this.deprecated = deprecated;
     }
+
+    public PermissionGrantMode grantMode() { return grantMode; }
 
     public String code() {
         return code;
@@ -75,12 +90,12 @@ public enum Permission {
 
     /** True when the code is in the catalogue and not deprecated: the only codes a role version may be written with or may grant. */
     public static boolean isLive(String code) {
+        // Preserve the facade's live/deprecated read semantics for stored legacy
+        // versions (including the retained DeprecatedCodeIT reflection seam).
         for (Permission permission : values()) {
-            if (permission.code.equals(code)) {
-                return !permission.deprecated;
-            }
+            if (permission.code.equals(code)) { return !permission.deprecated; }
         }
-        return false;
+        return PermissionCatalogue.fromClasspath().isLive(code);
     }
 
     public interface Codes {
@@ -106,17 +121,17 @@ public enum Permission {
         String PLATFORM_AUDIT_ENTRY_READ = "platform.audit:audit-entry:read";
         String PLATFORM_AUDIT_ENTRY_EXPORT = "platform.audit:audit-entry:export";
         String PLATFORM_AUDIT_OWN_LOGIN_RECORD_READ = "platform.audit:own-login-record:read";
-        String ORGANIZATION_WORKFORCE_ORG_UNIT_READ = "organization.workforce:org-unit:read";
+        String ORGANIZATION_WORKFORCE_ORG_UNIT_READ = WorkforcePermissions.ORG_UNIT_READ;
         String ORGANIZATION_RECRUITMENT_REQUISITION_SUBMIT = "organization.recruitment:requisition:submit";
         String ORGANIZATION_RECRUITMENT_REQUISITION_READ = "organization.recruitment:requisition:read";
         String ORGANIZATION_RECRUITMENT_REQUISITION_UPDATE = "organization.recruitment:requisition:update";
-        String ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE = "organization.workforce:separation-hold:approve";
-        String ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_CREATE = "organization.workforce:personnel-command:create";
-        String ORGANIZATION_WORKFORCE_EMPLOYEE_READ = "organization.workforce:employee:read";
-        String ORGANIZATION_WORKFORCE_ORG_STRUCTURE_COMMAND_CREATE = "organization.workforce:org-structure-command:create";
-        String ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE = "organization.workforce:legal-entity:update";
-        String ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE = "organization.workforce:legal-entity-attribution-correction:create";
-        String ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_APPROVE = "organization.workforce:legal-entity-attribution:approve";
+        String ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE = WorkforcePermissions.SEPARATION_HOLD_APPROVE;
+        String ORGANIZATION_WORKFORCE_PERSONNEL_COMMAND_CREATE = WorkforcePermissions.PERSONNEL_COMMAND_CREATE;
+        String ORGANIZATION_WORKFORCE_EMPLOYEE_READ = WorkforcePermissions.EMPLOYEE_READ;
+        String ORGANIZATION_WORKFORCE_ORG_STRUCTURE_COMMAND_CREATE = WorkforcePermissions.ORG_STRUCTURE_COMMAND_CREATE;
+        String ORGANIZATION_WORKFORCE_LEGAL_ENTITY_UPDATE = WorkforcePermissions.LEGAL_ENTITY_UPDATE;
+        String ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE = WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE;
+        String ORGANIZATION_WORKFORCE_LEGAL_ENTITY_ATTRIBUTION_APPROVE = WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_APPROVE;
         String ORGANIZATION_ATTENDANCE_WORK_CALENDAR_READ = "organization.attendance:work-calendar:read";
         String ORGANIZATION_ATTENDANCE_WORK_CALENDAR_UPDATE = "organization.attendance:work-calendar:update";
         String ORGANIZATION_ATTENDANCE_LOCKED_DAY_UPDATE = "organization.attendance:locked-day:update";

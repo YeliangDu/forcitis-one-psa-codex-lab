@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.organization.workforce.api.WorkforcePermissions;
+
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
@@ -56,7 +58,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 class AttributionCountersignService implements AttributionCountersigns {
-    static final String PERMISSION = "organization.workforce:legal-entity-attribution:approve";
+    static final String PERMISSION = WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_APPROVE;
     private static final String COMMAND = "PersonnelCommand";
 
     private final AttributionCountersignRepository countersigns;
