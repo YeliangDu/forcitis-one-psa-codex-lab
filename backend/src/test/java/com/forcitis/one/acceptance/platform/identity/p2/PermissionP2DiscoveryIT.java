@@ -89,8 +89,9 @@ class PermissionP2DiscoveryIT {
         // Test-created private config, not any production secret. Child logs/report are uploadable; this file isn't.
         try {Files.setPosixFilePermissions(config,java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"));}
         catch(UnsupportedOperationException error){throw new AssertionError("hosted POSIX private fixture required",error);}
+        String childCp=canonicalChildClasspath(output,cp);
         List<String> command=new ArrayList<>(List.of(Path.of(System.getProperty("java.home"),"bin/java").toString(),
-            "-Duser.timezone=UTC","-cp",output+File.pathSeparator+cp,PermissionP2Child.class.getName(),scenario,
+            "-Duser.timezone=UTC","-cp",childCp,PermissionP2Child.class.getName(),scenario,
             output.toString(),config.toString(),report.toString()));
         Process child=new ProcessBuilder(command).redirectErrorStream(true).redirectOutput(log.toFile()).start();
         try {
@@ -105,4 +106,18 @@ class PermissionP2DiscoveryIT {
                 .forEach(key->System.out.println("P2_SAFE_DIAGNOSTIC "+key+"="+result.getProperty(key)));
         return result;
     }
+    /** Physical de-dup only: keep fixture first and every legitimate classes/test/dependency entry. */
+    static String canonicalChildClasspath(Path fixture, String inherited) throws Exception {
+        java.util.LinkedHashSet<Path> entries=new java.util.LinkedHashSet<>();
+        entries.add(fixture.toRealPath());
+        for(String entry:inherited.split(java.util.regex.Pattern.quote(File.pathSeparator),-1)) {
+            assertTrue(!entry.isBlank() && !entry.contains("*"),"SETUP BLOCKED: ambiguous child classpath entry");
+            Path physical=Path.of(entry).toRealPath();
+            assertTrue(Files.isDirectory(physical) || Files.isRegularFile(physical),"SETUP BLOCKED: missing classpath object");
+            entries.add(physical);
+        }
+        System.out.println("P2_SAFE_DIAGNOSTIC diagnostic.childClasspathPhysicalEntries="+entries.size());
+        return entries.stream().map(Path::toString).collect(java.util.stream.Collectors.joining(File.pathSeparator));
+    }
+
 }

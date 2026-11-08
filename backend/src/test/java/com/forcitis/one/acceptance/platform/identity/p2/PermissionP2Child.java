@@ -71,6 +71,8 @@ public final class PermissionP2Child {
             try {plain=PermissionCatalogue.fromClasspath();report.setProperty("plainOk","true");}
             catch(RuntimeException|LinkageError refusal){report.setProperty("plainRefusal",refusal.getClass().getSimpleName());diagnose(report,"plain",refusal);}
 
+            if(!actorResourceEvidence(report))return; // Preserve both catalogues; block unexplained duplication.
+
             Properties supplied=new Properties();try(var stream=Files.newInputStream(config)){supplied.load(stream);}
             Set<String> connectionKeys=Set.of("spring.datasource.url", "spring.datasource.username", "spring.datasource.password",
                     "spring.flyway.url", "spring.flyway.user", "spring.flyway.password");
@@ -195,6 +197,55 @@ public final class PermissionP2Child {
             if(owner.equals("java.util.ServiceLoader"))return "SERVICE_LOADING";
         }
         return "OTHER_UNCLASSIFIED";
+    }
+
+    /** Before Spring/SystemActors init: evidence only, never drop or merge a resource. */
+    static boolean actorResourceEvidence(Properties report) throws Exception {
+        Set<String> expected=Set.of(
+                "a787507da5aa0bddbb22dd140a4b63a05b21855ca9013d8ea99bbb41887c6b83",
+                "5ba021a97f3b7b2956acfcbfe1f0e7f9274d7d09ed096748193828b5dfc21fea");
+        java.util.Map<String,Integer> digests=new TreeMap<>();
+        Set<String> names=new java.util.HashSet<>(),physicalResources=new java.util.HashSet<>();
+        int count=0,duplicates=0,duplicateNames=0;boolean shape=true;
+        var resources=PermissionP2Child.class.getClassLoader().getResources("architecture/system-actors.txt");
+        while(resources.hasMoreElements()) {
+            var url=resources.nextElement();
+            if(count>=16) {shape=false;break;}
+            String category="other-root";
+            String identity=url.toExternalForm(); // Internal comparison only; never output paths/URLs.
+            if(url.getProtocol().equals("file")) {
+                Path physical=Path.of(url.toURI()).toRealPath();identity=physical.toString();
+                String normalized=physical.toString().replace('\\','/');
+                category=normalized.contains("/target/test-classes/")?"test-output":
+                        normalized.contains("/target/classes/")?"production-output":"other-file-root";
+            } else if(url.getProtocol().equals("jar")) category="dependency-archive";
+            else shape=false;
+            if(!physicalResources.add(identity))duplicates++;
+            byte[] bytes;
+            try(var stream=url.openStream()){bytes=stream.readNBytes(1024*1024+1);}
+            if(bytes.length>1024*1024) {shape=false;break;}
+            String sha=java.util.HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes));
+            digests.merge(sha,1,Integer::sum);
+            String prefix="diagnostic.actorResource."+count++;
+            report.setProperty(prefix+".category",category);
+            report.setProperty(prefix+".sha256",sha);
+            for(String line:new String(bytes,StandardCharsets.UTF_8).split("\n")) {
+                String row=line.strip();if(row.isEmpty() || row.startsWith("#"))continue;
+                String[] fields=row.split("\\|",-1);
+                if(fields.length!=4) {shape=false;continue;}
+                if(!names.add(fields[0].strip()))duplicateNames++;
+            }
+        }
+        boolean valid=shape && count==2 && duplicates==0 && duplicateNames==0
+                && digests.keySet().equals(expected) && digests.values().stream().allMatch(n->n==1) && names.size()==66;
+        report.setProperty("diagnostic.actorResource.count",Integer.toString(count));
+        report.setProperty("diagnostic.actorResource.duplicatePhysical",Integer.toString(duplicates));
+        report.setProperty("diagnostic.actorResource.duplicateNames",Integer.toString(duplicateNames));
+        report.setProperty("diagnostic.actorResource.uniqueNames",Integer.toString(names.size()));
+        report.setProperty("diagnostic.actorResource.expectedProductionPresent",Boolean.toString(digests.containsKey("a787507da5aa0bddbb22dd140a4b63a05b21855ca9013d8ea99bbb41887c6b83")));
+        report.setProperty("diagnostic.actorResource.expectedTestPresent",Boolean.toString(digests.containsKey("5ba021a97f3b7b2956acfcbfe1f0e7f9274d7d09ed096748193828b5dfc21fea")));
+        report.setProperty("diagnostic.actorResource.valid",Boolean.toString(valid));
+        return valid;
     }
 
     static String safeType(Class<?> type) {
