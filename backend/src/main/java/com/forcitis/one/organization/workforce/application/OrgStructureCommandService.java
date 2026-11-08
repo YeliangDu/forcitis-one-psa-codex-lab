@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.organization.workforce.api.WorkforcePermissions;
+
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
@@ -55,7 +57,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 class OrgStructureCommandService implements OrgStructureCommands {
-    static final String PERMISSION = "organization.workforce:org-structure-command:create";
+    static final String PERMISSION = WorkforcePermissions.ORG_STRUCTURE_COMMAND_CREATE;
 
     private final OrgStructureCommandRepository commands;
     private final OrgPlans plans;

@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.organization.workforce.api.WorkforcePermissions;
+
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
@@ -69,7 +71,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 class PersonnelCommandService implements PersonnelCommands {
-    static final String PERMISSION = "organization.workforce:personnel-command:create";
+    static final String PERMISSION = WorkforcePermissions.PERSONNEL_COMMAND_CREATE;
     private static final String COMMAND = "PersonnelCommand";
     private static final String HOLD = "SeparationHold";
 

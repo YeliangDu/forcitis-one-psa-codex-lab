@@ -61,6 +61,11 @@
     <!-- archunit stays in the runtime: spring-modulith-core depends on it (compile) to detect modules; test scope here would strip it from the jar -->
   </dependencies>
   <build>
+    <resources>
+      <resource><directory>src/main/resources</directory></resource>
+      <resource><directory>glossary</directory><targetPath>permission-vocabulary/backend</targetPath><includes><include>terms.yaml</include><include>proposed/*.yaml</include></includes></resource>
+      <resource><directory>../docs/glossary</directory><targetPath>permission-vocabulary/official</targetPath><includes><include>terms.yaml</include><include>bcs.yaml</include></includes></resource>
+    </resources>
     <plugins>
       <!-- Start-Class is the application even though the replay command also has a main; the ZIP layout (PropertiesLauncher) lets operators run
            that command offline from the same jar with -Dloader.main (TIMESHEET_REPLAY.md). The release pipeline passes -Drevision. -->

@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.organization.workforce.api.WorkforcePermissions;
+
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.kernel.OrgUnitAccess;
@@ -10,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 class EmployeeVisibility {
-    private static final String EMPLOYEE_READ = "organization.workforce:employee:read";
+    private static final String EMPLOYEE_READ = WorkforcePermissions.EMPLOYEE_READ;
     private final OrgUnitAccess access;
     private final OrgSnapshotQueries snapshots;
 

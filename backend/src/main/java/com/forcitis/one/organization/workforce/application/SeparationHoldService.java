@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.organization.workforce.api.WorkforcePermissions;
+
 import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.EmployeeId;
@@ -29,7 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 class SeparationHoldService implements SeparationHolds {
-    static final String PERMISSION = "organization.workforce:separation-hold:approve";
+    static final String PERMISSION = WorkforcePermissions.SEPARATION_HOLD_APPROVE;
 
     private final PersonnelCommandRepository commands;
     private final SeparationHoldReview review;
