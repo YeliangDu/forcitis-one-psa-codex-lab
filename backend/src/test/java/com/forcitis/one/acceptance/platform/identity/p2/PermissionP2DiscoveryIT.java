@@ -110,7 +110,27 @@ class PermissionP2DiscoveryIT {
     static String canonicalChildClasspath(Path fixture, String inherited) throws Exception {
         java.util.LinkedHashSet<Path> entries=new java.util.LinkedHashSet<>();
         entries.add(fixture.toRealPath());
-        for(String entry:inherited.split(java.util.regex.Pattern.quote(File.pathSeparator),-1)) {
+        String[] tokens=inherited.split(java.util.regex.Pattern.quote(File.pathSeparator),-1);
+        assertTrue(tokens.length<=4096,"SETUP BLOCKED: excessive child classpath token count");
+        int empty=0,whitespace=0,wildcard=0;
+        for(String token:tokens) {
+            if(token.isEmpty())empty++;
+            else if(token.isBlank())whitespace++;
+            if(token.contains("*"))wildcard++;
+        }
+        int trailingEmptyIndex=tokens.length>0 && tokens[tokens.length-1].isEmpty()?tokens.length-1:-1;
+        boolean omitOnlyTrailingCwd=empty==1 && trailingEmptyIndex>0;
+        System.out.println("P2_SAFE_DIAGNOSTIC diagnostic.childClasspath.tokenCount="+tokens.length);
+        System.out.println("P2_SAFE_DIAGNOSTIC diagnostic.childClasspath.emptyCount="+empty);
+        System.out.println("P2_SAFE_DIAGNOSTIC diagnostic.childClasspath.whitespaceCount="+whitespace);
+        System.out.println("P2_SAFE_DIAGNOSTIC diagnostic.childClasspath.wildcardCount="+wildcard);
+        System.out.println("P2_SAFE_DIAGNOSTIC diagnostic.childClasspath.trailingEmptyIndex="+trailingEmptyIndex);
+        System.out.println("P2_SAFE_DIAGNOSTIC diagnostic.childClasspath.omittedImplicitTrailingCwd="+omitOnlyTrailingCwd);
+        assertTrue(empty==0 || omitOnlyTrailingCwd,"SETUP BLOCKED: internal/multiple empty child classpath tokens");
+        assertTrue(whitespace==0 && wildcard==0,"SETUP BLOCKED: whitespace/wildcard child classpath token");
+        int end=omitOnlyTrailingCwd?tokens.length-1:tokens.length;
+        for(int index=0;index<end;index++) {
+            String entry=tokens[index];
             assertTrue(!entry.isBlank() && !entry.contains("*"),"SETUP BLOCKED: ambiguous child classpath entry");
             Path physical=Path.of(entry).toRealPath();
             assertTrue(Files.isDirectory(physical) || Files.isRegularFile(physical),"SETUP BLOCKED: missing classpath object");
