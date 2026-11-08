@@ -56,9 +56,7 @@ def observe_release(number, queue, github, trusted):
                 return _hold("missing-or-invalid-canonical-head")
             admission = dict(present=True, numbers=numbers, heads={number: head})
             repository = github.repository()
-            if (not isinstance(repository, dict) or repository.get("full_name") != _release.REPOSITORY
-                    or repository.get("private") is not True or not _evidence._positive(repository.get("id"))):
-                return _hold("not-private-lab")
+            _evidence._repository(repository, _evidence.REPOSITORY_ID, full=True)
             repo_id = repository["id"]
             main = github.main_ref()
             base = _main_sha(main)

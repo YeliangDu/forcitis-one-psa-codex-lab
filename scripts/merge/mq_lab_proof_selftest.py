@@ -23,7 +23,7 @@ class Github:
     def __init__(self):
         self.calls = []
         self.error = None
-        self.repo = dict(id=123, full_name=SLUG, private=True)
+        self.repo = dict(id=1449415666, full_name=SLUG, private=False)
         self.pr = dict(number=15, state="open", draft=False, merged=False,
                        title="ci(lab): 统一个人仓合入队列与准确提交闸门（#14）", body="Closes #14\n\nRefs #14",
                        head=dict(sha=HEAD, ref="lab/14", repo=copy.deepcopy(self.repo)),
@@ -55,7 +55,7 @@ class Github:
         return row
 
     def run(self, run_id, event, head):
-        association_repo = dict(id=123, name="forcitis-one-psa-codex-lab", url=f"https://api.github.com/repos/{SLUG}")
+        association_repo = dict(id=1449415666, name="forcitis-one-psa-codex-lab", url=f"https://api.github.com/repos/{SLUG}")
         return dict(id=run_id, run_attempt=1, event=event, head_branch="main" if event == "push" else "lab/14",
                     path=".github/workflows/lab-pr-ci.yml", repository=copy.deepcopy(self.repo),
                     head_sha=head, status="completed", conclusion="success", created_at="2026-01-01T00:00:00Z",
@@ -105,7 +105,7 @@ class ReleaseProofAcceptanceTest(unittest.TestCase):
     def setUp(self):
         self.github = Github()
         self.intent = dict(number=15, head=HEAD, base=BASE, target="main")
-        self.approval = dict(self.intent, repo_id=123, required_reviews=["首轮", "终审"],
+        self.approval = dict(self.intent, repo_id=1449415666, required_reviews=["首轮", "终审"],
                              reviewers=copy.deepcopy(self.github.reviewers), run_id=100, run_attempt=1, mode="normal")
         self.trusted = True
         self.bootstrap = True
@@ -169,7 +169,7 @@ class ReleaseProofAcceptanceTest(unittest.TestCase):
                 self.setUp()
                 if mutation == "source": self.trusted = False
                 elif mutation == "source-nonbool": self.trusted = "true"
-                elif mutation == "foreign": self.github.repo["private"] = False
+                elif mutation == "foreign": self.github.repo["private"] = True
                 elif mutation == "head": self.github.pr["head"]["sha"] = OTHER
                 elif mutation == "reviews": self.github.review_rows = []
                 elif mutation == "dismissed":

@@ -20,7 +20,7 @@ def planner():
 
 class LabQueueEvidenceAcceptanceTest(unittest.TestCase):
     def setUp(self):
-        repo = dict(id=123, full_name=REPO, private=True)
+        repo = dict(id=1449415666, full_name=REPO, private=False)
         branch = lambda sha, ref: dict(sha=sha, ref=ref, repo=copy.deepcopy(repo))
         self.repository = repo
         self.main = dict(ref="refs/heads/main", object=dict(sha=BASE))

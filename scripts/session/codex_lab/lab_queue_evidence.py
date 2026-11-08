@@ -6,6 +6,7 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[3]
+REPOSITORY_ID = 1449415666
 
 
 def _load(name, path):
@@ -40,10 +41,24 @@ def _positive(value):
 
 
 def _repository(value, repo_id, full=False):
-    _require(isinstance(value, dict) and _positive(value.get("id"))
-             and value["id"] == repo_id, "foreign-repository-id")
+    _require(type(repo_id) is int and repo_id == REPOSITORY_ID
+             and isinstance(value, dict) and type(value.get("id")) is int
+             and value["id"] == REPOSITORY_ID, "foreign-repository-id")
     if full or "full_name" in value:
         _require(value.get("full_name") == _release.REPOSITORY, "foreign-repository-name")
+    if full or "private" in value:
+        _require(value.get("private") is False, "not-public-repository")
+    if "visibility" in value:
+        _require(value["visibility"] == "public", "inconsistent-repository-visibility")
+    if "fork" in value:
+        _require(value["fork"] is False, "fork-repository")
+    # Actions PR associations legitimately omit full_name/private. Their fixed
+    # integer ID binds the verified root; optional native hints must still agree.
+    if "name" in value:
+        _require(value["name"] == _release.REPOSITORY.split("/")[1], "foreign-repository-name")
+    if "url" in value:
+        _require(value["url"] == "https://api.github.com/repos/" + _release.REPOSITORY,
+                 "foreign-repository-url")
 
 
 def _select_run(runs, pr, repo_id):
@@ -130,9 +145,7 @@ def plan_from_github(repository, main, queue, pr, runs, jobs, artifacts, reviews
     the existing queue lock and fresh remote readback before a later action.
     """
     try:
-        _require(isinstance(repository, dict) and repository.get("full_name") == _release.REPOSITORY
-                 and repository.get("private") is True and _positive(repository.get("id")),
-                 "not-private-lab")
+        _repository(repository, REPOSITORY_ID, full=True)
         repo_id = repository["id"]
         _require(isinstance(trusted, dict) and trusted.get("workflow_verified") is True
                  and trusted.get("held") is False, "missing-trusted-entry-proof-or-held")
