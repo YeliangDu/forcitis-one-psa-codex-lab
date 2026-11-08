@@ -26,6 +26,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Run frozen branch lifecycle acceptance
+        id: frozen
         env:
           SUBJECT: ${{ github.event.pull_request.head.sha || github.sha }}
           GIT_ALLOW_PROTOCOL: file
@@ -80,6 +81,7 @@ jobs:
             2>&1 | tee "$dest/affected-queue.log"
           grep -Eq '^Ran [1-9][0-9]* tests? in ' "$dest/affected-queue.log"
       - name: Run additive V2 handoff acceptance
+        if: ${{ !cancelled() && steps.frozen.outcome == 'success' }}
         env:
           SUBJECT: ${{ github.event.pull_request.head.sha }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
