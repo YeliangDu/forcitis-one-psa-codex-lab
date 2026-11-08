@@ -270,7 +270,8 @@ jobs:
           SECRET_OUTCOME: ${{ needs.preflight.outputs.secret }}
           SHADOW_OUTCOME: ${{ needs.preflight.outputs.shadow }}
           FRONTEND_OUTCOME: ${{ needs.preflight.outputs.frontend }}
-          BACKEND_OUTCOME: ${{ steps.backend.outcome }}
+          # A failed matrix skips the artifact reconciler; record the matrix failure.
+          BACKEND_OUTCOME: ${{ needs.backend.result == 'failure' && 'failure' || steps.backend.outcome }}
           EVENT_HEAD: ${{ github.event.pull_request.head.sha }}
           EVENT_BASE: ${{ github.event.pull_request.base.sha }}
         run: |
