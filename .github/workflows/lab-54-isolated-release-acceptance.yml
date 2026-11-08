@@ -5,6 +5,8 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - scripts/session/codex_lab/lab_release_identity_acceptance.py
+      - scripts/session/codex_lab/lab54_final_identity_fixture.py
+      - scripts/session/codex_lab/lab_release_final_identity_acceptance.py
       - .github/workflows/lab-54-isolated-release-acceptance.yml
 permissions:
   contents: read
@@ -145,5 +147,25 @@ jobs:
         with:
           name: lab54-identity-${{ github.run_attempt }}
           path: ${{ runner.temp }}/lab54-identity/
+          if-no-files-found: warn
+          retention-days: 5
+      - name: Run frozen direct verifier and independent namespace negatives
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT"
+          git merge-base --is-ancestor "$BASE_SHA" "$SUBJECT"
+          d="$RUNNER_TEMP/lab54-final-identity"
+          mkdir -p "$d"
+          printf 'head=%s\nbase=%s\nrun=%s\nattempt=%s\nsource=%s\npackage_sha256=%s\n' "$SUBJECT" "$BASE_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$SOURCE" "$PACKAGE_DIGEST" > "$d/identity.txt"
+          printf '%s  %s\n' '6ceec3253d07ac42fcb7e7675cfe8725689f6a3111e91c9906a8378a14c49809' 'scripts/session/codex_lab/lab54_final_identity_fixture.py' | sha256sum -c -
+          printf '%s  %s\n' '27c4c510d3b44f8d2734d1524c6123094b81ed9fbe91331d5c4b2db89b266259' 'scripts/session/codex_lab/lab_release_final_identity_acceptance.py' | sha256sum -c -
+          verifier="$GITHUB_WORKSPACE/scripts/session/codex_lab/lab_release_statement.sh"
+          pin=eed4e4367bc5337be56d4fe2c3ce4d66f457dea78720cd34f66d13b38f36df9c
+          python3 -B scripts/session/codex_lab/lab_release_final_identity_acceptance.py --bundle "$RUNNER_TEMP/lab54-package/forcitis-one-$VERSION.tar.gz" --bundle-sha256 "$PACKAGE_DIGEST" --version "$VERSION" --verifier "$verifier" --verifier-sha256 "$pin" --namespace-verifier "$verifier" --namespace-verifier-sha256 "$pin" --evidence "$d" 2>&1 | tee "$d/test.log"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab54-final-identity-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab54-final-identity/
           if-no-files-found: warn
           retention-days: 5
