@@ -161,7 +161,7 @@ class StandardHoursMidnightIT extends AcceptanceSupport {
                 statement.setObject(1, UUID.randomUUID());statement.setObject(2, UUID.randomUUID());
                 statement.setObject(3, UUID.randomUUID());statement.setObject(4, UUID.randomUUID());
                 SQLException refused = catchThrowableOfType(SQLException.class, statement::executeUpdate);
-                assertThat(refused).as("real PG numbering trigger refuses an otherwise current-date first row").isNotNull();
+                assertThat((Throwable) refused).as("real PG numbering trigger refuses an otherwise current-date first row").isNotNull();
                 assertThat(refused.getSQLState()).isEqualTo("23514");
                 assertThat(refused.getMessage()).contains("version_number must be 1 for this scope, got 2");
                 assertThat(StandardHoursWriteDates.isDateRefusal(refused)).as("23514 alone is not date evidence").isFalse();
