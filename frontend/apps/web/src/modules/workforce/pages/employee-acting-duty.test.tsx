@@ -80,7 +80,7 @@ describe('Issue #4 employee acting duties', () => {
     expect(row).not.toHaveTextContent(COVERED);
     const headers = within(table).getAllByRole('columnheader').map((header) => header.textContent);
     const cells = within(row).getAllByRole('cell');
-    const lastDayColumn = headers.findIndex((header) => /最后/.test(header ?? ''));
+    const lastDayColumn = headers.findIndex((header) => /有效至（含当日）/.test(header ?? ''));
     expect(lastDayColumn).toBeGreaterThanOrEqual(0);
     expect(cells[lastDayColumn]?.textContent?.trim()).toMatch(/^(?:—)?$/);
     expect(server.calls.some((call) => call.url.includes(`/employees/${COVERED}`))).toBe(false);
@@ -91,7 +91,7 @@ describe('Issue #4 employee acting duties', () => {
     const table = await screen.findByRole('table', { name: '代理职务' });
     const rows = within(table).getAllByRole('row').slice(1);
     // Actions may be links to the existing command form or buttons opening it.
-    for (const name of ['提前结束', '延期']) {
+    for (const name of ['提前结束', '延长代理职务']) {
       expect(within(rows[0]).queryByText(name) !== null).toBe(authorized);
       expect(within(rows[1]).queryByText(name)).not.toBeInTheDocument();
     }
@@ -101,11 +101,11 @@ describe('Issue #4 employee acting duties', () => {
   it('shows active coverage read-only and resolves the acting person only via an authorized employee read', async () => {
     const server = setup([CREATE], [], [{ ...ACTIVE, employeeId: COVERED, coveredEmployeeId: ID, coveredEmployeeName: '张三' }]);
     // The authorized list is empty: never substitute the covered person's name for the acting person's name.
-    const line = await screen.findByText(/当前由.*代理/);
+    const line = await screen.findByText('当前有代理安排');
     expect(line).not.toHaveTextContent('张三');
     expect(line).not.toHaveTextContent(COVERED);
     expect(within(line).queryByText('提前结束')).not.toBeInTheDocument();
-    expect(within(line).queryByText('延期')).not.toBeInTheDocument();
+    expect(within(line).queryByText('延长代理职务')).not.toBeInTheDocument();
     expect(server.calls.some((call) => call.url.includes(`/covered-acting-duties/${ID}`))).toBe(true);
   });
 
@@ -120,6 +120,6 @@ describe('Issue #4 employee acting duties', () => {
     expect(line).toHaveTextContent('李四');
     expect(screen.queryByText('不应显示的过期覆盖')).not.toBeInTheDocument();
     expect(within(line).queryByText('提前结束')).not.toBeInTheDocument();
-    expect(within(line).queryByText('延期')).not.toBeInTheDocument();
+    expect(within(line).queryByText('延长代理职务')).not.toBeInTheDocument();
   });
 });

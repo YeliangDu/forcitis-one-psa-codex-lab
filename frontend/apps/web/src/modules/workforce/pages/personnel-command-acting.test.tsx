@@ -60,7 +60,7 @@ describe('Issue #4 acting command request bodies', () => {
     await userEvent.selectOptions(await screen.findByLabelText('被代理岗位'), POSITION);
     await userEvent.selectOptions(screen.getByLabelText('被代理员工'), COVERED);
     await userEvent.type(screen.getByLabelText('生效日期'), '2028-02-01');
-    await userEvent.type(screen.getByLabelText('最后一天'), '2028-02-29');
+    await userEvent.type(screen.getByLabelText('有效至（含当日）'), '2028-02-29');
     await userEvent.type(screen.getByLabelText('原因'), '代管交付');
     await submit(server, {
       commandKind: 'ACTING_START', employeeId: EMPLOYEE, effectiveDate: '2028-02-01',
@@ -92,7 +92,7 @@ describe('Issue #4 acting command request bodies', () => {
     const effectiveDate = screen.getByLabelText('生效日期');
     await userEvent.clear(effectiveDate);
     await userEvent.type(effectiveDate, today);
-    await userEvent.type(screen.getByLabelText('最后一天'), '2028-12-31');
+    await userEvent.type(screen.getByLabelText('有效至（含当日）'), '2028-12-31');
     await userEvent.type(screen.getByLabelText('原因'), '继续代管');
     await submit(server, {
       commandKind: 'ACTING_EXTEND', employeeId: EMPLOYEE, targetActingDutyId: DUTY,

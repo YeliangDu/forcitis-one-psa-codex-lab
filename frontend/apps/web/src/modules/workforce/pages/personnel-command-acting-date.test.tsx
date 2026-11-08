@@ -36,7 +36,7 @@ describe('Issue #4 acting extension business date', () => {
 
     await userEvent.selectOptions(await screen.findByLabelText('代理职务'), DUTY);
     expect(screen.getByLabelText('生效日期')).toHaveValue('2026-11-07');
-    await userEvent.type(screen.getByLabelText('最后一天'), '2027-01-31');
+    await userEvent.type(screen.getByLabelText('有效至（含当日）'), '2027-01-31');
     await userEvent.type(screen.getByLabelText('原因'), '继续代管');
 
     // 16:00 UTC is midnight in Shanghai; the UTC calendar date has not changed.
