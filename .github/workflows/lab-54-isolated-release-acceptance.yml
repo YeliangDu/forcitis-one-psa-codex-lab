@@ -139,7 +139,7 @@ jobs:
           mkdir -p "$d"
           printf 'head=%s\nbase=%s\nrun=%s\nattempt=%s\nsource=%s\n' "$SUBJECT" "$BASE_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$SOURCE" > "$d/identity.txt"
           printf '%s  %s\n' '638e235f05d3490bd48aba25fdbdf644089f86648a504908cef15a93796d381c' 'scripts/session/codex_lab/lab_release_identity_acceptance.py' | sha256sum -c -
-          python3 -I -B scripts/session/codex_lab/lab_release_identity_acceptance.py --bundle "$RUNNER_TEMP/lab54-package/forcitis-one-$VERSION.tar.gz" --bundle-sha256 "$PACKAGE_DIGEST" --version "$VERSION" --evidence "$d" 2>&1 | tee "$d/test.log"
+          python3 -I -B scripts/session/codex_lab/lab_release_identity_acceptance.py --bundle "$RUNNER_TEMP/lab54-package/forcitis-one-$VERSION.tar.gz" --bundle-sha256 "$PACKAGE_DIGEST" --version "$VERSION" --verifier "$GITHUB_WORKSPACE/scripts/session/codex_lab/lab_release_statement.sh" --verifier-sha256 "eed4e4367bc5337be56d4fe2c3ce4d66f457dea78720cd34f66d13b38f36df9c" --evidence "$d" 2>&1 | tee "$d/test.log"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
