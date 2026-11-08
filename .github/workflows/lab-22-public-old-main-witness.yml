@@ -134,3 +134,84 @@ jobs:
           name: lab-22-public-old-main-witness-77e872e8ba9661d3294d3a9337c8e5c956b70641-${{ github.run_attempt }}
           if-no-files-found: error
           path: ${{ runner.temp }}/lab-22-public-old-main-witness/
+  old-selection:
+    name: Independent old-control selection for exact PR56
+    if: github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' && toJSON(github.event.repository.id) == '1449415666' && toJSON(github.event.repository.private) == 'false'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      BASE: 77e872e8ba9661d3294d3a9337c8e5c956b70641
+      CANDIDATE: ab6abd52d1f0446526f8e6fe96a5567a7bac8ded
+      SELECTOR_BLOB: b8dfbf976d39f15fa56aa57684543e584ed97735
+      NORMATIVE_SHA256: d76b21de71645e11cd676cc6390235e7ca89ea4b0eb33b61c698bf75818d6497
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: '77e872e8ba9661d3294d3a9337c8e5c956b70641'
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Compare the actual PR and old selector with the independent lane policy
+        id: selection
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$BASE"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$BASE"
+          git fetch --no-tags origin refs/heads/codex/51-hosted-lane-selection
+          test "$(git rev-parse FETCH_HEAD)" = "$CANDIDATE"
+          dest="$RUNNER_TEMP/lab22-old-selection"
+          mkdir -m 700 "$dest"
+          python3 -I -B - "$dest" <<'PYCODE'
+          import hashlib,importlib.util,json,os,subprocess,sys
+          from pathlib import Path
+          dest=Path(sys.argv[1])
+          repo="YeliangDu/forcitis-one-psa-codex-lab"
+          old=os.environ["BASE"]
+          head=os.environ["CANDIDATE"]
+          selector=Path("scripts/session/codex_lab/lab_pr_ci.py")
+          policy=bytes.fromhex("7b0a20202262617365223a202237376538373265386261393636316433323934643361393333376338653563393536623730363431222c0a2020226261736973223a202243616e646964617465206368616e6765732070726f74656374656420706c616e6e657220616e6420616e20756e636c617373696669656420776f726b666c6f773b2072657175697265206576657279206c616e6520696e646570656e64656e746c79206f662063616e646964617465207265706f72743b206e6f204e2f41206f7220636c6173732d736b6970206578656d7074696f6e2e222c0a20202265787065637465645f6c616e6573223a207b0a20202020226261636b656e64223a20227265717569726564222c0a202020202266726f6e74656e64223a20227265717569726564222c0a20202020226c69676874223a20227265717569726564222c0a2020202022736563726574223a20227265717569726564222c0a2020202022736861646f77223a20227265717569726564220a20207d2c0a20202268656164223a202261623661626435326431663034343635323666386536666539366135353637613762616338646564222c0a2020226b696e64223a20226c616232322d696e646570656e64656e742d636f6e7365727661746976652d6c616e65732f31222c0a2020226e756d626572223a2035362c0a2020227061746873223a205b0a20202020222e6769746875622f776f726b666c6f77732f6c61622d35312d686f737465642d6c616e652d616363657074616e63652e796d6c222c0a2020202022736372697074732f73657373696f6e2f636f6465785f6c61622f6c61625f6c616e655f636f6e73756d6572735f73656c66746573742e7079222c0a2020202022736372697074732f73657373696f6e2f636f6465785f6c61622f6c61625f70725f63692e7079220a20205d2c0a20202272656c656173655f617574686f72697479223a2066616c73652c0a2020227265706f7369746f72795f6964223a20313434393431353636360a7d0a")
+          assert hashlib.sha256(policy).hexdigest()==os.environ["NORMATIVE_SHA256"]
+          expected=json.loads(policy)
+          def git(*args): return subprocess.check_output(["git",*args])
+          assert git("rev-parse","HEAD").decode().strip()==old
+          blob=git("rev-parse",old+":"+str(selector)).decode().strip()
+          assert blob==os.environ["SELECTOR_BLOB"] and selector.read_bytes()==git("show",old+":"+str(selector))
+          def get(suffix,*flags):
+              return subprocess.check_output(["gh","api",*flags,"repos/"+repo+suffix],timeout=30)
+          repository=get("")
+          pr_raw=get("/pulls/56")
+          native=json.loads(pr_raw)
+          assert native["number"]==56 and native["state"]=="open" and native["draft"]
+          assert native["base"]["sha"]==old and native["head"]["sha"]==head and native["head"]["ref"]=="codex/51-hosted-lane-selection"
+          files_raw=get("/pulls/56/files?per_page=100","--paginate","--slurp")
+          pages=json.loads(files_raw)
+          assert isinstance(pages,list) and all(isinstance(page,list) for page in pages)
+          files=[row for page in pages for row in page]
+          assert len(files)==native["changed_files"] and len({r["filename"] for r in files})==len(files)
+          paths=sorted({r[key] for r in files for key in ("filename","previous_filename") if key in r})
+          observed=sorted(x.decode() for x in git("diff","--name-only","--no-renames","-z",old,head,"--").split(b"\0") if x)
+          assert paths==observed==expected["paths"]
+          spec=importlib.util.spec_from_file_location("old_control_planner",selector)
+          module=importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(module)
+          result=module.plan({"repository":json.loads(repository),"pull_request":native},head,paths)
+          assert result["lanes"]==expected["expected_lanes"]
+          assert json.loads(get("/git/ref/heads/main"))["object"]["sha"]==old
+          final=json.loads(get("/pulls/56"))
+          assert final["head"]["sha"]==head and final["base"]["sha"]==old
+          report=dict(repository_id=1449415666,number=56,base=old,head=head,selector_commit=old,selector_blob=blob,
+                      run_id=os.environ["GITHUB_RUN_ID"],run_attempt=os.environ["GITHUB_RUN_ATTEMPT"],paths=paths,
+                      expectation_policy_sha256=os.environ["NORMATIVE_SHA256"],lanes=result["lanes"],release_authority=False)
+          for name,data in (("selection.json",(json.dumps(report,indent=2)+"\n").encode()),
+                            ("policy.json",policy),("native-pr.json",pr_raw),("native-files.json",files_raw)):
+              (dest/name).write_bytes(data)
+          PYCODE
+      - name: Upload independently selected lanes
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lab22-pr56-old-selection-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab22-old-selection/
+          if-no-files-found: error
+          retention-days: 5
