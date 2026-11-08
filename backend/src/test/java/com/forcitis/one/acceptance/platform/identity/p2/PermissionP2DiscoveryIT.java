@@ -98,6 +98,11 @@ class PermissionP2DiscoveryIT {
             assertTrue(child.exitValue()==0,"SETUP BLOCKED: child crash is not assertion red; inspect sanitized child log");
         } finally {if(child.isAlive()){child.destroyForcibly();child.waitFor(10,java.util.concurrent.TimeUnit.SECONDS);}Files.deleteIfExists(config);}
         assertTrue(Files.isRegularFile(report),"SETUP BLOCKED: child report missing");
-        Properties result=new Properties();try(var stream=Files.newInputStream(report)){result.load(stream);}return result;
+        Properties result=new Properties();try(var stream=Files.newInputStream(report)){result.load(stream);}
+        // Child generates these allowlisted class/property-name/failure-code fields;
+        // do not print arbitrary report entries, child log, configuration or values.
+        result.stringPropertyNames().stream().filter(key->key.startsWith("diagnostic.")).sorted()
+                .forEach(key->System.out.println("P2_SAFE_DIAGNOSTIC "+key+"="+result.getProperty(key)));
+        return result;
     }
 }

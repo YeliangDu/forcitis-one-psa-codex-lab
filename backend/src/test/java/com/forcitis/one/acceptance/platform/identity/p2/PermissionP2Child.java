@@ -69,7 +69,7 @@ public final class PermissionP2Child {
             report.setProperty("productionDiscoveryIncluded",Boolean.toString(discovered));
             PermissionCatalogue plain=null;
             try {plain=PermissionCatalogue.fromClasspath();report.setProperty("plainOk","true");}
-            catch(RuntimeException|LinkageError refusal){report.setProperty("plainRefusal",refusal.getClass().getSimpleName());}
+            catch(RuntimeException|LinkageError refusal){report.setProperty("plainRefusal",refusal.getClass().getSimpleName());diagnose(report,"plain",refusal);}
 
             Properties supplied=new Properties();try(var stream=Files.newInputStream(config)){supplied.load(stream);}
             Map<String,Object> properties=new TreeMap<>();supplied.forEach((key,value)->properties.put(key.toString(),value));
@@ -111,10 +111,43 @@ public final class PermissionP2Child {
                         String.join(",",new TreeSet<>(role.definition().permissionCodes()))).stripTrailing()).sorted().toList();
                     report.setProperty("baselineExact",Boolean.toString(actual.equals(frozen)&&roles.equals(resource("roles.tsv").stream().sorted().toList())));
                 }
-            } catch(RuntimeException|LinkageError refusal) {report.setProperty("springRefusal",refusal.getClass().getSimpleName());}
+            } catch(RuntimeException|LinkageError refusal) {report.setProperty("springRefusal",refusal.getClass().getSimpleName());diagnose(report,"spring",refusal);}
         } finally {
             try(var stream=Files.newOutputStream(reportPath)){report.store(stream,"P2 synthetic child results; no connection data");}
         }
+    }
+
+    /** Safe allowlisted diagnostics only: never message, stack, config or credential values. */
+    static void diagnose(Properties report, String stage, Throwable failure) {
+        report.setProperty("diagnostic.requestedWebApplicationType", "NONE");
+        Set<String> knownBeans=Set.of("permissionCatalogue", "springSecurityFilterChain", "httpSecurity", "dataSource", "flywayInitializer");
+        Set<Throwable> visited=java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        int depth=0;
+        for(Throwable cause=failure;cause!=null && depth<16 && visited.add(cause);cause=cause.getCause()) {
+            String prefix="diagnostic."+stage+"."+depth++;
+            report.setProperty(prefix+".type", safeType(cause.getClass()));
+            if(cause instanceof org.springframework.beans.factory.BeanCreationException bean) {
+                String beanName=bean.getBeanName();
+                report.setProperty(prefix+".bean",beanName!=null && knownBeans.contains(beanName)?beanName:"other-bean");
+            }
+            if(cause instanceof org.springframework.beans.factory.NoSuchBeanDefinitionException missing) {
+                Class<?> required=missing.getBeanType();
+                report.setProperty(prefix+".missingType",required==null?"not-class-addressed":safeType(required));
+            }
+            if(cause instanceof org.springframework.beans.factory.UnsatisfiedDependencyException dependency) {
+                var point=dependency.getInjectionPoint();
+                if(point!=null)report.setProperty(prefix+".injectionType",safeType(point.getDeclaredType()));
+            }
+            if(cause instanceof java.sql.SQLException sql) {
+                String state=sql.getSQLState();
+                report.setProperty(prefix+".sqlState",state!=null && state.matches("[A-Z0-9]{5}")?state:"unavailable");
+            }
+        }
+    }
+
+    static String safeType(Class<?> type) {
+        String name=type.getName();
+        return name.matches("(?:java|javax|org\\.springframework|org\\.flywaydb|org\\.postgresql|com\\.zaxxer|com\\.forcitis\\.one)(?:\\.[A-Za-z0-9_$]+)+")?name:"other-type";
     }
 
     static List<String> resource(String name) throws Exception {
