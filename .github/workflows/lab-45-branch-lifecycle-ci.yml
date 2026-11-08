@@ -1,0 +1,74 @@
+name: Lab 45 branch lifecycle hosted acceptance
+on:
+  push:
+    branches: [codex/45-branch-lifecycle]
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - scripts/session/codex_lab/lab_branch*
+      - scripts/merge/mq_lab_operator.py
+      - .github/workflows/lab-45-branch-lifecycle-ci.yml
+permissions:
+  contents: read
+jobs:
+  branch-lifecycle:
+    if: >-
+      github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      toJSON(github.event.repository.id) == '1449415666' &&
+      toJSON(github.event.repository.private) == 'false' &&
+      (github.event_name == 'push' ||
+       (github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.head.ref == 'codex/45-branch-lifecycle'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run frozen branch lifecycle acceptance
+        env:
+          SUBJECT: ${{ github.event.pull_request.head.sha || github.sha }}
+          GIT_ALLOW_PROTOCOL: file
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT"
+          dest="$RUNNER_TEMP/lab-45-branch-lifecycle"
+          mkdir -p "$dest"
+          python3 -B - "$dest/verdict.json" <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import sys
+          import unittest
+
+          root = Path("scripts/session/codex_lab")
+          entries = sorted(root.glob("*branch*lifecycle*selftest.py"))
+          assert entries, "frozen branch lifecycle test file missing"
+          suite = unittest.TestLoader().discover(str(root), pattern="*branch*lifecycle*selftest.py")
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          verdict = {
+              "head": os.environ["SUBJECT"],
+              "run": os.environ["GITHUB_RUN_ID"],
+              "attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "tests": result.testsRun,
+              "failures": [{"name": t.id(), "detail": e} for t, e in result.failures],
+              "errors": [{"name": t.id(), "detail": e} for t, e in result.errors],
+              "skipped": [t.id() for t, _ in result.skipped],
+              "expected_failures": [t.id() for t, _ in result.expectedFailures],
+              "unexpected_successes": [t.id() for t in result.unexpectedSuccesses],
+              "frozen_test_sha256": {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in entries},
+          }
+          Path(sys.argv[1]).write_text(json.dumps(verdict, indent=2) + "\n")
+          raise SystemExit(0 if result.wasSuccessful() and result.testsRun and not
+                           (result.skipped or result.expectedFailures or result.unexpectedSuccesses) else 1)
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab-45-branch-lifecycle-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab-45-branch-lifecycle/verdict.json
+          if-no-files-found: error
