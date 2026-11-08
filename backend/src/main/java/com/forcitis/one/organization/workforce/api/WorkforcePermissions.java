@@ -1,12 +1,13 @@
 package com.forcitis.one.organization.workforce.api;
 
 import com.forcitis.one.kernel.PermissionCode;
+import com.forcitis.one.kernel.PermissionContribution;
 import com.forcitis.one.kernel.PermissionDeclaration;
 import com.forcitis.one.kernel.PermissionGrantMode;
 import java.util.List;
 
 /** Workforce permission metadata; annotation strings and typed values live together. */
-public interface WorkforcePermissions {
+public interface WorkforcePermissions extends PermissionContribution {
     String ORG_UNIT_READ = "organization.workforce:org-unit:read";
     PermissionDeclaration ORG_UNIT_READ_DECLARATION = new PermissionDeclaration(new PermissionCode(ORG_UNIT_READ), PermissionGrantMode.INDIVIDUAL, false);
     String SEPARATION_HOLD_APPROVE = "organization.workforce:separation-hold:approve";
@@ -39,4 +40,11 @@ public interface WorkforcePermissions {
             ORG_RECONCILIATION_EXECUTE_DECLARATION,
             SYNC_RUN_READ_DECLARATION,
             SYNC_RUN_EXECUTE_DECLARATION);
+
+    @Override
+    default String owner() { return "organization.workforce"; }
+
+    @Override
+    default List<PermissionDeclaration> permissions() { return DECLARATIONS; }
+
 }

@@ -7,7 +7,11 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.ServiceLoader;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.lang.reflect.Modifier;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -22,11 +26,44 @@ public record PermissionCatalogue(List<PermissionDeclaration> declarations) {
         private final PermissionCatalogueProvider source = load();
 
         private static PermissionCatalogueProvider load() {
-            List<PermissionCatalogueProvider> sources = ServiceLoader.load(PermissionCatalogueProvider.class).stream().map(ServiceLoader.Provider::get).toList();
-            if (sources.size() != 1) {
-                throw new IllegalArgumentException("Exactly one permission catalogue source is required");
+            // G6 keeps infrastructure providers package-private. Read the same
+            // descriptor explicitly rather than requiring ServiceLoader's public constructor.
+            Set<String> names = new HashSet<>();
+            ClassLoader loader = PermissionCatalogueProvider.class.getClassLoader();
+            String ownerPackage = PermissionCatalogueProvider.class.getPackageName().replaceFirst("\\.api$", ".infrastructure.permissions");
+            try {
+                var resources = loader.getResources("META-INF/services/" + PermissionCatalogueProvider.class.getName());
+                while (resources.hasMoreElements()) {
+                    try (var reader = new BufferedReader(new InputStreamReader(resources.nextElement().openStream(), StandardCharsets.UTF_8))) {
+                        for (String line : reader.lines().toList()) {
+                            int comment = line.indexOf('#');
+                            String name = (comment < 0 ? line : line.substring(0, comment)).strip();
+                            if (name.isEmpty()) { continue; }
+                            if (!name.matches(java.util.regex.Pattern.quote(ownerPackage) + "\\.[A-Z][A-Za-z0-9]*")) {
+                                throw new IllegalArgumentException("Permission catalogue provider is outside its owning package");
+                            }
+                            if (!names.add(name)) { throw new IllegalArgumentException("Duplicate permission catalogue provider"); }
+                        }
+                    }
+                }
+                // Finish validating every descriptor before any provider class is loaded.
+                if (names.size() != 1) {
+                    throw new IllegalArgumentException("Exactly one permission catalogue source is required");
+                }
+                var type = Class.forName(names.iterator().next(), false, loader).asSubclass(PermissionCatalogueProvider.class);
+                if (type.isInterface() || Modifier.isAbstract(type.getModifiers())
+                        || !type.getPackageName().equals(ownerPackage) || type.getClassLoader() != loader) {
+                    throw new IllegalArgumentException("Invalid permission catalogue provider type or owner");
+                }
+                var constructor = type.getDeclaredConstructor();
+                if (!constructor.trySetAccessible()) {
+                    throw new IllegalArgumentException("Permission catalogue provider is inaccessible");
+                }
+                // This is the first operation permitted to initialize/execute the validated provider.
+                return constructor.newInstance();
+            } catch (IOException | ReflectiveOperationException | SecurityException error) {
+                throw new IllegalArgumentException("Cannot construct permission catalogue provider", error);
             }
-            return sources.getFirst();
         }
     }
 
@@ -64,6 +101,7 @@ public record PermissionCatalogue(List<PermissionDeclaration> declarations) {
             for (PermissionDeclaration entry : contribution.permissions()) {
                 String code = entry.code().value();
                 source.validate(code);
+                source.validateExisting(entry);
                 if (!code.startsWith(owner + ":") || !declared.add(code)) {
                     throw new IllegalArgumentException("Duplicate or foreign permission declaration: " + code);
                 }

@@ -22,7 +22,7 @@ import java.util.regex.Pattern;
 import org.springframework.security.access.prepost.PreAuthorize;
 
 /** Service-loaded bridge keeps the API free of internal dependencies and Spring startup. */
-public final class PermissionCatalogueSource implements PermissionCatalogueProvider {
+final class PermissionCatalogueSource implements PermissionCatalogueProvider {
     private static final Pattern AUTHORITY = Pattern.compile("has(?:Any)?Authority\\(([^)]*)\\)");
 
     private static final class Discovery {
@@ -49,7 +49,11 @@ public final class PermissionCatalogueSource implements PermissionCatalogueProvi
             if (PermissionContribution.class.isAssignableFrom(type) && !type.isInterface()
                     && !Modifier.isAbstract(type.getModifiers())) {
                 try {
-                    result.add(PermissionContribution.class.cast(type.getConstructor().newInstance()));
+                    var constructor = type.getDeclaredConstructor();
+                    if (!constructor.trySetAccessible()) {
+                        throw new IllegalArgumentException("Permission contribution is inaccessible: " + type.getName());
+                    }
+                    result.add(PermissionContribution.class.cast(constructor.newInstance()));
                 } catch (ReflectiveOperationException error) {
                     throw new IllegalArgumentException("Cannot read permission contribution: " + type.getName(), error);
                 }
@@ -61,6 +65,22 @@ public final class PermissionCatalogueSource implements PermissionCatalogueProvi
     @Override
     public void validate(String code) {
         PermissionVocabulary.validate(new PermissionCode(code));
+    }
+
+    @Override
+    public void validateExisting(PermissionDeclaration declaration) {
+        // P1 is compatibility-only. Read the retained definition directly, not
+        // the caller's legacy list, annotations, isLive() or the mixed catalogue.
+        for (Permission permission : Permission.values()) {
+            if (permission.code().equals(declaration.code().value())) {
+                if (permission.grantMode() == declaration.grantMode()
+                        && permission.deprecated() == declaration.deprecated()) {
+                    return;
+                }
+                throw new IllegalArgumentException("Contribution changes legacy permission metadata: " + permission.code());
+            }
+        }
+        throw new IllegalArgumentException("P1 contribution requires an existing exact legacy permission: " + declaration.code().value());
     }
 
     @Override
