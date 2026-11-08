@@ -27,7 +27,7 @@ trap cleanup EXIT
 cid="$(docker create --platform linux/amd64 --network bridge --entrypoint /bin/bash "$image" -ceu '
 export DEBIAN_FRONTEND=noninteractive
 mkdir -p /lab54/debs /lab54/lists /lab54/keyrings
-apt-get -o Acquire::AllowInsecureRepositories=false \
+apt-get -o Debug::Acquire::gpgv=true -o Debug::pkgAcquire::Auth=true -o Acquire::AllowInsecureRepositories=false \
   -o Acquire::AllowDowngradeToInsecureRepositories=false \
   -o APT::Get::AllowUnauthenticated=false update
 set --
@@ -63,27 +63,131 @@ python3 - "$out" "$image" "$jdk" "$jdk_sha" <<'PY'
 from pathlib import Path
 import hashlib,json,os,sys
 root=Path(sys.argv[1])
-# Record every copied link without resolving or reading its target.
-# source_root identifies the declared copy origin, not an authorized target.
-origins={"payload/lists":"/var/lib/apt/lists",
-         "payload/apt-config":"/etc/apt",
-         "payload/keyrings":"/usr/share/keyrings"}
-links=[]
+# Parse copied enabled APT declarations; do not infer signer consumption from filenames.
+import re,shlex,stat
+rings=root/"payload/keyrings"
+known={
+ "debian-archive-bookworm-automatic.gpg":"debian-archive-bookworm-automatic.pgp",
+ "debian-archive-bookworm-security-automatic.gpg":"debian-archive-bookworm-security-automatic.pgp",
+ "debian-archive-bookworm-stable.gpg":"debian-archive-bookworm-stable.pgp",
+ "debian-archive-bullseye-automatic.gpg":"debian-archive-bullseye-automatic.pgp",
+ "debian-archive-bullseye-security-automatic.gpg":"debian-archive-bullseye-security-automatic.pgp",
+ "debian-archive-bullseye-stable.gpg":"debian-archive-bullseye-stable.pgp",
+ "debian-archive-keyring.gpg":"debian-archive-keyring.pgp",
+ "debian-archive-removed-keys.gpg":"debian-archive-removed-keys.pgp",
+ "debian-archive-trixie-automatic.gpg":"debian-archive-trixie-automatic.pgp",
+ "debian-archive-trixie-security-automatic.gpg":"debian-archive-trixie-security-automatic.pgp",
+ "debian-archive-trixie-stable.gpg":"debian-archive-trixie-stable.pgp",
+}
+def regular_bytes(path,limit=16*1024*1024):
+    fd=os.open(path,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK)
+    try:
+        before=os.fstat(fd)
+        if not stat.S_ISREG(before.st_mode) or before.st_nlink!=1 or before.st_size>limit:
+            raise SystemExit("BLOCKED: unsafe regular asset "+str(path.relative_to(root)))
+        with os.fdopen(os.dup(fd),"rb") as stream:
+            raw=stream.read(limit+1)
+        after=os.fstat(fd)
+        identity=lambda s:(s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns)
+        if len(raw)!=before.st_size or identity(after)!=identity(before):
+            raise SystemExit("BLOCKED: moving/oversize asset")
+        return raw
+    finally:
+        os.close(fd)
+aliases=[]
 for p in sorted(root.rglob("*")):
-    if not p.is_symlink():
-        continue
-    relative=str(p.relative_to(root))
-    origin=next((source for prefix,source in origins.items()
-                 if relative.startswith(prefix+"/")), None)
-    links.append(dict(path=relative,target=os.readlink(p),source_root=origin,
-                      disposition="BLOCKED_PENDING_SOURCE_REVIEW"))
-if links:
-    diagnostic=dict(kind="lab54-collection-links/1",links=links,
-                    materialized=False,input_lock_created=False,
-                    installation_authority=False)
-    (root/"collection-diagnostics.json").write_text(json.dumps(diagnostic,indent=2)+"\n")
-    print(json.dumps(diagnostic),file=sys.stderr,flush=True)
-    raise SystemExit("BLOCKED: source links require independent review; no input-lock produced")
+    if p.is_symlink():
+        target=os.readlink(p)
+        if p.parent!=rings or known.get(p.name)!=target:
+            print(json.dumps(dict(path=str(p.relative_to(root)),target=target)),file=sys.stderr)
+            raise SystemExit("BLOCKED: unknown/out-of-root alias")
+        aliases.append((p,target))
+config=root/"payload/apt-config"
+source_files=([config/"sources.list"] if (config/"sources.list").exists() else [])
+source_files+=sorted((config/"sources.list.d").glob("*.sources"))
+source_files+=sorted((config/"sources.list.d").glob("*.list"))
+consumed=set()
+sources=[]
+for source in source_files:
+    raw=regular_bytes(source,1024*1024)
+    text=raw.decode("utf-8")
+    sources.append(dict(path=str(source.relative_to(root)),sha256=hashlib.sha256(raw).hexdigest()))
+    if source.suffix==".sources":
+        for paragraph in re.split(r"\n\s*\n",text):
+            fields={};last=None
+            for line in paragraph.splitlines():
+                if not line.strip() or line.lstrip().startswith("#"):
+                    continue
+                if line[0].isspace():
+                    if last is None: raise SystemExit("BLOCKED: malformed deb822 continuation")
+                    fields[last]+=" "+line.strip()
+                else:
+                    key,sep,value=line.partition(":")
+                    key=key.lower()
+                    if not sep or key in fields: raise SystemExit("BLOCKED: malformed/duplicate deb822 field")
+                    last=key;fields[key]=value.strip()
+            if not fields or fields.get("enabled","yes").lower()=="no":
+                continue
+            if any(fields.get(k,"no").lower()!="no" for k in ("trusted","allow-insecure","allow-weak","allow-downgrade-to-insecure")):
+                raise SystemExit("BLOCKED: source bypasses APT authentication")
+            if fields.get("enabled","yes").lower()!="yes" or not fields.get("signed-by"):
+                raise SystemExit("BLOCKED: unsupported implicit APT signer")
+            consumed.update(shlex.split(fields["signed-by"]))
+    else:
+        for line in text.splitlines():
+            line=line.split("#",1)[0].strip()
+            if not line: continue
+            match=re.fullmatch(r"deb(?:-src)?\s+\[([^\]]+)\]\s+\S+\s+\S+(?:\s+.*)?",line)
+            if not match: raise SystemExit("BLOCKED: unsupported legacy APT source")
+            tokens=shlex.split(match[1])
+            if any(v.split("=",1)[0] in ("trusted","allow-insecure","allow-weak","allow-downgrade-to-insecure")
+                   and not v.endswith("=no") for v in tokens):
+                raise SystemExit("BLOCKED: source bypasses APT authentication")
+            options=[v.split("=",1)[1] for v in tokens if v.startswith("signed-by=")]
+            if len(options)!=1: raise SystemExit("BLOCKED: missing/ambiguous Signed-By")
+            consumed.update(options[0].split(","))
+print(json.dumps(dict(kind="lab54-apt-signer-input/1",sources=sources,
+                      signed_by=sorted(consumed))),file=sys.stderr,flush=True)
+if not consumed:
+    raise SystemExit("BLOCKED: no explicit enabled APT signer")
+names=set()
+for value in consumed:
+    name=Path(value).name
+    if value!="/usr/share/keyrings/"+name:
+        raise SystemExit("BLOCKED: signer outside reviewed keyring root: "+value)
+    names.add(name)
+records=[]
+for p,target in aliases:
+    raw=regular_bytes(rings/target)  # O_NOFOLLOW rejects a second link or special target.
+    used=p.name in names
+    records.append(dict(path=str(p.relative_to(root)),target=target,
+                        target_sha256=hashlib.sha256(raw).hexdigest(),
+                        disposition="materialized" if used else "excluded-unused-known-alias"))
+    if os.readlink(p)!=target: raise SystemExit("BLOCKED: alias changed")
+    if used:
+        temporary=rings/(p.name+".lab54-materializing")
+        fd=os.open(temporary,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+        with os.fdopen(fd,"wb") as stream:
+            stream.write(raw);stream.flush();os.fsync(stream.fileno())
+        p.unlink()
+        os.link(temporary,p,follow_symlinks=False)  # Never overwrite a newly appeared name.
+        temporary.unlink()
+    else:
+        p.unlink()
+for p in sorted(rings.iterdir()):
+    if p.name not in names:
+        if not stat.S_ISREG(p.lstat().st_mode):
+            raise SystemExit("BLOCKED: unexpected keyring object")
+        records.append(dict(path=str(p.relative_to(root)),disposition="excluded-unused-regular"))
+        p.unlink()
+selected=[]
+for name in sorted(names):
+    p=rings/name
+    raw=regular_bytes(p)
+    selected.append(dict(source="/usr/share/keyrings/"+name,
+                         output=str(p.relative_to(root)),sha256=hashlib.sha256(raw).hexdigest()))
+(root/"keyring-provenance.json").write_text(json.dumps(
+    dict(sources=sources,selected=selected,aliases=records,installation_authority=False),indent=2)+"\n")
 files={}
 for p in sorted(root.rglob("*")):
     if p.is_symlink():
