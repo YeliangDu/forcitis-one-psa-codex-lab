@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "scope": "isolated candidate checkpoint context CLI only; not active C",
+  "B": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+  "target": "self-contained standard-library Python entry selected by separate external source SHA; copied byte-identically into synthetic Lab path and executed with unchanged argv/stdin/main semantics under fixture containment",
+  "argv": ["--checkpoint PATH", "--checkpoint-sha256 EXTERNAL_SHA256", "--expected-card INTEGER", "--expected-revision INTEGER", "--expected-role ROLE", "--expected-session FICTIONAL_ID", "--expected-cwd PHYSICAL_PATH", "--lab-root PHYSICAL_ROOT", "--base B"],
+  "stdin": "actual legacy hook fields hook_event_name/source/cwd/session_id; SessionStart source compact/resume",
+  "checkpoint": {
+    "kind": "lab-p1-authorized-checkpoint/1",
+    "exact_fields": ["kind", "card", "revision", "role", "session_id", "lab_root", "cwd", "base", "task", "next_action"],
+    "trust": "external caller-selected digest AND expected identity tuple, never a self-authorized Boolean",
+    "requirements": "owned physical non-symlink private file, bounded <=8192 bytes; exact current revision/card/role/session/B/root/cwd; actual process cwd equals authorized physical cwd under root; no old work-dispatch fallback"
+  },
+  "positive": {
+    "stdout": "hook JSON with hookSpecificOutput.hookEventName=SessionStart; additionalContext is a JSON string with exact expected fields",
+    "context_kind": "lab-p1-restored-context/1",
+    "context_fields": ["kind", "card", "revision", "role", "session_id", "cwd", "lab_root", "base", "checkpoint_sha256", "task", "next_action"],
+    "context_max_utf8_bytes": 2048,
+    "stdout_max_utf8_bytes": 4096,
+    "silence": "failure, never recovery",
+    "exit": 0
+  },
+  "refusal": "no task context and no stale task anywhere; warning in systemMessage permitted; exit0 JSON or explicit hold78 with no task context. Missing execution/containment is HOLD86, not behavioral red.",
+  "late_output_scope": "older revision overwrites approved checkpoint after pin: must refuse; no operational artifact-ingestion/native late-turn endpoint is claimed",
+  "effects": "read-only candidate execution; no processes/network/SQLite/writes/activation/canonical paths; fixture tree snapshot unchanged and no .git created",
+  "fixture_identity": "synthetic card62001/revision7, fictional session00000000-0000-4000-8000-000000006201; no live/native IDs or personal user paths",
+  "activation_authority": false
+}

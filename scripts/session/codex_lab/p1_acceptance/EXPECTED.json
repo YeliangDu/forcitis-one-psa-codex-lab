@@ -1,0 +1,30 @@
+{
+  "status": "SOURCE-DERIVED ONLY; no local execution",
+  "tests": 12,
+  "baseline_sha256": "165654142e3eade8518404715b9116bf76e715fc0abdb8cddf1a61c81a3951c3",
+  "failures": 11,
+  "errors": 0,
+  "skipped": 0,
+  "assertions": {
+    "test_p1_checkpoint.CheckpointRecoveryAcceptance.test_current_authorized_compact_restores_exact_bounded_context": "P1_CURRENT_AUTHORIZED_CHECKPOINT_NOT_RESTORED",
+    "test_p1_checkpoint.CheckpointRecoveryAcceptance.test_current_authorized_resume_restores_exact_bounded_context": "P1_CURRENT_AUTHORIZED_CHECKPOINT_NOT_RESTORED",
+    "test_p1_checkpoint.CheckpointRecoveryAcceptance.test_current_checkpoint_restores_without_legacy_dispatch_silence_is_failure": "P1_POSITIVE_SILENCE_IS_NOT_RECOVERY",
+    "test_p1_checkpoint.CheckpointRecoveryAcceptance.test_missing_checkpoint_cannot_fall_back_to_old_task": "P1_MISSING_CHECKPOINT_FELL_BACK_TO_STALE",
+    "test_p1_checkpoint.CheckpointRecoveryAcceptance.test_wrong_revision_with_valid_file_digest_is_refused": "P1_WRONG_REVISION_CONTEXT_ACCEPTED",
+    "test_p1_checkpoint.CheckpointRecoveryAcceptance.test_wrong_external_checkpoint_digest_is_refused": "P1_WRONG_CHECKPOINT_DIGEST_ACCEPTED",
+    "test_p1_checkpoint.CheckpointRecoveryAcceptance.test_wrong_checkpoint_cwd_is_refused": "P1_WRONG_CHECKPOINT_CWD_ACCEPTED",
+    "test_p1_checkpoint.CheckpointRecoveryAcceptance.test_wrong_actual_physical_cwd_is_refused": "P1_WRONG_ACTUAL_CWD_ACCEPTED",
+    "test_p1_checkpoint.CheckpointRecoveryAcceptance.test_symlink_checkpoint_is_not_physical_authority": "P1_SYMLINK_CHECKPOINT_ACCEPTED",
+    "test_p1_checkpoint.CheckpointRecoveryAcceptance.test_late_old_checkpoint_overwrite_cannot_reuse_current_pin": "P1_LATE_OUTPUT_ACCEPTED_AS_CURRENT",
+    "test_p1_checkpoint.CheckpointRecoveryAcceptance.test_oversized_task_checkpoint_is_not_silently_truncated_or_injected": "P1_OVERSIZED_CHECKPOINT_CONTEXT_ACCEPTED"
+  },
+  "positive_control": "test_non_session_start_event_does_not_restore_task",
+  "red_cause": "existing byte-identical legacy CLI executes successfully, emits old static fixture or silence instead of current checkpoint; no missing-interface/import/tool fallback",
+  "containment_precondition": "non-root, separate network namespace, only loopback and no external route; missing capability is HOLD86",
+  "candidate_green": "all12 including all3 positive recoveries, no errors/skips; unchanged frozen A and separately selected reviewed target SHA",
+  "not_proved": [
+    "actual desktop hooks/trust/permission/active C",
+    "operational use or native recovery",
+    "canonical writes or P0 completion"
+  ]
+}
