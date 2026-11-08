@@ -3,7 +3,6 @@ package com.forcitis.one.organization.leave.application;
 import com.forcitis.one.kernel.DomainException;
 import com.forcitis.one.kernel.ErrorKind;
 import com.forcitis.one.organization.leave.api.AttendanceRecordInput;
-import com.forcitis.one.organization.leave.api.ImportAttendanceRecords;
 import com.forcitis.one.organization.leave.domain.AttendanceRecordRepository;
 import com.forcitis.one.organization.workforce.api.OrgDirectory;
 import com.forcitis.one.organization.workforce.api.WorkforceError;
@@ -15,12 +14,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 /** Resolves the entire input before appending any facts, in one transaction. */
 @Service
-public class ImportAttendanceRecordsService implements ImportAttendanceRecords {
+public class ImportAttendanceRecords implements com.forcitis.one.organization.leave.api.ImportAttendanceRecords {
     private final OrgDirectory directory;
     private final AttendanceRecordRepository records;
     private final Clock clock;
 
-    ImportAttendanceRecordsService(OrgDirectory directory, AttendanceRecordRepository records, Clock clock) {
+    ImportAttendanceRecords(OrgDirectory directory, AttendanceRecordRepository records, Clock clock) {
         this.directory = directory;
         this.records = records;
         this.clock = clock;
