@@ -6,6 +6,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.BusinessDay;
+import com.forcitis.one.fixture.doubles.MutableClock;
+import java.time.ZoneOffset;
+import org.springframework.test.context.bean.override.convention.TestBean;
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
@@ -17,6 +20,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
+import java.util.function.Function;
+import javax.sql.DataSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import com.forcitis.one.acceptance.organization.attendance.StandardHoursVersionRequests.Published;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,11 +49,18 @@ import tools.jackson.databind.json.JsonMapper;
  */
 class StandardHoursVersionIT extends AcceptanceSupport {
 
-    /** The business today, read once per JVM: the database triggers use the real Asia/Shanghai date, so version dates are relative to it. */
-    private static final LocalDate TODAY = BusinessDay.today();
-
     static final TestDatabase postgres = TestPostgres.database(StandardHoursVersionIT.class, TestPostgres.MIGRATED)
             .withUrlParam("currentSchema", "platform_approval");
+
+    /** Deliberately stale JVM startup; only individual writes are calibrated to their transaction day. */
+    private static final LocalDate TODAY = StandardHoursVersionStaleFixture.capturedDay(postgres);
+
+    @TestBean(name = "acceptanceClock", methodName = "staleStartupClock")
+    MutableClock startupClock;
+
+    static MutableClock staleStartupClock() {
+        return new MutableClock(TODAY.atTime(10, 0).atZone(BusinessDay.ZONE).toInstant(), ZoneOffset.UTC);
+    }
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
@@ -62,21 +78,33 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     private static final RequestPostProcessor ORDINARY = person(33);
     private static final JsonMapper JSON = JsonMapper.builder().build();
 
+    @Autowired
+    DataSource source;
+
+    @Autowired
+    PlatformTransactionManager transactions;
+
     @BeforeEach
     void useShanghaiToday() {
         setToday(TODAY);
+        assertThat(clock).as("calibration uses the stale-startup application clock").isSameAs(startupClock);
+        assertThat(LocalDate.ofInstant(clock.instant(), BusinessDay.ZONE)).isEqualTo(TODAY);
     }
 
     @Test
     @DisplayName("默认范围首版与两个日期例外完整回读，确认人为登录用户且发布留审计")
     void defaultVersionRoundTripsAllFieldsAndAuditsPublication() throws Exception {
-        Map<String, Object> body = publication(null, TODAY);
-        body.put("dateOverrides", List.of(
-                override(TODAY.plusDays(5), 240, "Synthetic half-day schedule"),
-                override(TODAY.plusDays(6), 360, "Synthetic adjusted schedule")));
         int auditBefore = auditedActions(AUDIT_PREFIX + "published").size();
-
-        String id = publish(body, 1);
+        Published published = publish(day -> {
+            Map<String, Object> body = publication(null, day);
+            body.put("dateOverrides", List.of(
+                    override(day.plusDays(5), 240, "Synthetic half-day schedule"),
+                    override(day.plusDays(6), 360, "Synthetic adjusted schedule")));
+            return body;
+        }, 1);
+        String id = published.id();
+        Map<String, Object> body = published.postedBody();
+        LocalDate effectiveDate = published.effectiveDate();
 
         List<Map<String, Object>> found = versions(null);
         assertThat(found).as("DEFAULT contains exactly its first published version").hasSize(1);
@@ -100,8 +128,8 @@ class StandardHoursVersionIT extends AcceptanceSupport {
         assertThat(overrides).as("exactly two date overrides are returned").hasSize(2);
         assertThat(overrides).as("all override fields round trip")
                 .containsExactlyInAnyOrder(
-                        override(TODAY.plusDays(5), 240, "Synthetic half-day schedule"),
-                        override(TODAY.plusDays(6), 360, "Synthetic adjusted schedule"));
+                        override(effectiveDate.plusDays(5), 240, "Synthetic half-day schedule"),
+                        override(effectiveDate.plusDays(6), 360, "Synthetic adjusted schedule"));
         assertThat(auditedActions(AUDIT_PREFIX + "published"))
                 .as("this publication adds a published audit action regardless of audit list ordering")
                 .hasSize(auditBefore + 1).contains(AUDIT_PREFIX + "published");
@@ -111,14 +139,19 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     @DisplayName("同范围后续版本递增并倒序列出，前版关闭区间但保留生效状态与原工时")
     void successorClosesButNeverEditsPredecessorMinutes() throws Exception {
         UUID scope = newScope();
-        String firstId = publish(publication(scope, TODAY), 1);
-        Map<String, Object> secondBody = publication(scope, TODAY.plusDays(10));
-        secondBody.put("workdayMinutes", 450);
-        secondBody.put("adjustedWorkdayMinutes", 390);
-        String secondId = publish(secondBody, 2);
-        Map<String, Object> thirdBody = publication(scope, TODAY.plusDays(20));
-        thirdBody.put("workdayMinutes", 360);
-        String thirdId = publish(thirdBody, 3);
+        Published firstPublication = publish(day -> publication(scope, day), 1);
+        String firstId = firstPublication.id();
+        String secondId = publish(day -> {
+            Map<String, Object> body = publication(scope, firstPublication.effectiveDate().plusDays(10));
+            body.put("workdayMinutes", 450);
+            body.put("adjustedWorkdayMinutes", 390);
+            return body;
+        }, 2).id();
+        String thirdId = publish(day -> {
+            Map<String, Object> body = publication(scope, firstPublication.effectiveDate().plusDays(20));
+            body.put("workdayMinutes", 360);
+            return body;
+        }, 3).id();
 
         List<Map<String, Object>> found = versions(scope);
         assertThat(found).as("three successful publications are retained").hasSize(3);
@@ -135,7 +168,7 @@ class StandardHoursVersionIT extends AcceptanceSupport {
         assertThat(first.get("status")).as("closed predecessor stays IN_EFFECT").isEqualTo("IN_EFFECT");
         assertThat(first.get("workdayMinutes")).as("first version is never rewritten to successor minutes").isEqualTo(480);
         assertThat(first.get("adjustedWorkdayMinutes")).as("first adjusted minutes are immutable").isEqualTo(420);
-        assertThat(first.get("effectiveFromDate")).as("first effective date is immutable").isEqualTo(TODAY.toString());
+        assertThat(first.get("effectiveFromDate")).as("first effective date is immutable").isEqualTo(firstPublication.effectiveDate().toString());
     }
 
     @Test
@@ -147,8 +180,8 @@ class StandardHoursVersionIT extends AcceptanceSupport {
         assertThat(versions(entity)).as("a new entity scope is an empty items list").isEmpty();
         assertThat(versions(otherEntity)).as("another new entity scope is independently empty").isEmpty();
 
-        String entityId = publish(publication(entity, TODAY), 1);
-        String otherId = publish(publication(otherEntity, TODAY), 1);
+        String entityId = publish(day -> publication(entity, day), 1).id();
+        String otherId = publish(day -> publication(otherEntity, day), 1).id();
 
         List<Map<String, Object>> entityItems = versions(entity);
         assertThat(entityItems).as("entity list contains only its own version").hasSize(1);
@@ -168,11 +201,13 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     @ParameterizedTest(name = "{0}")
     @MethodSource("invalidPublications")
     @DisplayName("发布参数缺失、形状或范围错误返回400及INVALID，且范围保持为空")
-    void invalidPublicationStoresNothing(String rule, Map<String, Object> body) throws Exception {
+    void invalidPublicationStoresNothing(String rule, Function<LocalDate, Map<String, Object>> input) throws Exception {
         UUID scope = newScope();
-        body.put("legalEntityId", scope.toString());
-
-        assertError(postPublication(body, PUBLISHER), 400, "INVALID", rule);
+        assertError(rejectedPublication(day -> {
+            Map<String, Object> body = input.apply(day);
+            body.put("legalEntityId", scope.toString());
+            return body;
+        }, PUBLISHER), 400, "INVALID", rule);
 
         assertThat(versions(scope)).as(rule + ": rejected publication stores no version").isEmpty();
     }
@@ -186,11 +221,11 @@ class StandardHoursVersionIT extends AcceptanceSupport {
                 missing("basisRef is required", "basisRef"),
                 invalid("basisRef is blank", "basisRef", "   "),
                 invalid("basisRef exceeds 200 characters", "basisRef", "b".repeat(201)),
-                invalid("override minutes is zero", "dateOverrides", List.of(override(TODAY, 0, "Synthetic reason"))),
-                invalid("override minutes exceeds one day", "dateOverrides", List.of(override(TODAY, 1441, "Synthetic reason"))),
-                invalid("override reason exceeds 200 characters", "dateOverrides", List.of(override(TODAY, 240, "r".repeat(201)))),
-                invalid("override reason is empty", "dateOverrides", List.of(override(TODAY, 240, ""))),
-                invalid("override precedes effectiveFromDate", "dateOverrides", List.of(override(TODAY.minusDays(1), 240, "Synthetic reason"))),
+                invalid("override minutes is zero", "dateOverrides", day -> List.of(override(day, 0, "Synthetic reason"))),
+                invalid("override minutes exceeds one day", "dateOverrides", day -> List.of(override(day, 1441, "Synthetic reason"))),
+                invalid("override reason exceeds 200 characters", "dateOverrides", day -> List.of(override(day, 240, "r".repeat(201)))),
+                invalid("override reason is empty", "dateOverrides", day -> List.of(override(day, 240, ""))),
+                invalid("override precedes effectiveFromDate", "dateOverrides", day -> List.of(override(day.minusDays(1), 240, "Synthetic reason"))),
                 missing("effectiveFromDate is required", "effectiveFromDate"),
                 missing("workdayMinutes is required", "workdayMinutes"),
                 missing("adjustedWorkdayMinutes is required", "adjustedWorkdayMinutes"));
@@ -200,12 +235,15 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     @DisplayName("同范围起始日期等于或早于最新生效版返回409及OVERLAP，不新增或改写版本")
     void equalOrEarlierEffectiveDateOverlaps() throws Exception {
         UUID scope = newScope();
-        LocalDate latestDate = TODAY.plusDays(10);
-        publish(publication(scope, latestDate), 1);
+        Published latest = publish(day -> publication(scope, day.plusDays(10)), 1);
+        LocalDate latestDate = latest.effectiveDate();
         List<Map<String, Object>> before = versions(scope);
 
         for (LocalDate date : List.of(latestDate, latestDate.minusDays(1))) {
-            assertError(postPublication(publication(scope, date), PUBLISHER), 409, "OVERLAP", "overlap at " + date);
+            assertError(rejectedPublication(day -> {
+                assertThat(date).as("overlap input remains non-backdated").isAfterOrEqualTo(day);
+                return publication(scope, date);
+            }, PUBLISHER), 409, "OVERLAP", "overlap at " + date);
             assertThat(versions(scope)).as("overlap at " + date + " leaves the full scope unchanged").isEqualTo(before);
         }
     }
@@ -214,19 +252,20 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     @DisplayName("任何早于上海今天的生效日一律422及BACKDATED：无版本的范围、仅有已作废版本的范围，今天生效则接受")
     void noVersionMayStartBeforeShanghaiToday() throws Exception {
         UUID empty = newScope();
-        assertError(postPublication(publication(empty, TODAY.minusDays(1)), PUBLISHER), 422, "BACKDATED",
+        assertError(rejectedPublication(day -> publication(empty, day.minusDays(1)), PUBLISHER), 422, "BACKDATED",
                 "a scope with no version yet still refuses yesterday");
         assertThat(versions(empty)).as("backdated first publication stores nothing").isEmpty();
 
         UUID voided = newScope();
-        String futureId = publish(publication(voided, TODAY.plusDays(5)), 1);
-        assertStatus(voidVersion(futureId, Map.of("reason", "Synthetic cancellation"), PUBLISHER), 200, "the only version is voided");
+        Published future = publish(day -> publication(voided, day.plusDays(5)), 1);
+        String futureId = future.id();
+        assertStatus(voidFuture(future, Map.of("reason", "Synthetic cancellation"), PUBLISHER, false), 200, "the only version is voided");
         List<Map<String, Object>> before = versions(voided);
-        assertError(postPublication(publication(voided, TODAY.minusDays(1)), PUBLISHER), 422, "BACKDATED",
+        assertError(rejectedPublication(day -> publication(voided, day.minusDays(1)), PUBLISHER), 422, "BACKDATED",
                 "a scope whose versions are all voided refuses yesterday");
         assertThat(versions(voided)).as("backdated publication into an all-voided scope stores nothing").isEqualTo(before);
 
-        String todayId = publish(publication(voided, TODAY), 2);
+        String todayId = publish(day -> publication(voided, day), 2).id();
         assertThat(versions(voided)).as("today is an accepted boundary even after the voided version: the scope holds exactly the new version and the voided one, newest first")
                 .extracting(item -> item.get("standardHoursVersionId")).containsExactly(todayId, futureId);
     }
@@ -235,20 +274,20 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     @DisplayName("普通角色无发布读取作废权，发布权不蕴含读取权，读取权不允许写入且拒绝不改变数据")
     void readAndPublishPermissionsAreIndependent() throws Exception {
         UUID scope = newScope();
-        Map<String, Object> body = publication(scope, TODAY.plusDays(10));
-        assertStatus(postPublication(body, ORDINARY), 403, "ordinary role cannot publish");
-        assertStatus(postPublication(body, READER), 403, "read authority cannot publish");
+        Function<LocalDate, Map<String, Object>> input = day -> publication(scope, day.plusDays(10));
+        assertStatus(rejectedPublication(input, ORDINARY), 403, "ordinary role cannot publish");
+        assertStatus(rejectedPublication(input, READER), 403, "read authority cannot publish");
         assertThat(versions(scope)).as("refused publication calls store no versions").isEmpty();
         assertStatus(list(scope, ORDINARY), 403, "ordinary role cannot list");
         assertStatus(list(scope, PUBLISHER), 403, "publish authority does not imply read authority");
 
-        String id = publish(body, 1);
+        Published published = publish(input, 1);
         List<Map<String, Object>> before = versions(scope);
         assertThat(before).as("read-only caller can list the publisher's successful publication").hasSize(1);
         for (RequestPostProcessor caller : List.of(ORDINARY, READER)) {
-            assertStatus(voidVersion(id, Map.of("reason", "Synthetic refused cancellation"), caller), 403,
+            assertStatus(voidFuture(published, Map.of("reason", "Synthetic refused cancellation"), caller, true), 403,
                     "caller without publish authority cannot void an existing future version");
-            assertStatus(postPublication(publication(scope, TODAY.plusDays(20)), caller), 403,
+            assertStatus(rejectedPublication(day -> publication(scope, published.effectiveDate().plusDays(10)), caller), 403,
                     "caller without publish authority cannot publish a successor");
             assertThat(versions(scope)).as("refused write calls preserve the entire scope").isEqualTo(before);
         }
@@ -259,13 +298,15 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     @DisplayName("最新未来版可作废且保留VOIDED记录，前版重新开放并可在原日期发布新版本，作废留审计")
     void voidFutureLatestReopensPredecessorAndAllowsReplacement() throws Exception {
         UUID scope = newScope();
-        String firstId = publish(publication(scope, TODAY), 1);
-        LocalDate futureDate = TODAY.plusDays(10);
-        String futureId = publish(publication(scope, futureDate), 2);
+        Published firstPublication = publish(day -> publication(scope, day), 1);
+        String firstId = firstPublication.id();
+        Published future = publish(day -> publication(scope, firstPublication.effectiveDate().plusDays(10)), 2);
+        LocalDate futureDate = future.effectiveDate();
+        String futureId = future.id();
         assertThat(versions(scope).get(1).get("effectiveToDate")).as("future publication initially closes predecessor").isNotNull();
         int auditBefore = auditedActions(AUDIT_PREFIX + "voided").size();
 
-        MockHttpServletResponse response = voidVersion(futureId, Map.of("reason", "  Synthetic policy correction  "), PUBLISHER);
+        MockHttpServletResponse response = voidFuture(future, Map.of("reason", "  Synthetic policy correction  "), PUBLISHER, false);
         assertStatus(response, 200, "publisher can void the latest future version with a trimmed reason");
         assertThat((String) JsonPath.read(response.getContentAsString(), "$.standardHoursVersionId"))
                 .as("void returns the affected version identifier").isEqualTo(futureId);
@@ -279,9 +320,12 @@ class StandardHoursVersionIT extends AcceptanceSupport {
                 .as("successful void adds a voided audit action regardless of audit list ordering")
                 .hasSize(auditBefore + 1).contains(AUDIT_PREFIX + "voided");
 
-        Map<String, Object> replacement = publication(scope, futureDate);
-        replacement.put("workdayMinutes", 360);
-        String replacementId = publish(replacement, 3);
+        String replacementId = publish(day -> {
+            assertThat(futureDate).as("replacement reuses the still-future immutable voided date").isAfter(day);
+            Map<String, Object> replacement = publication(scope, futureDate);
+            replacement.put("workdayMinutes", 360);
+            return replacement;
+        }, 3).id();
         List<Map<String, Object>> afterReplacement = versions(scope);
         assertThat(afterReplacement).as("replacement adds a new row without deleting the voided history").hasSize(3);
         assertThat(afterReplacement.get(0).get("standardHoursVersionId")).as("replacement is the newest version").isEqualTo(replacementId);
@@ -303,29 +347,39 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     @ParameterizedTest(name = "{0}")
     @MethodSource("nonFutureDates")
     @DisplayName("今天开始的最新生效版不能作废，返回422及NOT_VOIDABLE且数据不变")
-    void todayAndPastVersionsCannotBeVoided(LocalDate effectiveDate) throws Exception {
+    void todayAndPastVersionsCannotBeVoided(int dayOffset) throws Exception {
         UUID scope = newScope();
-        String id = publish(publication(scope, effectiveDate), 1);
+        Published published = publish(day -> publication(scope, day.plusDays(dayOffset)), 1);
+        LocalDate effectiveDate = published.effectiveDate();
+        String id = published.id();
+        assertThat(effectiveDate).as("the single provider row publishes exactly on its request day")
+                .isEqualTo(published.requestDay());
         List<Map<String, Object>> before = versions(scope);
 
-        assertError(voidVersion(id, Map.of("reason", "Synthetic cancellation"), PUBLISHER), 422, "NOT_VOIDABLE",
+        assertError(write(true, day -> {
+            assertThat(effectiveDate).as("immutable published date is today or past at void time").isBeforeOrEqualTo(day);
+            org.slf4j.LoggerFactory.getLogger(StandardHoursVersionIT.class).info(
+                    "VERSION31_NONFUTURE_BRANCH published={} voidDay={} branch={}",
+                    effectiveDate, day, effectiveDate.equals(day) ? "TODAY" : "PAST");
+            return voidVersion(id, Map.of("reason", "Synthetic cancellation"), PUBLISHER);
+        }), 422, "NOT_VOIDABLE",
                 "effective date " + effectiveDate + " is not after Shanghai today");
         assertThat(versions(scope)).as("refused non-future void preserves every field").isEqualTo(before);
     }
 
-    private static Stream<LocalDate> nonFutureDates() {
-        return Stream.of(TODAY);
+    private static Stream<Integer> nonFutureDates() {
+        return Stream.of(0);
     }
 
     @Test
     @DisplayName("未来生效但不是本范围最新版本时不可作废，返回422及NOT_VOIDABLE")
     void futureNonLatestVersionCannotBeVoided() throws Exception {
         UUID scope = newScope();
-        String firstId = publish(publication(scope, TODAY.plusDays(1)), 1);
-        publish(publication(scope, TODAY.plusDays(2)), 2);
+        Published firstPublication = publish(day -> publication(scope, day.plusDays(10)), 1);
+        publish(day -> publication(scope, firstPublication.effectiveDate().plusDays(10)), 2);
         List<Map<String, Object>> before = versions(scope);
 
-        assertError(voidVersion(firstId, Map.of("reason", "Synthetic cancellation"), PUBLISHER), 422, "NOT_VOIDABLE",
+        assertError(voidFuture(firstPublication, Map.of("reason", "Synthetic cancellation"), PUBLISHER, true), 422, "NOT_VOIDABLE",
                 "future IN_EFFECT predecessor is not the latest version");
         assertThat(versions(scope)).as("refused non-latest void preserves both versions").isEqualTo(before);
     }
@@ -334,13 +388,13 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     @DisplayName("已作废版本不能重复作废，返回422及NOT_VOIDABLE且历史不变")
     void alreadyVoidedVersionCannotBeVoidedAgain() throws Exception {
         UUID scope = newScope();
-        String id = publish(publication(scope, TODAY.plusDays(1)), 1);
-        assertStatus(voidVersion(id, Map.of("reason", "Synthetic initial cancellation"), PUBLISHER), 200,
+        Published published = publish(day -> publication(scope, day.plusDays(10)), 1);
+        assertStatus(voidFuture(published, Map.of("reason", "Synthetic initial cancellation"), PUBLISHER, false), 200,
                 "a future first and latest version is voidable");
         List<Map<String, Object>> before = versions(scope);
         assertThat(before.get(0).get("status")).as("first void actually changes status to VOIDED").isEqualTo("VOIDED");
 
-        assertError(voidVersion(id, Map.of("reason", "Synthetic repeated cancellation"), PUBLISHER), 422, "NOT_VOIDABLE",
+        assertError(voidFuture(published, Map.of("reason", "Synthetic repeated cancellation"), PUBLISHER, true), 422, "NOT_VOIDABLE",
                 "VOIDED status disallows a second void");
         assertThat(versions(scope)).as("repeated void cannot change the retained history").isEqualTo(before);
     }
@@ -348,7 +402,7 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     @Test
     @DisplayName("作废不存在的版本返回404及NOT_FOUND")
     void unknownVersionCannotBeVoided() throws Exception {
-        assertError(voidVersion(UUID.randomUUID().toString(), Map.of("reason", "Synthetic unknown cancellation"), PUBLISHER),
+        assertError(write(true, day -> voidVersion(UUID.randomUUID().toString(), Map.of("reason", "Synthetic unknown cancellation"), PUBLISHER)),
                 404, "NOT_FOUND", "unknown standardHoursVersionId");
     }
 
@@ -357,10 +411,10 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     @DisplayName("作废理由缺失、去空白后为空或超过五百字返回400，版本保持生效")
     void invalidVoidReasonDoesNotVoid(String rule, Map<String, Object> body) throws Exception {
         UUID scope = newScope();
-        String id = publish(publication(scope, TODAY.plusDays(1)), 1);
+        Published published = publish(day -> publication(scope, day.plusDays(10)), 1);
         List<Map<String, Object>> before = versions(scope);
 
-        assertStatus(voidVersion(id, body, PUBLISHER), 400, rule);
+        assertStatus(voidFuture(published, body, PUBLISHER, true), 400, rule);
         assertThat(versions(scope)).as(rule + ": invalid void reason leaves the version unchanged").isEqualTo(before);
     }
 
@@ -376,25 +430,30 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     @DisplayName("分钟上下界及依据和例外理由二百字均可接受，未提供日期例外时返回空列表")
     void inclusivePublicationBoundsAndOptionalOverridesAreAccepted() throws Exception {
         UUID scope = newScope();
-        Map<String, Object> first = publication(scope, TODAY);
-        first.put("workdayMinutes", 1);
-        first.put("adjustedWorkdayMinutes", 1440);
-        first.put("basisRef", "b".repeat(200));
-        publish(first, 1);
+        Published firstPublication = publish(day -> {
+            Map<String, Object> first = publication(scope, day);
+            first.put("workdayMinutes", 1);
+            first.put("adjustedWorkdayMinutes", 1440);
+            first.put("basisRef", "b".repeat(200));
+            return first;
+        }, 1);
+        Map<String, Object> first = firstPublication.postedBody();
         List<Map<String, Object>> firstItems = versions(scope);
         assertThat(firstItems.get(0).get("workdayMinutes")).as("minimum ordinary minutes is inclusive").isEqualTo(1);
         assertThat(firstItems.get(0).get("adjustedWorkdayMinutes")).as("maximum adjusted minutes is inclusive").isEqualTo(1440);
         assertThat(firstItems.get(0).get("basisRef")).as("basisRef accepts exactly 200 characters").isEqualTo(first.get("basisRef"));
         assertThat(firstItems.get(0).get("dateOverrides")).as("omitted optional overrides return an empty list").isEqualTo(List.of());
 
-        Map<String, Object> second = publication(scope, TODAY.plusDays(1));
-        second.put("workdayMinutes", 1440);
-        second.put("adjustedWorkdayMinutes", 1);
         List<Map<String, Object>> overrides = List.of(
-                override(TODAY.plusDays(1), 1, "r"),
-                override(TODAY.plusDays(2), 1440, "r".repeat(200)));
-        second.put("dateOverrides", overrides);
-        publish(second, 2);
+                override(firstPublication.effectiveDate().plusDays(1), 1, "r"),
+                override(firstPublication.effectiveDate().plusDays(2), 1440, "r".repeat(200)));
+        publish(day -> {
+            Map<String, Object> second = publication(scope, firstPublication.effectiveDate().plusDays(1));
+            second.put("workdayMinutes", 1440);
+            second.put("adjustedWorkdayMinutes", 1);
+            second.put("dateOverrides", overrides);
+            return second;
+        }, 2);
         Map<String, Object> latest = versions(scope).get(0);
         assertThat(latest.get("workdayMinutes")).as("maximum ordinary minutes is inclusive").isEqualTo(1440);
         assertThat(latest.get("adjustedWorkdayMinutes")).as("minimum adjusted minutes is inclusive").isEqualTo(1);
@@ -433,23 +492,70 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     }
 
     private static Arguments invalid(String rule, String field, Object value) {
-        Map<String, Object> body = publication(null, TODAY);
-        body.put(field, value);
-        return Arguments.of(rule, body);
+        return invalid(rule, field, day -> value);
+    }
+
+    private static Arguments invalid(String rule, String field, Function<LocalDate, Object> value) {
+        Function<LocalDate, Map<String, Object>> input = day -> {
+            Map<String, Object> body = publication(null, day);
+            body.put(field, value.apply(day));
+            return body;
+        };
+        return Arguments.of(rule, input);
     }
 
     private static Arguments missing(String rule, String field) {
-        Map<String, Object> body = publication(null, TODAY);
-        body.remove(field);
-        return Arguments.of(rule, body);
+        Function<LocalDate, Map<String, Object>> input = day -> {
+            Map<String, Object> body = publication(null, day);
+            body.remove(field);
+            return body;
+        };
+        return Arguments.of(rule, input);
+    }
+
+    private <T> T write(boolean expectedRejection, StandardHoursVersionRequests.Work<T> work) {
+        return StandardHoursVersionRequests.request(source, transactions, clock, expectedRejection, day -> {
+            assertThat(TransactionSynchronizationManager.isActualTransactionActive()).isTrue();
+            assertThat(TransactionSynchronizationManager.hasResource(source)).as("same application DataSource is enlisted").isTrue();
+            assertThat(TODAY).as("forced stale startup remains earlier than every real request day").isBefore(day);
+            assertThat(LocalDate.ofInstant(clock.instant(), BusinessDay.ZONE)).isEqualTo(day);
+            return work.run(day);
+        });
+    }
+
+    private MockHttpServletResponse rejectedPublication(Function<LocalDate, Map<String, Object>> input,
+            RequestPostProcessor caller) {
+        return write(true, day -> postPublication(input.apply(day), caller));
+    }
+
+    private Published publish(Function<LocalDate, Map<String, Object>> input, int expectedNumber) throws Exception {
+        Published published = write(false, day -> {
+            Map<String, Object> body = input.apply(day);
+            return new Published(publishBody(body, expectedNumber), day, body);
+        });
+        StandardHoursVersionRequests.committed(postgres, published, expectedNumber);
+        return published;
+    }
+
+    private MockHttpServletResponse voidFuture(Published published, Map<String, Object> body,
+            RequestPostProcessor caller, boolean expectedRejection) {
+        return write(expectedRejection, day -> {
+            assertThat(published.effectiveDate()).as("this void scenario still addresses a future version").isAfter(day);
+            return voidVersion(published.id(), body, caller);
+        });
     }
 
     private MockHttpServletResponse postPublication(Map<String, Object> body, RequestPostProcessor caller) throws Exception {
-        return mvc.perform(post(VERSIONS).with(caller).with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                .content(JSON.writeValueAsString(body))).andReturn().getResponse();
+        var result = mvc.perform(post(VERSIONS).with(caller).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(JSON.writeValueAsString(body))).andReturn();
+        if (result.getResponse().getStatus() == 500) {
+            StandardHoursWriteDates.assertDatabaseDateRefusal(result, postgres);
+            StandardHoursVersionStaleFixture.confirmedInsertCause();
+        }
+        return result.getResponse();
     }
 
-    private String publish(Map<String, Object> body, int expectedNumber) throws Exception {
+    private String publishBody(Map<String, Object> body, int expectedNumber) throws Exception {
         MockHttpServletResponse response = postPublication(body, PUBLISHER);
         assertStatus(response, 200, "valid publication returns 200");
         String content = response.getContentAsString();
@@ -478,8 +584,12 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     }
 
     private MockHttpServletResponse voidVersion(String id, Map<String, Object> body, RequestPostProcessor caller) throws Exception {
-        return mvc.perform(post(VERSIONS + "/" + id + ":void").with(caller).with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                .content(JSON.writeValueAsString(body))).andReturn().getResponse();
+        var result = mvc.perform(post(VERSIONS + "/" + id + ":void").with(caller).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(JSON.writeValueAsString(body))).andReturn();
+        if (result.getResponse().getStatus() == 500) {
+            StandardHoursVersionStaleFixture.assertVoidDateRefusal(result, postgres);
+        }
+        return result.getResponse();
     }
 
     private static void assertStatus(MockHttpServletResponse response, int expected, String rule) throws Exception {
