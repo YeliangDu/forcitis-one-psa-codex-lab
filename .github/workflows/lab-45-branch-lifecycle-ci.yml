@@ -1,7 +1,5 @@
 name: Lab 45 branch lifecycle hosted acceptance
 on:
-  push:
-    branches: [codex/45-branch-lifecycle]
   pull_request:
     types: [opened, synchronize, reopened]
     branches: [main]
@@ -17,9 +15,8 @@ jobs:
       github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
       toJSON(github.event.repository.id) == '1449415666' &&
       toJSON(github.event.repository.private) == 'false' &&
-      (github.event_name == 'push' ||
-       (github.event.pull_request.head.repo.full_name == github.repository &&
-        github.event.pull_request.head.ref == 'codex/45-branch-lifecycle'))
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'codex/45-branch-lifecycle'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -82,6 +79,36 @@ jobs:
           python3 -B -m unittest discover -s scripts/merge -p 'mq_lab_*selftest.py' -v \
             2>&1 | tee "$dest/affected-queue.log"
           grep -Eq '^Ran [1-9][0-9]* tests? in ' "$dest/affected-queue.log"
+      - name: Run additive V2 handoff acceptance
+        env:
+          SUBJECT: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GIT_ALLOW_PROTOCOL: file
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT"
+          git merge-base --is-ancestor "$BASE_SHA" "$SUBJECT"
+          dest="$RUNNER_TEMP/lab-45-branch-lifecycle"
+          python3 -B - "$dest/v2-verdict.json" <<'PY'
+          import hashlib, json, os, sys, unittest
+          from pathlib import Path
+          root = Path("scripts/session/codex_lab")
+          name = "lab_branch_handoff_v2_selftest.py"
+          assert hashlib.sha256((root / name).read_bytes()).hexdigest() == "4dbffa666495a1aeaf433fc4a06c36752cf4ffe46d118e5b8a5a770b6a3180bc"
+          suite = unittest.TestLoader().discover(str(root), pattern=name)
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          report = dict(head=os.environ["SUBJECT"], base=os.environ["BASE_SHA"],
+                        run=os.environ["GITHUB_RUN_ID"], attempt=os.environ["GITHUB_RUN_ATTEMPT"],
+                        tests=result.testsRun,
+                        failures=[dict(name=t.id(), detail=err) for t,err in result.failures],
+                        errors=[dict(name=t.id(), detail=err) for t,err in result.errors],
+                        skipped=[t.id() for t,_ in result.skipped],
+                        expected_failures=[t.id() for t,_ in result.expectedFailures],
+                        unexpected_successes=[t.id() for t in result.unexpectedSuccesses])
+          Path(sys.argv[1]).write_text(json.dumps(report, indent=2) + "\n")
+          raise SystemExit(0 if result.testsRun == 6 and result.wasSuccessful()
+                           and not (result.skipped or result.expectedFailures or result.unexpectedSuccesses) else 1)
+          PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
