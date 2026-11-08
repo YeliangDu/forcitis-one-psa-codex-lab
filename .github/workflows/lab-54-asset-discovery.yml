@@ -1,0 +1,49 @@
+name: Lab 54 isolated installation asset discovery
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - scripts/session/codex_lab/lab54_discover_assets.py
+      - .github/workflows/lab-54-asset-discovery.yml
+permissions:
+  contents: read
+jobs:
+  discover:
+    if: >-
+      github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      toJSON(github.event.repository.id) == '1449415666' &&
+      toJSON(github.event.repository.private) == 'false' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'codex/54-isolated-release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      SUBJECT: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Discover immutable base and pinned JDK without starting services
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT"
+          git merge-base --is-ancestor "$BASE_SHA" "$SUBJECT"
+          d="$RUNNER_TEMP/lab54-assets-evidence"
+          mkdir -p "$d"
+          printf 'head=%s\nbase=%s\nrun=%s\nattempt=%s\n' "$SUBJECT" "$BASE_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > "$d/identity.txt"
+          printf '%s  %s\n' '1d60fa3b2200c9c398e8349e981024a144319aee20e779cbcee7d1bbed19c172' 'scripts/session/codex_lab/lab54_discover_assets.py' | sha256sum -c -
+          python3 -I -B scripts/session/codex_lab/lab54_discover_assets.py --out "$RUNNER_TEMP/lab54-assets" 2>&1 | tee "$d/runner.log"
+          for file in discovery.json inventory.log image-inspect.json pull.log probe-argv.json; do
+            cp "$RUNNER_TEMP/lab54-assets/$file" "$d/"
+          done
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab54-discovery-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab54-assets-evidence/
+          if-no-files-found: warn
+          retention-days: 5
