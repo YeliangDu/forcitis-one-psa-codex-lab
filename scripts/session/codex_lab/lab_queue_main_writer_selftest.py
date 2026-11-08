@@ -34,7 +34,7 @@ class MainWriterAcceptanceTest(unittest.TestCase):
         self.parents = BASE + " " + HEAD
         self.stale_at_boundary = None
         self.origin = f"git@github.com:{SLUG}.git"
-        repo = dict(id=123, full_name=SLUG, private=True)
+        repo = dict(id=1449415666, full_name=SLUG, private=False)
         self.payload = {
             "": repo,
             "pulls/14": dict(number=14, state="open", merged=False, draft=False,
