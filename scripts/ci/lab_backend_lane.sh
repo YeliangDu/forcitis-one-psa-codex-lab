@@ -34,7 +34,10 @@ else
     ./mvnw -B -C surefire:test -Dtest.forks=1 -Djacoco.skip=true -Dtest.fork.timeout=1500 \
       2>&1 | tee "$output/surefire.log"
   else
+    # Cached Spring contexts share a PostgreSQL instance in this hosted fork.
+    # Keep fewer idle connections without capping concurrent transactions.
     ./mvnw -B -C failsafe:integration-test failsafe:verify "-Dit.test=$selector" \
+      -Dspring.datasource.hikari.minimum-idle=1 \
       -Dit.forks=1 -Djacoco.skip=true -Dtest.fork.timeout=2700 2>&1 | tee "$output/failsafe.log"
   fi
 fi
