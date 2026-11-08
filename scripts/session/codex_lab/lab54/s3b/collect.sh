@@ -43,6 +43,24 @@ cp /var/cache/apt/archives/*.deb /lab54/debs/
 cp -a /var/lib/apt/lists/. /lab54/lists/
 cp -a /etc/apt /lab54/apt-config
 cp -a /usr/share/keyrings/. /lab54/keyrings/
+# Exact PGDG signer only; never traverse/copy its containing directory.
+for parent in /usr /usr/local /usr/local/share /usr/local/share/keyrings; do
+  test -d "$parent" && test ! -L "$parent"
+done
+pgdg=/usr/local/share/keyrings/postgres.gpg.asc
+test -f "$pgdg" && test ! -L "$pgdg"
+test "$(stat -c %h "$pgdg")" = 1
+size="$(stat -c %s "$pgdg")"
+test "$size" -gt 0 && test "$size" -le 16777216
+before="$(stat -c "%d:%i:%h:%s:%y:%z" "$pgdg")"
+dd if="$pgdg" of=/lab54/keyrings/postgres.gpg.asc \
+  iflag=nofollow,nonblock bs=1M count=17 status=none
+test ! -L "$pgdg" && test -f "$pgdg"
+test "$before" = "$(stat -c "%d:%i:%h:%s:%y:%z" "$pgdg")"
+test "$(stat -c %s /lab54/keyrings/postgres.gpg.asc)" = "$size"
+sha256sum "$pgdg" > /lab54/pgdg-keyring.source.sha256
+test "$(sha256sum "$pgdg" | cut -d" " -f1)" = "$(sha256sum /lab54/keyrings/postgres.gpg.asc | cut -d" " -f1)"
+test "$before" = "$(stat -c "%d:%i:%h:%s:%y:%z" "$pgdg")"
 dpkg-query -W > /lab54/base-packages.tsv
 : > /lab54/debs.tsv
 for file in /lab54/debs/*.deb; do
@@ -148,32 +166,27 @@ for source in source_files:
             consumed.update(options[0].split(","))
 print(json.dumps(dict(kind="lab54-apt-signer-input/1",sources=sources,
                       signed_by=sorted(consumed))),file=sys.stderr,flush=True)
-if not consumed:
-    raise SystemExit("BLOCKED: no explicit enabled APT signer")
-names=set()
-for value in consumed:
-    name=Path(value).name
-    if value!="/usr/share/keyrings/"+name:
-        raise SystemExit("BLOCKED: signer outside reviewed keyring root: "+value)
-    names.add(name)
+expected_sources={
+ "payload/apt-config/sources.list.d/debian.sources":"3a246d4d7ba0856ce89d8c4221f00bfd135753f85d08027e9a961521a94b339a",
+ "payload/apt-config/sources.list.d/pgdg.list":"27cd4b66d8ec88e8cd001bd1f555082b4e7fc7560f29d80f928fd0db30113d99",
+}
+allowed={
+ "/usr/share/keyrings/debian-archive-keyring.pgp":"debian-archive-keyring.pgp",
+ "/usr/local/share/keyrings/postgres.gpg.asc":"postgres.gpg.asc",
+}
+if {s["path"]:s["sha256"] for s in sources}!=expected_sources:
+    raise SystemExit("BLOCKED: APT source declarations differ from hosted evidence")
+if consumed!=set(allowed):
+    raise SystemExit("BLOCKED: Signed-By differs from the two exact reviewed files")
+names=set(allowed.values())
 records=[]
 for p,target in aliases:
-    raw=regular_bytes(rings/target)  # O_NOFOLLOW rejects a second link or special target.
-    used=p.name in names
+    # All eleven reviewed aliases are unused: record/exclude, never read a target.
+    if p.name in names or os.readlink(p)!=target:
+        raise SystemExit("BLOCKED: alias unexpectedly consumed or changed")
     records.append(dict(path=str(p.relative_to(root)),target=target,
-                        target_sha256=hashlib.sha256(raw).hexdigest(),
-                        disposition="materialized" if used else "excluded-unused-known-alias"))
-    if os.readlink(p)!=target: raise SystemExit("BLOCKED: alias changed")
-    if used:
-        temporary=rings/(p.name+".lab54-materializing")
-        fd=os.open(temporary,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
-        with os.fdopen(fd,"wb") as stream:
-            stream.write(raw);stream.flush();os.fsync(stream.fileno())
-        p.unlink()
-        os.link(temporary,p,follow_symlinks=False)  # Never overwrite a newly appeared name.
-        temporary.unlink()
-    else:
-        p.unlink()
+                        disposition="excluded-unused-known-alias"))
+    p.unlink()
 for p in sorted(rings.iterdir()):
     if p.name not in names:
         if not stat.S_ISREG(p.lstat().st_mode):
@@ -181,13 +194,20 @@ for p in sorted(rings.iterdir()):
         records.append(dict(path=str(p.relative_to(root)),disposition="excluded-unused-regular"))
         p.unlink()
 selected=[]
-for name in sorted(names):
+for source,name in sorted(allowed.items()):
     p=rings/name
     raw=regular_bytes(p)
-    selected.append(dict(source="/usr/share/keyrings/"+name,
-                         output=str(p.relative_to(root)),sha256=hashlib.sha256(raw).hexdigest()))
+    selected.append(dict(source=source,output=str(p.relative_to(root)),
+                         sha256=hashlib.sha256(raw).hexdigest()))
+pgdg_pin=regular_bytes(root/"payload/pgdg-keyring.source.sha256").decode("ascii").strip()
+pgdg_hash=next(s["sha256"] for s in selected if s["source"].startswith("/usr/local/"))
+if pgdg_pin!=pgdg_hash+"  /usr/local/share/keyrings/postgres.gpg.asc":
+    raise SystemExit("BLOCKED: PGDG source/sample bytes differ")
 (root/"keyring-provenance.json").write_text(json.dumps(
-    dict(sources=sources,selected=selected,aliases=records,installation_authority=False),indent=2)+"\n")
+    dict(sources=sources,selected=selected,aliases=records,
+         base_image=sys.argv[2],
+         apt_auth_log_sha256=hashlib.sha256(regular_bytes(root/"payload/collection.log")).hexdigest(),
+         installation_authority=False),indent=2)+"\n")
 files={}
 for p in sorted(root.rglob("*")):
     if p.is_symlink():
