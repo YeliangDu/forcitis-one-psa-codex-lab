@@ -204,14 +204,26 @@ BEGIN
               AND a.attidentity = '' AND a.attgenerated = ''
               AND a.attacl IS NULL
         )
+        -- PostgreSQL 18 stores the column NOT NULL as a separate constraint.
+        -- Require exactly one local NOT NULL and one primary key on fact_id.
         OR (SELECT count(*) FROM pg_catalog.pg_constraint k
-            WHERE k.conrelid = members) <> 1
+            WHERE k.conrelid = members) <> 2
+        OR NOT EXISTS (
+            SELECT 1 FROM pg_catalog.pg_constraint k
+            WHERE k.conrelid = members AND k.contype = 'n'
+              AND k.conkey = ARRAY[1]::smallint[]
+              AND k.convalidated AND NOT k.condeferrable
+              AND NOT k.condeferred AND k.conislocal
+              AND k.coninhcount = 0 AND k.conparentid = 0
+        )
         OR NOT EXISTS (
             SELECT 1 FROM pg_catalog.pg_constraint k
             JOIN pg_catalog.pg_index i ON i.indexrelid = k.conindid
             WHERE k.conrelid = members AND k.contype = 'p'
               AND k.conkey = ARRAY[1]::smallint[]
               AND k.convalidated AND NOT k.condeferrable
+              AND NOT k.condeferred AND k.conislocal
+              AND k.coninhcount = 0 AND k.conparentid = 0
               AND i.indrelid = members AND i.indisprimary
               AND i.indisunique AND i.indisvalid
               AND i.indexprs IS NULL AND i.indpred IS NULL
