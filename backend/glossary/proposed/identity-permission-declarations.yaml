@@ -1,18 +1,4 @@
 terms:
-- id: p1_permission_code
-  zh: 权限码
-  en: PermissionCode
-  snake: permission_code
-  kind: value_object
-  bc: kernel
-  scope: kernel
-  used_by: [platform.identity, organization.workforce]
-  definition: ADR-0091 P1 权限声明与混合目录的内部技术用语，不改变授予政策
-  standard_ref: [docs/adr/ADR-0091.md]
-  confidence: low
-  aliases: []
-  forbidden: []
-  status: proposed
 - id: p1_permission_grant_mode
   zh: 权限授予方式
   en: PermissionGrantMode
@@ -94,3 +80,47 @@ terms:
   aliases: []
   forbidden: []
   status: proposed
+- id: p1_individual_permission_grant
+  zh: 逐人授予
+  en: IndividualPermissionGrant
+  snake: individual_permission_grant
+  kind: value_object
+  bc: kernel
+  scope: kernel
+  used_by: [platform.identity, organization.workforce]
+  definition: 只能逐人授予并即时生效的既有授予方式 INDIVIDUAL；仅登记 ADR-0032 术语，不增加授予渠道
+  standard_ref: [docs/adr/ADR-0032.md, docs/adr/ADR-0091.md]
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 仅供内部代码术语检查，不裁决用户界面文案或角色受众
+- id: p1_two_person_individual_permission_grant
+  zh: 双人逐人授予
+  en: TwoPersonIndividualPermissionGrant
+  snake: two_person_individual_permission_grant
+  kind: value_object
+  bc: kernel
+  scope: kernel
+  used_by: [platform.identity, organization.workforce]
+  definition: 只能逐人授予且授予与收回须第二人确认的既有授予方式 TWO_PERSON_INDIVIDUAL；保持现有敏感范围
+  standard_ref: [docs/adr/ADR-0032.md, docs/adr/ADR-0091.md]
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 仅供内部代码术语检查，不裁决用户界面文案或角色受众
+- id: p1_validate_existing_permission_declaration
+  zh: 校验既有权限声明
+  en: ValidateExistingPermissionDeclaration
+  snake: validate_existing_permission_declaration
+  kind: command
+  bc: platform.identity
+  scope: domain
+  definition: P1 内部技术校验：贡献项必须匹配既有 Permission 定义的完整权限码、授予方式和停用状态；不是新增权限登记或授予操作
+  standard_ref: [docs/adr/ADR-0032.md, docs/adr/ADR-0091.md]
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 仅供内部代码术语检查，不裁决用户界面文案或角色受众
