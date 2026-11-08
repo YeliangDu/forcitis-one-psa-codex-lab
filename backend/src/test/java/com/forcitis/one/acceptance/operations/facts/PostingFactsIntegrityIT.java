@@ -60,7 +60,7 @@ class PostingFactsIntegrityIT {
     void balanced(Connection db,Fact fact,String key) throws Exception {line(db,fact,key,1,"DEBIT","12.34","CNY");line(db,fact,key,2,"CREDIT","12.34","CNY");}
     void rejected(Sql operation) {
         SQLException failure=catchThrowableOfType(operation::run,SQLException.class);
-        assertThat(failure).as("database must reject signed invariant, not accept or fail with SQL syntax/transport error").isNotNull();
+        assertThat((Throwable) failure).as("database must reject signed invariant, not accept or fail with SQL syntax/transport error").isNotNull();
         assertThat(failure.getSQLState()).matches("23[A-Z0-9]{3}|P0001");
     }
     long count(Connection db,String table,UUID fact) throws Exception {
