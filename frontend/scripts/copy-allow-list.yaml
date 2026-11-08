@@ -111,6 +111,10 @@ words:
   - 操作
   - 支持
   - 配置
+  # Sentence composition only; acting-duty business labels remain in the glossary.
+  - 当前由
+  - 当前有
+  - 安排
   # states and results
   - 加载
   - 加载中

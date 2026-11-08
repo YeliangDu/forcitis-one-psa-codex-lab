@@ -5,6 +5,7 @@ import { QueryBoundary } from '../../../shared/query-boundary';
 import { useEmployee } from '../hooks/use-workforce';
 import { ASSIGNMENT_KIND_LABELS, employmentStatusLabel, type EmployeeDetail } from '../model/employee';
 import { PrimaryAssignmentHistorySection } from './primary-assignment-history-section';
+import { EmployeeActingDutySection } from './employee-acting-duty-section';
 import { employeeCommandsPath, newPersonnelCommandPath } from '../model/personnel-command';
 
 type Assignment = EmployeeDetail['assignments'][number];
@@ -39,6 +40,7 @@ export function EmployeeDetailPage() {
               <RouterLink to={newPersonnelCommandPath(employeeId)}>发起人事命令</RouterLink>
             </p>
             <DataTable columns={ASSIGNMENT_COLUMNS} rows={detail.assignments} rowKey={(assignment) => `${assignment.assignmentKind}:${assignment.orgUnitId}:${assignment.positionId ?? ''}`} emptyText="暂无任职" />
+            <EmployeeActingDutySection employeeId={employeeId} />
             <PrimaryAssignmentHistorySection employeeId={employeeId} />
           </>
         );
