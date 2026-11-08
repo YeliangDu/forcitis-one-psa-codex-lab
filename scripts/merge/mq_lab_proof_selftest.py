@@ -19,6 +19,66 @@ def verifier():
     return module.verify_intent
 
 
+HISTORICAL_METHOD = "test_bootstrap_only_fixed_pr_base_missing_health_and_explicit_attestation"
+
+
+HISTORICAL_COMMIT = "15511fad03b8d2ae38e3a337f24556bd9d9071c6"
+HISTORICAL_SHA256 = {'policy.json': '7646b02a838aa5f144142ffc97d5c338d836df2112eb0884c20d80d50974174d', 'scripts/merge/issue_gate.py': 'de6d29c69c0268c4014f987abdda7b5e441559bdfe9b01b14586f3791cc17ef9', 'scripts/merge/mq_lab_proof.py': 'a5e3b9de870d5ee49cc1856f7b74d36ac1351ce6af9a0613645119e91a7f5dee', 'scripts/merge/mq_lab_proof_selftest.py': '3950f7a3c0fc96f2564f7f4b0045edf52e848c5f9b4d11dd89512d750b1a3064', 'scripts/merge/post_review.py': 'e7d212a266a72ae5a5352dc439968062dcab4068a43d1224e0af07c05886b863', 'scripts/session/codex_lab/lab_main_health.py': 'd1b1be8f49a4b2017bd7d8e9e021631702cea1b3da7efdb9f90e30341eaea845', 'scripts/session/codex_lab/lab_queue_evidence.py': '658d1aec849d1f844d5dbb72e4ddcdc7abf60e615d26b07ea3078d5e6977c22b', 'scripts/session/codex_lab/lab_queue_release.py': '719a22654b5ec42034550dc18f46305826de036aea29cf74bfc8cca32283ec36'}
+
+
+def historical_material(owner):
+    """Read exact old objects from this physical Lab checkout, never fetch."""
+    import hashlib
+    import subprocess
+    import tempfile
+    checkout = Path(__file__).resolve().parents[2]
+    if checkout.name != "forcitis-one-psa-codex-lab" or not (checkout / ".git").exists():
+        raise AssertionError("HISTORICAL_CURRENT_PHYSICAL_LAB_REQUIRED")
+    payloads = {}
+    # Literal allowlist and byte digests are owned by this test, not event input.
+    for name, digest in HISTORICAL_SHA256.items():
+        try:
+            result = subprocess.run(
+                ["git", "--no-replace-objects", "-C", str(checkout), "show",
+                 HISTORICAL_COMMIT + ":" + name],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30, check=False)
+        except (OSError, subprocess.TimeoutExpired) as error:
+            raise AssertionError("HISTORICAL_OBJECT_READ_UNAVAILABLE: " + name) from error
+        if result.returncode != 0:
+            raise AssertionError("HISTORICAL_OBJECT_MISSING: " + name)
+        if hashlib.sha256(result.stdout).hexdigest() != digest:
+            raise AssertionError("HISTORICAL_OBJECT_BYTES_CHANGED: " + name)
+        payloads[name] = result.stdout
+    temporary = tempfile.TemporaryDirectory(prefix="historical-private-policy-")
+    owner.addCleanup(temporary.cleanup)
+    root = Path(temporary.name)
+    for name, data in payloads.items():
+        destination = root / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(data)
+        if hashlib.sha256(destination.read_bytes()).hexdigest() != HISTORICAL_SHA256[name]:
+            raise AssertionError("HISTORICAL_MATERIALIZED_BYTES_CHANGED: " + name)
+    import sys
+    before = sys.path[:]
+    prior_issue = sys.modules.pop("issue_gate", None)
+    try:
+        sys.path.insert(0, str(root / "scripts/merge"))
+        def read_module(name, path):
+            spec = importlib.util.spec_from_file_location(name, path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        proof = read_module("frozen_private_proof", root / "scripts/merge/mq_lab_proof.py")
+        fixture = read_module("frozen_private_fixture", root / "scripts/merge/mq_lab_proof_selftest.py")
+        return proof.verify_intent, fixture.Github
+    finally:
+        sys.path[:] = before
+        sys.modules.pop("issue_gate", None)
+        if prior_issue is not None:
+            sys.modules["issue_gate"] = prior_issue
+
+
+
 class Github:
     def __init__(self):
         self.calls = []
@@ -103,9 +163,15 @@ class Github:
 
 class ReleaseProofAcceptanceTest(unittest.TestCase):
     def setUp(self):
-        self.github = Github()
+        self._historical = self._testMethodName == HISTORICAL_METHOD
+        self._historical_verifier = None
+        if self._historical:
+            self._historical_verifier, fixture_type = historical_material(self)
+            self.github = fixture_type()
+        else:
+            self.github = Github()
         self.intent = dict(number=15, head=HEAD, base=BASE, target="main")
-        self.approval = dict(self.intent, repo_id=1449415666, required_reviews=["首轮", "终审"],
+        self.approval = dict(self.intent, repo_id=123 if self._historical else 1449415666, required_reviews=["首轮", "终审"],
                              reviewers=copy.deepcopy(self.github.reviewers), run_id=100, run_attempt=1, mode="normal")
         self.trusted = True
         self.bootstrap = True
@@ -116,7 +182,8 @@ class ReleaseProofAcceptanceTest(unittest.TestCase):
         def bootstrap(intent, approval):
             self.bootstrap_calls.append((copy.deepcopy(intent), copy.deepcopy(approval)))
             return self.bootstrap
-        result = verifier()(copy.deepcopy(self.intent), copy.deepcopy(self.approval), self.github, source, bootstrap)
+        selected_verifier = self._historical_verifier if self._historical else verifier()
+        result = selected_verifier(copy.deepcopy(self.intent), copy.deepcopy(self.approval), self.github, source, bootstrap)
         self.assertTrue(result["reason"])
         return result
 
@@ -162,6 +229,25 @@ class ReleaseProofAcceptanceTest(unittest.TestCase):
                 elif mutation == "wrong-base": self.approval["base"] = OTHER
                 else: self.bootstrap = False
                 self.assertEqual("hold", self.check()["action"])
+
+    def test_current_public_verifier_refuses_historical_bootstrap_before_callbacks(self):
+        self.assertFalse(self._historical)
+        self.approval["mode"] = "bootstrap"
+        self.github.health_state = "missing"
+        source_calls, bootstrap_calls = [], []
+        def source(intent):
+            source_calls.append(intent)
+            return True
+        def bootstrap(intent, approval):
+            bootstrap_calls.append((intent, approval))
+            return True
+        result = verifier()(copy.deepcopy(self.intent), copy.deepcopy(self.approval),
+                            self.github, source, bootstrap)
+        self.assertEqual("hold", result["action"])
+        self.assertEqual("historical-bootstrap-unavailable-in-public-proof", result["reason"])
+        self.assertEqual([], source_calls)
+        self.assertEqual([], bootstrap_calls)
+        self.assertEqual([], self.github.calls)
 
     def test_scope_authority_identity_and_reviews_fail_closed(self):
         for mutation in ("source", "source-nonbool", "foreign", "head", "reviews", "dismissed", "title", "card", "target"):
