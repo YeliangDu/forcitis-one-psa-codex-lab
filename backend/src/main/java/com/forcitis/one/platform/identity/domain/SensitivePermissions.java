@@ -3,7 +3,7 @@ package com.forcitis.one.platform.identity.domain;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.platform.identity.api.AccessScopeKind;
 import com.forcitis.one.platform.identity.api.CustomOrgUnit;
-import com.forcitis.one.platform.identity.api.Permission;
+import com.forcitis.one.platform.identity.api.PermissionCatalogue;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -15,16 +15,8 @@ import java.util.stream.Collectors;
  */
 public final class SensitivePermissions {
 
-    public static final Set<String> CODES = Set.of(
-            Permission.Codes.PLATFORM_IDENTITY_ACCOUNT_ROLE_UPDATE,
-            Permission.Codes.PLATFORM_AUDIT_ENTRY_READ,
-            Permission.Codes.PLATFORM_AUDIT_ENTRY_EXPORT,
-            Permission.Codes.PLATFORM_NUMBERING_RULE_APPROVE,
-            Permission.Codes.PLATFORM_NUMBERING_VOUCHER_RULE_APPROVE,
-            Permission.Codes.ORGANIZATION_WORKFORCE_SEPARATION_HOLD_APPROVE,
-            Permission.Codes.ORGANIZATION_PAYROLL_BONUS_SUBMIT,
-            Permission.Codes.ORGANIZATION_PAYROLL_BONUS_UPDATE,
-            Permission.Codes.ORGANIZATION_PAYROLL_BONUS_READ);
+    /** Compatibility view, derived after catalogue validation with no reverse dependency. */
+    public static final Set<String> CODES = PermissionCatalogue.fromClasspath().twoPersonPermissions();
 
     /** ADR-0032 section 3 (a), answer 0032-Q1: the scopes that do not move with the holder's job. */
     public static final Set<AccessScopeKind> TWO_PERSON_SCOPES = Set.of(AccessScopeKind.ALL, AccessScopeKind.CUSTOM_ORG_UNITS, AccessScopeKind.SELF);

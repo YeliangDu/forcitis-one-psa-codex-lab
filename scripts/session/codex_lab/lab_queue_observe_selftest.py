@@ -55,13 +55,13 @@ class GithubPort:
         self.fail = None
         self.final_head = HEAD
         self.final_main = BASE
-        repo = dict(id=123, full_name=REPO, private=True)
+        repo = dict(id=1449415666, full_name=REPO, private=False)
         self.repo = repo
         self.pr = dict(number=14, state="open", draft=False, merged=False,
                        head=dict(sha=HEAD, ref="topic", repo=copy.deepcopy(repo)),
                        base=dict(sha=BASE, ref="main", repo=copy.deepcopy(repo)))
         # Actions association repo differs from pulls API: no full_name.
-        association_repo = dict(id=123, name="forcitis-one-psa-codex-lab",
+        association_repo = dict(id=1449415666, name="forcitis-one-psa-codex-lab",
                                 url=f"https://api.github.com/repos/{REPO}")
         association = dict(number=14,
                            head=dict(sha=HEAD, ref="topic", repo=association_repo),
@@ -169,7 +169,7 @@ class LabQueueObserveAcceptanceTest(unittest.TestCase):
         self.assertFalse(any(c[0] in ("runs", "jobs", "artifacts") for c in self.github.calls))
 
     def test_repository_validated_before_any_other_remote_read(self):
-        self.github.repo["private"] = False
+        self.github.repo["private"] = True
         self.assertEqual("hold", self.observe()["action"])
         self.assertEqual([("repository",)], self.github.calls)
 
