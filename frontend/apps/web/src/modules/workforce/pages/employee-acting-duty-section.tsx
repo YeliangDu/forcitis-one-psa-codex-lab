@@ -43,7 +43,7 @@ function ActingDutyTable({ headingId, employeeId, duties, mayCreate }: { heading
         <thead>
           <tr>
             <th scope="col">被代理组织单元</th><th scope="col">被代理岗位</th><th scope="col">被代理员工</th>
-            <th scope="col">生效日</th><th scope="col">最后一天</th><th scope="col">状态</th>
+            <th scope="col">生效日</th><th scope="col">有效至（含当日）</th><th scope="col">状态</th>
             <th scope="col">结束原因</th><th scope="col">原因</th><th scope="col">操作</th>
           </tr>
         </thead>
@@ -62,7 +62,7 @@ function ActingDutyTable({ headingId, employeeId, duties, mayCreate }: { heading
                 <>
                   <RouterLink to={actingCommandPath(employeeId, 'ACTING_END', duty.actingDutyId)}>提前结束</RouterLink>
                   {' '}
-                  <RouterLink to={actingCommandPath(employeeId, 'ACTING_EXTEND', duty.actingDutyId)}>延期</RouterLink>
+                  <RouterLink to={actingCommandPath(employeeId, 'ACTING_EXTEND', duty.actingDutyId)}>延长代理职务</RouterLink>
                 </>
               ) : '—'}</td>
             </tr>
@@ -79,16 +79,19 @@ function CoveredActingDuties({ employeeId }: { employeeId: string }) {
   const employees = useEmployeeChoices(active.length > 0);
 
   return (
-    <QueryBoundary query={coverage} errorTitle="被代理职务加载失败">
+    <QueryBoundary query={coverage} errorTitle="代理职务加载失败">
       {() => {
         if (active.length === 0) return null;
         if (employees.isPending) return <LoadingState />;
         return (
           <>
             {employees.isError ? <Notice tone="error" title="员工加载失败">{describeFailure(employees.error)}</Notice> : null}
-            {active.map((duty) => (
-              <p key={duty.actingDutyId}>当前由{employees.data?.find((employee) => employee.employeeId === duty.employeeId)?.displayName ?? '—'}代理</p>
-            ))}
+            {active.map((duty) => {
+              const name = employees.isSuccess
+                ? employees.data?.find((employee) => employee.employeeId === duty.employeeId)?.displayName?.trim()
+                : undefined;
+              return <p key={duty.actingDutyId}>{name ? `当前由${name}代理` : '当前有代理安排'}</p>;
+            })}
           </>
         );
       }}

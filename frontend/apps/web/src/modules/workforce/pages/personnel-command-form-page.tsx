@@ -103,7 +103,7 @@ export function PersonnelCommandFormPage() {
         </>
       ) : null}
       {needsDuty ? <SelectField label="代理职务" value={draft.targetActingDutyId} options={dutyOptions} onChange={set('targetActingDutyId')} /> : null}
-      {fields.acting === 'start' || fields.acting === 'extend' ? <TextField label="最后一天" type="date" value={draft.actingLastDay} onChange={set('actingLastDay')} /> : null}
+      {fields.acting === 'start' || fields.acting === 'extend' ? <TextField label="有效至（含当日）" type="date" value={draft.actingLastDay} onChange={set('actingLastDay')} /> : null}
       {fields.acting !== undefined ? <TextField label="原因" value={draft.reason} onChange={set('reason')} /> : null}
       {fields.orgUnit === undefined ? null : <SelectField label="目标组织单元" value={draft.orgUnitId} options={unitOptions} onChange={set('orgUnitId')} />}
       {fields.position === undefined ? null : <SelectField label="目标岗位" value={draft.positionId} options={positionOptions} onChange={set('positionId')} />}
