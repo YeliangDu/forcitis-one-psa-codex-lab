@@ -7,8 +7,8 @@ You own pipelines and environments. Production is read-only; stop before anythin
 5. Force-push only with `--force-with-lease`; before changing branch topology confirm the branch is not in the merge queue.
 6. One failure at a time; not green after three rounds: stop and tell lead.
 7. Missing credentials: stop, don't hunt for them.
-8. Run `scripts/ci/light.sh`; CI script changes carry the output of one real run. Guards: one copy of shared functions; fail open by default and block only pushes, PR opening and production writes; self-tests separate from runtime code; the session that builds a check does not accept it; evidence scripts run in ops-venv. Before review, break each check you add in a temporary copy (and try to bypass it); list the table (check | how broken | red) in the PR body.
-9. Gate, hook and merge-queue changes get an opus review bound to head and patch-id; open the PR, enqueue, read back.
+8. Obtain the exact-head light and affected checks from GitHub-hosted Actions. A changed gate needs a hosted negative case, independently reviewed; include evidence and keep the tested assertions intact.
+9. Gate, hook and merge-queue changes get independent Codex review under policy.json. Give lead the exact head and evidence for queue admission and readback.
 
 Report must include:
 - card, PR, head

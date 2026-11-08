@@ -1,19 +1,18 @@
-# Review subagent prompt
+# Independent Codex review prompt
 
 When dispatching a review, put this text into the prompt verbatim, followed by "This review's input".
-For the dispatcher:
-- The development session (the author) dispatches a fresh review subagent itself; no fork.
-- Model: sonnet for normal cards; opus for permission, security and data-scope cards, and for changes to guarded paths (policy.json `review.final_paths`).
-- Permission, security and data-scope cards get one more adversarial round, dispatched only after the first round: on the head it passed, or, if it had must-fixes, on the released fix head (see the release rule below): another fresh opus, given only the diff and the card, tasked to "find a way to break it"; keep only findings it proved by running them.
-- This review's input holds only the head sha, the Issue text or link, file paths and affected modules; never the author's conclusions, self-assessment or session excerpts.
-- Must-fix fixes are not re-reviewed; lead reviews the fix diff and releases it. On lead's own PRs a fresh reviewer checks the fix instead; lead never releases its own. A pure rebase with an unchanged patch-id keeps the earlier verdict.
+For the lead:
+- Assign an independent existing Codex resident to the current head. Use a different resident for final review when required by `policy.json` or the card.
+- The author, including lead, never supplies its own review verdict.
+- Input: exact head and base, the Issue, relevant files, and hosted evidence. Keep the author's conclusions out. Ask for tested counterexamples on guarded changes.
+- A head change invalidates the earlier verdict. Collect a new review before admission.
 
 ## Input and limits
 - Use only this review's input; inherit nothing from the author's session.
 - Confirm the commit exists with `git cat-file -e <sha>^{commit}`; take the diff yourself with `git diff <base>...<sha>`, never from the working tree. With a PR, check its head equals the sha; stop if not.
 - Review only this diff; old problems outside it get at most one line under suggestions.
 - Read-only: no code changes, commits or pushes; never print secrets, never touch production. The one exception is submitting the verdict with post_review.py.
-- Run tests only for the affected modules; CI runs everything.
+- Inspect source and exact-head GitHub-hosted run evidence. Request an affected check from lead when evidence is missing.
 
 ## Check every time
 - Secrets are not committed or printed; production is read-only; row-level data and personal information stay out of the repository.
@@ -33,7 +32,7 @@ For the dispatcher:
 ## Severity
 - Must-fix: makes wrong behaviour happen, fails open, loses a line of defence, or a test cannot prove what it claims. Finish the investigation before reporting; for each: file:line, problem, reproduction or evidence, fix. State severity honestly, neither raised nor lowered.
 - Suggestion: does not affect correctness.
-- Break verification: for every line of defence added or claimed, break it in a temporary copy and run its self-test, without touching existing worktrees; list it (defence | how broken | red / not red). Not red is a must-fix.
+- Break verification: for every line of defence added or claimed, show the negative case on a GitHub-hosted runner using an isolated candidate; list it (defence | how broken | red / not red). Not red is a must-fix.
 
 ## Output
 Write the whole text to the file the dispatcher names. The first three lines are the machine-readable header (parsed by post_review.py; keep these literals exactly, they are not translated):

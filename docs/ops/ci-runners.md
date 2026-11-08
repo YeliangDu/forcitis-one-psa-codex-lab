@@ -1,5 +1,7 @@
 # CI 自托管 runner 维护说明
 
+> Personal Lab: the current development and CI path is [the Codex Lab workflow](codex-lab-workflow.md). The self-hosted setup below is a legacy reference, not the Lab's runner configuration.
+
 CI（`.github/workflows/ci.yml`、`generated-docs.yml`）全部跑在本机自托管 runner 上（用户 2026-10-14 决定），不保留 GitHub 托管机器兜底：runner 离线时作业排队等待。
 
 ## 现状

@@ -5,7 +5,7 @@ paths:
 
 # Coding core, frontend — FORCITIS one
 
-Loaded for `frontend/**` via the `.claude/rules` symlink (#860).
+Read this for `frontend/**` work. The Codex preamble links here; the inherited Claude symlink is an alias.
 CS-x.y is in `docs/rules/coding-standard.md`, which wins on conflict. ESLint, stylelint, `pnpm typecheck` and the `pnpm check:*` scripts catch the rest of CS-4; a failure names the fix.
 
 ## Rules no lint catches — follow them

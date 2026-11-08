@@ -2,6 +2,8 @@
 
 Section numbers §14, §14.1, §14.2, §14.3 and every item id are stable; cite them. "This handbook" in the text means this file. The last column of every table says what enforces the row: a named check, or `review` when only the reviewer does. `scorecard Dn` is rule n of `docs/data/data-scorecard.md` as built in `DataArchitectureTest` (not the D1–D19 of this file). A withdrawn row keeps its id.
 
+Personal Lab: run applicable checks on GitHub-hosted Actions with synthetic fixtures. Migration and external integration checklists describe safeguards; they do not authorize access to a real source, account or production environment.
+
 ## 14. DDD checklist
 
 Scope: every implementation (business code and schema) and its review (`scripts/review/PROMPT.md`). The review answers each item with "meets" or "problem + evidence (file:line)". (intent: user 2026-10-14「全部在 1a 做，并建 DDD 检查清单 (Recommended)」)
@@ -35,7 +37,7 @@ Scope: every implementation (business code and schema) and its review (`scripts/
 
 ### 14.1 Data architecture checklist
 
-**Principle** (user 2026-10-15:「数据设计新系统要有自己的规则，旧系统只做参考。新系统要符合 ddd、dama、oltp、olap 等领域的核心思想」): data design follows D1–D16 of this section and §14; the data shapes of the legacy and external systems are only evidence for understanding behaviour, never a design basis. A review finding of "designed after the source table, its key or its codes" is a defect; while the baseline is open, fix the baseline directly.
+**Principle** (user 2026-10-15:「数据设计新系统要有自己的规则，旧系统只做参考。新系统要符合 ddd、dama、oltp、olap 等领域的核心思想」): data design follows D1–D19 of this section and §14; the data shapes of the legacy and external systems are only evidence for understanding behaviour, never a design basis. A review finding of "designed after the source table, its key or its codes" is a defect; while the baseline is open, fix the baseline directly.
 
 Like §14, applied in every review wave: for each new or changed table, answer each item with "meets" or "problem + evidence (migration:line, code:line)". Baseline and examples: `docs/data/data-scorecard.md`. Items marked as guarded are checked by `DataArchitectureTest` / `DdlNamingTest` (specification in that file, §4); the rest by review. (intent: user 2026-10-14 chose「做，并把能自动化的变成守护 (Recommended)」)
 
@@ -109,4 +111,4 @@ Applies to every external integration (A8 views, legacy views, Seeyon ticket che
 | I9 | Monitoring | Each integration has an availability metric, a dead-letter count and reconciliation differences (`docs/architecture/guiding-principles.md` §11 O-4); alerts per incident (O-6) | review |
 | I10 | Logging | Per `docs/architecture/guiding-principles.md` §11 O-2, O-3: one `ERROR` with stack trace per failure, `INFO` on recovery; never log raw responses, URL query strings or credentials | review |
 | I11 | Rate limits | Honour the other side's rate limits, implemented in the adapter; WeCom's rate limit and duplicate-card error codes are measured and entered in the register; until then a few duplicate notifications are accepted | review |
-| I12 | Failure drills | In dev, verify timeouts, cool-down and degradation with fault injection (hung port, a view held with `WAITFOR`, error responses); each integration is drilled at least once before go-live | review |
+| I12 | Failure drills | In an authorized isolated GitHub-hosted test job, verify timeouts, cool-down and degradation with fault injection (hung port, a view held with `WAITFOR`, error responses); each integration is drilled at least once before go-live | review |

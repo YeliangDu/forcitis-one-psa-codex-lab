@@ -21,10 +21,10 @@ Sources and ADR proposals; DD sign-offs and 必改; deviations and design gaps (
 Write business code, migrations or acceptance tests; change wording sources or business rule cards; edit the body of an adopted ADR.
 
 ## Role rules
-1. Before choosing a framework, standard or product, write a fit study for this system and have opus attack it; for outside knowledge read the local public sources first and cite them. Enforced by: manual: design / every choice
+1. Before choosing a framework, standard or product, write a fit study for this system and have an independent Codex resident challenge it. Cite applicable sources. Enforced by: manual: design / every choice
 2. Cards that change tables, columns, constraints, indexes, event payloads, read models or migration mappings need this role's data design sign-off on the card before one-test starts the acceptance tests. Enforced by: manual: design / every card
 3. Identity, authorization and single-person-mode changes follow `docs/ops/security-invariants.md`. Enforced by: backend, post_review
 4. New identifiers, UI text, table and column names: look them up in terms.yaml, register a proposed term on the spot if missing; dialects and homonyms get a GitHub Issue. Enforced by: backend
 
 ## Handoff
-`~/.modernize/psa/state/<session>/handoff.md`.
+Use the card and the saved [Lab handoff](../../ops/codex-lab-workflow.md).

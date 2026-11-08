@@ -1,0 +1,423 @@
+# Workflow trust/bootstrap requires independent review outside this workflow.
+# A PR run never proves the separate main push health signal.
+name: Lab PR hosted CI
+on:
+  pull_request:
+    branches: [main]
+    # Drafts already run exact-head CI; changing draft status is not a new head.
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: lab-hosted-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  preflight:
+    name: Lab PR preflight
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      github.event.repository.private == true &&
+      github.event.pull_request.head.repo.full_name == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      github.event.pull_request.base.repo.full_name == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      plan_outcome: ${{ steps.plan.outcome }}
+      light: ${{ steps.light.outcome }}
+      secret: ${{ steps.secret.outcome }}
+      shadow: ${{ steps.shadow.outcome }}
+      frontend: ${{ steps.frontend.outcome }}
+      backend: ${{ steps.plan.outputs.backend }}
+      legacy_it: ${{ steps.plan.outputs.legacy_it }}
+      matrix: ${{ steps.backend_plan.outputs.matrix }}
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Plan exact event base and head
+        id: plan
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lab-pr-evidence"
+          python3 -B scripts/session/codex_lab/lab_pr_ci.py \
+            --event "$GITHUB_EVENT_PATH" \
+            --receipt "$RUNNER_TEMP/lab-pr-evidence/plan.json" \
+            --output "$GITHUB_OUTPUT" \
+            2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/plan.log"
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Install light-check dependency
+        run: python3 -m pip install PyYAML==6.0.3
+      - name: Install checksum-verified ShellCheck on Ubuntu
+        run: bash scripts/session/codex_lab/install_hosted_shellcheck.sh
+      - name: Scoped light checks
+        id: light
+        env:
+          BASE_SHA: ${{ steps.plan.outputs.base_sha }}
+        run: |
+          set -euo pipefail
+          bash scripts/ci/light.sh "$BASE_SHA" 2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/light.log"
+      - name: Install checksum-verified Gitleaks 8.30.1 on Ubuntu
+        id: gitleaks
+        if: ${{ !cancelled() && steps.plan.outcome == 'success' }}
+        run: bash scripts/session/codex_lab/install_gitleaks.sh
+      - name: Secret scan of the exact PR commit range
+        id: secret
+        if: ${{ !cancelled() && steps.plan.outcome == 'success' && steps.gitleaks.outcome == 'success' }}
+        env:
+          BASE_SHA: ${{ steps.plan.outputs.base_sha }}
+          HEAD_SHA: ${{ steps.plan.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          git cat-file -e "$BASE_SHA^{commit}"
+          git cat-file -e "$HEAD_SHA^{commit}"
+          git merge-base --is-ancestor "$BASE_SHA" "$HEAD_SHA"
+          gitleaks git --redact --no-banner --exit-code 1 \
+            --config=.gitleaks.toml --gitleaks-ignore-path=.gitleaksignore \
+            --log-opts="$BASE_SHA..$HEAD_SHA" . \
+            2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/secret.log"
+      - name: Focused Lab control tests
+        id: shadow
+        if: ${{ !cancelled() && steps.plan.outcome == 'success' && steps.plan.outputs.shadow == 'required' }}
+        run: |
+          set -euo pipefail
+          test -f scripts/session/codex_lab/lab_pr_ci_selftest.py
+          test -f scripts/session/codex_lab/shadow_selftest.py
+          test -f scripts/session/codex_lab/shadow_release_selftest.py
+          python3 -B -m unittest discover -s scripts/session/codex_lab -p '*selftest.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/shadow.log"
+          grep -Eq '^Ran [1-9][0-9]* tests? in ' "$RUNNER_TEMP/lab-pr-evidence/shadow.log"
+          grep -qx 'OK' "$RUNNER_TEMP/lab-pr-evidence/shadow.log"
+      - name: Install frontend dependencies and export exact-head API
+        id: api
+        if: ${{ !cancelled() && steps.plan.outcome == 'success' && steps.light.outcome == 'success' && steps.secret.outcome == 'success' && (steps.plan.outputs.frontend == 'required' || steps.plan.outputs.backend == 'required') }}
+        env:
+          HEAD_SHA: ${{ steps.plan.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          docker info > "$RUNNER_TEMP/lab-pr-evidence/docker-info.log" 2>&1
+          npm install -g pnpm@12.4.2
+          (cd frontend && pnpm install --frozen-lockfile --ignore-scripts) \
+            2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/install.log"
+          bash scripts/codegen/generate_api.sh -C \
+            2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/api.log"
+      - name: Frontend verify
+        id: frontend
+        if: ${{ !cancelled() && steps.plan.outputs.frontend == 'required' && steps.api.outcome == 'success' }}
+        working-directory: frontend
+        run: |
+          set -euo pipefail
+          pnpm verify 2>&1 | tee "$RUNNER_TEMP/lab-pr-evidence/frontend.log"
+      - name: Partition the exact backend test inventory
+        id: backend_plan
+        if: steps.plan.outputs.backend == 'required' && steps.api.outcome == 'success'
+        env:
+          HEAD_SHA: ${{ steps.plan.outputs.head_sha }}
+          LEGACY: ${{ steps.plan.outputs.legacy_it }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          case "$LEGACY" in true|false) ;; *) exit 2 ;; esac
+          d="$RUNNER_TEMP/lab-backend-input"
+          mkdir -p "$d/api"
+          python3 -B scripts/ci/lab_backend_shards.py plan . 4 > "$d/inventory.json"
+          jq -c --arg legacy "$LEGACY" '{include: ([.shards|to_entries[]|{slot:(.key+1|tostring),selector:(.value|join(","))}] + [{slot:"unit",selector:""}] + (if $legacy=="true" then [{slot:"legacy",selector:""}] else [] end))}'             "$d/inventory.json" | sed 's/^/matrix=/' >> "$GITHUB_OUTPUT"
+          cp frontend/packages/api/openapi.json "$d/api/"
+          cp -R frontend/packages/api/src/generated "$d/api/"
+          printf '%s\n' "$HEAD_SHA" > "$d/head"
+          printf '%s\n' "$GITHUB_RUN_ID" > "$d/run"
+          printf '%s\n' "$GITHUB_RUN_ATTEMPT" > "$d/attempt"
+      - name: Upload the exact backend inputs
+        if: steps.backend_plan.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lab-backend-input-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab-backend-input/
+          if-no-files-found: error
+      - name: Upload preflight evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lab-pr-preflight-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab-pr-evidence/
+          if-no-files-found: error
+  backend:
+    name: Lab backend ${{ matrix.slot }}
+    needs: preflight
+    if: needs.preflight.result == 'success' && needs.preflight.outputs.backend == 'required'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.preflight.outputs.matrix) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      LAB_HEAD: ${{ github.event.pull_request.head.sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: lab-backend-input-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab-backend-input
+      - name: Run the exact hosted backend slot
+        env:
+          SLOT: ${{ matrix.slot }}
+          SELECTOR: ${{ matrix.selector }}
+        run: |
+          bash scripts/ci/lab_backend_lane.sh "$SLOT" "$RUNNER_TEMP/lab-backend-input" "$RUNNER_TEMP/lab-backend-result" "$SELECTOR"
+      - name: Upload the slot's exact evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lab-backend-result-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}-${{ matrix.slot }}
+          path: ${{ runner.temp }}/lab-backend-result/result.json
+          if-no-files-found: error
+      - name: Upload backend diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lab-backend-diagnostics-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}-${{ matrix.slot }}
+          path: |
+            ${{ runner.temp }}/lab-backend-result/
+            backend/target/thread-dumps/
+            backend/target/failsafe-reports/failsafe-summary.xml
+            backend/target/failsafe-reports/*.dump*
+            backend/target/legacy-it-reports/failsafe-summary.xml
+          if-no-files-found: warn
+  verify:
+    name: Lab exact-head verification
+    needs: [preflight, backend]
+    if: >-
+      !cancelled() && github.event_name == 'pull_request' &&
+      github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      github.event.repository.private == true &&
+      github.event.pull_request.head.repo.full_name == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      github.event.pull_request.base.repo.full_name == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: needs.preflight.outputs.plan_outcome == 'success'
+        with:
+          name: lab-pr-preflight-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab-pr-preflight
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: needs.preflight.outputs.backend == 'required' && needs.backend.result == 'success'
+        with:
+          name: lab-backend-input-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab-backend-input
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        if: needs.preflight.outputs.backend == 'required' && needs.backend.result == 'success'
+        with:
+          pattern: lab-backend-result-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}-*
+          path: ${{ runner.temp }}/lab-backend-results
+      - name: Verify the complete exact backend lane
+        id: backend
+        if: needs.preflight.outputs.backend == 'required' && needs.backend.result == 'success'
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          LEGACY: ${{ needs.preflight.outputs.legacy_it }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          test "$(cat "$RUNNER_TEMP/lab-backend-input/head")" = "$HEAD_SHA"
+          test "$(cat "$RUNNER_TEMP/lab-backend-input/run")" = "$GITHUB_RUN_ID"
+          test "$(cat "$RUNNER_TEMP/lab-backend-input/attempt")" = "$GITHUB_RUN_ATTEMPT"
+          mkdir -p "$RUNNER_TEMP/lab-pr-evidence"
+          flags=()
+          case "$LEGACY" in true) flags=(--legacy) ;; false) ;; *) exit 2 ;; esac
+          python3 -B scripts/ci/lab_backend_shards.py aggregate "$RUNNER_TEMP/lab-backend-input/inventory.json"             "$RUNNER_TEMP/lab-backend-results" --head "$HEAD_SHA" --run "$GITHUB_RUN_ID" --attempt "$GITHUB_RUN_ATTEMPT" "${flags[@]}"             | tee "$RUNNER_TEMP/lab-pr-evidence/backend-summary.json"
+      - name: Record every lane and fail on missing required proof
+        if: always()
+        env:
+          PREFLIGHT_RESULT: ${{ needs.preflight.result }}
+          PLAN_OUTCOME: ${{ needs.preflight.outputs.plan_outcome }}
+          LIGHT_OUTCOME: ${{ needs.preflight.outputs.light }}
+          SECRET_OUTCOME: ${{ needs.preflight.outputs.secret }}
+          SHADOW_OUTCOME: ${{ needs.preflight.outputs.shadow }}
+          FRONTEND_OUTCOME: ${{ needs.preflight.outputs.frontend }}
+          # A failed matrix skips the artifact reconciler; record the matrix failure.
+          BACKEND_OUTCOME: ${{ needs.backend.result == 'failure' && 'failure' || steps.backend.outcome }}
+          EVENT_HEAD: ${{ github.event.pull_request.head.sha }}
+          EVENT_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          python3 -B - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          directory = Path(os.environ['RUNNER_TEMP']) / 'lab-pr-evidence'
+          directory.mkdir(exist_ok=True)
+          receipt = dict(head_sha=os.environ['EVENT_HEAD'], base_sha=os.environ['EVENT_BASE'],
+                         run_id=os.environ['GITHUB_RUN_ID'], run_attempt=os.environ['GITHUB_RUN_ATTEMPT'],
+                         lanes={}, ready=False)
+          receipt['observed_head'] = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          expected_lanes = {'light', 'secret', 'shadow', 'frontend', 'backend'}
+          plan_path = Path(os.environ['RUNNER_TEMP']) / 'lab-pr-preflight' / 'plan.json'
+          if os.environ['PLAN_OUTCOME'] == 'success' and plan_path.is_file():
+              plan = json.loads(plan_path.read_text())
+              for lane in sorted(expected_lanes):
+                  applicability = plan['lanes'].get(lane, 'unknown')
+                  outcome = os.environ[lane.upper() + '_OUTCOME']
+                  proof = ('passed' if outcome == 'success' else 'failed' if outcome == 'failure' else 'missing')
+                  receipt['lanes'][lane] = dict(applicability=applicability,
+                      proof=proof if applicability == 'required' else 'not-applicable' if applicability == 'not-applicable' else 'missing',
+                      outcome=outcome)
+              receipt['ready'] = (os.environ['PREFLIGHT_RESULT'] == 'success' and set(plan['lanes']) == expected_lanes and
+                  all(plan['lanes'].get(lane) == 'required' for lane in ('light', 'secret')) and
+                  plan['head_sha'] == receipt['head_sha'] and
+                  receipt['observed_head'] == receipt['head_sha'] and
+                  plan['base_sha'] == receipt['base_sha'] and
+                  all(row['proof'] in ('passed', 'not-applicable') for row in receipt['lanes'].values()))
+          else:
+              receipt['reason'] = 'missing-or-rejected-plan'
+              receipt['lanes'] = {lane: dict(applicability='required' if lane in ('light', 'secret') else 'unknown',
+                                           proof='missing', outcome=os.environ[lane.upper() + '_OUTCOME'])
+                                  for lane in expected_lanes}
+          (directory / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          print(json.dumps(receipt, indent=2))
+          raise SystemExit(0 if receipt['ready'] else 1)
+          PY
+      - name: Upload exact-head receipt and logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lab-pr-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          path: ${{ runner.temp }}/lab-pr-evidence/
+  main-health:
+    name: Lab main health
+    if: >-
+      github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      github.event.repository.private == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Pin the main push head
+        id: pin
+        env:
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lab-main-health"
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          printf 'head=%s\nrun=%s\n' "$HEAD_SHA" "$GITHUB_RUN_ID" > "$RUNNER_TEMP/lab-main-health/head.txt"
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Install light-check dependency
+        run: python3 -m pip install PyYAML==6.0.3
+      - name: Install checksum-verified ShellCheck on Ubuntu
+        run: bash scripts/session/codex_lab/install_hosted_shellcheck.sh
+      - name: Main push light checks
+        id: light
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          [[ "$BEFORE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          if [ "$BEFORE_SHA" != 0000000000000000000000000000000000000000 ]; then
+            git cat-file -e "$BEFORE_SHA^{commit}"
+            git merge-base --is-ancestor "$BEFORE_SHA" "$HEAD_SHA"
+          fi
+          bash scripts/ci/light.sh "$BEFORE_SHA" \
+            2>&1 | tee "$RUNNER_TEMP/lab-main-health/light.log"
+      - name: Install checksum-verified Gitleaks 8.30.1 on Ubuntu
+        id: gitleaks
+        if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
+        run: bash scripts/session/codex_lab/install_gitleaks.sh
+      - name: Main full-history secret scan
+        id: secret
+        if: ${{ !cancelled() && steps.pin.outcome == 'success' && steps.gitleaks.outcome == 'success' }}
+        env:
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          gitleaks git --redact --no-banner --exit-code 1 \
+            --config=.gitleaks.toml --gitleaks-ignore-path=.gitleaksignore \
+            --log-opts="$HEAD_SHA" . \
+            2>&1 | tee "$RUNNER_TEMP/lab-main-health/secret.log"
+      - name: Record main health independently of PR receipts
+        if: always()
+        env:
+          HEAD_SHA: ${{ github.sha }}
+          PIN_OUTCOME: ${{ steps.pin.outcome }}
+          LIGHT_OUTCOME: ${{ steps.light.outcome }}
+          SECRET_OUTCOME: ${{ steps.secret.outcome }}
+        run: |
+          python3 -B - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          directory = Path(os.environ['RUNNER_TEMP']) / 'lab-main-health'
+          directory.mkdir(exist_ok=True)
+          checks = {name: os.environ[name.upper() + '_OUTCOME'] for name in ('pin', 'light', 'secret')}
+          observed = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          healthy = observed == os.environ['HEAD_SHA'] and all(v == 'success' for v in checks.values())
+          health = dict(kind='main-health', event='push', head_sha=os.environ['HEAD_SHA'],
+                        observed_head=observed, run_id=os.environ['GITHUB_RUN_ID'],
+                        run_attempt=os.environ['GITHUB_RUN_ATTEMPT'], checks=checks, healthy=healthy)
+          (directory / 'health.json').write_text(json.dumps(health, indent=2) + '\n')
+          print(json.dumps(health, indent=2))
+          raise SystemExit(0 if healthy else 1)
+          PY
+      - name: Upload main health evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lab-main-health-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          path: ${{ runner.temp }}/lab-main-health/

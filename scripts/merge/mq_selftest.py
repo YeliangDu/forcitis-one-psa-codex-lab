@@ -172,7 +172,7 @@ def run(mq):
     old = {k: os.environ.get(k) for k in [*env, "PATH", "FAKE_GH_LOG"]}
     os.environ.update(env)
     try:
-        with tempfile.TemporaryDirectory() as d:
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(mq.mq_lab, "handle_cli", return_value=False):
             fake_gh(d, [])   # nothing in the self-test reaches the real gh: an unknown call exits 97
             for case in (_units, _flow, _release, _pause, _runner, _queue, _remove_busy, _head_changed, _gh_commands, _git, _docs_tiers, mq_label_selftest.run, mq_waiting_selftest.run, mq_detail_selftest.run, mq_title_selftest.run, mq_event_payload_selftest.run, mq_merge_end_selftest.run, mq_acceptance_selftest.run, gapscan_selftest.run, driftscan_selftest.run_with_mq):
                 case(mq, d)
@@ -618,7 +618,7 @@ def _queue(mq, d):
     q = mq.Queue(qpath)
     q.enqueue(*range(100, 110))
     me = os.path.abspath(mq.__file__)
-    stub = "import sys; sys.path.insert(0, sys.argv[1]); import mq; mq.mq_title.enforce = mq.mq_enqueue.enforce = lambda *a: None; mq.main(sys.argv[2:])"   # the title check has its own case (mq_title_selftest); this one is about the queue file, not gh
+    stub = "import sys; sys.path.insert(0, sys.argv[1]); import mq; mq.mq_lab.handle_cli = lambda *a: False; mq.mq_title.enforce = mq.mq_enqueue.enforce = lambda *a: None; mq.main(sys.argv[2:])"   # run the legacy queue fixture independently of the checkout profile
     procs = [subprocess.Popen([sys.executable, "-c", stub, os.path.dirname(me), "--queue", qpath, op, str(n)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) for op, ns in (("enqueue", range(1, 11)), ("remove", range(100, 110))) for n in ns]
     assert all(p.wait() == 0 for p in procs) and sorted(q.numbers()) == list(range(1, 11))
     real_replace = os.replace

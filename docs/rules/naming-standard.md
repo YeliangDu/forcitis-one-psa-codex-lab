@@ -9,6 +9,8 @@ Scope: all new code. The user's request: 「可以在现代化过程中规范命
 - **Constraints for agents**: names located by concept, language and usage (§2.1); code at fixed places (§3); each module has a `package-info.java` (responsibility, owned schema, allowed dependencies).
 - **Error-proofing**: wrong code fails at compile time or in CI, not in review.
 
+In the personal Lab, historical commit references may be read only if their objects are already in the Lab. Report missing evidence; do not fetch it from the original repository.
+
 ## 1. (removed: history; see `git show 59315c148^:docs/rules/naming-standard.md`)
 
 ## 2. Naming rules: English, industry-idiomatic, predictable
@@ -312,7 +314,7 @@ Format: id | rule | enforced by; the cell follows the Check-column format of `do
 | G-S3 | `pom.xml` declares no custom repository, only Maven Central | supply-chain.md S1 | FD | as G-S1 |
 | G-S4 | Test database image defined in one constant, with a digest | supply-chain.md S7 | FD | as G-S1 |
 | G-S5 | Release includes an SBOM, written into the signed attestation | supply-chain.md S5 | PD | as G-S1 |
-| G-S6 | Runner pre-job hook checks run user and credential directory | supply-chain.md S6 | pending the dedicated-runner-user decision | as G-S1 |
+| G-S6 | Dedicated deployment runner pre-job hook checks run user and credential directory (legacy production, outside Lab CI) | supply-chain.md S6 | pending the dedicated-runner-user decision | as G-S1 |
 | G-O1 | An `ERROR` log line begins 「ALERT P1\|P2\|P3 <subdomain>.<BC> 」 | `docs/architecture/guiding-principles.md` §11 O-2 | FD | unscheduled (observability) |
 | G-O2 | No log argument from a personal-information method; unknown exceptions log only the class name | guiding-principles §11 O-3 | FD | as G-O1 |
 | G-O3 | Test: every log line has a correlationId; e.g. the email of a unique-constraint conflict is not written | guiding-principles §11 O-1, O-3 | FD | as G-O1 |
@@ -385,11 +387,11 @@ Other planned items (no id): SQL references only this module's schema (scan SQL 
 
 ## 7. Naming-surface list: everywhere in the new system that needs unified naming
 
-Word source §2.1 (ADR-0053 decisions 1.3, 4). ✔ = a guard for the original format exists (it does not read concepts / designations or the new projection, §2.1); ○ = to be built or partly covered. Owners: concepts and designations one-glossary; format, projection, guard list one-architecture; checks one-quality and the surface-owning sessions (decision 7).
+Word source §2.1 (ADR-0053 decisions 1.3, 4). ✔ = a guard for the original format exists (it does not read concepts / designations or the new projection, §2.1); ○ = to be built or partly covered. Historical owners are one-glossary, one-architecture and one-quality (decision 7). In the Lab, the existing design resident owns concept and format decisions; platform owns guard tooling and the surface-owning resident supplies evidence.
 
 | # | Naming surface | Rule | Guard | Status |
 |---|---|---|---|---|
-| 1 | repository, module, Java package | `forcitis-one-psa`; `com.forcitis.one.<subdomain>.<BC>.{api,events,domain,application,infrastructure,web}` | G1, D1 | ✔ |
+| 1 | repository, module, Java package | Product repository name `forcitis-one-psa`; personal Lab checkout identity follows the [Lab workflow](../ops/codex-lab-workflow.md). Packages: `com.forcitis.one.<subdomain>.<BC>.{api,events,domain,application,infrastructure,web}` | G1, D1 | ✔ |
 | 2 | class, record, enum, method | English industry words; no vague words, old names, pinyin, `fst`, `cn.iocoder` | G12–G15, G26, G37, G38, G40 | ✔ |
 | 3 | domain event | past-tense fact (`TimesheetSubmitted`) | G5, G29, G37 | ✔ |
 | 4 | value object, typed ID | `Money`, `Hours`, `TimesheetId` | G16, G17, G21–G23, G31 | ✔ |
@@ -409,7 +411,7 @@ Word source §2.1 (ADR-0053 decisions 1.3, 4). ✔ = a guard for the original fo
 | 18 | `reporting` views and BI columns | view `rpt_<topic>`, columns match the glossary `snake` | none | ○ before Phase 5 |
 | 19 | external channels and anti-corruption layer | system names `wecom`, `seeyon`, `u8c`, `fenbeitong`; external fields only inside the ACL | G1 | ○ name-convention guard |
 | 20 | log fields, trace attributes | camelCase keys, business keys from the glossary (guiding-principles §11 O-1) | G-O1, G-O3 (planned) | ○ |
-| 21 | Git branch, commit, PR | branch `claude/<session>-<card>-<short>` (`docs/rules/rules.md` ③); titles `type(scope): 中文摘要` per CS-7.8 (PR and commit end `（#<issue>）`), scope the subdomain slug; PRs and document collections per TEAM-40, 53 | review | ○ |
+| 21 | Git branch, commit, PR | Lab work branches use `codex/<session>-<card>-<short>`; verify the resident ID and worktree separately (`docs/rules/rules.md` ③); titles `type(scope): 中文摘要` per CS-7.8 (PR and commit end `（#<issue>）`), scope the subdomain slug; PRs and document collections per TEAM-40, 53 | review | ○ |
 | 22 | concept, designation, usage role, language | §2.1.1–2.1.3 | `term_rules.py / GlossaryTest` (old structure) | ○ new schema, roles, status combinations planned |
 | 23 | verb, aspect marker, event composition, template | §2.1.5, `docs/glossary/glossary-schema-design.md` §2 | existing event word-form guard | ○ forward rendering planned |
 | 24 | PostgreSQL identifier length and abbreviation | §2.1.4 N3-L1–L3 | `DdlNamingTest` (N3-L1 length) | ○ abbreviation and collision checks planned |
