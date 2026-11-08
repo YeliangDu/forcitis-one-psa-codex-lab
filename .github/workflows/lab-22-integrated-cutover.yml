@@ -153,3 +153,32 @@ jobs:
           name: lab22-native-entry-exact
           path: ${{ runner.temp }}/lab22-native-entry/red.log
           if-no-files-found: error
+  native-get-smoke:
+    name: Actual Lab GET-only smoke
+    if: github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' && toJSON(github.event.repository.id) == '1449415666'
+    permissions:
+      contents: read
+      pull-requests: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 154b1f5056f6006ed4d37282ab7735f576fee691
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Read actual pinned native Lab data without write permission
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          umask 077
+          git --no-replace-objects show "$GITHUB_SHA:scripts/merge/native-get-params.observe.json" > "$RUNNER_TEMP/native-get-params.json"
+          git --no-replace-objects show "$GITHUB_SHA:scripts/merge/native-get-scope.observe.json" > "$RUNNER_TEMP/native-get-scope.json"
+          python3 -B scripts/merge/native_get_smoke.py --params "$RUNNER_TEMP/native-get-params.json" --params-sha256 a33727c744f93c9cbee60afb1ddcda07916e479bc3ca7f983921214ef631917b --scope "$RUNNER_TEMP/native-get-scope.json" --output "$RUNNER_TEMP/native-get-smoke/result.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab22-native-get-smoke
+          path: ${{ runner.temp }}/native-get-smoke/result.json
+          if-no-files-found: error
