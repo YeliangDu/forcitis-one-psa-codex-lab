@@ -56,11 +56,13 @@ def pull(row,b,merged=False,exact_head=True):
     return row
 
 
-def occupancy(github,b,retiring=False):
+def occupancy(github,b,retiring=False,allow_base_motion=False):
     view=github.retirement_snapshot(copy.deepcopy(b))
     require(type(view) is dict and view.get('complete') is True and view.get('queued') is False
             and type(view.get('active_ci')) is list and type(view.get('proof_pins')) is list
             and not view['proof_pins'],'queue-or-proof-occupation-unavailable')
+    if not allow_base_motion and 'current_base' in view:require(view['current_base']==b['base'],'current-base-requires-explicit-update')
+    if not retiring:require(view.get('current_pr_merged',False) is False,'merged-card-cannot-be-updated')
     if retiring:
         require(not view['active_ci'] and type(view.get('other_open_pulls')) is list and not view['other_open_pulls']
                 and view.get('queue_completed') is True,'live-occupation-or-queue-unfinished')
@@ -91,7 +93,6 @@ def dispatch(request,store,git,github):
         require(remote(git,cwd,'refs/heads/main')==request['base'],'base-is-not-remote-main')
         name=request.get('branch','codex/'+str(request['card'])+'-'+request['role'])
         life.branch_name(name)
-        require(name.startswith('codex/'+str(request['card'])+'-'),'new-branch-not-card-scoped')
         b=dict(repository=life.REPOSITORY,repository_id=life.RID,card=request['card'],role=request['role'],worktree=cwd,
                base=request['base'],branch=name,head=request['base'],target='main',pr_number=None,common=common)
         found=github.find_pulls(copy.deepcopy(b));require(found.get('complete') is True and type(found.get('items')) is list,'PR-inventory-incomplete')
@@ -99,7 +100,19 @@ def dispatch(request,store,git,github):
         if found['items']:
             native=found['items'][0];life.branch_name(native['head']['ref']);b['branch']=native['head']['ref'];b['head']=native['head']['sha']
             b['pr_number']=native['number'];pull(native,b)
+        else:
+            require(name.startswith('codex/'+str(request['card'])+'-'),'new-branch-not-card-scoped')
+            existing_remote=remote(git,cwd,'refs/heads/'+b['branch'])
+            if existing_remote is not None:
+                require(sha(request.get('adopt_head')) and request['adopt_head']==existing_remote,
+                        'existing-remote-needs-exact-operator-adoption')
+                require(git(['cat-file','-t',existing_remote],cwd=cwd).strip()=='commit','adopted-object-unavailable')
+                b['head']=existing_remote
         require(not any(x.get('branch')=='refs/heads/'+b['branch'] and x['worktree']!=cwd for x in inventory),'branch-in-another-worktree')
+        require(not any(x['phase']!='retired' and
+                        (x['binding']['branch']==b['branch'] or
+                         (b['pr_number'] is not None and x['binding']['pr_number']==b['pr_number']))
+                        for x in store.data['bindings'].values()),'branch-or-PR-already-bound-to-another-card')
         existing=dict(binding=b,phase='dispatching',operations={})
         store.data['bindings'][str(b['card'])]=existing;store.save()
     b=existing['binding'];current=git(['symbolic-ref','--quiet','--short','HEAD'],cwd=cwd).strip()
@@ -161,7 +174,9 @@ def selected_run(b,github):
         key=run['id'],run['run_attempt'];require(key not in seen,'duplicate-run');seen.add(key)
         if run.get('head_sha')!=b['head'] or run.get('head_branch')!=b['branch'] or run.get('pull_request')!=b['pr_number']:continue
         life.fixed_repo(run.get('repository'))
-        require(run.get('event')=='pull_request' and run.get('path','.github/workflows/lab-pr-ci.yml')=='.github/workflows/lab-pr-ci.yml','wrong-workflow')
+        expected=getattr(github,'workflow_path','.github/workflows/lab-pr-ci.yml')
+        require(type(expected) is str and re.fullmatch(r'\.github/workflows/[A-Za-z0-9_-][A-Za-z0-9._-]*\.ya?ml',expected)
+                and run.get('event')=='pull_request' and run.get('path',expected)==expected,'wrong-workflow')
         matches.append(run)
     require(matches,'no-current-branch-head-CI');run=max(matches,key=lambda x:(x['id'],x['run_attempt']))
     require(run.get('base_sha')==b['base'],'CI-base-moved')
@@ -186,7 +201,9 @@ def ci(action,request,row,store,github):
         require(run['id']==op['run_id'] and run['run_attempt']>op['from_attempt'],'rerun-unknown-readback-only')
         op.update(status='done',observed_attempt=run['run_attempt']);store.save()
     require(run.get('status')=='completed' and run.get('conclusion')=='success','latest-CI-pending-or-failed')
-    return life.result('verified-ci',row,run_id=run['id'],run_attempt=run['run_attempt'],release_authority=False)
+    return life.result('verified-ci',row,run_id=run['id'],run_attempt=run['run_attempt'],release_authority=False,
+                       verification_scope='native-run-identity-and-outcome-only',
+                       workflow=getattr(github,'workflow_path','.github/workflows/lab-pr-ci.yml'))
 
 
 def retirement_ready(row,git,github):
@@ -204,6 +221,26 @@ def retirement_ready(row,git,github):
     for key in ('publish','create_pr','rerun','update'):
         op=row['operations'].get(key)
         require(not op or op['status']=='done','unknown-prior-branch-effect')
+
+
+def post_merge(request,row,git,github):
+    """Readonly candidate from real canonical V2 plus fresh native observations."""
+    b=row['binding'];number=request.get('number');answer=request.get('merge_result')
+    require(positive(number) and number==b['pr_number'] and request.get('common_dir')==b['common']
+            and type(answer) is dict and answer.get('action') in ('confirmed','skip')
+            and sha(answer.get('merge_sha')),'post-merge-subject-not-exact')
+    before=life.canonical_snapshot(b['common'],number)
+    queued,heads,record=before
+    require(record is not None and record['status']=='confirmed' and record['target']=='main'
+            and record['head']==b['head'] and record['base']==b['base']
+            and record['merge_sha']==answer['merge_sha'] and number not in queued and number not in heads,
+            'durable-V2-confirmation-or-FIFO-head-not-cleared')
+    # This includes independent PR/ordered-parent/ancestry and complete live
+    # occupancy/proof-index readbacks. It never calls retire or Store.save.
+    retirement_ready(row,git,github)
+    require(life.canonical_snapshot(b['common'],number)==before,'canonical-completion-moved-after-native-readback')
+    return life.result('retirement-candidate',row,number=number,head=b['head'],base=b['base'],
+                       merge_sha=record['merge_sha'],allows_delete=False,release_authority=False)
 
 
 def retire(row,store,git,github):
@@ -241,18 +278,23 @@ def retire(row,store,git,github):
 def run_branch_command(action, request, state_path, git_argv_port, github_port):
     """Shared real harness entry; effects require explicit injected capability."""
     try:
-        require(action in ('dispatch','publish','update','ensure-pr','read-ci','rerun-ci','retire','record-confirmed'), 'unsupported-branch-action')
+        require(action in ('dispatch','publish','update','ensure-pr','read-ci','rerun-ci','retire','record-confirmed','post-merge'), 'unsupported-branch-action')
         require(callable(git_argv_port) and github_port is not None,'branch-ports-unbound')
-        with life.Store(state_path).locked() as store:
+        with life.Store(state_path).locked(readonly=action in ('post-merge','record-confirmed')) as store:
             if action=='dispatch':return dispatch(request,store,git_argv_port,github_port)
             row=store.find(request.get('binding'))
+            b=row['binding'];physical=Path(b['worktree'])
+            require(physical.resolve(strict=True)==physical
+                    and git_argv_port(['rev-parse','--path-format=absolute','--git-common-dir'],cwd=b['worktree']).strip()==b['common'],
+                    'bound-worktree-or-common-dir-moved')
             if action=='publish':return publish(request,row,store,git_argv_port,github_port)
             if action=='ensure-pr':return ensure_pr(row,store,github_port)
             if action in ('read-ci','rerun-ci'):return ci(action,request,row,store,github_port)
+            if action=='post-merge':return post_merge(request,row,git_argv_port,github_port)
             if action=='retire':return retire(row,store,git_argv_port,github_port)
             if action=='update':
                 # A topology update needs the complete native mutation snapshot.
-                b=row['binding'];occupancy(github_port,b);base=request.get('base')
+                b=row['binding'];occupancy(github_port,b,allow_base_motion=True);base=request.get('base')
                 require(sha(base) and remote(git_argv_port,b['worktree'],'refs/heads/main')==base,'unverified-new-base')
                 require(not git_argv_port(['status','--porcelain','--untracked-files=all'],cwd=b['worktree']).strip()
                         and git_argv_port(['symbolic-ref','--quiet','--short','HEAD'],cwd=b['worktree']).strip()==b['branch'],'update-worktree-occupied')
@@ -261,27 +303,38 @@ def run_branch_command(action, request, state_path, git_argv_port, github_port):
                 git_argv_port(['merge','--no-edit',base],cwd=b['worktree'])
                 b['base']=base;row['operations']['update']['status']='done';store.save()
                 return life.result('updated-local',row,publish_required=True,new_local_head=git_argv_port(['rev-parse','HEAD'],cwd=b['worktree']).strip())
-            # A merge event is only a cleanup candidate. It grants no retirement.
+            # Compatibility alias: the old event is no longer self-authenticating.
+            # It goes through the same actual V2 readonly post-merge dispatcher.
             record=request.get('candidate');b=row['binding']
             require(type(record) is dict and record.get('repository_id')==life.RID
                     and record.get('number')==b['pr_number'] and record.get('head')==b['head']
                     and record.get('base')==b['base'] and sha(record.get('merge_sha'))
                     and record.get('queue_completed') is True,'inexact-confirmed-cleanup-candidate')
-            row['operations']['merge_candidate']=dict(status='done',record=copy.deepcopy(record));store.save()
-            return life.result('retirement-candidate',row,release_authority=False)
+            return post_merge(dict(number=b['pr_number'],common_dir=b['common'],
+                merge_result=dict(action='confirmed',merge_sha=record['merge_sha'])),row,git_argv_port,github_port)
     except Exception as error:
-        return dict(action='hold',reason=str(error) if type(error) is ValueError else 'branch-effect-unknown-or-readback-incomplete',release_authority=False)
+        return dict(action='hold',reason=str(error) if type(error) is ValueError else 'branch-effect-unknown-or-readback-incomplete',release_authority=False,allows_delete=False)
+
+
+def native_command(action,request,execute=False):
+    """The actual ProductionPorts and CLI both bind the same native dispatcher."""
+    try:
+        native=sibling('lab_branch_native')
+        git,github,state,request=native.bound_ports(action,request,execute=execute)
+        return run_branch_command(action,request,state,git,github)
+    except Exception as error:
+        return dict(action='hold',reason=str(error) if type(error) is ValueError else 'native-branch-binding-unavailable',
+                    release_authority=False,allows_delete=False)
 
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action',choices=('dispatch','publish','update','ensure-pr','read-ci','rerun-ci','retire','record-confirmed'))
+    parser.add_argument('action',choices=('dispatch','publish','update','ensure-pr','read-ci','rerun-ci','retire','record-confirmed','post-merge'))
     parser.add_argument('--request',required=True);parser.add_argument('--execute',action='store_true')
     args=parser.parse_args()
     try:
         native=sibling('lab_branch_native');request=native.private_json(Path(args.request))
-        git,github,state=native.bound_ports(args.action,request,execute=args.execute)
-        answer=run_branch_command(args.action,request,state,git,github)
+        answer=native_command(args.action,request,execute=args.execute)
     except Exception as error:answer=dict(action='hold',reason=str(error) if type(error) is ValueError else 'native-branch-binding-unavailable')
     print(json.dumps(answer,ensure_ascii=False,sort_keys=True))
     return int(answer['action']=='hold')

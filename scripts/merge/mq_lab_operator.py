@@ -156,6 +156,41 @@ class _LazyWriter:
         return self._get().readback(dict(intent))
 
 
+def _after_confirmed_merge(answer, number, common_dir, ports):
+    """Isolate optional lifecycle observation from durable merge success.
+
+    Release this validation lock BEFORE calling the lifecycle dispatcher, which
+    independently reopens canonical V2 under its existing read locks. No merge
+    authorization, queue write, retry or branch deletion is granted here.
+    """
+    if not isinstance(answer, dict) or answer.get('action') not in ('confirmed', 'skip'):
+        return answer
+    result = dict(answer)
+    try:
+        queued, heads, record = _module('lab_branch_lifecycle').canonical_snapshot(common_dir, number)
+        _require(isinstance(record, dict) and record.get('status') == 'confirmed'
+                 and type(record.get('number')) is int and record['number'] == number
+                 and record.get('target') == 'main' and record.get('merge_sha') == answer.get('merge_sha')
+                 and all(isinstance(record.get(key), str) and re.fullmatch('[0-9a-f]{40}', record[key])
+                         for key in ('head', 'base', 'merge_sha'))
+                 and number not in queued and number not in heads,
+                 'confirmed-V2-or-canonical-cleanup-not-exact')
+        hook = getattr(ports, 'after_confirmed_merge', None)
+        _require(callable(hook), 'formal-lifecycle-observer-unbound')
+        candidate = hook(number, common_dir, dict(answer))
+        _require(isinstance(candidate, dict) and candidate.get('action') in ('hold', 'retirement-candidate')
+                 and candidate.get('release_authority') is False
+                 and candidate.get('allows_delete') is False, 'invalid-readonly-lifecycle-observation')
+        if candidate['action'] == 'retirement-candidate':
+            _require(candidate.get('head') == record['head'] and candidate.get('base') == record['base']
+                     and candidate.get('merge_sha') == record['merge_sha'], 'lifecycle-candidate-subject-moved')
+        result['branch_retirement'] = candidate
+    except Exception:
+        result['branch_retirement'] = dict(action='hold', reason='lifecycle-handoff-unavailable-or-inexact',
+                                           release_authority=False, allows_delete=False)
+    return result
+
+
 def run_command(command, number, common_dir, ports):
     """Plan without state creation; admit/once use the one canonical lock."""
     try:
@@ -211,8 +246,9 @@ def run_command(command, number, common_dir, ports):
                 return False
 
         queue = _RequestedQueue(Queue(str(path)), number)
-        return run_once(queue, journal, verify,
-                        _LazyWriter(ports, authorize), allow_write=True)
+        answer = run_once(queue, journal, verify,
+                          _LazyWriter(ports, authorize), allow_write=True)
+        return _after_confirmed_merge(answer, number, common_dir, ports)
     except Exception:
         return dict(action="hold", reason="operator-command-held-or-unavailable")
 
@@ -244,6 +280,14 @@ class ProductionPorts:
 
     def load(self, number):
         return load_approval(self.directory, number)
+
+    def branch_command(self, action, request, *, execute=False):
+        """Real CLI/coordinator/lifecycle dispatcher, never a test-only callback."""
+        return _module('lab_branch_live').native_command(action, request, execute=execute)
+
+    def after_confirmed_merge(self, number, common_dir, result):
+        request = _module('lab_branch_native').confirmed_request(number, common_dir, result)
+        return self.branch_command('post-merge', request, execute=False)
 
     def _issue_run(self, args):
         # Adapt only issue_gate's fixed read vocabulary to scoped API ports.
