@@ -145,6 +145,19 @@ public final class PermissionP2Child {
         for(Throwable cause=failure;cause!=null && depth<16 && visited.add(cause);cause=cause.getCause()) {
             String prefix="diagnostic."+stage+"."+depth++;
             report.setProperty(prefix+".type", safeType(cause.getClass()));
+            report.setProperty(prefix+".failureCode", safeFailureCode(cause));
+            int recorded=0, inspected=0;
+            for(StackTraceElement frame:cause.getStackTrace()) {
+                if(inspected++>=64 || recorded>=8)break;
+                String owner=frame.getClassName(), method=frame.getMethodName();
+                if(!safeFrameOwner(owner) || !(method.matches("[A-Za-z0-9_$]+") || method.equals("<init>") || method.equals("<clinit>")))continue;
+                String key=prefix+".frame."+recorded++;
+                report.setProperty(key+".owner",owner);
+                report.setProperty(key+".method",method);
+                report.setProperty(key+".line",Integer.toString(Math.max(-1,frame.getLineNumber())));
+                // Deliberately never serialize getFileName(), module location,
+                // getMessage(), full StackTraceElement, path or configuration.
+            }
             if(cause instanceof org.springframework.beans.factory.BeanCreationException bean) {
                 String beanName=bean.getBeanName();
                 report.setProperty(prefix+".bean",beanName!=null && knownBeans.contains(beanName)?beanName:"other-bean");
@@ -162,6 +175,26 @@ public final class PermissionP2Child {
                 report.setProperty(prefix+".sqlState",state!=null && state.matches("[A-Z0-9]{5}")?state:"unavailable");
             }
         }
+    }
+
+    static boolean safeFrameOwner(String owner) {
+        return owner.matches("[A-Za-z0-9_.$]+") && (owner.startsWith("java.") || owner.startsWith("javax.")
+                || owner.startsWith("org.springframework.") || owner.startsWith("org.apache.")
+                || owner.startsWith("org.flywaydb.") || owner.startsWith("org.postgresql.")
+                || owner.startsWith("com.forcitis.one.") || owner.startsWith("com.zaxxer."));
+    }
+
+    static String safeFailureCode(Throwable failure) {
+        if(failure instanceof ExceptionInInitializerError)return "STATIC_INITIALIZATION";
+        StackTraceElement[] frames=failure.getStackTrace();
+        for(int i=0;i<Math.min(frames.length,64);i++) {
+            String owner=frames[i].getClassName();
+            if(owner.startsWith("org.springframework.boot.logging."))return "LOGGING_BOOTSTRAP";
+            if(owner.startsWith("com.forcitis.one.platform.identity.infrastructure.permissions."))return "PERMISSION_CATALOGUE_BOOTSTRAP";
+            if(owner.startsWith("org.apache.catalina.") || owner.startsWith("org.springframework.boot.web.server."))return "SERVLET_BOOTSTRAP";
+            if(owner.equals("java.util.ServiceLoader"))return "SERVICE_LOADING";
+        }
+        return "OTHER_UNCLASSIFIED";
     }
 
     static String safeType(Class<?> type) {
