@@ -72,7 +72,12 @@ public final class PermissionP2Child {
             catch(RuntimeException|LinkageError refusal){report.setProperty("plainRefusal",refusal.getClass().getSimpleName());diagnose(report,"plain",refusal);}
 
             Properties supplied=new Properties();try(var stream=Files.newInputStream(config)){supplied.load(stream);}
+            Set<String> connectionKeys=Set.of("spring.datasource.url", "spring.datasource.username", "spring.datasource.password",
+                    "spring.flyway.url", "spring.flyway.user", "spring.flyway.password");
+            if(!connectionKeys.containsAll(supplied.stringPropertyNames()))throw new IllegalArgumentException("unexpected fixture property key");
             Map<String,Object> properties=new TreeMap<>();supplied.forEach((key,value)->properties.put(key.toString(),value));
+            properties.put("server.address","127.0.0.1");properties.put("server.port",0);
+            properties.put("spring.main.web-application-type","servlet");
             properties.put("flowable.async-executor-activate",false);properties.put("flowable.database-schema-update",true);
             properties.put("spring.flyway.create-schemas",true);
             for(String key:List.of("forcitis.platform.integration.event-publication.jobs-enabled","forcitis.platform.scheduling.jobs-enabled",
@@ -81,8 +86,22 @@ public final class PermissionP2Child {
                 "forcitis.platform.integration.archive-store.enabled","forcitis.platform.audit.archive.enabled",
                 "forcitis.platform.approval.process-administrator-required"))properties.put(key,false);
             try(var context=new SpringApplicationBuilder(OneApplication.class,ExternalTransportOnly.class)
-                    .web(WebApplicationType.NONE).properties(properties).run()) {
+                    .web(WebApplicationType.SERVLET).properties(properties)
+                    .initializers(application -> {
+                        // Highest priority ONLY for fixed fixture switches and the
+                        // test-owned clone connection; no CLI credentials or general overrides.
+                        application.getEnvironment().getPropertySources().addFirst(
+                                new org.springframework.core.env.MapPropertySource("p2-fixture-owned",Map.copyOf(properties)));
+                        report.setProperty("diagnostic.fixtureOverridesFirst",Boolean.toString(
+                                application.getEnvironment().getPropertySources().iterator().next().getName().equals("p2-fixture-owned")));
+                        report.setProperty("diagnostic.loopbackRequested",Boolean.toString(
+                                "127.0.0.1".equals(application.getEnvironment().getProperty("server.address"))));
+                        report.setProperty("diagnostic.ephemeralPortRequested",Boolean.toString(
+                                "0".equals(application.getEnvironment().getProperty("server.port"))));
+                    }).run()) {
                 report.setProperty("springOk","true");
+                report.setProperty("diagnostic.jdbcSessionRepositoryPresent",Boolean.toString(
+                        !context.getBeansOfType(org.springframework.session.jdbc.JdbcIndexedSessionRepository.class).isEmpty()));
                 var beans=context.getBeansOfType(PermissionContribution.class);
                 report.setProperty("springContributionIncluded",Boolean.toString(beans.values().stream().anyMatch(bean->bean.getClass().getName().equals(FIXTURE))));
                 PermissionCatalogue runtime=context.getBean(PermissionCatalogue.class);
@@ -119,7 +138,7 @@ public final class PermissionP2Child {
 
     /** Safe allowlisted diagnostics only: never message, stack, config or credential values. */
     static void diagnose(Properties report, String stage, Throwable failure) {
-        report.setProperty("diagnostic.requestedWebApplicationType", "NONE");
+        report.setProperty("diagnostic.requestedWebApplicationType", "SERVLET");
         Set<String> knownBeans=Set.of("permissionCatalogue", "springSecurityFilterChain", "httpSecurity", "dataSource", "flywayInitializer");
         Set<Throwable> visited=java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
         int depth=0;
