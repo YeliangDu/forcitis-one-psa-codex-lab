@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.organization.workforce.api.WorkforcePermissions;
+
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
@@ -55,7 +57,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 class OrgStructureCommandService implements OrgStructureCommands {
-    static final String PERMISSION = "organization.workforce:org-structure-command:create";
+    static final String PERMISSION = WorkforcePermissions.ORG_STRUCTURE_COMMAND_CREATE;
 
     private final OrgStructureCommandRepository commands;
     private final OrgPlans plans;
@@ -93,7 +95,7 @@ class OrgStructureCommandService implements OrgStructureCommands {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('" + PERMISSION + "')")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.ORG_STRUCTURE_COMMAND_CREATE + "')")
     public OrgStructureCommandId enter(EnterOrgStructureCommand request) {
         Instant now = clock.instant();
         LocalDate today = zone.dateOf(now);
@@ -145,7 +147,7 @@ class OrgStructureCommandService implements OrgStructureCommands {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('" + PERMISSION + "')")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.ORG_STRUCTURE_COMMAND_CREATE + "')")
     public void withdraw(WithdrawOrgStructureCommand request) {
         Instant now = clock.instant();
         LocalDate today = zone.dateOf(now);
@@ -175,7 +177,7 @@ class OrgStructureCommandService implements OrgStructureCommands {
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('" + PERMISSION + "')")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.ORG_STRUCTURE_COMMAND_CREATE + "')")
     public OrgMergePreview previewMerge(PreviewOrgUnitMerge preview) {
         if (!commands.orgUnitExists(preview.targetOrgUnitId()) || !commands.orgUnitExists(preview.mergeIntoOrgUnitId())) {
             throw notAllowed("the org unit does not exist");

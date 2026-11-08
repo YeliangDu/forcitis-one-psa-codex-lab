@@ -13,6 +13,9 @@ public record TestDatabase(String url, String username, String password) {
         registry.add("spring.datasource.url", this::url);
         registry.add("spring.datasource.username", this::username);
         registry.add("spring.datasource.password", this::password);
+        registry.add("spring.flyway.url", this::url);
+        registry.add("spring.flyway.user", this::username);
+        registry.add("spring.flyway.password", this::password);
     }
 
     @Override

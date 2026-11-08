@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.organization.workforce.api.WorkforcePermissions;
+
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
@@ -56,7 +58,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 class AttributionCountersignService implements AttributionCountersigns {
-    static final String PERMISSION = "organization.workforce:legal-entity-attribution:approve";
+    static final String PERMISSION = WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_APPROVE;
     private static final String COMMAND = "PersonnelCommand";
 
     private final AttributionCountersignRepository countersigns;
@@ -99,28 +101,28 @@ class AttributionCountersignService implements AttributionCountersigns {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('" + PERMISSION + "')")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_APPROVE + "')")
     public void approve(ApproveAttributionCountersign request) {
         decide(request.attributionCountersignId(), request.reason(), true);
     }
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('" + PERMISSION + "')")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_APPROVE + "')")
     public void reject(RejectAttributionCountersign request) {
         decide(request.attributionCountersignId(), request.reason(), false);
     }
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('" + PERMISSION + "')")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_APPROVE + "')")
     public CursorPage<AttributionCountersignSummary> list(@Nullable AttributionCountersignStatus status, PageRequest page) {
         return reads.list(status, page);
     }
 
     @Override
     @Transactional(readOnly = true)
-    @PreAuthorize("hasAuthority('" + PERMISSION + "')")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_APPROVE + "')")
     public AttributionCountersignDetail get(AttributionCountersignId id) {
         return reads.get(id);
     }

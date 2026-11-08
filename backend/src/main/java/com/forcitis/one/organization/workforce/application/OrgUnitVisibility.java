@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.organization.workforce.api.WorkforcePermissions;
+
 import com.forcitis.one.kernel.OrgUnitAccess;
 import com.forcitis.one.organization.workforce.api.OrgUnitId;
 import com.forcitis.one.organization.workforce.domain.OrgHierarchy;
@@ -13,7 +15,7 @@ import java.util.Set;
 /** Turns what the caller may see into the ids of the units that exist: a unit outside it is not there for the caller. */
 final class OrgUnitVisibility {
     /** The permission whose org unit scope decides what can be seen (a copy of platform.identity Permission.Codes, checked by WorkforceConfigurationTest). */
-    static final String ORG_UNIT_READ = "organization.workforce:org-unit:read";
+    static final String ORG_UNIT_READ = WorkforcePermissions.ORG_UNIT_READ;
 
     private OrgUnitVisibility() {
     }
@@ -24,7 +26,7 @@ final class OrgUnitVisibility {
      */
     static Set<OrgUnitId> idsInForDetail(Collection<OrgUnit> units, OrgUnitAccess access) {
         try {
-            return idsIn(units, access.visibleOrgUnits(ORG_UNIT_READ));
+            return idsIn(units, access.visibleOrgUnits(WorkforcePermissions.ORG_UNIT_READ));
         } catch (DomainException unavailable) {
             if (unavailable.kind() != ErrorKind.FORBIDDEN) {
                 throw unavailable;

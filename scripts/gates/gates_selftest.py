@@ -718,7 +718,14 @@ def body(gate_cmd, ceiling_cmd, sheet_cmd, tmp):
                                   ("no-python", "#!/nonexistent/python3\n", 0o755, "异常退出（退出码 126"), ("killed", "#!/bin/bash\nkill -9 $$\n", 0o755, "异常退出（退出码 137"),
                                   ("syntax", "#!/usr/bin/python3\ndef (:\n", 0o755, "异常退出（退出码 1")):
         version(name, gate, gate_mode=mode)
-        closed(why)
+        if name == "no-python":
+            for shell in SHELLS:
+                entry = os.path.join(current, "scripts/gates/pre_tool_dispatch.py")
+                probe = subprocess.run([shell, "-c", '"$1"', "probe", entry], capture_output=True, env=env)
+                assert probe.returncode in (126, 127), (shell, probe.returncode)
+                closed(f"异常退出（退出码 {probe.returncode}", shells=(shell,))
+        else:
+            closed(why)
     shutil.rmtree(os.path.join(hooks, "syntax"))
     closed("入口缺失")  # a dangling current link
     version("gate-error", "#!/bin/bash\ncat >/dev/null\nexit 3\n")  # the real dispatcher's answer when the gate cannot be imported, crashes or hangs (section 4)

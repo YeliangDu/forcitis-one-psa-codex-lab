@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.web;
 
+import com.forcitis.one.organization.workforce.api.WorkforcePermissions;
+
 import com.forcitis.one.organization.workforce.api.ApproveAttributionCountersign;
 import com.forcitis.one.organization.workforce.api.AttributionCountersignId;
 import com.forcitis.one.organization.workforce.api.AttributionCountersigns;

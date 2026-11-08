@@ -100,7 +100,7 @@ Check: planned: G-CS5
 | CS-3.2 | Ten DDL design items of NAMING_STANDARD §2.4a | Guard: `DdlNamingTest`, `DataArchitectureTest` (per item); manual: review (the rest) |
 | CS-3.3 | **Data design follows all of DATA_DESIGN_CHECKLIST §14.1** | Guard: `DataArchitectureTest`, `DdlNamingTest`, `PrimaryKeyTypeGuardTest`; manual: review (the rest) |
 | CS-3.4 | **Own tables use a UUIDv7 key** from `kernel.IdGenerator`; external IDs only as source-reference columns, mapped to own enums in the anti-corruption layer | Guard: `PrimaryKeyTypeGuardTest` |
-| CS-3.5 | **Migration baseline** (ADR-0038): while marker `backend/architecture/migration-baseline-open` exists, edit the one baseline per schema and attach an "expected table-structure diff" (`pg_dump --schema-only` of two empty DBs, opus-checked); a separate PR removes the marker before first production deployment, then migrations are append-only | Guard: `scripts/guards/migrations_immutable.py`; manual: review (diff) |
+| CS-3.5 | **Migration baseline** (ADR-0038): while marker `backend/architecture/migration-baseline-open` exists, edit the one baseline per schema and attach an "expected table-structure diff" (`pg_dump --schema-only` of two empty DBs in hosted CI, independently reviewed by Codex); a separate PR removes the marker before first production deployment, then migrations are append-only | Guard: `scripts/guards/migrations_immutable.py`; manual: review (diff) |
 | CS-3.6 | SQL only in `Jdbc*Repository` in `infrastructure.persistence` (`JdbcClient`, hand-written mapping, no ORM), own schema only; classes and tables registered in `architecture/data-access-registry.yaml` | Guard: G10, `DataArchitectureTest`, `WorkforceSchemaGuardTest` |
 | CS-3.7 | **Bind parameters** (`:name`); dynamic sort columns and table names only from a whitelist enum (new) | Guard: `scripts/guards/sql_values.py` |
 | CS-3.8 | SQL does not read the database clock; DDL writes no clock defaults (R-4) | Guard: `TimeSourceGuardTest` (SQL strings; migration scan comes with R-4) |
@@ -133,7 +133,7 @@ Check: planned: G-CS5
 |---|---|---|
 | CS-5.1 | **Module-level integration tests first** (HTTP → authorization → use case → domain → real PostgreSQL via Testcontainers); no mocks of own modules, external systems via WireMock or stand-in; unit tests only for boundaries | manual: review |
 | CS-5.2 | **Test names cite a basis number**: `@DisplayName` starts with a rule / difference / ADR / review / intent number; every `contract.md` item and ADR clause delivered maps to a test | manual: review (`scripts/guards/rule_tests.py` maps business rules to tests) |
-| CS-5.3 | **Acceptance tests separate from implementation**: the test agent commits first, the implementation agent never modifies them | Guard: `scripts/guards/acceptance_guard.py`, `acceptance_rulings.py`, `acceptance_reports.py` |
+| CS-5.3 | **Acceptance tests separate from implementation**: one-test freezes the tests-only head before implementation; a read-only author may supply a patch to lead with author identity preserved; the implementer does not modify the assertions | Guard: `scripts/guards/acceptance_guard.py`, `acceptance_rulings.py`, `acceptance_reports.py` |
 | CS-5.4 | **Never loosen or delete an assertion to pass**; a needed change lists its reason in report and PR | manual: review (PR template) |
 | CS-5.5 | A test asserts only this module's effects | Guard: `TestIsolationGuardTest` |
 | CS-5.6 | **Deterministic waiting**: bounded deterministic wait for async, no broad `never()`; no `Thread.sleep` (new) | Guard: `LegacyApiGuardTest#NO_THREAD_SLEEP`; planned: G-CS8 (broad `never()`) |
@@ -141,7 +141,7 @@ Check: planned: G-CS5
 | CS-5.8 | (new) Tests use a fixed `Clock` and `IdGenerator`, not runtime instant or ID order | manual: review |
 | CS-5.9 | **A new guard carries negative samples** (injects an error, is blocked, message says where to put it / what to name it); every exception-list line has a reason and a new exception needs review | manual: review |
 | CS-5.10 | **Review produces failing tests** for Blocker / High / Medium where possible, named by the review number | manual: review |
-| CS-5.11 | A fix loop runs only affected modules; before delivery and at the integration commit run affected tests, `scripts/ci/light.sh` and all guards (CS-7.6) | Guard: `scripts/ci/light.sh` |
+| CS-5.11 | Use GitHub-hosted Actions for affected checks; at the integration head run applicable guards and full backend verification when required (CS-7.6) | Guard: `scripts/ci/light.sh` |
 
 ## 6. Logging, security and secrets
 
@@ -151,26 +151,26 @@ Check: planned: G-CS5
 | CS-6.2 | `RESTRICTED` (passwords, keys, session content) in no log or exception message, never leaves the database; `SENSITIVE` (personal data, salary, daily rate, bank card): logs record only the ID | manual: review; planned: G-CS9 |
 | CS-6.3 | Tests contain no secret literals (same as CS-5.7) | Guard: `gitleaks` (pre-commit, CI) |
 | CS-6.4 | **Secrets never enter session records** | manual: review |
-| CS-6.5 | Raw credentials only in `~/.modernize/psa/` (mode 600) or KMS | Guard: `gitleaks`; manual: review |
-| CS-6.6 | Identity, authorization, single-person-mode defenses follow I-1…I-13 of `docs/ops/security-invariants.md`; such changes add a final opus review | Guard: `SecurityInvariantsTest`; manual: review (final opus review) |
+| CS-6.5 | Credentials stay out of code, logs and sessions. The personal Lab uses the job token and approved GitHub Actions secret injection; the legacy production secret sources remain outside Lab | Guard: `gitleaks`; manual: review |
+| CS-6.6 | Identity, authorization, single-person-mode defenses follow I-1…I-13 of `docs/ops/security-invariants.md`; such changes add a final review by a different existing Codex resident | Guard: `SecurityInvariantsTest`; manual: review (independent final review) |
 | CS-6.7 | Production configuration has no test values, fixed verification codes or mock values (I-4) | Guard: `ProductionConfigSanityTest` |
-| CS-6.8 | **Ask the user before creating an account, starting a container, or making an external call** (except a local temporary Testcontainers container) | manual: review |
-| CS-6.9 | Production evidence-gathering is not requested each time (two bottom lines; ADR-0037 item 7) | manual: review |
-| CS-6.10 | **Security gate**: run `pre-commit install` once in the main checkout (hooks are shared by all workspaces); a commit in a plain clone is refused, use `git worktree add <dir> -b <branch>`; gitleaks version is the `rev` in `.pre-commit-config.yaml`, same as the gitleaks job in ci.yml | Guard: `gitleaks` (pre-commit, CI) |
+| CS-6.8 | Use approved GitHub-hosted containers for the card's tests. New accounts, external services or production calls need separate authorization through lead | manual: review |
+| CS-6.9 | The historical production evidence rule (ADR-0037 item 7) does not authorize Lab production access; use approved evidence already in the Lab | manual: review |
+| CS-6.10 | **Security gate**: use the assigned Lab worktree and the mandatory, version-pinned GitHub-hosted Gitleaks job. Local hook state is not CI evidence | Guard: `gitleaks` (pre-commit, CI) |
 
 ## 7. Pre-delivery self-check and PR
 
 | # | Rule | Check |
 |---|---|---|
-| CS-7.1 | **Before delivery run affected tests plus `scripts/ci/light.sh`**; open the PR only with no FAIL, state its last line and any FAIL/SKIP | manual: review (PR template) |
+| CS-7.1 | **Before release collect exact-head hosted tests and `scripts/ci/light.sh`**; a tests-only draft may record the expected red. State actual PASS/FAIL/SKIP and missing checks | manual: review (PR template) |
 | CS-7.2 | Fill every field of `.github/pull_request_template.md` truthfully | manual: review |
 | CS-7.3 | **Defect fixes, feature completion and structural refactors (including renames) are dispatched separately, never mixed.** A defect fix is surgical: one card = one minimal change plus one regression test that fails first; only card files, report before going beyond (a defect card names review number, reproduction steps, expected changed files), small PRs merged once review passes, no accumulating big integration branches, no drive-by refactor or rename; a defect not fixable locally is marked "structural" and becomes a refactor | manual: review |
 | CS-7.4 | **Record the user's spoken decisions verbatim with `python3 scripts/session/new_intent.py`**; never name the file by hand; output is not committed or edited | manual: review |
 | CS-7.5 | **Change-governance self-check** (unsure: stricter, config < code < ADR): an adopted ADR changes only its status line (`docs/adr/readme-lifecycle.md`), a new ADR carries the required sections; code class (domain rules, calculations, validation, state machines, DDL): first append a draft conclusion to `revisions` in `docs/business/rule-reviews.json` (original fields unchanged, the last is current), after user confirmation change tests named by rule ID (RULE-NNN), last the implementation; config class (DMN, business numbers, operating basis, policy parameters; business basis approved by the user, accounting basis by finance): register version and effective date in `docs/ops/config-changelog.md`, versions append-only, effective by a date aligned with the accounting period, no retroactive effect, no back-dating, no recomputation (`docs/rules/playbooks/design.md` step 9) | manual: review |
-| CS-7.6 | Parallel subagents start from the same baseline; the integration commit reruns all guards | manual: review |
-| CS-7.7 | **Review and enqueue**: fresh review subagent per `scripts/review/PROMPT.md`; security and production changes add a final opus review; the lead releases must-fix repairs after reading the diff; after review passes the author runs `python3 scripts/merge/mq.py enqueue <PR>` and does not push after; no auto-merge | Guard: `mq.py`; manual: review (lead releases must-fix fixes) |
+| CS-7.6 | Authorized parallel work uses the same approved baseline; GitHub-hosted Actions reruns applicable guards on the integration commit | manual: review |
+| CS-7.7 | **Review and enqueue**: existing independent Codex residents review the exact head per `scripts/review/PROMPT.md`; guarded changes use a different final reviewer. Lead admits through `mq.py` once hosted evidence is complete. Do not push after admission or use GitHub auto-merge | Guard: `mq.py`; manual: review (lead releases must-fix fixes) |
 | CS-7.8 | (new) Titles of issue, PR, commit (a card's issue and PR use the same short name; old titles are not rewritten): `type(scope): 中文摘要`; type from the card's 类型 (impl→feat, bugfix→fix, docs/design→docs, ops→ci or chore, acceptance→test, investigation→spike), scope the subdomain or module slug, summary ≤ 30 characters stating the result, identifiers as they are. PR and commit titles end `（#<issue>）`; issue titles carry no self-made card id (user 2026-10-30 「同意」) | manual: review (check: card in the ops queue) |
-| CS-7.9 | **IntelliJ build** does not read `backend/.mvn/jvm.config` (Error Prone fails with `IllegalAccessError`): add the same `--add-exports` / `--add-opens` to Shared build process VM options, or build with Maven (ADR-0033 guard 14) | manual: review |
+| CS-7.9 | **Legacy IntelliJ troubleshooting, not a Lab verification path**: IntelliJ does not read `backend/.mvn/jvm.config` (Error Prone fails with `IllegalAccessError`): add the same `--add-exports` / `--add-opens` to Shared build process VM options, or build with Maven (ADR-0033 guard 14) | manual: review |
 | CS-7.10 | Drafts under `proposals/` are not authoritative; an ADR cites only the intent number, never the user's words | manual: review |
 
 ## 8. Planned guard designs (G-CS series; distinct from naming-standard's G-C series (ADR-0035 contract guards))

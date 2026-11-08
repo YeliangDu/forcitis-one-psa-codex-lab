@@ -3,6 +3,7 @@ package com.forcitis.one.platform.identity.infrastructure.startup;
 import com.forcitis.one.kernel.IdGenerator;
 import com.forcitis.one.kernel.WorkContext;
 import com.forcitis.one.platform.identity.application.ReconcileSystemRole;
+import com.forcitis.one.platform.identity.api.PermissionCatalogue;
 import com.forcitis.one.platform.identity.domain.DeclaredRole;
 import com.forcitis.one.platform.identity.domain.RoleRepository;
 import com.forcitis.one.platform.identity.domain.SystemRoleDeclaration;
@@ -30,17 +31,24 @@ class SystemRoleReconciliation implements SmartInitializingSingleton {
     private final RoleRepository roles;
     private final ObjectProvider<SystemRoleDeclaration> declaration;
     private final IdGenerator ids;
+    private final PermissionCatalogue catalogue;
 
-    SystemRoleReconciliation(ReconcileSystemRole reconcile, RoleRepository roles, ObjectProvider<SystemRoleDeclaration> declaration, IdGenerator ids) {
+    SystemRoleReconciliation(ReconcileSystemRole reconcile, RoleRepository roles, ObjectProvider<SystemRoleDeclaration> declaration, IdGenerator ids, PermissionCatalogue catalogue) {
         this.reconcile = reconcile;
         this.roles = roles;
         this.declaration = declaration;
         this.ids = ids;
+        this.catalogue = catalogue;
     }
 
     @Override
     public void afterSingletonsInstantiated() {
         SystemRoleDeclaration declared = declaration.getIfAvailable(() -> SystemRoleDeclaration.CURRENT);
+        for (DeclaredRole role : declared.roles()) {
+            if (!role.definition().permissionCodes().stream().allMatch(catalogue::isLive)) {
+                throw new IllegalArgumentException("System role grants an unknown or retired permission");
+            }
+        }
         try (WorkContext.Scope scope = WorkContext.enter(ids.next(), null, "platform.identity.system-role-declaration")) {
             for (DeclaredRole role : declared.roles()) {
                 reconcile.execute(role);

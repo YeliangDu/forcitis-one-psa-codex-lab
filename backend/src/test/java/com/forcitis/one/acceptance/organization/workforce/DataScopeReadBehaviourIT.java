@@ -306,6 +306,8 @@ class DataScopeReadBehaviourIT extends DataScopeSupport {
                 new DetailPath("GET " + EMPLOYEES + "/{employeeId}", employeeIdOf("a1"), employeeIdOf("b1")),
                 new DetailPath("GET " + PERSONNEL_COMMANDS + "/{personnelCommandId}", personnelCommandOf("a1"), personnelCommandOf("b1")),
                 new DetailPath("GET " + PRIMARY_ASSIGNMENTS, employeeIdOf("a1"), employeeIdOf("b1")),
+                new DetailPath("GET /api/v1/organization/acting-duties/{employeeId}", employeeIdOf("a1"), employeeIdOf("b1")),
+                new DetailPath("GET /api/v1/organization/covered-acting-duties/{employeeId}", employeeIdOf("a1"), employeeIdOf("b1")),
                 new DetailPath("GET " + ADJUSTMENT, adjustmentIn("F1-A"), adjustmentIn("F1-B")),
                 new DetailPath("GET " + REQUISITION, requisitionIn("F1-A"), requisitionIn("F1-B")));
     }

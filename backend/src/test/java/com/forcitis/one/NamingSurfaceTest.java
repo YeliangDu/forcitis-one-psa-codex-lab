@@ -176,6 +176,11 @@ class NamingSurfaceTest {
                 problems.add("Permission." + p.name() + " code '" + p.code() + "' is not a Permission.Codes constant");
             }
         }
+        var mixed = com.forcitis.one.platform.identity.api.PermissionCatalogue.fromClasspath();
+        for (var entry : mixed.entries().values()) {
+            checkPermission("collected catalogue", entry.code().value(), problems);
+            if (!entry.deprecated()) { catalogue.add(entry.code().value()); }
+        }
         for (JavaClass c : ArchitectureRulesTest.CLASSES) {
             for (Method m : c.reflect().getDeclaredMethods()) {
                 PreAuthorize pre = m.getAnnotation(PreAuthorize.class);

@@ -2,6 +2,7 @@
 Closes #<卡>
 
 ## 改动说明
+<!-- 实现会话：Codex: <session-id>；独立验收用 Codex-Acceptance: <session-id>。 -->
 
 ## 改动的断言 / 测试及理由
 <!-- 放宽、删除、改写已有断言或测试的逐条写理由；没有写「无」 -->
@@ -13,7 +14,7 @@ Closes #<卡>
 <!-- 改验收测试目录的提交须带 Acceptance-Test-Author 或 Acceptance-Ruling 行；否则「不涉及」 -->
 
 ## light.sh 输出
-<!-- 贴末行（PASS/FAIL/SKIP 计数与用时）加全部 FAIL、SKIP 行，不含密钥 -->
+<!-- 贴 GitHub 托管运行链接、准确 head/base、light.sh 的 PASS/FAIL/SKIP 和适用的验收计数。没跑或失败要写明，不把本机输出当 CI。 -->
 
 ## 复审
-<!-- 按 docs/rules/rules.md ⑤ 与 scripts/review/PROMPT.md 自派复审子代理，用 post_review 提交；首轮通过后自行 mq.py enqueue。 -->
+<!-- lead 将当前 head 交给已登记的独立 Codex 会话，按 scripts/review/PROMPT.md 记录复审。符合准入后由 lead 交给 mq.py。 -->

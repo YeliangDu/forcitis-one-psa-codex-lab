@@ -41,7 +41,11 @@ def shares(text):
     cjk = len(CJK.findall(text))
     latin = 0
     for token in CJK.sub(" ", text).split():
-        if not identifier_like(token):
+        plain = token.strip(EDGE)
+        if plain.isascii() and plain.isalpha():
+            if len(plain) == 1 or plain[1:].islower():
+                latin += len(plain)
+        elif not identifier_like(token):
             latin += sum(len(w) for w in WORD.findall(token))
     return cjk, latin
 

@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.organization.workforce.api.WorkforcePermissions;
+
 import com.forcitis.one.kernel.BusinessZone;
 import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.kernel.DomainException;
@@ -69,7 +71,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 class PersonnelCommandService implements PersonnelCommands {
-    static final String PERMISSION = "organization.workforce:personnel-command:create";
+    static final String PERMISSION = WorkforcePermissions.PERSONNEL_COMMAND_CREATE;
     private static final String COMMAND = "PersonnelCommand";
     private static final String HOLD = "SeparationHold";
 
@@ -122,7 +124,7 @@ class PersonnelCommandService implements PersonnelCommands {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('" + PERMISSION + "')")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.PERSONNEL_COMMAND_CREATE + "')")
     public PersonnelCommandId enter(EnterPersonnelCommand request) {
         return enter(request, currentUser.userId(), null);
     }
@@ -232,7 +234,7 @@ class PersonnelCommandService implements PersonnelCommands {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('" + PERMISSION + "')")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.PERSONNEL_COMMAND_CREATE + "')")
     public void withdraw(WithdrawPersonnelCommand request) {
         Instant now = clock.instant();
         LocalDate today = zone.dateOf(now);

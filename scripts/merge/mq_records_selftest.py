@@ -99,7 +99,8 @@ def wiring_test(tmp):
         seen.append((list(numbers), list(queued)))
         raise SystemExit("nothing queued: stop here")
     with mock.patch.object(mq.mq_title, "enforce", lambda *a: None), mock.patch.object(mq.mq_acceptance, "enforce", lambda *a: None), mock.patch.object(mq.mq_event_payload, "enforce", lambda *a: None), \
-            mock.patch.object(mq.mq_enqueue, "enforce", refuse), mock.patch.object(mq, "Gh", lambda: object()):
+            mock.patch.object(mq.mq_enqueue, "enforce", refuse), mock.patch.object(mq, "Gh", lambda: object()), \
+            mock.patch.object(mq.mq_lab, "handle_cli", return_value=False):
         try:
             mq.main(["--queue", queue, "enqueue", "9"])
             raise AssertionError("a refusal stops the enqueue")

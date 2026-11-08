@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.application;
 
+import com.forcitis.one.organization.workforce.api.WorkforcePermissions;
+
 import com.forcitis.one.kernel.CurrentUser;
 import com.forcitis.one.platform.audit.api.AuditSubject;
 import com.forcitis.one.kernel.CallerPermissions;
@@ -27,7 +29,7 @@ import java.util.UUID;
 /** RULE-385. Documents that already carry a legal entity keep it; correcting history never reaches back into them. */
 @Service
 public class CorrectLegalEntityAttribution {
-    static final String PERMISSION = "organization.workforce:legal-entity-attribution-correction:create";
+    static final String PERMISSION = WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE;
     static final int MAX_REASON_LENGTH = 200;
     private static final Logger LOG = LoggerFactory.getLogger(CorrectLegalEntityAttribution.class);
 
@@ -55,12 +57,12 @@ public class CorrectLegalEntityAttribution {
     public LegalEntityAttributionView execute(AttributionKind kind, UUID subjectId, LocalDate periodFrom, LocalDate newEffectiveTo, String reasonText,
                                               ExpectedVersion expected) {
         UserId correctedBy = currentUser.userId();
-        if (!caller.holds(PERMISSION)) {
+        if (!caller.holds(WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE)) {
             audit.recordIndependently(new AuditEntry("organization.workforce.legal-entity-attribution.correction-refused", correctedBy, null,
-                    AuditSubject.of(AttributionAuditKinds.of(kind), subjectId), "the caller lacks " + PERMISSION)
+                    AuditSubject.of(AttributionAuditKinds.of(kind), subjectId), "the caller lacks " + WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE)
                     .withTrace(null, AuditOutcome.FAILED, null));
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_FORBIDDEN, ErrorKind.FORBIDDEN,
-                    "correcting an attribution needs " + PERMISSION);
+                    "correcting an attribution needs " + WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE);
         }
         Reason reason = Reason.ofNullable(reasonText);
         if (reason == null) {

@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.web;
 
+import com.forcitis.one.organization.workforce.api.WorkforcePermissions;
+
 import com.forcitis.one.organization.workforce.api.EmployeeProfiles;
 import com.forcitis.one.organization.workforce.api.ProfileChangeRequestId;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;

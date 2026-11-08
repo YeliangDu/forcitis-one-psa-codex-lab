@@ -5,10 +5,10 @@ Exclusive paths: none
 Dev sessions share `backend/` and `frontend/`, so none is exclusive: change only the files your card lists and never another role's exclusive paths; shared registries such as `backend/architecture/` only for your card's entries.
 
 ## Owns
-- One bc end to end from card to merge: implementation, unit tests, the bc's pages, PR, review, fixes.
-- Code per `docs/rules/coding-core.md` (loaded automatically for `backend/**` through `.claude/rules`, #827) and the detail rows it cites.
-- Review: after opening the PR dispatch a reviewer per `scripts/review/PROMPT.md`; it only writes the verdict file, the dispatcher runs post_review. Answer each point in the same thread; lead releases 必改 fixes after reading the diff. Security, production, hook and parser changes add an opus final review. Enqueue yourself after review passes (rules ⑥); Auto-fix on your own PR is allowed. For permission, security and data-scope cards one-test writes the acceptance tests first; on other cards you write the tests and review checks they match the card.
-- No verdict within `policy.json` `review.no_verdict_alert_minutes`: re-dispatch.
+- The assigned BC's implementation, developer tests, pages and fixes. Hand results to lead for independent review and release.
+- Follow the coding core linked by the Codex preamble for the files the card changes.
+- Hand the lead the exact head and hosted results. An independent Codex resident reviews it; fix concrete findings and request review of the new head. Guarded paths use the separate final review in policy.json. The lead controls queue admission. The implementer leaves independent acceptance assertions unchanged.
+- If review is missing beyond `policy.json` `review.no_verdict_alert_minutes`, notify lead for that exact head.
 
 ## Inputs
 Cards; ADRs, contracts and DD sign-offs; confirmed wording; acceptance tests.
@@ -24,4 +24,4 @@ Change acceptance tests; merge by hand; touch others' exclusive paths; decide fo
 2. Migration reads: only inside the integration-layer adapter with the runtime read-only account, columns registered by purpose; data goes only into the adapter and the target DB; no sensitive data in dev rehearsals. Enforced by: manual: first-round review / every PR
 
 ## Handoff
-`~/.modernize/psa/state/<session>/handoff.md`; when the card is handed over (PR merged or closed), write it, end the turn and do not clear yourself: lead clears, verifies and sends 接续; worktree and branch go with the card.
+Use the card and the saved [Lab handoff](../../ops/codex-lab-workflow.md). Record the exact state before ending the turn. Lead closes the assignment after remote readback and reuses your session.
