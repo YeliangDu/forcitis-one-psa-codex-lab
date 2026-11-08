@@ -56,6 +56,46 @@ def pull(row,b,merged=False,exact_head=True):
     return row
 
 
+def listed_pull(github,b,summary,adopt=False):
+    """Hydrate only an already unique, complete, legal list candidate.
+
+    A pulls-list row is not a detail response: never infer merged from merged_at.
+    The caller rejects incomplete/nonunique inventories before entering here.
+    """
+    require(type(summary) is dict and positive(summary.get('number'))
+            and summary.get('state')=='open' and type(summary.get('draft')) is bool,
+            'invalid-PR-list-candidate')
+    if 'merged' in summary:require(summary['merged'] is False,'contradictory-PR-list-merged-field')
+    for side in ('head','base'):
+        require(type(summary.get(side)) is dict and sha(summary[side].get('sha'))
+                and type(summary[side].get('ref')) is str and bool(summary[side]['ref']),
+                'incomplete-PR-list-branch')
+        life.fixed_repo(summary[side].get('repo'))
+        if 'private' in summary[side]['repo']:
+            require(summary[side]['repo']['private'] is False,'PR-list-repository-not-public')
+    if 'id' in summary:require(positive(summary['id']),'invalid-PR-list-native-ID')
+    life.branch_name(summary['head']['ref'])
+    require(summary['base']['ref']=='main' and summary['base']['sha']==b['base'],
+            'PR-list-base-not-bound')
+    if not adopt:
+        require(summary['head']['ref']==b['branch'] and summary['head']['sha']==b['head'],
+                'PR-list-head-not-bound')
+    expected=dict(b,branch=summary['head']['ref'],head=summary['head']['sha'],pr_number=summary['number'])
+    detail=pull(github.pull(summary['number']),expected)
+    require(detail['number']==summary['number'] and detail.get('draft') is summary['draft']
+            and detail.get('state')==summary['state'],'PR-detail-identity-moved-after-list')
+    for side in ('head','base'):
+        life.fixed_repo(detail[side].get('repo'))
+        if 'private' in detail[side]['repo']:
+            require(detail[side]['repo']['private'] is False,'PR-detail-repository-not-public')
+        require(detail[side].get('ref')==summary[side]['ref']
+                and detail[side].get('sha')==summary[side]['sha'],'PR-detail-branch-moved-after-list')
+    if 'id' in summary:
+        require(positive(summary['id']) and type(detail.get('id')) is int
+                and detail['id']==summary['id'],'PR-detail-native-ID-moved')
+    return detail
+
+
 def occupancy(github,b,retiring=False,allow_base_motion=False):
     view=github.retirement_snapshot(copy.deepcopy(b))
     require(type(view) is dict and view.get('complete') is True and view.get('queued') is False
@@ -98,7 +138,7 @@ def dispatch(request,store,git,github):
         found=github.find_pulls(copy.deepcopy(b));require(found.get('complete') is True and type(found.get('items')) is list,'PR-inventory-incomplete')
         require(len(found['items'])<=1,'ambiguous-existing-card-PR')
         if found['items']:
-            native=found['items'][0];life.branch_name(native['head']['ref']);b['branch']=native['head']['ref'];b['head']=native['head']['sha']
+            native=listed_pull(github,b,found['items'][0],adopt=True);life.branch_name(native['head']['ref']);b['branch']=native['head']['ref'];b['head']=native['head']['sha']
             b['pr_number']=native['number'];pull(native,b)
         else:
             require(name.startswith('codex/'+str(request['card'])+'-'),'new-branch-not-card-scoped')
@@ -160,7 +200,7 @@ def ensure_pr(row,store,github):
             try:github.create_pull(copy.deepcopy(b))
             except Exception:return dict(action='hold',reason='PR-create-unknown-readback-only')
             found=github.find_pulls(copy.deepcopy(b));require(found.get('complete') is True and len(found.get('items',[]))==1,'PR-create-not-read-back')
-        native=pull(found['items'][0],b)
+        native=listed_pull(github,b,found['items'][0])
         b['pr_number']=native['number'];row['operations']['create_pr']=dict(status='done',head=b['head']);store.save()
     return life.result('bound-pr',row,pr_number=native['number'])
 

@@ -184,7 +184,10 @@ class NativeGithub:
         for row in self.all_pulls():
             link=re.match(r'^(?:Closes|Refs) #([1-9][0-9]*)\s*(?:\n|$)',row.get('body') or '')
             if row.get('head',{}).get('ref')!=binding['branch'] and not (link and int(link[1])==binding['card']):continue
-            repo(row['head']['repo']);repo(row['base']['repo']);rows.append(row)
+            repo(row['head']['repo']);repo(row['base']['repo'])
+            need(row['head'].get('ref')==binding['branch'] and row['base'].get('ref')=='main'
+                 and row['base'].get('sha')==binding['base'],'native-PR-list-binding-mismatch')
+            rows.append(row)
         return dict(complete=True,items=rows)
 
     def create_pull(self,binding):
@@ -193,7 +196,19 @@ class NativeGithub:
                                           head=binding['branch'],base='main',draft=True))[0]
 
     def pull(self,number):
-        row=self.api('pulls/'+str(number))[0];repo(row['head']['repo']);repo(row['base']['repo']);return row
+        need(type(number) is int and number>0,'invalid-exact-PR-detail-number')
+        row=self.api('pulls/'+str(number))[0]
+        need(type(row) is dict and type(row.get('id')) is int and row['id']>0
+             and type(row.get('number')) is int and row['number']==number
+             and type(row.get('merged')) is bool and type(row.get('draft')) is bool
+             and row.get('state') in ('open','closed'),'incomplete-or-foreign-native-PR-detail')
+        for side in ('head','base'):
+            branch=row.get(side)
+            need(type(branch) is dict and type(branch.get('ref')) is str and bool(branch['ref'])
+                 and type(branch.get('sha')) is str and re.fullmatch('[0-9a-f]{40}',branch['sha']),
+                 'incomplete-native-detail-branch')
+            repo(branch.get('repo'))
+        return row
 
     def native_runs(self,binding):
         return self.pages('actions/runs?branch='+urllib.parse.quote(binding['branch'],safe='')+'&per_page=100','workflow_runs')
