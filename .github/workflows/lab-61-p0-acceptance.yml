@@ -1,0 +1,67 @@
+name: Lab 61 P0 independent baseline acceptance
+on:
+  push:
+    branches: [codex/61-native-contracts]
+    paths: [.github/workflows/lab-61-p0-acceptance.yml]
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    if: >-
+      github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      toJSON(github.event.repository.id) == '1449415666' &&
+      toJSON(github.event.repository.private) == 'false' &&
+      github.ref == 'refs/heads/codex/61-native-contracts'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      ACCEPTANCE_HEAD: 491418f7c6eb82ab0281293b508e927f75b12cf3
+      PRODUCT_BASE: 77e872e8ba9661d3294d3a9337c8e5c956b70641
+      MANIFEST_SHA256: da76e5b24ee711b5b56750ca5473e7c2690a3418447f0b1cf9fb994877e6f139
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 491418f7c6eb82ab0281293b508e927f75b12cf3
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run exact independent tests-only A on GitHub-hosted runner
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$(git rev-parse HEAD)" = "$ACCEPTANCE_HEAD"
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_BASE"
+          d="$RUNNER_TEMP/lab61-evidence"
+          mkdir -m 700 "$d"
+          printf 'A=%s\nB=%s\nworkflow_head=%s\nrun=%s\nattempt=%s\nmanifest_sha256=%s\nrunner=%s\n' \
+            "$ACCEPTANCE_HEAD" "$PRODUCT_BASE" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$MANIFEST_SHA256" "$RUNNER_ENVIRONMENT" > "$d/identity.txt"
+          python3 -I -B - <<'PYCODE'
+          import hashlib,json,os
+          from pathlib import Path,PurePosixPath
+          root=Path("scripts/session/codex_lab/p0_acceptance").resolve(strict=True)
+          manifest=root/"manifest.json"
+          assert not manifest.is_symlink() and manifest.is_file()
+          raw=manifest.read_bytes()
+          assert hashlib.sha256(raw).hexdigest()==os.environ["MANIFEST_SHA256"]
+          frozen=json.loads(raw)
+          assert frozen["B"]==os.environ["PRODUCT_BASE"] and frozen["card"]==61 and frozen["revision"]==2
+          for name,expected in frozen["files_sha256"].items():
+              rel=PurePosixPath(name)
+              assert not rel.is_absolute() and ".." not in rel.parts and str(rel)==name
+              path=root/name
+              assert path.is_file() and path.resolve(strict=True)==path
+              assert hashlib.sha256(path.read_bytes()).hexdigest()==expected
+          PYCODE
+          python3 -I -B scripts/session/codex_lab/p0_acceptance/stage.py \
+            --manifest-sha256 "$MANIFEST_SHA256" --destination "$RUNNER_TEMP/lab61-staged"
+          rc=0
+          python3 -I -B "$RUNNER_TEMP/lab61-staged/run_acceptance.py" --source-checkout "$GITHUB_WORKSPACE" \
+            --expected-head "$ACCEPTANCE_HEAD" --report "$d/verdict.json" || rc=$?
+          printf '%s\n' "$rc" > "$d/exit-code.txt"
+          exit "$rc"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab61-p0-baseline-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab61-evidence/
+          if-no-files-found: error
+          retention-days: 7
