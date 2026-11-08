@@ -1,8 +1,10 @@
 {
   "base": "15511fad03b8d2ae38e3a337f24556bd9d9071c6",
+  "baseline_ref": "git/ref/heads/lab/22-public-old-main-witness",
+  "baseline_source": "60c97c75b8092a64dbf322efcab4f8a3ba166510",
   "head": "729ec3b9093bdff749a10a88f99206a9c0f193e2",
   "independent_ref": "git/ref/heads/lab/22-independent-public-candidate-proof-fdec099-46e202546fa005f8db866012899d06acc5b2a8ae0cc971447318ba9e020c2823",
-  "independent_source": "94a154b165673513c17b8f78a1fc1a95ec464c10",
+  "independent_source": "70fc463d36b1d0d4f0045015aef5a3289d03bf8b",
   "main_tip": "15511fad03b8d2ae38e3a337f24556bd9d9071c6",
   "merge_sha": null,
   "number": 43,
@@ -10,7 +12,8 @@
   "object_roots": [
     "15511fad03b8d2ae38e3a337f24556bd9d9071c6",
     "729ec3b9093bdff749a10a88f99206a9c0f193e2",
-    "94a154b165673513c17b8f78a1fc1a95ec464c10"
+    "70fc463d36b1d0d4f0045015aef5a3289d03bf8b",
+    "60c97c75b8092a64dbf322efcab4f8a3ba166510"
   ],
   "repository": "YeliangDu/forcitis-one-psa-codex-lab",
   "repository_id": 1449415666,
@@ -40,7 +43,7 @@
           },
           "sha": "15511fad03b8d2ae38e3a337f24556bd9d9071c6"
         },
-        "draft": true,
+        "draft": false,
         "head": {
           "repo": {
             "full_name": "YeliangDu/forcitis-one-psa-codex-lab",
@@ -75,13 +78,27 @@
       "field": null,
       "match": {
         "object": {
-          "sha": "94a154b165673513c17b8f78a1fc1a95ec464c10",
+          "sha": "70fc463d36b1d0d4f0045015aef5a3289d03bf8b",
           "type": "commit"
         },
         "ref": "refs/heads/lab/22-independent-public-candidate-proof-fdec099-46e202546fa005f8db866012899d06acc5b2a8ae0cc971447318ba9e020c2823"
       },
       "pages": false,
       "path": "git/ref/heads/lab/22-independent-public-candidate-proof-fdec099-46e202546fa005f8db866012899d06acc5b2a8ae0cc971447318ba9e020c2823",
+      "sha256": null
+    },
+    {
+      "binary": false,
+      "field": null,
+      "match": {
+        "object": {
+          "sha": "60c97c75b8092a64dbf322efcab4f8a3ba166510",
+          "type": "commit"
+        },
+        "ref": "refs/heads/lab/22-public-old-main-witness"
+      },
+      "pages": false,
+      "path": "git/ref/heads/lab/22-public-old-main-witness",
       "sha256": null
     }
   ],

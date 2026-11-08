@@ -1,15 +1,22 @@
 {
   "base": "15511fad03b8d2ae38e3a337f24556bd9d9071c6",
-  "checkout_head": "154b1f5056f6006ed4d37282ab7735f576fee691",
+  "baseline": {
+    "ref": "git/ref/heads/lab/22-public-old-main-witness",
+    "source": "60c97c75b8092a64dbf322efcab4f8a3ba166510",
+    "workflow_blob": "e3343d970bbfd38820345542d26be66a4c17e12a",
+    "workflow_path": ".github/workflows/lab-22-public-old-main-witness.yml",
+    "workflow_sha256": "8e68cd1352f1ad7318a50129a94c7c41933ec951100124ce832a413804fbf943"
+  },
+  "checkout_head": "fc12a3ff71fce5a6e39b2c545a74d0aa2005b74d",
   "head": "729ec3b9093bdff749a10a88f99206a9c0f193e2",
   "independent_ref": "git/ref/heads/lab/22-independent-public-candidate-proof-fdec099-46e202546fa005f8db866012899d06acc5b2a8ae0cc971447318ba9e020c2823",
-  "independent_source": "94a154b165673513c17b8f78a1fc1a95ec464c10",
+  "independent_source": "70fc463d36b1d0d4f0045015aef5a3289d03bf8b",
   "main_tip": "15511fad03b8d2ae38e3a337f24556bd9d9071c6",
-  "module_sha256": "bda658741d447704399f76c6aeeb084ce8486611a20516cebfd27bf7d0464f45",
+  "module_sha256": "9a50dd8e34dc6b21b9fafd126b75c85a1574fa5a7d50c93c0802cbcf0f639ec7",
   "number": 43,
   "repository": "YeliangDu/forcitis-one-psa-codex-lab",
   "repository_id": 1449415666,
-  "scope_sha256": "bb3c70edc8698297fd5595c43e429651644db13043d1508872da7e873d7d3e2e",
+  "scope_sha256": "a917e5ce88619dc48b9d31de373033a9262a966067dfa979f6ec111d1794ac97",
   "trees": {
     "new": {
       "policy_blob": "915f12c4217f30150995f9b4ea40043f7d0e8e32",
