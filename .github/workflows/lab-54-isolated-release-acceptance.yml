@@ -1,0 +1,149 @@
+name: Lab 54 isolated release identity acceptance
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - scripts/session/codex_lab/lab_release_identity_acceptance.py
+      - .github/workflows/lab-54-isolated-release-acceptance.yml
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+env:
+  SOURCE: 396d75e48cba5cefc496fbb572a592e97ea3612a
+  VERSION: 0.54.0-rc.1
+jobs:
+  build:
+    if: >-
+      github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      toJSON(github.event.repository.id) == '1449415666' &&
+      toJSON(github.event.repository.private) == 'false' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'codex/54-isolated-release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    outputs:
+      bundle_sha256: ${{ steps.build.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 396d75e48cba5cefc496fbb572a592e97ea3612a
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Re-read the frozen personal Lab release witness
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/lab54-witness"
+          python3 -I -B - "$RUNNER_TEMP/lab54-witness" <<'PYCODE'
+          from pathlib import Path
+          import hashlib, io, json, subprocess, sys, zipfile
+          directory = Path(sys.argv[1])
+          repo = "YeliangDu/forcitis-one-psa-codex-lab"
+          rid = 1449415666
+          b = "c09f26ef5e75b6b01ff794b13edd5a484967a7b0"
+          h = "b8bee8358a9e8d6454aae5dd465e972fd40a7fff"
+          m = "396d75e48cba5cefc496fbb572a592e97ea3612a"
+          tree = "89c150c358971275d37cf8d87c987a551fad9779"
+          def get(path):
+              return subprocess.check_output(["gh", "api", "repos/" + repo + path], timeout=45)
+          pr = json.loads(get("/pulls/7"))
+          assert pr["head"]["repo"]["id"] == pr["base"]["repo"]["id"] == rid
+          assert pr["head"]["sha"] == h and pr["merged"] and pr["merge_commit_sha"] == m
+          assert subprocess.check_output(["git", "-C", "source", "rev-parse", "HEAD", "HEAD^1", "HEAD^2", "HEAD^{tree}"], text=True).splitlines() == [m, b, h, tree]
+          for tag, run, artifact, head, digest in [
+              ("pr", 42505033625, 13627419699, h, "30a94a54095f3b52e444c379a505e406b95577a94141e4b0d5d47f665e95d91b"),
+              ("main", 42507782743, 13628471023, m, "22f4a6c2f0d2250bc08d7b5b7cee97eaa2004fd683a6ab354e8e2086eba9b63a")]:
+              info = json.loads(get(f"/actions/runs/{run}/attempts/1"))
+              assert info["repository"]["id"] == rid and info["head_sha"] == head and info["run_attempt"] == 1 and info["conclusion"] == "success"
+              assert info["path"] == ".github/workflows/lab-pr-ci.yml" and info["event"] == ("push" if tag == "main" else "pull_request")
+              metadata = json.loads(get(f"/actions/artifacts/{artifact}"))
+              assert metadata["id"] == artifact and metadata["digest"] == "sha256:" + digest and not metadata["expired"]
+              assert metadata["workflow_run"]["id"] == run and metadata["workflow_run"]["head_sha"] == head
+              raw = get(f"/actions/artifacts/{artifact}/zip")
+              assert len(raw) < 2_000_000 and hashlib.sha256(raw).hexdigest() == digest
+              with zipfile.ZipFile(io.BytesIO(raw)) as z:
+                  assert sum(i.file_size for i in z.infolist()) < 8_000_000
+                  proof = json.loads(z.read("health.json" if tag == "main" else "receipt.json"))
+              assert proof["head_sha"] == proof["observed_head"] == head
+              assert str(proof["run_id"]) == str(run) and str(proof["run_attempt"]) == "1"
+              if tag == "main":
+                  assert proof["healthy"] is True
+              else:
+                  assert proof["ready"] is True and proof["base_sha"] == b
+              (directory / (tag + "-witness.zip")).write_bytes(raw)
+          (directory / "subject.json").write_text(json.dumps({"repository_id": rid, "pr": 7, "base": b, "head": h, "source": m, "tree": tree}) + "\n")
+          PYCODE
+      - name: Install pinned release toolchain on the hosted runner
+        run: bash source/scripts/release/toolchain.sh build "$RUNNER_TEMP/lab54-toolchain"
+      - name: Build and validate an actual release package
+        id: build
+        env:
+          DEV_VITE_WECOM_CORP_ID: wwlab54synthetic
+          DEV_VITE_WECOM_AGENT_ID: '1000054'
+          DEV_VITE_SSO_PORTAL_URL: https://lab54.invalid/sso
+          DEV_TARO_APP_WECOM_CORP_ID: wwlab54synthetic
+        run: |
+          set -euo pipefail
+          dest="$RUNNER_TEMP/lab54-package"
+          mkdir -p "$dest"
+          bash source/scripts/release/build.sh --source "$GITHUB_WORKSPACE/source" --commit "$SOURCE" --version "$VERSION" --environments dev --isolated-caches "$RUNNER_TEMP/lab54-caches" --out "$dest"
+          bundle="$dest/forcitis-one-$VERSION.tar.gz"
+          bash source/scripts/release/verify_bundle.sh "$bundle"
+          digest="$(sha256sum "$bundle" | cut -d ' ' -f 1)"
+          printf 'sha256=%s\n' "$digest" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lab54-package-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab54-package/forcitis-one-*
+          if-no-files-found: error
+          retention-days: 5
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab54-source-witness-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab54-witness/
+          if-no-files-found: warn
+          retention-days: 5
+  identity:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      SUBJECT: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      PACKAGE_DIGEST: ${{ needs.build.outputs.bundle_sha256 }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: lab54-package-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab54-package
+      - name: Install pinned release verification tools
+        run: bash scripts/release/toolchain.sh build "$RUNNER_TEMP/lab54-toolchain"
+      - name: Run independent real-package signature identity acceptance
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT"
+          git merge-base --is-ancestor "$BASE_SHA" "$SUBJECT"
+          d="$RUNNER_TEMP/lab54-identity"
+          mkdir -p "$d"
+          printf 'head=%s\nbase=%s\nrun=%s\nattempt=%s\nsource=%s\n' "$SUBJECT" "$BASE_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$SOURCE" > "$d/identity.txt"
+          printf '%s  %s\n' '638e235f05d3490bd48aba25fdbdf644089f86648a504908cef15a93796d381c' 'scripts/session/codex_lab/lab_release_identity_acceptance.py' | sha256sum -c -
+          python3 -I -B scripts/session/codex_lab/lab_release_identity_acceptance.py --bundle "$RUNNER_TEMP/lab54-package/forcitis-one-$VERSION.tar.gz" --bundle-sha256 "$PACKAGE_DIGEST" --version "$VERSION" --evidence "$d" 2>&1 | tee "$d/test.log"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab54-identity-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab54-identity/
+          if-no-files-found: warn
+          retention-days: 5
