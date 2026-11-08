@@ -1,0 +1,77 @@
+name: Lab 62 isolated independent recovery acceptance
+on:
+  push:
+    branches: [codex/62-current-assignment]
+    paths: [.github/workflows/lab-62-isolated-recovery.yml]
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    if: >-
+      github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      toJSON(github.event.repository.id) == '1449415666' &&
+      toJSON(github.event.repository.private) == 'false' &&
+      github.ref == 'refs/heads/codex/62-current-assignment'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      ACCEPTANCE_HEAD: 1ae83329bb5185bcf13cbdfcdb1cd665647ab15f
+      PRODUCT_BASE: 77e872e8ba9661d3294d3a9337c8e5c956b70641
+      MANIFEST_SHA256: 219dffe262e82c50d8e6828ae34fa7cc2fe94eb9d8ea0bb47bae931930de944b
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 1ae83329bb5185bcf13cbdfcdb1cd665647ab15f
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify frozen package before running any candidate-owned script
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$(git rev-parse HEAD)" = "$ACCEPTANCE_HEAD"
+          test "$(git rev-parse HEAD^)" = "$PRODUCT_BASE"
+          test ! -e .git/merge-queue
+          test ! -e .codex/hooks.json
+          test -z "$(git config --local --get-regexp '^http\..*extraheader$' || true)"
+          python3 -I -B - <<'PYCODE'
+          import hashlib,json,os
+          from pathlib import Path,PurePosixPath
+          root=Path("scripts/session/codex_lab/p1_acceptance").resolve(strict=True)
+          p=root/"manifest.json"
+          assert not p.is_symlink() and p.is_file()
+          raw=p.read_bytes()
+          assert hashlib.sha256(raw).hexdigest()==os.environ["MANIFEST_SHA256"]
+          frozen=json.loads(raw)
+          for name,expected in frozen["files_sha256"].items():
+              rel=PurePosixPath(name)
+              assert not rel.is_absolute() and ".." not in rel.parts and str(rel)==name
+              f=root/name
+              assert f.resolve(strict=True)==f and f.is_file()
+              assert hashlib.sha256(f.read_bytes()).hexdigest()==expected
+          PYCODE
+      - name: Run frozen acceptance without network or privilege escalation
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/lab62-evidence"; mkdir -m 700 "$d"
+          scratch="$RUNNER_TEMP/lab62-scratch"; mkdir -m 700 "$scratch"
+          printf 'A=%s\nB=%s\nworkflow_head=%s\nrun=%s\nattempt=%s\nmanifest_sha256=%s\nrunner=%s\n'             "$ACCEPTANCE_HEAD" "$PRODUCT_BASE" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$MANIFEST_SHA256" "$RUNNER_ENVIRONMENT" > "$d/identity.txt"
+          ns_before="$(readlink /proc/self/ns/net)"
+          rc=0
+          sudo -n /usr/bin/unshare --net --pid --fork --mount-proc -- /usr/bin/setpriv --reuid "$(id -u)" --regid "$(id -g)" --clear-groups --no-new-privs --             /usr/bin/env -i PATH=/usr/bin:/bin HOME="$scratch" TMPDIR="$scratch"             GITHUB_ACTIONS=true GITHUB_WORKSPACE="$GITHUB_WORKSPACE" RUNNER_TEMP="$RUNNER_TEMP"             GITHUB_RUN_ID="$GITHUB_RUN_ID" GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT"             GITHUB_SHA="$GITHUB_SHA" ACCEPTANCE_HEAD="$ACCEPTANCE_HEAD" PRODUCT_BASE="$PRODUCT_BASE"             MANIFEST_SHA256="$MANIFEST_SHA256" LAB62_EVIDENCE="$d" HOST_NET_NS="$ns_before" P1_PARENT_NETNS_INODE="$(stat -Lc %i /proc/self/ns/net)"             /bin/bash --noprofile --norc -eu -o pipefail -c '
+              test "$(id -u)" -ne 0
+              test "$(readlink /proc/self/ns/net)" != "$HOST_NET_NS"
+              test "$(ip -o link show | wc -l)" -eq 1
+              ip -o link show | grep -Eq "^[0-9]+: lo:"
+              grep -Eq "^NoNewPrivs:[[:space:]]+1$" /proc/self/status
+              printf "network_namespace=isolated\nprivilege=non-root,no-new-privs\ncredentials=allowlisted-environment\n" > "$LAB62_EVIDENCE/isolation.txt"
+              /usr/bin/python3 -I -B scripts/session/codex_lab/p1_acceptance/run.py --inside --manifest-sha256 "$MANIFEST_SHA256" --report "$LAB62_EVIDENCE/verdict.json"
+            ' || rc=$?
+          printf '%s\n' "$rc" > "$d/exit-code.txt"
+          exit "$rc"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab62-isolated-acceptance-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab62-evidence/
+          if-no-files-found: error
+          retention-days: 7
