@@ -1,4 +1,4 @@
-"""Plan exact-head verification for the private Lab, without network access."""
+"""Plan exact-head verification for the fixed public Lab, without network access."""
 import argparse
 import json
 import os
@@ -10,17 +10,27 @@ import tempfile
 
 
 REPOSITORY = "YeliangDu/forcitis-one-psa-codex-lab"
+REPOSITORY_ID = 1449415666
 LANES = ("light", "secret", "shadow", "frontend", "backend")
+
+
+def _public_repository(repo):
+    # Full webhook repo objects, not the reduced Actions association shape.
+    # visibility/fork are optional API metadata; a present contradictory value
+    # is never silently ignored. ID, full_name and typed private are mandatory.
+    if (not isinstance(repo, dict) or type(repo.get("id")) is not int
+            or repo["id"] != REPOSITORY_ID or repo.get("full_name") != REPOSITORY
+            or repo.get("private") is not False
+            or ("visibility" in repo and repo["visibility"] != "public")
+            or ("fork" in repo and repo["fork"] is not False)):
+        raise ValueError("Expected the exact public Lab repository identity")
 
 
 def _identity(event, observed_head):
     try:
         pr = event["pull_request"]
-        if any(repo["full_name"] != REPOSITORY for repo in (
-                event["repository"], pr["head"]["repo"], pr["base"]["repo"])):
-            raise ValueError("Only same-repository private Lab PRs are allowed")
-        if event["repository"].get("private") is False:
-            raise ValueError("Public repositories are not allowed")
+        for repo in (event["repository"], pr["head"]["repo"], pr["base"]["repo"]):
+            _public_repository(repo)
         if pr["base"]["ref"] != "main":
             raise ValueError("Base must be main")
         head, base = pr["head"]["sha"], pr["base"]["sha"]
@@ -67,10 +77,12 @@ def main():
     # Validate identity before invoking git, then validate the actual checkout
     # before reading any changed paths. No fetch, API call or shell expansion.
     _identity(event, event.get("pull_request", {}).get("head", {}).get("sha"))
-    if event["repository"].get("private") is not True:
-        raise ValueError("Runtime repository must be private")
     if os.environ.get("GITHUB_EVENT_NAME") != "pull_request" or os.environ.get("GITHUB_REPOSITORY") != REPOSITORY:
         raise ValueError("Unexpected workflow context")
+    # GitHub's default environment ID is a decimal string. Do not impose that
+    # workflow-context shape on the pure planner's integer webhook repo IDs.
+    if os.environ.get("GITHUB_REPOSITORY_ID") != str(REPOSITORY_ID):
+        raise ValueError("Unexpected workflow repository ID")
     observed = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     head, base = _identity(event, observed)
     raw = subprocess.check_output(["git", "diff", "--name-only", "--no-renames", "-z", base, head, "--"])
