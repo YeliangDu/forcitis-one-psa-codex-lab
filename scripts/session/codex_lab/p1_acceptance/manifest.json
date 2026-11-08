@@ -1,0 +1,37 @@
+{
+  "kind": "lab-p1-independent-A/1",
+  "card": 62,
+  "revision": 1,
+  "claim": "bb03be9c559d2f7ec92948eb0c91c563",
+  "author": "one-test",
+  "B": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+  "A": null,
+  "candidate_target_sha256": null,
+  "active_C": null,
+  "target_prefix": "scripts/session/codex_lab/p1_acceptance/",
+  "baseline_source_sha256": "165654142e3eade8518404715b9116bf76e715fc0abdb8cddf1a61c81a3951c3",
+  "files_sha256": {
+    "baseline/hook.py": "165654142e3eade8518404715b9116bf76e715fc0abdb8cddf1a61c81a3951c3",
+    "cli_worker.py": "e47048d2a22fe8b2519942853095e707871832476702b9f6366112d5a6ed8666",
+    "tests/test_p1_checkpoint.py": "4588ec8e05181e1f2cb801788fa79c483bb546e921c7d749babc5402d520506a",
+    "run.py": "642b6e2dc5a0787d32e17143cb51e33e5a85e3eaf410a659150f24a02e0473c1",
+    "CONTRACT.json": "6c9ac7c190944d319a3c8af749b9298b9d363842340442d1e41509c56d47298c",
+    "EXPECTED.json": "e1e8c59677b04ef58bbec3660c1d89f1c7e9833285734abe9e853abb35d35798",
+    "HANDOFF.md": "52ab3c2458e90bc995758c219c2ef3cd6eeb482f59da011b09058c7abd8fa5f2"
+  },
+  "input_hashes": {
+    ".codex-lab/implementation-20261108/P0-P1-DEPENDENCY-REFINEMENT.md": "5e144dff495990c188cdc57a22637698bf3b5946b8c5bba893515194506aacff",
+    ".codex-lab/implementation-20261108/p0-native-connection/acceptance-one-test/RUNNER-HANDOFF.md": "b877ec9ff713bdf2ded1d0c814efad70de55285d17a15391681dcb5564adb3d3"
+  },
+  "historical_A_unchanged": "11784a3e55d81f542f2f6802b3743efa8f042c7e",
+  "tests": 12,
+  "expected_baseline_failures": 11,
+  "expected_errors": 0,
+  "expected_skips": 0,
+  "tests_executed": 0,
+  "containment": "actual nonroot+independent loopback-only netns required; no local capability probe; unavailable -> HOLD86",
+  "fixture_data": "synthetic only; no actual resident IDs, personal paths, secrets/live state",
+  "runtime_implementation": false,
+  "activation_authority": false,
+  "operational_use": false
+}
