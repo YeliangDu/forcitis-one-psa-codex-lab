@@ -22,6 +22,14 @@ export function fetchPrimaryAssignmentHistory(employeeId: string) {
   return operations.getOrganizationPrimaryAssignmentsByEmployeeId({ path: { employeeId } });
 }
 
+export function fetchActingDuties(employeeId: string) {
+  return operations.getOrganizationActingDutiesByEmployeeId({ path: { employeeId } });
+}
+
+export function fetchCoveredActingDuties(employeeId: string) {
+  return operations.getOrganizationCoveredActingDutiesByEmployeeId({ path: { employeeId } });
+}
+
 export interface PersonnelCommandFilter {
   status: string;
   commandKind: string;
