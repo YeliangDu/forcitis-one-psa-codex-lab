@@ -11,6 +11,8 @@ import {
   fetchPersonnelCommandPage,
   fetchPositionChoices,
   fetchPrimaryAssignmentHistory,
+  fetchActingDuties,
+  fetchCoveredActingDuties,
   nextCursorOf,
   withdrawPersonnelCommand,
 } from '../api/workforce-api';
@@ -36,6 +38,14 @@ export function useEmployee(employeeId: string) {
 
 export function usePrimaryAssignmentHistory(employeeId: string) {
   return useQuery({ queryKey: ['workforce', 'employee', employeeId, 'primary-assignments'], queryFn: () => fetchPrimaryAssignmentHistory(employeeId), enabled: employeeId !== '' });
+}
+
+export function useActingDuties(employeeId: string, enabled = true) {
+  return useQuery({ queryKey: ['workforce', 'employee', employeeId, 'acting-duties'], queryFn: () => fetchActingDuties(employeeId), enabled: enabled && employeeId !== '' });
+}
+
+export function useCoveredActingDuties(employeeId: string) {
+  return useQuery({ queryKey: ['workforce', 'employee', employeeId, 'covered-acting-duties'], queryFn: () => fetchCoveredActingDuties(employeeId), enabled: employeeId !== '' });
 }
 
 export function usePersonnelCommands(filter: PersonnelCommandFilter) {
@@ -68,8 +78,8 @@ export function useWithdrawPersonnelCommand(personnelCommandId: string) {
   });
 }
 
-export function useEmployeeChoices() {
-  return useQuery({ queryKey: ['workforce', 'employee-choices'], queryFn: fetchEmployeeChoices });
+export function useEmployeeChoices(enabled = true) {
+  return useQuery({ queryKey: ['workforce', 'employee-choices'], queryFn: fetchEmployeeChoices, enabled });
 }
 
 export function usePositionChoices(enabled = true) {
