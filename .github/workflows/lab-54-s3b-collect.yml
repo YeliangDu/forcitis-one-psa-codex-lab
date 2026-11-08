@@ -35,7 +35,7 @@ jobs:
           d="$RUNNER_TEMP/lab54-collect-evidence"
           mkdir -p "$d"
           printf 'head=%s\nbase=%s\nrun=%s\nattempt=%s\n' "$SUBJECT" "$BASE_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > "$d/identity.txt"
-          printf '%s  %s\n' '342fd7c6b73b1cee313d4af5b377cdd458214c0b1a6b61427883a9ff10cdc26d' 'scripts/session/codex_lab/lab54/s3b/collect.sh' | sha256sum -c -
+          printf '%s  %s\n' 'babd5b1ff74076e60e32414a709a607938f335706dd9ee817ac718f4f55d1c7b' 'scripts/session/codex_lab/lab54/s3b/collect.sh' | sha256sum -c -
           printf '%s  %s\n' 'bd729855af2b12f6c43dc1f0fc1f411ed2f416454a6b6214e78829be2bc5a4d7' 'scripts/session/codex_lab/lab54/s3b/Dockerfile' | sha256sum -c -
           printf '%s  %s\n' 'f3f18bcde3ce3bba8ed14f70038badbb9ff55099e8cdd07666b92c8b1d50e770' 'scripts/session/codex_lab/lab54/s3b/entrypoint.sh' | sha256sum -c -
           printf '%s  %s\n' '89657ef932e2c27cef42462518bfb689d77d6515e2f40ca2b2116435af3fa526' 'scripts/session/codex_lab/lab54/s3b/build-probe.sh' | sha256sum -c -
