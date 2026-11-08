@@ -81,7 +81,7 @@ final class StandardHoursVersionRequests {
         try (var db = DriverManager.getConnection(database.url(), database.username(), database.password())) {
             db.setReadOnly(true);
             try (var query = db.prepareStatement("""
-                    select effective_from_date, version_number, workday_minutes, adjusted_workday_minutes
+                    select effective_from_date, version_number, workday_minutes_count, adjusted_workday_minutes_count
                     from organization_attendance.standard_hours_versions where id = ?
                     """)) {
                 query.setObject(1, java.util.UUID.fromString(published.id()));
