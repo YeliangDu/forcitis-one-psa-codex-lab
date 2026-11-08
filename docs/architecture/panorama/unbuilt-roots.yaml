@@ -34,3 +34,7 @@ roots:
     owner: one-dev-identity
     due: 2026-12-31
     reason: 请假 L1b（#1470）只建表；LeaveBalanceAccount 根类随 L3（#1325 规格 10 节），截止日由 lead 定
+  - table: operations_facts.posting_facts
+    owner: one-dev-org
+    due: 2026-12-31
+    reason: "Lab #30 仅建签署 F1 空表；PostingFact 领域根类随实际过账代码建立，届时同提交移除此登记"
