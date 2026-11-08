@@ -282,7 +282,6 @@ class StandardHoursVersionIT extends AcceptanceSupport {
         assertStatus(list(scope, PUBLISHER), 403, "publish authority does not imply read authority");
 
         Published published = publish(input, 1);
-        String id = published.id();
         List<Map<String, Object>> before = versions(scope);
         assertThat(before).as("read-only caller can list the publisher's successful publication").hasSize(1);
         for (RequestPostProcessor caller : List.of(ORDINARY, READER)) {
@@ -377,7 +376,6 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     void futureNonLatestVersionCannotBeVoided() throws Exception {
         UUID scope = newScope();
         Published firstPublication = publish(day -> publication(scope, day.plusDays(10)), 1);
-        String firstId = firstPublication.id();
         publish(day -> publication(scope, firstPublication.effectiveDate().plusDays(10)), 2);
         List<Map<String, Object>> before = versions(scope);
 
@@ -391,7 +389,6 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     void alreadyVoidedVersionCannotBeVoidedAgain() throws Exception {
         UUID scope = newScope();
         Published published = publish(day -> publication(scope, day.plusDays(10)), 1);
-        String id = published.id();
         assertStatus(voidFuture(published, Map.of("reason", "Synthetic initial cancellation"), PUBLISHER, false), 200,
                 "a future first and latest version is voidable");
         List<Map<String, Object>> before = versions(scope);
@@ -415,7 +412,6 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     void invalidVoidReasonDoesNotVoid(String rule, Map<String, Object> body) throws Exception {
         UUID scope = newScope();
         Published published = publish(day -> publication(scope, day.plusDays(10)), 1);
-        String id = published.id();
         List<Map<String, Object>> before = versions(scope);
 
         assertStatus(voidFuture(published, body, PUBLISHER, true), 400, rule);
