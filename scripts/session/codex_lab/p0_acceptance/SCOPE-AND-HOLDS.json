@@ -1,0 +1,18 @@
+{
+  "card": 61,
+  "revision": 2,
+  "claim": "a2688a482aeaf37269395b258ee39c01",
+  "activation_authority": false,
+  "families": {
+    "A01": {"executable": "historical registry correspondence guards + supplied r1 native static-read consistency", "HOLD": "actual current per-role write permissions/lease, native cwd rebind and active branch/assignment; registry fixture is caller-attested, not live native truth"},
+    "A02": {"executable": "historical exact full-message/cursor matcher and real FS two-process one-claim fence", "HOLD": "P0 hex claim/JSON ACK differs from historical UUID/PREFIX schema; no existing native normalizer/single-send broker or prompt-digest/cursor persistence boundary is bound. Do not reformat actual P0 native ACK to force legacy match"},
+    "A03": {"executable": "legacy compact and resume CLI injects obsolete static dispatch without current authority: two expected assertion reds; historical generation/revision/late-output guards are green", "HOLD": "actual PreCompact checkpoint/current assignment lookup, manual/auto compact/restart first-model action and active SessionStart source/trust; negative fallback tests do not prove positive recovery"},
+    "A04": {"executable": "independent hash-frozen test runner detects exact two assertion IDs; missing baseline/fixture/tool/import, wrong discovery/skips/errors/unexpected baseline green are HOLD", "HOLD": "production admission of independent A/current-head verdict; no existing current-task runtime gate exposed at B. Hosted env fields alone are not native run provenance"},
+    "A05": {"executable": "no native send API in selected historical modules; isolated registry/file scope guards retained; actual r1 explicitly read-only shell", "HOLD": "active operation broker, writable role enforcement, current effective hooks/trust/config and native permissions. Existence of hooks.json is not execution evidence"},
+    "A08": {"executable": "actual file hash/current legacy assignment correspondence; B normalized predicate rejects wrong B/H/repo/workflow/run-attempt/runner/missing or failed artifact", "HOLD": "actual authoritative C, candidate H, profile/selection/frozen-A/run/job/upload/native producer linkage and expected-hosted-red admission. Pure normalized claims cannot authenticate those facts"}
+  },
+  "native_window": "Provided r1 window is bounded at actual prior completed turn, older page.hasMore remains true; explicit command cwd differs from recorded thread cwd. It cannot prove current r2 turn binding or active hooks.",
+  "existing_sources_preserved": true,
+  "no_native_dispatch": true,
+  "no_local_execution": true
+}
