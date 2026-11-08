@@ -16,6 +16,8 @@ import subprocess
 ROOT = '/Users/yeliang/Projects/FORCITIS/forcitis-one-psa-codex-lab'
 REPO = 'YeliangDu/forcitis-one-psa-codex-lab'
 RID = 1449415666
+BASELINE_REF = "git/ref/heads/lab/22-public-old-main-witness"
+BASELINE_SOURCE = "60c97c75b8092a64dbf322efcab4f8a3ba166510"
 OBJECT_LIMIT = 32 * 1024 * 1024
 TOTAL_LIMIT = 256 * 1024 * 1024
 
@@ -110,7 +112,8 @@ class ScopedGithubGet:
         self.scope = decode(scope_raw)
         need(type(self.scope) is dict and set(self.scope) == {
             'version', 'repository', 'repository_id', 'number', 'base', 'head',
-            'stage', 'main_tip', 'merge_sha', 'independent_ref', 'independent_source', 'object_root', 'object_roots', 'routes'},
+            'stage', 'main_tip', 'merge_sha', 'independent_ref', 'independent_source',
+            'baseline_ref', 'baseline_source', 'object_root', 'object_roots', 'routes'},
             'scoped-GET-policy-shape')
         s = self.scope
         need(type(s['version']) is int and s['version'] == 1 and s['repository'] == REPO
@@ -122,8 +125,19 @@ class ScopedGithubGet:
         need(type(s['object_roots']) is list and len(s['object_roots']) <= 4
              and len(set(s['object_roots'])) == len(s['object_roots'])
              and all(sha(value) for value in s['object_roots']), 'invalid-exact-object-roots')
-        need(set(s['object_roots']) <= {s['base'], s['head'], s['independent_source'], s['merge_sha']},
-             'unapproved-object-root')
+        need((s['baseline_ref'] is None and s['baseline_source'] is None)
+             or (s['baseline_ref'] == BASELINE_REF and s['baseline_source'] == BASELINE_SOURCE),
+             'baseline-ref-source-pair-not-exact-reviewed-witness')
+        allowed_roots = {s['base'], s['head'], s['independent_source']}
+        if s['stage'] in ('observe', 'send'):
+            allowed_roots.add(s['baseline_source'])
+        else:
+            allowed_roots.add(s['merge_sha'])
+        need(set(s['object_roots']) <= allowed_roots, 'unapproved-object-root')
+        if s['stage'] == 'send':
+            need(s['baseline_ref'] == BASELINE_REF and len(s['object_roots']) == 4
+                 and set(s['object_roots']) == {s['base'], s['head'], s['independent_source'], BASELINE_SOURCE}
+                 and s['merge_sha'] is None, 'send-requires-exact-four-root-witness-scope')
         if s['independent_ref'] is not None:
             valid_path(s['independent_ref'])
             need(s['independent_ref'].startswith('git/ref/heads/lab/22-independent-public-candidate-proof-')
@@ -146,6 +160,7 @@ class ScopedGithubGet:
                  'invalid-GET-mode-or-duplicate-route')
             self.routes[record['path']] = copy.deepcopy(record)
         need(all(p in self.routes for p in ('', 'pulls/43', 'git/ref/heads/main')), 'native-pin-routes-missing')
+        need(s['baseline_ref'] is None or s['baseline_ref'] in self.routes, 'baseline-native-ref-route-missing')
         self.verified = False
         self.raw_objects, self.trees, self.allowed, self.object_total = {}, {}, {}, 0
         self.primed = False
@@ -161,7 +176,7 @@ class ScopedGithubGet:
         need(path in self.routes and type(pages) is bool and type(binary) is bool, 'unlisted-native-GET')
         route = self.routes[path]
         need(route['pages'] == pages and route['binary'] == binary, 'wrong-native-GET-mode')
-        if path in ('', 'pulls/43', 'git/ref/heads/main', self.scope['independent_ref']):
+        if path in ('', 'pulls/43', 'git/ref/heads/main', self.scope['independent_ref'], self.scope['baseline_ref']):
             self.verified = False
         command = ['gh', 'api', '--hostname', 'github.com', '--method', 'GET',
                    'repos/' + REPO + ('/' + path if path else '')]
@@ -215,6 +230,11 @@ class ScopedGithubGet:
              and matches(source, dict(ref='refs/heads/' + s['independent_ref'].removeprefix('git/ref/heads/'),
                                       object=dict(sha=s['independent_source'], type='commit'))),
              'actual-main-or-independent-SOURCE-moved')
+        if s['baseline_ref'] is not None:
+            witness = self.remote(s['baseline_ref'])
+            need(matches(witness, dict(ref='refs/heads/lab/22-public-old-main-witness',
+                                       object=dict(sha=s['baseline_source'], type='commit'))),
+                 'actual-baseline-witness-native-ref-moved')
         if s['stage'] in ('recovery', 'health'):
             need(s['merge_sha'] is not None and pr.get('merged') is True
                  and pr.get('merge_commit_sha') == s['merge_sha'], 'native-recovery-merge-pin-missing')

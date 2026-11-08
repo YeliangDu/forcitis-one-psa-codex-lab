@@ -34,7 +34,7 @@ def smoke(params,scope_raw):
          and os.environ.get('GITHUB_REPOSITORY_ID')==str(RID),'HOSTED_EXACT_LAB_CONTEXT_REQUIRED')
     fields={'version','repository','repository_id','number','checkout_head','base','head','main_tip',
             'independent_ref','independent_source','scope_sha256','module_sha256','trees'}
-    need(type(params)is dict and set(params)==fields and type(params['version'])is int and params['version']==1,
+    need(type(params)is dict and set(params) in (fields,fields|{'baseline'}) and type(params['version'])is int and params['version']==1,
          'SMOKE_PARAMS_SCHEMA')
     need(params['repository']==REPO and type(params['repository_id'])is int and params['repository_id']==RID
          and type(params['number'])is int and params['number']==43,'SMOKE_NOT_EXACT_LAB_PR')
@@ -46,7 +46,22 @@ def smoke(params,scope_raw):
     for key in ('repository','repository_id','number','base','head','main_tip','independent_ref','independent_source'):
         need(type(scope.get(key))is type(params[key]) and scope[key]==params[key],'SMOKE_SCOPE_SUBJECT_MISMATCH')
     need(scope.get('stage')=='observe' and scope.get('merge_sha') is None,'SMOKE_OBSERVE_ONLY')
-    need(set(scope.get('object_roots',[]))=={params['base'],params['head'],params['independent_source']},'EXACT_THREE_ROOTS_REQUIRED')
+    baseline=params.get('baseline')
+    if baseline is None:
+        need('baseline_ref' not in scope and 'baseline_source' not in scope,'UNPINNED_OPTIONAL_BASELINE_FIELDS')
+        need(set(scope.get('object_roots',[]))=={params['base'],params['head'],params['independent_source']},'EXACT_THREE_ROOTS_REQUIRED')
+    else:
+        need(type(baseline)is dict and set(baseline)=={'ref','source','workflow_path','workflow_blob','workflow_sha256'},
+             'EXACT_BASELINE_W_PARAMS_REQUIRED')
+        need(baseline['ref']=='git/ref/heads/lab/22-public-old-main-witness'
+             and baseline['workflow_path']=='.github/workflows/lab-22-public-old-main-witness.yml'
+             and full(baseline['source'],40) and full(baseline['workflow_blob'],40)
+             and full(baseline['workflow_sha256'],64),'EXACT_BASELINE_W_PIN_REQUIRED')
+        need(scope.get('baseline_ref')==baseline['ref'] and scope.get('baseline_source')==baseline['source'],
+             'BASELINE_W_SCOPE_MISMATCH')
+        roots={params['base'],params['head'],params['independent_source'],baseline['source']}
+        need(len(roots)==4 and len(scope.get('object_roots',[]))==4 and set(scope['object_roots'])==roots,
+             'EXACT_FOUR_O_H_S_W_ROOTS_REQUIRED')
     workspace=Path(os.environ['GITHUB_WORKSPACE'])
     need(workspace.is_absolute() and workspace.resolve(strict=True)==workspace
          and scope.get('object_root')==str(workspace),'SMOKE_CURRENT_PHYSICAL_CHECKOUT_REQUIRED')
@@ -116,7 +131,40 @@ def smoke(params,scope_raw):
         content=base64.b64decode(blob['content'],validate=True)
         need(hashlib.sha256(content).hexdigest()==pin['policy_sha256'],'EXACT_POLICY_RAW_SHA_CHANGED')
         result[phase]=dict(commit=commit,tree=pin['tree'],policy_blob=pin['policy_blob'],policy_sha256=pin['policy_sha256'])
+    if baseline is not None:
+        native=get(baseline['ref'])
+        need(type(native)is dict and native.get('ref')=='refs/heads/lab/22-public-old-main-witness'
+             and native.get('object',{}).get('sha')==baseline['source']
+             and native['object'].get('type')=='commit','ACTUAL_BASELINE_W_REF_MOVED')
+        commit=get('git/commits/'+baseline['source'])
+        tree_id=commit['tree']['sha']
+        parts=baseline['workflow_path'].split('/')
+        for index,part in enumerate(parts):
+            tree=get('git/trees/'+tree_id)
+            rows=[row for row in tree['tree'] if row.get('path')==part]
+            need(len(rows)==1,'BASELINE_W_WORKFLOW_PATH_NOT_EXACT')
+            row=rows[0]
+            if index<len(parts)-1:
+                need(row.get('type')=='tree' and row.get('mode')=='040000','BASELINE_W_PARENT_NOT_TREE')
+                tree_id=row['sha']
+        need(row.get('type')=='blob' and row.get('mode')=='100644'
+             and row.get('sha')==baseline['workflow_blob'],'BASELINE_W_WORKFLOW_BLOB_CHANGED')
+        body=base64.b64decode(get('git/blobs/'+row['sha'])['content'],validate=True)
+        need(hashlib.sha256(body).hexdigest()==baseline['workflow_sha256'],'BASELINE_W_WORKFLOW_RAW_CHANGED')
+        result['baseline_witness']=dict(source=baseline['source'],workflow_blob=row['sha'],workflow_sha256=baseline['workflow_sha256'])
     before=len(commands)
+    if baseline is not None:
+        # Fifth root rejection is a pure negative; no API/process may run.
+        fifth=dict(scope,object_roots=list(scope['object_roots'])+['0'*40])
+        invalid_raw=json.dumps(fifth,sort_keys=True,separators=(',',':')).encode()
+        refused=False
+        try:module.ScopedGithubGet(invalid_raw,hashlib.sha256(invalid_raw).hexdigest(),checked_run,record)
+        except (ValueError,AssertionError):refused=True
+        need(refused and len(commands)==before,'FIFTH_OBJECT_ROOT_WAS_ACCEPTED_OR_READ')
+        refused=False
+        try:get('git/commits/'+'0'*40)
+        except (ValueError,AssertionError):refused=True
+        need(refused and len(commands)==before,'FOREIGN_COMMIT_OBJECT_WAS_ACCEPTED_OR_READ')
     for denied in ('user','pulls/44','git/blobs/'+'0'*40):
         refused=False
         try:get(denied)
