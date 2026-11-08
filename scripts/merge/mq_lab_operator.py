@@ -1,7 +1,8 @@
 """One explicit Lab operator command; no background or legacy writer fallback."""
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 import importlib.util
 import json
+import fcntl
 import os
 from pathlib import Path
 import re
@@ -10,6 +11,7 @@ import stat
 import issue_gate
 from mq_lab import _path, _state
 from mq_lab_active import admit, run_once
+from mq_lab_runtime import _valid_record, _matches
 from mq_lab_authorization import load_approval
 from mq_lab_journal_v2 import ReleaseJournalV2, _schema
 from mq_lab_proof import verify_intent
@@ -156,6 +158,86 @@ class _LazyWriter:
         return self._get().readback(dict(intent))
 
 
+def _cleanup_confirmed_orphan(number, common_dir, ports):
+    """Reconcile ONLY a requested absent-FIFO ordinary confirmed item.
+
+    Never reads approval/eligibility or sends. Existing canonical locks and strict
+    V2 state plus independent exact merge proof are required before any cleanup.
+    """
+    path = _path(common_dir)
+    with ExitStack() as stack:
+        held = []
+        for suffix in (".merge-lock", ".lock", ".heads-lock"):
+            lock = Path(str(path) + suffix)
+            fd = os.open(lock, os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK)
+            stack.callback(os.close, fd)
+            info = os.fstat(fd)
+            current = lock.lstat()
+            _require(stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid() and info.st_nlink == 1
+                     and not info.st_mode & 0o022
+                     and (info.st_dev, info.st_ino) == (current.st_dev, current.st_ino), "unsafe-existing-cleanup-lock")
+            fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            stack.callback(fcntl.flock, fd, fcntl.LOCK_UN)
+            held.append((lock, fd))
+        _require(_path(common_dir) == path, "cleanup-canonical-path-moved")
+
+        def read(file):
+            fd = os.open(file, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+            with os.fdopen(fd, "r", encoding="utf-8") as stream:
+                before = os.fstat(stream.fileno())
+                _require(stat.S_ISREG(before.st_mode) and before.st_uid == os.geteuid()
+                         and before.st_nlink == 1 and not before.st_mode & 0o022
+                         and before.st_size <= 1024 * 1024, "unsafe-cleanup-state-file")
+                text = stream.read(1024 * 1024 + 1)
+                identity = lambda value: (value.st_dev, value.st_ino, value.st_size, value.st_mtime_ns, value.st_ctime_ns)
+                _require(len(text.encode("utf-8")) == before.st_size
+                         and identity(before) == identity(os.fstat(stream.fileno())) == identity(Path(file).lstat()),
+                         "cleanup-state-moved")
+                return text
+
+        fifo = read(path)
+        present, numbers = _state(path)
+        _require(present and number not in numbers, "cleanup-cannot-skip-queued-item")
+        head_path = Path(str(path) + ".heads")
+        raw_heads = read(head_path)
+        _require(not raw_heads or raw_heads.endswith("\n"), "incomplete-head-stamp-file")
+        heads = {}
+        for line in raw_heads.splitlines():
+            match = re.fullmatch(r"([1-9][0-9]*) ([0-9a-f]{40})", line)
+            _require(match is not None and int(match[1]) not in heads, "duplicate-or-malformed-head-stamp")
+            heads[int(match[1])] = match[2]
+        _require(all(queued in heads for queued in numbers), "missing-following-admission-head")
+        journal = _LazyJournal(path.parent / "releases.sqlite3")
+        record = journal.load(number)  # Existing-only strict V2 ordinary adapter.
+        _require(isinstance(record, dict) and record.get("status") == "confirmed"
+                 and _valid_record(record, number, heads.get(number, record.get("head"))),
+                 "orphan-not-exact-durable-ordinary-confirmation")
+        intent = {field: record[field] for field in IDENTITY}
+        reader = _LazyWriter(ports, lambda _intent: False)
+        proof = reader.readback(dict(intent))
+        _require(_matches(proof, intent) and proof.get("merged") is True
+                 and proof.get("target_contains_merge") is True and proof.get("merge_sha") == record["merge_sha"],
+                 "confirmed-orphan-merge-proof-not-exact")
+        _require(journal.load(number) == record and read(path) == fifo and read(head_path) == raw_heads
+                 and _state(path) == (True, numbers), "confirmed-cleanup-snapshot-moved")
+        for lock, fd in held:
+            opened, current = os.fstat(fd), lock.lstat()
+            _require(stat.S_ISREG(current.st_mode) and current.st_uid == os.geteuid()
+                     and current.st_nlink == 1 and not current.st_mode & 0o022
+                     and (opened.st_dev, opened.st_ino) == (current.st_dev, current.st_ino),
+                     "cleanup-lock-name-moved-before-publication")
+        _require(_path(common_dir) == path, "cleanup-common-dir-moved-before-publication")
+        if number in heads:
+            from mq_queue import Queue
+            # Both sidefile locks are already held; do not call drop_head or
+            # Queue public readers here (they would reacquire the same locks).
+            kept = [line for line in raw_heads.splitlines() if not line.startswith(str(number) + " ")]
+            Queue(str(path))._store(".heads", kept)
+            _require(read(head_path) == "".join(line + "\n" for line in kept)
+                     and read(path) == fifo, "confirmed-orphan-cleanup-not-exact")
+        return dict(action="skip", reason="confirmed-orphan-cleaned-with-readback-only", merge_sha=record["merge_sha"])
+
+
 def run_command(command, number, common_dir, ports):
     """Plan without state creation; admit/once use the one canonical lock."""
     try:
@@ -171,8 +253,8 @@ def run_command(command, number, common_dir, ports):
                      "unsafe-canonical-queue-state")
         present, numbers = _state(path)
         _require(present, "canonical-queue-missing")
-        if command == "once":
-            _require(numbers and numbers[0] == number, "requested-pr-is-not-fifo-head")
+        if command == "once" and (not numbers or numbers[0] != number):
+            return _cleanup_confirmed_orphan(number, common_dir, ports)
         journal_path = path.parent / "releases.sqlite3"
         journal = _LazyJournal(journal_path)  # No storage I/O until used under the merge lock.
         last_key = [None]
