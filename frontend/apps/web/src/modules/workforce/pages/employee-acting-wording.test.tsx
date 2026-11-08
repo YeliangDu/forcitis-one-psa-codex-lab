@@ -1,8 +1,9 @@
 import { screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { currentUserBody, stubServer } from '@forcitis/core/testing';
 import { renderWithProviders } from '@/shared/testing/render-with-providers';
 import { EmployeeDetailPage } from './employee-detail-page';
+import { fetchEmployeeChoices } from '../api/workforce-api';
 
 const ID = '019a0000-0000-7000-8000-000000000a01';
 const ACTOR = '019a0000-0000-7000-8000-000000000a02';
@@ -27,6 +28,28 @@ const ENDED = {
 const COVERAGE = { ...ACTIVE, employeeId: ACTOR, coveredEmployeeId: ID, coveredEmployeeName: '张三' };
 const ACTOR_PERSON = { ...PERSON, employeeId: ACTOR, employeeCode: 'E0002', displayName: '李四' };
 
+let expectedEmployeeListPath = '';
+
+beforeAll(async () => {
+  // No page is rendered here; this empty reference response supplies only the
+  // generated canonical path. Page request logs remain untouched.
+  const reference = stubServer({ 'GET employees': { body: { items: [], nextCursor: null } } });
+  await fetchEmployeeChoices();
+  expect(reference.unmatched).toEqual([]);
+  expect(reference.calls).toHaveLength(1);
+  const request = reference.calls[0];
+  expect(request).toBeDefined();
+  if (request === undefined) throw new Error('generated employee-list request is missing');
+  expect(request.method).toBe('GET');
+  expectedEmployeeListPath = new URL(request.url, 'http://localhost').pathname;
+});
+
+function requireRow(row: HTMLElement | undefined, label: string): HTMLElement {
+  expect(row, `${label} acting-duty fixture row exists`).toBeDefined();
+  if (row === undefined) throw new Error(`${label} acting-duty fixture row is missing`);
+  return row;
+}
+
 function setup(options: {
   permissions?: string[]; duties?: Record<string, unknown>[]; coverage?: Record<string, unknown>[];
   employees?: { status?: number; body: unknown }; extra?: Parameters<typeof stubServer>[0];
@@ -50,7 +73,7 @@ function setup(options: {
 
 function assertNoExpandedNameRead(server: ReturnType<typeof stubServer>) {
   const requests = server.calls.map((call) => ({ method: call.method, url: new URL(call.url, 'http://localhost') }));
-  const choices = requests.filter(({ url }) => url.pathname === '/api/v1/organization/employees');
+  const choices = requests.filter(({ url }) => url.pathname === expectedEmployeeListPath);
   expect(choices, 'APPROVED_NAMES_REUSE_ONE_EXISTING_AUTHORIZED_LIST').toHaveLength(1);
   expect(requests.some(({ url }) => url.pathname.endsWith(`/employees/${ACTOR}`)), 'NO_TARGETED_ACTOR_NAME_LOOKUP').toBe(false);
   expect(choices.some(({ url }) => [...url.searchParams.values()].some((value) => value.includes(ACTOR))), 'NO_SCOPE_EXPANDING_NAME_FILTER').toBe(false);
@@ -95,24 +118,27 @@ describe('Issue #4 approved acting wording and privacy', () => {
       expect(within(table).getByRole('columnheader', { name })).toBeInTheDocument();
     }
     const rows = within(table).getAllByRole('row').slice(1);
-    expect(rows[1]).toHaveTextContent('代理人离职');
+    const endedRow = requireRow(rows[1], 'ended');
+    expect(endedRow).toHaveTextContent('代理人离职');
     const headers = within(table).getAllByRole('columnheader').map((header) => header.textContent);
     const index = headers.indexOf('有效至（含当日）');
     expect(index).toBeGreaterThanOrEqual(0);
-    expect(within(rows[1]).getAllByRole('cell')[index]?.textContent?.trim()).toMatch(/^(?:—)?$/);
-    expect(rows[1]).not.toHaveTextContent(ACTOR);
-    expect(rows[1]).not.toHaveTextContent('李四');
-    expect(rows[1]).not.toHaveTextContent('2026-08-31');
+    expect(within(endedRow).getAllByRole('cell')[index]?.textContent?.trim()).toMatch(/^(?:—)?$/);
+    expect(endedRow).not.toHaveTextContent(ACTOR);
+    expect(endedRow).not.toHaveTextContent('李四');
+    expect(endedRow).not.toHaveTextContent('2026-08-31');
   });
 
   it.each([true, false])('shows 延长代理职务 only on authorized active rows (authorized=%s)', async (authorized) => {
     setup({ permissions: authorized ? [CREATE] : [], duties: [ACTIVE, ENDED] });
     const table = await screen.findByRole('table', { name: '代理职务' });
     const rows = within(table).getAllByRole('row').slice(1);
-    expect(within(rows[0]).queryByText('延长代理职务') !== null, 'APPROVED_EXTEND_ACTION_AND_PERMISSION').toBe(authorized);
-    expect(within(rows[1]).queryByText('延长代理职务')).not.toBeInTheDocument();
-    expect(within(rows[0]).queryByText('提前结束') !== null).toBe(authorized);
-    expect(within(rows[1]).queryByText('提前结束')).not.toBeInTheDocument();
+    const activeRow = requireRow(rows[0], 'active');
+    const endedRow = requireRow(rows[1], 'ended');
+    expect(within(activeRow).queryByText('延长代理职务') !== null, 'APPROVED_EXTEND_ACTION_AND_PERMISSION').toBe(authorized);
+    expect(within(endedRow).queryByText('延长代理职务')).not.toBeInTheDocument();
+    expect(within(activeRow).queryByText('提前结束') !== null).toBe(authorized);
+    expect(within(endedRow).queryByText('提前结束')).not.toBeInTheDocument();
     expect(screen.queryByText('开始代理') !== null).toBe(authorized);
   });
 

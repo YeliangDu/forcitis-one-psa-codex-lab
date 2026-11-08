@@ -1,8 +1,9 @@
 import { screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { currentUserBody, stubServer } from '@forcitis/core/testing';
 import { renderWithProviders } from '@/shared/testing/render-with-providers';
 import { EmployeeDetailPage } from './employee-detail-page';
+import { fetchActingDuties, fetchCoveredActingDuties } from '../api/workforce-api';
 
 const ID = '019a0000-0000-7000-8000-000000000a01';
 const COVERED = '019a0000-0000-7000-8000-000000000a02';
@@ -24,6 +25,29 @@ const ENDED = {
 type Duty = Omit<typeof ACTIVE, 'coveredEmployeeId' | 'coveredEmployeeName' | 'lastDay' | 'endCause'> & {
   coveredEmployeeId: string | null; coveredEmployeeName: string | null; lastDay: string | null; endCause: string | null;
 };
+
+let expectedActingPaths: string[] = [];
+
+beforeAll(async () => {
+  // Resolve canonical full paths through existing generated-operation adapters.
+  // This stub is separate from every rendered page's measured request log.
+  const reference = stubServer({
+    [`GET acting-duties/${ID}`]: { body: { items: [] } },
+    [`GET covered-acting-duties/${ID}`]: { body: { items: [] } },
+  });
+  await fetchActingDuties(ID);
+  await fetchCoveredActingDuties(ID);
+  expect(reference.unmatched).toEqual([]);
+  expect(reference.calls).toHaveLength(2);
+  expect(reference.calls.map((call) => call.method)).toEqual(['GET', 'GET']);
+  expectedActingPaths = reference.calls.map((call) => new URL(call.url, 'http://localhost').pathname).sort();
+});
+
+function requireRow(row: HTMLElement | undefined, label: string): HTMLElement {
+  expect(row, `${label} acting-duty fixture row exists`).toBeDefined();
+  if (row === undefined) throw new Error(`${label} acting-duty fixture row is missing`);
+  return row;
+}
 
 function setup(permissions: string[] = [CREATE], duties: Duty[] = [ACTIVE, ENDED], coverage: Duty[] = [], extra: Parameters<typeof stubServer>[0] = {}) {
   const server = stubServer({
@@ -64,15 +88,13 @@ describe('Issue #4 employee acting duties', () => {
     expect(rows[1]).toHaveTextContent('已结束');
     expect(rows[1]).toHaveTextContent('离职');
     expect(screen.getAllByRole('table').indexOf(table)).toBeGreaterThan(0);
-    expect(server.calls.filter((call) => /\/organization\/(acting-duties|covered-acting-duties)\//.test(call.url)).map((call) => new URL(call.url, 'http://localhost').pathname).sort()).toEqual([
-      `/api/v1/organization/acting-duties/${ID}`, `/api/v1/organization/covered-acting-duties/${ID}`,
-    ]);
+    expect(server.calls.filter((call) => /\/organization\/(acting-duties|covered-acting-duties)\//.test(call.url)).map((call) => new URL(call.url, 'http://localhost').pathname).sort()).toEqual(expectedActingPaths);
   });
 
   it.each([null, COVERED])('keeps a missing or redacted covered name (%s) and a zero-length last day blank', async (coveredEmployeeId) => {
     const server = setup([], [{ ...ENDED, coveredEmployeeId }]);
     const table = await screen.findByRole('table', { name: '代理职务' });
-    const row = within(table).getAllByRole('row')[1];
+    const row = requireRow(within(table).getAllByRole('row')[1], 'redacted');
     expect(row).toHaveTextContent('2026-09-01');
     expect(row).not.toHaveTextContent('2026-08-31');
     expect(row).not.toHaveTextContent('2026-12-31');
@@ -90,10 +112,12 @@ describe('Issue #4 employee acting duties', () => {
     setup(authorized ? [CREATE] : []);
     const table = await screen.findByRole('table', { name: '代理职务' });
     const rows = within(table).getAllByRole('row').slice(1);
+    const activeRow = requireRow(rows[0], 'active');
+    const endedRow = requireRow(rows[1], 'ended');
     // Actions may be links to the existing command form or buttons opening it.
     for (const name of ['提前结束', '延长代理职务']) {
-      expect(within(rows[0]).queryByText(name) !== null).toBe(authorized);
-      expect(within(rows[1]).queryByText(name)).not.toBeInTheDocument();
+      expect(within(activeRow).queryByText(name) !== null).toBe(authorized);
+      expect(within(endedRow).queryByText(name)).not.toBeInTheDocument();
     }
     expect(screen.queryByText('开始代理') !== null).toBe(authorized);
   });
