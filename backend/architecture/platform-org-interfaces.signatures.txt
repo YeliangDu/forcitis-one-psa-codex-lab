@@ -942,6 +942,30 @@ organization.workforce::api organization.workforce.api.WorkforceError public sta
 organization.workforce::api organization.workforce.api.WorkforceError public static final organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.ORGANIZATION_WORKFORCE_WECOM_USER_ID_TAKEN
 organization.workforce::api organization.workforce.api.WorkforceError public static organization.workforce.api.WorkforceError organization.workforce.api.WorkforceError.valueOf(java.lang.String)
 organization.workforce::api organization.workforce.api.WorkforceError public static organization.workforce.api.WorkforceError[] organization.workforce.api.WorkforceError.values()
+organization.workforce::api organization.workforce.api.WorkforcePermissions implements kernel.PermissionContribution
+organization.workforce::api organization.workforce.api.WorkforcePermissions public abstract interface organization.workforce.api.WorkforcePermissions
+organization.workforce::api organization.workforce.api.WorkforcePermissions public default java.lang.String organization.workforce.api.WorkforcePermissions.owner()
+organization.workforce::api organization.workforce.api.WorkforcePermissions public default java.util.List<kernel.PermissionDeclaration> organization.workforce.api.WorkforcePermissions.permissions()
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final java.lang.String organization.workforce.api.WorkforcePermissions.EMPLOYEE_READ
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final java.lang.String organization.workforce.api.WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_APPROVE
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final java.lang.String organization.workforce.api.WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final java.lang.String organization.workforce.api.WorkforcePermissions.LEGAL_ENTITY_UPDATE
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final java.lang.String organization.workforce.api.WorkforcePermissions.ORG_STRUCTURE_COMMAND_CREATE
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final java.lang.String organization.workforce.api.WorkforcePermissions.ORG_UNIT_READ
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final java.lang.String organization.workforce.api.WorkforcePermissions.PERSONNEL_COMMAND_CREATE
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final java.lang.String organization.workforce.api.WorkforcePermissions.SEPARATION_HOLD_APPROVE
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final java.util.List<kernel.PermissionDeclaration> organization.workforce.api.WorkforcePermissions.DECLARATIONS
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final kernel.PermissionDeclaration organization.workforce.api.WorkforcePermissions.EMPLOYEE_READ_DECLARATION
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final kernel.PermissionDeclaration organization.workforce.api.WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_APPROVE_DECLARATION
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final kernel.PermissionDeclaration organization.workforce.api.WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE_DECLARATION
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final kernel.PermissionDeclaration organization.workforce.api.WorkforcePermissions.LEGAL_ENTITY_UPDATE_DECLARATION
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final kernel.PermissionDeclaration organization.workforce.api.WorkforcePermissions.ORG_RECONCILIATION_EXECUTE_DECLARATION
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final kernel.PermissionDeclaration organization.workforce.api.WorkforcePermissions.ORG_STRUCTURE_COMMAND_CREATE_DECLARATION
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final kernel.PermissionDeclaration organization.workforce.api.WorkforcePermissions.ORG_UNIT_READ_DECLARATION
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final kernel.PermissionDeclaration organization.workforce.api.WorkforcePermissions.PERSONNEL_COMMAND_CREATE_DECLARATION
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final kernel.PermissionDeclaration organization.workforce.api.WorkforcePermissions.SEPARATION_HOLD_APPROVE_DECLARATION
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final kernel.PermissionDeclaration organization.workforce.api.WorkforcePermissions.SYNC_RUN_EXECUTE_DECLARATION
+organization.workforce::api organization.workforce.api.WorkforcePermissions public static final kernel.PermissionDeclaration organization.workforce.api.WorkforcePermissions.SYNC_RUN_READ_DECLARATION
 organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded component actingDutyId: organization.workforce.api.ActingDutyId
 organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded component coveredEmployeeId: kernel.EmployeeId
 organization.workforce::events organization.workforce.events.EmployeeActingDutyEnded component coveredOrgUnitId: organization.workforce.api.OrgUnitId
