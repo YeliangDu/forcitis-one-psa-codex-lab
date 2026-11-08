@@ -81,18 +81,21 @@ def verify_intent(intent, approval, github, trusted_source, bootstrap_check):
                  "invalid-release-intent")
         _require(type(approval.get("number")) is int and approval["number"] == intent["number"]
                  and approval.get("head") == intent["head"] and approval.get("target") == "main"
-                 and _release._sha(approval.get("base")) and _evidence._positive(approval.get("repo_id")),
+                 and _release._sha(approval.get("base")) and type(approval.get("repo_id")) is int
+                 and approval["repo_id"] == _evidence.REPOSITORY_ID,
                  "missing-or-inexact-local-approval")
         if "base" in intent:
             _require(intent["base"] == approval["base"], "unapproved-base")
         prepared = dict(number=intent["number"], head=intent["head"], base=approval["base"], target="main")
         mode = approval.get("mode")
+        # The retired PR15/private baseline is historical only. Keep the public
+        # entry incapable of invoking its bootstrap callback or health fallback.
         _require(mode in ("normal", "bootstrap"), "unknown-approval-mode")
+        _require(mode == "normal", "historical-bootstrap-unavailable-in-public-proof")
         _require(callable(trusted_source) and trusted_source(dict(prepared)) is True, "untrusted-gate-source")
         repository = github.repository()
-        _require(isinstance(repository, dict) and repository.get("full_name") == _release.REPOSITORY
-                 and repository.get("private") is True and _evidence._positive(repository.get("id"))
-                 and repository["id"] == approval["repo_id"], "wrong-private-lab-identity")
+        _evidence._repository(repository, _evidence.REPOSITORY_ID, full=True)
+        _require(repository["id"] == approval["repo_id"], "wrong-public-lab-identity")
         main = github.main_ref()
         _require(_main(main) == prepared["base"], "approved-base-is-not-current-main")
         pr = github.pull(prepared["number"])

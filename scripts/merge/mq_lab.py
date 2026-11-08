@@ -8,6 +8,7 @@ from mq_queue import LINE, Queue
 
 
 REPOSITORY = "YeliangDu/forcitis-one-psa-codex-lab"
+REPOSITORY_ID = 1449415666
 NAME = REPOSITORY.split("/")[-1]
 ORIGIN = f"git@github.com:{REPOSITORY}.git"
 
@@ -83,8 +84,10 @@ def queue_command(command, common_dir, read_repo=None):
             return _result("hold", "Lab writer is not bound; legacy queue writes are disabled", present, queued)
         repo = read_repo() if callable(read_repo) else None
         if (not isinstance(repo, dict) or repo.get("full_name") != REPOSITORY
-                or repo.get("private") is not True or type(repo.get("id")) is not int or repo["id"] <= 0):
-            return _result("hold", "cannot verify the private Lab identity", present, queued)
+                or repo.get("private") is not False or type(repo.get("id")) is not int or repo["id"] != REPOSITORY_ID
+                or ("visibility" in repo and repo["visibility"] != "public")
+                or ("fork" in repo and repo["fork"] is not False)):
+            return _result("hold", "cannot verify the fixed public Lab identity", present, queued)
         queue = Queue(str(path))
         with queue.merge_lock():
             path = _path(common_dir)
