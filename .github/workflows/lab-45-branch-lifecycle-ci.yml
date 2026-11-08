@@ -206,7 +206,8 @@ jobs:
           assert hashlib.sha256(idx).hexdigest()=="5aa17ed20cd38f90938ffae15beb054663dcb49ad9777f0db3c32d973eecbafd"
           i=json.loads(idx)
           def fetch(suffix):
-              return subprocess.check_output(["gh","api",repo+suffix],timeout=50)
+              flags=["--allow-escape-sequences"] if suffix.endswith("/logs") else []
+              return subprocess.check_output(["gh","api",*flags,repo+suffix],timeout=50)
           def seal(name,raw):
               if hashlib.sha256(raw).hexdigest()!=i["hashes"][name]:
                   raise SystemExit("HOLD: native evidence bytes differ at "+name)
