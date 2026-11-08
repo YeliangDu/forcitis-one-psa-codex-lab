@@ -1,0 +1,937 @@
+{
+  "candidate_ci": {
+    "artifact_id": 13611780174,
+    "artifact_name": "lab-pr-43-fdec099178ccb3cfc47d34f33c07b063ee8e650b-1",
+    "backend_jobs": {
+      "1": 128679931077,
+      "2": 128679931011,
+      "3": 128679931029,
+      "4": 128679931009,
+      "unit": 128679931051
+    },
+    "backend_observed": {
+      "attempt": "1",
+      "errors": 0,
+      "failures": 0,
+      "head": "fdec099178ccb3cfc47d34f33c07b063ee8e650b",
+      "integration_classes": 373,
+      "run": "42464006956",
+      "skipped": 19,
+      "slots": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "unit"
+      ],
+      "tests": 4798
+    },
+    "backend_summary_sha256": "b1fc7f7dd7cdde56b92b1943bf75b19d888081d20161702bae6923706dcf3c1d",
+    "event": "pull_request",
+    "legacy_it": false,
+    "main_health_skipped_job_id": 128679220625,
+    "path": ".github/workflows/lab-pr-ci.yml",
+    "preflight_job_id": 128679219864,
+    "receipt_sha256": "7f4857412ed45785ea47a54515fe6c20b3d586bce050bb47419e2efca6d7204c",
+    "required_lanes": [
+      "light",
+      "secret",
+      "shadow",
+      "frontend",
+      "backend"
+    ],
+    "run_attempt": 1,
+    "run_id": 42464006956,
+    "verification_job_id": 128682445641,
+    "zip_sha256": "f7960398a7c27303d7cc83af78a19c2ea13e83ee78d882eb8f925a981526e8f5"
+  },
+  "document_kind": "DRAFT-independent-old-control-pins-NOT-authority",
+  "exact_skip": {
+    "raw_sha256": "62e2117b52aa7d6051840feb74b0003a75b6c59119ecd064e2665bcf7a7eb025",
+    "value": {
+      "attempt": 1,
+      "head": "fdec099178ccb3cfc47d34f33c07b063ee8e650b",
+      "native_unit_job": 128679931051,
+      "no_release_authority": true,
+      "pr": 43,
+      "repo_id": 1449415666,
+      "run": 42464006956,
+      "selected_log_sha256": "0f317fc3f1ad258110878a8865e617fbce9107a3e62ec490cb57ebc98c2a1c5c",
+      "skip_classes": [
+        {
+          "class_name": "com.forcitis.one.platform.identity.PendingIdentityRulesTest",
+          "skips": 4,
+          "tests": 4
+        },
+        {
+          "class_name": "com.forcitis.one.platform.approval.PendingApprovalRulesTest",
+          "skips": 15,
+          "tests": 15
+        }
+      ],
+      "slots": {
+        "1": {
+          "receipt_sha256": "efe508501db936d129d71e89415a58b23a7854aaa02f87d7524208e988c33dda",
+          "skipped": 0,
+          "tests": 768
+        },
+        "2": {
+          "receipt_sha256": "347d4125ccbb4f24132b09242d49be2f87dc9293c88c906792345025e46cd1be",
+          "skipped": 0,
+          "tests": 570
+        },
+        "3": {
+          "receipt_sha256": "0a214b16270313c0a681da2628078b21eea67c4cd017b0fd24bb2c183dd03eda",
+          "skipped": 0,
+          "tests": 589
+        },
+        "4": {
+          "receipt_sha256": "b30569284fc7c5d0122ceb52f977e94e737d8480260a054bc0af817e18d62a65",
+          "skipped": 0,
+          "tests": 555
+        },
+        "unit": {
+          "receipt_sha256": "ca42437f5137625717869c4760ef02e2dfeb9ec1d8326f5e68f9ebb8b3417278",
+          "skipped": 19,
+          "tests": 2316
+        }
+      },
+      "verified_only_for_exact_run": true
+    }
+  },
+  "external_closure_review_index": {
+    "raw_sha256": "347a60d70192746dc2009a705c31b38962314e6f62a49c9ea0d86ef98452c9ec",
+    "value": {
+      "base": "15511fad03b8d2ae38e3a337f24556bd9d9071c6",
+      "draft": true,
+      "head": "fdec099178ccb3cfc47d34f33c07b063ee8e650b",
+      "independent_static_closure_review_sha256": "bd91760d2a8e0c3336def40499ed5a935fc831ce0d731453fd28d1ed43614c63",
+      "install_authority": false,
+      "native_capture_sha256": "f7d05af1830cb9d12b29347cc0258e589d14142a2f75b1db132903372c0ee1e8",
+      "new_manifest": "3bb4c177830c640ab37b35cc75870073768fa0f30d716fbbf6048e4f71f626cc",
+      "old_manifest": "d7f54a9c710e9059e9cbcab48c56ac6570155ce30bb294a389d307b2ee8f1914",
+      "ordinary_main_health": false,
+      "pr": 43,
+      "raw_zip_sha256": "f7960398a7c27303d7cc83af78a19c2ea13e83ee78d882eb8f925a981526e8f5",
+      "receipt_artifact_id": 13611780174,
+      "receipt_sha256": "7f4857412ed45785ea47a54515fe6c20b3d586bce050bb47419e2efca6d7204c",
+      "receipt_upload": {
+        "job": 128682445641,
+        "step": 8
+      },
+      "repo_id": 1449415666,
+      "review_ids": [
+        5817305120,
+        5817305270
+      ],
+      "scope": "independent observed-input index only",
+      "skip_witness_sha256": "62e2117b52aa7d6051840feb74b0003a75b6c59119ecd064e2665bcf7a7eb025",
+      "source_delta_sha256": "bf7bd5e3b0013c75204c5a1da651a149dc50fe49c8e2ac805aca2367fc7311e6"
+    }
+  },
+  "independent_control": {
+    "aggregator_sha256": null,
+    "branch": "lab/22-independent-public-candidate-proof-fdec099",
+    "collector_sha256": null,
+    "job_id": null,
+    "note": "Pin after independently reviewed SOURCE exists; null never authorizes execution/installation. Do not source these from candidate.",
+    "output_artifact_id": null,
+    "run_attempt": null,
+    "run_id": null,
+    "source_commit": null,
+    "upload_step_number": null,
+    "workflow_blob": null,
+    "workflow_path": ".github/workflows/lab-22-independent-public-candidate-proof.yml"
+  },
+  "installation_authority": false,
+  "manifests": {
+    "all_changed_files": [
+      ".github/workflows/lab-pr-ci.yml",
+      "scripts/merge/mq_lab.py",
+      "scripts/merge/mq_lab_authorization.py",
+      "scripts/merge/mq_lab_authorization_selftest.py",
+      "scripts/merge/mq_lab_proof.py",
+      "scripts/merge/mq_lab_proof_selftest.py",
+      "scripts/merge/mq_lab_selftest.py",
+      "scripts/session/codex_lab/lab_hosted_cutover_selftest.py",
+      "scripts/session/codex_lab/lab_main_health.py",
+      "scripts/session/codex_lab/lab_main_health_selftest.py",
+      "scripts/session/codex_lab/lab_pr_ci.py",
+      "scripts/session/codex_lab/lab_pr_ci_selftest.py",
+      "scripts/session/codex_lab/lab_queue_evidence.py",
+      "scripts/session/codex_lab/lab_queue_evidence_selftest.py",
+      "scripts/session/codex_lab/lab_queue_git_writer.py",
+      "scripts/session/codex_lab/lab_queue_git_writer_selftest.py",
+      "scripts/session/codex_lab/lab_queue_main_writer_selftest.py",
+      "scripts/session/codex_lab/lab_queue_observe.py",
+      "scripts/session/codex_lab/lab_queue_observe_selftest.py"
+    ],
+    "changed_controls": [
+      ".github/workflows/lab-pr-ci.yml",
+      "scripts/merge/mq_lab.py",
+      "scripts/merge/mq_lab_authorization.py",
+      "scripts/merge/mq_lab_proof.py",
+      "scripts/session/codex_lab/lab_main_health.py",
+      "scripts/session/codex_lab/lab_pr_ci.py",
+      "scripts/session/codex_lab/lab_queue_evidence.py",
+      "scripts/session/codex_lab/lab_queue_git_writer.py",
+      "scripts/session/codex_lab/lab_queue_observe.py"
+    ],
+    "formatter_sha256": "12ece1397ad005096079bfd9ecc660788b197c29fa68669acb054f6a21a6db13",
+    "new": {
+      "digest": "3bb4c177830c640ab37b35cc75870073768fa0f30d716fbbf6048e4f71f626cc",
+      "entries": [
+        {
+          "blob": "52a98f549bb661960e55eea82421e4528daeed7d",
+          "mode": "100644",
+          "path": ".github/workflows/lab-bootstrap-baseline.yml",
+          "sha256": "cb26e9ca572780da2fbf558ec58f13a96d7d23db7052ca3db7a41342d27aa7f7"
+        },
+        {
+          "blob": "91f3f950cc2d6a3fbd92cc1b4db7ce76e882539d",
+          "mode": "100644",
+          "path": ".github/workflows/lab-pr-ci.yml",
+          "sha256": "51d0b2689be4c70d97c2c0f4d3f6fb04d23c3f98844b6c71d92d3624e7770fbf"
+        },
+        {
+          "blob": "a355fb12c9b69604797d4e973593d6fc9bc3f0ae",
+          "mode": "100644",
+          "path": ".gitleaks.toml",
+          "sha256": "646ad0f73cb6c131ceaeb2498ae52eb1068cd1484a8b2dc02f518bed67deb6b6"
+        },
+        {
+          "blob": "5e29aa516656539aeafccfd90667204992d8b324",
+          "mode": "100644",
+          "path": ".gitleaksignore",
+          "sha256": "4f0c2c12c660098bff1b4dc5c1cb6a4c7facc50b7d42120292fa7fb81fd60324"
+        },
+        {
+          "blob": "915f12c4217f30150995f9b4ea40043f7d0e8e32",
+          "mode": "100644",
+          "path": "policy.json",
+          "sha256": "7646b02a838aa5f144142ffc97d5c338d836df2112eb0884c20d80d50974174d"
+        },
+        {
+          "blob": "68eaebbcd62b1d65971a1e64422a9cf45ee74577",
+          "mode": "100755",
+          "path": "scripts/ci/backend_verify.sh",
+          "sha256": "72f61da27f7a6aadf305f0168ed830dfd5dff46cb30a1a46b10bc4a375bd6a2e"
+        },
+        {
+          "blob": "5b8eefa5f30a863e39418b0b50e0c7b252230546",
+          "mode": "100755",
+          "path": "scripts/ci/lab_backend_lane.sh",
+          "sha256": "fca2a43682ea6ce1c479f85c17e589fc79022635d54c1c726f11d7a47a61100b"
+        },
+        {
+          "blob": "28c9ca34af8f49f4c98fd9df50d0860025aa0390",
+          "mode": "100644",
+          "path": "scripts/ci/lab_backend_shards.py",
+          "sha256": "b5a93215ef818591ade2d7bb991c30f39704d1bfc42ac337273519a7a457e299"
+        },
+        {
+          "blob": "2009cd7f5e7bbeaeb18d7121814179cc970447e1",
+          "mode": "100755",
+          "path": "scripts/ci/legacy_it.sh",
+          "sha256": "79ef074d31bf839a599ba99b6e5861f0491b0fa1a23fb4a1016145a8dee0562b"
+        },
+        {
+          "blob": "ce5da7c7c00439f70010e8dc21fed42b05799ccb",
+          "mode": "100755",
+          "path": "scripts/ci/light.sh",
+          "sha256": "eb3edd820b178ee856715915866abb5d46e6770ed8a8d8964e61ad524c6137e8"
+        },
+        {
+          "blob": "414792df6507036bae8f559cb554638df27a17c9",
+          "mode": "100644",
+          "path": "scripts/ci/light_triggers.sh",
+          "sha256": "11efddf1acc5d9e7f85c5d52e5ff0fb7fe906f5b67d9a3a788308c350e4c9bcc"
+        },
+        {
+          "blob": "9790ea5218639582479a8651b761d6803f279ca1",
+          "mode": "100644",
+          "path": "scripts/ci/relevant_change.py",
+          "sha256": "8e7d922ce2ed6152660b46e74b3f051560791f09cda3f70a286098934d624902"
+        },
+        {
+          "blob": "819bfae5f8b3d803337930a3609b5f1d7557e451",
+          "mode": "100644",
+          "path": "scripts/codegen/generate_api.sh",
+          "sha256": "07a235e7dc26d3adc67fcbe29ec51fa0bc48e0d5ab060dc2648a61ab52faaf9c"
+        },
+        {
+          "blob": "9537a14cd9aeaf61556c86830bdff2d549f8eff8",
+          "mode": "100644",
+          "path": "scripts/guards/acceptance_reports.py",
+          "sha256": "79fabfe4768a811dc6cb8a8a20d8c302eb05d4e281ae528bea6a110d9e1a1331"
+        },
+        {
+          "blob": "87ca32c9c73d22a0ade4c18ba44e05ac17bf07a9",
+          "mode": "100644",
+          "path": "scripts/merge/draft_check.py",
+          "sha256": "431fd99ad8ced6d189571258aaec58ea532822d0efc0b0aa4c33921f14db5426"
+        },
+        {
+          "blob": "ee2a26eb244db186e152aef5a6a51cd924b9b9c4",
+          "mode": "100644",
+          "path": "scripts/merge/driftscan.py",
+          "sha256": "4c69a8316b71a577abf77e6a7b338c52523a94443e616bb2b4c81a2fe40af1b2"
+        },
+        {
+          "blob": "5a611f7b1b17254713a0ca0e9e50dc6178d013c3",
+          "mode": "100644",
+          "path": "scripts/merge/gapscan.py",
+          "sha256": "a719b7958db8038ecd45b4b9809b9db9bd852f940fb4278b0e15bab724327420"
+        },
+        {
+          "blob": "bd2b75962e19711e338a838a0aced994be00249e",
+          "mode": "100644",
+          "path": "scripts/merge/issue_gate.py",
+          "sha256": "de6d29c69c0268c4014f987abdda7b5e441559bdfe9b01b14586f3791cc17ef9"
+        },
+        {
+          "blob": "705a74286f48dd5453a9f6e534ad654b4b3e4094",
+          "mode": "100644",
+          "path": "scripts/merge/mq.py",
+          "sha256": "93dc6e19bde3535c958fdbd62f45f8647601be59407cfb5855af37dc360491e9"
+        },
+        {
+          "blob": "6ca7584304edd5c87d259929f2b410f9ecad01dd",
+          "mode": "100644",
+          "path": "scripts/merge/mq_acceptance.py",
+          "sha256": "67bcd54693cb6b826703e37c0d6a34613349afa9aeb71d181b0b6a6ac029be65"
+        },
+        {
+          "blob": "babafb149e382de7c723f0eba8da7e4e792bf3a1",
+          "mode": "100644",
+          "path": "scripts/merge/mq_enqueue.py",
+          "sha256": "18cec67dfac699c620ea8faf835e59a5ff0bfaee1c4ef679be7f362509257182"
+        },
+        {
+          "blob": "2fd51c441de0fc7eee36d71addb08ca8bc63ab84",
+          "mode": "100644",
+          "path": "scripts/merge/mq_event_payload.py",
+          "sha256": "17028e4e4fdf43575dcc722a47306dc57b31f203c7948c2986ecc0520a86f74c"
+        },
+        {
+          "blob": "0da991b170a9952f3281228f327414e72f07b252",
+          "mode": "100644",
+          "path": "scripts/merge/mq_github.py",
+          "sha256": "d9838a9a5534276b31df6f88a9759b2a0ad08b79272fcf8653a20eb1ad274490"
+        },
+        {
+          "blob": "dc572bd5da0739bce7cbc85bccb3e7934301e9f5",
+          "mode": "100644",
+          "path": "scripts/merge/mq_lab.py",
+          "sha256": "fe5ce0a3d4c089362697dc9fee1482ee5f77aa0ca3231f38f1cdd08452009f62"
+        },
+        {
+          "blob": "9966915a5a6995fdd639e16b5d2c6c6412156795",
+          "mode": "100644",
+          "path": "scripts/merge/mq_lab_active.py",
+          "sha256": "b0d7f38ac4094a2dac61f177d13d1e24eb08d3dd9118d1b5da32db70e25d4c5e"
+        },
+        {
+          "blob": "7d35982f3b4038b9f8490d50f143822e8ec1777b",
+          "mode": "100644",
+          "path": "scripts/merge/mq_lab_authorization.py",
+          "sha256": "dceb48a92269918e5b3bb56c0bb843acedaa4cbe2ad09c54eb634425f4bae4ab"
+        },
+        {
+          "blob": "c51fefd2da37df9a2efc277d9baf073f251ab81c",
+          "mode": "100644",
+          "path": "scripts/merge/mq_lab_journal.py",
+          "sha256": "0422699839ce20d25b7986fa805b691628d43f9bf2ea9ddc5e825ac1b449baff"
+        },
+        {
+          "blob": "771db584f2b0f4cca60857234099d1ff0efb1ee8",
+          "mode": "100644",
+          "path": "scripts/merge/mq_lab_operator.py",
+          "sha256": "853144dbd757d1ce86f4825734abb1b2cd9db5e3e9ad1dbb7eb4d1274d74584c"
+        },
+        {
+          "blob": "dcd1da8176ed38602d43bd0439bec62e01587795",
+          "mode": "100644",
+          "path": "scripts/merge/mq_lab_proof.py",
+          "sha256": "5751873d6df6ed811cef3f53e4796b92ee5e5e63e86e52b848313c89dfd0fd7b"
+        },
+        {
+          "blob": "2edab0ea0767086970fc9452a4a8a47bce2884e3",
+          "mode": "100644",
+          "path": "scripts/merge/mq_lab_runtime.py",
+          "sha256": "7bb0ad5d49547b5c5aab46fb554fa0792c3973f9d3c793b160c7effdd174c3cf"
+        },
+        {
+          "blob": "f3ebfa7096e8d62263b6f8171aadf855674eddd9",
+          "mode": "100644",
+          "path": "scripts/merge/mq_lab_trust.py",
+          "sha256": "12fa103e571c01c4e870757e03b29bd4715167efefa45a20473e6f89a630b3b2"
+        },
+        {
+          "blob": "b305d289f09de9652a54cb49e53aee21f0b89eec",
+          "mode": "100644",
+          "path": "scripts/merge/mq_merge_end.py",
+          "sha256": "f24fbbc05ef3b33bb0e21742adc0243e761783bbbcfde04643b5b33b8aecff58"
+        },
+        {
+          "blob": "aee39251a5e5f9cf73f7489f40b8949e50f5d63c",
+          "mode": "100644",
+          "path": "scripts/merge/mq_queue.py",
+          "sha256": "4fca732704a7a2bebf1580abdf279f699bd56be95fb02bef85773f18fdd1c665"
+        },
+        {
+          "blob": "16bff6b0a2e5c86a1fbdeb9a79f37797ddeced09",
+          "mode": "100644",
+          "path": "scripts/merge/mq_records.py",
+          "sha256": "3ff5acbca36bc32a62f410f1a50cc402afc559ea33b501f7b0850de2a6402fd9"
+        },
+        {
+          "blob": "09b3340101a35fb2ff2a057bdaf1e8b0b9988214",
+          "mode": "100644",
+          "path": "scripts/merge/mq_title.py",
+          "sha256": "1fc6e6fac090263caed50f24f18c092cc9bd3b3bba23c6b486cd89fc11f72a90"
+        },
+        {
+          "blob": "83995bd014e8b717a8424d7e607f8e62f7cb5eb7",
+          "mode": "100644",
+          "path": "scripts/merge/mq_waiting.py",
+          "sha256": "80bcc63e50ec617eb4ba6b0c8da591756bc283acc155abc7cd437b50edcb4d5a"
+        },
+        {
+          "blob": "3a22eb2e3e8a56646dbfa086c7c29dc01bbca4eb",
+          "mode": "100644",
+          "path": "scripts/merge/post_review.py",
+          "sha256": "e7d212a266a72ae5a5352dc439968062dcab4068a43d1224e0af07c05886b863"
+        },
+        {
+          "blob": "219a70858abedc8aec8c186a054c1c6a2f1ba9d6",
+          "mode": "100644",
+          "path": "scripts/merge/pr_kinds.py",
+          "sha256": "4a5a518fb3fb23248052c673eacb95287485c9cd552246ff6588c5d3183beb67"
+        },
+        {
+          "blob": "e0f534b3558033d8cd5258b36e398c8b2f6ae3b0",
+          "mode": "100644",
+          "path": "scripts/merge/pr_mix.py",
+          "sha256": "7142e1c3bafa4f98bca665970625ff42d77d1f9feda990aae3fd038e611af9ee"
+        },
+        {
+          "blob": "624cb5afe9927ae2b497f6dcaa709fde3a0c48d8",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/install_gitleaks.sh",
+          "sha256": "0d457d9d34fc9420469ef288a08713f03342c01719e59219db705c2cd361cc1d"
+        },
+        {
+          "blob": "73f57deccb3a45fa01eab5c458c49f2be1043707",
+          "mode": "100755",
+          "path": "scripts/session/codex_lab/install_hosted_shellcheck.sh",
+          "sha256": "99f23d0fd8a16a81bf9e8aa95a414cd4d148db71a13dc6b2d65de4d5477d0edf"
+        },
+        {
+          "blob": "ff88495b6659bba41c0345a893a9e83308b23f08",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/lab_main_health.py",
+          "sha256": "63fb4edc7dae30f6e04bcf6ca3a2213f91378c9c7a3f2d4811823ad1f6de3cd0"
+        },
+        {
+          "blob": "b8dfbf976d39f15fa56aa57684543e584ed97735",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/lab_pr_ci.py",
+          "sha256": "cae11d929d132e240ff33cdec17a941e1a614ea62dbe845d31bd7061c97ec364"
+        },
+        {
+          "blob": "f0306353a47e66ec187a90e6981c15c6ef68f33a",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/lab_queue_attempt.py",
+          "sha256": "ec2b5923218b077238e2a221d1bf3dd9092b739fee8f51f03d6a1cfa076573e6"
+        },
+        {
+          "blob": "3fdefc88f67907319ce54a30f7d3d16ca593254d",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/lab_queue_evidence.py",
+          "sha256": "6a54293e7608f5c7208fb59b98bc6accf8f701c7a96b1b9ca8e628c25403a88f"
+        },
+        {
+          "blob": "6fa5f91ec8dad148472cde86b13c16b90bab7248",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/lab_queue_git_writer.py",
+          "sha256": "07f88737a124de9cb7f529f59ed6f44fab474e9d5cc28b5b466e5e5e9d0bd122"
+        },
+        {
+          "blob": "e3bbafd9a690998efa163c53e81002edc7aa6349",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/lab_queue_live.py",
+          "sha256": "543f992be547dda4d0dbe0d237788172440f3c7ee292a64ffabefa368c62dc54"
+        },
+        {
+          "blob": "6dd26264d5e2128a3f1f8128a85c94ed6068411e",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/lab_queue_observe.py",
+          "sha256": "c9077c102c16d426b0ec5fc1e99d73530253d7236eb1d9ec0fe22642356b40d9"
+        },
+        {
+          "blob": "aaedfba64f2b08ea9c213de6366c2eb7a0829dc1",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/lab_queue_release.py",
+          "sha256": "719a22654b5ec42034550dc18f46305826de036aea29cf74bfc8cca32283ec36"
+        },
+        {
+          "blob": "5e47c69ace89d0da5789fcb9dd81a02bf7657697",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/shadow.py",
+          "sha256": "016e42474bffa26adc857531c40202cb8518af9981e5a1a317aaef84e7a26d75"
+        }
+      ],
+      "version": 1
+    },
+    "old": {
+      "digest": "d7f54a9c710e9059e9cbcab48c56ac6570155ce30bb294a389d307b2ee8f1914",
+      "entries": [
+        {
+          "blob": "52a98f549bb661960e55eea82421e4528daeed7d",
+          "mode": "100644",
+          "path": ".github/workflows/lab-bootstrap-baseline.yml",
+          "sha256": "cb26e9ca572780da2fbf558ec58f13a96d7d23db7052ca3db7a41342d27aa7f7"
+        },
+        {
+          "blob": "a7e3ba7f4421dcbee8969a2ceedf3bd7810d46fd",
+          "mode": "100644",
+          "path": ".github/workflows/lab-pr-ci.yml",
+          "sha256": "8bfb5dab6de0e6034a8e920ba23660a60bea1f8c6222388d13c5df6b3825f132"
+        },
+        {
+          "blob": "a355fb12c9b69604797d4e973593d6fc9bc3f0ae",
+          "mode": "100644",
+          "path": ".gitleaks.toml",
+          "sha256": "646ad0f73cb6c131ceaeb2498ae52eb1068cd1484a8b2dc02f518bed67deb6b6"
+        },
+        {
+          "blob": "5e29aa516656539aeafccfd90667204992d8b324",
+          "mode": "100644",
+          "path": ".gitleaksignore",
+          "sha256": "4f0c2c12c660098bff1b4dc5c1cb6a4c7facc50b7d42120292fa7fb81fd60324"
+        },
+        {
+          "blob": "915f12c4217f30150995f9b4ea40043f7d0e8e32",
+          "mode": "100644",
+          "path": "policy.json",
+          "sha256": "7646b02a838aa5f144142ffc97d5c338d836df2112eb0884c20d80d50974174d"
+        },
+        {
+          "blob": "68eaebbcd62b1d65971a1e64422a9cf45ee74577",
+          "mode": "100755",
+          "path": "scripts/ci/backend_verify.sh",
+          "sha256": "72f61da27f7a6aadf305f0168ed830dfd5dff46cb30a1a46b10bc4a375bd6a2e"
+        },
+        {
+          "blob": "5b8eefa5f30a863e39418b0b50e0c7b252230546",
+          "mode": "100755",
+          "path": "scripts/ci/lab_backend_lane.sh",
+          "sha256": "fca2a43682ea6ce1c479f85c17e589fc79022635d54c1c726f11d7a47a61100b"
+        },
+        {
+          "blob": "28c9ca34af8f49f4c98fd9df50d0860025aa0390",
+          "mode": "100644",
+          "path": "scripts/ci/lab_backend_shards.py",
+          "sha256": "b5a93215ef818591ade2d7bb991c30f39704d1bfc42ac337273519a7a457e299"
+        },
+        {
+          "blob": "2009cd7f5e7bbeaeb18d7121814179cc970447e1",
+          "mode": "100755",
+          "path": "scripts/ci/legacy_it.sh",
+          "sha256": "79ef074d31bf839a599ba99b6e5861f0491b0fa1a23fb4a1016145a8dee0562b"
+        },
+        {
+          "blob": "ce5da7c7c00439f70010e8dc21fed42b05799ccb",
+          "mode": "100755",
+          "path": "scripts/ci/light.sh",
+          "sha256": "eb3edd820b178ee856715915866abb5d46e6770ed8a8d8964e61ad524c6137e8"
+        },
+        {
+          "blob": "414792df6507036bae8f559cb554638df27a17c9",
+          "mode": "100644",
+          "path": "scripts/ci/light_triggers.sh",
+          "sha256": "11efddf1acc5d9e7f85c5d52e5ff0fb7fe906f5b67d9a3a788308c350e4c9bcc"
+        },
+        {
+          "blob": "9790ea5218639582479a8651b761d6803f279ca1",
+          "mode": "100644",
+          "path": "scripts/ci/relevant_change.py",
+          "sha256": "8e7d922ce2ed6152660b46e74b3f051560791f09cda3f70a286098934d624902"
+        },
+        {
+          "blob": "819bfae5f8b3d803337930a3609b5f1d7557e451",
+          "mode": "100644",
+          "path": "scripts/codegen/generate_api.sh",
+          "sha256": "07a235e7dc26d3adc67fcbe29ec51fa0bc48e0d5ab060dc2648a61ab52faaf9c"
+        },
+        {
+          "blob": "9537a14cd9aeaf61556c86830bdff2d549f8eff8",
+          "mode": "100644",
+          "path": "scripts/guards/acceptance_reports.py",
+          "sha256": "79fabfe4768a811dc6cb8a8a20d8c302eb05d4e281ae528bea6a110d9e1a1331"
+        },
+        {
+          "blob": "87ca32c9c73d22a0ade4c18ba44e05ac17bf07a9",
+          "mode": "100644",
+          "path": "scripts/merge/draft_check.py",
+          "sha256": "431fd99ad8ced6d189571258aaec58ea532822d0efc0b0aa4c33921f14db5426"
+        },
+        {
+          "blob": "ee2a26eb244db186e152aef5a6a51cd924b9b9c4",
+          "mode": "100644",
+          "path": "scripts/merge/driftscan.py",
+          "sha256": "4c69a8316b71a577abf77e6a7b338c52523a94443e616bb2b4c81a2fe40af1b2"
+        },
+        {
+          "blob": "5a611f7b1b17254713a0ca0e9e50dc6178d013c3",
+          "mode": "100644",
+          "path": "scripts/merge/gapscan.py",
+          "sha256": "a719b7958db8038ecd45b4b9809b9db9bd852f940fb4278b0e15bab724327420"
+        },
+        {
+          "blob": "bd2b75962e19711e338a838a0aced994be00249e",
+          "mode": "100644",
+          "path": "scripts/merge/issue_gate.py",
+          "sha256": "de6d29c69c0268c4014f987abdda7b5e441559bdfe9b01b14586f3791cc17ef9"
+        },
+        {
+          "blob": "705a74286f48dd5453a9f6e534ad654b4b3e4094",
+          "mode": "100644",
+          "path": "scripts/merge/mq.py",
+          "sha256": "93dc6e19bde3535c958fdbd62f45f8647601be59407cfb5855af37dc360491e9"
+        },
+        {
+          "blob": "6ca7584304edd5c87d259929f2b410f9ecad01dd",
+          "mode": "100644",
+          "path": "scripts/merge/mq_acceptance.py",
+          "sha256": "67bcd54693cb6b826703e37c0d6a34613349afa9aeb71d181b0b6a6ac029be65"
+        },
+        {
+          "blob": "babafb149e382de7c723f0eba8da7e4e792bf3a1",
+          "mode": "100644",
+          "path": "scripts/merge/mq_enqueue.py",
+          "sha256": "18cec67dfac699c620ea8faf835e59a5ff0bfaee1c4ef679be7f362509257182"
+        },
+        {
+          "blob": "2fd51c441de0fc7eee36d71addb08ca8bc63ab84",
+          "mode": "100644",
+          "path": "scripts/merge/mq_event_payload.py",
+          "sha256": "17028e4e4fdf43575dcc722a47306dc57b31f203c7948c2986ecc0520a86f74c"
+        },
+        {
+          "blob": "0da991b170a9952f3281228f327414e72f07b252",
+          "mode": "100644",
+          "path": "scripts/merge/mq_github.py",
+          "sha256": "d9838a9a5534276b31df6f88a9759b2a0ad08b79272fcf8653a20eb1ad274490"
+        },
+        {
+          "blob": "73bd8d9d0e9bf0c553e5bf8630615bd77bd03e25",
+          "mode": "100644",
+          "path": "scripts/merge/mq_lab.py",
+          "sha256": "a88fa264c1421f51f55cddc71e4150a30e5a9c685642c8e31852ec9284dafdbc"
+        },
+        {
+          "blob": "9966915a5a6995fdd639e16b5d2c6c6412156795",
+          "mode": "100644",
+          "path": "scripts/merge/mq_lab_active.py",
+          "sha256": "b0d7f38ac4094a2dac61f177d13d1e24eb08d3dd9118d1b5da32db70e25d4c5e"
+        },
+        {
+          "blob": "3ce2ca8b038abdcab00b179e8e014ed1d3d895e4",
+          "mode": "100644",
+          "path": "scripts/merge/mq_lab_authorization.py",
+          "sha256": "2c76ba24333eab18412d133dc886e3e1d7c4004a6294f58911ac7bfa3237cf18"
+        },
+        {
+          "blob": "c51fefd2da37df9a2efc277d9baf073f251ab81c",
+          "mode": "100644",
+          "path": "scripts/merge/mq_lab_journal.py",
+          "sha256": "0422699839ce20d25b7986fa805b691628d43f9bf2ea9ddc5e825ac1b449baff"
+        },
+        {
+          "blob": "771db584f2b0f4cca60857234099d1ff0efb1ee8",
+          "mode": "100644",
+          "path": "scripts/merge/mq_lab_operator.py",
+          "sha256": "853144dbd757d1ce86f4825734abb1b2cd9db5e3e9ad1dbb7eb4d1274d74584c"
+        },
+        {
+          "blob": "33bc34003d33041a1ec100c176604a8f52015c50",
+          "mode": "100644",
+          "path": "scripts/merge/mq_lab_proof.py",
+          "sha256": "a5e3b9de870d5ee49cc1856f7b74d36ac1351ce6af9a0613645119e91a7f5dee"
+        },
+        {
+          "blob": "2edab0ea0767086970fc9452a4a8a47bce2884e3",
+          "mode": "100644",
+          "path": "scripts/merge/mq_lab_runtime.py",
+          "sha256": "7bb0ad5d49547b5c5aab46fb554fa0792c3973f9d3c793b160c7effdd174c3cf"
+        },
+        {
+          "blob": "f3ebfa7096e8d62263b6f8171aadf855674eddd9",
+          "mode": "100644",
+          "path": "scripts/merge/mq_lab_trust.py",
+          "sha256": "12fa103e571c01c4e870757e03b29bd4715167efefa45a20473e6f89a630b3b2"
+        },
+        {
+          "blob": "b305d289f09de9652a54cb49e53aee21f0b89eec",
+          "mode": "100644",
+          "path": "scripts/merge/mq_merge_end.py",
+          "sha256": "f24fbbc05ef3b33bb0e21742adc0243e761783bbbcfde04643b5b33b8aecff58"
+        },
+        {
+          "blob": "aee39251a5e5f9cf73f7489f40b8949e50f5d63c",
+          "mode": "100644",
+          "path": "scripts/merge/mq_queue.py",
+          "sha256": "4fca732704a7a2bebf1580abdf279f699bd56be95fb02bef85773f18fdd1c665"
+        },
+        {
+          "blob": "16bff6b0a2e5c86a1fbdeb9a79f37797ddeced09",
+          "mode": "100644",
+          "path": "scripts/merge/mq_records.py",
+          "sha256": "3ff5acbca36bc32a62f410f1a50cc402afc559ea33b501f7b0850de2a6402fd9"
+        },
+        {
+          "blob": "09b3340101a35fb2ff2a057bdaf1e8b0b9988214",
+          "mode": "100644",
+          "path": "scripts/merge/mq_title.py",
+          "sha256": "1fc6e6fac090263caed50f24f18c092cc9bd3b3bba23c6b486cd89fc11f72a90"
+        },
+        {
+          "blob": "83995bd014e8b717a8424d7e607f8e62f7cb5eb7",
+          "mode": "100644",
+          "path": "scripts/merge/mq_waiting.py",
+          "sha256": "80bcc63e50ec617eb4ba6b0c8da591756bc283acc155abc7cd437b50edcb4d5a"
+        },
+        {
+          "blob": "3a22eb2e3e8a56646dbfa086c7c29dc01bbca4eb",
+          "mode": "100644",
+          "path": "scripts/merge/post_review.py",
+          "sha256": "e7d212a266a72ae5a5352dc439968062dcab4068a43d1224e0af07c05886b863"
+        },
+        {
+          "blob": "219a70858abedc8aec8c186a054c1c6a2f1ba9d6",
+          "mode": "100644",
+          "path": "scripts/merge/pr_kinds.py",
+          "sha256": "4a5a518fb3fb23248052c673eacb95287485c9cd552246ff6588c5d3183beb67"
+        },
+        {
+          "blob": "e0f534b3558033d8cd5258b36e398c8b2f6ae3b0",
+          "mode": "100644",
+          "path": "scripts/merge/pr_mix.py",
+          "sha256": "7142e1c3bafa4f98bca665970625ff42d77d1f9feda990aae3fd038e611af9ee"
+        },
+        {
+          "blob": "624cb5afe9927ae2b497f6dcaa709fde3a0c48d8",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/install_gitleaks.sh",
+          "sha256": "0d457d9d34fc9420469ef288a08713f03342c01719e59219db705c2cd361cc1d"
+        },
+        {
+          "blob": "73f57deccb3a45fa01eab5c458c49f2be1043707",
+          "mode": "100755",
+          "path": "scripts/session/codex_lab/install_hosted_shellcheck.sh",
+          "sha256": "99f23d0fd8a16a81bf9e8aa95a414cd4d148db71a13dc6b2d65de4d5477d0edf"
+        },
+        {
+          "blob": "64dfa15f3bdb6b4c431b2c8e41e6cc70a8c2b8d7",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/lab_main_health.py",
+          "sha256": "d1b1be8f49a4b2017bd7d8e9e021631702cea1b3da7efdb9f90e30341eaea845"
+        },
+        {
+          "blob": "6e39dfcf5386cd6a01b55683f3a583bd81e46dff",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/lab_pr_ci.py",
+          "sha256": "f4be7a09a0918dfa0c0cc3b4f5a6ea5636567631d6b5d5e485b17b4854dce137"
+        },
+        {
+          "blob": "f0306353a47e66ec187a90e6981c15c6ef68f33a",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/lab_queue_attempt.py",
+          "sha256": "ec2b5923218b077238e2a221d1bf3dd9092b739fee8f51f03d6a1cfa076573e6"
+        },
+        {
+          "blob": "aabb536cccc4f2c39a14378c6d56de6eff79b917",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/lab_queue_evidence.py",
+          "sha256": "658d1aec849d1f844d5dbb72e4ddcdc7abf60e615d26b07ea3078d5e6977c22b"
+        },
+        {
+          "blob": "31703e50b47d3e3fdc793a976fb223e517784bf6",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/lab_queue_git_writer.py",
+          "sha256": "9de4abcd01f23b68d5b57697e2e2121d2ec3ef53f581088ba381d8a994a49517"
+        },
+        {
+          "blob": "e3bbafd9a690998efa163c53e81002edc7aa6349",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/lab_queue_live.py",
+          "sha256": "543f992be547dda4d0dbe0d237788172440f3c7ee292a64ffabefa368c62dc54"
+        },
+        {
+          "blob": "a5b1facab092afaaf1c6f2fc769916e778cac530",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/lab_queue_observe.py",
+          "sha256": "fc2d1613fa72c56c0bf58402493bd407e37569054516e2a74e3dec9a18e9333a"
+        },
+        {
+          "blob": "aaedfba64f2b08ea9c213de6366c2eb7a0829dc1",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/lab_queue_release.py",
+          "sha256": "719a22654b5ec42034550dc18f46305826de036aea29cf74bfc8cca32283ec36"
+        },
+        {
+          "blob": "5e47c69ace89d0da5789fcb9dd81a02bf7657697",
+          "mode": "100644",
+          "path": "scripts/session/codex_lab/shadow.py",
+          "sha256": "016e42474bffa26adc857531c40202cb8518af9981e5a1a317aaef84e7a26d75"
+        }
+      ],
+      "version": 1
+    },
+    "requires_independent_closure_review": true,
+    "source_evidence_sha256": "a56ac152c849e03f0b874a0638af2084101087f03a06584b7c2d9ae7208c4887"
+  },
+  "missing_evidence": [
+    "complete native run/repository/pull/files/reviews/attempt-job metadata and final freshness reads",
+    "native numbered upload steps plus native job logs/unique artifact upload provenance",
+    "same-attempt backend input inventory and 5 slot result ZIPs/raw XML or equivalent approved skip identities",
+    "independent review of 50-entry old/new authority closure, including missing pom/template/guard/test-selector dependencies",
+    "one-test public native receipt shape red/green and reviewed new helper source"
+  ],
+  "native_lane_and_review": {
+    "raw_sha256": "3c9f302ba8d5a27df8808bd9663d260352c5a58c9dbee882795c73378f4039d6",
+    "value": {
+      "artifact_zip_sha256": "f7960398a7c27303d7cc83af78a19c2ea13e83ee78d882eb8f925a981526e8f5",
+      "attempt": 1,
+      "backend_aggregation": {
+        "job": 128682445641,
+        "name": "Verify the complete exact backend lane",
+        "step": 6
+      },
+      "backend_slots": {
+        "1": {
+          "job": 128679931077,
+          "name": "Upload the slot's exact evidence",
+          "step": 6
+        },
+        "2": {
+          "job": 128679931011,
+          "name": "Upload the slot's exact evidence",
+          "step": 6
+        },
+        "3": {
+          "job": 128679931029,
+          "name": "Upload the slot's exact evidence",
+          "step": 6
+        },
+        "4": {
+          "job": 128679931009,
+          "name": "Upload the slot's exact evidence",
+          "step": 6
+        },
+        "unit": {
+          "job": 128679931051,
+          "name": "Upload the slot's exact evidence",
+          "step": 6
+        }
+      },
+      "base": "15511fad03b8d2ae38e3a337f24556bd9d9071c6",
+      "github_app": "github-actions",
+      "head": "fdec099178ccb3cfc47d34f33c07b063ee8e650b",
+      "lanes": {
+        "frontend": {
+          "job": 128679219864,
+          "name": "Frontend verify",
+          "step": 14
+        },
+        "light": {
+          "job": 128679219864,
+          "name": "Scoped light checks",
+          "step": 9
+        },
+        "secret": {
+          "job": 128679219864,
+          "name": "Secret scan of the exact PR commit range",
+          "step": 11
+        },
+        "shadow": {
+          "job": 128679219864,
+          "name": "Focused Lab control tests",
+          "step": 12
+        }
+      },
+      "pr": 43,
+      "raw_artifact_id": 13611780174,
+      "receipt_sha256": "7f4857412ed45785ea47a54515fe6c20b3d586bce050bb47419e2efca6d7204c",
+      "receipt_upload": {
+        "job": 128682445641,
+        "name": "Upload exact-head receipt and logs",
+        "step": 8
+      },
+      "release_authority": false,
+      "repo_id": 1449415666,
+      "reviews": [
+        {
+          "body_sha256": "aebdbe65dfecc7eec9c5837fcbd7b507fb229ff6de500f30a617161dd9344c00",
+          "commit": "fdec099178ccb3cfc47d34f33c07b063ee8e650b",
+          "id": 5817305120,
+          "state": "COMMENTED"
+        },
+        {
+          "body_sha256": "e4a9fdbc4591f42fcc093d1731d072dfaccf88d59d4e200c0305426d946448a8",
+          "commit": "fdec099178ccb3cfc47d34f33c07b063ee8e650b",
+          "id": 5817305270,
+          "state": "COMMENTED"
+        }
+      ],
+      "run": 42464006956
+    }
+  },
+  "native_upload_log_sha256": "15131b2f7bd7fd087c075336636d0d4fe3f9e533861df6503e66c27c271db640",
+  "ordinary_main_health": false,
+  "release_authority": false,
+  "repository": "YeliangDu/forcitis-one-psa-codex-lab",
+  "repository_id": 1449415666,
+  "reviews": {
+    "终审": {
+      "commit_id": "fdec099178ccb3cfc47d34f33c07b063ee8e650b",
+      "id": 5817305270,
+      "reviewer": "codex-终审-one-dev-identity",
+      "state": "COMMENTED"
+    },
+    "首轮": {
+      "commit_id": "fdec099178ccb3cfc47d34f33c07b063ee8e650b",
+      "id": 5817305120,
+      "reviewer": "codex-首轮-one-design",
+      "state": "COMMENTED"
+    }
+  },
+  "runtime_schema": 1,
+  "runtime_scope": "readonly-native-observation-no-installation",
+  "skip_source_review": {
+    "raw_sha256": "17f61a705e6bc8166f49e266c63b87f6b7c15d45b4abcce8eb52f1f508eb8b57",
+    "value": [
+      {
+        "disabled_annotations": 4,
+        "path": "backend/src/test/java/com/forcitis/one/platform/identity/PendingIdentityRulesTest.java",
+        "sha256": "312f9c4509f1e311d94bfa5d30c3777971005219f85ce25f6faae58027976398",
+        "unchanged_from": "15511fad03b8d2ae38e3a337f24556bd9d9071c6"
+      },
+      {
+        "disabled_annotations": 15,
+        "path": "backend/src/test/java/com/forcitis/one/platform/approval/PendingApprovalRulesTest.java",
+        "sha256": "c71facb1a502bab8f18b65acde4f6c2d2a35725030f89de0cfcade1decc3b73e",
+        "unchanged_from": "15511fad03b8d2ae38e3a337f24556bd9d9071c6"
+      }
+    ]
+  },
+  "status": "HOLD-until-independent-public-native-schema-red-green-and-review",
+  "subject": {
+    "base": "15511fad03b8d2ae38e3a337f24556bd9d9071c6",
+    "head": "fdec099178ccb3cfc47d34f33c07b063ee8e650b",
+    "number": 43,
+    "target": "main"
+  }
+}

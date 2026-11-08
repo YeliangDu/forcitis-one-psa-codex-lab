@@ -1,0 +1,9 @@
+{
+  "files": {
+    "expected-inputs.json": "f669c15487c68df3951dcf010ddf97f0e84df3d28033d57581cf5e3a7c3af3fe",
+    "mq_lab_control_receipt.py": "1edc011b3e46c1dfcd19ddcb41c46fa1b20cc10c8bc62b1287a75bee096998a9",
+    "proof_runtime.py": "2c2f1c7e365d8c5ef43de74b4437db1774702dbc6f92e35585e3a8c6f4a1c8d8",
+    "workflow.yml": "f55bf15907f22fa32237ee57e8ebfc7d39c79b9e515e90a88a1281642490cb72"
+  },
+  "version": 1
+}
