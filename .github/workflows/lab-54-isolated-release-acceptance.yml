@@ -161,7 +161,7 @@ jobs:
           printf '%s  %s\n' '27c4c510d3b44f8d2734d1524c6123094b81ed9fbe91331d5c4b2db89b266259' 'scripts/session/codex_lab/lab_release_final_identity_acceptance.py' | sha256sum -c -
           verifier="$GITHUB_WORKSPACE/scripts/session/codex_lab/lab_release_statement.sh"
           pin=eed4e4367bc5337be56d4fe2c3ce4d66f457dea78720cd34f66d13b38f36df9c
-          python3 -B scripts/session/codex_lab/lab_release_final_identity_acceptance.py --bundle "$RUNNER_TEMP/lab54-package/forcitis-one-$VERSION.tar.gz" --bundle-sha256 "$PACKAGE_DIGEST" --version "$VERSION" --verifier "$verifier" --verifier-sha256 "$pin" --namespace-verifier "$verifier" --namespace-verifier-sha256 "$pin" --evidence "$d" 2>&1 | tee "$d/test.log"
+          python3 -B scripts/session/codex_lab/lab_release_final_identity_acceptance.py --bundle "$RUNNER_TEMP/lab54-package/forcitis-one-$VERSION.tar.gz" --bundle-sha256 "$PACKAGE_DIGEST" --version "$VERSION" --verifier "$verifier" --verifier-sha256 "$pin" --namespace-verifier "$GITHUB_WORKSPACE/scripts/session/codex_lab/lab_release_statement_strict.sh" --namespace-verifier-sha256 "66f2fc1bd599b617c75cdecf5a8ffa3015fbbdb341ec8b4f8e142f6562afbdb7" --evidence "$d" 2>&1 | tee "$d/test.log"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
