@@ -137,7 +137,7 @@ class PostingFactsSignedBoundariesIT {
                 """)){assertTrue(rows.next());assertEquals(1,rows.getLong(1));}
             try(var s=db.createStatement();var rows=s.executeQuery("""
                 select count(*) from information_schema.columns c where c.table_schema='operations_facts' and c.is_nullable='YES'
-                and coalesce(col_description(('operations_facts.'||c.table_name)::regclass,c.ordinal_position),'') not like '%为空表示%'
+                and coalesce(pg_catalog.col_description((pg_catalog.quote_ident(c.table_schema)||'.'||pg_catalog.quote_ident(c.table_name))::regclass,c.ordinal_position),'') not like '%为空表示%'
                 """)){assertTrue(rows.next());assertEquals(0,rows.getLong(1),"each nullable signed column explains null semantics");}
         }
     }
