@@ -55,7 +55,9 @@ def _regular(path, missing=False):
 
 
 class ReleaseJournal:
-    def __init__(self, path):
+    def __init__(self, path, *, create=True):
+        _require(type(create) is bool, "Invalid journal creation mode")
+        self.create = create
         try:
             raw = os.fspath(path)
         except TypeError as error:
@@ -63,7 +65,15 @@ class ReleaseJournal:
         _require(isinstance(raw, str) and bool(raw) and ".." not in raw.split("/"), "Invalid journal path")
         self.path = Path(raw)
         _require(self.path.is_absolute(), "Journal requires an absolute physical path")
-        self._check_path(missing=True)
+        self._check_path(missing=create)
+        if not create:
+            # Recovery must not initialize an absent database, add a table or
+            # repair an unknown schema. mode=ro also covers disappearance races.
+            with self._connection(readonly=True) as db:
+                tables = db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").fetchall()
+                _require(tables == [("releases",)], "Unrecognized existing journal database")
+                self._schema(db)
+            return
         try:
             fd = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
         except FileExistsError:
@@ -103,13 +113,15 @@ class ReleaseJournal:
         return info
 
     @contextmanager
-    def _connection(self):
+    def _connection(self, *, readonly=False):
         before = self._check_path()
         # mode=rw prohibits SQLite from silently recreating a disappeared file.
-        with closing(sqlite3.connect(self.path.as_uri() + "?mode=rw", uri=True)) as db:
+        mode = "ro" if readonly else "rw"
+        with closing(sqlite3.connect(self.path.as_uri() + "?mode=" + mode, uri=True)) as db:
             after = self._check_path()
             _require((before.st_dev, before.st_ino) == (after.st_dev, after.st_ino), "Journal identity changed")
-            _require(db.execute("PRAGMA journal_mode=DELETE").fetchone()[0].lower() == "delete", "Unexpected journal mode")
+            journal_mode = "PRAGMA journal_mode=DELETE" if self.create and not readonly else "PRAGMA journal_mode"
+            _require(db.execute(journal_mode).fetchone()[0].lower() == "delete", "Unexpected journal mode")
             db.execute("PRAGMA synchronous=FULL")
             _require(db.execute("PRAGMA synchronous").fetchone()[0] == 2, "Durability unavailable")
             yield db
@@ -132,12 +144,14 @@ class ReleaseJournal:
 
     def load(self, number):
         _number(number)
-        with self._connection() as db:
+        with self._connection(readonly=not self.create) as db:
             self._schema(db)
             return self._read(db, number)
 
     def reserve(self, record):
         record = _validate(record, "reserved")
+        if not self.create:
+            return False
         with self._connection() as db, db:
             self._schema(db)
             db.execute("BEGIN IMMEDIATE")

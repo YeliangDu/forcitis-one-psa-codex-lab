@@ -131,10 +131,31 @@ class _LazyWriter:
         return self._get().readback(dict(intent))
 
 
+class _RecoveryJournal:
+    """Existing records only: no database initialization or reserve capability."""
+    def __init__(self, path):
+        self.path = path
+
+    def load(self, number):
+        return ReleaseJournal(self.path, create=False).load(number)
+
+    def confirm(self, record):
+        return ReleaseJournal(self.path, create=False).confirm(record)
+
+
+class _ReadbackOnlyWriter:
+    """The runtime gets no send method; even the wrapped authority is false."""
+    def __init__(self, ports):
+        self.ports = ports
+
+    def readback(self, intent):
+        return self.ports.writer(lambda _intent: False).readback(dict(intent))
+
+
 def run_command(command, number, common_dir, ports):
     """Plan without state creation; admit/once use the one canonical lock."""
     try:
-        _require(command in ("plan", "enqueue", "once") and type(number) is int and number > 0,
+        _require(command in ("plan", "enqueue", "once", "recover") and type(number) is int and number > 0,
                  "unsupported-command-or-pr")
         path = _path(common_dir)
         for suffix in ("", ".lock", ".merge-lock", ".heads", ".heads-lock"):
@@ -146,9 +167,16 @@ def run_command(command, number, common_dir, ports):
                      "unsafe-canonical-queue-state")
         present, numbers = _state(path)
         _require(present, "canonical-queue-missing")
-        if command == "once":
+        if command in ("once", "recover"):
             _require(numbers and numbers[0] == number, "requested-pr-is-not-fifo-head")
         journal_path = path.parent / "releases.sqlite3"
+        if command == "recover":
+            from mq_queue import Queue
+
+            queue = _RequestedQueue(Queue(str(path)), number)
+            return run_once(queue, _RecoveryJournal(journal_path),
+                            lambda _intent: dict(action="hold", reason="recovery-has-no-new-authorization"),
+                            _ReadbackOnlyWriter(ports), allow_write=False)
         last_key = [None]
 
         def verify(intent):
