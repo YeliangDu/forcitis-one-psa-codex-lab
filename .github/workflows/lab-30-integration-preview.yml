@@ -1,0 +1,39 @@
+name: Lab F1 isolated composite preflight
+on:
+  push:
+    branches: [lab/30-integration-preview-ci]
+permissions:
+  contents: read
+env:
+  LAB_HEAD: 3515867072e40bd295b982be5e559c98c88270dd
+  LAB_BASE: 15511fad03b8d2ae38e3a337f24556bd9d9071c6
+jobs:
+  verify:
+    if: github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' && github.event.repository.private == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 3515867072e40bd295b982be5e559c98c88270dd
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Prove exact guard composition without SQL execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$LAB_HEAD"
+          d="$RUNNER_TEMP/lab-30-integration-preview"
+          mkdir -p "$d"
+          printf '%s\n' "$LAB_HEAD" > "$d/head"
+          python3 -m venv "$RUNNER_TEMP/aggregate-venv"
+          "$RUNNER_TEMP/aggregate-venv/bin/pip" -q install PyYAML==6.0.3
+          python3 -B scripts/guards/acceptance_guard.py "$LAB_BASE" "$LAB_HEAD" | tee "$d/provenance.log"
+          "$RUNNER_TEMP/aggregate-venv/bin/python" -B scripts/codegen/scan_aggregates.py --check 2>&1 | tee "$d/aggregates.log"
+          python3 -I scripts/guards/db_scripts_aligned.py 2>&1 | tee "$d/db-alignment.log"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab-30-integration-preview-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab-30-integration-preview/
+          if-no-files-found: error
