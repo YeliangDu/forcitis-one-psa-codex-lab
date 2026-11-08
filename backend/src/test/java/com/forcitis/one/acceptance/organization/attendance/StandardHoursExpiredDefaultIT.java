@@ -69,7 +69,7 @@ class StandardHoursExpiredDefaultIT extends AcceptanceSupport {
                     .with(person(31, "organization.attendance:standard-hours:publish")).with(csrf())
                     .contentType(MediaType.APPLICATION_JSON).content(body)).andReturn();
             assertThat(result.getResponse().getStatus()).as("actual stale app/DB date split returns HTTP 500").isEqualTo(500);
-            StandardHoursWriteDates.assertDatabaseDateRefusal(result);
+            StandardHoursWriteDates.assertDatabaseDateRefusal(result, postgres);
             assertThat(events.stream(StandardHoursVersionPublished.class)).as("rejected DEFAULT adds no event").isEmpty();
             return expired;
         });

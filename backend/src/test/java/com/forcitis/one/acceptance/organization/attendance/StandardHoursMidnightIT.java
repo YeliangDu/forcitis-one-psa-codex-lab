@@ -83,7 +83,7 @@ class StandardHoursMidnightIT extends AcceptanceSupport {
             LocalDate actualTransactionDay = StandardHoursWriteDates.databaseDay(source);
             MvcResult result = publication(null, requestDay, 465, 405);
             if (result.getResponse().getStatus() == 500) {
-                StandardHoursWriteDates.assertDatabaseDateRefusal(result); // Another 500/23514 is NOT the intended red.
+                StandardHoursWriteDates.assertDatabaseDateRefusal(result, postgres); // Another 500/23514 is NOT the intended red.
             }
             assertThat(result.getResponse().getStatus())
                     .as("MIDNIGHT_WRITE_FIXTURE_STALE_DAY: calibrated DEFAULT publication returns 200")
