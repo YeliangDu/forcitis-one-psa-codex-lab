@@ -10,18 +10,30 @@ SELECT r.rolname, s.setconfig
   FROM pg_db_role_setting s JOIN pg_roles r ON r.oid = s.setrole
  WHERE r.rolname LIKE 'one\_dev\_%' ORDER BY r.rolname;
 
--- V3 schema 属主：期望 13 行，属主均为 one_dev_owner
+-- V3 schema 属主：逐项核对登记集合，属主均为 one_dev_owner（含 schema-only operations_facts）
 SELECT nspname, pg_get_userbyid(nspowner) AS owner
   FROM pg_namespace
  WHERE nspname IN ('one_migration', 'platform_identity', 'platform_approval', 'platform_integration', 'platform_audit',
                    'platform_numbering', 'platform_file', 'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'accounting_period', 'accounting_ledger', 'organization_payroll', 'organization_recruitment', 'organization_administration',
-                   'platform_idempotency', 'cost_timesheet')
+                   'platform_idempotency', 'cost_timesheet', 'operations_facts')
  ORDER BY nspname;
+
+-- Schema-only registration must not pass through an absent or wrongly owned schema.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_catalog.pg_namespace n
+        JOIN pg_catalog.pg_roles r ON r.oid = n.nspowner
+        WHERE n.nspname = 'operations_facts' AND r.rolname = 'one_dev_owner'
+    ) THEN
+        RAISE EXCEPTION 'V3 failed: operations_facts is missing or not owned by one_dev_owner';
+    END IF;
+END $$;
 
 -- V4 运行角色无建对象权限：期望 0 行
 SELECT n.nspname, r.rolname
   FROM pg_namespace n CROSS JOIN (VALUES ('one_dev_app'), ('one_dev_readonly'), ('one_dev_audit_maintainer')) r(rolname)
- WHERE n.nspname LIKE ANY (ARRAY['platform\_%', 'organization\_%', 'cost\_%', 'accounting\_%', 'one\_migration'])
+ WHERE n.nspname LIKE ANY (ARRAY['platform\_%', 'organization\_%', 'cost\_%', 'accounting\_%', 'one\_migration', 'operations\_facts'])
    AND has_schema_privilege(r.rolname, n.oid, 'CREATE');
 
 -- V5 默认权限：platform_audit 中 one_dev_app 只有 SELECT、INSERT（arwd 中只含 a、r）
@@ -164,3 +176,242 @@ END $$;
 -- 触发器按 pg_has_role(..., 'MEMBER') 判定，只有 ADMIN 的成员行也算成员。容器里用超级用户建角色不产生该行，期望 0 行。
 SELECT m.member::regrole AS member, m.admin_option, m.inherit_option, m.set_option
   FROM pg_auth_members m WHERE m.roleid = 'one_dev_history_loader'::regrole ORDER BY 1;
+
+-- V14_schema_only: read-only checks, before and again after migrations.
+-- Pre-migration success proves only the current objects/default ACL state.
+-- Hosted acceptance separately creates owner-owned synthetic objects to test
+-- inherited defaults; this verification block itself creates nothing.
+DO $v14$
+DECLARE
+    schema_oid oid;
+    owner_oid oid;
+    role_oid oid;
+    runtime_name text;
+    object_row record;
+    privilege_name text;
+    bad text;
+    table_count bigint;
+    sequence_count bigint;
+BEGIN
+    SELECT n.oid, n.nspowner
+      INTO schema_oid, owner_oid
+      FROM pg_catalog.pg_namespace n
+     WHERE n.nspname = 'operations_facts';
+
+    IF schema_oid IS NULL
+        OR pg_catalog.pg_get_userbyid(owner_oid) <> 'one_dev_owner'
+    THEN
+        RAISE EXCEPTION
+            'V14 failed: operations_facts is missing or has the wrong owner';
+    END IF;
+
+    -- The guard owner must already have TEMP; verification never grants it.
+    IF pg_catalog.has_database_privilege(
+        owner_oid, pg_catalog.current_database(), 'TEMP'
+    ) IS NOT TRUE THEN
+        RAISE EXCEPTION 'V14 failed: one_dev_owner lacks database TEMP prerequisite';
+    END IF;
+
+    -- Schema ownership alone does not establish ownership of its objects.
+    FOR object_row IN
+        SELECT c.relname, c.relkind, c.relowner
+          FROM pg_catalog.pg_class c
+         WHERE c.relnamespace = schema_oid
+           AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
+    LOOP
+        IF object_row.relowner IS DISTINCT FROM owner_oid THEN
+            RAISE EXCEPTION
+                'V14 failed: operations_facts.% (kind %) owner is %, expected one_dev_owner',
+                object_row.relname, object_row.relkind,
+                pg_catalog.pg_get_userbyid(object_row.relowner);
+        END IF;
+    END LOOP;
+
+    FOR object_row IN
+        SELECT p.oid, p.proowner
+          FROM pg_catalog.pg_proc p
+         WHERE p.pronamespace = schema_oid
+    LOOP
+        IF object_row.proowner IS DISTINCT FROM owner_oid THEN
+            RAISE EXCEPTION
+                'V14 failed: routine % owner is %, expected one_dev_owner',
+                object_row.oid::pg_catalog.regprocedure,
+                pg_catalog.pg_get_userbyid(object_row.proowner);
+        END IF;
+    END LOOP;
+
+    FOREACH runtime_name IN ARRAY ARRAY['one_dev_app', 'one_dev_readonly']
+    LOOP
+        SELECT r.oid INTO role_oid
+          FROM pg_catalog.pg_roles r
+         WHERE r.rolname = runtime_name;
+
+        IF role_oid IS NULL THEN
+            RAISE EXCEPTION 'V14 failed: runtime role % is missing', runtime_name;
+        END IF;
+
+        IF role_oid = owner_oid
+            OR pg_catalog.pg_has_role(role_oid, owner_oid, 'MEMBER')
+            OR EXISTS (
+                SELECT 1 FROM pg_catalog.pg_roles r
+                WHERE r.oid = role_oid AND r.rolsuper
+            )
+        THEN
+            RAISE EXCEPTION
+                'V14 failed: runtime role % can act as a trusted owner',
+                runtime_name;
+        END IF;
+
+        IF pg_catalog.has_schema_privilege(role_oid, schema_oid, 'USAGE')
+            OR pg_catalog.has_schema_privilege(role_oid, schema_oid, 'CREATE')
+        THEN
+            RAISE EXCEPTION
+                'V14 failed: runtime role % has schema-only schema access',
+                runtime_name;
+        END IF;
+
+        FOR object_row IN
+            SELECT c.oid, c.relname, c.relkind
+              FROM pg_catalog.pg_class c
+             WHERE c.relnamespace = schema_oid
+               AND c.relkind IN ('r', 'p', 'v', 'm', 'f', 'S')
+        LOOP
+            IF object_row.relkind = 'S' THEN
+                FOREACH privilege_name IN ARRAY ARRAY['USAGE', 'SELECT', 'UPDATE']
+                LOOP
+                    IF pg_catalog.has_sequence_privilege(
+                        role_oid, object_row.oid, privilege_name
+                    ) THEN
+                        RAISE EXCEPTION
+                            'V14 failed: % has % on sequence operations_facts.%',
+                            runtime_name, privilege_name, object_row.relname;
+                    END IF;
+                END LOOP;
+            ELSE
+                FOREACH privilege_name IN ARRAY ARRAY[
+                    'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE',
+                    'REFERENCES', 'TRIGGER', 'MAINTAIN'
+                ]
+                LOOP
+                    IF pg_catalog.has_table_privilege(
+                        role_oid, object_row.oid, privilege_name
+                    ) THEN
+                        RAISE EXCEPTION
+                            'V14 failed: % has % on relation operations_facts.%',
+                            runtime_name, privilege_name, object_row.relname;
+                    END IF;
+                END LOOP;
+
+                FOREACH privilege_name IN ARRAY ARRAY[
+                    'SELECT', 'INSERT', 'UPDATE', 'REFERENCES'
+                ]
+                LOOP
+                    IF pg_catalog.has_any_column_privilege(
+                        role_oid, object_row.oid, privilege_name
+                    ) THEN
+                        RAISE EXCEPTION
+                            'V14 failed: % has column % on operations_facts.%',
+                            runtime_name, privilege_name, object_row.relname;
+                    END IF;
+                END LOOP;
+            END IF;
+        END LOOP;
+
+        -- Includes explicit global and schema-specific owner defaults.
+        -- PUBLIC is handled separately: role OID 0 is not passed to pg_has_role.
+        SELECT pg_catalog.string_agg(
+                   d.defaclobjtype::text || ':' ||
+                   CASE WHEN d.defaclnamespace = 0 THEN 'GLOBAL'
+                        ELSE 'operations_facts' END ||
+                   ':' || a.privilege_type,
+                   ', '
+               )
+          INTO bad
+          FROM pg_catalog.pg_default_acl d
+          CROSS JOIN LATERAL pg_catalog.aclexplode(d.defaclacl) a
+         WHERE d.defaclrole = owner_oid
+           AND d.defaclnamespace IN (0, schema_oid)
+           AND (
+               d.defaclobjtype IN ('r', 'S', 'n')
+               OR (d.defaclobjtype = 'f' AND a.grantee <> 0)
+           )
+           AND CASE
+               WHEN a.grantee = 0 THEN true
+               WHEN a.grantee = role_oid THEN true
+               ELSE pg_catalog.pg_has_role(role_oid, a.grantee, 'MEMBER')
+           END;
+
+        IF bad IS NOT NULL THEN
+            RAISE EXCEPTION
+                'V14 failed: owner defaults can authorize runtime role %: %',
+                runtime_name, bad;
+        END IF;
+
+        -- Explicit function ACL to app/readonly or their member roles is forbidden.
+        -- PUBLIC EXECUTE is reported separately below, not equated with schema reachability.
+        SELECT pg_catalog.string_agg(p.oid::pg_catalog.regprocedure::text, ', ')
+          INTO bad
+          FROM pg_catalog.pg_proc p
+          CROSS JOIN LATERAL pg_catalog.aclexplode(p.proacl) a
+         WHERE p.pronamespace = schema_oid
+           AND a.grantee <> 0
+           AND CASE
+               WHEN a.grantee = role_oid THEN true
+               ELSE pg_catalog.pg_has_role(role_oid, a.grantee, 'MEMBER')
+           END;
+
+        IF bad IS NOT NULL THEN
+            RAISE EXCEPTION
+                'V14 failed: explicit function ACL authorizes runtime role %: %',
+                runtime_name, bad;
+        END IF;
+    END LOOP;
+
+    -- Keep V11's SECURITY DEFINER / PUBLIC EXECUTE rule fail-closed.
+    SELECT pg_catalog.string_agg(p.oid::pg_catalog.regprocedure::text, ', ')
+      INTO bad
+      FROM pg_catalog.pg_proc p
+      CROSS JOIN LATERAL pg_catalog.aclexplode(
+          coalesce(p.proacl, pg_catalog.acldefault('f', p.proowner))
+      ) a
+     WHERE p.pronamespace = schema_oid
+       AND p.prosecdef
+       AND a.grantee = 0
+       AND a.privilege_type = 'EXECUTE';
+
+    IF bad IS NOT NULL THEN
+        RAISE EXCEPTION
+            'V14 failed: SECURITY DEFINER functions allow PUBLIC EXECUTE: %', bad;
+    END IF;
+
+    SELECT count(*) FILTER (WHERE c.relkind IN ('r', 'p')),
+           count(*) FILTER (WHERE c.relkind = 'S')
+      INTO table_count, sequence_count
+      FROM pg_catalog.pg_class c
+     WHERE c.relnamespace = schema_oid;
+
+    IF table_count = 0 AND sequence_count = 0 THEN
+        RAISE NOTICE
+            'V14: pre-migration schema/default checks only; no table or sequence coverage yet';
+    ELSE
+        RAISE NOTICE
+            'V14: checked % tables and % sequences; exact F1 shape remains schema acceptance responsibility',
+            table_count, sequence_count;
+    END IF;
+END
+$v14$;
+
+-- Separate informational result: native PUBLIC EXECUTE on invoker functions
+-- is not a new runtime grant and does not establish schema USAGE.
+SELECT p.oid::pg_catalog.regprocedure AS function_name,
+       p.prosecdef AS security_definer,
+       a.grantee = 0 AS public_execute
+  FROM pg_catalog.pg_proc p
+  CROSS JOIN LATERAL pg_catalog.aclexplode(
+      coalesce(p.proacl, pg_catalog.acldefault('f', p.proowner))
+  ) a
+  JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+ WHERE n.nspname = 'operations_facts'
+   AND a.grantee = 0
+   AND a.privilege_type = 'EXECUTE'
+ ORDER BY function_name;

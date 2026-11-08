@@ -20,7 +20,7 @@
 SELECT rolname FROM pg_roles WHERE rolname LIKE 'one\_dev\_%';
 SELECT nspname FROM pg_namespace
  WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering', 'platform_file',
-                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'accounting_period', 'accounting_ledger', 'organization_payroll', 'organization_recruitment', 'organization_administration', 'platform_idempotency', 'cost_timesheet', 'one_migration');
+                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'accounting_period', 'accounting_ledger', 'organization_payroll', 'organization_recruitment', 'organization_administration', 'platform_idempotency', 'cost_timesheet', 'one_migration', 'operations_facts');
 -- it_portal 现有对象一览（供核对，不修改）
 SELECT nspname, pg_get_userbyid(nspowner) AS owner FROM pg_namespace WHERE nspname NOT LIKE 'pg\_%' AND nspname <> 'information_schema';
 
@@ -77,6 +77,8 @@ CREATE SCHEMA organization_payroll    AUTHORIZATION one_dev_owner;
 CREATE SCHEMA organization_recruitment AUTHORIZATION one_dev_owner;
 CREATE SCHEMA accounting_period     AUTHORIZATION one_dev_owner;
 CREATE SCHEMA accounting_ledger       AUTHORIZATION one_dev_owner;
+-- Lab #30 F1: schema-only; excluded from runtime/readonly grants and default ACLs.
+CREATE SCHEMA operations_facts        AUTHORIZATION one_dev_owner;
 CREATE SCHEMA organization_administration AUTHORIZATION one_dev_owner;
 CREATE SCHEMA cost_timesheet         AUTHORIZATION one_dev_owner;  -- 工时单与幂等记录（cost.timesheet 是 1a 正式模块）
 -- 注：delivery.execution（delivery_execution）已删除（D-1a-127），不建 schema
@@ -106,7 +108,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA platform_audit GRANT S
 
 -- 运行角色不得建对象
 REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering, platform_file,
-                        platform_scheduling, organization_workforce, organization_attendance, organization_leave, accounting_period, accounting_ledger, organization_payroll, organization_recruitment, organization_administration, platform_idempotency, cost_timesheet, one_migration FROM one_dev_app, one_dev_readonly;
+                        platform_scheduling, organization_workforce, organization_attendance, organization_leave, accounting_period, accounting_ledger, organization_payroll, organization_recruitment, organization_administration, platform_idempotency, cost_timesheet, one_migration, operations_facts FROM one_dev_app, one_dev_readonly;
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- §4 Flowable 引擎表（ACT_*）
