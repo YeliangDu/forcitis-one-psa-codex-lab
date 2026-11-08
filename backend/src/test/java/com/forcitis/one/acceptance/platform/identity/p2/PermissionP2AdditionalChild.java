@@ -67,7 +67,7 @@ public final class PermissionP2AdditionalChild {
                 UserId actor=new UserId(ids.next());RoleId admin=roles.findByCode(new RoleCode("super_admin")).orElseThrow().roleId();
                 // Synthetic identity-only bootstrap fixture, not the role change path under test.
                 // No workforce rows/system-role definitions/revisions or production grants changed.
-                try(var acting=WorkContext.enter(actor.value(),null,"test.identity.p2.additional")) {
+                try(var acting=WorkContext.enter(actor.value(),null,"test.envelope")) {
                     tx.executeWithoutResult(status->{
                         assertTrue(accounts.insertIfAbsent(UserAccount.open(actor,new EmployeeId(ids.next()),Set.of(),AccountOpeningRoute.OPERATIONS)));
                         accounts.saveGrants(actor,new GrantChanges(List.of(new GrantOpening(new AccountRoleGrantId(ids.next()),admin,GrantChannel.OPERATIONS,
