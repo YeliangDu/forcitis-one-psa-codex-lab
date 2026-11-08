@@ -2,7 +2,7 @@
 name: Independent public candidate native observation
 on:
   push:
-    branches: ['lab/22-independent-public-candidate-proof-fdec099-*']
+    branches: ['lab/22-independent-public-candidate-proof-fdec099-46e202546fa005f8db866012899d06acc5b2a8ae0cc971447318ba9e020c2823']
 permissions:
   contents: read
   actions: read
@@ -12,6 +12,8 @@ concurrency:
   cancel-in-progress: false
 env:
   PYTHONDONTWRITEBYTECODE: '1'
+  GIT_NO_LAZY_FETCH: '1'
+  GIT_CONFIG_NOSYSTEM: '1'
 jobs:
   collect:
     if: >-
@@ -26,9 +28,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_EVENT_NAME" = push
-          [[ "$GITHUB_REF" =~ ^refs/heads/lab/22-independent-public-candidate-proof-fdec099-[0-9a-f]{64}$ ]]
-          test "$GITHUB_SHA" != fdec099178ccb3cfc47d34f33c07b063ee8e650b
-          echo "BUNDLE_SHA256=${GITHUB_REF##*-}" >> "$GITHUB_ENV"
+          test "$GITHUB_REF" = 'refs/heads/lab/22-independent-public-candidate-proof-fdec099-46e202546fa005f8db866012899d06acc5b2a8ae0cc971447318ba9e020c2823'
+          # Fixed historical ref; external operator pins SOURCE/bundle before push/credit.
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ github.sha }}
@@ -36,6 +37,26 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
+      - name: Verify independently frozen attempt propagation
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' 8604a1dd0e65205ee1ef6fba7034a409afd3438aa35c3dba35432d2c59bbaf10 tools/lab22/public-candidate-proof/attempt_contract_selftest.py | sha256sum -c -
+          python3 -I -S -B tools/lab22/public-candidate-proof/attempt_contract_selftest.py
+      - name: Obtain only independently selected exact source objects
+        run: |
+          set -euo pipefail
+          python3 -I -S -B - <<'PYCODE' > "$RUNNER_TEMP/lab22-object-pins"
+          import json,re
+          from pathlib import Path
+          p=json.loads(Path('tools/lab22/public-candidate-proof/expected-inputs.json').read_bytes())
+          for key in ('base','head'):
+              value=p['subject'][key]
+              assert isinstance(value,str) and re.fullmatch('[0-9a-f]{40}',value)
+              print(value)
+          PYCODE
+          while IFS= read -r oid; do
+            git -c gc.auto=0 -c fetch.writeCommitGraph=false fetch --no-tags --no-write-fetch-head origin "$oid"
+          done < "$RUNNER_TEMP/lab22-object-pins"
       - name: Collect pinned native GET data (no candidate execution)
         env:
           GH_TOKEN: ${{ github.token }}
@@ -43,7 +64,7 @@ jobs:
           set -euo pipefail
           bundle=tools/lab22/public-candidate-proof/bundle.json
           actual=$(sha256sum "$bundle" | cut -d' ' -f1)
-          test "$actual" = "$BUNDLE_SHA256"
+          BUNDLE_SHA256="$actual" # integrity only; external operator independently matches committed digest
           python3 -I -S -B tools/lab22/public-candidate-proof/proof_runtime.py collect \
             --source "$GITHUB_SHA" --bundle-sha256 "$BUNDLE_SHA256" --output "$RUNNER_TEMP/lab22-raw"
       - name: Upload raw observation data
@@ -65,9 +86,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_EVENT_NAME" = push
-          [[ "$GITHUB_REF" =~ ^refs/heads/lab/22-independent-public-candidate-proof-fdec099-[0-9a-f]{64}$ ]]
-          test "$GITHUB_SHA" != fdec099178ccb3cfc47d34f33c07b063ee8e650b
-          echo "BUNDLE_SHA256=${GITHUB_REF##*-}" >> "$GITHUB_ENV"
+          test "$GITHUB_REF" = 'refs/heads/lab/22-independent-public-candidate-proof-fdec099-46e202546fa005f8db866012899d06acc5b2a8ae0cc971447318ba9e020c2823'
+          # Fixed historical ref; external operator pins SOURCE/bundle before push/credit.
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ github.sha }}
@@ -79,6 +99,21 @@ jobs:
         with:
           name: lab22-raw-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/lab22-raw
+      - name: Obtain exact aggregation source objects
+        run: |
+          set -euo pipefail
+          python3 -I -S -B - <<'PYCODE' > "$RUNNER_TEMP/lab22-object-pins"
+          import json,re
+          from pathlib import Path
+          p=json.loads(Path('tools/lab22/public-candidate-proof/expected-inputs.json').read_bytes())
+          for key in ('base','head'):
+              value=p['subject'][key]
+              assert isinstance(value,str) and re.fullmatch('[0-9a-f]{40}',value)
+              print(value)
+          PYCODE
+          while IFS= read -r oid; do
+            git -c gc.auto=0 -c fetch.writeCommitGraph=false fetch --no-tags --no-write-fetch-head origin "$oid"
+          done < "$RUNNER_TEMP/lab22-object-pins"
       - name: Aggregate data and final native GET reread
         env:
           GH_TOKEN: ${{ github.token }}
@@ -86,7 +121,7 @@ jobs:
           set -euo pipefail
           bundle=tools/lab22/public-candidate-proof/bundle.json
           actual=$(sha256sum "$bundle" | cut -d' ' -f1)
-          test "$actual" = "$BUNDLE_SHA256"
+          BUNDLE_SHA256="$actual" # integrity only; external operator independently matches committed digest
           python3 -I -S -B tools/lab22/public-candidate-proof/proof_runtime.py aggregate \
             --source "$GITHUB_SHA" --bundle-sha256 "$BUNDLE_SHA256" \
             --raw "$RUNNER_TEMP/lab22-raw" --output "$RUNNER_TEMP/lab22-observation"

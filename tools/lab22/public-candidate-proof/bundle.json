@@ -1,9 +1,11 @@
 {
   "files": {
-    "expected-inputs.json": "f669c15487c68df3951dcf010ddf97f0e84df3d28033d57581cf5e3a7c3af3fe",
-    "mq_lab_control_receipt.py": "1edc011b3e46c1dfcd19ddcb41c46fa1b20cc10c8bc62b1287a75bee096998a9",
-    "proof_runtime.py": "2c2f1c7e365d8c5ef43de74b4437db1774702dbc6f92e35585e3a8c6f4a1c8d8",
-    "workflow.yml": "f55bf15907f22fa32237ee57e8ebfc7d39c79b9e515e90a88a1281642490cb72"
+    "expected-inputs.json": "1a85fc9767893c7917f5758f0ea79a2fe1aa9aeae617f072342bbc1e3e57c0df",
+    "mq_lab_control_receipt.py": "c39ad89c4f667e2e7020e166aabe7d3ff818d0b5a148f3da09b4f69e17f601ab",
+    "mq_lab_native_get.py": "bda658741d447704399f76c6aeeb084ce8486611a20516cebfd27bf7d0464f45",
+    "object-scope.template.json": "9264c51722a357d7215c158104f2839be428d1a3a216e504069f75a4c0314a27",
+    "proof_runtime.py": "516fffb81c644c366e54151b08c23569c66ecab74aad4fd70906d32b7a5739d2",
+    "workflow.yml": "e81877c426a989f01f1de2ce41ec02b966785ac137eba330758fa39e34ebdad3"
   },
   "version": 1
 }

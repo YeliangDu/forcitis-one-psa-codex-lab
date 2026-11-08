@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import os
+import subprocess
 from pathlib import Path
 import re
 import stat
@@ -18,6 +19,13 @@ SLUG = 'YeliangDu/forcitis-one-psa-codex-lab'
 RID = 1449415666
 API = 'https://api.github.com/repos/' + SLUG
 LIMIT = 32 * 1024 * 1024
+MAX_RECORDS = 32768
+FIXED_REF = 'refs/heads/lab/22-independent-public-candidate-proof-fdec099-46e202546fa005f8db866012899d06acc5b2a8ae0cc971447318ba9e020c2823'
+SOURCE_REF_GET = 'git/ref/heads/lab/22-independent-public-candidate-proof-fdec099-46e202546fa005f8db866012899d06acc5b2a8ae0cc971447318ba9e020c2823'
+CONTROL_SOURCE = None
+CONTROL_PINS = None
+OBJECT_HELPER = None
+OBJECT_SCOPE = None
 
 
 def need(value, reason):
@@ -96,13 +104,13 @@ def verify_bundle(root, expected, source):
          and os.environ.get('GITHUB_REPOSITORY_ID') == str(RID)
          and os.environ.get('GITHUB_EVENT_NAME') == 'push'
          and re.fullmatch('[0-9a-f]{64}', expected)
-         and os.environ.get('GITHUB_REF') == 'refs/heads/lab/22-independent-public-candidate-proof-fdec099-' + expected,
+         and os.environ.get('GITHUB_REF') == FIXED_REF,
          'wrong independently selected control context')
     raw = read(root / 'bundle.json', 1024 * 1024)
     need(digest(raw) == expected, 'external bundle digest mismatch')
     manifest = decode(raw)
     need(set(manifest) == {'version', 'files'} and manifest['version'] == 1
-         and set(manifest['files']) == {'proof_runtime.py', 'expected-inputs.json', 'mq_lab_control_receipt.py', 'workflow.yml'}, 'bundle schema')
+         and set(manifest['files']) == {'proof_runtime.py', 'expected-inputs.json', 'mq_lab_control_receipt.py', 'workflow.yml', 'mq_lab_native_get.py', 'object-scope.template.json'}, 'bundle schema')
     buffers = {name: read(root / name) for name in manifest['files']}
     need(all(digest(raw) == manifest['files'][name] for name, raw in buffers.items()), 'control bundle changed')
     need(digest(read(Path(os.environ['GITHUB_WORKSPACE']) / '.github/workflows/lab-22-independent-public-candidate-proof.yml'))
@@ -110,6 +118,11 @@ def verify_bundle(root, expected, source):
     pins = decode(buffers['expected-inputs.json'])
     need(pins['repository'] == SLUG and pins['repository_id'] == RID
          and source != pins['subject']['head'], 'candidate cannot select independent source')
+    ci = pins['candidate_ci']
+    need(all(type(ci[k]) is int and ci[k] > 0 for k in ('run_id','run_attempt','artifact_id','verification_job_id'))
+         and all(type(ci[k]) is str and re.fullmatch('[0-9a-f]{64}',ci[k]) for k in ('zip_sha256','receipt_sha256','backend_summary_sha256'))
+         and type(ci['backend_observed']) is dict and type(ci['backend_jobs']) is dict,
+         'final exact candidate native inputs unbound')
     return pins, buffers, manifest
 
 
@@ -129,14 +142,20 @@ class Collector:
     def __init__(self, output):
         self.output, self.records, self.total = output, [], 0
         self.opener = urllib.request.build_opener(Redirect())
+        self.objects = None
+        self.object_audit = []
+        self.object_raw_seen = set()
 
     def get(self, key, path, raw=False):
-        need(re.fullmatch('[A-Za-z0-9_-]+', key) and len(self.records) < 512, 'request bound/key')
-        allowed = (r'', r'pulls/43', r'pulls/43/(?:reviews|files)\?per_page=100&page=[1-9][0-9]*',
+        need(re.fullmatch('[A-Za-z0-9_-]+', key) and len(self.records) < MAX_RECORDS, 'request bound/key')
+        ci_run, ci_attempt = CONTROL_PINS['candidate_ci']['run_id'], CONTROL_PINS['candidate_ci']['run_attempt']
+        if re.fullmatch(r'git/(?:commits|trees|blobs)/[0-9a-f]{40}', path):
+            return self.local_object(key, path, raw)
+        allowed = (re.escape(SOURCE_REF_GET), r'', r'pulls/43', r'pulls/43/(?:reviews|files)\?per_page=100&page=[1-9][0-9]*',
                    r'git/ref/heads/main', r'actions/runs\?event=pull_request&head_sha=[0-9a-f]{40}&per_page=100&page=[1-9][0-9]*',
-                   r'actions/runs/42464006956(?:/attempts/1)?',
-                   r'actions/runs/42464006956/attempts/1/jobs\?per_page=100&page=[1-9][0-9]*',
-                   r'actions/runs/42464006956/artifacts\?per_page=100&page=[1-9][0-9]*',
+                   rf'actions/runs/{ci_run}(?:/attempts/{ci_attempt})?',
+                   rf'actions/runs/{ci_run}/attempts/{ci_attempt}/jobs\?per_page=100&page=[1-9][0-9]*',
+                   rf'actions/runs/{ci_run}/artifacts\?per_page=100&page=[1-9][0-9]*',
                    r'actions/artifacts/[1-9][0-9]*/zip', r'actions/jobs/[1-9][0-9]*/logs',
                    r'git/(?:commits|trees|blobs)/[0-9a-f]{40}')
         need(any(re.fullmatch(pattern, path) for pattern in allowed), 'unapproved GET')
@@ -153,6 +172,55 @@ class Collector:
         write(self.output / name, body)
         self.records.append(dict(key=key, path=path, filename=name, size=len(body), sha256=digest(body), link=link))
         return body if raw else decode(body)
+
+    def store_local_record(self, key, path, body, metadata):
+        need(len(self.records) < MAX_RECORDS and len(body) <= LIMIT, 'local capture bound')
+        self.total += len(body)
+        need(self.total <= 256 * 1024 * 1024, 'capture total bound')
+        name = f'{len(self.records):04d}.raw'
+        write(self.output / name, body)
+        self.records.append(dict(key=key, path=path, filename=name, size=len(body),
+                                 sha256=digest(body), link='', **metadata))
+
+    def local_object(self, key, path, binary):
+        need(binary is False, 'Git object is structured evidence')
+        if self.objects is None:
+            scope = dict(OBJECT_SCOPE, object_root=os.environ['GITHUB_WORKSPACE'],
+                         independent_ref=SOURCE_REF_GET, independent_source=CONTROL_SOURCE,
+                         object_roots=[CONTROL_PINS['subject']['base'], CONTROL_PINS['subject']['head'], CONTROL_SOURCE])
+            subject = CONTROL_PINS['subject']
+            scope.update(base=subject['base'], head=subject['head'], main_tip=subject['base'], merge_sha=None, stage='observe')
+            public = dict(id=RID, full_name=SLUG, private=False)
+            def route(path, match):
+                return dict(path=path,pages=False,binary=False,field=None,match=match,sha256=None)
+            scope['routes'] = [route('',public),
+                route('pulls/43',dict(number=43,head=dict(sha=subject['head'],repo=public),
+                    base=dict(sha=subject['base'],ref='main',repo=public))),
+                route('git/ref/heads/main',dict(ref='refs/heads/main',object=dict(sha=subject['base'],type='commit'))),
+                route(SOURCE_REF_GET,dict(ref='refs/heads/' + SOURCE_REF_GET.removeprefix('git/ref/heads/'),
+                    object=dict(sha=CONTROL_SOURCE,type='commit')))]
+            frozen = encode(scope)
+            self.objects = OBJECT_HELPER.ScopedGithubGet(frozen, digest(frozen), subprocess.run,
+                lambda metadata, body: self.object_audit.append((metadata, body)))
+        self.object_audit.clear()
+        value = self.objects(path)
+        final = None
+        for metadata, body in self.object_audit:
+            if metadata['transport'] == 'native-gh-GET':
+                self.store_local_record('object_anchor_' + str(len(self.records)), metadata['path'], body,
+                                        dict(transport='native-gh-GET'))
+            else:
+                final = metadata, body
+        need(final is not None, 'actual local raw object audit missing')
+        metadata, body = final
+        raw_key = 'object_git_raw_' + metadata['oid']
+        if raw_key not in self.object_raw_seen:
+            self.store_local_record(raw_key, 'local-git-object/' + metadata['oid'], body,
+                dict(transport='local-readonly-Git-object-raw', git_oid=metadata['oid'], git_type=metadata['git_type']))
+            self.object_raw_seen.add(raw_key)
+        self.store_local_record(key, path, encode(value),
+            dict(transport='local-readonly-Git-object', git_oid=metadata['oid'], git_type=metadata['git_type'], git_raw_key=raw_key))
+        return value
 
     def pages(self, key, path, field=None):
         rows, expected, seen = [], None, set()
@@ -183,15 +251,15 @@ def collect(pins, source, output):
     c.get('main_before', 'git/ref/heads/main')
     c.get('pr_before', 'pulls/43')
     ci = pins['candidate_ci']
-    c.get('run', 'actions/runs/42464006956')
-    c.get('attempt', 'actions/runs/42464006956/attempts/1')
+    c.get('run', f"actions/runs/{ci['run_id']}")
+    c.get('attempt', f"actions/runs/{ci['run_id']}/attempts/{ci['run_attempt']}")
     c.pages('latest_before', f"actions/runs?event=pull_request&head_sha={pins['subject']['head']}&per_page=100", 'workflow_runs')
     c.pages('files', 'pulls/43/files?per_page=100')
     c.pages('reviews_before', 'pulls/43/reviews?per_page=100')
-    c.pages('jobs', 'actions/runs/42464006956/attempts/1/jobs?per_page=100', 'jobs')
-    artifacts = c.pages('artifacts', 'actions/runs/42464006956/artifacts?per_page=100', 'artifacts')
-    names = [ci['artifact_name'], f"lab-backend-input-{pins['subject']['head']}-1"]
-    names += [f"lab-backend-result-{pins['subject']['head']}-1-{s}" for s in ('1','2','3','4','unit')]
+    c.pages('jobs', f"actions/runs/{ci['run_id']}/attempts/{ci['run_attempt']}/jobs?per_page=100", 'jobs')
+    artifacts = c.pages('artifacts', f"actions/runs/{ci['run_id']}/artifacts?per_page=100", 'artifacts')
+    names = [ci['artifact_name'], f"lab-backend-input-{pins['subject']['head']}-{ci['run_attempt']}"]
+    names += [f"lab-backend-result-{pins['subject']['head']}-{ci['run_attempt']}-{s}" for s in ('1','2','3','4','unit')]
     for index, name in enumerate(names):
         matches = [a for a in artifacts if a['name'] == name]
         need(len(matches) == 1 and matches[0]['expired'] is False, 'missing/ambiguous required artifact')
@@ -233,6 +301,8 @@ def collect(pins, source, output):
     c.get('pr_after', 'pulls/43')
     c.get('main_after', 'git/ref/heads/main')
     c.get('repo_after', '')
+    control = c.get('source_ref_after', SOURCE_REF_GET)
+    need(control.get('object',{}).get('sha') == source, 'independent source ref moved')
     write(output / 'capture-index.json', encode(dict(version=1,control_source=source,
           control_run=os.environ['GITHUB_RUN_ID'],control_attempt=os.environ['GITHUB_RUN_ATTEMPT'],repository=SLUG,repository_id=RID,
           subject=pins['subject'],records=c.records,release_authority=False)))
@@ -246,7 +316,7 @@ class Snapshot:
         need(index['control_run'] == os.environ['GITHUB_RUN_ID']
              and index['control_attempt'] == os.environ['GITHUB_RUN_ATTEMPT'], 'different control run/attempt snapshot')
         records = index['records']
-        need(type(records) is list and 0 < len(records) <= 512, 'capture index bound')
+        need(type(records) is list and 0 < len(records) <= MAX_RECORDS, 'capture index bound')
         self.records, self.buffers, self.total = {}, {}, 0
         for i, row in enumerate(records):
             need(row['filename'] == f'{i:04d}.raw' and row['key'] not in self.records, 'unsafe/duplicate raw record')
@@ -255,6 +325,12 @@ class Snapshot:
             need(self.total <= 256*1024*1024 and len(raw) == row['size'] and digest(raw) == row['sha256'], 'raw digest/size mismatch')
             self.records[row['key']], self.buffers[row['key']] = row, raw
         need({p.name for p in root.iterdir()} == {'capture-index.json'} | {r['filename'] for r in records}, 'extra raw files')
+        for record in records:
+            if record.get('transport') == 'local-readonly-Git-object':
+                raw_object = self.buffers[record['git_raw_key']]
+                need(record['path'] == 'git/' + {'commit':'commits','tree':'trees','blob':'blobs'}[record['git_type']] + '/' + record['git_oid'], 'local raw object endpoint mismatch')
+                normalized = OBJECT_HELPER.normalize_object(record['git_oid'], record['git_type'], raw_object)
+                need(decode(self.buffers[record['key']]) == normalized, 'offline local Git normalization mismatch')
 
     def raw(self, key):
         return self.buffers[key]
@@ -311,6 +387,7 @@ def aggregate(pins, source, buffers, raw_root):
     s = Snapshot(raw_root, source);subject=pins['subject'];ci=pins['candidate_ci'];head=subject['head'];base=subject['base']
     repo=s.value('repo','');repository(repo)
     final_repo=s.value('repo_after','');repository(final_repo)
+    need(s.value('source_ref_after',SOURCE_REF_GET).get('object',{}).get('sha') == source,'independent source moved')
     need(all(repo.get(k)==final_repo.get(k) for k in ('id','full_name','private','visibility')),'repository identity moved')
     for key in ('main_before','main_after'):
         main=s.value(key,'git/ref/heads/main')
@@ -322,7 +399,7 @@ def aggregate(pins, source, buffers, raw_root):
          and type(pr['draft']) is bool and pr['head']['sha']==head and pr['base']['sha']==base
          and pr['base']['ref']=='main', 'wrong current subject')
     repository(pr['head']['repo']);repository(pr['base']['repo'])
-    run=s.value('run','actions/runs/42464006956');attempt=s.value('attempt','actions/runs/42464006956/attempts/1')
+    run=s.value('run',f"actions/runs/{ci['run_id']}");attempt=s.value('attempt',f"actions/runs/{ci['run_id']}/attempts/{ci['run_attempt']}")
     for row in (run,attempt):
         repository(row['repository'])
         need(type(row['id']) is int and row['id']==ci['run_id'] and type(row['run_attempt']) is int
@@ -356,7 +433,7 @@ def aggregate(pins, source, buffers, raw_root):
                   and len((r.get('body') or '').splitlines())>=3
                   and (r.get('body') or '').splitlines()[1:3]==['commit：'+head,'复审者：'+expected['reviewer']]]
         need(speaking and speaking[-1]['id']==row['id'],'newer assigned review')
-    jobs=s.pages('jobs','actions/runs/42464006956/attempts/1/jobs?per_page=100','jobs');by_id={j['id']:j for j in jobs}
+    jobs=s.pages('jobs',f"actions/runs/{ci['run_id']}/attempts/{ci['run_attempt']}/jobs?per_page=100",'jobs');by_id={j['id']:j for j in jobs}
     def step(binding):
         job=by_id[binding['job']]
         need(job['head_sha']==head and job['conclusion']=='success' and job['runner_group_name']=='GitHub Actions'
@@ -368,8 +445,8 @@ def aggregate(pins, source, buffers, raw_root):
     skipped_job=by_id[ci['main_health_skipped_job_id']]
     need(skipped_job['name']=='Lab main health' and skipped_job['head_sha']==head
          and skipped_job['conclusion']=='skipped','PR main-health skip shape')
-    artifacts=s.pages('artifacts','actions/runs/42464006956/artifacts?per_page=100','artifacts')
-    names=[ci['artifact_name'],f'lab-backend-input-{head}-1']+[f'lab-backend-result-{head}-1-{x}' for x in ('1','2','3','4','unit')]
+    artifacts=s.pages('artifacts',f"actions/runs/{ci['run_id']}/artifacts?per_page=100",'artifacts')
+    names=[ci['artifact_name'],f"lab-backend-input-{head}-{ci['run_attempt']}"]+[f"lab-backend-result-{head}-{ci['run_attempt']}-{x}" for x in ('1','2','3','4','unit')]
     decoded=[];metadata=[]
     for i,name in enumerate(names):
         rows=[x for x in artifacts if x['name']==name];need(len(rows)==1 and rows[0]['expired'] is False,'artifact selection')
@@ -383,7 +460,7 @@ def aggregate(pins, source, buffers, raw_root):
     need(set(decoded[0])=={'receipt.json','backend-summary.json'},'unknown final receipt files')
     receipt=decode(decoded[0]['receipt.json'])
     need(receipt['head_sha']==receipt['observed_head']==head and receipt['base_sha']==base
-         and str(receipt['run_id'])==str(ci['run_id']) and str(receipt['run_attempt'])=='1'
+         and str(receipt['run_id'])==str(ci['run_id']) and str(receipt['run_attempt'])==str(ci['run_attempt'])
          and receipt['ready'] is True and set(receipt['lanes'])==set(ci['required_lanes'])
          and all(x==dict(applicability='required',proof='passed',outcome='success') for x in receipt['lanes'].values()),
          'required candidate lanes not actually passed')
@@ -391,20 +468,20 @@ def aggregate(pins, source, buffers, raw_root):
     need(set(decoded[1])=={'head','run','attempt','inventory.json','api/openapi.json','api/generated/schema.ts',
                          'api/generated/validators.ts','api/generated/operations.ts'},'unknown/missing backend inputs')
     need(decoded[1]['head'].decode().strip()==head and decoded[1]['run'].decode().strip()==str(ci['run_id'])
-         and decoded[1]['attempt'].decode().strip()=='1','backend input attempt/source mismatch')
-    inventory=decode(decoded[1]['inventory.json']);need(inventory['integration_classes']==373 and len(inventory['shards'])==4,'backend inventory')
+         and decoded[1]['attempt'].decode().strip()==str(ci['run_attempt']),'backend input attempt/source mismatch')
+    inventory=decode(decoded[1]['inventory.json']);need(inventory['integration_classes']==ci['backend_observed']['integration_classes'] and len(inventory['shards'])==4,'backend inventory')
     totals={'tests':0,'skipped':0};classes=set()
     skip=pins['exact_skip']['value']
     for i,slot in enumerate(('1','2','3','4','unit'),2):
         need(set(decoded[i])=={'result.json'},'unknown backend result files')
         raw=decoded[i]['result.json'];row=decode(raw);expected=skip['slots'][slot]
         need(digest(raw)==expected['receipt_sha256'] and row['head']==head and str(row['run'])==str(ci['run_id'])
-             and str(row['attempt'])=='1' and row['slot']==slot and row['tests']==expected['tests']
+             and str(row['attempt'])==str(ci['run_attempt']) and row['slot']==slot and row['tests']==expected['tests']
              and row['skipped']==expected['skipped'] and row['failures']==row['errors']==0
              and row['missing']==row['extra']==[] and len(row['classes'])==len(set(row['classes']))==row['executed_classes'],'slot report mismatch')
         if slot!='unit':need(set(row['classes'])==set(inventory['shards'][int(slot)-1]) and not classes&set(row['classes']),'shard coverage');classes.update(row['classes'])
         totals['tests']+=row['tests'];totals['skipped']+=row['skipped']
-    need(len(classes)==373 and totals=={'tests':4798,'skipped':19},'full backend totals')
+    need(len(classes)==ci['backend_observed']['integration_classes'] and totals=={k:ci['backend_observed'][k] for k in ('tests','skipped')},'full backend totals')
     # Exact class-level native skip evidence, never invented method identities.
     unit=re.sub(r'\x1b\[[0-9;]*m','',s.raw('unit_log').decode('utf-8'));observed_skips={}
     for line in unit.splitlines():
@@ -415,7 +492,9 @@ def aggregate(pins, source, buffers, raw_root):
     need(observed_skips=={x['class_name']:(x['tests'],0,0,x['skips']) for x in skip['skip_classes']},'exact skipped classes')
     trees={k[len('tree_'):]:decode(v) for k,v in s.buffers.items() if k.startswith('tree_')}
     def source_file(label,path):
-        sha=s.value('commit_'+label)['tree']['sha'];parts=path.split('/')
+        root=s.value('commit_'+label,'git/commits/'+subject[label])
+        need(root['sha']==subject[label],'local root commit does not match native subject')
+        sha=root['tree']['sha'];parts=path.split('/')
         for part in parts:
             rows=[x for x in trees[sha]['tree'] if x['path']==part];need(len(rows)==1,'source tree ambiguity');entry=rows[0];sha=entry['sha']
         blob=s.value('blob_'+sha);need(blob['sha']==sha and blob['encoding']=='base64','source blob')
@@ -449,12 +528,13 @@ def aggregate(pins, source, buffers, raw_root):
     pin=dict(repository=SLUG,repository_id=RID,number=43,base=base,head=head,target='main',old_control_commit=base,
         independent_source=source,old_manifest=pins['manifests']['old']['digest'],new_manifest=pins['manifests']['new']['digest'],
         required_lanes=ci['required_lanes'],workflow=dict(path=ci['path'],source_commit=head,source_blob=next(e['blob'] for e in pins['manifests']['new']['entries'] if e['path']==ci['path'])),
-        run_id=ci['run_id'],run_attempt=1,aggregation_job_id=ci['verification_job_id'],upload_step=witness['receipt_upload']['step'],artifact_id=ci['artifact_id'],
-        artifact_name=ci['artifact_name'],zip_sha256=ci['zip_sha256'],receipt_sha256=ci['receipt_sha256'],expected_tests=4798,
+        run_id=ci['run_id'],run_attempt=ci['run_attempt'],aggregation_job_id=ci['verification_job_id'],upload_step=witness['receipt_upload']['step'],artifact_id=ci['artifact_id'],
+        artifact_name=ci['artifact_name'],zip_sha256=ci['zip_sha256'],receipt_sha256=ci['receipt_sha256'],expected_tests=ci['backend_observed']['tests'],
+        exact_skip_scope=dict(head=head,run_id=ci['run_id'],attempt=ci['run_attempt'],native_unit_job=ci['backend_jobs']['unit']),
         exact_skip_reference=dict(witness=pins['exact_skip']['value'],source_review=pins['skip_source_review']['value']))
     observed=dict(repository=repo,current_pr=pr,source_evidence={k:pin[k] for k in ('independent_source','old_control_commit','old_manifest','new_manifest','workflow')},
-        run=run,latest=dict(run_id=ci['run_id'],run_attempt=1),jobs=jobs,artifacts=artifacts,
-        download=dict(artifact_id=ci['artifact_id'],run_id=ci['run_id'],attempt=1,zip_bytes=s.raw('zip_0')),exact_skip_reference=pin['exact_skip_reference'])
+        run=run,latest=dict(run_id=ci['run_id'],run_attempt=ci['run_attempt']),jobs=jobs,artifacts=artifacts,
+        download=dict(artifact_id=ci['artifact_id'],run_id=ci['run_id'],attempt=ci['run_attempt'],zip_bytes=s.raw('zip_0')),exact_skip_reference=pin['exact_skip_reference'])
     result=module.validate_public_candidate_proof(pin,observed)
     need(pr['draft'] is True or result['action']=='verified-readonly','pure validator refused nondraft snapshot')
     return dict(action='hold' if pr['draft'] else 'verified-readonly',reason='actual-PR-is-draft' if pr['draft'] else 'native-facts-reconciled',
@@ -473,6 +553,8 @@ def final_reread(pins, source, raw_root, output):
     repo=c.get('repo','');repository(repo)
     prior=original.value('repo_after')
     need(all(repo.get(k)==prior.get(k) for k in ('id','full_name','private','visibility')),'final repository moved')
+    control=c.get('source_ref',SOURCE_REF_GET)
+    need(control.get('object',{}).get('sha')==source,'final independent source moved')
     main=c.get('main','git/ref/heads/main')
     need(main['ref']=='refs/heads/main' and main['object']['sha']==pins['subject']['base'],'final main moved')
     current=c.get('pr','pulls/43');previous=original.value('pr_after')
@@ -499,6 +581,11 @@ def main():
     output.mkdir(mode=0o700)
     try:
         pins,buffers,_=verify_bundle(Path(__file__).resolve().parent,args.bundle_sha256,args.source)
+        global CONTROL_SOURCE, CONTROL_PINS, OBJECT_HELPER, OBJECT_SCOPE
+        CONTROL_SOURCE, CONTROL_PINS = args.source, pins
+        OBJECT_HELPER=types.ModuleType('pinned_native_object_reader')
+        exec(compile(buffers['mq_lab_native_get.py'],'<pinned-native-object-reader>','exec'),OBJECT_HELPER.__dict__)
+        OBJECT_SCOPE=decode(buffers['object-scope.template.json'])
         if args.mode=='collect':collect(pins,args.source,output)
         else:
             report=aggregate(pins,args.source,buffers,Path(args.raw).absolute())

@@ -310,12 +310,17 @@ def _pc_skip_count(pins, observed):
     _require(json.dumps(ref, sort_keys=True, allow_nan=False) ==
              json.dumps(observed['exact_skip_reference'], sort_keys=True, allow_nan=False), 'changed-exact-skip-reference')
     w = ref['witness']
+    scope = pins.get('exact_skip_scope')
+    _shape(scope, {'head','run_id','attempt','native_unit_job'})
+    _require(scope['head'] == pins['head'] and scope['run_id'] == pins['run_id']
+             and scope['attempt'] == pins['run_attempt'] and _positive(scope['native_unit_job']),
+             'exact-skip-scope-not-this-independent-control-pin')
     _require(type(w) is dict and type(w.get('repo_id')) is int and w['repo_id'] == 1449415666
              and type(w.get('pr')) is int and w['pr'] == pins['number'] == 43
-             and w.get('head') == pins['head'] == 'fdec099178ccb3cfc47d34f33c07b063ee8e650b'
-             and type(w.get('run')) is int and w['run'] == pins['run_id'] == 42464006956
-             and type(w.get('attempt')) is int and w['attempt'] == pins['run_attempt'] == 1
-             and w.get('native_unit_job') == 128679931051 and w.get('no_release_authority') is True
+             and w.get('head') == pins['head'] == scope['head']
+             and type(w.get('run')) is int and w['run'] == pins['run_id'] == scope['run_id']
+             and type(w.get('attempt')) is int and w['attempt'] == pins['run_attempt'] == scope['attempt']
+             and w.get('native_unit_job') == scope['native_unit_job'] and w.get('no_release_authority') is True
              and w.get('verified_only_for_exact_run') is True
              and _digest(w.get('selected_log_sha256'), 64), 'actual-skip-exception-is-not-this-exact-subject')
     expected_classes = [dict(class_name='com.forcitis.one.platform.identity.PendingIdentityRulesTest', tests=4, skips=4),
@@ -360,7 +365,7 @@ def validate_public_candidate_proof(trusted_pins, observed):
                     'independent_source', 'old_manifest', 'new_manifest', 'required_lanes', 'workflow',
                     'run_id', 'run_attempt', 'aggregation_job_id', 'upload_step', 'artifact_id', 'artifact_name',
                     'zip_sha256', 'receipt_sha256', 'expected_tests'}
-        optional = {'expected_skip_cases', 'exact_skip_reference'}
+        optional = {'expected_skip_cases', 'exact_skip_reference', 'exact_skip_scope'}
         _require(type(trusted_pins) is dict and required <= set(trusted_pins)
                  and set(trusted_pins) <= required | optional, 'missing-or-unknown-old-control-public-pins')
         p = trusted_pins
