@@ -6,6 +6,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.forcitis.one.BusinessDay;
+import com.forcitis.one.fixture.doubles.MutableClock;
+import java.time.ZoneOffset;
+import org.springframework.test.context.bean.override.convention.TestBean;
 import com.forcitis.one.TestDatabase;
 import com.forcitis.one.TestPostgres;
 import com.forcitis.one.acceptance.AcceptanceSupport;
@@ -40,11 +43,18 @@ import tools.jackson.databind.json.JsonMapper;
  */
 class StandardHoursVersionIT extends AcceptanceSupport {
 
-    /** The business today, read once per JVM: the database triggers use the real Asia/Shanghai date, so version dates are relative to it. */
-    private static final LocalDate TODAY = BusinessDay.today();
-
     static final TestDatabase postgres = TestPostgres.database(StandardHoursVersionIT.class, TestPostgres.MIGRATED)
             .withUrlParam("currentSchema", "platform_approval");
+
+    /** RED fixture models a JVM whose frozen day predates the actual PostgreSQL transaction day. */
+    private static final LocalDate TODAY = StandardHoursVersionStaleFixture.capturedDay(postgres);
+
+    @TestBean(name = "acceptanceClock", methodName = "staleStartupClock")
+    MutableClock startupClock;
+
+    static MutableClock staleStartupClock() {
+        return new MutableClock(TODAY.atTime(10, 0).atZone(BusinessDay.ZONE).toInstant(), ZoneOffset.UTC);
+    }
 
     @DynamicPropertySource
     static void database(DynamicPropertyRegistry registry) {
@@ -445,8 +455,13 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     }
 
     private MockHttpServletResponse postPublication(Map<String, Object> body, RequestPostProcessor caller) throws Exception {
-        return mvc.perform(post(VERSIONS).with(caller).with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                .content(JSON.writeValueAsString(body))).andReturn().getResponse();
+        var result = mvc.perform(post(VERSIONS).with(caller).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(JSON.writeValueAsString(body))).andReturn();
+        if (result.getResponse().getStatus() == 500) {
+            StandardHoursWriteDates.assertDatabaseDateRefusal(result, postgres);
+            StandardHoursVersionStaleFixture.confirmedInsertCause();
+        }
+        return result.getResponse();
     }
 
     private String publish(Map<String, Object> body, int expectedNumber) throws Exception {
@@ -478,8 +493,12 @@ class StandardHoursVersionIT extends AcceptanceSupport {
     }
 
     private MockHttpServletResponse voidVersion(String id, Map<String, Object> body, RequestPostProcessor caller) throws Exception {
-        return mvc.perform(post(VERSIONS + "/" + id + ":void").with(caller).with(csrf()).contentType(MediaType.APPLICATION_JSON)
-                .content(JSON.writeValueAsString(body))).andReturn().getResponse();
+        var result = mvc.perform(post(VERSIONS + "/" + id + ":void").with(caller).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+                .content(JSON.writeValueAsString(body))).andReturn();
+        if (result.getResponse().getStatus() == 500) {
+            StandardHoursVersionStaleFixture.assertVoidDateRefusal(result, postgres);
+        }
+        return result.getResponse();
     }
 
     private static void assertStatus(MockHttpServletResponse response, int expected, String rule) throws Exception {
