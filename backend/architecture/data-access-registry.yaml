@@ -17,6 +17,35 @@
 # gaps         known violations with an owner: {rule, column?, due, owner, ref, note}. Only D3 and D4 may leave out the column; a gap past its due date fails the test. A gap that is no longer violated fails the test, so it is removed in the
 #              same change that fixes it. Gaps are handed over to the owner named; none may be added to hide a new violation.
 tables:
+  # Lab #30, signed accounting-spine-f1.md; empty schema stage.
+  # operations.facts owns the future writer/reader responsibility; no Java SQL yet.
+  # posting_fact_post_seq belongs to posting_facts.post_number; allocation gaps are allowed.
+  # Runtime guard uses owner-only pg_temp.f1_posting_transaction_members (UUID only),
+  # ON COMMIT DROP. It is not a persistent domain table or a source-data store.
+  # Deployment requires independent DDL/DML separation and owner TEMP preflight.
+  operations_facts.posting_facts:
+    role: AGGREGATE_ROOT
+    aggregate: PostingFact
+    business_key: [legal_entity_id, source_context_code, idempotency_key]
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: []  # schema-only; register operations.facts with its first Java writer
+  operations_facts.posting_fact_lines:
+    role: AGGREGATE_CHILD
+    aggregate: PostingFact
+    business_key: [fact_id, line_number]
+    mutability: APPEND_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: []  # schema-only; register operations.facts with its first Java writer
+  operations_facts.posting_components:
+    role: CONFIG
+    business_key: [fact_type, component_key]
+    mutability: MIGRATION_ONLY
+    retention: {policy: PERMANENT}
+    lineage: {source: NEW}
+    writers: []  # no seeds or online writer in this slice
   cost_timesheet.consumed_events:
     role: IDEMPOTENCY
     mutability: INSERT_DELETE
