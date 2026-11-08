@@ -57,12 +57,12 @@ public class CorrectLegalEntityAttribution {
     public LegalEntityAttributionView execute(AttributionKind kind, UUID subjectId, LocalDate periodFrom, LocalDate newEffectiveTo, String reasonText,
                                               ExpectedVersion expected) {
         UserId correctedBy = currentUser.userId();
-        if (!caller.holds(PERMISSION)) {
+        if (!caller.holds(WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE)) {
             audit.recordIndependently(new AuditEntry("organization.workforce.legal-entity-attribution.correction-refused", correctedBy, null,
-                    AuditSubject.of(AttributionAuditKinds.of(kind), subjectId), "the caller lacks " + PERMISSION)
+                    AuditSubject.of(AttributionAuditKinds.of(kind), subjectId), "the caller lacks " + WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE)
                     .withTrace(null, AuditOutcome.FAILED, null));
             throw new DomainException(WorkforceError.ORGANIZATION_WORKFORCE_ATTRIBUTION_CORRECTION_FORBIDDEN, ErrorKind.FORBIDDEN,
-                    "correcting an attribution needs " + PERMISSION);
+                    "correcting an attribution needs " + WorkforcePermissions.LEGAL_ENTITY_ATTRIBUTION_CORRECTION_CREATE);
         }
         Reason reason = Reason.ofNullable(reasonText);
         if (reason == null) {

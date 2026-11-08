@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.web;
 
+import com.forcitis.one.organization.workforce.api.WorkforcePermissions;
+
 import com.forcitis.one.organization.workforce.api.ReleaseSeparationHold;
 import com.forcitis.one.organization.workforce.api.SeparationHoldId;
 import com.forcitis.one.organization.workforce.api.SeparationHolds;

@@ -54,7 +54,7 @@ class SeparationHoldService implements SeparationHolds {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('" + PERMISSION + "')")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.SEPARATION_HOLD_APPROVE + "')")
     public void release(ReleaseSeparationHold request) {
         Instant now = clock.instant();
         UserId by = currentUser.userId();

@@ -1,5 +1,7 @@
 package com.forcitis.one.organization.workforce.web;
 
+import com.forcitis.one.organization.workforce.api.WorkforcePermissions;
+
 import com.forcitis.one.kernel.CursorPage;
 import com.forcitis.one.kernel.PageRequest;
 import com.forcitis.one.organization.workforce.api.OrgStructureCommandId;

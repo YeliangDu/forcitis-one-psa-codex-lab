@@ -12,7 +12,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 class EmployeeVisibility {
-    private static final String EMPLOYEE_READ = WorkforcePermissions.EMPLOYEE_READ;
     private final OrgUnitAccess access;
     private final OrgSnapshotQueries snapshots;
 
@@ -22,7 +21,7 @@ class EmployeeVisibility {
     }
 
     Visible forList() {
-        OrgUnitAccess.Visible visible = access.visibleOrgUnits(EMPLOYEE_READ);
+        OrgUnitAccess.Visible visible = access.visibleOrgUnits(WorkforcePermissions.EMPLOYEE_READ);
         return new Visible(visible.everything(), visible.everything() ? Set.of() : OrgUnitVisibility.idsIn(snapshots.findAllOrgUnits(), visible));
     }
 
