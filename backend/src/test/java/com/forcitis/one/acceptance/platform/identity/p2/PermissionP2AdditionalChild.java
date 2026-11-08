@@ -105,6 +105,7 @@ public final class PermissionP2AdditionalChild {
                         jdbc.sql("update platform_identity.role_versions set effective_to_at=now(),updated_at=now() where role_id=:id and effective_to_at is null")
                             .param("id",view.roleId().value()).update();
                         String[] codes={READ,UNKNOWN,RETIRED.get(0),RETIRED.get(1),RETIRED.get(2)};
+                        java.util.Arrays.sort(codes); // All fixture codes are ASCII: matches required PostgreSQL C order.
                         jdbc.sql("""
                             insert into platform_identity.role_versions(role_version_id,role_id,version_number,effective_from_at,effective_to_at,
                             role_name,role_status,access_scope_kind,permission_codes,change_channel_kind,recorded_by,change_reason,authorization_request_id,
@@ -114,6 +115,12 @@ public final class PermissionP2AdditionalChild {
                             """).param("version",ids.next()).param("role",view.roleId().value()).param("name",view.name())
                             .param("codes","{"+String.join(",",codes)+"}").param("actor",actor.value()).param("audit",ids.next()).update();
                     });
+                    String[] rawCodes=jdbc.sql("select permission_codes from platform_identity.role_versions where role_id=:id and effective_to_at is null")
+                        .param("id",view.roleId().value()).query((rs,n)->(String[])rs.getArray(1).getArray()).single();
+                    String[] expectedRaw={READ,UNKNOWN,RETIRED.get(0),RETIRED.get(1),RETIRED.get(2)};
+                    java.util.Arrays.sort(expectedRaw);
+                    assertEquals(5,rawCodes.length,"corrupt legacy fixture retains all five codes before read filtering");
+                    assertArrayEquals(expectedRaw,rawCodes,"fixture is C-normalized, not prefiltered");
                     assertEquals(List.of(READ),get.execute(view.roleId()).orElseThrow().permissionCodes());
                     report.setProperty("filterExact","true");
                 } finally {SecurityContextHolder.clearContext();}
