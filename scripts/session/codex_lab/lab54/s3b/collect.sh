@@ -63,10 +63,31 @@ python3 - "$out" "$image" "$jdk" "$jdk_sha" <<'PY'
 from pathlib import Path
 import hashlib,json,os,sys
 root=Path(sys.argv[1])
+# Record every copied link without resolving or reading its target.
+# source_root identifies the declared copy origin, not an authorized target.
+origins={"payload/lists":"/var/lib/apt/lists",
+         "payload/apt-config":"/etc/apt",
+         "payload/keyrings":"/usr/share/keyrings"}
+links=[]
+for p in sorted(root.rglob("*")):
+    if not p.is_symlink():
+        continue
+    relative=str(p.relative_to(root))
+    origin=next((source for prefix,source in origins.items()
+                 if relative.startswith(prefix+"/")), None)
+    links.append(dict(path=relative,target=os.readlink(p),source_root=origin,
+                      disposition="BLOCKED_PENDING_SOURCE_REVIEW"))
+if links:
+    diagnostic=dict(kind="lab54-collection-links/1",links=links,
+                    materialized=False,input_lock_created=False,
+                    installation_authority=False)
+    (root/"collection-diagnostics.json").write_text(json.dumps(diagnostic,indent=2)+"\n")
+    print(json.dumps(diagnostic),file=sys.stderr,flush=True)
+    raise SystemExit("BLOCKED: source links require independent review; no input-lock produced")
 files={}
 for p in sorted(root.rglob("*")):
     if p.is_symlink():
-        raise SystemExit("BLOCKED: symlink in build inputs")
+        raise SystemExit("BLOCKED: symlink appeared after diagnostic inventory")
     if p.is_file():
         with p.open("rb") as stream:
             files[str(p.relative_to(root))]=hashlib.file_digest(stream,"sha256").hexdigest()
