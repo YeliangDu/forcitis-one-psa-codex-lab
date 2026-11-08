@@ -107,7 +107,12 @@ CREATE TABLE operations_facts.posting_fact_lines (
     CONSTRAINT ck_posting_fact_lines_side_kind CHECK (side_kind IN ('DEBIT', 'CREDIT')),
     CONSTRAINT ck_posting_fact_lines_component_key
         CHECK (component_key ~ '^[A-Z][A-Z0-9_]{1,59}$'),
-    CONSTRAINT ck_posting_fact_lines_line_amount_positive CHECK (line_amount > 0),
+    CONSTRAINT ck_posting_fact_lines_line_amount_positive CHECK (
+        line_amount > 0
+        AND line_amount NOT IN (
+            'NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric
+        )
+    ),
     CONSTRAINT ck_posting_fact_lines_line_currency CHECK (line_currency = 'CNY'),
     CONSTRAINT ck_posting_fact_lines_audit_times CHECK (updated_at = created_at)
 );
@@ -325,7 +330,11 @@ BEGIN
       FROM operations_facts.posting_fact_lines
      WHERE fact_id = checked_fact;
 
-    IF debits = 0 OR credits = 0 OR currencies <> 1 OR debit_amount <> credit_amount THEN
+    IF debits = 0 OR credits = 0 OR currencies <> 1
+        OR debit_amount IN ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric)
+        OR credit_amount IN ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric)
+        OR debit_amount <> credit_amount
+    THEN
         RAISE EXCEPTION 'posting fact requires balanced debit and credit lines in one currency'
             USING ERRCODE = 'check_violation',
                   CONSTRAINT = 'tg_posting_fact_lines_balance';
