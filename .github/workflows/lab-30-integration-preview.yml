@@ -5,7 +5,7 @@ on:
 permissions:
   contents: read
 env:
-  LAB_HEAD: 3515867072e40bd295b982be5e559c98c88270dd
+  LAB_HEAD: 927849f8193b605f87823a6718758414d5f782f5
   LAB_BASE: 15511fad03b8d2ae38e3a337f24556bd9d9071c6
 jobs:
   verify:
@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: 3515867072e40bd295b982be5e559c98c88270dd
+          ref: 927849f8193b605f87823a6718758414d5f782f5
           persist-credentials: false
           fetch-depth: 0
       - name: Prove exact guard composition without SQL execution
