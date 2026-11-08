@@ -26,7 +26,7 @@ CREATE EXTENSION IF NOT EXISTS btree_gist;
 -- ===== STEP 2 schema 冲突检查（新库内，应为 0 行）=====
 SELECT nspname FROM pg_namespace
  WHERE nspname IN ('platform_identity', 'platform_approval', 'platform_integration', 'platform_audit', 'platform_numbering', 'platform_file',
-                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'accounting_period', 'accounting_ledger', 'organization_payroll', 'organization_recruitment', 'organization_administration', 'platform_idempotency', 'cost_timesheet', 'one_migration');
+                   'platform_scheduling', 'organization_workforce', 'organization_attendance', 'organization_leave', 'accounting_period', 'accounting_ledger', 'organization_payroll', 'organization_recruitment', 'organization_administration', 'platform_idempotency', 'cost_timesheet', 'one_migration', 'operations_facts');
 
 -- ===== STEP 3 角色 =====
 CREATE ROLE one_prod_owner NOLOGIN;
@@ -80,6 +80,8 @@ CREATE SCHEMA organization_payroll    AUTHORIZATION one_prod_owner;
 CREATE SCHEMA organization_recruitment AUTHORIZATION one_prod_owner;
 CREATE SCHEMA accounting_period     AUTHORIZATION one_prod_owner;
 CREATE SCHEMA accounting_ledger       AUTHORIZATION one_prod_owner;
+-- Lab #30 F1: schema-only; excluded from runtime/readonly grants and default ACLs.
+CREATE SCHEMA operations_facts        AUTHORIZATION one_prod_owner;
 CREATE SCHEMA organization_administration AUTHORIZATION one_prod_owner;
 CREATE SCHEMA cost_timesheet          AUTHORIZATION one_prod_owner;
 CREATE SCHEMA platform_idempotency    AUTHORIZATION one_prod_owner;
@@ -104,7 +106,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA platform_audit GRANT 
 ALTER DEFAULT PRIVILEGES FOR ROLE one_prod_owner IN SCHEMA platform_audit GRANT SELECT ON TABLES TO one_prod_readonly;
 
 REVOKE CREATE ON SCHEMA platform_identity, platform_approval, platform_integration, platform_audit, platform_numbering, platform_file,
-                        platform_scheduling, organization_workforce, organization_attendance, organization_leave, accounting_period, accounting_ledger, organization_payroll, organization_recruitment, organization_administration, platform_idempotency, cost_timesheet, one_migration
+                        platform_scheduling, organization_workforce, organization_attendance, organization_leave, accounting_period, accounting_ledger, organization_payroll, organization_recruitment, organization_administration, platform_idempotency, cost_timesheet, one_migration, operations_facts
   FROM one_prod_app, one_prod_readonly, one_prod_audit_maintainer;
 
 -- 下一步：prod-db-verify.sql；每次迁移之后执行 prod-db-after-migrations.sql（版本表只追加）；之后在 RDS 控制台为 one_prod_migrator、one_prod_app、one_prod_readonly、one_prod_audit_maintainer 设口令（≥24 位随机）。
