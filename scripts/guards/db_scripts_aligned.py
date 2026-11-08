@@ -123,6 +123,76 @@ def reviewed_privilege_loop(tokens, schema_only):
     return False
 
 
+def acl_execute_token(statement, index):
+    """EXECUTE at the privilege position of a static function ACL statement.
+
+    This only classifies the token. The GRANT target/default policy still runs;
+    no procedural EXECUTE, quoted payload or unknown prefix is exempted.
+    """
+    if index < 1 or statement[index - 1] not in (("word", "grant"), ("word", "revoke")):
+        return False
+    command = statement[index - 1][1]
+    prefix = statement[:index - 1]
+
+    def identifiers(tokens, start):
+        if start >= len(tokens) or tokens[start][0] != "word":
+            return None
+        start += 1
+        while start < len(tokens) and tokens[start] == ("symbol", ","):
+            start += 1
+            if start >= len(tokens) or tokens[start][0] != "word":
+                return None
+            start += 1
+        return start
+
+    if prefix:
+        if prefix[:3] != [("word", "alter"), ("word", "default"), ("word", "privileges")]:
+            return False
+        position = 3
+        if position < len(prefix) and prefix[position] == ("word", "for"):
+            if position + 1 >= len(prefix) or prefix[position + 1] not in (("word", "role"), ("word", "user")):
+                return False
+            position = identifiers(prefix, position + 2)
+            if position is None:
+                return False
+        if prefix[position:position + 2] == [("word", "in"), ("word", "schema")]:
+            position = identifiers(prefix, position + 2)
+        if position is None or position != len(prefix):
+            return False
+    suffix = statement[index + 1:]
+    if not suffix or suffix[0] != ("word", "on"):
+        return False
+    position, all_objects = 1, False
+    if position < len(suffix) and suffix[position] == ("word", "all"):
+        position, all_objects = position + 1, True
+    if (position >= len(suffix) or suffix[position][0] != "word"
+            or suffix[position][1] not in {"function", "functions", "routine", "routines", "procedure", "procedures"}):
+        return False
+    plural = suffix[position][1].endswith("s")
+    position += 1
+    begin, depth, receiver = position, 0, None
+    for current in range(position, len(suffix)):
+        item = suffix[current]
+        if item == ("symbol", "("):
+            depth += 1
+        elif item == ("symbol", ")"):
+            depth -= 1
+            if depth < 0:
+                return False
+        elif depth == 0 and item == ("word", "to" if command == "grant" else "from"):
+            receiver = current
+            break
+    if receiver is None or depth != 0 or identifiers(suffix, receiver + 1) is None:
+        return False
+    target = suffix[begin:receiver]
+    if prefix:
+        return plural and not all_objects and not target
+    if all_objects:
+        return (plural and target[:2] == [("word", "in"), ("word", "schema")]
+                and identifiers(target, 2) == len(target))
+    return bool(target) and target[-1] == ("symbol", ")")
+
+
 def schema_only_privileges(modules, sources):
     schema_only = set(modules) & SCHEMA_ONLY_SCHEMAS
     if not schema_only:
@@ -140,12 +210,13 @@ def schema_only_privileges(modules, sources):
             if kind == "body":
                 found += inspect(privilege_tokens(value), depth + 1)
                 continue
-            if kind == "word" and value == "execute":
-                found.append("unreviewed dynamic SQL can bypass schema-only privileges")
             if (kind, value) != ("symbol", ";"):
                 statement.append((kind, value))
                 continue
             words = [value for kind, value in statement if kind == "word"]
+            for index, token in enumerate(statement):
+                if token == ("word", "execute") and not acl_execute_token(statement, index):
+                    found.append("unreviewed dynamic SQL can bypass schema-only privileges")
             if (any(kind == "string" for kind, value in statement)
                     and (words[:1] == ["do"] or
                          (words[:1] == ["create"] and {"function", "procedure"} & set(words)))):
