@@ -1,6 +1,6 @@
-package com.forcitis.one.acceptance.identity.p1;
+package com.forcitis.one.acceptance.platform.identity.p1;
 
-import static com.forcitis.one.acceptance.identity.p1.PermissionP1Fixture.*;
+import static com.forcitis.one.acceptance.platform.identity.p1.PermissionP1Fixture.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 

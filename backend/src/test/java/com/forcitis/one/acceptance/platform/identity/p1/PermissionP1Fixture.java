@@ -1,4 +1,4 @@
-package com.forcitis.one.acceptance.identity.p1;
+package com.forcitis.one.acceptance.platform.identity.p1;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
