@@ -63,8 +63,8 @@ final class StandardHoursWriteDates {
     static <T> T atRequest(DataSource source, PlatformTransactionManager manager, MutableClock clock,
             LocalDate capturedJvmDay, HttpWork<T> work) {
         return inDatabaseTransaction(source, manager, (transactionDay, status) -> {
-            // RED: the old fixture trusts the day captured before midnight.
-            LocalDate requestDay = capturedJvmDay;
+            // GREEN: actual transaction Shanghai date is the write clock; captured JVM day is only a regression input.
+            LocalDate requestDay = transactionDay;
             clock.set(requestDay.atTime(10, 0).atZone(BusinessDay.ZONE).toInstant());
             return work.run(requestDay);
         });
