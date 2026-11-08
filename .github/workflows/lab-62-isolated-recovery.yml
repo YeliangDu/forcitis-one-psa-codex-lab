@@ -1,0 +1,52 @@
+name: Lab 62 hosted isolation capability witness
+on:
+  push:
+    branches: [codex/62-current-assignment]
+    paths: [.github/workflows/lab-62-isolated-recovery.yml]
+permissions:
+  contents: read
+jobs:
+  isolation:
+    if: >-
+      github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      toJSON(github.event.repository.id) == '1449415666' &&
+      toJSON(github.event.repository.private) == 'false' &&
+      github.ref == 'refs/heads/codex/62-current-assignment'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 77e872e8ba9661d3294d3a9337c8e5c956b70641
+          persist-credentials: false
+      - name: Prove disposable namespace boundary without running repository code
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$(git rev-parse HEAD)" = 77e872e8ba9661d3294d3a9337c8e5c956b70641
+          test ! -e .git/merge-queue
+          test ! -e .codex/hooks.json
+          test -z "$(git config --local --get-regexp '^http\..*extraheader$' || true)"
+          out="$RUNNER_TEMP/lab62-isolation"; mkdir -m 700 "$out"
+          scratch="$RUNNER_TEMP/lab62-scratch"; mkdir -m 700 "$scratch"
+          printf 'B=%s\nworkflow_head=%s\nrun=%s\nattempt=%s\nrunner=%s\n' \
+            "$(git rev-parse HEAD)" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$RUNNER_ENVIRONMENT" > "$out/identity.txt"
+          sudo -n /usr/bin/unshare --net --pid --fork --mount-proc -- \
+            /usr/bin/setpriv --reuid "$(id -u)" --regid "$(id -g)" --clear-groups --no-new-privs -- \
+            /usr/bin/env -i PATH=/usr/bin:/bin HOME="$scratch" HOST_NET_NS="$(readlink /proc/self/ns/net)" \
+            /bin/bash --noprofile --norc -eu -o pipefail -c '
+              test "$(id -u)" -ne 0
+              test "$(readlink /proc/self/ns/net)" != "$HOST_NET_NS"
+              test "$(ip -o link show | wc -l)" -eq 1
+              ip -o link show | grep -Eq "^[0-9]+: lo:"
+              grep -Eq "^NoNewPrivs:[[:space:]]+1$" /proc/self/status
+              test -z "${GH_TOKEN-}${GITHUB_TOKEN-}${OPENAI_API_KEY-}"
+              printf "network_namespace=isolated\ninterfaces=loopback-only\nprivilege=non-root,no-new-privs\ncredentials=not-forwarded\nrepository_code_executed=false\n"
+            ' > "$out/isolation.txt"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab62-hosted-isolation-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab62-isolation/
+          if-no-files-found: error
+          retention-days: 7
