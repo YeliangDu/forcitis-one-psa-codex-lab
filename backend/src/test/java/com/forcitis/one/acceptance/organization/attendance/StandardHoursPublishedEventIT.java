@@ -130,7 +130,7 @@ class StandardHoursPublishedEventIT extends AcceptanceSupport {
     @Test
     @DisplayName("1310 唯一默认范围版本发布一个事件，信封法人为空且发布者与业务日期完整")
     void defaultPublicationEmitsOneEventWithoutLegalEntity() throws Exception {
-        LocalDate effectiveDate = TODAY;
+        LocalDate effectiveDate = StandardHoursWriteDates.safeDefaultDate(postgres);
 
         String id = publish(publication(null, effectiveDate, 465, 405), 1);
 
