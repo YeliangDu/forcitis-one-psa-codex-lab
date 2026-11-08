@@ -26,7 +26,7 @@ final class OrgUnitVisibility {
      */
     static Set<OrgUnitId> idsInForDetail(Collection<OrgUnit> units, OrgUnitAccess access) {
         try {
-            return idsIn(units, access.visibleOrgUnits(ORG_UNIT_READ));
+            return idsIn(units, access.visibleOrgUnits(WorkforcePermissions.ORG_UNIT_READ));
         } catch (DomainException unavailable) {
             if (unavailable.kind() != ErrorKind.FORBIDDEN) {
                 throw unavailable;

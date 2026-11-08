@@ -124,7 +124,7 @@ class PersonnelCommandService implements PersonnelCommands {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('" + PERMISSION + "')")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.PERSONNEL_COMMAND_CREATE + "')")
     public PersonnelCommandId enter(EnterPersonnelCommand request) {
         return enter(request, currentUser.userId(), null);
     }
@@ -234,7 +234,7 @@ class PersonnelCommandService implements PersonnelCommands {
 
     @Override
     @Transactional
-    @PreAuthorize("hasAuthority('" + PERMISSION + "')")
+    @PreAuthorize("hasAuthority('" + WorkforcePermissions.PERSONNEL_COMMAND_CREATE + "')")
     public void withdraw(WithdrawPersonnelCommand request) {
         Instant now = clock.instant();
         LocalDate today = zone.dateOf(now);
