@@ -18,13 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: '15511fad03b8d2ae38e3a337f24556bd9d9071c6'
+          ref: 'b9d21a6215ea33f7552be5e21678232791e1d437'
           fetch-depth: 0
           persist-credentials: false
       - name: Pin exact public old main
         id: pin
         env:
-          HEAD_SHA: '15511fad03b8d2ae38e3a337f24556bd9d9071c6'
+          HEAD_SHA: 'b9d21a6215ea33f7552be5e21678232791e1d437'
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/lab-22-public-old-main-witness"
@@ -59,8 +59,8 @@ jobs:
       - name: Old control light checks on exact public base
         id: light
         env:
-          BEFORE_SHA: '8986f24821177cad19e4aa117ba31db3884bf361'
-          HEAD_SHA: '15511fad03b8d2ae38e3a337f24556bd9d9071c6'
+          BEFORE_SHA: '396d75e48cba5cefc496fbb572a592e97ea3612a'
+          HEAD_SHA: 'b9d21a6215ea33f7552be5e21678232791e1d437'
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$HEAD_SHA"
@@ -93,7 +93,7 @@ jobs:
         id: secret
         if: ${{ !cancelled() && steps.pin.outcome == 'success' && steps.gitleaks.outcome == 'success' }}
         env:
-          HEAD_SHA: '15511fad03b8d2ae38e3a337f24556bd9d9071c6'
+          HEAD_SHA: 'b9d21a6215ea33f7552be5e21678232791e1d437'
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$HEAD_SHA"
@@ -104,7 +104,7 @@ jobs:
       - name: Record read-only witness; never regular main health
         if: always()
         env:
-          HEAD_SHA: '15511fad03b8d2ae38e3a337f24556bd9d9071c6'
+          HEAD_SHA: 'b9d21a6215ea33f7552be5e21678232791e1d437'
           PIN_OUTCOME: ${{ steps.pin.outcome }}
           LIGHT_OUTCOME: ${{ steps.light.outcome }}
           SECRET_OUTCOME: ${{ steps.secret.outcome }}
@@ -131,6 +131,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: lab-22-public-old-main-witness-15511fad03b8d2ae38e3a337f24556bd9d9071c6-${{ github.run_attempt }}
+          name: lab-22-public-old-main-witness-b9d21a6215ea33f7552be5e21678232791e1d437-${{ github.run_attempt }}
           if-no-files-found: error
           path: ${{ runner.temp }}/lab-22-public-old-main-witness/
