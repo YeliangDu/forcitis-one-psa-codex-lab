@@ -8,6 +8,7 @@ import re
 
 
 REPOSITORY = "YeliangDu/forcitis-one-psa-codex-lab"
+REPOSITORY_ID = 1449415666
 IDENTITY = {"number", "base", "head", "target"}
 ORIGINS = {
     prefix + REPOSITORY + suffix
@@ -48,8 +49,10 @@ def _main_intent(value):
 
 def _repository(value):
     _require(isinstance(value, dict) and value.get("full_name") == REPOSITORY
-             and value.get("private") is True and type(value.get("id")) is int
-             and value["id"] > 0, "Not the private Lab repository")
+             and value.get("private") is False and type(value.get("id")) is int
+             and value["id"] == REPOSITORY_ID
+             and ("visibility" not in value or value["visibility"] == "public")
+             and ("fork" not in value or value["fork"] is False), "Not the fixed public Lab repository")
     return value["id"]
 
 
@@ -60,9 +63,7 @@ def _pr(value, intent, repo_id, merged):
         row = value.get(branch)
         _require(isinstance(row, dict) and row.get("sha") == intent[branch], "Changed PR head/base")
         repo = row.get("repo")
-        _require(isinstance(repo, dict) and type(repo.get("id")) is int
-                 and repo["id"] == repo_id and repo.get("full_name") == REPOSITORY,
-                 "Foreign PR branch")
+        _require(_repository(repo) == repo_id, "Foreign PR branch")
     _require(value["base"].get("ref") == intent["target"], "Wrong release target")
     _require(value.get("merged") is merged and value.get("draft") is False
              and value.get("state") == ("closed" if merged else "open"), "Wrong PR state")

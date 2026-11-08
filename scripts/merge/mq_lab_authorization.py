@@ -7,6 +7,7 @@ import stat
 
 
 INITIAL_BASE = "a8454ced28ab18fce37d495f21d0daae2fa6ce8d"
+REPOSITORY_ID = 1449415666
 BOOTSTRAP_RUN = 42418209077
 KINDS = {"首轮", "终审"}
 FIELDS = {"number", "head", "base", "target", "repo_id", "required_reviews",
@@ -39,7 +40,7 @@ def _check(value, number):
     bootstrap = value["mode"] == "bootstrap"
     expected = FIELDS | ({"baseline_run_id"} if bootstrap else set())
     if (set(value) != expected or not all(_positive(value[k]) for k in ("number", "repo_id", "run_id", "run_attempt"))
-            or value["number"] != number or value["target"] != "main"
+            or value["number"] != number or value["target"] != "main" or value["repo_id"] != REPOSITORY_ID
             or any(not isinstance(value[k], str) or not SHA.fullmatch(value[k]) for k in ("head", "base"))):
         raise ValueError("invalid approval identity")
     if bootstrap and (number != 15 or value["base"] != INITIAL_BASE or value["baseline_run_id"] != BOOTSTRAP_RUN):
