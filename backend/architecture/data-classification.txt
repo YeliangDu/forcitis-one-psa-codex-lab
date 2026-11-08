@@ -162,3 +162,6 @@ organization_leave.leave_policy_grants.basis_text | INTERNAL | PI | 用途：授
 organization_leave.leave_policy_grants.granted_by | INTERNAL | PI | 用途：做出授予决定的操作人；个人信息 PI
 organization_leave.leave_policy_grants.effective_date | INTERNAL | PI | 用途：授予生效日，随雇佣关系的假期额度；个人信息 PI
 organization_leave.leave_requests.taken_until_at | INTERNAL | PI | 用途：销假后第一天未休的起点，随请假期间；个人信息 PI
+
+operations_facts.posting_fact_lines.line_amount | SENSITIVE | NONE | 豁免：仅法人、部门和组成项聚合金额，无员工标识；依签署 accounting-spine-f1，单人部门的个人信息判定仍待法务，不得直接向 web/api 暴露
+operations_facts.posting_fact_lines.component_key | SENSITIVE | NONE | 豁免：薪酬事实组成项代码，无员工标识；依签署 accounting-spine-f1，与聚合金额同级保护，不得直接向 web/api 暴露
