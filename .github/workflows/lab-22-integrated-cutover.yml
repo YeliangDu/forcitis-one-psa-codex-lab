@@ -130,3 +130,26 @@ jobs:
           name: lab22-full-preflight-${{ github.run_attempt }}
           path: ${{ runner.temp }}/lab22-full-preflight/
           if-no-files-found: error
+  native-entry-exact:
+    if: github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' && toJSON(github.event.repository.id) == '1449415666'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Run the five independently frozen native binding cases
+        env:
+          GIT_ALLOW_PROTOCOL: file
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          mkdir -p "$RUNNER_TEMP/lab22-native-entry"
+          python3 -B scripts/merge/native_entry_selftest.py 2>&1 | tee "$RUNNER_TEMP/lab22-native-entry/red.log"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab22-native-entry-exact
+          path: ${{ runner.temp }}/lab22-native-entry/red.log
+          if-no-files-found: error
