@@ -5,6 +5,7 @@ from pathlib import Path
 import unittest
 
 REPO = "YeliangDu/forcitis-one-psa-codex-lab"
+REPO_ID = 1449415666
 BASE, HEAD = "a" * 40, "b" * 40
 
 
@@ -18,9 +19,9 @@ def load(name):
 
 class LabHostedCutoverAcceptanceTest(unittest.TestCase):
     def event(self):
-        return dict(repository=dict(full_name=REPO, private=True), pull_request=dict(
-            head=dict(sha=HEAD, repo=dict(full_name=REPO)),
-            base=dict(sha=BASE, ref="main", repo=dict(full_name=REPO))))
+        return dict(repository=dict(full_name=REPO, id=REPO_ID, private=False), pull_request=dict(
+            head=dict(sha=HEAD, repo=dict(full_name=REPO, id=REPO_ID, private=False)),
+            base=dict(sha=BASE, ref="main", repo=dict(full_name=REPO, id=REPO_ID, private=False))))
 
     def bundle(self):
         context = dict(repository=REPO, main_sha=BASE, queue_head=HEAD,

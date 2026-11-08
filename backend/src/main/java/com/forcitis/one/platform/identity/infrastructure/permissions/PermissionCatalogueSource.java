@@ -7,7 +7,6 @@ import com.forcitis.one.platform.identity.api.Permission;
 import com.forcitis.one.platform.identity.api.PermissionCatalogue;
 import com.forcitis.one.platform.identity.api.PermissionCatalogueProvider;
 import com.forcitis.one.platform.identity.domain.AdministratorMode;
-import com.forcitis.one.platform.identity.domain.SensitivePermissions;
 import com.forcitis.one.platform.identity.domain.SystemRoleDeclaration;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
@@ -69,8 +68,8 @@ final class PermissionCatalogueSource implements PermissionCatalogueProvider {
 
     @Override
     public void validateExisting(PermissionDeclaration declaration) {
-        // P1 is compatibility-only. Read the retained definition directly, not
-        // the caller's legacy list, annotations, isLive() or the mixed catalogue.
+        // Existing metadata is immutable. A genuinely new code instead requires
+        // an exact resource registered for its owner; use sites never authorize it.
         for (Permission permission : Permission.values()) {
             if (permission.code().equals(declaration.code().value())) {
                 if (permission.grantMode() == declaration.grantMode()
@@ -80,7 +79,7 @@ final class PermissionCatalogueSource implements PermissionCatalogueProvider {
                 throw new IllegalArgumentException("Contribution changes legacy permission metadata: " + permission.code());
             }
         }
-        throw new IllegalArgumentException("P1 contribution requires an existing exact legacy permission: " + declaration.code().value());
+        PermissionVocabulary.validateResource(declaration.code());
     }
 
     @Override
@@ -104,7 +103,7 @@ final class PermissionCatalogueSource implements PermissionCatalogueProvider {
         roles.roles().forEach(role -> grants.addAll(role.definition().permissionCodes()));
         Set<String> administrators = new HashSet<>(AdministratorMode.PERMISSIONS);
         administrators.addAll(AdministratorMode.PLATFORM_ONLY);
-        return PermissionCatalogue.assemble(legacy, contributions, SensitivePermissions.CODES, references, grants, administrators);
+        return PermissionCatalogue.assemble(legacy, contributions, references, grants, administrators);
     }
 
     public void requireSameContributions(List<PermissionContribution> runtime) {

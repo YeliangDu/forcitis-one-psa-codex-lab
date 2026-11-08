@@ -82,11 +82,23 @@ public record PermissionCatalogue(List<PermissionDeclaration> declarations) {
         return declarations.stream().anyMatch(entry -> entry.code().value().equals(code) && !entry.deprecated());
     }
 
+    /** Explicit expectation seam retained for independent compatibility/negative tests. */
     public static PermissionCatalogue assemble(List<PermissionDeclaration> legacy, List<PermissionContribution> contributions,
             Set<String> sensitive, Set<String> annotationReferences, Set<String> roleGrants, Set<String> administratorReferences) {
+        PermissionCatalogue catalogue = assemble(legacy, contributions, annotationReferences, roleGrants, administratorReferences);
+        if (!catalogue.twoPersonPermissions().equals(sensitive)) {
+            throw new IllegalArgumentException("Sensitive permissions differ from declaration grant modes");
+        }
+        return catalogue;
+    }
+
+    /** Production assembly derives sensitivity only after validating every declaration. */
+    public static PermissionCatalogue assemble(List<PermissionDeclaration> legacy, List<PermissionContribution> contributions,
+            Set<String> annotationReferences, Set<String> roleGrants, Set<String> administratorReferences) {
         PermissionCatalogueProvider source = source();
         Map<String, PermissionDeclaration> mixed = new LinkedHashMap<>();
         for (PermissionDeclaration entry : legacy) {
+            requireLegacy(entry);
             source.validate(entry.code().value());
             if (mixed.putIfAbsent(entry.code().value(), entry) != null) {
                 throw new IllegalArgumentException("Duplicate legacy permission: " + entry.code().value());
@@ -112,13 +124,7 @@ public record PermissionCatalogue(List<PermissionDeclaration> declarations) {
             }
         }
         PermissionCatalogue catalogue = new PermissionCatalogue(List.copyOf(mixed.values()));
-        Set<String> twoPerson = mixed.values().stream()
-                .filter(e -> !e.deprecated() && e.grantMode() == PermissionGrantMode.TWO_PERSON_INDIVIDUAL)
-                .map(e -> e.code().value()).collect(Collectors.toSet());
-        if (!twoPerson.equals(sensitive)) {
-            throw new IllegalArgumentException("Sensitive permissions differ from declaration grant modes");
-        }
-        for (Set<String> references : List.of(sensitive, annotationReferences, roleGrants, administratorReferences)) {
+        for (Set<String> references : List.of(annotationReferences, roleGrants, administratorReferences)) {
             for (String code : references) {
                 if (!catalogue.isLive(code)) {
                     throw new IllegalArgumentException("Uncatalogued or retired permission reference: " + code);
@@ -126,5 +132,21 @@ public record PermissionCatalogue(List<PermissionDeclaration> declarations) {
             }
         }
         return catalogue;
+    }
+
+    public Set<String> twoPersonPermissions() {
+        return declarations.stream()
+                .filter(entry -> !entry.deprecated() && entry.grantMode() == PermissionGrantMode.TWO_PERSON_INDIVIDUAL)
+                .map(entry -> entry.code().value()).collect(Collectors.toUnmodifiableSet());
+    }
+
+    private static void requireLegacy(PermissionDeclaration entry) {
+        for (Permission permission : Permission.values()) {
+            if (permission.code().equals(entry.code().value()) && permission.grantMode() == entry.grantMode()
+                    && permission.deprecated() == entry.deprecated()) {
+                return;
+            }
+        }
+        throw new IllegalArgumentException("Legacy input is not an exact retained definition: " + entry.code().value());
     }
 }

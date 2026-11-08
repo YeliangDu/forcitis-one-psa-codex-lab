@@ -23,7 +23,7 @@ class GithubFixture:
         self.case = case
         self.calls = []
         self.fail = None
-        self.repo = dict(id=123, full_name=SLUG, private=True)
+        self.repo = dict(id=1449415666, full_name=SLUG, private=False)
         self.main = dict(ref="refs/heads/main", object=dict(sha=HEAD))
         self.final_main = copy.deepcopy(self.main)
         self.runs = [dict(id=100, run_attempt=1, event="push", head_branch="main",
@@ -83,15 +83,15 @@ class MainHealthAcceptanceTest(unittest.TestCase):
         self.assertIn(("main_artifacts", 100, 1, HEAD), self.github.calls)
 
     def test_missing_stale_or_foreign_main_signal_holds(self):
-        for mutation in ("no-runs", "stale-run", "public", "repo-id", "foreign", "wrong-ref", "malformed-sha"):
+        for mutation in ("no-runs", "stale-run", "private", "repo-id", "foreign", "wrong-ref", "malformed-sha"):
             with self.subTest(mutation=mutation):
                 self.github = GithubFixture(self)
                 if mutation == "no-runs":
                     self.github.runs = []
                 elif mutation == "stale-run":
                     self.github.runs[0]["head_sha"] = OLD
-                elif mutation == "public":
-                    self.github.repo["private"] = False
+                elif mutation == "private":
+                    self.github.repo["private"] = True
                 elif mutation == "repo-id":
                     self.github.repo["id"] = 0
                 elif mutation == "foreign":

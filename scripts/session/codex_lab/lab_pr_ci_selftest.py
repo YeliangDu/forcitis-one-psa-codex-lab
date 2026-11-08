@@ -7,6 +7,7 @@ import unittest
 
 
 REPO = "YeliangDu/forcitis-one-psa-codex-lab"
+REPO_ID = 1449415666
 BASE = "a8454ced28ab18fce37d495f21d0daae2fa6ce8d"
 HEAD = "1" * 40
 
@@ -25,10 +26,10 @@ def planner():
 class LabPrCiAcceptanceTest(unittest.TestCase):
     def setUp(self):
         self.event = {
-            "repository": {"full_name": REPO},
+            "repository": {"full_name": REPO, "id": REPO_ID, "private": False},
             "pull_request": {
-                "head": {"repo": {"full_name": REPO}, "sha": HEAD},
-                "base": {"repo": {"full_name": REPO}, "ref": "main", "sha": BASE},
+                "head": {"repo": {"full_name": REPO, "id": REPO_ID, "private": False}, "sha": HEAD},
+                "base": {"repo": {"full_name": REPO, "id": REPO_ID, "private": False}, "ref": "main", "sha": BASE},
             },
         }
 

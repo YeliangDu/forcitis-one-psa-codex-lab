@@ -36,7 +36,7 @@ class MqLabAcceptanceTest(unittest.TestCase):
 
     def read_repo(self):
         self.remote_calls += 1
-        return dict(id=123, full_name=SLUG, private=True)
+        return dict(id=1449415666, full_name=SLUG, private=False)
 
     def command(self, command, common=None, reader=None):
         result = target().queue_command(command, common or self.common, reader)

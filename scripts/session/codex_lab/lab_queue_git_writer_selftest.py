@@ -29,7 +29,7 @@ class LabQueueGitWriterAcceptanceTest(unittest.TestCase):
         self.commands, self.reads = [], []
         self.failure = None
         self.origin = ORIGIN
-        repo = dict(id=123, full_name=SLUG, private=True)
+        repo = dict(id=1449415666, full_name=SLUG, private=False)
         self.data = {
             "": repo,
             "pulls/14": dict(number=14, state="open", draft=False, merged=False,
