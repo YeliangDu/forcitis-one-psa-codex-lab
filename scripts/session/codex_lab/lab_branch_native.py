@@ -6,6 +6,7 @@ are prerequisites, not candidate/label assertions. Missing bindings HOLD.
 import copy
 import hashlib
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
@@ -15,6 +16,8 @@ import stat
 import subprocess
 import urllib.parse
 import urllib.request
+import urllib.error
+import zipfile
 
 LAB=Path('/Users/yeliang/Projects/FORCITIS/forcitis-one-psa-codex-lab')
 SLUG='YeliangDu/forcitis-one-psa-codex-lab'
@@ -22,6 +25,8 @@ RID=1449415666
 ORIGIN='git@github.com:'+SLUG+'.git'
 API='https://api.github.com/repos/'+SLUG
 ROOT=LAB/'.codex-lab/branch-lifecycle'
+CI_WORKFLOW='.github/workflows/lab-45-branch-lifecycle-ci.yml'
+CI_UPLOAD='Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02'
 
 
 def need(value, reason):
@@ -66,7 +71,9 @@ def repo(value, reduced=False):
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self,*args,**kwargs):raise ValueError('unexpected-native-API-redirect')
+    # Deny automatic following. The original HTTPError/headers reach only the
+    # explicit artifact handler; JSON API callers still cannot follow redirects.
+    def redirect_request(self,*args,**kwargs):return None
 
 
 class NativeGit:
@@ -143,7 +150,9 @@ class NativeGithub:
 
     def api(self,path,method='GET',body=None):
         need(method=='GET' or (method=='POST' and (path=='pulls' or re.fullmatch(r'actions/runs/[1-9][0-9]*/rerun',path))), 'merge-or-unbound-API-write-forbidden')
-        need(path=='' or re.fullmatch(r'(?:pulls(?:/[1-9][0-9]*)?(?:\?state=all&per_page=100&page=[1-9][0-9]*)?|git/ref/heads/main|commits/[0-9a-f]{40}|compare/[0-9a-f]{40}\.\.\.[0-9a-f]{40}|actions/runs(?:/[1-9][0-9]*)?(?:/rerun|\?branch=[A-Za-z0-9%._~-]+&per_page=100&page=[1-9][0-9]*)?)',path),'unapproved-native-endpoint')
+        existing=path=='' or re.fullmatch(r'(?:pulls(?:/[1-9][0-9]*)?(?:\?state=all&per_page=100&page=[1-9][0-9]*)?|git/ref/heads/main|commits/[0-9a-f]{40}|compare/[0-9a-f]{40}\.\.\.[0-9a-f]{40}|actions/runs(?:/[1-9][0-9]*)?(?:/rerun|\?branch=[A-Za-z0-9%._~-]+&per_page=100&page=[1-9][0-9]*)?)',path)
+        evidence=method=='GET' and re.fullmatch(r'(?:actions/runs/[1-9][0-9]*/attempts/[1-9][0-9]*(?:/jobs\?per_page=100&page=[1-9][0-9]*)?|actions/runs/[1-9][0-9]*/artifacts\?per_page=100&page=[1-9][0-9]*)',path)
+        need(existing or evidence,'unapproved-native-endpoint')
         headers={'Accept':'application/vnd.github+json','User-Agent':'personal-lab-branch-lifecycle','X-GitHub-Api-Version':'2022-11-28'}
         credential=os.environ.get('GH_TOKEN')
         if credential:headers['Authorization']='Bearer '+credential
@@ -213,23 +222,154 @@ class NativeGithub:
     def native_runs(self,binding):
         return self.pages('actions/runs?branch='+urllib.parse.quote(binding['branch'],safe='')+'&per_page=100','workflow_runs')
 
-    def runs(self,binding):
-        self.binding=copy.deepcopy(binding);normalized=[]
-        for row in self.native_runs(binding):
+    def current_runs(self,binding,rows):
+        current=[]
+        for row in rows:
+            # Native associations may have changed since this old run. Its
+            # immutable top-level head cannot prove this binding: exclude first.
+            need(type(row.get('head_sha')) is str and re.fullmatch('[0-9a-f]{40}',row['head_sha']),
+                 'missing-immutable-native-run-head')
+            if row['head_sha']!=binding['head']:continue
             if row.get('event')!='pull_request' or row.get('path')!=self.workflow_path:continue
             repo(row['repository'])
-            associations=[a for a in row['pull_requests'] if a['number']==binding['pr_number']]
-            if not associations:continue
+            if 'head_repository' in row:repo(row['head_repository'])
+            need(type(row.get('id')) is int and row['id']>0
+                 and type(row.get('run_attempt')) is int and row['run_attempt']>0
+                 and row.get('head_branch')==binding['branch'],'invalid-current-native-run')
+            need(type(row.get('pull_requests')) is list,'missing-current-native-associations')
+            associations=[a for a in row['pull_requests'] if type(a) is dict
+                          and type(a.get('number')) is int and a['number']==binding['pr_number']]
             need(len(associations)==1,'ambiguous-native-PR-association');association=associations[0]
             for side in ('head','base'):repo(association[side]['repo'],reduced=True)
             need(association['head']['sha']==row['head_sha'] and association['head']['ref']==row['head_branch']
-                 and association['base']['ref']=='main','native-run-association-mismatch')
-            # base_sha/pull_request below are explicitly collector-normalized,
-            # obtained from actual native association, never the caller's guess.
-            normalized.append(dict(id=row['id'],run_attempt=row['run_attempt'],event=row['event'],path=row['path'],
-                repository=row['repository'],head_branch=row['head_branch'],head_sha=row['head_sha'],
-                base_sha=association['base']['sha'],pull_request=association['number'],status=row['status'],conclusion=row['conclusion']))
-        return dict(complete=True,items=normalized)
+                 and association['base']['ref']=='main' and association['base']['sha']==binding['base'],
+                 'native-run-association-mismatch')
+            current.append(row)
+        need(len({(r['id'],r['run_attempt']) for r in current})==len(current),'duplicate-current-native-run')
+        return current
+
+    def artifact_zip(self,identity):
+        """One exact API download, at most one validated credential-free redirect.
+
+        Use the SAME opener as other native reads, so frozen HTTP ports never
+        escape to a new real-network client. JSON API redirects remain forbidden.
+        """
+        need(type(identity) is int and identity>0,'invalid-artifact-download-ID')
+        url=API+'/actions/artifacts/'+str(identity)+'/zip'
+        headers={'Accept':'application/vnd.github+json','User-Agent':'personal-lab-branch-lifecycle',
+                 'X-GitHub-Api-Version':'2022-11-28'}
+        credential=os.environ.get('GH_TOKEN')
+        if credential:headers['Authorization']='Bearer '+credential
+        request=urllib.request.Request(url,method='GET',headers=headers)
+        for hop in range(2):
+            try:
+                with self.opener.open(request,timeout=30) as response:
+                    need(response.status==200 and response.geturl()==request.full_url,'unconfirmed-artifact-download')
+                    raw=response.read(8*1024*1024+1)
+                    need(0<len(raw)<=8*1024*1024,'artifact-download-size-bound')
+                    content=response.headers.get('Content-Type','').split(';',1)[0].lower()
+                    need(content in ('application/zip','application/octet-stream'),'artifact-download-not-ZIP')
+                    return raw
+            except urllib.error.HTTPError as error:
+                need(hop==0 and error.code in (301,302,303,307,308),'artifact-redirect-refused')
+                location=error.headers.get('Location','')
+                error.close()
+                parsed=urllib.parse.urlparse(location);host=(parsed.hostname or '').lower()
+                need(parsed.scheme=='https' and not parsed.username and not parsed.password
+                     and parsed.port in (None,443) and not parsed.fragment
+                     and not any(ord(c)<32 or ord(c)==127 for c in location)
+                     and (host.endswith('.blob.core.windows.net') or host.endswith('.githubusercontent.com')),
+                     'artifact-redirect-host-refused')
+                # No Authorization, cookies or source headers reach signed storage.
+                request=urllib.request.Request(location,method='GET',headers={'User-Agent':'personal-lab-branch-lifecycle'})
+        raise ValueError('artifact-download-unavailable')
+
+    def event_receipt(self,binding,run):
+        need(self.workflow_path==CI_WORKFLOW,'native-CI-proof-format-not-bound-for-workflow')
+        rid,attempt=run['id'],run['run_attempt']
+        need(run.get('status')=='completed' and run.get('conclusion')=='success','latest-native-CI-not-successful')
+        for path in ('actions/runs/'+str(rid),f'actions/runs/{rid}/attempts/{attempt}'):
+            actual=self.api(path)[0]
+            selected=self.current_runs(binding,[actual])
+            need(len(selected)==1 and all(actual.get(k)==run.get(k) for k in
+                 ('id','run_attempt','event','path','head_sha','head_branch','status','conclusion')),
+                 'native-run-or-attempt-moved')
+        jobs=self.pages(f'actions/runs/{rid}/attempts/{attempt}/jobs?per_page=100','jobs')
+        selected=[j for j in jobs if j.get('name')=='branch-lifecycle']
+        need(len(selected)==1,'native-upload-job-not-unique')
+        job=selected[0]
+        need(job.get('head_sha')==binding['head'] and job.get('status')=='completed'
+             and job.get('conclusion')=='success' and job.get('runner_group_name')=='GitHub Actions'
+             and job.get('labels')==['ubuntu-24.04'],'native-upload-job-unverified')
+        steps=job.get('steps')
+        need(type(steps) is list and all(type(s) is dict and type(s.get('number')) is int and s['number']>0 for s in steps)
+             and len({s['number'] for s in steps})==len(steps),'native-upload-steps-ambiguous')
+        upload=[s for s in steps if s['number']==7]
+        need(len(upload)==1 and upload[0].get('name')==CI_UPLOAD
+             and upload[0].get('status')=='completed' and upload[0].get('conclusion')=='success',
+             'native-upload-step-not-successful')
+        artifacts=self.pages(f'actions/runs/{rid}/artifacts?per_page=100','artifacts')
+        selected=[a for a in artifacts if a.get('name')=='lab-45-branch-lifecycle-'+str(attempt)]
+        need(len(selected)==1,'exact-attempt-artifact-missing-or-ambiguous')
+        artifact=selected[0];link=artifact.get('workflow_run')
+        need(artifact.get('expired') is False and type(link) is dict
+             and type(link.get('id')) is int and link['id']==rid
+             and link.get('head_sha')==binding['head'] and link.get('head_branch')==binding['branch']
+             and all(type(link.get(k)) is int and link[k]==RID for k in ('repository_id','head_repository_id')),
+             'artifact-native-run-linkage-mismatch')
+        expected=artifact.get('digest')
+        need(type(expected) is str and re.fullmatch('sha256:[0-9a-f]{64}',expected),'native-artifact-digest-missing')
+        raw=self.artifact_zip(artifact['id'])
+        need('sha256:'+hashlib.sha256(raw).hexdigest()==expected,'native-artifact-raw-digest-mismatch')
+        allowed={'verdict.json','affected-queue.log','v2-verdict.json','native-pr-verdict.json','native-ci-verdict.json'}
+        with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+            infos=archive.infolist();names=set();total=0
+            need(0<len(infos)<=len(allowed),'artifact-ZIP-member-bound')
+            for member in infos:
+                name=member.filename
+                need(member.orig_filename==name and name in allowed and name not in names
+                     and not member.is_dir() and not member.flag_bits&1
+                     and stat.S_IFMT(member.external_attr>>16) in (0,stat.S_IFREG),'unsafe-artifact-ZIP-member')
+                names.add(name);total+=member.file_size
+                need(0<=member.file_size<=16*1024*1024 and total<=16*1024*1024,'artifact-ZIP-expansion-bound')
+            need('native-pr-verdict.json' in names and archive.testzip() is None,'artifact-verdict-missing-or-corrupt')
+            report_raw=archive.read('native-pr-verdict.json')
+        need(len(report_raw)<=1024*1024,'native-verdict-size-bound')
+        report=json.loads(report_raw.decode('utf-8'),object_pairs_hook=unique,parse_constant=nonfinite)
+        need(type(report) is dict and set(report)=={'head','base','run','attempt','tests',
+             'failures','errors','skipped','expected_failures','unexpected_successes'},'native-verdict-schema-mismatch')
+        def environment_id(value):
+            if type(value) is str:
+                need(re.fullmatch('[1-9][0-9]{0,18}',value),'invalid-verdict-environment-ID')
+                return int(value)
+            need(type(value) is int and value>0,'invalid-verdict-ID');return value
+        need(report['head']==binding['head'] and report['base']==binding['base']
+             and environment_id(report['run'])==rid and environment_id(report['attempt'])==attempt
+             and type(report['tests']) is int and report['tests']==6
+             and all(type(report[k]) is list and not report[k] for k in
+                 ('failures','errors','skipped','expected_failures','unexpected_successes')),
+             'native-event-time-base-or-verdict-not-exact-success')
+        return report,dict(artifact_id=artifact['id'],sha256=expected.removeprefix('sha256:'),
+                           report_sha256=hashlib.sha256(report_raw).hexdigest(),job_id=job['id'],upload_step=7)
+
+    def runs(self,binding):
+        self.binding=copy.deepcopy(binding)
+        current=self.current_runs(binding,self.native_runs(binding))
+        if not current:return dict(complete=True,items=[])
+        run=max(current,key=lambda r:(r['id'],r['run_attempt']))
+        report,receipt=self.event_receipt(binding,run)
+        final=self.current_runs(binding,self.native_runs(binding))
+        need(final,'latest-native-run-disappeared-after-receipt')
+        latest=max(final,key=lambda r:(r['id'],r['run_attempt']))
+        need(all(latest.get(k)==run.get(k) for k in
+                 ('id','run_attempt','event','path','head_sha','head_branch','status','conclusion')),
+             'latest-native-run-changed-after-receipt')
+        # Event-time base comes from the verified immutable ZIP, not mutable PR associations.
+        normalized=dict(id=run['id'],run_attempt=run['run_attempt'],event=run['event'],path=run['path'],
+            repository=run['repository'],head_branch=run['head_branch'],head_sha=run['head_sha'],
+            base_sha=report['base'],pull_request=binding['pr_number'],status=run['status'],conclusion=run['conclusion'],
+            event_time_receipt=receipt)
+        return dict(complete=True,items=[normalized])
 
     def rerun(self,run_id,attempt):
         need('rerun-ci' in self.contract['allowed_actions'] and self.binding is not None,'rerun-not-authorized')
