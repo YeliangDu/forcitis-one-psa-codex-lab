@@ -46,7 +46,16 @@ jobs:
       - name: Install light-check dependency
         run: python3 -m pip install PyYAML==6.0.3
       - name: Install checksum-verified ShellCheck on Ubuntu
-        run: bash scripts/session/codex_lab/install_hosted_shellcheck.sh
+        run: |
+          set -euo pipefail
+          test "$(uname -s)-$(uname -m)" = Linux-x86_64
+          cd "$(mktemp -d "$RUNNER_TEMP/lab-shellcheck-api.XXXXXX")"
+          asset=shellcheck-v0.11.0.linux.x86_64.tar.xz
+          curl --fail --silent --show-error --location --retry 2 --proto '=https' --proto-redir '=https'             -H 'Accept: application/octet-stream' -H 'Cache-Control: no-cache'             https://api.github.com/repos/koalaman/shellcheck/releases/assets/279056942 -o "$asset"
+          printf '%s  %s\n' 8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198 "$asset" | sha256sum --check --strict -
+          tar -xJf "$asset" shellcheck-v0.11.0/shellcheck
+          test "$(shellcheck-v0.11.0/shellcheck --version | awk '/^version:/ {print $2}')" = 0.11.0
+          printf '%s\n' "$PWD/shellcheck-v0.11.0" >> "$GITHUB_PATH"
       - name: Old control light checks on exact public base
         id: light
         env:
@@ -65,7 +74,21 @@ jobs:
       - name: Install checksum-verified Gitleaks 8.30.1 on Ubuntu
         id: gitleaks
         if: ${{ !cancelled() && steps.pin.outcome == 'success' }}
-        run: bash scripts/session/codex_lab/install_gitleaks.sh
+        run: |
+          set -euo pipefail
+          test "$(uname -s)-$(uname -m)" = Linux-x86_64
+          cd "$(mktemp -d "$RUNNER_TEMP/lab-gitleaks-api.XXXXXX")"
+          asset=gitleaks_8.30.1_linux_x64.tar.gz
+          curl --fail --silent --show-error --location --retry 2 --proto '=https' --proto-redir '=https'             -H 'Accept: application/octet-stream' -H 'Cache-Control: no-cache'             https://api.github.com/repos/gitleaks/gitleaks/releases/assets/378332058 -o "$asset"
+          curl --fail --silent --show-error --location --retry 2 --proto '=https' --proto-redir '=https'             -H 'Accept: application/octet-stream' -H 'Cache-Control: no-cache'             https://api.github.com/repos/gitleaks/gitleaks/releases/assets/378333193 -o checksums.txt
+          printf '%s  %s\n' 061476c21adaf5441516f96f185c1a4706a83cd6329b9b38762271b3d4a52fae checksums.txt | sha256sum --check --strict -
+          awk -v asset="$asset" '$2 == asset {print}' checksums.txt > selected-checksum.txt
+          test "$(wc -l < selected-checksum.txt)" -eq 1
+          sha256sum --check --strict selected-checksum.txt
+          printf '%s  %s\n' 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb "$asset" | sha256sum --check --strict -
+          tar -xzf "$asset" gitleaks
+          test "$(./gitleaks version)" = 8.30.1
+          printf '%s\n' "$PWD" >> "$GITHUB_PATH"
       - name: Main full-history secret scan
         id: secret
         if: ${{ !cancelled() && steps.pin.outcome == 'success' && steps.gitleaks.outcome == 'success' }}
