@@ -1,0 +1,112 @@
+{
+  "kind": "sanitized-provided-native-window/1",
+  "source_witness_sha256": "f2387a848761d76d24e7ccbccc093b29c2030cd35c8fe69b00e47d7f64568da3",
+  "source_window_sha256": "67fd23e807ec8e7e775fc802027af4c5b4204a0f742167952dbdeb7aa9e1795e",
+  "witness": {
+    "card": 61,
+    "revision": 1,
+    "thread": "01a1b614-934c-7250-a715-5cf09e9c02c2",
+    "claim": "a626a85abf8a6dfe1926c75bc8b282a8",
+    "prior_turn": "01a1bcc2-df63-73d0-8033-53ebccddef1d",
+    "native_turn": "01a1bd2b-3964-72b1-abf4-5e6eb9c53802",
+    "ack_item": "msg_067fd88b8d52abf2016af0f07686e087d28b52e479523a82be",
+    "command_item": "exec-49b9f825-6db0-47fb-9e2c-70c4eafd90a2",
+    "artifact_item": "msg_067fd88b8d52abf2016af0f07e7dc087d290e18d0393892772",
+    "send_attempts": 1,
+    "payload_sha256": "92bf37b069d36d2ed442f1a241281ba194601e46bd0076b35b5d52bdff37e2b6",
+    "pre_send_cursor": "a3e466e4-5068-436f-be4b-21815cec7190:272",
+    "post_read_cursor": "a3e466e4-5068-436f-be4b-21815cec7190:274",
+    "bounded_window": "fresh top through exact prior turn; older history not evaluated",
+    "artifact": {
+      "kind": "lab-p0-native-artifact/1",
+      "claim": "a626a85abf8a6dfe1926c75bc8b282a8",
+      "card": 61,
+      "revision": 1,
+      "cwd": "/Users/yeliang/Projects/FORCITIS/forcitis-one-psa-codex-lab",
+      "git_root": "/Users/yeliang/Projects/FORCITIS/forcitis-one-psa-codex-lab",
+      "git_common_dir": "/Users/yeliang/Projects/FORCITIS/forcitis-one-psa-codex-lab/.git",
+      "origin": "git@github.com:YeliangDu/forcitis-one-psa-codex-lab.git",
+      "base": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+      "path": "docs/ops/codex-lab-workflow.md",
+      "sha256": "12a3752f124b311ee07476c549a124fc2f836a526167ea5fe9498743f7a77e1f"
+    },
+    "permissions_proved": [
+      "read-only static shell in explicit Lab cwd"
+    ],
+    "permissions_not_proved": [
+      "workspace-write enforcement",
+      "native cwd rebind",
+      "hook trust / execution",
+      "compact or restart recovery",
+      "automatic operation broker / writer"
+    ],
+    "status": "native-readonly-witness-proved",
+    "recorded_at_utc": "2026-11-08T21:59:27.628550+00:00"
+  },
+  "thread": {
+    "id": "01a1b614-934c-7250-a715-5cf09e9c02c2",
+    "hostId": "local",
+    "cwd": "/Users/yeliang/.codex/worktrees/lab-20-acceptance/forcitis-one-psa-codex-lab"
+  },
+  "page": {
+    "order": "newest_first",
+    "limit": 2,
+    "nextCursor": "{\"requestedThreadId\":\"01a1b614-934c-7250-a715-5cf09e9c02c2\",\"rolloutOrdinal\":7957,\"includeAnchor\":false,\"scope\":{\"kind\":\"turns\"}}",
+    "hasMore": true
+  },
+  "post_snapshot": {
+    "cursor": "a3e466e4-5068-436f-be4b-21815cec7190:274",
+    "turn": {
+      "id": "01a1bd2b-3964-72b1-abf4-5e6eb9c53802",
+      "status": "completed",
+      "error": null,
+      "startedAt": 1794175089,
+      "completedAt": 1794175107,
+      "durationMs": 18180
+    },
+    "status": "idle"
+  },
+  "turns": [
+    {
+      "id": "01a1bd2b-3964-72b1-abf4-5e6eb9c53802",
+      "status": "completed",
+      "items": [
+        {
+          "type": "functionCallOutput",
+          "id": "fco_01a1bd2b-3964-72b1-abf4-5e7c1c2a934f",
+          "redacted": true,
+          "canonical_item_sha256": "5ab9de2fb40b947d05baf80ff4afa5fbf747e0b72f66d39c6afd80bc69740d7c"
+        },
+        {
+          "type": "agentMessage",
+          "id": "msg_067fd88b8d52abf2016af0f07686e087d28b52e479523a82be",
+          "text": "{\"kind\":\"lab-p0-native-ack/1\",\"claim\":\"a626a85abf8a6dfe1926c75bc8b282a8\",\"card\":61,\"revision\":1,\"role\":\"one-test\",\"thread\":\"01a1b614-934c-7250-a715-5cf09e9c02c2\",\"workdir\":\"/Users/yeliang/Projects/FORCITIS/forcitis-one-psa-codex-lab\",\"base\":\"77e872e8ba9661d3294d3a9337c8e5c956b70641\"}\n",
+          "phase": "commentary"
+        },
+        {
+          "type": "commandExecution",
+          "id": "exec-49b9f825-6db0-47fb-9e2c-70c4eafd90a2",
+          "command": "/bin/zsh -lc 'pwd -P\n/usr/bin/git rev-parse --show-toplevel\n/usr/bin/git rev-parse --path-format=absolute --git-common-dir\n/usr/bin/git remote get-url origin\n/usr/bin/git show 77e872e8ba9661d3294d3a9337c8e5c956b70641:docs/ops/codex-lab-workflow.md | /usr/bin/shasum -a 256'",
+          "cwd": "/Users/yeliang/Projects/FORCITIS/forcitis-one-psa-codex-lab",
+          "status": "completed",
+          "exitCode": 0,
+          "output": {
+            "text": "/Users/yeliang/Projects/FORCITIS/forcitis-one-psa-codex-lab\n/Users/yeliang/Projects/FORCITIS/forcitis-one-psa-codex-lab\n/Users/yeliang/Projects/FORCITIS/forcitis-one-psa-codex-lab/.git\ngit@github.com:YeliangDu/forcitis-one-psa-codex-lab.git\n12a3752f124b311ee07476c549a124fc2f836a526167ea5fe9498743f7a77e1f  -\n",
+            "truncated": false
+          }
+        },
+        {
+          "type": "agentMessage",
+          "id": "msg_067fd88b8d52abf2016af0f07e7dc087d290e18d0393892772",
+          "text": "{\"kind\":\"lab-p0-native-artifact/1\",\"claim\":\"a626a85abf8a6dfe1926c75bc8b282a8\",\"card\":61,\"revision\":1,\"cwd\":\"/Users/yeliang/Projects/FORCITIS/forcitis-one-psa-codex-lab\",\"git_root\":\"/Users/yeliang/Projects/FORCITIS/forcitis-one-psa-codex-lab\",\"git_common_dir\":\"/Users/yeliang/Projects/FORCITIS/forcitis-one-psa-codex-lab/.git\",\"origin\":\"git@github.com:YeliangDu/forcitis-one-psa-codex-lab.git\",\"base\":\"77e872e8ba9661d3294d3a9337c8e5c956b70641\",\"path\":\"docs/ops/codex-lab-workflow.md\",\"sha256\":\"12a3752f124b311ee07476c549a124fc2f836a526167ea5fe9498743f7a77e1f\"}",
+          "phase": "final_answer"
+        }
+      ]
+    },
+    {
+      "id": "01a1bcc2-df63-73d0-8033-53ebccddef1d",
+      "status": "completed",
+      "items": []
+    }
+  ]
+}

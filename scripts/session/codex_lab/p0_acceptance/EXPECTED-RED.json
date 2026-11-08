@@ -1,0 +1,19 @@
+{
+  "status": "SOURCE-DERIVED ONLY; no tests executed",
+  "tests": 14,
+  "expected_failures": 2,
+  "expected_errors": 0,
+  "expected_skips": 0,
+  "assertions": {
+    "test_p0_existing_contracts.P0ExistingContractAcceptance.test_A03_compact_without_current_authority_must_not_inject_old_static_dispatch": "A03_COMPACT_STALE_FIXTURE_INJECTED",
+    "test_p0_existing_contracts.P0ExistingContractAcceptance.test_A03_resume_without_current_authority_must_not_inject_old_static_dispatch": "A03_RESUME_STALE_FIXTURE_INJECTED"
+  },
+  "actual_behavior": "Run byte-identical existing legacy hook.py CLI in isolated original path shape with real supported SessionStart source compact/resume and old dispatch JSON. Existing script reads the old task and emits it as additionalContext. Contract requires no stale-task injection without current authority.",
+  "not_missing_implementation_red": true,
+  "other_cases": "12 existing-baseline/observational methods expected green; original guards unchanged",
+  "raw_expected_red_exit": 1,
+  "HOLD_exit": 86,
+  "unexpected_baseline_green": "HOLD, not implementation permission",
+  "remaining_families": "see SCOPE-AND-HOLDS.json; no executable active/native seam is fabricated",
+  "full_P0_complete": false
+}
