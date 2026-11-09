@@ -1,0 +1,26 @@
+{
+  "kind": "p1-observed-native-projection-contract/1",
+  "B": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+  "comparison_H": "549e2f731df8faba6311c71e554fa197b3ff1428",
+  "api": "match_dispatch_ack(claim,prompt_bytes,legacy_pages,window_proof=proof)",
+  "projection_version": "read-thread-observed-projection/1",
+  "native_record": "capture_schema/request/query_cursor/response_utf8/response_sha256/response_truncated plus parsed response. Retain original UTF8 serialization, hash it before parse and require exact parsed object correspondence.",
+  "native_response_shape": "schemaVersion/thread/page/turns; known thread and turn metadata retained; observed agentMessage phases commentary/final_answer; nontext functionCallOutput/commandExecution/reasoning retained, never ACK sources.",
+  "synthetic_schema_version": "fixture value1 is not a claim of authenticated actual SDK version; actual connector/version compatibility remains separate HOLD",
+  "cursor_domains": "claim.pre_send_cursor and snapshot.cursor are wait-event cursor. First raw read request has NO cursor key, query_cursor and legacy first request_cursor null; subsequent request.cursor/query_cursor follow exact opaque page.nextCursor bytes, not wait cursor. Do not parse opaque cursor internals.",
+  "phase_mapping": "version1 maps only raw commentary->commentary, final_answer->final for normalized identity; raw phase always retained. Non-agent normalized text is empty by explicit nonmatching convention, never extracted from tools.",
+  "boundedness": "before-send terminal predecessor + initial fresh-top + continuous newest-first walk reaching predecessor + final fresh-top same top. Keep final hasMore true/older continuation; never claim full history exhausted.",
+  "matched_result": "existing action/reason/turn_id/claim_id plus window.projection_version,wait_event_cursor,scope=post-send-through-predecessor,predecessor_turn,full_history_exhausted=false,native_continuation and exact audit_index",
+  "audit_index": "per record original request/query_cursor/raw_response_sha256/next_cursor/has_more/order/turn_ids and item(turn_id,item_id,type,raw_phase,normalized_phase,raw_text_present)",
+  "HOLD_cases": [
+    "cursor-domain mixing or explicit cursor on fresh top",
+    "wrong raw digest or raw/parsed/legacy correspondence",
+    "moved top, missing predecessor/continuity",
+    "duplicate/quoted/partial/wrong-thread/wrong-claim ACK",
+    "non-agent tool/command/reasoning/preview fake marker",
+    "truncated or unknown completeness"
+  ],
+  "activation_authority": false,
+  "actual_native_auth_transport_permissions": "HOLD separately; no private raw capture in fixtures",
+  "prior_A_modified": false
+}

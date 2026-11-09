@@ -1,0 +1,17 @@
+{
+  "status": "SOURCE-DERIVED ONLY; no execution",
+  "baseline_H": "549e2f731df8faba6311c71e554fa197b3ff1428",
+  "baseline_source_sha256": "6b8796a22cbc6417194a37836bcb73eafa1fe94507303694ad29696b7e64eadb",
+  "tests": 12,
+  "failures": 2,
+  "errors": 0,
+  "skipped": 0,
+  "assertions": {
+    "test_native_projection.NativeProjectionAcceptance.test_observed_shape_fresh_top_nontext_tools_and_metadata_is_bounded_positive": "P1_NATIVE_REAL_SHAPE_BOUNDED_POSITIVE_REJECTED",
+    "test_native_projection.NativeProjectionAcceptance.test_real_final_answer_ack_maps_versioned_phase_without_losing_raw_value": "P1_NATIVE_FINAL_ANSWER_POSITIVE_REJECTED"
+  },
+  "existing_executable_comparison": "same actual match_dispatch_ack(claim,prompt_bytes,legacy_pages,window_proof=proof) API supported by exact H; separate prior-profile positive capability proves execution. Existing strict raw/projection shape, cursor-domain and phase rules reject observed-shape bounded positives.",
+  "not_red": "missing source/function/API/fixture/module/containment, unexpected errors/skips or unexpected baseline green -> HOLD86",
+  "candidate": "separate external reviewed source SHA, unchanged frozen A; all12 zero errors/skips required; never active C",
+  "native_proof": "synthetic shape only, not connector authentication/transport/permissions/send ordering"
+}
