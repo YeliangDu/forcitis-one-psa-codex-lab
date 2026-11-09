@@ -144,6 +144,8 @@ def main():
     parser.add_argument('--private-binding-sha256')
     parser.add_argument('--owned-installation')
     parser.add_argument('--owned-installation-sha256')
+    parser.add_argument('--single-role-installation')
+    parser.add_argument('--single-role-installation-sha256')
     parser.add_argument('--request')
     args=parser.parse_args()
     try:
@@ -151,8 +153,16 @@ def main():
         if args.command in ('serve-owned','call-owned'):
             require(args.owned_installation and args.owned_installation_sha256
                     and not args.private_binding and not args.private_binding_sha256,'owned-only-selection-required')
+            if args.single_role_installation or args.single_role_installation_sha256:
+                require(args.single_role_installation and args.single_role_installation_sha256,
+                        'single-role-pinned-installation-required')
+                from single_role import run
+                return run(args.command,args.owned_installation,args.owned_installation_sha256,args.request,
+                           args.single_role_installation,args.single_role_installation_sha256)
             from owned_runtime import run
             return run(args.command,args.owned_installation,args.owned_installation_sha256,args.request)
+        require(not args.single_role_installation and not args.single_role_installation_sha256,
+                'single-role-owned-modes-only')
         require(args.private_binding and args.private_binding_sha256
                 and not args.owned_installation and not args.owned_installation_sha256,'portable-binding-required')
         binding=load_private_binding(args.private_binding,args.private_binding_sha256,args.source_closure_sha256)

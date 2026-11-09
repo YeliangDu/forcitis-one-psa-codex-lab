@@ -1,4 +1,5 @@
 """Zero-task public Broker lane with one directly owned stdio App Server."""
+from contextlib import nullcontext
 import fcntl
 import hashlib
 import json
@@ -49,6 +50,8 @@ def private(path,kind):
     return info
 
 class Installation:
+    fixture_kind = "fixture-stdio-only"
+    fixture_worker_sha = WORKER_SHA
     def __init__(self,path,pin):
         path=physical(path)
         private(path,stat.S_ISREG)
@@ -78,11 +81,14 @@ class Installation:
         need(all(type(n) is int and 100<=n<=10000 for n in self.timeout.values()),'owned-timeout-bound')
         self.check_child()
 
+    def serve_context(self):
+        return nullcontext()
+
     def check_child(self):
         argv,pins,env=(self.child[k] for k in ('argv','files_sha256','environment'))
         need(type(argv) is list and all(type(a) is str for a in argv) and type(pins) is dict
              and type(env) is dict,'owned-child-pins-required')
-        if self.kind=='fixture-stdio-only':
+        if self.kind==self.fixture_kind:
             need(sys.platform=='linux' and self.root.name.startswith('owned-test-')
                  and {n for _,n in socket.if_nameindex()}=={'lo'},'fixture-network-namespace-required')
             need(len(argv)==11 and argv[1:4]==['-I','-S','-B']
@@ -91,7 +97,7 @@ class Installation:
                  'wrong-fixture-argv')
             binary,worker=physical(argv[0]),physical(argv[4])
             need(binary==Path(sys.executable).resolve(strict=True) and worker.name=='stdio_fixture.py'
-                 and worker.parent.name=='acceptance' and file_sha(worker)==WORKER_SHA
+                 and worker.parent.name=='acceptance' and file_sha(worker)==self.fixture_worker_sha
                  and set(pins)=={str(binary),str(worker)},'wrong-fixture-input')
             need(env==dict(PATH='/usr/bin:/bin',HOME=str(self.home),LANG='C.UTF-8',
                            PYTHONDONTWRITEBYTECODE='1'),'wrong-fixture-environment')
@@ -123,14 +129,14 @@ class Installation:
 
 class OwnerStore(Store):
     """Reuse owner verification, transaction, and pause without opening legacy transport."""
-    def __init__(self,i):
+    def __init__(self,i,*,zero_task=True):
         self.mutex=threading.RLock()
         self.db=sqlite3.connect(i.database.as_uri()+'?mode=rw',uri=True,isolation_level=None,check_same_thread=False)
         self.db.row_factory=sqlite3.Row
         try:
             self.db.execute('pragma synchronous=full')
             row=self.db.execute('select pin from installation where id=1').fetchone()
-            need(row is not None and row['pin']==i.pin and self.current(self.db) is None,
+            need(row is not None and row['pin']==i.pin and (not zero_task or self.current(self.db) is None),
                  'owned-empty-ledger-pin-required')
         except BaseException:
             self.db.close()
@@ -243,8 +249,9 @@ class Channel:
         return self.terminal
 
 class OwnedBroker:
-    def __init__(self,i):
-        self.i=i;self.store=OwnerStore(i);self.execution_gate=threading.RLock()
+    def __init__(self,i,*,store_factory=OwnerStore,zero_task=True):
+        self.zero_task=zero_task
+        self.i=i;self.store=store_factory(i);self.execution_gate=threading.RLock()
         self.channel=None;self.state='stopped';self.epoch_owner=None;self.seen=set()
 
     def handle(self,request):
@@ -258,9 +265,12 @@ class OwnedBroker:
                 return dict(self.store.pause(a,x['paused']),action='paused')
             with self.store.tx() as db:
                 row=self.store.owner(db,a)
-                need(self.store.current(db) is None,'owned-zero-task-required')
+                need(not self.zero_task or self.store.current(db) is None,'owned-zero-task-required')
                 owner=(row['client'],row['generation'],row['token_sha'])
                 return self.operation(c,x,owner,bool(row['paused']))
+
+    def new_channel(self):
+        return Channel(self.i)
 
     def operation(self,c,x,owner,paused):
         ch=self.channel
@@ -273,7 +283,7 @@ class OwnedBroker:
         if c=='runtime.start':
             fields(x,())
             need(not paused and (ch is None or ch.terminal is not None),'owned-paused-or-running')
-            self.channel=ch=Channel(self.i);self.epoch_owner=owner;self.seen.clear()
+            self.channel=ch=self.new_channel();self.epoch_owner=owner;self.seen.clear()
             try:ch.initialize()
             except (ValueError,TypeError,OSError,EOFError,subprocess.SubprocessError):
                 self.state='faulted';ch.stop();raise
@@ -302,8 +312,8 @@ class OwnedBroker:
             if self.channel:self.channel.stop()
         finally:self.store.db.close()
 
-def run(mode,path,pin,request):
-    i=Installation(path,pin)
+def run(mode,path,pin,request,*,installation_factory=Installation,broker_factory=OwnedBroker):
+    i=installation_factory(path,pin)
     if mode=='call-owned':
         need(request is not None and physical(request).parent==i.root,'owned-request-required')
         private(i.sock,stat.S_ISSOCK)
@@ -320,9 +330,9 @@ def run(mode,path,pin,request):
         private(lock,stat.S_ISREG)
         fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
         need(not i.sock.exists() and not i.sock.is_symlink(),'stale-owned-socket')
-        broker=OwnedBroker(i)
+        broker=broker_factory(i)
         try:
-            with Server(str(i.sock),Handler) as server:
+            with i.serve_context(), Server(str(i.sock),Handler) as server:
                 os.chmod(i.sock,0o600);before=private(i.sock,stat.S_ISSOCK)
                 server.broker=broker
                 try:server.serve_forever(poll_interval=.1)
