@@ -1,0 +1,41 @@
+{
+  "kind": "p2-real-transport-test-freeze/1",
+  "base": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+  "files_sha256": {
+    "test_real_transport_descendant.py": "6b1427fc06b415564f928917b75ce98a2fbcbd227ff80bc9ecd3494df880a432"
+  },
+  "source_pins": {
+    "B": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+    "files": {
+      "scripts/merge/mq.py": "93dc6e19bde3535c958fdbd62f45f8647601be59407cfb5855af37dc360491e9",
+      "scripts/merge/mq_github.py": "d9838a9a5534276b31df6f88a9759b2a0ad08b79272fcf8653a20eb1ad274490",
+      "scripts/merge/mq_lab_operator.py": "5a78044370589de5d0caf5b72aba023e8a1df8cb134cd452fe7d800ff15d688b",
+      "scripts/merge/mq_queue.py": "4fca732704a7a2bebf1580abdf279f699bd56be95fb02bef85773f18fdd1c665",
+      "scripts/merge/mq_lab_runtime.py": "7bb0ad5d49547b5c5aab46fb554fa0792c3973f9d3c793b160c7effdd174c3cf",
+      "scripts/session/codex_lab/lab_queue_git_writer.py": "07f88737a124de9cb7f529f59ed6f44fab474e9d5cc28b5b466e5e5e9d0bd122",
+      "scripts/merge/mq_lab_journal.py": "0422699839ce20d25b7986fa805b691628d43f9bf2ea9ddc5e825ac1b449baff",
+      "scripts/merge/mq_lab.py": "fe5ce0a3d4c089362697dc9fee1482ee5f77aa0ca3231f38f1cdd08452009f62"
+    }
+  },
+  "local_tests_run": false,
+  "activation_authorized": false,
+  "expected": {
+    "status": "static-prediction-not-executed",
+    "tests": 1,
+    "assertion_failures": 1,
+    "assertion": "assertFalse(lock_available): production merge flock became available while actual SSH descendant lived",
+    "not_proven": "No second send is predicted or claimed: durable reservation is separately expected to force read-only recovery."
+  },
+  "required_hosted_launcher": [
+    "Trusted launcher must export and verify complete exact-B import closure, not only listed entry hashes.",
+    "Run in fresh disposable hosted Linux sandbox with no secrets/token or outbound network and no mounted Lab/canonical directories.",
+    "Execute only test after explicit hosted authorization; set EXACT_B_SOURCE_ROOT to disposable export.",
+    "Missing imports/tools, isolation failure, barrier timeout, orphan cleanup failure or unexpected errors are HOLD and not assertion red."
+  ],
+  "limits": [
+    "ProductionPorts.git method runs unchanged with mq_github.sh; constructor bypass avoids fixed live GithubRead and canonical binding.",
+    "Actual mq_lab_runtime, Queue and V1 ReleaseJournal reserve/reconcile are exercised. This is not full run_command, V2, main writer authorization, or control installer acceptance.",
+    "Controlled SSH helper redirects only explicit /receiver to disposable local receive-pack; no real network endpoint or credential.",
+    "One test includes unknown readback/no resend and exact local parents/tree reconciliation controls; it does not certify native GitHub evidence."
+  ]
+}
