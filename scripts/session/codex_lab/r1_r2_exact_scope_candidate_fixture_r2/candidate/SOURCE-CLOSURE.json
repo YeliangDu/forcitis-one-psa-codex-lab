@@ -1,0 +1,42 @@
+{
+  "kind": "r2-portable-exact-typed-action-gate-candidate/1",
+  "entry": "portable_broker.py",
+  "parent_closure_sha256": "60dd413cea142ad972b1c8acdbf6dd0de442c0eaf9c18fd41e7482a5310ea70b",
+  "files_sha256": {
+    "branch_broker.py": "9f6254fd3b83b6b0f34bde515c56edb9b944d90fc251b551e42e1d7cc3ddb1d5",
+    "branch_effect_binding.py": "82435b55731b7f78f72993194dbb57fc5d62e0ffa1c0e83d0b5a38ed72d63cbe",
+    "branch_effect_port.py": "ae4ba44f12472d1109a01e0ad468e6cabbbf02adbc8d9cbd39c1dfb4aff7c42c",
+    "broker_plan.py": "638dbf482e5ef12e257fc5f0a8c0297571641703981f8fd1517b16ab02805cc7",
+    "existing_ci_proof.py": "5393667fcf2e10be2e8223e6380df321b6d72deb56423e290e51b8cfc1217ba4",
+    "goal_retire.py": "e4a5157b78d278e64ac2345ab7b35a3c22da132603b2b3b8ce5f2563b55445df",
+    "handoff_retire.py": "8118be38d49376a0138ef88e2ba2373b18e4a871ee02d4bd6553a983af5933b7",
+    "native_goal.py": "5856c23ca25734ed7df2ef4f737f472229b1c875f344e8796be9115d935d2c89",
+    "native_quiesce.py": "f4e90a3833728ac7e6ed067effd84d112ad5cc74418a2dec133fe432e6f62312",
+    "native_role.py": "fe5617f8bdfaa3d170585c84fe3c57c9ec39b1b954da801634dcf51f2c45dc45",
+    "native_transport.py": "2925546088ac9386f5945185b29806cc95c557bcc9fb4d3a330d7d5122011ac1",
+    "native_wait.py": "062c69a93055b5bded567311b538865a8a8e5f08ec4b570be8d4dff60cd2e969",
+    "orphan_terminal.py": "77f8e0adb5b0b2a358d7e3a6e5467143adaf4eb959f9da94e041ddf097fa0177",
+    "pending_wire.py": "9398c7383a8c424509cd24f7a0578a514f9ddea46d689a26c3ab6e05c6c2cbfc",
+    "portable_broker.py": "588f4d81a2e17e557abc7390c20dbd92b46797c34a6d99ea5b5e0f62bc176bd7",
+    "portable_config.py": "ef79262cd962cb580d9eca12f09cd76293315f555476a2dbdb3dc607d226b403",
+    "private_resources.py": "0b8409f3ea7c4f14eca9bd783dd76db2958be7c826edc08a6aa631abae4bf126",
+    "readonly_plan_consumer.py": "62aac50be8802351a8ae79e592c0e6e8f04bb943dbc54573221efb1b47f473af",
+    "reconnect_observe.py": "bdc7ed4273e1f96fb1b7d0e2e5d464ac50235fa3ee8314c1c4296fa4e0da30dc",
+    "role_resume.py": "fd2fe7bb9b3b19685e21c17aad5319122feffaab33b2d74ca66268a8b44c6928",
+    "runtime_broker.py": "db842b7d777d07b9ef34f34079c1eb1f514317c19d503f442abb307f8e8c3639",
+    "runtime_store.py": "3990105d2eff4dafb40e01810734f065c1f81f9c9dec0e7ab49f6d95af8871db",
+    "warm_handoff.py": "ec343e6391e15ec13a2be87c41a9bbbb2e8fdf353f55355d238625312c40bf93",
+    "binding.schema.json": "8e56721a606eaff72289da8279f63f0cbb59b2167dda4a732877ac95ef3fcf64",
+    "exact_scope.py": "9069901de3f64407bb947bf2d5bcba27c7087014a2f37993539a08527dc60a4e"
+  },
+  "reference_snapshots_sha256": {
+    ".codex-lab/harness-v2/r1-r2-portable-broker-independent/EXACT-REVIEW-60dd413c.md": "27db729082d33ba3dc00899dd5689f24845b922483f97dde8c8ccb7d06f9f467",
+    ".codex-lab/harness-v2/r1-r2/portable-hosted-42574253862-1-verified.json": "a2e46d811d51adb22c196508e9f46a7689975ae241a7be6a5050960457d7e6eb"
+  },
+  "static_parse_only": true,
+  "actual_execution": false,
+  "local_tests_run": false,
+  "new_exact_review_received": false,
+  "serve_authorized": false,
+  "formal_writer": false
+}
