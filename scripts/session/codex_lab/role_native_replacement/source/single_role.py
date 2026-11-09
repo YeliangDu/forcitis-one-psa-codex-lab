@@ -15,6 +15,7 @@ from runtime_broker import physical, private_file
 from runtime_store import Store, need, wire
 from role_network import MODEL, relay
 import role_native
+from role_replacement import retire_failed_role, retire_and_reserve, bind_replacement
 
 FIXTURE_SHA='86ed5477d7afd5e85bd01d7fafb76c187a7b20b5691563990a835e07f7e44702'
 class RoleWireError(RuntimeError):
@@ -22,7 +23,7 @@ class RoleWireError(RuntimeError):
 
 
 ROLE_COMMANDS={'assignment.publish','assignment.revoke','role.register','role.resume',
-               'role.dispatch-current','role.readback-current','role.reconcile-failed-current'}
+               'role.dispatch-current','role.readback-current','role.reconcile-failed-current','role.retire-failed','role.replace-retired'}
 
 FAILED_PROOF_SHA='5327bf6b30b1e2dd70031bd4ccbbc870a449db77a3d945f68a43792bd64290d0'
 RECONCILE_FIELDS=('epoch','revision','thread_id','turn_id','failure_sha256')
@@ -214,7 +215,8 @@ class SingleRoleBroker(OwnedBroker):
                     fields(args,('assignment',))
                     body=args['assignment']
                     assignment(body)
-                    need(registration and registration['session_id']==body['session_id']
+                    need(registration and registration['phase'] in ('provisional','stable')
+                         and registration['session_id']==body['session_id']
                          and registration['generation']==owner['generation']
                          and body['role']==self.i.role and body['physical_cwd']==str(self.i.cwd)
                          and (not current or (owner['paused'] and current['phase']=='fenced')),
@@ -233,11 +235,21 @@ class SingleRoleBroker(OwnedBroker):
             ch=self.channel
             if command=='role.reconcile-failed-current':
                 fields(args,RECONCILE_FIELDS)
+            elif command in ('role.retire-failed','role.replace-retired'):
+                fields(args,('epoch','old_thread_id'))
             else:
                 fields(args,('epoch',) if command in ('role.register','role.resume') else ('epoch','revision'))
             need(ch and args['epoch']==ch.epoch and self.state=='running'
                  and identity==self.epoch_owner and not ch.closed(),'stale-role-connection')
             try:
+                if command in ('role.retire-failed','role.replace-retired'):
+                    need(self.i.is_native,'one-native-role-replacement-only')
+                    if command=='role.retire-failed':
+                        result=retire_failed_role(self.store,auth,args['old_thread_id'])
+                        self.attached=None
+                        ch.context=None
+                        return result
+                    return self.replace_role(ch,auth,args['old_thread_id'])
                 if command=='role.reconcile-failed-current':
                     return self.reconcile(ch,auth,args)
                 if command=='role.register':
@@ -251,6 +263,21 @@ class SingleRoleBroker(OwnedBroker):
                 self.state='faulted'
                 ch.stop()
                 raise
+
+    def replace_role(self,ch,auth,old):
+        # Existing role and task lose authority in the same committed cut as
+        # consuming the only thread/start. No resume/fork or caller history.
+        retire_and_reserve(self.store,auth,old,ch.epoch)
+        self.attached=None
+        ch.context=None
+        ch.pending=None
+        _,result=ch.rpc('thread/start',dict(cwd=str(self.i.cwd),approvalPolicy='never',
+                    permissions=':read-only',ephemeral=False,environments=[],dynamicTools=[TOOL],
+                    config={'features.shell_tool':False}),self.i.timeout['startup_ms'])
+        tid=self.thread(result)['id']
+        value=bind_replacement(self.store,auth,old,ch.epoch,tid)
+        self.attached=(ch.epoch,tid)
+        return value
 
     def reconcile(self,ch,auth,args):
         need(self.i.is_native,'native-reconciliation-only')

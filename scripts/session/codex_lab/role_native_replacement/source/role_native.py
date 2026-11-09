@@ -15,7 +15,7 @@ MODEL='gpt-6.1-sol'
 APPLE_CA_SHA='9dae8d76e55cb08991f2b672d58999ea15560d910759c16b544f843bdffbb994'
 BASE_SLOT=b'/private/tmp/lab60-v2-config-official-pref-read'
 FLAGS=('shell_tool','view_image','apps','plugins','code_mode','multi_agent','request_permissions_tool',
-       'sleep_tool','deferred_executor','token_budget','current_time_reminder','send_message_to_user_async')
+       'sleep_tool','deferred_executor','token_budget','current_time_reminder','send_message_to_user_async','multi_agent_v2')
 CATALOG_SHA='d3abd842194800885cfdf099354dd2b7ef0c8d489d35fd90b8272cb190194703'
 
 def policy_additions(root):
@@ -30,7 +30,7 @@ def environment(root):
 def expected_config(root):
     return dict(model=MODEL,model_catalog_json=str(root/'model-catalog.json'),approval_policy='never',
                 default_permissions=':read-only',cli_auth_credentials_store='file',web_search='disabled',
-                features={k:False for k in FLAGS},
+                features={k:False for k in FLAGS},agents={'enabled':False},
                 tools={'update_plan':{'enabled':False},'experimental_request_user_input':{'enabled':False}},
                 analytics={'enabled':False})
 
