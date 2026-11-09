@@ -69,8 +69,8 @@ jobs:
           printf 'A=%s\nB=%s\nworkflow_head=%s\nrun=%s\nattempt=%s\nmanifest_sha256=%s\nrunner=%s\n' \
             "$ACCEPTANCE_HEAD" "$PRODUCT_BASE" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$MANIFEST_SHA256" "$RUNNER_ENVIRONMENT" > "$evidence/identity.txt"
           exact_b="$RUNNER_TEMP/lab63-v2-source"; mkdir -m 700 "$exact_b"
-          git archive "$SOURCE_COMMIT" scripts/merge | tar -x -C "$exact_b"
-          git ls-tree -r "$SOURCE_COMMIT" -- scripts/merge > "$evidence/source-tree.txt"
+          git archive "$SOURCE_COMMIT" scripts/merge scripts/session/codex_lab | tar -x -C "$exact_b"
+          git ls-tree -r "$SOURCE_COMMIT" -- scripts/merge scripts/session/codex_lab > "$evidence/source-tree.txt"
           while read -r mode type oid path; do
             test "$type" = blob
             test -f "$exact_b/$path" && test ! -L "$exact_b/$path"
