@@ -8,12 +8,15 @@ import subprocess
 import time
 
 import gapscan
+from mq_queue import merge_transport_fds
 
 
 def sh(args, cwd=None, check=False, timeout=180):
     """A call that hangs (gh without network, a stuck ssh push) must not block a lane or the pause check: after `timeout` seconds it is a failed call (exit 124)."""
     try:
-        r = subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=timeout)
+        lease_fds = merge_transport_fds(args)
+        options = {"pass_fds": lease_fds} if lease_fds else {}
+        r = subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=timeout, **options)
     except subprocess.TimeoutExpired:
         r = subprocess.CompletedProcess(args, 124, "", f"timed out after {timeout} s")
     if check and r.returncode:

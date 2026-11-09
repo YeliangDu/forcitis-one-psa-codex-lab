@@ -8,6 +8,18 @@ import tempfile
 import threading
 import time
 
+# Only the thread/process owning merge_lock may delegate its open-file lease.
+_MERGE_LEASE = threading.local()
+
+
+def merge_transport_fds(args):
+    """Delegate exclusion to Git push only; this grants no send authority."""
+    lease = getattr(_MERGE_LEASE, "current", None)
+    if lease is None or lease[0] != os.getpid() or args[:2] != ["git", "push"]:
+        return ()
+    return (lease[1],)
+
+
 LINE = re.compile(r"^\s*(\d+)(?:\s+after=([\d,]+))?\s*$")   # "<n>" or "<n> after=<m>[,<m>...]": n waits until every m is merged
 
 
@@ -48,9 +60,22 @@ class Queue:
             finally:
                 fcntl.flock(lock, fcntl.LOCK_UN)
 
+    @contextlib.contextmanager
     def merge_lock(self):
-        """Held while a merge is decided and done: one merge at a time, whatever lane and process."""
-        return self.locked(".merge-lock")
+        """Exclude other merges until the owner and delegated Git transports close."""
+        if getattr(_MERGE_LEASE, "current", None) is not None:
+            raise RuntimeError("nested merge lease is not supported")
+        with open(self.path + ".merge-lock", "a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            _MERGE_LEASE.current = (os.getpid(), lock.fileno())
+            try:
+                yield
+            finally:
+                _MERGE_LEASE.current = None
+                # LOCK_UN would also unlock the shared open-file description
+                # inherited by a still send-capable Git/SSH descendant. Close
+                # only our descriptor; the last holder releases the flock.
+
 
     def _read(self):
         try:
