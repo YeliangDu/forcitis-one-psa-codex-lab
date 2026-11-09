@@ -1,0 +1,43 @@
+{
+  "kind": "p2-second-native-upgrade-independent-subacceptance/1",
+  "card": 63,
+  "revision": 10,
+  "base": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+  "source_sha256_at_B": {
+    "scripts/merge/mq_lab_cutover_native.py": "2422f8bfab141f018a6550eb59fa8d010b198ca2202045ed612b2cadd431d5cf",
+    "scripts/merge/native_entry_selftest.py": "71328b99d5ed3cffe84b1361e2d678433d5880da9a3b64cb1f7f3049cd6e88e7",
+    "scripts/merge/mq_lab_journal_v2.py": "b18a98108ae4b2db26cd0a420d02ab3526203f2b62d477d81e263170c69483d6",
+    "scripts/merge/mq_lab_control_authorization.py": "d48b47a882769e7f9f91e18dac0de04eb7552ce48079b909058f0468308df9af",
+    "scripts/merge/mq_lab_control_install.py": "bb503777788a9936386b57188fa1fbf4b77e002cb2c37b5ba13db91bd8681866",
+    "scripts/merge/cutover_e2e_selftest.py": "17c24b6c958fb9fa5500de019b63d5964f1b1c722c5476e62db3d9a739f6d362",
+    "scripts/session/codex_lab/lab_queue_git_writer.py": "07f88737a124de9cb7f529f59ed6f44fab474e9d5cc28b5b466e5e5e9d0bd122"
+  },
+  "files_sha256": {
+    "test_second_native_upgrade.py": "a7c7608cd957f708cf97b0c5a8942e77884b52f8c93f12ecb3716e0173a96966",
+    "HANDOFF.md": "17bdc20d650a79b8edc6d20e2ebe719b15ef9659b0f55daab38140bbcad4c9c2"
+  },
+  "history_shape": {
+    "ordinary_confirmed": 9,
+    "old_control_adopted": 1,
+    "old_number": 43,
+    "new_number": 56,
+    "independent_synthetic_generation": true,
+    "formal_DB_accessed": false
+  },
+  "expected": {
+    "status": "static-prediction-not-executed",
+    "tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "native_recovery_result": "HOLD after confirmed; no current health/adoption authority"
+  },
+  "native_positive_send_and_adoption": "HOLD: complete independently signed new subject source/proof/native transport/loaded successor fixture not supplied",
+  "actual_native_entry_negative_and_existing_pair_recovery": true,
+  "actual_disposable_CAS": "fixture-only local update-ref after storage reserve; not native authorized writer",
+  "historical_note_sha256": "ca335468cb1a072845415790f9dd144aa1a6b6e098b7ceb9b6b8fed8e1729211",
+  "historical_note_is_current_fact": false,
+  "local_execution": false,
+  "canonical_access": false,
+  "activation_authority": false
+}
