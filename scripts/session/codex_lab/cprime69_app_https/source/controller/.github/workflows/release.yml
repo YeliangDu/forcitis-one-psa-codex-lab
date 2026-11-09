@@ -1,0 +1,182 @@
+name: release
+
+# Builds the release bundle of a commit on main that ci already passed, signs a release statement for it and attaches both to a GitHub
+# Release. Only started by hand from main. The scripts that prove, build and sign always come from the workflow's own commit on main
+# (github.sha), never from the commit being built. Runbook: docs/ops/runbooks/release.md
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version without the v prefix, e.g. 0.1.0 or 0.1.0-rc.1; the tag v<version> is created on the commit'
+        required: true
+      commit:
+        description: 'Full commit sha on main to release (empty = the commit this workflow runs from)'
+        required: false
+        default: ''
+      draft:
+        description: 'Create the release as a draft (deploy only accepts published releases)'
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: release bundle
+    if: github.ref == 'refs/heads/main'
+    # GitHub-hosted (user decision, RELEASE.md §11): a fresh VM per run, nothing a pull-request job did on the local runners can reach it
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read   # ci_passed.py: the pull request that merged the commit
+    outputs:
+      version: ${{ steps.target.outputs.version }}
+      sha: ${{ steps.proof.outputs.sha }}
+    steps:
+      - name: validate inputs
+        id: target
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_COMMIT: ${{ inputs.commit }}
+          WORKFLOW_SHA: ${{ github.sha }}
+        run: |
+          [[ "$INPUT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]] || { echo "version '$INPUT_VERSION' is not MAJOR.MINOR.PATCH[-rc.N]" >&2; exit 1; }
+          [[ -z "$INPUT_COMMIT" || "$INPUT_COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "commit must be empty or a full sha" >&2; exit 1; }
+          echo "version=$INPUT_VERSION" >> "$GITHUB_OUTPUT"
+          echo "commit=${INPUT_COMMIT:-$WORKFLOW_SHA}" >> "$GITHUB_OUTPUT"
+
+      # The tools: this workflow's own commit on main
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          path: tools
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: toolchain (pinned and verified downloads)
+        working-directory: tools
+        run: scripts/release/toolchain.sh build "$RUNNER_TEMP/toolchain"
+
+      - name: commit is a first-parent commit of main and its push ci run succeeded
+        id: proof
+        working-directory: tools
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.target.outputs.version }}
+          COMMIT: ${{ steps.target.outputs.commit }}
+        run: |
+          python3 -I scripts/release/ci_passed.py --self-test
+          python3 -I scripts/release/ci_passed.py "$COMMIT"
+          if gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release v$VERSION already exists; versions are never rebuilt" >&2
+            exit 1
+          fi
+          if tagged="$(python3 -I scripts/release/ci_passed.py --tag-commit "v$VERSION" 2>/dev/null)" && [ "$tagged" != "$COMMIT" ]; then
+            echo "tag v$VERSION points at $tagged, not at $COMMIT" >&2
+            exit 1
+          fi
+          echo "sha=$COMMIT" >> "$GITHUB_OUTPUT"
+
+      # The source: the proved commit, built by the tools above
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ steps.proof.outputs.sha }}
+          path: source
+          persist-credentials: false
+
+      - name: build bundle with fresh HOME, Maven and pnpm caches
+        working-directory: tools
+        env:
+          DEV_VITE_WECOM_CORP_ID: ${{ vars.DEV_VITE_WECOM_CORP_ID }}
+          DEV_VITE_WECOM_AGENT_ID: ${{ vars.DEV_VITE_WECOM_AGENT_ID }}
+          DEV_VITE_SSO_PORTAL_URL: ${{ vars.DEV_VITE_SSO_PORTAL_URL }}
+          DEV_TARO_APP_WECOM_CORP_ID: ${{ vars.DEV_TARO_APP_WECOM_CORP_ID }}
+          PROD_VITE_WECOM_CORP_ID: ${{ vars.PROD_VITE_WECOM_CORP_ID }}
+          PROD_VITE_WECOM_AGENT_ID: ${{ vars.PROD_VITE_WECOM_AGENT_ID }}
+          PROD_VITE_SSO_PORTAL_URL: ${{ vars.PROD_VITE_SSO_PORTAL_URL }}
+          PROD_TARO_APP_WECOM_CORP_ID: ${{ vars.PROD_TARO_APP_WECOM_CORP_ID }}
+          VERSION: ${{ steps.target.outputs.version }}
+          COMMIT: ${{ steps.proof.outputs.sha }}
+        run: |
+          scripts/release/build.sh --version "$VERSION" --source "$GITHUB_WORKSPACE/source" --commit "$COMMIT" \
+            --out "$RUNNER_TEMP/release" --isolated-caches "$RUNNER_TEMP/caches"
+          scripts/release/verify_bundle.sh "$RUNNER_TEMP/release/forcitis-one-$VERSION.tar.gz"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-bundle
+          path: |
+            ${{ runner.temp }}/release/forcitis-one-${{ steps.target.outputs.version }}.tar.gz
+            ${{ runner.temp }}/release/forcitis-one-${{ steps.target.outputs.version }}.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 1
+
+      - if: always()
+        run: rm -rf "$RUNNER_TEMP/release" "$RUNNER_TEMP/caches" "$RUNNER_TEMP/toolchain"
+
+  # Signing runs in its own GitHub-hosted job (user decision, RELEASE.md §11 U-4): the key never meets the VM that ran third-party build
+  # code. The key is a secret of the `release` environment, whose deployment branch policy admits main only.
+  publish:
+    name: sign and publish
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: release
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout: scripts/release
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-bundle
+          path: ${{ runner.temp }}/publish
+
+      - name: bundle unchanged since the build job
+        working-directory: ${{ runner.temp }}/publish
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+        run: sha256sum --strict -c "forcitis-one-$VERSION.tar.gz.sha256"
+
+      - name: sign the release statement
+        env:
+          RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+          VERSION: ${{ needs.build.outputs.version }}
+          COMMIT: ${{ needs.build.outputs.sha }}
+        run: |
+          [ -n "$RELEASE_SIGNING_KEY" ] || { echo "environment release lacks RELEASE_SIGNING_KEY (RELEASE.md §7 R-12)" >&2; exit 1; }
+          archive="$RUNNER_TEMP/publish/forcitis-one-$VERSION.tar.gz"
+          statement="$RUNNER_TEMP/publish/forcitis-one-$VERSION.release"
+          scripts/release/statement.sh write "$archive" "$statement" "$COMMIT"
+          key_dir="$(mktemp -d)"
+          trap 'rm -rf "$key_dir"' EXIT
+          (umask 077 && printf '%s\n' "$RELEASE_SIGNING_KEY" > "$key_dir/key")
+          scripts/release/statement.sh sign "$statement" "$key_dir/key"
+          rm -rf "$key_dir"
+          cat "$statement"
+
+      - name: publish GitHub Release
+        working-directory: ${{ runner.temp }}/publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+          SHA: ${{ needs.build.outputs.sha }}
+          DRAFT: ${{ inputs.draft }}
+        run: |
+          flags=(--repo "$GITHUB_REPOSITORY" --title "FORCITIS one $VERSION" --target "$SHA"
+                 --notes "Commit $SHA. Built and signed by release run $GITHUB_RUN_ID; see docs/ops/runbooks/release.md.")
+          [ "$DRAFT" != true ] || flags+=(--draft)
+          case "$VERSION" in *-rc.*) flags+=(--prerelease) ;; esac
+          gh release create "v$VERSION" "${flags[@]}" "forcitis-one-$VERSION.tar.gz" "forcitis-one-$VERSION.tar.gz.sha256" \
+            "forcitis-one-$VERSION.release" "forcitis-one-$VERSION.release.sig"
