@@ -2,7 +2,6 @@
 import argparse,copy,hashlib,importlib.util,json,os,sqlite3,sys,time,unittest,uuid
 from pathlib import Path
 PACKAGE=Path(__file__).resolve().parent
-BASE_SHA=__BASE__
 CFG=None;B=None
 class Hold(RuntimeError):pass
 def sha(b):return hashlib.sha256(b).hexdigest()
