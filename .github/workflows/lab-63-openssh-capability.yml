@@ -1,0 +1,47 @@
+name: Lab 63 disposable OpenSSH host capability
+on:
+  push:
+    branches: [codex/63-descendant-proof]
+    paths: [.github/workflows/lab-63-openssh-capability.yml]
+permissions: {}
+jobs:
+  capability:
+    if: github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' && github.repository_id == '1449415666' && github.ref == 'refs/heads/codex/63-descendant-proof'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - name: Check isolated hosted prerequisites without starting sshd or running product code
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          evidence="$RUNNER_TEMP/lab63-ssh-evidence"
+          mkdir -m 700 "$evidence"
+          printf 'head=%s\nrun=%s\nattempt=%s\nrunner=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$RUNNER_ENVIRONMENT" > "$evidence/identity.txt"
+          rc=0
+          cat > "$evidence/user-probe.sh" <<'EOF'
+          set -euo pipefail
+          test "$(id -u)" -ne 0
+          test "$(ip -o link show | wc -l)" -eq 1
+          ip -o link show
+          grep -Eq '^NoNewPrivs:[[:space:]]+1$' /proc/self/status
+          /usr/bin/python3 -I -B -c 'import os,signal; assert hasattr(os, "pidfd_open") and hasattr(signal, "pidfd_send_signal")'
+          git --version
+          ssh -V
+          test -x /usr/sbin/sshd || { echo CAPABILITY_HOLD:sshd-missing; exit 86; }
+          /usr/sbin/sshd -V
+          EOF
+          sudo -n /usr/bin/unshare --net --pid --fork --mount-proc -- \
+            /bin/bash -euc '
+              ip link set lo up
+              exec /usr/bin/setpriv --reuid "$1" --regid "$2" --clear-groups --no-new-privs -- \
+                /usr/bin/env -i PATH=/usr/bin:/usr/sbin:/bin HOME="$3" /bin/bash --noprofile --norc "$3/user-probe.sh"
+            ' probe "$(id -u)" "$(id -g)" "$evidence" > "$evidence/prerequisites.log" 2>&1 || rc=$?
+          printf '%s\n' "$rc" > "$evidence/exit-code.txt"
+          exit "$rc"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab63-openssh-capability-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab63-ssh-evidence/
+          if-no-files-found: error
+          retention-days: 7
