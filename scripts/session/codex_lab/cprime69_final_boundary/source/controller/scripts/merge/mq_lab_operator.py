@@ -264,16 +264,28 @@ def _cleanup_confirmed_orphan(number, common_dir, ports, scope=None):
         return dict(action="skip", reason="confirmed-orphan-cleaned-with-readback-only", merge_sha=record["merge_sha"])
 
 
-def run_command(command, number, common_dir, ports, *, first_card_scope=None):
+def run_command(command, number, common_dir, ports, *, first_card_scope=None, permit_check=None, recover_only=False):
     """Plan without state creation; admit/once use the one canonical lock."""
     try:
         _require(command in ("plan", "enqueue", "once") and type(number) is int and number > 0,
                  "unsupported-command-or-pr")
         if command == "once" and getattr(ports, "requires_first_card_scope", False):
-            _require(isinstance(first_card_scope, dict) and first_card_scope["subject"]["number"] == number == 69,
-                     "first-card-launcher-required")
+            _require(isinstance(first_card_scope, dict) and first_card_scope["subject"]["number"] == number == 69
+                     and callable(permit_check) and type(recover_only) is bool, "first-card-launcher-required")
         path = _path(common_dir)
         _first_card_locks(path, first_card_scope)
+        if first_card_scope is not None:
+            def check_send_permit():
+                if recover_only or not callable(permit_check) or permit_check() is not True:
+                    return False
+                _first_card_locks(path, first_card_scope)
+                from mq_queue import merge_transport_fds
+                fds = merge_transport_fds(["git", "push"])
+                if len(fds) != 1:
+                    return False
+                lease = os.fstat(fds[0])
+                return [lease.st_dev, lease.st_ino] == first_card_scope["lock_ids"]["merge.queue.merge-lock"]
+            ports._send_permit_check = check_send_permit
         for suffix in ("", ".lock", ".merge-lock", ".heads", ".heads-lock"):
             try:
                 info = Path(str(path) + suffix).lstat()
@@ -296,6 +308,7 @@ def run_command(command, number, common_dir, ports, *, first_card_scope=None):
             approval = ports.load(number)
             approved = _intent(approval, number)
             if first_card_scope is not None:
+                _require(check_send_permit(), "first-card-send-permit-expired-or-moved")
                 approval_digest = hashlib.sha256(json.dumps(approval, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()).hexdigest()
                 _require(approved == first_card_scope["subject"] and approval_digest == first_card_scope["ordinary_approval_sha256"],
                          "first-card-ordinary-approval-moved")
@@ -305,6 +318,8 @@ def run_command(command, number, common_dir, ports, *, first_card_scope=None):
             proof = ports.verify(dict(intent), approval)
             _require(_exact(proof, approved), "live-proof-held-or-inexact")
             _first_card_locks(path, first_card_scope)
+            if first_card_scope is not None:
+                _require(check_send_permit(), "first-card-send-permit-expired-after-proof")
             last_key[0] = proof["release_key"]
             return proof
 
@@ -332,7 +347,7 @@ def run_command(command, number, common_dir, ports, *, first_card_scope=None):
 
         queue = _RequestedQueue(Queue(str(path)), number, first_card_scope)
         return run_once(queue, journal, verify,
-                        _LazyWriter(ports, authorize, first_card_scope), allow_write=True,
+                        _LazyWriter(ports, authorize, first_card_scope), allow_write=not recover_only,
                         healthy=getattr(ports, "release_health", None),
                         expected_intent=None if first_card_scope is None else first_card_scope["subject"])
     except Exception:
@@ -366,6 +381,9 @@ class ProductionPorts:
         self.writer_type = _module("lab_queue_git_writer").GitLabMainWriter
 
     def git(self, args):
+        if args and args[0] == "push":
+            check = getattr(self, "_send_permit_check", None)
+            _require(callable(check) and check() is True, "first-card-permit-refused-at-git-send")
         result = self.sh(["git", *args])
         _require(result.returncode == 0, "fixed-Lab-git-command-failed")
         return result.stdout

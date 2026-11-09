@@ -1,12 +1,13 @@
 """Explicit, externally pinned #69 operator entry; no default permit or transport."""
 import argparse
+import copy
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
 import stat
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 FIELDS = ("number", "head", "base", "target")
 REPO_ID = 1449415666
@@ -73,7 +74,27 @@ def _closure(path, expected):
     return root
 
 
-def _permit(path, pin, closure_pin, request, *, now=None):
+def _utc_expiry(value):
+    require(type(value) is str and re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,6})?(?:Z|\+00:00)",value),
+            "first-card-expiry-must-be-rfc3339-utc")
+    return datetime.fromisoformat(value)
+
+
+def send_permit_guard(permit, reread, clock):
+    """Recheck identical pinned authority and time at the actual Git boundary."""
+    frozen = copy.deepcopy(permit)
+    def check():
+        try:
+            installed = reread()
+            current = clock()
+            return (type(installed) is dict and installed == frozen and isinstance(current, datetime)
+                    and current.utcoffset() == timedelta(0) and current < _utc_expiry(frozen["expires_at"]))
+        except Exception:
+            return False
+    return check
+
+
+def _permit(path, pin, closure_pin, request, *, now=None, recover_only=False):
     permit = json.loads(_read(path, pin, private=True))
     required = {"kind", "repo_id", "subject", "checkout", "common_dir", "closure_sha256", "expires_at",
                 "ordinary_approval_sha256", "expected_tree", "lock_ids", "git_config_sha256"}
@@ -82,8 +103,8 @@ def _permit(path, pin, closure_pin, request, *, now=None):
             and digest(permit["ordinary_approval_sha256"], 64) and digest(permit["git_config_sha256"], 64)
             and digest(permit["expected_tree"], 40), "first-card-permit-shape")
     now = now or datetime.now(timezone.utc)
-    expiry = datetime.fromisoformat(permit["expires_at"])
-    require(expiry.tzinfo is not None and now < expiry, "first-card-permit-expired")
+    expiry = _utc_expiry(permit["expires_at"])
+    require(recover_only is True or now < expiry, "first-card-permit-expired")
     intent = authorize(request, dict(kind=permit["kind"], subject=permit["subject"],
                        verification={"source":"installed-local-authorization","verified":True}))
     require(type(permit["lock_ids"]) is dict and set(permit["lock_ids"]) == set(LOCKS)
@@ -96,13 +117,18 @@ def main():
     p = argparse.ArgumentParser(allow_abbrev=False)
     p.add_argument("command", choices=["once"])
     p.add_argument("number", type=int)
+    p.add_argument("--recover-only", action="store_true", help="Process only an existing exact reservation/confirmation; never send")
     for name in ("head", "base", "permit", "permit-sha256", "closure", "closure-sha256"):
         p.add_argument("--"+name, required=True)
     a=p.parse_args()
     try:
         _closure(a.closure,a.closure_sha256)
-        permit,intent=_permit(a.permit,a.permit_sha256,a.closure_sha256,
-            dict(command=a.command,number=a.number,head=a.head,base=a.base,target="main"))
+        request=dict(command=a.command,number=a.number,head=a.head,base=a.base,target="main")
+        def pinned_permit():
+            return _permit(a.permit,a.permit_sha256,a.closure_sha256,request,recover_only=a.recover_only)[0]
+        permit=pinned_permit()
+        intent=permit["subject"]
+        guard=send_permit_guard(permit,pinned_permit,lambda: datetime.now(timezone.utc))
         from mq_github import sh
         from mq_lab import ORIGIN, checkout_profile
         from mq_lab_operator import ProductionPorts, run_command
@@ -127,7 +153,8 @@ def main():
         config=command(["git","config","--local","--null","--list"])
         require(config.returncode==0 and hashlib.sha256(config.stdout.encode()).hexdigest()==permit["git_config_sha256"],
                 "first-card-git-configuration-moved")
-        result=run_command("once",intent["number"],common,ProductionPorts(common,command),first_card_scope=permit)
+        result=run_command("once",intent["number"],common,ProductionPorts(common,command),
+                           first_card_scope=permit,permit_check=guard,recover_only=a.recover_only)
     except (ValueError,OSError,TypeError,KeyError) as e:
         result={"action":"hold","reason":str(e) if type(e) is ValueError else "first-card-binding-unavailable"}
     print(json.dumps(result,ensure_ascii=False,sort_keys=True))
