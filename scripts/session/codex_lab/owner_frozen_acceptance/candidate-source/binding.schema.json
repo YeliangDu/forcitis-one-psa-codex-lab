@@ -1,0 +1,317 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Public schema for private externally pinned runtime binding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "deployment_label",
+    "source_closure_sha256",
+    "ledger",
+    "role",
+    "native",
+    "evidence_references"
+  ],
+  "properties": {
+    "schema": {
+      "const": "lab-private-runtime-binding/1"
+    },
+    "deployment_label": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{0,63}$"
+    },
+    "source_closure_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "ledger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "directory",
+        "installation_sha256"
+      ],
+      "properties": {
+        "directory": {
+          "type": "string",
+          "pattern": "^/",
+          "description": "Actual private absolute path, supplied only in owner-controlled installation data."
+        },
+        "installation_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "role": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "physical_cwd"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^one-[a-z][a-z0-9-]*$"
+        },
+        "physical_cwd": {
+          "type": "string",
+          "pattern": "^/",
+          "description": "Actual private absolute path, supplied only in owner-controlled installation data."
+        }
+      }
+    },
+    "native": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_registered_session",
+        "endpoint",
+        "proxy",
+        "engine_epoch_reference"
+      ],
+      "properties": {
+        "expected_registered_session": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "endpoint": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "alias",
+            "alias_parent",
+            "target",
+            "target_parent",
+            "link_text"
+          ],
+          "properties": {
+            "alias": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "dev",
+                "ino",
+                "uid",
+                "mode",
+                "kind"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "pattern": "^/",
+                  "description": "Actual private absolute path, supplied only in owner-controlled installation data."
+                },
+                "dev": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "ino": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "uid": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "mode": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "kind": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "alias_parent": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "dev",
+                "ino",
+                "uid",
+                "mode",
+                "kind"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "pattern": "^/",
+                  "description": "Actual private absolute path, supplied only in owner-controlled installation data."
+                },
+                "dev": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "ino": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "uid": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "mode": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "kind": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "target": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "dev",
+                "ino",
+                "uid",
+                "mode",
+                "kind"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "pattern": "^/",
+                  "description": "Actual private absolute path, supplied only in owner-controlled installation data."
+                },
+                "dev": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "ino": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "uid": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "mode": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "kind": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "target_parent": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "dev",
+                "ino",
+                "uid",
+                "mode",
+                "kind"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "pattern": "^/",
+                  "description": "Actual private absolute path, supplied only in owner-controlled installation data."
+                },
+                "dev": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "ino": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "uid": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "mode": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "kind": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "link_text": {
+              "type": "string",
+              "pattern": "^/",
+              "description": "Actual private absolute path, supplied only in owner-controlled installation data."
+            }
+          }
+        },
+        "proxy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "sha256"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "pattern": "^/",
+              "description": "Actual private absolute path, supplied only in owner-controlled installation data."
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        },
+        "engine_epoch_reference": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Optional name of independently authenticated lifecycle receipt; null keeps epoch unknown."
+        }
+      }
+    },
+    "evidence_references": {
+      "type": "object",
+      "maxProperties": 64,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]{0,63}$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "path",
+          "sha256"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "observation",
+              "authorization",
+              "source-manifest",
+              "lifecycle-receipt"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^/",
+            "description": "Actual private absolute path, supplied only in owner-controlled installation data."
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  }
+}

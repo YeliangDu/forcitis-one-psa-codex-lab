@@ -1,0 +1,113 @@
+name: Lab 62 frozen owner acceptance
+on:
+  push:
+    branches: [codex/62-current-assignment]
+    paths: [.github/workflows/lab-62-owner-frozen.yml]
+permissions: {}
+jobs:
+  acceptance:
+    name: owner (${{ matrix.selection }})
+    if: github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' && github.repository_id == '1449415666' && github.ref == 'refs/heads/codex/62-current-assignment'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        selection: [base, hard-kill, lost-reply]
+    env:
+      SELECTION: ${{ matrix.selection }}
+      A: e239137ff2cca66093b242254a23d033ead1d3cc
+      B: 77e872e8ba9661d3294d3a9337c8e5c956b70641
+      PRIOR: d24d3847fed7ddff5c617e8b6d5c677c22fa92ca
+      AUTHOR_MANIFEST: 14cba25d76ad67c5f98781d36c2b22cff31dbcfdd865bf8026ee957712f82cbc
+      DEPENDENCY_MANIFEST: 58e1ce7aa998d033022a2b3fb6d37d2b91247ca0d29d31e276992afa049c02db
+      PACKAGE_PATH: scripts/session/codex_lab/owner_frozen_acceptance
+    steps:
+      - name: Fetch exact public witness without credentials
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_TERMINAL_PROMPT=0
+          git init .
+          git fetch --no-tags https://github.com/YeliangDu/forcitis-one-psa-codex-lab.git "$GITHUB_SHA"
+          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse "$GITHUB_SHA^1")" = "$PRIOR"
+          test "$(git rev-parse "$GITHUB_SHA^2")" = "$A"
+          test "$(git rev-parse "$A^")" = "$B"
+          test ! -e .git/merge-queue
+          test -z "$(git config --local --get-regexp '^http\..*extraheader$' || true)"
+      - name: Export and verify only frozen runtime dependencies
+        run: |
+          set -euo pipefail
+          export INPUT="$RUNNER_TEMP/owner-frozen-input"
+          mkdir -m 700 "$INPUT"
+          git archive "$GITHUB_SHA:$PACKAGE_PATH" | tar -x -C "$INPUT"
+          python3 -I -B - <<'PY'
+          import hashlib,json,os,subprocess
+          from pathlib import Path,PurePosixPath
+          pins=json.loads('''{"HANDOFF.md":"33320bb6de7d92e107d430317e63ca080c629e22369f1191b28f1a9204c28f9a","MATRIX.json":"ed33d0561167c81cb8332d645317dff00cdfa112fa715a3d31901a32ee5fab35","PRESERVATION.json":"1207d8c9e74b1aa285320337ef9ca2e537c062982f4f2ada60b16991538e5cc3","barrier_cli.py":"486b603bc01479d260ea0b5793af4528f1f257ffb68324ff8d9d0146cf62dcd5","base_owner_selection.py":"1e1e205bc59e4fb773f686e698726ccae3818b0fc7fc1963b3ab3824ace5ceec","candidate-source/SOURCE-CLOSURE.json":"5094eb8b0aa25e6dae12b3f658a74a5f865c29c14c9c02e427800378a0fa6287","candidate-source/binding.schema.json":"8e56721a606eaff72289da8279f63f0cbb59b2167dda4a732877ac95ef3fcf64","candidate-source/branch_broker.py":"9f6254fd3b83b6b0f34bde515c56edb9b944d90fc251b551e42e1d7cc3ddb1d5","candidate-source/branch_effect_binding.py":"82435b55731b7f78f72993194dbb57fc5d62e0ffa1c0e83d0b5a38ed72d63cbe","candidate-source/branch_effect_port.py":"ae4ba44f12472d1109a01e0ad468e6cabbbf02adbc8d9cbd39c1dfb4aff7c42c","candidate-source/broker_plan.py":"638dbf482e5ef12e257fc5f0a8c0297571641703981f8fd1517b16ab02805cc7","candidate-source/exact_scope.py":"ee29d8eaaa234655046f8d7a654d1179b506336a5cd08843f11380b253826b9d","candidate-source/existing_ci_proof.py":"5393667fcf2e10be2e8223e6380df321b6d72deb56423e290e51b8cfc1217ba4","candidate-source/goal_retire.py":"30e0aef43621e44b32bc6668a518ba1f01c1f224ed979390dc36962fed5a2a6e","candidate-source/handoff_retire.py":"72604a10fcd3fae7b860aa8c7f1b8663fc36a4b99d4ef943ee9b033b8e52e574","candidate-source/native_goal.py":"af27b6e5ff5ecb6b035eb667d0e60a7ccf030121d9513f74375da2708d3b5419","candidate-source/native_quiesce.py":"f4e90a3833728ac7e6ed067effd84d112ad5cc74418a2dec133fe432e6f62312","candidate-source/native_role.py":"099996ae7bf7cc3e454764cb5fa13e1d0cf9880a133123b1e4dcdf21b37f6dd4","candidate-source/native_transport.py":"2925546088ac9386f5945185b29806cc95c557bcc9fb4d3a330d7d5122011ac1","candidate-source/native_wait.py":"e648f29bb2c655b5d99a2b814da3302cae616ddc6a7e820f46c6ada0700402ae","candidate-source/orphan_terminal.py":"1ea4d501e5dd774ce01f10525ab91df1c2a72af25d00718dde65e96d2ee2abd5","candidate-source/owner_transfer.py":"603c88758af59f103cb0709e4902e51baf77a31632cc19492da9b6adb24f6b7f","candidate-source/pending_wire.py":"9398c7383a8c424509cd24f7a0578a514f9ddea46d689a26c3ab6e05c6c2cbfc","candidate-source/portable_broker.py":"4d0d4d4b9b67817602b0d440d4007048f3bdb7fa5c68270bd59e7c1f19d6d0e7","candidate-source/portable_config.py":"ef79262cd962cb580d9eca12f09cd76293315f555476a2dbdb3dc607d226b403","candidate-source/private_resources.py":"0b8409f3ea7c4f14eca9bd783dd76db2958be7c826edc08a6aa631abae4bf126","candidate-source/readonly_plan_consumer.py":"62aac50be8802351a8ae79e592c0e6e8f04bb943dbc54573221efb1b47f473af","candidate-source/reconnect_observe.py":"bdc7ed4273e1f96fb1b7d0e2e5d464ac50235fa3ee8314c1c4296fa4e0da30dc","candidate-source/role_resume.py":"9b22dc33e1b307d529ce323466b4c0be809b1630671d641a3e48706705965e66","candidate-source/runtime_broker.py":"f4aa5d346d8383d921cafb66b9fa6e4af9a4073a2e68ce97cec746c258cd6f2f","candidate-source/runtime_store.py":"5320f1d5eaef9fe6c21471422b2944b8b0d7273b85c97e2cceb85191fde73dc0","candidate-source/startup_authority.py":"d5ca117b82bda983ba1942f3933348a631c9e28b963929acdf10e7b34a0b8ca5","candidate-source/warm_handoff.py":"6a69cde20d3900f45c92c87a8bcbcc5a70ad0fea635dbfe3f8be29eaa2f778f0","claim_reply_cut.py":"0a893e0bb8a0479af16900fd2f2cbbc320aa07c4422eb7bc3c0ab4d0b620d21f","fixture-source/SOURCE-CLOSURE.json":"b9ea684132b22e3cd0c0097a6edb7c37831d875658885a0453c7c4a22028a3c0","fixture-source/binding.schema.json":"8e56721a606eaff72289da8279f63f0cbb59b2167dda4a732877ac95ef3fcf64","fixture-source/branch_broker.py":"9f6254fd3b83b6b0f34bde515c56edb9b944d90fc251b551e42e1d7cc3ddb1d5","fixture-source/branch_effect_binding.py":"82435b55731b7f78f72993194dbb57fc5d62e0ffa1c0e83d0b5a38ed72d63cbe","fixture-source/branch_effect_port.py":"ae4ba44f12472d1109a01e0ad468e6cabbbf02adbc8d9cbd39c1dfb4aff7c42c","fixture-source/broker_plan.py":"638dbf482e5ef12e257fc5f0a8c0297571641703981f8fd1517b16ab02805cc7","fixture-source/exact_scope.py":"9069901de3f64407bb947bf2d5bcba27c7087014a2f37993539a08527dc60a4e","fixture-source/existing_ci_proof.py":"5393667fcf2e10be2e8223e6380df321b6d72deb56423e290e51b8cfc1217ba4","fixture-source/goal_retire.py":"e4a5157b78d278e64ac2345ab7b35a3c22da132603b2b3b8ce5f2563b55445df","fixture-source/handoff_retire.py":"8118be38d49376a0138ef88e2ba2373b18e4a871ee02d4bd6553a983af5933b7","fixture-source/native_goal.py":"5856c23ca25734ed7df2ef4f737f472229b1c875f344e8796be9115d935d2c89","fixture-source/native_quiesce.py":"f4e90a3833728ac7e6ed067effd84d112ad5cc74418a2dec133fe432e6f62312","fixture-source/native_role.py":"fe5617f8bdfaa3d170585c84fe3c57c9ec39b1b954da801634dcf51f2c45dc45","fixture-source/native_transport.py":"2925546088ac9386f5945185b29806cc95c557bcc9fb4d3a330d7d5122011ac1","fixture-source/native_wait.py":"062c69a93055b5bded567311b538865a8a8e5f08ec4b570be8d4dff60cd2e969","fixture-source/orphan_terminal.py":"77f8e0adb5b0b2a358d7e3a6e5467143adaf4eb959f9da94e041ddf097fa0177","fixture-source/pending_wire.py":"9398c7383a8c424509cd24f7a0578a514f9ddea46d689a26c3ab6e05c6c2cbfc","fixture-source/portable_broker.py":"149d2e35deaf6265e8f111ada401ddf17ad9a28a0b61628f9bb0eeb01229df4e","fixture-source/portable_config.py":"ef79262cd962cb580d9eca12f09cd76293315f555476a2dbdb3dc607d226b403","fixture-source/private_resources.py":"0b8409f3ea7c4f14eca9bd783dd76db2958be7c826edc08a6aa631abae4bf126","fixture-source/readonly_plan_consumer.py":"62aac50be8802351a8ae79e592c0e6e8f04bb943dbc54573221efb1b47f473af","fixture-source/reconnect_observe.py":"bdc7ed4273e1f96fb1b7d0e2e5d464ac50235fa3ee8314c1c4296fa4e0da30dc","fixture-source/role_resume.py":"fd2fe7bb9b3b19685e21c17aad5319122feffaab33b2d74ca66268a8b44c6928","fixture-source/runtime_broker.py":"4a8cad2cfdd67ca22328c92e798eb8608a8dd2f36c6568894c1b27c80e0fbf7c","fixture-source/runtime_store.py":"3990105d2eff4dafb40e01810734f065c1f81f9c9dec0e7ab49f6d95af8871db","fixture-source/startup_authority.py":"9c44d81ece8d399126542e9753fbb6818ebeaccfd198c2c272b002950b124b23","fixture-source/warm_handoff.py":"ec343e6391e15ec13a2be87c41a9bbbb2e8fdf353f55355d238625312c40bf93","owned_crash_fixture.py":"a70cca5aba37acd27a42703339ac318e87e3dab844b0477552d4fe4b769abd28","run_owner_handoff.py":"99597a93fd3b9ae4721e4f7b5b5e337d85e7d917707283f4c1c3e10dfcac07b9","scope_fixture.py":"ca67e5d8e74408c0c87a7f30dbca8f6b2f26b8eec07deaaab3cc0a20f3df5b4f","witness_core.py":"d1882891214ba3557c61eb3c5e30902939ebd65422cf7dfe221c9854d4d7779a"}''')
+          p=Path(os.environ['INPUT']).resolve(strict=True)
+          actual={q.relative_to(p).as_posix() for q in p.rglob('*') if q.is_file() or q.is_symlink()}
+          assert actual==set(pins)
+          for n,h in pins.items():
+              r=PurePosixPath(n); assert not r.is_absolute() and '..' not in r.parts
+              q=p/n
+              assert q.resolve(strict=True)==q and q.is_file()
+              assert hashlib.sha256(q.read_bytes()).hexdigest()==h
+          prefix=os.environ['PACKAGE_PATH']
+          def diff(a,b):
+              return subprocess.check_output(['git','diff','--name-only',a,b],text=True).splitlines()
+          assert diff(os.environ['B'],os.environ['A'])==sorted(prefix+'/'+n for n in pins)
+          assert diff(os.environ['PRIOR'],os.environ['GITHUB_SHA'])==sorted(
+              [prefix+'/'+n for n in pins]+['.github/workflows/lab-62-owner-frozen.yml'])
+          assert subprocess.check_output(['git','rev-parse',os.environ['A']+':'+prefix])==subprocess.check_output(['git','rev-parse',os.environ['GITHUB_SHA']+':'+prefix])
+          PY
+      - name: Run selected cases with read-only inputs and no network
+        run: |
+          set -euo pipefail
+          e="$RUNNER_TEMP/owner-frozen-evidence"; mkdir -m 700 "$e" "$e/witness"
+          w="$(mktemp -d "$RUNNER_TEMP/owner-frozen-work.XXXXXX")"
+          trap 'rm -rf -- "$w"' EXIT
+          input="$RUNNER_TEMP/owner-frozen-input"
+          printf 'A=%s\nB=%s\nhead=%s\nrun=%s\nattempt=%s\nrunner=%s\nselection=%s\nmanifest=%s\ndependencies=%s\n' \
+            "$A" "$B" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$RUNNER_ENVIRONMENT" "$SELECTION" "$AUTHOR_MANIFEST" "$DEPENDENCY_MANIFEST" > "$e/identity.txt"
+          before="$(readlink /proc/self/ns/net)"
+          rc=0
+          sudo -n /usr/bin/unshare --mount --propagation private --net --pid --fork --kill-child --mount-proc -- \
+            /bin/bash --noprofile --norc -euc '
+              package="$1"; work="$2"; evidence="$3"; hostnet="$4"; uid="$5"; gid="$6"; selection="$7"; repo="$8"; rid="$9"
+              /usr/bin/mount --bind "$package" "$package"
+              /usr/bin/mount -o remount,bind,ro "$package"
+              test "$(readlink /proc/self/ns/net)" != "$hostnet"
+              /usr/bin/findmnt -n -o VFS-OPTIONS --mountpoint "$package" | grep -Eq "(^|,)ro(,|$)"
+              printf "%s\n" "package_read_only=true" "private_netns=true" > "${evidence%/witness}/isolation.txt"
+              exec /usr/bin/setpriv --reuid "$uid" --regid "$gid" --clear-groups --no-new-privs -- \
+                /usr/bin/env -i PATH=/usr/bin:/bin HOME="$work" TMPDIR="$work" RUNNER_ENVIRONMENT=github-hosted \
+                GITHUB_REPOSITORY="$repo" GITHUB_REPOSITORY_ID="$rid" \
+                /bin/bash --noprofile --norc -euc '"'"'
+                  test "$(id -u)" -ne 0
+                  test "$(ip -o link show | wc -l)" -eq 1
+                  grep -Eq "^NoNewPrivs:[[:space:]]+1$" /proc/self/status
+                  cd "$1"
+                  exec /usr/bin/python3 -I -B "$2/run_owner_handoff.py" --runner-temp "$1" --evidence-dir "$3" --parent-netns "$4" --selection "$5"
+                '"'"' _ "$work" "$package" "$evidence" "$hostnet" "$selection"
+            ' _ "$input" "$w" "$e/witness" "$before" "$(id -u)" "$(id -g)" "$SELECTION" "$GITHUB_REPOSITORY" "$GITHUB_REPOSITORY_ID" > "$w/driver.log" 2>&1 || rc=$?
+          printf '%s\n' "$rc" > "$e/exit-code.txt"
+          if ! test -s "$e/witness/verdict.json"; then
+            printf 'launcher_or_driver_ended_without_verdict\n' > "$e/setup-status.txt"
+          fi
+          printf 'Owner selection %s exited %s\n' "$SELECTION" "$rc"
+          exit "$rc"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: owner-frozen-${{ matrix.selection }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/owner-frozen-evidence/identity.txt
+            ${{ runner.temp }}/owner-frozen-evidence/isolation.txt
+            ${{ runner.temp }}/owner-frozen-evidence/exit-code.txt
+            ${{ runner.temp }}/owner-frozen-evidence/setup-status.txt
+            ${{ runner.temp }}/owner-frozen-evidence/witness/verdict.json
+            ${{ runner.temp }}/owner-frozen-evidence/witness/case-observations.json
+          if-no-files-found: error
+          retention-days: 7
