@@ -1,0 +1,13 @@
+{
+  "kind": "p1-command-omission-additive-contract/1",
+  "B": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+  "api": "same actual match_dispatch_ack(claim,prompt_bytes,legacy_pages,window_proof=proof)",
+  "base_contract": "prior native projection A stays immutable",
+  "ordinary_nonagent_omission": "With independently supplied complete-window fixture premise and all prior boundary/ACK/raw/projection checks, commandTruncated may be absent on a non-agent command. Never insert False into raw response or infer completeness.",
+  "true_policy": "explicit commandTruncated=True still HOLD; no policy relaxation for actual truncated commands",
+  "unknown_completeness": "response_truncated=None/True means no proof of complete window, HOLD even if exact ACK visible",
+  "audit": "preserve prior exact audit_index/raw response SHA. Additional window.nonagent_command_audit records each command(turn_id,item_id,commandTruncated_present,commandTruncated_value,command_or_cwd_authority=False); omission stays present=False,value=null. Do not modify prior audit-index schema/assertions.",
+  "fixture_only": "No real capture copied or edited. Omission variant is constructed and sealed before invocation. Worker delegates actual source and requires immutable inputs.",
+  "remaining_HOLD": "real connector has no whole-window completeness Boolean; actual guarantee/authentication/truncation semantics/command-cwd authority still unproved. No native operational admission/activation from fixture green.",
+  "activation_authority": false
+}

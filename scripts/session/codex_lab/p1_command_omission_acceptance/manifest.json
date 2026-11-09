@@ -1,0 +1,42 @@
+{
+  "kind": "p1-command-omission-independent-A/1",
+  "card": 62,
+  "revision": 10,
+  "claim": "2c557b4d3e3fcc8c1c97b2d1e8321003",
+  "author": "one-test",
+  "B": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+  "A": null,
+  "comparison_H": "0498684e7d5e2eaa6d837435d8f7bf1e04cafda3",
+  "comparison_source_sha256": "7863877ee59d27566475d189cef0eae9058352d14317c570fe0ff63179e305e1",
+  "candidate_sha256": null,
+  "active_C": null,
+  "target_prefix": "scripts/session/codex_lab/p1_command_omission_acceptance/",
+  "files_sha256": {
+    "baseline/matcher.py": "7863877ee59d27566475d189cef0eae9058352d14317c570fe0ff63179e305e1",
+    "fixtures.py": "0bf0e356ad44485fd12d4ac95750e3711da9c38496f40e8a5b23d5a4728589d0",
+    "worker.py": "4409a23d8d3bf860994d83dfad8778ca2b1dbc7e843830dd4e663b52841b8f58",
+    "tests/test_command_omission.py": "8cc836f8cc350a74c6fa8c124dc35ea67de96a8066cf5dc612089d850dfd870b",
+    "run.py": "bd0671e995571f5eb1e7d8fab50d599800b392b8883c395175df6942d0ca919e",
+    "EXPECTED.json": "18afde9bfb160656c75692a4d579a74fa4a2f74a3a7788d37ed2905ba01ca947",
+    "CONTRACT.json": "76f6b052e97fc2421170a9b24956b4ee38d46588bd34d93af1742037a738c0f4",
+    "HANDOFF.md": "747cce1461dbc3430d65e81e1b9792ab0b8819626d1418a24ff7fee92ef94efc"
+  },
+  "private_input_hashes": {
+    ".codex-lab/implementation-20261108/p1-isolated/integrated-native-read-shape-witness.json": "c99f8bcd7ff8ac970b44b4a4b671d3b8df2c856b25e2fd6bed4b4665598ed100",
+    ".codex-lab/implementation-20261108/p1-isolated/integrated-native-boundary-review/independent-verdict.json": "0be61b7afc0964368463eb28fd5f60b06ea2b72a2dfbe19a931c1e0c05ebc5b6",
+    ".codex-lab/implementation-20261108/p1-isolated/native-projection-one-test/manifest.json": "84f00536552f28e770dc776ad1a2202ec6c2f5ba701cd86021279cca3f182fb9",
+    ".codex-lab/implementation-20261108/p1-isolated/integrated-one-test/manifest.json": "fb3965b5ab163f027bb7ec52a447e0cc29bdb2010fe98966a57995417b3eedd2"
+  },
+  "tests": 5,
+  "source_expected_failures": 1,
+  "source_expected_errors": 0,
+  "source_expected_skips": 0,
+  "execution": 0,
+  "comparison": "actual same match_dispatch_ack; no missing API/stub red",
+  "completeness": "independent synthetic premise; not inferred from missing command field",
+  "true_command_truncation_policy": "preserved HOLD",
+  "integrated_A": "ca0fce0c5130962451c3a90e8ff475fdfa058b0f preserved",
+  "whole_entry_red": false,
+  "prior_A_modified": false,
+  "activation_authority": false
+}

@@ -1,0 +1,19 @@
+{
+  "status": "SOURCE-DERIVED ONLY; no execution",
+  "tests": 5,
+  "failures": 1,
+  "errors": 0,
+  "skipped": 0,
+  "assertions": {
+    "test_command_omission.CommandOmissionAcceptance.test_ordinary_nonagent_command_flag_absent_with_independent_fixture_completeness_matches": "P1_NONAGENT_COMMAND_FLAG_OMISSION_REJECTED"
+  },
+  "baseline_H": "0498684e7d5e2eaa6d837435d8f7bf1e04cafda3",
+  "baseline_sha256": "7863877ee59d27566475d189cef0eae9058352d14317c570fe0ff63179e305e1",
+  "existing_behavior": "same actual match_dispatch_ack API; exact command field-set requires commandTruncated and False. Ordinary synthetic non-agent omission rejects with HOLD, causing named positive assertion. Baseline explicit-False original projection positive proves executable capability first.",
+  "full_window_fixture_premise": "explicit response_truncated=False for each independently constructed synthetic complete record; not derived from command flag absence",
+  "controls": "unknown/false fixture completeness, fake non-agent marker and explicit true command policy stay HOLD",
+  "not_whole_entry_red": true,
+  "integrated_A_ca0fce0c": "preserved, run42543040612/1 is capability HOLD0tests; never relabeled",
+  "native_complete_auth_proof": "unavailable, separate live HOLD",
+  "activation_authority": false
+}
