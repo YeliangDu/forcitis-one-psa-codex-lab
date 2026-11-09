@@ -28,7 +28,7 @@
     "readonly_plan_consumer.py": "62aac50be8802351a8ae79e592c0e6e8f04bb943dbc54573221efb1b47f473af",
     "reconnect_observe.py": "bdc7ed4273e1f96fb1b7d0e2e5d464ac50235fa3ee8314c1c4296fa4e0da30dc",
     "role_initialization.py": "98fc43b134381b517359e74420c2d8f1133e89f9db8919bebc378699df7cb83e",
-    "role_native.py": "9dd07b2719acb528899517448abe2a1e543c435e9b316a4f6d27e2b058b89c44",
+    "role_native.py": "4243a849186b92387835fddf0d84ffc4b5515030a153708d2f384ddbe8405c60",
     "role_network.py": "421406a1cac1628e7022e588de19d5762cdec13bfd0817668c962644af837ad0",
     "role_replacement.py": "fae75a5c49379e76c1a1678b27a4e1da01d203d341ae92ae1f815dbb71a54b94",
     "role_resume.py": "9b22dc33e1b307d529ce323466b4c0be809b1630671d641a3e48706705965e66",
