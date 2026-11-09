@@ -58,7 +58,7 @@ jobs:
               for entry in pathlib.Path('/proc').iterdir():
                   if not entry.name.isdigit():continue
                   pid=int(entry.name); row=ident(pid)
-                  if not row or row[0]!=parent:continue
+                  if not row or parent not in [item[0] for item in ancestors(pid)[1:]]:continue
                   try:
                       if (entry/'exe').resolve(strict=True)==pathlib.Path('/usr/bin/ssh').resolve():
                           return pid,row[1]
@@ -101,7 +101,8 @@ jobs:
                   remote_pid=int(pid); chain=ancestors(remote_pid)
                   assert len(chain)>=4 and p.pid not in [x[0] for x in chain]
                   assert any((pathlib.Path('/proc')/str(row[0])/'comm').read_text().strip()=='git-receive-pac' for row in chain[1:] if (pathlib.Path('/proc')/str(row[0])/'comm').exists())
-                  ssh_pid,ssh_start=wait(lambda:ssh_child(p.pid),'real client SSH child')
+                  ssh_pid,ssh_start=wait(lambda:ssh_child(p.pid),'real client SSH descendant')
+                  ssh_chain=ancestors(ssh_pid)
                   git_start=ident(p.pid)[1]
                   fds=[os.pidfd_open(x) for x in (ssh_pid,p.pid)]
                   try:
@@ -115,7 +116,7 @@ jobs:
                   assert git('--git-dir='+str(receiver),'rev-parse','refs/heads/main')==base
                   time.sleep(.25)
                   survived=bool(live(remote_pid,chain[0][2]))
-                  event('both-local-processes-dead',git=p.pid,ssh=ssh_pid,receive_chain=chain,
+                  event('both-local-processes-dead',git=p.pid,ssh=ssh_pid,receive_chain=chain,client_ssh_ancestry=ssh_chain,
                         pre_receive_survived=survived,main_at_base=True)
                   (w/'release').touch()
                   wait(lambda:not live(remote_pid,chain[0][2]),'pre-receive termination')
