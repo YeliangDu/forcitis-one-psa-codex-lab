@@ -1,0 +1,39 @@
+{
+  "kind": "p2-v2-executable-fallback-freeze/1",
+  "card": 63,
+  "revision": 7,
+  "base": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+  "comparison_H": "47e263825afb62a1b860915f8293da79572d12f6",
+  "selection": "python3 -B -m unittest discover -s <this disposable acceptance directory> -p test_v2_unknown_no_resend.py -v",
+  "files_sha256": {
+    "test_v2_unknown_no_resend.py": "8edf16f93d57f4e6f7641084d4a887e88d22329175dd24cad04a1fa4aa7a4b46",
+    "HANDOFF.md": "101581eab011772abfa5492213808b441b13bfac94982586412fb3ac2dfb5ad0"
+  },
+  "B_source_pins": {
+    "scripts/merge/mq_lab_active.py": "b0d7f38ac4094a2dac61f177d13d1e24eb08d3dd9118d1b5da32db70e25d4c5e",
+    "scripts/merge/mq_lab_journal_v2.py": "b18a98108ae4b2db26cd0a420d02ab3526203f2b62d477d81e263170c69483d6",
+    "scripts/merge/mq_lab_journal.py": "0422699839ce20d25b7986fa805b691628d43f9bf2ea9ddc5e825ac1b449baff",
+    "scripts/merge/mq_lab_runtime.py": "7bb0ad5d49547b5c5aab46fb554fa0792c3973f9d3c793b160c7effdd174c3cf",
+    "scripts/merge/mq_queue.py": "4fca732704a7a2bebf1580abdf279f699bd56be95fb02bef85773f18fdd1c665",
+    "scripts/merge/mq_lab_operator.py": "5a78044370589de5d0caf5b72aba023e8a1df8cb134cd452fe7d800ff15d688b",
+    "scripts/merge/mq_github.py": "d9838a9a5534276b31df6f88a9759b2a0ad08b79272fcf8653a20eb1ad274490"
+  },
+  "derived_fixture_sha256": "6c429072a883251d453924a339fdf6b362da8bf7ecf4494a1095e5b9a84c9112",
+  "capability_input_sha256": "127f5ef113613ad6e7704d331b753eec596fb6f8536268f8bda468ef91dd60e6",
+  "expected": {
+    "execution": "not-run",
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0,
+    "condition": "all hosted controls pass; capability failure is HOLD/error, not assertion red"
+  },
+  "openssh_status": "HOLD-no-sshd-start/authentication-or-remote-lifetime-witness",
+  "local_lifetime_assertion_included": false,
+  "actual_v2_migration_and_run_once": true,
+  "scope": "Focused runnable fallback specifically allowed by rev7; controlled helper is not real SSH.",
+  "old_A_B_H_changed": false,
+  "local_execution": false,
+  "network_used": false,
+  "activation_authority": false
+}
