@@ -22,7 +22,65 @@ class RoleWireError(RuntimeError):
 
 
 ROLE_COMMANDS={'assignment.publish','assignment.revoke','role.register','role.resume',
-               'role.dispatch-current','role.readback-current'}
+               'role.dispatch-current','role.readback-current','role.reconcile-failed-current'}
+
+FAILED_PROOF_SHA='5327bf6b30b1e2dd70031bd4ccbbc870a449db77a3d945f68a43792bd64290d0'
+RECONCILE_FIELDS=('epoch','revision','thread_id','turn_id','failure_sha256')
+
+
+def failed_declarations(failure):
+    groups=failure.get('actual_incremental_declarations') if type(failure) is dict else None
+    need(type(groups) is list and bool(groups),'failed-tool-evidence-required')
+    return {f"{d['name']}.{m}" for group in groups for d in group['definitions'] for m in d['members']}
+
+
+def reconcile_failed_tool(store,auth,current_epoch,arguments,readback,failure):
+    """Mark only the proved terminal turn and append its failed business verdict."""
+    from owned_runtime import fields
+    fields(arguments,RECONCILE_FIELDS)
+    a=arguments;tid=canonical_uuid(a['thread_id']);turn=canonical_uuid(a['turn_id'])
+    need(type(current_epoch) is str and bool(current_epoch) and a['epoch']==current_epoch
+         and type(a['revision']) is int and a['revision']>0,'failed-reconcile-epoch-or-revision')
+    need(type(failure) is dict and failure.get('thread_id')==tid and failure.get('turn_id')==turn
+         and a['failure_sha256']==sha(wire(failure).encode()),'failed-tool-proof-pin')
+    denied=failed_declarations(failure)
+    need({'functions.exec','functions.wait'}<=denied and any(x.startswith('collaboration.') for x in denied)
+         and failure.get('actual_fixed_read_calls')==0 and failure.get('broker_tool_operations')==0,
+         'failed-tool-evidence-does-not-match')
+    thread=readback.get('thread') if type(readback) is dict else None
+    need(type(thread) is dict and thread.get('id')==tid and type(thread.get('turns')) is list,
+         'failed-reconcile-thread-mismatch')
+    matches=[t for t in thread['turns'] if type(t) is dict and t.get('id')==turn]
+    need(len(matches)==1 and matches[0].get('status')=='completed' and not matches[0].get('error'),
+         'failed-reconcile-native-turn-not-completed')
+    with store.tx() as db:
+        owner,task=store.binding(db,auth,a['revision'],paused_ok=True)
+        body=decode(task['body'])
+        need(owner['paused'] and body['session_id']==tid and thread.get('cwd')==body['physical_cwd'],
+             'failed-reconcile-owner-or-workspace')
+        reg=db.execute('select * from role_registration where id=1').fetchone()
+        row=db.execute('select * from turns where turn_id=?',(turn,)).fetchone()
+        ds=db.execute('select * from native_dispatch where turn_id=?',(turn,)).fetchall()
+        need(reg and reg['session_id']==tid and reg['generation']==owner['generation']
+             and row and row['state']=='active' and row['revision']==a['revision']
+             and row['owner_generation']==owner['generation'] and row['epoch']==task['capability_epoch']
+             and len(ds)==1,'failed-reconcile-ledger-turn-mismatch')
+        dispatch=ds[0]
+        eff=db.execute('select * from effects where effect_id=?',(dispatch['effect_id'],)).fetchone()
+        need(dispatch['session_id']==tid and dispatch['phase']=='observed'
+             and dispatch['revision']==a['revision'] and dispatch['generation']==owner['generation']
+             and dispatch['epoch']==task['capability_epoch'] and bool(dispatch['connection_id'])
+             and eff and eff['kind']=='native-turn' and eff['issue_count']==1
+             and eff['revision']==a['revision'] and eff['generation']==owner['generation']
+             and db.execute('select 1 from native_tool_operations where turn_id=?',(turn,)).fetchone() is None,
+             'failed-reconcile-dispatch-or-accepted-read-present')
+        db.execute("update turns set state='terminal' where turn_id=? and state='active'",(turn,))
+        seq=store.event(db,'single-role-readonly-task-business-failed',dict(thread_id=tid,turn_id=turn,
+            revision=a['revision'],native_status='completed',business_accepted=False,epoch=current_epoch,
+            failed_tool_proof_sha256=a['failure_sha256'],effect_id=dispatch['effect_id'],
+            native_readback_sha256=sha(wire(readback).encode())))
+    return dict(action='business-failed',thread_id=tid,turn_id=turn,revision=a['revision'],epoch=current_epoch,
+                native_status='completed',business_accepted=False,event_sequence=seq)
 
 
 class RoleInstallation(Installation):
@@ -172,10 +230,15 @@ class SingleRoleBroker(OwnedBroker):
             if command=='assignment.revoke':
                 return self.store.revoke(auth)
             ch=self.channel
-            fields(args,('epoch',) if command in ('role.register','role.resume') else ('epoch','revision'))
+            if command=='role.reconcile-failed-current':
+                fields(args,RECONCILE_FIELDS)
+            else:
+                fields(args,('epoch',) if command in ('role.register','role.resume') else ('epoch','revision'))
             need(ch and args['epoch']==ch.epoch and self.state=='running'
                  and identity==self.epoch_owner and not ch.closed(),'stale-role-connection')
             try:
+                if command=='role.reconcile-failed-current':
+                    return self.reconcile(ch,auth,args)
                 if command=='role.register':
                     return self.register_role(ch,auth)
                 if command=='role.resume':
@@ -187,6 +250,29 @@ class SingleRoleBroker(OwnedBroker):
                 self.state='faulted'
                 ch.stop()
                 raise
+
+    def reconcile(self,ch,auth,args):
+        need(self.i.is_native,'native-reconciliation-only')
+        with self.store.tx() as db:
+            owner,task=self.store.binding(db,auth,args['revision'],paused_ok=True)
+            body=decode(task['body'])
+            need(owner['paused'] and body['session_id']==args['thread_id']
+                 and db.execute("select 1 from turns where turn_id=? and state='active'",(args['turn_id'],)).fetchone(),
+                 'exact-paused-failed-turn-required')
+        proof=private_file(str(self.i.root/'runtime/failed-tool-proof.json'),16384)
+        need(sha(proof)==FAILED_PROOF_SHA,'reviewed-native-failed-tool-artifact-drift')
+        failure=decode(proof)
+        need(failure.get('turn_id')==args['turn_id'] and sha(wire(failure).encode())==args['failure_sha256'],
+             'exact-failed-artifact-arguments')
+        _,items=role_native.persisted_declarations(self.i,args['thread_id'])
+        unsafe=False
+        for item in items:
+            try:role_native.request_tool_inventory(dict(input=[item]))
+            except ValueError:unsafe=True
+        need(unsafe,'native-persisted-tool-failure-missing')
+        _,readback=ch.rpc('thread/read',dict(threadId=args['thread_id'],includeTurns=True),self.i.timeout['request_ms'])
+        result=reconcile_failed_tool(self.store,auth,ch.epoch,args,readback,failure)
+        return dict(result,same_thread_dispatch_hold='persisted-unsafe-tool-declaration')
 
     def thread(self,result,thread_id=None):
         row=result['thread'];n=canonical_uuid(row['id'])
@@ -224,6 +310,7 @@ class SingleRoleBroker(OwnedBroker):
             need(db.execute("select 1 from native_dispatch where phase='unknown'").fetchone() is None,
                  'unknown-dispatch-no-resume')
         tid=row['session_id']
+        if self.i.is_native:role_native.require_clean_resume(self.i,tid)
         if self.attached!=(ch.epoch,tid):
             _,x=ch.rpc('thread/resume',dict(threadId=tid,cwd=str(self.i.cwd),approvalPolicy='never',
                           permissions=':read-only',environments=[],excludeTurns=True,
@@ -251,6 +338,7 @@ class SingleRoleBroker(OwnedBroker):
         with self.store.tx() as db:
             owner,task,body=self.current(db,auth,revision,ch)
             tid=body['session_id']
+            if self.i.is_native:role_native.require_clean_resume(self.i,tid)
             key=f'native-turn:{tid}:{revision}'
             need(db.execute('select 1 from effects where operation_key=?',(key,)).fetchone() is None,
                  'dispatch-already-consumed-readback-only')
