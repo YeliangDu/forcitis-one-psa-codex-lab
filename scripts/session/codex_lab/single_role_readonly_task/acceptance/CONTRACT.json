@@ -1,0 +1,125 @@
+{
+  "schema": "lab-single-role-readonly-installation/1",
+  "kind": "fixture-single-role-readonly",
+  "exact_keys": [
+    "schema",
+    "kind",
+    "owned_installation_sha256",
+    "role",
+    "assignment_file",
+    "max_assignment_bytes",
+    "dynamic_tool"
+  ],
+  "dynamic_tool": {
+    "name": "lab_read_assignment",
+    "arguments": {}
+  },
+  "max_assignment_bytes": 4096,
+  "role": "one-lead",
+  "file_semantics": "Independent test owner writes private fixed file matching current published assignment; Broker must actually read its bytes under current authorization and return raw-byte sha256.",
+  "owned_installation_kind": "fixture-single-role-stdio-only; distinct from prior owned fixture/official production kinds",
+  "CLI_modes": [
+    "serve-owned",
+    "call-owned"
+  ],
+  "new_explicit_flags": [
+    "--single-role-installation",
+    "--single-role-installation-sha256"
+  ],
+  "existing_flags_retained": [
+    "--owned-installation",
+    "--owned-installation-sha256",
+    "--source-closure",
+    "--source-closure-sha256"
+  ],
+  "requests": {
+    "assignment.publish": {
+      "arguments": {
+        "assignment": "exact_scope.assignment fields: card/revision/role/session_id/physical_cwd/task/A/B/H"
+      },
+      "success_action": "published",
+      "rule": "Initial current owner may publish; next revision requires actual paused+fenced predecessor; do not clear pause."
+    },
+    "assignment.revoke": {
+      "arguments": {},
+      "success_fields": [
+        "revoking_seq",
+        "fenced_seq"
+      ],
+      "rule": "Only paused current owner; actual Store fence before next publish."
+    },
+    "role.register": {
+      "arguments": {
+        "epoch": "current"
+      },
+      "success_fields": {
+        "action": "registered",
+        "thread_id": "actual stdio thread/start id",
+        "epoch": "same"
+      }
+    },
+    "role.resume": {
+      "arguments": {
+        "epoch": "current"
+      },
+      "success_fields": {
+        "action": "resumed",
+        "thread_id": "same durable registered thread id",
+        "epoch": "same"
+      }
+    },
+    "role.dispatch-current": {
+      "arguments": {
+        "epoch": "current",
+        "revision": "exact current int"
+      },
+      "success_fields": {
+        "action": "dispatched",
+        "thread_id": "actual",
+        "turn_id": "actual turn/start id",
+        "epoch": "same",
+        "revision": "same"
+      },
+      "rule": "Single consume per session/revision; no second turn/start after completed same revision."
+    },
+    "role.readback-current": {
+      "arguments": {
+        "epoch": "current",
+        "revision": "exact current int"
+      },
+      "success_fields": {
+        "action": "observed",
+        "thread_id": "actual",
+        "turn_id": "actual durable turn",
+        "epoch": "current",
+        "revision": "same",
+        "read": {
+          "revision": "same",
+          "sha256": "actual fixed file bytes",
+          "assignment": "parsed current file JSON"
+        }
+      },
+      "pending": "action hold while actual native callback completion/readback pending; no new turn/start",
+      "completed_resume": "New epoch may readonly read same completed revision/turn; do not redispatch."
+    }
+  },
+  "runtime_commands": "Prior owned-runtime contract retained; owner/pause/current epoch enforced.",
+  "pause_restart": "Independent control-Broker process stop/restart with same private state. Before explicit pause(false), no child start/read/resume/dispatch/turn/start. Registered but never-dispatched thread must resume without inventing stable first-action evidence.",
+  "normal_restart": "Same Broker runtime.stop then runtime.start, fresh child/epoch, actual thread/resume same stored thread id.",
+  "storage": "Actual existing Store owner/tasks/turns/role_registration/native_dispatch/native_tool_operations; fixture RoleStore creates only missing scratch role tables, no ResumeStore/migration, no parallel task ledger.",
+  "native_tool_reply": {
+    "success": true,
+    "contentItems": [
+      {
+        "type": "inputText",
+        "text": "JSON of exact read object {revision,sha256,assignment}"
+      }
+    ]
+  },
+  "deny_response": {
+    "action": "hold",
+    "read": "absent"
+  },
+  "native_fixture_projection": "Fixture child persists only native thread/turn IDs/result projection, no owner/revision authorization; all Broker permissions/storage remain in actual product tables.",
+  "production_native_authentication_proved": false
+}
