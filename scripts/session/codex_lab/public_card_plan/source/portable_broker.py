@@ -137,7 +137,7 @@ def build_composition(binding):
 
 def main():
     parser = argparse.ArgumentParser(allow_abbrev=False,epilog="Paused native operations: role.reconcile-failed-current, role.retire-failed, role.replace-retired, role.replace-interrupted.")
-    parser.add_argument('command', choices=('check-compatibility','serve','call','serve-owned','call-owned','reconcile-owned-interrupted','publish-owned-card'))
+    parser.add_argument('command', choices=('check-compatibility','serve','call','serve-owned','call-owned','reconcile-owned-interrupted','publish-owned-card','plan-owned-card'))
     parser.add_argument('--source-closure',required=True)
     parser.add_argument('--source-closure-sha256',required=True)
     parser.add_argument('--private-binding')
@@ -152,12 +152,15 @@ def main():
     args=parser.parse_args()
     try:
         verify_source(args.source_closure,args.source_closure_sha256)
-        if args.command=='publish-owned-card':
+        if args.command in ('publish-owned-card','plan-owned-card'):
             require(args.owned_installation and args.owned_installation_sha256
                     and args.single_role_installation and args.single_role_installation_sha256
                     and args.publication_scope and args.publication_scope_sha256 and args.request
                     and not args.private_binding and not args.private_binding_sha256,'card-publication-owned-pins-required')
-            from public_card import publication
+            if args.command=='plan-owned-card':
+                from card_plan import plan_owned as publication
+            else:
+                from public_card import publication
             return publication(args.owned_installation,args.owned_installation_sha256,args.request,
                                args.single_role_installation,args.single_role_installation_sha256,
                                args.publication_scope,args.publication_scope_sha256)
