@@ -137,15 +137,24 @@ def build_composition(binding):
 
 def main():
     parser = argparse.ArgumentParser(allow_abbrev=False)
-    parser.add_argument('command', choices=('check-compatibility','serve','call'))
+    parser.add_argument('command', choices=('check-compatibility','serve','call','serve-owned','call-owned'))
     parser.add_argument('--source-closure',required=True)
     parser.add_argument('--source-closure-sha256',required=True)
-    parser.add_argument('--private-binding',required=True)
-    parser.add_argument('--private-binding-sha256',required=True)
+    parser.add_argument('--private-binding')
+    parser.add_argument('--private-binding-sha256')
+    parser.add_argument('--owned-installation')
+    parser.add_argument('--owned-installation-sha256')
     parser.add_argument('--request')
     args=parser.parse_args()
     try:
         verify_source(args.source_closure,args.source_closure_sha256)
+        if args.command in ('serve-owned','call-owned'):
+            require(args.owned_installation and args.owned_installation_sha256
+                    and not args.private_binding and not args.private_binding_sha256,'owned-only-selection-required')
+            from owned_runtime import run
+            return run(args.command,args.owned_installation,args.owned_installation_sha256,args.request)
+        require(args.private_binding and args.private_binding_sha256
+                and not args.owned_installation and not args.owned_installation_sha256,'portable-binding-required')
         binding=load_private_binding(args.private_binding,args.private_binding_sha256,args.source_closure_sha256)
         if args.command != 'call':
             checked=compatibility(binding)
@@ -172,7 +181,7 @@ def main():
             client.settimeout(30);client.connect(str(endpoint));runtime.send(client,request)
             print(json.dumps(runtime.message(client),sort_keys=True))
         return 0
-    except (ValueError,OSError,TypeError,KeyError,UnicodeError,sqlite3.Error):
+    except (ValueError,OSError,TypeError,KeyError,UnicodeError,sqlite3.Error,EOFError,RuntimeError):
         print(json.dumps(dict(action='hold',reason='portable-selection-or-capability-unavailable',execution_authority=False)))
         return 78
 
