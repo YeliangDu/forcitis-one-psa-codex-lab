@@ -8,7 +8,7 @@
     "branch_effect_binding.py": "82435b55731b7f78f72993194dbb57fc5d62e0ffa1c0e83d0b5a38ed72d63cbe",
     "branch_effect_port.py": "ae4ba44f12472d1109a01e0ad468e6cabbbf02adbc8d9cbd39c1dfb4aff7c42c",
     "broker_plan.py": "638dbf482e5ef12e257fc5f0a8c0297571641703981f8fd1517b16ab02805cc7",
-    "card_capsule.py": "5b2b934d2c1fb9cad74f051a582289406efd29cd9f62d12d42a33c2ddfa9f95b",
+    "card_capsule.py": "2fbc5d7ec2d1ec6331371410b002ccfe5bba112df0bfb44a547d7d6580131e00",
     "card_followup.py": "0d0251386613ee4feea8243c83fbc61bc4f72770aaf32aa745deaeab1aab98b5",
     "exact_scope.py": "ee29d8eaaa234655046f8d7a654d1179b506336a5cd08843f11380b253826b9d",
     "existing_ci_proof.py": "5393667fcf2e10be2e8223e6380df321b6d72deb56423e290e51b8cfc1217ba4",
@@ -39,7 +39,7 @@
     "role_resume.py": "9b22dc33e1b307d529ce323466b4c0be809b1630671d641a3e48706705965e66",
     "runtime_broker.py": "f4aa5d346d8383d921cafb66b9fa6e4af9a4073a2e68ce97cec746c258cd6f2f",
     "runtime_store.py": "5320f1d5eaef9fe6c21471422b2944b8b0d7273b85c97e2cceb85191fde73dc0",
-    "single_role.py": "605d9d7fde2eb99406912c60ea7a30def74d3fb6e89587a41950ea31e7c24a0a",
+    "single_role.py": "1758f96b9517fdc0057cb08be906c732c2ed7c1a1923a77d4c811ec6c9e8306b",
     "startup_authority.py": "d5ca117b82bda983ba1942f3933348a631c9e28b963929acdf10e7b34a0b8ca5",
     "warm_handoff.py": "6a69cde20d3900f45c92c87a8bcbcc5a70ad0fea635dbfe3f8be29eaa2f778f0"
   }

@@ -43,3 +43,17 @@ def prepare_edits(assignment,scope_raw,approved_sha256,patch_result):
         need(i>=0 and t.find(o,i+1)==-1,'patch-context-not-unique')
         changes[p]=t[:i]+n+t[i+len(o):]
     return changes
+
+
+def final_proposal(items,last_agent_message):
+    """Bind the one final native message to its independently persisted completion."""
+    need(type(items) is list and type(last_agent_message) is str,'native-final-proposal-evidence')
+    final=[]
+    for x in items:
+        need(type(x) is dict and x.get('type')=='agentMessage' and type(x.get('text')) is str
+             and x.get('phase') in ('commentary','final_answer'),'native-proposal-message-phase')
+        if x['phase']=='final_answer':final.append(x['text'])
+    need(len(final)==1 and final[0]==last_agent_message,'native-final-proposal-durable-mismatch')
+    value=decode(final[0])
+    need(type(value) is dict,'native-final-proposal-object-required')
+    return value

@@ -587,9 +587,14 @@ class SingleRoleBroker(OwnedBroker):
                 capsule=self.scoped_capsule(body)
                 if capsule:
                     pin,scope,_=capsule
-                    need(payload.get('scope_sha256')==pin and len(texts)==len(parsed)==1,
-                         'card-model-output-not-exact-json')
-                    proposal=parsed[0]
+                    need(payload.get('scope_sha256')==pin,'card-native-scope-mismatch')
+                    raw,_=role_native.persisted_declarations(self.i,tid)
+                    complete=[row['payload'] for row in map(decode,raw.splitlines())
+                              if row.get('type')=='event_msg' and row['payload'].get('type')=='task_complete'
+                              and row['payload'].get('turn_id')==turn]
+                    need(len(complete)==1,'card-native-completion-not-unique')
+                    proposal=card_capsule.final_proposal([x for x in items if x.get('type')=='agentMessage'],
+                                                         complete[0].get('last_agent_message'))
                     card_capsule.prepare_edits(body,scope,pin,proposal)
                 else:
                     need(any(type(x) is dict and type(x.get('revision')) is int and x==payload for x in parsed),
