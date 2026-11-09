@@ -1,0 +1,12 @@
+{
+  "kind": "r2-explicit-https-source-candidate/1",
+  "files_sha256": {
+    "branch_effect_https.py": "a3939093351c3f563d8908a46a5c7c816e03197ec3dca2b4ffac3b9e92b835ab",
+    "branch_effect_port.py": "5c31e8f61f84eddf816dd864faaf2444695bfeb9087be576c72c95f871d5e056",
+    "exact_gh_credential.py": "ad29df3720433f3a6c48c107438dcd37e2e9dc7e68b7f46c95c9104751871e74"
+  },
+  "actual_credential_call": false,
+  "actual_send": false,
+  "formal_writer": false,
+  "default_enabled": false
+}

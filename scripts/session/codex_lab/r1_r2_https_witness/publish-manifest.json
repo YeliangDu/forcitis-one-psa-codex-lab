@@ -1,0 +1,16 @@
+{
+  "kind": "lab62-v2-hosted-cli-witness/1",
+  "files_sha256": {
+    "candidate/SOURCE-CLOSURE.json": "6ce7a247f631ec9f10fa8f61819fe17fe0bf4bb9f43046900dbd6b0eeec8dc1e",
+    "candidate/branch_effect_https.py": "a3939093351c3f563d8908a46a5c7c816e03197ec3dca2b4ffac3b9e92b835ab",
+    "candidate/branch_effect_port.py": "5c31e8f61f84eddf816dd864faaf2444695bfeb9087be576c72c95f871d5e056",
+    "candidate/exact_gh_credential.py": "ad29df3720433f3a6c48c107438dcd37e2e9dc7e68b7f46c95c9104751871e74",
+    "acceptance/SCENARIO.json": "7c778e9bc57f56bb187b1355131816c7e30f553af9c5f6c997a6c1cd4e602b48",
+    "acceptance/run_acceptance.py": "045201088d13d843d23737a36ed07d924154eb7d64617b4832180539d4d5a9c9",
+    "driver/collect_https_refusals.py": "0d0c3437736ae434703b6fafda8e02f57a024802d47267268e27e83299eff6ab"
+  },
+  "author_turn": "01a1becb-b5f7-7303-9f35-c3cd38089fab",
+  "author_cursor": "a3e466e4-5068-436f-be4b-21815cec7190:409",
+  "overall_vertical_pass": false,
+  "formal_writes": false
+}
