@@ -1,0 +1,20 @@
+{
+  "activation_authority": false,
+  "baseline": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+  "execution": "NOT RUN",
+  "files_sha256": {
+    "CORE-PINS.json": "637f1dc1015954660e3515b708ab7f189e7075a426869d4ea95df8eeace49aa9",
+    "SCOPE.template.json": "4f484526f295255174efb2aae9af1dc60e9c6da352b72a3844cebf44cea6ed49",
+    "entry.py": "9253313bd09f3489d25eeea538913565f60c9f3d997b241f7c36aa551510aae0",
+    "files/scripts/merge/mq_github.py": "7bb39864eb79087f55db58e40e59ed4d02cbb499d0adf5ed14f53c2a3d7c96ba",
+    "files/scripts/merge/mq_lab_control_install.py": "107f52c23ffa9e0a34b8286d5a228a18a9e6a008445d020775420725a883888f",
+    "files/scripts/merge/mq_lab_cutover_native.py": "998b5fadfb6c3e7ef805d11ce68fca13418a0f4b2c897e5df63f76fd4bfee15b",
+    "r3-explicit-control-lease.patch": "604b141df9007c767d922f954cfcabfebdc5e16fbe074cb5a49dde72b35f8ad1",
+    "v2-to-v3-entry.patch": "11137701b65efda128931e2da4694b3c2b63e748dc15db94f332974e9407a5bb",
+    "v3-to-v4-entry.patch": "5a8878992fd3cb95ac4d4c56a93d081273fc1c5180a37077db142d6bb610f82b"
+  },
+  "kind": "lab-r3-static-candidate-freeze/1",
+  "parent_freeze_sha256": "1185b296a36f2bd2820e9290762a62ba99dc9b636719ef278199947581aeecca",
+  "revision": 4,
+  "transport_H": "47e263825afb62a1b860915f8293da79572d12f6"
+}

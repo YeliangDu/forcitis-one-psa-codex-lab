@@ -1,0 +1,34 @@
+{
+  "kind": "r3-hosted-acceptance-package/1",
+  "files_sha256": {
+    "MATERIAL.json": "339825d0c3a3aa269f2028d7518ebd384b33020d6be8ed78d66a84f4ee37f6a8",
+    "history_fixture.py": "a7c7608cd957f708cf97b0c5a8942e77884b52f8c93f12ecb3716e0173a96966",
+    "native_fixture_builder.py": "d7d25981677d78cd839dbc357c1bba95cbf99a27046b403c8c54f6f83802b58e",
+    "run_r3_chain.py": "c865d01ed02d556529ae6eed8547dbd4d506422f635e65161dbe5d085df66a0e",
+    "manifest.json": "962670fd99c2ec923bae0bf66be1d67d54ea7c65cbb78590747d9c1f5121fa74",
+    "entry.py": "9253313bd09f3489d25eeea538913565f60c9f3d997b241f7c36aa551510aae0",
+    "candidate/FROZEN-v4.json": "b61f0bc20a6bf4034c6dcda21862d28d97e1d7c942099a09d63708b821cf3750",
+    "materialize.py": "393e9f17cea1f86f554730e3e24eff89f22fb388a725196afdefff257698ded0",
+    "candidate/files/scripts/merge/mq_lab_cutover_native.py": "998b5fadfb6c3e7ef805d11ce68fca13418a0f4b2c897e5df63f76fd4bfee15b",
+    "candidate/files/scripts/merge/mq_lab_control_install.py": "107f52c23ffa9e0a34b8286d5a228a18a9e6a008445d020775420725a883888f",
+    "candidate/files/scripts/merge/mq_github.py": "7bb39864eb79087f55db58e40e59ed4d02cbb499d0adf5ed14f53c2a3d7c96ba"
+  },
+  "acceptance_paths": [
+    "MATERIAL.json",
+    "history_fixture.py",
+    "manifest.json",
+    "native_fixture_builder.py",
+    "run_r3_chain.py"
+  ],
+  "witness_paths": [
+    "candidate/FROZEN-v4.json",
+    "candidate/files/scripts/merge/mq_github.py",
+    "candidate/files/scripts/merge/mq_lab_control_install.py",
+    "candidate/files/scripts/merge/mq_lab_cutover_native.py",
+    "entry.py",
+    "materialize.py"
+  ],
+  "author_turn": "01a1bf2e-c87b-7780-b817-2617111e0235",
+  "author_cursor": "a3e466e4-5068-436f-be4b-21815cec7190:459",
+  "formal_writer_allowed": false
+}
