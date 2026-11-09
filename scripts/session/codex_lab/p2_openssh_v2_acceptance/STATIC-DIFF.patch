@@ -1,0 +1,37 @@
+--- rev8/test_openssh_v2_integrated.py
++++ rev9/test_openssh_v2_integrated.py
+@@ -227,6 +227,9 @@
+             self.assertNotIn(p.pid, [row['pid'] for row in remote_chain])
+             receive_identity = receivers[0]
+             hook_identity = remote_chain[0]
++            owner_identity = process_identity(p.pid)
++            if owner_identity is None or not same_live(owner_identity):
++                raise RuntimeError('CAPABILITY_HOLD: expected owner is not live')
+             def local_chain():
+                 for proc in Path('/proc').iterdir():
+                     if not proc.name.isdigit():
+@@ -235,13 +238,23 @@
+                     if not row or not executable(row, '/usr/bin/ssh'):
+                         continue
+                     chain = ancestors(row['pid'])
+-                    if p.pid in [item['pid'] for item in chain]:
++                    pids = [item['pid'] for item in chain]
++                    if p.pid in pids:
++                        chain = chain[:pids.index(p.pid) + 1]
++                        if chain[-1]['start'] != owner_identity['start'] or not same_live(owner_identity):
++                            raise RuntimeError('CAPABILITY_HOLD: expected owner identity moved')
++                        if any(child['ppid'] != parent['pid'] for child, parent in zip(chain, chain[1:])):
++                            raise RuntimeError('CAPABILITY_HOLD: local ancestor links moved')
+                         return chain
+             chain = wait_for_value(local_chain, 'actual SSH/shell/Git/owner chain')
+             clients = [row for row in chain if executable(row, '/usr/bin/ssh')]
+             gits = [row for row in chain if executable(row, '/usr/bin/git')]
+             if len(clients) != 1 or len(gits) != 1:
+                 raise RuntimeError('CAPABILITY_HOLD: ambiguous local Git/SSH ancestry')
++            if (chain[0] != clients[0] or chain[-1]['pid'] != p.pid
++                    or not 0 < chain.index(gits[0]) < len(chain) - 1
++                    or not all(same_live(row) for row in chain)):
++                raise RuntimeError('CAPABILITY_HOLD: local SSH/Git/owner order or identity differs')
+             for row in chain:
+                 self.assertEqual(row['pgid'], p.pid)
+                 self.assertEqual(row['session'], p.pid)

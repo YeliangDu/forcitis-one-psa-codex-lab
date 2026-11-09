@@ -1,0 +1,67 @@
+{
+  "kind": "p2-openssh-v2-fixture-repair/1",
+  "card": 63,
+  "revision": 9,
+  "base": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+  "candidate_H": "47e263825afb62a1b860915f8293da79572d12f6",
+  "prior_manifest_sha256": "0000a7c6cf0f2d8a5eb7a4ee2419eb4339a226594067ea69fac6209cc639eb1a",
+  "prior_test_sha256": "2753ba8e049b4aec9a6568e604bac675470942302deab3edf22fb8452c9697a9",
+  "source_pins": {
+    "77e872e8ba9661d3294d3a9337c8e5c956b70641": {
+      "scripts/merge/mq_lab_active.py": "b0d7f38ac4094a2dac61f177d13d1e24eb08d3dd9118d1b5da32db70e25d4c5e",
+      "scripts/merge/mq_lab_journal_v2.py": "b18a98108ae4b2db26cd0a420d02ab3526203f2b62d477d81e263170c69483d6",
+      "scripts/merge/mq_lab_journal.py": "0422699839ce20d25b7986fa805b691628d43f9bf2ea9ddc5e825ac1b449baff",
+      "scripts/merge/mq_lab_runtime.py": "7bb0ad5d49547b5c5aab46fb554fa0792c3973f9d3c793b160c7effdd174c3cf",
+      "scripts/merge/mq_queue.py": "4fca732704a7a2bebf1580abdf279f699bd56be95fb02bef85773f18fdd1c665",
+      "scripts/merge/mq_lab_operator.py": "5a78044370589de5d0caf5b72aba023e8a1df8cb134cd452fe7d800ff15d688b",
+      "scripts/merge/mq_github.py": "d9838a9a5534276b31df6f88a9759b2a0ad08b79272fcf8653a20eb1ad274490"
+    },
+    "47e263825afb62a1b860915f8293da79572d12f6": {
+      "scripts/merge/mq_lab_active.py": "b0d7f38ac4094a2dac61f177d13d1e24eb08d3dd9118d1b5da32db70e25d4c5e",
+      "scripts/merge/mq_lab_journal_v2.py": "b18a98108ae4b2db26cd0a420d02ab3526203f2b62d477d81e263170c69483d6",
+      "scripts/merge/mq_lab_journal.py": "0422699839ce20d25b7986fa805b691628d43f9bf2ea9ddc5e825ac1b449baff",
+      "scripts/merge/mq_lab_runtime.py": "7bb0ad5d49547b5c5aab46fb554fa0792c3973f9d3c793b160c7effdd174c3cf",
+      "scripts/merge/mq_queue.py": "358b844ff6132f3557db863e2e5f71a4e42f0836715ec21ef2431891bbf0e94a",
+      "scripts/merge/mq_lab_operator.py": "5a78044370589de5d0caf5b72aba023e8a1df8cb134cd452fe7d800ff15d688b",
+      "scripts/merge/mq_github.py": "1d9fc516d53a2ff0bbc52d09f6d308884936478ecd243ebb128aa4b3cb55d053"
+    }
+  },
+  "launcher_origin": {
+    "head": "d2821360cc77f725f58b742d4b97dea72249c3cf",
+    "workflow": ".github/workflows/lab-63-openssh-wire.yml",
+    "sha256": "0eac9975f5c82dc89d323b7e06c8263f5b71022b8f31ca3a4d48f1669de4bc1b"
+  },
+  "reported_failed_run": 42561762501,
+  "readback_sha256": "4ed266e9a63262bec4cb06cc9aca47594615b261539f3f9ffca4d0e8a22d34e2",
+  "static_proof": {
+    "assertion_call_sequence_identical": true,
+    "assertion_calls": 25,
+    "signal_call_sequence_identical": true,
+    "launcher_byte_identical": true,
+    "quarantine_and_recovery_source_unchanged": true,
+    "repair_scope": "local_chain owner truncation and additive identity/order guards only"
+  },
+  "expected_B": {
+    "tests": 1,
+    "failures": 1,
+    "errors": 0,
+    "skips": 0,
+    "named_assertion": "production merge flock became available while actual SSH descendant lived; this proves lock-lifetime loss, not a second send"
+  },
+  "expected_H": {
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skips": 0
+  },
+  "expected_results_status": "not-executed; exact final assertion required, prior PGID red is fixture failure",
+  "old_acceptance_modified": false,
+  "local_tests_run": false,
+  "activation_authority": false,
+  "files_sha256": {
+    "test_openssh_v2_integrated.py": "7c95f5b2105b29a0fe675bde61bb611cc54e581516f7e2a9505395d08a4d38a1",
+    "namespace.sh": "b49e9b8b4b404e575a8946111a6b037c41f00b43c24f2ca3f7fe8763bc6385ba",
+    "STATIC-DIFF.patch": "808f117caf73bdd5745c0e8022d83689e4545a203820a37a931d40fe01158355",
+    "HANDOFF.md": "a4ff3bebc764bfa53b4b7860999f5b371d3f183b04b911bc751b55c7c9c90025"
+  }
+}
