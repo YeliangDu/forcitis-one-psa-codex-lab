@@ -41,7 +41,10 @@ class GitHTTPS:
         self.sock, self.runner = credential_socket, runner
 
     def push(self, args, permit_guard, lease_fd):
-        s = self.scope
+        return self._push_bound(self.scope, self.sock, self.runner, args, permit_guard, lease_fd)
+
+    @staticmethod
+    def _push_bound(s, credential_socket, runner, args, permit_guard, lease_fd):
         ref = s["ref"]
         expected = ["--force-with-lease=" + ref + ":" + s["expected"], URL, s["head"] + ":" + ref]
         require(type(args) is list and args == expected and callable(permit_guard)
@@ -71,7 +74,7 @@ class GitHTTPS:
                 st=os.fstat(f.fileno())
                 require((st.st_dev,st.st_ino)==(info.st_dev,info.st_ino) and
                         hashlib.sha256(f.read(65537)).hexdigest()==a["sha256"], "HTTPS_ASKPASS_PIN_MISMATCH")
-            sock, _ = physical(self.sock, stat.S_ISSOCK)
+            sock, _ = physical(credential_socket, stat.S_ISSOCK)
             physical(str(sock.parent),stat.S_ISDIR)
             return str(helper),str(sock)
         try:
@@ -82,7 +85,7 @@ class GitHTTPS:
             raise ValueError("HTTPS_PRE_SEND_REFUSED") from e
         env={"PATH":"/usr/bin:/bin","GIT_TERMINAL_PROMPT":"0",
              "GIT_ASKPASS":helper,"LAB_CREDENTIAL_SOCKET":sock}
-        result=self.runner(["git","push",*expected],env=env,pass_fds=(lease_fd,))
+        result=runner(["git","push",*expected],env=env,pass_fds=(lease_fd,))
         return {"action":"issued" if result.get("returncode")==0 else "unknown"}
 
 
@@ -118,6 +121,9 @@ class TrustedBareGit:
         require(argv[2].startswith("--force-with-lease=") and sep and sep2 and REF.fullmatch(ref)
                 and OID.fullmatch(expected) and dst==ref and (not obj or OID.fullmatch(obj)),
                 "HTTPS_RUNNER_REF_AND_LEASE_REQUIRED")
+        return self._run_scoped(argv, env=env, pass_fds=pass_fds)
+
+    def _run_scoped(self, argv, *, env, pass_fds):
         self._config()
         context=dict(env,HOME=str(self.home),GIT_CONFIG_NOSYSTEM="1",GIT_CONFIG_GLOBAL="/dev/null",
                      GIT_CONFIG_SYSTEM="/dev/null",GIT_NO_REPLACE_OBJECTS="1",LANG="C")

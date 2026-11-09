@@ -108,8 +108,9 @@ class _RequestedQueue:
 
 class _LazyJournal:
     """Existing migrated storage only; readback never grants a new request."""
-    def __init__(self, path):
+    def __init__(self, path, reserve_guard=None, reserved=None, recover_guard=None):
         self.path, self.journal = path, None
+        self.reserve_guard, self.reserved, self.recover_guard = reserve_guard, reserved, recover_guard
 
     def _get(self):
         if self.journal is None:
@@ -132,15 +133,25 @@ class _LazyJournal:
                 db.rollback()
 
     def __getattr__(self, name):
-        if name not in ("load", "confirm"):
+        if name not in ("load",):
             raise AttributeError(name)
         # Existing ordinary reservations recover without new approval/proof or
         # a pending-upgrade send gate. V2 itself refuses control-upgrade rows.
         return getattr(self._get(), name)
 
+    def confirm(self, record):
+        if self.recover_guard is not None:
+            self.recover_guard(self._get().load(record["number"]))
+        return self._get().confirm(record)
+
     def reserve(self, record):
         self.require_new_write_ready()
-        return self._get().reserve(record)
+        if self.reserve_guard is not None:
+            self.reserve_guard(record)
+        result = self._get().reserve(record)
+        if result is True and self.reserved is not None:
+            self.reserved(record)
+        return result
 
 
 class _LazyWriter:
@@ -178,7 +189,7 @@ def _first_card_locks(path, scope):
                  and not st.st_mode & 0o022 and [st.st_dev, st.st_ino] == expected, "first-card-lock-identity-moved")
 
 
-def _cleanup_confirmed_orphan(number, common_dir, ports, scope=None):
+def _cleanup_confirmed_orphan(number, common_dir, ports, scope=None, recover_guard=None):
     """Reconcile ONLY a requested absent-FIFO ordinary confirmed item.
 
     Never reads approval/eligibility or sends. Existing canonical locks and strict
@@ -253,6 +264,8 @@ def _cleanup_confirmed_orphan(number, common_dir, ports, scope=None):
                      "cleanup-lock-name-moved-before-publication")
         _first_card_locks(path, scope)
         _require(_path(common_dir) == path, "cleanup-common-dir-moved-before-publication")
+        if recover_guard is not None:
+            recover_guard(record)
         if number in heads:
             from mq_queue import Queue
             # Both sidefile locks are already held; do not call drop_head or
@@ -264,14 +277,20 @@ def _cleanup_confirmed_orphan(number, common_dir, ports, scope=None):
         return dict(action="skip", reason="confirmed-orphan-cleaned-with-readback-only", merge_sha=record["merge_sha"])
 
 
-def run_command(command, number, common_dir, ports, *, first_card_scope=None, permit_check=None, recover_only=False):
+def run_command(command, number, common_dir, ports, *, first_card_scope=None, permit_check=None, recover_only=False,
+                reserve_guard=None, reserved=None, recover_guard=None):
     """Plan without state creation; admit/once use the one canonical lock."""
     try:
         _require(command in ("plan", "enqueue", "once") and type(number) is int and number > 0,
                  "unsupported-command-or-pr")
         if command == "once" and getattr(ports, "requires_first_card_scope", False):
             _require(isinstance(first_card_scope, dict) and first_card_scope["subject"]["number"] == number == 69
-                     and callable(permit_check) and type(recover_only) is bool, "first-card-launcher-required")
+                     and callable(permit_check) and type(recover_only) is bool
+                     and callable(recover_guard), "first-card-launcher-required")
+            if not recover_only:
+                from lab_main_https import MainHTTPSBinding
+                _require(type(getattr(ports, "_main_https", None)) is MainHTTPSBinding
+                         and callable(reserve_guard) and callable(reserved), "main-only-https-launcher-required")
         path = _path(common_dir)
         _first_card_locks(path, first_card_scope)
         if first_card_scope is not None:
@@ -296,9 +315,9 @@ def run_command(command, number, common_dir, ports, *, first_card_scope=None, pe
         present, numbers = _state(path)
         _require(present, "canonical-queue-missing")
         if command == "once" and (not numbers or numbers[0] != number):
-            return _cleanup_confirmed_orphan(number, common_dir, ports, first_card_scope)
+            return _cleanup_confirmed_orphan(number, common_dir, ports, first_card_scope, recover_guard)
         journal_path = path.parent / "releases.sqlite3"
-        journal = _LazyJournal(journal_path)  # No storage I/O until used under the merge lock.
+        journal = _LazyJournal(journal_path,reserve_guard,reserved,recover_guard)
         last_key = [None]
 
         def verify(intent):
@@ -346,9 +365,14 @@ def run_command(command, number, common_dir, ports, *, first_card_scope=None, pe
                 return False
 
         queue = _RequestedQueue(Queue(str(path)), number, first_card_scope)
+        def health(merge):
+            proof = ports.release_health(merge)
+            if recover_guard is not None:
+                recover_guard(journal.load(number))
+            return proof
         return run_once(queue, journal, verify,
                         _LazyWriter(ports, authorize, first_card_scope), allow_write=not recover_only,
-                        healthy=getattr(ports, "release_health", None),
+                        healthy=health if callable(getattr(ports, "release_health", None)) else None,
                         expected_intent=None if first_card_scope is None else first_card_scope["subject"])
     except Exception:
         return dict(action="hold", reason="operator-command-held-or-unavailable")
@@ -389,6 +413,10 @@ class ProductionPorts:
                 from lab_https_transport import BoundCPrimeHTTPS
                 _require(type(https) is BoundCPrimeHTTPS, "isolated-https-binding-required")
                 return https(args, check)
+            from lab_main_https import MainHTTPSBinding
+            main = getattr(self, "_main_https", None)
+            _require(type(main) is MainHTTPSBinding, "formal-main-https-binding-required")
+            return main(args, check)
         result = self.sh(["git", *args])
         _require(result.returncode == 0, "fixed-Lab-git-command-failed")
         return result.stdout
