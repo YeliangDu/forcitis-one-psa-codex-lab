@@ -1,0 +1,21 @@
+{
+  "kind": "p1-bounded-association-contract/1",
+  "B": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+  "baseline_comparison": "actual existing match_dispatch_ack(claim,prompt_bytes,legacy_pages), byte pin6faec4f7; no unknown fields/arguments inserted and no stub",
+  "candidate_call": "actual match_dispatch_ack(claim,prompt_bytes,legacy_pages,window_proof=proof); signature mismatch HOLD, no silent fallback",
+  "window_proof": "kind + native_pages[{query_cursor,response{thread{id},page{order,limit,hasMore,nextCursor},turns{id,status,items{id,type,phase?,text}}}}] + pre_send_snapshot(thread_id,turn_id,status,cursor) + initial_top(thread_id,turn_id) + final_snapshot(thread_id,turn_id)",
+  "rules": [
+    "all synthetic opaque cursor strings preserved exactly, never parsed for private ordinal semantics",
+    "start from bracketed newest top; walk exact returned chain to frozen pre-send predecessor observed terminal for resume",
+    "check raw and legacy projection correspondence and same thread/turn/item type/text; no retyping tool/user messages",
+    "unique entire exact new agent ACK only, current claim/generation/prompt digest and authoritative envelope UUID",
+    "predecessor missing, continuity gap, wrong thread/claim, duplicate/tool/quoted/partial ACK or moved top -> HOLD with no tentative turn/claim and no effect",
+    "bounded completion is not full-history exhaustion; hasMore=true/older continuation stays true/non-null in audit",
+    "immutable inputs; match never grants dispatch/resume/activation permission"
+  ],
+  "matched_response": "existing action/reason/turn_id/claim_id plus window.scope=post-send-through-predecessor, predecessor_turn, full_history_exhausted=false, native_continuation exact raw last cursor, audit_index exact query/next/order/hasMore/turn IDs/item IDs/type/phase",
+  "scope": "isolated synthetic pure matching only; native API authentication/page collection/send ordering/permissions/active C and actual harmless native window-v2 witness remain separate HOLD",
+  "no_private_capture_copied": true,
+  "prior_checkpoint_A_modified": false,
+  "activation_authority": false
+}

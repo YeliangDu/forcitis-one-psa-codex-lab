@@ -1,0 +1,18 @@
+{
+  "status": "SOURCE-DERIVED ONLY; no execution",
+  "tests": 11,
+  "failures": 2,
+  "errors": 0,
+  "skipped": 0,
+  "assertions": {
+    "test_association.BoundedAssociationAcceptance.test_bounded_initial_retains_older_continuation_and_matches_unique_ack": "P1_ASSOC_BOUNDED_INITIAL_REJECTED_AS_TRUNCATED",
+    "test_association.BoundedAssociationAcceptance.test_bounded_resume_reaches_terminal_predecessor_without_history_exhaustion": "P1_ASSOC_BOUNDED_RESUME_REJECTED_AS_TRUNCATED"
+  },
+  "baseline_sha256": "6faec4f779cf74c43b2e05a3dd318862be7c88433c4ffb2345baa6587cc53340",
+  "existing_behavior": "actual old match_dispatch_ack receives its valid exact three-argument legacy normalized schema. Both bounded positives contain the full unique exact ACK and preexisting terminal predecessor; final nextCursor stays opaque/non-null. Existing final-page nextCursor-is-None guard rejects them.",
+  "capability_control": "a separate synthetic truly exhausted window has actual hasMore=false/nextCursor=null and must match through actual baseline API; never rewrite bounded-positive continuation",
+  "candidate_api": "same actual match_dispatch_ack callable with explicit keyword window_proof; separately selected reviewed source SHA. Missing callable/signature/closure is HOLD86, never baseline red.",
+  "negative_coverage": "baseline refusals preserve old guards; moved-top and full proof checks count only after candidate bounded positive green",
+  "no_native_send": true,
+  "activation_authority": false
+}

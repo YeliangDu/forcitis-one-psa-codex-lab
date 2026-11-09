@@ -1,0 +1,41 @@
+{
+  "kind": "lab-p1-association-independent-A/1",
+  "card": 62,
+  "revision": 3,
+  "claim": "03fa80842665e9cdd8e72c2b2c744486",
+  "author": "one-test",
+  "B": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+  "A": null,
+  "active_C": null,
+  "candidate_sha256": null,
+  "target_prefix": "scripts/session/codex_lab/p1_association_acceptance/",
+  "baseline_source": "hash-pinned existing archived #28 matcher, not product B or active C",
+  "baseline_sha256": "6faec4f779cf74c43b2e05a3dd318862be7c88433c4ffb2345baa6587cc53340",
+  "files_sha256": {
+    "baseline/resident_app_matcher.py": "6faec4f779cf74c43b2e05a3dd318862be7c88433c4ffb2345baa6587cc53340",
+    "fixtures.py": "f72d656fb1f0c00768b3e10d756668423920c2a417ac1fb4b86db98ceb3ad7e1",
+    "worker.py": "81e2adbfceb0615f7f8f9dea36ba601c077f9d40d9b831bc573041884d7da813",
+    "tests/test_association.py": "6e64b16a604137f2a38eb8cd3aea611db773804ac02d617d1683e506a9dfaad6",
+    "run.py": "2e54bdffd92628835333de09b4476089e6ef6a872e97e73e8b87038f1407e890",
+    "EXPECTED.json": "618916c949c5814723ebbbe6050345c80d7e97a34e2aa2eb477c08d7eba59aad",
+    "CONTRACT.json": "c3d3e0fde9d593af3ad7c1207567bd58b3f626e29a5f8aed4a92e4cd3c1e76a8",
+    "HANDOFF.md": "964514955b95422cef0ff3a839106d664f5e3d607c3c92711fbe902aa3f8b84d"
+  },
+  "private_source_hashes": {
+    ".codex-lab/cards/lab-28-resident-dispatch/app-bridge/native-readonly/normalization-contract.md": "186aa232a92faec29665cf48393a50f01add3fc6e7b5eb8be31ba963a629c7f7",
+    ".codex-lab/implementation-20261108/P0-P1-DEPENDENCY-REFINEMENT.md": "5e144dff495990c188cdc57a22637698bf3b5946b8c5bba893515194506aacff",
+    ".codex-lab/implementation-20261108/p0-native-connection/witness.json": "f2387a848761d76d24e7ccbccc093b29c2030cd35c8fe69b00e47d7f64568da3",
+    ".codex-lab/implementation-20261108/p1-isolated/one-test/manifest.json": "219dffe262e82c50d8e6828ae34fa7cc2fe94eb9d8ea0bb47bae931930de944b"
+  },
+  "tests": 11,
+  "source_expected_failures": 2,
+  "source_expected_errors": 0,
+  "source_expected_skips": 0,
+  "executed": false,
+  "candidate_API_missing_or_incompatible": "HOLD86, never red",
+  "baseline_comparison_API": "exact existing compatible three arguments; retained last nextCursor causes existing behavior red",
+  "fixture": "synthetic only; no copied native IDs/cursors/paths or raw witness",
+  "prior_A_modified": false,
+  "native_dispatch": false,
+  "activation_authority": false
+}
