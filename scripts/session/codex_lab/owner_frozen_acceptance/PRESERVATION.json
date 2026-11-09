@@ -1,0 +1,7 @@
+{
+  "original_six_case_manifest_sha256": "315be861d73e7732784ad0012a49098b19208cd840d004128dd61fc7610e68dc",
+  "original_six_case_entry_sha256": "1e1e205bc59e4fb773f686e698726ccae3818b0fc7fc1963b3ab3824ace5ceec",
+  "prior_native_author_receipt_sha256": "d1ae46a64d28994ead713d56b3a2c45778a497483f616a3fd95ff427b2953f75",
+  "prior_receipt_is_not_runtime_input": true,
+  "original_package_modified": false
+}

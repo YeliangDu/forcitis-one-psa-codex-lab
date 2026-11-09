@@ -1,0 +1,55 @@
+{
+  "kind": "owner-transfer-independent-complete-handoff-matrix/1",
+  "selection_modes": {
+    "base": {
+      "cases": 6,
+      "source": "unchanged original six-case implementation",
+      "covers": [
+        "two real public CLI CAS",
+        "old auth and old task refusal",
+        "controlled SIGINT/restart",
+        "real-time expiry/independent renewal",
+        "unknown effect/live turn/pending wait blocking"
+      ]
+    },
+    "hard-kill": {
+      "cases": 1,
+      "covers": [
+        "durable release",
+        "actual owned Broker SIGKILL/wait",
+        "real stale socket public startup HOLD",
+        "exact original owned socket/lock reconciliation",
+        "fresh released-state startup/status",
+        "two real CLI contenders"
+      ]
+    },
+    "lost-reply": {
+      "cases": 1,
+      "covers": [
+        "one real public claim request",
+        "connected actual socket FD tracked",
+        "stop first receive at syscall ENTRY before any response bytes",
+        "independent actual owner/effect commit observed",
+        "client terminated before receiving response",
+        "only two public read-only status calls, no repeated claim"
+      ]
+    },
+    "all": {
+      "cases": 8
+    }
+  },
+  "execution_status": "NOT RUN; actual evidence required for each branch",
+  "HOLD_if": [
+    "source/fixture/startup capability absent",
+    "hard SIGKILL/stale socket/original handle/inode reconciliation not demonstrated",
+    "owned child ptrace/architecture/socket/send/first receive cut or real commit not demonstrated",
+    "client already received a reply or actual committed result unavailable"
+  ],
+  "remaining_not_covered": [
+    "nonempty terminal-only orphan archive history",
+    "transaction-internal crash cutpoints",
+    "all permit/renewal mutation combinations",
+    "real owner/App Server transfer or overall R1/R2 acceptance"
+  ],
+  "no_read_reply_then_discard": true
+}
