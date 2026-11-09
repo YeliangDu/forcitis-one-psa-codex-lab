@@ -1,7 +1,7 @@
 {
-  "kind": "lab-single-role-readonly-native-tls/1",
+  "kind": "lab-direct-tool-repair/1",
   "entry": "portable_broker.py",
-  "parent_closure_sha256": "45ce07622e551736b4b5f792fa9ce369d419e63e87266d19b260207c9a069142",
+  "parent_closure_sha256": "1e68b1fcbbdb3b2eaf4328e9f07a442af93fb5567413ae10553e39d6870f3b94",
   "files_sha256": {
     "binding.schema.json": "8e56721a606eaff72289da8279f63f0cbb59b2167dda4a732877ac95ef3fcf64",
     "branch_broker.py": "9f6254fd3b83b6b0f34bde515c56edb9b944d90fc251b551e42e1d7cc3ddb1d5",
@@ -21,17 +21,17 @@
     "owned_runtime.py": "fa03e4088a0ec0c8dc1997db34b18c8a14a07655f640fb2da181610fd34337f7",
     "owner_transfer.py": "603c88758af59f103cb0709e4902e51baf77a31632cc19492da9b6adb24f6b7f",
     "pending_wire.py": "9398c7383a8c424509cd24f7a0578a514f9ddea46d689a26c3ab6e05c6c2cbfc",
-    "portable_broker.py": "0f2c83945cf317949addb5cf1e2924cef12b6062fc863e0a8e32c1cb015ce9e8",
+    "portable_broker.py": "6555336794f57e4972d0b8d6f3af08db21a2e0336db65c279bc9b8148f8c99ec",
     "portable_config.py": "ef79262cd962cb580d9eca12f09cd76293315f555476a2dbdb3dc607d226b403",
     "private_resources.py": "0b8409f3ea7c4f14eca9bd783dd76db2958be7c826edc08a6aa631abae4bf126",
     "readonly_plan_consumer.py": "62aac50be8802351a8ae79e592c0e6e8f04bb943dbc54573221efb1b47f473af",
     "reconnect_observe.py": "bdc7ed4273e1f96fb1b7d0e2e5d464ac50235fa3ee8314c1c4296fa4e0da30dc",
-    "role_native.py": "2c34524ef40fc43beec70eb2088aa533b3ca463a6b66a760ee8db7cdaf682842",
+    "role_native.py": "69371c21cf65145ebd4dfe004c98fad8ba88a0076dc4ad4c6e7394349c521ba8",
     "role_network.py": "421406a1cac1628e7022e588de19d5762cdec13bfd0817668c962644af837ad0",
     "role_resume.py": "9b22dc33e1b307d529ce323466b4c0be809b1630671d641a3e48706705965e66",
     "runtime_broker.py": "f4aa5d346d8383d921cafb66b9fa6e4af9a4073a2e68ce97cec746c258cd6f2f",
     "runtime_store.py": "5320f1d5eaef9fe6c21471422b2944b8b0d7273b85c97e2cceb85191fde73dc0",
-    "single_role.py": "a869602c97f2140d778fb70624faee8c0f2b6dce0c8dceeba021324c5a1294cc",
+    "single_role.py": "b065bc6fa211807124e5249f50828774a3ebe67627a7250e134ca3874e2e3fb7",
     "startup_authority.py": "d5ca117b82bda983ba1942f3933348a631c9e28b963929acdf10e7b34a0b8ca5",
     "warm_handoff.py": "6a69cde20d3900f45c92c87a8bcbcc5a70ad0fea635dbfe3f8be29eaa2f778f0"
   }
