@@ -1,0 +1,20 @@
+{
+  "kind": "exact-scope-independent-fixture-only-repair/1",
+  "prior_driver_sha256": "3b6ffb1c5f0adbacd7d2df1b1041f9b0b071264011640efe287a050ab0786b0e",
+  "prior_manifest_sha256": "86b6b723af4a23df454ad1d8534f11b5b7d4c1d7d12aef623ea18bed515f0152",
+  "prior_hosted_run": "42575703260/1",
+  "prior_result": "exit86 fixture capability-HOLD, observed_cases=[]",
+  "files_sha256": {
+    "collect_exact_scope.py": "ca67e5d8e74408c0c87a7f30dbca8f6b2f26b8eec07deaaab3cc0a20f3df5b4f",
+    "FIXTURE-ONLY.patch": "905dd5e7e0df7c4c181f4690de422f3cc2122168720327fee71b2b1a024831c6",
+    "HANDOFF.md": "b0ff4c1ec812b41a06d8bf8068d12336fd2ce0a5fda9a89bd0caaa0d1e167472"
+  },
+  "source_pins_and_nonseed_assertions_byte_unchanged": true,
+  "actual_public_serve_call_unchanged": true,
+  "seed_failure_messages_fixed_safe_labels_only": true,
+  "lower_schema_class": "native_role.RoleStore",
+  "final_migration_and_validation_class": "runtime.RoleStore",
+  "synthetic_history_only": true,
+  "local_execution": false,
+  "formal_or_original_state_accessed": false
+}
