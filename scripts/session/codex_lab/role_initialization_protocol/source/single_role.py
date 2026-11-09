@@ -15,6 +15,8 @@ from runtime_broker import physical, private_file
 from runtime_store import Store, need, wire
 from role_network import MODEL, relay
 import role_native
+import role_initialization
+from first_launch import FirstLaunch, require_resume, require_stable
 from role_replacement import retire_failed_role, retire_and_reserve, bind_replacement
 
 FIXTURE_SHA='86ed5477d7afd5e85bd01d7fafb76c187a7b20b5691563990a835e07f7e44702'
@@ -23,7 +25,7 @@ class RoleWireError(RuntimeError):
 
 
 ROLE_COMMANDS={'assignment.publish','assignment.revoke','role.register','role.resume',
-               'role.dispatch-current','role.readback-current','role.reconcile-failed-current','role.retire-failed','role.replace-retired'}
+               'role.dispatch-current','role.readback-current','role.reconcile-failed-current','role.retire-failed','role.replace-retired','role.initialize-unpersisted'}
 
 FAILED_PROOF_SHA='5327bf6b30b1e2dd70031bd4ccbbc870a449db77a3d945f68a43792bd64290d0'
 RECONCILE_FIELDS=('epoch','revision','thread_id','turn_id','failure_sha256')
@@ -191,11 +193,15 @@ class SingleRoleBroker(OwnedBroker):
     def __init__(self,i):
         super().__init__(i,store_factory=TaskStore,zero_task=False)
         self.attached=None
+        self.first_launch=FirstLaunch()
+        self.first_assignment=None
 
     def new_channel(self):
         if self.i.is_native:
             private(self.i.home/'.codex/auth.json',stat.S_ISREG)  # existence/mode only
         self.attached=None
+        self.first_launch=FirstLaunch()
+        self.first_assignment=None
         return RoleChannel(self)
 
     def handle(self,request):
@@ -229,7 +235,12 @@ class SingleRoleBroker(OwnedBroker):
                          'unfinished-role-turn-cannot-be-fenced')
                 identity=(owner['client'],owner['generation'],owner['token_sha'])
             if command=='assignment.publish':
-                return self.store.publish(auth,body)
+                result=self.store.publish(auth,body)
+                if self.i.is_native and self.first_launch.grant is not None and self.first_assignment is None:
+                    tid,_,channel,epoch,owner=self.first_launch.grant
+                    if channel is self.channel and self.attached==(epoch,tid) and owner==identity and tid==body['session_id']:
+                        self.first_assignment=(tid,body['revision'],sha(wire(body).encode()))
+                return result
             if command=='assignment.revoke':
                 return self.store.revoke(auth)
             ch=self.channel
@@ -237,11 +248,16 @@ class SingleRoleBroker(OwnedBroker):
                 fields(args,RECONCILE_FIELDS)
             elif command in ('role.retire-failed','role.replace-retired'):
                 fields(args,('epoch','old_thread_id'))
+            elif command=='role.initialize-unpersisted':
+                fields(args,('epoch','previous_thread_id'))
             else:
                 fields(args,('epoch',) if command in ('role.register','role.resume') else ('epoch','revision'))
             need(ch and args['epoch']==ch.epoch and self.state=='running'
                  and identity==self.epoch_owner and not ch.closed(),'stale-role-connection')
             try:
+                if command=='role.initialize-unpersisted':
+                    need(self.i.is_native,'official-native-initialization-only')
+                    return self.reinitialize(ch,auth,identity,args['previous_thread_id'])
                 if command in ('role.retire-failed','role.replace-retired'):
                     need(self.i.is_native,'one-native-role-replacement-only')
                     if command=='role.retire-failed':
@@ -264,6 +280,26 @@ class SingleRoleBroker(OwnedBroker):
                 ch.stop()
                 raise
 
+    def first_receipt(self,ch,identity,tid,receipt):
+        need(ch is self.channel and not ch.closed() and receipt==f'{ch.epoch}:{ch.seq}'
+             and identity==self.epoch_owner,'unmatched-initialization-receipt')
+        self.first_launch.issue(thread_id=tid,receipt_id=receipt,connection=ch,epoch=ch.epoch,owner=identity)
+
+    def reinitialize(self,ch,auth,identity,previous):
+        role_initialization.prepare(self.store,auth,previous,ch.epoch,
+                                    lambda tid,epoch:role_native.require_unmaterialized(self.i,tid,epoch))
+        self.attached=None
+        ch.context=None
+        ch.pending=None
+        receipt,result=ch.rpc('thread/start',dict(cwd=str(self.i.cwd),approvalPolicy='never',
+                    permissions=':read-only',ephemeral=False,environments=[],dynamicTools=[TOOL],
+                    config={'features.shell_tool':False}),self.i.timeout['startup_ms'])
+        tid=self.thread(result)['id']
+        value=role_initialization.bind(self.store,auth,previous,ch.epoch,tid,receipt)
+        self.attached=(ch.epoch,tid)
+        self.first_receipt(ch,identity,tid,receipt)
+        return value
+
     def replace_role(self,ch,auth,old):
         # Existing role and task lose authority in the same committed cut as
         # consuming the only thread/start. No resume/fork or caller history.
@@ -271,12 +307,13 @@ class SingleRoleBroker(OwnedBroker):
         self.attached=None
         ch.context=None
         ch.pending=None
-        _,result=ch.rpc('thread/start',dict(cwd=str(self.i.cwd),approvalPolicy='never',
+        receipt,result=ch.rpc('thread/start',dict(cwd=str(self.i.cwd),approvalPolicy='never',
                     permissions=':read-only',ephemeral=False,environments=[],dynamicTools=[TOOL],
                     config={'features.shell_tool':False}),self.i.timeout['startup_ms'])
         tid=self.thread(result)['id']
         value=bind_replacement(self.store,auth,old,ch.epoch,tid)
         self.attached=(ch.epoch,tid)
+        self.first_receipt(ch,self.epoch_owner,tid,receipt)
         return value
 
     def reconcile(self,ch,auth,args):
@@ -317,7 +354,7 @@ class SingleRoleBroker(OwnedBroker):
             db.execute('insert into role_registration values(1,?,?,?,?,null,null)',
                        (effect,'pending-unknown',owner['generation'],None))
             self.store.event(db,'role-registration-consumed-before-native-request',dict(effect_id=effect,epoch=ch.epoch))
-        _,result=ch.rpc('thread/start',dict(cwd=str(self.i.cwd),approvalPolicy='never',
+        receipt,result=ch.rpc('thread/start',dict(cwd=str(self.i.cwd),approvalPolicy='never',
                    permissions=':read-only',ephemeral=False,environments=[],dynamicTools=[TOOL],
                    config={'features.shell_tool':False}),self.i.timeout['startup_ms'])
         tid=self.thread(result)['id']
@@ -328,6 +365,7 @@ class SingleRoleBroker(OwnedBroker):
                        (tid,effect))
             self.store.event(db,'role-provisional-not-stable',dict(session_id=tid,epoch=ch.epoch))
         self.attached=(ch.epoch,tid)
+        if self.i.is_native:self.first_receipt(ch,self.epoch_owner,tid,receipt)
         return dict(action='registered',epoch=ch.epoch,thread_id=tid)
 
     def resume_role(self,ch,auth,row):
@@ -338,7 +376,9 @@ class SingleRoleBroker(OwnedBroker):
             need(db.execute("select 1 from native_dispatch where phase='unknown'").fetchone() is None,
                  'unknown-dispatch-no-resume')
         tid=row['session_id']
-        if self.i.is_native:role_native.require_clean_resume(self.i,tid)
+        if self.i.is_native:
+            role_native.require_clean_resume(self.i,tid)
+            require_resume(phase=row['phase'],persisted=True)
         if self.attached!=(ch.epoch,tid):
             _,x=ch.rpc('thread/resume',dict(threadId=tid,cwd=str(self.i.cwd),approvalPolicy='never',
                           permissions=':read-only',environments=[],excludeTurns=True,
@@ -366,13 +406,25 @@ class SingleRoleBroker(OwnedBroker):
         with self.store.tx() as db:
             owner,task,body=self.current(db,auth,revision,ch)
             tid=body['session_id']
-            if self.i.is_native:role_native.require_clean_resume(self.i,tid)
             key=f'native-turn:{tid}:{revision}'
             need(db.execute('select 1 from effects where operation_key=?',(key,)).fetchone() is None,
                  'dispatch-already-consumed-readback-only')
             need(db.execute("select 1 from native_dispatch where phase='unknown'").fetchone() is None
                  and db.execute("select 1 from turns where state!='terminal'").fetchone() is None,
                  'prior-native-turn-unresolved')
+            if self.i.is_native:
+                reg=db.execute('select phase from role_registration where id=1').fetchone()
+                if reg['phase']=='provisional':
+                    need(self.first_assignment==(tid,revision,sha(wire(body).encode()))
+                         and ch is self.channel and not ch.closed(),'first-launch-current-assignment-required')
+                    owner_id=(owner['client'],owner['generation'],owner['token_sha'])
+                    self.first_launch.authorize(thread_id=tid,connection=ch,epoch=ch.epoch,owner=owner_id,
+                         revision=revision,prior_dispatch=None,has_persisted=False)
+                    self.store.event(db,'role-initialization-first-dispatch-authorized',
+                         dict(thread_id=tid,epoch=ch.epoch,revision=revision,native_reply_id=self.first_launch.grant[1]))
+                else:
+                    need(reg['phase']=='stable','role-stable-or-live-first-receipt-required')
+                    role_native.require_clean_resume(self.i,tid)
             target=wire(dict(session_id=tid,connection_id=ch.epoch,prompt_sha256=sha(prompt.encode())))
             db.execute('insert into effects(effect_id,revision,generation,operation_key,kind,target,phase,issue_count) values(?,?,?,?,?,?,?,1)',
                        (effect,revision,owner['generation'],key,'native-turn',target,'unknown'))
@@ -489,6 +541,13 @@ class SingleRoleBroker(OwnedBroker):
                     except (ValueError,TypeError):continue
                 need(any(type(x) is dict and type(x.get('revision')) is int and x==payload for x in parsed),
                      'native-model-output-unproved')
+                durable_sha=role_native.clean_durable_turn(self.i,tid,turn)
+                require_stable(completed=True,persisted=bool(durable_sha))
+                reg=db.execute('select phase,first_turn_id from role_registration where id=1').fetchone()
+                if reg['phase']=='provisional':
+                    need(reg['first_turn_id']==turn,'first-durable-turn-mismatch')
+                    self.store.event(db,'role-stable-after-native-persistence',
+                        dict(thread_id=tid,turn_id=turn,revision=rev,rollout_sha256=durable_sha,epoch=ch.epoch))
             db.execute("update turns set state='terminal' where turn_id=? and state='active'",(turn,))
             db.execute("update role_registration set phase='stable',readback_sha256=? where id=1",
                        (sha(wire(result).encode()),))

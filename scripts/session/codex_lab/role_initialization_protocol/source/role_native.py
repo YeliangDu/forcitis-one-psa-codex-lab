@@ -167,3 +167,46 @@ def inventory(i,tid,turn):
             facts.append(dict(thread_id=tid,turn_id=turn,tools=tools,request_sha256=sha(raw)))
     need(facts,'actual-native-inference-inventory-required')
     return facts
+
+
+def clean_durable_turn(i,tid,turn):
+    raw,items=persisted_declarations(i,tid)
+    for item in items:
+        request_tool_inventory({'input':[item]})
+    events=[decode(line) for line in raw.splitlines()]
+    completed=[r for r in events if r.get('type')=='event_msg'
+               and r.get('payload',{}).get('type')=='task_complete'
+               and r['payload'].get('turn_id')==turn]
+    need(len(completed)==1,'native-rollout-completion-not-yet-verified')
+    return sha(raw)
+
+
+def require_unmaterialized(i,tid,epoch):
+    from contextlib import closing
+    import sqlite3
+    need(type(epoch) is str and re.fullmatch('[0-9a-f]{32}',epoch),'prior-owned-epoch-invalid')
+    sessions=i.home/'.codex/sessions';private(sessions,stat.S_ISDIR)
+    need(not list(sessions.rglob('rollout-*'+tid+'.jsonl')),'previous-role-has-persisted-rollout')
+    state=i.home/'.codex/state_5.sqlite';private(state,stat.S_ISREG)
+    with closing(sqlite3.connect(state.as_uri()+'?mode=ro',uri=True)) as db:
+        db.execute('pragma query_only=on')
+        need(db.execute('select 1 from threads where id=?',(tid,)).fetchone() is None,
+             'previous-role-has-native-index')
+    trace=i.runtime/epoch/'stdio.jsonl';private(trace,stat.S_ISREG)
+    raw=private_file(str(trace),2*1024*1024)
+    rows=[decode(line) for line in raw.splitlines()]
+    need(rows and all(r.get('epoch')==epoch for r in rows),'previous-owned-trace-identity')
+    spawn=[r['value'] for r in rows if r['direction']=='spawn']
+    terminal=[r['value'] for r in rows if r['direction']=='terminal']
+    starts=[r['value'] for r in rows if r['direction']=='send' and r['value'].get('method')=='thread/start']
+    need(len(spawn)==len(terminal)==len(starts)==1 and rows[-1]['direction']=='terminal'
+         and terminal[0]['pid']==spawn[0]['pid'] and terminal[0]['wait_returncode']==0
+         and terminal[0]['stdout_eof_observed'] is True and terminal[0]['stdin_eof_requested_while_live'] is True
+         and terminal[0]['forced'] is False
+         and not any(r['direction']=='send' and r['value'].get('method')=='turn/start' for r in rows),
+         'previous-epoch-clean-no-turn-terminal-unproved')
+    receipts=[decode(r['value']) for r in rows if r['direction']=='receive']
+    replies=[x for x in receipts if x.get('id')==starts[0]['id']]
+    need(len(replies)==1 and replies[0].get('result',{}).get('thread',{}).get('id')==tid,
+         'previous-owned-thread-receipt-unproved')
+    return dict(prior_epoch=epoch,trace_sha256=sha(raw),terminal=terminal[0])
