@@ -78,7 +78,7 @@ def run(args):
                 rows=[]
                 for rawrow in subprocess.check_output(['/usr/bin/git','ls-tree','-z',oid],cwd=work,env=env).split(bytes([0])):
                     if not rawrow:continue
-                    header,name=rawrow.split(bytes([9]),1);mode,kind,oidraw=header.decode().split();child=oidraw.decode()
+                    header,name=rawrow.split(bytes([9]),1);mode,kind,oidraw=header.decode().split();child=oidraw
                     rows.append(dict(path=name.decode(),mode=mode,type=kind,sha=child))
                     if kind=='tree':visit(child)
                 trees[oid]=dict(sha=oid,truncated=False,tree=rows)

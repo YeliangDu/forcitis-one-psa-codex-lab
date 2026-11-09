@@ -4,8 +4,8 @@
     "MATERIAL.json": "339825d0c3a3aa269f2028d7518ebd384b33020d6be8ed78d66a84f4ee37f6a8",
     "history_fixture.py": "a7c7608cd957f708cf97b0c5a8942e77884b52f8c93f12ecb3716e0173a96966",
     "native_fixture_builder.py": "d7d25981677d78cd839dbc357c1bba95cbf99a27046b403c8c54f6f83802b58e",
-    "run_r3_chain.py": "c865d01ed02d556529ae6eed8547dbd4d506422f635e65161dbe5d085df66a0e",
-    "manifest.json": "962670fd99c2ec923bae0bf66be1d67d54ea7c65cbb78590747d9c1f5121fa74",
+    "run_r3_chain.py": "02cdf5b6b9e48b856b0cf55bcbec4a9f25d1bf7c8387a5f7a6210982690d0b71",
+    "manifest.json": "bda0cff650b9e10a376663064d3daa6f5b65547baf0c62f6f39c19be14765057",
     "entry.py": "9253313bd09f3489d25eeea538913565f60c9f3d997b241f7c36aa551510aae0",
     "candidate/FROZEN-v4.json": "b61f0bc20a6bf4034c6dcda21862d28d97e1d7c942099a09d63708b821cf3750",
     "materialize.py": "393e9f17cea1f86f554730e3e24eff89f22fb388a725196afdefff257698ded0",
@@ -28,7 +28,7 @@
     "entry.py",
     "materialize.py"
   ],
-  "author_turn": "01a1bf2e-c87b-7780-b817-2617111e0235",
-  "author_cursor": "a3e466e4-5068-436f-be4b-21815cec7190:459",
+  "author_turn": "01a1bf53-bae7-7013-9d04-e9dcf5c5c132",
+  "author_cursor": "a3e466e4-5068-436f-be4b-21815cec7190:460",
   "formal_writer_allowed": false
 }
