@@ -31,7 +31,7 @@
     "role_resume.py": "9b22dc33e1b307d529ce323466b4c0be809b1630671d641a3e48706705965e66",
     "runtime_broker.py": "f4aa5d346d8383d921cafb66b9fa6e4af9a4073a2e68ce97cec746c258cd6f2f",
     "runtime_store.py": "5320f1d5eaef9fe6c21471422b2944b8b0d7273b85c97e2cceb85191fde73dc0",
-    "single_role.py": "b065bc6fa211807124e5249f50828774a3ebe67627a7250e134ca3874e2e3fb7",
+    "single_role.py": "c49172cf8dac18ac94e6d27c1332eafe411774c8e41327a4b9c18d8b44203e14",
     "startup_authority.py": "d5ca117b82bda983ba1942f3933348a631c9e28b963929acdf10e7b34a0b8ca5",
     "warm_handoff.py": "6a69cde20d3900f45c92c87a8bcbcc5a70ad0fea635dbfe3f8be29eaa2f778f0"
   }

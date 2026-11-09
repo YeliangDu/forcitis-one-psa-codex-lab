@@ -12,7 +12,7 @@ from native_role import RoleStore, TOOL, canonical_uuid
 from owned_runtime import (Channel, Installation, OwnerStore, OwnedBroker, decode,
                            private, sha, run as run_owned)
 from runtime_broker import physical, private_file
-from runtime_store import need, wire
+from runtime_store import Store, need, wire
 from role_network import MODEL, relay
 import role_native
 
@@ -54,7 +54,8 @@ def reconcile_failed_tool(store,auth,current_epoch,arguments,readback,failure):
     need(len(matches)==1 and matches[0].get('status')=='completed' and not matches[0].get('error'),
          'failed-reconcile-native-turn-not-completed')
     with store.tx() as db:
-        owner,task=store.binding(db,auth,a['revision'],paused_ok=True)
+        # Legacy RoleStore instances keep a binding descriptor under the same name.
+        owner,task=Store.binding(store,db,auth,a['revision'],paused_ok=True)
         body=decode(task['body'])
         need(owner['paused'] and body['session_id']==tid and thread.get('cwd')==body['physical_cwd'],
              'failed-reconcile-owner-or-workspace')
