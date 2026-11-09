@@ -136,7 +136,7 @@ def build_composition(binding):
 
 
 def main():
-    parser = argparse.ArgumentParser(allow_abbrev=False,epilog="Paused native terminal readback only: role.reconcile-failed-current.")
+    parser = argparse.ArgumentParser(allow_abbrev=False)
     parser.add_argument('command', choices=('check-compatibility','serve','call','serve-owned','call-owned'))
     parser.add_argument('--source-closure',required=True)
     parser.add_argument('--source-closure-sha256',required=True)
