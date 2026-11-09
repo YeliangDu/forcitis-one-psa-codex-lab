@@ -1,0 +1,111 @@
+{
+  "schema": "lab-owned-runtime-installation/1",
+  "kind": "fixture-stdio-only",
+  "exact_installation_keys": [
+    "schema",
+    "kind",
+    "runtime_directory",
+    "owner_database",
+    "owner_installation_sha256",
+    "physical_cwd",
+    "control_socket",
+    "child",
+    "timeouts"
+  ],
+  "child_exact_keys": [
+    "argv",
+    "files_sha256",
+    "environment"
+  ],
+  "timeout_exact_keys": [
+    "startup_ms",
+    "request_ms",
+    "stop_ms"
+  ],
+  "production_kind": "Not authorized by this fixture; must be a distinct explicitly selected contract, never silently treat fixture as production.",
+  "request_shape": [
+    "command",
+    "auth",
+    "arguments"
+  ],
+  "auth_keys": [
+    "client",
+    "generation",
+    "token"
+  ],
+  "commands": {
+    "runtime.start": {
+      "arguments": {},
+      "action": "started",
+      "success_fields": [
+        "epoch(nonempty string)",
+        "pid(actual owned child)"
+      ],
+      "already_running": "May return same started epoch/PID or hold, but must not create another child."
+    },
+    "runtime.status": {
+      "arguments": {},
+      "action": "status",
+      "state": [
+        "running",
+        "stopped",
+        "faulted",
+        "disconnected"
+      ],
+      "paused": "Must reflect actual current owner SQLite pause."
+    },
+    "runtime.pause": {
+      "arguments": {
+        "paused": "strict bool"
+      },
+      "action": "paused",
+      "effect": "Persist owner.paused using existing owner/pause semantics; false is explicit resume only."
+    },
+    "runtime.config-read": {
+      "arguments": {
+        "epoch": "current nonempty string",
+        "request_id": "caller opaque string"
+      },
+      "action": "ok",
+      "native_method": "config/read"
+    },
+    "runtime.thread-list": {
+      "arguments": {
+        "epoch": "current nonempty string",
+        "request_id": "caller opaque string"
+      },
+      "action": "ok",
+      "native_method": "thread/list"
+    },
+    "runtime.stop": {
+      "arguments": {
+        "epoch": "current/last stopped epoch",
+        "request_id": "caller opaque string"
+      },
+      "action": "stopped",
+      "native_id": null,
+      "effect": "Owned local process close/terminate and wait; idempotent stopped observation, no invented shutdown RPC."
+    }
+  },
+  "read_response_fields": [
+    "action=ok",
+    "request_id echoed",
+    "epoch exact",
+    "native_id actual stdio request/response id (str/int, not bool)",
+    "result actual native result"
+  ],
+  "read_native_ids": "Unique across epochs; old/unexpected IDs fail closed, no stale cached success.",
+  "hold_response": {
+    "action": "hold",
+    "result": "must be absent"
+  },
+  "restart_definition": "runtime.stop then runtime.start in same Broker gives new actual process/instance and new epoch.",
+  "pause_restart_definition": "Separate test stops owned control Broker after child stopped, starts same owned installation/SQLite in a new Broker process and verifies pause remains; no automatic child start.",
+  "allowed_native_methods": [
+    "initialize",
+    "initialized notification",
+    "config/read",
+    "thread/list"
+  ],
+  "no_tasks_login_model_network_or_old_proxy": true
+}

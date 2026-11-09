@@ -1,0 +1,8 @@
+{
+  "origin_closure_sha256": "b9ea684132b22e3cd0c0097a6edb7c37831d875658885a0453c7c4a22028a3c0",
+  "files_sha256": {
+    "runtime_store.py": "3990105d2eff4dafb40e01810734f065c1f81f9c9dec0e7ab49f6d95af8871db",
+    "portable_config.py": "ef79262cd962cb580d9eca12f09cd76293315f555476a2dbdb3dc607d226b403"
+  },
+  "usage": "Only actual base Store construction/owner/pause; no ResumeStore, migration or NativeProxy"
+}
