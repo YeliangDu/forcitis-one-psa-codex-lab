@@ -137,7 +137,7 @@ def build_composition(binding):
 
 def main():
     parser = argparse.ArgumentParser(allow_abbrev=False,epilog="Paused native operations: role.reconcile-failed-current, role.retire-failed, role.replace-retired, role.replace-interrupted.")
-    parser.add_argument('command', choices=('check-compatibility','serve','call','serve-owned','call-owned','reconcile-owned-interrupted'))
+    parser.add_argument('command', choices=('check-compatibility','serve','call','serve-owned','call-owned','reconcile-owned-interrupted','publish-owned-card'))
     parser.add_argument('--source-closure',required=True)
     parser.add_argument('--source-closure-sha256',required=True)
     parser.add_argument('--private-binding')
@@ -147,9 +147,21 @@ def main():
     parser.add_argument('--single-role-installation')
     parser.add_argument('--single-role-installation-sha256')
     parser.add_argument('--request')
+    parser.add_argument('--publication-scope')
+    parser.add_argument('--publication-scope-sha256')
     args=parser.parse_args()
     try:
         verify_source(args.source_closure,args.source_closure_sha256)
+        if args.command=='publish-owned-card':
+            require(args.owned_installation and args.owned_installation_sha256
+                    and args.single_role_installation and args.single_role_installation_sha256
+                    and args.publication_scope and args.publication_scope_sha256 and args.request
+                    and not args.private_binding and not args.private_binding_sha256,'card-publication-owned-pins-required')
+            from public_card import publication
+            return publication(args.owned_installation,args.owned_installation_sha256,args.request,
+                               args.single_role_installation,args.single_role_installation_sha256,
+                               args.publication_scope,args.publication_scope_sha256)
+        require(not args.publication_scope and not args.publication_scope_sha256,'publication-scope-operator-only')
         if args.command=='reconcile-owned-interrupted':
             require(args.owned_installation and args.owned_installation_sha256
                     and args.single_role_installation and args.single_role_installation_sha256

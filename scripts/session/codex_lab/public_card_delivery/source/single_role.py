@@ -15,6 +15,7 @@ from runtime_broker import physical, private_file
 from runtime_store import Store, need, wire
 from role_network import MODEL, relay
 import role_native
+import card_capsule
 import role_initialization
 import role_interrupted
 from first_launch import FirstLaunch, require_resume, require_stable
@@ -423,6 +424,15 @@ class SingleRoleBroker(OwnedBroker):
              and body['role']==self.i.role,'native-assignment-not-attached')
         return owner,task,body
 
+    def scoped_capsule(self,body):
+        task=body.get('task','')
+        if not task.startswith('card-capsule:'):
+            return None
+        need(self.i.is_native and re.fullmatch(r'card-capsule:[0-9a-f]{64}',task),'card-capsule-selection-required')
+        pin=task.split(':',1)[1]
+        raw=private_file(str(self.i.root/'owner/card-capsule.json'),196608)
+        return pin,raw,card_capsule.read_scope(body,raw,pin)
+
     def dispatch(self,ch,auth,revision):
         prompt=('Call lab_read_assignment with empty arguments once. '
                 'Return only a JSON object with revision (integer) and sha256 (string). Do not call other tools.')
@@ -430,6 +440,12 @@ class SingleRoleBroker(OwnedBroker):
         with self.store.tx() as db:
             owner,task,body=self.current(db,auth,revision,ch)
             tid=body['session_id']
+            capsule=self.scoped_capsule(body)
+            if capsule:
+                prompt=('Call lab_read_assignment with empty arguments exactly once. Read its bounded files and task specification. '
+                        'Return only a JSON object with revision, scope_sha256 and edits. Each edit has path, before_sha256 '
+                        '(provided in writable_sha256), old and new. Choose a uniquely occurring old text. Only edit a writable path. '
+                        'Do not call any other tool. Never include Markdown fences.')
             key=f'native-turn:{tid}:{revision}'
             need(db.execute('select 1 from effects where operation_key=?',(key,)).fetchone() is None,
                  'dispatch-already-consumed-readback-only')
@@ -518,6 +534,11 @@ class SingleRoleBroker(OwnedBroker):
         need(read==body,'fixed-file-not-current-assignment')
         payload=dict(revision=rev,sha256=sha(raw),assignment=read)
         model_value={k:payload[k] for k in ('revision','sha256')} if self.i.is_native else payload
+        capsule=self.scoped_capsule(body)
+        if capsule:
+            pin,scope,files=capsule
+            writable={p:x['sha256'] for p,x in card_capsule.parse(body,scope,pin).items() if x['writable']}
+            model_value.update(scope_sha256=pin,files=files,writable_sha256=writable)
         result=dict(success=True,contentItems=[dict(type='inputText',text=wire(model_value))])
         with self.store.tx() as db:
             self.current(db,auth,rev,ch)
@@ -563,8 +584,16 @@ class SingleRoleBroker(OwnedBroker):
                 for text in texts:
                     try:parsed.append(decode(text))
                     except (ValueError,TypeError):continue
-                need(any(type(x) is dict and type(x.get('revision')) is int and x==payload for x in parsed),
-                     'native-model-output-unproved')
+                capsule=self.scoped_capsule(body)
+                if capsule:
+                    pin,scope,_=capsule
+                    need(payload.get('scope_sha256')==pin and len(texts)==len(parsed)==1,
+                         'card-model-output-not-exact-json')
+                    proposal=parsed[0]
+                    card_capsule.prepare_edits(body,scope,pin,proposal)
+                else:
+                    need(any(type(x) is dict and type(x.get('revision')) is int and x==payload for x in parsed),
+                         'native-model-output-unproved')
                 durable_sha=role_native.clean_durable_turn(self.i,tid,turn)
                 require_stable(completed=True,persisted=bool(durable_sha))
                 reg=db.execute('select phase,first_turn_id from role_registration where id=1').fetchone()
@@ -572,6 +601,15 @@ class SingleRoleBroker(OwnedBroker):
                     need(reg['first_turn_id']==turn,'first-durable-turn-mismatch')
                     self.store.event(db,'role-stable-after-native-persistence',
                         dict(thread_id=tid,turn_id=turn,revision=rev,rollout_sha256=durable_sha,epoch=ch.epoch))
+            if self.i.is_native and capsule:
+                patch=dict(revision=rev,thread_id=tid,turn_id=turn,generation=owner['generation'],
+                           dispatch_effect_id=d['effect_id'],scope_sha256=pin,proposal=proposal,
+                           rollout_sha256=durable_sha)
+                previous=db.execute("select body from events where kind='native-card-patch-proposed'").fetchall()
+                matching=[decode(e['body']) for e in previous if decode(e['body']).get('turn_id')==turn]
+                need(not matching or matching==[patch],'card-patch-replay-drift')
+                if not matching:self.store.event(db,'native-card-patch-proposed',patch)
+                payload=dict(revision=rev,scope_sha256=pin,patch_sha256=sha(wire(patch).encode()))
             db.execute("update turns set state='terminal' where turn_id=? and state='active'",(turn,))
             db.execute("update role_registration set phase='stable',readback_sha256=? where id=1",
                        (sha(wire(result).encode()),))
