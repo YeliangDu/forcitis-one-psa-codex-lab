@@ -1,21 +1,26 @@
-name: Lab 63 existing V2 native chain
+name: Lab 63 v4 isolated faults
 on:
   push:
     branches: [codex/63-descendant-proof]
-    paths: [.github/workflows/lab-63-v2-native-chain-fixture-r3.yml]
+    paths: [.github/workflows/lab-63-v4-faults.yml]
 permissions: {}
 jobs:
   acceptance:
     if: github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' && github.repository_id == '1449415666' && github.ref == 'refs/heads/codex/63-descendant-proof'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        fault: [lock-name, push-nonzero]
     env:
-      ACCEPTANCE_HEAD: c3ebf651ce1b73cdfbe4db5981dc4d020d2426ce
+      FAULT: ${{ matrix.fault }}
+      ACCEPTANCE_HEAD: fd67afc47181e0c8f1e4d1f95c603616b75bd6aa
       PRODUCT_BASE: 77e872e8ba9661d3294d3a9337c8e5c956b70641
       TRANSPORT_HEAD: 47e263825afb62a1b860915f8293da79572d12f6
-      MANIFEST_SHA256: 0cbbd4398413832d1cc46ecdff0d913d3524572b946ce6ae663dd717bf307cd4
+      MANIFEST_SHA256: c9f40c904e986691a34ed37ebd62f98454e9bcd8fcdf2fbf5fb74a5d40374a55
       MATERIAL_SHA256: 339825d0c3a3aa269f2028d7518ebd384b33020d6be8ed78d66a84f4ee37f6a8
-      PACKAGE_PREFIX: scripts/session/codex_lab/p2_r3_native_chain_fixture_r3
+      PACKAGE_PREFIX: scripts/session/codex_lab/p2_r3_v4_faults
     steps:
       - name: Fetch exact public witness without credentials
         run: |
@@ -52,12 +57,12 @@ jobs:
           def in_package(xs):
               return [os.environ['PACKAGE_PREFIX']+'/'+n for n in xs]
           assert paths(os.environ['PRODUCT_BASE'],os.environ['ACCEPTANCE_HEAD'])==sorted(in_package(m['acceptance_paths']))
-          assert paths(os.environ['ACCEPTANCE_HEAD'],'HEAD')==sorted(in_package(m['witness_paths']+['publish-manifest.json'])+['.github/workflows/lab-63-v2-native-chain-fixture-r3.yml'])
+          assert paths(os.environ['ACCEPTANCE_HEAD'],'HEAD')==sorted(in_package(m['witness_paths']+['publish-manifest.json'])+['.github/workflows/lab-63-v4-faults.yml'])
           PY
       - name: Execute disposable existing V2 acceptance without network
         run: |
           set -euo pipefail
-          e="$RUNNER_TEMP/lab63-r3-evidence"
+          e="$RUNNER_TEMP/lab63-r3-fault-evidence"
           w="$(mktemp -d "$RUNNER_TEMP/lab63-r3-wrapper.XXXXXX")"
           mkdir -m 700 "$e" "$e/witness" "$w/runtime-source"
           trap 'rm -rf -- "$w"' EXIT
@@ -69,7 +74,7 @@ jobs:
             /usr/bin/setpriv --reuid "$(id -u)" --regid "$(id -g)" --clear-groups --no-new-privs -- \
             /usr/bin/env -i PATH=/usr/bin:/bin HOME="$w" TMPDIR="$w" RUNNER_TEMP="$RUNNER_TEMP" WORK="$w" \
               RUNNER_ENVIRONMENT="$RUNNER_ENVIRONMENT" EVIDENCE="$e/witness" EVIDENCE_ROOT="$e" REPO="$GITHUB_WORKSPACE" \
-              PACKAGE="$GITHUB_WORKSPACE/$PACKAGE_PREFIX" HOST_NET="$before" MATERIAL_SHA256="$MATERIAL_SHA256" \
+              PACKAGE="$GITHUB_WORKSPACE/$PACKAGE_PREFIX" HOST_NET="$before" MATERIAL_SHA256="$MATERIAL_SHA256" FAULT="$FAULT" \
               /bin/bash --noprofile --norc -euc '
                 test "$(id -u)" -ne 0
                 test "$(readlink /proc/self/ns/net)" != "$HOST_NET"
@@ -77,18 +82,18 @@ jobs:
                 grep -Eq "^NoNewPrivs:[[:space:]]+1$" /proc/self/status
                 /usr/bin/python3 -I -B "$PACKAGE/materialize.py" --repo "$REPO" --package "$PACKAGE" \
                   --out "$WORK/runtime-source" --material-sha256 "$MATERIAL_SHA256" > "$EVIDENCE_ROOT/materialization.json"
-                for part in MATERIAL.json entry.py history_fixture.py native_fixture_builder.py run_r3_chain.py; do
+                for part in MATERIAL.json entry.py history_fixture.py native_fixture_builder.py run_fault_slice.py fault_supervisor.py; do
                   cp -- "$PACKAGE/$part" "$WORK/$part"
                 done
                 cd "$WORK"
-                exec /usr/bin/python3 -I -B "$WORK/run_r3_chain.py" --runner-temp "$RUNNER_TEMP" --evidence-dir "$EVIDENCE" --parent-netns "$HOST_NET" 
+                exec /usr/bin/python3 -I -B "$WORK/run_fault_slice.py" --fault "$FAULT" --runner-temp "$RUNNER_TEMP" --evidence-dir "$EVIDENCE" --parent-netns "$HOST_NET" 
               ' > "$e/driver.log" 2>&1 || rc=$?
           printf '%s\n' "$rc" > "$e/exit-code.txt"
           exit "$rc"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: lab63-v2-native-chain-fixture-r3-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/lab63-r3-evidence/
+          name: lab63-v4-fault-${{ matrix.fault }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab63-r3-fault-evidence/
           if-no-files-found: error
           retention-days: 7

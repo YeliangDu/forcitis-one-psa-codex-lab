@@ -2,10 +2,11 @@
   "kind": "r3-hosted-acceptance-package/1",
   "files_sha256": {
     "MATERIAL.json": "339825d0c3a3aa269f2028d7518ebd384b33020d6be8ed78d66a84f4ee37f6a8",
+    "fault_supervisor.py": "09d434da0eda5f0ab9f596c0fbe55348717ae0c0a65075f07ac340a3a3b36a24",
     "history_fixture.py": "a7c7608cd957f708cf97b0c5a8942e77884b52f8c93f12ecb3716e0173a96966",
     "native_fixture_builder.py": "d7d25981677d78cd839dbc357c1bba95cbf99a27046b403c8c54f6f83802b58e",
-    "run_r3_chain.py": "bb5641699d23664107ce1a96e0b4f5a04c1cdc520f573757dd3dfd887b7c299c",
-    "manifest.json": "8f62d1338543e48aa22850437f2e8759df28d7394a221a280d06ee8575a7964e",
+    "run_fault_slice.py": "cfb7ac474945ab731bb1ee32d3517e42355740bbdb7e81d4823667b1fcd05294",
+    "manifest.json": "3118f881baa7c82743e8175ab3a5d9219c037dbf4ec740321dd56d1e77b06bcd",
     "entry.py": "9253313bd09f3489d25eeea538913565f60c9f3d997b241f7c36aa551510aae0",
     "candidate/FROZEN-v4.json": "b61f0bc20a6bf4034c6dcda21862d28d97e1d7c942099a09d63708b821cf3750",
     "materialize.py": "393e9f17cea1f86f554730e3e24eff89f22fb388a725196afdefff257698ded0",
@@ -15,10 +16,11 @@
   },
   "acceptance_paths": [
     "MATERIAL.json",
+    "fault_supervisor.py",
     "history_fixture.py",
     "manifest.json",
     "native_fixture_builder.py",
-    "run_r3_chain.py"
+    "run_fault_slice.py"
   ],
   "witness_paths": [
     "candidate/FROZEN-v4.json",
@@ -28,7 +30,7 @@
     "entry.py",
     "materialize.py"
   ],
-  "author_turn": "01a1bf55-cb3b-7571-b996-48337fe88a90",
-  "author_cursor": "a3e466e4-5068-436f-be4b-21815cec7190:463",
+  "author_turn": "01a1bf58-bea1-7513-82d7-9a4674790ba6",
+  "author_cursor": 471,
   "formal_writer_allowed": false
 }

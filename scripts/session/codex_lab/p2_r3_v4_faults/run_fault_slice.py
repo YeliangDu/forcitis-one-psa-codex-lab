@@ -1,4 +1,4 @@
-"""R3 isolated actual native/installer/writer chain over real file Git receiver.
+"""R3 additive actual v4 fault slices over the passed real fixture front.
 
 Native-shaped GitHub observations are TEST-ONLY fixtures, never authentication.
 All Git mutations and product execution occur only in disposable hosted scratch.
@@ -162,79 +162,85 @@ def run(args):
             trace=args.evidence_dir/(label+'.exec.log')
             childenv=dict(env,RUNNER_ENVIRONMENT='github-hosted',RUNNER_TEMP=str(temporary))
             argv=[sys.executable,'-I','-S','-B',str(PACKAGE/'entry.py'),'--scope',str(path),'--scope-sha256',sha(path.read_bytes()),'--phase',phase]
-            result=subprocess.run([tracer,'-f','-qq','-s','4096','-e','trace=execve','-o',str(trace),*argv],cwd=work,env=childenv,capture_output=True,timeout=90)
+            if phase=='once':
+                command=[sys.executable,'-I','-S','-B',str(PACKAGE/'fault_supervisor.py'),
+                         '--fault',args.fault,'--work',str(work),'--receiver',str(receiver),
+                         '--head',H,'--base',O,'--report',str(trace),'--',*argv]
+            else:
+                command=[tracer,'-f','-qq','-s','4096','-e','trace=execve','-o',str(trace),*argv]
+            result=subprocess.run(command,cwd=work,env=childenv,capture_output=True,timeout=90)
             raw=result.stdout
             try:value=json.loads(raw)
             except ValueError:value=None
             log=trace.read_text(errors='replace') if trace.exists() else ''
-            actual_git={kind:sum('execve("/usr/bin/git"' in line and '"'+kind+'"' in line for line in log.splitlines()) for kind in ['push','merge-tree','commit-tree']}
+            if phase=='once':
+                try:actual_git=json.loads(log)['Git_exec_counts']
+                except (ValueError,KeyError):raise Hold('actual fault syscall evidence unavailable')
+            else:
+                actual_git={kind:sum('execve("/usr/bin/git"' in line and '"'+kind+'"' in line for line in log.splitlines()) for kind in ['push','merge-tree','commit-tree']}
             record=dict(label=label,phase=phase,stage=stage,scope_sha256=sha(path.read_bytes()),argv=argv,exit_code=result.returncode,stdout_sha256=sha(raw),stderr_sha256=sha(result.stderr),raw_stdout=raw.decode(errors='replace'),actual_Git_execs=actual_git,trace_sha256=sha(trace.read_bytes()) if trace.exists() else None)
             phases.append(record);(args.evidence_dir/'phase-observations.json').write_text(json.dumps(phases,indent=2)+chr(10))
             preserve()
             if phase!='once':check(all(count==0 for count in actual_git.values()),'NON_ONCE_PHASE_SENT_OR_CONSTRUCTED_MERGE')
             return result,value,actual_git
         def held(value):return type(value)is dict and value.get('result',{}).get('action')=='hold'
-        def wrong_head(policy,observation):
-            policy['expected_approval']['head']=O
-            for review in policy['expected_approval']['reviews'].values():review['head']=O
-        for label,change in [('wrong-head',wrong_head),('missing-new-UUID',lambda p,o:p['expected_approval'].update(upgrade_id=str(uuid.uuid4())))]:
-            result,value,_=invoke(label,'admit','before',change)
-            if not value or type(value.get('result'))is not dict:raise Hold('negative admit did not reach structured native result')
-            check(held(value) and journal.load_upgrade(42)is None and (directory/'merge.queue').read_bytes()==b'' and (directory/'merge.queue.heads').read_bytes()==b'','INVALID_NATIVE_AUTHORITY_RESERVED_OR_ADMITTED')
         result,value,_=invoke('admit','admit','before')
-        if not value or value.get('result',{}).get('action')!='admitted':raise Hold('actual NativePorts proof/fixture admission unavailable; not assertion red')
-        check(journal.load_upgrade(42)is None and (directory/'merge.queue').read_text().strip()=='42','ADMISSION_NOT_REAL_OR_RESERVED_EARLY')
-        result,value,executions=invoke('once-unknown','once','before')
+        if not value or value.get('result',{}).get('action')!='admitted':raise Hold('actual front/admit not reached')
+        check(journal.load_upgrade(42)is None and (directory/'merge.queue').read_text().strip()=='42','ADMISSION_NOT_REAL')
+        if args.fault=='push-nonzero':
+            # Stage foreign actor object under NON-main ref; preimage is still O.
+            git('--git-dir='+str(receiver),'fetch','--no-tags',work.as_uri(),H+':refs/fixture/preimage-actor')
+            check(git('--git-dir='+str(receiver),'rev-parse','refs/heads/main')==O,'FAULT_PRESTAGING_MOVED_MAIN')
+        result,value,executions=invoke('fault-once','once','before')
+        syscall_path=args.evidence_dir/'fault-once.exec.log'
+        fault=json.loads(syscall_path.read_text())
+        if not fault.get('barrier_reached') or fault.get('classification')!='actual-owned-child-fault-observed':
+            raise Hold('required actual fault/owned-child barrier not reached')
+        if not value or type(value.get('result'))is not dict:raise Hold('actual candidate did not return structured fault outcome')
+        check(result.returncode==0 and held(value),'FAULT_NOT_STRUCTURED_HOLD')
         pair=journal.load_upgrade(42)
-        if result.returncode!=0 and pair is not None:
-            # Actual reserved/tool/transport failure is not missing-capability red.
-            invoke('failed-once-readonly-recovery','recover','before')
-            check(journal.load_upgrade(42)['phase']=='reserved','FAILED_UNKNOWN_RESERVATION_LOST')
-            raise ActualUnknown('actual once process/tool/transport failed after durable reservation; recovery only, no resend')
-        if not value or value.get('push_attempts')!=1:raise Hold('actual leased file push not reached; lock-replacement zero-attempt fault requires its separate selection')
-        check(held(value) and type(pair)is dict and pair.get('phase')=='reserved','ACTUAL_SEND_UNKNOWN_NOT_RESERVED')
-        M=git('--git-dir='+str(receiver),'rev-parse','refs/heads/main')
-        if M==O:
-            invoke('attempted-unknown-readonly-recovery','recover','before')
-            check(journal.load_upgrade(42)['phase']=='reserved','UNKNOWN_RESERVATION_LOST')
-            raise ActualUnknown('actual push attempted but receiver unchanged; reserved/read-only recovery only')
-        check(git('--git-dir='+str(receiver),'show','-s','--format=%P',M).split()==[O,H]
-              and git('--git-dir='+str(receiver),'show','-s','--format=%T',M)==new_tree,'RECEIVER_EFFECT_NOT_EXACT')
-        check(git('--git-dir='+str(receiver),'rev-parse','refs/heads/main')==M,'RECEIVER_MOVED_DURING_READBACK')
-        fixture,reference,blob_count=build(M);check(fixture['approval']==approved,'APPROVAL_CHANGED_WHEN_REAL_M_REBOUND')
-        git('checkout','--detach',M);install_runtime(M)
-        def reversed_parents(policy,observations):
-            key=json.dumps(['commits/'+M,False,False],separators=(',',':'));observations[key]['json']['parents']=[dict(sha=H),dict(sha=O)]
-        _,value,_=invoke('wrong-parents-readonly','recover','merged-awaiting-health',reversed_parents)
-        if not value or type(value.get('result'))is not dict:raise Hold('negative recovery native result unavailable')
-        check(held(value) and journal.load_upgrade(42)['phase']=='reserved','WRONG_PARENT_PROOF_CONFIRMED_EFFECT')
-        _,value,_=invoke('fresh-process-no-health','recover','merged-awaiting-health')
-        check(held(value) and journal.load_upgrade(42)['phase']=='confirmed','NO_HEALTH_MUST_CONFIRM_BUT_NOT_ADOPT')
-        def bad_health(policy,observations):
-            for key,row in observations.items():
-                route,pages,binary=json.loads(key)
-                if route in ('actions/runs/701','actions/runs/701/attempts/1'):row['json']['head_sha']=H
-        _,value,_=invoke('wrong-health','successor','healthy',bad_health)
-        if not value or type(value.get('result'))is not dict:raise Hold('negative health native result unavailable')
-        check(held(value) and journal.load_upgrade(42)['phase']=='confirmed','WRONG_HEALTH_ADOPTED')
-        _,value,_=invoke('successor','successor','healthy')
-        if not value or value.get('result',{}).get('action')!='adopted':raise Hold('actual fresh M/source/health fixture adoption unavailable')
-        check(journal.load_upgrade(42)['phase']=='adopted' and (directory/'merge.queue').read_bytes()==b'' and (directory/'merge.queue.heads').read_bytes()==b'','ADOPTION_OR_CLEANUP_NOT_DURABLE')
-        for i in range(2):
-            _,value,_=invoke('repeat-recover-'+str(i),'recover','healthy')
-            check(value.get('result',{}).get('action')=='adopted' and journal.load_upgrade(42)['phase']=='adopted','REPEATED_RECOVERY_CHANGED_ADOPTED_EFFECT')
+        check(type(pair)is dict and pair['phase']=='reserved','FAULT_LOST_DURABLE_RESERVATION')
+        if args.fault=='lock-name':
+            check(value['push_attempts']==0 and executions['push']==0,'NAMED_LOCK_REPLACEMENT_DISPATCHED_PUSH')
+            check(fault.get('original_named_lock_restored_after_candidate_exit') is True,'ORIGINAL_LOCK_NOT_RESTORED_AFTER_TERMINAL')
+            expected_tip=O
+        else:
+            check(value['push_attempts']==1 and executions['push']==1,'NONZERO_WAS_NOT_ACTUALLY_ATTEMPTED')
+            codes=fault.get('Git_push_exit_codes',[])
+            if len(codes)!=1:raise Hold('actual Git push terminal status unavailable')
+            check(codes[0]!=0,'CONTROLLED_PREIMAGE_FAULT_DID_NOT_FAIL_REAL_PUSH')
+            check(fault['test_only_fault_actor']['exit_code']==0,'FOREIGN_PREIMAGE_CAS_NOT_REAL')
+            expected_tip=H
+        tip=git('--git-dir='+str(receiver),'rev-parse','refs/heads/main')
+        check(tip==expected_tip,'FAULT_RECEIVER_REF_UNEXPECTED')
+        receiver_observation=dict(ref=tip,parents=git('--git-dir='+str(receiver),'show','-s','--format=%P',tip).split(),
+                                  tree=git('--git-dir='+str(receiver),'show','-s','--format=%T',tip))
+        (args.evidence_dir/'actual-receiver-after-fault.json').write_text(json.dumps(receiver_observation,indent=2)+chr(10))
+        before_recovery=copy.deepcopy(pair)
+        def actual_unmerged_snapshot(policy,observations):
+            refkey=json.dumps(['git/ref/heads/main',False,False],separators=(',',':'))
+            observations[refkey]['json']['object']['sha']=tip
+            prkey=json.dumps(['pulls/42',False,False],separators=(',',':'))
+            observations[prkey]['json']['merged']=False
+            observations[prkey]['json']['state']='open'
+            observations[prkey]['json']['base']['sha']=tip
+        for index in range(2):
+            _,recovered,io=invoke('readonly-recover-'+str(index),'recover','before',actual_unmerged_snapshot)
+            if not recovered or type(recovered.get('result'))is not dict:raise Hold('actual read-only recovery unavailable')
+            check(held(recovered) and io==dict(push=0,**{'merge-tree':0,'commit-tree':0}),'FAULT_RECOVERY_RESENT_OR_BUILT_MERGE')
+            check(journal.load_upgrade(42)==before_recovery,'RECOVERY_CHANGED_UNKNOWN_PAIR')
+            check(git('--git-dir='+str(receiver),'rev-parse','refs/heads/main')==tip,'RECOVERY_CHANGED_RECEIVER')
         preserve()
-        (args.evidence_dir/'history-and-lock-preservation.json').write_text(json.dumps(dict(before_rows=original_rows,after_rows=rows(),original_lock_inodes=locks,all_phases_preserved=True),indent=2)+chr(10))
-        report=dict(classification='R3-disposable-native-shaped-actual-file-CAS-chain-passed',O=O,H=H,S=S,M=M,
-            preexisting_merge_object=M0,new_upgrade_id=upgrade_id,number=42,real_Git_blobs_checked=blob_count,
-            phases=len(phases),actual_push_execs=sum(x['actual_Git_execs']['push'] for x in phases),
-            old_rows_and_lock_inodes_preserved=True,initial_FIFO_and_heads_empty=True,
-            native_authenticated=False,transport='file-only-not-OpenSSH',activation_authority=False,overall_production_acceptance=False)
-        check(report['actual_push_execs']==1,'MORE_THAN_ONE_ACTUAL_PUSH')
-        (args.evidence_dir/'chain-report.json').write_text(json.dumps(report,indent=2)+chr(10));return report
+        (args.evidence_dir/'history-lock-preservation.json').write_text(json.dumps(dict(before=original_rows,after=rows(),locks=locks),indent=2)+chr(10))
+        report=dict(classification='R3-actual-fault-reserved-readonly-recovery-observed',fault=args.fault,O=O,H=H,S=S,
+                    upgrade_id=upgrade_id,actual_candidate_push_attempts=value['push_attempts'],actual_Git_push_execs=executions['push'],
+                    pair_phase='reserved',repeat_recoveries=2,recovery_pushes=0,old_history_and_original_lock_names_preserved=True,
+                    actual_receiver=receiver_observation,synthetic_native_observations_only=True,timeout_covered=False,
+                    OpenSSH_covered=False,native_authenticated=False,canonical_authority=False,activation_authority=False)
+        (args.evidence_dir/'fault-report.json').write_text(json.dumps(report,indent=2)+chr(10));return report
 
 def main():
-    p=argparse.ArgumentParser(allow_abbrev=False);p.add_argument('--runner-temp',required=True,type=Path);p.add_argument('--evidence-dir',required=True,type=Path);p.add_argument('--parent-netns',required=True);args=p.parse_args();args.evidence_dir=args.evidence_dir.resolve(strict=True)
+    p=argparse.ArgumentParser(allow_abbrev=False);p.add_argument('--runner-temp',required=True,type=Path);p.add_argument('--evidence-dir',required=True,type=Path);p.add_argument('--parent-netns',required=True);p.add_argument('--fault',required=True,choices=('lock-name','push-nonzero'));args=p.parse_args();args.evidence_dir=args.evidence_dir.resolve(strict=True)
     if any(args.evidence_dir.iterdir()):raise Hold('fresh evidence directory required')
     try:report=run(args);verdict=dict(classification=report['classification'],production_authority=False);code=0
     except ActualUnknown as e:verdict=dict(classification='actual-reserved-send-outcome-failed-or-unknown',reason=str(e),production_authority=False);code=2
