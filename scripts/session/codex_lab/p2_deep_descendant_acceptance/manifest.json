@@ -1,0 +1,52 @@
+{
+  "kind": "p2-deep-descendant-fixture-repair-freeze/1",
+  "card": 63,
+  "revision": 5,
+  "base": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+  "immutable_A2": "91444ef0831eb2381b92342cabe568eee70733aa",
+  "candidate_comparison_H": "47e263825afb62a1b860915f8293da79572d12f6",
+  "reported_run": "42559409470/1",
+  "reported_result": "both variants one barrier ERROR; no lock assertion reached (delegated evidence, not independently downloaded)",
+  "target_path": "scripts/session/codex_lab/p2_deep_descendant_acceptance/test_deep_transport_descendant.py",
+  "old_test_sha256": "4d368eb7928e21ee0d7cad4990f76b43326fe4be63ad7fefd8e1c000c37db7f6",
+  "files_sha256": {
+    "test_deep_transport_descendant.py": "6c429072a883251d453924a339fdf6b362da8bf7ecf4494a1095e5b9a84c9112",
+    "A3-fixture-only.patch": "786fb2c85ce84d4eaa1f3eafff3f6ea07df027f86d29d8cba18fe4157a1ae723"
+  },
+  "unchanged_assertions": {
+    "ast_call_sequence_identical": true,
+    "count": 21,
+    "scope": "pidfd/ancestry/PGID/session, durable reservation, unknown/no resend, helper lifetime, exact reconciliation and final lock assertion"
+  },
+  "fixture_changes": [
+    "Pre-stage merge object and reachable parents under refs/fixture/prestaged-merge in disposable receiver.",
+    "Before owner launch verify base/head/merge are commits, staging ref equals merge, ordered parents match, and main remains base.",
+    "Atomic helper barrier/effect/diagnostic files remove partial publication races.",
+    "Capture helper exit code and up to 2048 stderr bytes; failed helper raises CAPABILITY_HOLD with bounded diagnostic.",
+    "Retain deferred update-ref compare-and-swap using exact expected base."
+  ],
+  "expected_result": {
+    "status": "not-executed; prior barrier error is not assertion red",
+    "baseline_prediction": "If hosted fixture controls pass, original lock-lifetime assertion should fail; no second send claim.",
+    "candidate_prediction": "Unknown until hosted comparison; no green claim.",
+    "capability_failure": "Any object staging/helper/barrier/cleanup failure is HOLD/error, never expected assertion red."
+  },
+  "prior_source_pins": {
+    "B": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+    "files": {
+      "scripts/merge/mq.py": "93dc6e19bde3535c958fdbd62f45f8647601be59407cfb5855af37dc360491e9",
+      "scripts/merge/mq_github.py": "d9838a9a5534276b31df6f88a9759b2a0ad08b79272fcf8653a20eb1ad274490",
+      "scripts/merge/mq_lab_operator.py": "5a78044370589de5d0caf5b72aba023e8a1df8cb134cd452fe7d800ff15d688b",
+      "scripts/merge/mq_queue.py": "4fca732704a7a2bebf1580abdf279f699bd56be95fb02bef85773f18fdd1c665",
+      "scripts/merge/mq_lab_runtime.py": "7bb0ad5d49547b5c5aab46fb554fa0792c3973f9d3c793b160c7effdd174c3cf",
+      "scripts/session/codex_lab/lab_queue_git_writer.py": "07f88737a124de9cb7f529f59ed6f44fab474e9d5cc28b5b466e5e5e9d0bd122",
+      "scripts/merge/mq_lab_journal.py": "0422699839ce20d25b7986fa805b691628d43f9bf2ea9ddc5e825ac1b449baff",
+      "scripts/merge/mq_lab.py": "fe5ce0a3d4c089362697dc9fee1482ee5f77aa0ca3231f38f1cdd08452009f62"
+    }
+  },
+  "local_tests_or_builds": false,
+  "production_changed": false,
+  "old_A2_changed": false,
+  "activation_authorized": false,
+  "model_limit": "Controlled local helper late CAS only; no real SSH or original push completion proof."
+}

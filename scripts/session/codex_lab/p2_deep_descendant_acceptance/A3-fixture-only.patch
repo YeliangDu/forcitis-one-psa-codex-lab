@@ -1,0 +1,119 @@
+--- a/scripts/session/codex_lab/p2_deep_descendant_acceptance/test_deep_transport_descendant.py
++++ b/scripts/session/codex_lab/p2_deep_descendant_acceptance/test_deep_transport_descendant.py
+@@ -94,26 +94,50 @@
+     return result
+ 
+ 
+-HELPER = r"""import os, pathlib, shlex, subprocess, sys, time
++HELPER = r"""import json, os, pathlib, shlex, subprocess, sys, tempfile, time
+ w=pathlib.Path(os.environ['FIXTURE_ROOT'])
+-parts=shlex.split(sys.argv[-1])
+-if parts != ['git-receive-pack', '/receiver']:
+-    raise SystemExit('unexpected transport argv')
+-(w/'helper.pid').write_text(str(os.getpid()))
+-(w/'ready').write_text('ready')
+-limit=time.monotonic()+30
+-while not (w/'release').exists():
+-    if time.monotonic()>limit: raise SystemExit('barrier timeout')
+-    time.sleep(.02)
+-# Controlled late-effect model: not completion of the broken push protocol.
+-intent=__import__('json').loads((w/'intent.json').read_text())
+-merge=(w/'merge').read_text()
+-r=subprocess.run([os.environ['FIXTURE_GIT'], '--git-dir='+str(w/'receiver.git'),
+-                  'update-ref', 'refs/heads/main', merge, intent['base']],
+-                 stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+-if r.returncode: raise SystemExit('disposable late effect failed')
+-with (w/'late-effect').open('w') as f:
+-    f.write(merge); f.flush(); os.fsync(f.fileno())
++
++def publish(name, text):
++    temporary=w/(name+'.pending')
++    with temporary.open('w') as stream:
++        stream.write(text); stream.flush(); os.fsync(stream.fileno())
++    os.replace(temporary, w/name)
++
++def main():
++    parts=shlex.split(sys.argv[-1])
++    if parts != ['git-receive-pack', '/receiver']:
++        raise RuntimeError('unexpected transport argv')
++    publish('helper.pid', str(os.getpid()))
++    publish('ready', 'ready')
++    limit=time.monotonic()+30
++    while not (w/'release').exists():
++        if time.monotonic()>limit: raise RuntimeError('barrier timeout')
++        time.sleep(.02)
++    # Controlled late-effect model: not completion of the broken push protocol.
++    intent=json.loads((w/'intent.json').read_text())
++    merge=(w/'merge').read_text()
++    with tempfile.TemporaryFile() as errors:
++        result=subprocess.run([os.environ['FIXTURE_GIT'], '--git-dir='+str(w/'receiver.git'),
++                               'update-ref', 'refs/heads/main', merge, intent['base']],
++                              stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
++                              stderr=errors, timeout=10)
++        errors.seek(0)
++        diagnostic=errors.read(2049)
++    detail=dict(update_ref_exit_code=result.returncode,
++                stderr=diagnostic[:2048].decode('utf-8', errors='replace'),
++                stderr_truncated=len(diagnostic)>2048)
++    if result.returncode:
++        return result.returncode, detail
++    publish('late-effect', merge)
++    return 0, detail
++
++try:
++    code, detail=main()
++except BaseException as error:
++    code=125
++    detail=dict(error_type=type(error).__name__, stderr=str(error)[:2048])
++publish('helper-exit.json', json.dumps(dict(helper_exit_code=code, **detail), sort_keys=True))
++raise SystemExit(code)
+ """
+ 
+ 
+@@ -151,6 +175,18 @@
+             head = command('commit-tree', tree, '-p', base, '-m', 'head', cwd=sender)
+             merge = command('commit-tree', tree, '-p', base, '-p', head, '-m', 'merge', cwd=sender)
+             command('push', str(w / 'receiver.git'), base + ':refs/heads/main', cwd=sender)
++            # Object staging is separate from the deferred main CAS.
++            command('push', str(w / 'receiver.git'), merge + ':refs/fixture/prestaged-merge', cwd=sender)
++            receiver_arg = '--git-dir=' + str(w / 'receiver.git')
++            for object_id in (base, head, merge):
++                if command(receiver_arg, 'cat-file', '-t', object_id) != 'commit':
++                    raise RuntimeError('CAPABILITY_HOLD: missing prestaged commit')
++            if command(receiver_arg, 'rev-parse', 'refs/fixture/prestaged-merge') != merge:
++                raise RuntimeError('CAPABILITY_HOLD: wrong prestaged merge ref')
++            if command(receiver_arg, 'show', '-s', '--format=%P', merge).split() != [base, head]:
++                raise RuntimeError('CAPABILITY_HOLD: prestaged merge parents differ')
++            if command(receiver_arg, 'rev-parse', 'refs/heads/main') != base:
++                raise RuntimeError('CAPABILITY_HOLD: main moved during object staging')
+             (w / 'merge').write_text(merge)
+             intent = dict(number=1, base=base, head=head, target='main')
+             (w / 'intent.json').write_text(json.dumps(intent))
+@@ -236,7 +272,14 @@
+                 self.assertTrue(same_live(helper_identity))
+                 self.assertFalse((w / 'late-effect').exists())
+                 (w / 'release').write_text('release')
+-                wait_for(lambda: (w / 'late-effect').exists(), 'capable helper late effect')
++                def late_effect_ready():
++                    diagnostic = w / 'helper-exit.json'
++                    if diagnostic.exists():
++                        result = json.loads(diagnostic.read_text())
++                        if result.get('helper_exit_code') != 0:
++                            raise RuntimeError('CAPABILITY_HOLD: helper failure: ' + json.dumps(result)[:3072])
++                    return (w / 'late-effect').exists()
++                wait_for(late_effect_ready, 'capable helper late effect')
+                 self.assertEqual((w / 'late-effect').read_text(), merge)
+                 wait_for(lambda: command('--git-dir=' + str(w / 'receiver.git'), 'rev-parse',
+                                          'refs/heads/main') == merge, 'old transport completes')
+@@ -256,6 +299,11 @@
+                 except ProcessLookupError:
+                     pass
+                 wait_for(lambda: not live_group(p.pid), 'all disposable group members stopped')
++                diagnostic = w / 'helper-exit.json'
++                if diagnostic.exists():
++                    print('helper-diagnostic: ' + diagnostic.read_text()[:4096], flush=True)
++                else:
++                    print('helper-diagnostic: unavailable (capability evidence incomplete)', flush=True)
+ 
+ 
+ if __name__ == '__main__':
