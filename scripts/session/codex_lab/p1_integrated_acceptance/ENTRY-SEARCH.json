@@ -1,0 +1,7 @@
+{
+  "scope": "exact B scripts/.github tracked objects only",
+  "query": "labctl",
+  "returncode": 1,
+  "output": "",
+  "not_global_absence_claim": true
+}

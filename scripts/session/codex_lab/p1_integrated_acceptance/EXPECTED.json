@@ -1,0 +1,23 @@
+{
+  "status": "CAPABILITY HOLD for missing integrated entry/closure/projection; no invented baseline red",
+  "baseline_assertion_ids": null,
+  "baseline_failure_count": null,
+  "baseline_selector": null,
+  "candidate_contract_methods": [
+    "test_one_entry_replay_wiring_and_durable_restart_without_auth_green",
+    "test_forged_json_authentication_flag_never_grants_native_authority",
+    "test_late_predecessor_cannot_replace_persisted_current_assignment",
+    "test_wrong_artifact_or_native_projection_digest_is_hold",
+    "test_wrong_A_B_H_PR_profile_run_attempt_or_artifact_identity_is_hold",
+    "test_stale_or_nonindependent_review_shape_is_not_same_H_review",
+    "test_missing_proof_and_misleading_standalone_greens_are_hold"
+  ],
+  "candidate_tests_after_capability": 7,
+  "candidate_expected_errors": 0,
+  "candidate_expected_skips": 0,
+  "candidate_replay_positive": "actual one entry + profiled leaf calls + durable state across new process, but native_authenticated/operational_admission and all writer flags false",
+  "candidate_green_classification": "hosted replay contract only; not P1 real operational exit",
+  "component_observed_comparison": "projection42541092166/1 already has12 tests2 exact assertions/errors0/skips0; not relabeled integrated red",
+  "executed": 0,
+  "activation_authority": false
+}

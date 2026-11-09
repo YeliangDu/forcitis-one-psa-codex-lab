@@ -1,0 +1,15 @@
+{
+  "status": "CAPABILITY HOLD, not expected integrated assertion-red",
+  "B": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+  "inspected": "B and supplied three green source trees contain only separately named components, no verified integrated labctl entry. This does not claim no external entry exists elsewhere.",
+  "missing": ["actual labctl readonly-p1/inspect-p1 entry and independently selected immutable full source closure", "lead-supplied in-flight native projection source SHA; old549 source has actual component red42541092166/1", "actual authenticated original native collection interface and signed small Lab card for witnessed pilot"],
+  "baseline_selector": null,
+  "baseline_assertion_ids": null,
+  "baseline_failure_count": null,
+  "reason": "No existing integrated behavior is callable in supplied scope. Missing entry/API/closure/native proof cannot become assertion red; no aggregator/stub baseline is invented.",
+  "executable_deliverable": "7 future candidate CLI replay contract methods with explicit source/closure/namespace capability preconditions; absence exits86 before tests",
+  "actual_tests_executed": 0,
+  "current_source_C": null,
+  "operational_ready": false,
+  "activation_authority": false
+}

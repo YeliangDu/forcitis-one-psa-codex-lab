@@ -1,0 +1,15 @@
+{
+  "kind": "labctl-readonly-p1/1",
+  "status": "candidate contract frozen; actual entry and full closure unavailable, capability HOLD",
+  "entry_cli": "python ENTRY readonly-p1|inspect-p1 --request JSON --state-dir ISOLATED_STATE --source-closure JSON --source-closure-sha256 EXTERNAL_SHA",
+  "closure": "entry + files_sha256 + slots(checkpoint,association,receipt,projection); actual three green byte pins fixed in COMPONENT-PINS; later lead-supplied native projection SHA mandatory; no standalone leaf as entry",
+  "state": "one candidate-owned truth, storage format free; inspect-p1 exports current state from new process. No canonical runtime/queue/journal is present. Only isolated-state writable.",
+  "replay_positive": "same CLI consumes a coherent synthetic one-card scope/checkpoint/native-shaped window/artifact/receipt/profile/review bundle, executes checkpoint recover + actual projection matcher + actual receipt artifacts source frames, exports exact replay assignment/artifact and durable one-claim planned-unissued intent. Replay stays HOLD for actual authentication/permissions/recovery/review authority.",
+  "required_output": ["action", "missing_proof", "replay_consistency", "replay_assignment", "replay_artifact_sha256", "state", "native_authenticated", "operational_admission", "activation_authority", "queue_write_authority", "writer_authority"],
+  "state_export": ["claim_id", "intent_id", "intent_count", "actual_native_send_count", "candidate_closure_sha256"],
+  "replay_auth": "always native_authenticated=false, operational_admission=false, all writer/queue/activation flags false; JSON authentication=true is not a trusted source",
+  "negative_cases": ["late predecessor revision cannot replace durable current state", "mismatched artifact/native raw response digest", "wrong or stale A/B/H/PR/profile/run/attempt/artifact/source closure", "wrong-H or shared review shape", "missing proof with misleading standalone green counts", "repeat/restart never creates a second intent or send"],
+  "real_positive": "separate witnessed pilot from actual original native collector and one signed small Lab card; not mocked by hosted replay; no operational permission inferred",
+  "missing_real_seams": ["actual integrated CLI/immutable closed source", "reviewed new native projection byte SHA", "independently authenticated original native observation producer", "actual signed small-card selection and authorization", "real compact/restart/permissions/current active control provenance"],
+  "activation_authority": false
+}

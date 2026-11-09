@@ -1,0 +1,84 @@
+{
+  "checkpoint": {
+    "H": "e8bbd1e79c670ea396770c4aa8833dfd5599b1ac",
+    "path": "scripts/session/codex_lab/lab_p1_checkpoint_recovery.py",
+    "sha256": "cd183a60a6658ca0194cd848ece39a9df906761e3dc988b1c605b9480204a9d6",
+    "provided_green_run": 42536933802,
+    "attempt": 1,
+    "active_C": false,
+    "provided_hosted_identity": {
+      "identity": {
+        "A": "1ae83329bb5185bcf13cbdfcdb1cd665647ab15f",
+        "B": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+        "workflow_head": "bf7bb10ff51e72d66574e121f09bd18296e5fedf",
+        "run": "42536933802",
+        "attempt": "1",
+        "manifest_sha256": "219dffe262e82c50d8e6828ae34fa7cc2fe94eb9d8ea0bb47bae931930de944b",
+        "runner": "github-hosted"
+      },
+      "job": 128903195345,
+      "artifact": 13639252994,
+      "digest": "sha256:e73b3f73d140a2601aa39476e56df00313541b098e3c1ded70f7b7e74e2c5ed6"
+    }
+  },
+  "association": {
+    "H": "549e2f731df8faba6311c71e554fa197b3ff1428",
+    "path": "scripts/session/codex_lab/lab_p1_bounded_association.py",
+    "sha256": "6b8796a22cbc6417194a37836bcb73eafa1fe94507303694ad29696b7e64eadb",
+    "provided_green_run": 42538695733,
+    "attempt": 1,
+    "active_C": false,
+    "provided_hosted_identity": {
+      "identity": {
+        "A": "ab82c369a78d5bbd925c6071ef889291a754ec2f",
+        "B": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+        "workflow_head": "157e1c005acc1d3f334e3f06d0cab83036f88a11",
+        "run": "42538695733",
+        "attempt": "1",
+        "manifest_sha256": "d8a3a7cd3c6a12d8aec3939d2a84bbe9d7f23a36081bc0e305a6c9708551cc6f",
+        "runner": "github-hosted"
+      },
+      "job": 128908618476,
+      "artifact": 13640721566,
+      "digest": "sha256:caffcaf14404bf5fbcf1a7d7191944ea768e77cb5b3956cbe68240bd52203a94"
+    }
+  },
+  "receipt": {
+    "H": "54a3d2d93502f9ce5065bcaa16857061c0c40732",
+    "path": "scripts/session/codex_lab/lab_p1_receipt_provenance.py",
+    "sha256": "87bd96b150809e5e9a68ca62fdf03566dbcb07ca043937ab49c7b37fb68bf165",
+    "provided_green_run": 42540273856,
+    "attempt": 1,
+    "active_C": false,
+    "provided_hosted_identity": {
+      "identity": {
+        "A": "898e64fdb40bfeb50af5affde08f7519ac99dd50",
+        "B": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+        "workflow_head": "e783a597b93df13247cf91c30c96cc11c8558e68",
+        "run": "42540273856",
+        "attempt": "1",
+        "manifest_sha256": "b445d99d68e26eaa02030955b634a9cdc20806553815c0bef3794ca18e90cd5d",
+        "runner": "github-hosted"
+      },
+      "job": 128913428808,
+      "artifact": 13641440556,
+      "digest": "sha256:df887901f42a3e3571934c1b7d807aa3fdd456bdb3c92515f8656efdc9be065b"
+    }
+  },
+  "projection": {
+    "path": null,
+    "sha256": null,
+    "H": null,
+    "interface": "match_dispatch_ack(claim,prompt_bytes,legacy_pages,window_proof=proof)",
+    "required": "later independently supplied reviewed source SHA; do not reuse old549 as new native adapter",
+    "latest_component_red": {
+      "A": "fdb995415da5d65d9b22ffeb1f5e012e8567a8aa",
+      "run": 42541092166,
+      "attempt": 1,
+      "tests": 12,
+      "assertion_failures": 2,
+      "errors": 0,
+      "skipped": 0
+    }
+  }
+}

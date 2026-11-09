@@ -1,0 +1,101 @@
+{
+  "kind": "p1-witnessed-pilot-checklist/1",
+  "status": "NOT EXECUTED; conditions must be satisfied without prohibited activation",
+  "actual_signed_card": null,
+  "actual_integrated_entry": null,
+  "actual_source_closure_sha256": null,
+  "active_C": null,
+  "witnesses": [
+    {
+      "id": "W01",
+      "area": "authorization/quiescence",
+      "required": "Lead selects one actual signed small authorized Lab card and scope digest, original resident/role, actual current assignment/revision/cwd/permissions, actual free/idle state and conflicts. No replacement ID, competing app-server, actual hooks install or hidden second queue.",
+      "observed": false,
+      "evidence": null
+    },
+    {
+      "id": "W02",
+      "area": "source closure",
+      "required": "Pin actual integrated labctl entry/all dependencies/source commit/tree/modes/blobs/content hashes, three green sources and separately reviewed projection SHA/current A/run reviews together. Candidate is never active C merely because its leaf tests passed.",
+      "observed": false,
+      "evidence": null
+    },
+    {
+      "id": "W03",
+      "area": "claim/send source",
+      "required": "Current existing trusted lead path owns any separately authorized native operation. Persist actual full prompt digest, pre-send wait cursor/terminal predecessor and consumed claim before at most one actual send. Unknown remains consumed/readback-only, no replay loop or second send.",
+      "observed": false,
+      "evidence": null
+    },
+    {
+      "id": "W04",
+      "area": "authenticated collection",
+      "required": "Record actual supported connector identity/request/response source, raw digests and complete bounded newest-first pages, first read without pagination cursor, opaque returned chain, separate wait event cursor, final fresh top. Do not accept JSON authenticated=true or copied marker text as source authentication.",
+      "observed": false,
+      "evidence": null
+    },
+    {
+      "id": "W05",
+      "area": "association and artifact",
+      "required": "Use original native envelope turn/item IDs, whole exact current claim/revision agent ACK only; preserve phase final_answer, nontext items and old continuation. Verify actual tool cwd/output and artifact bytes/source revision. Uncorrelated or late predecessor remains HOLD.",
+      "observed": false,
+      "evidence": null
+    },
+    {
+      "id": "W06",
+      "area": "real recovery",
+      "required": "Actually witness manual and auto compact/resume/restart via supported native boundary. Record current checkpoint identity and first restored model/tool action against current card/revision/cwd. Old fixture/late output rejected. No offline state reopen substituted for real native recovery.",
+      "observed": false,
+      "evidence": null
+    },
+    {
+      "id": "W07",
+      "area": "hosted producer",
+      "required": "Actual same-card frozen independent A/red then candidate H feedback/full evidence tied to B/profile/selection/version/run/attempt/native job/runner/upload/artifact ID/raw ZIP SHA. Missing dependency/native capability is HOLD; no targeted/standalone green substituted for full source/profile.",
+      "observed": false,
+      "evidence": null
+    },
+    {
+      "id": "W08",
+      "area": "review independence",
+      "required": "Native current same-H first/final review IDs/body/user/assigned resident identity and author independence proved; new H invalidates old verdict. Role labels or replay Boolean cannot prove independence.",
+      "observed": false,
+      "evidence": null
+    },
+    {
+      "id": "W09",
+      "area": "readonly admission",
+      "required": "Same actual evidence consumed through actual integrated entry; output bounded read-only admission plan with missing proofs/reasons and no queue/write authority. No canonical mutation, merge or receiver installation. If operational use/trust/permissions are not allowed/proved, HOLD and stop.",
+      "observed": false,
+      "evidence": null
+    },
+    {
+      "id": "W10",
+      "area": "restart/late/unknown",
+      "required": "Reopen same actual assignment/effect in new process; zero new send on unknown/repeat, no stale card/revision/artifact adoption. Record state source and actual readback counters. Retain all old roles/drafts/writers.",
+      "observed": false,
+      "evidence": null
+    },
+    {
+      "id": "W11",
+      "area": "wake/absence claims",
+      "required": "If claiming automatic wake, retain authoritative bounded trigger/history proving a result consumed after prior lead turn ended without new user continue. A progress summary cannot establish absence of user input.",
+      "observed": false,
+      "evidence": null
+    },
+    {
+      "id": "W12",
+      "area": "exit evidence",
+      "required": "Independent auditor records exact native IDs privately plus sanitized evidence index, source pins/test IDs/results/exclusions. Missing auth/recovery/permissions/active source is explicit HOLD. No whole-card efficiency/quality or P2-P5 completion claimed from replay counts.",
+      "observed": false,
+      "evidence": null
+    }
+  ],
+  "no_mock_green": [
+    "authentication",
+    "real compact/restart",
+    "permissions",
+    "operational admission"
+  ],
+  "activation_authority": false
+}
