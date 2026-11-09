@@ -384,6 +384,11 @@ class ProductionPorts:
         if args and args[0] == "push":
             check = getattr(self, "_send_permit_check", None)
             _require(callable(check) and check() is True, "first-card-permit-refused-at-git-send")
+            https = getattr(self, "_isolated_https", None)
+            if https is not None:
+                from lab_https_transport import BoundCPrimeHTTPS
+                _require(type(https) is BoundCPrimeHTTPS, "isolated-https-binding-required")
+                return https(args, check)
         result = self.sh(["git", *args])
         _require(result.returncode == 0, "fixed-Lab-git-command-failed")
         return result.stdout
