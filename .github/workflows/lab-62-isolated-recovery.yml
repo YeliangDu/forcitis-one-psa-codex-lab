@@ -1,0 +1,116 @@
+name: Lab 62 integrated launcher overlay verification
+on:
+  push:
+    branches: [codex/62-current-assignment]
+    paths: [.github/workflows/lab-62-isolated-recovery.yml]
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    if: >-
+      github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      toJSON(github.event.repository.id) == '1449415666' &&
+      toJSON(github.event.repository.private) == 'false' &&
+      github.ref == 'refs/heads/codex/62-current-assignment'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      ACCEPTANCE_HEAD: 5f1c77e77217e8a934ffa8cfbe9ed7f4a95ca87f
+      PRODUCT_BASE: 77e872e8ba9661d3294d3a9337c8e5c956b70641
+      MANIFEST_SHA256: cf5ec9ed5a2ecb3c7e7eaa00836b08c9e0ede36a8b808e8e42b1163a00a69378
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 5f1c77e77217e8a934ffa8cfbe9ed7f4a95ca87f
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify frozen package before running any candidate-owned script
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$(git rev-parse HEAD)" = "$ACCEPTANCE_HEAD"
+          test "$(git rev-parse HEAD^)" = "ca0fce0c5130962451c3a90e8ff475fdfa058b0f"
+          test "$(git rev-parse HEAD^^)" = "$PRODUCT_BASE"
+          python3 -I -B - <<'DIFF'
+          import subprocess
+          changed=set(subprocess.check_output(["git","diff","--name-only","HEAD^","HEAD"]).decode().splitlines())
+          root="scripts/session/codex_lab/p1_integrated_acceptance/"
+          assert {root+"run.py",root+"manifest.json"} <= changed <= {root+"run.py",root+"launcher_classification_selftest.py",root+"manifest.json"}
+          DIFF
+          test ! -e .git/merge-queue
+          test ! -e .codex/hooks.json
+          test -z "$(git config --local --get-regexp '^http\..*extraheader$' || true)"
+          python3 -I -B - <<'PYCODE'
+          import hashlib,json,os
+          from pathlib import Path,PurePosixPath
+          root=Path("scripts/session/codex_lab/p1_integrated_acceptance").resolve(strict=True)
+          p=root/"manifest.json"
+          assert not p.is_symlink() and p.is_file()
+          raw=p.read_bytes()
+          assert hashlib.sha256(raw).hexdigest()==os.environ["MANIFEST_SHA256"]
+          frozen=json.loads(raw)
+          for name,expected in frozen["files_sha256"].items():
+              rel=PurePosixPath(name)
+              assert not rel.is_absolute() and ".." not in rel.parts and str(rel)==name
+              f=root/name
+              assert f.resolve(strict=True)==f and f.is_file()
+              assert hashlib.sha256(f.read_bytes()).hexdigest()==expected
+          PYCODE
+      - name: Materialize independently pinned closure bytes without execution
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/lab62-source"; mkdir -m 700 "$d"
+          export LAB62_SOURCE_TMP="$d"
+          python3 -I -B - <<'PYCODE'
+          import hashlib,json,os,re,subprocess
+          from pathlib import Path
+          root=Path(os.environ["LAB62_SOURCE_TMP"])
+          H,C,M,R=('dd2003489aca4c01f1a81c9d1f9c9e25e17bf472', 'scripts/session/codex_lab/labctl_p1_source_closure.json', '8068bf5dc5bb688f093e21ed559eb100d6c0f88d3bdf0d333ac4f44b3bdb026b', '')
+          def read_blob(path):
+              entry=subprocess.check_output(["git","--no-replace-objects","ls-tree",H,"--",path]).decode().strip()
+              assert entry.endswith("\t"+path) and entry.startswith("100644 blob ")
+              return subprocess.check_output(["git","--no-replace-objects","show",H+":"+path])
+          def write(path,raw):
+              dest=root/path
+              dest.parent.mkdir(parents=True,exist_ok=True)
+              dest.write_bytes(raw)
+          raw=read_blob(C)
+          assert hashlib.sha256(raw).hexdigest()==M
+          closure=json.loads(raw)
+          assert closure["contract"]=="labctl-readonly-p1/1"
+          for path,pin in closure["files_sha256"].items():
+              assert re.fullmatch(r"[A-Za-z0-9_./-]+",path) and all(x not in ("",".","..") for x in path.split("/"))
+              assert (R+path).startswith("scripts/session/codex_lab/")
+              data=read_blob(R+path)
+              assert hashlib.sha256(data).hexdigest()==pin
+              write(path,data)
+          write(".lab62-closure.json",raw)
+          PYCODE
+      - name: Run frozen acceptance without network or privilege escalation
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/lab62-evidence"; mkdir -m 700 "$d"
+          scratch="$RUNNER_TEMP/lab62-scratch"; mkdir -m 700 "$scratch"
+          printf '%s\n' 'candidate_head=dd2003489aca4c01f1a81c9d1f9c9e25e17bf472' 'closure_sha256=8068bf5dc5bb688f093e21ed559eb100d6c0f88d3bdf0d333ac4f44b3bdb026b' 'projection_source_sha256=7b14075cfa359d87e5d23ac0153d36e05e3fca82d3167ed09b20f4b2b1904add' 'active_C=unbound' > "$d/candidate.txt"
+          printf 'A=%s\nB=%s\nworkflow_head=%s\nrun=%s\nattempt=%s\nmanifest_sha256=%s\nrunner=%s\n'             "$ACCEPTANCE_HEAD" "$PRODUCT_BASE" "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$MANIFEST_SHA256" "$RUNNER_ENVIRONMENT" > "$d/identity.txt"
+          ns_before="$(readlink /proc/self/ns/net)"
+          rc=0
+          sudo -n /usr/bin/unshare --net --pid --fork --mount-proc -- /usr/bin/setpriv --reuid "$(id -u)" --regid "$(id -g)" --clear-groups --no-new-privs --             /usr/bin/env -i PATH=/usr/bin:/bin HOME="$scratch" TMPDIR="$scratch"             GITHUB_ACTIONS=true GITHUB_WORKSPACE="$GITHUB_WORKSPACE" RUNNER_TEMP="$RUNNER_TEMP"             GITHUB_RUN_ID="$GITHUB_RUN_ID" GITHUB_RUN_ATTEMPT="$GITHUB_RUN_ATTEMPT"             GITHUB_SHA="$GITHUB_SHA" ACCEPTANCE_HEAD="$ACCEPTANCE_HEAD" PRODUCT_BASE="$PRODUCT_BASE"             MANIFEST_SHA256="$MANIFEST_SHA256" LAB62_EVIDENCE="$d" HOST_NET_NS="$ns_before" INTEGRATED_PARENT_NETNS="$(stat -Lc %i /proc/self/ns/net)"             /bin/bash --noprofile --norc -eu -o pipefail -c '
+              test "$(id -u)" -ne 0
+              test "$(readlink /proc/self/ns/net)" != "$HOST_NET_NS"
+              test "$(ip -o link show | wc -l)" -eq 1
+              ip -o link show | grep -Eq "^[0-9]+: lo:"
+              grep -Eq "^NoNewPrivs:[[:space:]]+1$" /proc/self/status
+              printf "network_namespace=isolated\nprivilege=non-root,no-new-privs\ncredentials=allowlisted-environment\n" > "$LAB62_EVIDENCE/isolation.txt"
+              /usr/bin/python3 -I -B scripts/session/codex_lab/p1_integrated_acceptance/launcher_classification_selftest.py > "$LAB62_EVIDENCE/launcher-selftest.log" 2>&1
+              /usr/bin/python3 -I -B scripts/session/codex_lab/p1_integrated_acceptance/run.py --inside --manifest-sha256 "$MANIFEST_SHA256" --source-root "$RUNNER_TEMP/lab62-source" --closure "$RUNNER_TEMP/lab62-source/.lab62-closure.json" --closure-sha256 8068bf5dc5bb688f093e21ed559eb100d6c0f88d3bdf0d333ac4f44b3bdb026b --report "$LAB62_EVIDENCE/verdict.json" > "$LAB62_EVIDENCE/launcher.stdout" 2> "$LAB62_EVIDENCE/launcher.stderr"
+            ' || rc=$?
+          printf '%s\n' "$rc" > "$d/exit-code.txt"
+          exit "$rc"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab62-integrated-launcher-overlay-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab62-evidence/
+          if-no-files-found: error
+          retention-days: 7
