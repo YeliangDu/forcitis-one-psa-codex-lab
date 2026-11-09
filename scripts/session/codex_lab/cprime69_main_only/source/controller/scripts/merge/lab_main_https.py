@@ -104,12 +104,25 @@ def _json(raw):
     return json.loads(raw, object_pairs_hook=pairs)
 
 
-def _rules(github, permit):
+def _rules(github, permit, admin_snapshot):
     # Exact two rulesets. Missing data, extra bypass actors/rules, or scope drift holds.
     pair = permit["rulesets"]
     wanted = {"update": {"update"}, "immutable": {"deletion","non_fast_forward"}}
+    require(type(admin_snapshot) is dict and set(admin_snapshot) == set(wanted),
+            "main-administrator-rule-receipt-unavailable")
     for name, types in wanted.items():
-        row = github._single("rulesets/" + str(pair[name]))
+        row = admin_snapshot[name]
+        live = github._single("rulesets/" + str(pair[name]))
+        # GitHub redacts bypass_actors from non-writers. The independent
+        # root pin attests the administrator's exact response; the live GET
+        # must show the same public identity, revision and effective rules.
+        public = ("id","node_id","name","source_type","source","target",
+                  "enforcement","conditions","rules","updated_at")
+        require(all(k in row and k in live and row[k]==live[k] for k in public)
+                and type(row["node_id"]) is str and bool(row["node_id"])
+                and isinstance(_utc_expiry(row["updated_at"]),datetime)
+                and ("bypass_actors" not in live or live["bypass_actors"]==row.get("bypass_actors")),
+                "main-admin-ruleset-snapshot-stale")
         actors = ([{"actor_id":SCOPE["app_id"],"actor_type":"Integration","bypass_mode":"always"}]
                   if name == "update" else [])
         rules = row.get("rules")
@@ -123,7 +136,7 @@ def _rules(github, permit):
                         and rule.get("parameters",{}).get("update_allows_fetch_and_merge",False) is False
                         for rule in rules if rule.get("parameters") is not None),
                 "main-ruleset-mismatch")
-    rows = github._request("rules/branches/main")
+    rows = github.main_rules()
     require(type(rows) is list and len(rows) == 3
             and all(r.get("ruleset_source_type") == "Repository" and r.get("ruleset_source") == REPO for r in rows)
             and {(r.get("ruleset_id"),r.get("type")) for r in rows} ==
@@ -251,11 +264,12 @@ def _trust_anchor():
                 "main-anchor-moved")
     value = _json(raw)
     require(set(value) == {"kind","enabled","service_uid","permit_path","permit_sha256","closure_path",
-                            "closure_sha256","key_path","registry_adoption","old_sender_exclusion"}
+                            "closure_sha256","key_path","registry_adoption","old_sender_exclusion",
+                            "ruleset_proof_path","ruleset_proof_sha256"}
             and value["kind"] == KIND and value["enabled"] is True
             and type(value["service_uid"]) is int and value["service_uid"] == os.geteuid() > 0
             and all(digest(value[k],64) for k in ("permit_sha256","closure_sha256",
-                                                   "registry_adoption","old_sender_exclusion")),
+                                                   "registry_adoption","old_sender_exclusion","ruleset_proof_sha256")),
             "main-independent-anchor-unavailable")
     return value
 
@@ -289,7 +303,7 @@ def _run(args):
             permit["registry_adoption"] == anchor["registry_adoption"], "main-anchor-binding-mismatch")
     require(args.number == 69 and permit["subject"] == dict(number=args.number, head=args.head,
                                                              base=args.base, target="main"), "main-request-scope")
-    package = _closure(anchor["closure_path"],anchor["closure_sha256"])
+    package = _closure(anchor["closure_path"],anchor["closure_sha256"],trusted_uid=0)
     require(package/"controller/scripts/merge/lab_main_https.py" == Path(__file__).resolve(), "main-entry-unbound")
     checkout, common = map(Path, (permit["checkout"],permit["common_dir"]))
     require(checkout == common.parent and checkout.resolve(strict=True) == checkout,
@@ -302,7 +316,18 @@ def _run(args):
         if key.startswith("GIT_"):
             del os.environ[key]
     os.environ.update(GIT)
-    os.environ["PATH"] = "/opt/homebrew/bin:/usr/bin:/bin"
+    # Fixed root-administered readback executable; never resolve gh in the
+    # old developer's writable Homebrew tree or inherit an API write token.
+    cli = ANCHOR.parent/"bin"/"gh"
+    for f in (cli.parent,cli):
+        info = f.lstat()
+        require(f.resolve(strict=True)==f and info.st_uid==0 and not info.st_mode&0o022
+                and (stat.S_ISREG(info.st_mode) and info.st_nlink==1 and bool(info.st_mode&0o111)
+                     if f==cli else stat.S_ISDIR(info.st_mode)), "main-readback-cli-untrusted")
+    for key in ("GH_TOKEN","GITHUB_TOKEN","GH_ENTERPRISE_TOKEN","GITHUB_ENTERPRISE_TOKEN",
+                "GH_CONFIG_DIR","GH_HOST","GH_REPO","GH_DEBUG"):
+        os.environ.pop(key,None)
+    os.environ["PATH"] = str(cli.parent) + ":/usr/bin:/bin"
 
     def command(argv):
         require(argv[:1] == ["git"] and len(argv) > 1 and argv[1] in {
@@ -329,6 +354,10 @@ def _run(args):
     check_checkout()
     ports = ProductionPorts(common,command)
     subject = permit["subject"]
+
+    def read_rules():
+        raw = _read(anchor["ruleset_proof_path"],anchor["ruleset_proof_sha256"],trusted_uid=0)
+        _rules(ports.github,permit,_json(raw))
 
     def observe(fd, record):
         require(_trust_anchor() == anchor and _json(_read(permit_path,pin,private=True)) == permit,
@@ -372,7 +401,7 @@ def _run(args):
                     and {k:proposed[k] for k in KEYS} == subject and owned[0] is None
                     and authorize(permit,observe(fd,None),recover_only=False)["allow_reserve"],
                     "main-new-reservation-refused")
-            _rules(ports.github,permit)
+            read_rules()
 
         def mark_reserved(proposed):
             owned[0] = dict(proposed)
@@ -393,8 +422,8 @@ def _run(args):
         binding = None
         if not recovery:
             def transport_check():
-                _closure(anchor["closure_path"],anchor["closure_sha256"])
-                _rules(ports.github,permit)
+                _closure(anchor["closure_path"],anchor["closure_sha256"],trusted_uid=0)
+                read_rules()
                 return can_write() is True and owned[0] is not None
             binding = MainHTTPSBinding(permit,checkout,merge,fd,transport_check,anchor["key_path"])
             ports._main_https = binding

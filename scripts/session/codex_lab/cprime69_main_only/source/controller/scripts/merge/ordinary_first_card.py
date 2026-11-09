@@ -40,13 +40,14 @@ def authorize(request, approval):
     return subject
 
 
-def _read(path, expected, private=False):
+def _read(path, expected, private=False, *, trusted_uid=None):
     path = Path(path)
+    owner = os.geteuid() if trusted_uid is None else trusted_uid
     require(path.is_absolute() and path.resolve(strict=True) == path and digest(expected, 64), "first-card-physical-pin-required")
     fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     with os.fdopen(fd, "rb") as stream:
         st = os.fstat(stream.fileno())
-        require(stat.S_ISREG(st.st_mode) and st.st_nlink == 1 and st.st_uid == os.geteuid()
+        require(stat.S_ISREG(st.st_mode) and st.st_nlink == 1 and st.st_uid == owner
                 and not st.st_mode & 0o022 and (not private or not st.st_mode & 0o077) and 0 < st.st_size <= 1024*1024,
                 "first-card-file-not-trusted")
         data = stream.read(1024*1024+1)
@@ -56,10 +57,10 @@ def _read(path, expected, private=False):
     return data
 
 
-def _closure(path, expected):
+def _closure(path, expected, *, trusted_uid=None):
     root = Path(__file__).resolve().parents[3]
     require(Path(path) == root / "SOURCE-CLOSURE.json", "first-card-installation-root-mismatch")
-    manifest = json.loads(_read(path, expected))
+    manifest = json.loads(_read(path, expected, trusted_uid=trusted_uid))
     files = manifest["files_sha256"]
     entry = "controller/scripts/merge/ordinary_first_card.py"
     require(manifest["entry"] == entry and entry in files and root/entry == Path(__file__).resolve(),
@@ -67,10 +68,15 @@ def _closure(path, expected):
     require(not any(p.is_symlink() for p in root.rglob("*")), "first-card-closure-symlink")
     require({p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()} == set(files)|{"SOURCE-CLOSURE.json"},
             "first-card-closure-inventory-drift")
+    if trusted_uid is not None:
+        for directory in (*root.parents, root, *(p for p in root.rglob("*") if p.is_dir())):
+            st = directory.lstat()
+            require(stat.S_ISDIR(st.st_mode) and st.st_uid == trusted_uid and not st.st_mode & 0o022,
+                    "first-card-closure-directory-not-trusted")
     for n, h in files.items():
         f = root/n
         require(f.is_relative_to(root) and ".." not in Path(n).parts, "first-card-closure-path")
-        _read(f, h)
+        _read(f, h, trusted_uid=trusted_uid)
     return root
 
 

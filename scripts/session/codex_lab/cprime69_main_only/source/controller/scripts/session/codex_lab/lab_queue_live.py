@@ -112,6 +112,7 @@ def _request(path, pages=False, binary=False):
         return _closing_issues(int(closing[1]))
     patterns = (
         r"", r"git/ref/heads/main", r"pulls/[1-9][0-9]*",
+        r"rulesets/[1-9][0-9]*", r"rules/branches/main",
         r"actions/runs\?event=pull_request&head_sha=[0-9a-f]{40}&per_page=100",
         r"actions/runs/[1-9][0-9]*/attempts/[1-9][0-9]*/jobs\?per_page=100",
         r"pulls/[1-9][0-9]*/reviews\?per_page=100",
@@ -231,6 +232,11 @@ class GithubRead:
 
     def repository(self):
         return self._single("")
+
+    def main_rules(self):
+        rows = self._request("rules/branches/main")
+        _require(type(rows) is list, "Expected GitHub active-rule array")
+        return rows
 
     def main_ref(self):
         return self._single("git/ref/heads/main")
