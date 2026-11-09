@@ -1,0 +1,15 @@
+{
+  "kind": "lab62-v2-hosted-cli-witness/1",
+  "files_sha256": {
+    "candidate/runtime_broker.py": "519a0b87c9e6b4d499630dec3255f525a50922b20d7e3ed8a124082f1756f44e",
+    "candidate/runtime_store.py": "7c259a800d5fa263cb0ff1fa595595864da8f09a1b77f0d48f78561ee5f7639d",
+    "candidate/native_transport.py": "32e4b310ad69d066e35d22ddda9e5263f9dc68a7023163bb92214f0710c3045a",
+    "acceptance/SCENARIO.json": "7c778e9bc57f56bb187b1355131816c7e30f553af9c5f6c997a6c1cd4e602b48",
+    "acceptance/run_acceptance.py": "045201088d13d843d23737a36ed07d924154eb7d64617b4832180539d4d5a9c9",
+    "driver/collect_hosted_boundary.py": "8aa737ac445078cf03a1165b3db5288d636a57b1fd9ebdb921125f37ed466bae"
+  },
+  "author_turn": "01a1beab-ddbc-7393-8503-bcbc8f6b5dc3",
+  "author_cursor": "a3e466e4-5068-436f-be4b-21815cec7190:393",
+  "overall_vertical_pass": false,
+  "formal_writes": false
+}

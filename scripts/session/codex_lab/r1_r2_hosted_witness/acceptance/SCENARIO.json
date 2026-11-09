@@ -1,0 +1,59 @@
+{
+  "kind": "r1-r2-one-vertical-scenario/1",
+  "selection": "one-controlled-cli-one-broker-one-temporary-native-host-to-hosted-ci",
+  "do_not_rerun": [
+    "ordinary manual/auto compact witness",
+    "OpenSSH/V2 lifetime comparison",
+    "already-V2 recovery component suite"
+  ],
+  "formal_enqueue_allowed": false,
+  "formal_writer_allowed": false,
+  "identity_invariants": [
+    "same approved CLI source closure",
+    "same broker durable tasks/effects store",
+    "same coordinator installation and generation history",
+    "same temporary native host identity and session",
+    "one signed test card, current revision, A/B/H/C/E/R and physical cwd"
+  ],
+  "ordered_actions": [
+    {
+      "id": "owner",
+      "P0": "P0-1",
+      "action": "Barrier-release two real CLI clients competing for same owner generation; winner can create one permitted effect, loser/old generation is denied by Broker, not by cooperative client text."
+    },
+    {
+      "id": "revoke",
+      "P0": "P0-2",
+      "action": "With actual native turn/tool pending, mark assignment revoking, fence its execution capability before publishing next revision; terminal or quarantined unresolved old turn. Reject old-generation/revision read/write/submit. Archive late tool/result without replying to obsolete call."
+    },
+    {
+      "id": "first-action",
+      "P0": "P0-2",
+      "action": "Reconnect/restart same temporary controlled host under current generation; first authorized real tool operation matches new task/revision/physical cwd and native session/turn/call before execution. Use current-task checkpoint, not an injected user answer."
+    },
+    {
+      "id": "wait-race",
+      "P0": "P0-3",
+      "action": "Use one real hosted CI request and native waiting call. Exercise duplicate CI delivery, completion while disconnected, and Goal idle racing with notification. Pause before drain, prove pause remains durable with no advancement. Explicit resume only then resolves one wait and advances once. Late obsolete call receives no reply."
+    },
+    {
+      "id": "unknown",
+      "P0": "P0-4",
+      "action": "Drop response after exactly one actual commit/push, PR create/update, or CI request/rerun effect. Restart/reconnect and use authoritative complete readback for same effect ID before any retry. Require one actual accepted request, zero resend and preserved unknown until exact unique result; no new effect ID on restart."
+    },
+    {
+      "id": "boundary",
+      "P0": "P0-4",
+      "action": "Same CLI finishes readonly plan only. Attempt formal enqueue/writer through actual Broker denial boundary; prove no formal queue/journal changes and no writer/merge effect. Do not activate production transport."
+    }
+  ],
+  "evidence_channels": {
+    "hosted": "Native GitHub run/attempt/job/artifact/source/profile/case inventory, raw bytes digests and native association collected by trusted verifier; hosted automation alone does not prove Mac native actions.",
+    "native": "Same actual temporary host/session receipt with original request/turn/call IDs, broker generation/revision decision, actual first tool action, pending-call termination/reply and Goal/pause events. Candidate JSON flags are not authentication.",
+    "cross_channel": "Link actual native waiting call and durable CI effect to exact GitHub run/attempt. All faults are applied through the same reviewed CLI/Broker connection; no independent fake model or component callbacks."
+  },
+  "live_binding_status": "UNBOUND in inspected sources; old replay CLI is not a valid live driver",
+  "expected_now": "HOLD before execution, zero fabricated assertion failures",
+  "future_pass": "one genuine vertical case, all assertions pass plus independent native and hosted authentication",
+  "red_rule": "Only a reached behavior assertion with all identity/capability controls proven may be red; missing adapter/endpoint/credentials/receipt completeness is HOLD."
+}
