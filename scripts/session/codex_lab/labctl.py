@@ -275,19 +275,27 @@ def save_state(path, payload):
     raw = canonical(dict(payload=payload, sha256=sha(canonical(payload).encode()))).encode()
     descriptor = os.open(str(temporary), os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
     try:
-        with os.fdopen(descriptor, 'wb') as stream:
-            stream.write(raw)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(str(temporary), str(path))
-        directory = os.open(str(path.parent), os.O_RDONLY | os.O_DIRECTORY)
-        try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
-    except BaseException:
-        # A leftover pending record is an explicit HOLD, never a resend trigger.
-        raise
+        offset = 0
+        while offset < len(raw):
+            try:
+                written = os.write(descriptor, raw[offset:])
+            except InterruptedError:
+                continue
+            if written <= 0:
+                raise OSError('incomplete-state-write')
+            offset += written
+        os.fsync(descriptor)
+    finally:
+        # Close the descriptor opened above exactly once, including failures.
+        # A leftover pending record remains HOLD, never a resend trigger.
+        os.close(descriptor)
+    os.replace(str(temporary), str(path))
+    directory = os.open(str(path.parent), os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
+
 
 
 def main():
