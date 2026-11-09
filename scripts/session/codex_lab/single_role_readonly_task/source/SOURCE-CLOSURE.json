@@ -1,7 +1,7 @@
 {
-  "kind": "lab-single-role-readonly-source/1",
+  "kind": "lab-single-role-readonly-native-tls/1",
   "entry": "portable_broker.py",
-  "parent_closure_sha256": "c93b672988d75b3cfcbac458d6e4ae4fb8e5d26f2cd010c3596db83215d00df1",
+  "parent_closure_sha256": "45ce07622e551736b4b5f792fa9ce369d419e63e87266d19b260207c9a069142",
   "files_sha256": {
     "binding.schema.json": "8e56721a606eaff72289da8279f63f0cbb59b2167dda4a732877ac95ef3fcf64",
     "branch_broker.py": "9f6254fd3b83b6b0f34bde515c56edb9b944d90fc251b551e42e1d7cc3ddb1d5",
@@ -18,7 +18,7 @@
     "native_transport.py": "2925546088ac9386f5945185b29806cc95c557bcc9fb4d3a330d7d5122011ac1",
     "native_wait.py": "e648f29bb2c655b5d99a2b814da3302cae616ddc6a7e820f46c6ada0700402ae",
     "orphan_terminal.py": "1ea4d501e5dd774ce01f10525ab91df1c2a72af25d00718dde65e96d2ee2abd5",
-    "owned_runtime.py": "2a5e1453db257c2bf6c80a22ab3466dae005713d4fb0f665533397fb78e7df4d",
+    "owned_runtime.py": "fa03e4088a0ec0c8dc1997db34b18c8a14a07655f640fb2da181610fd34337f7",
     "owner_transfer.py": "603c88758af59f103cb0709e4902e51baf77a31632cc19492da9b6adb24f6b7f",
     "pending_wire.py": "9398c7383a8c424509cd24f7a0578a514f9ddea46d689a26c3ab6e05c6c2cbfc",
     "portable_broker.py": "0f2c83945cf317949addb5cf1e2924cef12b6062fc863e0a8e32c1cb015ce9e8",
@@ -26,12 +26,12 @@
     "private_resources.py": "0b8409f3ea7c4f14eca9bd783dd76db2958be7c826edc08a6aa631abae4bf126",
     "readonly_plan_consumer.py": "62aac50be8802351a8ae79e592c0e6e8f04bb943dbc54573221efb1b47f473af",
     "reconnect_observe.py": "bdc7ed4273e1f96fb1b7d0e2e5d464ac50235fa3ee8314c1c4296fa4e0da30dc",
-    "role_native.py": "a94fe0e5c041524b01b67d8172eabcf540e31c9bd73ac19be847a55cd3269733",
+    "role_native.py": "2c34524ef40fc43beec70eb2088aa533b3ca463a6b66a760ee8db7cdaf682842",
     "role_network.py": "421406a1cac1628e7022e588de19d5762cdec13bfd0817668c962644af837ad0",
     "role_resume.py": "9b22dc33e1b307d529ce323466b4c0be809b1630671d641a3e48706705965e66",
     "runtime_broker.py": "f4aa5d346d8383d921cafb66b9fa6e4af9a4073a2e68ce97cec746c258cd6f2f",
     "runtime_store.py": "5320f1d5eaef9fe6c21471422b2944b8b0d7273b85c97e2cceb85191fde73dc0",
-    "single_role.py": "0bdde00cf5b45f5413693e3641044cc6cadf25574439fd05f889834260e3e5b1",
+    "single_role.py": "a869602c97f2140d778fb70624faee8c0f2b6dce0c8dceeba021324c5a1294cc",
     "startup_authority.py": "d5ca117b82bda983ba1942f3933348a631c9e28b963929acdf10e7b34a0b8ca5",
     "warm_handoff.py": "6a69cde20d3900f45c92c87a8bcbcc5a70ad0fea635dbfe3f8be29eaa2f778f0"
   }

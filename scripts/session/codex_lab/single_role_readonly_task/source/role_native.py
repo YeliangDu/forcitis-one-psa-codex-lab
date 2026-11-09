@@ -12,6 +12,7 @@ from runtime_store import need
 from role_network import PORT,PROXY
 
 MODEL='gpt-6.1-sol'
+APPLE_CA_SHA='9dae8d76e55cb08991f2b672d58999ea15560d910759c16b544f843bdffbb994'
 BASE_SLOT=b'/private/tmp/lab60-v2-config-official-pref-read'
 FLAGS=('shell_tool','view_image','apps','plugins','code_mode','multi_agent','request_permissions_tool',
        'sleep_tool','deferred_executor','token_budget','current_time_reminder','send_message_to_user_async')

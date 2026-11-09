@@ -56,6 +56,14 @@ class RoleInstallation(Installation):
         else:
             super().check_child()
 
+    def child_environment(self):
+        env=super().child_environment()
+        if not self.is_native:return env
+        ca=self.root/'tmp/native-witness-apple-ca.pem'
+        private(ca,stat.S_ISREG)
+        need(role_native.file_sha(ca)==role_native.APPLE_CA_SHA,'native-tls-root-pin-mismatch')
+        return dict(env,SSL_CERT_FILE=str(ca))
+
     def serve_context(self):
         from contextlib import nullcontext
         return relay(MODEL) if self.is_native else nullcontext()

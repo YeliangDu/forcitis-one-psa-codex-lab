@@ -81,6 +81,9 @@ class Installation:
         need(all(type(n) is int and 100<=n<=10000 for n in self.timeout.values()),'owned-timeout-bound')
         self.check_child()
 
+    def child_environment(self):
+        return self.child['environment']
+
     def serve_context(self):
         return nullcontext()
 
@@ -155,7 +158,7 @@ class Channel:
         directory.mkdir(mode=0o700)
         self.trace=directory/'stdio.jsonl'
         with (directory/'stderr').open('xb') as err:
-            self.child=subprocess.Popen(i.child['argv'],cwd=i.cwd,env=i.child['environment'],
+            self.child=subprocess.Popen(i.child['argv'],cwd=i.cwd,env=i.child_environment(),
                 stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=err,close_fds=True,start_new_session=True)
         self.record('spawn',dict(pid=self.child.pid))
 
