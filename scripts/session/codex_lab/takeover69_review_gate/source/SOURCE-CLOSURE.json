@@ -42,6 +42,7 @@
     "runtime_store.py": "5320f1d5eaef9fe6c21471422b2944b8b0d7273b85c97e2cceb85191fde73dc0",
     "single_role.py": "1758f96b9517fdc0057cb08be906c732c2ed7c1a1923a77d4c811ec6c9e8306b",
     "startup_authority.py": "d5ca117b82bda983ba1942f3933348a631c9e28b963929acdf10e7b34a0b8ca5",
+    "takeover_gate.py": "3df0747d74a4058895510014d321a9abdd74396a5121bd746fda3619b734ab8f",
     "warm_handoff.py": "6a69cde20d3900f45c92c87a8bcbcc5a70ad0fea635dbfe3f8be29eaa2f778f0"
   }
 }
