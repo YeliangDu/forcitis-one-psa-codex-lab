@@ -1,0 +1,228 @@
+name: Lab 63 real loopback OpenSSH transport probe
+on:
+  push:
+    branches: [codex/63-descendant-proof]
+    paths: [.github/workflows/lab-63-openssh-wire.yml]
+permissions: {}
+jobs:
+  wire:
+    if: github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' && github.repository_id == '1449415666' && github.ref == 'refs/heads/codex/63-descendant-proof'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Probe pinned-key Git receive over a private loopback namespace
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          evidence="$RUNNER_TEMP/lab63-wire-evidence"; mkdir -m 700 "$evidence"
+          work="$(mktemp -d "$RUNNER_TEMP/lab63-wire.XXXXXX")"
+          trap 'sudo -n rm -rf -- "$work"' EXIT
+          printf 'head=%s\nrun=%s\nattempt=%s\nrunner=%s\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$RUNNER_ENVIRONMENT" > "$evidence/identity.txt"
+          cat > "$work/probe.py" <<'PY'
+          import json, os, pathlib, shutil, signal, subprocess, sys, time
+          w=pathlib.Path(sys.argv[1])
+          target='ssh://127.0.0.1:40363/receiver'
+          env=dict(os.environ, GIT_CONFIG_NOSYSTEM='1',GIT_CONFIG_GLOBAL='/dev/null',
+                   GIT_TERMINAL_PROMPT='0',GIT_ALLOW_PROTOCOL='file:ssh',
+                   GIT_SSH_VARIANT='ssh',GIT_SSH_COMMAND=f'/usr/bin/ssh -F {w}/client.conf',
+                   GIT_AUTHOR_NAME='Fixture',GIT_AUTHOR_EMAIL='fixture@invalid',
+                   GIT_COMMITTER_NAME='Fixture',GIT_COMMITTER_EMAIL='fixture@invalid')
+          def git(*args, at=None):
+              return subprocess.check_output(['/usr/bin/git','-c','init.defaultBranch=main',*args],cwd=at,env=env,text=True,timeout=8).strip()
+          def event(name,**values):
+              print(json.dumps(dict(event=name,**values)),flush=True)
+          def wait(predicate,label,seconds=8):
+              end=time.monotonic()+seconds
+              while time.monotonic()<end:
+                  result=predicate()
+                  if result:return result
+                  time.sleep(.04)
+              raise RuntimeError('CAPABILITY_HOLD: '+label)
+          def ident(pid):
+              try:
+                  stat=pathlib.Path(f'/proc/{pid}/stat').read_text().rsplit(')',1)[1].split()
+                  return (int(stat[1]),stat[19],stat[0])
+              except (FileNotFoundError,ProcessLookupError):return None
+          def live(pid,start):
+              row=ident(pid)
+              return row and row[1]==start and row[2] not in ('Z','X')
+          def ancestors(pid):
+              rows=[]
+              while pid>1 and len(rows)<24:
+                  state=ident(pid)
+                  if not state:break
+                  rows.append((pid,*state))
+                  pid=state[0]
+              return rows
+          def ssh_child(parent):
+              for entry in pathlib.Path('/proc').iterdir():
+                  if not entry.name.isdigit():continue
+                  pid=int(entry.name); row=ident(pid)
+                  if not row or row[0]!=parent:continue
+                  try:
+                      if (entry/'exe').resolve(strict=True)==pathlib.Path('/usr/bin/ssh').resolve():
+                          return pid,row[1]
+                  except (FileNotFoundError,PermissionError):pass
+          assert os.getuid()!=0
+          assert 'NoNewPrivs:\t1' in pathlib.Path('/proc/self/status').read_text()
+          receiver=w/'receiver.git'; sender=w/'sender'
+          git('init','--bare',str(receiver)); git('init',str(sender))
+          tree=git('mktree',at=sender)
+          base=git('commit-tree',tree,'-m','base',at=sender)
+          next_commit=git('commit-tree',tree,'-p',base,'-m','next',at=sender)
+          git('push',str(receiver),base+':refs/heads/main',at=sender)
+          assert git('ls-remote',target,'refs/heads/main',at=sender).split()==[base,'refs/heads/main']
+          negative=subprocess.run(['/usr/bin/ssh','-F','/dev/null','-o','IdentitiesOnly=yes','-o','IdentityAgent=none',
+                                   '-o','StrictHostKeyChecking=yes','-o',f'UserKnownHostsFile={w}/known_hosts',
+                                   '-o','BatchMode=yes','-o','ConnectTimeout=3','-o',f'User={env["LAB_USER"]}',
+                                   '-i',str(w/'wrong-client'),'-p','40363','127.0.0.1','not-git'],
+                                   env=env,capture_output=True,text=True,timeout=8)
+          assert negative.returncode==255 and "Permission denied (publickey)" in negative.stderr
+          # Try an unapproved command with the approved key; the forced command must reject it.
+          denied=subprocess.run(['/usr/bin/ssh','-F',str(w/'client.conf'),'-p','40363','127.0.0.1','not-git'],
+                                env=env,capture_output=True,text=True,timeout=8)
+          assert denied.returncode==77
+          event('pinned-key-git-read-and-forced-command',base=base,unauthorized_command_exit=77)
+          hook=receiver/'hooks/pre-receive'
+          hook.write_text('#!/bin/bash\nset -eu\nread -r old new ref\n'
+                          'test "$ref" = refs/heads/main\n'
+                          f'printf "%s %s %s %s\\n" "$BASHPID" "$old" "$new" "$ref" > "{w}/pre-receive.tmp"\n'
+                          f'mv "{w}/pre-receive.tmp" "{w}/pre-receive"\n'
+                          f'for i in $(seq 1 200); do test ! -e "{w}/release" || exit 0; sleep .05; done\nexit 89\n')
+          hook.chmod(0o700)
+          with (w/'git.stderr').open('w') as err:
+              p=subprocess.Popen(['/usr/bin/git','push','--porcelain',f'--force-with-lease=refs/heads/main:{base}',
+                                  target,next_commit+':refs/heads/main'],cwd=sender,env=env,
+                                 stdout=subprocess.DEVNULL,stderr=err,start_new_session=True)
+              try:
+                  wait(lambda:(w/'pre-receive').is_file(),'real pre-receive after pack')
+                  pid,old,new,ref=(w/'pre-receive').read_text().split()
+                  assert [old,new,ref]==[base,next_commit,'refs/heads/main']
+                  remote_pid=int(pid); chain=ancestors(remote_pid)
+                  assert len(chain)>=4 and p.pid not in [x[0] for x in chain]
+                  assert any((pathlib.Path('/proc')/str(row[0])/'comm').read_text().strip()=='git-receive-pac' for row in chain[1:] if (pathlib.Path('/proc')/str(row[0])/'comm').exists())
+                  ssh_pid,ssh_start=wait(lambda:ssh_child(p.pid),'real client SSH child')
+                  git_start=ident(p.pid)[1]
+                  fds=[os.pidfd_open(x) for x in (ssh_pid,p.pid)]
+                  try:
+                      assert live(ssh_pid,ssh_start) and live(p.pid,git_start)
+                      signal.pidfd_send_signal(fds[1],signal.SIGKILL)
+                      signal.pidfd_send_signal(fds[0],signal.SIGKILL)
+                      p.wait(timeout=5)
+                      wait(lambda:not live(ssh_pid,ssh_start),'client SSH exit')
+                  finally:
+                      for fd in fds:os.close(fd)
+                  assert git('--git-dir='+str(receiver),'rev-parse','refs/heads/main')==base
+                  time.sleep(.25)
+                  survived=bool(live(remote_pid,chain[0][2]))
+                  event('both-local-processes-dead',git=p.pid,ssh=ssh_pid,receive_chain=chain,
+                        pre_receive_survived=survived,main_at_base=True)
+                  (w/'release').touch()
+                  wait(lambda:not live(remote_pid,chain[0][2]),'pre-receive termination')
+                  # Give receive-pack time to finish or abort after the barrier.
+                  wait(lambda:not live(chain[1][0],chain[1][2]),'receive-pack termination')
+                  observed=git('--git-dir='+str(receiver),'rev-parse','refs/heads/main')
+                  assert observed in (base,next_commit)
+                  event('actual-receiver-readback',outcome='advanced' if observed==next_commit else 'unchanged',
+                        old=base,new=next_commit,observed=observed)
+              finally:
+                  if p.poll() is None:
+                      os.killpg(p.pid,signal.SIGKILL);p.wait(timeout=5)
+          PY
+          cat > "$work/namespace.sh" <<'SH'
+          set -euo pipefail
+          w="$1"; uid="$2"; gid="$3"; user="$4"; hostnet="$5"
+          trap 'if test -n "${sshd_pid:-}"; then kill "$sshd_pid" 2>/dev/null || true; wait "$sshd_pid" || true; fi' EXIT
+          test "$(readlink /proc/self/ns/net)" != "$hostnet"
+          ip link set lo up
+          test "$(ip -o link show | wc -l)" -eq 1
+          mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs /run
+          mkdir -m 0755 /run/sshd
+          # Set a disposable home and an unusable password in mount-private files.
+          awk -F: -v OFS=: -v u="$user" -v h="$w/home" '$1==u {$6=h; $7="/bin/bash"; n++} {print} END {if(n!=1) exit 1}' /etc/passwd > /run/fixture.passwd
+          awk -F: -v OFS=: -v u="$user" '{$2="*"} $1==u {$3=20000; $7=""; $8=""; n++} {print} END {if(n!=1) exit 1}' /etc/shadow > /run/fixture.shadow
+          chmod 0644 /run/fixture.passwd
+          chmod 0600 /run/fixture.shadow
+          mount --bind /run/fixture.passwd /etc/passwd
+          mount --bind /run/fixture.shadow /etc/shadow
+          install -d -m 700 -o "$uid" -g "$gid" "$w/home"
+          ssh-keygen -q -t ed25519 -N '' -f /run/lab-host
+          as_user() { setpriv --reuid "$uid" --regid "$gid" --clear-groups --no-new-privs -- env -i PATH=/usr/bin:/bin HOME="$w/home" LAB_USER="$user" "$@"; }
+          as_user ssh-keygen -q -t ed25519 -N '' -f "$w/client"
+          as_user ssh-keygen -q -t ed25519 -N '' -f "$w/wrong-client"
+          cp "$w/client.pub" "$w/home/authorized_keys"
+          { printf '[127.0.0.1]:40363 '; cut -d' ' -f1,2 /run/lab-host.pub; } > "$w/known_hosts"
+          chown "$uid:$gid" "$w/home/authorized_keys" "$w/known_hosts"
+          chmod 600 "$w/home/authorized_keys"
+          cat > "$w/force.sh" <<FORCE
+          #!/bin/bash
+          set -eu
+          case "\$SSH_ORIGINAL_COMMAND" in
+            "git-receive-pack '/receiver'") exec /usr/bin/git-receive-pack "$w/receiver.git" ;;
+            "git-upload-pack '/receiver'") exec /usr/bin/git-upload-pack "$w/receiver.git" ;;
+            *) exit 77 ;;
+          esac
+          FORCE
+          chmod 755 "$w/force.sh"
+          cat > "$w/client.conf" <<CFG
+          Host *
+            User $user
+            IdentityFile $w/client
+            IdentityAgent none
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            UserKnownHostsFile $w/known_hosts
+            GlobalKnownHostsFile /dev/null
+            ProxyCommand none
+            ProxyJump none
+            ControlMaster no
+            BatchMode yes
+            ConnectTimeout 3
+          CFG
+          cat > /run/lab-sshd.conf <<CFG
+          Port 40363
+          AddressFamily inet
+          ListenAddress 127.0.0.1
+          HostKey /run/lab-host
+          PidFile /run/lab-sshd.pid
+          UsePAM no
+          PasswordAuthentication no
+          KbdInteractiveAuthentication no
+          PubkeyAuthentication yes
+          AuthenticationMethods publickey
+          PermitRootLogin no
+          AllowUsers $user
+          AuthorizedKeysFile $w/home/authorized_keys
+          DisableForwarding yes
+          PermitTTY no
+          PermitUserRC no
+          PermitUserEnvironment no
+          PrintMotd no
+          UseDNS no
+          ForceCommand $w/force.sh
+          CFG
+          /usr/sbin/sshd -t -f /run/lab-sshd.conf
+          /usr/sbin/sshd -T -f /run/lab-sshd.conf | grep -E '^(listenaddress|usepam|passwordauthentication|kbdinteractiveauthentication|authenticationmethods|disableforwarding|permittty) '
+          /usr/sbin/sshd -D -e -f /run/lab-sshd.conf > "$w/server.log" 2>&1 &
+          sshd_pid=$!
+          for _ in $(seq 1 80); do ss -H -ltn | grep -q '127.0.0.1:40363 ' && break; kill -0 "$sshd_pid"; sleep .05; done
+          test "$(ss -H -ltn | awk '{print $4}')" = '127.0.0.1:40363'
+          if ! as_user /usr/bin/python3 -I -B "$w/probe.py" "$w"; then
+            tail -n 20 "$w/server.log"
+            if test -f "$w/git.stderr"; then tail -n 20 "$w/git.stderr"; fi
+            exit 86
+          fi
+          SH
+          rc=0
+          sudo -n /usr/bin/unshare --mount --propagation private --net --pid --fork --kill-child --mount-proc -- \
+            /usr/bin/env -i PATH=/usr/sbin:/usr/bin:/bin /bin/bash "$work/namespace.sh" "$work" "$(id -u)" "$(id -g)" "$(id -un)" "$(readlink /proc/self/ns/net)" \
+            > "$evidence/wire.log" 2>&1 || rc=$?
+          printf '%s\n' "$rc" > "$evidence/exit-code.txt"
+          exit "$rc"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab63-ssh-wire-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab63-wire-evidence/
+          if-no-files-found: error
+          retention-days: 7
