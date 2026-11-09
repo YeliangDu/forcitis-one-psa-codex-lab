@@ -22,10 +22,15 @@ def inside(args):
     os.environ.update(LABCTL_CLOSURE=str(args.closure.resolve()),LABCTL_SOURCE_ROOT=str(args.source_root.resolve()),LABCTL_CLOSURE_SHA256=args.closure_sha256)
     suite=unittest.defaultTestLoader.discover(str(ROOT/'tests'),pattern='test_integrated.py')
     result=unittest.TextTestRunner(verbosity=2).run(suite)
-    passed=result.testsRun==7 and result.wasSuccessful() and not result.skipped
+    capability_hold=bool(result.errors or result.skipped or result.testsRun!=7
+                         or result.expectedFailures or result.unexpectedSuccesses)
+    passed=not capability_hold and result.wasSuccessful()
+    classification=('HOLD-entry-API-or-capability' if capability_hold
+                    else 'hosted-replay-contract-passed' if passed
+                    else 'candidate-contract-assertions-failed')
     args.report.write_text(json.dumps(dict(kind='p1-integrated-hosted-replay/1',tests=result.testsRun,
         failures=[dict(id=t.id(),detail=d) for t,d in result.failures],errors=[dict(id=t.id(),detail=d) for t,d in result.errors],
-        skipped=[t.id() for t,_ in result.skipped],classification='hosted-replay-contract-passed' if passed else 'candidate-contract-not-passed',
+        skipped=[t.id() for t,_ in result.skipped],classification=classification,
         B='77e872e8ba9661d3294d3a9337c8e5c956b70641',candidate_closure_sha256=args.closure_sha256,active_C=None,
         actual_native_authentication_proved=False,real_compact_restart_proved=False,operational_admission_proved=False,
         activation_authority=False,run=os.environ.get('GITHUB_RUN_ID'),attempt=os.environ.get('GITHUB_RUN_ATTEMPT')),indent=2)+'\n')

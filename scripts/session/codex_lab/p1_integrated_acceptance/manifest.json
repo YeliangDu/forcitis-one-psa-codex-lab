@@ -17,13 +17,14 @@
     "fixtures.py": "118e0501116e800dfb8a1b1871948bca28ff3073f2ab53ce2ec04da7df0d5af1",
     "worker.py": "abfdc2f540bf3230678f27de3e5e0e3f64dce669335e77952746762a65e3b737",
     "tests/test_integrated.py": "5f212ea7d0591534b56e3d62e7c44446d7eb8f61871850a85e23d0cfb6d5dd25",
-    "run.py": "3b376472f88a3b72d153c6442ff2d1c6b04a1527325b95b023a213d323298d56",
+    "run.py": "20ee8a958875324611ac8e5ed2cfcd8b63f7ff2fd0c13b266aace9f082c09186",
     "CONTRACT.json": "eb46dd93e4e9ffb9ab85ab3815a65ff7c9583a6902fd05eeffeb5c1fcd4c5f7d",
     "EXPECTED.json": "a1f7e8fdeebd42a9d7d091f26b078f10974e0b878414bfc1a0f24e5f2a80a8f4",
     "HOLD.json": "3ee9e8ea3c0ab682ff7108b486c237bb7c5c6beb5227fb4e9823bf4d2cdf5f9f",
     "WITNESSED-PILOT-CHECKLIST.json": "5f8fe93ef59b484c63d9de3596cc4d4d0b9db9a3dbc33fb67c23e82e05105bd4",
     "ENTRY-SEARCH.json": "fce885091bf8fb2eaf4c2859ec4ce00adfd7a708cb6dd15ee56c1a3e9414ea2b",
-    "HANDOFF.md": "31994d36e6f67c08d36dbe4f52ec15afe99a64b974586cfefc93731c3a1d136d"
+    "HANDOFF.md": "31994d36e6f67c08d36dbe4f52ec15afe99a64b974586cfefc93731c3a1d136d",
+    "launcher_classification_selftest.py": "08d430674fcce514c286c32622e2db52e7a102a8ae34814bbb4b1d47a24644d3"
   },
   "input_hashes": {
     ".codex-lab/harness-vnext-plan/PLAN.md": "da49f2b062ccd9e5f460f03ebf28b665f916090e1cda7c462b99013addb16427",
