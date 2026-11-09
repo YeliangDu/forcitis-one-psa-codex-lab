@@ -123,6 +123,7 @@ def run(args):
         from mq_lab_journal import ReleaseJournal
         from mq_lab_journal_v2 import ReleaseJournalV2,migrate_v1
         directory=work/'.git/merge-queue';directory.mkdir(mode=0o700);database=directory/'releases.sqlite3'
+        upgrades=directory/'upgrades';upgrades.mkdir(mode=0o700)
         v1=ReleaseJournal(str(database))
         for n in range(1,10):
             row=dict(number=n,status='reserved',head=old_head,base=old_base,target='main',release_key='synthetic-ordinary-'+str(n))
@@ -134,7 +135,7 @@ def run(args):
         check(journal.adopt_public_upgrade(prior,history.synthetic_health(prior,O))['action']=='adopted','OLD_PAIR_ADOPT_FIXTURE_REFUSED')
         for name in ['merge.queue','merge.queue.heads','merge.queue.lock','merge.queue.heads-lock','merge.queue.merge-lock','control-upgrade.runner-lock']:
             p=directory/name;p.write_bytes(b'');p.chmod(0o600)
-        upgrades=directory/'upgrades';upgrades.mkdir(mode=0o700);approval_path=upgrades/(upgrade_id+'.json');approval_path.write_text(json.dumps(approved));approval_path.chmod(0o600)
+        approval_path=upgrades/(upgrade_id+'.json');approval_path.write_text(json.dumps(approved));approval_path.chmod(0o600)
         def rows():
             with sqlite3.connect(database.as_uri()+'?mode=ro&immutable=1',uri=True) as db:
                 return (db.execute('select * from releases where number!=42 order by number').fetchall(),db.execute('select * from upgrade_bindings where number!=42 order by number').fetchall())

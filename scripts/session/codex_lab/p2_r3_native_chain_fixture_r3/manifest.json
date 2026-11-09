@@ -1,5 +1,5 @@
 {
-  "kind": "r3-native-chain-independent-v4-fixture-only-repair/1",
+  "kind": "r3-native-chain-independent-v4-fixture-r3-layout-repair/1",
   "status": "READY-NOT-RUN",
   "candidate_freeze_sha256": "b61f0bc20a6bf4034c6dcda21862d28d97e1d7c942099a09d63708b821cf3750",
   "files_sha256": {
@@ -7,12 +7,15 @@
     "DEFERRED-FAULTS.json": "30ceaf3f9d921d72b285aa00dbc43ebbc83960c738ce3820cc3b54c2d88b0507",
     "FIXTURE-ONLY.patch": "83d680cae64591d653f2294fd87234f3caa18449bb529b3cf975cd587430619c",
     "HANDOFF.md": "23a1f419e0d16b29975acaf3a2db9027ba5a0fd280e1873169df7f584c82a182",
+    "LAYOUT-FIXTURE-ONLY.patch": "7095c3893f8d454231aef00b868fd2c962d3b174cf68e67580ce418a9b298238",
+    "LAYOUT-STATIC-REVIEW.json": "35c3707a5634df5558082657ebaca5a6cfb6e9394c1e37fa47a230601dcd2588",
     "MATERIAL.json": "339825d0c3a3aa269f2028d7518ebd384b33020d6be8ed78d66a84f4ee37f6a8",
+    "R3-LAYOUT-HANDOFF.md": "3d03ab0783815d80adb4d421b28d028b275da2b0524a12706fd94139dfee79a1",
     "REPAIR-HANDOFF.md": "d35bc6792080b1c1c261adaca5401b3c40f8a52074776657fc5e7b54373768a7",
     "entry.py": "9253313bd09f3489d25eeea538913565f60c9f3d997b241f7c36aa551510aae0",
     "history_fixture.py": "a7c7608cd957f708cf97b0c5a8942e77884b52f8c93f12ecb3716e0173a96966",
     "native_fixture_builder.py": "d7d25981677d78cd839dbc357c1bba95cbf99a27046b403c8c54f6f83802b58e",
-    "run_r3_chain.py": "02cdf5b6b9e48b856b0cf55bcbec4a9f25d1bf7c8387a5f7a6210982690d0b71",
+    "run_r3_chain.py": "bb5641699d23664107ce1a96e0b4f5a04c1cdc520f573757dd3dfd887b7c299c",
     "runtime-source/.github/ISSUE_TEMPLATE/card.md": "a08237e36f2051c2e56cbc0483dd8cd44b33225d670fd832b78f048dbf030c04",
     "runtime-source/.github/pull_request_template.md": "8403ae2f865e32c40e35f2e294f6a3cda1f3d1aa7abcd7dab22c855c816ba737",
     "runtime-source/.github/workflows/ci.yml": "24e962a47b3876031a48176442a5f86a0cf17c9b222766ae11fca0b4cb72dae0",
@@ -242,10 +245,10 @@
   "GitHub_or_native_authentication_proved": false,
   "activation_authority": false,
   "local_execution": false,
-  "parent_manifest_sha256": "962670fd99c2ec923bae0bf66be1d67d54ea7c65cbb78590747d9c1f5121fa74",
-  "parent_driver_sha256": "c865d01ed02d556529ae6eed8547dbd4d506422f635e65161dbe5d085df66a0e",
-  "supplied_failed_hosted_run": "42582919155/1",
+  "parent_manifest_sha256": "bda0cff650b9e10a376663064d3daa6f5b65547baf0c62f6f39c19be14765057",
+  "parent_driver_sha256": "02cdf5b6b9e48b856b0cf55bcbec4a9f25d1bf7c8387a5f7a6210982690d0b71",
+  "supplied_failed_hosted_run": "42583153870/1",
   "supplied_failed_result": "exit86 capability-HOLD,0 phases/0 sends, redundant str.decode",
-  "sole_executable_delta": "child=oidraw.decode() -> child=oidraw",
+  "sole_executable_delta": "Move upgrades.mkdir before any journal/storage snapshot construction",
   "behavior_check_and_invoke_AST_sequence_unchanged": true
 }
