@@ -103,6 +103,7 @@
     "controller/scripts/merge/lab_app_broker.py": "002bbc76f3afd3a6c43d7efe109ca95bf7c4a3dd944d387a6d86191f8668fbc1",
     "controller/scripts/merge/lab_https_transport.py": "29d5a74476494663d209a946382fbb312d231f1410084869216203e035c842c6",
     "controller/scripts/merge/lab_main_https.py": "a0cd69b7a52d1cbf1b1c5016ab05a3ecc670e7876380387813cef51f9885ae45",
+    "controller/scripts/merge/lab_personal69.py": "af464d3bafd2c8d2a0d4cc4cd126621ef0adc4410319dd9f8b027a07f4886200",
     "controller/scripts/merge/launch_barrier.py": "c59bf4104f0ea3f16b3d5890155c14ad45936b5acbe1ecce0889413d8239e4f0",
     "controller/scripts/merge/locked_phase_setup.py": "abd5f9a509041bbaeec3cbff99aa6f95e06c4c490e342d6a24c65f3d000866ee",
     "controller/scripts/merge/mq.py": "93dc6e19bde3535c958fdbd62f45f8647601be59407cfb5855af37dc360491e9",
