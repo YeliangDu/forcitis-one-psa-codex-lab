@@ -1,0 +1,62 @@
+# File<TAB>cited path<TAB>reason. Each entry may only go away (#1263 item 5): fix the citation, or delete the entry when the check says it is stale.
+# Reasons: moved = the old location is cited by a draft or card that predates the move; never-landed = the file was planned and not built; planned = the document says it is to be created or was removed;
+# elsewhere = the path lives outside this repository (tool library); frozen = a frozen draft, kept as written; unsettled = gone or never built, the owner card settles it.
+backend/src/test/java/com/forcitis/one/acceptance/README.md	scripts/ci/acceptance_guard.py	unsettled: the cited file is gone or was never built; the owner card settles it
+backend/src/test/java/com/forcitis/one/acceptance/README.md	scripts/ci/acceptance_reports.py	unsettled: the cited file is gone or was never built; the owner card settles it
+backend/src/test/java/com/forcitis/one/acceptance/platform/identity/role_versioning/PR2_ACCEPTANCE.md	docs/architecture/ddd/aggregates.yaml	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/architecture/design.md	scripts/ci/architecture_check.py	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/architecture/frameworks/notes/apqc-pcf-80.md	docs/architecture/frameworks/notes_check.py	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/architecture/frameworks/notes/apqc-pcf-80.md	docs/architecture/proposals/closeout/process-catalog.yaml	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/architecture/frameworks/notes/apqc-pcf-80.md	scripts/precheck.sh	never-landed: a draft's pre-check script
+docs/architecture/frameworks/notes/spi-psmb-2026.md	docs/architecture/frameworks/notes_check.py	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/architecture/frameworks/notes/spi-psmb-2026.md	scripts/precheck.sh	never-landed: a draft's pre-check script
+docs/architecture/implementation-cards/adr-0034-impl.md	docs/architecture/ddd/aggregates.yaml	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/architecture/implementation-cards/adr-0034-impl.md	scripts/precheck.sh	never-landed: a draft's pre-check script
+docs/architecture/implementation-cards/f-1.md	docs/modernization/data/reviews/F-1.md	moved: cited by a draft; the folder was moved by #755
+docs/architecture/implementation-cards/ts-uniq.md	backend/glossary/proposed/code-aggregates-events.yaml	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/architecture/implementation-cards/ts-uniq.md	docs/glossary/kind-judgements/GL_RENAME_CARDS.md	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/architecture/implementation-cards/ts-uniq.md	docs/glossary/new_term_issue.py	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/architecture/implementation-cards/ts-uniq.md	scripts/precheck.sh	never-landed: a draft's pre-check script
+docs/architecture/method.md	docs/architecture/business	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/architecture/proposals/enterprise-aggregates-draft.md	docs/architecture/proposals/aggregates_dep_check.py	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/architecture/stack-decision.md	docs/adr/0001-tech-stack.md	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/business/gl-compliance-checklist.md	docs/architecture/proposals/gl-scope-revisions.md	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/business/processes/login-and-session.md	backend/src/main/java/com/forcitis/one/platform/integration/infrastructure/seeyon/SeeyonTicketVerifier.java	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/business/processes/org-and-personnel-sync.md	backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgReconciliationIntegrationTest.java	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/business/rules/approval-control-rules.md	docs/architecture/proposals/closeout/approval-rules.yaml	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/business/rules/gl-finance-review-notes.md	docs/architecture/proposals/gl-scope-revisions.md	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/business/rules/gl-rules.md	docs/architecture/proposals/gl-scope-revisions.md	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/business/rules/overtime-seam-rules.md	docs/architecture/proposals/closeout/people/notes.md	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/data/calendar-export-defect.md	docs/architecture/proposals/delivery-resources-evidence.md	frozen: a frozen draft or card, kept as written
+docs/data/evidence/b31-p-evidence-summary-draft.md	scripts/precheck.sh	never-landed: a draft's pre-check script
+docs/data/evidence/b31-p-local-inventory-and-queries.md	docs/architecture/proposals/closeout/prc-allocations.md	frozen: a frozen draft or card, kept as written
+docs/data/evidence/b31-p-local-inventory-and-queries.md	docs/architecture/proposals/presales-objects-evidence.md	frozen: a frozen draft or card, kept as written
+docs/data/evidence/b31-p-local-inventory-and-queries.md	scripts/precheck.sh	never-landed: a draft's pre-check script
+docs/data/metric-baseline/baseline-draft.md	docs/glossary/r0-report-aliases.json	frozen: a frozen draft or card, kept as written
+docs/data/positions/job-mapping.md	docs/architecture/proposals/job-catalog-draft.md	frozen: a frozen draft or card, kept as written
+docs/data/repair-cards/data-repair-approval.md	scripts/ci/baseline_ddl_scan.py	frozen: a frozen draft or card, kept as written
+docs/data/repair-cards/data-repair-approval.md	scripts/precheck.sh	never-landed: a draft's pre-check script
+docs/data/repair-cards/data-repair-identity.md	docs/modernization/data/DATA_DESIGN_GATE.md	moved: cited by a draft; the folder was moved by #755
+docs/data/repair-cards/data-repair-identity.md	scripts/precheck.sh	never-landed: a draft's pre-check script
+docs/data/repair-cards/data-repair-timesheet-audit.md	scripts/precheck.sh	never-landed: a draft's pre-check script
+docs/data/repair-cards/data-repair-workforce-rejudge-2026-10-21.md	docs/architecture/ddd/aggregates.yaml	frozen: a frozen draft or card, kept as written
+docs/data/repair-cards/data-repair-workforce.md	backend/src/test/java/com/forcitis/one/organization/workforce/application/OrgSnapshotSyncIntegrationTest.java	frozen: a frozen draft or card, kept as written
+docs/data/repair-cards/data-repair-workforce.md	docs/glossary/new_term_issue.py	frozen: a frozen draft or card, kept as written
+docs/data/repair-cards/data-repair-workforce.md	scripts/precheck.sh	never-landed: a draft's pre-check script
+docs/data/reviews/imp-1021-coo-02-u3-file-service.md	docs/modernization/phase1a/file-service/DDL_DRAFT.sql	moved: cited by a draft; the folder was moved by #755
+docs/data/reviews/ts-uniq.md	docs/modernization/phase1a/cards/TS-UNIQ.md	moved: cited by a draft; the folder was moved by #755
+docs/glossary/glossary-schema-design.md	docs/glossary/arch-naming/n3-decisions.md	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/glossary/glossary-schema-design.md	docs/glossary/arch-naming/naming-atoms-registration-plans.md	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/glossary/glossary-schema-design.md	docs/glossary/messages/zh-CN.yaml	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/glossary/glossary-schema-design.md	docs/glossary/naming-templates.yaml	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/glossary/glossary-schema-design.md	docs/glossary/verbs.yaml	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/glossary/issues/_README.md	docs/glossary/new_term_issue.py	unsettled: the cited file is gone or was never built; the owner card settles it
+docs/rules/data-design-checklist.md	backend/architecture/integration-register.yaml	planned: the document says the file is to be created or was removed
+docs/rules/naming-standard.md	backend/architecture/integration-register.yaml	planned: the document says the file is to be created or was removed
+docs/rules/naming-standard.md	docs/glossary/arch-naming/n3-decisions.md	planned: the document says the file is to be created or was removed
+docs/rules/naming-standard.md	docs/glossary/arch-naming/naming-atoms-registration-plans.md	planned: the document says the file is to be created or was removed
+docs/rules/naming-standard.md	docs/glossary/messages/zh-CN.yaml	planned: the document says the file is to be created or was removed
+docs/rules/naming-standard.md	scripts/ci/migration_safety.py	planned: the document says the file is to be created or was removed
+docs/rules/naming-standard.md	scripts/ci/openapi_compat.py	planned: the document says the file is to be created or was removed
+docs/rules/naming-standard.md	scripts/ci/workflows_pinned.py	planned: the document says the file is to be created or was removed
+tools/ops/dba/ops_venv_guard.py	tools/one-session/ops_venv_lock/ops_venv_lock.py	elsewhere: the tool library (~/.modernize/psa/tools), not this repository

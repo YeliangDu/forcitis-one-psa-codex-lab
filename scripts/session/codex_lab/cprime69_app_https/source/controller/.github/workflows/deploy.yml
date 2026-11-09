@@ -1,0 +1,153 @@
+name: deploy
+run-name: deploy ${{ inputs.version }} to ${{ inputs.environment }}
+
+# Deploys a published release to dev or prod: the bundle's signed release statement and checksums are verified, the four release assets
+# are resolved to GitHub's short-lived signed download links, the install request (version, environment, this run and attempt, the
+# links) is written to this environment's fixed OOS parameters, and the job waits for the ECS, which pulls them every minute, to report.
+# Aliyun credentials are temporary: the job's GitHub OIDC token is exchanged through STS AssumeRoleWithOIDC for a RAM role that trusts only
+# this workflow on main for this environment and can only write those parameters and read the result; it cannot make the ECS execute
+# anything. The ECS reads the request back with its instance role, checks it, downloads the assets,
+# verifies the signed statement against its own signer key and installs (scripts/release/ship.sh, scripts/release/remote_install.sh).
+# This job never holds the release signing key or a long-lived secret.
+# FROZEN (U21/K15, gaps G72, G88; dispatched by intent 2026-10-24-131816): the RAM role's OIDC trust names this file's path (.github/workflows/deploy.yml,
+# via job_workflow_ref): renaming or moving it breaks every deploy, so the user changes the RAM trust policy first. The runner labels below pick the deploy machines: keep them too.
+# Blocked while docs/ops/deploy-gate.json lists a blocker; prod also needs the Phase 1a exit conditions, C-9 and a
+# closed migration baseline (no baseline-open marker on main or in the release's commit); dev only warns about an open baseline.
+# Runbook: docs/ops/runbooks/release.md
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        type: choice
+        options: [dev, prod]
+        required: true
+      version:
+        description: 'Published release version without the v prefix, e.g. 0.1.0'
+        required: true
+      confirm:
+        description: 'prod only: type the version again to confirm'
+        required: false
+        default: ''
+
+permissions: {}
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  # Runs before the environment's reviewers are asked, so a blocked deployment fails without waiting for an approval
+  gate:
+    name: deployment allowed
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, forcitis-one]
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      TARGET_ENV: ${{ inputs.environment }}
+      VERSION: ${{ inputs.version }}
+      CONFIRM: ${{ inputs.confirm }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]] || { echo "version '$VERSION' is not MAJOR.MINOR.PATCH[-rc.N]" >&2; exit 1; }
+          if [ "$TARGET_ENV" = prod ] && [ "$CONFIRM" != "$VERSION" ]; then
+            echo "prod deployment needs the version typed again in 'confirm'" >&2
+            exit 1
+          fi
+          python3 -I scripts/release/deploy_gate.py --self-test
+          python3 -I scripts/release/deploy_gate.py "$TARGET_ENV" "$VERSION"
+
+  # Only the dedicated deploy runner (its own macOS user, docs/ops/ci-runners.md) runs this job; the OIDC subject names this environment
+  deploy:
+    name: deploy ${{ inputs.version }} to ${{ inputs.environment }}
+    needs: gate
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, forcitis-one-deploy]
+    environment: ${{ inputs.environment }}
+    # Longer than ship.sh's wait for the ECS (4320 s) plus the steps before it
+    timeout-minutes: 80
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read   # ci_passed.py: the pull request that merged the commit
+      id-token: write
+    env:
+      TARGET_ENV: ${{ inputs.environment }}
+      VERSION: ${{ inputs.version }}
+      CONFIRM: ${{ inputs.confirm }}
+    steps:
+      # The runner's own HOME is an empty root-owned directory; every job gets a fresh one, git included (RELEASE.md §7 R-0).
+      # No .gitconfig is created in it: toolchain.sh refuses a home that holds one; git reads a missing GIT_CONFIG_GLOBAL file as empty.
+      # Nothing later writes it either: checkout's only global write (safe.directory) is turned off below
+      - name: fresh home for this job
+        run: |
+          mkdir -p "$RUNNER_TEMP/home"
+          { echo "HOME=$RUNNER_TEMP/home"; echo "GIT_CONFIG_GLOBAL=$RUNNER_TEMP/home/.gitconfig"; } >> "$GITHUB_ENV"
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          # Its global write would land in GIT_CONFIG_GLOBAL; the job user owns _work, so git needs no safe.directory
+          set-safe-directory: false
+
+      - name: toolchain (system tools vetted; pinned and verified downloads)
+        run: scripts/release/toolchain.sh deploy "$RUNNER_TEMP/toolchain"
+
+      # Checked again on the deploy runner: main may have gained a blocker since the gate job
+      - name: repository allows this deployment
+        run: |
+          [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]] || { echo "version '$VERSION' is not MAJOR.MINOR.PATCH[-rc.N]" >&2; exit 1; }
+          if [ "$TARGET_ENV" = prod ] && [ "$CONFIRM" != "$VERSION" ]; then
+            echo "prod deployment needs the version typed again in 'confirm'" >&2
+            exit 1
+          fi
+          python3 -I scripts/release/deploy_gate.py "$TARGET_ENV" "$VERSION"
+
+      - name: release is published, its tag is on main and passed ci
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          draft="$(gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" --json isDraft -q '.isDraft')"
+          [ "$draft" = false ] || { echo "v$VERSION is a draft; publish it before deploying" >&2; exit 1; }
+          commit="$(python3 -I scripts/release/ci_passed.py --tag-commit "v$VERSION")"
+          python3 -I scripts/release/ci_passed.py "$commit"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
+      - name: download, check the signed release statement and verify the bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMIT: ${{ steps.release.outputs.commit }}
+        run: |
+          dir="$RUNNER_TEMP/deploy"
+          archive="$dir/forcitis-one-$VERSION.tar.gz"
+          mkdir -p "$dir"
+          gh release download "v$VERSION" --repo "$GITHUB_REPOSITORY" --dir "$dir" --clobber \
+            --pattern "forcitis-one-$VERSION.tar.gz" --pattern "forcitis-one-$VERSION.tar.gz.sha256" \
+            --pattern "forcitis-one-$VERSION.release" --pattern "forcitis-one-$VERSION.release.sig"
+          scripts/release/statement.sh verify "$archive" "$dir/forcitis-one-$VERSION.release" scripts/release/allowed_signers "$VERSION" "$COMMIT"
+          scripts/release/verify_bundle.sh "$archive"
+          built_from="$(tar -xzOf "$archive" "forcitis-one-$VERSION/manifest.json" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["gitSha"])')"
+          [ "$built_from" = "$COMMIT" ] || { echo "bundle was built from $built_from, but v$VERSION points at $COMMIT" >&2; exit 1; }
+          if [ "$TARGET_ENV" = prod ]; then
+            python3 -I scripts/release/deploy_gate.py approval "$VERSION" "$COMMIT" "$(cut -d' ' -f1 "$archive.sha256")"
+          fi
+
+      - name: install on the server
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ALIBABA_CLOUD_ROLE_ARN: ${{ vars.ALIBABA_CLOUD_ROLE_ARN }}
+          ALIBABA_CLOUD_OIDC_PROVIDER_ARN: ${{ vars.ALIBABA_CLOUD_OIDC_PROVIDER_ARN }}
+          ECS_REGION: ${{ vars.ECS_REGION }}
+        run: scripts/release/ship.sh "$TARGET_ENV" "$VERSION"
+
+      - if: always()
+        run: rm -rf "$RUNNER_TEMP/deploy"
