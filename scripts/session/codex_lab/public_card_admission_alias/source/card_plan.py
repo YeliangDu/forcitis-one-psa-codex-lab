@@ -1,5 +1,5 @@
 """Exact read-only plan bound to the owned role and independently observed reviews."""
-import fcntl,os,re,stat,subprocess
+import copy,fcntl,os,re,stat,subprocess
 from pathlib import Path,PurePosixPath
 from native_role import canonical_uuid
 from owned_runtime import decode,fields,private,sha
@@ -38,6 +38,24 @@ def authorize(assignment,registration,registry,approval):
         reviewers.append(resident)
     need(len(set(reviewers))==2,'plan-two-independent-residents-required')
     return dict(number=n,head=assignment['H'],base=assignment['B'],target='main')
+
+def admission_assignment(assignment,registration,registry):
+    need(all(type(x) is dict for x in (assignment,registration,registry)),'plan-admission-input-shape')
+    role=assignment.get('role');sid=canonical_uuid(assignment.get('session_id'))
+    need(registration.get('phase')=='stable' and registration.get('session_id')==sid,'plan-admission-role-not-stable')
+    items=registry.get('roles');need(type(items) is list and items,'plan-admission-registry-required')
+    roles={};seen=set()
+    for row in items:
+        need(type(row) is dict and type(row.get('role')) is str and row['role'] not in roles,'plan-admission-duplicate-role')
+        tid=canonical_uuid(row.get('id'));need(tid not in seen,'plan-admission-duplicate-id')
+        roles[row['role']]=tid;seen.add(tid)
+    need(type(role) is str and (role=='one-readonly-lab'
+         or re.fullmatch(r'one-(?:lead|design|platform|test|dev-[a-z][a-z0-9-]*)',role)),
+         'plan-admission-unsupported-runtime-role')
+    alias='one-dev-readonly-lab' if role=='one-readonly-lab' else role
+    need(roles.get(alias)==sid,'plan-admission-alias-unbound')
+    result=copy.deepcopy(assignment);result['role']=alias;return result
+
 
 def plan_owned(installation,installation_pin,request,role_installation,role_pin,scope_path,scope_pin):
     from single_role import RoleInstallation,TaskStore
@@ -79,7 +97,7 @@ def plan_owned(installation,installation_pin,request,role_installation,role_pin,
             need((sha(rr),sha(ar),sha(nr))==(p['registry_sha256'],p['approval_sha256'],p['review_evidence_sha256']),
                  'plan-approval-or-provenance-pin-drift')
             registry,approval,evidence=map(decode,(rr,ar,nr))
-            intent=authorize(dict(body,pr_number=n),reg,registry,approval)
+            intent=authorize(admission_assignment(dict(body,pr_number=n),reg,registry),reg,registry,approval)
             need(set(approval['required_reviews'])=={'首轮','终审'} and evidence.get('head')==intent['head']
                  and evidence.get('base')==intent['base'] and evidence.get('number')==n,'plan-native-review-subject-drift')
             mapped={x['role']:x['id'] for x in registry['roles']}
