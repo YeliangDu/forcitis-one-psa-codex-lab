@@ -137,7 +137,7 @@ def build_composition(binding):
 
 def main():
     parser = argparse.ArgumentParser(allow_abbrev=False,epilog="Paused native operations: role.reconcile-failed-current, role.retire-failed, role.replace-retired.")
-    parser.add_argument('command', choices=('check-compatibility','serve','call','serve-owned','call-owned'))
+    parser.add_argument('command', choices=('check-compatibility','serve','call','serve-owned','call-owned','reconcile-owned-interrupted'))
     parser.add_argument('--source-closure',required=True)
     parser.add_argument('--source-closure-sha256',required=True)
     parser.add_argument('--private-binding')
@@ -150,6 +150,13 @@ def main():
     args=parser.parse_args()
     try:
         verify_source(args.source_closure,args.source_closure_sha256)
+        if args.command=='reconcile-owned-interrupted':
+            require(args.owned_installation and args.owned_installation_sha256
+                    and args.single_role_installation and args.single_role_installation_sha256
+                    and not args.private_binding and not args.private_binding_sha256,'interrupted-owned-pins-required')
+            from role_interrupted import run_owned_interrupted
+            return run_owned_interrupted(args.owned_installation,args.owned_installation_sha256,args.request,
+                                         args.single_role_installation,args.single_role_installation_sha256)
         if args.command in ('serve-owned','call-owned'):
             require(args.owned_installation and args.owned_installation_sha256
                     and not args.private_binding and not args.private_binding_sha256,'owned-only-selection-required')
