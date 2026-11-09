@@ -69,6 +69,12 @@ jobs:
               /usr/bin/mount --bind "$package" "$package"
               /usr/bin/mount -o remount,bind,ro "$package"
               test "$(readlink /proc/self/ns/net)" != "$hostnet"
+              if test "$stage" = green; then
+                /usr/bin/mkdir "$work/acceptance"
+                /usr/bin/mount --bind "$package/previous-acceptance" "$work/acceptance"
+                /usr/bin/mount -o remount,bind,ro "$work/acceptance"
+                /usr/bin/findmnt -n -o VFS-OPTIONS --mountpoint "$work/acceptance" | grep -Eq "(^|,)ro(,|$)"
+              fi
               /usr/bin/findmnt -n -o VFS-OPTIONS --mountpoint "$package" | grep -Eq "(^|,)ro(,|$)"
               printf "%s\n" "package_read_only=true" "private_netns=true" > "${evidence%/witness}/isolation.txt"
               exec /usr/bin/setpriv --reuid "$uid" --regid "$gid" --clear-groups --no-new-privs -- \
@@ -81,11 +87,26 @@ jobs:
                   cd "$1"
                   /usr/bin/python3 -I -B "$2/acceptance/run_regression.py" --runner-temp "$1" --source-root "$2/source" --evidence-dir "$3" --parent-netns "$4" --source-closure-sha256 "$5"
                   if test "$6" = green; then
-                    exec /usr/bin/python3 -I -B "$2/previous-acceptance/run_acceptance.py" --runner-temp "$1" --source-root "$2/source" --evidence-dir "${3%/witness}/prior" --parent-netns "$4" --source-closure-sha256 "$5"
+                    exec /usr/bin/python3 -I -B "$1/acceptance/run_acceptance.py" --runner-temp "$1" --source-root "$2/source" --evidence-dir "${3%/witness}/prior" --parent-netns "$4" --source-closure-sha256 "$5"
                   fi
                 '"'"' _ "$work" "$package" "$evidence" "$hostnet" "$source_sha" "$stage"
             ' _ "$input" "$w" "$e/witness" "$before" "$(id -u)" "$(id -g)" "$GITHUB_REPOSITORY" "$GITHUB_REPOSITORY_ID" "$SOURCE_SHA" "$STAGE" > "$w/driver.log" 2>&1 || rc=$?
           printf '%s\n' "$rc" > "$e/exit-code.txt"
+          if test "$rc" != 0; then
+            python3 -I -B - "$w/driver.log" "$e/error-classes.txt" <<'PY'
+          import re,sys
+          from pathlib import Path
+          data=[]
+          for line in Path(sys.argv[1]).read_text(errors='replace').splitlines():
+              f=re.fullmatch(r'  File "[^"]+/([A-Za-z0-9_-]+[.]py)", line ([0-9]+), in ([A-Za-z0-9_<>]+)',line)
+              if f:data.append('frame='+':'.join(f.groups()))
+              e=re.fullmatch(r'([A-Za-z.]+(?:Error|Hold)): ?(.*)',line)
+              if e:
+                  detail=e[2] if re.fullmatch(r'[a-z][a-z-]{0,120}',e[2]) else 'redacted'
+                  data.append('exception='+e[1]+':'+detail)
+          Path(sys.argv[2]).write_text('\n'.join(data[-120:])+'\n')
+          PY
+          fi
           if ! test -s "$e/witness/verdict.json"; then
             printf 'launcher_or_driver_ended_without_verdict\n' > "$e/setup-status.txt"
           fi
@@ -99,6 +120,7 @@ jobs:
             ${{ runner.temp }}/owned-runtime-evidence/isolation.txt
             ${{ runner.temp }}/owned-runtime-evidence/exit-code.txt
             ${{ runner.temp }}/owned-runtime-evidence/setup-status.txt
+            ${{ runner.temp }}/owned-runtime-evidence/error-classes.txt
             ${{ runner.temp }}/owned-runtime-evidence/witness/verdict.json
             ${{ runner.temp }}/owned-runtime-evidence/witness/case-observations.json
             ${{ runner.temp }}/owned-runtime-evidence/prior/verdict.json
