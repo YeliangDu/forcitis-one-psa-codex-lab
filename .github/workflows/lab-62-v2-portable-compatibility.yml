@@ -1,0 +1,79 @@
+name: Lab 62 V2 portable read-only compatibility boundary
+on:
+  push:
+    branches: [codex/62-current-assignment]
+    paths: [.github/workflows/lab-62-v2-portable-compatibility.yml]
+permissions: {}
+jobs:
+  cli-boundary:
+    if: github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' && github.repository_id == '1449415666' && github.ref == 'refs/heads/codex/62-current-assignment'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PACKAGE_PATH: scripts/session/codex_lab/r1_r2_portable_witness
+      PACKAGE_MANIFEST_SHA256: fdf6602dc22a9411c10e2b125d4b631657b85c26b11c12cc79a0de37e4098cac
+      FROZEN_SCENARIO_SHA256: 7c778e9bc57f56bb187b1355131816c7e30f553af9c5f6c997a6c1cd4e602b48
+      PRODUCT_BASE: 77e872e8ba9661d3294d3a9337c8e5c956b70641
+    steps:
+      - name: Fetch exact public branch without credentials
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_TERMINAL_PROMPT=0
+          git init .
+          git fetch --no-tags https://github.com/YeliangDu/forcitis-one-psa-codex-lab.git "$GITHUB_SHA"
+          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA"
+          git -c core.hooksPath=/dev/null checkout --detach "$GITHUB_SHA"
+          git merge-base --is-ancestor "$PRODUCT_BASE" "$GITHUB_SHA"
+          test ! -e .git/merge-queue
+          test -z "$(git config --local --get-regexp '^http\..*extraheader$' || true)"
+      - name: Verify source and acceptance bytes
+        run: |
+          set -euo pipefail
+          python3 -I -B - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path,PurePosixPath
+          p=Path(os.environ['PACKAGE_PATH']).resolve(strict=True)
+          raw=(p/'publish-manifest.json').read_bytes()
+          assert hashlib.sha256(raw).hexdigest()==os.environ['PACKAGE_MANIFEST_SHA256']
+          m=json.loads(raw)
+          for rel,h in m['files_sha256'].items():
+              r=PurePosixPath(rel)
+              assert not r.is_absolute() and '..' not in r.parts
+              q=p/rel
+              assert q.resolve(strict=True)==q and q.is_file()
+              assert hashlib.sha256(q.read_bytes()).hexdigest()==h
+          scenario=p/'acceptance/SCENARIO.json'
+          assert hashlib.sha256(scenario.read_bytes()).hexdigest()==os.environ['FROZEN_SCENARIO_SHA256']
+          PY
+      - name: Exercise the public CLI in an isolated scratch runtime
+        run: |
+          set -euo pipefail
+          e="$RUNNER_TEMP/lab62-v2-evidence"; mkdir -m 700 "$e" "$e/witness"
+          w="$(mktemp -d /tmp/lv2.XXXXXX)"
+          trap 'rm -rf -- "$w"' EXIT
+          printf 'head=%s\nbase=%s\nrun=%s\nattempt=%s\nrunner=%s\nmanifest=%s\n' \
+            "$GITHUB_SHA" "$PRODUCT_BASE" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$RUNNER_ENVIRONMENT" "$PACKAGE_MANIFEST_SHA256" > "$e/identity.txt"
+          before="$(readlink /proc/self/ns/net)"
+          rc=0
+          sudo -n /usr/bin/unshare --mount --propagation private --net --pid --fork --kill-child --mount-proc -- \
+            /usr/bin/setpriv --reuid "$(id -u)" --regid "$(id -g)" --clear-groups --no-new-privs -- \
+            /usr/bin/env -i PATH=/usr/bin:/bin HOME="$w" TMPDIR="$w" WORK="$w" EVIDENCE="$e/witness" \
+              PACKAGE="$GITHUB_WORKSPACE/$PACKAGE_PATH" HOST_NET="$before" RUNNER_ENVIRONMENT="$RUNNER_ENVIRONMENT" \
+              /bin/bash --noprofile --norc -euc '
+                test "$(id -u)" -ne 0
+                test "$(readlink /proc/self/ns/net)" != "$HOST_NET"
+                test "$(ip -o link show | wc -l)" -eq 1
+                grep -Eq "^NoNewPrivs:[[:space:]]+1$" /proc/self/status
+                cd "$WORK"
+                exec /usr/bin/python3 -I -B "$PACKAGE/driver/collect_portable_compatibility.py" --source-root "$PACKAGE/candidate" --evidence-dir "$EVIDENCE" --parent-netns "$HOST_NET"
+              ' > "$e/driver.log" 2>&1 || rc=$?
+          printf '%s\n' "$rc" > "$e/exit-code.txt"
+          exit "$rc"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab62-v2-portable-compatibility-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab62-v2-evidence/
+          if-no-files-found: error
+          retention-days: 7
