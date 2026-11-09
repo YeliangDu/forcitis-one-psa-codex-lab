@@ -1,0 +1,34 @@
+{
+  "status": "SOURCE-DERIVED ONLY; no test executed",
+  "tests": 17,
+  "failures": 14,
+  "errors": 0,
+  "skipped": 0,
+  "assertions": {
+    "test_receipt.ReceiptProvenanceAcceptance.test_declared_raw_zip_digest_mismatch_cannot_expose_receipt": "P1_RECEIPT_DECLARED_ZIP_DIGEST_MISMATCH_TRUSTED",
+    "test_receipt.ReceiptProvenanceAcceptance.test_tampered_zip_same_json_is_not_the_approved_immutable_archive": "P1_RECEIPT_TAMPERED_RAW_ZIP_TRUSTED",
+    "test_receipt.ReceiptProvenanceAcceptance.test_wrong_repository_artifact_association_is_refused": "P1_RECEIPT_FOREIGN_ARTIFACT_REPOSITORY_TRUSTED",
+    "test_receipt.ReceiptProvenanceAcceptance.test_wrong_actual_run_artifact_association_is_refused": "P1_RECEIPT_OTHER_RUN_ARTIFACT_TRUSTED",
+    "test_receipt.ReceiptProvenanceAcceptance.test_wrong_selected_artifact_id_is_refused": "P1_RECEIPT_OTHER_ARTIFACT_ID_TRUSTED",
+    "test_receipt.ReceiptProvenanceAcceptance.test_wrong_metadata_head_association_is_refused": "P1_RECEIPT_OTHER_HEAD_ASSOCIATION_TRUSTED",
+    "test_receipt.ReceiptProvenanceAcceptance.test_wrong_receipt_base_even_with_correct_zip_hash_is_refused": "P1_RECEIPT_WRONG_EXPECTED_BASE_TRUSTED",
+    "test_receipt.ReceiptProvenanceAcceptance.test_wrong_receipt_head_with_matching_hash_is_refused": "P1_RECEIPT_WRONG_EXPECTED_HEAD_TRUSTED",
+    "test_receipt.ReceiptProvenanceAcceptance.test_missing_declared_zip_digest_is_not_verified_proof": "P1_RECEIPT_MISSING_NATIVE_DIGEST_TRUSTED",
+    "test_receipt.ReceiptProvenanceAcceptance.test_actual_run_snapshot_wrong_attempt_is_refused": "P1_RECEIPT_STALE_ACTUAL_RUN_ATTEMPT_TRUSTED",
+    "test_receipt.ReceiptProvenanceAcceptance.test_stale_receipt_attempt_even_with_current_name_and_digest_is_refused": "P1_RECEIPT_STALE_BODY_ATTEMPT_TRUSTED",
+    "test_receipt.ReceiptProvenanceAcceptance.test_independent_profile_applicability_cannot_be_redefined_by_receipt": "P1_RECEIPT_PROFILE_SELECTION_REDEFINED",
+    "test_receipt.ReceiptProvenanceAcceptance.test_wrong_independent_raw_zip_pin_is_refused": "P1_RECEIPT_WRONG_EXTERNAL_ZIP_PIN_TRUSTED",
+    "test_receipt.ReceiptProvenanceAcceptance.test_wrong_receipt_run_with_matching_zip_hash_is_refused": "P1_RECEIPT_OTHER_BODY_RUN_TRUSTED"
+  },
+  "baseline_positive_controls": [
+    "test_exact_zip_and_matching_artifact_tuple_is_positive",
+    "test_missing_expired_or_old_name_has_no_downloaded_proof",
+    "test_metadata_predecoded_receipt_is_not_a_download_substitute"
+  ],
+  "baseline_sha256": "543f992be547dda4d0dbe0d237788172440f3c7ee292a64ffabefa368c62dc54",
+  "primary_real_behavior": "actual B GithubRead.artifacts downloads/decodes valid ZIP even when declared raw ZIP digest mismatches; no stub/missing interface used",
+  "controls": "exact ZIP positive and original stale/missing/expired/predecoded metadata guards preserved",
+  "candidate_API_missing": "HOLD86; constructor expected keyword is separately reviewed extension, not passed to B for red",
+  "capability": "non-root/independent loopback-only netns/source/ZIP/get seam must first execute actual baseline positive; no local probe",
+  "scope": "synthetic isolated provenance only; no live vulnerability/authority/admission claim"
+}

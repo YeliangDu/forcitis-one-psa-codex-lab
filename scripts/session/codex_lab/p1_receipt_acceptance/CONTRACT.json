@@ -1,0 +1,36 @@
+{
+  "kind": "p1-receipt-provenance-contract/1",
+  "B": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+  "baseline_call": "actual GithubRead(request=synthetic_get).artifacts(expected.run_id,expected.attempt)",
+  "candidate_call": "actual GithubRead(request=synthetic_get,expected=independent_tuple).artifacts(run_id,attempt); constructor mismatch HOLD, no fallback",
+  "expected_tuple": [
+    "repository",
+    "repository_id",
+    "number",
+    "run_id",
+    "attempt",
+    "artifact_id",
+    "head",
+    "base",
+    "zip_sha256",
+    "profile(name,workflow,applicability)"
+  ],
+  "raw_metadata": "ordinary native-shaped artifact id/name/expired/digest/workflow_run(id,repository_id,head_repository_id,head_sha,head_branch); never invent artifact.run_attempt or producer_job_id",
+  "proof_requirements": [
+    "actual downloaded raw ZIP SHA equals declared metadata SHA and independently selected expected ZIP SHA before exposing decoded receipt",
+    "artifact ID/run/repository/head link, name PR/H/A and receipt H/observedH/B/R/A exactly correspond",
+    "run snapshot matches actual selected R/A/H/repo/workflow; decimal environment IDs normalized losslessly",
+    "profile selected independently; actual receipt applicability must match allowed expected lanes; receipt cannot redefine selection",
+    "missing/expired/stale/wrong/tampered proof yields no row containing decoded receipt; no metadata-provided receipt substitute",
+    "valid exact proof returns original decoded receipt and metadata; never eligible/admission/writer",
+    "all inputs immutable and no file/network/process/queue effects"
+  ],
+  "profile_scope": "only caller-selected workflow + applicability supported by supplied synthetic run/receipt. No actual profile-source/version/selection-plan execution is attested.",
+  "HOLD_seams": [
+    "actual hosted/native producer job/upload/source/immutable raw artifact provenance beyond synthetic read seam",
+    "full C/H/A/profile/control closure/independent verdict authorization",
+    "queue/admission/merge/writer/activation and live operation"
+  ],
+  "data": "all input observations synthetic; B bytes exact; no private/native live capture copied",
+  "activation_authority": false
+}

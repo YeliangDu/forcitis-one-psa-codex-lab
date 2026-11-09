@@ -1,0 +1,85 @@
+"""Hosted-only test launcher. Actual existing baseline or separately pinned candidate."""
+import argparse
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+
+ROOT=Path(__file__).resolve().parent
+BASELINE='543f992be547dda4d0dbe0d237788172440f3c7ee292a64ffabefa368c62dc54'
+
+
+def load(name,path):
+    spec=importlib.util.spec_from_file_location(name,path);module=importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module);return module
+
+
+def inside(args):
+    load('receipt_containment',ROOT/'worker.py').net_check(int(os.environ['RECEIPT_PARENT_NETNS']))
+    source=(args.target or ROOT/'baseline/lab_queue_live.py').resolve(strict=True)
+    pin=args.target_sha256 if args.target else BASELINE
+    if not pin or hashlib.sha256(source.read_bytes()).hexdigest()!=pin:raise ValueError('selected actual source pin mismatch')
+    os.environ.update(RECEIPT_TARGET=str(source),RECEIPT_TARGET_SHA256=pin,
+                      RECEIPT_MODE='candidate' if args.target else 'baseline')
+    # Actual B client positive proves executable import/request/ZIP capability;
+    # no new API/missing module is used as the expected red.
+    F=load('receipt_capability_inputs',ROOT/'fixtures.py')
+    with tempfile.TemporaryDirectory(prefix='receipt-capability-') as temporary:
+        target=Path(temporary)/'actual_baseline.py';target.write_bytes((ROOT/'baseline/lab_queue_live.py').read_bytes())
+        result=subprocess.run([sys.executable,'-I','-S','-B',str(ROOT/'worker.py'),temporary,str(target),BASELINE,
+            os.environ['RECEIPT_PARENT_NETNS'],'baseline'],input=json.dumps(F.fixture()),text=True,
+            capture_output=True,cwd=temporary,timeout=10)
+        if result.returncode:
+            raise ValueError('actual B reader/fixture/containment unavailable: '+result.stderr)
+        data=json.loads(result.stdout)
+        if len(data['rows'])!=1 or data['rows'][0].get('receipt')!=F.fixture()['receipt']:
+            raise ValueError('actual B exact ZIP positive failed')
+    suite=unittest.defaultTestLoader.discover(str(ROOT/'tests'),pattern='test_receipt.py')
+    result=unittest.TextTestRunner(verbosity=2).run(suite)
+    expected=json.loads((ROOT/'EXPECTED.json').read_text())['assertions']
+    failures={t.id():d for t,d in result.failures}
+    red=not args.target and result.testsRun==17 and not result.errors and not result.skipped and set(failures)==set(expected) and all(v in failures[k] for k,v in expected.items())
+    green=bool(args.target and result.testsRun==17 and result.wasSuccessful() and not result.skipped)
+    classification='expected-existing-behavior-red' if red else 'isolated-candidate-green' if green else 'HOLD-unexpected-result'
+    args.report.write_text(json.dumps(dict(kind='p1-receipt-provenance-result/1',tests=result.testsRun,
+        failures=[dict(id=k,detail=d) for k,d in failures.items()],errors=[dict(id=t.id(),detail=d) for t,d in result.errors],
+        skipped=[t.id() for t,_ in result.skipped],classification=classification,source_sha256=pin,
+        mode='candidate-expected-receipt-tuple' if args.target else 'exact-B-reader-comparison',
+        B='77e872e8ba9661d3294d3a9337c8e5c956b70641',active_C=None,activation_authority=False,
+        native_dispatch=False,actual_native_adapter_proved=False,nonroot=True,network_namespace_isolated=True,
+        run=os.environ.get('GITHUB_RUN_ID'),attempt=os.environ.get('GITHUB_RUN_ATTEMPT')),indent=2)+'\n')
+    return 1 if red else 0 if green else 86
+
+
+def main():
+    p=argparse.ArgumentParser();p.add_argument('--manifest-sha256',required=True);p.add_argument('--target',type=Path)
+    p.add_argument('--target-sha256');p.add_argument('--report',type=Path,required=True);p.add_argument('--inside',action='store_true')
+    args=p.parse_args();args.report=args.report.absolute()
+    if os.environ.get('GITHUB_ACTIONS')!='true' or sys.platform!='linux' or os.geteuid()==0:raise ValueError('non-root standard hosted Linux required')
+    raw=(ROOT/'manifest.json').read_bytes()
+    if hashlib.sha256(raw).hexdigest()!=args.manifest_sha256:raise ValueError('external frozen manifest mismatch')
+    for relative,pin in json.loads(raw)['files_sha256'].items():
+        path=ROOT/relative
+        if path.resolve(strict=True)!=path or hashlib.sha256(path.read_bytes()).hexdigest()!=pin:raise ValueError('frozen input changed: '+relative)
+    if args.inside:return inside(args)
+    if args.report.exists():raise ValueError('fresh report path required')
+    if not Path('/usr/bin/unshare').is_file():raise ValueError('network containment unavailable')
+    env=dict(os.environ,RECEIPT_PARENT_NETNS=str(os.stat('/proc/self/ns/net').st_ino),PYTHONDONTWRITEBYTECODE='1')
+    command=['/usr/bin/unshare','--user','--map-current-user','--net','--',sys.executable,'-I','-S','-B',str(Path(__file__).resolve()),
+        '--inside','--manifest-sha256',args.manifest_sha256,'--report',str(args.report)]
+    if args.target:command+=['--target',str(args.target.resolve(strict=True)),'--target-sha256',args.target_sha256 or '']
+    result=subprocess.run(command,env=env,cwd=ROOT,text=True,capture_output=True,timeout=180)
+    sys.stdout.write(result.stdout);sys.stderr.write(result.stderr)
+    if not args.report.exists():raise ValueError('containment/API/fixture capability unavailable: '+result.stderr[:400])
+    return result.returncode
+
+
+if __name__=='__main__':
+    try:raise SystemExit(main())
+    except (OSError,ValueError,RuntimeError,KeyError,subprocess.SubprocessError) as error:
+        print('CAPABILITY_HOLD (not assertion red): '+str(error),file=sys.stderr);raise SystemExit(86)

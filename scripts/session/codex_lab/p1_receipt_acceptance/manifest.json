@@ -1,0 +1,43 @@
+{
+  "kind": "lab-p1-receipt-independent-A/1",
+  "card": 62,
+  "revision": 5,
+  "claim": "48f97267f8e24f9ebb5057809f23f02f",
+  "author": "one-test",
+  "B": "77e872e8ba9661d3294d3a9337c8e5c956b70641",
+  "A": null,
+  "candidate_source_sha256": null,
+  "active_C": null,
+  "target_prefix": "scripts/session/codex_lab/p1_receipt_acceptance/",
+  "baseline_sha256": "543f992be547dda4d0dbe0d237788172440f3c7ee292a64ffabefa368c62dc54",
+  "read_not_executed_evidence_module": {
+    "source": "77e872e8ba9661d3294d3a9337c8e5c956b70641:scripts/session/codex_lab/lab_queue_evidence.py",
+    "sha256": "6a54293e7608f5c7208fb59b98bc6accf8f701c7a96b1b9ca8e628c25403a88f"
+  },
+  "files_sha256": {
+    "baseline/lab_queue_live.py": "543f992be547dda4d0dbe0d237788172440f3c7ee292a64ffabefa368c62dc54",
+    "fixtures.py": "931921d670a5f60cf03a322958a48b153eba5bada5e1106fbac397097c7d7e03",
+    "worker.py": "e3f2e36c483923a6f45d7cfa6850381db5a0e2da47e90859c4ca4d4270b5306e",
+    "tests/test_receipt.py": "d803faf089181ee31ff39c210ba3cfa23e08c7e688d3470736423a529a71f054",
+    "run.py": "d26b5fcc4d915e5313d5df146bcca989d18d3397f01d57ced35caa02b538b952",
+    "EXPECTED.json": "868a0eb42ce207f6d3216d42a28423cdd3ae75d794d7f923b05b8a984bbfb81f",
+    "CONTRACT.json": "20157c90babcaab522c78c6640303a2cf8f758fb3566ca428d84a8d6390854c0",
+    "HANDOFF.md": "91295aad78c658c13c71ba01d362ea68df6d4212568a5537dbb7d734a8e4abdd"
+  },
+  "input_hashes": {
+    ".codex-lab/implementation-20261108/P0-P1-DEPENDENCY-REFINEMENT.md": "5e144dff495990c188cdc57a22637698bf3b5946b8c5bba893515194506aacff",
+    ".codex-lab/implementation-20261108/p1-isolated/association-one-test/manifest.json": "d8a3a7cd3c6a12d8aec3939d2a84bbe9d7f23a36081bc0e305a6c9708551cc6f"
+  },
+  "tests": 17,
+  "source_expected_assertion_failures": 14,
+  "source_expected_errors": 0,
+  "source_expected_skips": 0,
+  "execution": 0,
+  "source_red": "actual B reader appends decoded receipt without raw metadata ZIP digest comparison; no absent interface red",
+  "synthetic_only": true,
+  "prior_A_modified": false,
+  "candidate_API_missing": "HOLD86, never expected red",
+  "full_C_authority": "HOLD separately; no native producer/admission evidence supplied",
+  "native_send": false,
+  "activation_authority": false
+}
