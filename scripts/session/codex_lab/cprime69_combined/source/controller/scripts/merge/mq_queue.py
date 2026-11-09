@@ -61,12 +61,23 @@ class Queue:
                 fcntl.flock(lock, fcntl.LOCK_UN)
 
     @contextlib.contextmanager
-    def merge_lock(self):
+    def merge_lock(self, *, expected_identity=None):
         """Exclude other merges until the owner and delegated Git transports close."""
         if getattr(_MERGE_LEASE, "current", None) is not None:
             raise RuntimeError("nested merge lease is not supported")
-        with open(self.path + ".merge-lock", "a") as lock:
+        path = self.path + ".merge-lock"
+        # A formal first-card permit never creates or replaces a missing lock.
+        stream = open(path, "a") if expected_identity is None else os.fdopen(
+            os.open(path, os.O_RDWR | os.O_NOFOLLOW | os.O_NONBLOCK), "r+b")
+        with stream as lock:
             fcntl.flock(lock, fcntl.LOCK_EX)
+            if expected_identity is not None:
+                import stat
+                current, held = os.lstat(path), os.fstat(lock.fileno())
+                if (not stat.S_ISREG(held.st_mode) or held.st_uid != os.geteuid() or held.st_nlink != 1
+                        or held.st_mode & 0o022 or [held.st_dev, held.st_ino] != expected_identity
+                        or [current.st_dev, current.st_ino] != expected_identity):
+                    raise ValueError("formal-first-card-merge-lock-identity-moved")
             _MERGE_LEASE.current = (os.getpid(), lock.fileno())
             try:
                 yield
@@ -221,9 +232,15 @@ class Queue:
                     return l.split()[1]
         return None
 
-    def drop_head(self, n):
+    def drop_head(self, n, *, expected=None):
         with self.locked(".heads-lock"):
-            self._store(".heads", [l for l in self._lines(".heads") if not l.startswith(f"{n} ")])
+            lines = self._lines(".heads")
+            if expected is not None and [l for l in lines if l.startswith(f"{n} ")] != [f"{n} {expected}"]:
+                raise ValueError("confirmed-head-stamp-moved")
+            self._store(".heads", [l for l in lines if not l.startswith(f"{n} ")])
+
+    def drop_head_exact(self, n, head):
+        self.drop_head(n, expected=head)
 
     def _mark(self, n):
         self._store(".working", [l for l in self._lines(".working") if not l.startswith(f"{n} ")] + [f"{n} {os.getpid()}"])

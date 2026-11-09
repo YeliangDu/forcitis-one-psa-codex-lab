@@ -3,6 +3,7 @@ from contextlib import contextmanager, ExitStack
 import importlib.util
 import json
 import fcntl
+import hashlib
 import os
 from pathlib import Path
 import re
@@ -11,7 +12,7 @@ import stat
 import issue_gate
 from mq_lab import _path, _state
 from mq_lab_active import admit, run_once
-from mq_lab_runtime import _valid_record, _matches
+from mq_lab_runtime import _valid_record, _matches, exact_release_health
 from mq_lab_authorization import load_approval
 from mq_lab_journal_v2 import ReleaseJournalV2, _schema
 from mq_lab_proof import verify_intent
@@ -89,15 +90,16 @@ def _intent(approval, number):
 
 
 class _RequestedQueue:
-    def __init__(self, queue, number):
-        self.queue, self.number = queue, number
+    def __init__(self, queue, number, scope=None):
+        self.queue, self.number, self.scope = queue, number, scope
 
     def __getattr__(self, name):
         return getattr(self.queue, name)
 
     @contextmanager
     def merge_lock(self):
-        with self.queue.merge_lock():
+        lock_identity = self.scope["lock_ids"]["merge.queue.merge-lock"] if self.scope else None
+        with self.queue.merge_lock(expected_identity=lock_identity):
             present, numbers = _state(Path(self.queue.path))
             _require(present and numbers and numbers[0] == self.number, "requested-pr-is-not-fifo-head")
             _require(not self.queue.deps(self.number), "dependency-resolution-not-bound")
@@ -142,8 +144,9 @@ class _LazyJournal:
 
 
 class _LazyWriter:
-    def __init__(self, ports, authorize):
+    def __init__(self, ports, authorize, scope=None):
         self.ports, self.authorize, self.writer = ports, authorize, None
+        self.scope = scope
 
     def _get(self):
         if self.writer is None:
@@ -155,10 +158,27 @@ class _LazyWriter:
         return self._get().send(dict(intent))
 
     def readback(self, intent):
-        return self._get().readback(dict(intent))
+        proof = self._get().readback(dict(intent))
+        if self.scope is not None and isinstance(proof, dict) and proof.get("merged") is True:
+            merge = proof.get("merge_sha")
+            _require(isinstance(merge, str) and re.fullmatch("[0-9a-f]{40}", merge), "first-card-merge-shape")
+            commit = self.ports.github._single("commits/" + merge)
+            _require(commit.get("sha") == merge and commit.get("commit", {}).get("tree", {}).get("sha")
+                     == self.scope["expected_tree"], "first-card-readback-tree-mismatch")
+        return proof
 
 
-def _cleanup_confirmed_orphan(number, common_dir, ports):
+def _first_card_locks(path, scope):
+    if scope is None:
+        return
+    for name, expected in scope["lock_ids"].items():
+        entry = path.parent / name
+        st = entry.lstat()
+        _require(stat.S_ISREG(st.st_mode) and st.st_uid == os.geteuid() and st.st_nlink == 1
+                 and not st.st_mode & 0o022 and [st.st_dev, st.st_ino] == expected, "first-card-lock-identity-moved")
+
+
+def _cleanup_confirmed_orphan(number, common_dir, ports, scope=None):
     """Reconcile ONLY a requested absent-FIFO ordinary confirmed item.
 
     Never reads approval/eligibility or sends. Existing canonical locks and strict
@@ -179,6 +199,7 @@ def _cleanup_confirmed_orphan(number, common_dir, ports):
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             stack.callback(fcntl.flock, fd, fcntl.LOCK_UN)
             held.append((lock, fd))
+        _first_card_locks(path, scope)
         _require(_path(common_dir) == path, "cleanup-canonical-path-moved")
 
         def read(file):
@@ -213,11 +234,15 @@ def _cleanup_confirmed_orphan(number, common_dir, ports):
                  and _valid_record(record, number, heads.get(number, record.get("head"))),
                  "orphan-not-exact-durable-ordinary-confirmation")
         intent = {field: record[field] for field in IDENTITY}
-        reader = _LazyWriter(ports, lambda _intent: False)
+        if scope is not None:
+            _require(intent == scope["subject"], "first-card-orphan-scope-mismatch")
+        reader = _LazyWriter(ports, lambda _intent: False, scope)
         proof = reader.readback(dict(intent))
         _require(_matches(proof, intent) and proof.get("merged") is True
                  and proof.get("target_contains_merge") is True and proof.get("merge_sha") == record["merge_sha"],
                  "confirmed-orphan-merge-proof-not-exact")
+        _require(exact_release_health(getattr(ports, "release_health", None), record["merge_sha"]),
+                 "confirmed-orphan-needs-exact-current-main-health")
         _require(journal.load(number) == record and read(path) == fifo and read(head_path) == raw_heads
                  and _state(path) == (True, numbers), "confirmed-cleanup-snapshot-moved")
         for lock, fd in held:
@@ -226,6 +251,7 @@ def _cleanup_confirmed_orphan(number, common_dir, ports):
                      and current.st_nlink == 1 and not current.st_mode & 0o022
                      and (opened.st_dev, opened.st_ino) == (current.st_dev, current.st_ino),
                      "cleanup-lock-name-moved-before-publication")
+        _first_card_locks(path, scope)
         _require(_path(common_dir) == path, "cleanup-common-dir-moved-before-publication")
         if number in heads:
             from mq_queue import Queue
@@ -238,12 +264,16 @@ def _cleanup_confirmed_orphan(number, common_dir, ports):
         return dict(action="skip", reason="confirmed-orphan-cleaned-with-readback-only", merge_sha=record["merge_sha"])
 
 
-def run_command(command, number, common_dir, ports):
+def run_command(command, number, common_dir, ports, *, first_card_scope=None):
     """Plan without state creation; admit/once use the one canonical lock."""
     try:
         _require(command in ("plan", "enqueue", "once") and type(number) is int and number > 0,
                  "unsupported-command-or-pr")
+        if command == "once" and getattr(ports, "requires_first_card_scope", False):
+            _require(isinstance(first_card_scope, dict) and first_card_scope["subject"]["number"] == number == 69,
+                     "first-card-launcher-required")
         path = _path(common_dir)
+        _first_card_locks(path, first_card_scope)
         for suffix in ("", ".lock", ".merge-lock", ".heads", ".heads-lock"):
             try:
                 info = Path(str(path) + suffix).lstat()
@@ -254,19 +284,27 @@ def run_command(command, number, common_dir, ports):
         present, numbers = _state(path)
         _require(present, "canonical-queue-missing")
         if command == "once" and (not numbers or numbers[0] != number):
-            return _cleanup_confirmed_orphan(number, common_dir, ports)
+            return _cleanup_confirmed_orphan(number, common_dir, ports, first_card_scope)
         journal_path = path.parent / "releases.sqlite3"
         journal = _LazyJournal(journal_path)  # No storage I/O until used under the merge lock.
         last_key = [None]
 
         def verify(intent):
+            _first_card_locks(path, first_card_scope)
             if command == "once":
                 journal.require_new_write_ready()
             approval = ports.load(number)
             approved = _intent(approval, number)
+            if first_card_scope is not None:
+                approval_digest = hashlib.sha256(json.dumps(approval, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()).hexdigest()
+                _require(approved == first_card_scope["subject"] and approval_digest == first_card_scope["ordinary_approval_sha256"],
+                         "first-card-ordinary-approval-moved")
+                tree = ports.git(["merge-tree", "--write-tree", approved["base"], approved["head"]])
+                _require(tree.strip() == first_card_scope["expected_tree"], "first-card-expected-tree-mismatch")
             _require(all(approved.get(k) == v for k, v in intent.items()), "approval-moved")
             proof = ports.verify(dict(intent), approval)
             _require(_exact(proof, approved), "live-proof-held-or-inexact")
+            _first_card_locks(path, first_card_scope)
             last_key[0] = proof["release_key"]
             return proof
 
@@ -292,9 +330,11 @@ def run_command(command, number, common_dir, ports):
             except Exception:
                 return False
 
-        queue = _RequestedQueue(Queue(str(path)), number)
+        queue = _RequestedQueue(Queue(str(path)), number, first_card_scope)
         return run_once(queue, journal, verify,
-                        _LazyWriter(ports, authorize), allow_write=True)
+                        _LazyWriter(ports, authorize, first_card_scope), allow_write=True,
+                        healthy=getattr(ports, "release_health", None),
+                        expected_intent=None if first_card_scope is None else first_card_scope["subject"])
     except Exception:
         return dict(action="hold", reason="operator-command-held-or-unavailable")
 
@@ -313,6 +353,12 @@ class ProductionPorts:
     No approval is created here. An explicit once command still requires that
     exact independently installed local approval and all current live proof.
     """
+    requires_first_card_scope = True
+
+    def release_health(self, merge):
+        # Current exact hosted push proof, re-read under the canonical lock.
+        return _module("lab_main_health").check_main_health(self.github)
+
     def __init__(self, common_dir, sh):
         self.directory = _path(common_dir).parent
         self.sh = sh

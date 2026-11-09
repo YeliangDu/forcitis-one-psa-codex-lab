@@ -52,23 +52,49 @@ def _clear(queue, record, action):
     if not _current(queue, number, head):
         return _hold("confirmed-item-no-longer-matches-admission")
     queue.remove(number)
-    queue.drop_head(number)
+    drop_exact = getattr(queue, "drop_head_exact", None)
+    if callable(drop_exact):
+        drop_exact(number, head)
+    elif queue.head_of(number) == head:
+        queue.drop_head(number)
+    else:
+        return _hold("confirmed-stamp-moved-after-fifo-removal")
     return dict(action=action, reason="confirmed-exact-item-cleared", merge_sha=record["merge_sha"])
 
 
-def _recover(queue, journal, writer, record):
+def exact_release_health(healthy, merge):
+    if not callable(healthy):
+        return False
+    try:
+        proof = healthy(merge)
+        return (isinstance(proof, dict) and proof.get("action") == "healthy"
+                and proof.get("head_sha") == merge and proof.get("expired") is not True)
+    except Exception:
+        return False
+
+
+def _recover(queue, journal, writer, record, healthy):
     intent = {field: record[field] for field in IDENTITY}
     proof = writer.readback(dict(intent))
     if (not _matches(proof, intent) or proof.get("merged") is not True
             or proof.get("target_contains_merge") is not True or not _sha(proof.get("merge_sha"))):
         return _hold("reserved-outcome-unconfirmed-or-inexact")
-    confirmed = dict(record, status="confirmed", merge_sha=proof["merge_sha"])
+    merge = proof["merge_sha"]
+    if record["status"] == "confirmed" and record["merge_sha"] != merge:
+        return _hold("confirmed-merge-readback-moved")
+    if not exact_release_health(healthy, merge):
+        return _hold("exact-new-main-health-required")
+    if not _current(queue, record["number"], record["head"]):
+        return _hold("admission-changed-before-confirmation")
+    if record["status"] == "confirmed":
+        return _clear(queue, record, "skip")
+    confirmed = dict(record, status="confirmed", merge_sha=merge)
     if journal.confirm(dict(confirmed)) is not True:
         return _hold("confirmation-not-durable")
     return _clear(queue, confirmed, "confirmed")
 
 
-def run_iteration(queue, journal, evidence, writer, *, allow_write=False):
+def run_iteration(queue, journal, evidence, writer, *, allow_write=False, healthy=None, expected_intent=None):
     """Process only the first entry, reserving before at most one request.
 
     All port calls occur under one merge_lock acquisition. Existing uncertain
@@ -88,14 +114,16 @@ def run_iteration(queue, journal, evidence, writer, *, allow_write=False):
             head = queue.head_of(number)
             if not _sha(head):
                 return _hold("missing-or-invalid-admission-head")
+            if expected_intent is not None and (number != expected_intent.get("number") or head != expected_intent.get("head")):
+                return _hold("first-card-admission-scope-mismatch")
             record = journal.load(number)
             if record is not None:
                 if not _valid_record(record, number, head):
                     return _hold("malformed-or-stale-journal-record")
                 record = dict(record)
-                if record["status"] == "confirmed":
-                    return _clear(queue, record, "skip")
-                return _recover(queue, journal, writer, record)
+                if expected_intent is not None and not _matches(record, expected_intent):
+                    return _hold("first-card-recovery-scope-mismatch")
+                return _recover(queue, journal, writer, record, healthy)
             if allow_write is not True:
                 return _hold("new-release-writes-disabled")
             decision = evidence(number, head)
@@ -105,6 +133,8 @@ def run_iteration(queue, journal, evidence, writer, *, allow_write=False):
                     or not _sha(decision.get("base")) or decision.get("target") != "main"
                     or not _text(decision.get("release_key"))):
                 return _hold("missing-or-inexact-locked-evidence")
+            if expected_intent is not None and not _matches(decision, expected_intent):
+                return _hold("first-card-proof-scope-mismatch")
             if not _current(queue, number, head):
                 return _hold("admission-changed-during-evidence-read")
             record = {field: decision[field] for field in IDENTITY}
@@ -120,6 +150,6 @@ def run_iteration(queue, journal, evidence, writer, *, allow_write=False):
                 # Unknown response or transport failure is reconciled using
                 # independent proof. The durable reservation is never cleared.
                 pass
-            return _recover(queue, journal, writer, record)
+            return _recover(queue, journal, writer, record, healthy)
     except Exception:
         return _hold("locked-queue-iteration-failed")

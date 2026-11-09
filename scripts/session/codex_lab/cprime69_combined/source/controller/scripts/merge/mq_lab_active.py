@@ -84,7 +84,7 @@ def admit(queue, intent, verify):
         return _hold("canonical-admission-failed")
 
 
-def run_once(queue, journal, verify, writer, *, allow_write=False):
+def run_once(queue, journal, verify, writer, *, allow_write=False, healthy=None, expected_intent=None):
     """Reuse the runtime's single lock and reservation recovery without resend."""
     def evidence(number, head):
         # run_iteration invokes this under its lock only for a new request.
@@ -95,4 +95,4 @@ def run_once(queue, journal, verify, writer, *, allow_write=False):
             return _hold("missing-or-inexact-final-proof")
         return {field: proof[field] for field in (*IDENTITY, "action", "reason", "release_key")}
 
-    return run_iteration(queue, journal, evidence, writer, allow_write=allow_write)
+    return run_iteration(queue, journal, evidence, writer, allow_write=allow_write, healthy=healthy, expected_intent=expected_intent)
