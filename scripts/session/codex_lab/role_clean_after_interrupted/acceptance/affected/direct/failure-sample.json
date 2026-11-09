@@ -1,0 +1,48 @@
+{
+  "actual_fixed_read_calls": 0,
+  "actual_incremental_declarations": [
+    {
+      "definitions": [
+        {
+          "members": [
+            "exec",
+            "wait"
+          ],
+          "name": "functions",
+          "type": "namespace"
+        },
+        {
+          "members": [
+            "followup_task",
+            "interrupt_agent",
+            "list_agents",
+            "send_message",
+            "spawn_agent",
+            "wait_agent"
+          ],
+          "name": "collaboration",
+          "type": "namespace"
+        }
+      ]
+    }
+  ],
+  "broker_tool_operations": 0,
+  "model_tool_requests": [
+    {
+      "name": "exec",
+      "type": "custom_tool_call"
+    }
+  ],
+  "registered_tool": [
+    [
+      "lab_read_assignment"
+    ]
+  ],
+  "thread_id": "synthetic-thread",
+  "tool_result_classification": [
+    {
+      "reported_error": true
+    }
+  ],
+  "turn_id": "synthetic-turn"
+}
