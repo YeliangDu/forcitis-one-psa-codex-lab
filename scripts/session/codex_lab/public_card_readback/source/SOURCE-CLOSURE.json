@@ -28,7 +28,7 @@
     "portable_broker.py": "e6aaf10b269d9d38ac9dbae8f08086105fd94d885194b1a986b8545b4f720661",
     "portable_config.py": "ef79262cd962cb580d9eca12f09cd76293315f555476a2dbdb3dc607d226b403",
     "private_resources.py": "0b8409f3ea7c4f14eca9bd783dd76db2958be7c826edc08a6aa631abae4bf126",
-    "public_card.py": "0acc624c1fba1e132592930099cbdba74c02df6cedafc859d4ea9d9dfbcf0d7f",
+    "public_card.py": "796e00f741d1750f768400e73904c4df0e348f377cc83ecf8e8c215449fff301",
     "readonly_plan_consumer.py": "62aac50be8802351a8ae79e592c0e6e8f04bb943dbc54573221efb1b47f473af",
     "reconnect_observe.py": "bdc7ed4273e1f96fb1b7d0e2e5d464ac50235fa3ee8314c1c4296fa4e0da30dc",
     "role_initialization.py": "98fc43b134381b517359e74420c2d8f1133e89f9db8919bebc378699df7cb83e",

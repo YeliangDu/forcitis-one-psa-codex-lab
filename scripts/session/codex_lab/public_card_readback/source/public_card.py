@@ -93,6 +93,9 @@ class GitHubPort:
         need((number,head,title,body)==(self.s['number'],self.s['head'],self.s['title'],self.s['body']),'card-ready-send-scope')
         raw=self.api('/pulls/'+str(number));row=self.normalize(raw)
         need(self.ref(self.s['branch'])==head and row['head']['sha']==head
+             and row['number']==number and row['state']=='open' and row['title']==title
+             and row['head']==dict(ref=self.s['branch'],sha=head)
+             and row['base']==dict(ref='main',sha=self.s['base'])
              and row['draft'] is True and row['body']==self.s['previous_body'],'card-ready-preimage-moved')
         query='mutation($id:ID!,$t:String!,$b:String!){u:updatePullRequest(input:{pullRequestId:$id,title:$t,body:$b}){pullRequest{id}} r:markPullRequestReadyForReview(input:{pullRequestId:$id}){pullRequest{id}}}'
         args=['/opt/homebrew/bin/gh','api','--hostname','github.com','--method','POST','graphql','--input','-']
@@ -177,7 +180,7 @@ def apply_native_patch(store,auth,scope,patch_sha256,i):
             record=decode(prior['target'])
             need(record['patch_sha256']==patch_sha256 and prior['issue_count']==1,'card-patch-replay-conflict')
     if prior:
-        need(port.git('rev-parse','HEAD')==record['H'] and not port.git('status','--porcelain','--untracked-files=all'),
+        need(port.git('rev-parse','--abbrev-ref','HEAD')=='HEAD' and port.git('rev-parse','HEAD')==record['H'] and not port.git('status','--porcelain','--untracked-files=all'),
              'card-patch-apply-unknown-readback-only')
         with store.tx() as db:
             if prior['phase']=='unknown':
@@ -187,7 +190,7 @@ def apply_native_patch(store,auth,scope,patch_sha256,i):
     raw=private_file(str(i.root/'owner/card-capsule.json'),196608)
     result=card_capsule.prepare_edits(body,raw,patch['scope_sha256'],patch['proposal'])
     files=card_capsule.parse(body,raw,patch['scope_sha256'])
-    need(port.git('rev-parse','HEAD')==s['base'] and port.git('status','--porcelain','--untracked-files=all').splitlines()
+    need(port.git('rev-parse','--abbrev-ref','HEAD')=='HEAD' and port.git('rev-parse','HEAD')==s['base'] and port.git('status','--porcelain','--untracked-files=all').splitlines()
          ==['?? '+scope['test_path']],'card-patch-worktree-not-exact-B')
     test=physical(str(port.cwd/scope['test_path']))
     need(port.git('hash-object',str(test))==scope['test_blob'],'card-frozen-worktree-test-drift')
@@ -213,11 +216,13 @@ def apply_native_patch(store,auth,scope,patch_sha256,i):
         db.execute('insert into effects(effect_id,revision,generation,operation_key,kind,target,phase,issue_count) values(?,?,?,?,?,?,?,1)',
                    (eid,patch['revision'],own['generation'],key,'card-patch-apply',wire(record),'unknown'))
         store.event(db,'card-patch-apply-consumed',dict(effect_id=eid,**record))
+    need(port.git('rev-parse','--abbrev-ref','HEAD')=='HEAD' and port.git('rev-parse','HEAD')==s['base'],'card-detached-preimage-moved-before-apply')
     for p,text in result.items():
         f=physical(str(port.cwd/p));need(f.read_bytes()==files[p]['text'].encode(),'card-patch-preimage-moved')
         fd=os.open(str(f.with_name('.lab-card-next-'+f.name)),os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o644)
         with os.fdopen(fd,'wb') as handle:handle.write(text.encode());handle.flush();os.fsync(handle.fileno())
         os.replace(f.with_name('.lab-card-next-'+f.name),f)
+    need(port.git('rev-parse','--abbrev-ref','HEAD')=='HEAD' and port.git('rev-parse','HEAD')==s['base'],'card-detached-preimage-moved-before-reset')
     port.git('reset','--mixed',head)
     need(port.git('rev-parse','HEAD')==head and not port.git('status','--porcelain','--untracked-files=all'),'card-patch-postcondition-unproved')
     with store.tx() as db:
