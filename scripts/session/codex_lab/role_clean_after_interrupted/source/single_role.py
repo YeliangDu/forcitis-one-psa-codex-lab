@@ -16,6 +16,7 @@ from runtime_store import Store, need, wire
 from role_network import MODEL, relay
 import role_native
 import role_initialization
+import role_interrupted
 from first_launch import FirstLaunch, require_resume, require_stable
 from role_replacement import retire_failed_role, retire_and_reserve, bind_replacement
 
@@ -25,7 +26,7 @@ class RoleWireError(RuntimeError):
 
 
 ROLE_COMMANDS={'assignment.publish','assignment.revoke','role.register','role.resume',
-               'role.dispatch-current','role.readback-current','role.reconcile-failed-current','role.retire-failed','role.replace-retired','role.initialize-unpersisted'}
+               'role.dispatch-current','role.readback-current','role.reconcile-failed-current','role.retire-failed','role.replace-retired','role.initialize-unpersisted','role.replace-interrupted'}
 
 FAILED_PROOF_SHA='5327bf6b30b1e2dd70031bd4ccbbc870a449db77a3d945f68a43792bd64290d0'
 RECONCILE_FIELDS=('epoch','revision','thread_id','turn_id','failure_sha256')
@@ -248,6 +249,8 @@ class SingleRoleBroker(OwnedBroker):
                 fields(args,RECONCILE_FIELDS)
             elif command in ('role.retire-failed','role.replace-retired'):
                 fields(args,('epoch','old_thread_id'))
+            elif command=='role.replace-interrupted':
+                fields(args,('epoch',*role_interrupted.ARGUMENTS))
             elif command=='role.initialize-unpersisted':
                 fields(args,('epoch','previous_thread_id'))
             else:
@@ -255,6 +258,9 @@ class SingleRoleBroker(OwnedBroker):
             need(ch and args['epoch']==ch.epoch and self.state=='running'
                  and identity==self.epoch_owner and not ch.closed(),'stale-role-connection')
             try:
+                if command=='role.replace-interrupted':
+                    need(self.i.is_native,'official-native-interrupted-replacement-only')
+                    return self.replace_interrupted(ch,auth,identity,{k:args[k] for k in role_interrupted.ARGUMENTS})
                 if command=='role.initialize-unpersisted':
                     need(self.i.is_native,'official-native-initialization-only')
                     return self.reinitialize(ch,auth,identity,args['previous_thread_id'])
@@ -284,6 +290,24 @@ class SingleRoleBroker(OwnedBroker):
         need(ch is self.channel and not ch.closed() and receipt==f'{ch.epoch}:{ch.seq}'
              and identity==self.epoch_owner,'unmatched-initialization-receipt')
         self.first_launch.issue(thread_id=tid,receipt_id=receipt,connection=ch,epoch=ch.epoch,owner=identity)
+
+    def replace_interrupted(self,ch,auth,identity,arguments):
+        old=canonical_uuid(arguments['thread_id'])
+        raw,_=role_native.persisted_declarations(self.i,old)
+        role_interrupted.prepare_replacement(self.store,auth,arguments,raw,ch.epoch)
+        self.attached=None
+        ch.context=None
+        ch.pending=None
+        receipt,result=ch.rpc('thread/start',dict(cwd=str(self.i.cwd),approvalPolicy='never',
+                    permissions=':read-only',ephemeral=False,environments=[],dynamicTools=[TOOL],
+                    config={'features.shell_tool':False}),self.i.timeout['startup_ms'])
+        tid=self.thread(result)['id']
+        need(ch is self.channel and not ch.closed() and receipt==f'{ch.epoch}:{ch.seq}'
+             and identity==self.epoch_owner,'unmatched-interrupted-replacement-receipt')
+        value=role_interrupted.bind_replacement(self.store,auth,arguments,ch.epoch,tid,receipt)
+        self.attached=(ch.epoch,tid)
+        self.first_receipt(ch,identity,tid,receipt)
+        return dict(value,action='initialized-provisional')
 
     def reinitialize(self,ch,auth,identity,previous):
         role_initialization.prepare(self.store,auth,previous,ch.epoch,

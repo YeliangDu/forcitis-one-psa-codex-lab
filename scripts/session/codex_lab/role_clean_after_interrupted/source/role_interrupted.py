@@ -110,16 +110,20 @@ def fence_interrupted(store,auth,arguments,rollout_raw):
             need(receipt and receipt['revision']==a['revision'],'interrupted-fence-mismatch')
             revoking,fenced=receipt['revoking_seq'],receipt['fenced_seq']
         else:
-            fenced=task['fence_seq']
-            need(type(fenced) is int and fenced>sequence+1,'interrupted-fence-sequence-mismatch')
-            revoking=fenced-1
-            rows=db.execute('select kind,body from events where seq in (?,?) order by seq',(revoking,fenced)).fetchall()
-            need([(r['kind'],decode(r['body'])) for r in rows]==[
-                ('assignment-revoking',dict(revision=a['revision'],reason=FENCE_REASON)),
-                ('execution-fenced',dict(revision=a['revision']))],'interrupted-fence-replay-mismatch')
+            revoking,fenced=read_interrupted_fence(db,task,sequence,a['revision'])
         return dict(action='interrupted-assignment-fenced',revision=a['revision'],observation_seq=sequence,
                     revoking_seq=revoking,fenced_seq=fenced)
 
+
+def read_interrupted_fence(db,task,sequence,revision):
+    fenced=task['fence_seq']
+    need(type(fenced) is int and fenced>sequence+1,'interrupted-fence-sequence-mismatch')
+    revoking=fenced-1
+    rows=db.execute('select kind,body from events where seq in (?,?) order by seq',(revoking,fenced)).fetchall()
+    need([(r['kind'],decode(r['body'])) for r in rows]==[
+        ('assignment-revoking',dict(revision=revision,reason=FENCE_REASON)),
+        ('execution-fenced',dict(revision=revision))],'interrupted-fence-replay-mismatch')
+    return revoking,fenced
 
 def run_owned_interrupted(installation,installation_pin,request,role_installation,role_pin):
     from single_role import RoleInstallation,TaskStore
@@ -148,3 +152,67 @@ def run_owned_interrupted(installation,installation_pin,request,role_installatio
         finally:store.db.close()
         print(wire(result))
     return 0
+
+
+REPLACEMENT_RESERVED='role-interrupted-replacement-reserved'
+REPLACEMENT_BOUND='role-interrupted-replacement-bound'
+
+
+def one_replacement_event(db,kind):
+    found=db.execute('select seq,body from events where kind=? order by seq',(kind,)).fetchall()
+    need(len(found)<=1,'interrupted-replacement-receipt-not-unique')
+    return (found[0]['seq'],decode(found[0]['body'])) if found else None
+
+
+def prepare_replacement(store,auth,arguments,rollout_raw,epoch):
+    import uuid
+    proof=validate_rollout(arguments,rollout_raw)
+    with store.tx() as db:
+        task,turn,body,sequence=binding(store,db,auth,arguments,proof)
+        need((type(epoch) is str and bool(epoch) or type(epoch) is int and epoch>0)
+             and epoch not in (body['dispatch_connection_id'],body['capability_epoch'])
+             and task['phase']=='fenced' and turn['state']=='terminal' and sequence is not None
+             and one_replacement_event(db,REPLACEMENT_RESERVED) is None
+             and one_replacement_event(db,REPLACEMENT_BOUND) is None,
+             'one-shot-interrupted-replacement-not-eligible')
+        _,fenced=read_interrupted_fence(db,task,sequence,arguments['revision'])
+        reg=db.execute('select * from role_registration where id=1').fetchone()
+        archive=store.event(db,'role-registration-archived',dict(registration=dict(reg),
+            old_thread=arguments['thread_id'],revision=arguments['revision'],reason='reconciled-interrupted',
+            native_status='interrupted',observation_sequence=sequence,fenced_sequence=fenced))
+        reservation=uuid.uuid4().hex
+        reserved=store.event(db,REPLACEMENT_RESERVED,dict(evidence=arguments,epoch=epoch,
+             generation=body['owner_generation'],owner_client=body['owner_client'],
+             archive_sequence=archive,reservation=reservation,fenced_sequence=fenced))
+        db.execute("update role_registration set phase='retired' where id=1")
+        return dict(action='interrupted-replacement-reserved',reservation_seq=reserved)
+
+
+def bind_replacement(store,auth,arguments,epoch,thread_id,receipt_id):
+    fields(arguments,ARGUMENTS)
+    tid=canonical_uuid(thread_id)
+    old=canonical_uuid(arguments['thread_id'])
+    need(tid!=old and type(receipt_id) is str and 0<len(receipt_id)<=256,'interrupted-replacement-reply-required')
+    with store.tx() as db:
+        fields(auth,('client','generation','token'))
+        owner=store.owner(db,auth)
+        pending=one_replacement_event(db,REPLACEMENT_RESERVED)
+        reg=db.execute('select * from role_registration where id=1').fetchone()
+        task=store.current(db)
+        need(owner['paused']==1 and pending and not one_replacement_event(db,REPLACEMENT_BOUND)
+             and reg and reg['phase']=='retired' and reg['session_id']==old
+             and reg['generation']==owner['generation']==pending[1]['generation']
+             and owner['client']==pending[1]['owner_client'] and epoch==pending[1]['epoch']
+             and pending[1]['evidence']==arguments and task and task['phase']=='fenced'
+             and task['revision']==arguments['revision'] and task['fence_seq']==pending[1]['fenced_sequence'],
+             'interrupted-replacement-reservation-mismatch')
+        history=db.execute("select body from events where kind in ('role-registration-archived','role-initialization-abandoned-provisional')").fetchall()
+        need(all(decode(x['body'])['registration']['session_id']!=tid for x in history)
+             and not db.execute('select 1 from native_dispatch where session_id=?',(tid,)).fetchone(),
+             'retired-native-identity-cannot-return')
+        db.execute("""update role_registration set effect_id=?,phase='provisional',session_id=?,
+                    first_turn_id=null,readback_sha256=null where id=1""",(pending[1]['reservation'],tid))
+        seq=store.event(db,REPLACEMENT_BOUND,dict(old_thread=old,new_thread=tid,epoch=epoch,
+             generation=owner['generation'],native_reply_id=receipt_id,reservation_sequence=pending[0]))
+        return dict(action='interrupted-replacement-bound',thread_id=tid,previous_thread_id=old,
+                    epoch=epoch,native_reply_id=receipt_id,sequence=seq)
