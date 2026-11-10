@@ -228,12 +228,45 @@ class NamingSurfaceTest {
                 .map(l -> l.split("#")[0].trim()).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
+    /** Signed F1 recognizes one migration folder without claiming a runtime module. */
+    static Set<String> schemaOnlyMigrationSchemas(Map<?, ?> root) {
+        if (root == null || !(root.get("contexts") instanceof List<?> contexts)) {
+            return Set.of();
+        }
+        Map<?, ?> selected = null;
+        for (Object value : contexts) {
+            if (!(value instanceof Map<?, ?> context)) {
+                return Set.of();
+            }
+            if ("operations.facts".equals(context.get("id"))
+                    || "operations_facts".equals(context.get("schema"))
+                    || context.containsKey("migration_stage")) {
+                if (selected != null) {
+                    return Set.of();
+                }
+                selected = context;
+            }
+        }
+        Map<String, String> exact = Map.of("kind", "schema-only", "slice", "F1",
+                "schema", "operations_facts", "signed_review", "docs/data/reviews/accounting-spine-f1.md");
+        return selected != null && "operations.facts".equals(selected.get("id"))
+                && "planned".equals(selected.get("status"))
+                && "operations_facts".equals(selected.get("schema"))
+                && exact.equals(selected.get("migration_stage")) ? Set.of("operations_facts") : Set.of();
+    }
+
     @Test
     void flywayFilesAreTimestampModuleEnglishSnakeCaseInTheModuleFolder() throws IOException {
         List<String> problems = new ArrayList<>();
         Map<String, Path> versions = new LinkedHashMap<>();
         Set<String> schemas = MODULES.keySet().stream().filter(m -> m.contains(".")).map(m -> m.replace('.', '_'))
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+        try (java.io.InputStream in = Files.newInputStream(Path.of("../docs/architecture/ssot/domain/contexts.yaml"))) {
+            Object contexts = new org.yaml.snakeyaml.Yaml().load(in);
+            if (contexts instanceof Map<?, ?> root) {
+                schemas.addAll(schemaOnlyMigrationSchemas(root));
+            }
+        }
         Set<String> retired = retiredSchemas();
         schemas.addAll(retired);
         boolean baselineOpen = Files.exists(Path.of("architecture/migration-baseline-open"));

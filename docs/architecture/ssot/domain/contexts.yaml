@@ -306,6 +306,11 @@ contexts:
   kind: business
   status: planned
   schema: operations_facts
+  migration_stage:
+    kind: schema-only
+    slice: F1
+    schema: operations_facts
+    signed_review: docs/data/reviews/accounting-spine-f1.md
   blueprint_bc: BC-08
   legacy_bc: 经营事实与归属 BC
   responsibility: 经营事实认定入台账与多维归属（默认订阅全量事件，不重新解释上游事实）
