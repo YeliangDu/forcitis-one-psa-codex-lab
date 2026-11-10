@@ -106,7 +106,8 @@ class GitHubPort:
 def publication(installation,installation_pin,request,role_installation,role_pin,scope_path,scope_pin):
     from single_role import RoleInstallation,TaskStore
     i=RoleInstallation(installation,installation_pin,role_installation,role_pin)
-    need(i.is_native and i.root==Path('/private/tmp/lab60-owned-single-role-v1'),'card-owned-installation-required')
+    from durable_role import canonical, exclusive
+    need(i.is_native and canonical(i.root)==i.root,'card-owned-installation-required')
     scope_file=physical(scope_path)
     need(scope_file.parent==i.root/'owner','card-publication-scope-location')
     raw=private_file(str(scope_file));need(sha(raw)==scope_pin,'card-publication-scope-pin')
@@ -115,11 +116,8 @@ def publication(installation,installation_pin,request,role_installation,role_pin
     s=scope['subject'];validate({k:s[k] for k in __import__('first_publication').FIELDS})
     need(s['repo_id']==RID and s['repository']==REPO and s['branch'].startswith('codex/'+str(s['card'])+'-')
          and s['body'].splitlines()[0]==f"Refs #{s['card']}",'card-native-publication-scope')
-    lock=i.runtime/'owned.lock';info=private(lock,stat.S_ISREG)
-    with os.fdopen(os.open(lock,os.O_RDONLY|os.O_NOFOLLOW),'rb') as h:
-        fcntl.flock(h,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        cur=os.fstat(h.fileno())
-        need((cur.st_dev,cur.st_ino)==(info.st_dev,info.st_ino) and not i.sock.exists() and not i.sock.is_symlink(),'card-owned-runtime-active')
+    with exclusive(i.root):
+        need(not i.sock.exists() and not i.sock.is_symlink(),'card-owned-runtime-active')
         rp=physical(request);need(rp.parent==i.root,'card-private-request-location')
         req=decode(private_file(str(rp)));fields(req,('command','auth','arguments'))
         need(req['command'] in ('publication.ref','publication.pr','followup.ref','followup.pr','card.apply'),'card-publication-command-scope')

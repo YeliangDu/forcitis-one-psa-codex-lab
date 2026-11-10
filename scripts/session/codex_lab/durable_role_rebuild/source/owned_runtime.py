@@ -317,25 +317,41 @@ class OwnedBroker:
 
 def run(mode,path,pin,request,*,installation_factory=Installation,broker_factory=OwnedBroker):
     i=installation_factory(path,pin)
+    # Darwin's UNIX address limit must not force persistent state into /tmp.
+    durable=getattr(i,'is_native',False)
+    address=str(i.sock)
+    if durable:
+        from durable_role import canonical
+        need(canonical(i.root)==i.root and Path.cwd()==i.root,'durable-owned-entry-cwd-required')
+        address=i.sock.relative_to(i.root).as_posix()
     if mode=='call-owned':
         need(request is not None and physical(request).parent==i.root,'owned-request-required')
         private(i.sock,stat.S_ISSOCK)
         value=decode(private_file(request))
         with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as client:
-            client.settimeout(15);client.connect(str(i.sock));send(client,value)
+            client.settimeout(15);client.connect(address);send(client,value)
             print(json.dumps(message(client),sort_keys=True))
         return 0
     need(mode=='serve-owned' and request is None,'owned-serve-arguments')
     os.umask(0o077)
-    lock=i.runtime/'owned.lock'
-    fd=os.open(lock,os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW,0o600)
-    try:
-        private(lock,stat.S_ISREG)
-        fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    from contextlib import contextmanager
+    from durable_role import exclusive
+
+    @contextmanager
+    def existing_fixture_lock():
+        lock=i.runtime/'owned.lock'
+        fd=os.open(lock,os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW,0o600)
+        try:
+            private(lock,stat.S_ISREG)
+            fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+            yield fd
+        finally:os.close(fd)
+
+    with (exclusive(i.root) if durable else existing_fixture_lock()):
         need(not i.sock.exists() and not i.sock.is_symlink(),'stale-owned-socket')
         broker=broker_factory(i)
         try:
-            with i.serve_context(), Server(str(i.sock),Handler) as server:
+            with i.serve_context(), Server(address,Handler) as server:
                 os.chmod(i.sock,0o600);before=private(i.sock,stat.S_ISSOCK)
                 server.broker=broker
                 try:server.serve_forever(poll_interval=.1)
@@ -345,4 +361,3 @@ def run(mode,path,pin,request,*,installation_factory=Installation,broker_factory
                     if (current.st_dev,current.st_ino)==(before.st_dev,before.st_ino):i.sock.unlink()
         finally:broker.close()
         return 0
-    finally:os.close(fd)

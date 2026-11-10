@@ -21,7 +21,9 @@ CATALOG_SHA='d3abd842194800885cfdf099354dd2b7ef0c8d489d35fd90b8272cb190194703'
 def policy_additions(root):
     return ('\n(allow network-outbound (remote ip "localhost:'+str(PORT)+'"))\n'
             '(deny file-write* (subpath "'+str(root/'work')+'"))\n'
-            '(deny file-read-data (literal "'+str(root/'work/assignment.json')+'"))\n').encode()
+            '(deny file-read-data (literal "'+str(root/'work/assignment.json')+'"))\n'
+            '(deny file-read* file-write* (subpath "'+str(root/'credentials')+'") '
+            '(subpath "'+str(root/'owner')+'"))\n').encode()
 
 def environment(root):
     return dict(PATH='/usr/bin:/bin',HOME=str(root/'home'),TMPDIR=str(root/'tmp'),LANG='en_US.UTF-8',
@@ -37,8 +39,9 @@ def expected_config(root):
 def check_native(i):
     argv,pins,env=(i.child[k] for k in ('argv','files_sha256','environment'))
     root=i.root
-    need(sys.platform=='darwin' and root==Path('/private/tmp/lab60-owned-single-role-v1'),
-         'reviewed-single-role-slot-required')
+    from durable_role import canonical
+    need(sys.platform=='darwin' and root.name=='one-readonly-lab' and canonical(root)==root,
+         'reviewed-durable-single-role-slot-required')
     need(type(argv) is list and len(argv)==10 and argv[:3]==['/usr/bin/sandbox-exec','-f',str(root/'runtime.sb')]
          and argv[4:]==['app-server','--listen','stdio://','--strict-config','-c',
                          'cli_auth_credentials_store="file"'],'single-role-strict-native-argv')

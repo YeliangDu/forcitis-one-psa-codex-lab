@@ -71,12 +71,9 @@ def plan_owned(installation,installation_pin,request,role_installation,role_pin,
     req_path=physical(request);need(req_path.parent==i.root,'plan-private-request-location')
     req=decode(private_file(str(req_path)));fields(req,('command','auth','arguments'))
     need(req['command']=='card.plan','plan-readonly-command-only');fields(req['arguments'],('revision',))
-    lock=i.runtime/'owned.lock';st=private(lock,stat.S_ISREG)
-    with os.fdopen(os.open(lock,os.O_RDONLY|os.O_NOFOLLOW),'rb') as h:
-        fcntl.flock(h,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        current=os.fstat(h.fileno())
-        need((current.st_dev,current.st_ino)==(st.st_dev,st.st_ino) and not i.sock.exists() and not i.sock.is_symlink(),
-             'plan-active-owned-channel')
+    from durable_role import exclusive
+    with exclusive(i.root):
+        need(not i.sock.exists() and not i.sock.is_symlink(),'plan-active-owned-channel')
         store=TaskStore(i)
         try:
             with store.tx() as db:
