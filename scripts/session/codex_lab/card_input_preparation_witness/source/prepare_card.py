@@ -178,8 +178,10 @@ def delivery_inputs(repo,b,role_ids,base,observed_base,mode,meta):
              and re.match(r'^\**APPROVE\b',text) and head in text and base in text
              and row['commit_id']==head and row['state'] in ('APPROVED','COMMENTED')
              and type(row['id']) is int and row['id']>0
-             and ('复审者：'+who) in row['body'].splitlines()
-             and ('commit：'+head) in row['body'].splitlines(),'independent-review-drift:'+stage)
+             and [v for v in row['body'].splitlines() if v.startswith('复审结论：')]==['复审结论：通过']
+             and [v for v in row['body'].splitlines() if v.startswith('复审者：')]==['复审者：'+who]
+             and [v for v in row['body'].splitlines() if v.startswith('commit：')]==['commit：'+head],
+             'independent-review-drift:'+stage)
         observed[stage]=(session,who,row['id'])
     need(len({v[0] for v in observed.values()})==len({v[2] for v in observed.values()})==2,'reviews-not-independent')
     subject=dict(number=n,head=head,base=base,target='main')
@@ -236,8 +238,10 @@ def build(b,repo,mode,observed_base):
          and not re.search(r'[（(]#\d+[）)]$',issue_title),'invalid-signed-issue-title')
     need(type(description) is str and description.strip() and '\0' not in description and len(description)<=2048,'missing-or-invalid-scope-description')
     title=f'{issue_title}（#{card}）'
+    need(set(b['metadata'])<={'title','body'},'unknown-pr-metadata-field')
     need(b['metadata'].get('title',title)==title,'proposed-title-mismatch')
     meta=dict(title=title,body=f'Refs #{card}\n\nCodex: {author}\nCodex-Acceptance: {tester}\n')
+    need(b['metadata'].get('body',meta['body'])==meta['body'],'proposed-body-mismatch')
     read_paths,write_paths=scope['read'],scope['write'];tests=a['files']
     need(type(tests) is dict and tests and all(safe_path(p) and TEST.match(p) and digest(h,64) for p,h in tests.items()),'missing-or-invalid-frozen-tests')
     need(type(read_paths) is type(write_paths) is list and all(safe_path(p) for p in read_paths+write_paths)
@@ -271,7 +275,7 @@ def build(b,repo,mode,observed_base):
     capsule=dict(ident,files=files)
     capsule_raw=wire(capsule)+b'\n';need(len(capsule_raw)<=196608,'capsule-byte-limit')
     task=dict(ident,role='one-readonly-lab',physical_cwd=work,task=description,A=A,H=A)
-    assignment=dict(task,task='card-capsule:'+sha(capsule_raw))
+    assignment=dict(task,task='card-capsule:'+sha(capsule_raw)) if brief is not None else None
     result=dict(kind='lab-card-preparation-v1',mode=mode,task=task,capsule=capsule,assignment=assignment,
                 capsule_sha256=sha(capsule_raw),capsule_wire=capsule_raw.decode('ascii'),metadata=meta,
                 patch_preconditions={r['path']:r['sha256'] for r in files if r['writable']},
@@ -283,8 +287,19 @@ def build(b,repo,mode,observed_base):
     return result
 
 
-def write_once(output,result):
-    need(output.parent.resolve(strict=True)==output.parent,'output-parent-not-physical')
+def output_fence(repo,output):
+    need(repo.is_absolute() and repo.resolve(strict=True)==repo and output.is_absolute(),'nonphysical-output-or-repo')
+    if (repo/'.codex-lab/role-runtime/slots/one-readonly-lab').is_dir():
+        parent=repo/'.codex-lab/operations-v1/prepared'
+    else:
+        need(repo.name=='work' and repo.parent.name=='slot','invalid-disposable-repo-boundary')
+        parent=repo.parents[1]
+    need(output.parent==parent and parent.resolve(strict=True)==parent
+         and not output.is_relative_to(repo),'output-must-be-an-isolated-prepare-directory')
+
+
+def write_once(repo,output,result):
+    output_fence(repo,output)
     try: output.mkdir(mode=0o700)
     except FileExistsError: pass
     need(output.resolve(strict=True)==output and output.is_dir(),'invalid-output-directory')
@@ -306,7 +321,7 @@ def write_once(output,result):
 def prepare(bundle,repo,output,*,mode,observed_base):
     try:
         result=build(bundle,Path(repo),mode,observed_base)
-        action=write_once(Path(output),result)
+        action=write_once(Path(repo),Path(output),result)
         return dict(action=action,reason='exact-input-checked',bundle_sha256=sha(wire(result)+b'\n'))
     except (ValueError,KeyError,TypeError,OSError,AttributeError,subprocess.SubprocessError) as e:
         result=dict(action='hold',reason='missing-field:'+str(e) if isinstance(e,KeyError) else str(e))
@@ -352,6 +367,8 @@ def main():
              and sha(issue['body'].encode())==b['scope']['issue_body_sha256']
              and issue['state']==('closed' if args.mode=='replay' else 'open'),'signed-issue-drift')
         need(b['workdir']==str(root/'.codex-lab/role-runtime/slots/one-readonly-lab/work'),'role-workdir-drift')
+        need(args.mode!='live' or not b['scope']['write'] or b['scope'].get('brief_path') is not None,
+             'missing-field:scope.brief_path')
         if 'delivery' in b:
             d=b['delivery'];pr=gh('/pulls/'+str(d['pr']['number']))
             for key in ('number','head','base','title','body','labels','state','draft','merged','merge_commit_sha'):
@@ -378,7 +395,7 @@ def main():
         need(args.authorization is None or (args.mode=='live' and 'delivery' in b),'authorization-not-allowed-for-mode')
         value=build(b,root,args.mode,base)
         need(gh('/git/ref/heads/main')['object']['sha']==base,'main-moved-during-preparation')
-        action=write_once(output,value)
+        action=write_once(root,output,value)
         result=dict(action=action,reason='exact-input-checked',bundle_sha256=sha(wire(value)+b'\n'))
     except (ValueError,KeyError,TypeError,OSError,AttributeError,subprocess.SubprocessError) as e:
         result=dict(action='hold',reason='missing-field:'+str(e) if isinstance(e,KeyError) else str(e))
