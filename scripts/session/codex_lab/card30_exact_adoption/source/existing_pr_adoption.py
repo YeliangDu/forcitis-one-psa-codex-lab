@@ -21,6 +21,52 @@ RECORD_KIND="observe-and-adopt-existing-pr"
 UPDATE_KIND="adopted-pr-ref-update"
 
 
+EXACT_F1_UPDATE_PIN = '06c95ac797ad6349fa38a8a7f4a759d8e085e340cdf00ec1228ea6d8c740a40c'
+
+
+def f1_update_input(cfg, sc):
+    approval = cfg.get('approved_update')
+    need(type(approval) is dict and sha(wire(approval).encode()) == EXACT_F1_UPDATE_PIN
+         and approval['head'] == cfg['candidate'] and approval['base'] == sc['new_base']
+         and approval['scope_sha256'] == sc['scope_sha256']
+         and approval['original_diff_sha256'] == sc['approval']['contribution_sha256'],
+         'exact-f1-update-approval-required')
+    for field in ('normalized_contribution', 'normalized_commit_evidence'):
+        need(type(cfg.get(field)) is dict
+             and sha(wire(cfg[field]).encode()) == approval[field + '_sha256'],
+             'exact-f1-contribution-evidence-drift')
+    return approval
+
+
+def verify_f1_update(sc, cfg, port, original, candidate, approval):
+    head, base = approval['head'], approval['base']
+    need(sha(wire(original).encode()) == approval['original_diff_sha256']
+         and sha(wire(candidate).encode()) == approval['candidate_diff_sha256']
+         and cfg['files'] == [x['path'] for x in original['files']]
+         and cfg['test_path'] == 'backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsDmlRoleIT.java'
+         and port.git('rev-parse', head + '^{tree}') == approval['tree'],
+         'exact-f1-file-inventory-or-tree-drift')
+    port.git('merge-base', '--is-ancestor', base, head)
+    mapping, evidence = cfg['normalized_contribution'], cfg['normalized_commit_evidence']
+    need((mapping['B'],mapping['H'],mapping['original_head']) == (base,head,sc['old_head'])
+         and (evidence['base'],evidence['head'],evidence['tree']) == (base,head,approval['tree'])
+         and len(mapping['history']) == len(evidence['history']) == 12,
+         'exact-f1-history-scope-drift')
+    for entry, observed in zip(mapping['history'], evidence['history']):
+        need((entry['original'],entry['replayed']) == (observed['original'],observed['replayed']),
+             'exact-f1-history-mapping-drift')
+        for side in ('original','replayed'):
+            record=observed[side + '_metadata']
+            actual=port.git('show','-s','--format=%an%x00%ae%x00%aI%x00%B',observed[side]).split(chr(0),3)
+            expected=[record[k] for k in ('author','email','author_date','message')]
+            need(len(actual)==4 and actual[:3]==expected[:3] and actual[3].rstrip()==expected[3].rstrip(),
+                 'exact-f1-history-metadata-drift')
+    for test in approval['tests']:
+        raw=run(['/usr/bin/git','--no-replace-objects','show',head+':'+test['path']],
+                port.cwd,environment=port.git_env)
+        need(sha(raw)==test['sha256'],'exact-f1-frozen-test-drift')
+
+
 def hexed(v,n):
     return type(v) is str and re.fullmatch(f"[0-9a-f]{{{n}}}",v) is not None
 
@@ -160,6 +206,7 @@ def run_owned(installation,installation_pin,request,role_installation,role_pin,s
 
 def advance(store,auth,cmd,sc,cfg,port):
     validate(sc)
+    f1 = f1_update_input(cfg, sc) if cmd=='adoption.update' and exact_f1(sc) else None
     subject=wire(sc)
     key=f'existing-pr-update:{sc["repo_id"]}:{sc["number"]}:{sc["old_head"]}'
     target=wire(dict(scope=sc,head=cfg["candidate"],revision=cfg["revision"]))
@@ -211,13 +258,16 @@ def advance(store,auth,cmd,sc,cfg,port):
           old_B=sc["old_base"],old_H=sc["old_head"],new_B=sc["new_base"])
         original=port.diff(sc["old_base"],sc["old_head"])
         candidate=port.diff(sc["new_base"],new)
-        paths=[x["path"] for x in original["files"]]
-        need(paths==cfg["files"] and cfg["test_path"] in paths,"existing-pr-signed-file-scope-drift")
-        test=run(["/usr/bin/git","--no-replace-objects","show",new+":"+cfg["test_path"]],port.cwd,environment=port.git_env)
-        need(sha(test)==sc["acceptance_sha256"],"existing-pr-frozen-test-drift")
-        validate_preserved_update(core,dict(core,candidate=dict(head=new,parents=port.git("show","-s","--format=%P",new).split()),
-             original_diff=original,candidate_diff=candidate,pending_effects=[],
-             role_continuity=dict(phase="stable",previous_session_id=sid,current_session_id=sid,observed=True)))
+        if f1 is not None:
+            verify_f1_update(sc,cfg,port,original,candidate,f1)
+        else:
+            paths=[x["path"] for x in original["files"]]
+            need(paths==cfg["files"] and cfg["test_path"] in paths,"existing-pr-signed-file-scope-drift")
+            test=run(["/usr/bin/git","--no-replace-objects","show",new+":"+cfg["test_path"]],port.cwd,environment=port.git_env)
+            need(sha(test)==sc["acceptance_sha256"],"existing-pr-frozen-test-drift")
+            validate_preserved_update(core,dict(core,candidate=dict(head=new,parents=port.git("show","-s","--format=%P",new).split()),
+                 original_diff=original,candidate_diff=candidate,pending_effects=[],
+                 role_continuity=dict(phase="stable",previous_session_id=sid,current_session_id=sid,observed=True)))
         with store.tx() as db:
             o,again=binding(db);need(again is None,"existing-pr-update-already-reserved")
             eid=uuid.uuid4().hex
