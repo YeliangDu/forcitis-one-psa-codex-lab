@@ -1,0 +1,102 @@
+name: Lab card input preparation isolation
+on:
+  push:
+    branches: [codex/60-role-native-replacement]
+    paths: [.github/workflows/lab-60-role-native-replacement.yml]
+permissions: {}
+jobs:
+  acceptance:
+    if: github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' && github.repository_id == '1449415666' && github.ref == 'refs/heads/codex/60-role-native-replacement'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      A: ff8ad51d079efdddc5a4de767d1c8c4f7ec0ad5d
+      B: fd586e0b116ff7b959b7c2674abb488beb37a6b2
+      STAGE: red
+      SOURCE_SHA: d0abd76daa9b8e1bd19a6125df73561d226f9729deb49ba65b16920df9035d0c
+      ACCEPTANCE_SHA: 1fb9c3dc89fa59d97164999c45310b83b2753469b5079c660486dd4287a958bc
+      PACKAGE_PATH: scripts/session/codex_lab/card_input_preparation_witness
+    steps:
+      - name: Fetch exact public head without credentials
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_TERMINAL_PROMPT=0
+          git init .
+          git fetch --no-tags https://github.com/YeliangDu/forcitis-one-psa-codex-lab.git "$GITHUB_SHA"
+          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse "$A^")" = "$B"
+          git merge-base --is-ancestor "$A" "$GITHUB_SHA"
+          test -z "$(git config --local --get-regexp '^http\..*extraheader$' || true)"
+      - name: Export and verify only fixed input files
+        run: |
+          set -euo pipefail
+          export INPUT="$RUNNER_TEMP/owned-runtime-input"
+          mkdir -m 700 "$INPUT"
+          git archive "$GITHUB_SHA:$PACKAGE_PATH" | tar -x -C "$INPUT"
+          python3 -I -B - <<'PY'
+          import hashlib,json,os,subprocess
+          from pathlib import Path,PurePosixPath
+          pins=json.loads('''{"acceptance/DEPENDENCIES.json": "73b10af0a26454487a998f0c6156f61323ab15a87073097f67fb8a263eae537d", "acceptance/guard-source/acceptance_guard.py": "639723bae656206df643b39a5b6ac4caeefa7e8a4d557307e0bb6d530562bd18", "acceptance/guard-source/ci_git.py": "7be2b7d51e88f74cc0e358be3c65e99e97e5b6977d95e09bb3060eae345b3646", "acceptance/historical-evidence.json": "43b2a8b9dec4042b979e99ca28dede0203428365600d8176dd0082608f85a21c", "acceptance/historical-files/6164009844c9f79b2d0f5ba00e0faac285c0f0c1/backend/src/test/java/com/forcitis/one/acceptance/BonusLoginPreparationTest.java": "3fb589e19a7caf66a6937881e93de37bcd44ff6a8b23e153ee2f5e83f2a88e97", "acceptance/historical-files/79dbd28e7cea09ec7f09a8a91fa9379f17d5e069/backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsIntegrityIT.java": "e2d01e6662e4d1bc3fc0515ce138b4bfe9619956cc1befaa925e822373e09b24", "acceptance/historical-files/79dbd28e7cea09ec7f09a8a91fa9379f17d5e069/backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsSchemaIT.java": "c0516cd99bdb447159eba17681bae4ea333f8c2b236f96385cca3a05448d1807", "acceptance/historical-files/9efe404cf8ed91cb59a52a5cac00e07a67e2490e/backend/src/test/java/com/forcitis/one/acceptance/BonusLoginPreparationTest.java": "3fb589e19a7caf66a6937881e93de37bcd44ff6a8b23e153ee2f5e83f2a88e97", "acceptance/historical-files/e1632898a20315ea58f2075de533381c69bc5932/backend/src/test/java/com/forcitis/one/organization/attendance/StandardHoursScopeSerializationIT.java": "672b2efd174ad1d6a0046eec7524faf369f6f5eaef27912dcd23c51e479e8801", "acceptance/history-limits.json": "6059b6282091855d35826c31f76c8b1d4b00816d0e108e70a97ea0849f8c69d2", "acceptance/hosted-driver.py": "4fbe8e7982c62e18384be43c5556e4763f45e4cb248b7ecaf5c6322727c8eea4", "acceptance/manifest.json": "1fb9c3dc89fa59d97164999c45310b83b2753469b5079c660486dd4287a958bc", "acceptance/run_acceptance.py": "d987de81bf9957b054b9809aac4e75347238103d02f380329354530eb1bd9664", "source/SOURCE-CLOSURE.json": "d0abd76daa9b8e1bd19a6125df73561d226f9729deb49ba65b16920df9035d0c", "source/acceptance_guard.py": "639723bae656206df643b39a5b6ac4caeefa7e8a4d557307e0bb6d530562bd18", "source/ci_git.py": "7be2b7d51e88f74cc0e358be3c65e99e97e5b6977d95e09bb3060eae345b3646"}''')
+          p=Path(os.environ['INPUT']).resolve(strict=True)
+          actual={q.relative_to(p).as_posix() for q in p.rglob('*') if q.is_file() or q.is_symlink()}
+          assert actual==set(pins)
+          for n,h in pins.items():
+              r=PurePosixPath(n); assert not r.is_absolute() and '..' not in r.parts
+              q=p/n
+              assert q.resolve(strict=True)==q and q.is_file()
+              assert hashlib.sha256(q.read_bytes()).hexdigest()==h
+          base=os.environ['B']; a=os.environ['A']; head=os.environ['GITHUB_SHA']; prefix=os.environ['PACKAGE_PATH']
+          def git(*args): return subprocess.check_output(['git',*args],text=True).strip()
+          assert git('diff','--name-only',base,a).splitlines()==sorted(prefix+'/'+n for n in pins if n.startswith('acceptance/'))
+          assert git('rev-parse',a+':'+prefix+'/acceptance')==git('rev-parse',head+':'+prefix+'/acceptance')
+          PY
+      - name: Execute independent cases without network or credentials
+        run: |
+          set -euo pipefail
+          e="$RUNNER_TEMP/owned-runtime-evidence"; mkdir -m 700 "$e" "$e/witness"
+          w="$(mktemp -d "$RUNNER_TEMP/owned-runtime-work.XXXXXX")"
+          trap 'rm -rf -- "$w"' EXIT
+          input="$RUNNER_TEMP/owned-runtime-input"
+          printf 'A=%s\nB=%s\nH=%s\nstage=%s\nrun=%s\nattempt=%s\nrunner=%s\nacceptance=%s\nsource=%s\n' \
+            "$A" "$B" "$GITHUB_SHA" "$STAGE" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$RUNNER_ENVIRONMENT" "$ACCEPTANCE_SHA" "$SOURCE_SHA" > "$e/identity.txt"
+          before="$(readlink /proc/self/ns/net)"
+          rc=0
+          sudo -n /usr/bin/unshare --mount --propagation private --net --pid --fork --kill-child --mount-proc -- \
+            /bin/bash --noprofile --norc -euc '
+              package="$1"; work="$2"; evidence="$3"; hostnet="$4"; uid="$5"; gid="$6"; repo="$7"; rid="$8"; source_sha="$9"
+              /usr/bin/mount --bind "$package" "$package"
+              /usr/bin/mount -o remount,bind,ro "$package"
+              test "$(readlink /proc/self/ns/net)" != "$hostnet"
+              /usr/bin/findmnt -n -o VFS-OPTIONS --mountpoint "$package" | grep -Eq "(^|,)ro(,|$)"
+              printf "%s\n" "package_read_only=true" "private_netns=true" > "${evidence%/witness}/isolation.txt"
+              exec /usr/bin/setpriv --reuid "$uid" --regid "$gid" --clear-groups --no-new-privs -- \
+                /usr/bin/env -i PATH=/usr/bin:/bin HOME="$work" TMPDIR="$work" RUNNER_ENVIRONMENT=github-hosted \
+                GITHUB_REPOSITORY="$repo" GITHUB_REPOSITORY_ID="$rid" \
+                /bin/bash --noprofile --norc -euc '"'"'
+                  test "$(id -u)" -ne 0
+                  test "$(ip -o link show | wc -l)" -eq 1
+                  grep -Eq "^NoNewPrivs:[[:space:]]+1$" /proc/self/status
+                  cd "$1"
+                  exec /usr/bin/python3 -I -B "$2/acceptance/hosted-driver.py" --runner-temp "$1" --source-root "$2/source" --evidence-dir "$3" --parent-netns "$4" --source-closure-sha256 "$5" --stage red
+                '"'"' _ "$work" "$package" "$evidence" "$hostnet" "$source_sha"
+            ' _ "$input" "$w" "$e/witness" "$before" "$(id -u)" "$(id -g)" "$GITHUB_REPOSITORY" "$GITHUB_REPOSITORY_ID" "$SOURCE_SHA" > "$w/driver.log" 2>&1 || rc=$?
+          sed -n '1,220p' "$w/driver.log"
+          printf '%s\n' "$rc" > "$e/exit-code.txt"
+          if ! test -s "$e/witness/verdict.json"; then
+            printf 'launcher_or_driver_ended_without_verdict\n' > "$e/setup-status.txt"
+          fi
+          exit "$rc"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: owned-runtime-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/owned-runtime-evidence/identity.txt
+            ${{ runner.temp }}/owned-runtime-evidence/isolation.txt
+            ${{ runner.temp }}/owned-runtime-evidence/exit-code.txt
+            ${{ runner.temp }}/owned-runtime-evidence/setup-status.txt
+            ${{ runner.temp }}/owned-runtime-evidence/witness/verdict.json
+            ${{ runner.temp }}/owned-runtime-evidence/witness/case-observations.json
+          if-no-files-found: error
+          retention-days: 7
