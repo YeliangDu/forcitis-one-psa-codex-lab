@@ -79,8 +79,13 @@ public record PageRequest(int limit, @Nullable String cursorValue) {
     }
 
     public static String encode(String list, String key) {
-        String cursor = Base64.getUrlEncoder().withoutPadding().encodeToString((CURSOR_VERSION + ":" + list + ":" + key).getBytes(StandardCharsets.UTF_8));
+        String text = CURSOR_VERSION + ":" + list + ":" + key;
+        String cursor = Base64.getUrlEncoder().withoutPadding().encodeToString(text.getBytes(StandardCharsets.UTF_8));
         try {
+            // UTF-8 encoding replaces unpaired surrogates; readable replacement text is not a lossless cursor.
+            if (!readText(cursor).equals(text)) {
+                throw new InvalidCursorException("the cursor text cannot be encoded without loss");
+            }
             decode(cursor, list);
         } catch (InvalidCursorException unreadable) {
             LOG.error("ALERT kernel the cursor of list {} cannot be issued: it would not read back ({})", list, unreadable.getMessage());
