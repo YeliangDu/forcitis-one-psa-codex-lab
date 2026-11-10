@@ -285,13 +285,16 @@ class ProductionPorts:
         _require(len(set(identities.values())) == len(identities), "shared-resident-session")
         _require(all(name.split("-", 2)[2] in identities for name in approval["reviewers"].values()),
                  "unregistered-reviewer-session")
+        spec = importlib.util.spec_from_file_location("mq_operator_pr_body", ROOT / "scripts/gates/pr_body.py")
+        pr_body = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(pr_body)
         for label, role in (("Codex", approval["author"]),):
-            _require(role in identities and re.search(r"^" + label + r":\s*" + re.escape(identities[role]) + r"\s*$",
-                                                     pr.get("body", ""), re.M), "missing-current-Codex-provenance")
+            _require(role in identities and identities[role] in pr_body.lines(pr.get("body", ""), label),
+                     "missing-current-Codex-provenance")
         if any(name.startswith("backend/src/test/java/com/forcitis/one/acceptance/")
                for row in files for name in (row["filename"], row.get("previous_filename", row["filename"]))):
-            _require("one-test" in identities and re.search(r"^Codex-Acceptance:\s*" + re.escape(identities["one-test"]) + r"\s*$",
-                                                            pr.get("body", ""), re.M), "missing-Codex-acceptance-provenance")
+            _require("one-test" in identities and identities["one-test"] in pr_body.lines(pr.get("body", ""), "Codex-Acceptance"),
+                     "missing-Codex-acceptance-provenance")
 
     def verify(self, intent, approval):
         number = intent["number"]
