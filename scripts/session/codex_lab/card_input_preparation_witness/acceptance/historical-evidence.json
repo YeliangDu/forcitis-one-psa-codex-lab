@@ -1,0 +1,62 @@
+{
+  "provenance": "Immutable Lab Git objects; runner replay reconstructs only real changed paths/messages in disposable synthetic Git repos.",
+  "records": [
+    {
+      "commit": "9efe404cf8ed91cb59a52a5cac00e07a67e2490e",
+      "files": [
+        {
+          "export_path": "historical-files/9efe404cf8ed91cb59a52a5cac00e07a67e2490e/backend/src/test/java/com/forcitis/one/acceptance/BonusLoginPreparationTest.java",
+          "path": "backend/src/test/java/com/forcitis/one/acceptance/BonusLoginPreparationTest.java",
+          "sha256": "3fb589e19a7caf66a6937881e93de37bcd44ff6a8b23e153ee2f5e83f2a88e97"
+        }
+      ],
+      "label": "card59_missing",
+      "message": "test(ci): freeze synthetic WeCom stubbing race evidence\n\n",
+      "parent": "bf853c2c6ce5cb3e72172330d34aecdc75f0a331"
+    },
+    {
+      "commit": "6164009844c9f79b2d0f5ba00e0faac285c0f0c1",
+      "files": [
+        {
+          "export_path": "historical-files/6164009844c9f79b2d0f5ba00e0faac285c0f0c1/backend/src/test/java/com/forcitis/one/acceptance/BonusLoginPreparationTest.java",
+          "path": "backend/src/test/java/com/forcitis/one/acceptance/BonusLoginPreparationTest.java",
+          "sha256": "3fb589e19a7caf66a6937881e93de37bcd44ff6a8b23e153ee2f5e83f2a88e97"
+        }
+      ],
+      "label": "card59_corrected",
+      "message": "test(ci): freeze synthetic WeCom stubbing race evidence\n\nAcceptance-Test-Author: test-engineer\n\n",
+      "parent": "bf853c2c6ce5cb3e72172330d34aecdc75f0a331"
+    },
+    {
+      "commit": "79dbd28e7cea09ec7f09a8a91fa9379f17d5e069",
+      "files": [
+        {
+          "export_path": "historical-files/79dbd28e7cea09ec7f09a8a91fa9379f17d5e069/backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsIntegrityIT.java",
+          "path": "backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsIntegrityIT.java",
+          "sha256": "e2d01e6662e4d1bc3fc0515ce138b4bfe9619956cc1befaa925e822373e09b24"
+        },
+        {
+          "export_path": "historical-files/79dbd28e7cea09ec7f09a8a91fa9379f17d5e069/backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsSchemaIT.java",
+          "path": "backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsSchemaIT.java",
+          "sha256": "c0516cd99bdb447159eba17681bae4ea333f8c2b236f96385cca3a05448d1807"
+        }
+      ],
+      "label": "card30_wrong_path",
+      "message": "test(facts): freeze independent posting-facts schema acceptance\n\nRefs #30\n\nAcceptance-Test-Author: test-engineer\nCodex: 01a1b614-934c-7250-a715-5cf09e9c02c2\n\n",
+      "parent": "15511fad03b8d2ae38e3a337f24556bd9d9071c6"
+    },
+    {
+      "commit": "e1632898a20315ea58f2075de533381c69bc5932",
+      "files": [
+        {
+          "export_path": "historical-files/e1632898a20315ea58f2075de533381c69bc5932/backend/src/test/java/com/forcitis/one/organization/attendance/StandardHoursScopeSerializationIT.java",
+          "path": "backend/src/test/java/com/forcitis/one/organization/attendance/StandardHoursScopeSerializationIT.java",
+          "sha256": "672b2efd174ad1d6a0046eec7524faf369f6f5eaef27912dcd23c51e479e8801"
+        }
+      ],
+      "label": "card71_ordinary",
+      "message": "test(attendance): freeze same-scope publication isolation evidence\n\nCodex-Acceptance: 01a1b614-934c-7250-a715-5cf09e9c02c2\n\n",
+      "parent": "c0d54a72a203e2df365b6690cc29585b46f39c99"
+    }
+  ]
+}
