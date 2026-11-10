@@ -1,0 +1,72 @@
+# 薄账务脊柱（设计 docs/architecture/proposals/accounting-spine.md，#1402；one-design 2026-11-05）。中文名待用户确认。
+terms:
+- id: posting_fact
+  zh: 过账事实
+  en: PostingFact
+  snake: posting_fact
+  kind: entity
+  bc: operations.facts
+  scope: domain
+  definition: 经过账管道校验后只追加的一条事实，带法人、业务日期、落账期间、单调序号 PostSeq 和若干借贷方向的明细行；不含科目
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '设计 accounting-spine.md（#1402）；AGG-77；中文名待用户确认'
+- id: account_mapping_version
+  zh: 科目映射表版本
+  en: AccountMappingVersion
+  snake: account_mapping_version
+  kind: aggregate
+  bc: accounting.ledger
+  scope: domain
+  definition: 收付口径科目与权责口径科目之间的对照表一个版本，每行带对账类别（相同或差异），发布后只新增行
+  standard_ref: []
+  confidence: low
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '设计 accounting-spine.md；AGG-85；ADR-0022 决定 2；中文名待用户确认'
+- id: component
+  zh: 事实组成项
+  en: Component
+  snake: component
+  kind: value_object
+  bc: operations.facts
+  scope: domain
+  definition: 过账事实类型内以 component_key 标识的组成项；事实行引用同类型已登记且有效的组成项，不表示会计科目
+  standard_ref: [docs/data/reviews/accounting-spine-f1.md]
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '仅登记 F1 posting_components 与 component_key 的内部技术用语；不新增组成项数据、权限或界面文案'
+- id: hint
+  zh: 借贷方向提示
+  en: Hint
+  snake: hint
+  kind: value_object
+  bc: operations.facts
+  scope: domain
+  definition: 事实组成项的可空 side_hint_kind 元数据，取 DEBIT 或 CREDIT；为空表示两种借贷方向均可，不新增强制方向校验规则
+  standard_ref: [docs/data/reviews/accounting-spine-f1.md]
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '仅登记签署列 side_hint_kind 的内部技术用语；不裁决界面文案或授权'
+- id: side
+  zh: 借贷方向
+  en: Side
+  snake: side
+  kind: value_object
+  bc: operations.facts
+  scope: domain
+  definition: 过账事实行 side_kind 表示的 DEBIT 或 CREDIT 方向；金额保持正数，方向由该字段表达而非金额符号，组成项可另存可空方向提示
+  standard_ref: [docs/data/reviews/accounting-spine-f1.md]
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: '仅登记签署列 side_kind 与 side_hint_kind 的内部技术用语；不改变平衡规则、业务政策或权限'

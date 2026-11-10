@@ -1,0 +1,201 @@
+{
+  "base": "0c491846d24d194090bda99a1d16a100331cbd2c",
+  "head": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44",
+  "history": [
+    {
+      "original": "79dbd28e7cea09ec7f09a8a91fa9379f17d5e069",
+      "original_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T05:47:08+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "test(facts): freeze independent posting-facts schema acceptance\n\nRefs #30\n\nAcceptance-Test-Author: test-engineer\nCodex: 01a1b614-934c-7250-a715-5cf09e9c02c2\n\n"
+      },
+      "replayed": "9c00547cd6cf3c51674e3ca8fa05fd6b293f740a",
+      "replayed_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T05:47:08+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "test(facts): freeze independent posting-facts schema acceptance\n\nRefs #30\n\nAcceptance-Test-Author: test-engineer\nCodex: 01a1b614-934c-7250-a715-5cf09e9c02c2\nOriginal-Commit: 79dbd28e7cea09ec7f09a8a91fa9379f17d5e069\n\n"
+      }
+    },
+    {
+      "original": "44d13b241e0cefb3bec2b0c81667081b4d4dc19a",
+      "original_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T05:53:40+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "test(facts): select Throwable assertion without changing invariant checks\n\nRefs #30\n\nAcceptance-Test-Author: test-engineer\nCodex: 01a1b614-934c-7250-a715-5cf09e9c02c2\n\n"
+      },
+      "replayed": "9f9f685554818bcd51a88d9aa709dfef542d62ff",
+      "replayed_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T05:53:40+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "test(facts): select Throwable assertion without changing invariant checks\n\nRefs #30\n\nAcceptance-Test-Author: test-engineer\nCodex: 01a1b614-934c-7250-a715-5cf09e9c02c2\nOriginal-Commit: 44d13b241e0cefb3bec2b0c81667081b4d4dc19a\n\n"
+      }
+    },
+    {
+      "original": "7bd005d368ed3b84696d5a95186e624aeffa02dd",
+      "original_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T06:15:11+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "feat(facts): establish signed payroll posting fact storage\n\nRefs #30\n\nCodex: 01a1b612-91bc-77c0-a824-fe48ce5cb5e0\n\n"
+      },
+      "replayed": "a1d7f0f615d4d5af49b4145eacb85ec64df6688f",
+      "replayed_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T06:15:11+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "feat(facts): establish signed payroll posting fact storage\n\nRefs #30\n\nCodex: 01a1b612-91bc-77c0-a824-fe48ce5cb5e0\nOriginal-Commit: 7bd005d368ed3b84696d5a95186e624aeffa02dd\n\n"
+      }
+    },
+    {
+      "original": "8c77347bf11e73e68c375721d08a5189c0916705",
+      "original_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T06:21:58+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "fix(facts): recognize exact PG18 temporary constraint shape\n\nRefs #30\n\nCodex: 01a1b612-91bc-77c0-a824-fe48ce5cb5e0\n\n"
+      },
+      "replayed": "d063d09a182b43ee0f735146205bd1d8d388e496",
+      "replayed_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T06:21:58+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "fix(facts): recognize exact PG18 temporary constraint shape\n\nRefs #30\n\nCodex: 01a1b612-91bc-77c0-a824-fe48ce5cb5e0\nOriginal-Commit: 8c77347bf11e73e68c375721d08a5189c0916705\n\n"
+      }
+    },
+    {
+      "original": "45d7e826eee3d4b03e9c2f0c76ac44c59133e3cf",
+      "original_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T06:21:58+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "test(facts): reproduce non-finite amount acceptance on real PostgreSQL\n\nRefs #30\n\nAcceptance-Test-Author: test-engineer\nCodex: 01a1b614-934c-7250-a715-5cf09e9c02c2\n\n"
+      },
+      "replayed": "b999110bcb0add6c7a1d4727b6710106e492ca49",
+      "replayed_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T06:21:58+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "test(facts): reproduce non-finite amount acceptance on real PostgreSQL\n\nRefs #30\n\nAcceptance-Test-Author: test-engineer\nCodex: 01a1b614-934c-7250-a715-5cf09e9c02c2\nOriginal-Commit: 45d7e826eee3d4b03e9c2f0c76ac44c59133e3cf\n\n"
+      }
+    },
+    {
+      "original": "309b2ecb036487a8650563bbaf9c6d39eaec6639",
+      "original_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T06:26:07+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "fix(facts): reject non-finite posting amounts before balance checks\n\nRefs #30\n\nCodex: 01a1b612-91bc-77c0-a824-fe48ce5cb5e0\n\n"
+      },
+      "replayed": "5a56a0576f3e31c1124a04d4ea958db3c0d18a6b",
+      "replayed_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T06:26:07+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "fix(facts): reject non-finite posting amounts before balance checks\n\nRefs #30\n\nCodex: 01a1b612-91bc-77c0-a824-fe48ce5cb5e0\nOriginal-Commit: 309b2ecb036487a8650563bbaf9c6d39eaec6639\n\n"
+      }
+    },
+    {
+      "original": "3eb0018bc9ff46c3574dcf14453adb6097618d32",
+      "original_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T06:33:22+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "fix(facts): register signed posting column vocabulary as proposed\n\nRefs #30\n\nCodex: 01a1b612-91bc-77c0-a824-fe48ce5cb5e0\n\n"
+      },
+      "replayed": "1988155ade0fff415dae9b8c4e4f79c2b886fde8",
+      "replayed_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T06:33:22+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "fix(facts): register signed posting column vocabulary as proposed\n\nRefs #30\n\nCodex: 01a1b612-91bc-77c0-a824-fe48ce5cb5e0\nOriginal-Commit: 3eb0018bc9ff46c3574dcf14453adb6097618d32\n\n"
+      }
+    },
+    {
+      "original": "5af1d35ad76e95007a714704b97f3da07b0e0d35",
+      "original_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T06:33:22+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "test(facts): exercise real migrated guards with synthetic isolated DML role\n\nRefs #30\n\nAcceptance-Test-Author: test-engineer\nCodex: 01a1b614-934c-7250-a715-5cf09e9c02c2\n\n"
+      },
+      "replayed": "c586502de0186d0acc2fce31318a931cf39f6abb",
+      "replayed_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T06:33:22+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "test(facts): exercise real migrated guards with synthetic isolated DML role\n\nRefs #30\n\nAcceptance-Test-Author: test-engineer\nCodex: 01a1b614-934c-7250-a715-5cf09e9c02c2\nOriginal-Commit: 5af1d35ad76e95007a714704b97f3da07b0e0d35\n\n"
+      }
+    },
+    {
+      "original": "e81d1278c83d63e002bb69c235d055598dd06187",
+      "original_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T07:03:15+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "test(facts): exercise signed reversal periods source keys and metadata boundaries\n\nRefs #30\n\nAcceptance-Test-Author: test-engineer\nCodex: 01a1b614-934c-7250-a715-5cf09e9c02c2\n\n"
+      },
+      "replayed": "b9e7c2526935787be16434ea2f7142b88044fb40",
+      "replayed_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T07:03:15+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "test(facts): exercise signed reversal periods source keys and metadata boundaries\n\nRefs #30\n\nAcceptance-Test-Author: test-engineer\nCodex: 01a1b614-934c-7250-a715-5cf09e9c02c2\nOriginal-Commit: e81d1278c83d63e002bb69c235d055598dd06187\n\n"
+      }
+    },
+    {
+      "original": "5afa740695279eeb010aca32258e595ff037784c",
+      "original_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T07:13:40+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "test(facts): resolve actual qualified catalog relation in metadata assertion\n\nRefs #30\n\nAcceptance-Test-Author: test-engineer\nCodex: 01a1b614-934c-7250-a715-5cf09e9c02c2\n\n"
+      },
+      "replayed": "600eeed0f70acd76910aa82dbdc29029b2f4a16e",
+      "replayed_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T07:13:40+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "test(facts): resolve actual qualified catalog relation in metadata assertion\n\nRefs #30\n\nAcceptance-Test-Author: test-engineer\nCodex: 01a1b614-934c-7250-a715-5cf09e9c02c2\nOriginal-Commit: 5afa740695279eeb010aca32258e595ff037784c\n\n"
+      }
+    },
+    {
+      "original": "3b4a04ce0a0af074ef513812875456e215f47614",
+      "original_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T06:49:32+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "docs(facts): record exact schema-only aggregate and hosted generated inventory\n\nRefs #30\n\nCodex: 01a1b612-91bc-77c0-a824-fe48ce5cb5e0\n\n"
+      },
+      "replayed": "a2f313fa9c0aeb3c3d019b8e3f229b3c2da9f6df",
+      "replayed_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T06:49:32+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "docs(facts): record exact schema-only aggregate and hosted generated inventory\n\nRefs #30\n\nCodex: 01a1b612-91bc-77c0-a824-fe48ce5cb5e0\nOriginal-Commit: 3b4a04ce0a0af074ef513812875456e215f47614\n\n"
+      }
+    },
+    {
+      "original": "97f19359f8d31ce09d4b8d91ab1f18e5d0d62d92",
+      "original_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T07:22:11+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "docs(facts): register and verify schema-only runtime denial\n\nRefs #30\n\nCodex: 01a1b612-91bc-77c0-a824-fe48ce5cb5e0\n\n"
+      },
+      "replayed": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44",
+      "replayed_metadata": {
+        "author": "PSA Codex Lab",
+        "author_date": "2026-11-08T07:22:11+01:00",
+        "email": "118542774+YeliangDu@users.noreply.github.com",
+        "message": "docs(facts): register and verify schema-only runtime denial\n\nRefs #30\n\nCodex: 01a1b612-91bc-77c0-a824-fe48ce5cb5e0\nOriginal-Commit: 97f19359f8d31ce09d4b8d91ab1f18e5d0d62d92\n\n"
+      }
+    }
+  ],
+  "illegal_old_head_is_ancestor": false,
+  "new_base_is_ancestor": true,
+  "tree": "be62ed6107410b3f543e9e85961076a9a48eb61b"
+}

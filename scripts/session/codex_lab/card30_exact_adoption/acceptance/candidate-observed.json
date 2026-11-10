@@ -1,0 +1,298 @@
+{
+  "ancestors": [
+    "0c491846d24d194090bda99a1d16a100331cbd2c"
+  ],
+  "candidate": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44",
+  "candidate_diff": {
+    "base": "0c491846d24d194090bda99a1d16a100331cbd2c",
+    "files": [
+      {
+        "after_blob": "647c342377a0bf9ef6c15edc0e37a5175f2dfe18",
+        "after_mode": "100644",
+        "before_blob": "7f1794e2c04cf9607275073a4478833f39f04b7f",
+        "before_mode": "100644",
+        "path": "backend/architecture/data-access-registry.yaml"
+      },
+      {
+        "after_blob": "bf9adfdbdfcf5d0ad98f2cd739f18f74294cb8e6",
+        "after_mode": "100644",
+        "before_blob": "98ce0894761f77ca861e07e68fe8f2804c623342",
+        "before_mode": "100644",
+        "path": "backend/architecture/data-classification.txt"
+      },
+      {
+        "after_blob": "475ca301587d2fa471ce9bf2efb80037a4e5597d",
+        "after_mode": "100644",
+        "before_blob": "61b1764b3e93d21927d1454fb6811dcae72b1ad1",
+        "before_mode": "100644",
+        "path": "backend/glossary/proposed/accounting-spine.yaml"
+      },
+      {
+        "after_blob": "720aa90f83b79927fb8f40f3f90376b9b15ab6f7",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/main/resources/db/migration/operations_facts/V20261108060000__operations_facts_baseline.sql"
+      },
+      {
+        "after_blob": "81ebc932480d86f9d2fcc6d6757b9288cd7dadf5",
+        "after_mode": "100644",
+        "before_blob": "778ca4c4eb89b52225e1b1347e6196bdf4d1070e",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/DataArchitectureTest.java"
+      },
+      {
+        "after_blob": "5e2d4d7a833c94aad01303bbda88fd2b1ce1b268",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsAmountIT.java"
+      },
+      {
+        "after_blob": "43f07b21e88d4cdda7832c58db20a9db5a8fbeb9",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsDmlRoleIT.java"
+      },
+      {
+        "after_blob": "ae6cdeab1a9da08c8dd7ea06ce4e19fe3794383a",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsIntegrityIT.java"
+      },
+      {
+        "after_blob": "81182e26a7ce9cd484d9d9a15a610ff933ae07d2",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSchemaIT.java"
+      },
+      {
+        "after_blob": "0f83098f5f70466d197cd85326074c4a9eef6bec",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedBoundariesIT.java"
+      },
+      {
+        "after_blob": "66824ee6ab1b6ea63869f847f79dd91a53d59fcd",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedMetadataTest.java"
+      },
+      {
+        "after_blob": "9363bdb26f54ae5f8ef0bbe19cd0b84dd055ebcc",
+        "after_mode": "100644",
+        "before_blob": "a783d5f078eebd6a94f3a30d95f3dd31dc21c86c",
+        "before_mode": "100644",
+        "path": "docs/architecture/panorama/unbuilt-roots.yaml"
+      },
+      {
+        "after_blob": "6c11a5824252df682d344437c489df9bb4a8c613",
+        "after_mode": "100644",
+        "before_blob": "c7d5d86d17a297ca8ccaf05410c177f0847eb3e2",
+        "before_mode": "100644",
+        "path": "docs/architecture/ssot/aggregates/built.yaml"
+      },
+      {
+        "after_blob": "0ac14828b0a9afae9f5ddaa2bacc7ad914bc39d5",
+        "after_mode": "100644",
+        "before_blob": "bb280a6714fed2a56e362510aa5a9bbd2982cff0",
+        "before_mode": "100644",
+        "path": "docs/ops/one-db-roles-schemas.sql"
+      },
+      {
+        "after_blob": "58c65f0af2d3c9eea54042ef234dbb9cc9e98d8e",
+        "after_mode": "100644",
+        "before_blob": "f6cb1c0ed14b8ab8eb4be73c16015825a6cf415a",
+        "before_mode": "100644",
+        "path": "docs/ops/runbooks/sql/dev-db-verify.sql"
+      },
+      {
+        "after_blob": "c02ff1b945a4cc955912ac70d755cfc2dd3dbdc6",
+        "after_mode": "100644",
+        "before_blob": "6ddc331d160cbf0d5a4e2a512628186f3aff0d5b",
+        "before_mode": "100644",
+        "path": "docs/ops/runbooks/sql/dev-db.sql"
+      },
+      {
+        "after_blob": "b1445fdd227c77a0687e41eca4606fc505e222a7",
+        "after_mode": "100644",
+        "before_blob": "7bcc39ba6c7899c66d090c9db26c3f0ceadc9490",
+        "before_mode": "100644",
+        "path": "docs/ops/runbooks/sql/prod-db-verify.sql"
+      },
+      {
+        "after_blob": "b867277e1252c3081de9863d441a662d033c0ab4",
+        "after_mode": "100644",
+        "before_blob": "ab22ebeaac6af0c6379e748de6ca31774a953a8a",
+        "before_mode": "100644",
+        "path": "docs/ops/runbooks/sql/prod-db.sql"
+      }
+    ],
+    "head": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44"
+  },
+  "files": [
+    {
+      "blob": "647c342377a0bf9ef6c15edc0e37a5175f2dfe18",
+      "path": "backend/architecture/data-access-registry.yaml",
+      "sha256": "0290d1916626208579dc7b54f6e6fac70d9680e3d0846d413a81e08444cc26f9"
+    },
+    {
+      "blob": "bf9adfdbdfcf5d0ad98f2cd739f18f74294cb8e6",
+      "path": "backend/architecture/data-classification.txt",
+      "sha256": "86aedd78fd61b62c89b21b35c699d1bd66126b68553704a8b7338d4870460b4c"
+    },
+    {
+      "blob": "475ca301587d2fa471ce9bf2efb80037a4e5597d",
+      "path": "backend/glossary/proposed/accounting-spine.yaml",
+      "sha256": "d68b320d3ded56cf014530d77309b6e6371abaebbba451997c7a41a738033cb2"
+    },
+    {
+      "blob": "720aa90f83b79927fb8f40f3f90376b9b15ab6f7",
+      "path": "backend/src/main/resources/db/migration/operations_facts/V20261108060000__operations_facts_baseline.sql",
+      "sha256": "c5380873647e5c0c47b0ec75e18fd4b64ef5f19a48a395197ea641809e674a70"
+    },
+    {
+      "blob": "81ebc932480d86f9d2fcc6d6757b9288cd7dadf5",
+      "path": "backend/src/test/java/com/forcitis/one/DataArchitectureTest.java",
+      "sha256": "21e4ee5d0df34587e2a0400426410fd1fdee83b75e2912616d4bd4f20c3d7d1c"
+    },
+    {
+      "blob": "5e2d4d7a833c94aad01303bbda88fd2b1ce1b268",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsAmountIT.java",
+      "sha256": "0877edf3cc86f004508d47385e2bfb67a286b049a127abfcf0e2e847350802f4"
+    },
+    {
+      "blob": "43f07b21e88d4cdda7832c58db20a9db5a8fbeb9",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsDmlRoleIT.java",
+      "sha256": "8558a787022c3d57ae4c6d99f21615e46f4072cbfdb0ccb2cbd9c7d619dd59be"
+    },
+    {
+      "blob": "ae6cdeab1a9da08c8dd7ea06ce4e19fe3794383a",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsIntegrityIT.java",
+      "sha256": "3ae84b1490858741cc6aac642f966d4921c882d2c4084f775ba41b3e19bfa6d5"
+    },
+    {
+      "blob": "81182e26a7ce9cd484d9d9a15a610ff933ae07d2",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSchemaIT.java",
+      "sha256": "824a1529b2c1420d561ff254fd32f1965991001480559a697c4470a4a08d6820"
+    },
+    {
+      "blob": "0f83098f5f70466d197cd85326074c4a9eef6bec",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedBoundariesIT.java",
+      "sha256": "73be507edeb4f81d22758e4db5925ea7720a7ab6882746b2f98adedcca2e296b"
+    },
+    {
+      "blob": "66824ee6ab1b6ea63869f847f79dd91a53d59fcd",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedMetadataTest.java",
+      "sha256": "128ed50e126f08a7ffd0c0b27c4602b10eacfa6cb624167704268ccd00ec898e"
+    },
+    {
+      "blob": "9363bdb26f54ae5f8ef0bbe19cd0b84dd055ebcc",
+      "path": "docs/architecture/panorama/unbuilt-roots.yaml",
+      "sha256": "0f7921cfc1fbf36a0d381a90ee9ee87a95a80d702460a6f926e0d5b27f065cb8"
+    },
+    {
+      "blob": "6c11a5824252df682d344437c489df9bb4a8c613",
+      "path": "docs/architecture/ssot/aggregates/built.yaml",
+      "sha256": "1e043bb763f9d3d68f19e27870990b7f43fe978ac10b01e3c4c6917e3b0aa0ff"
+    },
+    {
+      "blob": "0ac14828b0a9afae9f5ddaa2bacc7ad914bc39d5",
+      "path": "docs/ops/one-db-roles-schemas.sql",
+      "sha256": "5dd289cdb01ad4c41a2319b703c23af8f6eb0e5adc4e1cda44e9c56147cd6532"
+    },
+    {
+      "blob": "58c65f0af2d3c9eea54042ef234dbb9cc9e98d8e",
+      "path": "docs/ops/runbooks/sql/dev-db-verify.sql",
+      "sha256": "821131a49f0192597f09e11c999f222d82cfdf0af88fd49ebd536f09c7348982"
+    },
+    {
+      "blob": "c02ff1b945a4cc955912ac70d755cfc2dd3dbdc6",
+      "path": "docs/ops/runbooks/sql/dev-db.sql",
+      "sha256": "49efceac4c4fb130574821b8a313d553df616cb5a0146ef14663b55db75f3650"
+    },
+    {
+      "blob": "b1445fdd227c77a0687e41eca4606fc505e222a7",
+      "path": "docs/ops/runbooks/sql/prod-db-verify.sql",
+      "sha256": "d86a1bfd8100a785fa55732740393fcaabe4fd42d27effe72e80433d881c1dfd"
+    },
+    {
+      "blob": "b867277e1252c3081de9863d441a662d033c0ab4",
+      "path": "docs/ops/runbooks/sql/prod-db.sql",
+      "sha256": "6c798ace867a597b3e7b5a489c39e416d268e3a234bac8a091ae1ae14eacff85"
+    }
+  ],
+  "new_base": "0c491846d24d194090bda99a1d16a100331cbd2c",
+  "normalized_history": [
+    {
+      "author": "PSA Codex Lab",
+      "original": "79dbd28e7cea09ec7f09a8a91fa9379f17d5e069",
+      "replayed": "9c00547cd6cf3c51674e3ca8fa05fd6b293f740a"
+    },
+    {
+      "author": "PSA Codex Lab",
+      "original": "44d13b241e0cefb3bec2b0c81667081b4d4dc19a",
+      "replayed": "9f9f685554818bcd51a88d9aa709dfef542d62ff"
+    },
+    {
+      "author": "PSA Codex Lab",
+      "original": "7bd005d368ed3b84696d5a95186e624aeffa02dd",
+      "replayed": "a1d7f0f615d4d5af49b4145eacb85ec64df6688f"
+    },
+    {
+      "author": "PSA Codex Lab",
+      "original": "8c77347bf11e73e68c375721d08a5189c0916705",
+      "replayed": "d063d09a182b43ee0f735146205bd1d8d388e496"
+    },
+    {
+      "author": "PSA Codex Lab",
+      "original": "45d7e826eee3d4b03e9c2f0c76ac44c59133e3cf",
+      "replayed": "b999110bcb0add6c7a1d4727b6710106e492ca49"
+    },
+    {
+      "author": "PSA Codex Lab",
+      "original": "309b2ecb036487a8650563bbaf9c6d39eaec6639",
+      "replayed": "5a56a0576f3e31c1124a04d4ea958db3c0d18a6b"
+    },
+    {
+      "author": "PSA Codex Lab",
+      "original": "3eb0018bc9ff46c3574dcf14453adb6097618d32",
+      "replayed": "1988155ade0fff415dae9b8c4e4f79c2b886fde8"
+    },
+    {
+      "author": "PSA Codex Lab",
+      "original": "5af1d35ad76e95007a714704b97f3da07b0e0d35",
+      "replayed": "c586502de0186d0acc2fce31318a931cf39f6abb"
+    },
+    {
+      "author": "PSA Codex Lab",
+      "original": "e81d1278c83d63e002bb69c235d055598dd06187",
+      "replayed": "b9e7c2526935787be16434ea2f7142b88044fb40"
+    },
+    {
+      "author": "PSA Codex Lab",
+      "original": "5afa740695279eeb010aca32258e595ff037784c",
+      "replayed": "600eeed0f70acd76910aa82dbdc29029b2f4a16e"
+    },
+    {
+      "author": "PSA Codex Lab",
+      "original": "3b4a04ce0a0af074ef513812875456e215f47614",
+      "replayed": "a2f313fa9c0aeb3c3d019b8e3f229b3c2da9f6df"
+    },
+    {
+      "author": "PSA Codex Lab",
+      "original": "97f19359f8d31ce09d4b8d91ab1f18e5d0d62d92",
+      "replayed": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44"
+    }
+  ],
+  "parents": [
+    "a2f313fa9c0aeb3c3d019b8e3f229b3c2da9f6df"
+  ],
+  "tree": "be62ed6107410b3f543e9e85961076a9a48eb61b",
+  "update_scope_status": "Exact test fixture derived from independently reviewed input; not an installed private authorization"
+}

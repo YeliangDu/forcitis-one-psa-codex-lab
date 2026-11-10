@@ -1,0 +1,37 @@
+{
+  "base": "0c491846d24d194090bda99a1d16a100331cbd2c",
+  "candidate_diff_sha256": "f9f809799ddc1fdb343ecc0c860cc4bb809339a435b575518738e641155a9a66",
+  "head": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44",
+  "kind": "exact-existing-pr-update-v1",
+  "normalized_commit_evidence_sha256": "373a62dac0d044ccf8029c31751c5bb00133ee941d85594eb278cfcb51aa37c3",
+  "normalized_contribution_sha256": "95ced51b21f6c2ed1a27d66d04147458c812cef0f2cef9f951628e560e1168e3",
+  "original_diff_sha256": "46360a7fc10bf867b99477ca13811d01fc9f7ca73f9e99f337b5d48cbc5d2f26",
+  "scope_sha256": "46360a7fc10bf867b99477ca13811d01fc9f7ca73f9e99f337b5d48cbc5d2f26",
+  "tests": [
+    {
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsAmountIT.java",
+      "sha256": "0877edf3cc86f004508d47385e2bfb67a286b049a127abfcf0e2e847350802f4"
+    },
+    {
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsDmlRoleIT.java",
+      "sha256": "8558a787022c3d57ae4c6d99f21615e46f4072cbfdb0ccb2cbd9c7d619dd59be"
+    },
+    {
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsIntegrityIT.java",
+      "sha256": "3ae84b1490858741cc6aac642f966d4921c882d2c4084f775ba41b3e19bfa6d5"
+    },
+    {
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSchemaIT.java",
+      "sha256": "824a1529b2c1420d561ff254fd32f1965991001480559a697c4470a4a08d6820"
+    },
+    {
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedBoundariesIT.java",
+      "sha256": "73be507edeb4f81d22758e4db5925ea7720a7ab6882746b2f98adedcca2e296b"
+    },
+    {
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedMetadataTest.java",
+      "sha256": "128ed50e126f08a7ffd0c0b27c4602b10eacfa6cb624167704268ccd00ec898e"
+    }
+  ],
+  "tree": "be62ed6107410b3f543e9e85961076a9a48eb61b"
+}
