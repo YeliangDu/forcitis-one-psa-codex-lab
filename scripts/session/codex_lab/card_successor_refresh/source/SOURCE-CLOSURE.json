@@ -1,7 +1,5 @@
 {
-  "kind": "lab-one-shot-native-role-replacement/1",
   "entry": "portable_broker.py",
-  "parent_closure_sha256": "acd91404d6e64b7c4709f137e499fcbe42c5fe6fb8f56781a1e2b290faa432fe",
   "files_sha256": {
     "binding.schema.json": "8e56721a606eaff72289da8279f63f0cbb59b2167dda4a732877ac95ef3fcf64",
     "branch_broker.py": "9f6254fd3b83b6b0f34bde515c56edb9b944d90fc251b551e42e1d7cc3ddb1d5",
@@ -40,6 +38,9 @@
     "runtime_store.py": "5320f1d5eaef9fe6c21471422b2944b8b0d7273b85c97e2cceb85191fde73dc0",
     "single_role.py": "605d9d7fde2eb99406912c60ea7a30def74d3fb6e89587a41950ea31e7c24a0a",
     "startup_authority.py": "d5ca117b82bda983ba1942f3933348a631c9e28b963929acdf10e7b34a0b8ca5",
+    "successor_card.py": "5b78edfc6cd23825e643d4293a8f0004ab9ec8eb2be2f238f610386cce4f59d3",
     "warm_handoff.py": "6a69cde20d3900f45c92c87a8bcbcc5a70ad0fea635dbfe3f8be29eaa2f778f0"
-  }
+  },
+  "kind": "lab-one-shot-native-role-replacement/1",
+  "parent_closure_sha256": "acd91404d6e64b7c4709f137e499fcbe42c5fe6fb8f56781a1e2b290faa432fe"
 }
