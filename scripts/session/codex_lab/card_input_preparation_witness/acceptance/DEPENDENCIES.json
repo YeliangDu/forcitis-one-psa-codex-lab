@@ -1,0 +1,16 @@
+{
+  "external_services_required": false,
+  "files_sha256": {
+    "guard-source/acceptance_guard.py": "639723bae656206df643b39a5b6ac4caeefa7e8a4d557307e0bb6d530562bd18",
+    "guard-source/ci_git.py": "7be2b7d51e88f74cc0e358be3c65e99e97e5b6977d95e09bb3060eae345b3646",
+    "historical-evidence.json": "43b2a8b9dec4042b979e99ca28dede0203428365600d8176dd0082608f85a21c",
+    "historical-files/6164009844c9f79b2d0f5ba00e0faac285c0f0c1/backend/src/test/java/com/forcitis/one/acceptance/BonusLoginPreparationTest.java": "3fb589e19a7caf66a6937881e93de37bcd44ff6a8b23e153ee2f5e83f2a88e97",
+    "historical-files/79dbd28e7cea09ec7f09a8a91fa9379f17d5e069/backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsIntegrityIT.java": "e2d01e6662e4d1bc3fc0515ce138b4bfe9619956cc1befaa925e822373e09b24",
+    "historical-files/79dbd28e7cea09ec7f09a8a91fa9379f17d5e069/backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsSchemaIT.java": "c0516cd99bdb447159eba17681bae4ea333f8c2b236f96385cca3a05448d1807",
+    "historical-files/9efe404cf8ed91cb59a52a5cac00e07a67e2490e/backend/src/test/java/com/forcitis/one/acceptance/BonusLoginPreparationTest.java": "3fb589e19a7caf66a6937881e93de37bcd44ff6a8b23e153ee2f5e83f2a88e97",
+    "historical-files/e1632898a20315ea58f2075de533381c69bc5932/backend/src/test/java/com/forcitis/one/organization/attendance/StandardHoursScopeSerializationIT.java": "672b2efd174ad1d6a0046eec7524faf369f6f5eaef27912dcd23c51e479e8801",
+    "history-limits.json": "6059b6282091855d35826c31f76c8b1d4b00816d0e108e70a97ea0849f8c69d2"
+  },
+  "fixture_git_authorization": "Runtime fixture creation only; author never ran it locally.",
+  "runtime": "Python standard library and Git on a non-parent-network GitHub-hosted disposable runner."
+}

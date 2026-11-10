@@ -1,0 +1,8 @@
+{
+  "card30": "79dbd28e has both role and Codex trailers; failure is its two ordinary test paths with an acceptance-only marker.",
+  "card59": "9efe404c lacks Acceptance-Test-Author; 61640098 adds it. No claim that correction adds Codex identity.",
+  "card71": "e1632898 has an ordinary test path and Codex-Acceptance; Acceptance-Test-Author is not required.",
+  "delivery": "Full live/replay delivery verification is deferred; no authorization artifact may be emitted by this package.",
+  "prepare_api": "No prepare_card.py found in scoped harness inventory. Missing module is capability-HOLD, not red.",
+  "title": "Saved initial-plan-title-hold proves HOLD/no writer, not its reason. Wrong-title cases are synthetic variants."
+}
