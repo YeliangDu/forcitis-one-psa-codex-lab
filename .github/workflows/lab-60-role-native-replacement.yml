@@ -10,14 +10,14 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      SUBJECT: e1632898a20315ea58f2075de533381c69bc5932
+      SUBJECT: e2be921db691cac6f1e0bb60734c388905baf4ce
       BASE: c0d54a72a203e2df365b6690cc29585b46f39c99
-      MODE: red
-      SELECTOR: StandardHoursScopeSerializationIT
+      MODE: green
+      SELECTOR: StandardHoursScopeSerializationIT,StandardHoursPublishGapsIT#losingTheRaceIsAConflict
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: e1632898a20315ea58f2075de533381c69bc5932
+          ref: e2be921db691cac6f1e0bb60734c388905baf4ce
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
