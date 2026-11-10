@@ -1,0 +1,103 @@
+{
+  "_说明": "流程数值与枚举的唯一出处（定稿 P4、H8）。规则、角色、模板只引用键名，不写字面值。改动走普通文档 PR，正文引用 intent。约定：值为 null 表示「待定」，读取方按最保守处理（拦截类不开、上限类不放宽），例外在键旁注明；delegate.billing 用 no_cap: true 表示不设上限（D34）。枚举：budget_check.mode 与 budget.level_mode 取 warn｜enforce。",
+  "rules": {
+    "_note": "Size limits of agent-read rule files, 1 KB = 1024 UTF-8 bytes (decision 2026-10-29-144628), checked by scripts/guards/rule_sizes.py (#810). layer_a_max_kb: read at every session start (root CLAUDE.md + .claude/rules without paths: + the start sheet at start.sheet_max_kb). layer_b_max_kb: added per file read (folder CLAUDE.md files below the root + .claude/rules whose paths: match). Layer C has no limit; MEMORY.md is printed only. scripts/guards/policy_keys_read.py fails on a numeric key here that nothing reads.",
+    "layer_a_max_kb": 6,
+    "layer_b_max_kb": 7
+  },
+  "start": {
+    "_说明": "handoff_max_kb：工具库 handoff.py 写交接的上限，开工单注入交接时也截到这个长度（#752）；sheet_max_kb：开工单 start_sheet 注入的总上限；playbook_max_kb：一份剧本的上限（check_playbooks P1）。1 KB = 1024 字节；数值键须有脚本读（policy_keys_read.py，#822）。",
+    "handoff_max_kb": 2,
+    "sheet_max_kb": 4,
+    "playbook_max_kb": 2
+  },
+  "gates": {
+    "_说明": "行数上限（max_lines、runtime_max_lines、mq 与 tools_lib 的 max_lines_total、自测不多于运行代码）按卡 #736 删去（用户 intent 2026-10-28-171123）。耗时与节点记录的数值键无程序读取，按 #856 删去。",
+    "install_dir": "~/.modernize/psa/tools/hooks",
+    "install_current_link": "current"
+  },
+  "review": {
+    "no_verdict_alert_minutes": 30,
+    "verdicts": [
+      "通过",
+      "必改"
+    ],
+    "header_fields": [
+      "复审结论",
+      "commit",
+      "复审者"
+    ],
+    "final_paths": [
+      "scripts/gates/",
+      "scripts/hooks/",
+      "scripts/merge/",
+      "scripts/review/",
+      "scripts/release/",
+      ".claude/",
+      "policy.json",
+      "AGENTS.md",
+      "docs/rules/codex-preamble.md",
+      "docs/rules/codex-false-red.txt",
+      ".codex/",
+      ".gitleaks.toml",
+      ".gitleaksignore",
+      "tools/ops/",
+      "docs/ops/deploy-gate.json",
+      "docs/ops/runbooks/prod-approvals.txt",
+      "docs/ops/dba-scripts/",
+      "docs/data/evidence/dba-handoff/",
+      ".github/workflows/lab-pr-ci.yml",
+      "scripts/session/codex_lab/"
+    ],
+    "_final_paths_说明": "仓库根起的完整路径或目录前缀。命中任一项时，须由独立 Codex 常驻角色在相同提交首轮复审和终审；两份均通过才放行。"
+  },
+  "labels": {
+    "review_passed": "复审通过",
+    "queue_waiting": "排队中"
+  },
+  "retention_days": {
+    "evidence": 7
+  },
+  "decisions": {
+    "current_page_max_kb": 6
+  },
+  "sessions": {
+    "config": {
+      "one-lead": {
+        "role": "lead",
+        "model": "codex",
+        "effort": "high"
+      },
+      "one-design": {
+        "role": "design",
+        "model": "codex"
+      },
+      "one-platform": {
+        "role": "platform",
+        "model": "codex"
+      },
+      "one-dev-org": {
+        "role": "dev",
+        "model": "codex"
+      },
+      "one-dev-identity": {
+        "role": "dev",
+        "model": "codex"
+      },
+      "one-test": {
+        "role": "test",
+        "model": "codex"
+      }
+    },
+    "_说明": "个人 Lab 的 Codex 常驻会话清单：沿用已绑定的会话 ID，不按目录名或旧工具的会话名推断，不为单卡新开会话。model 指 Codex 运行时，具体模型沿用已绑定会话的配置。role 指角色。"
+  },
+  "tools_lib": {
+    "dir": "~/.modernize/psa/tools/one-session",
+    "checks": [
+      "handoff",
+      "node_ready",
+      "ops_venv_lock",
+      "start_sheet"
+    ]
+  }
+}

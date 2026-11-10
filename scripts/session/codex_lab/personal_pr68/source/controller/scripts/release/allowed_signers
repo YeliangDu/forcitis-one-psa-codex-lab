@@ -1,0 +1,4 @@
+# Public key of the release signing key (ssh-keygen allowed_signers format), RELEASE.md §7 R-12.
+# One line: forcitis-one-release namespaces="forcitis-one-release" ssh-ed25519 AAAA... forcitis-one-release
+# The same line goes to /etc/forcitis-one/release-signers on the ECS (R-7). Generated 2026-10-15; the private key exists only as the release environment secret.
+forcitis-one-release namespaces="forcitis-one-release" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB4ZwqU0jXUOdz9TuiPsMYqfiIJtcOOUsH/eDKzx/IIy forcitis-one-release

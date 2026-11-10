@@ -1,0 +1,357 @@
+name: ci
+
+on:
+  pull_request:
+    # 排队中 (waiting in the merge queue, no `queued` yet): every job skips, see queue-notice. labeled: the merge queue labels the head of the queue `queued`, which starts the heavy steps (scripts/ci/heavy_gate.py); any other label skips every job
+    types: [opened, synchronize, reopened, labeled]
+  push:
+    branches: [main]
+  # full run of main every night (the push to main runs the light steps only): 21:03 UTC; nightly-legacy-it runs at 23:23 UTC
+  schedule:
+    - cron: '3 21 * * *'
+
+permissions:
+  contents: read
+
+env:
+  PYTHONDONTWRITEBYTECODE: "1"  # no __pycache__ in the checkout: the backend job runs light.sh and then the tests in the same workspace, and a test walking a source directory reads the .pyc (#693, LegacyNumberSourceIT); python3 -I ignores it, so light.sh also removes what its run left
+
+concurrency:
+  # a label other than `queued` (its run skips every job) must not cancel a run in progress, and the nightly full run must not cancel (nor be cancelled by) the push to main that the release gate reads: each gets its own group
+  group: ci-${{ github.ref }}${{ github.event.action == 'labeled' && github.event.label.name != 'queued' && '-other-label' || github.event_name == 'schedule' && '-nightly' || '' }}
+  cancel-in-progress: true
+
+# Self-hosted runners (docs/ops/ci-runners.md). Their toolchain is installed on the machine, so the steps check versions instead of installing.
+# Three tiers (scripts/ci/relevant_change.py): docs (nothing the builds read changed: light checks only), guarded (only docs that container-free tests, the glossary copy scripts or the release scripts read: just those run, on every pull request event), code (everything). A push to main and the nightly run are always tier code.
+# Heavy steps (backend tests, SQL Server tests, frontend verify) run only for a pull request labelled `queued` and never on a push to main (scripts/ci/heavy_gate.py), where the nightly schedule runs everything; the light steps run on every event. Every job runs on every pull request and ends green, so the required checks always report, except a pull request waiting in the merge queue (label 排队中, no `queued`): it runs no job, only queue-notice, and the queue's run at its turn reports the required checks; a documentation-only change skips the heavy steps (backend, frontend, release script self-test) via scripts/ci/relevant_change.py. A push to main runs the light steps (release approval depends on it).
+# OpenAPI and the frontend generated code are not tracked (frontend/packages/api/README.md): the api-contract job exports and generates them on every event, because the contract tests read them, and the backend and frontend jobs download this run's products; it never publishes a main snapshot.
+jobs:
+  # a pull request waiting in the merge queue (label 排队中, policy.json labels.queue_waiting) and not yet at its turn (no `queued`) starts no work: its run is discarded when the queue's own run at its turn decides the merge (#1300). The jobs below skip, so GitHub lists their checks under the unexpanded name templates, which are not the required checks; this job says why.
+  queue-notice:
+    name: 排队中，合入时由合并队列检查 (checked by the merge queue at merge time)
+    if: ${{ !(github.event.action == 'labeled' && github.event.label.name != 'queued') && contains(github.event.pull_request.labels.*.name, '排队中') && !contains(github.event.pull_request.labels.*.name, 'queued') }}
+    runs-on: [self-hosted, forcitis-one]
+    timeout-minutes: 2
+    steps:
+      - run: echo "This pull request waits in the merge queue. Its checks run when the queue takes it (label queued), with main merged in; that run decides the merge." >> "$GITHUB_STEP_SUMMARY"
+
+  api-contract:
+    name: export OpenAPI and generate frontend API
+    if: ${{ !((github.event.action == 'labeled' && github.event.label.name != 'queued') || (contains(github.event.pull_request.labels.*.name, '排队中') && !contains(github.event.pull_request.labels.*.name, 'queued'))) }}
+    runs-on: [self-hosted, forcitis-one]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      # Panorama and the light contract readers also need a fresh export, even on docs-only and push events.
+      - run: bash scripts/release/docker_ensure.sh --ci
+      - name: Java 25, Node 24 and pinned pnpm
+        run: |
+          java -version 2>&1 | head -1 | grep -q '"25'
+          node --version | grep -q '^v24\.'
+          cd frontend
+          test "$(pnpm --version)" = "$(node -p "require('./package.json').packageManager.split('@')[1].split('+')[0]")"
+      - name: install the pinned frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - name: export, assert the backend contract, then generate TypeScript
+        run: bash scripts/codegen/generate_api.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: api-contract
+          path: |
+            frontend/packages/api/openapi.json
+            frontend/packages/api/src/generated/schema.ts
+            frontend/packages/api/src/generated/validators.ts
+            frontend/packages/api/src/generated/operations.ts
+          if-no-files-found: error
+
+  backend:
+    needs: api-contract
+    if: ${{ always() && !((github.event.action == 'labeled' && github.event.label.name != 'queued') || (contains(github.event.pull_request.labels.*.name, '排队中') && !contains(github.event.pull_request.labels.*.name, 'queued'))) }}
+    # the check name gains ' (light)' when this pull request run will not run the heavy steps: the required check then stays 'expected' until the queue labels the pull request
+    name: backend verify (Modulith + ArchUnit guardrails + integration tests)${{ github.event_name == 'pull_request' && (!contains(github.event.pull_request.labels.*.name, 'queued') || (github.event.action == 'labeled' && github.event.label.name != 'queued')) && ' (light)' || '' }}
+    runs-on: [self-hosted, forcitis-one]
+    steps:
+      # A failed prerequisite must fail the existing required check, not leave it skipped.
+      - name: API contract generation succeeded
+        working-directory: .
+        env:
+          API_CONTRACT_RESULT: ${{ needs.api-contract.result }}
+        run: test "$API_CONTRACT_RESULT" = success
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: api-contract
+          path: frontend/packages/api
+      # the engine answers `docker events --since` only from its last 256 events, far too few on an engine the four runners share: record the container events from here on and keep them for a failure
+      - name: remember when the job started and record docker container events (evidence if it fails)
+        run: |
+          echo "JOB_START_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
+          nohup docker events --filter type=container --since "$(date +%s)" --format '{{.Time}} {{.Type}} {{.Action}} {{.Actor.Attributes.name}} {{.Actor.Attributes.image}}' > "$RUNNER_TEMP/docker-events.log" 2>&1 &
+          echo "DOCKER_EVENTS_PID=$!" >> "$GITHUB_ENV"
+      # the light checks, the same entry a session may run before delivery (GOV-1023-FV2 O9, A39; it replaced scripts/precheck.sh): generated docs, registers and acceptance guards against the base; each script self-test only when its files changed (all of them on a push to main)
+      - name: light checks (scripts/ci/light.sh)
+        env:
+          BEFORE: ${{ github.event.before }}
+          LIGHT_ALL: ${{ github.event_name == 'push' && '1' || '' }}  # pull requests run only the self-tests their changes touch; main runs them all
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then base="origin/$GITHUB_BASE_REF"; else base="$BEFORE"; fi
+          scripts/ci/light.sh "$base"
+      - name: backend or frontend inputs changed?
+        id: change
+        env:
+          BEFORE: ${{ github.event.before }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          python3 scripts/ci/relevant_change.py "$BASE_REF"
+      - name: heavy steps allowed? (pull request labelled `queued`; never on a push to main)
+        id: heavy
+        env:
+          LABELS_JSON: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          EVENT_ACTION: ${{ github.event.action }}
+          EVENT_LABEL: ${{ github.event.label.name }}
+        run: python3 scripts/ci/heavy_gate.py
+      - name: toolchain is Java 25
+        if: ((steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true') || steps.change.outputs.tier == 'guarded' || github.event_name == 'push'
+        run: java -version 2>&1 | head -1 | grep -q '"25'
+      # the local Docker Desktop can be stopped (task OPS-1022-OPS-02): try to bring it up (scripts/release/docker_ensure.sh) and otherwise fail with a clear message instead of a pull or keychain error below
+      - name: docker is running
+        if: (steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true'
+        shell: bash
+        timeout-minutes: 5
+        run: |
+          # --ci: do not open Docker from this runner session (not the graphical login session, no login keychain); ask the launchd agent to do it and wait for the engine
+          if ! test -f scripts/release/docker_ensure.sh; then
+            echo "::error::scripts/release/docker_ensure.sh is missing on this branch (merge or rebase main)"
+            exit 1
+          fi
+          if ! bash scripts/release/docker_ensure.sh --ci; then
+            echo "::error::Docker 未运行，且自动拉起失败（见本机 ~/.modernize/psa/ops/docker-watch/alert.log；若报「已暂停」或「未安装」，先看 docker_watch_install.sh 的装机状态）"
+            exit 1
+          fi
+          # the recorder above started before the engine was confirmed up and exits at once if it was down: restart it now
+          if [ -z "${DOCKER_EVENTS_PID:-}" ] || ! kill -0 "$DOCKER_EVENTS_PID" 2>/dev/null; then
+            nohup docker events --filter type=container --since "$(date +%s)" --format '{{.Time}} {{.Type}} {{.Action}} {{.Actor.Attributes.name}} {{.Actor.Attributes.image}}' > "$RUNNER_TEMP/docker-events.log" 2>&1 &
+            echo "DOCKER_EVENTS_PID=$!" >> "$GITHUB_ENV"
+          fi
+      - name: test images are present
+        if: (steps.change.outputs.relevant == 'true' || steps.change.outputs.legacy_it == 'true') && steps.heavy.outputs.run == 'true'
+        shell: bash
+        run: |
+          test -s backend/architecture/test-images.txt
+          grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' backend/architecture/test-images.txt | while read -r image || [ -n "$image" ]; do
+            docker image inspect "$image" >/dev/null 2>&1 || docker pull -q "$image"
+          done
+      # middle tier (scripts/ci/relevant_change.py tier=guarded): only docs the builds read changed, and every file that reads them is a container-free test; runs on every pull request event, no queue label needed
+      # both steps below run only the named container-free test classes; a class that produced no report (typo, moved, deleted) fails instead of passing vacuously.
+      # surefire:test after test-compile, not the test phase: the export-openapi execution is bound to process-test-classes and starts a PostgreSQL container
+      - name: guarded docs changed - the container-free tests that read them
+        if: steps.change.outputs.tier == 'guarded' && steps.change.outputs.guard_classes != ''
+        working-directory: backend
+        env:
+          CLASSES: ${{ steps.change.outputs.guard_classes }}
+        run: |
+          bash ../scripts/codegen/generate_api.sh --check
+          for class in ${CLASSES//,/ }; do rm -f target/surefire-reports/*"$class".* "target/surefire-reports/TEST-"*".$class.xml"; done
+          ./mvnw -q test-compile surefire:test -Dtest="$CLASSES"
+          for class in ${CLASSES//,/ }; do ls target/surefire-reports/TEST-*."$class".xml >/dev/null 2>&1 || { echo "$class produced no report: it did not run" >&2; exit 1; }; done
+      # a push to main runs the light steps only (scripts/ci/heavy_gate.py); this is the post-merge alarm for a merge that no heavy run tested on this exact tree: every container-free unit test, about 25 seconds
+      - name: container-free unit tests on a push to main
+        if: github.event_name == 'push'
+        working-directory: backend
+        run: |
+          CLASSES=$(python3 ../scripts/ci/light_unit_classes.py)
+          test -n "$CLASSES"
+          bash ../scripts/codegen/generate_api.sh --check
+          ./mvnw -q test-compile surefire:test -Dtest="$CLASSES"
+          for class in ${CLASSES//,/ }; do ls target/surefire-reports/TEST-*."$class".xml >/dev/null 2>&1 || { echo "$class produced no report: it did not run" >&2; exit 1; }; done
+      - name: start the SQL Server tests beside surefire and failsafe (profile legacy-it)
+        if: steps.change.outputs.legacy_it == 'true' && steps.heavy.outputs.run == 'true'
+        shell: bash
+        env:
+          BACKEND_WATCHDOG_SECONDS: '1500'
+        run: |
+          legacy="$RUNNER_TEMP/legacy-it"
+          rm -rf "$legacy"
+          git worktree prune
+          git worktree add --detach -q "$legacy" HEAD
+          cp frontend/packages/api/openapi.json "$legacy/frontend/packages/api/openapi.json"
+          mkdir -p "$legacy/frontend/packages/api/src/generated"
+          cp frontend/packages/api/src/generated/*.ts "$legacy/frontend/packages/api/src/generated/"
+          rm -f "$RUNNER_TEMP/legacy-it.rc"
+          {
+            echo "LEGACY_IT_DIR=$legacy"
+            echo "LEGACY_IT_LOG=$RUNNER_TEMP/legacy-it.log"
+            echo "LEGACY_IT_RC=$RUNNER_TEMP/legacy-it.rc"
+          } >> "$GITHUB_ENV"
+          # the script's own watchdog and fork limits apply; its exit status lands in the rc file (never empty: the waiting step polls for it)
+          nohup bash -c 'cd "$1" && scripts/ci/legacy_it.sh -Dtest.forks=2 -Dtest.fork.timeout=1800; echo $? > "$2"' _ "$legacy" "$RUNNER_TEMP/legacy-it.rc" > "$RUNNER_TEMP/legacy-it.log" 2>&1 &
+      - name: surefire and failsafe, side by side
+        if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
+        # surefire: two forks, done in ~1.5 min; failsafe (the long pole, ~6.7 min) gets four: the code lane runs one heavy backend job at a time, so its forks no longer compete with another heavy job (docs/ops/ci-runners.md, #1034)
+        env:
+          BACKEND_WATCHDOG_SECONDS: '1500'
+          # this run's api-contract job exported and asserted OpenAPI for this very checkout; backend_verify.sh does not export it again
+          OPENAPI_EXPORTED_FOR: ${{ github.sha }}
+        run: scripts/ci/backend_verify.sh -Dtest.forks=2 -Dit.forks=4 -Dtest.fork.timeout=1800
+      - name: every acceptance test class produced a surefire or failsafe report
+        if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
+        # Check the default invocation before explicit -Dit.test reruns can add SQL Server reports.
+        run: python3 scripts/guards/acceptance_reports.py --tier default
+      # the SQL Server tests (~3 min, most pull requests touch what they read) run beside surefire and failsafe: the step above their start ("start the SQL Server tests beside ...") launches them in a second checkout of the same commit
+      # (own target directory and reports, so neither run touches the other's classes or reports); this step waits for them and fails the job, so the result stays inside the required `backend verify` check (#1034)
+      - name: SQL Server integration tests (profile legacy-it)
+        if: steps.change.outputs.legacy_it == 'true' && steps.heavy.outputs.run == 'true'
+        timeout-minutes: 30
+        run: |
+          while [ ! -s "$LEGACY_IT_RC" ]; do sleep 5; done
+          echo "::group::legacy_it.sh"; cat "$LEGACY_IT_LOG"; echo "::endgroup::"
+          test "$(cat "$LEGACY_IT_RC")" = 0
+      # only a recorded pid: an empty one used to become `kill 0`, which signals the whole process group of the step - runsvc.sh and the runner listener included - and took the runner offline (卡 #736 第 9 项)
+      - name: stop the docker events recorder
+        if: always()
+        run: case "${DOCKER_EVENTS_PID:-}" in ''|*[!0-9]*|0|1) ;; *) kill "$DOCKER_EVENTS_PID" 2>/dev/null || true ;; esac
+      - if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: test-reports
+          path: |
+            backend/target/surefire-reports
+            backend/target/failsafe-reports
+            backend/target/legacy-it-reports
+            ${{ runner.temp }}/legacy-it/backend/target/legacy-it-reports
+            ${{ runner.temp }}/legacy-it/backend/target/thread-dumps
+            ${{ runner.temp }}/legacy-it.log
+            backend/target/thread-dumps
+            backend/target/docker-diagnostics
+            backend/target/**/*.dump*
+            backend/hs_err_pid*.log
+      # after the failure upload above (it reads this checkout's reports and thread dumps): a failed or cancelled earlier step leaves the second checkout's Maven and test JVMs running: stop what runs from it (by its path) and drop the checkout
+      - name: stop the SQL Server tests if they are still running
+        if: always() && env.LEGACY_IT_DIR != ''
+        run: |
+          pkill -f "$LEGACY_IT_DIR/" 2>/dev/null || true
+          sleep 2
+          pkill -9 -f "$LEGACY_IT_DIR/" 2>/dev/null || true
+          git worktree remove --force "$LEGACY_IT_DIR" 2>/dev/null || rm -rf "$LEGACY_IT_DIR"
+          git worktree prune
+
+  frontend:
+    needs: api-contract
+    if: ${{ always() && !((github.event.action == 'labeled' && github.event.label.name != 'queued') || (contains(github.event.pull_request.labels.*.name, '排队中') && !contains(github.event.pull_request.labels.*.name, 'queued'))) }}
+    name: frontend verify (typecheck + lint guardrails F1-F14 + structure + build)${{ github.event_name == 'pull_request' && (!contains(github.event.pull_request.labels.*.name, 'queued') || (github.event.action == 'labeled' && github.event.label.name != 'queued')) && ' (light)' || '' }}
+    runs-on: [self-hosted, forcitis-one]
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      # A failed prerequisite must fail the existing required check, not leave it skipped.
+      - name: API contract generation succeeded
+        working-directory: .
+        env:
+          API_CONTRACT_RESULT: ${{ needs.api-contract.result }}
+        run: test "$API_CONTRACT_RESULT" = success
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: api-contract
+          path: frontend/packages/api
+      - name: backend or frontend inputs changed?
+        id: change
+        working-directory: .
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: python3 scripts/ci/relevant_change.py "$BASE_REF"
+      - name: heavy steps allowed? (pull request labelled `queued`; never on a push to main)
+        id: heavy
+        working-directory: .
+        env:
+          LABELS_JSON: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          EVENT_ACTION: ${{ github.event.action }}
+          EVENT_LABEL: ${{ github.event.label.name }}
+        run: python3 scripts/ci/heavy_gate.py
+      - name: toolchain is Node 24 and the pinned pnpm
+        if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
+        run: |
+          node --version | grep -q '^v24\.'
+          test "$(pnpm --version)" = "$(node -p "require('./package.json').packageManager.split('@')[1].split('+')[0]")"
+      - if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - if: steps.change.outputs.tier == 'code' && steps.heavy.outputs.run == 'true'
+        run: pnpm verify
+      # middle tier: the glossary copy scripts read terms.yaml and bcs.yaml
+      - name: guarded docs changed - toolchain is Node 24 and the pinned pnpm
+        if: steps.change.outputs.tier == 'guarded' && steps.change.outputs.guard_frontend == 'true'
+        run: |
+          node --version | grep -q '^v24\.'
+          test "$(pnpm --version)" = "$(node -p "require('./package.json').packageManager.split('@')[1].split('+')[0]")"
+      - if: steps.change.outputs.tier == 'guarded' && steps.change.outputs.guard_frontend == 'true'
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - name: guarded docs changed - glossary copy check and script tests
+        if: steps.change.outputs.tier == 'guarded' && steps.change.outputs.guard_frontend == 'true'
+        run: |
+          pnpm run check:copy
+          pnpm run test:scripts
+
+  gitleaks:
+    # a skipped required check counts as passed: on a label event other than `queued` it reports under another name
+    name: secret scan (gitleaks)${{ github.event.action == 'labeled' && github.event.label.name != 'queued' && ' (light)' || '' }}
+    if: ${{ !((github.event.action == 'labeled' && github.event.label.name != 'queued') || (contains(github.event.pull_request.labels.*.name, '排队中') && !contains(github.event.pull_request.labels.*.name, 'queued'))) }}
+    runs-on: [self-hosted, forcitis-one]
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: gitleaks 8.30.1 (machine install, else verified download)
+        run: |
+          if [ "$(gitleaks version 2>/dev/null)" != "8.30.1" ]; then
+            base=https://github.com/gitleaks/gitleaks/releases/download/v8.30.1
+            mkdir -p "$RUNNER_TEMP/gitleaks" && cd "$RUNNER_TEMP/gitleaks"
+            curl -sSLO "$base/gitleaks_8.30.1_darwin_arm64.tar.gz"
+            curl -sSLO "$base/gitleaks_8.30.1_checksums.txt"
+            grep ' gitleaks_8.30.1_darwin_arm64.tar.gz$' gitleaks_8.30.1_checksums.txt | shasum -a 256 -c -
+            tar -xzf gitleaks_8.30.1_darwin_arm64.tar.gz gitleaks
+            echo "$PWD" >> "$GITHUB_PATH"
+          fi
+      # a pull request run scans only its own commits (the same range scripts/ci/check_all.sh scans); the full history takes ~80 CPU-seconds across 4+ cores on every event, and main's push and the nightly run still scan all of it (#1034)
+      - name: gitleaks (pull request - its commits against the base; push to main and nightly - the full history)
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            # a missing base makes git log fail and gitleaks report "no leaks" for zero commits: fail instead
+            git rev-parse --verify -q "refs/remotes/origin/$BASE_REF^{commit}" >/dev/null || { echo "::error::origin/$BASE_REF is not in this checkout: the pull request range cannot be scanned"; exit 1; }
+            gitleaks git --redact --no-banner --exit-code 1 --log-opts="refs/remotes/origin/$BASE_REF..HEAD" .
+          else
+            gitleaks git --redact --no-banner --exit-code 1 .
+          fi
+      # 发布与部署脚本读取 ci.yml、部署前清单、部署门输入 deploy_gate.json、prod-approvals.txt 与 tools/ops/ecs/files；只改与它们无关的文档时跳过下面两步
+      - name: release scripts or what they read changed?
+        id: change
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: python3 scripts/ci/relevant_change.py "$BASE_REF"
+      - name: shellcheck 0.11.0 (machine install, else verified download)
+        if: github.event_name == 'push' || steps.change.outputs.relevant == 'true'
+        run: |
+          if [ "$(shellcheck --version 2>/dev/null | awk '/^version:/ { print $2 }')" != "0.11.0" ]; then
+            mkdir -p "$RUNNER_TEMP/shellcheck" && cd "$RUNNER_TEMP/shellcheck"
+            curl -sSLO https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.darwin.aarch64.tar.xz
+            echo "56affdd8de5527894dca6dc3d7e0a99a873b0f004d7aabc30ae407d3f48b0a79  shellcheck-v0.11.0.darwin.aarch64.tar.xz" | shasum -a 256 -c -
+            tar -xJf shellcheck-v0.11.0.darwin.aarch64.tar.xz
+            echo "$PWD/shellcheck-v0.11.0" >> "$GITHUB_PATH"
+          fi
+      - name: release and deploy scripts self-test
+        if: github.event_name == 'push' || steps.change.outputs.relevant == 'true'
+        run: |
+          for script in scripts/release/*.sh; do bash -n "$script"; done
+          git ls-files -z '*.sh' | xargs -0 shellcheck -x   # every tracked shell script (#856); a finding is fixed or disabled inline with its reason
+          python3 -I scripts/release/ci_passed.py --self-test
+          python3 -I scripts/release/manifest.py --self-test
+          python3 -I scripts/release/deploy_gate.py --self-test
+          scripts/release/install_request_selftest.sh
+          scripts/release/ship_selftest.sh
