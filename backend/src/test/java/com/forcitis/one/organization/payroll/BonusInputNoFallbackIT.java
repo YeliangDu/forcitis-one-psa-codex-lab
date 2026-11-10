@@ -61,6 +61,7 @@ class BonusInputNoFallbackIT extends P5Support {
         UUID secondHolder = person(null);
         grantByOperations(secondHolder, PAYROLL_ROLE);
         UUID newHolder = person(null);
+        String newHolderCode = wecomCodeFor(newHolder);
         DocumentReference document = start(initiatorAccount, initiator);
 
         UUID first = awaitTask(document, List.of());
@@ -77,7 +78,7 @@ class BonusInputNoFallbackIT extends P5Support {
         actOk(first, lineManagerAccount, "decide", APPROVE);
         UUID second = awaitTask(document, List.of(first));
         assertThat(act(second, initiatorAccount, "claim", null).getStatus()).as("the initiator is not a candidate of the second stage").isNotIn(200, 204);
-        actOk(second, signIn(newHolder), "claim", null);
+        actOk(second, signInWith(newHolderCode, newHolder), "claim", null);
     }
 
     @Test
@@ -98,6 +99,7 @@ class BonusInputNoFallbackIT extends P5Support {
         SignedIn holderAccount = signIn(holder);
         SignedIn outsiderAccount = signIn(outsider);
         SignedIn administratorAccount = signIn(administrator);
+        String peerCode = wecomCodeFor(peer);
         DocumentReference document = start(initiatorAccount, initiator);
         UUID first = awaitTask(document, List.of());
         actOk(first, lineManagerAccount, "claim", null);
@@ -116,7 +118,7 @@ class BonusInputNoFallbackIT extends P5Support {
         assertThat(actAs(second, holderAccount, outsiderAccount, "decide", APPROVE).getStatus()).as("nobody outside the role decides the stage").isNotIn(200, 204);
         assertThat(actAs(second, holderAccount, administratorAccount, "decide", APPROVE).getStatus()).as("the administrator does not decide the stage").isNotIn(200, 204);
         actOk(second, holderAccount, "transfer", handover(peer));
-        actOk(second, signIn(peer), "decide", APPROVE);
+        actOk(second, signInWith(peerCode, peer), "decide", APPROVE);
     }
 
     /** A write by a caller who cannot read the task's detail (an outsider, the administrator): the version comes from the person who holds it. */
