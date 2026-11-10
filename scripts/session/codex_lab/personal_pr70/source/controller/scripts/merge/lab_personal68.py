@@ -1,4 +1,4 @@
-"""One explicitly authorized #68 merge under the trusted personal operator."""
+"""One explicitly authorized #70 merge under the trusted personal operator."""
 import argparse
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -15,7 +15,7 @@ if __name__ == "__main__":
 import lab_main_https as common_port
 from ordinary_first_card import _closure, _read, digest, require
 
-KIND = "personal-pr68-v1"
+KIND = "personal-pr70-v1"
 HOLD = dict(action="HOLD", allow_reserve=False, allow_send=False)
 
 
@@ -26,11 +26,11 @@ def authorize(permit, observed, *, recover_only):
             and permit.get("action") in ("first-send", "recover-only")
             and permit["action"] == observed.get("action")
             and observed.get("coordinator_exclusive") is True and observed.get("conflict") is False
-            and observed.get("fifo") in ([], [68])):
+            and observed.get("fifo") in ([], [70])):
         return dict(HOLD)
     recovery = recover_only or permit["action"] == "recover-only"
-    result = common_port.authorize(permit, observed, recover_only=recovery, number=68)
-    if result["allow_send"] and observed["fifo"] != [68]:
+    result = common_port.authorize(permit, observed, recover_only=recovery, number=70)
+    if result["allow_send"] and observed["fifo"] != [70]:
         return dict(HOLD)
     return result
 
@@ -55,8 +55,8 @@ def run(a):
         "kind","action","checkout","common_identity","expires_at","lock_ids","control_lock",
         "expected_tree","ordinary_approval_sha256","git_config_sha256"}
         and p["kind"] == KIND and p["closure_sha256"] == a.closure_sha256
-        and (a.head,a.base)==("5ea4264cf143b0fc697e5cf5acd23e3517fc7321","6751d58e6946555d49b252ed1d7264453612373b")
-        and p["subject"] == dict(number=68,head=a.head,base=a.base,target="main")
+        and (a.head,a.base)==("091c1e31fd1e33f29904c82d771f1e9d3d02979a","bf853c2c6ce5cb3e72172330d34aecdc75f0a331")
+        and p["subject"] == dict(number=70,head=a.head,base=a.base,target="main")
         and all(digest(p[k],64) for k in ("ordinary_approval_sha256","git_config_sha256"))
         and digest(p["expected_tree"],40)
         and set(p["lock_ids"]) == {"merge.queue.merge-lock","merge.queue.lock","merge.queue.heads-lock"}
@@ -102,10 +102,10 @@ def run(a):
                     == p["git_config_sha256"], "personal-checkout-common-or-origin-moved")
 
     def approval():
-        row = ports.load(68)
+        row = ports.load(70)
         pin = hashlib.sha256(json.dumps(row,sort_keys=True,separators=(",",":"),ensure_ascii=True).encode()).hexdigest()
         require(pin == p["ordinary_approval_sha256"] and row["mode"] == "normal"
-                and row["author"] == "one-platform" and (row["run_id"],row["run_attempt"])==(42760461359,2) and set(row["required_reviews"]) == {"首轮","终审"}
+                and row["author"] == "one-dev-readonly-lab-successor" and (row["run_id"],row["run_attempt"])==(42769408375,1) and set(row["required_reviews"]) == {"首轮","终审"}
                 and all(row[k] == v for k,v in subject.items()), "personal-ordinary-approval-moved")
         return row
 
@@ -145,26 +145,26 @@ def run(a):
             common_port._sender_lock(control,p["control_lock"]) as control_fd:
         require(common_port._named(journal) == p["journal"],"personal-wrong-journal")
         ledger = ReleaseJournalV2(journal)
-        initial = ledger.load(68)
+        initial = ledger.load(70)
         recovery = a.command == "recover-only" or initial is not None
         admitted = None
         if not recovery:
             before = observe(fd,control_fd,None)
-            require(before["fifo"] in ([],[68]) and
-                    authorize(p,dict(before,fifo=[68]),recover_only=False)["allow_reserve"],
+            require(before["fifo"] in ([],[70]) and
+                    authorize(p,dict(before,fifo=[70]),recover_only=False)["allow_reserve"],
                     "personal-pre-admission-authority-refused")
 
             class Only69Queue(Queue):
                 @contextmanager
                 def merge_lock(self):
                     with super().merge_lock(expected_identity=p["lock_ids"]["merge.queue.merge-lock"]):
-                        require(_state(queue) in ((True,[]),(True,[68])) and ledger.load(68) is None,
+                        require(_state(queue) in ((True,[]),(True,[70])) and ledger.load(70) is None,
                                 "personal-admission-conflict")
                         yield
 
             def verify_admission(intent):
                 now = observe(fd,control_fd,None)
-                require(authorize(p,dict(now,fifo=[68]),recover_only=False)["allow_reserve"] and
+                require(authorize(p,dict(now,fifo=[70]),recover_only=False)["allow_reserve"] and
                         git("merge-tree","--write-tree",a.base,a.head).strip() == p["expected_tree"],
                         "personal-admission-tree-or-authority-moved")
                 return ports.verify(intent,approval())
@@ -178,7 +178,7 @@ def run(a):
         owned = [None]
 
         def reserve_guard(proposed):
-            require(not recovery and owned[0] is None and ledger.load(68) is None
+            require(not recovery and owned[0] is None and ledger.load(70) is None
                     and {k:proposed[k] for k in common_port.KEYS} == subject
                     and authorize(p,observe(fd,control_fd,None),recover_only=False)["allow_reserve"],
                     "personal-new-reservation-refused")
@@ -188,10 +188,10 @@ def run(a):
                     recover_only=True)["action"] == "READY", "personal-recovery-scope-moved")
 
         def can_write():
-            record = ledger.load(68)
+            record = ledger.load(70)
             observed = observe(fd,control_fd,record)
             decision = authorize(p,observed,recover_only=False)
-            return (not recovery and observed["fifo"] == [68] and
+            return (not recovery and observed["fifo"] == [70] and
                     ((record is None and owned[0] is None and decision["allow_send"]) or
                      (record is not None and record == owned[0] and decision["action"] == "READY")))
 
@@ -203,7 +203,7 @@ def run(a):
                 return owned[0] is not None and can_write()
             binding = common_port.MainHTTPSBinding(p,checkout,merge,fd,transport_check,a.key)
             ports._main_https = binding
-        result = run_command("once",68,common,ports,first_card_scope=p,permit_check=can_write,recover_only=recovery,
+        result = run_command("once",70,common,ports,first_card_scope=p,permit_check=can_write,recover_only=recovery,
                              reserve_guard=reserve_guard,reserved=lambda row:owned.__setitem__(0,dict(row)),
                              recover_guard=recover_guard)
         result.update(admission=admitted,reserved_this_invocation=owned[0] is not None,
