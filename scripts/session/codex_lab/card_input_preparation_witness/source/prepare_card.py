@@ -28,6 +28,12 @@ class Hold(ValueError):
     pass
 
 
+class TrailerHold(Hold):
+    def __init__(self, trailers):
+        super().__init__('frozen-test-trailer-mismatch')
+        self.trailers=trailers
+
+
 def need(condition, reason):
     if not condition:
         raise Hold(reason)
@@ -212,7 +218,12 @@ def build(b,repo,mode,observed_base):
     need(type(card) is type(revision) is int and min(card,revision)>0,'invalid-card-or-revision')
     branch=b['branch'];need(type(branch) is str and BRANCH.fullmatch(branch) and '..' not in branch
         and all(x and not x.endswith('.lock') for x in branch.split('/')),'invalid-signed-branch')
-    work=b['workdir'];need(type(work) is str and Path(work).is_absolute() and Path(work).resolve(strict=True)==Path(work),'invalid-role-workdir')
+    work=b['workdir'];need(type(work) is str and Path(work).is_absolute() and Path(work).resolve(strict=True)==Path(work)
+         and Path(work).is_dir(),'invalid-role-workdir')
+    if (repo/'.codex-lab/role-runtime/slots/one-readonly-lab').is_dir():
+        expected_work=repo/'.codex-lab/role-runtime/slots/one-readonly-lab/work'
+    else:expected_work=repo
+    need(Path(work)==expected_work,'role-workdir-not-bound-to-selected-repo')
     scope=b['scope'];a=b['acceptance'];base=scope['base'];A=a['A']
     need(digest(base) and digest(A) and a['B']==base and (mode=='replay' or base==observed_base),'stale-base')
     need(mode!='replay' or 'delivery' in b,'replay-requires-completed-delivery')
@@ -237,25 +248,34 @@ def build(b,repo,mode,observed_base):
     need(len(flags)==1,'mixed-acceptance-role-paths')
     guarded=True in flags
     need(parents(repo,A)==[base] and set(diff(repo,base,A))==set(tests),'tests-only-commit-drift')
-    need(trailer(repo,A,'Acceptance-Test-Author')==(['test-engineer'] if guarded else []),'acceptance-role-trailer-mismatch')
+    expected_roles=['test-engineer'] if guarded else []
+    expected_trailers=(['Acceptance-Test-Author: test-engineer'] if guarded else [])+['Codex: '+tester]
+    actual_roles=trailer(repo,A,'Acceptance-Test-Author')
     hints=trailer(repo,A,'Codex')+trailer(repo,A,'Codex-Acceptance')
-    need(hints==[tester] or (mode=='replay' and not hints and digest(a.get('receipt_sha256'),64)),
-         'frozen-test-author-trailer-mismatch')
+    need(not hints or hints==[tester],'frozen-test-author-trailer-mismatch')
+    need(not actual_roles or actual_roles==expected_roles,'acceptance-role-trailer-mismatch')
     files=[]; blobs={}
     for p in sorted(read_paths):
         raw,oid=content(repo,A if p in tests else base,p)
         h=sha(raw)
         if p in tests:need(h==tests[p],'frozen-test-blob-drift:'+p)
         files.append(dict(path=p,sha256=h,text=raw.decode('utf-8'),writable=p in write_paths));blobs[p]=oid
+    if actual_roles!=expected_roles or (not hints and not (mode=='replay' and digest(a.get('receipt_sha256'),64))):
+        raise TrailerHold(expected_trailers)
+    brief=scope.get('brief_path')
+    if brief is not None:
+        need(safe_path(brief) and brief.startswith('docs/lab/') and brief not in read_paths
+             and len(files)<16,'invalid-approved-brief-path')
+        files.append(dict(path=brief,sha256=sha(description.encode()),text=description,writable=False))
     ident=dict(card=card,revision=revision,session_id=author,B=base)
     capsule=dict(ident,files=files)
     capsule_raw=wire(capsule)+b'\n';need(len(capsule_raw)<=196608,'capsule-byte-limit')
     task=dict(ident,role='one-readonly-lab',physical_cwd=work,task=description,A=A,H=A)
     assignment=dict(task,task='card-capsule:'+sha(capsule_raw))
     result=dict(kind='lab-card-preparation-v1',mode=mode,task=task,capsule=capsule,assignment=assignment,
-                capsule_sha256=sha(capsule_raw),metadata=meta,
+                capsule_sha256=sha(capsule_raw),capsule_wire=capsule_raw.decode('ascii'),metadata=meta,
                 patch_preconditions={r['path']:r['sha256'] for r in files if r['writable']},
-                test_trailers=(['Acceptance-Test-Author: test-engineer'] if guarded else [])+['Codex: '+tester],
+                test_trailers=expected_trailers,
                 test_blobs={p:blobs[p] for p in tests})
     if 'delivery' in b:
         source_pins(b)
@@ -289,7 +309,9 @@ def prepare(bundle,repo,output,*,mode,observed_base):
         action=write_once(Path(output),result)
         return dict(action=action,reason='exact-input-checked',bundle_sha256=sha(wire(result)+b'\n'))
     except (ValueError,KeyError,TypeError,OSError,AttributeError,subprocess.SubprocessError) as e:
-        return dict(action='hold',reason='missing-field:'+str(e) if isinstance(e,KeyError) else str(e))
+        result=dict(action='hold',reason='missing-field:'+str(e) if isinstance(e,KeyError) else str(e))
+        if isinstance(e,TrailerHold):result['required_test_trailers']=e.trailers
+        return result
 
 
 def gh(endpoint):
@@ -360,6 +382,7 @@ def main():
         result=dict(action=action,reason='exact-input-checked',bundle_sha256=sha(wire(value)+b'\n'))
     except (ValueError,KeyError,TypeError,OSError,AttributeError,subprocess.SubprocessError) as e:
         result=dict(action='hold',reason='missing-field:'+str(e) if isinstance(e,KeyError) else str(e))
+        if isinstance(e,TrailerHold):result['required_test_trailers']=e.trailers
     print(json.dumps(result,ensure_ascii=False))
     return 78 if result['action']=='hold' else 0
 
