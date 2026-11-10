@@ -7,6 +7,7 @@ import sqlite3
 import subprocess
 import uuid
 
+from pr_body import lines
 from public_card import GitHubPort, REPO, RID, ORIGIN, run
 from owned_runtime import private,sha
 from runtime_broker import physical,private_file
@@ -100,10 +101,10 @@ class AdoptionPort(GitHubPort):
         need(row["number"]==sc["number"] and row["head"]==dict(ref=sc["head_ref"],sha=ref)
              and row["base"]["ref"]==sc["base_ref"] and row["state"]=="open" and row["draft"] is False
              and sha(row["body"].encode())==config["pr_body_sha256"],"existing-pr-live-pr-drift")
-        lines=row["body"].splitlines()
-        need("Refs #"+str(sc["card"]) in lines and
-             "Codex: "+sc["author_session"] in lines and
-             "Codex-Acceptance: "+sc["acceptance_session"] in lines,"existing-pr-original-provenance-unbound")
+        body=row["body"]
+        need(next((x.strip() for x in body.splitlines() if x.strip()),"")=="Refs #"+str(sc["card"]) and
+             lines(body,"Codex")==[sc["author_session"]] and
+             lines(body,"Codex-Acceptance")==[sc["acceptance_session"]],"existing-pr-original-provenance-unbound")
         return row
 
     def create_pr(self,*a):raise ValueError("adoption-cannot-create-pr")
