@@ -1,0 +1,283 @@
+name: Lab 45 branch lifecycle hosted acceptance
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - scripts/session/codex_lab/lab_branch*
+      - scripts/merge/mq_lab_operator.py
+      - .github/workflows/lab-45-branch-lifecycle-ci.yml
+permissions:
+  contents: read
+jobs:
+  branch-lifecycle:
+    if: >-
+      github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      toJSON(github.event.repository.id) == '1449415666' &&
+      toJSON(github.event.repository.private) == 'false' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'codex/45-branch-lifecycle'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Run frozen branch lifecycle acceptance
+        id: frozen
+        env:
+          SUBJECT: ${{ github.event.pull_request.head.sha || github.sha }}
+          GIT_ALLOW_PROTOCOL: file
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT"
+          dest="$RUNNER_TEMP/lab-45-branch-lifecycle"
+          mkdir -p "$dest"
+          python3 -B - "$dest/verdict.json" <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import sys
+          import unittest
+
+          root = Path("scripts/session/codex_lab")
+          entries = sorted(root.glob("*branch*lifecycle*selftest.py"))
+          assert entries, "frozen branch lifecycle test file missing"
+          suite = unittest.TestLoader().discover(str(root), pattern="*branch*lifecycle*selftest.py")
+          def case_ids(item):
+              if isinstance(item, unittest.TestSuite):
+                  return [name for child in item for name in case_ids(child)]
+              return [item.id()]
+          selected = case_ids(suite)
+          assert len(selected) == len(set(selected)) == 8
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          verdict = {
+              "head": os.environ["SUBJECT"],
+              "run": os.environ["GITHUB_RUN_ID"],
+              "attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "tests": result.testsRun,
+              "selected": selected,
+              "failures": [{"name": t.id(), "detail": e} for t, e in result.failures],
+              "errors": [{"name": t.id(), "detail": e} for t, e in result.errors],
+              "skipped": [t.id() for t, _ in result.skipped],
+              "expected_failures": [t.id() for t, _ in result.expectedFailures],
+              "unexpected_successes": [t.id() for t in result.unexpectedSuccesses],
+              "frozen_test_sha256": {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in entries},
+          }
+          Path(sys.argv[1]).write_text(json.dumps(verdict, indent=2) + "\n")
+          raise SystemExit(0 if result.wasSuccessful() and result.testsRun and not
+                           (result.skipped or result.expectedFailures or result.unexpectedSuccesses) else 1)
+          PY
+      - name: Run affected canonical Lab queue regressions
+        env:
+          GIT_ALLOW_PROTOCOL: file
+        run: |
+          set -euo pipefail
+          dest="$RUNNER_TEMP/lab-45-branch-lifecycle"
+          python3 -B -m unittest discover -s scripts/merge -p 'mq_lab_*selftest.py' -v \
+            2>&1 | tee "$dest/affected-queue.log"
+          grep -Eq '^Ran [1-9][0-9]* tests? in ' "$dest/affected-queue.log"
+      - name: Run additive V2 handoff acceptance
+        if: ${{ !cancelled() && steps.frozen.outcome == 'success' }}
+        env:
+          SUBJECT: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GIT_ALLOW_PROTOCOL: file
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT"
+          git merge-base --is-ancestor "$BASE_SHA" "$SUBJECT"
+          dest="$RUNNER_TEMP/lab-45-branch-lifecycle"
+          python3 -B - "$dest/v2-verdict.json" <<'PY'
+          import hashlib, json, os, sys, unittest
+          from pathlib import Path
+          root = Path("scripts/session/codex_lab")
+          name = "lab_branch_handoff_v2_selftest.py"
+          assert hashlib.sha256((root / name).read_bytes()).hexdigest() == "4dbffa666495a1aeaf433fc4a06c36752cf4ffe46d118e5b8a5a770b6a3180bc"
+          suite = unittest.TestLoader().discover(str(root), pattern=name)
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          report = dict(head=os.environ["SUBJECT"], base=os.environ["BASE_SHA"],
+                        run=os.environ["GITHUB_RUN_ID"], attempt=os.environ["GITHUB_RUN_ATTEMPT"],
+                        tests=result.testsRun,
+                        failures=[dict(name=t.id(), detail=err) for t,err in result.failures],
+                        errors=[dict(name=t.id(), detail=err) for t,err in result.errors],
+                        skipped=[t.id() for t,_ in result.skipped],
+                        expected_failures=[t.id() for t,_ in result.expectedFailures],
+                        unexpected_successes=[t.id() for t in result.unexpectedSuccesses])
+          Path(sys.argv[1]).write_text(json.dumps(report, indent=2) + "\n")
+          raise SystemExit(0 if result.testsRun == 6 and result.wasSuccessful()
+                           and not (result.skipped or result.expectedFailures or result.unexpectedSuccesses) else 1)
+          PY
+      - name: Run native PR list and detail acceptance
+        if: ${{ !cancelled() && steps.frozen.outcome == 'success' }}
+        env:
+          SUBJECT: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GIT_ALLOW_PROTOCOL: file
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT"
+          git merge-base --is-ancestor "$BASE_SHA" "$SUBJECT"
+          dest="$RUNNER_TEMP/lab-45-branch-lifecycle"
+          python3 -B - "$dest/native-pr-verdict.json" <<'PY'
+          import hashlib, json, os, sys, unittest
+          from pathlib import Path
+          root = Path("scripts/session/codex_lab")
+          name = "lab_branch_native_pr_selftest.py"
+          assert hashlib.sha256((root / name).read_bytes()).hexdigest() == "190bb5772d1ea2b63e75bcb8c6ce9bfe422aef2a5d48cc3980c63d26dbbcc2f8"
+          suite = unittest.TestLoader().discover(str(root), pattern=name)
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          report = dict(head=os.environ["SUBJECT"], base=os.environ["BASE_SHA"],
+                        run=os.environ["GITHUB_RUN_ID"], attempt=os.environ["GITHUB_RUN_ATTEMPT"],
+                        tests=result.testsRun,
+                        failures=[dict(name=t.id(), detail=err) for t,err in result.failures],
+                        errors=[dict(name=t.id(), detail=err) for t,err in result.errors],
+                        skipped=[t.id() for t,_ in result.skipped],
+                        expected_failures=[t.id() for t,_ in result.expectedFailures],
+                        unexpected_successes=[t.id() for t in result.unexpectedSuccesses])
+          Path(sys.argv[1]).write_text(json.dumps(report, indent=2) + "\n")
+          raise SystemExit(0 if result.testsRun == 6 and result.wasSuccessful()
+                           and not (result.skipped or result.expectedFailures or result.unexpectedSuccesses) else 1)
+          PY
+          python3 -B - "$dest/native-ci-verdict.json" <<'PYCODE'
+          import hashlib, json, os, sys, unittest
+          from pathlib import Path
+          root = Path("scripts/session/codex_lab")
+          name = "lab_branch_native_ci_selftest.py"
+          assert hashlib.sha256((root / name).read_bytes()).hexdigest() == "ec52af46fc0d861beb45557e9a2b2250a78065118745284244b1649a2b6ef114"
+          suite = unittest.TestLoader().discover(str(root), pattern=name)
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          report = dict(head=os.environ["SUBJECT"], base=os.environ["BASE_SHA"],
+                        run=os.environ["GITHUB_RUN_ID"], attempt=os.environ["GITHUB_RUN_ATTEMPT"],
+                        tests=result.testsRun,
+                        failures=[dict(name=t.id(), detail=err) for t,err in result.failures],
+                        errors=[dict(name=t.id(), detail=err) for t,err in result.errors],
+                        skipped=[t.id() for t,_ in result.skipped],
+                        expected_failures=[t.id() for t,_ in result.expectedFailures],
+                        unexpected_successes=[t.id() for t,_ in result.unexpectedSuccesses])
+          Path(sys.argv[1]).write_text(json.dumps(report, indent=2) + "\n")
+          raise SystemExit(0 if result.testsRun == 9 and result.wasSuccessful()
+                           and not (result.skipped or result.expectedFailures or result.unexpectedSuccesses) else 1)
+          PYCODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab-45-branch-lifecycle-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab-45-branch-lifecycle/
+          if-no-files-found: error
+  branch-lifecycle-native-ordinary:
+    if: >-
+      github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      toJSON(github.event.repository.id) == '1449415666' &&
+      toJSON(github.event.repository.private) == 'false' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'codex/45-branch-lifecycle'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      actions: read
+    env:
+      SUBJECT: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Reacquire pinned historical native evidence without uploading logs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT"
+          git merge-base --is-ancestor "$BASE_SHA" "$SUBJECT"
+          python3 -I -B - "$RUNNER_TEMP/native49" <<'PYCODE'
+          import hashlib,io,json,subprocess,sys,zipfile
+          from pathlib import Path
+          d=Path(sys.argv[1])
+          d.mkdir(mode=0o700)
+          repo="repos/YeliangDu/forcitis-one-psa-codex-lab"
+          idx=bytes.fromhex("7b0a20202262617365223a202262396432316136323135656133336637353532626535653231363738323332373931653164343337222c0a2020226272616e6368223a2022636f6465782f34372d617474656e64616e63652d636c6f636b222c0a202022636f6d706c6574655f686973746f726963616c5f617474656d7074223a20322c0a20202263757272656e745f70725f6173736f63696174696f6e223a2022626f74682063617074757265642072756e2070756c6c5f72657175657374732061727261797320656d707479206166746572206d657267653b206e6f2063757272656e74206f70656e2d50522070726f6f66222c0a2020226661696c7572655f6c696d6974223a2022617474656d707431206e6174697665206172746966616374206e6f7734303420616e6420707265666c69676874205a49502f706c616e20756e617661696c61626c653b206e6f2072756e6e61626c65206661696c65642d6e617469766520706f736974697665222c0a202022686173686573223a207b0a2020202022312d617474656d70742e6a736f6e223a202232663366366231636433626262303632623235373232376234336337323431366436343637383831643136666531383738376630633465373739396130363165222c0a2020202022312d6a6f62732e6a736f6e223a202232616237646136396465316537343561336263306139353566303663613233366162333132333432323537363132386130636233353463636437363435323666222c0a2020202022312d707265666c696768742d6a6f622e6c6f67223a202232666662303165333435613366386230376163383832323430623536383930396437313666653135303161323833373766623236646661646337326266613237222c0a2020202022312d726563656970742d6265666f72652d726572756e2e7a6970223a202239356432303332646134323861613834343630343965613565363934613331303133313831646139656335346233336133663531336337386436363637386533222c0a2020202022312d766572696669636174696f6e2d6a6f622e6c6f67223a202230666534373563656239383965636232633937613539313532636237633334616165323165356432336233323533333639656664663261306638326530643065222c0a2020202022322d617474656d70742e6a736f6e223a202264393431626631663738346430306566313064383237356130366233303430623635356163626236636338393866346136623532623532646535323634396436222c0a2020202022322d6a6f62732e6a736f6e223a202263373565643031613432633835373664663263613462353236346161333365626437306564656134346465353036646532663134666662613034383532666534222c0a2020202022322d706c616e2e6a736f6e223a202262636134643837396237336134323336356363633037313131363730363761316566613464313937636134326335636339353630383332396363663630386363222c0a2020202022322d707265666c696768742d61727469666163742e6a736f6e223a202236366438623763326362383532333030336261396262346634343339633030373337383162303134313137633364356332303930626533386363356261386337222c0a2020202022322d707265666c696768742d6a6f622e6c6f67223a202238623536333330303965393933636239333132613866303563366134303232393962663838613166386532633637363332626462613034316135613763336133222c0a2020202022322d707265666c696768742e7a6970223a202234316632363566306130336438616335373339646665343864303666366133616330353266613231393165303939316665646539666166363032386563346461222c0a2020202022322d726563656970742d61727469666163742e6a736f6e223a202236626233303238396165306137653232396462613636623062323566333830633133313663613535343862633563346232373262656533643931393138303434222c0a2020202022322d726563656970742e7a6970223a202261386434666664656537326365636637383533633339376139356366313433373538326530306263383632363932623438346433303331376336376536626636222c0a2020202022322d766572696669636174696f6e2d6a6f622e6c6f67223a202232333632323639636561376231623533653833613133613535656538326363316164613066663531393234333462316133313234393065383237306232666262222c0a202020202265786163742d776f726b666c6f772e796d6c223a202235316430623236383962653463373064393763326330663464336636666230346432336333663938383434623663373164393264333632346537373730666266222c0a20202020227265636f726465642d6d616e69666573742e6a736f6e223a202262336234376239333536353638646435333431303562653437643136626237666465613566623332353761363766396432376262623931373166633362353833220a20207d2c0a20202268656164223a202239326566666666666162383730383132323838313264313166343861373133306664316266663764222c0a2020226b696e64223a2022746573742d6f776e6572206f66666c696e6520696e6465782c206e6f742061206e61746976652041504920726573706f6e7365222c0a2020226d697373696e675f6661696c65645f617474656d7074223a20312c0a2020226e756d626572223a2034392c0a2020227265706f7369746f7279223a202259656c69616e6744752f666f7263697469732d6f6e652d7073612d636f6465782d6c6162222c0a2020227265706f7369746f72795f6964223a20313434393431353636362c0a20202272756e223a2034323531323738363534342c0a20202276657273696f6e223a20312c0a202022776f726b666c6f775f626c6f62223a202239316633663935306363326436613366626439326363316234646237636537366538383235333964222c0a202022776f726b666c6f775f70617468223a20222e6769746875622f776f726b666c6f77732f6c61622d70722d63692e796d6c220a7d0a")
+          assert hashlib.sha256(idx).hexdigest()=="5aa17ed20cd38f90938ffae15beb054663dcb49ad9777f0db3c32d973eecbafd"
+          i=json.loads(idx)
+          def fetch(suffix):
+              flags=["--allow-escape-sequences"] if suffix.endswith("/logs") else []
+              return subprocess.check_output(["gh","api",*flags,repo+suffix],timeout=50)
+          def seal(name,raw):
+              if hashlib.sha256(raw).hexdigest()!=i["hashes"][name]:
+                  raise SystemExit("HOLD: native evidence bytes differ at "+name)
+              (d/name).write_bytes(raw)
+          (d/"index.json").write_bytes(idx)
+          seal("1-receipt-before-rerun.zip",bytes.fromhex("504b0304140008000800299b685d0000000000000000000000000c000000726563656970742e6a736f6ebd92cb6ec3201045f7fe0ac4ba8b0c7e80f333d600438dea180770ab2acabf57d84d1f8b2eaaaa6179cf5cce2ce65231c647423ba411f991f15e902b0fb5920705422805c202b846a184fae02c68e7a4e50fa5a931d1ada97b2b003b012d615d3bd9b642534b023aa9442d640f04b6a9e5de8ceb3c785b7a8d684148d5b54df38930673a2db970d8d309674afcc82e15639bd93cd16c3f02c6382ecbe40d6a3ff9fc5a9a91ceab8fb4efba8d2c31045790433f7d0561cd269ce886d6487c43d77d82bb18e6fc07df8229fde04bab3194d277dfe41fc77c2f592213e97eb6116d78f9775bf56ee491d0965f1d4e89b624e844f199ec500eff57475f5dab37504b0708573f9214fe00000032030000504b01022d03140008000800299b685d573f9214fe000000320300000c0000000000000000002000a48100000000726563656970742e6a736f6e504b050600000000010001003a000000380100000000"))
+          seal("recorded-manifest.json",bytes.fromhex("7b0a2020227265706f7369746f7279223a202259656c69616e6744752f666f7263697469732d6f6e652d7073612d636f6465782d6c6162222c0a2020227265706f5f6964223a20313434393431353636362c0a2020227072223a2034392c0a20202268656164223a202239326566666666666162383730383132323838313264313166343861373133306664316266663764222c0a20202262617365223a202262396432316136323135656133336637353532626535653231363738323332373931653164343337222c0a20202272756e223a2034323531323738363534342c0a202022776f726b666c6f775f70617468223a20222e6769746875622f776f726b666c6f77732f6c61622d70722d63692e796d6c222c0a202022776f726b666c6f775f626c6f62223a202239316633663935306363326436613366626439326363316234646237636537366538383235333964222c0a20202266696c65735f736861323536223a207b0a2020202022312d617474656d70742e6a736f6e223a202232663366366231636433626262303632623235373232376234336337323431366436343637383831643136666531383738376630633465373739396130363165222c0a2020202022312d6a6f62732e6a736f6e223a202232616237646136396465316537343561336263306139353566303663613233366162333132333432323537363132386130636233353463636437363435323666222c0a2020202022312d707265666c696768742d6a6f622e6c6f67223a202232666662303165333435613366386230376163383832323430623536383930396437313666653135303161323833373766623236646661646337326266613237222c0a2020202022312d766572696669636174696f6e2d6a6f622e6c6f67223a202230666534373563656239383965636232633937613539313532636237633334616165323165356432336233323533333639656664663261306638326530643065222c0a2020202022312d726563656970742d6265666f72652d726572756e2e7a6970223a202239356432303332646134323861613834343630343965613565363934613331303133313831646139656335346233336133663531336337386436363637386533222c0a2020202022322d617474656d70742e6a736f6e223a202264393431626631663738346430306566313064383237356130366233303430623635356163626236636338393866346136623532623532646535323634396436222c0a2020202022322d6a6f62732e6a736f6e223a202263373565643031613432633835373664663263613462353236346161333365626437306564656134346465353036646532663134666662613034383532666534222c0a2020202022322d707265666c696768742d6a6f622e6c6f67223a202238623536333330303965393933636239333132613866303563366134303232393962663838613166386532633637363332626462613034316135613763336133222c0a2020202022322d766572696669636174696f6e2d6a6f622e6c6f67223a202232333632323639636561376231623533653833613133613535656538326363316164613066663531393234333462316133313234393065383237306232666262222c0a2020202022322d726563656970742d61727469666163742e6a736f6e223a202236626233303238396165306137653232396462613636623062323566333830633133313663613535343862633563346232373262656533643931393138303434222c0a2020202022322d707265666c696768742d61727469666163742e6a736f6e223a202236366438623763326362383532333030336261396262346634343339633030373337383162303134313137633364356332303930626533386363356261386337222c0a2020202022322d707265666c696768742e7a6970223a202234316632363566306130336438616335373339646665343864303666366133616330353266613231393165303939316665646539666166363032386563346461222c0a2020202022322d706c616e2e6a736f6e223a202262636134643837396237336134323336356363633037313131363730363761316566613464313937636134326335636339353630383332396363663630386363222c0a202020202265786163742d776f726b666c6f772e796d6c223a202235316430623236383962653463373064393763326330663464336636666230346432336333663938383434623663373164393264333632346537373730666266220a20207d2c0a202022617474656d7074315f63757272656e745f61727469666163745f617069223a20223430343b2072656365697074205a495020616e64207265636f72646564206469676573742072657461696e6564206265666f726520726572756e222c0a202022617474656d7074315f706c616e223a20226f726967696e616c20707265666c69676874205a495020756e617661696c61626c653b206e617469766520707265666c69676874206c6f672072657461696e65643b20646f206e6f742073796e74686573697a6520706c616e222c0a202022617574686f72697a6174696f6e223a2066616c73650a7d0a"))
+          for n,pre,check in ((1,128829353927,128835788948),(2,128836938207,128842867752)):
+              r=f"/actions/runs/42512786544/attempts/{n}"
+              for suffix,name in ((r,"attempt.json"),(r+"/jobs?per_page=100","jobs.json"),
+                                  (f"/actions/jobs/{pre}/logs","preflight-job.log"),
+                                  (f"/actions/jobs/{check}/logs","verification-job.log")):
+                  seal(f"{n}-{name}",fetch(suffix))
+          for label,aid in (("receipt",13631459192),("preflight",13631730354)):
+              stem=f"/actions/artifacts/{aid}"
+              seal("2-"+label+"-artifact.json",fetch(stem))
+              seal("2-"+label+".zip",fetch(stem+"/zip"))
+          with zipfile.ZipFile(d/"2-preflight.zip") as z:
+              seal("2-plan.json",z.read("plan.json"))
+          raw=subprocess.check_output(["git","show",i["head"]+":"+i["workflow_path"]])
+          seal("exact-workflow.yml",raw)
+          assert {p.name for p in d.iterdir()}==set(i["hashes"])|{"index.json"}
+          print("Historical fixture recovered byte-for-byte; no current PR authority.")
+          PYCODE
+      - name: Run the 21 frozen acceptance methods
+        env:
+          GIT_ALLOW_PROTOCOL: file
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/lab45-native-ordinary-evidence"
+          mkdir -m 700 "$d"
+          export LAB45_NATIVE49_DIR="$RUNNER_TEMP/native49"
+          python3 -B - "$d" <<'PYCODE'
+          import hashlib,json,os,sys,unittest
+          from pathlib import Path
+          d=Path(sys.argv[1])
+          root=Path("scripts/session/codex_lab")
+          files=json.loads(bytes.fromhex("7b226c61625f6272616e63685f6f7264696e6172795f726563656970745f616363657074616e63652e7079223a202261376139396134613339653266373465386566383636666238323034613161396234666466376338353234333038633364363064383165313835636137306662222c20226c61625f6272616e63685f726566726573685f616363657074616e63655f73656c66746573742e7079223a202262636466356432393766313261633535323334306563316435316338306131616461363935306364636463363534323332613232313661633665333131316138222c20226c61625f6272616e63685f726572756e5f77696e646f775f73656c66746573742e7079223a202239313566386335303133343235616537386132343462626264366635306138373532373936653635633132313434306362656263356439653666646636643931227d"))
+          markers=json.loads(bytes.fromhex("5b22524557524954455f5550444154455f5741535f4143434550544544222c202252454d4f54455f455155414c5f524557524954455f5741535f41444f50544544222c202257524f4e475f524546524553485f42494e44494e475f41434345505445445f7072222c20225354414c455f524546524553485f5245564953494f4e5f5741535f49474e4f524544222c202250454e44494e475f524552554e5f46454e43455f4449445f4e4f545f424c4f434b5f52454652455348222c2022524143494e475f4c4f43414c5f484541445f5741535f5245434f524445445f41535f5055424c4953484544222c202257524f4e475f524546524553485f42494e44494e475f484153485f5741535f49474e4f524544222c202253594e5448455449435f415f504c55535f54574f5f41434345505445445f41535f45584143545f524552554e222c20224f5244494e4152595f4c41425f50525f524543454950545f50524f46494c455f554e424f554e44225d"))
+          suite=unittest.TestSuite()
+          for name,sha in files.items():
+              assert hashlib.sha256((root/name).read_bytes()).hexdigest()==sha
+              suite.addTests(unittest.TestLoader().discover(str(root),pattern=name))
+          assert suite.countTestCases()==21
+          r=unittest.TextTestRunner(verbosity=2).run(suite)
+          proof=dict(head=os.environ["SUBJECT"],base=os.environ["BASE_SHA"],run=os.environ["GITHUB_RUN_ID"],
+                     attempt=os.environ["GITHUB_RUN_ATTEMPT"],tests=r.testsRun,failures=len(r.failures),
+                     errors=len(r.errors),skipped=len(r.skipped),
+                     unexpected=len(r.expectedFailures)+len(r.unexpectedSuccesses),
+                     failing_methods=[t.id().rsplit(".",1)[1] for t,_ in r.failures],
+                     matched_markers=sorted(m for m in markers if any(m in e for _,e in r.failures)),
+                     historical_readonly=True,real_native_rerun_proved=False,release_authority=False)
+          correct=(proof["tests"]==21 and not (proof["errors"] or proof["skipped"] or proof["unexpected"]))
+          if correct and r.wasSuccessful():
+              proof["classification"]="frozen-suite-green"
+              code=0
+          elif correct and proof["failures"]==9 and set(proof["matched_markers"])==set(markers):
+              proof["classification"]="exact-frozen-behavior-red"
+              code=1
+          else:
+              proof["classification"]="unexpected-result-or-capability-hold"
+              code=86
+          (d/"result.json").write_text(json.dumps(proof,indent=2)+"\n")
+          print(json.dumps(proof))
+          raise SystemExit(code)
+          PYCODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab45-native-ordinary-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab45-native-ordinary-evidence/
+          if-no-files-found: warn
+          retention-days: 5

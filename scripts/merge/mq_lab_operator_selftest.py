@@ -3,11 +3,12 @@ import copy
 import importlib.util
 from pathlib import Path
 import tempfile
+import sqlite3
 import types
 import unittest
 
 from mq_queue import Queue
-from mq_lab_journal import ReleaseJournal
+from mq_lab_journal_v2 import ReleaseJournalV2, V1, ALTER, BINDINGS
 
 HEAD, BASE, MERGE = (c * 40 for c in "abc")
 
@@ -38,8 +39,16 @@ class OperatorAcceptanceTest(unittest.TestCase):
         self.sends = 0
 
     def initialize(self):
-        self.path.parent.mkdir()
+        self.path.parent.mkdir(mode=0o700)
+        self.path.parent.chmod(0o700)
         self.path.write_text("")
+        journal = self.path.parent / "releases.sqlite3"
+        with sqlite3.connect(journal) as db:
+            db.execute(V1)
+            db.execute(ALTER)
+            db.execute(BINDINGS)
+            db.execute("PRAGMA user_version=2")
+        journal.chmod(0o600)
 
     def load(self, number):
         self.events.append(("load", number))
@@ -80,7 +89,7 @@ class OperatorAcceptanceTest(unittest.TestCase):
         records = []
         for path in self.common.rglob("*"):
             if path.is_file() and path.read_bytes()[:16] == b"SQLite format 3\x00":
-                record = ReleaseJournal(path).load(15)
+                record = ReleaseJournalV2(path).load(15)
                 if record is not None: records.append(record)
         return records
 
