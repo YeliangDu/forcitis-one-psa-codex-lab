@@ -30,7 +30,7 @@ class LocalApprovalAcceptanceTest(unittest.TestCase):
         self.approvals = self.directory / "approvals"
         self.approvals.mkdir()
         self.path = self.approvals / "15.json"
-        self.record = dict(number=15, head=HEAD, base=INITIAL, target="main", repo_id=123,
+        self.record = dict(number=15, head=HEAD, base=INITIAL, target="main", repo_id=1449415666,
                            required_reviews=["首轮", "终审"],
                            reviewers={"首轮": "codex-首轮-one-design", "终审": "codex-终审-one-dev-identity"},
                            review_ids={"首轮": 501, "终审": 502}, run_id=100, run_attempt=1,

@@ -11,7 +11,7 @@ import issue_gate
 from mq_lab import _path, _state
 from mq_lab_active import admit, run_once
 from mq_lab_authorization import load_approval
-from mq_lab_journal import ReleaseJournal
+from mq_lab_journal_v2 import ReleaseJournalV2, _schema
 from mq_lab_proof import verify_intent
 from mq_lab_trust import bootstrap_check, trusted_source
 import post_review
@@ -103,15 +103,40 @@ class _RequestedQueue:
 
 
 class _LazyJournal:
+    """Existing migrated storage only; readback never grants a new request."""
     def __init__(self, path):
         self.path, self.journal = path, None
 
-    def __getattr__(self, name):
-        if name not in ("load", "reserve", "confirm"):
-            raise AttributeError(name)
+    def _get(self):
         if self.journal is None:
-            self.journal = ReleaseJournal(self.path)
-        return getattr(self.journal, name)
+            # V2 checks exact existing schema/private storage. Missing/V1 state
+            # refuses: no initialize, migration, downgrade or legacy fallback.
+            self.journal = ReleaseJournalV2(self.path)
+        return self.journal
+
+    def require_new_write_ready(self):
+        # Called only by the once verifier/reserve within run_iteration's
+        # canonical merge lock, shared with the protected installer.
+        journal = self._get()
+        with journal.storage.connection() as db:
+            db.execute("BEGIN")
+            try:
+                _schema(db, 2)  # Includes complete release/binding correspondence.
+                pending = db.execute("SELECT upgrade_id FROM upgrade_bindings WHERE phase <> 'adopted'").fetchall()
+                _require(not pending, "protected-upgrade-not-durably-adopted")
+            finally:
+                db.rollback()
+
+    def __getattr__(self, name):
+        if name not in ("load", "confirm"):
+            raise AttributeError(name)
+        # Existing ordinary reservations recover without new approval/proof or
+        # a pending-upgrade send gate. V2 itself refuses control-upgrade rows.
+        return getattr(self._get(), name)
+
+    def reserve(self, record):
+        self.require_new_write_ready()
+        return self._get().reserve(record)
 
 
 class _LazyWriter:
@@ -149,9 +174,12 @@ def run_command(command, number, common_dir, ports):
         if command == "once":
             _require(numbers and numbers[0] == number, "requested-pr-is-not-fifo-head")
         journal_path = path.parent / "releases.sqlite3"
+        journal = _LazyJournal(journal_path)  # No storage I/O until used under the merge lock.
         last_key = [None]
 
         def verify(intent):
+            if command == "once":
+                journal.require_new_write_ready()
             approval = ports.load(number)
             approved = _intent(approval, number)
             _require(all(approved.get(k) == v for k, v in intent.items()), "approval-moved")
@@ -183,7 +211,7 @@ def run_command(command, number, common_dir, ports):
                 return False
 
         queue = _RequestedQueue(Queue(str(path)), number)
-        return run_once(queue, _LazyJournal(journal_path), verify,
+        return run_once(queue, journal, verify,
                         _LazyWriter(ports, authorize), allow_write=True)
     except Exception:
         return dict(action="hold", reason="operator-command-held-or-unavailable")
@@ -257,13 +285,16 @@ class ProductionPorts:
         _require(len(set(identities.values())) == len(identities), "shared-resident-session")
         _require(all(name.split("-", 2)[2] in identities for name in approval["reviewers"].values()),
                  "unregistered-reviewer-session")
+        spec = importlib.util.spec_from_file_location("mq_operator_pr_body", ROOT / "scripts/gates/pr_body.py")
+        pr_body = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(pr_body)
         for label, role in (("Codex", approval["author"]),):
-            _require(role in identities and re.search(r"^" + label + r":\s*" + re.escape(identities[role]) + r"\s*$",
-                                                     pr.get("body", ""), re.M), "missing-current-Codex-provenance")
+            _require(role in identities and identities[role] in pr_body.lines(pr.get("body", ""), label),
+                     "missing-current-Codex-provenance")
         if any(name.startswith("backend/src/test/java/com/forcitis/one/acceptance/")
                for row in files for name in (row["filename"], row.get("previous_filename", row["filename"]))):
-            _require("one-test" in identities and re.search(r"^Codex-Acceptance:\s*" + re.escape(identities["one-test"]) + r"\s*$",
-                                                            pr.get("body", ""), re.M), "missing-Codex-acceptance-provenance")
+            _require("one-test" in identities and identities["one-test"] in pr_body.lines(pr.get("body", ""), "Codex-Acceptance"),
+                     "missing-Codex-acceptance-provenance")
 
     def verify(self, intent, approval):
         number = intent["number"]

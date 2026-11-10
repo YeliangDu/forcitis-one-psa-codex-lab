@@ -258,3 +258,87 @@ terms:
   forbidden: []
   status: proposed
   note: 用户账号授权记录页的来源标签（#1496）
+- id: acting_duty_ui_covered_org_unit
+  zh: 被代理组织单元
+  en: ActingDutyUiCoveredOrgUnit
+  snake: acting_duty_ui_covered_org_unit
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 代理职务所覆盖的组织单元；对应已有 coveredOrgUnitId，不改变组织单元查询范围。
+  standard_ref: [docs/architecture/proposals/workforce-acting-duty.md]
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'Lab #4 / PR #7 八项文案由用户逐项认可；仅登记本 BC 的界面术语，不增加权限或 API。'
+- id: acting_duty_ui_covered_position
+  zh: 被代理岗位
+  en: ActingDutyUiCoveredPosition
+  snake: acting_duty_ui_covered_position
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 代理职务所覆盖的岗位；可留空，沿用已有岗位读取和提交字段。
+  standard_ref: [docs/architecture/proposals/workforce-acting-duty.md]
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'Lab #4 / PR #7 八项文案由用户逐项认可；仅登记本 BC 的界面术语，不增加权限或 API。'
+- id: acting_duty_ui_covered_employee
+  zh: 被代理员工
+  en: ActingDutyUiCoveredEmployee
+  snake: acting_duty_ui_covered_employee
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 代理职务所覆盖的员工；可留空，姓名仅按已有员工数据范围显示，不沿用审批上下文的被代理人。
+  standard_ref: [docs/architecture/proposals/workforce-acting-duty.md]
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'Lab #4 / PR #7 八项文案由用户逐项认可；仅登记本 BC 的界面术语，不增加权限或 API。'
+- id: acting_duty_ui_last_day
+  zh: 有效至（含当日）
+  en: ActingDutyUiLastDay
+  snake: acting_duty_ui_last_day
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 代理职务包含当日的最后有效业务日；零长度区间为空，提交仍将该日加一个日历日作为排他结束日。
+  standard_ref: [docs/architecture/proposals/workforce-acting-duty.md]
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'Lab #4 / PR #7 八项文案由用户逐项认可；仅登记本 BC 的界面术语，不增加权限或 API。'
+- id: acting_duty_ui_extend
+  zh: 延长代理职务
+  en: ActingDutyUiExtend
+  snake: acting_duty_ui_extend
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 对有效代理职务延长既有期限的界面操作；沿用 ACTING_EXTEND 和原有人事命令权限，不预约未来延期。
+  standard_ref: [docs/architecture/proposals/workforce-acting-duty.md]
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'Lab #4 / PR #7 八项文案由用户逐项认可；仅登记本 BC 的界面术语，不增加权限或 API。'
+- id: acting_duty_ui_end_by_separation
+  zh: 代理人离职
+  en: ActingDutyUiEndBySeparation
+  snake: acting_duty_ui_end_by_separation
+  kind: value_object
+  bc: organization.workforce
+  scope: domain
+  definition: 代理职务因承担代理职责的员工离职而结束；对应既有 SEPARATION 结束原因，不改变事件或枚举。
+  standard_ref: [docs/architecture/proposals/workforce-acting-duty.md]
+  confidence: high
+  aliases: []
+  forbidden: []
+  status: proposed
+  note: 'Lab #4 / PR #7 八项文案由用户逐项认可；仅登记本 BC 的界面术语，不增加权限或 API。'

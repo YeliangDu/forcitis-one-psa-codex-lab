@@ -44,6 +44,9 @@ import com.forcitis.one.platform.approval.events.TaskAssigned;
 import com.forcitis.one.platform.approval.events.TaskClaimed;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.Clock;
+import com.forcitis.one.fixture.doubles.MutableClock;
+import org.springframework.test.context.bean.override.convention.TestBean;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
@@ -112,6 +115,33 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     long employee;
     long manager;
 
+    /** Only this test context moves across midnight; shared BusinessDay remains the old fixture. */
+    @TestBean(name = "systemClock", methodName = "midnightApplicationClock")
+    Clock midnightClock;
+
+    @Autowired
+    Clock applicationClock;
+
+    // Freeze dates per case so resubmission and async assertions retain one work date.
+    private LocalDate scenarioDay;
+
+    static Clock midnightApplicationClock() {
+        return new MutableClock(BusinessDay.today().atTime(23, 59, 30).atZone(ZONE).toInstant(), java.time.ZoneOffset.UTC);
+    }
+
+    @BeforeEach
+    void moveOnlyThisApplicationPastShanghaiMidnight() {
+        assertThat(applicationClock).as("the actual application receives this test-only clock").isSameAs(midnightClock);
+        if (!(midnightClock instanceof MutableClock mutable)) {
+            throw new AssertionError("midnight fixture did not bind its mutable test clock");
+        }
+        mutable.set(BusinessDay.today().plusDays(1).atTime(0, 0, 30).atZone(ZONE).toInstant());
+        assertThat(LocalDate.ofInstant(applicationClock.instant(), ZONE))
+                .as("application is exactly one business day ahead of unchanged JVM fixture")
+                .isEqualTo(BusinessDay.today().plusDays(1));
+        scenarioDay = LocalDate.ofInstant(applicationClock.instant(), ZONE);
+    }
+
     @BeforeEach
     void people() {
         employee = newId();
@@ -132,8 +162,8 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         return new TimesheetId(TestIds.uuid(TIMESHEETS.incrementAndGet()));
     }
 
-    static LocalDate workDay() {
-        return BusinessDay.today().minusDays(1);
+    LocalDate workDay() {
+        return scenarioDay.minusDays(1);
     }
 
     static DocumentReference documentOf(TimesheetId id) {
@@ -208,7 +238,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         assertThat(event.envelope().aggregateId()).isEqualTo(id.value());
         assertThat(event.envelope().aggregateVersion()).isEqualTo(1);
         assertThat(event.envelope().businessDate()).as("the business date of the fact is the work date, not the day of submission").isEqualTo(workDay());
-        assertThat(event.submittedOn()).isEqualTo(BusinessDay.today());
+        assertThat(event.submittedOn()).isEqualTo(scenarioDay);
 
         ApprovalTaskId task = taskOf(id);
         scenario.stimulate(() -> claimTask.execute(task, TestAccounts.account(manager), java.util.OptionalLong.empty())).andWaitForEventOfType(TaskClaimed.class)
@@ -435,7 +465,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
     @DisplayName("H-6 the work date cannot be after today; K1/K2 the timesheet keeps its number and the department of the employee")
     void workDateAndTheNumberAndDepartmentAreStored() {
         TimesheetId future = newTimesheet();
-        assertThatThrownBy(() -> submit(future, BusinessDay.today().plusDays(1), "1"))
+        assertThatThrownBy(() -> submit(future, scenarioDay.plusDays(1), "1"))
                 .satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_WORK_DATE_IN_FUTURE));
         assertThat(jdbc.queryForObject("select count(*) from cost_timesheet.timesheets where id = ?", Integer.class, future.value())).isZero();
 
@@ -444,7 +474,7 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
 
         assertThat(jdbc.queryForMap("select timesheet_number, org_unit_id, work_date, submitted_date, legal_entity_id from cost_timesheet.timesheets"
                 + " where id = ?", id.value())).containsEntry("timesheet_number", view.number().value()).containsEntry("org_unit_id", TestOrgIds.orgUnit(1).value())
-                .containsEntry("work_date", java.sql.Date.valueOf(workDay())).containsEntry("submitted_date", java.sql.Date.valueOf(BusinessDay.today()))
+                .containsEntry("work_date", java.sql.Date.valueOf(workDay())).containsEntry("submitted_date", java.sql.Date.valueOf(scenarioDay))
                 .containsEntry("legal_entity_id", LEGAL_ENTITY.value());
         assertThat(view.period()).isEqualTo(com.forcitis.one.kernel.AccountingPeriod.containing(workDay()));
     }
@@ -533,5 +563,42 @@ class TimesheetApprovalScenarioIT extends ApprovalIntegrationSupport {
         } finally {
             SecurityContextHolder.clearContext();
         }
+    }
+
+    @Test
+    @DisplayName("#48 positive control: a true future work date relative to the advanced app clock is refused with no row/event")
+    void actualNextDayFutureRefusalStillStoresAndPublishesNothing(PublishedEvents published) {
+        LocalDate actualDay = LocalDate.ofInstant(applicationClock.instant(), ZONE);
+        TimesheetId id = newTimesheet();
+        assertThatThrownBy(() -> submit(id, actualDay.plusDays(1), "1"))
+                .satisfies(thrown -> domainError(thrown, TimesheetError.COST_TIMESHEET_WORK_DATE_IN_FUTURE));
+        assertThat(jdbc.queryForObject("select count(*) from cost_timesheet.timesheets where id = ?", Integer.class, id.value())).isZero();
+        assertThat(published.ofType(TimesheetSubmitted.class).matching(e -> e.document().equals(documentOf(id))))
+                .as("a genuinely future request publishes no submitted fact").isEmpty();
+    }
+
+    @Test
+    @DisplayName("#48 positive control: real submit stores the advanced submission date while the event's businessDate remains the work date")
+    void advancedSubmissionDateAndWorkDateRemainDistinctAndCommitted(PublishedEvents published) {
+        LocalDate actualDay = LocalDate.ofInstant(applicationClock.instant(), ZONE);
+        LocalDate actualWorkDate = workDay();
+        TimesheetId id = newTimesheet();
+        TimesheetView answer = submit(id, actualWorkDate, "1");
+        assertThat(answer.status()).isEqualTo(TimesheetStatus.SUBMITTED);
+        assertThat(answer.round()).isEqualTo(1);
+        assertThat(answer.number().value()).startsWith("TS-T-");
+        var facts = published.ofType(TimesheetSubmitted.class).matching(e -> e.document().equals(documentOf(id)));
+        assertThat(facts).as("real submit publishes its own fact once").hasSize(1);
+        TimesheetSubmitted fact = facts.iterator().next();
+        assertThat(fact.submittedOn()).isEqualTo(actualDay);
+        assertThat(fact.envelope().businessDate()).isEqualTo(actualWorkDate);
+        assertThat(fact.envelope().aggregateId()).isEqualTo(id.value());
+        assertThat(jdbc.queryForMap("select timesheet_number, org_unit_id, work_date, submitted_date, legal_entity_id from cost_timesheet.timesheets"
+                + " where id = ?", id.value())).containsEntry("timesheet_number", answer.number().value())
+                .containsEntry("org_unit_id", TestOrgIds.orgUnit(1).value())
+                .containsEntry("work_date", java.sql.Date.valueOf(actualWorkDate))
+                .containsEntry("submitted_date", java.sql.Date.valueOf(actualDay))
+                .containsEntry("legal_entity_id", LEGAL_ENTITY.value());
+        assertThat(answer.period()).isEqualTo(com.forcitis.one.kernel.AccountingPeriod.containing(actualWorkDate));
     }
 }

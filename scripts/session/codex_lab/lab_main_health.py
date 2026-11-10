@@ -3,6 +3,7 @@ import re
 
 
 REPOSITORY = "YeliangDu/forcitis-one-psa-codex-lab"
+REPOSITORY_ID = 1449415666
 WORKFLOW = ".github/workflows/lab-pr-ci.yml"
 
 
@@ -34,6 +35,15 @@ def _head(value):
     return value["object"]["sha"]
 
 
+def _public_repository(value):
+    """Full native repository objects; never a visibility-only allow switch."""
+    return (isinstance(value, dict) and value.get("full_name") == REPOSITORY
+            and type(value.get("id")) is int and value["id"] == REPOSITORY_ID
+            and value.get("private") is False
+            and ("visibility" not in value or value["visibility"] == "public")
+            and ("fork" not in value or value["fork"] is False))
+
+
 def check_main_health(github):
     """Read-only health, independent of PR receipts and queue admission.
 
@@ -42,8 +52,7 @@ def check_main_health(github):
     """
     try:
         repo = github.repository()
-        _require(isinstance(repo, dict) and repo.get("full_name") == REPOSITORY
-                 and repo.get("private") is True and _positive(repo.get("id")), "not-private-lab")
+        _require(_public_repository(repo), "not-fixed-public-lab")
         head = _head(github.main_ref())
         runs = github.main_runs(head)
         _require(isinstance(runs, list), "missing-main-runs")
@@ -54,9 +63,7 @@ def check_main_health(github):
                     or run.get("path") != WORKFLOW or run.get("head_sha") != head):
                 continue
             origin = run.get("repository")
-            _require(isinstance(origin, dict) and _positive(origin.get("id"))
-                     and origin["id"] == repo["id"]
-                     and origin.get("full_name", REPOSITORY) == REPOSITORY, "foreign-main-run")
+            _require(_public_repository(origin) and origin["id"] == repo["id"], "foreign-main-run")
             _require(_positive(run.get("id")) and _positive(run.get("run_attempt")), "invalid-main-run-identity")
             key = (run["id"], run["run_attempt"])
             _require(key not in candidates, "ambiguous-main-run")
