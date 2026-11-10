@@ -67,6 +67,10 @@ class JdbcStandardHoursRepository implements StandardHoursRepository {
     @Override
     public void insert(StandardHours version) {
         try {
+            String key = "organization.attendance.standard-hours:"
+                    + (version.legalEntityId() == null ? "DEFAULT" : version.legalEntityId().value().toString());
+            jdbc.sql("select pg_advisory_xact_lock(hashtextextended(:key, 0))")
+                    .param("key", key).query().singleRow();
             insertRows(version);
         } catch (DataIntegrityViolationException lost) {
             if (!lostRaceToAnotherPublish(lost)) {
