@@ -41,7 +41,7 @@ def _id(row):
             and all(type(value) is int and value > 0 for value in row.values()))
 
 
-def authorize(permit, observed, *, recover_only):
+def authorize(permit, observed, *, recover_only, number=69):
     """Pure decision; observations are gathered by the launcher, never by CLI input."""
     hold = dict(action="HOLD", allow_reserve=False, allow_send=False)
     try:
@@ -50,7 +50,8 @@ def authorize(permit, observed, *, recover_only):
                 and all(type(permit[k]) is type(v) and permit[k] == v for k, v in SCOPE.items())
                 and all(type(observed[k]) is type(permit[k]) and observed[k] == permit[k] for k in AUTHORITY)
                 and type(subject) is dict and set(subject) == set(KEYS)
-                and type(subject["number"]) is int and subject["number"] == 69 and subject["target"] == "main"
+                and type(number) is int and number in (68,69) and type(subject["number"]) is int
+                and subject["number"] == number and subject["target"] == "main"
                 and all(digest(subject[k],40) for k in ("head","base"))
                 and type(permit["common_dir"]) is str and Path(permit["common_dir"]).is_absolute()
                 and _id(permit["journal"]) and _id(observed["journal"])
