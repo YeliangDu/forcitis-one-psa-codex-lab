@@ -1,0 +1,102 @@
+name: Lab public card delivery isolation
+on:
+  push:
+    branches: [codex/60-role-native-replacement]
+    paths: [.github/workflows/lab-60-role-native-replacement.yml]
+permissions: {}
+jobs:
+  acceptance:
+    if: github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' && github.repository_id == '1449415666' && github.ref == 'refs/heads/codex/60-role-native-replacement'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      A: 24e54cda29539761f7bf84d3b0a51f535964039e
+      B: 0c491846d24d194090bda99a1d16a100331cbd2c
+      STAGE: red
+      SOURCE_SHA: 09e0af5b270c0592c35d130271d1a9b2c15ef6b67589cec83f97b1f36dae517f
+      ACCEPTANCE_SHA: 5821e6ffd981a322431dc9c04af2b482d5cb87b3b54cf9786e6fafd4e89df548
+      PACKAGE_PATH: scripts/session/codex_lab/card30_exact_adoption
+    steps:
+      - name: Fetch exact public head without credentials
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_TERMINAL_PROMPT=0
+          git init .
+          git fetch --no-tags https://github.com/YeliangDu/forcitis-one-psa-codex-lab.git "$GITHUB_SHA"
+          test "$(git rev-parse FETCH_HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse "$A^")" = "$B"
+          git merge-base --is-ancestor "$A" "$GITHUB_SHA"
+          test -z "$(git config --local --get-regexp '^http\..*extraheader$' || true)"
+      - name: Export and verify only fixed input files
+        run: |
+          set -euo pipefail
+          export INPUT="$RUNNER_TEMP/owned-runtime-input"
+          mkdir -m 700 "$INPUT"
+          git archive "$GITHUB_SHA:$PACKAGE_PATH" | tar -x -C "$INPUT"
+          python3 -I -B - <<'PY'
+          import hashlib,json,os,subprocess
+          from pathlib import Path,PurePosixPath
+          pins=json.loads('''{"acceptance/approved-update-fixture.json": "1fa242ea536fbe5c58b35a17240cd63b0ce85cace54237c7a1b9177acd0d8ff5", "acceptance/candidate-files/backend/architecture/data-access-registry.yaml": "0290d1916626208579dc7b54f6e6fac70d9680e3d0846d413a81e08444cc26f9", "acceptance/candidate-files/backend/architecture/data-classification.txt": "86aedd78fd61b62c89b21b35c699d1bd66126b68553704a8b7338d4870460b4c", "acceptance/candidate-files/backend/glossary/proposed/accounting-spine.yaml": "d68b320d3ded56cf014530d77309b6e6371abaebbba451997c7a41a738033cb2", "acceptance/candidate-files/backend/src/main/resources/db/migration/operations_facts/V20261108060000__operations_facts_baseline.sql": "c5380873647e5c0c47b0ec75e18fd4b64ef5f19a48a395197ea641809e674a70", "acceptance/candidate-files/backend/src/test/java/com/forcitis/one/DataArchitectureTest.java": "21e4ee5d0df34587e2a0400426410fd1fdee83b75e2912616d4bd4f20c3d7d1c", "acceptance/candidate-files/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsAmountIT.java": "0877edf3cc86f004508d47385e2bfb67a286b049a127abfcf0e2e847350802f4", "acceptance/candidate-files/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsDmlRoleIT.java": "8558a787022c3d57ae4c6d99f21615e46f4072cbfdb0ccb2cbd9c7d619dd59be", "acceptance/candidate-files/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsIntegrityIT.java": "3ae84b1490858741cc6aac642f966d4921c882d2c4084f775ba41b3e19bfa6d5", "acceptance/candidate-files/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSchemaIT.java": "824a1529b2c1420d561ff254fd32f1965991001480559a697c4470a4a08d6820", "acceptance/candidate-files/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedBoundariesIT.java": "73be507edeb4f81d22758e4db5925ea7720a7ab6882746b2f98adedcca2e296b", "acceptance/candidate-files/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedMetadataTest.java": "128ed50e126f08a7ffd0c0b27c4602b10eacfa6cb624167704268ccd00ec898e", "acceptance/candidate-files/docs/architecture/panorama/unbuilt-roots.yaml": "0f7921cfc1fbf36a0d381a90ee9ee87a95a80d702460a6f926e0d5b27f065cb8", "acceptance/candidate-files/docs/architecture/ssot/aggregates/built.yaml": "1e043bb763f9d3d68f19e27870990b7f43fe978ac10b01e3c4c6917e3b0aa0ff", "acceptance/candidate-files/docs/ops/one-db-roles-schemas.sql": "5dd289cdb01ad4c41a2319b703c23af8f6eb0e5adc4e1cda44e9c56147cd6532", "acceptance/candidate-files/docs/ops/runbooks/sql/dev-db-verify.sql": "821131a49f0192597f09e11c999f222d82cfdf0af88fd49ebd536f09c7348982", "acceptance/candidate-files/docs/ops/runbooks/sql/dev-db.sql": "49efceac4c4fb130574821b8a313d553df616cb5a0146ef14663b55db75f3650", "acceptance/candidate-files/docs/ops/runbooks/sql/prod-db-verify.sql": "d86a1bfd8100a785fa55732740393fcaabe4fd42d27effe72e80433d881c1dfd", "acceptance/candidate-files/docs/ops/runbooks/sql/prod-db.sql": "6c798ace867a597b3e7b5a489c39e416d268e3a234bac8a091ae1ae14eacff85", "acceptance/candidate-observed.json": "76c9f2a2cdbcc61b5dd78c700fb8b7aa8dc4b4177fae433d5eb4b8d97c944c29", "acceptance/frozen_card30_observation.py": "d061c7a2c38f96efb21ce340e7c7123198da8e08e2595619bca893f5f0739c54", "acceptance/hosted-update-v2-driver.py": "bc23e949274f328e28a3c67851b2c55ebcf1b1ad6f44b7186e1b34850fb4c082", "acceptance/manifest.json": "5821e6ffd981a322431dc9c04af2b482d5cb87b3b54cf9786e6fafd4e89df548", "acceptance/normalized-commit-evidence.json": "2c5b0d7f55c383acf222026e3bb6f68e757699a75363040c4ab59ee0e6afa128", "acceptance/normalized-contribution.json": "abc325a70114eca2d6b45759728f14d22fb016934c9f74470094068f477250c6", "acceptance/original-contribution.json": "06550afc1ca7d61e073425f88039ff67d00e1f7252a4844fdf2c0a21ba07af6c", "acceptance/scope-fixture.json": "fd8ee31927e949392f15ddd6ccffbf27f62ade99080c5bb82ad7ff18436735c5", "acceptance/test_update_acceptance.py": "554891e8e8121554bd265c61d30b308fb6b78eba54834b3e05f05f8ffae9152a", "source/SOURCE-CLOSURE.json": "09e0af5b270c0592c35d130271d1a9b2c15ef6b67589cec83f97b1f36dae517f", "source/auth_relay_tls.py": "57600d8a65548eb3afce4ec0301193146a72ba3dc1c4f25ad8562ea5aeb8715d", "source/binding.schema.json": "8e56721a606eaff72289da8279f63f0cbb59b2167dda4a732877ac95ef3fcf64", "source/branch_broker.py": "9f6254fd3b83b6b0f34bde515c56edb9b944d90fc251b551e42e1d7cc3ddb1d5", "source/branch_effect_binding.py": "82435b55731b7f78f72993194dbb57fc5d62e0ffa1c0e83d0b5a38ed72d63cbe", "source/branch_effect_port.py": "ae4ba44f12472d1109a01e0ad468e6cabbbf02adbc8d9cbd39c1dfb4aff7c42c", "source/broker_plan.py": "638dbf482e5ef12e257fc5f0a8c0297571641703981f8fd1517b16ab02805cc7", "source/card_capsule.py": "2fbc5d7ec2d1ec6331371410b002ccfe5bba112df0bfb44a547d7d6580131e00", "source/card_followup.py": "0d0251386613ee4feea8243c83fbc61bc4f72770aaf32aa745deaeab1aab98b5", "source/card_plan.py": "5346d589a6b2e1d72a12ff8b831188fe8418e66f77c5858c7fb31d4b9bdc0f24", "source/durable_login.py": "5e49d9817db99960c05d7ac3792b2f4c4e931388b39bfb67e87bf0ff0f89d3bb", "source/durable_role.py": "d58e6762c803a26033016019a59cc5bcf41370ab8d78e296da84ab466402e31e", "source/durable_seed_schema.sql": "54c2e18f522f4a5baaa30202ca75391a32349209d3dbec980e64c02fbe5c1d22", "source/exact_scope.py": "ee29d8eaaa234655046f8d7a654d1179b506336a5cd08843f11380b253826b9d", "source/existing_ci_proof.py": "5393667fcf2e10be2e8223e6380df321b6d72deb56423e290e51b8cfc1217ba4", "source/existing_pr_adoption.py": "aea67f0935b329639dea4b8b94c94e5103a657ee80135f7520b890476f32b45e", "source/first_launch.py": "4a65099a84cf52bcb6f7a4b870deb239123b487fbe1796708feadb43974a7cd9", "source/first_publication.py": "a947d58c90b0c8413286d7298a0b8ae746f5f2d7ac7b9232cecdb62e7f97b220", "source/goal_retire.py": "30e0aef43621e44b32bc6668a518ba1f01c1f224ed979390dc36962fed5a2a6e", "source/handoff_retire.py": "72604a10fcd3fae7b860aa8c7f1b8663fc36a4b99d4ef943ee9b033b8e52e574", "source/native_goal.py": "af27b6e5ff5ecb6b035eb667d0e60a7ccf030121d9513f74375da2708d3b5419", "source/native_quiesce.py": "f4e90a3833728ac7e6ed067effd84d112ad5cc74418a2dec133fe432e6f62312", "source/native_role.py": "099996ae7bf7cc3e454764cb5fa13e1d0cf9880a133123b1e4dcdf21b37f6dd4", "source/native_transport.py": "2925546088ac9386f5945185b29806cc95c557bcc9fb4d3a330d7d5122011ac1", "source/native_wait.py": "e648f29bb2c655b5d99a2b814da3302cae616ddc6a7e820f46c6ada0700402ae", "source/orphan_terminal.py": "1ea4d501e5dd774ce01f10525ab91df1c2a72af25d00718dde65e96d2ee2abd5", "source/owned_runtime.py": "3c3ba5c78e2c34d69ac3b24e61a2f50224c2d42462131593cafc21a4ca5eb697", "source/owner_transfer.py": "603c88758af59f103cb0709e4902e51baf77a31632cc19492da9b6adb24f6b7f", "source/pending_wire.py": "9398c7383a8c424509cd24f7a0578a514f9ddea46d689a26c3ab6e05c6c2cbfc", "source/portable_broker.py": "0fe86a7257465fc1ed8137f5cc054125b375ac84cc6657b123096eb687238dd8", "source/portable_config.py": "ef79262cd962cb580d9eca12f09cd76293315f555476a2dbdb3dc607d226b403", "source/pr_body.py": "b4c38200d428612d30cd3e54c95397bb1b890e669670bcd963df96966d4d0b62", "source/private_resources.py": "0b8409f3ea7c4f14eca9bd783dd76db2958be7c826edc08a6aa631abae4bf126", "source/public_card.py": "7841bb00c21bf0c49bf70399bac10eaecf077d68a016c7f0e85b85dead534111", "source/readonly_plan_consumer.py": "62aac50be8802351a8ae79e592c0e6e8f04bb943dbc54573221efb1b47f473af", "source/reconnect_observe.py": "bdc7ed4273e1f96fb1b7d0e2e5d464ac50235fa3ee8314c1c4296fa4e0da30dc", "source/role_initialization.py": "98fc43b134381b517359e74420c2d8f1133e89f9db8919bebc378699df7cb83e", "source/role_interrupted.py": "fe8ada5f403bfac56eda971e75de99e83d7e0cc75a4304c9406d9bf4ca5f212f", "source/role_native.py": "62f34bec4da1d3d07ae4af9a0bdd7bc309dbb6af848d68e4774ecb2a318fffbf", "source/role_network.py": "421406a1cac1628e7022e588de19d5762cdec13bfd0817668c962644af837ad0", "source/role_replacement.py": "fae75a5c49379e76c1a1678b27a4e1da01d203d341ae92ae1f815dbb71a54b94", "source/role_resume.py": "9b22dc33e1b307d529ce323466b4c0be809b1630671d641a3e48706705965e66", "source/runtime_broker.py": "f4aa5d346d8383d921cafb66b9fa6e4af9a4073a2e68ce97cec746c258cd6f2f", "source/runtime_store.py": "5320f1d5eaef9fe6c21471422b2944b8b0d7273b85c97e2cceb85191fde73dc0", "source/single_role.py": "1758f96b9517fdc0057cb08be906c732c2ed7c1a1923a77d4c811ec6c9e8306b", "source/startup_authority.py": "d5ca117b82bda983ba1942f3933348a631c9e28b963929acdf10e7b34a0b8ca5", "source/successor_card.py": "546d46f1484801b492ee240a5ec6be791e14f551348b5932d8e69b920198c24e", "source/warm_handoff.py": "6a69cde20d3900f45c92c87a8bcbcc5a70ad0fea635dbfe3f8be29eaa2f778f0"}''')
+          p=Path(os.environ['INPUT']).resolve(strict=True)
+          actual={q.relative_to(p).as_posix() for q in p.rglob('*') if q.is_file() or q.is_symlink()}
+          assert actual==set(pins)
+          for n,h in pins.items():
+              r=PurePosixPath(n); assert not r.is_absolute() and '..' not in r.parts
+              q=p/n
+              assert q.resolve(strict=True)==q and q.is_file()
+              assert hashlib.sha256(q.read_bytes()).hexdigest()==h
+          base=os.environ['B']; a=os.environ['A']; head=os.environ['GITHUB_SHA']; prefix=os.environ['PACKAGE_PATH']
+          def git(*args): return subprocess.check_output(['git',*args],text=True).strip()
+          assert git('diff','--name-only',base,a).splitlines()==sorted(prefix+'/'+n for n in pins if n.startswith('acceptance/'))
+          assert git('rev-parse',a+':'+prefix+'/acceptance')==git('rev-parse',head+':'+prefix+'/acceptance')
+          PY
+      - name: Execute independent cases without network or credentials
+        run: |
+          set -euo pipefail
+          e="$RUNNER_TEMP/owned-runtime-evidence"; mkdir -m 700 "$e" "$e/witness"
+          w="$(mktemp -d "$RUNNER_TEMP/owned-runtime-work.XXXXXX")"
+          trap 'rm -rf -- "$w"' EXIT
+          input="$RUNNER_TEMP/owned-runtime-input"
+          printf 'A=%s\nB=%s\nH=%s\nstage=%s\nrun=%s\nattempt=%s\nrunner=%s\nacceptance=%s\nsource=%s\n' \
+            "$A" "$B" "$GITHUB_SHA" "$STAGE" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$RUNNER_ENVIRONMENT" "$ACCEPTANCE_SHA" "$SOURCE_SHA" > "$e/identity.txt"
+          before="$(readlink /proc/self/ns/net)"
+          rc=0
+          sudo -n /usr/bin/unshare --mount --propagation private --net --pid --fork --kill-child --mount-proc -- \
+            /bin/bash --noprofile --norc -euc '
+              package="$1"; work="$2"; evidence="$3"; hostnet="$4"; uid="$5"; gid="$6"; repo="$7"; rid="$8"; source_sha="$9"
+              /usr/bin/mount --bind "$package" "$package"
+              /usr/bin/mount -o remount,bind,ro "$package"
+              test "$(readlink /proc/self/ns/net)" != "$hostnet"
+              /usr/bin/findmnt -n -o VFS-OPTIONS --mountpoint "$package" | grep -Eq "(^|,)ro(,|$)"
+              printf "%s\n" "package_read_only=true" "private_netns=true" > "${evidence%/witness}/isolation.txt"
+              exec /usr/bin/setpriv --reuid "$uid" --regid "$gid" --clear-groups --no-new-privs -- \
+                /usr/bin/env -i PATH=/usr/bin:/bin HOME="$work" TMPDIR="$work" RUNNER_ENVIRONMENT=github-hosted \
+                GITHUB_REPOSITORY="$repo" GITHUB_REPOSITORY_ID="$rid" \
+                /bin/bash --noprofile --norc -euc '"'"'
+                  test "$(id -u)" -ne 0
+                  test "$(ip -o link show | wc -l)" -eq 1
+                  grep -Eq "^NoNewPrivs:[[:space:]]+1$" /proc/self/status
+                  cd "$1"
+                  exec /usr/bin/python3 -I -B "$2/acceptance/hosted-update-v2-driver.py" --runner-temp "$1" --source-root "$2/source" --evidence-dir "$3" --parent-netns "$4" --source-closure-sha256 "$5" --stage red
+                '"'"' _ "$work" "$package" "$evidence" "$hostnet" "$source_sha"
+            ' _ "$input" "$w" "$e/witness" "$before" "$(id -u)" "$(id -g)" "$GITHUB_REPOSITORY" "$GITHUB_REPOSITORY_ID" "$SOURCE_SHA" > "$w/driver.log" 2>&1 || rc=$?
+          sed -n '1,220p' "$w/driver.log"
+          printf '%s\n' "$rc" > "$e/exit-code.txt"
+          if ! test -s "$e/witness/verdict.json"; then
+            printf 'launcher_or_driver_ended_without_verdict\n' > "$e/setup-status.txt"
+          fi
+          exit "$rc"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: owned-runtime-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/owned-runtime-evidence/identity.txt
+            ${{ runner.temp }}/owned-runtime-evidence/isolation.txt
+            ${{ runner.temp }}/owned-runtime-evidence/exit-code.txt
+            ${{ runner.temp }}/owned-runtime-evidence/setup-status.txt
+            ${{ runner.temp }}/owned-runtime-evidence/witness/verdict.json
+            ${{ runner.temp }}/owned-runtime-evidence/witness/case-observations.json
+          if-no-files-found: error
+          retention-days: 7
