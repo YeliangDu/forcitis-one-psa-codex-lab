@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The executable database scripts (C-3 dev, C-9 prod) must list the same schemas and version tables as the reference DDL
-one_db_roles_schemas.sql, and every migration module directory must have its schema created, owned by the owner role and granted. These lists are kept
+one_db_roles_schemas.sql, and every migration module directory must have its schema created and owned by the owner role, with its explicitly classified grants. These lists are kept
 in step by hand and drift; the guard compares lists, the created roles, every statement that grants or revokes on functions, and the few grants that make a schema append-only, not full semantics.
 Usage: db_scripts_aligned.py  |  db_scripts_aligned.py --self-test"""
 import re
@@ -16,6 +16,331 @@ OWNER_ROLE = "one_dev_owner"
 HISTORY_SCHEMA = "one_migration"
 # platform_audit is append-only: granted SELECT, INSERT on its own lines instead of in the read-write loop
 APPEND_ONLY_SCHEMA = "platform_audit"
+# Signed F1 / Lab #30: structure only, no runtime reader/writer stage. This
+# exact name is not a prefix exemption and never removes existence checks.
+SCHEMA_ONLY_SCHEMAS = frozenset({"operations_facts"})
+_PRIVILEGE_WORD = re.compile(r"[A-Za-z_][A-Za-z0-9_$]*")
+_PRIVILEGE_DOLLAR = re.compile(r"\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$")
+
+
+def privilege_tokens(text):
+    """Small bounded lexer for privilege inspection, not a PostgreSQL parser.
+
+    Keep quoted SQL/dollar bodies distinct from comments and identifiers. Only
+    the two existing exact dynamic loop forms below are reviewed exceptions.
+    """
+    if len(text) > 1024 * 1024:
+        raise ValueError("privilege source too large")
+    tokens, i = [], 0
+    while i < len(text):
+        if text[i].isspace():
+            i += 1
+        elif text.startswith("--", i):
+            end = text.find("\n", i + 2)
+            i = len(text) if end < 0 else end + 1
+        elif text.startswith("/*", i):
+            i, depth = i + 2, 1
+            while depth and i < len(text):
+                if text.startswith("/*", i):
+                    depth, i = depth + 1, i + 2
+                elif text.startswith("*/", i):
+                    depth, i = depth - 1, i + 2
+                else:
+                    i += 1
+            if depth:
+                raise ValueError("unterminated privilege comment")
+        elif text[i] in ("'", '"'):
+            quote, i, value = text[i], i + 1, []
+            while i < len(text):
+                if text[i] == quote:
+                    if i + 1 < len(text) and text[i + 1] == quote:
+                        value.append(quote)
+                        i += 2
+                        continue
+                    i += 1
+                    break
+                value.append(text[i])
+                i += 1
+            else:
+                raise ValueError("unterminated privilege quote")
+            tokens.append(("string" if quote == "'" else "word", "".join(value).lower()))
+        elif text[i] == "$" and (tag := _PRIVILEGE_DOLLAR.match(text, i)):
+            delimiter = tag.group(0)
+            start = i + len(delimiter)
+            end = text.find(delimiter, start)
+            if end < 0:
+                raise ValueError("unterminated privilege body")
+            tokens.append(("body", text[start:end]))
+            i = end + len(delimiter)
+        elif text[i] == "\\":
+            # psql commands are outside SQL quotes/comments, and can execute a
+            # pending query even at the end of its line. Never hide them as words.
+            end = text.find("\n", i)
+            end = len(text) if end < 0 else end
+            standalone = not text[text.rfind("\n", 0, i) + 1:i].strip()
+            tokens.append(("meta" if standalone else "meta-inline", text[i:end].strip()))
+            i = end
+        elif word := _PRIVILEGE_WORD.match(text, i):
+            tokens.append(("word", word.group(0).lower()))
+            i += len(word.group(0))
+        else:
+            tokens.append(("symbol", text[i]))
+            i += 1
+    return tokens
+
+
+_GRANT_BODY = """DECLARE s text; BEGIN FOREACH s IN ARRAY ARRAY[{schemas}] LOOP
+EXECUTE format('GRANT USAGE ON SCHEMA %I TO one_dev_app, one_dev_readonly', s);
+EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA %I GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO one_dev_app', s);
+EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA %I GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO one_dev_app', s);
+EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE one_dev_owner IN SCHEMA %I GRANT SELECT ON TABLES TO one_dev_readonly', s);
+END LOOP; END"""
+_REVOKE_BODY = """DECLARE t text; BEGIN FOREACH t IN ARRAY ARRAY[{schemas}] LOOP
+EXECUTE format('REVOKE DELETE, TRUNCATE ON %s FROM one_dev_app', t);
+END LOOP; END"""
+
+
+def reviewed_privilege_loop(tokens, schema_only):
+    def signature(items):
+        return [(kind, " ".join(value.split()) if kind == "string" else value) for kind, value in items]
+
+    for variable, pattern, template in (("s", r"[a-z_][a-z0-9_]*", _GRANT_BODY),
+                                        ("t", r"[a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*", _REVOKE_BODY)):
+        marker = privilege_tokens(f"FOREACH {variable} IN ARRAY ARRAY[")
+        for start in range(len(tokens)):
+            if tokens[start:start + len(marker)] != marker:
+                continue
+            index, values, need_value = start + len(marker), [], True
+            while index < len(tokens) and tokens[index] != ("symbol", "]"):
+                kind, value = tokens[index]
+                if need_value:
+                    if kind != "string" or not re.fullmatch(pattern, value):
+                        break
+                    values.append(value)
+                elif (kind, value) != ("symbol", ","):
+                    break
+                need_value = not need_value
+                index += 1
+            else:
+                if (index >= len(tokens) or not values or need_value
+                        or (variable == "s" and set(values) & schema_only)):
+                    continue
+                expected = privilege_tokens(template.format(schemas=", ".join("'" + value + "'" for value in values)))
+                if signature(tokens) == signature(expected):
+                    return True
+    return False
+
+
+def acl_execute_token(statement, index):
+    """EXECUTE at the privilege position of a static function ACL statement.
+
+    This only classifies the token. The GRANT target/default policy still runs;
+    no procedural EXECUTE, quoted payload or unknown prefix is exempted.
+    """
+    if index < 1 or statement[index - 1] not in (("word", "grant"), ("word", "revoke")):
+        return False
+    command = statement[index - 1][1]
+    prefix = statement[:index - 1]
+
+    def identifiers(tokens, start):
+        if start >= len(tokens) or tokens[start][0] != "word":
+            return None
+        start += 1
+        while start < len(tokens) and tokens[start] == ("symbol", ","):
+            start += 1
+            if start >= len(tokens) or tokens[start][0] != "word":
+                return None
+            start += 1
+        return start
+
+    if prefix:
+        if prefix[:3] != [("word", "alter"), ("word", "default"), ("word", "privileges")]:
+            return False
+        position = 3
+        if position < len(prefix) and prefix[position] == ("word", "for"):
+            if position + 1 >= len(prefix) or prefix[position + 1] not in (("word", "role"), ("word", "user")):
+                return False
+            position = identifiers(prefix, position + 2)
+            if position is None:
+                return False
+        if prefix[position:position + 2] == [("word", "in"), ("word", "schema")]:
+            position = identifiers(prefix, position + 2)
+        if position is None or position != len(prefix):
+            return False
+    suffix = statement[index + 1:]
+    if not suffix or suffix[0] != ("word", "on"):
+        return False
+    position, all_objects = 1, False
+    if position < len(suffix) and suffix[position] == ("word", "all"):
+        position, all_objects = position + 1, True
+    if (position >= len(suffix) or suffix[position][0] != "word"
+            or suffix[position][1] not in {"function", "functions", "routine", "routines", "procedure", "procedures"}):
+        return False
+    plural = suffix[position][1].endswith("s")
+    position += 1
+    begin, depth, receiver = position, 0, None
+    for current in range(position, len(suffix)):
+        item = suffix[current]
+        if item == ("symbol", "("):
+            depth += 1
+        elif item == ("symbol", ")"):
+            depth -= 1
+            if depth < 0:
+                return False
+        elif depth == 0 and item == ("word", "to" if command == "grant" else "from"):
+            receiver = current
+            break
+    if receiver is None or depth != 0 or identifiers(suffix, receiver + 1) is None:
+        return False
+    target = suffix[begin:receiver]
+    if prefix:
+        return plural and not all_objects and not target
+    if all_objects:
+        return (plural and target[:2] == [("word", "in"), ("word", "schema")]
+                and identifiers(target, 2) == len(target))
+    return bool(target) and target[-1] == ("symbol", ")")
+
+
+def top_level_positions(items, wanted):
+    """Find structural delimiters without treating signature/column TO as ACL."""
+    found, depth = [], 0
+    for index, item in enumerate(items):
+        if item == ("symbol", "("):
+            depth += 1
+        elif item == ("symbol", ")"):
+            depth -= 1
+            if depth < 0:
+                raise ValueError("unknown privilege target parentheses")
+        elif depth == 0 and item == wanted:
+            found.append(index)
+    if depth:
+        raise ValueError("unknown privilege target parentheses")
+    return found
+
+
+def grant_object_schemas(items):
+    """Require namespace-dependent GRANT targets to be explicitly qualified.
+
+    No session search_path interpretation. A quoted dotted *single* identifier
+    remains one token and cannot masquerade as schema dot object punctuation.
+    DATABASE and SCHEMA names themselves correctly remain unqualified names.
+    """
+    def names(parts):
+        if not parts or len(parts) % 2 == 0:
+            raise ValueError("unknown privilege schema/database target")
+        if any(kind != "word" or not value for kind, value in parts[::2]) or any(
+                item != ("symbol", ",") for item in parts[1::2]):
+            raise ValueError("unknown privilege schema/database target")
+        return {value for kind, value in parts[::2]}
+
+    if not items:
+        raise ValueError("missing privilege object target")
+    if items[0] in (("word", "schema"), ("word", "database")):
+        explicit = names(items[1:])
+        return explicit if items[0] == ("word", "schema") else set()
+    if items[0] == ("word", "all"):
+        if (len(items) < 5 or items[1] not in {("word", value) for value in
+                ("tables", "sequences", "functions", "routines", "procedures")}
+                or items[2:4] != [("word", "in"), ("word", "schema")]):
+            raise ValueError("unknown all-objects privilege target")
+        return names(items[4:])
+    routines = {("word", value) for value in ("function", "functions", "routine", "routines", "procedure", "procedures")}
+    routine = items[0] in routines
+    if routine or items[0] in (("word", "table"), ("word", "sequence")):
+        items = items[1:]
+    boundaries = [-1, *top_level_positions(items, ("symbol", ",")), len(items)]
+    schemas = set()
+    for begin, end in zip(boundaries, boundaries[1:]):
+        target = items[begin + 1:end]
+        if (len(target) < 3 or target[0][0] != "word" or target[1] != ("symbol", ".")
+                or target[2][0] != "word" or not target[0][1] or not target[2][1]):
+            raise ValueError("unqualified or unknown privilege object target")
+        if routine:
+            if len(target) < 5 or target[3] != ("symbol", "(") or target[-1] != ("symbol", ")"):
+                raise ValueError("unknown qualified routine privilege target")
+            top_level_positions(target[3:], ("symbol", ","))
+        elif len(target) != 3:
+            raise ValueError("unknown qualified relation privilege target")
+        schemas.add(target[0][1])
+    return schemas
+
+
+def schema_only_privileges(modules, sources):
+    schema_only = set(modules) & SCHEMA_ONLY_SCHEMAS
+    if not schema_only:
+        return []
+    problems_found = []
+    blocked = {"one_dev_app", "one_dev_readonly", "public"}
+
+    def inspect(tokens, where, depth=0):
+        if depth > 8:
+            return ["unreviewed nested privilege body"]
+        if reviewed_privilege_loop(tokens, schema_only):
+            return []
+        found, statement, connects = [], [], 0
+        for kind, value in [*tokens, ("symbol", ";")]:
+            if kind == "body":
+                found += inspect(privilege_tokens(value), where, depth + 1)
+                continue
+            if kind in ("meta", "meta-inline"):
+                if (kind == "meta" and depth == 0 and where == "dev-db.sql"
+                        and value == "\\connect forcitis_one_dev" and not statement and connects == 0):
+                    connects += 1
+                else:
+                    found.append("unreviewed executable psql metacommand")
+                continue
+            if (kind, value) != ("symbol", ";"):
+                statement.append((kind, value))
+                continue
+            words = [value for kind, value in statement if kind == "word"]
+            for index, token in enumerate(statement):
+                if token == ("word", "execute") and not acl_execute_token(statement, index):
+                    found.append("unreviewed dynamic SQL can bypass schema-only privileges")
+            if (any(kind == "string" for kind, value in statement)
+                    and (words[:1] == ["do"] or
+                         (words[:1] == ["create"] and {"function", "procedure"} & set(words)))):
+                found.append("unreviewed string-encoded procedural body")
+            for index, token in enumerate(statement):
+                if token != ("word", "grant"):
+                    continue
+                before = [word for token_kind, word in statement[:index] if token_kind == "word"]
+                tail = statement[index + 1:]
+                to_positions = top_level_positions(tail, ("word", "to"))
+                if len(to_positions) != 1:
+                    found.append("unreadable GRANT target")
+                    continue
+                split = to_positions[-1]
+                targets = {value for kind, value in tail[:split] if kind == "word"}
+                recipients = {value for kind, value in tail[split + 1:] if kind == "word"}
+                defaults = any(before[i:i + 3] == ["alter", "default", "privileges"] for i in range(len(before)))
+                explicit_schemas = set()
+                on_positions = top_level_positions(tail[:split], ("word", "on"))
+                if not defaults and on_positions:
+                    if len(on_positions) != 1:
+                        found.append("unknown privilege ON target")
+                        continue
+                    try:
+                        explicit_schemas = grant_object_schemas(tail[on_positions[0] + 1:split])
+                    except ValueError as error:
+                        found.append(str(error))
+                        continue
+                if schema_only & (targets | set(before) | explicit_schemas):
+                    found.append("explicit or default GRANT targets schema-only objects")
+                elif defaults and "schema" not in before:
+                    found.append("global default GRANT reaches schema-only future objects")
+                elif not defaults and "on" not in targets and recipients & blocked:
+                    found.append("role membership GRANT can widen schema-only access")
+            statement = []
+        return found
+
+    for where, text in sources:
+        try:
+            reasons = inspect(privilege_tokens(text), where)
+        except ValueError as error:
+            reasons = [str(error)]
+        for reason in sorted(set(reasons)):
+            problems_found.append(f"{where}: schema-only {', '.join(sorted(schema_only))}: {reason}")
+    return problems_found
 
 
 def without_comments(text):
@@ -102,9 +427,11 @@ def grantees(statement):
 
 
 def problems(modules, reference, c3, c3_after, c3_verify):
+    denied = schema_only_privileges(modules, (("one_db_roles_schemas.sql", reference),
+                                            ("dev-db.sql", c3), ("dev-db-after-migrations.sql", c3_after)))
     reference, c3, c3_after, c3_verify = map(without_comments, (reference, c3, c3_after, c3_verify))
     schemas = set(modules) | {HISTORY_SCHEMA}
-    read_write = set(modules) - {APPEND_ONLY_SCHEMA}
+    read_write = set(modules) - {APPEND_ONLY_SCHEMA} - SCHEMA_ONLY_SCHEMAS
     expected = [
         ("one_db_roles_schemas.sql §0 conflict check", nspname_list(reference, "§0 conflict check"), schemas),
         ("one_db_roles_schemas.sql CREATE SCHEMA", created_schemas(reference), schemas),
@@ -118,7 +445,7 @@ def problems(modules, reference, c3, c3_after, c3_verify):
         ("dev-db-after-migrations.sql version tables", version_tables(c3_after), version_tables(reference)),
         ("dev-db-after-migrations.sql table revokes", table_revokes(c3_after), table_revokes(reference)),
     ]
-    found = [f"{where}: missing {sorted(want - got)}, extra {sorted(got - want)}" for where, got, want in expected if got != want]
+    found = denied + [f"{where}: missing {sorted(want - got)}, extra {sorted(got - want)}" for where, got, want in expected if got != want]
     reference_roles, c3_roles = role_statements(reference), role_statements(c3)
     found += [f"dev-db.sql CREATE ROLE {role}: {'missing' if role not in c3_roles else 'extra' if role not in reference_roles else 'differs from one_db_roles_schemas.sql'}"
               for role in sorted(set(reference_roles) | set(c3_roles)) if reference_roles.get(role) != c3_roles.get(role)]
