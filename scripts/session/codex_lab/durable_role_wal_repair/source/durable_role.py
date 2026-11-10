@@ -18,9 +18,10 @@ PREFIX=(".codex-lab","role-runtime","slots")
 LOCK=".exclusive.lock"
 MANIFEST="backup-manifest.json"
 DATABASE="owner/runtime.sqlite3"
-NATIVE_FILES={"runtime.sb","model-catalog.json","owned-installation.json",
+NATIVE_DATABASES={"home/.codex/state_5.sqlite","home/.codex/thread_history_1.sqlite"}
+NATIVE_FILES=NATIVE_DATABASES|{"runtime.sb","model-catalog.json","owned-installation.json",
               "single-role-installation.json","home/.codex/config.toml",
-              "home/.codex/state_5.sqlite","home/.codex/session_index.jsonl",
+              "home/.codex/session_index.jsonl",
               "work/assignment.json"}
 NATIVE_PREFIXES=("home/.codex/sessions/","home/.codex/archived_sessions/")
 SECRETS={"auth.json","auth.json.tmp","authorization.json","credentials","secrets"}
@@ -108,13 +109,45 @@ def _read(path):
         return raw
 
 
-def _files(slot):
+def _snapshot_native(path, scratch):
+    """Checkpoint a disposable byte copy, never open the source via SQLite."""
+    wal=path.with_name(path.name+"-wal")
+    shm=path.with_name(path.name+"-shm")
+    journal=path.with_name(path.name+"-journal")
+    require(not os.path.lexists(journal),"native-rollback-journal-present")
+    raw=_read(path)
+    wal_raw=_read(wal) if os.path.lexists(wal) else None
+    if os.path.lexists(shm):
+        row=shm.lstat()
+        require(stat.S_ISREG(row.st_mode) and row.st_uid==os.geteuid() and row.st_nlink==1
+                and wal_raw is not None,"invalid-native-wal-sidecar")
+    with tempfile.TemporaryDirectory(prefix=".native-snapshot-",dir=scratch) as name:
+        root=Path(name)
+        inputs={"source.sqlite":raw}
+        if wal_raw is not None:inputs["source.sqlite-wal"]=wal_raw
+        _write_tree(root,inputs)
+        clone=root/"source.sqlite"
+        result=root/"snapshot.sqlite"
+        with closing(sqlite3.connect(clone.as_uri()+"?mode=rw",uri=True)) as source, \
+                closing(sqlite3.connect(result)) as target:
+            require(source.execute("pragma integrity_check").fetchall()==[("ok",)],"inconsistent-native-source")
+            source.backup(target)
+            require(target.execute("pragma journal_mode=delete").fetchone()==("delete",)
+                    and target.execute("pragma integrity_check").fetchall()==[("ok",)],"inconsistent-native-snapshot")
+        require(_read(path)==raw and
+                ((_read(wal)==wal_raw) if wal_raw is not None else not os.path.lexists(wal)),
+                "native-source-drift-during-snapshot")
+        return _read(result)
+
+
+def _files(slot,scratch):
     files={}
     roots=("owner","history","install","home/.codex/sessions","home/.codex/archived_sessions")
     for name in (*NATIVE_FILES,DATABASE):
         p=slot/name
-        if p.exists() or p.is_symlink():files[name]=_read(p)
-        if p.suffix in (".sqlite",".sqlite3"):
+        if p.exists() or p.is_symlink():
+            files[name]=_snapshot_native(p,scratch) if name in NATIVE_DATABASES else _read(p)
+        if name==DATABASE:
             require(all(not os.path.lexists(str(p)+s) for s in ("-wal","-shm","-journal")),
                     "sqlite-sidecar-present-stop-and-checkpoint-first")
     for rel in roots[1:]:
@@ -210,10 +243,10 @@ def backup(slot,target,native_id):
     with exclusive(slot):
         stage=Path(tempfile.mkdtemp(prefix=".backup-stage-",dir=target.parent))
         try:
-            files=_files(slot)
+            files=_files(slot,target.parent)
             _write_tree(stage,files)
             state=_state(stage,native_id,files)
-            require(_pins(files)==_pins(_files(slot)),"live-role-drift-during-snapshot")
+            require(_pins(files)==_pins(_files(slot,target.parent)),"live-role-drift-during-snapshot")
             manifest=dict(schema=1,role=slot.name,source_slot=str(slot),state=state,sha256=_pins(files))
             _write_tree(stage,{MANIFEST:(json.dumps(manifest,sort_keys=True)+"\n").encode()})
             _publish(stage,target)

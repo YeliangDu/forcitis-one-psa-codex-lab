@@ -11,7 +11,7 @@
     "card_followup.py": "0d0251386613ee4feea8243c83fbc61bc4f72770aaf32aa745deaeab1aab98b5",
     "card_plan.py": "5346d589a6b2e1d72a12ff8b831188fe8418e66f77c5858c7fb31d4b9bdc0f24",
     "durable_login.py": "5e49d9817db99960c05d7ac3792b2f4c4e931388b39bfb67e87bf0ff0f89d3bb",
-    "durable_role.py": "0fe1ee5e1748e431658dc51e0bd0c4bf62e01c843d8adff59223912c15537978",
+    "durable_role.py": "d58e6762c803a26033016019a59cc5bcf41370ab8d78e296da84ab466402e31e",
     "durable_seed_schema.sql": "54c2e18f522f4a5baaa30202ca75391a32349209d3dbec980e64c02fbe5c1d22",
     "exact_scope.py": "ee29d8eaaa234655046f8d7a654d1179b506336a5cd08843f11380b253826b9d",
     "existing_ci_proof.py": "5393667fcf2e10be2e8223e6380df321b6d72deb56423e290e51b8cfc1217ba4",
