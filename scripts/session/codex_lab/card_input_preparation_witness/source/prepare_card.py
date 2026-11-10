@@ -9,11 +9,13 @@ from pathlib import Path
 import re
 import stat
 import subprocess
+import sys
 import tempfile
 from uuid import UUID
 
 REPO = 'YeliangDu/forcitis-one-psa-codex-lab'
 RID = 1449415666
+LAB_ROOT = Path('/Users/yeliang/Projects/FORCITIS/forcitis-one-psa-codex-lab')
 DELIVERY = '8f8017d32bb2cfae3e2442a6272913044f713c734a705bb9934ce985d5f15894'
 STAGES = ('首轮', '终审')
 LANES = {'backend','frontend','light','secret','shadow'}
@@ -137,6 +139,20 @@ def declarations(body):
     return sorted(lines)
 
 
+def review_header(body,head,reviewer):
+    # Same ordered machine header as post_review.parse_header/read_header.
+    lines=body.split('\n')
+    fields=('复审结论','commit','复审者')
+    expected=('通过',head,reviewer)
+    if len(lines)<3 or (len(lines)>3 and lines[3].strip()):return False
+    for field,line,value in zip(fields,lines[:3],expected):
+        if any(ord(x)<32 or ord(x)==127 for x in line):return False
+        match=re.fullmatch(re.escape(field)+r'[：:](.*)',line.strip())
+        if not match or match[1].strip()!=value:return False
+        if sum(bool(re.match(re.escape(field)+r'[：:]',x.strip())) for x in lines)!=1:return False
+    return True
+
+
 def source_pins(b):
     for k in ('issue_body_sha256','signed_scope_sha256'):
         need(digest(b['scope'][k],64),'invalid-scope-evidence:'+k)
@@ -178,9 +194,7 @@ def delivery_inputs(repo,b,role_ids,base,observed_base,mode,meta):
              and re.match(r'^\**APPROVE\b',text) and head in text and base in text
              and row['commit_id']==head and row['state'] in ('APPROVED','COMMENTED')
              and type(row['id']) is int and row['id']>0
-             and [v for v in row['body'].splitlines() if v.startswith('复审结论：')]==['复审结论：通过']
-             and [v for v in row['body'].splitlines() if v.startswith('复审者：')]==['复审者：'+who]
-             and [v for v in row['body'].splitlines() if v.startswith('commit：')]==['commit：'+head],
+             and review_header(row['body'],head,who),
              'independent-review-drift:'+stage)
         observed[stage]=(session,who,row['id'])
     need(len({v[0] for v in observed.values()})==len({v[2] for v in observed.values()})==2,'reviews-not-independent')
@@ -289,12 +303,18 @@ def build(b,repo,mode,observed_base):
 
 def output_fence(repo,output):
     need(repo.is_absolute() and repo.resolve(strict=True)==repo and output.is_absolute(),'nonphysical-output-or-repo')
-    if (repo/'.codex-lab/role-runtime/slots/one-readonly-lab').is_dir():
+    if repo==LAB_ROOT:
         parent=repo/'.codex-lab/operations-v1/prepared'
     else:
-        need(repo.name=='work' and repo.parent.name=='slot' and output!=repo.parent,
-             'invalid-disposable-repo-boundary')
+        # Only the frozen runner harness enters its private temporary root.
+        tmp=Path(os.environ.get('TMPDIR',''))
         parent=repo.parents[1]
+        need(sys.platform=='linux' and os.environ.get('RUNNER_ENVIRONMENT')=='github-hosted'
+             and tmp.is_absolute() and tmp==Path.cwd() and tmp.resolve(strict=True)==tmp
+             and parent.parent==tmp and parent.name.startswith('prepare-card-')
+             and parent.stat().st_uid==os.geteuid() and stat.S_IMODE(parent.stat().st_mode)==0o700
+             and repo.name=='work' and repo.parent.name=='slot' and output!=repo.parent,
+             'invalid-disposable-repo-boundary')
     need(output.parent==parent and parent.resolve(strict=True)==parent,
          'output-must-be-an-isolated-prepare-directory')
 
@@ -345,7 +365,7 @@ def main():
     args=p.parse_args()
     try:
         root=Path.cwd()
-        need(root.resolve()==root and root.name=='forcitis-one-psa-codex-lab'
+        need(root==LAB_ROOT and root.resolve()==root
              and git(root,'rev-parse','--path-format=absolute','--git-common-dir').decode().strip()==str(root/'.git')
              and git(root,'remote','get-url','--all','origin').decode().strip()=='git@github.com:'+REPO+'.git','not-the-personal-lab')
         output=args.output.absolute()
