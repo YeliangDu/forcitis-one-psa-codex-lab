@@ -19,8 +19,12 @@ import org.postgresql.util.PSQLException;
 
 /** Lab #30 additive NaN regression; actual PostgreSQL, no changed frozen fixtures. */
 class PostingFactsAmountIT {
+    private static final java.util.concurrent.atomic.AtomicLong UUID_MILLIS =
+            new java.util.concurrent.atomic.AtomicLong(
+                    Instant.parse("2026-11-01T00:00:00Z").toEpochMilli() + 0);
+
     static final TestDatabase postgres=TestPostgres.database(PostingFactsAmountIT.class,TestPostgres.MIGRATED);
-    static UUID id() { return Uuids.timeOrdered(Instant.now()); }
+    static UUID id() { return Uuids.timeOrdered(Instant.ofEpochMilli(UUID_MILLIS.getAndAdd(4))); }
 
     @Test
     void nanIsRejectedImmediatelyByAmountConstraintWithValidParentAndActiveComponent() throws Exception {

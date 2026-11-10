@@ -18,8 +18,12 @@ import org.postgresql.util.PSQLException;
 
 /** #30 additive signed schema boundaries; no edits to original four fixtures. */
 class PostingFactsSignedBoundariesIT {
+    private static final java.util.concurrent.atomic.AtomicLong UUID_MILLIS =
+            new java.util.concurrent.atomic.AtomicLong(
+                    Instant.parse("2026-11-01T00:00:00Z").toEpochMilli() + 3);
+
     static final TestDatabase postgres=TestPostgres.database(PostingFactsSignedBoundariesIT.class,TestPostgres.MIGRATED);
-    static UUID id(){return Uuids.timeOrdered(Instant.now());}
+    static UUID id(){return Uuids.timeOrdered(Instant.ofEpochMilli(UUID_MILLIS.getAndAdd(4)));}
     interface Sql{void run()throws Exception;}
     Connection ready() throws Exception {
         Connection db=DriverManager.getConnection(postgres.url(),postgres.username(),postgres.password());

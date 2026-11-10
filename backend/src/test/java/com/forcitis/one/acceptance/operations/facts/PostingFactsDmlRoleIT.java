@@ -22,6 +22,10 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 /** Lab #30: actual migrated triggers with synthetic private-container owner/runtime separation. */
 @Testcontainers
 class PostingFactsDmlRoleIT {
+    private static final java.util.concurrent.atomic.AtomicLong UUID_MILLIS =
+            new java.util.concurrent.atomic.AtomicLong(
+                    Instant.parse("2026-11-01T00:00:00Z").toEpochMilli() + 1);
+
     static final String OWNER="fixture_f1_owner",DML="fixture_f1_dml",COMPONENT="F1_DML_BOTH";
     static final String PASSWORD=UUID.randomUUID().toString();
     @Container static PostgreSQLContainer postgres=TestPostgres.container().withInitScript("init-schemas.sql");
@@ -67,7 +71,7 @@ class PostingFactsDmlRoleIT {
         }
         db.setAutoCommit(false);return db;
     }
-    static UUID id(){return Uuids.timeOrdered(Instant.now());}
+    static UUID id(){return Uuids.timeOrdered(Instant.ofEpochMilli(UUID_MILLIS.getAndAdd(4)));}
     static void execute(Connection db,String sql,Object...args) throws Exception {
         try(var s=db.prepareStatement(sql)){for(int i=0;i<args.length;i++)s.setObject(i+1,args[i]);s.execute();}
     }

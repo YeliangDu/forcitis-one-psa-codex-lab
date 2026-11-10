@@ -17,6 +17,10 @@ import org.junit.jupiter.api.Test;
 
 /** Lab #30 signed same-transaction/savepoint/append-only/sequence PostgreSQL behavior. */
 class PostingFactsIntegrityIT {
+    private static final java.util.concurrent.atomic.AtomicLong UUID_MILLIS =
+            new java.util.concurrent.atomic.AtomicLong(
+                    Instant.parse("2026-11-01T00:00:00Z").toEpochMilli() + 2);
+
     static final TestDatabase postgres=TestPostgres.database(PostingFactsIntegrityIT.class,TestPostgres.MIGRATED);
     record Fact(UUID id,UUID entity,String key,long number) {}
     interface Sql { void run() throws Exception; }
@@ -29,7 +33,7 @@ class PostingFactsIntegrityIT {
             db.setAutoCommit(false);return db;
         } catch (Exception|AssertionError failure) { db.close();throw failure; }
     }
-    UUID id() {return Uuids.timeOrdered(Instant.now());}
+    UUID id() {return Uuids.timeOrdered(Instant.ofEpochMilli(UUID_MILLIS.getAndAdd(4)));}
     void run(Connection db,String sql,Object...values) throws Exception {
         try(var statement=db.prepareStatement(sql)){for(int i=0;i<values.length;i++)statement.setObject(i+1,values[i]);statement.execute();}
     }
