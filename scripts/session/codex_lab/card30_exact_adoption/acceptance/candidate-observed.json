@@ -1,0 +1,890 @@
+{
+  "approval_status": "NOT_APPROVED",
+  "candidate": "97f19359f8d31ce09d4b8d91ab1f18e5d0d62d92",
+  "candidate_diff": {
+    "base": "0c491846d24d194090bda99a1d16a100331cbd2c",
+    "files": [
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "18e3cc4baf45fcd4f9bdcf0e24a0e867ee34a08b",
+        "before_mode": "100644",
+        "path": ".github/workflows/lab-22-integrated-cutover.yml"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "e3343d970bbfd38820345542d26be66a4c17e12a",
+        "before_mode": "100644",
+        "path": ".github/workflows/lab-22-public-old-main-witness.yml"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "9c87b7e14e1cabc76674547003d2c64972595464",
+        "before_mode": "100644",
+        "path": ".github/workflows/lab-47-midnight-acceptance.yml"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "483ad518f1bbca453b26c82718e9521b9298b4eb",
+        "before_mode": "100644",
+        "path": ".github/workflows/lab-48-midnight-acceptance.yml"
+      },
+      {
+        "after_blob": "a7e3ba7f4421dcbee8969a2ceedf3bd7810d46fd",
+        "after_mode": "100644",
+        "before_blob": "91f3f950cc2d6a3fbd92cc1b4db7ce76e882539d",
+        "before_mode": "100644",
+        "path": ".github/workflows/lab-pr-ci.yml"
+      },
+      {
+        "after_blob": "647c342377a0bf9ef6c15edc0e37a5175f2dfe18",
+        "after_mode": "100644",
+        "before_blob": "7f1794e2c04cf9607275073a4478833f39f04b7f",
+        "before_mode": "100644",
+        "path": "backend/architecture/data-access-registry.yaml"
+      },
+      {
+        "after_blob": "bf9adfdbdfcf5d0ad98f2cd739f18f74294cb8e6",
+        "after_mode": "100644",
+        "before_blob": "98ce0894761f77ca861e07e68fe8f2804c623342",
+        "before_mode": "100644",
+        "path": "backend/architecture/data-classification.txt"
+      },
+      {
+        "after_blob": "475ca301587d2fa471ce9bf2efb80037a4e5597d",
+        "after_mode": "100644",
+        "before_blob": "61b1764b3e93d21927d1454fb6811dcae72b1ad1",
+        "before_mode": "100644",
+        "path": "backend/glossary/proposed/accounting-spine.yaml"
+      },
+      {
+        "after_blob": "d8c870b5275c8c3813f6641e91ebbd58107b0963",
+        "after_mode": "100644",
+        "before_blob": "200569eb71b0375fee55af0e127ede57654a000a",
+        "before_mode": "100644",
+        "path": "backend/glossary/proposed/frontend-ui.yaml"
+      },
+      {
+        "after_blob": "a6bf5a1e676b3599809458a182dca22b570280a1",
+        "after_mode": "100644",
+        "before_blob": "5b89d0f93f7bdb9500fcbae3f506b8c19cfc010b",
+        "before_mode": "100644",
+        "path": "backend/src/main/java/com/forcitis/one/kernel/PageRequest.java"
+      },
+      {
+        "after_blob": "6c1bb3eacb29d93748c574cf544ba9058e32a9dd",
+        "after_mode": "100644",
+        "before_blob": "9311c2130c1e4d127609a90cc1425ea2667e8d27",
+        "before_mode": "100644",
+        "path": "backend/src/main/java/com/forcitis/one/organization/attendance/infrastructure/persistence/JdbcStandardHoursRepository.java"
+      },
+      {
+        "after_blob": "d2c78cc0997313ae2545319d61274bd5c727362d",
+        "after_mode": "100644",
+        "before_blob": "d23d3547e20abe39b405fcfacafa921c7017d6ea",
+        "before_mode": "100644",
+        "path": "backend/src/main/java/com/forcitis/one/platform/identity/api/PermissionCatalogue.java"
+      },
+      {
+        "after_blob": "0a25a513f9919cd588ff6b3eb2f247a218498192",
+        "after_mode": "100644",
+        "before_blob": "44979499f1ce224010168045009dcb8681313c11",
+        "before_mode": "100644",
+        "path": "backend/src/main/java/com/forcitis/one/platform/identity/domain/SensitivePermissions.java"
+      },
+      {
+        "after_blob": "5cb9a870e172b7ce7b309b1d52fb97c84e8bac03",
+        "after_mode": "100644",
+        "before_blob": "126d26921e67bbd34598432f9dd42aab89b2af9d",
+        "before_mode": "100644",
+        "path": "backend/src/main/java/com/forcitis/one/platform/identity/infrastructure/permissions/PermissionCatalogueSource.java"
+      },
+      {
+        "after_blob": "5ead6c06e7e38360c29381be9b7a170544aad714",
+        "after_mode": "100644",
+        "before_blob": "dc262a3d26d796b9f3b13281b2c6343e76bb5942",
+        "before_mode": "100644",
+        "path": "backend/src/main/java/com/forcitis/one/platform/identity/infrastructure/permissions/PermissionVocabulary.java"
+      },
+      {
+        "after_blob": "720aa90f83b79927fb8f40f3f90376b9b15ab6f7",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/main/resources/db/migration/operations_facts/V20261108060000__operations_facts_baseline.sql"
+      },
+      {
+        "after_blob": "81ebc932480d86f9d2fcc6d6757b9288cd7dadf5",
+        "after_mode": "100644",
+        "before_blob": "778ca4c4eb89b52225e1b1347e6196bdf4d1070e",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/DataArchitectureTest.java"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "73c8d343850bec541b5ac84f75118cfe1e13cf27",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/BonusLoginPreparationTest.java"
+      },
+      {
+        "after_blob": "5e2d4d7a833c94aad01303bbda88fd2b1ce1b268",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsAmountIT.java"
+      },
+      {
+        "after_blob": "43f07b21e88d4cdda7832c58db20a9db5a8fbeb9",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsDmlRoleIT.java"
+      },
+      {
+        "after_blob": "ae6cdeab1a9da08c8dd7ea06ce4e19fe3794383a",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsIntegrityIT.java"
+      },
+      {
+        "after_blob": "81182e26a7ce9cd484d9d9a15a610ff933ae07d2",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSchemaIT.java"
+      },
+      {
+        "after_blob": "0f83098f5f70466d197cd85326074c4a9eef6bec",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedBoundariesIT.java"
+      },
+      {
+        "after_blob": "66824ee6ab1b6ea63869f847f79dd91a53d59fcd",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedMetadataTest.java"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "ca92234ae45cd627dcf9dca7f961d7f0fad3819f",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/organization/attendance/StandardHoursExpiredDefaultIT.java"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "5438b294ba290652bc93695bfd18370a97a55dc2",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/organization/attendance/StandardHoursMidnightIT.java"
+      },
+      {
+        "after_blob": "5aa6f587bff65f9e64c56f561511de540f776265",
+        "after_mode": "100644",
+        "before_blob": "43673ccc5d7ee65bb87746c3850b7eafaabb985f",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/organization/attendance/StandardHoursPublishedEventIT.java"
+      },
+      {
+        "after_blob": "84296bb5e66187d0f4f0f38b06d2549fad59aac8",
+        "after_mode": "100644",
+        "before_blob": "1a1a7fb6f197e2578ff10462309e00bda49c5a49",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/organization/attendance/StandardHoursVersionIT.java"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "35a44f35d295e76b38d413ea16fd428220dbadd3",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/organization/attendance/StandardHoursVersionRequests.java"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "69c9033f01ad92c731b19730ba2712e39d9c718f",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/organization/attendance/StandardHoursVersionStaleFixture.java"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "f0f242ffa7266845923ca6f40a2746be949b27ae",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/organization/attendance/StandardHoursWriteDates.java"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "89ae943420effc82c1bdea3c4afde21c0a03d927",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/platform/identity/p2/PermissionP2AdditionalChild.java"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "a5930998efa491f1f860338991b9faa584415d51",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/platform/identity/p2/PermissionP2AdditionalIT.java"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "1035dae2ad4eaf82eed9b3da314d62a4350b7ccc",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/platform/identity/p2/PermissionP2Child.java"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "c499d02ce6906fd945f193d39bdd4e74c7309f5d",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/platform/identity/p2/PermissionP2DiscoveryIT.java"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "1753584b7d2cb933f338b15ce2dec8743e918720",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/platform/identity/p2/PermissionP2ResourceChild.java"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "c18c60da548151542dae68f186fb0b1136a31b29",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/platform/identity/p2/PermissionP2ResourceMatrixIT.java"
+      },
+      {
+        "after_blob": "b7c89a0bb8b00866a5da861b69f21109e7193bac",
+        "after_mode": "100644",
+        "before_blob": "4c738e4b743805d9217cbb4da4cf1171440f2fa4",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/cost/timesheet/application/TimesheetApprovalScenarioIT.java"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "6f8595b00dab821fd755b91fcfb0267d3343f976",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/kernel/PageRequestLosslessEncodingTest.java"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "bd3e9ce61f5e75a774f17ad44e91dcdf3d204320",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/organization/attendance/StandardHoursScopeSerializationIT.java"
+      },
+      {
+        "after_blob": "fad214142aaeb6b911a088af11a321774edd15be",
+        "after_mode": "100644",
+        "before_blob": "f91b95f9791379cea8e330a3b4aca8f9c4655554",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/organization/payroll/BonusInputNoFallbackIT.java"
+      },
+      {
+        "after_blob": "9363bdb26f54ae5f8ef0bbe19cd0b84dd055ebcc",
+        "after_mode": "100644",
+        "before_blob": "a783d5f078eebd6a94f3a30d95f3dd31dc21c86c",
+        "before_mode": "100644",
+        "path": "docs/architecture/panorama/unbuilt-roots.yaml"
+      },
+      {
+        "after_blob": "6c11a5824252df682d344437c489df9bb4a8c613",
+        "after_mode": "100644",
+        "before_blob": "c7d5d86d17a297ca8ccaf05410c177f0847eb3e2",
+        "before_mode": "100644",
+        "path": "docs/architecture/ssot/aggregates/built.yaml"
+      },
+      {
+        "after_blob": "0ac14828b0a9afae9f5ddaa2bacc7ad914bc39d5",
+        "after_mode": "100644",
+        "before_blob": "bb280a6714fed2a56e362510aa5a9bbd2982cff0",
+        "before_mode": "100644",
+        "path": "docs/ops/one-db-roles-schemas.sql"
+      },
+      {
+        "after_blob": "58c65f0af2d3c9eea54042ef234dbb9cc9e98d8e",
+        "after_mode": "100644",
+        "before_blob": "f6cb1c0ed14b8ab8eb4be73c16015825a6cf415a",
+        "before_mode": "100644",
+        "path": "docs/ops/runbooks/sql/dev-db-verify.sql"
+      },
+      {
+        "after_blob": "c02ff1b945a4cc955912ac70d755cfc2dd3dbdc6",
+        "after_mode": "100644",
+        "before_blob": "6ddc331d160cbf0d5a4e2a512628186f3aff0d5b",
+        "before_mode": "100644",
+        "path": "docs/ops/runbooks/sql/dev-db.sql"
+      },
+      {
+        "after_blob": "b1445fdd227c77a0687e41eca4606fc505e222a7",
+        "after_mode": "100644",
+        "before_blob": "7bcc39ba6c7899c66d090c9db26c3f0ceadc9490",
+        "before_mode": "100644",
+        "path": "docs/ops/runbooks/sql/prod-db-verify.sql"
+      },
+      {
+        "after_blob": "b867277e1252c3081de9863d441a662d033c0ab4",
+        "after_mode": "100644",
+        "before_blob": "ab22ebeaac6af0c6379e748de6ca31774a953a8a",
+        "before_mode": "100644",
+        "path": "docs/ops/runbooks/sql/prod-db.sql"
+      },
+      {
+        "after_blob": "2f77533155fbc79b641763b3ecbc4701fd30e631",
+        "after_mode": "100644",
+        "before_blob": "72d742f6074f40596657eaefc6ee4995b71b234a",
+        "before_mode": "100644",
+        "path": "frontend/apps/web/src/modules/workforce/api/workforce-api.ts"
+      },
+      {
+        "after_blob": "eeda76a6369f67014fa7a8e2a5a777f2230b2eaa",
+        "after_mode": "100644",
+        "before_blob": "0b3d4e74a9ba1385593510189a3c87fa88883559",
+        "before_mode": "100644",
+        "path": "frontend/apps/web/src/modules/workforce/hooks/use-workforce.ts"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "01719d6cd4da62ca88f9649a967086ca107546c3",
+        "before_mode": "100644",
+        "path": "frontend/apps/web/src/modules/workforce/model/acting-duty.ts"
+      },
+      {
+        "after_blob": "bf8615bb3ccdcfaa7ff99c1d9f15d60b93cac467",
+        "after_mode": "100644",
+        "before_blob": "7b6ec204f6d04ca85791fb340091a5a40ac011bd",
+        "before_mode": "100644",
+        "path": "frontend/apps/web/src/modules/workforce/model/personnel-command.ts"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "e91b913fbba3401e00898d03b61b2b46eda60cec",
+        "before_mode": "100644",
+        "path": "frontend/apps/web/src/modules/workforce/pages/employee-acting-duty-section.tsx"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "7b48aab105f59f97af346d7127364529f753ae03",
+        "before_mode": "100644",
+        "path": "frontend/apps/web/src/modules/workforce/pages/employee-acting-duty.test.tsx"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "1dac2dd11ec7225292aa5e082ca1703b7263cd0c",
+        "before_mode": "100644",
+        "path": "frontend/apps/web/src/modules/workforce/pages/employee-acting-wording.test.tsx"
+      },
+      {
+        "after_blob": "986b2fa8ef8bd17124c2a29f622a33cd903a6f45",
+        "after_mode": "100644",
+        "before_blob": "86941dfcb4d82f35ae4d1de1fbe252b866644fb7",
+        "before_mode": "100644",
+        "path": "frontend/apps/web/src/modules/workforce/pages/employee-detail-page.tsx"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "abf0a527a664d3b47b1a02b172fc37648077e5c1",
+        "before_mode": "100644",
+        "path": "frontend/apps/web/src/modules/workforce/pages/personnel-command-acting-date.test.tsx"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "abe4f221eecdd99d0c26ae8671bf4f7a51851a73",
+        "before_mode": "100644",
+        "path": "frontend/apps/web/src/modules/workforce/pages/personnel-command-acting-wording.test.tsx"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "4112605791785136baa22980ff5e55b44a9fd8ba",
+        "before_mode": "100644",
+        "path": "frontend/apps/web/src/modules/workforce/pages/personnel-command-acting.test.tsx"
+      },
+      {
+        "after_blob": "0cb829f4f31adadba4733b8835259d96d66ef631",
+        "after_mode": "100644",
+        "before_blob": "3d3dd29a034319cf9a42831d5c97dca40bcbe1ec",
+        "before_mode": "100644",
+        "path": "frontend/apps/web/src/modules/workforce/pages/personnel-command-form-page.tsx"
+      },
+      {
+        "after_blob": "75dde2857b664c40c4eddde11c5a84de32328368",
+        "after_mode": "100644",
+        "before_blob": "2b2b2d6485910ba3d70152c82426a666dd1d23d9",
+        "before_mode": "100644",
+        "path": "frontend/scripts/copy-allow-list.yaml"
+      },
+      {
+        "after_blob": "16ed3ba8233eb94fb091c29ffa1a00606964739d",
+        "after_mode": "100755",
+        "before_blob": "d6e22273df38f6ffbc7fa7af1c5bb7d08d79ce29",
+        "before_mode": "100755",
+        "path": "scripts/guards/db_scripts_aligned.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "acb94c82d1546faba60f3bb1005713f63a3a4107",
+        "before_mode": "100644",
+        "path": "scripts/guards/db_scripts_schema_only_bypass_selftest.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "d5411256f8ab0ad1a25abd6e037a2c370ef2dbc3",
+        "before_mode": "100644",
+        "path": "scripts/guards/db_scripts_schema_only_selftest.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "bd73b12dbf735edbedac0bc14b19678b65902a65",
+        "before_mode": "100644",
+        "path": "scripts/merge/LOCKED-PHASES.json"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "94e325c1da1aae7059e5f9801fcd2544a4984f97",
+        "before_mode": "100644",
+        "path": "scripts/merge/canonical_storage_transition.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "1e9d40d9cbb7fa01c36ac267947ec55af2caa737",
+        "before_mode": "100644",
+        "path": "scripts/merge/canonical_storage_transition_selftest.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "e0f19467b9992d8898037874993301d8d6511dea",
+        "before_mode": "100644",
+        "path": "scripts/merge/cutover_e2e_driver.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "3deb6f5002a3f1d7dcf08595b8ec3bf12a9a61e0",
+        "before_mode": "100644",
+        "path": "scripts/merge/cutover_e2e_selftest.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "6226fdef846f95a4d7f746baa9839c510166edbb",
+        "before_mode": "100644",
+        "path": "scripts/merge/cutover_fixture_runtime.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "974f2023447e33e7ab4867fe34b87d86c446b22d",
+        "before_mode": "100644",
+        "path": "scripts/merge/cutover_host_probe.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "a94997a9ef8d871286078dfe35a23aee6531fb78",
+        "before_mode": "100644",
+        "path": "scripts/merge/cutover_owned_receiver.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "efe0de22d94ea694ef2c3aa97305382bc9b531f0",
+        "before_mode": "100644",
+        "path": "scripts/merge/cutover_profile_child.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "c6eb4fcd3b98ae335f9cc5671b53edd1fe96ceec",
+        "before_mode": "100644",
+        "path": "scripts/merge/cutover_proof_trace.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "75b4349d4e9367d2129a0fb6aec3f0c5d0030ebe",
+        "before_mode": "100644",
+        "path": "scripts/merge/cutover_trace_fixture.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "c7a507a1b5485aa44f672e6f5b620e117e878752",
+        "before_mode": "100644",
+        "path": "scripts/merge/exact_setup.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "b806c2901e38c4d90e0ef057179f6ea71807cc62",
+        "before_mode": "100644",
+        "path": "scripts/merge/fixture_material.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "5aa238a5fdc6bfba30ba8d2a99817714f3ad2b05",
+        "before_mode": "100644",
+        "path": "scripts/merge/fixture_material_selftest.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "77324238f032d99ef0c83c3e22b865a8a91294af",
+        "before_mode": "100644",
+        "path": "scripts/merge/launch_barrier.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "3bf848fc2a2e35cd9c446a046bedb1b3c6ccddb7",
+        "before_mode": "100644",
+        "path": "scripts/merge/locked_phase_setup.py"
+      },
+      {
+        "after_blob": "73bd8d9d0e9bf0c553e5bf8630615bd77bd03e25",
+        "after_mode": "100644",
+        "before_blob": "dc572bd5da0739bce7cbc85bccb3e7934301e9f5",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab.py"
+      },
+      {
+        "after_blob": "3ce2ca8b038abdcab00b179e8e014ed1d3d895e4",
+        "after_mode": "100644",
+        "before_blob": "7d35982f3b4038b9f8490d50f143822e8ec1777b",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_authorization.py"
+      },
+      {
+        "after_blob": "871b352d050a5c9cc773593674eb190b410b2cbb",
+        "after_mode": "100644",
+        "before_blob": "1e7a5b498586dab38db14304527e762858124d50",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_authorization_selftest.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "130e52e79ae5eb3a693a38821dcec66f9057ba22",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_control_authorization.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "311afe29cfd1a991efccc33676a74b522749793b",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_control_install.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "a09ead76cb8f4a7a5ea1ccea761c1a35ec1d846d",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_control_manifest.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "d00210d361b28f316c42f0c4c6e480eec45106fc",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_control_plan.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "65a3cca28ea4caf74ba89c1385ea8accba7b7a9b",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_control_receipt.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "a39cba8b87eff8c034de6c08dfb00c8933e93d8d",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_cutover_channel.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "69c3732cf7c59c8503a5d5b50df212de299127a2",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_cutover_entry.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "d21032a07ec8709db4ac9dd7fce00fe58bf36775",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_cutover_live.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "26a13ebb475c993a715abe609672a5bd5c7d620c",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_cutover_native.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "d0a46679f767f525d62fd6d9ea55104d02c30440",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_cutover_old.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "30ad61f0f7587e1abb51599c26c0b13ee9cf4fb9",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_cutover_ordinary.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "ec79717ba2b8c532b880786b3e17ed75548347ae",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_cutover_recovery.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "b5a86c2d9a2cf7873768864185e8520d578b4512",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_cutover_successor.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "89a295be1f93a97e22abcd7bb65cef17cb8aaf17",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_journal_v2.py"
+      },
+      {
+        "after_blob": "771db584f2b0f4cca60857234099d1ff0efb1ee8",
+        "after_mode": "100644",
+        "before_blob": "17c69b4a38c2055eb9c6b6a092842f3720072c8d",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_operator.py"
+      },
+      {
+        "after_blob": "33bc34003d33041a1ec100c176604a8f52015c50",
+        "after_mode": "100644",
+        "before_blob": "dcd1da8176ed38602d43bd0439bec62e01587795",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_proof.py"
+      },
+      {
+        "after_blob": "3caf4ab955783071d4263c878f6971049dd483e2",
+        "after_mode": "100644",
+        "before_blob": "80500733669ce704a75b55013725f5f57c7f2d76",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_proof_selftest.py"
+      },
+      {
+        "after_blob": "8fbfdbc8dada3de7d15298a1e44a29678555c616",
+        "after_mode": "100644",
+        "before_blob": "70137af9b86b5cf899c8e400faf033e69ffa0eb8",
+        "before_mode": "100644",
+        "path": "scripts/merge/mq_lab_selftest.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "1f46a71a49842d5931f8d187c1fb48c0d5ee20ca",
+        "before_mode": "100644",
+        "path": "scripts/merge/native-proof-fixture.json.gz"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "c737c92d4ffdfba0473e70e941ac894e3d6fbc0a",
+        "before_mode": "100644",
+        "path": "scripts/merge/native_entry_selftest.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "8c2cb16f4d1942c61e2275cb0b66fc7d495669a7",
+        "before_mode": "100644",
+        "path": "scripts/merge/ordinary_boundary.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "8d6106286f626831d4266bae6ece2bde44d25078",
+        "before_mode": "100644",
+        "path": "scripts/merge/ordinary_native_fixture.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "6c1f09bcb21a8587acb4d29c1aa3f7911e16e572",
+        "before_mode": "100644",
+        "path": "scripts/merge/ordinary_v2_selftest.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "96715dc65a239a0101dca2422cfd1bbf7ddfad8c",
+        "before_mode": "100644",
+        "path": "scripts/merge/receiver_selftest.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "914b60d47e27c443f2667ba4b1872d7cf8a56793",
+        "before_mode": "100644",
+        "path": "scripts/merge/recovery_child_observer.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "31f1e6e7856c256fceb9d3a70ad35f54c758fb48",
+        "before_mode": "100644",
+        "path": "scripts/merge/recovery_path_selftest.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "f7848a2085c7e41be895133497318fa2ab248b34",
+        "before_mode": "100644",
+        "path": "scripts/merge/recovery_probe.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "581d3da539e69db12c0ea870af205fe51ee13b10",
+        "before_mode": "100644",
+        "path": "scripts/merge/scenario_ledger.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "8ff7ba0d2a25db5669d17532c75744d4fb283425",
+        "before_mode": "100644",
+        "path": "scripts/merge/synthetic_inputs.py"
+      },
+      {
+        "after_blob": "640d207546e0daed61f1bb2a938fbb31a1977f21",
+        "after_mode": "100644",
+        "before_blob": "30fce8d2b0f7c55a5f32674d54aab0c7fcb2eec3",
+        "before_mode": "100644",
+        "path": "scripts/session/codex_lab/lab_hosted_cutover_selftest.py"
+      },
+      {
+        "after_blob": "64dfa15f3bdb6b4c431b2c8e41e6cc70a8c2b8d7",
+        "after_mode": "100644",
+        "before_blob": "ff88495b6659bba41c0345a893a9e83308b23f08",
+        "before_mode": "100644",
+        "path": "scripts/session/codex_lab/lab_main_health.py"
+      },
+      {
+        "after_blob": "a1251776e7f43245973f8b44aa3d4509e56f53ec",
+        "after_mode": "100644",
+        "before_blob": "9862b0b27b4f7ce6641cbe89d1a538d569a69b43",
+        "before_mode": "100644",
+        "path": "scripts/session/codex_lab/lab_main_health_selftest.py"
+      },
+      {
+        "after_blob": "6e39dfcf5386cd6a01b55683f3a583bd81e46dff",
+        "after_mode": "100644",
+        "before_blob": "b8dfbf976d39f15fa56aa57684543e584ed97735",
+        "before_mode": "100644",
+        "path": "scripts/session/codex_lab/lab_pr_ci.py"
+      },
+      {
+        "after_blob": "2451f5d3bcf703565ac486e333fb04a4f2624db3",
+        "after_mode": "100644",
+        "before_blob": "74ccafe8e36c5be39f3e868f1e683509ad71c7e7",
+        "before_mode": "100644",
+        "path": "scripts/session/codex_lab/lab_pr_ci_selftest.py"
+      },
+      {
+        "after_blob": null,
+        "after_mode": null,
+        "before_blob": "35e82ce7b02f8bfa9da1f2bc6079d0aab9361365",
+        "before_mode": "100644",
+        "path": "scripts/session/codex_lab/lab_pr_provenance_selftest.py"
+      },
+      {
+        "after_blob": "aabb536cccc4f2c39a14378c6d56de6eff79b917",
+        "after_mode": "100644",
+        "before_blob": "3fdefc88f67907319ce54a30f7d3d16ca593254d",
+        "before_mode": "100644",
+        "path": "scripts/session/codex_lab/lab_queue_evidence.py"
+      },
+      {
+        "after_blob": "3fcf45599f3aa1752928786d537858da31699796",
+        "after_mode": "100644",
+        "before_blob": "584f45e4021bea3cc51492537abf5c511795076b",
+        "before_mode": "100644",
+        "path": "scripts/session/codex_lab/lab_queue_evidence_selftest.py"
+      },
+      {
+        "after_blob": "31703e50b47d3e3fdc793a976fb223e517784bf6",
+        "after_mode": "100644",
+        "before_blob": "6fa5f91ec8dad148472cde86b13c16b90bab7248",
+        "before_mode": "100644",
+        "path": "scripts/session/codex_lab/lab_queue_git_writer.py"
+      },
+      {
+        "after_blob": "904157070582caf6caa35b07284f175a417c3ee3",
+        "after_mode": "100644",
+        "before_blob": "a4872e4c517380d486c694b1483f4257226273bd",
+        "before_mode": "100644",
+        "path": "scripts/session/codex_lab/lab_queue_git_writer_selftest.py"
+      },
+      {
+        "after_blob": "245d2e552d2ead9d45c3875b8abfd6b70cda8263",
+        "after_mode": "100644",
+        "before_blob": "04fc02360990db95a5b57a0177f975b70db46cfb",
+        "before_mode": "100644",
+        "path": "scripts/session/codex_lab/lab_queue_main_writer_selftest.py"
+      },
+      {
+        "after_blob": "a5b1facab092afaaf1c6f2fc769916e778cac530",
+        "after_mode": "100644",
+        "before_blob": "6dd26264d5e2128a3f1f8128a85c94ed6068411e",
+        "before_mode": "100644",
+        "path": "scripts/session/codex_lab/lab_queue_observe.py"
+      },
+      {
+        "after_blob": "363091d9736c177c3fa53c5014ca08a50ec27125",
+        "after_mode": "100644",
+        "before_blob": "45cbb53d9c9c2163e00cf3a38ed692b4b6c8aaef",
+        "before_mode": "100644",
+        "path": "scripts/session/codex_lab/lab_queue_observe_selftest.py"
+      }
+    ],
+    "head": "97f19359f8d31ce09d4b8d91ab1f18e5d0d62d92"
+  },
+  "new_base": "0c491846d24d194090bda99a1d16a100331cbd2c",
+  "parents": [
+    "5afa740695279eeb010aca32258e595ff037784c"
+  ],
+  "reason": "Observed evidence only; full delta is not a signed contribution allowance."
+}

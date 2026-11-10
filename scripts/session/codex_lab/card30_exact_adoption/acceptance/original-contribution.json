@@ -1,0 +1,92 @@
+{
+  "acceptance_session": "01a1b614-934c-7250-a715-5cf09e9c02c2",
+  "author_session": "01a1b612-91bc-77c0-a824-fe48ce5cb5e0",
+  "original_diff": {
+    "base": "15511fad03b8d2ae38e3a337f24556bd9d9071c6",
+    "files": [
+      {
+        "after_blob": "647c342377a0bf9ef6c15edc0e37a5175f2dfe18",
+        "after_mode": "100644",
+        "before_blob": "7f1794e2c04cf9607275073a4478833f39f04b7f",
+        "before_mode": "100644",
+        "path": "backend/architecture/data-access-registry.yaml"
+      },
+      {
+        "after_blob": "bf9adfdbdfcf5d0ad98f2cd739f18f74294cb8e6",
+        "after_mode": "100644",
+        "before_blob": "98ce0894761f77ca861e07e68fe8f2804c623342",
+        "before_mode": "100644",
+        "path": "backend/architecture/data-classification.txt"
+      },
+      {
+        "after_blob": "475ca301587d2fa471ce9bf2efb80037a4e5597d",
+        "after_mode": "100644",
+        "before_blob": "61b1764b3e93d21927d1454fb6811dcae72b1ad1",
+        "before_mode": "100644",
+        "path": "backend/glossary/proposed/accounting-spine.yaml"
+      },
+      {
+        "after_blob": "720aa90f83b79927fb8f40f3f90376b9b15ab6f7",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/main/resources/db/migration/operations_facts/V20261108060000__operations_facts_baseline.sql"
+      },
+      {
+        "after_blob": "81ebc932480d86f9d2fcc6d6757b9288cd7dadf5",
+        "after_mode": "100644",
+        "before_blob": "778ca4c4eb89b52225e1b1347e6196bdf4d1070e",
+        "before_mode": "100644",
+        "path": "backend/src/test/java/com/forcitis/one/DataArchitectureTest.java"
+      },
+      {
+        "after_blob": "03ddad42549d48fef3876f9ec39c90472fe91851",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsAmountIT.java"
+      },
+      {
+        "after_blob": "0d32a141d916998df95817c761b7f0b290120e43",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsDmlRoleIT.java"
+      },
+      {
+        "after_blob": "24795a92210a13310f3cece691c5a50a6c00244c",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsIntegrityIT.java"
+      },
+      {
+        "after_blob": "f4db2df43f30193ba68cb025e1c7e1f6dab096b6",
+        "after_mode": "100644",
+        "before_blob": null,
+        "before_mode": null,
+        "path": "backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsSchemaIT.java"
+      }
+    ],
+    "head": "5af1d35ad76e95007a714704b97f3da07b0e0d35"
+  },
+  "provenance": "Immutable Lab Git commit messages; no live PR body read",
+  "tests": {
+    "backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsAmountIT.java": {
+      "git_blob": "03ddad42549d48fef3876f9ec39c90472fe91851",
+      "sha256": "c24a5b24c7653e43e753f2bb9b0c43cc129ee64b5fcaab0ea3062500eea9f48f"
+    },
+    "backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsDmlRoleIT.java": {
+      "git_blob": "0d32a141d916998df95817c761b7f0b290120e43",
+      "sha256": "19c19d234ec0d0fdadba6598a7884c362965c6f09fe9e21a8dcee93857f68705"
+    },
+    "backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsIntegrityIT.java": {
+      "git_blob": "24795a92210a13310f3cece691c5a50a6c00244c",
+      "sha256": "8a74d405fe9332036ae03c9b2f5dafead343a72d36451a46e1cccc092351cfec"
+    },
+    "backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsSchemaIT.java": {
+      "git_blob": "f4db2df43f30193ba68cb025e1c7e1f6dab096b6",
+      "sha256": "c0516cd99bdb447159eba17681bae4ea333f8c2b236f96385cca3a05448d1807"
+    }
+  }
+}
