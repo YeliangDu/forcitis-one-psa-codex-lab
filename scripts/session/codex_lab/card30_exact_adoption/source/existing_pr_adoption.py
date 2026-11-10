@@ -67,6 +67,61 @@ def verify_f1_update(sc, cfg, port, original, candidate, approval):
         need(sha(raw)==test['sha256'],'exact-f1-frozen-test-drift')
 
 
+EXACT_F1_FOLLOWUP_PIN = '940c0e472e9162a90b18d9ea4e1da640ff1c4a4ad6265e2a7e43084d998f4c3d'
+EXACT_F1_FOLLOWUP_EVIDENCE = '2e2b1f0a0f5b986ee69be9c718cefbb1266595c80399ffa0eef8e5c1832295d1'
+
+
+def f1_followup_input(cfg, sc):
+    approval = cfg.get('approved_followup')
+    need(exact_f1(sc) and type(approval) is dict and type(cfg.get('followup_evidence')) is dict,
+         'exact-f1-followup-scope-required')
+    fixed = {k:v for k,v in approval.items() if k not in ('revision','previous_target_sha256')}
+    need(sha(wire(fixed).encode()) == EXACT_F1_FOLLOWUP_PIN
+         and sha(wire(cfg['followup_evidence']).encode()) == EXACT_F1_FOLLOWUP_EVIDENCE
+         and sha(wire(sc).encode()) == approval['original_subject_sha256']
+         and approval['head'] == cfg['candidate'] and approval['base'] == sc['new_base']
+         and type(approval.get('revision')) is int and approval['revision'] == cfg['revision']
+         and hexed(approval.get('previous_target_sha256'),64),
+         'exact-f1-followup-approval-drift')
+    return approval
+
+
+def verify_f1_followup(cfg, port, approval):
+    head, base, previous = (approval[k] for k in ('head','base','previous_head'))
+    evidence = cfg['followup_evidence']
+    need(port.git('rev-parse', head + '^{tree}') == approval['tree']
+         and sha(wire(port.diff(previous,head)).encode()) == approval['patch_diff_sha256']
+         and sha(wire(port.diff(base,head)).encode()) == approval['candidate_diff_sha256']
+         and sha(wire(evidence['commits']).encode()) == approval['commits_sha256'],
+         'exact-f1-followup-inventory-drift')
+    for ancestor in (previous,base):
+        port.git('merge-base','--is-ancestor',ancestor,head)
+    for record in evidence['commits']:
+        actual=port.git('show','-s','--format=%an%x00%ae%x00%aI%x00%B',record['commit']).split(chr(0),3)
+        expected=[record[k] for k in ('author','email','author_date','message')]
+        need(len(actual)==4 and actual[:3]==expected[:3] and actual[3].rstrip()==expected[3].rstrip(),
+             'exact-f1-followup-author-drift')
+    for test in approval['tests']+[approval['g44_test']]:
+        raw=run(['/usr/bin/git','--no-replace-objects','show',head+':'+test['path']],
+                port.cwd,environment=port.git_env)
+        need(sha(raw)==test['sha256'],'exact-f1-followup-test-drift')
+
+
+def f1_observed_predecessor(db,sc,approval,generation):
+    row=db.execute("select * from effects where operation_key=?",
+                   (approval['previous_effect_key'],)).fetchone()
+    need(row is not None and row['kind']==UPDATE_KIND and row['phase']=='observed'
+         and row['issue_count']==1 and row['generation']==generation
+         and row['revision']+1==approval['revision']
+         and sha(row['target'].encode())==approval['previous_target_sha256']
+         and sha(row['observation'].encode())==approval['previous_observation_sha256'],
+         'exact-f1-predecessor-not-observed')
+    need(json.loads(row['target'])==dict(scope=sc,head=approval['previous_head'],revision=row['revision'])
+         and json.loads(row['observation'])==dict(action='updated',number=sc['number'],
+             head=approval['previous_head'],base=sc['new_base']),
+         'exact-f1-predecessor-readback-drift')
+
+
 def hexed(v,n):
     return type(v) is str and re.fullmatch(f"[0-9a-f]{{{n}}}",v) is not None
 
@@ -132,7 +187,9 @@ def observe(db,scope,remote):
 class AdoptionPort(GitHubPort):
     def __init__(self,config):
         sc=config["scope"]
-        self.s=dict(branch=sc["head_ref"],base=sc["new_base"],expected=sc["old_head"],head=config["candidate"])
+        f = f1_followup_input(config,sc) if 'approved_followup' in config else None
+        self.s=dict(branch=sc["head_ref"],base=sc["new_base"],
+                    expected=f['previous_head'] if f else sc["old_head"],head=config["candidate"])
         self.cwd=physical(config["worktree"]);common=physical(config["common"])
         self.git_env={k:v for k,v in os.environ.items() if not k.startswith("GIT_")}
         self.git_env.update(GIT_CONFIG_NOSYSTEM="1",GIT_CONFIG_GLOBAL="/dev/null",
@@ -206,9 +263,13 @@ def run_owned(installation,installation_pin,request,role_installation,role_pin,s
 
 def advance(store,auth,cmd,sc,cfg,port):
     validate(sc)
-    f1 = f1_update_input(cfg, sc) if cmd=='adoption.update' and exact_f1(sc) else None
+    follow = f1_followup_input(cfg,sc) if 'approved_followup' in cfg else None
+    need(follow is None or cmd=='adoption.update','exact-f1-followup-update-only')
+    f1 = f1_update_input(cfg, sc) if cmd=='adoption.update' and exact_f1(sc) and not follow else None
+    previous = follow['previous_head'] if follow else sc['old_head']
+    previous_base = sc['new_base'] if follow else sc['old_base']
     subject=wire(sc)
-    key=f'existing-pr-update:{sc["repo_id"]}:{sc["number"]}:{sc["old_head"]}'
+    key=f'existing-pr-update:{sc["repo_id"]}:{sc["number"]}:{previous}'
     target=wire(dict(scope=sc,head=cfg["candidate"],revision=cfg["revision"]))
     sid=cfg["successor_session"]; new=cfg["candidate"]
     def owner(db):
@@ -221,6 +282,7 @@ def advance(store,auth,cmd,sc,cfg,port):
         adopted=db.execute("select kind,subject from adopted_pr where repo_id=? and card=?",
                           (sc["repo_id"],sc["card"])).fetchone()
         need(adopted is not None and tuple(adopted)==(RECORD_KIND,subject),"existing-pr-adoption-required")
+        if follow:f1_observed_predecessor(db,sc,follow,o["generation"])
         task=store.current(db)
         body=json.loads(task["body"])
         need(task["phase"]=="active" and task["revision"]==cfg["revision"]
@@ -248,33 +310,36 @@ def advance(store,auth,cmd,sc,cfg,port):
     row=port.observe_remote(sc,cfg)
     base=row["base"]["sha"]
     head=row["head"]["sha"]
-    need(head in (sc["old_head"],new),"existing-pr-unexpected-remote-head")
-    if head==sc["old_head"]:
-        need(base==sc["old_base"],"existing-pr-before-update-base-drift")
+    need(head in (previous,new),"existing-pr-unexpected-remote-head")
+    if head==previous:
+        need(base==previous_base,"existing-pr-before-update-base-drift")
         if effect is not None:
             return dict(action="hold",reason="existing-pr-update-readback-only",effect_id=effect["effect_id"])
-        core=dict(repository=sc["repository"],number=sc["number"],ref="refs/heads/"+sc["head_ref"],
-          author_session=sc["author_session"],successor_session=sid,acceptance_sha256=sc["acceptance_sha256"],
-          old_B=sc["old_base"],old_H=sc["old_head"],new_B=sc["new_base"])
-        original=port.diff(sc["old_base"],sc["old_head"])
-        candidate=port.diff(sc["new_base"],new)
-        if f1 is not None:
-            verify_f1_update(sc,cfg,port,original,candidate,f1)
+        if follow:
+            verify_f1_followup(cfg,port,follow)
         else:
-            paths=[x["path"] for x in original["files"]]
-            need(paths==cfg["files"] and cfg["test_path"] in paths,"existing-pr-signed-file-scope-drift")
-            test=run(["/usr/bin/git","--no-replace-objects","show",new+":"+cfg["test_path"]],port.cwd,environment=port.git_env)
-            need(sha(test)==sc["acceptance_sha256"],"existing-pr-frozen-test-drift")
-            validate_preserved_update(core,dict(core,candidate=dict(head=new,parents=port.git("show","-s","--format=%P",new).split()),
-                 original_diff=original,candidate_diff=candidate,pending_effects=[],
-                 role_continuity=dict(phase="stable",previous_session_id=sid,current_session_id=sid,observed=True)))
+            core=dict(repository=sc["repository"],number=sc["number"],ref="refs/heads/"+sc["head_ref"],
+              author_session=sc["author_session"],successor_session=sid,acceptance_sha256=sc["acceptance_sha256"],
+              old_B=sc["old_base"],old_H=sc["old_head"],new_B=sc["new_base"])
+            original=port.diff(sc["old_base"],sc["old_head"])
+            candidate=port.diff(sc["new_base"],new)
+            if f1 is not None:
+                verify_f1_update(sc,cfg,port,original,candidate,f1)
+            else:
+                paths=[x["path"] for x in original["files"]]
+                need(paths==cfg["files"] and cfg["test_path"] in paths,"existing-pr-signed-file-scope-drift")
+                test=run(["/usr/bin/git","--no-replace-objects","show",new+":"+cfg["test_path"]],port.cwd,environment=port.git_env)
+                need(sha(test)==sc["acceptance_sha256"],"existing-pr-frozen-test-drift")
+                validate_preserved_update(core,dict(core,candidate=dict(head=new,parents=port.git("show","-s","--format=%P",new).split()),
+                     original_diff=original,candidate_diff=candidate,pending_effects=[],
+                     role_continuity=dict(phase="stable",previous_session_id=sid,current_session_id=sid,observed=True)))
         with store.tx() as db:
             o,again=binding(db);need(again is None,"existing-pr-update-already-reserved")
             eid=uuid.uuid4().hex
             db.execute("insert into effects(effect_id,revision,generation,operation_key,kind,target,phase,issue_count) values(?,?,?,?,?,?,?,1)",
                        (eid,cfg["revision"],o["generation"],key,UPDATE_KIND,target,"unknown"))
             store.event(db,"existing-pr-update-consumed-before-send",dict(effect_id=eid,head=new))
-        try:port.update_ref(sc["head_ref"],sc["old_head"],new)
+        try:port.update_ref(sc["head_ref"],previous,new)
         except (OSError,ValueError,subprocess.SubprocessError):
             return dict(action="hold",reason="existing-pr-update-send-unknown",effect_id=eid)
         row=port.observe_remote(sc,cfg)
