@@ -36,7 +36,7 @@
     "reconnect_observe.py": "bdc7ed4273e1f96fb1b7d0e2e5d464ac50235fa3ee8314c1c4296fa4e0da30dc",
     "role_initialization.py": "98fc43b134381b517359e74420c2d8f1133e89f9db8919bebc378699df7cb83e",
     "role_interrupted.py": "fe8ada5f403bfac56eda971e75de99e83d7e0cc75a4304c9406d9bf4ca5f212f",
-    "role_native.py": "0f28d015305a6a432ae07a06c9508c5f3656a3b81ad65f1a1cac96bbd1d26e8d",
+    "role_native.py": "62f34bec4da1d3d07ae4af9a0bdd7bc309dbb6af848d68e4774ecb2a318fffbf",
     "role_network.py": "421406a1cac1628e7022e588de19d5762cdec13bfd0817668c962644af837ad0",
     "role_replacement.py": "fae75a5c49379e76c1a1678b27a4e1da01d203d341ae92ae1f815dbb71a54b94",
     "role_resume.py": "9b22dc33e1b307d529ce323466b4c0be809b1630671d641a3e48706705965e66",

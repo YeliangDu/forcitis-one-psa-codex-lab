@@ -19,7 +19,17 @@ FLAGS=('shell_tool','view_image','apps','plugins','code_mode','multi_agent','req
 CATALOG_SHA='d3abd842194800885cfdf099354dd2b7ef0c8d489d35fd90b8272cb190194703'
 
 def policy_additions(root):
-    return ('\n(allow network-outbound (remote ip "localhost:'+str(PORT)+'"))\n'
+    required=('.codex-lab','role-runtime','slots','one-readonly-lab')
+    need(isinstance(root,Path) and root.is_absolute() and root.anchor=='/'
+         and len(root.parts)>len(required)+1 and root.parts[-4:]==required
+         and all(re.fullmatch(r'[A-Za-z0-9_. -]+',part) and part not in ('.','..','.git')
+                 for part in root.parts[1:]),'invalid-durable-slot-policy-root')
+    # SQLite's bundled Unix VFS lstat()s every component of the absolute
+    # filename before opening the database. Grant metadata on those directory
+    # objects only; their contents and sibling paths remain ungranted.
+    ancestors=''.join('(allow file-read-metadata (literal "'+str(path)+'"))\n'
+                      for path in reversed(root.parents))
+    return ('\n'+ancestors+'(allow network-outbound (remote ip "localhost:'+str(PORT)+'"))\n'
             '(deny file-write* (subpath "'+str(root/'work')+'"))\n'
             '(deny file-read-data (literal "'+str(root/'work/assignment.json')+'"))\n'
             '(deny file-read* file-write* (subpath "'+str(root/'credentials')+'") '
