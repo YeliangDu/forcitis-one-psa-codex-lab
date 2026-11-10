@@ -1,4 +1,4 @@
-name: Lab exact concurrent publish witness
+name: Lab exact scope publish regression
 on:
   push:
     branches: [codex/60-role-native-replacement]
@@ -9,18 +9,16 @@ jobs:
     if: github.event.repository.id == 1449415666
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - side: base
-            subject: c0d54a72a203e2df365b6690cc29585b46f39c99
-          - side: candidate
-            subject: 93ede71e20f7d30e284ccdd016983218467c26db
+    env:
+      SUBJECT: e1632898a20315ea58f2075de533381c69bc5932
+      BASE: c0d54a72a203e2df365b6690cc29585b46f39c99
+      MODE: red
+      SELECTOR: StandardHoursScopeSerializationIT
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: ${{ matrix.subject }}
+          ref: e1632898a20315ea58f2075de533381c69bc5932
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3
         with:
@@ -31,91 +29,45 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-      - name: Prepare exact hosted input
-        env:
-          SUBJECT: ${{ matrix.subject }}
+      - name: Bind exact input and compile on runner
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$SUBJECT"
-          d="$RUNNER_TEMP/publish-witness"
+          git merge-base --is-ancestor "$BASE" "$SUBJECT"
+          d="$RUNNER_TEMP/publish-scope"
           mkdir -p "$d"
-          printf 'subject=%s\nrun=%s\nattempt=%s\n' "$SUBJECT" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > "$d/identity.txt"
+          printf 'head=%s\nbase=%s\nmode=%s\nrun=%s\nattempt=%s\n' "$SUBJECT" "$BASE" "$MODE" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > "$d/identity.txt"
           docker info >/dev/null
           npm install -g pnpm@12.4.2
           (cd frontend && pnpm install --frozen-lockfile --ignore-scripts)
           bash scripts/codegen/generate_api.sh -C
-      - name: Add disposable test-only observability
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('backend/src/test/java/com/forcitis/one/TestPostgres.java')
-          s=p.read_text()
-          a='container().withCommand("postgres", "-c", "fsync=off", "-c", "max_connections=" + MAX_CONNECTIONS);'
-          b='''container().withCommand("postgres", "-c", "fsync=off", "-c", "max_connections=" + MAX_CONNECTIONS,
-                          "-c", "log_lock_waits=on", "-c", "log_error_verbosity=verbose",
-                          "-c", "log_line_prefix=%m pid=%p xid=%x app=%a ")
-                  .withLogConsumer(frame -> {
-                      try {
-                          java.nio.file.Files.writeString(java.nio.file.Path.of(System.getenv("PG_WITNESS_LOG")),
-                                  frame.getUtf8String(), java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
-                      } catch (java.io.IOException failure) {
-                          throw new java.io.UncheckedIOException(failure);
-                      }
-                  });'''
-          assert s.count(a)==1
-          p.write_text(s.replace(a,b))
-          q=Path('backend/src/test/java/com/forcitis/one/organization/attendance/StandardHoursPublishGapsIT.java')
-          s=q.read_text().replace('StandardHoursPublishGapsIT','StandardHoursPublishDeadlockWitnessIT')
-          s=s.replace('    @MockitoSpyBean\n', '    @org.springframework.beans.factory.annotation.Autowired\n    org.springframework.jdbc.core.simple.JdbcClient witnessJdbc;\n\n    @MockitoSpyBean\n',1)
-          s=s.replace('    @Test\n    @DisplayName("#1335 two publishes','    @org.junit.jupiter.api.RepeatedTest(12)\n    @DisplayName("#1335 two publishes',1)
-          s=s.replace('void losingTheRaceIsAConflict() throws Exception {','void losingTheRaceIsAConflict(org.junit.jupiter.api.RepetitionInfo repetition) throws Exception {',1)
-          a='''            Object tail = call.callRealMethod();
-                      bothHaveReadTheTail.await(10, TimeUnit.SECONDS);'''
-          # Match source indentation exactly.
-          a='            Object tail = call.callRealMethod();\n            bothHaveReadTheTail.await(10, TimeUnit.SECONDS);'
-          b='''            String label = "publish-witness-" + repetition.getCurrentRepetition() + "-" + Thread.currentThread().getName();
-                      witnessJdbc.sql("select set_config('application_name', :label, true)").param("label", label).query(String.class).single();
-                      String tx = witnessJdbc.sql("select pg_backend_pid()::text || ':' || pg_current_xact_id()::text").query(String.class).single();
-                      Object tail = call.callRealMethod();
-                      System.out.println("WITNESS_TAIL " + label + " pid:xid=" + tx + " entity=" + entity + " tail=" + tail);
-                      if (repetition.getCurrentRepetition() <= 6) {
-                          bothHaveReadTheTail.await(10, TimeUnit.SECONDS);
-                      }'''
-          assert s.count(a)==1
-          s=s.replace(a,b)
-          for day,which in ((5,'one'),(6,'two')):
-              prefix='pool.submit(() -> publish(body(entity, today.plusDays('+str(day)
-              assert s.count(prefix)==1
-              old=next(line.strip() for line in s.splitlines() if prefix in line)
-              replaced=old.replace('pool.submit(() -> publish','pool.submit(() -> { Thread.currentThread().setName("'+which+'"); return publish').replace('null)));','null)); });')
-              s=s.replace(old,replaced)
-          marker='            List<MockHttpServletResponse> answers = List.of(one.get(30, TimeUnit.SECONDS), other.get(30, TimeUnit.SECONDS));'
-          assert s.count(marker)==1
-          s=s.replace(marker,marker+'\n            System.out.println("WITNESS_HTTP repetition=" + repetition.getCurrentRepetition() + " one=" + answers.get(0).getStatus() + " two=" + answers.get(1).getStatus() + " entity=" + entity);')
-          q.with_name('StandardHoursPublishDeadlockWitnessIT.java').write_text(s)
-          PY
-          git diff --name-only
-      - name: Run bounded real request race and natural-scheduling control
+          (cd backend && ./mvnw -B -C test-compile -Djacoco.skip=true)
+      - name: Run scoped integration acceptance in fresh forks
         working-directory: backend
         run: |
-          set -uo pipefail
-          d="$RUNNER_TEMP/publish-witness"
-          export PG_WITNESS_LOG="$d/postgres.log"
-          ./mvnw -B -C test-compile failsafe:integration-test failsafe:verify \
-            '-Dit.test=StandardHoursPublishDeadlockWitnessIT#losingTheRaceIsAConflict' \
-            -Dspring.datasource.hikari.minimum-idle=1 -Dit.forks=1 \
-            -Djacoco.skip=true -Dtest.fork.timeout=420 > "$d/failsafe.log" 2>&1
-          rc=$?
-          printf '%s\n' "$rc" > "$d/exit-code"
-          grep -E 'WITNESS_|40P01|Tests run:|COMPILATION ERROR' "$d/failsafe.log" | tail -90 || true
-          if test -f "$d/postgres.log"; then
-            grep -A 10 -E 'deadlock detected|40P01' "$d/postgres.log" | tail -120 || true
-          fi
-          exit "$rc"
+          set -euo pipefail
+          count=1
+          if test "$MODE" = green; then count=3; fi
+          d="$RUNNER_TEMP/publish-scope"
+          failed=0
+          for i in $(seq 1 "$count"); do
+            mkdir -p "$d/$i"
+            rm -rf target/failsafe-reports
+            set +e
+            ./mvnw -B -C failsafe:integration-test failsafe:verify "-Dit.test=$SELECTOR" \
+              -Dspring.datasource.hikari.minimum-idle=1 -Dit.forks=1 \
+              -Djacoco.skip=true -Dtest.fork.timeout=420 > "$d/$i/failsafe.log" 2>&1
+            rc=$?
+            set -e
+            printf '%s\n' "$rc" > "$d/$i/exit-code"
+            if test -d target/failsafe-reports; then cp target/failsafe-reports/*.xml "$d/$i/" || true; fi
+            grep -E 'Tests run:|\[ERROR\]|40P01' "$d/$i/failsafe.log" | tail -40 || true
+            if test "$rc" -ne 0; then failed=1; fi
+          done
+          exit "$failed"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: publish-deadlock-${{ matrix.side }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/publish-witness/
+          name: lab-publish-scope-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/publish-scope/
           if-no-files-found: error
