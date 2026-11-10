@@ -1,0 +1,54 @@
+name: nightly-legacy-it
+
+# cron is UTC: 23:23 UTC = 01:23 on the build machine (CEST, UTC+2; 00:23 in winter): after the day's pull requests have run their CI, before macOS installs updates and restarts (about 02:00 to 05:00 local, AutomaticallyInstallMacOSUpdates is on). At 19:23 UTC (21:23 local) it shared the machine with the day's last pull requests and took 19.5 minutes against 13 (2026-10-21, one-coordinator).
+# The odd minute avoids the top-of-hour queue on GitHub's scheduler.
+on:
+  schedule:
+    - cron: "23 23 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-legacy-it
+  cancel-in-progress: false
+
+jobs:
+  legacy-it:
+    name: backend verify under profile legacy-it (full)
+    runs-on: [self-hosted, forcitis-one]
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: toolchain is Java 25
+        run: java -version 2>&1 | head -1 | grep -q '"25'
+      - name: test images are present
+        shell: bash
+        run: |
+          test -s backend/architecture/test-images.txt
+          grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' backend/architecture/test-images.txt | while read -r image || [ -n "$image" ]; do
+            docker image inspect "$image" >/dev/null 2>&1 || docker pull -q "$image"
+          done
+      - working-directory: frontend
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - name: export OpenAPI and generate TypeScript before either test plugin
+        run: bash scripts/codegen/generate_api.sh -Plegacy-it
+      - name: surefire and failsafe under profile legacy-it
+        # Same concurrency limit and watchdog as ci.yml: the nightly run shares the runners' Docker Desktop
+        env:
+          BACKEND_WATCHDOG_SECONDS: '1500'
+        run: scripts/ci/backend_verify.sh -Plegacy-it -Dtest.forks=2 -Dtest.fork.timeout=1800
+      - name: the SQL Server integration tests ran
+        shell: bash
+        run: |
+          compgen -G 'backend/target/failsafe-reports/TEST-*MssqlIT.xml'
+          python3 scripts/guards/acceptance_reports.py --tier full
+      - if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: test-reports
+          path: |
+            backend/target/surefire-reports
+            backend/target/failsafe-reports
+            backend/target/thread-dumps
