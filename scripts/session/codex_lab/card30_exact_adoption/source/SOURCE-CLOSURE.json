@@ -15,7 +15,7 @@
     "durable_seed_schema.sql": "54c2e18f522f4a5baaa30202ca75391a32349209d3dbec980e64c02fbe5c1d22",
     "exact_scope.py": "ee29d8eaaa234655046f8d7a654d1179b506336a5cd08843f11380b253826b9d",
     "existing_ci_proof.py": "5393667fcf2e10be2e8223e6380df321b6d72deb56423e290e51b8cfc1217ba4",
-    "existing_pr_adoption.py": "1ef73e9fabe1a970db4c58a7b929245f928101621b8f4c892b68abdb2e126a89",
+    "existing_pr_adoption.py": "aea67f0935b329639dea4b8b94c94e5103a657ee80135f7520b890476f32b45e",
     "first_launch.py": "4a65099a84cf52bcb6f7a4b870deb239123b487fbe1796708feadb43974a7cd9",
     "first_publication.py": "a947d58c90b0c8413286d7298a0b8ae746f5f2d7ac7b9232cecdb62e7f97b220",
     "goal_retire.py": "30e0aef43621e44b32bc6668a518ba1f01c1f224ed979390dc36962fed5a2a6e",
@@ -50,5 +50,5 @@
     "warm_handoff.py": "6a69cde20d3900f45c92c87a8bcbcc5a70ad0fea635dbfe3f8be29eaa2f778f0"
   },
   "kind": "lab-one-shot-native-role-replacement/1",
-  "parent_closure_sha256": "acd91404d6e64b7c4709f137e499fcbe42c5fe6fb8f56781a1e2b290faa432fe"
+  "parent_closure_sha256": "05c01a3ea6a867b151066d14374e7d4bba8079f2a01f9f9e7c9d8fc5abe887df"
 }

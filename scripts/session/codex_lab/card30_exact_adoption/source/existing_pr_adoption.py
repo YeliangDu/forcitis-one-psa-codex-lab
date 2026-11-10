@@ -25,7 +25,30 @@ def hexed(v,n):
     return type(v) is str and re.fullmatch(f"[0-9a-f]{{{n}}}",v) is not None
 
 
+# The approved legacy ref is a full contribution binding, not a ref namespace.
+EXACT_F1_SUBJECT = {'acceptance_session': '01a1b614-934c-7250-a715-5cf09e9c02c2', 'acceptance_sha256': '19c19d234ec0d0fdadba6598a7884c362965c6f09fe9e21a8dcee93857f68705', 'author_session': '01a1b612-91bc-77c0-a824-fe48ce5cb5e0', 'base_ref': 'main', 'card': 30, 'head_ref': 'lab/30-facts-f1', 'new_base': '0c491846d24d194090bda99a1d16a100331cbd2c', 'number': 32, 'old_base': '15511fad03b8d2ae38e3a337f24556bd9d9071c6', 'old_head': '5af1d35ad76e95007a714704b97f3da07b0e0d35', 'repo_id': 1449415666, 'repository': 'YeliangDu/forcitis-one-psa-codex-lab', 'scope_sha256': '46360a7fc10bf867b99477ca13811d01fc9f7ca73f9e99f337b5d48cbc5d2f26'}
+EXACT_F1_TEST_MANIFEST = 'ecf963f4f9eac7991b5c21951766f18a98b81168e1a3fba97268d32586ff8d41'
+
+
+def exact_f1(scope):
+    if type(scope) is not dict or 'approval' not in scope:
+        return False
+    subject = {k: v for k, v in scope.items() if k != 'approval'}
+    approval = scope['approval']
+    return (type(approval) is dict
+            and set(approval) == {'kind', 'subject', 'contribution_sha256', 'acceptance_manifest_sha256'}
+            and approval['kind'] == 'exact-existing-pr-adoption-v1'
+            and subject == EXACT_F1_SUBJECT
+            and type(approval['subject']) is dict and approval['subject'] == subject
+            and all(type(subject[k]) is type(v) and type(approval['subject'][k]) is type(v)
+                    for k, v in EXACT_F1_SUBJECT.items())
+            and approval['contribution_sha256'] == EXACT_F1_SUBJECT['scope_sha256']
+            and approval['acceptance_manifest_sha256'] == EXACT_F1_TEST_MANIFEST)
+
+
 def validate(scope):
+    if exact_f1(scope):
+        return
     need(type(scope) is dict and set(scope)==set(FIELDS)
          and type(scope["repo_id"]) is int and (scope["repo_id"],scope["repository"])==(RID,REPO)
          and all(type(scope[k]) is int and scope[k]>0 for k in ("card","number"))
@@ -136,6 +159,7 @@ def run_owned(installation,installation_pin,request,role_installation,role_pin,s
 
 
 def advance(store,auth,cmd,sc,cfg,port):
+    validate(sc)
     subject=wire(sc)
     key=f'existing-pr-update:{sc["repo_id"]}:{sc["number"]}:{sc["old_head"]}'
     target=wire(dict(scope=sc,head=cfg["candidate"],revision=cfg["revision"]))
