@@ -1,0 +1,844 @@
+# 由 panorama/scan_aggregates.py 生成，勿手改
+meta:
+  count: 23
+  code_only: 8
+  registry_only: 1
+  both: 14
+  sources:
+  - backend/src/main/java/com/forcitis/one
+  - backend/architecture/data-access-registry.yaml
+  registered_unbuilt:
+  - table: accounting_ledger.ledgers
+    owner: one-dev-org
+    due: '2026-12-31'
+    reason: 总账 G1（#1440）账簿无命令也无状态，只由法人注册事件和回填写入；Ledger 根类随 G2 读取账簿时建立（accounting-spine.md 10 节），截止日由 lead 定
+  - table: operations_facts.posting_facts
+    owner: one-dev-org
+    due: '2026-12-31'
+    reason: 'Lab #30 仅建签署 F1 空表；PostingFact 领域根类随实际过账代码建立，届时同提交移除此登记'
+  - table: organization_leave.attendance_records
+    owner: one-dev-identity
+    due: '2026-12-31'
+    reason: 请假首片（#1400）只建表；AttendanceRecord 根类随 L7（#1325 规格 10 节），截止日由 lead 定
+  - table: organization_leave.leave_accounts
+    owner: one-dev-identity
+    due: '2026-12-31'
+    reason: 请假 L1b（#1470）只建表；LeaveBalanceAccount 根类随 L3（#1325 规格 10 节），截止日由 lead 定
+  - table: organization_leave.leave_requests
+    owner: one-dev-identity
+    due: '2026-12-31'
+    reason: 请假首片（#1400）只建表；LeaveRequest 根类随 L4（#1325 规格 10 节），截止日由 lead 定
+  - table: organization_leave.monthly_confirmations
+    owner: one-dev-identity
+    due: '2026-12-31'
+    reason: 请假首片（#1400）只建表；MonthlyConfirmation 根类随 L6（#1325 规格 10 节），截止日由 lead 定
+  - table: organization_leave.overtime_requests
+    owner: one-dev-identity
+    due: '2026-12-31'
+    reason: 请假首片（#1400）只建表；OvertimeRequest 根类随 L5（#1325 规格 10 节），截止日由 lead 定
+  - table: platform_file.false_positive_judgments
+    owner: one-platform-file
+    due: '2026-11-15'
+    reason: 单元 3 基线建表，误报判定代码未写（ADR-0070）；根类随 5a 补，11-01 前 5a 未开工先报改期（one-platform-file 2026-10-22）
+  - table: platform_file.quarantine_read_requests
+    owner: one-platform-file
+    due: '2026-11-15'
+    reason: 单元 3 基线建表，隔离读取申请代码未写（ADR-0070）；根类随 5a 补，11-01 前 5a 未开工先报改期（one-platform-file 2026-10-22）
+aggregates:
+- id: accounting.period/FiscalPeriod
+  bc: accounting.period
+  root_class: backend/src/main/java/com/forcitis/one/accounting/period/domain/FiscalPeriod.java
+  source:
+  - code
+  - registry
+  tables:
+  - accounting_period.fiscal_periods
+  commands:
+  - OpenFiscalYear
+  events: []
+- id: cost.timesheet/Timesheet
+  bc: cost.timesheet
+  root_class: backend/src/main/java/com/forcitis/one/cost/timesheet/domain/Timesheet.java
+  source:
+  - code
+  tables:
+  - cost_timesheet.timesheets
+  commands:
+  - ApplyApprovalResult
+  - CancelTimesheet
+  - GetTimesheet
+  - SubmitTimesheet
+  - WithdrawTimesheet
+  events:
+  - cost.timesheet.TimesheetApprovalWithdrawn
+  - cost.timesheet.TimesheetApproved
+  - cost.timesheet.TimesheetRejected
+  - cost.timesheet.TimesheetReturned
+  - cost.timesheet.TimesheetSubmitted
+- id: organization.attendance/StandardHours
+  bc: organization.attendance
+  root_class: backend/src/main/java/com/forcitis/one/organization/attendance/domain/StandardHours.java
+  source:
+  - code
+  tables:
+  - organization_attendance.standard_hours_date_overrides
+  - organization_attendance.standard_hours_versions
+  commands:
+  - PublishStandardHoursVersion
+  - VoidStandardHoursVersion
+  events:
+  - organization.attendance.StandardHoursVersionPublished
+  events_in_module:
+  - organization.attendance.StandardHoursVersionPublished
+  - organization.attendance.WorkCalendarLockedDaysChanged
+  - organization.attendance.WorkCalendarYearMaintained
+- id: organization.attendance/WorkCalendarYear
+  bc: organization.attendance
+  root_class: backend/src/main/java/com/forcitis/one/organization/attendance/domain/WorkCalendarYear.java
+  source:
+  - code
+  - registry
+  tables:
+  - organization_attendance.work_calendar_days
+  - organization_attendance.work_calendar_years
+  commands:
+  - CalendarMaintenance
+  - WorkCalendarYearView
+  events:
+  - organization.attendance.WorkCalendarLockedDaysChanged
+  - organization.attendance.WorkCalendarYearMaintained
+  events_in_module:
+  - organization.attendance.StandardHoursVersionPublished
+  - organization.attendance.WorkCalendarLockedDaysChanged
+  - organization.attendance.WorkCalendarYearMaintained
+- id: organization.payroll/BonusDetermination
+  bc: organization.payroll
+  root_class: backend/src/main/java/com/forcitis/one/organization/payroll/domain/BonusDetermination.java
+  source:
+  - registry
+  tables:
+  - organization_payroll.bonus_inputs
+  commands:
+  - BonusInputsService
+  - RecordApprovedBonusInput
+  events: []
+  events_in_module:
+  - organization.payroll.PayrollRuleVersionBecameEffective
+- id: organization.payroll/PayrollRuleVersion
+  bc: organization.payroll
+  root_class: backend/src/main/java/com/forcitis/one/organization/payroll/domain/PayrollRuleVersion.java
+  source:
+  - code
+  - registry
+  tables:
+  - organization_payroll.payroll_rule_rows
+  - organization_payroll.payroll_rule_versions
+  commands:
+  - PublishPayrollRuleVersion
+  events:
+  - organization.payroll.PayrollRuleVersionBecameEffective
+- id: organization.recruitment/RecruitmentRequisition
+  bc: organization.recruitment
+  root_class: backend/src/main/java/com/forcitis/one/organization/recruitment/domain/RecruitmentRequisition.java
+  source:
+  - code
+  - registry
+  tables:
+  - organization_recruitment.recruitment_requisitions
+  commands:
+  - ApplyRequisitionApprovalResult
+  - CloseRequisition
+  - GetRequisition
+  - ListApprovableRequisitions
+  - ListRequestedRequisitions
+  - ListRequisitions
+  - RequisitionView
+  - SubmitRequisition
+  - WithdrawRequisition
+  events:
+  - organization.recruitment.RequisitionApproved
+  - organization.recruitment.RequisitionClosed
+  - organization.recruitment.RequisitionSubmitted
+- id: organization.workforce/EmployeeLegalEntityChange
+  bc: organization.workforce
+  root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/EmployeeLegalEntityChange.java
+  source:
+  - code
+  tables: []
+  commands:
+  - ApplyDueOrgCommand
+  - OrgCountersigns
+  events:
+  - organization.workforce.EmployeeLegalEntityChanged
+  events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
+  - organization.workforce.EmployeeCorrected
+  - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
+  - organization.workforce.EmployeeRegularized
+  - organization.workforce.EmployeeReinstated
+  - organization.workforce.EmployeeSeparated
+  - organization.workforce.EmployeeTransferred
+  - organization.workforce.EmployeeUnpaidLeaveStarted
+  - organization.workforce.EmploymentRelationshipCorrected
+  - organization.workforce.EmploymentRelationshipEnded
+  - organization.workforce.EmploymentRelationshipPhaseChanged
+  - organization.workforce.EmploymentRelationshipStarted
+  - organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
+  - organization.workforce.SeparationHeld
+  - organization.workforce.SeparationHoldReleased
+- id: organization.workforce/LegalEntity
+  bc: organization.workforce
+  root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/LegalEntity.java
+  source:
+  - code
+  - registry
+  tables:
+  - organization_workforce.legal_entities
+  - organization_workforce.legal_entity_versions
+  commands:
+  - ChangeFinanceHead
+  - CreateLegalEntity
+  - LegalEntityView
+  - UpdateLegalEntity
+  events:
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
+  - organization.workforce.EmployeeCorrected
+  - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
+  - organization.workforce.EmployeeRegularized
+  - organization.workforce.EmployeeReinstated
+  - organization.workforce.EmployeeSeparated
+  - organization.workforce.EmployeeTransferred
+  - organization.workforce.EmployeeUnpaidLeaveStarted
+  - organization.workforce.EmploymentRelationshipCorrected
+  - organization.workforce.EmploymentRelationshipEnded
+  - organization.workforce.EmploymentRelationshipPhaseChanged
+  - organization.workforce.EmploymentRelationshipStarted
+  - organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
+  - organization.workforce.SeparationHeld
+  - organization.workforce.SeparationHoldReleased
+- id: organization.workforce/LegalEntityAttribution
+  bc: organization.workforce
+  root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/LegalEntityAttribution.java
+  source:
+  - code
+  - registry
+  tables:
+  - organization_workforce.employee_legal_entities
+  - organization_workforce.legal_entity_attribution_corrections
+  - organization_workforce.legal_entity_attributions
+  - organization_workforce.org_unit_legal_entities
+  commands:
+  - AttributeLegalEntity
+  - CorrectLegalEntityAttribution
+  - EndLegalEntityAttribution
+  - LegalEntityAttributionView
+  events:
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
+  - organization.workforce.EmployeeCorrected
+  - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
+  - organization.workforce.EmployeeRegularized
+  - organization.workforce.EmployeeReinstated
+  - organization.workforce.EmployeeSeparated
+  - organization.workforce.EmployeeTransferred
+  - organization.workforce.EmployeeUnpaidLeaveStarted
+  - organization.workforce.EmploymentRelationshipCorrected
+  - organization.workforce.EmploymentRelationshipEnded
+  - organization.workforce.EmploymentRelationshipPhaseChanged
+  - organization.workforce.EmploymentRelationshipStarted
+  - organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
+  - organization.workforce.SeparationHeld
+  - organization.workforce.SeparationHoldReleased
+- id: organization.workforce/OrgStructureCommand
+  bc: organization.workforce
+  root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/OrgStructureCommand.java
+  source:
+  - code
+  tables: []
+  commands:
+  - ApplyDueOrgCommand
+  - CountersignReadAccess
+  - CountersignRequests
+  - GetAttributionCountersign
+  - OrgCommandWrites
+  - OrgCountersignBases
+  - OrgCountersignFreeze
+  - OrgCountersigns
+  - OrgMergeCompletion
+  - OrgMergeProgress
+  - OrgMergeSteps
+  - OrgPlans
+  - OrgStructureCommandDueJob
+  - OrgStructureCommandService
+  - OrgStructureRules
+  - PersonnelCommandService
+  - PreviewMergeAttribution
+  events: []
+  events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
+  - organization.workforce.EmployeeCorrected
+  - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
+  - organization.workforce.EmployeeRegularized
+  - organization.workforce.EmployeeReinstated
+  - organization.workforce.EmployeeSeparated
+  - organization.workforce.EmployeeTransferred
+  - organization.workforce.EmployeeUnpaidLeaveStarted
+  - organization.workforce.EmploymentRelationshipCorrected
+  - organization.workforce.EmploymentRelationshipEnded
+  - organization.workforce.EmploymentRelationshipPhaseChanged
+  - organization.workforce.EmploymentRelationshipStarted
+  - organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
+  - organization.workforce.SeparationHeld
+  - organization.workforce.SeparationHoldReleased
+- id: organization.workforce/PersonnelCommand
+  bc: organization.workforce
+  root_class: backend/src/main/java/com/forcitis/one/organization/workforce/domain/PersonnelCommand.java
+  source:
+  - code
+  tables: []
+  commands:
+  - AdministratorHoldCheck
+  - ApplyDueCommand
+  - AttributionCountersignService
+  - CountersignBases
+  - CountersignReadAccess
+  - CountersignRequests
+  - EffectPublisher
+  - GetAttributionCountersign
+  - HeldSeparationRelease
+  - OrgCountersignFreeze
+  - PersonnelCommandService
+  - PersonnelPlans
+  - ReleaseSeparationHoldByOperations
+  - SeparationHoldService
+  - UnpaidLeaveStartFloor
+  - UnpaidLeaveStartNotice
+  events: []
+  events_in_module:
+  - organization.workforce.EmployeeActingDutyEnded
+  - organization.workforce.EmployeeActingDutyStarted
+  - organization.workforce.EmployeeCorrected
+  - organization.workforce.EmployeeHired
+  - organization.workforce.EmployeeLegalEntityChanged
+  - organization.workforce.EmployeeRegularized
+  - organization.workforce.EmployeeReinstated
+  - organization.workforce.EmployeeSeparated
+  - organization.workforce.EmployeeTransferred
+  - organization.workforce.EmployeeUnpaidLeaveStarted
+  - organization.workforce.EmploymentRelationshipCorrected
+  - organization.workforce.EmploymentRelationshipEnded
+  - organization.workforce.EmploymentRelationshipPhaseChanged
+  - organization.workforce.EmploymentRelationshipStarted
+  - organization.workforce.EmploymentRelationshipUnpaidLeaveChanged
+  - organization.workforce.LegalEntityActivated
+  - organization.workforce.LegalEntityAttributed
+  - organization.workforce.LegalEntityAttributionCorrected
+  - organization.workforce.LegalEntityAttributionEnded
+  - organization.workforce.LegalEntityCodeCorrected
+  - organization.workforce.LegalEntityDeactivated
+  - organization.workforce.LegalEntityRegistered
+  - organization.workforce.LegalEntityRenamed
+  - organization.workforce.OrgUnitAttributesSet
+  - organization.workforce.OrgUnitCreated
+  - organization.workforce.OrgUnitDissolved
+  - organization.workforce.OrgUnitHeadAssigned
+  - organization.workforce.OrgUnitMerged
+  - organization.workforce.OrgUnitReceivablesManagerAssigned
+  - organization.workforce.OrgUnitReparented
+  - organization.workforce.PositionCreated
+  - organization.workforce.PositionDisabled
+  - organization.workforce.SeparationHeld
+  - organization.workforce.SeparationHoldReleased
+- id: platform.approval/ApprovalRequest
+  bc: platform.approval
+  root_class: backend/src/main/java/com/forcitis/one/platform/approval/domain/ApprovalRequest.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_approval.approval_requests
+  - platform_approval.approval_task_records
+  - platform_approval.approval_tasks
+  - platform_approval.start_rounds
+  commands:
+  - Approvals
+  - ClaimTask
+  - DecideTasks
+  - NodeShares
+  - ReassignTask
+  - RefuseApprovalStart
+  - ReleaseTask
+  - Retraction
+  - ReturnToInitiator
+  - StartApproval
+  - TaskDeadline
+  - TaskRegistrar
+  - TransferTask
+  events:
+  - platform.approval.ApprovalCompleted
+  - platform.approval.ApprovalRoundStarted
+  - platform.approval.ApprovalTaskBecameOverdue
+  - platform.approval.ApprovalTaskEscalated
+  - platform.approval.TaskAssigned
+  - platform.approval.TaskClaimed
+  - platform.approval.TaskClosed
+  - platform.approval.TaskHandled
+  - platform.approval.TaskReassigned
+  - platform.approval.TaskReleased
+  - platform.approval.TaskTransferred
+  events_in_module:
+  - platform.approval.ApprovalCompleted
+  - platform.approval.ApprovalRoundStarted
+  - platform.approval.ApprovalTaskBecameOverdue
+  - platform.approval.ApprovalTaskEscalated
+  - platform.approval.DocumentSubmittedForApproval
+  - platform.approval.TaskAssigned
+  - platform.approval.TaskClaimed
+  - platform.approval.TaskClosed
+  - platform.approval.TaskHandled
+  - platform.approval.TaskReassigned
+  - platform.approval.TaskReleased
+  - platform.approval.TaskTransferred
+- id: platform.file/StoredFile
+  bc: platform.file
+  root_class: backend/src/main/java/com/forcitis/one/platform/file/domain/StoredFile.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_file.file_bindings
+  - platform_file.file_holds
+  - platform_file.file_preservations
+  - platform_file.stored_file_names
+  - platform_file.stored_files
+  commands:
+  - ExpireUnboundFiles
+  events: []
+- id: platform.identity/AuthorizationRequest
+  bc: platform.identity
+  root_class: backend/src/main/java/com/forcitis/one/platform/identity/domain/AuthorizationRequest.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_identity.authorization_request_custom_org_units
+  - platform_identity.authorization_requests
+  commands:
+  - ApplyConfirmedAuthorization
+  - AuthorizationGate
+  - AuthorizationRequestView
+  - AuthorizationVoiding
+  - ConfirmAuthorizationRequest
+  - HandleEmployeeSeparated
+  - ListAuthorizationRequests
+  - RejectAuthorizationRequest
+  - ReplaceAccountRoles
+  events:
+  - platform.identity.AuthorizationConfirmed
+  - platform.identity.AuthorizationOpened
+  - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
+  events_in_module:
+  - platform.identity.AccountDisabled
+  - platform.identity.AccountEnabled
+  - platform.identity.AccountOpened
+  - platform.identity.AccountRolesReplaced
+  - platform.identity.AccountSeparated
+  - platform.identity.AuthorizationConfirmed
+  - platform.identity.AuthorizationOpened
+  - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
+  - platform.identity.EmergencyAdminCredentialsReset
+  - platform.identity.EmergencyAdminDisabled
+  - platform.identity.EmergencyAdminEnabled
+  - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentClosedBySeparation
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
+  - platform.identity.RoleCreated
+  - platform.identity.RoleDeleted
+  - platform.identity.RoleDisabled
+  - platform.identity.RoleEnabled
+  - platform.identity.RoleRevised
+- id: platform.identity/EmergencyAdmin
+  bc: platform.identity
+  root_class: backend/src/main/java/com/forcitis/one/platform/identity/domain/EmergencyAdmin.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_identity.emergency_admins
+  commands:
+  - DisableEmergencyAdmin
+  - DisableEmergencyAdminOnSeparation
+  - EmergencyBinding
+  - EnableEmergencyAdmin
+  - LoginAsEmergencyAdmin
+  - ReconcileEmergencyAdmins
+  - RegisterEmergencyAdmin
+  - ResetEmergencyAdminCredentials
+  - SessionPrincipals
+  events:
+  - platform.identity.EmergencyAdminCredentialsReset
+  - platform.identity.EmergencyAdminDisabled
+  - platform.identity.EmergencyAdminEnabled
+  - platform.identity.EmergencyAdminRegistered
+  events_in_module:
+  - platform.identity.AccountDisabled
+  - platform.identity.AccountEnabled
+  - platform.identity.AccountOpened
+  - platform.identity.AccountRolesReplaced
+  - platform.identity.AccountSeparated
+  - platform.identity.AuthorizationConfirmed
+  - platform.identity.AuthorizationOpened
+  - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
+  - platform.identity.EmergencyAdminCredentialsReset
+  - platform.identity.EmergencyAdminDisabled
+  - platform.identity.EmergencyAdminEnabled
+  - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentClosedBySeparation
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
+  - platform.identity.RoleCreated
+  - platform.identity.RoleDeleted
+  - platform.identity.RoleDisabled
+  - platform.identity.RoleEnabled
+  - platform.identity.RoleRevised
+- id: platform.identity/PermissionAdjustment
+  bc: platform.identity
+  root_class: backend/src/main/java/com/forcitis/one/platform/identity/domain/PermissionAdjustment.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_identity.permission_adjustments
+  commands:
+  - AdjustInactiveOrgUnitReviewsOnRoleRevised
+  - ClosePermissionAdjustmentsOnSeparation
+  - GetPermissionAdjustment
+  - ListPermissionAdjustments
+  - MarkPermissionAdjustmentAdjusted
+  - OpenAssignmentReviews
+  - OpenInactiveOrgUnitReviews
+  - PermissionAdjustmentAccess
+  - PermissionAdjustmentEscalationNotice
+  - PermissionAdjustmentTransitions
+  - PermissionAdjustmentViews
+  - UpholdPermissionAdjustment
+  events:
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentClosedBySeparation
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
+  events_in_module:
+  - platform.identity.AccountDisabled
+  - platform.identity.AccountEnabled
+  - platform.identity.AccountOpened
+  - platform.identity.AccountRolesReplaced
+  - platform.identity.AccountSeparated
+  - platform.identity.AuthorizationConfirmed
+  - platform.identity.AuthorizationOpened
+  - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
+  - platform.identity.EmergencyAdminCredentialsReset
+  - platform.identity.EmergencyAdminDisabled
+  - platform.identity.EmergencyAdminEnabled
+  - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentClosedBySeparation
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
+  - platform.identity.RoleCreated
+  - platform.identity.RoleDeleted
+  - platform.identity.RoleDisabled
+  - platform.identity.RoleEnabled
+  - platform.identity.RoleRevised
+- id: platform.identity/Role
+  bc: platform.identity
+  root_class: backend/src/main/java/com/forcitis/one/platform/identity/domain/Role.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_identity.role_version_custom_org_units
+  - platform_identity.role_versions
+  - platform_identity.roles
+  commands:
+  - AdjustInactiveOrgUnitReviewsOnRoleRevised
+  - AdministratorSeparationReview
+  - ChangeAccountStatus
+  - CreateRole
+  - DeleteRole
+  - ForceUserLogout
+  - GrantRoleByOperations
+  - ListAuthorizationRequests
+  - OrgUnitScopes
+  - PermissionAdjustmentEscalationNotice
+  - PermissionAdjustmentViews
+  - ReplaceAccountRoles
+  - RevokeRoleByOperations
+  - RoleScopeRefusal
+  - RoleView
+  - UpdateRole
+  events:
+  - platform.identity.RoleCreated
+  - platform.identity.RoleDeleted
+  - platform.identity.RoleDisabled
+  - platform.identity.RoleEnabled
+  - platform.identity.RoleRevised
+  events_in_module:
+  - platform.identity.AccountDisabled
+  - platform.identity.AccountEnabled
+  - platform.identity.AccountOpened
+  - platform.identity.AccountRolesReplaced
+  - platform.identity.AccountSeparated
+  - platform.identity.AuthorizationConfirmed
+  - platform.identity.AuthorizationOpened
+  - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
+  - platform.identity.EmergencyAdminCredentialsReset
+  - platform.identity.EmergencyAdminDisabled
+  - platform.identity.EmergencyAdminEnabled
+  - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentClosedBySeparation
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
+  - platform.identity.RoleCreated
+  - platform.identity.RoleDeleted
+  - platform.identity.RoleDisabled
+  - platform.identity.RoleEnabled
+  - platform.identity.RoleRevised
+- id: platform.identity/UserAccount
+  bc: platform.identity
+  root_class: backend/src/main/java/com/forcitis/one/platform/identity/domain/UserAccount.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_identity.account_role_grants
+  - platform_identity.handled_personnel_commands
+  - platform_identity.user_accounts
+  commands:
+  - AccountGrants
+  - AccountProvisioning
+  - ChangeAccountStatus
+  - ConfirmAuthorizationRequest
+  - EmergencyBinding
+  - GetUserAccount
+  - GrantRoleByOperations
+  - LoginAdmission
+  - LoginAsEmergencyAdmin
+  - ReconcileEmergencyAdmins
+  - ReplaceAccountRoles
+  - RevokeRoleByOperations
+  - SessionPrincipals
+  - SubjectEmployment
+  events:
+  - platform.identity.AccountDisabled
+  - platform.identity.AccountEnabled
+  - platform.identity.AccountOpened
+  - platform.identity.AccountRolesReplaced
+  - platform.identity.AccountSeparated
+  events_in_module:
+  - platform.identity.AccountDisabled
+  - platform.identity.AccountEnabled
+  - platform.identity.AccountOpened
+  - platform.identity.AccountRolesReplaced
+  - platform.identity.AccountSeparated
+  - platform.identity.AuthorizationConfirmed
+  - platform.identity.AuthorizationOpened
+  - platform.identity.AuthorizationRejected
+  - platform.identity.AuthorizationVoided
+  - platform.identity.EmergencyAdminCredentialsReset
+  - platform.identity.EmergencyAdminDisabled
+  - platform.identity.EmergencyAdminEnabled
+  - platform.identity.EmergencyAdminRegistered
+  - platform.identity.PermissionAdjustmentAdjusted
+  - platform.identity.PermissionAdjustmentClosedBySeparation
+  - platform.identity.PermissionAdjustmentEscalated
+  - platform.identity.PermissionAdjustmentExpired
+  - platform.identity.PermissionAdjustmentOpened
+  - platform.identity.PermissionAdjustmentUpheld
+  - platform.identity.RoleCreated
+  - platform.identity.RoleDeleted
+  - platform.identity.RoleDisabled
+  - platform.identity.RoleEnabled
+  - platform.identity.RoleRevised
+- id: platform.integration/OutboundDelivery
+  bc: platform.integration
+  root_class: backend/src/main/java/com/forcitis/one/platform/integration/domain/OutboundDelivery.java
+  source:
+  - code
+  tables:
+  - platform_integration.outbound_deliveries
+  commands:
+  - DeliverWecomCards
+  - MarkWecomCardHandled
+  - QueueWecomCard
+  events: []
+  events_in_module:
+  - platform.integration.SourceReferenceConfirmed
+  - platform.integration.SourceReferenceRefused
+  - platform.integration.SourceReferenceRegistered
+  - platform.integration.SourceReferenceRejected
+  - platform.integration.SourceReferenceSuperseded
+- id: platform.integration/SourceReference
+  bc: platform.integration
+  root_class: backend/src/main/java/com/forcitis/one/platform/integration/domain/SourceReference.java
+  source:
+  - code
+  - registry
+  tables:
+  - platform_integration.source_references
+  commands:
+  - AllocateOwnId
+  - ConfirmSourceReference
+  - ListSourceReferences
+  - RegisterSourceReference
+  - RejectSourceReference
+  - SourceReferenceView
+  events:
+  - platform.integration.SourceReferenceConfirmed
+  - platform.integration.SourceReferenceRegistered
+  - platform.integration.SourceReferenceRejected
+  - platform.integration.SourceReferenceSuperseded
+  events_in_module:
+  - platform.integration.SourceReferenceConfirmed
+  - platform.integration.SourceReferenceRefused
+  - platform.integration.SourceReferenceRegistered
+  - platform.integration.SourceReferenceRejected
+  - platform.integration.SourceReferenceSuperseded
+- id: platform.integration/SourceReferenceRefusal
+  bc: platform.integration
+  root_class: backend/src/main/java/com/forcitis/one/platform/integration/domain/SourceReferenceRefusal.java
+  source:
+  - code
+  tables: []
+  commands:
+  - RecordSourceReferenceRefusal
+  events:
+  - platform.integration.SourceReferenceRefused
+  events_in_module:
+  - platform.integration.SourceReferenceConfirmed
+  - platform.integration.SourceReferenceRefused
+  - platform.integration.SourceReferenceRegistered
+  - platform.integration.SourceReferenceRejected
+  - platform.integration.SourceReferenceSuperseded
+- id: platform.numbering/NumberingRule
+  bc: platform.numbering
+  root_class: backend/src/main/java/com/forcitis/one/platform/numbering/domain/NumberingRule.java
+  source:
+  - code
+  tables:
+  - platform_numbering.numbering_rule_versions
+  - platform_numbering.numbering_rules
+  commands:
+  - CheckCounterCapacity
+  - ConfigureNumberingRule
+  - ConfirmNumberingRule
+  - ConfirmNumberingRuleByFinance
+  - NumberIssuance
+  - NumberingRuleViews
+  events:
+  - platform.numbering.NumberingRuleConfirmationGiven
+  - platform.numbering.NumberingRuleConfirmed
+  - platform.numbering.NumberingRuleReconfigured
