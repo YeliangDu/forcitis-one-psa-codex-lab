@@ -285,7 +285,8 @@ def run_command(command, number, common_dir, ports, *, first_card_scope=None, pe
                  "unsupported-command-or-pr")
         if command == "once" and getattr(ports, "requires_first_card_scope", False):
             _require(isinstance(first_card_scope, dict) and first_card_scope["subject"]["number"] == number
-                     and (number == 69 or (number == 70 and first_card_scope.get("kind") == "personal-pr70-v1"))
+                     and (number == 69 or (number == 70 and first_card_scope.get("kind") == "personal-pr70-v1")
+                          or first_card_scope.get("kind") == "personal-delivery-v1")
                      and callable(permit_check) and type(recover_only) is bool
                      and callable(recover_guard), "first-card-launcher-required")
             if not recover_only:

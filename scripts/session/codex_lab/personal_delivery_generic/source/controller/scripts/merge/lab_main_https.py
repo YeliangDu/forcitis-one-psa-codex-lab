@@ -50,7 +50,8 @@ def authorize(permit, observed, *, recover_only, number=69):
                 and all(type(permit[k]) is type(v) and permit[k] == v for k, v in SCOPE.items())
                 and all(type(observed[k]) is type(permit[k]) and observed[k] == permit[k] for k in AUTHORITY)
                 and type(subject) is dict and set(subject) == set(KEYS)
-                and type(number) is int and number in (70,69) and type(subject["number"]) is int
+                and type(number) is int and (number in (70,69) or (number>0 and permit.get("kind")=="personal-delivery-v1"))
+                and type(subject["number"]) is int
                 and subject["number"] == number and subject["target"] == "main"
                 and all(digest(subject[k],40) for k in ("head","base"))
                 and type(permit["common_dir"]) is str and Path(permit["common_dir"]).is_absolute()
