@@ -1,0 +1,47 @@
+name: Lab F1 exact signed scope preview
+on:
+  push:
+    branches: [lab/30-integration-preview-ci]
+permissions:
+  contents: read
+env:
+  LAB_HEAD: 60db4a63b5970334f1ced9a8ad7f14d4691c1b44
+  LAB_BASE: 0c491846d24d194090bda99a1d16a100331cbd2c
+  IMAGE: postgres:18.6@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42
+jobs:
+  scope:
+    if: github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' && github.repository_id == '1449415666' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 60db4a63b5970334f1ced9a8ad7f14d4691c1b44
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Verify signed artifacts and exact V14 in scratch PostgreSQL
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$LAB_HEAD"
+          git merge-base --is-ancestor "$LAB_BASE" "$LAB_HEAD"
+          e="$RUNNER_TEMP/lab-f1-preview"
+          mkdir -p "$e" "$RUNNER_TEMP/f1-fixture"
+          printf 'H=%s\nB=%s\nrun=%s\nattempt=%s\n' "$LAB_HEAD" "$LAB_BASE" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > "$e/identity"
+          python3 -B scripts/guards/acceptance_guard.py "$LAB_BASE" "$LAB_HEAD" | tee "$e/acceptance-guard.log"
+          python3 -m venv "$RUNNER_TEMP/f1-env"
+          "$RUNNER_TEMP/f1-env/bin/pip" -q install PyYAML==6.0.3
+          "$RUNNER_TEMP/f1-env/bin/python" -B scripts/codegen/scan_aggregates.py --check | tee "$e/aggregates.log"
+          python3 -I scripts/guards/db_scripts_aligned.py | tee "$e/alignment.log"
+          bash docs/ops/runbooks/sql/render-prod-sql.sh --check | tee "$e/render.log"
+          for f in witness.sh bootstrap.sql objects.sql; do git show "$GITHUB_SHA:scripts/ci/lab_v14_witness/$f" > "$RUNNER_TEMP/f1-fixture/$f"; done
+          sed -n '/^-- V14_schema_only/,$p' docs/ops/runbooks/sql/dev-db-verify.sql > "$e/verifier.sql"
+          test "$(sha256sum "$e/verifier.sql" | cut -d' ' -f1)" = 54608db1b27c49ff2ef44c177493b1af2de114442be0265486931f59b70d25da
+          docker pull "$IMAGE"
+          bash "$RUNNER_TEMP/f1-fixture/witness.sh" "$e/verifier.sql" "$IMAGE" "$e/v14" | tee "$e/v14-summary.log"
+          grep -Fq 'PASS: actual V14 scratch-only role/ACL cases' "$e/v14-summary.log"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab-f1-preview-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab-f1-preview/
+          if-no-files-found: error
