@@ -1,0 +1,743 @@
+{
+  "approved_followup": {
+    "acceptance_session": "01a1b614-934c-7250-a715-5cf09e9c02c2",
+    "author_session": "01a1b612-91bc-77c0-a824-fe48ce5cb5e0",
+    "base": "0c491846d24d194090bda99a1d16a100331cbd2c",
+    "candidate_diff_sha256": "eb02abeff244a512cb41ac76b308460881cc67dddbf0484ce3b53078f7813eb0",
+    "card": 30,
+    "commits_sha256": "92c66b694b0771c593c03bbbc649d08d2ab546c264e26b71cf0a36abdd5c5b43",
+    "g44_test": {
+      "path": "backend/src/test/java/com/forcitis/one/SchemaOnlyMigrationRegistrationTest.java",
+      "sha256": "03ff042e9cc426dc080fdba8344655c604c1d2a9e3b6428bd2f992f3b84315ce"
+    },
+    "head": "27942544d70f53014052f44342c06487d52c48fb",
+    "head_ref": "lab/30-facts-f1",
+    "kind": "exact-existing-pr-followup-v1",
+    "number": 32,
+    "original_acceptance_sha256": "19c19d234ec0d0fdadba6598a7884c362965c6f09fe9e21a8dcee93857f68705",
+    "original_subject_sha256": "1bfd5720fde4fc7b46fdf44846cd1a3ef405e19c837670eef0e0cf2cc724b135",
+    "patch_diff_sha256": "af24042cb876e9ef6683587e777cc7c1c1af9ef595eaa332d986722a6789fdda",
+    "previous_effect_key": "existing-pr-update:1449415666:32:5af1d35ad76e95007a714704b97f3da07b0e0d35",
+    "previous_head": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44",
+    "previous_observation_sha256": "5307dfd2a5ec0cad27a09a4f2563949f951ea091fd0bc8c2f0dbaa7dd2759b3d",
+    "previous_target_sha256": "723c4eeb46d8e8c6fc44ef21f049e9f533f1929530817c7c653ab1afe23f9633",
+    "repo_id": 1449415666,
+    "repository": "YeliangDu/forcitis-one-psa-codex-lab",
+    "revision": 2,
+    "scope_sha256": "46360a7fc10bf867b99477ca13811d01fc9f7ca73f9e99f337b5d48cbc5d2f26",
+    "tests": [
+      {
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsAmountIT.java",
+        "sha256": "744a0a977ab21901893d6363eae8ad7bbaaab3f32377e78d7059974e56a9d419"
+      },
+      {
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsDmlRoleIT.java",
+        "sha256": "eda07d7913c4d9a3b1a348746d8b395dc93404797568dbfba47f0f5374620328"
+      },
+      {
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsIntegrityIT.java",
+        "sha256": "dc3833f716fe0876120b2683d96e901c1b3dbab65a8b3154a3d36a429cc6cce5"
+      },
+      {
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSchemaIT.java",
+        "sha256": "824a1529b2c1420d561ff254fd32f1965991001480559a697c4470a4a08d6820"
+      },
+      {
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedBoundariesIT.java",
+        "sha256": "df81b7282badd3c95033ee79ffa595589cef2a114830dbb4c3fc00c6bcf095dd"
+      },
+      {
+        "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedMetadataTest.java",
+        "sha256": "128ed50e126f08a7ffd0c0b27c4602b10eacfa6cb624167704268ccd00ec898e"
+      }
+    ],
+    "tree": "e6f680d2167d4d4739da33948391fa21ff99de5b"
+  },
+  "base": "0c491846d24d194090bda99a1d16a100331cbd2c",
+  "evidence": {
+    "ancestors": [
+      "60db4a63b5970334f1ced9a8ad7f14d4691c1b44",
+      "0c491846d24d194090bda99a1d16a100331cbd2c"
+    ],
+    "commits": [
+      {
+        "author": "YeliangDu",
+        "author_date": "2026-11-10T12:24:55+01:00",
+        "commit": "bab3346643f256d75eafa695340c11e31b5bea87",
+        "email": "uranusdu@gmail.com",
+        "files": [
+          {
+            "after_blob": "17e2cf870c6c88aee254ea21b31eadcfb12e869c",
+            "after_mode": "100644",
+            "before_blob": "5e2d4d7a833c94aad01303bbda88fd2b1ce1b268",
+            "before_mode": "100644",
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsAmountIT.java"
+          },
+          {
+            "after_blob": "1177ec65431b6534e7e9306e3dbd9e825193b401",
+            "after_mode": "100644",
+            "before_blob": "43f07b21e88d4cdda7832c58db20a9db5a8fbeb9",
+            "before_mode": "100644",
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsDmlRoleIT.java"
+          },
+          {
+            "after_blob": "25e65c542ad9935ad62e4a80eff3b8a15582e89d",
+            "after_mode": "100644",
+            "before_blob": "ae6cdeab1a9da08c8dd7ea06ce4e19fe3794383a",
+            "before_mode": "100644",
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsIntegrityIT.java"
+          },
+          {
+            "after_blob": "7fc51975038340f65da9d52c0a428fe7d19707c1",
+            "after_mode": "100644",
+            "before_blob": "0f83098f5f70466d197cd85326074c4a9eef6bec",
+            "before_mode": "100644",
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedBoundariesIT.java"
+          }
+        ],
+        "message": "test(facts): use deterministic UUID fixture time\n\nRefs #30\n\nAcceptance-Test-Author: test-engineer\nCodex: 01a1b614-934c-7250-a715-5cf09e9c02c2\n\n",
+        "parents": [
+          "60db4a63b5970334f1ced9a8ad7f14d4691c1b44"
+        ]
+      },
+      {
+        "author": "YeliangDu",
+        "author_date": "2026-11-10T12:30:16+01:00",
+        "commit": "49ea76962b89584e17a6555e6b6c5195640ca82b",
+        "email": "uranusdu@gmail.com",
+        "files": [
+          {
+            "after_blob": "f2ffb3674ca1ab3ce9ac153f4a02309dba764c88",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/SchemaOnlyMigrationRegistrationTest.java"
+          }
+        ],
+        "message": "test(facts): freeze independent signed migration directory acceptance\n\nRefs #30\n\nCodex: 01a1b614-934c-7250-a715-5cf09e9c02c2\n(cherry picked from commit ca87137e8c99cfad80bc8942b4514522b08b36ef)\n\n",
+        "parents": [
+          "bab3346643f256d75eafa695340c11e31b5bea87"
+        ]
+      },
+      {
+        "author": "YeliangDu",
+        "author_date": "2026-11-10T12:34:26+01:00",
+        "commit": "27942544d70f53014052f44342c06487d52c48fb",
+        "email": "uranusdu@gmail.com",
+        "files": [
+          {
+            "after_blob": "4bb1c52ddab575b2e62ed91d57b19a66b4888688",
+            "after_mode": "100644",
+            "before_blob": "d838cd48fe04b224fa529a4fe87ed7f83987eda3",
+            "before_mode": "100644",
+            "path": "backend/src/test/java/com/forcitis/one/NamingSurfaceTest.java"
+          },
+          {
+            "after_blob": "ad319115c1437b251ccf9659dd3faefdb60c395c",
+            "after_mode": "100644",
+            "before_blob": "3d4e14d78cb7ef1bbf3b9f9528f7ed973cf16415",
+            "before_mode": "100644",
+            "path": "docs/architecture/ssot/domain/contexts.yaml"
+          }
+        ],
+        "message": "fix(facts): recognize signed F1 migration stage in G44\n\nRefs #30\n\nCodex: 01a1b612-91bc-77c0-a824-fe48ce5cb5e0\n\n",
+        "parents": [
+          "49ea76962b89584e17a6555e6b6c5195640ca82b"
+        ]
+      }
+    ],
+    "diffs": [
+      {
+        "base": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44",
+        "files": [
+          {
+            "after_blob": "4bb1c52ddab575b2e62ed91d57b19a66b4888688",
+            "after_mode": "100644",
+            "before_blob": "d838cd48fe04b224fa529a4fe87ed7f83987eda3",
+            "before_mode": "100644",
+            "path": "backend/src/test/java/com/forcitis/one/NamingSurfaceTest.java"
+          },
+          {
+            "after_blob": "f2ffb3674ca1ab3ce9ac153f4a02309dba764c88",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/SchemaOnlyMigrationRegistrationTest.java"
+          },
+          {
+            "after_blob": "17e2cf870c6c88aee254ea21b31eadcfb12e869c",
+            "after_mode": "100644",
+            "before_blob": "5e2d4d7a833c94aad01303bbda88fd2b1ce1b268",
+            "before_mode": "100644",
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsAmountIT.java"
+          },
+          {
+            "after_blob": "1177ec65431b6534e7e9306e3dbd9e825193b401",
+            "after_mode": "100644",
+            "before_blob": "43f07b21e88d4cdda7832c58db20a9db5a8fbeb9",
+            "before_mode": "100644",
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsDmlRoleIT.java"
+          },
+          {
+            "after_blob": "25e65c542ad9935ad62e4a80eff3b8a15582e89d",
+            "after_mode": "100644",
+            "before_blob": "ae6cdeab1a9da08c8dd7ea06ce4e19fe3794383a",
+            "before_mode": "100644",
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsIntegrityIT.java"
+          },
+          {
+            "after_blob": "7fc51975038340f65da9d52c0a428fe7d19707c1",
+            "after_mode": "100644",
+            "before_blob": "0f83098f5f70466d197cd85326074c4a9eef6bec",
+            "before_mode": "100644",
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedBoundariesIT.java"
+          },
+          {
+            "after_blob": "ad319115c1437b251ccf9659dd3faefdb60c395c",
+            "after_mode": "100644",
+            "before_blob": "3d4e14d78cb7ef1bbf3b9f9528f7ed973cf16415",
+            "before_mode": "100644",
+            "path": "docs/architecture/ssot/domain/contexts.yaml"
+          }
+        ],
+        "head": "27942544d70f53014052f44342c06487d52c48fb"
+      },
+      {
+        "base": "0c491846d24d194090bda99a1d16a100331cbd2c",
+        "files": [
+          {
+            "after_blob": "647c342377a0bf9ef6c15edc0e37a5175f2dfe18",
+            "after_mode": "100644",
+            "before_blob": "7f1794e2c04cf9607275073a4478833f39f04b7f",
+            "before_mode": "100644",
+            "path": "backend/architecture/data-access-registry.yaml"
+          },
+          {
+            "after_blob": "bf9adfdbdfcf5d0ad98f2cd739f18f74294cb8e6",
+            "after_mode": "100644",
+            "before_blob": "98ce0894761f77ca861e07e68fe8f2804c623342",
+            "before_mode": "100644",
+            "path": "backend/architecture/data-classification.txt"
+          },
+          {
+            "after_blob": "475ca301587d2fa471ce9bf2efb80037a4e5597d",
+            "after_mode": "100644",
+            "before_blob": "61b1764b3e93d21927d1454fb6811dcae72b1ad1",
+            "before_mode": "100644",
+            "path": "backend/glossary/proposed/accounting-spine.yaml"
+          },
+          {
+            "after_blob": "720aa90f83b79927fb8f40f3f90376b9b15ab6f7",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/main/resources/db/migration/operations_facts/V20261108060000__operations_facts_baseline.sql"
+          },
+          {
+            "after_blob": "81ebc932480d86f9d2fcc6d6757b9288cd7dadf5",
+            "after_mode": "100644",
+            "before_blob": "778ca4c4eb89b52225e1b1347e6196bdf4d1070e",
+            "before_mode": "100644",
+            "path": "backend/src/test/java/com/forcitis/one/DataArchitectureTest.java"
+          },
+          {
+            "after_blob": "4bb1c52ddab575b2e62ed91d57b19a66b4888688",
+            "after_mode": "100644",
+            "before_blob": "d838cd48fe04b224fa529a4fe87ed7f83987eda3",
+            "before_mode": "100644",
+            "path": "backend/src/test/java/com/forcitis/one/NamingSurfaceTest.java"
+          },
+          {
+            "after_blob": "f2ffb3674ca1ab3ce9ac153f4a02309dba764c88",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/SchemaOnlyMigrationRegistrationTest.java"
+          },
+          {
+            "after_blob": "17e2cf870c6c88aee254ea21b31eadcfb12e869c",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsAmountIT.java"
+          },
+          {
+            "after_blob": "1177ec65431b6534e7e9306e3dbd9e825193b401",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsDmlRoleIT.java"
+          },
+          {
+            "after_blob": "25e65c542ad9935ad62e4a80eff3b8a15582e89d",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsIntegrityIT.java"
+          },
+          {
+            "after_blob": "81182e26a7ce9cd484d9d9a15a610ff933ae07d2",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSchemaIT.java"
+          },
+          {
+            "after_blob": "7fc51975038340f65da9d52c0a428fe7d19707c1",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedBoundariesIT.java"
+          },
+          {
+            "after_blob": "66824ee6ab1b6ea63869f847f79dd91a53d59fcd",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedMetadataTest.java"
+          },
+          {
+            "after_blob": "9363bdb26f54ae5f8ef0bbe19cd0b84dd055ebcc",
+            "after_mode": "100644",
+            "before_blob": "a783d5f078eebd6a94f3a30d95f3dd31dc21c86c",
+            "before_mode": "100644",
+            "path": "docs/architecture/panorama/unbuilt-roots.yaml"
+          },
+          {
+            "after_blob": "6c11a5824252df682d344437c489df9bb4a8c613",
+            "after_mode": "100644",
+            "before_blob": "c7d5d86d17a297ca8ccaf05410c177f0847eb3e2",
+            "before_mode": "100644",
+            "path": "docs/architecture/ssot/aggregates/built.yaml"
+          },
+          {
+            "after_blob": "ad319115c1437b251ccf9659dd3faefdb60c395c",
+            "after_mode": "100644",
+            "before_blob": "3d4e14d78cb7ef1bbf3b9f9528f7ed973cf16415",
+            "before_mode": "100644",
+            "path": "docs/architecture/ssot/domain/contexts.yaml"
+          },
+          {
+            "after_blob": "0ac14828b0a9afae9f5ddaa2bacc7ad914bc39d5",
+            "after_mode": "100644",
+            "before_blob": "bb280a6714fed2a56e362510aa5a9bbd2982cff0",
+            "before_mode": "100644",
+            "path": "docs/ops/one-db-roles-schemas.sql"
+          },
+          {
+            "after_blob": "58c65f0af2d3c9eea54042ef234dbb9cc9e98d8e",
+            "after_mode": "100644",
+            "before_blob": "f6cb1c0ed14b8ab8eb4be73c16015825a6cf415a",
+            "before_mode": "100644",
+            "path": "docs/ops/runbooks/sql/dev-db-verify.sql"
+          },
+          {
+            "after_blob": "c02ff1b945a4cc955912ac70d755cfc2dd3dbdc6",
+            "after_mode": "100644",
+            "before_blob": "6ddc331d160cbf0d5a4e2a512628186f3aff0d5b",
+            "before_mode": "100644",
+            "path": "docs/ops/runbooks/sql/dev-db.sql"
+          },
+          {
+            "after_blob": "b1445fdd227c77a0687e41eca4606fc505e222a7",
+            "after_mode": "100644",
+            "before_blob": "7bcc39ba6c7899c66d090c9db26c3f0ceadc9490",
+            "before_mode": "100644",
+            "path": "docs/ops/runbooks/sql/prod-db-verify.sql"
+          },
+          {
+            "after_blob": "b867277e1252c3081de9863d441a662d033c0ab4",
+            "after_mode": "100644",
+            "before_blob": "ab22ebeaac6af0c6379e748de6ca31774a953a8a",
+            "before_mode": "100644",
+            "path": "docs/ops/runbooks/sql/prod-db.sql"
+          }
+        ],
+        "head": "27942544d70f53014052f44342c06487d52c48fb"
+      },
+      {
+        "base": "0c491846d24d194090bda99a1d16a100331cbd2c",
+        "files": [
+          {
+            "after_blob": "647c342377a0bf9ef6c15edc0e37a5175f2dfe18",
+            "after_mode": "100644",
+            "before_blob": "7f1794e2c04cf9607275073a4478833f39f04b7f",
+            "before_mode": "100644",
+            "path": "backend/architecture/data-access-registry.yaml"
+          },
+          {
+            "after_blob": "bf9adfdbdfcf5d0ad98f2cd739f18f74294cb8e6",
+            "after_mode": "100644",
+            "before_blob": "98ce0894761f77ca861e07e68fe8f2804c623342",
+            "before_mode": "100644",
+            "path": "backend/architecture/data-classification.txt"
+          },
+          {
+            "after_blob": "475ca301587d2fa471ce9bf2efb80037a4e5597d",
+            "after_mode": "100644",
+            "before_blob": "61b1764b3e93d21927d1454fb6811dcae72b1ad1",
+            "before_mode": "100644",
+            "path": "backend/glossary/proposed/accounting-spine.yaml"
+          },
+          {
+            "after_blob": "720aa90f83b79927fb8f40f3f90376b9b15ab6f7",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/main/resources/db/migration/operations_facts/V20261108060000__operations_facts_baseline.sql"
+          },
+          {
+            "after_blob": "81ebc932480d86f9d2fcc6d6757b9288cd7dadf5",
+            "after_mode": "100644",
+            "before_blob": "778ca4c4eb89b52225e1b1347e6196bdf4d1070e",
+            "before_mode": "100644",
+            "path": "backend/src/test/java/com/forcitis/one/DataArchitectureTest.java"
+          },
+          {
+            "after_blob": "5e2d4d7a833c94aad01303bbda88fd2b1ce1b268",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsAmountIT.java"
+          },
+          {
+            "after_blob": "43f07b21e88d4cdda7832c58db20a9db5a8fbeb9",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsDmlRoleIT.java"
+          },
+          {
+            "after_blob": "ae6cdeab1a9da08c8dd7ea06ce4e19fe3794383a",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsIntegrityIT.java"
+          },
+          {
+            "after_blob": "81182e26a7ce9cd484d9d9a15a610ff933ae07d2",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSchemaIT.java"
+          },
+          {
+            "after_blob": "0f83098f5f70466d197cd85326074c4a9eef6bec",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedBoundariesIT.java"
+          },
+          {
+            "after_blob": "66824ee6ab1b6ea63869f847f79dd91a53d59fcd",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedMetadataTest.java"
+          },
+          {
+            "after_blob": "9363bdb26f54ae5f8ef0bbe19cd0b84dd055ebcc",
+            "after_mode": "100644",
+            "before_blob": "a783d5f078eebd6a94f3a30d95f3dd31dc21c86c",
+            "before_mode": "100644",
+            "path": "docs/architecture/panorama/unbuilt-roots.yaml"
+          },
+          {
+            "after_blob": "6c11a5824252df682d344437c489df9bb4a8c613",
+            "after_mode": "100644",
+            "before_blob": "c7d5d86d17a297ca8ccaf05410c177f0847eb3e2",
+            "before_mode": "100644",
+            "path": "docs/architecture/ssot/aggregates/built.yaml"
+          },
+          {
+            "after_blob": "0ac14828b0a9afae9f5ddaa2bacc7ad914bc39d5",
+            "after_mode": "100644",
+            "before_blob": "bb280a6714fed2a56e362510aa5a9bbd2982cff0",
+            "before_mode": "100644",
+            "path": "docs/ops/one-db-roles-schemas.sql"
+          },
+          {
+            "after_blob": "58c65f0af2d3c9eea54042ef234dbb9cc9e98d8e",
+            "after_mode": "100644",
+            "before_blob": "f6cb1c0ed14b8ab8eb4be73c16015825a6cf415a",
+            "before_mode": "100644",
+            "path": "docs/ops/runbooks/sql/dev-db-verify.sql"
+          },
+          {
+            "after_blob": "c02ff1b945a4cc955912ac70d755cfc2dd3dbdc6",
+            "after_mode": "100644",
+            "before_blob": "6ddc331d160cbf0d5a4e2a512628186f3aff0d5b",
+            "before_mode": "100644",
+            "path": "docs/ops/runbooks/sql/dev-db.sql"
+          },
+          {
+            "after_blob": "b1445fdd227c77a0687e41eca4606fc505e222a7",
+            "after_mode": "100644",
+            "before_blob": "7bcc39ba6c7899c66d090c9db26c3f0ceadc9490",
+            "before_mode": "100644",
+            "path": "docs/ops/runbooks/sql/prod-db-verify.sql"
+          },
+          {
+            "after_blob": "b867277e1252c3081de9863d441a662d033c0ab4",
+            "after_mode": "100644",
+            "before_blob": "ab22ebeaac6af0c6379e748de6ca31774a953a8a",
+            "before_mode": "100644",
+            "path": "docs/ops/runbooks/sql/prod-db.sql"
+          }
+        ],
+        "head": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44"
+      },
+      {
+        "base": "15511fad03b8d2ae38e3a337f24556bd9d9071c6",
+        "files": [
+          {
+            "after_blob": "647c342377a0bf9ef6c15edc0e37a5175f2dfe18",
+            "after_mode": "100644",
+            "before_blob": "7f1794e2c04cf9607275073a4478833f39f04b7f",
+            "before_mode": "100644",
+            "path": "backend/architecture/data-access-registry.yaml"
+          },
+          {
+            "after_blob": "bf9adfdbdfcf5d0ad98f2cd739f18f74294cb8e6",
+            "after_mode": "100644",
+            "before_blob": "98ce0894761f77ca861e07e68fe8f2804c623342",
+            "before_mode": "100644",
+            "path": "backend/architecture/data-classification.txt"
+          },
+          {
+            "after_blob": "475ca301587d2fa471ce9bf2efb80037a4e5597d",
+            "after_mode": "100644",
+            "before_blob": "61b1764b3e93d21927d1454fb6811dcae72b1ad1",
+            "before_mode": "100644",
+            "path": "backend/glossary/proposed/accounting-spine.yaml"
+          },
+          {
+            "after_blob": "720aa90f83b79927fb8f40f3f90376b9b15ab6f7",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/main/resources/db/migration/operations_facts/V20261108060000__operations_facts_baseline.sql"
+          },
+          {
+            "after_blob": "81ebc932480d86f9d2fcc6d6757b9288cd7dadf5",
+            "after_mode": "100644",
+            "before_blob": "778ca4c4eb89b52225e1b1347e6196bdf4d1070e",
+            "before_mode": "100644",
+            "path": "backend/src/test/java/com/forcitis/one/DataArchitectureTest.java"
+          },
+          {
+            "after_blob": "03ddad42549d48fef3876f9ec39c90472fe91851",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsAmountIT.java"
+          },
+          {
+            "after_blob": "0d32a141d916998df95817c761b7f0b290120e43",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsDmlRoleIT.java"
+          },
+          {
+            "after_blob": "24795a92210a13310f3cece691c5a50a6c00244c",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsIntegrityIT.java"
+          },
+          {
+            "after_blob": "f4db2df43f30193ba68cb025e1c7e1f6dab096b6",
+            "after_mode": "100644",
+            "before_blob": null,
+            "before_mode": null,
+            "path": "backend/src/test/java/com/forcitis/one/operations/facts/PostingFactsSchemaIT.java"
+          }
+        ],
+        "head": "5af1d35ad76e95007a714704b97f3da07b0e0d35"
+      }
+    ],
+    "parents": [
+      "49ea76962b89584e17a6555e6b6c5195640ca82b"
+    ],
+    "tree": "e6f680d2167d4d4739da33948391fa21ff99de5b"
+  },
+  "exports": [
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/backend/architecture/data-access-registry.yaml",
+      "path": "backend/architecture/data-access-registry.yaml",
+      "sha256": "0290d1916626208579dc7b54f6e6fac70d9680e3d0846d413a81e08444cc26f9"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/backend/architecture/data-classification.txt",
+      "path": "backend/architecture/data-classification.txt",
+      "sha256": "86aedd78fd61b62c89b21b35c699d1bd66126b68553704a8b7338d4870460b4c"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/backend/glossary/proposed/accounting-spine.yaml",
+      "path": "backend/glossary/proposed/accounting-spine.yaml",
+      "sha256": "d68b320d3ded56cf014530d77309b6e6371abaebbba451997c7a41a738033cb2"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/backend/src/main/resources/db/migration/operations_facts/V20261108060000__operations_facts_baseline.sql",
+      "path": "backend/src/main/resources/db/migration/operations_facts/V20261108060000__operations_facts_baseline.sql",
+      "sha256": "c5380873647e5c0c47b0ec75e18fd4b64ef5f19a48a395197ea641809e674a70"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/backend/src/test/java/com/forcitis/one/DataArchitectureTest.java",
+      "path": "backend/src/test/java/com/forcitis/one/DataArchitectureTest.java",
+      "sha256": "21e4ee5d0df34587e2a0400426410fd1fdee83b75e2912616d4bd4f20c3d7d1c"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/backend/src/test/java/com/forcitis/one/NamingSurfaceTest.java",
+      "path": "backend/src/test/java/com/forcitis/one/NamingSurfaceTest.java",
+      "sha256": "8eb51cffb114748f7690fe86e16c0f9653c92ea576ca23e8dd372c5227109f1b"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/backend/src/test/java/com/forcitis/one/SchemaOnlyMigrationRegistrationTest.java",
+      "path": "backend/src/test/java/com/forcitis/one/SchemaOnlyMigrationRegistrationTest.java",
+      "sha256": "03ff042e9cc426dc080fdba8344655c604c1d2a9e3b6428bd2f992f3b84315ce"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsAmountIT.java",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsAmountIT.java",
+      "sha256": "744a0a977ab21901893d6363eae8ad7bbaaab3f32377e78d7059974e56a9d419"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsDmlRoleIT.java",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsDmlRoleIT.java",
+      "sha256": "eda07d7913c4d9a3b1a348746d8b395dc93404797568dbfba47f0f5374620328"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsIntegrityIT.java",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsIntegrityIT.java",
+      "sha256": "dc3833f716fe0876120b2683d96e901c1b3dbab65a8b3154a3d36a429cc6cce5"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSchemaIT.java",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSchemaIT.java",
+      "sha256": "824a1529b2c1420d561ff254fd32f1965991001480559a697c4470a4a08d6820"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedBoundariesIT.java",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedBoundariesIT.java",
+      "sha256": "df81b7282badd3c95033ee79ffa595589cef2a114830dbb4c3fc00c6bcf095dd"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedMetadataTest.java",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedMetadataTest.java",
+      "sha256": "128ed50e126f08a7ffd0c0b27c4602b10eacfa6cb624167704268ccd00ec898e"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/docs/architecture/panorama/unbuilt-roots.yaml",
+      "path": "docs/architecture/panorama/unbuilt-roots.yaml",
+      "sha256": "0f7921cfc1fbf36a0d381a90ee9ee87a95a80d702460a6f926e0d5b27f065cb8"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/docs/architecture/ssot/aggregates/built.yaml",
+      "path": "docs/architecture/ssot/aggregates/built.yaml",
+      "sha256": "1e043bb763f9d3d68f19e27870990b7f43fe978ac10b01e3c4c6917e3b0aa0ff"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/docs/architecture/ssot/domain/contexts.yaml",
+      "path": "docs/architecture/ssot/domain/contexts.yaml",
+      "sha256": "23000d1ebc6b56adf40730fbc658eb77195f81517f659ceca0725dbec00e8763"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/docs/ops/one-db-roles-schemas.sql",
+      "path": "docs/ops/one-db-roles-schemas.sql",
+      "sha256": "5dd289cdb01ad4c41a2319b703c23af8f6eb0e5adc4e1cda44e9c56147cd6532"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/docs/ops/runbooks/sql/dev-db-verify.sql",
+      "path": "docs/ops/runbooks/sql/dev-db-verify.sql",
+      "sha256": "821131a49f0192597f09e11c999f222d82cfdf0af88fd49ebd536f09c7348982"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/docs/ops/runbooks/sql/dev-db.sql",
+      "path": "docs/ops/runbooks/sql/dev-db.sql",
+      "sha256": "49efceac4c4fb130574821b8a313d553df616cb5a0146ef14663b55db75f3650"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/docs/ops/runbooks/sql/prod-db-verify.sql",
+      "path": "docs/ops/runbooks/sql/prod-db-verify.sql",
+      "sha256": "d86a1bfd8100a785fa55732740393fcaabe4fd42d27effe72e80433d881c1dfd"
+    },
+    {
+      "commit": "27942544d70f53014052f44342c06487d52c48fb",
+      "export_path": "27942544d70f53014052f44342c06487d52c48fb/docs/ops/runbooks/sql/prod-db.sql",
+      "path": "docs/ops/runbooks/sql/prod-db.sql",
+      "sha256": "6c798ace867a597b3e7b5a489c39e416d268e3a234bac8a091ae1ae14eacff85"
+    },
+    {
+      "commit": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44",
+      "export_path": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44/backend/src/test/java/com/forcitis/one/NamingSurfaceTest.java",
+      "path": "backend/src/test/java/com/forcitis/one/NamingSurfaceTest.java",
+      "sha256": "b00a1d9a081630cdf5febc47530413cd0cbfeb45956b4fd1fe74ed5682752c57"
+    },
+    {
+      "commit": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44",
+      "export_path": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsAmountIT.java",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsAmountIT.java",
+      "sha256": "0877edf3cc86f004508d47385e2bfb67a286b049a127abfcf0e2e847350802f4"
+    },
+    {
+      "commit": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44",
+      "export_path": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsDmlRoleIT.java",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsDmlRoleIT.java",
+      "sha256": "8558a787022c3d57ae4c6d99f21615e46f4072cbfdb0ccb2cbd9c7d619dd59be"
+    },
+    {
+      "commit": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44",
+      "export_path": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsIntegrityIT.java",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsIntegrityIT.java",
+      "sha256": "3ae84b1490858741cc6aac642f966d4921c882d2c4084f775ba41b3e19bfa6d5"
+    },
+    {
+      "commit": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44",
+      "export_path": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSchemaIT.java",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSchemaIT.java",
+      "sha256": "824a1529b2c1420d561ff254fd32f1965991001480559a697c4470a4a08d6820"
+    },
+    {
+      "commit": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44",
+      "export_path": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedBoundariesIT.java",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedBoundariesIT.java",
+      "sha256": "73be507edeb4f81d22758e4db5925ea7720a7ab6882746b2f98adedcca2e296b"
+    },
+    {
+      "commit": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44",
+      "export_path": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44/backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedMetadataTest.java",
+      "path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsSignedMetadataTest.java",
+      "sha256": "128ed50e126f08a7ffd0c0b27c4602b10eacfa6cb624167704268ccd00ec898e"
+    },
+    {
+      "commit": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44",
+      "export_path": "60db4a63b5970334f1ced9a8ad7f14d4691c1b44/docs/architecture/ssot/domain/contexts.yaml",
+      "path": "docs/architecture/ssot/domain/contexts.yaml",
+      "sha256": "78559332f7a098ff567fba45c83eec272c6069ef4322b2cf840c70e4104d2511"
+    }
+  ],
+  "head": "27942544d70f53014052f44342c06487d52c48fb",
+  "status": "FROZEN"
+}

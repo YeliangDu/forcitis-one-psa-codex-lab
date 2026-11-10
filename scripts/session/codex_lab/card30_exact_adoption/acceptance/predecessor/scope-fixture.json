@@ -1,0 +1,39 @@
+{
+  "notice": "Synthetic acceptance approval fixture, NOT an installed authorization or signed candidate-update permission.",
+  "scope": {
+    "acceptance_session": "01a1b614-934c-7250-a715-5cf09e9c02c2",
+    "acceptance_sha256": "19c19d234ec0d0fdadba6598a7884c362965c6f09fe9e21a8dcee93857f68705",
+    "approval": {
+      "acceptance_manifest_sha256": "ecf963f4f9eac7991b5c21951766f18a98b81168e1a3fba97268d32586ff8d41",
+      "contribution_sha256": "46360a7fc10bf867b99477ca13811d01fc9f7ca73f9e99f337b5d48cbc5d2f26",
+      "kind": "exact-existing-pr-adoption-v1",
+      "subject": {
+        "acceptance_session": "01a1b614-934c-7250-a715-5cf09e9c02c2",
+        "acceptance_sha256": "19c19d234ec0d0fdadba6598a7884c362965c6f09fe9e21a8dcee93857f68705",
+        "author_session": "01a1b612-91bc-77c0-a824-fe48ce5cb5e0",
+        "base_ref": "main",
+        "card": 30,
+        "head_ref": "lab/30-facts-f1",
+        "new_base": "0c491846d24d194090bda99a1d16a100331cbd2c",
+        "number": 32,
+        "old_base": "15511fad03b8d2ae38e3a337f24556bd9d9071c6",
+        "old_head": "5af1d35ad76e95007a714704b97f3da07b0e0d35",
+        "repo_id": 1449415666,
+        "repository": "YeliangDu/forcitis-one-psa-codex-lab",
+        "scope_sha256": "46360a7fc10bf867b99477ca13811d01fc9f7ca73f9e99f337b5d48cbc5d2f26"
+      }
+    },
+    "author_session": "01a1b612-91bc-77c0-a824-fe48ce5cb5e0",
+    "base_ref": "main",
+    "card": 30,
+    "head_ref": "lab/30-facts-f1",
+    "new_base": "0c491846d24d194090bda99a1d16a100331cbd2c",
+    "number": 32,
+    "old_base": "15511fad03b8d2ae38e3a337f24556bd9d9071c6",
+    "old_head": "5af1d35ad76e95007a714704b97f3da07b0e0d35",
+    "repo_id": 1449415666,
+    "repository": "YeliangDu/forcitis-one-psa-codex-lab",
+    "scope_sha256": "46360a7fc10bf867b99477ca13811d01fc9f7ca73f9e99f337b5d48cbc5d2f26"
+  },
+  "test_path": "backend/src/test/java/com/forcitis/one/acceptance/operations/facts/PostingFactsDmlRoleIT.java"
+}
