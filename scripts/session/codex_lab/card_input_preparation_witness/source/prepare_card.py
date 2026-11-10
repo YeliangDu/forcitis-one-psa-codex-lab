@@ -292,10 +292,11 @@ def output_fence(repo,output):
     if (repo/'.codex-lab/role-runtime/slots/one-readonly-lab').is_dir():
         parent=repo/'.codex-lab/operations-v1/prepared'
     else:
-        need(repo.name=='work' and repo.parent.name=='slot','invalid-disposable-repo-boundary')
+        need(repo.name=='work' and repo.parent.name=='slot' and output!=repo.parent,
+             'invalid-disposable-repo-boundary')
         parent=repo.parents[1]
-    need(output.parent==parent and parent.resolve(strict=True)==parent
-         and not output.is_relative_to(repo),'output-must-be-an-isolated-prepare-directory')
+    need(output.parent==parent and parent.resolve(strict=True)==parent,
+         'output-must-be-an-isolated-prepare-directory')
 
 
 def write_once(repo,output,result):
