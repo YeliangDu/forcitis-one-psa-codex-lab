@@ -1,0 +1,57 @@
+name: Lab 54 S3b authenticated package collection
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - scripts/session/codex_lab/lab54/s3b/**
+      - .github/workflows/lab-54-s3b-collect.yml
+permissions:
+  contents: read
+jobs:
+  collect:
+    if: >-
+      github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      toJSON(github.event.repository.id) == '1449415666' &&
+      toJSON(github.event.repository.private) == 'false' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'codex/54-isolated-release'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      SUBJECT: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Collect authenticated packages for later offline verification
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT"
+          git merge-base --is-ancestor "$BASE_SHA" "$SUBJECT"
+          d="$RUNNER_TEMP/lab54-collect-evidence"
+          mkdir -p "$d"
+          printf 'head=%s\nbase=%s\nrun=%s\nattempt=%s\n' "$SUBJECT" "$BASE_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > "$d/identity.txt"
+          printf '%s  %s\n' 'd3d72a71e7ba67f3d4f7027de329838f3ea0f61ac13d3589ab8dddc35c3db6be' 'scripts/session/codex_lab/lab54/s3b/collect.sh' | sha256sum -c -
+          printf '%s  %s\n' 'bd729855af2b12f6c43dc1f0fc1f411ed2f416454a6b6214e78829be2bc5a4d7' 'scripts/session/codex_lab/lab54/s3b/Dockerfile' | sha256sum -c -
+          printf '%s  %s\n' 'f3f18bcde3ce3bba8ed14f70038badbb9ff55099e8cdd07666b92c8b1d50e770' 'scripts/session/codex_lab/lab54/s3b/entrypoint.sh' | sha256sum -c -
+          printf '%s  %s\n' '89657ef932e2c27cef42462518bfb689d77d6515e2f40ca2b2116435af3fa526' 'scripts/session/codex_lab/lab54/s3b/build_probe.sh' | sha256sum -c -
+          bash scripts/session/codex_lab/lab54/s3b/collect.sh "$RUNNER_TEMP/lab54-context" 2>&1 | tee "$d/runner.log"
+          cp "$RUNNER_TEMP/lab54-context/input-lock.json" "$RUNNER_TEMP/lab54-context/SHA256SUMS" "$d/"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: lab54-s3b-input-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab54-context/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab54-s3b-collect-evidence-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab54-collect-evidence/
+          if-no-files-found: warn
+          retention-days: 5
