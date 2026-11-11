@@ -1,0 +1,64 @@
+name: Lab 55 ordinary V2 interrupted cleanup acceptance
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - scripts/merge/mq_lab_cleanup_recovery_selftest.py
+      - scripts/merge/lab55_cleanup_fixture.py
+      - scripts/merge/mq_lab_operator.py
+      - scripts/merge/mq_lab_runtime.py
+      - scripts/merge/mq_queue.py
+      - .github/workflows/lab-55-cleanup-recovery-acceptance.yml
+permissions:
+  contents: read
+jobs:
+  frozen:
+    if: >-
+      github.repository == 'YeliangDu/forcitis-one-psa-codex-lab' &&
+      toJSON(github.event.repository.id) == '1449415666' &&
+      toJSON(github.event.repository.private) == 'false' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'codex/55-v2-cleanup-recovery'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      SUBJECT: ${{ github.event.pull_request.head.sha }}
+      BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.13'
+      - name: Install the pinned queue-tool dependency
+        run: python3 -m pip install --disable-pip-version-check PyYAML==6.0.3
+      - name: Run unchanged ordinary V2 controls
+        env:
+          GIT_ALLOW_PROTOCOL: file
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SUBJECT"
+          git merge-base --is-ancestor "$BASE_SHA" "$SUBJECT"
+          d="$RUNNER_TEMP/lab55-cleanup"
+          mkdir -p "$d"
+          printf 'head=%s\nbase=%s\nrun=%s\nattempt=%s\n' "$SUBJECT" "$BASE_SHA" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" > "$d/identity.txt"
+          python3 -B -m unittest discover -s scripts/merge -p 'ordinary_v2_selftest.py' -v 2>&1 | tee "$d/original.log"
+      - name: Run frozen cleanup crash and safety cases
+        env:
+          GIT_ALLOW_PROTOCOL: file
+        run: |
+          set -euo pipefail
+          d="$RUNNER_TEMP/lab55-cleanup"
+          printf '%s  %s\n' 'd1208590c325579089daac2c9478d17ab361e910b9d13e7f9138f174045d0526' 'scripts/merge/lab55_cleanup_fixture.py' | sha256sum -c -
+          printf '%s  %s\n' 'd934acb16843e0157424d0ddeb58cef97c36148f08d8e5bf285109f6706963bc' 'scripts/merge/mq_lab_cleanup_recovery_selftest.py' | sha256sum -c -
+          python3 -B -m unittest discover -s scripts/merge -p 'mq_lab_cleanup_recovery_selftest.py' -v 2>&1 | tee "$d/runner.log"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lab55-cleanup-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/lab55-cleanup/
+          if-no-files-found: warn

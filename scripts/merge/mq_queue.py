@@ -131,8 +131,57 @@ class Queue:
             return []
 
     def _store(self, suffix, lines):
-        with open(self.path + suffix, "w", encoding="utf-8") as f:
-            f.write("".join(l + "\n" for l in lines if l))
+        path = os.path.abspath(self.path)
+        directory = os.path.dirname(path)
+        common = os.path.dirname(directory)
+        # Limit this repair to the personal Lab canonical head sidefile. Other
+        # queues/working/cancel state retain their existing behavior.
+        lab_heads = (suffix == ".heads" and os.path.basename(path) == "merge.queue"
+                     and os.path.basename(directory) == "merge-queue" and os.path.basename(common) == ".git"
+                     and os.path.basename(os.path.dirname(common)) == "forcitis-one-psa-codex-lab")
+        if not lab_heads:
+            with open(self.path + suffix, "w", encoding="utf-8") as f:
+                f.write("".join(l + "\n" for l in lines if l))
+            return
+        import stat
+        parent = os.stat(directory, follow_symlinks=False)
+        if (not stat.S_ISDIR(parent.st_mode) or parent.st_uid != os.geteuid() or parent.st_mode & 0o022
+                or os.path.realpath(directory) != directory):
+            raise ValueError("unsafe canonical heads parent")
+        target = path + suffix
+        try:
+            before = os.lstat(target)
+        except FileNotFoundError:
+            before = None
+        if before is not None and (not stat.S_ISREG(before.st_mode) or before.st_uid != os.geteuid()
+                                   or before.st_nlink != 1 or before.st_mode & 0o022):
+            raise ValueError("unsafe canonical heads file")
+        fd, temporary = tempfile.mkstemp(dir=directory, prefix=".heads-")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as stream:
+                stream.write("".join(line + "\n" for line in lines if line))
+                stream.flush()
+                os.fsync(stream.fileno())
+            # Caller holds the original heads-lock; publish only complete bytes.
+            current = os.lstat(target) if os.path.lexists(target) else None
+            if (before is None) != (current is None) or (before is not None and
+                    (before.st_dev, before.st_ino, before.st_mtime_ns, before.st_ctime_ns) !=
+                    (current.st_dev, current.st_ino, current.st_mtime_ns, current.st_ctime_ns)):
+                raise ValueError("canonical heads moved before atomic publication")
+            current_parent = os.stat(directory, follow_symlinks=False)
+            if (current_parent.st_dev, current_parent.st_ino) != (parent.st_dev, parent.st_ino):
+                raise ValueError("canonical heads parent moved before atomic publication")
+            os.replace(temporary, target)
+            parent_fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            try:
+                if (os.fstat(parent_fd).st_dev, os.fstat(parent_fd).st_ino) != (parent.st_dev, parent.st_ino):
+                    raise ValueError("canonical heads parent moved")
+                os.fsync(parent_fd)
+            finally:
+                os.close(parent_fd)
+        finally:
+            if os.path.exists(temporary):
+                os.unlink(temporary)
 
     # The head each queued pull request had when it was queued (= approved: the coordinator approves a head and the pull request is queued on that head): "<n> <sha>" lines in <queue>.heads.
     # Without an entry (queued before this existed, gh could not say, `once`) nothing is compared.
