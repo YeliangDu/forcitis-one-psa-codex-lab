@@ -57,6 +57,10 @@ def plan(event, observed_head, paths):
             raise ValueError("Unsafe changed path")
         if path.startswith("scripts/session/codex_lab/") or path == ".github/workflows/lab-pr-ci.yml":
             required.add("shadow")
+        elif path.startswith("docs/architecture/events/"):
+            required.add("backend")
+        elif path.startswith("backend/glossary/proposed/"):
+            required.update(("frontend", "backend"))
         elif path.startswith(("frontend/", "docs/glossary/")):
             required.add("frontend")
         elif path.startswith("backend/"):
